@@ -2,7 +2,7 @@
 
 /* Synchronet BBS (telnet server) thread function prototypes */
 
-/* $Id: bbs_thrd.h,v 1.3 2000/10/26 15:06:40 rswindell Exp $ */
+/* $Id: bbs_thrd.h,v 1.4 2001/06/22 02:30:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +69,7 @@ extern "C" {
 DLLEXPORT void	DLLCALL bbs_thread(void* arg);
 DLLEXPORT void	DLLCALL bbs_terminate(void);
 DLLEXPORT char*	DLLCALL bbs_ver(void);
+DLLEXPORT long	DLLCALL	bbs_ver_num(void);
 
 #ifdef __cplusplus
 }
