@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.20 2004/09/25 06:07:02 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.23 2004/10/20 23:09:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,7 @@
 
 #include "client.h"				/* client_t */
 #include "startup.h"			/* BBS_OPT_* */
+#include "semwrap.h"			/* sem_t */
 
 typedef struct {
 	DWORD	size;				/* sizeof(web_startup_t) */
@@ -59,6 +60,7 @@ typedef struct {
 	int 	(*lputs)(void*, int, char*);
 	void	(*status)(void*, char*);
     void	(*started)(void*);
+	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
     void	(*clients)(void*, int active);
     void	(*thread_up)(void*, BOOL up, BOOL setuid);
@@ -90,11 +92,11 @@ typedef struct {
 #define WEB_OPT_DEBUG_TX			(1<<1)	/* Log all transmitted responses	*/
 #define WEB_OPT_VIRTUAL_HOSTS		(1<<4)	/* Use virutal host html subdirs	*/
 #define WEB_OPT_NO_CGI				(1<<5)	/* Disable CGI support				*/
+#define WEB_OPT_HTTP_LOGGING		(1<<6)	/* Create/write-to HttpLogFile		*/
 
 #define WEB_DEFAULT_ROOT_DIR		"../html"
 #define WEB_DEFAULT_ERROR_DIR		"error"
 #define WEB_DEFAULT_CGI_DIR			"cgi-bin"
-#define WEB_DEFAULT_LOGFILE			"../data/httpd-"
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
