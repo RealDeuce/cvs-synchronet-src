@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.121 2005/04/08 21:33:29 deuce Exp $ */
+/* $Id: uifc32.c,v 1.116 2005/02/10 07:42:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2320,12 +2320,8 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	lines=0;
 	k=0;
 	for(j=0;j<len;j++) {
-		if(mode&WIN_HLP && (hbuf[j]==2 || hbuf[j]=='~' || hbuf[j]==1 || hbuf[j]=='`'))
-			continue;
-		if(hbuf[j]==CR)
-			continue;
 		k++;
-		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n' && hbuf[j+1]!='\r'))) {
+		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n'))) {
 			k=0;
 			lines++;
 		}
@@ -2367,8 +2363,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			if((i+2)%((width-2-pad-pad)*2)==0 && (hbuf[j+1]==LF) || (hbuf[j+1]==CR && hbuf[j+1]==LF))
 				i-=2;
 		}
-		else
-			i-=2;
 	}
 	i=0;
 	p=textbuf;
