@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.87 2002/07/20 19:58:39 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.88 2002/07/20 21:25:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -984,7 +984,6 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		winsize.ws_row=rows;
 		// #warning Currently cols are forced to 80 apparently TODO
 		winsize.ws_col=80;
-		lprintf("Node %d forking new pty.",cfg.node_num);
 		if((pid=forkpty(&in_pipe[1],NULL,NULL,&winsize))==-1) {
 			pthread_mutex_unlock(&input_thread_mutex);
 			errormsg(WHERE,ERR_EXEC,cmdline,0);
