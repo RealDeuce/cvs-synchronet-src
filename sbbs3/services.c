@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.111 2003/07/08 00:24:57 rswindell Exp $ */
+/* $Id: services.c,v 1.112 2003/07/09 04:31:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -249,6 +249,62 @@ static time_t checktime(void)
 /* Global JavaScript Methods */
 
 static JSBool
+js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		buf;
+	int32		len=512;
+	service_client_t* client;
+
+	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	*rval = JSVAL_VOID;
+
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
+	
+	if((buf=malloc(len))==NULL)
+		return(JS_TRUE);
+
+	len=recv(client->socket,buf,len,0);
+
+	if(len>0)
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
+
+	free(buf);
+
+	return(JS_TRUE);
+}
+
+static JSBool
+js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		buf;
+	int32		len=512;
+	service_client_t* client;
+
+	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	*rval = JSVAL_VOID;
+
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
+	
+	if((buf=malloc(len))==NULL)
+		return(JS_TRUE);
+
+	len=recv(client->socket,buf,len,0);	/* Need to switch to sockreadline */
+
+	if(len>0)
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
+
+	free(buf);
+
+	return(JS_TRUE);
+}
+
+static JSBool
 js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uintN		i;
@@ -446,6 +502,8 @@ js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSFunctionSpec js_global_functions[] = {
+	{"read",			js_read,			0},		/* read from client socket */
+	{"readln",			js_readln,			0},		/* read line from client socket */
 	{"write",			js_write,			0},		/* write to client socket */
 	{"writeln",			js_writeln,			0},		/* write line to client socket */
 	{"print",			js_writeln,			0},		/* write line to client socket */
@@ -1251,7 +1309,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.111 $", "%*s %s", revision);
+	sscanf("$Revision: 1.112 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
