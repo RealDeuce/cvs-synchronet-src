@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.94 2004/12/04 09:56:28 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.98 2005/01/05 06:35:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,21 +51,24 @@ static const char*	strLogMask="LogMask";
 static const char*	strBindRetryCount="BindRetryCount";
 static const char*	strBindRetryDelay="BindRetryDelay";
 
-#if defined(SBBSNTSVCS)
+#if defined(SBBSNTSVCS) && 0	/* sbbs_ini.obj is shared with sbbs.exe (!) */
 	#define DEFAULT_LOG_MASK		0x3f	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE */
 #else
 	#define DEFAULT_LOG_MASK		0xff	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO|DEBUG */
 #endif
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
-#define DEFAULT_BIND_RETRY_COUNT	10
+#define DEFAULT_BIND_RETRY_COUNT	2
 #define DEFAULT_BIND_RETRY_DELAY	15
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
-    char host_name[128];
-    char path[MAX_PATH+1];
+    char	host_name[128];
+    char	path[MAX_PATH+1];
+	char*	p;
 
-    if(pHostName==NULL) {
+    if(pHostName!=NULL)
+		SAFECOPY(host_name,pHostName);
+	else {
 #if defined(_WINSOCKAPI_)
         WSADATA WSAData;
         WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */
@@ -74,17 +77,24 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 #if defined(_WINSOCKAPI_)
         WSACleanup();
 #endif
-        pHostName=host_name;
     }
 	SAFECOPY(path,ctrl_dir);
 	backslash(path);
-	sprintf(ini_file,"%s%s.ini",path,pHostName);
+	sprintf(ini_file,"%s%s.ini",path,host_name);
+	if(fexistcase(ini_file))
+		return;
+	if((p=strchr(host_name,'.'))!=NULL) {
+		*p=0;
+		sprintf(ini_file,"%s%s.ini",path,host_name);
+		if(fexistcase(ini_file))
+			return;
+	}
 #if defined(__unix__) && defined(PREFIX)
-	if(!fexistcase(ini_file))
-		sprintf(ini_file,PREFIX"/etc/sbbs.ini");
+	sprintf(ini_file,PREFIX"/etc/sbbs.ini");
+	if(fexistcase(ini_file))
+		return;
 #endif
-	if(!fexistcase(ini_file))
-		sprintf(ini_file,"%ssbbs.ini",path);
+	sprintf(ini_file,"%ssbbs.ini",path);
 }
 
 static void read_ini_globals(FILE* fp, global_startup_t* global)
@@ -698,7 +708,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,bbs->bind_retry_count,&style))
 			break;
 		if(bbs->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,bbs->bind_retry_delay,&style))
 			break;
 	}
@@ -774,7 +784,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,ftp->bind_retry_count,&style))
 			break;
 		if(ftp->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,ftp->bind_retry_delay,&style))
 			break;
 	}
@@ -873,7 +883,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,mail->bind_retry_count,&style))
 			break;
 		if(mail->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,mail->bind_retry_delay,&style))
 			break;
 	}
@@ -946,7 +956,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,services->bind_retry_count,&style))
 			break;
 		if(services->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,services->bind_retry_delay,&style))
 			break;
 	}
@@ -1044,7 +1054,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,web->bind_retry_count,&style))
 			break;
 		if(web->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,web->bind_retry_delay,&style))
 			break;
 	}

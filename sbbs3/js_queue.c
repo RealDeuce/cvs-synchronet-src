@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.8 2004/11/18 01:00:54 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.9 2004/12/30 10:59:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -375,18 +375,18 @@ static JSClass js_queue_class = {
 };
 
 static jsSyncMethodSpec js_queue_functions[] = {
-	{"poll",		js_poll,		0,	JSTYPE_BOOLEAN,	"[timeout]"
-	,JSDOCSTR("poll for a value on the queue up-to <i>timeout</i> milliseconds "
-		"(default: <i>infinite</i>), returns <i>true</i> or the <i>name</i> of "
+	{"poll",		js_poll,		0,	JSTYPE_UNDEF,	"[timeout]"
+	,JSDOCSTR("wait for a value on the queue for up to <i>timeout</i> milliseconds "
+		"(default: <i>infinite</i>), returns <i>true</i> or the <i>name</i> (string) of "
 		"the value waiting (if it has one), or <i>false</i> if no values are waiting")
 	,312
 	},
-	{"read",		js_read,		0,	JSTYPE_VOID,	"[name]"
+	{"read",		js_read,		0,	JSTYPE_UNDEF,	"[name]"
 	,JSDOCSTR("read a value from the queue, if <i>name</i> not specified, reads next value "
 		"from the bottom of the queue")
 	,312
 	},
-	{"peek",		js_peek,		0,	JSTYPE_VOID,	""
+	{"peek",		js_peek,		0,	JSTYPE_UNDEF,	""
 	,JSDOCSTR("peek at the value at the bottom of the queue")
 	,312
 	},
