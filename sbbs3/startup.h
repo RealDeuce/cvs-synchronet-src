@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.35 2003/04/28 04:17:44 deuce Exp $ */
+/* $Id: startup.h,v 1.36 2003/04/29 04:29:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,11 +45,9 @@
 #include "client.h"
 #include "ringbuf.h"
 #include "threadwrap.h"	/* sem_t */
-#if defined(_PTH_PTHREAD_H_) && ! defined(SBBS) /* Ugly hack around the use of startup.h including threadwrap.h */
+#if defined(SBBS) /* Ugly hack around the use of startup.h including threadwrap.h */
 	/* Leave the warning here as incentive to fix it correctly! */
-	#define SLEEP(x)		({	int y=x; struct timeval tv; \
-								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
-								select(0,NULL,NULL,NULL,&tv); })
+	#define YIELD()
 #endif
 
 typedef struct {

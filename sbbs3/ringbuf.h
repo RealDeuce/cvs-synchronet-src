@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.3 2002/12/31 01:45:40 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.4 2003/04/29 04:29:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,9 +42,10 @@
 #ifndef _RINGBUF_H_
 #define _RINGBUF_H_
 
-#ifdef RINGBUF_MUTEX
+/* #ifdef RINGBUF_MUTEX */
+/* Needed for YIELD() definition also are ringbuffers ever used in non-threaded bits? */
 #include "threadwrap.h"
-#endif
+/* #endif */
 
 #ifndef DWORD
 #define DWORD unsigned long
