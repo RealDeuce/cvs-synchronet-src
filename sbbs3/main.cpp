@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.75 2001/11/11 21:41:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.76 2001/11/13 05:16:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -509,6 +509,10 @@ bool sbbs_t::js_initcx()
 
 		/* Socket Class */
 		if(js_CreateSocketClass(js_cx, js_glob)==NULL)
+			break;
+
+		/* MsgBase Class */
+		if(js_CreateMsgBaseClass(js_cx, js_glob, &cfg)==NULL)
 			break;
 
 		/* File Class */
@@ -2591,17 +2595,21 @@ void node_thread(void* arg)
 		if(sbbs->js_cx!=NULL) {
 			JS_BeginRequest(sbbs->js_cx);	/* Required for multi-thread support */
 
-			/* User Class */
+			/* User class */
 			if(js_CreateUserClass(sbbs->js_cx, sbbs->js_glob, &sbbs->cfg)==NULL) 
 				lprintf("!JavaScript ERROR creating user class");
 
-			/* User Object */
+			/* user object */
 			if(js_CreateUserObject(sbbs->js_cx, sbbs->js_glob, &sbbs->cfg, "user", sbbs->useron.number)==NULL) 
 				lprintf("!JavaScript ERROR creating user object");
 
-			/* FileArea Object */
+			/* file_area object */
 			if(js_CreateFileAreaObject(sbbs->js_cx, sbbs->js_glob, &sbbs->cfg, &sbbs->useron, "")==NULL) 
 				lprintf("!JavaScript ERROR createing file_area object");
+
+			/* msg_area object */
+			if(js_CreateMsgAreaObject(sbbs->js_cx, sbbs->js_glob, &sbbs->cfg, &sbbs->useron)==NULL) 
+				lprintf("!JavaScript ERROR createing msg_area object");
 
 			JS_EndRequest(sbbs->js_cx);	/* Required for multi-thread support */
 		}
