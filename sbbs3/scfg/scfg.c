@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.25 2002/04/26 01:13:13 rswindell Exp $ */
+/* $Id: scfg.c,v 1.26 2002/04/30 08:03:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,7 +159,11 @@ backslashcolon(cfg.ctrl_dir);
 uifc.size=sizeof(uifc);
 #if defined(USE_DIALOG)
 if(!door_mode)
-    i=uifcinid(&uifc);  /* libdialog */
+    i=uifcinid(&uifc);  /* dialog */
+else
+#elif defined(USE_CURSES)
+if(!door_mode)
+    i=uifcinic(&uifc);  /* curses */
 else
 #elif !defined(__unix__)
 if(!door_mode)
