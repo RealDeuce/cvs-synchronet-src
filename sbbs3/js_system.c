@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.71 2003/07/25 08:17:30 rswindell Exp $ */
+/* $Id: js_system.c,v 1.72 2003/08/28 00:39:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,6 +100,8 @@ enum {
 	/* filenames */
 	,SYS_PROP_DEVNULL
 
+	/* last */
+	,SYS_PROP_LOCAL_HOSTNAME
 };
 
 static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -276,6 +278,11 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case SYS_PROP_DEVNULL:
 			p=_PATH_DEVNULL;
 			break;
+
+		case SYS_PROP_LOCAL_HOSTNAME:
+			gethostname(str,sizeof(str));
+			p=str;
+			break;
 	}
 
 	if(p!=NULL) {	/* string property */
@@ -370,6 +377,9 @@ static struct JSPropertySpec js_system_properties[] = {
 
 	/* filenames */
 	{	"devnull",					SYS_PROP_DEVNULL		,SYSOBJ_FLAGS,	NULL,	NULL },
+
+	/* last */
+	{	"local_host_name",			SYS_PROP_LOCAL_HOSTNAME,SYSOBJ_FLAGS,	NULL,	NULL },
 	{0}
 };
 
@@ -435,9 +445,10 @@ static char* sys_prop_desc[] = {
 	,"null device filename"
 
 	/* INSERT new tabled properties here */
+	,"private host name that uniquely identifies this system on the local network"
 
 	/* Manually created (non-tabled) properties */
-	,"server's host name (usually the same as <i>system.inetaddr</i>)"
+	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inetaddr</i>)"
 	,"Synchronet version number (e.g. '3.10')"
 	,"Synchronet revision letter (e.g. 'k')"
 	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
