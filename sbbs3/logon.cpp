@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.3 2000/10/24 07:55:55 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.4 2000/10/31 04:14:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -349,7 +349,8 @@ bool sbbs_t::logon()
 							continue; }
 					if(!trashcan(useron.phone,"PHONE"))
 						break; } }
-			if( /* cfg.uq&UQ_EMAIL && */ !useron.netmail[0]) {
+			if(!(sys_status&SS_RLOGIN) 
+				&& /* cfg.uq&UQ_EMAIL && */ !useron.netmail[0]) {
 				while(online) {
 					bputs(text[EnterNetMailAddress]);
 					if(getstr(useron.netmail,LEN_NETMAIL,K_EDIT|K_AUTODEL|K_LINE))
