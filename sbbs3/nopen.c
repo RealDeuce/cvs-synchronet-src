@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.8 2003/04/29 07:07:14 deuce Exp $ */
+/* $Id: nopen.c,v 1.9 2003/04/30 20:32:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,8 +37,6 @@
 
 #include "sbbs.h"
 #include "crc32.h"
-#undef YIELD 			/* Kill YIELD in mswait() for nopen() */
-#define YIELD()
 
 /****************************************************************************/
 /* Network open function. Opens all files DENYALL and retries LOOP_NOPEN    */
