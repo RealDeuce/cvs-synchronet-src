@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.51 2003/09/08 23:09:35 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.52 2003/09/09 02:18:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define SMBUTIL_VER "2.31"
+#define SMBUTIL_VER "2.32"
 char	revision[16];
 char	compiler[32];
 
@@ -1378,7 +1378,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.51 $", "%*s %s", revision);
+	sscanf("$Revision: 1.52 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
