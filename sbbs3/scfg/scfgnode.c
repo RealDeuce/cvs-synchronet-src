@@ -1,6 +1,6 @@
 /* scfgnode.c */
 
-/* $Id: scfgnode.c,v 1.13 2002/03/16 12:34:41 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.14 2002/03/17 01:46:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,7 +198,7 @@ Options with a trailing ... will produce a sub-menu of more options.
 	switch(uifc.list(WIN_ACT|WIN_CHE|WIN_BOT|WIN_RHT,0,0,60,&node_dflt,0
 		,str,opt)) {
 		case -1:
-			i=save_changes(WIN_MID);
+			i=save_changes(WIN_MID|WIN_SAV);
 			if(!i) {
 				write_node_cfg(&cfg,backup_level);
                 rerun_nodes();
