@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.46 2003/05/31 06:43:27 deuce Exp $ */
+/* $Id: umonitor.c,v 1.47 2003/07/15 22:49:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -392,7 +392,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.46 $", "%*s %s", revision);
+	sscanf("$Revision: 1.47 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -410,13 +410,13 @@ int main(int argc, char** argv)  {
 		strcat(ctrl_dir,"/");
 
 	gethostname(str,sizeof(str)-1);
-	sprintf(ini_file,"%s%c%s.ini",ctrl_dir,BACKSLASH,str);
+	sprintf(ini_file,"%s%c%s.ini",ctrl_dir,PATH_DELIM,str);
 #if defined(PREFIX)
 	if(!fexistcase(ini_file))
 		sprintf(ini_file,"%s/etc/sbbs.ini",PREFIX);
 #endif
 	if(!fexistcase(ini_file))
-		sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,BACKSLASH);
+		sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,PATH_DELIM);
 
 	/* Initialize BBS startup structure */
     memset(&bbs_startup,0,sizeof(bbs_startup));
