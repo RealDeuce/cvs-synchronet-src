@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.95 2005/02/28 03:37:11 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.91 2004/11/20 18:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,14 +35,10 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/utsname.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 /* XPDEV */
 #include "gen_defs.h"
@@ -72,8 +68,11 @@
 #endif
 
 char *distlists[]={
-	 "http://cvs.synchro.net/cgi-bin/viewcvs.cgi/*checkout*/src/sbbs3/install/sbbsdist.lst?rev=HEAD&content-type=text/plain"
-	 "http://cvs-mirror.synchro.net/cgi-bin/viewcvs.cgi/*checkout*/src/sbbs3/install/sbbsdist.lst?rev=HEAD&content-type=text/plain"
+	 "http://www.synchro.net/sbbsdist.lst"
+	,"http://rob.synchro.net/sbbsdist.lst"
+	,"http://cvs.synchro.net/sbbsdist.lst"
+	,"http://bbs.synchro.net/sbbsdist.lst"
+	,"http://freebsd.synchro.net/sbbsdist.lst"
 	,NULL	/* terminator */
 };
 
@@ -105,7 +104,6 @@ enum {
 /* Global Variables */
 /********************/
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
-uifcapi_t uifc_bak; /* User Interface (UIFC) Library API */
 
 struct {
 	char	install_path[256];
@@ -121,9 +119,7 @@ struct {
 	struct utsname	name;	
 	char	sbbsuser[9];		/* Historical UName limit of 8 chars */
 	char	sbbsgroup[17];		/* Can't find historical limit for group names */
-#ifdef __linux__
-	BOOL	use_dosemu;
-#endif
+	BOOL	useX;
 } params; /* Build parameters */
 
 #define MAKEFILE "/tmp/SBBSmakefile"
@@ -142,7 +138,6 @@ int  backup_level=5;
 BOOL keep_makefile=FALSE;
 BOOL http_distlist=TRUE;
 BOOL http_verbose=FALSE;
-BOOL uifcinit=FALSE;
 
 /**************/
 /* Prototypes */
@@ -186,18 +181,17 @@ int filereadline(int sock, char *buf, size_t length, char *error)
 void bail(int code)
 {
     if(code) {
-        cputs("\nHit a key...");
+        puts("\nHit a key...");
         getch(); 
 	}
-	if(uifcinit)
-	    uifc.bail();
+    uifc.bail();
 
     exit(code);
 }
 
 void allocfail(uint size)
 {
-    cprintf("\7Error allocating %u bytes of memory.\n",size);
+    printf("\7Error allocating %u bytes of memory.\n",size);
     bail(1);
 }
 
@@ -208,11 +202,11 @@ int main(int argc, char **argv)
 	int 	i=0;
 	int		main_dflt=0;
 	char 	str[129];
+	BOOL    door_mode=FALSE;
 	dist_t 	**distlist;
 	int		dist=0;
 	int		server=0;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
-	int		tmode=C80;
 
 	/************/
 	/* Defaults */
@@ -230,12 +224,9 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsuser,p);
 	if((p=getenv("GROUP"))!=NULL)
 		SAFECOPY(params.sbbsgroup,p);
-#ifdef __linux__
-	params.use_dosemu=FALSE;
-#endif
+	params.useX=FALSE;
 
-	sscanf("$Revision: 1.95 $", "%*s %s", revision);
-	umask(077);
+	sscanf("$Revision: 1.91 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -253,6 +244,11 @@ int main(int argc, char **argv)
             switch(toupper(argv[i][1])) {
                 case 'C':
         			uifc.mode|=UIFC_COLOR;
+                    break;
+                case 'D':
+					printf("NOTICE: The -d option is depreciated, use -id instead\r\n");
+					SLEEP(2000);
+                    door_mode=TRUE;
                     break;
                 case 'L':
                     uifc.scrn_len=atoi(argv[i]+2);
@@ -287,12 +283,15 @@ int main(int argc, char **argv)
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
 							break;
+						case 'D':
+		                    door_mode=TRUE;
+		                    break;
 						default:
 							goto USAGE;
 					}
 					break;
                 case 'V':
-					tmode=atoi(argv[i]+2);
+                    textmode(atoi(argv[i]+2));
                     break;
                 default:
 					USAGE:
@@ -321,20 +320,21 @@ int main(int argc, char **argv)
            }
     }
 
-	i=initciolib(ciolib_mode);
-	if(i!=0) {
-    	printf("ciolib library init returned error %d\n",i);
-    	exit(1);
-	}
-	textmode(tmode);
 	uifc.size=sizeof(uifc);
-	memcpy(&uifc_bak,&uifc,sizeof(uifc));
-    i=uifcini32(&uifc);  /* curses/conio/X/ANSI */
-	if(i!=0) {
-		cprintf("uifc library init returned error %d\n",i);
-		bail(1);
+	if(!door_mode) {
+		i=initciolib(ciolib_mode);
+		if(i!=0) {
+    		printf("ciolib library init returned error %d\n",i);
+    		exit(1);
+		}
+    	i=uifcini32(&uifc);  /* curses/conio/X/ANSI */
 	}
-	uifcinit=TRUE;
+	else
+    	i=uifcinix(&uifc);  /* stdio */
+	if(i!=0) {
+		printf("uifc library init returned error %d\n",i);
+		exit(1);
+	}
 
 	if(uname(&params.name)<0)  {
 		SAFECOPY(params.name.machine,"Unknown");
@@ -345,8 +345,8 @@ int main(int argc, char **argv)
 	distlist=get_distlist();
 
 	if(distlist==NULL) {
-		cprintf("No installation files or distribution list present!\n");
-		bail(1);
+		printf("No installation files or distribution list present!\n");
+		exit(1);
 	}
 
 	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
 
 	sprintf(str,"Synchronet Installation %s-%s",revision,PLATFORM_DESC);
 	if(uifc.scrn(str)) {
-		cprintf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
+		printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
 		bail(1);
 	}
 
@@ -381,8 +381,8 @@ int main(int argc, char **argv)
 		sprintf(mopt[i++],"%-27.27s%s","Make Command-line",params.make_cmdline);
 		sprintf(mopt[i++],"%-27.27s%s","File Owner",params.sbbsuser);
 		sprintf(mopt[i++],"%-27.27s%s","File Group",params.sbbsgroup);
-#ifdef __linux__
-		sprintf(mopt[i++],"%-27.27s%s","Integrate DOSEmu support",params.use_dosemu?"Yes":"No");
+#if 0 /* this won't work until we get the FTLK source in CVS */
+		sprintf(mopt[i++],"%-27.27s%s","Include X/FLTK Support",params.useX?"Yes":"No");
 #endif
 		sprintf(mopt[i++],"%-27.27s","Start Installation...");
 		mopt[i][0]=0;
@@ -489,26 +489,24 @@ int main(int argc, char **argv)
 								"\n";
 				uifc.input(WIN_MID,0,0,"",params.sbbsgroup,32,K_EDIT);
 				break;
-#ifdef __linux__
+#if 0
 			case 11:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
-				i=params.use_dosemu?0:1;
-				uifc.helpbuf=	"`Include DOSEmu Support`\n"
+				i=params.useX?0:1;
+				uifc.helpbuf=	"`Include X Support`\n"
 								"\nToDo: Add help.";
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Integrate DOSEmu support into Synchronet?",opt);
+					,"Build GUI Versions of scfg and echocfg",opt);
 				if(!i)
-					params.use_dosemu=TRUE;
+					params.useX=TRUE;
 				else if(i==1)
-					params.use_dosemu=FALSE;
+					params.useX=FALSE;
 				i=0;
 				break;
-			case 12:
-#else
-			case 11:
 #endif
+			case 11:
 				install_sbbs(distlist[dist],distlist[dist]->type==LOCAL_FILE?NULL:distlist[dist]->servers[server]);
 				bail(0);
 				break;
@@ -532,183 +530,9 @@ int main(int argc, char **argv)
 /* Little wrapper for system calls */
 int exec(char* cmd)
 {
-	int		in_pipe[2];
-	int		out_pipe[2];
-	int		err_pipe[2];
-	int		wait_done;
-	pid_t	pid;
-	struct	text_info	err_window;
-	struct	text_info	out_window;
-	int	avail;
-	struct timeval timeout;
-	char	*buf;
-	int		i,retval;
-
-	if(pipe(out_pipe)!=0 || pipe(in_pipe)!=0 || pipe(err_pipe)!=0) {
-		cputs("\nError creating I/O pipes");
-		bail(1);
-	}
-
-	if((pid=FORK())==-1) {
-		return(-1);
-	}
-
-	if(pid==0) {
-		char	*argv[4];
-		/* Child Process */
-		close(in_pipe[1]);		/* close write-end of pipe */
-		dup2(in_pipe[0],0);		/* redirect stdin */
-		close(in_pipe[0]);		/* close excess file descriptor */
-
-		close(out_pipe[0]);		/* close read-end of pipe */
-		dup2(out_pipe[1],1);	/* stdout */
-		close(out_pipe[1]);		/* close excess file descriptor */
-		setvbuf(stdout,NULL,_IONBF,0);	/* Make stdout unbuffered */
-
-		close(err_pipe[0]);		/* close read-end of pipe */
-		dup2(err_pipe[1],2);	/* stderr */
-		close(err_pipe[1]);		/* close excess file descriptor */
-		setvbuf(stderr,NULL,_IONBF,0);	/* Make stderr unbuffered */
-
-		argv[0]="/bin/sh";
-		argv[1]="-c";
-		argv[2]=cmd;
-		argv[3]=NULL;
-		execvp(argv[0],argv);
-		_exit(1);
-	}
-
-	close(in_pipe[0]);		/* close excess file descriptor */
-	close(out_pipe[1]);		/* close excess file descriptor */
-	close(err_pipe[1]);		/* close excess file descriptor */
-
-	i=waitpid(pid, &retval, WNOHANG)!=0;
-	wait_done=(i!=0);
-	if(i==-1)
-		retval=-1;
-	gettextinfo(&err_window);
-	clrscr();
-	gotoxy(1,1);
-	cprintf("Running command: %s",cmd);
-	gotoxy(1,2);
-	clreol();
-	textattr(RED<<4|WHITE);
-	cputs("Error Output:");
-	window(1,3,err_window.screenwidth,7);
-	clrscr();
-	gotoxy(1,1);
-	gettextinfo(&err_window);
-	window(1,1,err_window.screenwidth,err_window.screenheight);
-	gotoxy(1,8);
-	textattr(LIGHTGRAY);
-	cputs("Output:");
-	window(1,9,err_window.screenwidth,err_window.screenheight);
-	clrscr();
-	gotoxy(1,1);
-	gettextinfo(&out_window);
-	_wscroll=1;
-	while(!wait_done) {
-		fd_set ibits;
-		int	high_fd;
-
-		i=waitpid(pid, &retval, WNOHANG)!=0;
-		wait_done=(i!=0);
-		if(i==-1)
-			retval=-1;
-		FD_ZERO(&ibits);
-		FD_SET(err_pipe[0],&ibits);
-		high_fd=err_pipe[0];
-		FD_SET(out_pipe[0],&ibits);
-		if(out_pipe[0]>err_pipe[0])
-			high_fd=out_pipe[0];
-		timeout.tv_sec=0;
-		timeout.tv_usec=1000;
-		if(select(high_fd+1,&ibits,NULL,NULL,&timeout)>0) {
-			if(FD_ISSET(err_pipe[0],&ibits)) {
-				/* Got some stderr input */
-				window(err_window.winleft,err_window.wintop,err_window.winright,err_window.winbottom);
-				gotoxy(err_window.curx,err_window.cury);
-				textattr(err_window.attribute);
-				avail=0;
-				if(ioctl(err_pipe[0],FIONREAD,(void *)&avail)!=-1 && avail > 0) {
-					int	got=0;
-					buf=(char *)malloc(avail+1);
-					while(got<avail) {
-						i=read(err_pipe[0], buf+got, avail-got);
-						if(i>0) {
-							got+=i;
-						}
-						if(i==-1)
-							break;
-					}
-					if(got==avail) {
-						buf[avail]=0;
-						cputs(buf);
-					}
-					free(buf);
-				}
-				gettextinfo(&err_window);
-			}
-			if(FD_ISSET(out_pipe[0],&ibits)) {
-				/* Got some stdout input */
-				window(out_window.winleft,out_window.wintop,out_window.winright,out_window.winbottom);
-				gotoxy(out_window.curx,out_window.cury);
-				textattr(out_window.attribute);
-				avail=0;
-				if(ioctl(out_pipe[0],FIONREAD,(void *)&avail)!=-1 && avail > 0) {
-					int	got=0;
-					buf=(char *)malloc(avail+1);
-					while(got<avail) {
-						i=read(out_pipe[0], buf+got, avail-got);
-						if(i>0) {
-							got+=i;
-						}
-						if(i==-1)
-							break;
-					}
-					if(got==avail) {
-						buf[avail]=0;
-						cputs(buf);
-					}
-					free(buf);
-				}
-				gettextinfo(&out_window);
-			}
-		}
-	}
-
-	return(retval);
-}
-
-int view_file(char *filename, char *title)
-{
-	char str[1024];
-	int buffile;
-	int j;
-	char *buf;
-
-	if(fexist(filename)) {
-		if((buffile=sopen(filename,O_RDONLY,SH_DENYWR))>=0) {
-			j=filelength(buffile);
-			if((buf=(char *)MALLOC(j+1))!=NULL) {
-				read(buffile,buf,j);
-				close(buffile);
-				*(buf+j)=0;
-				uifc.showbuf(WIN_MID|WIN_PACK|WIN_FAT,1,1,80,uifc.scrn_len,title,buf,NULL,NULL);
-				free(buf);
-				return(0);
-			}
-			close(buffile);
-			uifc.msg("Error allocating memory for the file");
-			return(3);
-		}
-		sprintf(str,"Error opening %s",title);
-		uifc.msg(str);
-		return(1);
-	}
-	sprintf(str,"%s does not exists",title);
-	uifc.msg(str);
-	return(2);
+	printf("%s\n",cmd);
+	fflush(stdout);
+	return(system(cmd));
 }
 
 		/* Some jiggery-pokery here to avoid having to enter the CVS password */
@@ -744,7 +568,7 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 	
 	if(params.symlink)
 		putenv("SYMLINK=1");
-
+	
 	sprintf(sbbsdir,"SBBSDIR=%s",params.install_path);
 	putenv(sbbsdir);
 	if(params.sbbsuser[0]) {
@@ -755,11 +579,9 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 		sprintf(sbbsgroup,"SBBSGROUP=%s",params.sbbsgroup);
 		putenv(sbbsgroup);
 	}
-#ifdef __linux__
-	if(params.use_dosemu==TRUE) {
-		putenv("USE_DOSEMU=1");
+	if(params.useX==TRUE) {
+		putenv("MKFLAGS=USE_FLTK=1");
 	}
-#endif
 
 	if(params.usebcc)
 		putenv("bcc=1");
@@ -776,20 +598,19 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 		bail(EXIT_FAILURE);
 	}
 	uifc.bail();
-	uifcinit=FALSE;
 	switch (dist->type)  {
 		case CVS_SERVER:
 			sprintf(cvstag,"CVSTAG=%s",dist->tag);
 			putenv(cvstag);
 			sprintf(cmd,"cvs -d %s co -r %s install",server->addr,dist->tag);
 			if(exec(cmd))  {
-				cprintf("Could not checkout install makefile.\n");
-				bail(EXIT_FAILURE);
+				printf("Could not checkout install makefile.\n");
+				exit(EXIT_FAILURE);
 			}
 			sprintf(cmd,"%s %s",params.make_cmdline,dist->make_opts);
 			if(exec(cmd))  {
-				cprintf(MAKE_ERROR);
-				bail(EXIT_FAILURE);
+				printf(MAKE_ERROR);
+				exit(EXIT_FAILURE);
 			}
 			break;
 		case DIST_SET:
@@ -797,8 +618,8 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 				sprintf(fname,dist->files[i],params.sys_desc);
 				SAFECOPY(dstfname,fname);
 				if((fout=open(fname,O_WRONLY|O_TRUNC|O_CREAT,S_IRUSR|S_IWUSR))<0)  {
-					cprintf("Could not download distfile to %s (%d)\n",fname,errno);
-					bail(EXIT_FAILURE);
+					printf("Could not download distfile to %s (%d)\n",fname,errno);
+					exit(EXIT_FAILURE);
 				}
 				sprintf(url,"%s%s",server->addr,fname);
 				if((remote=http_get_fd(url,&flen,NULL))<0)  {
@@ -811,89 +632,78 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 						/* retry using default system-type for system name */
 						sprintf(fname,dist->files[i],DEFAULT_SYSTYPE);
 						if((remote=http_get_fd(url,&flen,http_error))<0)  {
-							cprintf("Cannot get distribution file %s!\n",fname);
-							cprintf("%s\n- %s\n",url,http_error);
+							printf("Cannot get distribution file %s!\n",fname);
+							printf("%s\n- %s\n",url,http_error);
 							close(fout);
 							unlink(dstfname);
-							bail(EXIT_FAILURE);
+							exit(EXIT_FAILURE);
 						}
 					}
 				}
-				cprintf("Downloading %s           ",url);
+				printf("Downloading %s           ",url);
 				offset=0;
 				while((ret1=read(remote,buf,sizeof(buf)))>0)  {
 					ret2=write(fout,buf,ret1);
 					if(ret2!=ret1)  {
-						cprintf("\n!ERROR %d writing to %s\n",errno,dstfname);
+						printf("\n!ERROR %d writing to %s\n",errno,dstfname);
 						close(fout);
 						unlink(dstfname);
-						bail(EXIT_FAILURE);
+						exit(EXIT_FAILURE);
 					}
 					offset+=ret2;
 					if(flen)
-						cprintf("\b\b\b\b\b\b\b\b\b\b%3lu%%      ",(long)(((float)offset/(float)flen)*100.0));
+						printf("\b\b\b\b\b\b\b\b\b\b%3lu%%      ",(long)(((float)offset/(float)flen)*100.0));
 					else
-						cprintf("\b\b\b\b\b\b\b\b\b\b%10lu",offset);
+						printf("\b\b\b\b\b\b\b\b\b\b%10lu",offset);
+					fflush(stdout);
 				}
-				cprintf("\n");
+				printf("\n");
+				fflush(stdout);
 				if(ret1<0)  {
-					cprintf("!ERROR downloading %s\n",fname);
+					printf("!ERROR downloading %s\n",fname);
 					close(fout);
 					unlink(dstfname);
-					bail(EXIT_FAILURE);
+					exit(EXIT_FAILURE);
 				}
 				close(fout);
 				sprintf(cmd,"gzip -dc %s | tar -xvf -",dstfname);
 				if(exec(cmd))  {
-					cprintf("Error extracting %s\n",dstfname);
+					printf("Error extracting %s\n",dstfname);
 					unlink(dstfname);
-					bail(EXIT_FAILURE);
+					exit(EXIT_FAILURE);
 				}
 				unlink(dstfname);
 			}
 			sprintf(cmd,"%s %s",params.make_cmdline,dist->make_opts);
 			if(exec(cmd))  {
-				cprintf(MAKE_ERROR);
-				bail(EXIT_FAILURE);
+				printf(MAKE_ERROR);
+				exit(EXIT_FAILURE);
 			}
 			break;
 		case LOCAL_FILE:
 			for(i=0;dist->files[i][0];i++)  {
 				sprintf(cmd,"gzip -dc %s/%s | tar -xvf -",path,dist->files[i]);
 				if(exec(cmd))  {
-					cprintf("Error extracting %s/%s\n",path,dist->files[i]);
-					bail(EXIT_FAILURE);
+					printf("Error extracting %s/%s\n",path,dist->files[i]);
+					exit(EXIT_FAILURE);
 				}
 			}
 			sprintf(cmd,"%s %s",params.make_cmdline,dist->make_opts);
 			if(exec(cmd))  {
-				cprintf(MAKE_ERROR);
-				bail(EXIT_FAILURE);
+				printf(MAKE_ERROR);
+				exit(EXIT_FAILURE);
 			}
 			break;
 	}
 
-	memcpy(&uifc,&uifc_bak,sizeof(uifc));
-    i=uifcini32(&uifc);  /* curses/conio/X/ANSI */
-	if(i!=0) {
-		cprintf("uifc library init returned error %d\n",i);
-		bail(EXIT_FAILURE);
-	}
-	uifcinit=TRUE;
-	sprintf(str,"Synchronet Installation %s-%s",revision,PLATFORM_DESC);
-	if(uifc.scrn(str)) {
-		cprintf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
-		bail(EXIT_FAILURE);
-	}
-	sprintf(cmd,"%s/docs/sbbscon.txt",params.install_path);
-	view_file(cmd,"*nix console documentation");
-	uifc.bail();
-	uifcinit=FALSE;
-	cprintf("Synchronet has been successfully installed to:\n\t%s\n",params.install_path);
-	cprintf("Documentation files in:\n\t%s/docs\n",params.install_path);
-	cprintf("Configuration files in:\n\t%s/ctrl\n",params.install_path);
-	cprintf("Executable program files in:\n\t%s/exec\n",params.install_path);
-	bail(EXIT_SUCCESS);
+	sprintf(cmd,"more -c %s/docs/sbbscon.txt",params.install_path);
+	exec(cmd);
+	printf("Synchronet has been successfully installed to:\n\t%s\n",params.install_path);
+	printf("Documentation files in:\n\t%s/docs\n",params.install_path);
+	printf("Configuration files in:\n\t%s/ctrl\n",params.install_path);
+	printf("Executable program files in:\n\t%s/exec\n",params.install_path);
+	exit(EXIT_SUCCESS);
+
 }
 
 dist_t **
@@ -967,10 +777,11 @@ get_distlist(void)
 			readline=filereadline;
 	}
 	if(list<0)  {
-		cprintf("Cannot get distribution list!\n");
+		uifc.bail();
+		printf("Cannot get distribution list!\n");
 		for(i=0;distlists[i]!=NULL;i++)
-			cprintf("%s\n- %s\n",distlists[i],errors[i]);
-		bail(EXIT_FAILURE);
+			printf("%s\n- %s\n",distlists[i],errors[i]);
+		exit(EXIT_FAILURE);
 	}
 
 	while(readline != NULL && list>=0 && (readline(list,in_line,sizeof(in_line),NULL)>=0))  {
