@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.26 2002/04/30 08:03:02 rswindell Exp $ */
+/* $Id: scfg.c,v 1.27 2002/05/03 00:12:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,6 +90,8 @@ int main(int argc, char **argv)
     else
         getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
+	uifc.esc_delay=25;
+
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
 #ifndef __unix__
@@ -126,11 +128,17 @@ int main(int argc, char **argv)
                 case 'L':
                     uifc.scrn_len=atoi(argv[i]+2);
                     break;
-#if !defined(__unix__)
-                case 'V':
-                    textmode(atoi(argv[i]+2));
+                case 'E':
+                    uifc.esc_delay=atoi(argv[i]+2);
                     break;
+				case 'I':
+					uifc.mode|=UIFC_IBM;
+					break;
+                case 'V':
+#if !defined(__unix__)
+                    textmode(atoi(argv[i]+2));
 #endif
+                    break;
                 default:
                     printf("\nusage: scfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
@@ -140,6 +148,10 @@ int main(int argc, char **argv)
                         "-h  =  don't update message base status headers\r\n"
                         "-d  =  run in standard input/output/door mode\r\n"
                         "-c  =  force color mode\r\n"
+#ifdef USE_CURSES
+                        "-e# =  set escape delay to #msec\r\n"
+						"-i  =  force IBM charset\r\n"
+#endif
 #if !defined(__unix__)
                         "-v# =  set video mode to #\r\n"
 #endif
