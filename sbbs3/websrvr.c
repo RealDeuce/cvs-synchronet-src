@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.200 2004/11/02 18:41:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.201 2004/11/02 23:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2808,7 +2808,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.200 $", "%*s %s", revision);
+	sscanf("$Revision: 1.201 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3180,7 +3180,7 @@ void DLLCALL web_server(void* arg)
             		lprintf(LOG_INFO,"Web Server socket closed");
 				else
 					lprintf(LOG_WARNING,"!ERROR %d selecting socket",ERROR_VALUE);
-				break;
+				continue;
 			}
 
 			if(server_socket==INVALID_SOCKET)	/* terminated */

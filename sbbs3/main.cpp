@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.345 2004/10/27 06:28:27 rswindell Exp $ */
+/* $Id: main.cpp,v 1.346 2004/11/02 23:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4229,7 +4229,7 @@ void DLLCALL bbs_thread(void* arg)
             	lprintf(LOG_NOTICE,"Telnet Server sockets closed");
 			else
 				lprintf(LOG_WARNING,"!ERROR %d selecting sockets",ERROR_VALUE);
-			break;
+			continue;
 		}
 
 		if(terminate_server)	/* terminated */

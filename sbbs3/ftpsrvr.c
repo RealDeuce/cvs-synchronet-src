@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.273 2004/10/20 23:09:10 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.274 2004/11/02 23:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4471,7 +4471,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.273 $", "%*s %s", revision);
+	sscanf("$Revision: 1.274 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4745,7 +4745,7 @@ void DLLCALL ftp_server(void* arg)
             		lprintf(LOG_NOTICE,"0000 FTP Server sockets closed");
 				else
 					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
-				break;
+				continue;
 			}
 
 			if(server_socket==INVALID_SOCKET || terminate_server)	/* terminated */

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.341 2004/10/27 21:16:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.342 2004/11/02 23:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3895,7 +3895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.341 $", "%*s %s", revision);
+	sscanf("$Revision: 1.342 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4241,7 +4241,7 @@ void DLLCALL mail_server(void* arg)
             		lprintf(LOG_NOTICE,"0000 Mail Server sockets closed");
 				else
 					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
-				break;
+				continue;
 			}
 
 			if(server_socket!=INVALID_SOCKET && !terminate_server

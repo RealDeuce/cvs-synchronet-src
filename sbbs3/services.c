@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.163 2004/10/28 21:01:54 rswindell Exp $ */
+/* $Id: services.c,v 1.164 2004/11/02 23:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1521,7 +1521,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.163 $", "%*s %s", revision);
+	sscanf("$Revision: 1.164 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1840,7 +1840,7 @@ void DLLCALL services_thread(void* arg)
             		lprintf(LOG_NOTICE,"0000 Services sockets closed");
 				else
 					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
-				break;
+				continue;
 			}
 
 			/* Determine who services this socket */
