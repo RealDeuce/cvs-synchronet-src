@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.31 2003/04/09 00:09:44 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.32 2003/04/11 05:54:38 deuce Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -111,6 +111,10 @@ int main()
 		printf("Locks in first thread survive open()/close() in other thread\n");
 	else
 		printf("!FAILURE lock() in first thread lost by open()/close() in other thread\n");
+	if(lock(fd,LOCK_OFFSET+LOCK_LEN+1,LOCK_LEN))
+		printf("!FAILURE file locking\n");
+	else
+		printf("SUCCESS!  Record locking\n");
 	close(fd);
 
 	/* getch test */
