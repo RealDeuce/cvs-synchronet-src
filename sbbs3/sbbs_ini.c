@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.72 2004/07/02 02:15:12 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.71 2004/07/02 00:32:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,11 +312,6 @@ void sbbs_read_ini(
 
 		SAFECOPY(mail->relay_server
 			,iniGetString(fp,section,"RelayServer",mail->relay_server,value));
-		SAFECOPY(mail->relay_user
-			,iniGetString(fp,section,"RelayUsername",mail->relay_user,value));
-		SAFECOPY(mail->relay_pass
-			,iniGetString(fp,section,"RelayPassword",mail->relay_pass,value));
-
 		SAFECOPY(mail->dns_server
 			,iniGetString(fp,section,"DNSServer",mail->dns_server,value));
 
@@ -708,11 +703,6 @@ BOOL sbbs_write_ini(
 
 		if(!iniSetString(lp,section,"RelayServer",mail->relay_server,&style))
 			break;
-		if(!iniSetString(lp,section,"RelayUsername",mail->relay_user,&style))
-			break;
-		if(!iniSetString(lp,section,"RelayPassword",mail->relay_pass,&style))
-			break;
-
 		if(!iniSetString(lp,section,"DNSServer",mail->dns_server,&style))
 			break;
 
