@@ -34,7 +34,7 @@ static int xpos=1;
 static int ypos=1;
 
 static int currattr=7;
-static int modeidx=3;
+static int modeidx=1;
 
 WORD DOStoWinAttr(int newattr)
 {

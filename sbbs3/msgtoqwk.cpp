@@ -2,13 +2,13 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.22 2004/09/08 03:41:22 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.20 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -52,7 +52,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	long	l,size=0,offset;
 	int 	i;
 	struct	tm	tm;
-	smbmsg_t	remsg;
+	smbmsg_t	orig_msg;
 
 	offset=ftell(qwk_fp);
 	memset(str,' ',QWK_BLOCK_LEN);
@@ -63,7 +63,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			sprintf(from,"%.128s",msg->from);
 		else if(msg->from_net.type==NET_FIDO)
 			sprintf(from,"%.128s@%.128s"
-				,msg->from,smb_faddrtoa((faddr_t *)msg->from_net.addr,tmp));
+				,msg->from,faddrtoa((faddr_t *)msg->from_net.addr,tmp));
 		else if(msg->from_net.type==NET_INTERNET)
 			sprintf(from,"%.128s",(char*)msg->from_net.addr);
 		else
@@ -80,7 +80,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 
 	if(msg->to_net.addr && (uint)subnum==INVALID_SUB) {
 		if(msg->to_net.type==NET_FIDO)
-			sprintf(to,"%.128s@%s",msg->to,smb_faddrtoa((faddr_t *)msg->to_net.addr,tmp));
+			sprintf(to,"%.128s@%s",msg->to,faddrtoa((faddr_t *)msg->to_net.addr,tmp));
 		else if(msg->to_net.type==NET_INTERNET)
 			sprintf(to,"%.128s",(char*)msg->to_net.addr);
 		else if(msg->to_net.type==NET_QWK) {
@@ -127,14 +127,14 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			truncstr(tmp," ");
 			sprintf(str,"@REPLY: %.*s%c"
 				,(int)(sizeof(str)-12),tmp,QWK_NEWLINE);
-		} else if(msg->hdr.thread_back) {
-			memset(&remsg,0,sizeof(remsg));
-			remsg.hdr.number=msg->hdr.thread_back;
-			if(smb_getmsgidx(&smb, &remsg))
+		} else if(msg->hdr.thread_orig) {
+			memset(&orig_msg,0,sizeof(orig_msg));
+			orig_msg.hdr.number=msg->hdr.thread_orig;
+			if(smb_getmsgidx(&smb, &orig_msg))
 				sprintf(str,"@REPLY: <%s>%c",smb.last_error,QWK_NEWLINE);
 			else
 				sprintf(str,"@REPLY: %s%c"
-					,get_msgid(&cfg,subnum,&remsg)
+					,get_msgid(&cfg,subnum,&orig_msg)
 					,QWK_NEWLINE);
 		}
 		if(str[0]) {
@@ -359,7 +359,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		,from					/* From: */
 		,msg->subj              /* Subject */
 		,nulstr                 /* Password */
-		,msg->hdr.thread_back&MAX_MSGNUM   /* Message Re: Number */
+		,msg->hdr.thread_orig&MAX_MSGNUM   /* Message Re: Number */
 		,(size/QWK_BLOCK_LEN)+1	/* Number of blocks */
 		,(char)conf&0xff        /* Conference number lo byte */
 		,(ushort)conf>>8		/*					 hi byte */
