@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.7 2001/09/27 20:25:11 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.8 2001/10/02 16:14:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,21 +303,24 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 
 	addr=strrchr(to,'@');
 	if(!addr) {
-		bputs("Invalid netmail address\r\n");
-		return(false); }
+		bputs(text[InvalidNetMailAddr]);
+		return(false); 
+	}
 	*addr=0;
 	addr++;
 	strupr(addr);
 	truncsp(addr);
 	touser=qwk_route(addr,fulladdr);
 	if(!fulladdr[0]) {
-		bputs("Invalid netmail address\r\n");
-		return(false); }
+		bputs(text[InvalidNetMailAddr]);
+		return(false); 
+	}
 
 	truncsp(to);
 	if(!stricmp(to,"SBBS") && !SYSOP) {
-		bputs("Invalid netmail address\r\n");
-		return(false); }
+		bputs(text[InvalidNetMailAddr]);
+		return(false); 
+	}
 	bprintf(text[NetMailing],to,fulladdr
 		,useron.alias,cfg.sys_id);
 	action=NODE_SMAL;
