@@ -11,12 +11,12 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.5 2003/05/11 23:34:16 deuce Exp $
+# $Id: GNUmakefile,v 1.6 2003/05/11 23:36:04 deuce Exp $
 
 # Macros
-ifndef DEBUG
- ifndef RELEASE
-  DEBUG	:=	1
+ifndef RELEASE
+ ifndef DEBUG
+  RELEASE	:=	1
  endif
 endif
 
