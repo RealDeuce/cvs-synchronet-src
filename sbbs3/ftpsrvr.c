@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.80 2001/06/23 00:49:56 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.81 2001/06/28 03:34:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,8 +74,6 @@
 #else
 #define FTP_VERSION				"1.05"
 #endif
-
-#define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
 
 #define STATUS_WFC				"Listening"
 

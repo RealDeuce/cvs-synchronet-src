@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.25 2001/06/24 12:28:07 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.26 2001/06/28 03:34:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,8 @@
 #define Y2K_2DIGIT_WINDOW	70
 
 #define FNOPEN_BUF_SIZE		(2*1024)
+
+#define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
 
 #ifndef __FLAT__
 #define __FLAT__	/* 32-bit "flat" memory model */

@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.6 2001/04/11 03:37:42 rswindell Exp $ */
+/* $Id: file.cpp,v 1.7 2001/06/28 03:34:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,7 +273,7 @@ bool sbbs_t::checkfname(char *fname)
 	char 	str[256];
     int		c=0,d;
 
-	if(strcspn(fname,"\\/|<>+[]:=\";,%")!=strlen(fname)) {
+	if(strcspn(fname,ILLEGAL_FILENAME_CHARS)!=strlen(fname)) {
 		sprintf(str,"Suspicious filename attempt: '%s'",fname);
 		errorlog(str);
 		return(false); }
