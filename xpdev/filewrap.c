@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.8 2003/04/08 03:20:05 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.9 2003/04/08 03:28:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@
 #include <unistd.h>     /* getpid() */
 #include <fcntl.h>      /* fcntl() file/record locking */
 #include <sys/file.h>	/* L_SET for Solaris */
+#include <errno.h>
 
 #endif
 
