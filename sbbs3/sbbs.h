@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.45 2001/05/14 23:21:03 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.46 2001/05/15 00:30:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@
 	#include <direct.h>		/* _mkdir() prototype */
 	#include <mmsystem.h>	/* SND_ASYNC */
 
-	#if defined(_DEBUG)
+	#if defined(_DEBUG) && defined(_MSC_VER)
 		#include <crtdbg.h> /* Windows debug macros and stuff */
 	#endif
 
