@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.115 2003/07/13 09:33:12 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.116 2003/08/28 10:25:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,8 +166,11 @@ static void client_on(BOOL on, int sock, client_t* client, BOOL update)
         if(ClientForm->ListView->Items->Item[i]->Caption.ToIntDef(0)==sock)
             break;
     }
-    if(i>=ClientForm->ListView->Items->Count)
+    if(i>=ClientForm->ListView->Items->Count) {
+		if(update)	/* Can't update a non-existing entry */
+			return;
         i=-1;
+	}
 
     if(on) {
 	    if(!update)
