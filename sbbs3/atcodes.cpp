@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.18 2002/02/18 14:48:59 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.19 2002/02/18 19:33:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -512,7 +512,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	}
 
 	if(!strcmp(sp,"CONF")) {
-		sprintf("%s %s"
+		sprintf(str,"%s %s"
 			,usrgrps ? cfg.grp[usrgrp[curgrp]]->sname :nulstr
 			,usrgrps ? cfg.sub[usrsub[curgrp][cursub[curgrp]]]->sname : nulstr);
 		return(str);
