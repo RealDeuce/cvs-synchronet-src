@@ -12,7 +12,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.27 2001/12/01 01:51:52 rswindell Exp $
+# $Id: Makefile.gnu,v 1.28 2001/12/01 02:20:15 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -67,12 +67,12 @@ ifdef DEBUG
 CFLAGS	:=	$(CFLAGS) -g -O0 -D_DEBUG 
 LIBODIR	:=	$(LIBODIR).debug
 EXEODIR	:=	$(EXEODIR).debug
-LIBS	:=	$(LIBS) ../mozilla/js/src/Linux_All_DBG.OBJ/libjs.a
+LIBS	:=	$(LIBS) -lm ../mozilla/js/src/Linux_All_DBG.OBJ/libjs.a
 else
 LFLAGS	:=	$(LFLAGS) -S
 LIBODIR	:=	$(LIBODIR).release
 EXEODIR	:=	$(EXEODIR).release
-LIBS	:=	$(LIBS) ../mozilla/js/src/Linux_All_OPT.OBJ/libjs.a
+LIBS	:=	$(LIBS) -lm ../mozilla/js/src/Linux_All_OPT.OBJ/libjs.a
 endif
 
 include targets.mak		# defines all targets
