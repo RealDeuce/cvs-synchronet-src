@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.15 2003/05/18 10:38:55 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.16 2003/05/18 11:16:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,11 +229,9 @@ char** iniGetSectionList(FILE* fp, const char* prefix)
 		if(tp==NULL)
 			continue;
 		*tp=0;
-		if(prefix!=NULL) {
+		if(prefix!=NULL)
 			if(strnicmp(p,prefix,strlen(prefix))!=0)
 				continue;
-			p+=strlen(prefix);
-		}
 		if((np=realloc(lp,sizeof(char*)*(items+2)))==NULL)
 			break;
 		lp=np;
