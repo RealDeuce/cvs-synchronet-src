@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.240 2003/06/12 07:57:40 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.241 2003/06/12 08:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1335,6 +1335,7 @@ static void send_thread(void* arg)
 	ulong		dur;
 	ulong		cps;
 	ulong		length;
+	BOOL		exempt;
 	BOOL		error=FALSE;
 	FILE*		fp;
 	file_t		f;
@@ -1552,9 +1553,13 @@ static void send_thread(void* arg)
 		if(xfer.credits) {
 			xfer.user->dls=(ushort)adjustuserrec(&scfg, xfer.user->number,U_DLS,5,1);
 			xfer.user->dlb=adjustuserrec(&scfg, xfer.user->number,U_DLB,10,total);
-			if(xfer.dir>=0 && !(scfg.dir[xfer.dir]->misc&DIR_FREE) 
-				/* && !chk_ar(&scfg, scfg.dir[xfer.dir]->ex_ar, xfer.user) */
-				&& !(xfer.user->exempt&FLAG('D')))
+			exempt=FALSE;
+			if(xfer.user->exempt&FLAG('D'))
+				exempt=TRUE;
+			if(scfg.dir[xfer.dir]->ex_ar[0]!=0
+				&& chk_ar(&scfg, scfg.dir[xfer.dir]->ex_ar, xfer.user))
+				exempt=TRUE;
+			if(xfer.dir>=0 && !(scfg.dir[xfer.dir]->misc&DIR_FREE) && !exempt)
 				subtract_cdt(&scfg, xfer.user, xfer.credits);
 		}
 		if(!xfer.tmpfile && !xfer.delfile)
@@ -4415,7 +4420,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.240 $", "%*s %s", revision);
+	sscanf("$Revision: 1.241 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
