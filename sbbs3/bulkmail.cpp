@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.23 2004/10/21 08:43:33 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.22 2004/09/17 07:57:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,7 +139,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	else
 		while(online) {
 			bputs(text[EnterAfterLastDestUser]);
-			if(!getstr(str,LEN_ALIAS,cfg.uq&UQ_NOUPRLWR ? K_NONE:K_UPRLWR))
+			if(!getstr(str,LEN_ALIAS,K_UPRLWR))
 				break;
 			if((i=finduser(str))!=0) {
 				if((x=bulkmailhdr(&smb, &msg, i))!=SMB_SUCCESS) {
