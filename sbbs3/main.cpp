@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.319 2004/02/19 23:06:57 rswindell Exp $ */
+/* $Id: main.cpp,v 1.317 2003/11/26 12:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -657,17 +657,17 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	memset(arglist,0,sizeof(arglist));	// Initialize arglist to NULLs
 
     for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
-		if(JSVAL_IS_DOUBLE(argv[i]))
-			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
-		else if(JSVAL_IS_INT(argv[i]))
-			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
-		else {
-			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-				JS_ReportError(cx,"JS_ValueToString failed");
+		if(JSVAL_IS_STRING(argv[i])) {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			    return(JS_FALSE);
-			}
 			arglist[i-1]=JS_GetStringBytes(str);
-		}
+		} 
+		else if(JSVAL_IS_DOUBLE(argv[i]))
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
+		else if(JSVAL_IS_INT(argv[i]) || JSVAL_IS_BOOLEAN(argv[i]))
+			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else
+			arglist[i-1]=NULL;
 	}
 	
 	if((p=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL)
@@ -1472,7 +1472,6 @@ void event_thread(void* arg)
 	int			file;
 	int			offset;
 	bool		check_semaphores;
-	bool		packed_rep;
 	ulong		l;
 	time_t		now;
 	time_t		start;
@@ -1817,10 +1816,7 @@ void event_thread(void* arg)
 				}
 				if(file!=-1)
 					close(file);
-				sbbs->console|=CON_L_ECHO;
-				packed_rep=sbbs->pack_rep(i);
-				sbbs->console&=~CON_L_ECHO;
-				if(packed_rep) {
+				if(sbbs->pack_rep(i)) {
 					if((file=sbbs->nopen(str,O_WRONLY|O_CREAT))==-1)
 						sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT);
 					else {
@@ -3167,9 +3163,7 @@ void node_thread(void* arg)
 	char			str[128];
 	char			uname[LEN_ALIAS+1];
 	int				file;
-	uint			i;
-	uint			usernum;
-	uint			lastusernum;
+	uint			i,j;
 	uint			curshell=0;
 	time_t			now;
 	node_t			node;
@@ -3296,34 +3290,30 @@ void node_thread(void* arg)
 
 		lprintf(LOG_INFO,"Node %d Checking for inactive/expired user records..."
 			,sbbs->cfg.node_num);
-		lastusernum=lastuser(&sbbs->cfg);
-		for(usernum=2;usernum<=lastusernum;usernum++) {
+		j=lastuser(&sbbs->cfg);
+		for(i=1;i<=j;i++) {
 
-			sprintf(str,"%5u of %-5u",usernum,lastusernum);
+			sprintf(str,"%5u of %-5u",i,j);
 			status(str);
-			user.number=usernum;
-			if((i=getuserdat(&sbbs->cfg,&user))!=0) {
-				sprintf(str,"user record %u",usernum);
-				sbbs->errormsg(WHERE,ERR_READ,str,i);
-				continue;
-			}
+			user.number=i;
+			getuserdat(&sbbs->cfg,&user);
 
 			/***********************************************/
 			/* Fix name (name.dat and user.dat) mismatches */
 			/***********************************************/
-			username(&sbbs->cfg,user.number,uname);
+			username(&sbbs->cfg,i,uname);
 			if(user.misc&DELETED) {
 				if(strcmp(uname,"DELETED USER"))
-					putusername(&sbbs->cfg,user.number,nulstr);
+					putusername(&sbbs->cfg,i,nulstr);
 				continue; 
 			}
 
 			if(strcmp(user.alias,uname))
-				putusername(&sbbs->cfg,user.number,user.alias);
+				putusername(&sbbs->cfg,i,user.alias);
 
 			if(!(user.misc&(DELETED|INACTIVE))
 				&& user.expire && (ulong)user.expire<=(ulong)now) {
-				putsmsg(&sbbs->cfg,user.number,sbbs->text[AccountHasExpired]);
+				putsmsg(&sbbs->cfg,i,sbbs->text[AccountHasExpired]);
 				sprintf(str,"%s #%u Expired",user.alias,user.number);
 				sbbs->logentry("!%",str);
 				if(sbbs->cfg.level_misc[user.level]&LEVEL_EXPTOVAL
@@ -3354,14 +3344,14 @@ void node_thread(void* arg)
 					user.rest|=sbbs->cfg.expired_rest;
 					user.expire=0; 
 				}
-				putuserrec(&sbbs->cfg,user.number,U_LEVEL,2,ultoa(user.level,str,10));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS1,8,ultoa(user.flags1,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS2,8,ultoa(user.flags2,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS3,8,ultoa(user.flags3,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS4,8,ultoa(user.flags4,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_EXPIRE,8,ultoa(user.expire,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_EXEMPT,8,ultoa(user.exempt,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_REST,8,ultoa(user.rest,str,16));
+				putuserrec(&sbbs->cfg,i,U_LEVEL,2,ultoa(user.level,str,10));
+				putuserrec(&sbbs->cfg,i,U_FLAGS1,8,ultoa(user.flags1,str,16));
+				putuserrec(&sbbs->cfg,i,U_FLAGS2,8,ultoa(user.flags2,str,16));
+				putuserrec(&sbbs->cfg,i,U_FLAGS3,8,ultoa(user.flags3,str,16));
+				putuserrec(&sbbs->cfg,i,U_FLAGS4,8,ultoa(user.flags4,str,16));
+				putuserrec(&sbbs->cfg,i,U_EXPIRE,8,ultoa(user.expire,str,16));
+				putuserrec(&sbbs->cfg,i,U_EXEMPT,8,ultoa(user.exempt,str,16));
+				putuserrec(&sbbs->cfg,i,U_REST,8,ultoa(user.rest,str,16));
 				if(sbbs->cfg.expire_mod[0]) {
 					sbbs->useron=user;
 					sbbs->online=ON_LOCAL;
@@ -3379,9 +3369,9 @@ void node_thread(void* arg)
 				> sbbs->cfg.sys_autodel)) {			/* Inactive too long */
 				sprintf(str,"Auto-Deleted %s #%u",user.alias,user.number);
 				sbbs->logentry("!*",str);
-				sbbs->delallmail(user.number);
-				putusername(&sbbs->cfg,user.number,nulstr);
-				putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
+				sbbs->delallmail(i);
+				putusername(&sbbs->cfg,i,nulstr);
+				putuserrec(&sbbs->cfg,i,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 			}
 		}
 
