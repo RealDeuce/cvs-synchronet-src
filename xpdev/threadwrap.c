@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.7 2002/12/20 00:28:14 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.8 2002/12/20 00:30:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 
 #if defined(__unix__)
 	#include <unistd.h>	/* _POSIX_THREADS */
+	#include <stdlib.h>	/* realpath() */
 #endif
 
 #include "threadwrap.h"	/* DLLCALL */
