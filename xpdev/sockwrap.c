@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.4 2002/08/08 06:18:26 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.5 2002/08/12 20:45:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 		if(lseek(file,*offset,SEEK_SET)<0)
 			return(-1);
 
-	if(count==0)
+	if(count==0 || count > len)
 		count=len;
 
 	rd=read(file,buf,count);
@@ -71,7 +71,7 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 		return(-1);
 	}
 
-	wr=sendsocket(sock,buf,len);
+	wr=sendsocket(sock,buf,count);
 	free(buf);
 
 	if(offset!=NULL)
