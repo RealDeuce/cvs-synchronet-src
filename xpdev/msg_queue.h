@@ -1,8 +1,8 @@
-/* semwrap.h */
+/* msg_queue.h */
 
-/* Semaphore-related cross-platform development wrappers */
+/* Uni or Bi-directional FIFO message queue */
 
-/* $Id: semwrap.h,v 1.10 2004/11/10 23:13:09 rswindell Exp $ */
+/* $Id: msg_queue.h,v 1.4 2004/11/18 06:14:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,66 +35,51 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _SEMWRAP_H
-#define _SEMWRAP_H
+#ifndef _MSG_QUEUE_H
+#define _MSG_QUEUE_H
 
-#include "gen_defs.h"
+#include "link_list.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#if defined(__unix__)
-	#if defined(USE_XP_SEMAPHORES)
-		#include "xpsem.h"
-		#define 	sem_init(x, y, z)	xp_sem_init(x, y, z)
-		#define 	sem_destroy(x)		xp_sem_destroy(x)
-		#define 	sem_close(x)		xp_sem_close(x)
-		#define 	sem_unlink(x)		xp_sem_unlink(x)
-		#define 	sem_wait(x)			xp_sem_wait(x)
-		#define 	sem_trywait(x)		xp_sem_trywait(x)
-		#define 	sem_post(x)			xp_sem_post(x)
-		#define 	sem_getvalue(x,y)		xp_sem_getvalue(x,y)
-		#define		sem_timedwait(x,y)	xp_sem_timedwait(x,y)
-		#define		sem_t				xp_sem_t
-	#else
-		#include <semaphore.h>	/* POSIX semaphores */
-	#endif
+typedef struct {
+	char			name[128];			/* for named-queues */
+	link_list_t		in;
+	link_list_t		out;
+	pthread_t		owner_thread_id;	/* reads from in, writes to out */
+	long			refs;
+	unsigned long	flags;				/* private use flags */
+	void*			private_data;
+} msg_queue_t;
 
-#elif defined(_WIN32)	
+#define MSG_QUEUE_MALLOC		(1<<0)	/* Queue allocated with malloc() */
+#define MSG_QUEUE_BIDIR			(1<<1)	/* Bi-directional message queue */
 
-	#include <process.h>	/* _beginthread */
+msg_queue_t*	msgQueueInit(msg_queue_t*, long flags);
+BOOL			msgQueueFree(msg_queue_t*);
 
-	/* POSIX semaphores */
-	typedef HANDLE sem_t;
-	int sem_init(sem_t*, int pshared, unsigned int value);
-	int sem_post(sem_t*);
-	int sem_getvalue(sem_t*, int* value);
-	int sem_destroy(sem_t*);
-	#define sem_wait(psem)				sem_trywait_block(psem,INFINITE)
-	#define sem_trywait(psem)			sem_trywait_block(psem,0)
+long			msgQueueAttach(msg_queue_t*);
+long			msgQueueDetach(msg_queue_t*);
 
-#elif defined(__OS2__)	/* These have *not* been tested! */
+/* Get/Set queue private data */
+void*			msgQueueSetPrivateData(msg_queue_t*, void*);
+void*			msgQueueGetPrivateData(msg_queue_t*);
 
-	/* POSIX semaphores */
-	typedef HEV sem_t;
-	#define	sem_init(psem,ps,v)			DosCreateEventSem(NULL,psem,0,0);
-	#define sem_wait(psem)				DosWaitEventSem(*(psem),-1)
-	#define sem_post(psem)				DosPostEventSem(*(psem))
-	#define sem_destroy(psem)			DosCloseEventSem(*(psem))
+BOOL			msgQueueWait(msg_queue_t* q, long timeout);
+long			msgQueueReadLevel(msg_queue_t*);
+void*			msgQueueRead(msg_queue_t*, long timeout);
+void*			msgQueuePeek(msg_queue_t*, long timeout);
+void*			msgQueueFind(msg_queue_t*, const void*, size_t length);
+list_node_t*	msgQueueFirstNode(msg_queue_t*);
+list_node_t*	msgQueueLastNode(msg_queue_t*);
+#define			msgQueueNextNode(node)			listNextNode(node)
+#define			msgQueuePrevNode(node)			listPrevNode(node)
+#define			msgQueueNodeData(node)			listNodeData(node)
 
-#else
-
-	#error "Need semaphore wrappers."
-
-#endif
-
-/* NOT POSIX */
-int sem_trywait_block(sem_t* psem, unsigned long timeout);
-
-
-/* Change semaphore to "unsignaled" (NOT POSIX) */
-#define sem_reset(psem)					while(sem_trywait(psem)==0)
+long			msgQueueWriteLevel(msg_queue_t*);
+BOOL			msgQueueWrite(msg_queue_t*, const void*, size_t length);
 
 #if defined(__cplusplus)
 }
