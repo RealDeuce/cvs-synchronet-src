@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.6 2004/10/27 09:04:05 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.4 2004/09/15 20:24:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -253,40 +253,6 @@ char* SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* outstr)
 }
 
 /****************************************************************************/
-/* Returns the FidoNet address parsed from str.								*/
-/****************************************************************************/
-fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
-{
-	char *p;
-	fidoaddr_t addr;
-	fidoaddr_t tmp_addr={1,1,1,0};	/* Default system address: 1:1/1.0 */
-
-	if(sys_addr==NULL)
-		sys_addr=&tmp_addr;
-
-	ZERO_VAR(addr);
-	if((p=strchr(str,':'))!=NULL) {
-		addr.zone=atoi(str);
-		addr.net=atoi(p+1); 
-	} else {
-		addr.zone=sys_addr->zone;
-		addr.net=atoi(str);
-	}
-	if(addr.zone==0)              /* no such thing as zone 0 */
-		addr.zone=1;
-	if((p=strchr(str,'/'))!=NULL)
-		addr.node=atoi(p+1);
-	else {
-		if(addr.zone==sys_addr->zone)
-			addr.net=sys_addr->net;
-		addr.node=atoi(str); 
-	}
-	if((p=strchr(str,'.'))!=NULL)
-		addr.point=atoi(p+1);
-	return(addr);
-}
-
-/****************************************************************************/
 /* Returns ASCIIZ representation of network address (net_t)					*/
 /****************************************************************************/
 char* SMBCALL smb_netaddr(net_t* net)
@@ -294,31 +260,4 @@ char* SMBCALL smb_netaddr(net_t* net)
 	if(net->type==NET_FIDO)
 		return(smb_faddrtoa((fidoaddr_t*)net->addr,NULL));
 	return(net->addr);
-}
-
-/****************************************************************************/
-/* Returns net_type for passing e-mail address (i.e. "user@addr")			*/
-/****************************************************************************/
-ushort SMBCALL smb_netaddr_type(const char* str)
-{
-	char*	p;
-	char*	tp;
-
-	if((p=strchr(str,'@'))==NULL)
-		return(NET_NONE);
-
-	p++;
-	if(isalpha(*p) && strchr(p,'.')==NULL)
-		return(NET_QWK);
-
-	for(tp=p;*tp;tp++) {
-		if(!isdigit(*tp) && *tp!=':' && *tp!='/' && *tp!='.')
-			break;
-	}
-	if(isdigit(*p) && *tp)
-		return(NET_FIDO);
-	if(isalnum(*p))
-		return(NET_INTERNET);
-
-	return(NET_UNKNOWN);
 }
