@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.316 2004/04/01 11:59:06 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.313 2004/03/19 10:22:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -422,7 +422,6 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 	char*		p;
 	char*		tp;
 	char*		boundary=NULL;
-	char*		content_type=NULL;
 	int			i;
 	int			s;
 	ulong		lines;
@@ -492,20 +491,11 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 			return(0);
     for(i=0;i<msg->total_hfields;i++) { 
 		if(msg->hfield[i].type==RFC822HEADER) { 
-			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0)
-				content_type=msg->hfield_dat[i];
 			if(!sockprintf(socket,"%s",(char*)msg->hfield_dat[i]))
 				return(0);
         } else if(msg->hdr.auxattr&MSG_FILEATTACH && msg->hfield[i].type==FILEATTACH) 
             strncpy(filepath,(char*)msg->hfield_dat[i],sizeof(filepath)-1);
     }
-	/* Default MIME Content-Type for non-Internet messages */
-	if(msg->from_net.type!=NET_INTERNET && content_type==NULL) {
-		/* No content-type specified, so assume IBM code-page 437 (full ex-ASCII) */
-		sockprintf(socket,"Content-Type: text/plain; charset=IBM437");
-		sockprintf(socket,"Content-Transfer-Encoding: 8bit");
-	}
-
 	if(msg->hdr.auxattr&MSG_FILEATTACH) {
 		if(filepath[0]==0) { /* filename stored in subject */
 			if(msg->idx.to!=0)
@@ -583,7 +573,7 @@ static u_long resolve_ip(char *addr)
 	HOSTENT*	host;
 
 	if(*addr==0)
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -593,7 +583,7 @@ static u_long resolve_ip(char *addr)
 
 	if((host=gethostbyname(addr))==NULL) {
 		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",addr);
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 	}
 	return(*((ulong*)host->h_addr_list[0]));
 }
@@ -2247,19 +2237,6 @@ static void smtp_thread(void* arg)
 				/* Do external JavaScript processing here? */
 
 				if(subnum!=INVALID_SUB) {	/* Message Base */
-					if(relay_user.number==0)
-						memset(&relay_user,0,sizeof(relay_user));
-
-					if(!chk_ar(&scfg,scfg.grp[scfg.sub[subnum]->grp]->ar, &relay_user)
-						|| !chk_ar(&scfg,scfg.sub[subnum]->ar, &relay_user)
-						|| !chk_ar(&scfg,scfg.sub[subnum]->post_ar, &relay_user)) {
-						lprintf(LOG_WARNING,"%04d !SMTP %s has insufficient access to post on %s"
-							,socket, sender_addr, scfg.sub[subnum]->sname);
-						sockprintf(socket,"550 Insufficient access");
-						subnum=INVALID_SUB;
-						continue;
-					}
-
 					if(rcpt_name[0]==0)
 						strcpy(rcpt_name,"All");
 					smb_hfield_str(&msg, RECIPIENT, rcpt_name);
@@ -3653,7 +3630,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.316 $", "%*s %s", revision);
+	sscanf("$Revision: 1.313 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.60 2004/03/31 03:29:21 deuce Exp $ */
+/* $Id: genwrap.h,v 1.57 2004/03/23 02:22:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,7 +198,7 @@ extern "C" {
 	#define SLEEP(x)		DosSleep(x)
 	#define BEEP(freq,dur)	DosBeep(freq,dur)
 
-#elif defined(__unix__) || defined(__APPLE__)
+#elif defined(__unix__)
 
 	#if defined(_PTH_PTHREAD_H_)
 		#define SLEEP(x)		({ int y=x; struct timeval tv; \

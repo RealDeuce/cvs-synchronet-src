@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.24 2004/03/29 23:02:47 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.23 2004/03/15 23:18:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ return(out);
 void clearptrs(int subnum)
 {
 	char str[256];
-	ushort idx,scancfg;
+	ushort idx,ch;
 	int file,i,gi;
 	long l=0L;
 	glob_t g;
@@ -88,30 +88,26 @@ void clearptrs(int subnum)
                 for(i=0;i<cfg.total_subs;i++)
                     if(cfg.sub[i]->ptridx==idx)
                         break;
-                write(file,&l,sizeof(l));
-                write(file,&l,sizeof(l));
-                scancfg=0xff;
+                write(file,&l,4);
+                write(file,&l,4);
+                ch=0xff;			/* default to scan ON for unknown sub */
                 if(i<cfg.total_subs) {
                     if(!(cfg.sub[i]->misc&SUB_NSDEF))
-                        scancfg&=~SUB_CFG_NSCAN;
+                        ch&=~5;
                     if(!(cfg.sub[i]->misc&SUB_SSDEF))
-                        scancfg&=~SUB_CFG_SSCAN; 
-				} else	/* Default to scan OFF for unknown sub */
-					scancfg&=~(SUB_CFG_NSCAN|SUB_CFG_SSCAN);
-                write(file,&scancfg,sizeof(scancfg)); 
-			}
+                        ch&=~2; }
+                write(file,&ch,2); }
             lseek(file,((long)cfg.sub[subnum]->ptridx)*10L,SEEK_SET);
-            write(file,&l,sizeof(l));	/* date set to null */
-            write(file,&l,sizeof(l));	/* date set to null */
-            scancfg=0xff;
+            write(file,&l,4);	/* date set to null */
+            write(file,&l,4);	/* date set to null */
+            ch=0xff;
             if(!(cfg.sub[subnum]->misc&SUB_NSDEF))
-                scancfg&=~SUB_CFG_NSCAN;
+                ch&=~5;
             if(!(cfg.sub[subnum]->misc&SUB_SSDEF))
-                scancfg&=~SUB_CFG_SSCAN;
-            write(file,&scancfg,sizeof(scancfg));
-            close(file); 
-		}
-    }
+                ch&=~2;
+            write(file,&ch,2);
+            close(file); }
+        }
 	globfree(&g);
     uifc.pop(0);
 }
@@ -716,7 +712,7 @@ import into the current message group.
 							cfg.sub[j]->maxmsgs=1000;
 					}
 					if(j==cfg.total_subs) {	/* adding new sub-board */
-						for(ptridx=0;ptridx<USHRT_MAX;ptridx++) {
+						for(ptridx=0;ptridx>-1;ptridx++) {
 							for(n=0;n<cfg.total_subs;n++)
 								if(cfg.sub[n]->ptridx==ptridx)
 									break;
