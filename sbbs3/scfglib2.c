@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.18 2002/03/28 03:03:25 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.19 2002/04/03 02:45:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -646,6 +646,11 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 			get_int(n,instream);
 		}
 	cfg->total_hotkeys=i;
+
+	/************************************/
+	/* External Program-related Toggles */
+	/************************************/
+	get_int(cfg->xtrn_misc,instream);
 
 	fclose(instream);
 	return(TRUE);
