@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.49 2003/09/29 11:27:26 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.50 2003/09/30 06:52:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,7 +158,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 		    return(JS_FALSE);
-		fprintf(errfp,JS_GetStringBytes(str));
+		fprintf(errfp,"%s",JS_GetStringBytes(str));
 	}
 	if(argc)
 		fprintf(errfp,"\n");
@@ -655,7 +655,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.49 $", "%*s %s", revision);
+	sscanf("$Revision: 1.50 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
