@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.36 2001/06/15 03:34:20 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.37 2001/06/20 01:18:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -428,7 +428,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 			,cfg.node_num);
 		startup_info.lpTitle=title;
 	}
-    if(cfg.startup->options&BBS_OPT_XTRN_MINIMIZED) {
+    if(startup->options&BBS_OPT_XTRN_MINIMIZED) {
     	startup_info.wShowWindow=SW_SHOWMINNOACTIVE;
         startup_info.dwFlags|=STARTF_USESHOWWINDOW;
     }
