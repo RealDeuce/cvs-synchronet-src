@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.56 2004/11/06 02:13:08 rswindell Exp $ */
+/* $Id: startup.h,v 1.54 2004/10/28 21:01:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,8 +62,6 @@ typedef struct {
 	ulong	interface_addr;
 	ulong	log_mask;
 	js_startup_t js;
-	uint	bind_retry_count;		/* Number of times to retry bind() calls */
-	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
 } global_startup_t;
 
@@ -118,10 +116,8 @@ typedef struct {
 	char	xtrn_term_dumb[32];		/* external dumb terminal type (e.g. "dumb") */
 	char	host_name[128];
 	BOOL	recycle_now;
-	BOOL	shutdown_now;
+	sem_t	recycle_sem;
 	DWORD	log_mask;
-	uint	bind_retry_count;		/* Number of times to retry bind() calls */
-	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
 } bbs_startup_t;
 
