@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.49 2002/11/02 13:14:46 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.50 2002/11/02 23:07:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -768,6 +768,9 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
+
+	if(!SMB_IS_OPEN(&(p->smb)))
+		return(JS_TRUE);
 
 	memset(&msg,0,sizeof(msg));
 
