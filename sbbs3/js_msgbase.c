@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.44 2002/11/01 09:43:17 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.45 2002/11/01 23:28:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -376,7 +376,6 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	char		date[128];
 	char		msg_id[256];
 	char		reply_id[256];
-	char		path[1024];
 	char*		val;
 	ulong		l;
 	smbmsg_t	msg;
@@ -553,11 +552,8 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 
 	/* USENET Fields */
 	if(msg.path!=NULL)
-		sprintf(path, "%s!%.*s", scfg->sys_inetaddr, (int)sizeof(path)/2, msg.path);
-	else
-		sprintf(path, "%s!not-for-mail", scfg->sys_inetaddr);
-	JS_DefineProperty(cx, hdrobj, "path", STRING_TO_JSVAL(JS_NewStringCopyZ(cx,path))
-		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+		JS_DefineProperty(cx, hdrobj, "path", STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.path))
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 	if(msg.newsgroups!=NULL)
 		JS_DefineProperty(cx, hdrobj, "newsgroups"
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.newsgroups))
