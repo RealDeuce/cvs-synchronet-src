@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.30 2002/08/10 08:16:07 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.31 2002/08/10 10:34:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -466,7 +466,7 @@ void sbbs_t::newuser()
 				putusername(&cfg,useron.number,nulstr);
 				return; } } }
 
-	sprintf(str,"%sfile/%04u.IN",cfg.data_dir,useron.number);  /* delete any files */
+	sprintf(str,"%sfile/%04u.in",cfg.data_dir,useron.number);  /* delete any files */
 	delfiles(str,ALLFILES);                                    /* waiting for user */
 	rmdir(str);
 	sprintf(tmp,"%04u.*",useron.number);
