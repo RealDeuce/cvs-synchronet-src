@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.11 2002/01/24 14:13:06 rswindell Exp $ */
+/* $Id: scfg.c,v 1.12 2002/01/24 14:14:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1877,5 +1877,30 @@ void errormsg(int line, char *source,  char action, char *object, ulong access)
     puttext(1,1,80,scrn_len,scrn_buf);
 #endif    
 }
+
+/****************************************************************************/
+/* Return ASCII string representation of ulong								*/
+/* There may be a native GNU C Library function to this...					*/
+/****************************************************************************/
+#if !defined _MSC_VER && !defined __BORLANDC__
+char* DLLCALL ultoa(ulong val, char* str, int radix)
+{
+	switch(radix) {
+		case 8:
+			sprintf(str,"%lo",val);
+			break;
+		case 10:
+			sprintf(str,"%lu",val);
+			break;
+		case 16:
+			sprintf(str,"%lx",val);
+			break;
+		default:
+			sprintf(str,"bad radix: %d",radix);
+			break;
+	}
+	return(str);
+}
+#endif
 
 /* End of SCFG.C */
