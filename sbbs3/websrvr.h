@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.17 2003/10/18 08:14:31 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.18 2003/10/18 10:28:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,10 +69,10 @@ typedef struct {
 	/* Paths */
 	char	ssjs_ext[16];			/* Server-Side JavaScript file extension */
 	char**	cgi_ext;				/* CGI Extensions */
-	char**	cgi_dir;				/* CGI Directories (all files executable) */
+	char	cgi_dir[128];			/* relative to root_dir (all files executable) */
     char    ctrl_dir[128];
-    char	root_dir[128];
-    char	error_dir[128];
+    char	root_dir[128];			/* HTML root directory */
+    char	error_dir[128];			/* relative to root_dir */
     char	cgi_temp_dir[128];
     char**	index_file_name;		/* Index filenames */
 
@@ -88,6 +88,10 @@ typedef struct {
 #define WEB_OPT_DEBUG_TX			(1<<1)	/* Log all transmitted responses	*/
 #define WEB_OPT_VIRTUAL_HOSTS		(1<<4)	/* Use virutal host html subdirs	*/
 #define WEB_OPT_NO_CGI				(1<<5)	/* Disable CGI support				*/
+
+#define WEB_DEFAULT_ROOT_DIR		"../html"
+#define WEB_DEFAULT_ERROR_DIR		"error"
+#define WEB_DEFAULT_CGI_DIR			"cgi-bin"
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
