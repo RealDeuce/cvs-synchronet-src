@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.93 2002/02/09 13:15:36 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.94 2002/02/11 15:45:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -742,8 +742,7 @@ extern "C" {
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t* cfg, smb_t* smb 
-										,uint subnum, smbmsg_t* msg, char* msgbuf);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgbuf);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
