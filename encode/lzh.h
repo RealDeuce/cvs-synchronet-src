@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.h,v 1.8 2000/10/30 02:22:29 rswindell Exp $ */
+/* $Id: lzh.h,v 1.9 2002/08/26 08:33:53 rswindell Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -59,7 +59,11 @@
 #endif
 
 #ifndef uchar
-#define uchar unsigned char
+	#if defined(TYPEDEF_UCHAR)
+		typedef unsigned char uchar;
+	#else
+		#define uchar unsigned char
+	#endif
 #endif
 
 #ifdef __cplusplus
