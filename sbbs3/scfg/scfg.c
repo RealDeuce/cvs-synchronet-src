@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.28 2002/07/16 07:27:46 rswindell Exp $ */
+/* $Id: scfg.c,v 1.29 2002/07/19 01:50:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,8 @@ int main(int argc, char **argv)
 backslashcolon(cfg.ctrl_dir);
 
 if(chdir(cfg.ctrl_dir)!=0) {
-	printf("!ERROR %d changing current directory to: %s\n",cfg.ctrl_dir);
+	printf("!ERROR %d changing current directory to: %s\n"
+		,errno,cfg.ctrl_dir);
 	exit(-1);
 }
 
