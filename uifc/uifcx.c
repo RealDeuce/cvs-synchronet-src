@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.11 2002/03/14 16:07:44 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.12 2002/03/15 13:40:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,9 +110,11 @@ static int getstr(char* str, int maxlen)
 {
 	char 	ch;
     int		len=0;
+#ifdef __unix__
 	int		istty;
 
 	istty=isatty(fileno(stdin));
+#endif
     while(1) {
 		fread(&ch,1,1,stdin);
 #ifdef __unix__
