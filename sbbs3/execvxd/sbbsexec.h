@@ -2,7 +2,7 @@
 
 /* Synchronet Windows 9X FOSSIL driver (requires VtoolsD C++ framework) */
 
-/* $Id: sbbsexec.h,v 1.1 2000/10/10 11:27:21 rswindell Exp $ */
+/* $Id: sbbsexec.h,v 1.2 2001/05/02 01:58:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 
 #define SBBSExec_DeviceID	UNDEFINED_DEVICE_ID
 #define SBBSExec_Major		1
-#define SBBSExec_Minor		0
+#define SBBSExec_Minor		1
 #define SBBSExec_Init_Order	UNDEFINED_INIT_ORDER
 
 #include "..\execvxd.h"		// sbbsexec_start_t definition
