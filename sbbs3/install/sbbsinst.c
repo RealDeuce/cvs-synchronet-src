@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.49 2003/02/04 01:32:38 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.50 2003/02/04 01:50:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -522,7 +522,8 @@ get_distlist(void)
 	int		r=0;
 	int		f=0;
 	int		s=0;
-	char	*p;
+	char*	p;
+	char*	tp;
 	ftp_FILE	*list;
 	char	sep[2]={'\t',0};
 	char	str[1024];
@@ -664,9 +665,14 @@ get_distlist(void)
 				break;
 			case 's':
 				p=in_line+2;
-				sep[0]='\t';
-				strcpy(server[s]->addr,strtok(p,sep));
-				strcpy(server[s]->desc,strtok(NULL,sep));
+				tp=strchr(p,'\t');
+				if(tp!=NULL)
+					*tp=0;	/* truncate address at first tab */
+				else
+					tp=p;
+				SAFECOPY(server[s]->addr,p);
+				if((p=strrchr(tp+1,'\t'))!=NULL)	/* description follows last tab */
+					SAFECOPY(server[s]->desc,++p);
 				s++;
 				break;
 		}
