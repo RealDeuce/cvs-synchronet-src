@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.142 2002/09/13 01:08:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.143 2002/09/13 01:27:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -941,7 +941,6 @@ BOOL 	md(char *path);
 
 	/* file.cpp */
 	BOOL	filematch(char *filename, char *filespec);
-	uint	delfiles(char *path, char *spec);
 
 #endif /* SBBS */
 
