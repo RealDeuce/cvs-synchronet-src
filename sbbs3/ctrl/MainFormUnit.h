@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.68 2004/10/20 03:38:30 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.63 2004/08/20 02:08:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,26 +275,6 @@ __published:	// IDE-managed Components
 	TMenuItem *SpamBlockList;
 	TTimer *LogTimer;
 	TTimer *ServiceStatusTimer;
-    TMenuItem *ViewWebServerMenuItem;
-    TAction *ViewWebServer;
-    TToolButton *ViewWebServerButton;
-    TAction *WebStart;
-    TAction *WebStop;
-    TAction *WebRecycle;
-    TAction *WebConfigure;
-    TMenuItem *WebMenuItem;
-    TMenuItem *Configure1;
-    TMenuItem *Start1;
-    TMenuItem *Stop1;
-    TMenuItem *Recycle4;
-    TMenuItem *N11;
-    TMenuItem *WebEditMenuItem;
-    TMenuItem *WebEditMimeTypesMenuItem;
-    TMenuItem *N12;
-    TMenuItem *ServicesEditMenuItem;
-    TMenuItem *ServicesEditIniMenuOption;
-    TAction *ViewServices;
-    TMenuItem *ViewServicesMenuItem;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -340,12 +320,7 @@ __published:	// IDE-managed Components
     void __fastcall ViewClientsExecute(TObject *Sender);
     void __fastcall UserEditExecute(TObject *Sender);
     void __fastcall SaveSettings(TObject *Sender);
-    void __fastcall SaveRegistrySettings(TObject* Sender);    
     void __fastcall ImportSettings(TObject *Sender);
-    void __fastcall ImportFormSettings(TMemIniFile* IniFile, const char* section, TForm* form);
-    void __fastcall ExportFormSettings(TMemIniFile* IniFile, const char* section, TForm* form);
-    void __fastcall ImportFont(TMemIniFile* IniFile, const char* section, AnsiString prefix, TFont* Font);
-    void __fastcall ExportFont(TMemIniFile* IniFile, const char* section, AnsiString prefix, TFont* Font);
     void __fastcall ExportSettings(TObject *Sender);
     void __fastcall BBSLoginMenuItemClick(TObject *Sender);
     void __fastcall ViewLogClick(TObject *Sender);
@@ -376,12 +351,6 @@ __published:	// IDE-managed Components
 	void __fastcall FileEditConfigFilesClick(TObject *Sender);
 	void __fastcall BBSEditFileClick(TObject *Sender);
 	void __fastcall ServiceStatusTimerTick(TObject *Sender);
-    void __fastcall ViewWebServerExecute(TObject *Sender);
-    void __fastcall WebStartExecute(TObject *Sender);
-    void __fastcall WebStopExecute(TObject *Sender);
-    void __fastcall WebRecycleExecute(TObject *Sender);
-    void __fastcall WebConfigureExecute(TObject *Sender);
-    void __fastcall ViewServicesExecute(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
@@ -410,7 +379,6 @@ public:		// User declarations
     HANDLE			bbs_log;
     HANDLE			event_log;
     HANDLE			ftp_log;
-    HANDLE			web_log;
     HANDLE			mail_log;
     HANDLE			services_log;
     int             NodeDisplayInterval;
