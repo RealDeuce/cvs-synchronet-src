@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.3 2000/10/21 01:10:42 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.4 2000/10/25 00:56:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -691,6 +691,7 @@ enum {						/* readmail and delmailidx which types		*/
 #define TG_NODESYNC	(1<<3)	/* Call Nodesync, get msgs, etc.			*/
 #define TG_CTRLKEYS	(1<<4)	/* Interpret ^P ^U ^T, etc locally			*/
 #define TG_PASSTHRU	(1<<5)	/* Pass-through telnet commands/responses	*/
+#define TG_RLOGIN	(1<<6)	/* Use BSD RLogin protocol					*/
 
 enum {						/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            	/* Just list file information               */
