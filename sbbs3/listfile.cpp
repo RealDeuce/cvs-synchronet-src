@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.36 2003/08/22 10:50:15 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.37 2004/05/11 22:20:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,20 +440,14 @@ bool sbbs_t::listfile(char *fname, char HUGE16 *buf, uint dirnum
 #ifdef _WIN32
  
 	if(exist && !(cfg.file_misc&FM_NO_LFN)) {
-
-		WIN32_FIND_DATA finddata;
-		HANDLE h=FindFirstFile(path,&finddata);
-
-		if(h!=INVALID_HANDLE_VALUE) {
-
-			if(stricmp(finddata.cFileName,fname) && stricmp(finddata.cFileName,str))
-				bprintf("%.*s\r\n%21s",LEN_FDESC,finddata.cFileName,"");
-
-			FindClose(h);
-		}
+		fexistcase(path);	/* Get real (long?) filename */
+		ptr=getfname(path);
+		if(stricmp(ptr,fname) && stricmp(ptr,str))
+			bprintf("%.*s\r\n%21s",LEN_FDESC,ptr,"");
 	}
 
 #endif
+
 	if(!ext[0]) {
 		if(search[0]) { /* high-light string in string */
 			strcpy(tmp,str);
