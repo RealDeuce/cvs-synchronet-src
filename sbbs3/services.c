@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.132 2003/09/09 08:20:57 rswindell Exp $ */
+/* $Id: services.c,v 1.133 2003/09/09 08:41:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -869,7 +869,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	client->branch.counter++;
 
 	/* Terminated? */ 
-	if(terminated) {
+	if(terminated && !(client->service->options&SERVICE_OPT_STATIC)) {
 		JS_ReportError(cx,"Terminated");
 		client->branch.counter=0;
 		return(JS_FALSE);
@@ -1530,7 +1530,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.132 $", "%*s %s", revision);
+	sscanf("$Revision: 1.133 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
