@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.2 2000/10/29 04:56:47 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.3 2000/11/02 13:00:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,6 @@ if(!smb.file[0]) {
 	printf(usage);
 	exit(1); }
 
-strupr(smb.file);
 smb.retry_time=30;
 
 if((i=smb_open(&smb))!=0) {
