@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.31 2003/07/03 01:11:35 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.32 2003/07/24 10:57:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ void DLLCALL globfree(glob_t* glob)
 /****************************************************************************/
 /* POSIX directory operations using Microsoft _findfirst/next API.			*/
 /****************************************************************************/
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__DMC__)
 DIR* opendir(const char* dirname)
 {
 	DIR*	dir;

@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.23 2003/07/03 01:34:52 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.24 2003/07/24 10:57:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ extern "C" {
 /*****************************/
 /* POSIX Directory Functions */
 /*****************************/
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__DMC__)
 	#include <io.h>		/* _finddata_t */
 
 	/* dirent structure returned by readdir().
