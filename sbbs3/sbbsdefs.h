@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.15 2001/03/02 22:36:08 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.16 2001/04/11 03:38:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,6 @@
 /* Maximums */
 /************/
 
-#define DEMO_NODES		  2
 #define MAX_NODES		250
 
 #ifdef __FLAT__
