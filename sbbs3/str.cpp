@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.8 2000/11/04 12:03:51 rswindell Exp $ */
+/* $Id: str.cpp,v 1.9 2000/11/06 07:28:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -435,6 +435,7 @@ uint sbbs_t::gettmplt(char *strout,char *templt, long mode)
 
 	sys_status&=~SS_ABORT;
 	sprintf(tmplt, "%.*s",sizeof(tmplt)-1, templt);
+	strupr(tmplt);
 	if(useron.misc&ANSI) {
 		if(mode&K_LINE) {
 			if(useron.misc&COLOR)
@@ -467,11 +468,12 @@ uint sbbs_t::gettmplt(char *strout,char *templt, long mode)
 			bputs(" \b");
 			continue; }
 		if(ch==24) {	/* Ctrl-X */
-			for(c--;c!=0xff;c--) {
+			for(;c;c--) {
 				outchar(BS);
-				if(tmplt[c]=='N' || tmplt[c]=='A' || tmplt[c]=='!')
-					bputs(" \b"); }
-			c=0; }
+				if(tmplt[c-1]=='N' || tmplt[c-1]=='A' || tmplt[c-1]=='!')
+					bputs(" \b"); 
+			}
+		}
 		else if(c<t) {
 			if(tmplt[c]=='N' && !isdigit(ch))
 				continue;
