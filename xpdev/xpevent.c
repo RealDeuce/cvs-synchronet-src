@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.6 2005/01/14 19:25:55 deuce Exp $ */
+/* $Id: xpevent.c,v 1.1 2005/01/13 23:28:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,13 @@
 #include <stdio.h>		/* NULL */
 #include "xpevent.h"
 
+#define _EVENT_CHECK_VALIDITY(event)		\
+	if (event==NULL || (*(event))->magic != EVENT_MAGIC) {	\
+		errno = EINVAL;			\
+		retval = FALSE;			\
+		goto RETURN;			\
+	}
+
 xpevent_t
 CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 {
@@ -46,7 +53,7 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 	event = (xpevent_t)malloc(sizeof(struct xpevent));
 	if (event == NULL) {
 		errno = ENOSPC;
-		return(NULL);
+		goto RETURN;
 	}
 
 	/*
@@ -54,15 +61,17 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 	 */
 	if (pthread_mutex_init(&event->lock, NULL) != 0) {
 		free(event);
+		event=NULL;
 		errno = ENOSPC;
-		return(NULL);
+		goto RETURN;
 	}
 
 	if (pthread_cond_init(&event->gtzero, NULL) != 0) {
 		pthread_mutex_destroy(&event->lock);
 		free(event);
+		event=NULL;
 		errno = ENOSPC;
-		return(NULL);
+		goto RETURN;
 	}
 
 	event->mreset=bManualReset;
@@ -70,89 +79,94 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 	event->nwaiters = 0;
 	event->magic=EVENT_MAGIC;
 
-	return(event);
+  RETURN:
+	return event;
 }
 
 BOOL
-SetEvent(xpevent_t event)
+SetEvent(xpevent_t *event)
 {
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {
-		errno = EINVAL;
-		return(FALSE);
-	}
+	BOOL	retval;
 
-	pthread_mutex_lock(&event->lock);
+	_EVENT_CHECK_VALIDITY(event);
 
-	event->value=TRUE;
-	if (event->nwaiters > 0) {
+	pthread_mutex_lock(&(*event)->lock);
+
+	(*event)->value=TRUE;
+	if ((*event)->nwaiters > 0) {
 		/*
 		 * We must use pthread_cond_broadcast() rather than
 		 * pthread_cond_signal() in order to assure that the highest
 		 * priority thread is run by the scheduler, since
 		 * pthread_cond_signal() signals waiting threads in FIFO order.
 		 */
-		pthread_cond_broadcast(&event->gtzero);
+		pthread_cond_broadcast(&(*event)->gtzero);
 	}
 
-	pthread_mutex_unlock(&event->lock);
+	pthread_mutex_unlock(&(*event)->lock);
 
-	return(TRUE);
+	retval = TRUE;
+  RETURN:
+	return retval;
 }
 
 BOOL
-ResetEvent(xpevent_t event)
+ResetEvent(xpevent_t *event)
 {
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {
-		errno = EINVAL;
-		return(FALSE);
-	}
+	BOOL	retval=FALSE;
 
-	pthread_mutex_lock(&event->lock);
+	_EVENT_CHECK_VALIDITY(event);
 
-	event->value=FALSE;
+	pthread_mutex_lock(&(*event)->lock);
 
-	pthread_mutex_unlock(&event->lock);
+	(*event)->value=FALSE;
 
-	return(TRUE);
+	pthread_mutex_unlock(&(*event)->lock);
+
+	retval = TRUE;
+  RETURN:
+	return retval;
 }
 
 BOOL
-CloseEvent(xpevent_t event)
+CloseEvent(xpevent_t *event)
 {
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {
-		errno = EINVAL;
-		return(FALSE);
-	}
+	BOOL retval=FALSE;
+
+	_EVENT_CHECK_VALIDITY(event);
 
 	/* Make sure there are no waiters. */
-	pthread_mutex_lock(&event->lock);
-	if (event->nwaiters > 0) {
-		pthread_mutex_unlock(&event->lock);
+	pthread_mutex_lock(&(*event)->lock);
+	if ((*event)->nwaiters > 0) {
+		pthread_mutex_unlock(&(*event)->lock);
 		errno = EBUSY;
-		return(FALSE);
+		retval = FALSE;
+		goto RETURN;
 	}
+	pthread_mutex_unlock(&(*event)->lock);
+	
+	pthread_mutex_destroy(&(*event)->lock);
+	pthread_cond_destroy(&(*event)->gtzero);
+	(*event)->magic = 0;
 
-	pthread_mutex_unlock(&event->lock);
+	free(*event);
 
-	pthread_mutex_destroy(&event->lock);
-	pthread_cond_destroy(&event->gtzero);
-	event->magic = 0;
-
-	free(event);
-
-	return(TRUE);
+	retval = 0;
+  RETURN:
+	return retval;
 }
 
 DWORD
-WaitForEvent(xpevent_t event, DWORD ms)
+WaitEvent(xpevent_t *event, DWORD ms)
 {
 	DWORD	retval=WAIT_FAILED;
 	struct timespec abstime;
 	struct timeval currtime;
 
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {
+	if (event==NULL || (*(event))->magic != EVENT_MAGIC) {
 		errno = EINVAL;
-		return(WAIT_FAILED);
+		retval = WAIT_FAILED;
+		goto RETURN;
 	}
 
 	if(ms && ms!=INFINITE) {
@@ -161,23 +175,23 @@ WaitForEvent(xpevent_t event, DWORD ms)
 		abstime.tv_nsec=(currtime.tv_usec*1000 + ms*1000000)%1000000000;
 	}
 	
-	pthread_mutex_lock(&event->lock);
+	pthread_mutex_lock(&(*event)->lock);
 
-	while (!(event->value)) {
-		event->nwaiters++;
+	while (!((*event)->value)) {
+		(*event)->nwaiters++;
 		switch(ms) {
 			case 0:
-				if(event->value)
+				if((*event)->value)
 					retval=0;
 				else
 					retval=WAIT_TIMEOUT;
 				goto DONE;
 				break;
 			case INFINITE:
-				retval=pthread_cond_wait(&event->gtzero, &event->lock);
+				retval=pthread_cond_wait(&(*event)->gtzero, &(*event)->lock);
 				break;
 			default:
-				retval=pthread_cond_timedwait(&event->gtzero, &event->lock, &abstime);
+				retval=pthread_cond_timedwait(&(*event)->gtzero, &(*event)->lock, &abstime);
 				if(retval)  {
 					if(retval==ETIMEDOUT)
 						retval=WAIT_TIMEOUT;
@@ -188,18 +202,21 @@ WaitForEvent(xpevent_t event, DWORD ms)
 					goto DONE;
 				}
 		}
-		event->nwaiters--;
+		(*event)->nwaiters--;
 	}
 
   DONE:
 
 	if(retval==0) {
 		retval=WAIT_OBJECT_0;
-		if(!event->mreset)
-			event->value=FALSE;
+		if(!(&(*event)->mreset))
+			(*event)->value=FALSE;
 	}
 
-	pthread_mutex_unlock(&event->lock);
+	pthread_mutex_unlock(&(*event)->lock);
 
+  RETURN:
+
+	pthread_testcancel();
 	return retval;
 }

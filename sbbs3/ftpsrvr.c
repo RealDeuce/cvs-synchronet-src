@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.288 2005/02/18 03:29:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.285 2005/01/07 03:50:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,6 @@ static DWORD	thread_count=0;
 static time_t	uptime=0;
 static DWORD	served=0;
 static BOOL		terminate_server=FALSE;
-static char		local_hostname[128];
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
 static link_list_t recycle_semfiles;
@@ -2267,7 +2266,7 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts)
 
 static char* ftp_tmpfname(char* str, SOCKET sock)
 {
-	safe_snprintf(str,MAX_PATH,"%sSBBS_FTP.%s.%u.tx",scfg.temp_dir,local_hostname,sock);
+	sprintf(str,"%sftp%u%u.tx",scfg.data_dir,getpid(),sock);
 	return(str);
 }
 
@@ -2729,7 +2728,6 @@ static void ctrl_thread(void* arg)
 			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
 			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
 			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
-			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa(logintime,str,16));
 			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
@@ -4459,7 +4457,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.288 $", "%*s %s", revision);
+	sscanf("$Revision: 1.285 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4555,8 +4553,6 @@ void DLLCALL ftp_server(void* arg)
 
 		status("Initializing");
 
-		gethostname(local_hostname,sizeof(local_hostname));
-
 		memset(&scfg, 0, sizeof(scfg));
 
 		lprintf(LOG_INFO,"Synchronet FTP Server Revision %s%s"
@@ -4572,7 +4568,8 @@ void DLLCALL ftp_server(void* arg)
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
-		sbbs_srand();	/* Seed random number generator */
+		srand(time(NULL));	/* Seed random number generator */
+		sbbs_random(10);	/* Throw away first number */
 
 		if(!winsock_startup()) {
 			cleanup(1,__LINE__);
@@ -4613,18 +4610,11 @@ void DLLCALL ftp_server(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		if(startup->temp_dir[0])
+		if(startup->temp_dir[0]) {
 			SAFECOPY(scfg.temp_dir,startup->temp_dir);
-		else
-	    	prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-		backslash(scfg.temp_dir);
-		MKDIR(scfg.temp_dir);
-		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
-		if(!isdir(scfg.temp_dir)) {
-			lprintf(LOG_ERR,"!Invalid temp directory: %s", scfg.temp_dir);
-			cleanup(1,__LINE__);
-			return;
-		}
+			backslash(scfg.temp_dir);
+		} else
+			prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 		if(!startup->max_clients) {
 			startup->max_clients=scfg.sys_nodes;

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.142 2005/02/15 09:21:01 rswindell Exp $ */
+/* $Id: js_global.c,v 1.141 2004/12/31 02:39:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -604,7 +604,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((inbuf=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
-	if((outbuf=(char*)malloc((strlen(inbuf)*3)+1))==NULL)
+	if((outbuf=(char*)malloc((strlen(inbuf)*2)+1))==NULL)
 		return(JS_FALSE);
 
 	if(argc>1)
