@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.11 2000/12/11 23:21:11 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.12 2001/03/09 22:02:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -654,7 +654,6 @@ int sbbs_t::exec_function(csi_t *csi)
 			return(0);
 
 		case CS_FILE_GET:
-
 			if(!fexist(csi->str)) {
 				bputs(text[FileNotFound]);
 				return(0); }
@@ -684,6 +683,8 @@ int sbbs_t::exec_function(csi_t *csi)
 		case CS_FILE_PUT:
 			if(!chksyspass(0))
 				return(0);
+
+		case CS_FILE_RECEIVE:
 			menu("ulprot");
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
@@ -779,11 +780,11 @@ int sbbs_t::exec_function(csi_t *csi)
 
 	if(*(csi->ip-1)>=CS_MSG_SET_AREA && *(csi->ip-1)<=CS_MSG_UNUSED1) {
 		csi->ip--;
-		return(execmsg(csi)); }
+		return(exec_msg(csi)); }
 
-	if(*(csi->ip-1)>=CS_FILE_SET_AREA && *(csi->ip-1)<=CS_FILE_UNUSED1) {
+	if(*(csi->ip-1)>=CS_FILE_SET_AREA && *(csi->ip-1)<=CS_FILE_RECEIVE) {
 		csi->ip--;
-		return(execfile(csi)); }
+		return(exec_file(csi)); }
 
 	errormsg(WHERE,ERR_CHK,"shell function",*(csi->ip-1));
 	return(0);
