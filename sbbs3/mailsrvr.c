@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.178 2002/07/25 06:09:01 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.179 2002/07/26 22:16:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2328,8 +2328,6 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		smb_unlockmsghdr(smb,msg);
 		return(TRUE);
 	}
-	
-	lprintf("0000 !Bouncing message back to %s", msg->from);
 
 	newmsg=*msg;
 	/* Mark original message as deleted */
@@ -2344,6 +2342,13 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	if(msg->hdr.auxattr&MSG_FILEATTACH)
 		delfattach(&scfg,msg);
 	smb_unlockmsghdr(smb,msg);
+
+	if(!msg->idx.from && !msg->from_net.type) {
+		lprintf("0000 !Deleted undeliverable local message from %s", msg->from);
+		return(TRUE);
+	}
+	
+	lprintf("0000 !Bouncing message back to %s", msg->from);
 
 	newmsg.hfield=NULL;
 	newmsg.hfield_dat=NULL;
@@ -2784,7 +2789,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.178 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.179 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
