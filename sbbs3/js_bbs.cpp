@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.45 2002/10/16 09:45:40 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.46 2002/10/25 00:35:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1259,9 +1259,7 @@ js_newuser(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	sbbs->newuser();
-
-	*rval = JSVAL_VOID;
+	*rval = BOOLEAN_TO_JSVAL(sbbs->newuser());
 	return(JS_TRUE);
 }
 

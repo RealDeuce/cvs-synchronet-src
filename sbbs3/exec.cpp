@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.28 2002/08/30 19:45:20 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.29 2002/10/25 00:35:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1569,7 +1569,10 @@ int sbbs_t::exec(csi_t *csi)
 					csi->misc&=~CS_OFFLINE_EXEC;
 					return(0);
 				case CS_NEWUSER:
-					newuser();
+					if(newuser())
+						csi->logic=LOGIC_TRUE;
+					else
+						csi->logic=LOGIC_FALSE;
 					return(0);
 				case CS_LOGON:
 					if(logon())

@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.144 2002/10/16 09:43:41 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.145 2002/10/25 00:35:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -515,7 +515,7 @@ public:
 	bool	logon(void);
 	void	logout(void);
 	void	logoff(void);
-	void	newuser(void);					/* Get new user							*/
+	BOOL	newuser(void);					/* Get new user							*/
 	void	backout(void);
 
 	/* readmsgs.cpp */
