@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.31 2003/05/21 03:34:23 deuce Exp $
+# $Id: GNUmakefile,v 1.32 2003/05/21 04:40:47 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -145,7 +145,7 @@ $(SCFG): $(OBJS)
 	@$(MAKE) --no-print-directory -C ../../libdialog
    endif
 	@echo Linking $@
-	$(CCPP) -o $@ $(OBJS) $(LFLAGS)
+	@$(CCPP) -o $@ $(OBJS) $(LFLAGS)
 
 # Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
 -include ./*.d
