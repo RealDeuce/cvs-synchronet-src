@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.14 2001/11/04 00:50:26 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.15 2001/11/29 03:58:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -194,6 +194,7 @@ bool sbbs_t::logon()
 	logon_ml=useron.level;
 	logontime=time(NULL);
 	starttime=logontime;
+	useron.logontime=logontime;
 	last_ns_time=ns_time=useron.ns_time;
 	// ns_time-=(useron.tlast*60); /* file newscan time == last logon time */
 	delfiles(cfg.temp_dir,ALLFILES);
