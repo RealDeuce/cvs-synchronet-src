@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.14 2002/07/21 07:41:28 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.15 2002/08/09 09:21:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,16 +58,16 @@
 /****************************************************************************/
 /* Return last character of string											*/
 /****************************************************************************/
-const char* DLLCALL lastchar(const char* str)
+char* DLLCALL lastchar(const char* str)
 {
 	size_t	len;
 
 	len = strlen(str);
 
 	if(len)
-		return(&str[len-1]);
+		return((char*)&str[len-1]);
 
-	return(str);
+	return((char*)str);
 }
 
 /****************************************************************************/
