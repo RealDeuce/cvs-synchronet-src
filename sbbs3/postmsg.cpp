@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.54 2004/08/27 09:06:37 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.55 2004/08/27 22:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,7 +199,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	bputs(text[WritingIndx]);
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
-		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i);
+		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i,smb.last_error);
 		return(false); 
 	}
 
@@ -243,7 +243,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(length&0xfff00000UL) {
 		smb_close(&smb);
-		errormsg(WHERE,ERR_LEN,str,length);
+		errormsg(WHERE,ERR_LEN,str,length,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
 	}
@@ -332,7 +332,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		msg.hdr.thread_orig=remsg->hdr.number;
 
 		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
-			errormsg(WHERE,ERR_WRITE,smb.file,i); 
+			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
 	}
 
 
@@ -377,7 +377,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	smb_freemsgmem(&msg);
 	if(i) {
 		smb_freemsgdat(&smb,offset,length,1);
-		errormsg(WHERE,ERR_WRITE,smb.file,i);
+		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 		return(false); 
 	}
 
