@@ -2,7 +2,7 @@
 
 /* Tone Generation Utility (using PC speaker, not sound card) */
 
-/* $Id: tone.c,v 1.7 2005/01/21 03:10:39 rswindell Exp $ */
+/* $Id: tone.c,v 1.9 2005/01/22 04:29:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,10 @@ int s=0;		/* Stacato */
 int octave=4;	/* Default octave */
 
 double pitch=523.50/32.0;	 /* low 'C' */
+
+BOOL use_xptone=FALSE;
+
+enum WAVE_SHAPE wave_shape;
 
 void play(char *freq, char *dur)
 {
@@ -142,8 +146,12 @@ void play(char *freq, char *dur)
 		len=(d*t)-(d*s);
 	else
 		len=(d*t);
-	if(f)
-		BEEP(f,len);
+	if(f) {
+		if(use_xptone)
+			xptone(f,len,wave_shape);
+		else
+			BEEP(f,len);
+	}
 	else
 		SLEEP(len);
 	if(s) {
@@ -179,6 +187,8 @@ void usage(void)
 	printf("               f display frequency or note value\n");
 	printf("               n not abortable with key-stroke\n");
 	printf("               v disable visual text commands\n");
+	printf("               x# use xptone (wave/dsp output) instead of beep macro\n");
+	printf("                  optionally, specify wave shape number\n");
 	exit(0);
 }
 
@@ -187,10 +197,10 @@ int main(int argc, char **argv)
 	char*	p;
 	char	str[128];
 	char	revision[16];
-	int		i,j;
+	int		i;
 	FILE*	stream;
 
-	sscanf("$Revision: 1.7 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	printf("\nTone Generation Utility  %s  Copyright 2003 Rob Swindell\n\n", revision);
 
@@ -200,23 +210,26 @@ int main(int argc, char **argv)
 	setvbuf(stdout,NULL,_IONBF,0);
 	for(i=1;i<argc;i++) {
 		if(argv[i][0]=='-') {
-			for(j=1;argv[i][j];j++)
-				switch(toupper(argv[i][j])) {
-					case 'D':
-						mode^=SHOW_DOT;
-						break;
-					case 'F':
-						mode^=SHOW_FREQ;
-						break;
-					case 'N':
-						mode^=NOT_ABORTABLE;
-						break;
-					case 'V':
-						mode^=NO_VISUAL;
-						break;
-					default:
-						usage();
-						break;
+			switch(toupper(argv[i][1])) {
+				case 'D':
+					mode^=SHOW_DOT;
+					break;
+				case 'F':
+					mode^=SHOW_FREQ;
+					break;
+				case 'N':
+					mode^=NOT_ABORTABLE;
+					break;
+				case 'V':
+					mode^=NO_VISUAL;
+					break;
+				case 'X':
+					use_xptone=TRUE;
+					wave_shape=atoi(argv[i]+2);
+					break;
+				default:
+					usage();
+					break;
 			}
 			continue; 
 		}

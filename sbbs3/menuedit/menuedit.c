@@ -2,7 +2,7 @@
 
 /* Synchronet Menu Editor		 										*/
 
-/* $Id: menuedit.c,v 1.3 2004/07/21 02:38:30 rswindell Exp $ */
+/* $Id: menuedit.c,v 1.4 2005/02/20 20:51:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,8 +37,8 @@
 
 #include <stdlib.h>
 #include <malloc.h>		/* alloca */
-#include "uifc.h"
 #include "genwrap.h"
+#include "uifc.h"
 #include "dirwrap.h"
 #include "ini_file.h"
 
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
 	glob_t	g;
 	size_t	gi;
 
-	sscanf("$Revision: 1.3 $", "%*s %s", revision);
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
     printf("\r\nSynchronet Menu Editor (%s)  %s  Copyright 2004 "
         "Rob Swindell\r\n",PLATFORM_DESC,revision);
