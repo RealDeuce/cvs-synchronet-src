@@ -1,6 +1,5 @@
 #include <genwrap.h>
-#include <conio.h>
-#include <keys.h>
+#include <ciowrap.h>
 
 #include "term.h"
 #include "uifcinit.h"
@@ -534,27 +533,27 @@ void doterm(void)
 							case 0:
 								break;
 							case 7:			/* Beep */
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								#ifdef __unix__
-									putch(7);
+									beep();
 								#else
 									MessageBeep(MB_OK);
 								#endif
 								break;
 							case 12:		/* ^L - Clear screen */
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								clearscreen(term.attr);
 								gotoxy(1,1);
 								break;
 							case 27:		/* ESC */
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								term.sequence=1;
 								break;
 							case '\t':
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								for(k=0;k<11;k++) {
 									if(tabs[k]>wherex()) {
@@ -568,7 +567,7 @@ void doterm(void)
 						}
 					}
 				}
-				cputs(prn);
+				cprintf(prn);
 				prn[0]=0;
 				break;
 		}
@@ -577,49 +576,6 @@ void doterm(void)
 		while(kbhit()) {
 			key=getch();
 			switch(key) {
-				case 0:
-					switch(getch()<<8) {
-						case CIO_KEY_LEFT:
-							rlogin_send("\033[D",3,100);
-							break;
-						case CIO_KEY_RIGHT:
-							rlogin_send("\033[C",3,100);
-							break;
-						case CIO_KEY_UP:
-							rlogin_send("\033[A",3,100);
-							break;
-						case CIO_KEY_DOWN:
-							rlogin_send("\033[B",3,100);
-							break;
-						case CIO_KEY_HOME:
-							rlogin_send("\033[H",3,100);
-							break;
-						case CIO_KEY_END:
-#ifdef CIO_KEY_SELECT
-						case CIO_KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
-#endif
-							rlogin_send("\033[K",3,100);
-							break;
-						case CIO_KEY_F(1):
-							rlogin_send("\033OP",3,100);
-							break;
-						case CIO_KEY_F(2):
-							rlogin_send("\033OQ",3,100);
-							break;
-						case CIO_KEY_F(3):
-							rlogin_send("\033Ow",3,100);
-							break;
-						case CIO_KEY_F(4):
-							rlogin_send("\033Ox",3,100);
-							break;
-#ifdef __unix__
-						case 128|'S':	/* Under curses, ALT sets the high bit of the char */
-						case 128|'s':	/* Under curses, ALT sets the high bit of the char */
-							viewscroll();
-							break;
-#endif
-					}
-					break;
 				case 17:	/* CTRL-Q */
 					free(term.scrollback);
 					return;
@@ -633,6 +589,46 @@ void doterm(void)
 					}
 					gotoxy(i,j);
 					break;
+				case KEY_LEFT:
+					rlogin_send("\033[D",3,100);
+					break;
+				case KEY_RIGHT:
+					rlogin_send("\033[C",3,100);
+					break;
+				case KEY_UP:
+					rlogin_send("\033[A",3,100);
+					break;
+				case KEY_DOWN:
+					rlogin_send("\033[B",3,100);
+					break;
+				case KEY_HOME:
+					rlogin_send("\033[H",3,100);
+					break;
+				case KEY_END:
+#ifdef KEY_SELECT
+				case KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
+#endif
+					rlogin_send("\033[K",3,100);
+					break;
+				case KEY_F(1):
+					rlogin_send("\033OP",3,100);
+					break;
+				case KEY_F(2):
+					rlogin_send("\033OQ",3,100);
+					break;
+				case KEY_F(3):
+					rlogin_send("\033Ow",3,100);
+					break;
+				case KEY_F(4):
+					rlogin_send("\033Ox",3,100);
+					break;
+#ifdef __unix__
+				case 128|'S':	/* Under curses, ALT sets the high bit of the char */
+				case 128|'s':	/* Under curses, ALT sets the high bit of the char */
+					viewscroll();
+					break;
+#endif
+				case KEY_BACKSPACE:
 				case '\b':
 					key='\b';
 					/* FALLTHROUGH to default */
