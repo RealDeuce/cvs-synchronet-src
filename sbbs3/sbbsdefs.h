@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.102 2003/08/18 21:09:34 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.103 2003/08/18 21:43:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -388,7 +388,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 																			
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
-#define ANSI			(1<<1) 		/* user must have ANSI, same as ^^^		*/
+#define XTRN_ANSI		(1<<1) 		/* user must have ANSI, same as ^^^		*/
 #define IO_INTS 		(1<<2) 		/* Intercept I/O interrupts 			*/
 #define MODUSERDAT		(1<<3) 		/* Program can modify user data 		*/
 #define WWIVCOLOR		(1<<4) 		/* Program uses WWIV color codes		*/
