@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.8 2004/11/18 01:00:54 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.5 2004/11/11 03:46:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,9 +42,11 @@ typedef struct
 {
 	char	name[128];
 	int		type;
+	size_t	length;
 	union {
 		JSBool		b;
-		jsdouble	n;
+		int32		i;
+		jsdouble	d;
 		char*		s;
 	} value;
 } queued_value_t;
@@ -63,59 +65,38 @@ static void js_finalize_queue(JSContext *cx, JSObject *obj)
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 	
-	if(msgQueueDetach(q)==0 && (n=listFindNode(&named_queues,q,/* length=0 for ptr compare */0))!=NULL)
-		listRemoveNode(&named_queues,n,TRUE);
+	if(msgQueueDetach(q)==0 && (n=listFindNode(&named_queues,q,0))!=NULL)
+		listRemoveNode(&named_queues,n);
 
 	JS_SetPrivate(cx, obj, NULL);
 }
 
-static size_t js_decode_value(JSContext *cx, JSObject *parent
-							   ,queued_value_t* v, jsval* rval, BOOL peek)
+static void parse_queued_value(JSContext *cx, queued_value_t* v, jsval* rval, BOOL peek)
 {
-	size_t			count=1;
-	size_t			decoded;
-	queued_value_t* pv;
-	queued_value_t	term;
-	jsval	prop_val;
-	jsuint	index=0;
-	JSObject *obj;
-
-	ZERO_VAR(term);
-
 	*rval = JSVAL_VOID;
 
-	if(v==NULL || v->type==JSTYPE_VOID)
-		return(count);
+	if(v==NULL)
+		return;
 
 	switch(v->type) {
-		case JSTYPE_BOOLEAN:
+		case JSVAL_BOOLEAN:
 			*rval = BOOLEAN_TO_JSVAL(v->value.b);
 			break;
-		case JSTYPE_NUMBER:
-			JS_NewNumberValue(cx,v->value.n,rval);
+		case JSVAL_INT:
+			JS_NewNumberValue(cx,v->value.i,rval);
 			break;
-		case JSTYPE_STRING:
+		case JSVAL_DOUBLE:
+			JS_NewNumberValue(cx,v->value.d,rval);
+			break;
+		case JSVAL_STRING:
 			if(v->value.s) {
 				*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,v->value.s));
 				if(!peek)
 					free(v->value.s);
 			}
 			break;
-		case JSTYPE_ARRAY:
-		case JSTYPE_OBJECT:
-			obj = JS_DefineObject(cx, parent, v->name, NULL, NULL
-				,JSPROP_ENUMERATE);
-			for(pv=v+1,count++;memcmp(pv,&term,sizeof(term));pv+=decoded,count+=decoded) {
-				decoded=js_decode_value(cx,obj,pv,&prop_val,peek);
-				if(v->type==JSTYPE_ARRAY)
-					JS_SetElement(cx,obj,index++,&prop_val);
-				else
-					JS_DefineProperty(cx, obj, pv->name, prop_val,NULL,NULL,JSPROP_ENUMERATE);
-			}
-			*rval = OBJECT_TO_JSVAL(obj);
-			break;
 	}
-	return(count);
+	free(v);
 }
 
 /* Queue Object Methods */
@@ -164,9 +145,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	} else
 		v=msgQueueRead(q, /* timeout */0);
 
-	js_decode_value(cx, obj, v, rval, /* peek */FALSE);
-
-	FREE_AND_NULL(v);
+	parse_queued_value(cx, v, rval, /* peek */FALSE);
 
 	return(JS_TRUE);
 }
@@ -184,98 +163,40 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	v=msgQueuePeek(q, /* timeout */0);
 
-	js_decode_value(cx, obj, v, rval, /* peek */TRUE);
-
-	FREE_AND_NULL(v);
+	parse_queued_value(cx, v, rval, /* peek */TRUE);
 
 	return(JS_TRUE);
 }
 
-static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
-									   ,queued_value_t* v, size_t* count)
+BOOL js_enqueue_value(JSContext *cx, msg_queue_t* q, jsval val, char* name)
 {
-	jsint       i;
-	jsval		prop_name;
-	jsval		prop_val;
-    JSObject*	obj;
-	JSIdArray*	id_array;
-	queued_value_t* nv;
+	queued_value_t v;
 
-	if((nv=realloc(v,((*count)+1)*sizeof(queued_value_t)))==NULL) {
-		if(v) free(v);
-		return(NULL);
-	}
-	v=nv;
-	nv=v+(*count);
-	memset(nv,0,sizeof(queued_value_t));
-	(*count)++;
+	ZERO_VAR(v);
 
 	if(name!=NULL)
-		SAFECOPY(nv->name,name);
+		SAFECOPY(v.name,name);
 
-	switch(JSVAL_TAG(val)) {
+	switch(v.type=JSVAL_TAG(val)) {
 		case JSVAL_BOOLEAN:
-			nv->type=JSTYPE_BOOLEAN;
-			nv->value.b=JSVAL_TO_BOOLEAN(val);
+			v.length = sizeof(JSBool);
+			v.value.b=JSVAL_TO_BOOLEAN(val);
 			break;
-		case JSVAL_OBJECT:
-			nv->type=JSTYPE_OBJECT;
-			obj = JSVAL_TO_OBJECT(val);
-
-			if(JSVAL_IS_NULL(val))
-				break;
-
-			if(JS_IsArrayObject(cx, obj))
-				nv->type=JSTYPE_ARRAY;
-
-			if((id_array=JS_Enumerate(cx,obj))==NULL) {
-				free(v);
-				return(NULL);
-			}
-			for(i=0; i<id_array->length; i++)  {
-				/* property name */
-				JS_IdToValue(cx,id_array->vector[i],&prop_name);
-				if(JSVAL_IS_STRING(prop_name)) {
-					name=JS_GetStringBytes(JSVAL_TO_STRING(prop_name));
-					/* value */
-					JS_GetProperty(cx,obj,name,&prop_val);
-				} else {
-					name=NULL;
-					JS_GetElement(cx,obj,i,&prop_val);
-				}
-				if((v=js_encode_value(cx,prop_val,name,v,count))==NULL)
-					break;
-			}
-			v=js_encode_value(cx,JSVAL_VOID,NULL,v,count);	/* terminate object */
+		case JSVAL_DOUBLE:
+			v.length =sizeof(jsdouble);
+			v.value.d = *JSVAL_TO_DOUBLE(val);
 			break;
 		default:
 			if(JSVAL_IS_NUMBER(val)) {
-				nv->type = JSTYPE_NUMBER;
-				JS_ValueToNumber(cx,val,&nv->value.n);
-			} else if(JSVAL_IS_VOID(val)) {
-				nv->type = JSTYPE_VOID;
+				v.type = JSVAL_INT;
+				JS_ValueToInt32(cx,val,&v.value.i);
 			} else {
-				nv->type= JSTYPE_STRING;
-				nv->value.s = strdup(JS_GetStringBytes(JS_ValueToString(cx,val)));
+				v.type= JSVAL_STRING;
+				v.value.s = strdup(JS_GetStringBytes(JS_ValueToString(cx,val)));
 			}
 			break;
 	}
-
-	return(v);
-}
-
-BOOL js_enqueue_value(JSContext *cx, msg_queue_t* q, jsval val, char* name)
-{
-	queued_value_t* v;
-	size_t			count=0;
-	BOOL			result;
-
-	if((v=js_encode_value(cx,val,name,NULL,&count))==NULL || count<1)
-		return(FALSE);
-
-	result=msgQueueWrite(q,v,count*sizeof(queued_value_t));
-	free(v);
-	return(result);
+	return(msgQueueWrite(q,&v,sizeof(v)));
 }
 
 static JSBool

@@ -2,7 +2,7 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.10 2004/11/19 00:51:25 rswindell Exp $ */
+/* $Id: msg_queue.c,v 1.7 2004/11/11 06:12:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 #include <string.h>		/* memset */
 
 #include "genwrap.h"	/* msclock() */
-#include "threadwrap.h"	/* pthread_self */
+#include "threadwrap.h"	/* GetCurrentThreadId */
 #include "msg_queue.h"
 
 msg_queue_t* msgQueueInit(msg_queue_t* q, long flags)
@@ -54,11 +54,11 @@ msg_queue_t* msgQueueInit(msg_queue_t* q, long flags)
 
 	q->flags = flags;
 	q->refs = 1;
-	q->owner_thread_id = pthread_self();
+	q->owner_thread_id = GetCurrentThreadId();
 
 	if(q->flags&MSG_QUEUE_BIDIR)
-		listInit(&q->in,LINK_LIST_SEMAPHORE);
-	listInit(&q->out,LINK_LIST_SEMAPHORE);
+		listInit(&q->in,LINK_LIST_DONT_FREE|LINK_LIST_SEMAPHORE);
+	listInit(&q->out,LINK_LIST_DONT_FREE|LINK_LIST_SEMAPHORE);
 
 	return(q);
 }
@@ -125,7 +125,7 @@ static link_list_t* msgQueueReadList(msg_queue_t* q)
 		return(NULL);
 
 	if((q->flags&MSG_QUEUE_BIDIR)
-		&& q->owner_thread_id == pthread_self())
+		&& q->owner_thread_id == GetCurrentThreadId())
 		return(&q->in);
 	return(&q->out);
 }
@@ -136,7 +136,7 @@ static link_list_t* msgQueueWriteList(msg_queue_t* q)
 		return(NULL);
 
 	if(!(q->flags&MSG_QUEUE_BIDIR)
-		|| q->owner_thread_id == pthread_self())
+		|| q->owner_thread_id == GetCurrentThreadId())
 		return(&q->out);
 	return(&q->in);
 }
@@ -150,11 +150,11 @@ static BOOL list_wait(link_list_t* list, long timeout)
 {
 #if defined(LINK_LIST_THREADSAFE)
 	if(timeout<0)	/* infinite */
-		return listSemWait(list);
+		return listSemWait(list)==0;
 	if(timeout==0)	/* poll */
-		return listSemTryWait(list);
+		return listSemTryWait(list)==0;
 
-	return listSemTryWaitBlock(list,timeout);
+	return listSemTryWaitBlock(list,timeout)==0;
 #else
 	clock_t	start;
 	long	count;
@@ -181,7 +181,7 @@ void* msgQueueRead(msg_queue_t* q, long timeout)
 	if(!list_wait(msgQueueReadList(q),timeout))
 		return(NULL);
 
-	return listShiftNode(msgQueueReadList(q));
+	return listPopFirstNode(msgQueueReadList(q));
 }
 
 void* msgQueuePeek(msg_queue_t* q, long timeout)
@@ -199,7 +199,7 @@ void* msgQueueFind(msg_queue_t* q, const void* data, size_t length)
 
 	if((node=listFindNode(list,data,length))==NULL)
 		return(NULL);
-	return listRemoveNode(list,node,/* Free Data? */FALSE);
+	return listRemoveNode(list,node);
 }
 
 list_node_t* msgQueueFirstNode(msg_queue_t* q)
