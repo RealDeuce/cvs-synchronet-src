@@ -8,7 +8,7 @@
 int raw_recv(char *buffer, size_t buflen)
 {
 	int	r;
-	size_t	avail;
+	int	avail;
 	int rd;
 
 	if(!socket_check(conn_socket, NULL, NULL, 0))
@@ -26,7 +26,7 @@ int raw_recv(char *buffer, size_t buflen)
 
 int raw_send(char *buffer, size_t buflen, unsigned int timeout)
 {
-	size_t sent=0;
+	int sent=0;
 	int	ret;
 	int	i;
 
@@ -52,15 +52,11 @@ int raw_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int raw_close(void)
-{
-	return(closesocket(conn_socket));
-}
-
 int raw_connect(char *addr, int port, char *ruser, char *passwd)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
+	char	nil=0;
 	char	*p;
 	unsigned int	neta;
 	int	i;
@@ -101,9 +97,14 @@ int raw_connect(char *addr, int port, char *ruser, char *passwd)
 		raw_close();
 		sprintf(str,"Cannot connect to %s!",addr);
 		uifcmsg(str,	"`Unable to connect`\n\n"
-						"Cannot connect to the remote system... it is down or unreachable.");
+						"Cannot connect to the remost system... it is down or unreachable.");
 		return(-1);
 	}
 
 	return(0);
+}
+
+int raw_close(void)
+{
+	return(closesocket(conn_socket));
 }
