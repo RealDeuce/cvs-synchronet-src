@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.50 2003/12/12 07:39:10 rswindell Exp $ */
+/* $Id: js_user.c,v 1.51 2003/12/17 04:10:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -621,9 +621,9 @@ static char* user_prop_desc[] = {
 	,"current external program being run"
 	,"external message editor"
 	,"command shell"
-	,"settings bitfield"
-	,"QWK packet settings bitfield"
-	,"chat settings bitfield"
+	,"settings bitfield - see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
+	,"QWK packet settings bitfield - see <tt>QWK_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
+	,"chat settings bitfield - see <tt>CHAT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
 	,"temporary file type (extension)"
 	,"new file scan date/time (time_t format)"
 	,"file transfer protocol (command key)"
