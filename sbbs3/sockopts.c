@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.cfg */
 
-/* $Id: sockopts.c,v 1.9 2002/06/14 20:11:53 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.10 2002/06/16 21:15:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,7 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, char* error)
 	int		option;
 	int		value;
 	int		len;
+	int		type;
 	int		result=0;
 	LINGER	linger;
 
@@ -91,6 +92,15 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, char* error)
 	sprintf(cfgfile,"%ssockopts.cfg",cfg->ctrl_dir);
 	if((fp=fopen(cfgfile,"r"))==NULL)
 		return(0);
+
+	len = sizeof(type);
+	result=getsockopt(sock,SOL_SOCKET,SO_TYPE,(char*)&type,&len);
+	if(result) {
+		sprintf(error,"%d getting socket option (TYPE, %d)"
+			,ERROR_VALUE, SO_TYPE);
+		return(result);
+	}
+
 	while(!feof(fp)) {
 		if(!fgets(str,sizeof(str)-1,fp))
 			break;
@@ -107,19 +117,25 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, char* error)
 		while(*p && *p>' ') p++;
 		if(*p) p++;
 		while(*p && *p<=' ') p++;
-		if(option==SO_LINGER) {
-			linger.l_onoff = value;
-			linger.l_linger = (int)strtol(p,NULL,0);
-			vp=(BYTE*)&linger;
-			len=sizeof(linger);
+		switch(option) {
+			case SO_LINGER:
+				linger.l_onoff = value;
+				linger.l_linger = (int)strtol(p,NULL,0);
+				vp=(BYTE*)&linger;
+				len=sizeof(linger);
+				break;
+			case SO_KEEPALIVE:
+				if(type!=SOCK_STREAM)
+					continue;
+				break;
 		}
 #if 0
 		lprintf("%04d setting socket option: %s to %d", sock, str, value);
 #endif
 		result=setsockopt(sock,SOL_SOCKET,option,vp,len);
 		if(result) {
-			sprintf(error,"%d (%d) setting socket option (%s) to %d"
-				,result, ERROR_VALUE, str, value);
+			sprintf(error,"%d setting socket option (%s, %d) to %d"
+				,ERROR_VALUE, str, option, value);
 			break;
 		}
 #if 0
