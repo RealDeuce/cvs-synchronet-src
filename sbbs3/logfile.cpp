@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.20 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.21 2002/03/20 12:56:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,7 @@ void sbbs_t::errormsg(int line, char *source, char action, char *object
 					  ,ulong access, char *extinfo)
 {
 	char*	src;
-    char	str[512];
+    char	str[2048];
 	char 	tmp[512];
     char*	actstr;
 
@@ -313,7 +313,7 @@ void sbbs_t::errormsg(int line, char *source, char action, char *object
 		strcat(str,tmp);
 	}
 	if(errno) {
-		sprintf(tmp,"\r\n     errno: %d",errno);
+		sprintf(tmp,"\r\n     errno: %d (%s)",errno,strerror(errno));
 		strcat(str,tmp); 
 		errno=0;
 	}
