@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.104 2002/02/24 04:03:23 rswindell Exp $ */
+/* $Id: main.cpp,v 1.105 2002/02/24 04:14:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2950,7 +2950,7 @@ static void cleanup(int code)
 
 	status("Down");
 	thread_down();
-    lputs("BBS System thread terminated (%u threads remain)", thread_count);
+    lprintf("BBS System thread terminated (%u threads remain)", thread_count);
 	if(startup->terminated!=NULL)
 		startup->terminated(code);
 }
