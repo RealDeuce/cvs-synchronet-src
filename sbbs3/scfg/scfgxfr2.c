@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.2 2002/01/16 03:12:31 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.3 2002/01/17 02:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,10 @@ directories for a more organized file structure.
 		j=save_changes(WIN_MID);
 		if(j==-1)
 			continue;
-		if(!j)
+		if(!j) {
 			write_file_cfg(&cfg,backup_level);
+            rerun_nodes();
+        }
 		return; }
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;

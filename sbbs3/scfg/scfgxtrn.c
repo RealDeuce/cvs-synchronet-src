@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.4 2002/01/16 19:01:09 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.5 2002/01/17 02:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,9 @@ online external programs (doors).
                 break;
 			if(!i) {
                 write_xtrn_cfg(&cfg,backup_level);
-				write_main_cfg(&cfg,backup_level); }
+				write_main_cfg(&cfg,backup_level);
+                rerun_nodes();
+            }
 			return;
 		case 0:
 			fevents_cfg();

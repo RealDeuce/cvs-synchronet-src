@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.2 2002/01/16 03:12:31 rswindell Exp $ */
+/* $Id: scfg.h,v 1.3 2002/01/17 02:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,6 +80,7 @@ extern read_cfg_text_t txt;
 void bail(int code);
 void errormsg(int line, char *source,  char action, char *object, ulong access);
 int  save_changes(int mode);
+void rerun_nodes();
 void node_menu();
 void node_cfg();
 void results(int i);

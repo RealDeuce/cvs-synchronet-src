@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.2 2002/01/16 03:12:31 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.3 2002/01/17 02:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,9 +171,12 @@ those sub-boards for a more organized message structure.
 		j=save_changes(WIN_MID);
 		if(j==-1)
 		   continue;
-		if(!j)
+		if(!j) {
 			write_msgs_cfg(&cfg,backup_level);
-		return; }
+            rerun_nodes();
+        }
+		return;
+    }
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
 		SETHELP(WHERE);
@@ -802,7 +805,9 @@ E-mail and public posts (on sub-boards).
 				   continue;
 				if(!i) {
 					write_msgs_cfg(&cfg,backup_level);
-					write_main_cfg(&cfg,backup_level); }
+					write_main_cfg(&cfg,backup_level);
+                    rerun_nodes();
+                }
 				return;
 			case 0:
 				strcpy(str,cfg.sys_id);

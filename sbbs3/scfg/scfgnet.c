@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.3 2002/01/16 18:59:39 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.4 2002/01/17 02:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,8 @@
 #include "scfg.h"
 
 const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
+            ,"Jul","Aug","Sep","Oct","Nov","Dec"};
 
 char *daystr(char days);
 
@@ -938,9 +940,13 @@ If you want the sending of NetMail to be free, set this value to 0.
 		i=save_changes(WIN_MID|WIN_SAV);
 		if(i==-1)
 			continue;
-		if(!i)
+		if(!i) {
 			write_msgs_cfg(&cfg,backup_level);
-		break; } }
+            rerun_nodes();
+        }
+		break;
+        }
+    }
 }
 
 void qhub_edit(int num)

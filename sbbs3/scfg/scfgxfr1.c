@@ -1,6 +1,6 @@
 /* scfgxfr1.c */
 
-/* $Id: scfgxfr1.c,v 1.2 2002/01/16 03:12:31 rswindell Exp $ */
+/* $Id: scfgxfr1.c,v 1.3 2002/01/17 02:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,8 +89,10 @@ file transfer section of the BBS.
 			i=save_changes(WIN_MID);
 			if(i==-1)
 				break;
-			if(!i)
+			if(!i) {
 				write_file_cfg(&cfg,backup_level);
+                rerun_nodes();
+            }
             return;
 		case 0:
 			SETHELP(WHERE);
