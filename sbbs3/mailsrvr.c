@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.259 2003/06/12 09:55:08 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.260 2003/06/13 23:22:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2126,6 +2126,7 @@ static void smtp_thread(void* arg)
 			hdr_lines++;
 			continue;
 		}
+		strip_ctrl(buf);
 		lprintf("%04d SMTP RX: %s", socket, buf);
 		if(!strnicmp(buf,"HELO",4)) {
 			p=buf+4;
@@ -2362,7 +2363,6 @@ static void smtp_thread(void* arg)
 			|| !strnicmp(buf,"SAML FROM:",10)	/* Send AND Mail a Message to a local user */
 			) {
 			p=buf+10;
-			truncsp(p);
 			if(!chk_email_addr(socket,p,host_name,host_ip,NULL,NULL))
 				break;
 			while(*p && *p<=' ') p++;
@@ -3272,7 +3272,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.259 $", "%*s %s", revision);
+	sscanf("$Revision: 1.260 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
