@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.139 2004/08/18 22:40:50 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.140 2004/08/19 01:06:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3571,7 +3571,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 			sp=strrchr(tp,'/');              /* sp is slash pointer */
 			if(!sp) sp=strrchr(tp,'\\');
 			if(sp) tp=sp+1;
-			sprintf(str,"%s%s",scfg.fidofile_dir,tp);
+			sprintf(str,"%s%s",secure ? cfg.secure : cfg.inbound,tp);
 			sprintf(tmp,"%sfile/%04u.in",scfg.data_dir,usernumber);
 			MKDIR(tmp);
 			backslash(tmp);
@@ -4023,7 +4023,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.139 $", "%*s %s", revision);
+	sscanf("$Revision: 1.140 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
