@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.31 2001/03/25 14:53:03 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.32 2001/04/03 00:53:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -761,6 +761,10 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	/* seconds to HH:MM:SS */
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
+
+	/* logfile.cpp */
+	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, 
+										char* host, SOCKADDR_IN* addr);
 
 #ifdef SBBS /* These aren't exported */
 

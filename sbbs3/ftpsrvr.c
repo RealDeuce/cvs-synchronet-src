@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.58 2001/03/25 14:51:10 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.59 2001/04/03 00:54:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2642,6 +2642,7 @@ static void ctrl_thread(void* arg)
 					success=FALSE;
 					lprintf("%04d !%s illegal filename attempt: %s"
 						,sock,user.alias,p);
+					hacklog(&scfg, "FTP", user.alias, cmd, host_name, &ftp.client_addr);
 				} else {
 					if(fexist(fname)) {
 						success=TRUE;
@@ -2792,6 +2793,7 @@ static void ctrl_thread(void* arg)
 					lprintf("%04d !%s illegal filename attempt: %s"
 						,sock,user.alias,p);
 					sockprintf(sock,"553 Illegal filename attempt");
+					hacklog(&scfg, "FTP", user.alias, cmd, host_name, &ftp.client_addr);
 					continue;
 				}
 				sprintf(fname,"%s%s",scfg.dir[dir]->path,p);
@@ -2946,6 +2948,11 @@ static void ctrl_thread(void* arg)
 					,scfg.lib[curlib]->sname,scfg.dir[curdir]->code);
 			continue;
 		}
+
+		if(!strnicmp(cmd, "MKD", 3) || 
+			!strnicmp(cmd,"XMKD",4) || 
+			!strnicmp(cmd,"SITE EXEC",9)) 
+			hacklog(&scfg, "FTP", user.alias, cmd, host_name, &ftp.client_addr);
 		
 		sockprintf(sock,"500 Syntax error: '%s'",cmd);
 		lprintf("%04d !FTP: UNSUPPORTED COMMAND: '%s'",sock,cmd);
