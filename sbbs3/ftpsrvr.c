@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.90 2001/07/25 02:46:04 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.91 2001/07/25 02:59:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4107,7 +4107,9 @@ void DLLCALL ftp_server(void* arg)
 	if(startup->html_index_script[0]==0) {	strcpy(startup->html_index_script,"ftp-html.js");
 											startup->options|=FTP_OPT_HTML_INDEX_FILE;
 	}
-	if(!(startup->options&FTP_OPT_HTML_INDEX_FILE))
+	if(startup->options&FTP_OPT_HTML_INDEX_FILE)
+		startup->options&=~FTP_OPT_NO_JAVASCRIPT;
+	else
 		startup->options|=FTP_OPT_NO_JAVASCRIPT;
 
 	thread_up();
