@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.23 2004/11/10 04:53:46 rswindell Exp $ */
+/* $Id: link_list.c,v 1.24 2004/11/11 06:14:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,7 +187,7 @@ void* listGetPrivateData(link_list_t* list)
 
 #if defined(LINK_LIST_THREADSAFE)
 
-BOOL listSemPost(const link_list_t* list)
+BOOL listSemPost(link_list_t* list)
 {
 	if(list==NULL || list->sem==NULL)
 		return(FALSE);
@@ -195,7 +195,7 @@ BOOL listSemPost(const link_list_t* list)
 	return(sem_post(&list->sem)==0);
 }
 
-BOOL listSemWait(const link_list_t* list)
+BOOL listSemWait(link_list_t* list)
 {
 	if(list==NULL || list->sem==NULL)
 		return(FALSE);
@@ -203,7 +203,7 @@ BOOL listSemWait(const link_list_t* list)
 	return(sem_wait(&list->sem)==0);
 }
 
-BOOL listSemTryWait(const link_list_t* list)
+BOOL listSemTryWait(link_list_t* list)
 {
 	if(list==NULL || list->sem==NULL)
 		return(FALSE);
@@ -211,7 +211,7 @@ BOOL listSemTryWait(const link_list_t* list)
 	return(sem_trywait(&list->sem)==0);
 }
 
-BOOL listSemTryWaitBlock(const link_list_t* list, unsigned long timeout)
+BOOL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 {
 	if(list==NULL || list->sem==NULL)
 		return(FALSE);
