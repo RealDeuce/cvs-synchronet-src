@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.5 2000/11/04 12:03:51 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.6 2000/11/07 21:41:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -693,7 +693,7 @@ int sbbs_t::searchdn(char *search,int usernum)
 	if(!search[0])
 		return(usernum);
 	sprintf(userdat,"%suser/user.dat", cfg.data_dir);
-	if((file=nopen(userdat,O_RDONLY))==-1)
+	if((file=nopen(userdat,O_RDONLY|O_DENYNONE))==-1)
 		return(usernum);
 	while(i) {
 		lseek(file,(long)((long)(i-1)*U_LEN),0);
