@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.103 2003/05/09 03:45:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.104 2003/07/11 07:56:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,7 +144,7 @@ unsigned _rotr (
 /******************************************************************************
  Displays characters locally
 ******************************************************************************/
-long lputs(char *str)
+int lputs(char *str)
 {
     char tmp[256];
     int i,j,k;
@@ -4060,7 +4060,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.103 $", "%*s %s", revision);
+	sscanf("$Revision: 1.104 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
