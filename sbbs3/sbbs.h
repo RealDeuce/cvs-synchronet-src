@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.186 2003/05/19 20:47:22 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.187 2003/06/06 21:59:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -937,8 +937,9 @@ int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
 int		strsame(char *str1, char *str2);	/* Compares number of same chars */
 
 /* nopen.c */
-int		nopen(char *str, int access);
-FILE *	fnopen(int *file, char *str, int access);
+int		nopen(const char* str, int access);
+FILE *	fnopen(int* file, const char* str, int access);
+BOOL	ftouch(const char* fname);
 
 /* load_cfg.c */
 BOOL 	md(char *path);
