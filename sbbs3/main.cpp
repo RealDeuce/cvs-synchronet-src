@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.196 2002/11/05 11:14:56 rswindell Exp $ */
+/* $Id: main.cpp,v 1.197 2002/11/07 06:25:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -756,7 +756,7 @@ void sbbs_t::js_create_user_objects(void)
 	if(js_cx==NULL)
 		return;
 
-	if(js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, NULL, subscan)==NULL) 
+	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, NULL, subscan)) 
 		lprintf("!JavaScript ERROR creating user objects");
 }
 
