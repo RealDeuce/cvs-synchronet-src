@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.h,v 1.3 2001/07/11 03:33:15 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.h,v 1.4 2001/07/21 01:47:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ __published:
     TLabel *AnswerSoundLabel;
     TEdit *AnswerSoundEdit;
     TButton *AnswerSoundButton;
-    TLabel *HnagupSoundLabel;
+    TLabel *HangupSoundLabel;
     TEdit *HangupSoundEdit;
     TButton *HangupSoundButton;
     TLabel *MaxClientesLabel;
@@ -93,6 +93,9 @@ __published:
     TEdit *HtmlJavaScriptEdit;
     TLabel *QwkTimeoutLabel;
     TEdit *QwkTimeoutEdit;
+    TLabel *HackAttemptSoundLabel;
+    TEdit *HackAttemptSoundEdit;
+    TButton *HackAttemptSoundButton;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
@@ -100,6 +103,7 @@ __published:
 	void __fastcall AutoIndexCheckBoxClick(TObject *Sender);
     void __fastcall HtmlJavaScriptButtonClick(TObject *Sender);
     void __fastcall HtmlIndexCheckBoxClick(TObject *Sender);
+    void __fastcall HackAttemptSoundButtonClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TFtpCfgDlg(TComponent* AOwner);
