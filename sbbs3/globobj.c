@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: globobj.c,v 1.1 2001/05/03 23:13:58 rswindell Exp $ */
+/* $Id: globobj.c,v 1.2 2001/05/14 23:32:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,6 +112,34 @@ js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return JS_TRUE;
 }
 
+static JSBool
+js_mswait(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	int val=1;
+
+	if(argc)
+		val=JSVAL_TO_INT(argv[0]);
+	mswait(val);
+
+	return(JS_TRUE);
+}
+
+static JSBool
+js_beep(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	int freq=500;
+	int	dur=500;
+
+	if(argc)
+		freq=JSVAL_TO_INT(argv[0]);
+	if(argc>1)
+		dur=JSVAL_TO_INT(argv[1]);
+
+	sbbs_beep(freq,dur);
+
+	return(JS_TRUE);
+}
+
 static JSClass js_global_class ={
         "Global",
 		JSCLASS_HAS_PRIVATE, /* needed for scfg_t ptr */
@@ -122,6 +150,8 @@ static JSClass js_global_class ={
 static JSFunctionSpec js_global_functions[] = {
 	{"load",            js_load,            1},		/* Load and execute a javascript file */
 	{"format",			js_format,			1},		/* return a formatted string (ala printf) */
+	{"mswait",			js_mswait,			0},		/* millisecond wait/sleep routine */
+	{"beep",			js_beep,			0},		/* local beep (freq, dur) */
 	{0}
 };
 
