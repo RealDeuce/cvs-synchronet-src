@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.366 2004/12/30 09:24:05 rswindell Exp $ */
+/* $Id: main.cpp,v 1.367 2005/01/16 10:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1919,7 +1919,8 @@ void event_thread(void* arg)
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id); 
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
-						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call,nulstr,nulstr,NULL)
+						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
+							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
 				}
 			} 
