@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.99 2004/09/08 03:41:22 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.97 2004/09/02 01:34:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,7 +201,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	} else
 		cp="";
 	smb_hfield_str(msg, SUBJECT, cp);
-	msg->idx.subj=smb_subject_crc(cp);
+	msg->idx.subj=subject_crc(cp);
 
 	if(JS_GetProperty(cx, hdr, "from", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
@@ -697,7 +697,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		JS_DefineProperty(cx, hdrobj, "to_net_type",INT_TO_JSVAL(msg.to_net.type)
 			,NULL,NULL,JSPROP_ENUMERATE);
 	if(msg.to_net.type
-		&& (js_str=JS_NewStringCopyZ(cx,smb_netaddr(&msg.to_net)))!=NULL)
+		&& (js_str=JS_NewStringCopyZ(cx,net_addr(&msg.to_net)))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "to_net_addr"
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -706,7 +706,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		JS_DefineProperty(cx, hdrobj, "from_net_type",INT_TO_JSVAL(msg.from_net.type)
 			,NULL,NULL,JSPROP_ENUMERATE);
 	if(msg.from_net.type
-		&& (js_str=JS_NewStringCopyZ(cx,smb_netaddr(&msg.from_net)))!=NULL)
+		&& (js_str=JS_NewStringCopyZ(cx,net_addr(&msg.from_net)))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "from_net_addr"
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -716,7 +716,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		JS_DefineProperty(cx, hdrobj, "replyto_net_type",INT_TO_JSVAL(msg.replyto_net.type)
 			,NULL,NULL,JSPROP_ENUMERATE);
 	if(msg.replyto_net.type
-		&& (js_str=JS_NewStringCopyZ(cx,smb_netaddr(&msg.replyto_net)))!=NULL)
+		&& (js_str=JS_NewStringCopyZ(cx,net_addr(&msg.replyto_net)))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "replyto_net_addr"
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -1373,13 +1373,13 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				if(!JSVAL_IS_OBJECT(val))
 					break;
 
-				if(smb_copymsgmem(&(p->smb), &rcpt_msg, &msg)!=SMB_SUCCESS)
+				if(smb_copymsgmem(&(p->smb), &rcpt_msg, &msg)!=0)
 					break;
 
 				if(!parse_recipient_object(cx, p, JSVAL_TO_OBJECT(val), &rcpt_msg))
 					break;
 
-				if(smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK)!=SMB_SUCCESS)
+				if(smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK)!=0)
 					break;
 
 				smb_freemsgmem(&rcpt_msg);
