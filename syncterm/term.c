@@ -1,6 +1,5 @@
 #include <genwrap.h>
-#include <conio.h>
-#include <keys.h>
+#include <ciowrap.h>
 
 #include "term.h"
 #include "uifcinit.h"
@@ -10,8 +9,7 @@
 
 struct terminal term;
 
-/* const int tabs[11]={1,8,16,24,32,40,48,56,64,72,80}; */
-const int tabs[11]={9,17,25,33,41,49,57,65,73,80,80.1};
+const int tabs[11]={1,8,16,24,32,40,48,56,64,72,80};
 
 int backlines=2000;
 
@@ -66,13 +64,13 @@ void clear2bol(void)
 	char *buf;
 	int i,j;
 
-	buf=(char *)malloc((wherex()+1)*2);
+	buf=(char *)malloc((term.xpos+1)*2);
 	j=0;
-	for(i=1;i<=wherex();i++) {
+	for(i=1;i<=term.xpos;i++) {
 		buf[j++]=' ';
 		buf[j++]=term.attr;
 	}
-	puttext(term.x+1,term.y+wherey(),term.x+wherex(),term.y+wherey(),buf);
+	puttext(term.x+1,term.y+term.ypos,term.x+term.xpos,term.y+term.ypos,buf);
 	free(buf);
 }
 
@@ -81,13 +79,13 @@ void clear2eol(void)
 	char *buf;
 	int i,j;
 
-	buf=(char *)malloc((term.width-wherex()+1)*2);
+	buf=(char *)malloc((term.width-term.xpos+1)*2);
 	j=0;
-	for(i=wherex();i<=term.width;i++) {
+	for(i=term.xpos;i<=term.width;i++) {
 		buf[j++]=' ';
 		buf[j++]=term.attr;
 	}
-	puttext(term.x+wherex(),term.y+wherey(),term.x+term.width,term.y+wherey(),buf);
+	puttext(term.x+term.xpos,term.y+term.ypos,term.x+term.width,term.y+term.ypos,buf);
 	free(buf);
 }
 
@@ -114,6 +112,11 @@ void clearscreen(char attr)
 	free(buf);
 }
 
+void set_cursor(void)
+{
+	gotoxy(term.x+term.xpos,term.y+term.ypos);
+}
+
 void do_ansi(void)
 {
 	char	*p;
@@ -128,56 +131,57 @@ void do_ansi(void)
 			p=term.escbuf+strlen(term.escbuf)-1;
 			switch(*p) {
 				case '@':	/* Insert Char */
-					i=wherex();
-					j=wherey();
-					gettext(term.x+wherex(),term.y+wherey(),term.x+term.width-1,term.y+wherey(),tmp);
+					gettext(term.x+term.xpos,term.y+term.ypos,term.x+term.width-1,term.y+term.ypos,tmp);
 					putch(' ');
-					puttext(term.x+wherex()+1,term.y+wherey(),term.x+term.width,term.y+wherey(),tmp);
-					gotoxy(i,j);
+					puttext(term.x+term.xpos+1,term.y+term.ypos,term.x+term.width,term.y+term.ypos,tmp);
+					set_cursor();
 					break;
 				case 'A':	/* Cursor Up */
 					i=atoi(term.escbuf+1);
 					if(i==0)
 						i=1;
-					i=wherey()-i;
-					if(i<1)
-						i=1;
-					gotoxy(wherex(),i);
+					term.ypos-=i;
+					if(term.ypos<1)
+						term.ypos=1;
+					set_cursor();
 					break;
 				case 'B':	/* Cursor Down */
 					i=atoi(term.escbuf+1);
 					if(i==0)
 						i=1;
-					i=wherey()+i;
-					if(i>term.height)
-						i=term.height;
-					gotoxy(wherex(),i);
+					term.ypos+=i;
+					if(term.ypos>term.height)
+						term.ypos=term.height;
+					set_cursor();
 					break;
 				case 'C':	/* Cursor Right */
 					i=atoi(term.escbuf+1);
 					if(i==0)
 						i=1;
-					i=wherex()+i;
-					if(i>term.width)
-						i=term.width;
-					gotoxy(i,wherey());
+					term.xpos+=i;
+					if(term.xpos>term.width)
+						term.xpos=term.width;
+					set_cursor();
 					break;
 				case 'D':	/* Cursor Left */
 					i=atoi(term.escbuf+1);
 					if(i==0)
 						i=1;
-					i=wherex()-i;
-					if(i<1)
-						i=1;
-					gotoxy(i,wherey());
+					term.xpos-=i;
+					if(term.xpos<1)
+						term.xpos=1;
+					set_cursor();
 					break;
 				case 'E':
 					i=atoi(term.escbuf+1);
 					if(i==0)
 						i=1;
-					i=wherey()+i;
-					for(j=0;j<i;j++)
-						putch('\n');
+					term.ypos+=i;
+					for(j=term.height;j<term.ypos;j++)
+						scrollup();
+					if(term.ypos>term.height)
+						term.ypos=term.height;
+					set_cursor();
 					break;
 				case 'f':
 				case 'H':
@@ -200,7 +204,9 @@ void do_ansi(void)
 						row=term.height;
 					if(col>term.width)
 						col=term.width;
-					gotoxy(col,row);
+					term.ypos=row;
+					term.xpos=col;
+					set_cursor();
 					break;
 				case 'J':
 					i=atoi(term.escbuf+1);
@@ -213,7 +219,7 @@ void do_ansi(void)
 								p2[j++]=' ';
 								p2[j++]=term.attr;
 							}
-							for(i=wherey()+1;i<=term.height;i++) {
+							for(i=term.ypos+1;i<=term.height;i++) {
 								puttext(term.x+1,term.y+i,term.x+term.width,term.y+i,p2);
 							}
 							free(p2);
@@ -226,14 +232,16 @@ void do_ansi(void)
 								p2[j++]=' ';
 								p2[j++]=term.attr;
 							}
-							for(i=wherey()-1;i>=1;i--) {
+							for(i=term.ypos-1;i>=1;i--) {
 								puttext(term.x+1,term.y+i,term.x+term.width,term.y+i,p2);
 							}
 							free(p2);
 							break;
 						case 2:
 							clearscreen(term.attr);
-							gotoxy(1,1);
+							term.ypos=1;
+							term.xpos=1;
+							set_cursor();
 							break;
 					}
 					break;
@@ -253,7 +261,7 @@ void do_ansi(void)
 								p2[j++]=' ';
 								p2[j++]=term.attr;
 							}
-							puttext(term.x+1,term.y+wherey(),term.x+term.width,term.y+wherey(),p2);
+							puttext(term.x+1,term.y+term.ypos,term.x+term.width,term.y+term.ypos,p2);
 							free(p2);
 							break;
 					}
@@ -262,12 +270,12 @@ void do_ansi(void)
 					i=atoi(term.escbuf+1);
 					if(i==0)
 						i=1;
-					if(i>term.height-wherey())
-						i=term.height-wherey();
-					if(i<term.height-wherey()) {
-						p2=(char *)malloc((term.height-wherey()-i)*term.width*2);
-						gettext(term.x+1,term.y+wherey(),term.x+term.width,wherey()+(term.height-wherey()-i),p2);
-						puttext(term.x+1,term.y+wherey()+i,term.x+term.width,wherey()+(term.height-wherey()),p2);
+					if(i>term.height-term.ypos)
+						i=term.height-term.ypos;
+					if(i<term.height-term.ypos) {
+						p2=(char *)malloc((term.height-term.ypos-i)*term.width*2);
+						gettext(term.x+1,term.y+term.ypos,term.x+term.width,term.ypos+(term.height-term.ypos-i),p2);
+						puttext(term.x+1,term.y+term.ypos+i,term.x+term.width,term.ypos+(term.height-term.ypos),p2);
 						j=0;
 						free(p2);
 					}
@@ -290,14 +298,14 @@ void do_ansi(void)
 					i=atoi(term.escbuf+1);
 					if(i==0)
 						i=1;
-					if(i>term.width-wherex())
-						i=term.width-wherex();
-					p2=(char *)malloc((term.width-wherex())*2);
-					gettext(term.x+wherex(),term.y+wherey(),term.x+term.width,term.y+wherey(),p2);
-					memmove(p2,p2+(i*2),(term.width-wherex()-i)*2);
-					for(i=(term.width-wherex())*2-2;i>=wherex();i-=2)
+					if(i>term.width-term.xpos)
+						i=term.width-term.xpos;
+					p2=(char *)malloc((term.width-term.xpos)*2);
+					gettext(term.x+term.xpos,term.y+term.ypos,term.x+term.width,term.y+term.ypos,p2);
+					memmove(p2,p2+(i*2),(term.width-term.xpos-i)*2);
+					for(i=(term.width-term.xpos)*2-2;i>=term.xpos;i-=2)
 						p2[i]=' ';
-					puttext(term.x+wherex(),term.y+wherey(),term.x+term.width,term.y+wherey(),p2);
+					puttext(term.x+term.xpos,term.y+term.ypos,term.x+term.width,term.y+term.ypos,p2);
 					break;
 				case 'S':
 					scrollup();
@@ -307,17 +315,20 @@ void do_ansi(void)
 					break;
 				case 'U':
 					clearscreen(7);
-					gotoxy(1,1);
+					term.ypos=1;
+					term.xpos=1;
+					set_cursor();
 					break;
 				case 'Y':	/* ToDo? BananaCom Clear Line */
 					break;
 				case 'Z':
 					for(j=10;j>=0;j--) {
-						if(tabs[j]<wherex()) {
-							gotoxy(tabs[j],wherey());
+						if(tabs[j]<term.xpos) {
+							term.xpos=tabs[j];
 							break;
 						}
 					}
+					set_cursor();
 					break;
 				case 'b':	/* ToDo?  Banana ANSI */
 					break;
@@ -436,7 +447,7 @@ void do_ansi(void)
 					i=atoi(term.escbuf+1);
 					switch(i) {
 						case 6:
-							sprintf(tmp,"%c[%d;%dR",27,wherey(),wherex());
+							sprintf(tmp,"%c[%d;%dR",27,term.ypos,term.xpos);
 							rlogin_send(tmp,strlen(tmp),1000);
 							break;
 						case 255:
@@ -452,13 +463,15 @@ void do_ansi(void)
 				case 'r': /* ToDo?  Scrolling reigon */
 					break;
 				case 's':
-					term.save_xpos=wherex();
-					term.save_ypos=wherey();
+					term.save_xpos=term.xpos;
+					term.save_ypos=term.ypos;
 					break;
 				case 'u':
 					if(term.save_ypos>0 && term.save_ypos<=term.height
 							&& term.save_xpos>0 && term.save_xpos<=term.width) {
-						gotoxy(term.save_xpos,term.save_ypos);
+						term.xpos=term.save_xpos;
+						term.ypos=term.save_ypos;
+						set_cursor();
 					}
 					break;
 				case 'y':	/* ToDo?  VT100 Tests */
@@ -487,8 +500,10 @@ void doterm(void)
 	unsigned char buf[BUFSIZE];
 	unsigned char prn[BUFSIZE];
 	int	key;
-	int i,j,k;
+	int i,j;
 
+	term.xpos=1;
+	term.ypos=1;
 	term.attr=7;
 	term.save_xpos=0;
 	term.save_ypos=0;
@@ -499,10 +514,9 @@ void doterm(void)
 	term.scrollback=malloc(term.width*2*backlines);
 	memset(term.scrollback,0,term.width*2*backlines);
 	ch[1]=0;
+	gotoxy(term.xpos,term.ypos);
 	textattr(term.attr);
 	_setcursortype(_NORMALCURSOR);
-	window(term.x+1,term.y+1,term.x+term.width,term.y+term.height);
-	gotoxy(1,1);
 	/* Main input loop */
 	for(;;) {
 		/* Get remote input */
@@ -537,7 +551,7 @@ void doterm(void)
 								cprintf(prn);
 								prn[0]=0;
 								#ifdef __unix__
-									putch(7);
+									beep();
 								#else
 									MessageBeep(MB_OK);
 								#endif
@@ -546,25 +560,65 @@ void doterm(void)
 								cprintf(prn);
 								prn[0]=0;
 								clearscreen(term.attr);
-								gotoxy(1,1);
+								term.ypos=1;
+								term.xpos=1;
+								set_cursor();
 								break;
 							case 27:		/* ESC */
 								cprintf(prn);
 								prn[0]=0;
 								term.sequence=1;
 								break;
+							case '\n':
+								cprintf(prn);
+								prn[0]=0;
+								term.ypos++;
+								if(term.ypos>term.height) {
+									term.ypos=term.height;
+									scrollup();
+								}
+								set_cursor();
+								break;
 							case '\t':
 								cprintf(prn);
 								prn[0]=0;
-								for(k=0;k<11;k++) {
-									if(tabs[k]>wherex()) {
-										gotoxy(tabs[k],wherey());
+								for(i=0;i<11;i++) {
+									if(tabs[i]>term.xpos) {
+										term.xpos=tabs[i];
 										break;
 									}
 								}
+								set_cursor();
+								break;
+							case '\r':
+								cprintf(prn);
+								prn[0]=0;
+								term.xpos=1;
+								set_cursor();
+								break;
+							case '\b':
+								cprintf(prn);
+								prn[0]=0;
+								term.xpos--;
+								if(term.xpos<1)
+									term.xpos=1;
+								putch(' ');
+								set_cursor();
 								break;
 							default:
 								strcat(prn,ch);
+								term.xpos++;
+								if(term.xpos>term.width) {
+									cprintf(prn);
+									prn[0]=0;
+									term.xpos=1;
+									term.ypos++;
+									if(term.ypos>term.height) {
+										term.ypos=term.height;
+										scrollup();
+									}
+									set_cursor();
+								}
 						}
 					}
 				}
@@ -577,62 +631,57 @@ void doterm(void)
 		while(kbhit()) {
 			key=getch();
 			switch(key) {
-				case 0:
-					switch(getch()<<8) {
-						case CIO_KEY_LEFT:
-							rlogin_send("\033[D",3,100);
-							break;
-						case CIO_KEY_RIGHT:
-							rlogin_send("\033[C",3,100);
-							break;
-						case CIO_KEY_UP:
-							rlogin_send("\033[A",3,100);
-							break;
-						case CIO_KEY_DOWN:
-							rlogin_send("\033[B",3,100);
-							break;
-						case CIO_KEY_HOME:
-							rlogin_send("\033[H",3,100);
-							break;
-						case CIO_KEY_END:
-#ifdef CIO_KEY_SELECT
-						case CIO_KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
-#endif
-							rlogin_send("\033[K",3,100);
-							break;
-						case CIO_KEY_F(1):
-							rlogin_send("\033OP",3,100);
-							break;
-						case CIO_KEY_F(2):
-							rlogin_send("\033OQ",3,100);
-							break;
-						case CIO_KEY_F(3):
-							rlogin_send("\033Ow",3,100);
-							break;
-						case CIO_KEY_F(4):
-							rlogin_send("\033Ox",3,100);
-							break;
-#ifdef __unix__
-						case 128|'S':	/* Under curses, ALT sets the high bit of the char */
-						case 128|'s':	/* Under curses, ALT sets the high bit of the char */
-							viewscroll();
-							break;
-#endif
-					}
-					break;
 				case 17:	/* CTRL-Q */
 					free(term.scrollback);
 					return;
 				case 19:	/* CTRL-S */
-					i=wherex();
-					j=wherey();
 					switch(syncmenu()) {
 						case -1:
 							free(term.scrollback);
 							return;
 					}
-					gotoxy(i,j);
+					set_cursor();
 					break;
+				case KEY_LEFT:
+					rlogin_send("\033[D",3,100);
+					break;
+				case KEY_RIGHT:
+					rlogin_send("\033[C",3,100);
+					break;
+				case KEY_UP:
+					rlogin_send("\033[A",3,100);
+					break;
+				case KEY_DOWN:
+					rlogin_send("\033[B",3,100);
+					break;
+				case KEY_HOME:
+					rlogin_send("\033[H",3,100);
+					break;
+				case KEY_END:
+#ifdef KEY_SELECT
+				case KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
+#endif
+					rlogin_send("\033[K",3,100);
+					break;
+				case KEY_F(1):
+					rlogin_send("\033OP",3,100);
+					break;
+				case KEY_F(2):
+					rlogin_send("\033OQ",3,100);
+					break;
+				case KEY_F(3):
+					rlogin_send("\033Ow",3,100);
+					break;
+				case KEY_F(4):
+					rlogin_send("\033Ox",3,100);
+					break;
+#ifdef __unix__
+				case 128|'S':	/* Under curses, ALT sets the high bit of the char */
+				case 128|'s':	/* Under curses, ALT sets the high bit of the char */
+					viewscroll();
+					break;
+#endif
+				case KEY_BACKSPACE:
 				case '\b':
 					key='\b';
 					/* FALLTHROUGH to default */
@@ -644,6 +693,5 @@ void doterm(void)
 					
 			}
 		}
-		SLEEP(1);
 	}
 }
