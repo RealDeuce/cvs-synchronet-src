@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.50 2004/09/08 03:38:29 rswindell Exp $ */
+/* $Id: str.cpp,v 1.51 2004/12/01 03:07:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -863,7 +863,7 @@ void sbbs_t::sys_info()
 
 void sbbs_t::user_info()
 {
-	uint	i;
+	float	f;
 	char	str[128];
 	char	tmp[128];
 	char	tmp2[128];
@@ -885,13 +885,13 @@ void sbbs_t::user_info()
 		,cfg.level_timepercall[useron.level]
 		,useron.textra);
 	if(useron.posts)
-		i=useron.logons/useron.posts;
+		f=(float)useron.logons/useron.posts;
 	else
-		i=0;
+		f=0;
 	bprintf(text[UserLogons]
 		,useron.logons,useron.ltoday
 		,cfg.level_callsperday[useron.level],useron.posts
-		,i ? 100/i : useron.posts>useron.logons ? 100 : 0
+		,f ? (uint)(100/f) : useron.posts>useron.logons ? 100 : 0
 		,useron.ptoday);
 	bprintf(text[UserEmails]
 		,useron.emails,useron.fbacks
