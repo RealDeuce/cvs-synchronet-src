@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.24 2003/03/01 22:23:21 rswindell Exp $ */
+/* $Id: uifc.h,v 1.25 2003/04/26 17:47:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,8 +221,12 @@
 
 #ifndef BOOL
 #define BOOL    int
+#ifndef TRUE
 #define TRUE    1
+#endif
+#ifndef FALSE
 #define FALSE   0
+#endif
 #endif
 
 typedef struct {
