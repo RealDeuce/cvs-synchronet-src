@@ -2,7 +2,7 @@
 
 /* Synchronet node information structure and constant definitions */
 
-/* $Id: nodedefs.h,v 1.5 2000/11/04 10:09:35 rswindell Exp $ */
+/* $Id: nodedefs.h,v 1.6 2000/11/04 10:19:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,7 @@ typedef struct {					/* Node information kept in NODE.DAB */
             misc,                   /* Miscellaneous bits for node */
             aux;                    /* Auxillary word for node */
     ulong   extaux;                 /* Extended aux dword for node */
-            } _PACK node_t;
+            } node_t _PACK;
 
 #ifdef _WIN32
 #pragma pack(pop)		/* original packing */

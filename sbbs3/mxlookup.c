@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.6 2000/11/04 10:09:35 rswindell Exp $ */
+/* $Id: mxlookup.c,v 1.7 2000/11/04 10:19:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,19 +61,19 @@ typedef struct {
 	WORD	ancount;
 	WORD	nscount;
 	WORD	arcount;
-} _PACK dns_msghdr_t;
+} dns_msghdr_t _PACK;
 
 typedef struct {
 	WORD	type;
 	WORD	class;
-} _PACK dns_query_t;
+} dns_query_t _PACK;
 
 typedef struct {
 	WORD	type;
 	WORD	class;
 	DWORD	ttl;
 	WORD	length;
-} _PACK dns_rr_t;
+} dns_rr_t _PACK;
 
 #ifdef _WIN32
 #pragma pack(pop)		/* original packing */
