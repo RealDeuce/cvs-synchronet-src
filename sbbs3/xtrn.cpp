@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.56 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.57 2001/11/11 21:04:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -912,7 +912,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	
 	if(mode&EX_OUTR) {
 		close(out_pipe[1]);	/* close write-end of pipe */
-		while((online || mode&EX_OFFLINE)) {
+		while(online || mode&EX_OFFLINE) {
 			if(waitpid(pid, &i, WNOHANG)!=0)	/* child exited */
 				break;
 			
@@ -940,9 +940,16 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 			RingBufWrite(&outbuf, bp, output_len);
 			sem_post(&output_sem);	
 		}
+		if(waitpid(pid, &i, WNOHANG)==0)
+			kill(pid, SIGKILL);	/* terminate child process */
+		/* close unneeded descriptors */
+		if(mode&EX_INR)
+			close(in_pipe[1]);
+		close(out_pipe[0]);
 	}
 
-	waitpid(pid, &i, 0);
+	if(!(mode&EX_BG))	/* !background execution, wait for child to terminate */
+		waitpid(pid, &i, 0);
 
 	pthread_mutex_unlock(&input_thread_mutex);
 
