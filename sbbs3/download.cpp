@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.10 2001/11/03 20:58:10 rswindell Exp $ */
+/* $Id: download.cpp,v 1.11 2001/11/04 00:45:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,7 +165,7 @@ void sbbs_t::notdownloaded(ulong size, time_t start, time_t end)
 /****************************************************************************/
 /* Handles start and stop routines for transfer protocols                   */
 /****************************************************************************/
-int sbbs_t::protocol(char *cmdline, int cd)
+int sbbs_t::protocol(char *cmdline, bool cd)
 {
 	char	protlog[256],*p;
 	char	msg[256];

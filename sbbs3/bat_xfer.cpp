@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.7 2001/03/14 22:00:19 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.8 2001/11/04 00:45:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ void sbbs_t::batchmenu()
 					sprintf(str,"%sBATCHDN.LST",cfg.node_dir);
 					sprintf(tmp2,"%sBATCHUP.LST",cfg.node_dir);
 					start=time(NULL);
-					protocol(cmdstr(cfg.prot[xfrprot]->bicmd,str,tmp2,NULL),0);
+					protocol(cmdstr(cfg.prot[xfrprot]->bicmd,str,tmp2,NULL),true);
 					end=time(NULL);
 					for(i=0;i<batdn_total;i++)
 						if(cfg.dir[batdn_dir[i]]->seqdev) {
@@ -315,7 +315,7 @@ void sbbs_t::batchmenu()
 					if(online==ON_REMOTE) {
 						delfiles(cfg.temp_dir,ALLFILES);
 						start=time(NULL);
-						protocol(cmdstr(cfg.prot[xfrprot]->batulcmd,str,nulstr,NULL),1);
+						protocol(cmdstr(cfg.prot[xfrprot]->batulcmd,str,nulstr,NULL),true);
 						end=time(NULL);
 						if(!(cfg.dir[xfrdir]->misc&DIR_ULTIME))
 							starttime+=end-start; 
@@ -486,7 +486,7 @@ void sbbs_t::start_batch_download()
 		thisnode.action=action;
 		putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 		start=time(NULL);
-		protocol(cmdstr(cfg.prot[xfrprot]->batdlcmd,str,nulstr,NULL),0);
+		protocol(cmdstr(cfg.prot[xfrprot]->batdlcmd,str,nulstr,NULL),false);
 		end=time(NULL);
 		batch_download(xfrprot);
 		if(batdn_total)
