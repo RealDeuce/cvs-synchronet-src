@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.8 2000/10/23 20:22:13 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.9 2000/10/23 23:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,43 +51,13 @@
 #include <share.h>
 #include <windows.h>
 #include <process.h>	/* _beginthread() prototype */
-
-#define O_DENYNONE	OF_SHARE_DENY_NONE
-#define O_DENYALL	OF_SHARE_EXCLUSIVE
+#include <direct.h>		/* _mkdir() prototype */
 
 #elif defined(__unix__)	/* Unix-variant */
 
 #include <unistd.h>		/* close */
 
 #endif
-
-/*********************/
-/* Compiler-Specific */
-/*********************/
-#ifndef __BORLANDC__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-int lock(int file, long offset, int size);
-int unlock(int file, long offset, int size);
-#ifdef __cplusplus
-}
-#endif
-#endif /* __BORLANDC__ */
-
-#ifdef _MSC_VER			/* Visual C++ */
-
-#include <direct.h>		/* _mkdir() prototype */
-
-#define S_IWRITE	_S_IWRITE
-
-#elif defined(__GNUC__)	/* GNU CC */
-
-#warning "ultoa needs to be defined or replaced"
-#define ultoa	ltoa
-
-#endif	/* __GNUC__ */
 
 /******************/
 /* ANSI C Library */
@@ -118,6 +88,29 @@ int unlock(int file, long offset, int size);
 #include "post.h"		/* post_t defintion */
 #include "ringbuf.h"    /* RingBuf definition */
 #include "client.h"		/* client_t definition */
+
+/*********************/
+/* Compiler-Specific */
+/*********************/
+#ifndef __BORLANDC__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+int lock(int file, long offset, int size);
+int unlock(int file, long offset, int size);
+#ifdef __cplusplus
+}
+#endif
+#endif /* !__BORLANDC__ */
+
+#if defined(__GNUC__)	/* GNU CC */
+
+#warning "ultoa needs to be defined or replaced"
+#define ultoa	ltoa
+
+#endif	/* __GNUC__ */
+
 
 #ifdef __cplusplus
 class sbbs_t
