@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.22 2003/04/08 04:07:48 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.23 2003/04/08 04:26:23 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -58,7 +58,7 @@ int main()
 		perror(LOCK_FNAME);
 		return(errno);
 	}
-	printf("%s is opened with an exclusive (read/write) lock",LOCK_FNAME);
+	printf("%s is opened with an exclusive (read/write) lock\n",LOCK_FNAME);
 	getkey();
 	if(_beginthread(
 		  sopen_test_thread	/* entry point */
