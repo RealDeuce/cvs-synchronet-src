@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.39 2003/11/02 18:19:55 deuce Exp $ */
+/* $Id: uifc32.c,v 1.40 2003/11/03 05:15:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -136,7 +136,7 @@ static void reset_dynamic(void) {
 
 int kbwait(void) {
 	int timeout=0;
-	while(timeout++<500) {
+	while(timeout++<50) {
 		if(kbhit())
 			return(TRUE);
 		mswait(1);
