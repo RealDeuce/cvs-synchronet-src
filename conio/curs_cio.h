@@ -1,4 +1,4 @@
-/* $Id: curs_cio.h,v 1.9 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: curs_cio.h,v 1.10 2004/10/01 01:20:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
 #undef getch
 #undef ungetch
 #undef getmouse
+#undef ungetmouse
 #include "curs_fix.h"
 
 #ifdef __cplusplus
