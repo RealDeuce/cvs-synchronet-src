@@ -1,14 +1,14 @@
-/* xpendian.h */
+/* csv_file.h */
 
-/* Macros to convert integer "endianness" */
+/* Functions to deal with comma-separated value (CSV) files and lists */
 
-/* $Id: xpendian.h,v 1.3 2003/11/05 10:31:56 rswindell Exp $ */
+/* $Id: csv_file.h,v 1.3 2004/07/30 02:03:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,39 +35,22 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _XPENDIAN_H
-#define _XPENDIAN_H
+#ifndef _CSV_FILE_H
+#define _CSV_FILE_H
 
-/************************/
-/* byte-swapping macros */
-/************************/
-#define BYTE_SWAP_SHORT(x)	((((short)(x)&0xff00)>>8) | (((short)(x)&0x00ff)<<8))
-#define BYTE_SWAP_LONG(x)	((((long)(x)&0xff000000)>>24) | (((long)(x)&0x00ff0000)>>8) | (((long)(x)&0x0000ff00)<<8) | (((long)(x) & 0x000000ff)<<24))
+#include "str_list.h"
 
-/* auto-detect integer size */
-#define BYTE_SWAP_INT(x)	(sizeof(x)==sizeof(short) ? BYTE_SWAP_SHORT(x) : BYTE_SWAP_LONG(x))
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-/********************************/
-/* Architecture-specific macros */
-/********************************/
-#ifdef __BIG_ENDIAN__	/* e.g. Motorola */
+str_list_t	csvCreateList(str_list_t records[], str_list_t columns /* optional */);
+str_list_t	csvParseLine(char* line);
+str_list_t*	csvParseList(str_list_t list, str_list_t* columns /* optional */);
+str_list_t*	csvReadFile(FILE* fp, str_list_t* columns /* optional */);
 
-	#define BE_SHORT(x)		(x)
-	#define BE_LONG(x)		(x)
-	#define BE_INT(x)		(x)
-	#define LE_SHORT(x)		BYTE_SWAP_SHORT(x)
-	#define LE_LONG(x)		BYTE_SWAP_LONG(x)
-	#define LE_INT(x)		BYTE_SWAP_INT(x)
-
-#else	/* Little Endian (e.g. Intel) */
-
-	#define LE_SHORT(x)		(x)
-	#define LE_LONG(x)		(x)
-	#define LE_INT(x)		(x)
-	#define BE_SHORT(x)		BYTE_SWAP_SHORT(x)
-	#define BE_LONG(x)		BYTE_SWAP_LONG(x)
-	#define BE_INT(x)		BYTE_SWAP_INT(x)
-
+#if defined(__cplusplus)
+}
 #endif
 
 #endif	/* Don't add anything after this line */
