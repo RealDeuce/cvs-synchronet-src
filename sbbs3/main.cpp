@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.364 2004/12/29 04:36:31 rswindell Exp $ */
+/* $Id: main.cpp,v 1.361 2004/11/18 21:25:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -374,8 +374,8 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 		return(JS_FALSE);
 
 	for(i=0;props[i].name;i++) {
-		if(!JS_DefinePropertyWithTinyId(cx, obj, /* Never reserve any "slots" for properties */
-			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+		if(!JS_DefinePropertyWithTinyId(cx, obj, 
+			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags))
 			return(JS_FALSE);
 		if(props[i].flags&JSPROP_ENUMERATE) {	/* No need to version invisible props */
 			val = INT_TO_JSVAL(props[i].ver);
@@ -477,7 +477,7 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 
 	for(i=0;props[i].name;i++) 
 		if(!JS_DefinePropertyWithTinyId(cx, obj, 
-			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags))
 			return(JS_FALSE);
 
 	return(JS_TRUE);
@@ -884,11 +884,10 @@ bool sbbs_t::js_init()
 		JS_SetContextPrivate(js_cx, this);	/* Store a pointer to sbbs_t instance */
 
 		/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
+		if((js_glob=js_CreateGlobalObjects(js_cx, &scfg, &cfg, js_global_functions
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
 					,&js_branch									/* js */
 					,&client, client_socket						/* client */
-					,&js_server_props							/* server */
 			))==NULL)
 			break;
 
@@ -904,6 +903,9 @@ bool sbbs_t::js_init()
 
 		/* Console Object */
 		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
+			break;
+
+		if(js_CreateServerObject(js_cx,js_glob,&js_server_props)==NULL)
 			break;
 
 		success=true;
@@ -1833,7 +1835,6 @@ void event_thread(void* arg)
 					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
 							char newname[MAX_PATH+1];
 							sprintf(newname,"%s.%lx.bad",str,(long)now);
@@ -1844,7 +1845,6 @@ void event_thread(void* arg)
 								sbbs->logline("Q!",logmsg);
 							}
 						}
-						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=0;
 						remove(str);
 					} 

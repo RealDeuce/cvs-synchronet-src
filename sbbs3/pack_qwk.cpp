@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.47 2004/12/29 04:37:28 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.46 2004/11/07 23:21:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	}
 
 	if(useron.rest&FLAG('Q') && useron.qwk&QWK_RETCTLA)
-		useron.qwk|=(QWK_NOINDEX|QWK_NOCTRL|QWK_VIA|QWK_TZ|QWK_MSGID);
+		useron.qwk|=(QWK_NOINDEX|QWK_NOCTRL|QWK_VIA|QWK_TZ);
 
 	if(useron.qwk&QWK_EXPCTLA)
 		mode=A_EXPAND;
