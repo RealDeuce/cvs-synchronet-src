@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.36 2003/09/10 01:30:45 deuce Exp $ */
+/* $Id: jsexec.c,v 1.37 2003/09/10 02:26:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,7 @@ char		revision[16];
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
+BOOL		terminate_immediately=FALSE;
 
 void banner(FILE* fp)
 {
@@ -87,6 +88,7 @@ void usage(FILE* fp)
 		"\t-e              send error messages to console instead of stderr\n"
 		"\t-n              send status messages to %s instead of stdout\n"
 		"\t-q              send console messages to %s instead of stderr\n"
+		"\t-x              terminate immediately on local abort signal\n"
 		"\t-p              wait for keypress (pause) on exit\n"
 		"\t-!              wait for keypress (pause) on error\n"
 		,JAVASCRIPT_MAX_BYTES
@@ -403,6 +405,9 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 
 	if(terminated) {
 	
+		if(terminate_immediately)
+			return(JS_FALSE);
+
 		if(JS_GetProperty(js_cx, js_glob, "server", &val) && val!=JSVAL_VOID)
 			obj=JSVAL_TO_OBJECT(val);
 
@@ -622,7 +627,7 @@ long js_exec(const char *fname, char** args)
 
 void break_handler(int type)
 {
-	fprintf(stderr,"\n-> Terminated Locally (%d)<-\n",type);
+	fprintf(stderr,"\n-> Terminated Locally (signal: %d)\n",type);
 	terminated=TRUE;
 }
 
@@ -657,7 +662,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.36 $", "%*s %s", revision);
+	sscanf("$Revision: 1.37 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -688,6 +693,9 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'n':
 					statfp=nulfp;
+					break;
+				case 'x':
+					terminate_immediately=TRUE;
 					break;
 				case 'p':
 					pause_on_exit=TRUE;
