@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.20 2003/01/23 03:51:53 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.21 2003/01/23 03:58:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -419,8 +419,8 @@ endif
 
 	fprintf(makefile,"baja:");
 	if(params.cvs)
-		fprintf(makefile,"\t$(SBBSDIR)/exec");
-	fprintf(makefile,"binaries\n");
+		fprintf(makefile," $(SBBSDIR)/exec");
+	fprintf(makefile," binaries\n");
 	fprintf(makefile,"\tgmake -C $(SBBSDIR)/exec $(MKFLAGS)\n\n");
 
 	fprintf(makefile,"sbj:");
