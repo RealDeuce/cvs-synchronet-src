@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.2 2000/11/07 04:28:59 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.3 2001/06/15 03:40:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,7 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 	if(!(mode&P_SAVEATR))
 		attr(LIGHTGRAY);
 	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
-		if(str[l]==1) {		/* Ctrl-Ax sequence */
+		if(str[l]==CTRL_A) {
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
@@ -161,7 +161,7 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 			exatr=1;
 			l+=2;	/* Skip |x */
 			}  /* Skip second digit if it exists */
-		else if(cfg.sys_misc&SM_WWIV && str[l]==3 && isdigit(str[l+1])) {
+		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit(str[l+1])) {
 			exatr=1;
 			switch(str[l+1]) {
 				default:
