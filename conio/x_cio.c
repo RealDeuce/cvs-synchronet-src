@@ -1,9 +1,14 @@
 #include <stdarg.h>
+#include <stdio.h>
 
-#include "ciowrap.h"
+#include <threadwrap.h>
+
+#include "ciolib.h"
 #include "x_cio.h"
 #include "console.h"
 WORD	x_curr_attr=0x0700;
+
+const int x_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
 int x_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
@@ -86,12 +91,12 @@ void x_delay(long msec)
 
 int x_wherey(void)
 {
-	return(CursRow0)+1;
+	return(CursRow0+1);
 }
 
 int x_wherex(void)
 {
-	return(CursCol0)+1;
+	return(CursCol0+1);
 }
 
 /* Put the character _c on the screen at the current cursor position. 
@@ -102,12 +107,14 @@ int x_putch(unsigned char ch)
 {
 	struct text_info ti;
 	WORD sch;
+	int i;
 
 	sch=x_curr_attr|ch;
 
 	switch(ch) {
 		case '\r':
-			CursCol0=0;
+			gettextinfo(&ti);
+			CursCol0=ti.winleft-1;
 			break;
 		case '\n':
 			gettextinfo(&ti);
@@ -117,13 +124,26 @@ int x_putch(unsigned char ch)
 				CursRow0++;
 			break;
 		case '\b':
-			sch=0x0700;
 			if(CursCol0>0)
 				CursCol0--;
-			vmem[CursCol0+CursRow0*DpyCols]=sch;
+			vmem[CursCol0+CursRow0*DpyCols]=x_curr_attr|' ';
 			break;
 		case 7:		/* Bell */
 			tty_beep();
+			break;
+		case '\t':
+			for(i=0;i<10;i++) {
+				if(x_tabs[i]>wherex()) {
+					while(wherex()<x_tabs[i]) {
+						putch(' ');
+					}
+					break;
+				}
+			}
+			if(i==10) {
+				putch('\r');
+				putch('\n');
+			}
 			break;
 		default:
 			gettextinfo(&ti);
