@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.10 2004/05/27 23:09:04 rswindell Exp $ */
+/* $Id: str_list.h,v 1.11 2004/05/28 01:45:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,10 +57,7 @@ void		strListFreeStrings(str_list_t list);
 
 /* Pass a pointer to a string list, the string to add (append) */
 /* Returns the updated list or NULL on error */
-str_list_t	strListAdd(str_list_t* list, const char* str);
-
-/* Adds a string into the list at a specific index */
-str_list_t	strListAddAt(str_list_t* list, const char* str, size_t index);
+str_list_t	strListAdd(str_list_t* list, const char* str, size_t index);
 
 /* Append a string list onto another string list */
 str_list_t	strListAddList(str_list_t* list, const str_list_t append_list);
