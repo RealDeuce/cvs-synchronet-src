@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.10 2005/01/13 11:29:11 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.11 2005/01/13 23:44:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <stdarg.h>		/* va_list */
 #include "sexyz.h"
 #include "genwrap.h"	/* YIELD */
 #include "conwrap.h"	/* kbhit */
@@ -284,7 +285,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.10 $", "%*s %s", buf);
+	sscanf("$Revision: 1.11 $", "%*s %s", buf);
 
 	return(buf);
 }
