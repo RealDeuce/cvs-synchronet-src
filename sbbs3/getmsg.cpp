@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.24 2004/08/30 07:36:48 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.23 2003/11/25 22:24:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -508,7 +508,7 @@ BOOL DLLCALL get_msg_by_id(scfg_t* scfg, smb_t* smb, char* id, smbmsg_t* msg)
 	ulong		n;
 	int			ret;
 
-	for(n=0;n<smb->status.total_msgs;n++) {
+	for(n=0;n<smb->status.last_msg;n++) {
 		memset(msg,0,sizeof(smbmsg_t));
 		msg->offset=n;
 		if(smb_getmsgidx(smb, msg)!=0)
