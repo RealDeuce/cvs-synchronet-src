@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.23 2003/05/15 04:32:39 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.24 2003/06/07 01:42:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,6 +149,9 @@ void __fastcall TNodeForm::TimerTick(TObject *Sender)
 	char	status[128];
     int		i,n,rd,digits=1;
     node_t	node;
+
+	if(!Visible)
+		return;
 
     if(nodedab<1) {
     	nodedab=_sopen(AnsiString(MainForm->CtrlDirectory+"NODE.DAB").c_str()
