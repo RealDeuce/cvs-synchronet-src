@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.135 2003/07/24 00:19:00 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.136 2003/07/24 00:21:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1486,8 +1486,10 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef __unix__
-	if(getuid())  /*  are we running as a normal user?  */
-		bbs_lputs("!Started as non-root user.  Cannot bind() to ports below %u.", IPPORT_RESERVED);
+	if(getuid())  { /*  are we running as a normal user?  */
+		sprintf(str,"!Started as non-root user.  Cannot bind() to ports below %u.", IPPORT_RESERVED);
+		bbs_lputs(str);
+	}
 	
 	else if(new_uid_name[0]==0)   /*  check the user arg, if we have uid 0 */
 		bbs_lputs("Warning: No user account specified, running as root.");
