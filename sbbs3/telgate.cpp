@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.10 2001/11/14 22:40:13 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.11 2002/08/09 00:07:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,6 +200,11 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 			if(ERROR_VALUE==EWOULDBLOCK) {
 				if(mode&TG_NODESYNC) {
 					SYNC;
+				} else {
+					// Check if the node has been interrupted
+					getnodedat(cfg.node_num,&thisnode,0);
+					if(thisnode.misc&NODE_INTR)
+						break;
 				}
 				mswait(1);
 				continue;
