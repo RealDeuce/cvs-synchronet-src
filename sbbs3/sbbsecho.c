@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.37 2002/04/25 22:46:42 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.38 2002/04/26 00:17:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,10 +75,6 @@
 #ifdef __WATCOMC__
     #define O_DENYNONE SH_DENYNO
 #endif
-
-const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
-            ,"Jul","Aug","Sep","Oct","Nov","Dec"};
 
 smb_t *smb,*email;
 long misc=(IMPORT_PACKETS|IMPORT_NETMAIL|IMPORT_ECHOMAIL|EXPORT_ECHOMAIL
