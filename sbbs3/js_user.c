@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.20 2002/09/04 09:23:26 rswindell Exp $ */
+/* $Id: js_user.c,v 1.21 2002/09/04 09:54:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -640,7 +640,7 @@ js_chk_ar(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 static jsMethodSpec js_user_functions[] = {
 	{"compare_ars",	js_chk_ar,			1,	JSTYPE_BOOLEAN,	"string ars"
-	"Verify user meets access requirements string"
+	,"Verify user meets access requirements string"
 	},		
 	{0}
 };
