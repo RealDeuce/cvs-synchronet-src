@@ -2,7 +2,7 @@
 
 /* Synchronet message-related command shell/module routines */
 
-/* $Id: execmsg.cpp,v 1.5 2002/02/05 21:57:23 rswindell Exp $ */
+/* $Id: execmsg.cpp,v 1.6 2002/02/12 16:40:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,10 +264,6 @@ int sbbs_t::exec_msg(csi_t *csi)
 			return(0);
 		case CS_MSG_POST:
 			if(!usrgrps) return(0);
-			csi->logic=LOGIC_FALSE;
-			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->post_ar,&useron)) {
-				bputs(text[CantPostOnSub]);
-				return(0); }
 			csi->logic=!postmsg(usrsub[curgrp][cursub[curgrp]],0,0);
 			return(0);
 		case CS_MSG_QWK:
