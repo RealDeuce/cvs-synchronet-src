@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.h,v 1.2 2005/01/14 00:19:07 deuce Exp $ */
+/* $Id: xpevent.h,v 1.4 2005/01/24 10:46:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,10 @@
 #include <pthread.h>
 #include "gen_defs.h"
 
+#if defined(__solaris__)
+#include <xpsem.h>	/* u_int32_t */
+#endif
+
 /* Opaque type definition. */
 struct xpevent;
 typedef struct xpevent *xpevent_t;
@@ -52,7 +56,7 @@ xpevent_t	CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *na
 BOOL		SetEvent(xpevent_t event);
 BOOL		ResetEvent(xpevent_t event);
 BOOL		CloseEvent(xpevent_t event);
-DWORD		WaitEvent(xpevent_t event, DWORD ms);
+DWORD		WaitForEvent(xpevent_t event, DWORD ms);
 #if defined(__cplusplus)
 }
 #endif
