@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.85 2003/01/02 21:18:13 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.86 2003/01/02 21:23:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -602,7 +602,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     char* p;
     if((p=getenv("SBBSCTRL"))!=NULL)
         CtrlDirectory=p;
-    char ch=*lastchar(CtrlDirectory);
+    char ch=*lastchar(CtrlDirectory.c_str());
     if(ch!='\\' && ch!='/')
         CtrlDirectory+="\\";
 
