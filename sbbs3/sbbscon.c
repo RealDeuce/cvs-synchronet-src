@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.187 2004/11/18 09:12:09 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.184 2004/11/03 06:29:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,6 @@
 #endif
 
 /* Synchronet-specific headers */
-#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"		/* load_cfg() */
 #include "sbbs_ini.h"	/* sbbs_read_ini() */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
@@ -1065,7 +1064,6 @@ int main(int argc, char** argv)
     web_startup.terminated=web_terminated;
 	web_startup.thread_up=thread_up;
     web_startup.socket_open=socket_open;
-	web_startup.client_on=client_on;
 #ifdef __unix__
 	web_startup.seteuid=do_seteuid;
 	web_startup.setuid=do_setuid;
@@ -1738,82 +1736,6 @@ int main(int argc, char** argv)
 					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
 					break;
-				case 'r':	/* recycle */
-				case 's':	/* shutdown */
-				case 't':	/* terminate */
-					printf("BBS, FTP, Web, Mail, Services, or [All] ? ");
-					switch(toupper(getch())) {
-						case 'B':
-							printf("BBS\n");
-							if(ch=='t')
-								bbs_terminate();
-							else if(ch=='s')
-								bbs_startup.shutdown_now=TRUE;
-							else
-								bbs_startup.recycle_now=TRUE;
-							break;
-						case 'F':
-							printf("FTP\n");
-							if(ch=='t')
-								ftp_terminate();
-							else if(ch=='s')
-								ftp_startup.shutdown_now=TRUE;
-							else
-								ftp_startup.recycle_now=TRUE;
-							break;
-						case 'W':
-							printf("Web\n");
-							if(ch=='t')
-								web_terminate();
-							else if(ch=='s')
-								web_startup.shutdown_now=TRUE;
-							else
-								web_startup.recycle_now=TRUE;
-							break;
-						case 'M':
-							printf("Mail\n");
-							if(ch=='t')
-								mail_terminate();
-							else if(ch=='s')
-								mail_startup.shutdown_now=TRUE;
-							else
-								mail_startup.recycle_now=TRUE;
-							break;
-						case 'S':
-							printf("Services\n");
-							if(ch=='t')
-								services_terminate();
-							else if(ch=='s')
-								services_startup.shutdown_now=TRUE;
-							else
-								services_startup.recycle_now=TRUE;
-							break;
-						default:
-							printf("All\n");
-							if(ch=='t')
-								terminate();
-							else if(ch=='s') {
-								bbs_startup.shutdown_now=TRUE;
-								ftp_startup.shutdown_now=TRUE;
-								web_startup.shutdown_now=TRUE;
-								mail_startup.shutdown_now=TRUE;
-								services_startup.shutdown_now=TRUE;
-							}
-							else {
-								bbs_startup.recycle_now=TRUE;
-								ftp_startup.recycle_now=TRUE;
-								web_startup.recycle_now=TRUE;
-								mail_startup.recycle_now=TRUE;
-								services_startup.recycle_now=TRUE;							
-							}
-							break;
-					}
-					break;
-				case '!':	/* execute */
-					printf("Command line: ");
-					fgets(str,sizeof(str),stdin);
-					system(str);
-					break;
 				default:
 					printf("\nSynchronet Console Version %s%c Help\n\n",VERSION,REVISION);
 					printf("q   = quit\n");
@@ -1822,10 +1744,6 @@ int main(int argc, char** argv)
 					printf("l   = lock node (toggle)\n");
 					printf("d   = down node (toggle)\n");
 					printf("i   = interrupt node (toggle)\n");
-					printf("r   = recycle servers (when not in use)\n");
-					printf("s   = shutdown servers (when not in use)\n");
-					printf("t   = terminate servers (immediately)\n");
-					printf("!   = execute external command\n");
 #if 0	/* to do */	
 					printf("c#  = chat with node #\n");
 					printf("s#  = spy on node #\n");

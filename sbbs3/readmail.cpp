@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.33 2004/11/22 20:19:47 deuce Exp $ */
+/* $Id: readmail.cpp,v 1.31 2004/10/27 09:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
