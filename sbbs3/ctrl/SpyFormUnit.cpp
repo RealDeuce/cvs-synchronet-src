@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: SpyFormUnit.cpp,v 1.12 2003/05/10 03:15:40 rswindell Exp $ */
+/* $Id: SpyFormUnit.cpp,v 1.13 2003/05/10 03:19:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@ __fastcall TSpyForm::TSpyForm(TComponent* Owner)
     ActiveControl=Terminal;
 }
 //---------------------------------------------------------------------------
-TSpyForm::~TSpyForm()
+__fastcall TSpyForm::~TSpyForm()
 {
 	delete Terminal;
 }
