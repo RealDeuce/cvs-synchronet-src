@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.233 2003/03/27 23:33:47 rswindell Exp $ */
+/* $Id: main.cpp,v 1.234 2003/03/29 11:34:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -726,7 +726,7 @@ bool sbbs_t::js_init()
 			break;
 
 		/* User class */
-		if(js_CreateUserClass(js_cx, js_glob, &cfg)==NULL) 
+		if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
 			break;
 
 		/* Area Objects */
