@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.2 2000/11/08 00:49:24 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.3 2000/11/08 00:59:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,7 @@
 #include "qwk.h"
 
 /****************************************************************************/
-/* Converts a QWK message packet into a message. The 'qwkbuf' pointer       */
-/* points to the message header and 'str' is the file to output to.         */
-/* Returns the 1 on success or 0 if failure.								*/
+/* Converts a QWK message packet into a message.							*/
 /****************************************************************************/
 bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	, uint touser)
