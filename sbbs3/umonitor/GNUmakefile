@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.12 2003/05/16 01:02:09 deuce Exp $
+# $Id: GNUmakefile,v 1.13 2003/05/18 05:45:54 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -77,6 +77,7 @@ ifeq ($(os),netbsd)
 endif
 
 vpath %.c $(UIFC) $(XPDEV) $(SBBS3)
+vpath %.cpp $(SBBS3)
 
 OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/chat.o \
@@ -97,6 +98,9 @@ OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/load_cfg.o \
 			$(LIBODIR)/date_str.o \
 			$(LIBODIR)/spyon.o \
+			$(LIBODIR)/smblib.o \
+			$(LIBODIR)/getstats.o \
+			$(LIBODIR)/getmail.o \
 			$(LIBODIR)/umonitor.o
 
 all: $(LIBODIR) $(BUILD_DEPENDS)$(EXEODIR)/umonitor

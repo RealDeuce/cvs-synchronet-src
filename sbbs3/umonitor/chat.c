@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.9 2003/05/17 06:48:27 deuce Exp $ */
+/* $Id: chat.c,v 1.10 2003/05/18 05:45:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,13 +186,13 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 	time_t	now;
 	time_t	last_nodechk=0;
 
-	username(cfg,node->useron,usrname);
-
-	drawchatwin(&uwin,&swin,boxch,usrname,cfg->sys_op);
-
 	if(getnodedat(cfg,nodenum,node,NULL)) {
 		return(-1);
 	}
+
+	username(cfg,node->useron,usrname);
+
+	drawchatwin(&uwin,&swin,boxch,usrname,cfg->sys_op);
 
 	sprintf(outpath,"%slchat.dab",cfg->node_path[nodenum-1]);
 	if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
