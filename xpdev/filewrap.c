@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.3 2002/04/26 23:44:00 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.4 2002/05/03 00:49:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,7 @@ time_t DLLCALL filetime(int fd)
 	return(st.st_mtime);
 }
 
-#if defined(__unix__)
+#if defined(__unix__) && !defined(__BORLANDC__)
 
 /****************************************************************************/
 /* Returns the length of the file in 'fd'									*/

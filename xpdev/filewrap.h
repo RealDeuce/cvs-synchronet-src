@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.6 2002/04/26 23:45:28 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.7 2002/05/03 00:49:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,13 +44,16 @@
 	#include <unistd.h>	/* read, write, close, ftruncate, lseek, etc. */
 #endif
 
+#if defined(_WIN32) || defined(__BORLANDC__)
+	#include <io.h>
+#endif
+
 /**********/
 /* Macros */
 /**********/
 
 #if defined(_WIN32)
 
-	#include <io.h>				/* _sopen */
 	#include <sys/stat.h>		/* S_IREAD */
 	#include <fcntl.h>			/* O_BINARY */
 	#include <windows.h>		/* OF_SHARE_ */
@@ -98,7 +101,7 @@ extern "C" {
 	DLLEXPORT int	DLLCALL unlock(int fd, long pos, int len);
 #endif
 
-#if defined(__unix__)
+#if !defined(__BORLANDC__) && defined(__unix__)
 	DLLEXPORT int	DLLCALL sopen(char *fn, int access, int share);
 	DLLEXPORT long	DLLCALL filelength(int fd);
 #endif
