@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.32 2004/09/08 03:41:23 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.28 2004/08/28 03:17:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	ushort	xlat;
 	long	l,bodylen,taillen,length;
 	bool	header_cont=false;
-	bool	success=true;
 	ulong	crc,block,blocks;
 	smbmsg_t	msg;
 	smbmsg_t	remsg;
@@ -126,7 +125,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	sprintf(str,"%25.25s",hdrblk+71);   /* Subject */
 	truncsp(str);
 	smb_hfield_str(&msg,SUBJECT,str);
-	msg.idx.subj=smb_subject_crc(str);
+	msg.idx.subj=subject_crc(str);
 
 	/********************************/
 	/* Convert the QWK message text */
@@ -433,9 +432,10 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 
 	if(msg.reply_id!=NULL 
-		&& smb_getmsgidx_by_msgid(&smb,&remsg,msg.reply_id)==SMB_SUCCESS)
-		msg.hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
-
+		&& get_msg_by_id(&cfg, &smb, msg.reply_id, &remsg)==TRUE) {
+		msg.hdr.thread_back=remsg.hdr.number;	/* needed for threading backward */
+		smb_freemsgmem(&remsg);
+	}
 	if(msg.hdr.thread_back
 		&& smb_getstatus(&smb)==SMB_SUCCESS) {
 
@@ -456,10 +456,10 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 					smb_hfield_str(&msg,FIDOREPLYID,remsg.ftn_msgid);
 
 				smb_updatethread(&smb,&remsg,smb.status.last_msg+1);
-				smb_freemsgmem(&remsg);
 			}
 
 			smb_unlockmsghdr(&smb,&remsg);
+			smb_freemsgmem(&remsg);
 		}
 	}
 
@@ -509,16 +509,13 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 	fflush(smb.sdt_fp);
 
-	if((i=smb_addmsghdr(&smb,&msg,storage))!=SMB_SUCCESS) {	// calls smb_unlocksmbhdr() 
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-		smb_freemsg_dfields(&smb,&msg,1);
-		success=false;
-	}
+	if((i=smb_addmsghdr(&smb,&msg,storage))!=0)	// calls smb_unlocksmbhdr() 
+		errormsg(WHERE,ERR_WRITE,smb.file,i);
 
 	smb_freemsgmem(&msg);
 
 	LFREE(body);
 	LFREE(tail);
 
-	return(success);
+	return(true);
 }
