@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.232 2003/05/02 00:27:51 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.233 2003/05/02 02:39:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2736,6 +2736,8 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 
+		getuserdat(&scfg, &user);	/* get current user data */
+
 		if((timeleft=gettimeleft(&scfg,&user,logintime))<1L) {
 			sockprintf(sock,"421 Sorry, you've run out of time.");
 			lprintf("%04d Out of time, disconnecting",sock);
@@ -4418,7 +4420,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.232 $", "%*s %s", revision);
+	sscanf("$Revision: 1.233 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
