@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.283 2005/03/14 05:05:59 deuce Exp $ */
+/* $Id: websrvr.c,v 1.284 2005/03/14 05:20:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1009,6 +1009,7 @@ static void send_error(http_session_t * session, const char* message)
 		sprintf(sbuf,"%s%s.ssjs",error_dir,error_code);
 		if(!stat(sbuf,&sb)) {
 			lprintf(LOG_INFO,"%04d Using SSJS error page",session->socket);
+			session->req.dynamic=IS_SSJS;
 			if(js_setup(session)) {
 				sent_ssjs=exec_ssjs(session,sbuf);
 				if(sent_ssjs) {
@@ -1021,7 +1022,11 @@ static void send_error(http_session_t * session, const char* message)
 					if(session->req.ld!=NULL)
 						session->req.ld->size=snt;
 				}
+				else
+					 session->req.dynamic=IS_STATIC;
 			}
+			else
+				session->req.dynamic=IS_STATIC;
 		}
 	}
 	if(!sent_ssjs) {
@@ -3045,7 +3050,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.283 $", "%*s %s", revision);
+	sscanf("$Revision: 1.284 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
