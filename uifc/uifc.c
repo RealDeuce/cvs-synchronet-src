@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.12 2002/01/29 23:10:03 rswindell Exp $ */
+/* $Id: uifc.c,v 1.13 2002/04/26 00:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -319,6 +319,18 @@ now=time(NULL);
 if(difftime(now,savetime)>=60) {
 	uprintf(55,1,bclr|(cclr<<4),utimestr(&now));
 	savetime=now; }
+}
+
+/****************************************************************************/
+/* Truncates white-space chars off end of 'str'								*/
+/****************************************************************************/
+static void truncsp(char *str)
+{
+	uint c;
+
+	c=strlen(str);
+	while(c && (uchar)str[c-1]<=SP) c--;
+	str[c]=0;
 }
 
 /****************************************************************************/
@@ -1589,23 +1601,6 @@ sprintf(str,"%s %s %02d %4d %02d:%02d %s",wday,mon,gm->tm_mday,1900+gm->tm_year
 	,hour,gm->tm_min,mer);
 return(str);
 }
-
-#if 0
-/****************************************************************************/
-/* Truncates white-space chars off end of 'str' and terminates at first tab */
-/****************************************************************************/
-void truncsp(char *str)
-{
-	char c,tmp[256];
-
-	tmp[0]=TAB;
-	tmp[1]=0;
-	str[strcspn(str,tmp)]=0;
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=SP) c--;
-	str[c]=0;
-}
-#endif
 
 /****************************************************************************/
 /* Status popup/down function, see uifc.h for details.						*/
