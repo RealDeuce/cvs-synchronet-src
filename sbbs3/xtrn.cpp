@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.165 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.163 2004/07/27 23:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1026,7 +1026,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		rio_abortable=rio_abortable_save;	// Restore abortable state
 
 		/* Got back to Text/NVT mode */
-		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
+		if(telnet_mode&TELNET_MODE_BIN_RX) {
+			send_telnet_cmd(TELNET_DONT,TELNET_BINARY);
+			telnet_mode&=~TELNET_MODE_BIN_RX;
+		}
 	}
 
 //	lprintf("%s returned %d",realcmdline, retval);
@@ -1883,7 +1886,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		rio_abortable=rio_abortable_save;	// Restore abortable state
 
 		/* Got back to Text/NVT mode */
-		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
+		if(telnet_mode&TELNET_MODE_BIN_RX) {
+			send_telnet_cmd(TELNET_DONT,TELNET_BINARY);
+			telnet_mode&=~TELNET_MODE_BIN_RX;
+		}
 	}
 
 	close(err_pipe[0]);
