@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.173 2004/10/20 23:19:52 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.187 2004/11/18 09:12:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 #endif
 
 /* Synchronet-specific headers */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"		/* load_cfg() */
 #include "sbbs_ini.h"	/* sbbs_read_ini() */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
@@ -194,13 +195,10 @@ static const char* services_usage  = "Services settings:\n"
 							"\n"
 							;
 
-static int log_puts(int level, char *str)
+static int lputs(int level, char *str)
 {
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
-
-	if(!(bbs_startup.log_mask&(1<<level)))
-		return(0);
 
 #ifdef __unix__
 
@@ -230,6 +228,18 @@ static int log_puts(int level, char *str)
 	pthread_mutex_unlock(&mutex);
 
     return(prompt_len);
+}
+
+static int lprintf(int level, char *fmt, ...)
+{
+	va_list argptr;
+	char sbuf[1024];
+
+    va_start(argptr,fmt);
+    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
+    va_end(argptr);
+    return(lputs(level,sbuf));
 }
 
 #ifdef __unix__
@@ -267,8 +277,8 @@ static BOOL do_seteuid(BOOL to_new)
 	pthread_mutex_unlock(&mutex);
 
 	if(!result) {
-		log_puts(LOG_ERR,"!seteuid FAILED");
-		log_puts(LOG_ERR,strerror(errno));
+		lputs(LOG_ERR,"!seteuid FAILED");
+		lputs(LOG_ERR,strerror(errno));
 	}
 	return result;
 }
@@ -287,15 +297,15 @@ BOOL do_setuid(BOOL force)
 	setreuid(-1,old_uid);
 	if(setregid(new_gid,new_gid))
 	{
-		log_puts(LOG_ERR,"!setgid FAILED");
-		log_puts(LOG_ERR,strerror(errno));
+		lputs(LOG_ERR,"!setgid FAILED");
+		lputs(LOG_ERR,strerror(errno));
 		result=FALSE;
 	}
 
 	if(setreuid(new_uid,new_uid))
 	{
-		log_puts(LOG_ERR,"!setuid FAILED");
-		log_puts(LOG_ERR,strerror(errno));
+		lputs(LOG_ERR,"!setuid FAILED");
+		lputs(LOG_ERR,strerror(errno));
 		result=FALSE;
 	}
 	if(force && (!result))
@@ -316,7 +326,7 @@ static BOOL winsock_startup(void)
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0)
 		return(TRUE);
 
-    fprintf(stderr,"!WinSock startup ERROR %d\n", status);
+    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
 	return(FALSE);
 }
 
@@ -325,7 +335,7 @@ static BOOL winsock_cleanup(void)
 	if(WSACleanup()==0)
 		return(TRUE);
 
-	fprintf(stderr,"!WinSock cleanup ERROR %d\n",ERROR_VALUE);
+	lprintf(LOG_ERR,"!WinSock cleanup ERROR %d",ERROR_VALUE);
 	return(FALSE);
 }
 
@@ -359,7 +369,7 @@ static void thread_up(void* p, BOOL up, BOOL setuid)
     else if(thread_count>0)
     	thread_count--;
 	pthread_mutex_unlock(&mutex);
-	log_puts(LOG_INFO,NULL); /* update displayed stats */
+	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
 
 static void socket_open(void* p, BOOL open)
@@ -378,7 +388,7 @@ static void socket_open(void* p, BOOL open)
     else if(socket_count>0)
     	socket_count--;
 	pthread_mutex_unlock(&mutex);
-	log_puts(LOG_INFO,NULL); /* update displayed stats */
+	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
 
 static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
@@ -398,7 +408,7 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
 	} else if(!on && client_count>0)
 		client_count--;
 	pthread_mutex_unlock(&mutex);
-	log_puts(LOG_INFO,NULL); /* update displayed stats */
+	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
 
 /****************************************************************************/
@@ -410,6 +420,9 @@ static int bbs_lputs(void* p, int level, char *str)
 	char		tstr[64];
 	time_t		t;
 	struct tm	tm;
+
+	if(!(bbs_startup.log_mask&(1<<level)))
+		return(0);
 
 #ifdef __unix__
 	if (is_daemon)  {
@@ -433,7 +446,7 @@ static int bbs_lputs(void* p, int level, char *str)
 
 	sprintf(logline,"%s     %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
-	log_puts(level,logline);
+	lputs(level,logline);
 	
     return(strlen(logline)+1);
 }
@@ -493,7 +506,7 @@ static int ftp_lputs(void* p, int level, char *str)
 
 	sprintf(logline,"%sftp  %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
-	log_puts(level,logline);
+	lputs(level,logline);
 	
     return(strlen(logline)+1);
 }
@@ -549,7 +562,7 @@ static int mail_lputs(void* p, int level, char *str)
 
 	sprintf(logline,"%smail %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
-	log_puts(level,logline);
+	lputs(level,logline);
 	
     return(strlen(logline)+1);
 }
@@ -605,7 +618,7 @@ static int services_lputs(void* p, int level, char *str)
 
 	sprintf(logline,"%ssrvc %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
-	log_puts(level,logline);
+	lputs(level,logline);
 	
     return(strlen(logline)+1);
 }
@@ -661,7 +674,7 @@ static int event_lputs(int level, char *str)
 
 	sprintf(logline,"%sevnt %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
-	log_puts(level,logline);
+	lputs(level,logline);
 	
     return(strlen(logline)+1);
 }
@@ -701,7 +714,7 @@ static int web_lputs(void* p, int level, char *str)
 
 	sprintf(logline,"%sweb  %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
-	log_puts(level,logline);
+	lputs(level,logline);
 	
     return(strlen(logline)+1);
 }
@@ -726,52 +739,55 @@ static void terminate(void)
 {
 	ulong count=0;
 
-	bbs_terminate();
-	ftp_terminate();
+	if(bbs_running)
+		bbs_terminate();
+	if(ftp_running)
+		ftp_terminate();
 #ifndef NO_WEB_SERVER
-	web_terminate();
+	if(web_running)
+		web_terminate();
 #endif
-	mail_terminate();
+	if(mail_running)
+		mail_terminate();
 #ifndef NO_SERVICES
-	services_terminate();
+	if(services_running)
+		services_terminate();
 #endif
 
 	while(bbs_running || ftp_running || web_running || mail_running || services_running)  {
 		if(count && (count%10)==0) {
 			if(bbs_running)
-				bbs_lputs(NULL,LOG_INFO,"BBS System thread still running");
+				lputs(LOG_INFO,"BBS System thread still running");
 			if(ftp_running)
-				ftp_lputs(NULL,LOG_INFO,"FTP Server thread still running");
+				lputs(LOG_INFO,"FTP Server thread still running");
 			if(web_running)
-				web_lputs(NULL,LOG_INFO,"Web Server thread still running");
+				lputs(LOG_INFO,"Web Server thread still running");
 			if(mail_running)
-				mail_lputs(NULL,LOG_INFO,"Mail Server thread still running");
+				lputs(LOG_INFO,"Mail Server thread still running");
 			if(services_running)
-				services_lputs(NULL,LOG_INFO,"Services thread still running");
+				lputs(LOG_INFO,"Services thread still running");
 		}
 		count++;
 		SLEEP(1000);
 	}
 }
 
-static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup_t* web
+static void read_startup_ini(BOOL recycle
+							 ,bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup_t* web
 							 ,mail_startup_t* mail, services_startup_t* services)
 {
-	char	str[MAX_PATH+1];
 	FILE*	fp=NULL;
 
 	/* Read .ini file here */
 	if(ini_file[0]!=0) { 
 		if((fp=fopen(ini_file,"r"))==NULL) {
-			sprintf(str,"!ERROR %d (%s) opening %s",errno,strerror(errno),ini_file);
-			bbs_lputs(NULL,LOG_ERR,str);
+			lprintf(LOG_ERR,"!ERROR %d (%s) opening %s",errno,strerror(errno),ini_file);
 		} else {
-			sprintf(str,"Reading %s",ini_file);
-			bbs_lputs(NULL,LOG_INFO,str);
+			lprintf(LOG_INFO,"Reading %s",ini_file);
 		}
 	}
 	if(fp==NULL)
-		bbs_lputs(NULL,LOG_WARNING,"Using default initialization values");
+		lputs(LOG_WARNING,"Using default initialization values");
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
@@ -788,7 +804,8 @@ static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup
 		char	value[INI_MAX_VALUE_LEN];
 		SAFECOPY(new_uid_name,iniReadString(fp,"UNIX","User","",value));
 		SAFECOPY(new_gid_name,iniReadString(fp,"UNIX","Group","",value));
-		is_daemon=iniReadBool(fp,"UNIX","Daemonize",FALSE);
+		if(!recycle)
+			is_daemon=iniReadBool(fp,"UNIX","Daemonize",FALSE);
 		SAFECOPY(daemon_type,iniReadString(fp,"UNIX","LogFacility","U",value));
 		umask(iniReadInteger(fp,"UNIX","umask",077));
 	}
@@ -818,7 +835,14 @@ void recycle(void* cbdata)
 	else if(cbdata==&services_startup)
 		services=cbdata;
 
-	read_startup_ini(bbs,ftp,web,mail,services);
+	read_startup_ini(/* recycle? */TRUE,bbs,ftp,web,mail,services);
+}
+
+void cleanup(void)
+{
+#ifdef __unix__
+	unlink(SBBS_PID_FILE);
+#endif
 }
 
 #if defined(_WIN32)
@@ -844,12 +868,8 @@ void _sighandler_quit(int sig)
 	pthread_mutex_lock(&mutex);
 	/* Can I get away with leaving this locked till exit? */
 
-	sprintf(str,"     Got quit signal (%d)",sig);
-	log_puts(LOG_NOTICE,str);
+	lprintf(LOG_NOTICE,"     Got quit signal (%d)",sig);
 	terminate();
-
-	if(is_daemon)
-		unlink(SBBS_PID_FILE);
 
     exit(0);
 }
@@ -857,11 +877,8 @@ void _sighandler_quit(int sig)
 void _sighandler_rerun(int sig)
 {
 
-	log_puts(LOG_NOTICE,"     Got HUP (rerun) signal");
+	lputs(LOG_NOTICE,"     Got HUP (rerun) signal");
 
-	/*
-	Currently, rereading the ini appears to case 100% CPU issues. - ToDo
-		read_startup_ini(); */
 	bbs_startup.recycle_now=TRUE;
 	ftp_startup.recycle_now=TRUE;
 	web_startup.recycle_now=TRUE;
@@ -869,10 +886,11 @@ void _sighandler_rerun(int sig)
 	services_startup.recycle_now=TRUE;
 }
 
-static void handle_sigs(void)  {
-	int			sig;
+static void handle_sigs(void)
+{
+	int			i;
+	int			sig=0;
 	sigset_t	sigs;
-	char		str[1024];
 
 	thread_up(NULL,TRUE,TRUE);
 
@@ -897,9 +915,11 @@ static void handle_sigs(void)  {
 	/* sigaddset(&sigs,SIGPIPE); */
 	pthread_sigmask(SIG_BLOCK,&sigs,NULL);
 	while(1)  {
-		sigwait(&sigs,&sig);    /* wait here until signaled */
-		sprintf(str,"     Got signal (%d)",sig);
-		log_puts(LOG_NOTICE,str);
+		if((i=sigwait(&sigs,&sig))!=0) {   /* wait here until signaled */
+			lprintf(LOG_ERR,"     !sigwait FAILURE (%d)", i);
+			continue;
+		}
+		lprintf(LOG_NOTICE,"     Got signal (%d)", sig);
 		switch(sig)  {
 			/* QUIT-type signals */
 			case SIGINT:
@@ -912,8 +932,7 @@ static void handle_sigs(void)  {
 				_sighandler_rerun(sig);
 				break;
 			default:
-				sprintf(str,"     Signal has no handler (unexpected)");
-				log_puts(LOG_NOTICE,str);
+				lputs(LOG_NOTICE,"     Signal has no handler (unexpected)");
 		}
 	}
 }
@@ -973,6 +992,8 @@ int main(int argc, char** argv)
 #endif
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
+
+	atexit(cleanup);
 
 	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
 	if(ctrl_dir==NULL || ctrl_dir[0]==0) {
@@ -1044,6 +1065,7 @@ int main(int argc, char** argv)
     web_startup.terminated=web_terminated;
 	web_startup.thread_up=thread_up;
     web_startup.socket_open=socket_open;
+	web_startup.client_on=client_on;
 #ifdef __unix__
 	web_startup.seteuid=do_seteuid;
 	web_startup.setuid=do_setuid;
@@ -1126,7 +1148,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	read_startup_ini(&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
+	read_startup_ini(/* recycle? */FALSE
+		,&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
 
 #if SBBS_MAGIC_FILENAMES	/* This stuff is just broken */
 
@@ -1164,8 +1187,6 @@ int main(int argc, char** argv)
 	}
 
 #endif	/* Removed broken stuff */
-
-	prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu] (?=Help): ";
 
 	/* Post-INI command-line switches */
 	for(i=1;i<argc;i++) {
@@ -1228,7 +1249,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'R':	/* RLogin */
@@ -1242,7 +1263,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'F':	/* FTP */
@@ -1258,7 +1279,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'M':	/* Mail */
@@ -1280,7 +1301,7 @@ int main(int argc, char** argv)
 								break;
 							default:
 								show_usage(argv[0]);
-								return(0);
+								return(1);
 						}
 						break;
 					case 'P':	/* POP3 */
@@ -1294,7 +1315,7 @@ int main(int argc, char** argv)
 								break;
 							default:
 								show_usage(argv[0]);
-								return(0);
+								return(1);
 						}
 						break;
 					case 'R':	/* Relay */
@@ -1314,7 +1335,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'S':	/* Services */
@@ -1327,7 +1348,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'G':	/* GET */
@@ -1340,7 +1361,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'H':	/* Host */
@@ -1361,7 +1382,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'U':	/* runtime UID */
@@ -1384,7 +1405,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'N':	/* No */
@@ -1428,7 +1449,7 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 			case 'L':	/* Local */
@@ -1441,15 +1462,30 @@ int main(int argc, char** argv)
 						break;
 					default:
 						show_usage(argv[0]);
-						return(0);
+						return(1);
 				}
 				break;
 
 			default:
 				show_usage(argv[0]);
-				return(0);
+				return(1);
 		}
 	}
+
+	/* Read in configuration files */
+    memset(&scfg,0,sizeof(scfg));
+    SAFECOPY(scfg.ctrl_dir,bbs_startup.ctrl_dir);
+
+	if(chdir(scfg.ctrl_dir)!=0)
+		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, scfg.ctrl_dir);
+
+    scfg.size=sizeof(scfg);
+	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
+	lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
+	if(!load_cfg(&scfg, NULL /* text.dat */, TRUE /* prep */, error)) {
+		lprintf(LOG_ERR,"!ERROR Loading Configuration Files: %s", error);
+        return(-1);
+    }
 
 /* Daemonize / Set uid/gid */
 #ifdef __unix__
@@ -1490,9 +1526,9 @@ int main(int argc, char** argv)
 	}
 	if(is_daemon) {
 
-		printf("Running as daemon\n");
+		lprintf(LOG_INFO,"Running as daemon");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			printf("!ERROR %d running as daemon",errno);
+			lprintf(LOG_ERR,"!ERROR %d running as daemon",errno);
 			is_daemon=FALSE;
 		}
 
@@ -1515,22 +1551,6 @@ int main(int argc, char** argv)
 	
 #endif
 
-	/* Read in configuration files */
-    memset(&scfg,0,sizeof(scfg));
-    SAFECOPY(scfg.ctrl_dir,bbs_startup.ctrl_dir);
-
-	if(chdir(scfg.ctrl_dir)!=0)
-		fprintf(stderr,"\n!ERROR %d changing directory to: %s\n", errno, scfg.ctrl_dir);
-
-    scfg.size=sizeof(scfg);
-	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
-	sprintf(str,"Loading configuration files from %s", scfg.ctrl_dir);
-	bbs_lputs(NULL,LOG_INFO,str);
-	if(!load_cfg(&scfg, NULL /* text.dat */, TRUE /* prep */, error)) {
-		fprintf(stderr,"\n!ERROR Loading Configuration Files: %s\n", error);
-        return(-1);
-    }
-
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
@@ -1551,7 +1571,7 @@ int main(int argc, char** argv)
 	if(new_uid_name[0]!=0) {        /*  check the user arg, if we have uid 0 */
 		/* Can't recycle servers (re-bind ports) as non-root user */
 		/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
-#if !defined(DONT_BLAME_SYNCHRONET)
+#if !defined(DONT_BLAME_SYNCHRONET) && !defined(_THREAD_SUID_BROKEN)
  		if(bbs_startup.telnet_port < IPPORT_RESERVED
 			|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
 				&& bbs_startup.rlogin_port < IPPORT_RESERVED))
@@ -1566,8 +1586,8 @@ int main(int argc, char** argv)
 			mail_startup.options|=MAIL_OPT_NO_RECYCLE;
 		/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
 		services_startup.options|=BBS_OPT_NO_RECYCLE;
-	}
 #endif
+	}
 #endif
 
 	if(run_bbs)
@@ -1591,16 +1611,16 @@ int main(int argc, char** argv)
 
 #ifdef __unix__
 	if(getuid())  { /*  are we running as a normal user?  */
-		sprintf(str,"!Started as non-root user.  Cannot bind() to ports below %u.", IPPORT_RESERVED);
-		bbs_lputs(NULL,LOG_ERR,str);
+		lprintf(LOG_WARNING
+			,"!Started as non-root user.  Cannot bind() to ports below %u.", IPPORT_RESERVED);
 	}
 	
 	else if(new_uid_name[0]==0)   /*  check the user arg, if we have uid 0 */
-		bbs_lputs(NULL,LOG_WARNING,"Warning: No user account specified, running as root.");
+		lputs(LOG_WARNING,"WARNING: No user account specified, running as root.");
 	
 	else 
 	{
-		bbs_lputs(NULL,LOG_INFO,"Waiting for child threads to bind ports...");
+		lputs(LOG_INFO,"Waiting for child threads to bind ports...");
 		while((run_bbs && !(bbs_running || bbs_stopped)) 
 				|| (run_ftp && !(ftp_running || ftp_stopped)) 
 				|| (run_web && !(web_running || web_stopped)) 
@@ -1608,20 +1628,20 @@ int main(int argc, char** argv)
 				|| (run_services && !(services_running || services_stopped)))  {
 			mswait(1000);
 			if(run_bbs && !(bbs_running || bbs_stopped))
-				bbs_lputs(NULL,LOG_INFO,"Waiting for BBS thread");
+				lputs(LOG_INFO,"Waiting for BBS thread");
 			if(run_web && !(web_running || web_stopped))
-				bbs_lputs(NULL,LOG_INFO,"Waiting for Web thread");
+				lputs(LOG_INFO,"Waiting for Web thread");
 			if(run_ftp && !(ftp_running || ftp_stopped))
-				bbs_lputs(NULL,LOG_INFO,"Waiting for FTP thread");
+				lputs(LOG_INFO,"Waiting for FTP thread");
 			if(run_mail && !(mail_running || mail_stopped))
-				bbs_lputs(NULL,LOG_INFO,"Waiting for Mail thread");
+				lputs(LOG_INFO,"Waiting for Mail thread");
 			if(run_services && !(services_running || services_stopped))
-				bbs_lputs(NULL,LOG_INFO,"Waiting for Services thread");
+				lputs(LOG_INFO,"Waiting for Services thread");
 		}
 
 		if(!do_setuid(FALSE))
 				/* actually try to change the uid of this process */
-			bbs_lputs(NULL,LOG_ERR,"!Setting new user_id failed!  (Does the user exist?)");
+			lputs(LOG_ERR,"!Setting new user_id failed!  (Does the user exist?)");
 	
 		else {
 			char str[256];
@@ -1641,16 +1661,18 @@ int main(int argc, char** argv)
 				sprintf(genv,"GROUP=%s",new_gid_name);
 				putenv(genv);
 			}
-			sprintf(str,"Successfully changed user_id to %s", new_uid_name);
-			bbs_lputs(NULL,LOG_INFO,str);
-
+			lprintf(LOG_INFO,"Successfully changed user_id to %s", new_uid_name);
 		}
 	}
 
 	if(!isatty(fileno(stdin)))  			/* redirected */
 		select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
-	else								/* interactive */
+	else 								/* interactive */
 #endif
+	{
+		prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu] (?=Help): ";
+		lputs(LOG_INFO,NULL);	/* display prompt */
+
 		while(!terminated) {
 #ifdef __unix__
 			if(!isatty(STDIN_FILENO))  {		/* Controlling terminal has left us *sniff* */
@@ -1664,7 +1686,7 @@ int main(int argc, char** argv)
             			(void)close(fd);
     			}
 				is_daemon=TRUE;
-				bbs_lputs(NULL, LOG_ERR, "STDIN is not a tty anymore... switching to syslog logging");
+				lputs(LOG_WARNING, "STDIN is not a tty anymore... switching to syslog logging");
 				select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
 			}
 #endif
@@ -1716,6 +1738,82 @@ int main(int argc, char** argv)
 					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
 					break;
+				case 'r':	/* recycle */
+				case 's':	/* shutdown */
+				case 't':	/* terminate */
+					printf("BBS, FTP, Web, Mail, Services, or [All] ? ");
+					switch(toupper(getch())) {
+						case 'B':
+							printf("BBS\n");
+							if(ch=='t')
+								bbs_terminate();
+							else if(ch=='s')
+								bbs_startup.shutdown_now=TRUE;
+							else
+								bbs_startup.recycle_now=TRUE;
+							break;
+						case 'F':
+							printf("FTP\n");
+							if(ch=='t')
+								ftp_terminate();
+							else if(ch=='s')
+								ftp_startup.shutdown_now=TRUE;
+							else
+								ftp_startup.recycle_now=TRUE;
+							break;
+						case 'W':
+							printf("Web\n");
+							if(ch=='t')
+								web_terminate();
+							else if(ch=='s')
+								web_startup.shutdown_now=TRUE;
+							else
+								web_startup.recycle_now=TRUE;
+							break;
+						case 'M':
+							printf("Mail\n");
+							if(ch=='t')
+								mail_terminate();
+							else if(ch=='s')
+								mail_startup.shutdown_now=TRUE;
+							else
+								mail_startup.recycle_now=TRUE;
+							break;
+						case 'S':
+							printf("Services\n");
+							if(ch=='t')
+								services_terminate();
+							else if(ch=='s')
+								services_startup.shutdown_now=TRUE;
+							else
+								services_startup.recycle_now=TRUE;
+							break;
+						default:
+							printf("All\n");
+							if(ch=='t')
+								terminate();
+							else if(ch=='s') {
+								bbs_startup.shutdown_now=TRUE;
+								ftp_startup.shutdown_now=TRUE;
+								web_startup.shutdown_now=TRUE;
+								mail_startup.shutdown_now=TRUE;
+								services_startup.shutdown_now=TRUE;
+							}
+							else {
+								bbs_startup.recycle_now=TRUE;
+								ftp_startup.recycle_now=TRUE;
+								web_startup.recycle_now=TRUE;
+								mail_startup.recycle_now=TRUE;
+								services_startup.recycle_now=TRUE;							
+							}
+							break;
+					}
+					break;
+				case '!':	/* execute */
+					printf("Command line: ");
+					fgets(str,sizeof(str),stdin);
+					system(str);
+					break;
 				default:
 					printf("\nSynchronet Console Version %s%c Help\n\n",VERSION,REVISION);
 					printf("q   = quit\n");
@@ -1724,14 +1822,19 @@ int main(int argc, char** argv)
 					printf("l   = lock node (toggle)\n");
 					printf("d   = down node (toggle)\n");
 					printf("i   = interrupt node (toggle)\n");
+					printf("r   = recycle servers (when not in use)\n");
+					printf("s   = shutdown servers (when not in use)\n");
+					printf("t   = terminate servers (immediately)\n");
+					printf("!   = execute external command\n");
 #if 0	/* to do */	
 					printf("c#  = chat with node #\n");
 					printf("s#  = spy on node #\n");
 #endif
 					break;
 			}
-			log_puts(LOG_INFO,"");	/* redisplay prompt */
+			lputs(LOG_INFO,"");	/* redisplay prompt */
 		}
+	}
 
 	terminate();
 
