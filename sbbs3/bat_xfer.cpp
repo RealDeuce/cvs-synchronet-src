@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.14 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.15 2002/11/07 08:01:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,12 +53,12 @@ void sbbs_t::batchmenu()
 		bputs(text[NoFilesInBatchQueue]);
 		return; 
 	}
-	if(useron.misc&(RIP|WIP) && !(useron.misc&EXPERT))
+	if(useron.misc&(RIP|WIP|HTML) && !(useron.misc&EXPERT))
 		menu("batchxfer");
 	lncntr=0;
 	while(online && !done && (batdn_total || batup_total
 		|| cfg.upload_dir!=INVALID_DIR)) {
-		if(!(useron.misc&(EXPERT|RIP|WIP))) {
+		if(!(useron.misc&(EXPERT|RIP|WIP|HTML))) {
 			sys_status&=~SS_ABORT;
 			if(lncntr) {
 				SYNC;
@@ -75,7 +75,7 @@ void sbbs_t::batchmenu()
 			logch(ch,0);
 		switch(ch) {
 			case '?':
-				if(useron.misc&(EXPERT|RIP|WIP))
+				if(useron.misc&(EXPERT|RIP|WIP|HTML))
 					menu("batchxfr");
 				break;
 			case CR:

@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.23 2002/07/19 00:12:23 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.24 2002/11/07 08:01:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -757,7 +757,7 @@ void sbbs_t::maindflts(user_t* user)
 							,user->misc&ANSI ? "ANSI ":"TTY "
 							,user->misc&COLOR ? "(Color) ":"(Mono) "
 							,user->misc&WIP	? "WIP" : user->misc&RIP ? "RIP "
-								:nulstr
+								: user->misc&HTML ? "HTML " : nulstr
 							,user->misc&NO_EXASCII ? "ASCII Only":nulstr);
 		bprintf(text[UserDefaultsTerminal],str);
 		if(cfg.total_xedits)
@@ -835,7 +835,7 @@ void sbbs_t::maindflts(user_t* user)
 			case 'T':
 				if(yesno(text[AutoTerminalQ])) {
 					user->misc|=AUTOTERM;
-					user->misc&=~(ANSI|RIP|WIP);
+					user->misc&=~(ANSI|RIP|WIP|HTML);
 					user->misc|=autoterm; }
 				else
 					user->misc&=~AUTOTERM;

@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.49 2002/10/26 00:37:34 rswindell Exp $ */
+/* $Id: userdat.c,v 1.50 2002/11/07 08:01:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -315,7 +315,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 			getusrsubs();
 	#endif
 			if(user->misc&AUTOTERM) {			// was useron.misc (01/19/00)
-				user->misc&=~(ANSI|RIP|WIP);
+				user->misc&=~(ANSI|RIP|WIP|HTML);
 				user->misc|=autoterm; }
 		} }
 #endif

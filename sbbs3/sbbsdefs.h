@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.75 2002/10/15 00:47:27 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.76 2002/11/07 08:01:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -611,6 +611,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define AUTOHANG	(1L<<20)		/* Auto-hang-up after transfer			*/
 #define WIP 		(1L<<21)		/* Supports WIP terminal emulation		*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
+#define HTML		(1L<<23)		/* Using Deuce's HTML terminal			*/
 																			
 #define CLREOL      256     /* Character to erase to end of line 			*/
 																			

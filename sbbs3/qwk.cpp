@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.26 2002/08/06 02:53:40 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.27 2002/11/07 08:01:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,7 +412,7 @@ void sbbs_t::qwk_sec()
 		getusrsubs();
 	delfiles(cfg.temp_dir,ALLFILES);
 	while(online) {
-		if((useron.misc&(WIP|RIP) || !(useron.misc&EXPERT))
+		if((useron.misc&(WIP|RIP|HTML) || !(useron.misc&EXPERT))
 			&& (useron.logons<2 || !(useron.rest&FLAG('Q'))))
 			menu("qwk");
 		action=NODE_TQWK;
@@ -427,7 +427,7 @@ void sbbs_t::qwk_sec()
 		if(sys_status&SS_ABORT || ch=='Q' || ch==CR)
 			break;
 		if(ch=='?') {
-			if((useron.misc&(WIP|RIP) || !(useron.misc&EXPERT))
+			if((useron.misc&(WIP|RIP|HTML) || !(useron.misc&EXPERT))
 				&& !(useron.rest&FLAG('Q')))
 				continue;
 			menu("qwk");
