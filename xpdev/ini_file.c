@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.8 2003/03/18 08:29:36 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.9 2003/05/05 06:23:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,6 +170,19 @@ char** iniReadStringList(FILE* fp, const char* section, const char* key
 	return(lp);
 }
 
+char** iniFreeStringList(char** list)
+{
+	ulong	i;
+
+	if(list==NULL)
+		return(NULL);
+
+	for(i=0;list[i]!=NULL;i++)
+		free(list[i]);
+
+	free(list);
+	return(NULL);
+}
 
 long iniReadInteger(FILE* fp, const char* section, const char* key, long deflt)
 {
