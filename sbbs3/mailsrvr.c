@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.103 2002/01/23 03:54:12 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.104 2002/01/24 12:17:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,9 +107,11 @@ static int lprintf(char *fmt, ...)
     if(startup==NULL || startup->lputs==NULL)
         return(0);
 
-#if defined(_WIN32)
-	if(IsBadCodePtr((FARPROC)startup->lputs))
+#if defined(_WIN32) && defined(_DEBUG)
+	if(IsBadCodePtr((FARPROC)startup->lputs)) {
+		DebugBreak();
 		return(0);
+	}
 #endif
 
 	va_start(argptr,fmt);
