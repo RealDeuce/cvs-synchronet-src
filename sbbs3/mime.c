@@ -1,8 +1,8 @@
 /* mime.c */
 
-/* Synchronet message creation routines */
+/* Synchronet MIME functions */
 
-/* $Id: mime.c,v 1.1 2001/12/20 01:32:24 rswindell Exp $ */
+/* $Id: mime.c,v 1.2 2002/02/02 04:19:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
