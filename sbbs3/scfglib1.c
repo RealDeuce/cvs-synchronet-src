@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.45 2003/01/31 02:16:50 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.46 2003/01/31 03:24:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -786,6 +786,9 @@ void make_data_dirs(scfg_t* cfg)
 	md(cfg->logs_dir);
 	sprintf(str,"%slogs",cfg->logs_dir);
 	md(str);
+
+	if(cfg->mods_dir[0])
+		md(cfg->mods_dir);
 
 #if 0
 	int		i;
