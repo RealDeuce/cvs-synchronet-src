@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.172 2004/11/09 20:58:07 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.168 2004/11/04 02:56:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1235,15 +1235,20 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	int	high_fd;
 	struct timeval timeout;
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 	XTRN_LOADABLE_MODULE;
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 	XTRN_LOADABLE_JS_MODULE;
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
     SAFECOPY(str,cmdline);			/* Set fname to program name only */
 	truncstr(str," ");
     SAFECOPY(fname,getfname(str));
@@ -1260,6 +1265,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	else
 		SAFECOPY(fullcmdline,cmdline);
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
  	if(native) { // Native (32-bit) external
 
 		// Current environment passed to child process
@@ -1272,6 +1278,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		sprintf(sbbsnnum,"%u",cfg.node_num);
 		if(setenv("SBBSNNUM",sbbsnnum,1))
         	errormsg(WHERE,ERR_WRITE,"environment",0);
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 	} else {
 #if defined(__FreeBSD__)
@@ -1316,6 +1323,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		sprintf(fullcmdline,"%s -F %s",startup->dosemu_path,str);
 
 #elif defined(__linux__) && defined(USE_DOSEMU)
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 		/* dosemu integration  --  Ryan Underwood, <nemesis @ icequake.net> */
 
@@ -1457,6 +1465,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(dosemubat,"%s\r\n",xtrndrive);
 
 		if(startup_dir!=NULL && startup_dir[0]) {
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 			SAFECOPY(str,startup_dir);
 
@@ -1566,9 +1575,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 
 	if(!(mode&EX_INR) && input_thread_running) {
-		lprintf(LOG_DEBUG,"Locking input thread mutex"); 
-		if(pthread_mutex_lock(&input_thread_mutex)!=0)
-			errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
+		pthread_mutex_lock(&input_thread_mutex);
 		input_thread_mutex_locked=true;
 	}
 
@@ -1578,6 +1586,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 
 	if((mode&EX_INR) && (mode&EX_OUTR))  {
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		struct winsize winsize;
 		struct termios term;
 		memset(&term,0,sizeof(term));
@@ -1596,8 +1605,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		winsize.ws_col=cols;
 		if((pid=forkpty(&in_pipe[1],NULL,&term,&winsize))==-1) {
 			if(input_thread_mutex_locked && input_thread_running) {
-				if(pthread_mutex_unlock(&input_thread_mutex)!=0)
-					errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				pthread_mutex_unlock(&input_thread_mutex);
 				input_thread_mutex_locked=false;
 			}
 			errormsg(WHERE,ERR_EXEC,fullcmdline,0);
@@ -1606,6 +1614,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		out_pipe[0]=in_pipe[1];
 	}
 	else  {
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		if(mode&EX_INR)
 			if(pipe(in_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"in_pipe",0);
@@ -1620,14 +1629,14 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		if((pid=FORK())==-1) {
 			if(input_thread_mutex_locked && input_thread_running) {
-				if(pthread_mutex_unlock(&input_thread_mutex)!=0)
-					errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				pthread_mutex_unlock(&input_thread_mutex);
 				input_thread_mutex_locked=false;
 			}
 			errormsg(WHERE,ERR_EXEC,fullcmdline,0);
 			return(-1);
 		}
 	}
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 	if(pid==0) {	/* child process */
 		/* Give away all privs for good now */
 		if(startup->setuid!=NULL)
@@ -1696,8 +1705,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(online!=ON_LOCAL)
-		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
+	lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
@@ -1895,8 +1903,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	close(err_pipe[0]);
 
 	if(input_thread_mutex_locked && input_thread_running) {
-		if(pthread_mutex_unlock(&input_thread_mutex)!=0)
-			errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+		pthread_mutex_unlock(&input_thread_mutex);
 		input_thread_mutex_locked=false;
 	}
 
