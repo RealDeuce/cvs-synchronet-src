@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.21 2002/09/13 01:09:22 rswindell Exp $ */
+/* $Id: userdat.h,v 1.22 2002/10/15 00:43:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,6 +102,7 @@ DLLEXPORT ulong	DLLCALL adjustuserrec(scfg_t*, int usernumber, int start, int le
 DLLEXPORT BOOL	DLLCALL logoutuserdat(scfg_t*, user_t*, time_t now, time_t logontime);
 DLLEXPORT void	DLLCALL resetdailyuserdat(scfg_t*, user_t*);
 DLLEXPORT void	DLLCALL subtract_cdt(scfg_t*, user_t*, long amt);
+DLLEXPORT int	DLLCALL user_rec_len(int offset);
 
 #ifdef __cplusplus
 }
