@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.14 2001/11/10 17:30:08 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.15 2001/11/11 18:54:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
-	if(p==NULL || (!p->debug && !error))
+	if(p==NULL || (!p->debug /*&& !error */))
 		return;
 
     va_start(argptr,fmt);
