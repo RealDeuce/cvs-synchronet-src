@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.71 2004/08/10 02:14:26 rswindell Exp $ */
+/* $Id: js_file.c,v 1.70 2004/06/16 09:54:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,9 +113,6 @@ static int fopenflags(char *mode)
 		else
 			flags|=O_RDONLY;
 	}
-
-	if(strchr(mode,'e'))
-		flags|=O_EXCL;
 
 	return(flags);
 }
@@ -1493,7 +1490,6 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>w+</tt> open an empty file for both reading and writing; if the given file exists, its contents are destroyed<br>"
 		"<tt>a+</tt> open for reading and appending<br>"
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
-		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access<br>"
 		)
 	,310
 	},		
