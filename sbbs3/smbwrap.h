@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.11 2000/11/07 10:54:55 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.12 2000/11/09 03:31:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@
 #if defined(_WIN32)
 
 	#include <io.h>				/* _sopen */
+	#include <sys/stat.h>		/* S_IREAD */
 	#include <fcntl.h>			/* O_BINARY */
 	#include <windows.h>		/* OF_SHARE_ */
 
