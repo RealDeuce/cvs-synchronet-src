@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.155 2004/09/16 05:13:56 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.156 2004/09/16 09:45:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3011,7 +3011,7 @@ void attach_bundles(void)
 		packet=g.gl_pathv[f];
 
 		printf("%21s: %s ","Outbound Packet",packet);
-		if((fmsg=sopen(packet,O_RDWR,SH_DENYRW))==-1) {
+		if((fmsg=sopen(packet,O_RDWR|O_BINARY,SH_DENYRW))==-1) {
 			printf("ERROR %d line %d opening.\n",errno,__LINE__);
 			logprintf("ERROR %d line %d opening %s",errno,__LINE__,packet);
 			continue; }
@@ -3952,7 +3952,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.155 $", "%*s %s", revision);
+	sscanf("$Revision: 1.156 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4220,7 +4220,7 @@ int main(int argc, char **argv)
 		strcpy(packet,(char*)g.gl_pathv[f]);
 
 		printf("%21s: %s ","Outbound Packet",packet);
-		if((fmsg=sopen(packet,O_RDWR,SH_DENYRW))==-1) {
+		if((fmsg=sopen(packet,O_RDWR|O_BINARY,SH_DENYRW))==-1) {
 			printf("ERROR line %d opening.\n",__LINE__);
 			logprintf("ERROR line %d opening %s",__LINE__,packet);
 			continue; }

@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.4 2004/09/15 20:24:37 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.5 2004/09/16 08:58:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <time.h>
+#include <time.h>		/* time()	*/
+#include <string.h>		/* strdup() */
 #include "smblib.h"
 #include "md5.h"
 #include "crc16.h"
