@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.23 2004/03/11 06:04:32 deuce Exp $ */
+/* $Id: uedit.c,v 1.6 2004/03/03 06:05:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,18 +37,15 @@
 
 #include "sbbs.h"
 #include "conwrap.h"	/* this has to go BEFORE curses.h so getkey() can be macroed around */
+#include <curses.h>
 #include <sys/types.h>
 #include <time.h>
+#include <sys/time.h>
 #ifdef __QNX__
 #include <string.h>
 #endif
 #include <stdio.h>
-#ifdef __unix__
 #include <unistd.h>
-#include <curses.h>
-#include <sys/time.h>
-#include <signal.h>
-#endif
 #include "genwrap.h"
 #include "uifc.h"
 #include "sbbsdefs.h"
@@ -62,42 +59,13 @@
 
 #define CTRL(x) (x&037)
 
-struct user_list {
-	char	info[MAX_OPLN];
-	int		usernum;
-};
-
 /********************/
 /* Global Variables */
 /********************/
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
-char YesStr[]="Yes";
-char NoStr[]="No";
-
-/*
- * Find the first occurrence of find in s, ignore case.
- * From FreeBSD src/lib/libc/string/strcasestr.c
- */
-char *
-strcasestr(s, find)
-	const char *s, *find;
-{
-	char c, sc;
-	size_t len;
-
-	if ((c = *find++) != 0) {
-		c = tolower((unsigned char)c);
-		len = strlen(find);
-		do {
-			do {
-				if ((sc = *s++) == 0)
-					return (NULL);
-			} while ((char)tolower((unsigned char)sc) != c);
-		} while (strncasecmp(s, find, len) != 0);
-		s--;
-	}
-	return ((char *)s);
-}
+char *YesStr="Yes";
+char *NoStr="No";
+int 		modified=0;
 
 int lprintf(char *fmt, ...)
 {
@@ -149,12 +117,25 @@ int confirm(char *prompt)
 		,""
 	};
 
-	i=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&i,0,prompt,opt);
+	i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,prompt,opt);
 	if(i==0)
 		return(1);
 	if(i==-1)
 		return(-1);
 	return(0);
+}
+
+int check_save(scfg_t *cfg,user_t *user)
+{
+	int i;
+
+	if(modified) {
+		i=confirm("Save Changes?");
+		if(i==1) {
+			putuserdat(cfg,user);
+		}
+	}
+	return(i);
 }
 
 /****************************************************************************/
@@ -191,37 +172,6 @@ time_t DLLCALL strtosec(char *str)
 	return(sec);
 }
 
-char *geteditor(char *edit)
-{
-	if(getenv("EDITOR")==NULL && (getenv("VISUAL")==NULL || getenv("DISPLAY")==NULL))
-#ifdef __unix__
-		strcpy(edit,"vi");
-#else
-		strcpy(edit,"notepad");
-#endif
-	else {
-		if(getenv("DISPLAY")!=NULL && getenv("VISUAL")!=NULL)
-			strcpy(edit,getenv("VISUAL"));
-		else
-			strcpy(edit,getenv("EDITOR"));
-	}
-	return(edit);
-}
-
-int do_cmd(char *cmd)
-{
-	int i;
-
-#ifdef __unix__	
-	endwin();
-#endif
-	i=system(cmd);
-#ifdef __unix__
-	refresh();
-#endif
-	return(i);
-}
-
 /* Edit terminal settings
  *       Auto-Detect
  *       Extended ASCII
@@ -236,93 +186,6 @@ int do_cmd(char *cmd)
  */
 int edit_terminal(scfg_t *cfg, user_t *user)
 {
-	int 	i,j;
-	char 	**opt;
-	char	str[256];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	j=0;
-	while(1) {
-		getuserdat(cfg,user);
-		i=0;
-		sprintf(opt[i++],"Auto-detect:     %s",user->misc & AUTOTERM?"Yes":"No");
-		sprintf(opt[i++],"Extended ASCII:  %s",user->misc & NO_EXASCII?"No":"Yes");
-		sprintf(opt[i++],"ANSI:            %s",user->misc & ANSI?"Yes":"No");
-		sprintf(opt[i++],"Colour:          %s",user->misc & COLOR?"Yes":"No");
-		sprintf(opt[i++],"RIP:             %s",user->misc & RIP?"Yes":"No");
-		sprintf(opt[i++],"WIP:             %s",user->misc & WIP?"Yes":"No");
-		sprintf(opt[i++],"Pause:           %s",user->misc & UPAUSE?"Yes":"No");
-		sprintf(opt[i++],"Hot Keys:        %s",user->misc & COLDKEYS?"No":"Yes");
-		sprintf(opt[i++],"Spinning Cursor: %s",user->misc & SPIN?"Yes":"No");
-		sprintf(str,"%u",user->rows);
-		sprintf(opt[i++],"Number of Rows:  %s",user->rows?str:"Auto");
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&j,0,"Terminal Settings",opt)) {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				/* Auto-detect */
-				user->misc ^= AUTOTERM;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 1:
-				/* EX-ASCII */
-				user->misc ^= NO_EXASCII;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 2:
-				/* ANSI */
-				user->misc ^= ANSI;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 3:
-				/* Colour */
-				user->misc ^= COLOR;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 4:
-				/* RIP */
-				user->misc ^= RIP;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 5:
-				/* WIP */
-				user->misc ^= WIP;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 6:
-				/* Pause */
-				user->misc ^= UPAUSE;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 7:
-				/* Hot Keys */
-				user->misc ^= COLDKEYS;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 8:
-				/* Spinning Cursor */
-				user->misc ^= SPIN;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 9:
-				/* Rows */
-				sprintf(str,"%u",user->rows);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Rows",str,2,K_EDIT|K_NUMBER);
-				if(uifc.changes) {
-					user->rows=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_ROWS,2,ultoa(user->rows,str,10));
-				}
-				break;
-		}
-	}	
 	return(0);
 }
 
@@ -335,58 +198,6 @@ int edit_terminal(scfg_t *cfg, user_t *user)
  */
 int edit_logon(scfg_t *cfg, user_t *user)
 {
-	int 	i,j;
-	char 	**opt;
-	char	str[256];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	j=0;
-	while(1) {
-		i=0;
-		getuserdat(cfg,user);
-		sprintf(opt[i++],"Ask for New Message Scan:    %s",user->misc & ASK_NSCAN?"Yes":"No");
-		sprintf(opt[i++],"Ask for Your Message Scan:   %s",user->misc & ASK_SSCAN?"Yes":"No");
-		sprintf(opt[i++],"Remember Current Sub:        %s",user->misc & CURSUB?"Yes":"No");
-		sprintf(opt[i++],"Quiet Mode: (Q exempt)       %s",user->misc & QUIET?"Yes":"No");
-		sprintf(opt[i++],"Auto-Login via IP (V exempt) %s",user->misc & AUTOLOGON?"Yes":"No");
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&j,0,"Logon Settings",opt)) {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				/* Ask New MSG Scan */
-				user->misc ^= ASK_NSCAN;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 1:
-				/* Ask YOUR MSG scan */
-				user->misc ^= ASK_SSCAN;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 2:
-				/* Remember Curr Sub */
-				user->misc ^= CURSUB;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 3:
-				/* Quiet Mode */
-				user->misc ^= QUIET;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 4:
-				/* Auto-Login by IP */
-				user->misc ^= AUTOLOGON;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-		}
-	}
 	return(0);
 }
 
@@ -399,87 +210,6 @@ int edit_logon(scfg_t *cfg, user_t *user)
  */
 int edit_chat(scfg_t *cfg, user_t *user)
 {
-	int 	i,j;
-	char 	**opt;
-	char	str[256];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	j=0;
-	while(1) {
-		i=0;
-		getuserdat(cfg,user);
-		sprintf(opt[i++],"Chat Echo:                 %s",user->chat & CHAT_ECHO?"Yes":"No");
-		sprintf(opt[i++],"Chat Actions:              %s",user->chat & CHAT_ACTION?"Yes":"No");
-		sprintf(opt[i++],"Available for Chat:        %s",user->chat & CHAT_NOPAGE?"No":"Yes");
-		sprintf(opt[i++],"Activity Alerts            %s",user->chat & CHAT_NOACT?"No":"Yes");
-		sprintf(opt[i++],"Split-Screen Private Chat: %s",user->chat & CHAT_SPLITP?"Yes":"No");
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&j,0,"Chat Settings",opt)) {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				/* Chat Echo */
-				user->chat ^= CHAT_ECHO;
-				putuserrec(cfg,user->number,U_CHAT,8,ultoa(user->chat,str,16));
-				break;
-			case 1:
-				/* Chat Actions */
-				user->chat ^= CHAT_ACTION;
-				putuserrec(cfg,user->number,U_CHAT,8,ultoa(user->chat,str,16));
-				break;
-			case 2:
-				/* Availabe for Chat */
-				user->chat ^= CHAT_NOPAGE;
-				putuserrec(cfg,user->number,U_CHAT,8,ultoa(user->chat,str,16));
-				break;
-			case 3:
-				/* Activity Alerts */
-				user->chat ^= CHAT_NOACT;
-				putuserrec(cfg,user->number,U_CHAT,8,ultoa(user->chat,str,16));
-				break;
-			case 4:
-				/* Split-Screen Priv Chat */
-				user->chat ^= CHAT_SPLITP;
-				putuserrec(cfg,user->number,U_CHAT,8,ultoa(user->chat,str,16));
-				break;
-		}
-	}
-	return(0);
-}
-
-/* Pick Command Shell */
-int edit_shell(scfg_t *cfg, user_t *user)
-{
-	int 	i,j;
-	char 	**opt;
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-
-
-	for(i=0;i<cfg->total_shells;i++) {
-		opt[i]=cfg->shell[i]->name;
-	}
-	opt[i]="";
-	j=user->shell-1;
-	switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Shell",opt)) {
-		case -1:
-			break;
-		default:
-			if(user->shell != j+1) {
-				user->shell=j+1;
-				putuserrec(cfg,user->number,U_SHELL,8,cfg->shell[j+1]->code);
-			}
-			break;
-	}
-	free(opt);
 	return(0);
 }
 
@@ -489,401 +219,12 @@ int edit_shell(scfg_t *cfg, user_t *user)
  */
 int edit_cmd(scfg_t *cfg, user_t *user)
 {
-	int 	i,j;
-	char 	**opt;
-	char	str[256];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	j=0;
-	while(1) {
-		i=0;
-		getuserdat(cfg,user);
-		sprintf(opt[i++],"Command Shell: %s",cfg->shell[user->shell]->name);
-		sprintf(opt[i++],"Expert Mode:   %s",user->misc & EXPERT?"Yes":"No");
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&j,0,"Command Shell",opt)) {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				/* Command Shell */
-				edit_shell(cfg,user);
-				break;
-			case 1:
-				/* Expoert Mode */
-				user->misc ^= EXPERT;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-		}
-	}
-
-	return(0);
-}
-
-/* Pick External Editor */
-int edit_xedit(scfg_t *cfg, user_t *user)
-{
-	int 	i,j;
-	char 	**opt;
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-
-	getuserdat(cfg,user);
-	opt[0]="None";
-	for(i=1;i<=cfg->total_xedits;i++) {
-		opt[i]=cfg->xedit[i-1]->name;
-	}
-	opt[i]="";
-	j=user->xedit;
-	switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Shell",opt)) {
-		case -1:
-			break;
-		default:
-			if(user->xedit != j) {
-				user->xedit=j;
-				putuserrec(cfg,user->number,U_XEDIT,8,cfg->xedit[j]->code);
-			}
-			break;
-	}
-	free(opt);
-	return(0);
-}
-
-/* Edit Message Options
- *       Forward Email to NetMail
- *       Clear Screen Between Messages
- *       External Editor
- */
-int edit_msgopts(scfg_t *cfg, user_t *user)
-{	
-	int 	i,j;
-	char 	**opt;
-	char	str[256];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	j=0;
-	while(1) {
-		getuserdat(cfg,user);
-		i=0;
-		sprintf(opt[i++],"Forward Email to NetMail:      %s",user->misc & NETMAIL?"Yes":"No");
-		sprintf(opt[i++],"Clear Screen Between Messages: %s",user->misc & CLRSCRN?"Yes":"No");
-		sprintf(opt[i++],"External Editor:               %s",user->xedit?cfg->xedit[user->xedit-1]->name:"None");
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&j,0,"Message Options",opt)) {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				/* FWD Email */
-				user->misc ^= NETMAIL;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 1:
-				/* Clear Between MSGS */
-				user->misc ^=CLRSCRN;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 2:
-				/* External Editor */
-				edit_xedit(cfg,user);
-				break;
-		}
-	}
-	return(0);
-}
-
-/* Pick Tmp/QWK File Type */
-int edit_tmpqwktype(scfg_t *cfg, user_t *user)
-{
-	int 	i;
-	int		j=0;
-	char 	**opt;
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-
-	getuserdat(cfg,user);
-	for(i=0;i<cfg->total_fcomps;i++) {
-		opt[i]=cfg->fcomp[i]->ext;
-		if(!strcmp(cfg->fcomp[i]->ext,user->tmpext))
-			j=i;
-	}
-	opt[i]="";
-	switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Temp/QWK File Type",opt)) {
-		case -1:
-			break;
-		default:
-			if(strcmp(cfg->fcomp[j]->ext,user->tmpext)) {
-				strcpy(user->tmpext,cfg->fcomp[j]->ext);
-				putuserrec(cfg,user->number,U_TMPEXT,3,user->tmpext);
-			}
-			break;
-	}
-	free(opt);
-	return(0);
-}
-
-/* Edit QWK Packet Options
- *       Include New Files List
- *       Include Unread Email
- *       Delete Email After Download
- *       Include Messages From Self
- *       Expand CTRL-A Codes to ANSI
- *       Strip CTRL-A Codes
- *       Include File Attachments
- *       Include Index Files
- *       Include Time Zone (@TZ)
- *       Include Seen-Bys (@VIA)
- *       Extraneous Control Files
- */
-int edit_qwk(scfg_t *cfg, user_t *user)
-{
-	int 	i,j;
-	char 	**opt;
-	char	str[256];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	j=0;
-	while(1) {
-		i=0;
-		getuserdat(cfg,user);
-		sprintf(opt[i++],"Include New Files List:       %s",user->qwk & QWK_FILES?"Yes":"No");
-		sprintf(opt[i++],"Include Unread Email:         %s",user->qwk & QWK_EMAIL?"Yes":"No");
-		sprintf(opt[i++],"Include ALL Email:            %s",user->qwk & QWK_ALLMAIL?"Yes":"No");
-		sprintf(opt[i++],"Delete Email After Download:  %s",user->qwk & QWK_DELMAIL?"Yes":"No");
-		sprintf(opt[i++],"Include Messages from Self:   %s",user->qwk & QWK_BYSELF?"Yes":"No");
-		sprintf(opt[i++],"Expand CTRL-A to ANSI:        %s",user->qwk & QWK_EXPCTLA?"Yes":"No");
-		sprintf(opt[i++],"Strip CTRL-A Codes:           %s",user->qwk & QWK_RETCTLA?"No":"Yes");
-		sprintf(opt[i++],"Include File Attachments:     %s",user->qwk & QWK_ATTACH?"Yes":"No");
-		sprintf(opt[i++],"Include Index Files:          %s",user->qwk & QWK_NOINDEX?"No":"Yes");
-		sprintf(opt[i++],"Include Time Zone (@TZ):      %s",user->qwk & QWK_TZ?"Yes":"No");
-		sprintf(opt[i++],"Include Seen-Bys (@VIA):      %s",user->qwk & QWK_VIA?"Yes":"No");
-		sprintf(opt[i++],"Extraneous Control Files:     %s",user->qwk & QWK_NOCTRL?"No":"Yes");
-		sprintf(opt[i++],"Extended (QWKE) Format:       %s",user->qwk & QWK_EXT?"Yes":"No");
-		sprintf(opt[i++],"Include Message IDs (@MSGID): %s",user->qwk & QWK_MSGID?"Yes":"No");
-		sprintf(opt[i++],"Temp/QWK File Type:           %s",user->tmpext);
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&j,0,"Command Shell",opt)) {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				/* New Files List */
-				user->qwk ^= QWK_FILES;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 1:
-				/* Unread Email */
-				user->qwk ^= QWK_EMAIL;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 2:
-				/* ALL Email */
-				user->qwk ^= QWK_ALLMAIL;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 3:
-				/* Del Email after Download */
-				user->qwk ^= QWK_DELMAIL;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 4:
-				/* Include From Self */
-				user->qwk ^= QWK_BYSELF;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 5:
-				/* Expand CTRL-A */
-				user->qwk ^= QWK_EXPCTLA;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 6:
-				/* Strip CTRL-A */
-				user->qwk ^= QWK_RETCTLA;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 7:
-				/* Include Attach */
-				user->qwk ^= QWK_ATTACH;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 8:
-				/* Include Indexes */
-				user->qwk ^= QWK_NOINDEX;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 9:
-				/* Include TZ */
-				user->qwk ^= QWK_TZ;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 10:
-				/* Include VIA */
-				user->qwk ^= QWK_VIA;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 11:
-				/* Extra CTRL Files */
-				user->qwk ^= QWK_NOCTRL;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 12:
-				/* Extended QWKE */
-				user->qwk ^= QWK_EXT;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 13:
-				/* Include MSGID */
-				user->qwk ^= QWK_MSGID;
-				putuserrec(cfg,user->number,U_QWK,8,ultoa(user->qwk,str,16));
-				break;
-			case 14:
-				/* Temp/QWK Type */
-				edit_tmpqwktype(cfg,user);
-				break;
-		}
-	}
-	return(0);
-}
-
-/* Pick Protocol */
-int edit_proto(scfg_t *cfg, user_t *user)
-{
-	int 	i;
-	int		j=0;
-	char 	**opt;
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-
-	getuserdat(cfg,user);
-	opt[0]="None";
-	for(i=1;i<=cfg->total_prots;i++) {
-		opt[i]=cfg->prot[i-1]->name;
-		if(cfg->prot[i-1]->mnemonic == user->prot)
-			j=i;
-	}
-	opt[i]="";
-	switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Default Protcol",opt)) {
-		case -1:
-			break;
-		case 0:
-			if(user->prot != ' ')
-				putuserrec(cfg,user->number,U_PROT,1," ");
-			user->prot=' ';
-			break;
-		default:
-			if(user->prot != cfg->prot[j-1]->mnemonic) {
-				user->prot=cfg->prot[j-1]->mnemonic;
-				putuserrec(cfg,user->number,U_PROT,1,&user->prot);
-			}
-			break;
-	}
-	free(opt);
-	return(0);
-}
-
-/* Edit File Options
- *       Auto-New Scan
- *       Extended Descriptions
- *       Batch Flagging
- *       Auto-Hangup After Transfer
- *       Default download Protocol
- *       Temp/QWK File Type
- */
-int edit_fileopts(scfg_t *cfg, user_t *user)
-{
-	int 	i,j;
-	int		k;
-	char 	**opt;
-	char 	str[256];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	j=0;
-	while(1) {
-		getuserdat(cfg,user);
-		i=0;
-		sprintf(opt[i++],"Auto-New Scan:             %s",user->misc & ANFSCAN?"Yes":"No");
-		sprintf(opt[i++],"Extended Descriptions:     %s",user->misc & EXTDESC?"Yes":"No");
-		sprintf(opt[i++],"Batch Flagging:            %s",user->misc & BATCHFLAG?"Yes":"No");
-		sprintf(opt[i++],"Auto Transfer Hangup:      %s",user->misc & AUTOHANG?"Yes":"No");
-		strcpy(str,"None");
-		for(k=0;k<cfg->total_prots;k++)
-			if(cfg->prot[k]->mnemonic==user->prot)
-				strcpy(str,cfg->prot[k]->name);
-		sprintf(opt[i++],"Default Download Protocol: %s",str);
-		sprintf(opt[i++],"Temp/QWK File Type:        %s",user->tmpext);
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&j,0,"File Options",opt)) {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				/* Auto-New Scan */
-				user->misc ^= ANFSCAN;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 1:
-				/* Extended Descs */
-				user->misc ^= EXTDESC;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 2:
-				/* Batch Flagging */
-				user->misc ^= BATCHFLAG;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 3:
-				/* Atuo-Hangup */
-				user->misc ^= AUTOHANG;
-				putuserrec(cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
-				break;
-			case 4:
-				/* Default Download Protocol */
-				edit_proto(cfg,user);
-				break;
-			case 5:
-				/* Temp/QWK File Type */
-				edit_tmpqwktype(cfg,user);
-				break;
-		}
-	}
 	return(0);
 }
 
 /* Edit "Extended comment" */
 int edit_comment(scfg_t *cfg, user_t *user)
 {
-	char str[1024];
-	char editor[1024];
-
-	sprintf(str,"%s %suser/%04u.msg",geteditor(editor),cfg->data_dir,user->number);
-	do_cmd(str);
 	return(0);
 }
 
@@ -894,31 +235,6 @@ int edit_comment(scfg_t *cfg, user_t *user)
  */
 int edit_msgfile(scfg_t *cfg, user_t *user)
 {
-	char *opt[4]={
-		 "Message Options"
-		,"QWK Message Packet"
-		,"File Options"
-		,""};
-	int i=0;
-	while(1) {
-		switch(uifc.list(WIN_BOT|WIN_RHT|WIN_ACT,0,0,0,&i,0,"Settings",opt)) {
-			case -1:
-				return(0);
-				break;
-			case 0:
-				/* Message Options */
-				edit_msgopts(cfg,user);
-				break;
-			case 1:
-				/* QWK Message Packet */
-				edit_qwk(cfg,user);
-				break;
-			case 2:
-				/* File Options */
-				edit_fileopts(cfg,user);
-				break;
-		}
-	}
 	return(0);
 }
 
@@ -939,7 +255,7 @@ int edit_settings(scfg_t *cfg, user_t *user)
 	int i=0;
 
 	while(1) {
-		switch(uifc.list(WIN_BOT|WIN_RHT|WIN_ACT,0,0,0,&i,0,"Settings",opt)) {
+		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Settings",opt)) {
 			case -1:
 				return(0);
 				break;
@@ -999,7 +315,6 @@ int edit_stats(scfg_t *cfg, user_t *user)
 
 	j=0;
 	while(1) {
-		getuserdat(cfg,user);
 		i=0;
 		sprintf(opt[i++],"First On:          %s",user->firston?timestr(cfg, &user->firston, str):"Never");
 		sprintf(opt[i++],"Last On:           %s",user->laston?timestr(cfg, &user->laston, str):"Never");
@@ -1020,236 +335,199 @@ int edit_stats(scfg_t *cfg, user_t *user)
 		sprintf(opt[i++],"Total Uploads:     %hu",user->uls);
 		sprintf(opt[i++],"Uploaded Bytes:    %lu",user->ulb);
 		sprintf(opt[i++],"Leech:             %u",user->leech);
-		sprintf(opt[i++],"Password Modified: %s",user->pwmod?timestr(cfg, &user->pwmod, str):"Never");
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT,0,0,0,&j,0,"Statistics",opt)) {
+		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Statistics",opt)) {
 			case -1:
 				freeopt(opt);
 				return(0);
 				break;
 			case 0:
 				/* First On */
-				getuserdat(cfg,user);
 				temptime=user->firston;
 				unixtodstr(cfg,temptime,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"First On Date",str,8,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"First On Date",str,8,K_EDIT);
 				user->firston=dstrtounix(cfg, str);
 				temptime2=temptime-user->firston;
 				sectostr(temptime2,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"First On Time",str,8,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"First On Time",str,8,K_EDIT);
 				temptime2=strtosec(str);
 				if(temptime2!=-1)
 					user->firston += temptime2;
 				if(temptime!=user->firston)
-					putuserrec(cfg,user->number,U_FIRSTON,8,ultoa(user->firston,str,16));
+					modified=1;
 				break;
 			case 1:
 				/* Last On */
-				getuserdat(cfg,user);
 				temptime=user->laston;
 				unixtodstr(cfg,temptime,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Last On Date",str,8,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Last On Date",str,8,K_EDIT);
 				user->laston=dstrtounix(cfg, str);
 				temptime2=temptime-user->laston;
 				sectostr(temptime2,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Last On Time",str,8,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Last On Time",str,8,K_EDIT);
 				temptime2=strtosec(str);
 				if(temptime2!=-1)
 					user->laston += temptime2;
 				if(temptime!=user->laston)
-					putuserrec(cfg,user->number,U_LASTON,8,ultoa(user->laston,str,16));
+					modified=1;
 				break;
 			case 2:
 				/* Logon Time */
-				getuserdat(cfg,user);
 				temptime=user->logontime;
 				unixtodstr(cfg,temptime,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Logon Date",str,8,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Logon Date",str,8,K_EDIT);
 				user->logontime=dstrtounix(cfg, str);
 				temptime2=temptime-user->logontime;
 				sectostr(temptime2,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Logon Time",str,8,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Logon Time",str,8,K_EDIT);
 				temptime2=strtosec(str);
 				if(temptime2!=-1)
 					user->logontime += temptime2;
 				if(temptime!=user->logontime)
-					putuserrec(cfg,user->number,U_LOGONTIME,8,ultoa(user->logontime,str,16));
+					modified=1;
 				break;
 			case 3:
 				/* Total Logons */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->logons);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Logons",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Total Logons",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->logons=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_LOGONS,5,ultoa(user->logons,str,10));
 				}
 				break;
 			case 4:
 				/* Todays Logons */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->ltoday);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Todays Logons",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Todays Logons",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->ltoday=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_LTODAY,5,ultoa(user->ltoday,str,10));
 				}
 				break;
 			case 5:
 				/* Total Posts */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->posts);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Posts",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Total Posts",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->posts=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_POSTS,5,ultoa(user->posts,str,10));
 				}
 				break;
 			case 6:
 				/* Todays Posts */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->ptoday);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Todays Posts",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Todays Posts",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->ptoday=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_PTODAY,5,ultoa(user->ptoday,str,10));
 				}
 				break;
 			case 7:
 				/* Total Emails */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->emails);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Emails",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Total Emails",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->emails=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_EMAILS,5,ultoa(user->emails,str,10));
 				}
 				break;
 			case 8:
 				/* Todays Emails */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->etoday);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Todays Emails",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Todays Emails",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->etoday=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_ETODAY,5,ultoa(user->etoday,str,10));
 				}
 				break;
 			case 9:
 				/* Emails to Sysop */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->fbacks);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Emails to Sysop",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Emails to Sysop",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->fbacks=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_FBACKS,5,ultoa(user->fbacks,str,10));
 				}
 				break;
 			case 10:
 				/* Total Time On */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->timeon);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Time On",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Total Time On",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->timeon=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_TIMEON,5,ultoa(user->timeon,str,10));
 				}
 				break;
 			case 11:
 				/* Time On Today */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->ttoday);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Time On Today",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Time On Today",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->ttoday=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_TTODAY,5,ultoa(user->ttoday,str,10));
 				}
 				break;
 			case 12:
 				/* Time On Last Call */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->tlast);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Time On Last Call",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Time On Last Call",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->tlast=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_TLAST,5,ultoa(user->tlast,str,10));
 				}
 				break;
 			case 13:
 				/* Extra Time Today */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->textra);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Extra Time Today",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Extra Time Today",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->textra=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_TEXTRA,5,ultoa(user->textra,str,10));
 				}
 				break;
 			case 14:
 				/* Total Downloads */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->dls);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Downloads",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Total Downloads",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->dls=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_DLS,5,ultoa(user->dls,str,10));
 				}
 				break;
 			case 15:
 				/* Downloaded Bytes */
-				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->dlb);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Downloaded Bytes",str,10,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Downloaded Bytes",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->dlb=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_DLB,10,ultoa(user->dlb,str,10));
 				}
 				break;
 			case 16:
 				/* Total Uploads */
-				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->uls);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Uploads",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Total Uploads",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->uls=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_ULS,5,ultoa(user->uls,str,10));
 				}
 				break;
 			case 17:
 				/* Uploaded Bytes */
-				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->ulb);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Uploaded Bytes",str,10,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Uploaded Bytes",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->ulb=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_ULB,10,ultoa(user->ulb,str,10));
 				}
 				break;
 			case 18:
 				/* Leech Counter */
-				getuserdat(cfg,user);
 				sprintf(str,"%u",user->leech);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Leech Counter",str,3,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Leech Counter",str,3,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->leech=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_LEECH,2,ultoa(user->leech,str,16));
 				}
-				break;
-			case 19:
-				/* Password Last Modified */
-				getuserdat(cfg,user);
-				temptime=user->pwmod;
-				unixtodstr(cfg,temptime,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Password Modified Date",str,8,K_EDIT);
-				user->firston=dstrtounix(cfg, str);
-				temptime2=temptime-user->pwmod;
-				sectostr(temptime2,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Password Modified Time",str,8,K_EDIT);
-				temptime2=strtosec(str);
-				if(temptime2!=-1)
-					user->pwmod += temptime2;
-				if(temptime!=user->pwmod)
-					putuserrec(cfg,user->number,U_PWMOD,8,ultoa(user->pwmod,str,16));
 				break;
 		}
 	}
@@ -1282,7 +560,6 @@ int edit_security(scfg_t *cfg, user_t *user)
 			allocfail(MAX_OPLN);
 
 	j=0;
-	getuserdat(cfg,user);
 	while(1) {
 		i=0;
 		sprintf(opt[i++],"Level:        %d",user->level);
@@ -1297,119 +574,108 @@ int edit_security(scfg_t *cfg, user_t *user)
 		sprintf(opt[i++],"Free Credits: %lu",user->freecdt);
 		sprintf(opt[i++],"Minutes:      %lu",user->min);
 		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_ACT,0,0,0,&j,0,"Security Settings",opt)) {
+		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Security Settings",opt)) {
 			case -1:
 				freeopt(opt);
 				return(0);
 				break;
 			case 0:
 				/* Level */
-				getuserdat(cfg,user);
 				sprintf(str,"%d",user->level);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Level",str,2,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Level",str,2,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->level=atoi(str);
-					putuserrec(cfg,user->number,U_LEVEL,2,str);
 				}
 				break;
 			case 1:
 				/* Expiration */
-				getuserdat(cfg,user);
 				unixtodstr(cfg,user->expire,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Expiration",str,8,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Expiration",str,8,K_EDIT);
 				if(uifc.changes && dstrtounix(cfg, str)!=user->expire) {
+					modified=1;
 					user->expire=dstrtounix(cfg, str);
-					putuserrec(cfg,user->number,U_EXPIRE,8,ultoa(user->expire,str,16));
 				}
 				break;
 			case 2:
 				/* Flag Set 1 */
-				getuserdat(cfg,user);
 				ltoaf(user->flags1,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 1",str,26,K_EDIT|K_UPPER|K_ALPHA);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Flag Set 1",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
+					modified=1;
 					user->flags1=aftol(str);
-					putuserrec(cfg,user->number,U_FLAGS1,8,ultoa(user->flags1,str,16));
 				}
 				break;
 			case 3:
 				/* Flag Set 2 */
-				getuserdat(cfg,user);
 				ltoaf(user->flags2,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 2",str,26,K_EDIT|K_UPPER|K_ALPHA);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Flag Set 2",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
+					modified=1;
 					user->flags2=aftol(str);
-					putuserrec(cfg,user->number,U_FLAGS2,8,ultoa(user->flags2,str,16));
 				}
 				break;
 			case 4:
 				/* Flag Set 3 */
-				getuserdat(cfg,user);
 				ltoaf(user->flags3,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 3",str,26,K_EDIT|K_UPPER|K_ALPHA);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Flag Set 3",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
+					modified=1;
 					user->flags3=aftol(str);
-					putuserrec(cfg,user->number,U_FLAGS3,8,ultoa(user->flags3,str,16));
 				}
 				break;
 			case 5:
 				/* Flag Set 4 */
-				getuserdat(cfg,user);
 				ltoaf(user->flags4,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 4",str,26,K_EDIT|K_UPPER|K_ALPHA);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Flag Set 4",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
+					modified=1;
 					user->flags4=aftol(str);
-					putuserrec(cfg,user->number,U_FLAGS4,8,ultoa(user->flags4,str,16));
 				}
 				break;
 			case 6:
 				/* Exemptions */
-				getuserdat(cfg,user);
 				ltoaf(user->exempt,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Exemptions",str,26,K_EDIT|K_UPPER|K_ALPHA);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Exemptions",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
+					modified=1;
 					user->exempt=aftol(str);
-					putuserrec(cfg,user->number,U_EXEMPT,8,ultoa(user->exempt,str,16));
 				}
 				break;
 			case 7:
 				/* Restrictions */
-				getuserdat(cfg,user);
 				ltoaf(user->rest,str);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Restrictions",str,26,K_EDIT|K_UPPER|K_ALPHA);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Restrictions",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
+					modified=1;
 					user->rest=aftol(str);
-					putuserrec(cfg,user->number,U_REST,8,ultoa(user->rest,str,16));
 				}
 				break;
 			case 8:
 				/* Credits */
-				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->cdt);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Credits",str,10,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Credits",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->cdt=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_CDT,10,ultoa(user->cdt,str,10));
 				}
 				break;
 			case 9:
 				/* Free Credits */
-				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->freecdt);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Free Credits",str,10,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Free Credits",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->freecdt=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_FREECDT,10,ultoa(user->freecdt,str,10));
 				}
 				break;
 			case 10:
 				/* Minutes */
-				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->min);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Minutes",str,10,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Minutes",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
+					modified=1;
 					user->min=strtoul(str,NULL,10);
-					putuserrec(cfg,user->number,U_MIN,10,ultoa(user->min,str,10));
 				}
 				break;
 		}
@@ -1439,7 +705,6 @@ int edit_personal(scfg_t *cfg, user_t *user)
 	int 	i,j;
 	char 	**opt;
 	char	onech[2];
-	char	str[256];
 
 	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
 		allocfail(sizeof(char *)*(MAX_OPTS+1));
@@ -1449,7 +714,6 @@ int edit_personal(scfg_t *cfg, user_t *user)
 
 	j=0;
 	while(1) {
-		getuserdat(cfg,user);
 		i=0;
 		sprintf(opt[i++],"Real Name:  %s",user->name);
 		sprintf(opt[i++],"Computer:   %s",user->comp);
@@ -1466,106 +730,90 @@ int edit_personal(scfg_t *cfg, user_t *user)
 		sprintf(opt[i++],"Postal/Zip: %s",user->zipcode);
 		opt[i][0]=0;
 		uifc.changes=FALSE;
-		switch(uifc.list(WIN_MID|WIN_ACT,0,0,0,&j,0,"Personal Settings",opt)) {
+		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Personal Settings",opt)) {
 			case -1:
 				freeopt(opt);
 				return(0);
 			case 0:
 				/* Real Name */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Real Name",user->name,LEN_NAME,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Real Name",user->name,LEN_NAME,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_NAME,LEN_NAME,user->name);
+					modified=1;
 				break;
 			case 1:
 				/* Computer */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Computer",user->comp,LEN_COMP,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Computer",user->comp,LEN_COMP,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_COMP,LEN_COMP,user->comp);
+					modified=1;
 				break;
 			case 2:
 				/* NetMail */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"NetMail Address",user->netmail,LEN_NETMAIL,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"NetMail Address",user->netmail,LEN_NETMAIL,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_NETMAIL,LEN_NETMAIL,user->netmail);
+					modified=1;
 				break;
 			case 3:
 				/* Phone */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Phone",user->phone,LEN_PHONE,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Phone",user->phone,LEN_PHONE,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_PHONE,LEN_PHONE,user->phone);
+					modified=1;
 				break;
 			case 4:
 				/* Note */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Note",user->note,LEN_NOTE,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Note",user->note,LEN_NOTE,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_NOTE,LEN_NOTE,user->note);
+					modified=1;
 				break;
 			case 5:
 				/* Comment */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Comment",user->comment,LEN_COMMENT,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Comment",user->comment,LEN_COMMENT,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_COMMENT,60,user->comment);
+					modified=1;
 				break;
 			case 6:
 				/* Gender */
-				getuserdat(cfg,user);
 				sprintf(onech,"%c",user->sex);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Gender",onech,1,K_UPPER|K_ALPHA|K_EDIT);
-				if(uifc.changes) {
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Gender",onech,1,K_UPPER|K_ALPHA|K_EDIT);
+				if(onech[0]!=user->sex && (onech[0]=='M' || onech[0]=='F')) {
+					modified=1;
 					user->sex=onech[0];
-					putuserrec(cfg,user->number,U_SEX,1,onech);
 				}
 				break;
 			case 7:
 				/* Connection */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Connection",user->modem,LEN_MODEM,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Connection",user->modem,LEN_MODEM,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_MODEM,LEN_MODEM,user->modem);
+					modified=1;
 				break;
 			case 8:
 				/* Handle */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Handle",user->alias,LEN_ALIAS,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Handle",user->alias,LEN_ALIAS,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_ALIAS,LEN_ALIAS,user->alias);
+					modified=1;
 				break;
 			case 9:
 				/* Password */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Password",user->pass,LEN_PASS,K_EDIT);
-				if(uifc.changes) {
-					putuserrec(cfg,user->number,U_PASS,LEN_PASS,user->pass);
-					user->pwmod=time(NULL);
-					putuserrec(cfg,user->number,U_PWMOD,8,ultoa(user->pwmod,str,16));
-				}
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Password",user->pass,LEN_PASS,K_EDIT);
+				if(uifc.changes)
+					modified=1;
 				break;
 			case 10:
 				/* Location */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Location",user->location,LEN_LOCATION,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Location",user->location,LEN_LOCATION,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_LOCATION,LEN_LOCATION,user->location);
+					modified=1;
 				break;
 			case 11:
 				/* Address */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Address",user->address,LEN_ADDRESS,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Address",user->address,LEN_ADDRESS,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_ADDRESS,LEN_ADDRESS,user->address);
+					modified=1;
 				break;
 			case 12:
 				/* Postal/Zip */
-				getuserdat(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Postal/Zip Code",user->zipcode,LEN_ZIPCODE,K_EDIT);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Postal/Zip Code",user->zipcode,LEN_ZIPCODE,K_EDIT);
 				if(uifc.changes)
-					putuserrec(cfg,user->number,U_ZIPCODE,LEN_ZIPCODE,user->zipcode);
+					modified=1;
 				break;
 		}
 	}
@@ -1581,7 +829,6 @@ int edit_user(scfg_t *cfg, int usernum)
 	char**	opt;
 	int 	i,j;
 	user_t	user;
-	char	str[256];
 
 	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
 		allocfail(sizeof(char *)*(MAX_OPTS+1));
@@ -1590,11 +837,13 @@ int edit_user(scfg_t *cfg, int usernum)
 			allocfail(MAX_OPLN);
 
 	user.number=usernum;
+	getuserdat(cfg,&user);
 
+	modified=0;
 	j=0;
 	while(1) {
-		getuserdat(cfg,&user);
 		i=0;
+		strcpy(opt[i++],"Reload");
 		if (user.misc & DELETED)
 			strcpy(opt[i++],"Undelete");
 		else
@@ -1611,43 +860,56 @@ int edit_user(scfg_t *cfg, int usernum)
 		strcpy(opt[i++],"Extended Comment");
 		opt[i][0]=0;
 
-		sprintf(str,"Edit User: %d (%s)",user.number,user.name[0]?user.name:user.alias);
-		switch(uifc.list(WIN_ORG|WIN_ACT,0,0,0,&j,0,str,opt)) {
+		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Edit User",opt)) {
 			case -1:
-				freeopt(opt);
-				return(0);
+				if(modified) {
+					i=check_save(cfg,&user);
+				}
+				if(i!=-1) {
+					freeopt(opt);
+					return(0);
+				}
+				break;
 
 			case 0:
-				user.misc ^= DELETED;
-				putuserrec(cfg,user.number,U_MISC,8,ultoa(user.misc,str,16));
+				if(modified && confirm("This will undo any changes you have made.  Continue?")==1) {
+					getuserdat(cfg,&user);
+					modified=0;
+				}
+				modified=0;
 				break;
 
 			case 1:
-				user.misc ^= INACTIVE;
-				putuserrec(cfg,user.number,U_MISC,8,ultoa(user.misc,str,16));
+				user.misc ^= DELETED;
+				modified=1;
 				break;
 
 			case 2:
-				edit_personal(cfg,&user);
+				user.misc ^= INACTIVE;
+				modified=1;
 				break;
 
 			case 3:
-				edit_security(cfg,&user);
+				edit_personal(cfg,&user);
 				break;
 
 			case 4:
-				edit_stats(cfg,&user);
+				edit_security(cfg,&user);
 				break;
 
 			case 5:
-				edit_settings(cfg,&user);
+				edit_stats(cfg,&user);
 				break;
 
 			case 6:
-				edit_msgfile(cfg,&user);
+				edit_settings(cfg,&user);
 				break;
 
 			case 7:
+				edit_msgfile(cfg,&user);
+				break;
+
+			case 8:
 				edit_comment(cfg,&user);
 				break;
 
@@ -1656,54 +918,6 @@ int edit_user(scfg_t *cfg, int usernum)
 		}
 	}
 	
-	return(0);
-}
-
-int finduser(scfg_t *cfg, user_t *user)
-{
-	int i,j,last;
-	ushort un;
-	char str[256];
-	struct user_list **opt;
-	int done=0;
-
-	if((opt=(struct user_list **)MALLOC(sizeof(struct user_list *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(struct user_list *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		opt[i]=NULL;
-
-	str[0]=0;
-	uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Search String",str,LEN_NAME,K_EDIT);
-	un=atoi(str);
-	/* User List */
-	done=0;
-	while(!done) {
-		last=lastuser(cfg);
-		j=0;
-		for(i=1; i<=last; i++) {
-			user->number=i;
-			getuserdat(cfg,user);
-			if(strcasestr(user->alias, str)!=NULL || strcasestr(user->name, str)!=NULL || strcasestr(user->handle, str)!=NULL 
-					|| user->number==un) {
-				if((opt[j]=(struct user_list *)malloc(sizeof(struct user_list)))==NULL)
-					allocfail(sizeof(struct user_list));
-				sprintf(opt[j]->info,"%1.1s³%1.1s³ %-25.25s ³ %-25.25s",user->misc&DELETED?"*":" ",user->misc&INACTIVE?"*":" ",user->name,user->alias);
-				opt[j++]->usernum=i;
-			}
-		}
-		if((opt[j]=(struct user_list *)malloc(sizeof(struct user_list)))==NULL)
-			allocfail(sizeof(struct user_list));
-		opt[j]->info[0]=0;
-		i=0;
-		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT,0,0,0,&i,0,"D³I³ Real Name                 ³ Alias                    ",(char **)opt)) {
-			case -1:
-				done=1;
-				break;
-			default:
-				edit_user(cfg, opt[i]->usernum);
-				break;
-		}
-	}
 	return(0);
 }
 
@@ -1720,7 +934,6 @@ int main(int argc, char** argv)  {
 	int		done;
 	int		last;
 	user_t	user;
-	int		edtuser=0;
 	/******************/
 	/* Ini file stuff */
 	/******************/
@@ -1728,7 +941,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
+	sscanf("$Revision: 1.6 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -1783,7 +996,8 @@ int main(int argc, char** argv)  {
 	uifc.esc_delay=500;
 
 	for(i=1;i<argc;i++) {
-        if(argv[i][0]=='-')
+        if(argv[i][0]=='-'
+            )
             switch(toupper(argv[i][1])) {
                 case 'C':
         			uifc.mode|=UIFC_COLOR;
@@ -1808,14 +1022,10 @@ int main(int argc, char** argv)  {
 						,argv[0]
                         );
         			exit(0);
-		}
-		if(atoi(argv[i]))
-			edtuser=atoi(argv[i]);
+           }
     }
 
-#ifdef __unix__
-	signal(SIGPIPE, SIG_IGN);
-#endif
+	signal(SIGPIPE, SIG_IGN);   
 
 	uifc.size=sizeof(uifc);
 #ifdef USE_CURSES
@@ -1846,11 +1056,6 @@ int main(int argc, char** argv)  {
 		bail(1);
 	}
 
-	if(edtuser) {
-		edit_user(&cfg, edtuser);
-		bail(0);
-	}
-
 	strcpy(mopt[0],"New User");
 	strcpy(mopt[1],"Find User");
 	strcpy(mopt[2],"User List");
@@ -1871,6 +1076,10 @@ int main(int argc, char** argv)  {
 			continue;
 		}
 		
+		if(j==-2-KEY_F(4)) {	/* Find? */
+			continue;
+		}
+
 		if(j <= -2)
 			continue;
 
@@ -1879,7 +1088,7 @@ int main(int argc, char** argv)  {
 							"\n"
 							"\nIf you want to exit the Synchronet user editor,"
 							"\nselect `Yes`. Otherwise, select `No` or hit ~ ESC ~.";
-			if(confirm("Exit Synchronet User Editor")==1)
+			if(confirm("Exit Synchronet User Editor"))
 				bail(0);
 			continue;
 		}
@@ -1888,7 +1097,7 @@ int main(int argc, char** argv)  {
 			/* New User */
 		}
 		if(j==1) {
-			finduser(&cfg,&user);
+			/* Find User */
 		}
 		if(j==2) {
 			/* User List */
@@ -1898,11 +1107,11 @@ int main(int argc, char** argv)  {
 				for(i=1; i<=last; i++) {
 					user.number=i;
 					getuserdat(&cfg,&user);
-					sprintf(opt[i-1],"%1.1s³%1.1s³ %-25.25s ³ %-25.25s",user.misc&DELETED?"*":" ",user.misc&INACTIVE?"*":" ",user.name,user.alias);
+					sprintf(opt[i-1],"%s (%s)",user.name,user.alias);
 				}
 				opt[i-1][0]=0;
 				i=0;
-				switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT,0,0,0,&i,0,"D³I³ Real Name                 ³ Alias                    ",opt)) {
+				switch(uifc.list(WIN_MID,0,0,0,&i,0,"Select User",opt)) {
 					case -1:
 						done=1;
 						break;
