@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.38 2004/10/15 08:24:58 deuce Exp $ */
+/* $Id: answer.cpp,v 1.39 2004/10/15 08:26:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,6 +121,7 @@ bool sbbs_t::answer()
 								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
 								logline("+!",str);
+							/* ToDo: Hardcoded prompt! */
 							putcom("PW: ");
 							console|=CON_R_ECHOX;
 							if(!(cfg.sys_misc&SM_ECHO_PW))
