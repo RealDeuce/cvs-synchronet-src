@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.330 2004/07/02 02:15:11 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.332 2004/09/02 03:43:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2071,16 +2071,16 @@ static void smtp_thread(void* arg)
 					telegram_buf[length+strlen(str)]=0;	/* Need ASCIIZ */
 
 					/* Send telegram to users */
-					sec_list=iniGetSectionList(rcptlst,NULL);	/* Each section is a recipient */
+					sec_list=iniReadSectionList(rcptlst,NULL);	/* Each section is a recipient */
 					for(rcpt_count=0; sec_list!=NULL
 						&& sec_list[rcpt_count]!=NULL 
 						&& rcpt_count<startup->max_recipients; rcpt_count++) {
 
 						section=sec_list[rcpt_count];
 
-						SAFECOPY(rcpt_name,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
-						usernum=iniGetInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
-						SAFECOPY(rcpt_addr,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
+						SAFECOPY(rcpt_name,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
+						usernum=iniReadInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
+						SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
 
 						if((i=putsmsg(&scfg,usernum,telegram_buf))==0)
 							lprintf(LOG_INFO,"%04d SMTP Created telegram (%ld/%u bytes) from %s to %s <%s>"
@@ -2390,7 +2390,7 @@ static void smtp_thread(void* arg)
 					continue;
 				}
 
-				sec_list=iniGetSectionList(rcptlst,NULL);	/* Each section is a recipient */
+				sec_list=iniReadSectionList(rcptlst,NULL);	/* Each section is a recipient */
 				for(rcpt_count=0; sec_list!=NULL
 					&& sec_list[rcpt_count]!=NULL 
 					&& rcpt_count<startup->max_recipients; rcpt_count++) {
@@ -2403,12 +2403,12 @@ static void smtp_thread(void* arg)
 					
 					section=sec_list[rcpt_count];
 
-					SAFECOPY(rcpt_name,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
-					usernum=iniGetInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
-					agent=iniGetShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTAGENT),AGENT_PERSON);
-					nettype=iniGetShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTNETTYPE),NET_NONE);
+					SAFECOPY(rcpt_name,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
+					usernum=iniReadInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
+					agent=iniReadShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTAGENT),AGENT_PERSON);
+					nettype=iniReadShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTNETTYPE),NET_NONE);
 					sprintf(str,"#%u",usernum);
-					SAFECOPY(rcpt_addr,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
+					SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
 
 					snprintf(hdrfield,sizeof(hdrfield),
 						"Received: from %s (%s [%s])\r\n"
@@ -3462,7 +3462,9 @@ static void sendmail_thread(void* arg)
 				break;
 			if(msg.idx.attr&MSG_DELETE)	/* Marked for deletion */
 				continue;
-			if(msg.idx.to)	/* Local */
+			if(msg.idx.to)			/* Local */
+				continue;
+			if(msg.idx.number==0)	/* Invalid message number */
 				continue;
 			msg.offset=offset;
 
@@ -3846,7 +3848,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.330 $", "%*s %s", revision);
+	sscanf("$Revision: 1.332 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
