@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.19 2004/09/13 02:55:37 deuce Exp $
+# $Id: Common.bmake,v 1.20 2004/09/13 02:57:09 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -186,6 +186,7 @@ UIFC_SRC	=	$(SRC_ROOT)$(DIRSEP)uifc
 !include     $(CIOLIB_SRC)$(DIRSEP)Common.make
 !include     $(UIFC_SRC)$(DIRSEP)Common.make
 !include     $(SMBLIB_SRC)$(DIRSEP)Common.make
+!include     $(XPDEV_SRC)$(DIRSEP)Common.make
 
 .path.obj	=	$(OBJODIR);$(MTOBJODIR)
 .path.c		=	.
