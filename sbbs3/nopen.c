@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.1 2002/04/26 00:13:09 rswindell Exp $ */
+/* $Id: nopen.c,v 1.2 2002/04/26 02:40:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,6 +70,10 @@ FILE* DLLCALL fnopen(int *fd, char *str, int access)
 	int		file;
 	FILE *	stream;
 
+	if(access&O_CREAT && access&O_WRONLY) {	/* not compatible with fdopen */
+		access&=~O_WRONLY;
+		access|=O_RDWR;
+	}
     if((file=nopen(str,access))==-1)
         return(NULL);
 
