@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.33 2002/12/12 02:34:49 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.34 2003/02/16 13:43:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ typedef struct {
 	WORD	max_recipients;
     DWORD   interface_addr;
     DWORD	options;			/* See MAIL_OPT definitions */
-    DWORD	reserved_dword8;
+    DWORD	max_msg_size;
     DWORD	reserved_dword7;
     DWORD	reserved_dword6;
     DWORD	reserved_dword5;
