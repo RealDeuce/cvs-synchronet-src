@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.10 2003/09/16 01:28:18 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.11 2003/10/17 10:38:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,6 +128,41 @@ typedef struct {
 	char*	name;
 	char*	value;
 } named_string_t;
+
+typedef struct {
+	char*	name;
+	int	value;
+} named_int_t;
+
+typedef struct {
+	char*	name;
+	uint	value;
+} named_uint_t;
+
+typedef struct {
+	char*	name;
+	long	value;
+} named_long_t;
+
+typedef struct {
+	char*	name;
+	ulong	value;
+} named_ulong_t;
+
+typedef struct {
+	char*	name;
+	short	value;
+} named_short_t;
+
+typedef struct {
+	char*	name;
+	ushort	value;
+} named_ushort_t;
+
+typedef struct {
+	char*	name;
+	BOOL	value;
+} named_bool_t;
 
 /***********************/
 /* Handy String Macros */
