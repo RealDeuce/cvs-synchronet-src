@@ -5,9 +5,7 @@
 #define CIOLIB_NO_MACROS
 #include "ciolib.h"
 
-#ifdef _WIN32
- #include "win32cio.h"
-#else
+#ifndef _WIN32
  #ifndef NO_X
   #include "x_cio.h"
  #endif
@@ -24,7 +22,6 @@ static struct text_info cio_textinfo;
 static int lastmode=3;
 int _wscroll=1;
 int directvideo=0;
-int dont_move_cursor=0;
 static int initialized=0;
 
 int ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
@@ -68,7 +65,6 @@ int try_x_init(int mode)
 {
 	if(!console_init()) {
 		cio_api.mode=CIOLIB_MODE_X;
-		cio_api.mouse=0;
 		cio_api.puttext=x_puttext;
 		cio_api.gettext=x_gettext;
 		cio_api.textattr=x_textattr;
@@ -83,10 +79,6 @@ int try_x_init(int mode)
 		cio_api.getch=x_getch;
 		cio_api.getche=x_getche;
 		cio_api.textmode=x_textmode;
-		cio_api.getmouse=NULL;
-		cio_api.showmouse=NULL;
-		cio_api.hidemouse=NULL;
-		cio_api.settitle=x_settitle;
 		return(1);
 	}
 	fprintf(stderr,"X init failed\n");
@@ -112,10 +104,6 @@ int try_curses_init(int mode)
 		cio_api.getch=curs_getch;
 		cio_api.getche=curs_getche;
 		cio_api.textmode=curs_textmode;
-		cio_api.getmouse=curs_getmouse;
-		cio_api.showmouse=curs_showmouse;
-		cio_api.hidemouse=curs_hidemouse;
-		cio_api.settitle=NULL;
 		return(1);
 	}
 	fprintf(stderr,"Curses init failed\n");
@@ -127,7 +115,6 @@ int try_ansi_init(int mode)
 {
 	if(ansi_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_ANSI;
-		cio_api.mouse=0;
 		cio_api.puttext=ansi_puttext;
 		cio_api.gettext=ansi_gettext;
 		cio_api.textattr=ansi_textattr;
@@ -142,10 +129,6 @@ int try_ansi_init(int mode)
 		cio_api.getch=ansi_getch;
 		cio_api.getche=ansi_getche;
 		cio_api.textmode=ansi_textmode;
-		cio_api.getmouse=NULL;
-		cio_api.showmouse=NULL;
-		cio_api.hidemouse=NULL;
-		cio_api.settitle=NULL;
 		return(1);
 	}
 	fprintf(stderr,"ANSI init failed\n");
@@ -159,32 +142,28 @@ int try_ansi_init(int mode)
 int try_conio_init(int mode)
 {
 	/* This should test for something or other */
-	if(win32_initciolib(mode)) {
+	if(isatty(fileno(stdout))) {
 		cio_api.mode=CIOLIB_MODE_CONIO;
-		cio_api.mouse=1;
-		cio_api.puttext=win32_puttext;
-		cio_api.gettext=win32_gettext;
-		cio_api.textattr=win32_textattr;
-		cio_api.kbhit=win32_kbhit;
-		cio_api.wherey=win32_wherey;
-		cio_api.wherex=win32_wherex;
-		cio_api.putch=win32_putch;
-		cio_api.gotoxy=win32_gotoxy;
-		cio_api.gettextinfo=win32_gettextinfo;
-		cio_api.setcursortype=win32_setcursortype;
-		cio_api.getch=win32_getch;
-		cio_api.getche=win32_getche;
-		cio_api.textmode=win32_textmode;
-		cio_api.getmouse=win32_getmouse;
-		cio_api.showmouse=win32_showmouse;
-		cio_api.hidemouse=win32_hidemouse;
-		cio_api.settitle=win32_settitle;
+		cio_api.puttext=puttext;
+		cio_api.gettext=gettext;
+		cio_api.textattr=textattr;
+		cio_api.kbhit=kbhit;
+		cio_api.wherey=wherey;
+		cio_api.wherex=wherex;
+		cio_api.putch=putch;
+		cio_api.gotoxy=gotoxy;
+		cio_api.gettextinfo=gettextinfo;
+		cio_api.setcursortype=_setcursortype;
+		cio_api.getch=getch;
+		cio_api.getche=getche;
+		cio_api.textmode=textmode;
 		return(1);
 	}
 	fprintf(stderr,"CONIO init failed\n");
 	return(0);
 }
 #endif
+
 
 int initciolib(int mode)
 {
@@ -193,9 +172,7 @@ int initciolib(int mode)
 #ifdef _WIN32
 			if(!try_conio_init(mode))
 #else
-#ifndef NO_X
 			if(!try_x_init(mode))
-#endif
 				if(!try_curses_init(mode))
 #endif
 					try_ansi_init(mode);
@@ -286,13 +263,13 @@ int ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy)
 {
 	int width;
 	int height;
-	unsigned char *buf;
+	char *buf;
 
 	CIOLIB_INIT();
 	
 	width=ex-sx;
 	height=ey-sy;
-	buf=(unsigned char *)malloc((width+1)*(height+1)*2);
+	buf=(char *)malloc((width+1)*(height+1)*2);
 	if(buf==NULL)
 		return(0);
 	if(!ciolib_gettext(sx,sy,ex,ey,buf)) {
@@ -436,8 +413,7 @@ void ciolib_wscroll(void)
 	ciolib_gotoxy(1,ti.winbottom-ti.winleft+1);
 	os=_wscroll;
 	_wscroll=0;
-	/* ciolib_cprintf("%*s",ti.winright-ti.winleft+1,""); */
-	ciolib_clreol();
+	ciolib_cprintf("%*s",ti.winright-ti.winleft+1,"");
 	_wscroll=os;
 	ciolib_gotoxy(ti.curx,ti.cury);
 }
@@ -529,29 +505,22 @@ void ciolib_window(int sx, int sy, int ex, int ey)
 
 void ciolib_clreol(void)
 {
-	unsigned char *buf;
-	int i;
-	int width,height;
-	struct text_info ti;
+	int os;
+	struct text_info	ti;
 
 	CIOLIB_INIT();
 	
 	ciolib_gettextinfo(&ti);
-
-	width=ti.winright-ti.curx+1;
-	height=1;
-	buf=(unsigned char *)malloc(width*height*2);
-	for(i=0;i<width*height*2;) {
-		buf[i++]=' ';
-		buf[i++]=ti.attribute;
-	}
-	ciolib_puttext(ti.curx+ti.winleft-1,ti.cury+ti.wintop-1,ti.winright,ti.cury+ti.wintop-1,buf);
-	free(buf);
+	os=_wscroll;
+	_wscroll=0;
+	ciolib_cprintf("%*s",ti.winright-ti.curx+1,"");
+	_wscroll=os;
+	ciolib_gotoxy(ti.curx,ti.cury);
 }
 
 void ciolib_clrscr(void)
 {
-	unsigned char *buf;
+	char *buf;
 	int i;
 	int width,height;
 	struct text_info ti;
@@ -562,7 +531,7 @@ void ciolib_clrscr(void)
 
 	width=ti.winright-ti.winleft+1;
 	height=ti.winbottom-ti.wintop+1;
-	buf=(unsigned char *)malloc(width*height*2);
+	buf=(char *)malloc(width*height*2);
 	for(i=0;i<width*height*2;) {
 		buf[i++]=' ';
 		buf[i++]=ti.attribute;
@@ -614,7 +583,7 @@ int ciolib_cprintf(char *fmat, ...)
 	
     va_start(argptr,fmat);
 #ifdef _WIN32
-	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
+	ret=vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
     ret=vsnprintf(NULL,0,fmat,argptr);
 	str=(char *)malloc(ret+1);
@@ -637,12 +606,9 @@ int ciolib_cputs(char *str)
 {
 	int		pos;
 	int		ret=0;
-	int		olddmc;
 
 	CIOLIB_INIT();
-
-	olddmc=dont_move_cursor;	
-	dont_move_cursor=1;
+	
 	for(pos=0;str[pos];pos++)
 	{
 		ret=str[pos];
@@ -650,8 +616,6 @@ int ciolib_cputs(char *str)
 			ciolib_putch('\r');
 		ciolib_putch(str[pos]);
 	}
-	dont_move_cursor=olddmc;
-	ciolib_gotoxy(ciolib_wherex(),ciolib_wherey());
 	return(ret);
 }
 
@@ -743,7 +707,7 @@ void ciolib_delay(long a)
 int ciolib_putch(unsigned char a)
 {
 	CIOLIB_INIT();
-
+	
 	return(cio_api.putch(a));
 }
 
@@ -752,35 +716,4 @@ void ciolib_setcursortype(int a)
 	CIOLIB_INIT();
 	
 	cio_api.setcursortype(a);
-}
-
-int ciolib_getmouse(struct cio_mouse_event *mevent) {
-	CIOLIB_INIT();
-
-	if(cio_api.getmouse!=NULL)
-		return(cio_api.getmouse(mevent));
-	return(-1);
-}
-
-int ciolib_showmouse(void) {
-	CIOLIB_INIT();
-
-	if(cio_api.showmouse!=NULL)
-		return(cio_api.showmouse());
-	return(-1);
-}
-
-int ciolib_hidemouse(void) {
-	CIOLIB_INIT();
-
-	if(cio_api.hidemouse!=NULL)
-		return(cio_api.hidemouse());
-	return(-1);
-}
-
-void ciolib_settitle(const char *title) {
-	CIOLIB_INIT();
-
-	if(cio_api.settitle!=NULL)
-		cio_api.settitle(title);
 }
