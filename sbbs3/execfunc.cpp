@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.13 2001/06/15 03:37:04 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.14 2001/06/20 01:20:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ int sbbs_t::exec_function(csi_t *csi)
 				CRLF; }
 			return(0);
 		case CS_PAGE_SYSOP:
-			if(cfg.startup->options&BBS_OPT_SYSOP_AVAILABLE 
+			if(startup->options&BBS_OPT_SYSOP_AVAILABLE 
 				|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron))
 				|| useron.exempt&FLAG('C')) {
 				sysop_page();

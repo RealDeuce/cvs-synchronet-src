@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.16 2001/06/15 03:35:53 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.17 2001/06/20 01:20:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -537,7 +537,7 @@ void sbbs_t::chatsection()
 				break;
 			case 'C':
 				no_rip_menu=1;
-				if(cfg.startup->options&BBS_OPT_SYSOP_AVAILABLE
+				if(startup->options&BBS_OPT_SYSOP_AVAILABLE
 					|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron))
 					|| useron.exempt&FLAG('C')) {
 					sysop_page();
