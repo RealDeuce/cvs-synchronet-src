@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.21 2002/02/15 13:21:59 rswindell Exp $ */
+/* $Id: js_system.c,v 1.22 2002/03/16 00:15:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -756,7 +756,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	memset(&node,0,sizeof(node));
-	if(getnodedat(cfg, node_num, &node, 0)) {
+	if(getnodedat(cfg, node_num, &node, NULL)) {
 		*vp = INT_TO_JSVAL(0);
 		return(JS_TRUE);
 	}
@@ -793,6 +793,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static JSBool js_node_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
 	uint		node_num;
+	int			file;
 	jsint		val=0;
     jsint       tiny;
 	node_t		node;
@@ -812,7 +813,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	memset(&node,0,sizeof(node));
-	if(getnodedat(cfg, node_num, &node, 1)) 
+	if(getnodedat(cfg, node_num, &node, &file)) 
 		return(JS_TRUE);
 
 	if(JSVAL_IS_INT(*vp))
@@ -846,7 +847,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			node.extaux=val;
 			break;
 	}
-	putnodedat(cfg,node_num,&node);
+	putnodedat(cfg,node_num,&node,file);
 
 	return(JS_TRUE);
 }
