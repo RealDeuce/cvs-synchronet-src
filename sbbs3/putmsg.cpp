@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.4 2001/06/24 12:28:07 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.5 2002/02/18 14:49:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -216,7 +216,7 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 			if(str[l]==ESC && str[l+1]=='$')    /* WIP command */
 				lncntr=0;
 			if(str[l]=='@' && !(mode&P_NOATCODES)) {
-				i=atcodes((char *)str+l);	/* returns 0 if not valid @ code */
+				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
 				if(i)					/* if valid string, go to top */
 					continue; }
