@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.213 2003/02/16 13:41:50 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.214 2003/02/19 20:38:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1534,12 +1534,14 @@ static void send_thread(void* arg)
 						adjustuserrec(&scfg,uploader.number,U_CDT,10,mod);
 						ultoac(mod,tmp);
 					}
-					/* Inform uploader of downloaded file */
-					sprintf(str,text[DownloadUserMsg]
-						,getfname(xfer.filename)
-						,xfer.filepos ? "partially FTP-" : "FTP-"
-						,xfer.user->alias,tmp); 
-					putsmsg(&scfg,uploader.number,str); 
+					if(!(scfg.dir[f.dir]->misc&DIR_QUIET)) {
+						/* Inform uploader of downloaded file */
+						sprintf(str,text[DownloadUserMsg]
+							,getfname(xfer.filename)
+							,xfer.filepos ? "partially FTP-" : "FTP-"
+							,xfer.user->alias,tmp); 
+						putsmsg(&scfg,uploader.number,str); 
+					}
 				}
 			}
 			/* Need to update datedled in index */
@@ -4396,7 +4398,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.213 $", "%*s %s", revision);
+	sscanf("$Revision: 1.214 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

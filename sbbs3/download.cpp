@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.16 2003/02/09 23:35:27 rswindell Exp $ */
+/* $Id: download.cpp,v 1.17 2003/02/19 20:38:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,19 +83,19 @@ void sbbs_t::downloadfile(file_t* f)
 			mod=((ulong)(l*(cfg.dir[f->dir]->dn_pct/100.0))/cur_cps)/60;
 			adjustuserrec(&cfg,i,U_MIN,10,mod);
 			sprintf(tmp,"%lu minute",mod);
-			sprintf(str,text[DownloadUserMsg]
-				,!strcmp(cfg.dir[f->dir]->code,"TEMP") ? temp_file : f->name
-				,!strcmp(cfg.dir[f->dir]->code,"TEMP") ? text[Partially] : nulstr
-				,useron.alias,tmp); }
-		else {
+		} else {
 			mod=(ulong)(l*(cfg.dir[f->dir]->dn_pct/100.0));
 			adjustuserrec(&cfg,i,U_CDT,10,mod);
 			ultoac(mod,tmp);
+		}
+		if(!(cfg.dir[f->dir]->misc&DIR_QUIET)) {
 			sprintf(str,text[DownloadUserMsg]
 				,!strcmp(cfg.dir[f->dir]->code,"TEMP") ? temp_file : f->name
 				,!strcmp(cfg.dir[f->dir]->code,"TEMP") ? text[Partially] : nulstr
-				,useron.alias,tmp); }
-		putsmsg(&cfg,i,str); }
+				,useron.alias,tmp); 
+			putsmsg(&cfg,i,str); 
+		}
+	}
 	/*******************/
 	/* Update IXB File */
 	/*******************/
