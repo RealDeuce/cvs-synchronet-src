@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.37 2002/09/04 04:22:27 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.38 2002/09/04 09:18:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2348,8 +2348,6 @@ js_getnstime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static const char* nodesync_aliases[] = { "node_sync", NULL };
-
 static jsMethodSpec js_bbs_functions[] = {
 	{"atcode",			js_atcode,			1,	JSTYPE_STRING,		"string code"
 	,"return @-code value"
@@ -2388,7 +2386,7 @@ static jsMethodSpec js_bbs_functions[] = {
 	},
 	{"nodesync",		js_nodesync,		0,	JSTYPE_VOID,	""
 	,"synchronize node with system"
-	, nodesync_aliases
+	,"node_sync"
 	},
 	{"auto_msg",		js_automsg,			0,	JSTYPE_VOID,	""
 	,"edit/create auto-message"
