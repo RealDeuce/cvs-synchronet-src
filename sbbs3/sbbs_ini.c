@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.69 2004/06/03 23:18:28 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.68 2004/05/28 23:43:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -792,7 +792,7 @@ BOOL sbbs_write_ini(
 
 	} while(0);	/* finally */
 
-	strListFree(&list);
+	free(list);
 
 	return(result);
 }
