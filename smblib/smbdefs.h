@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.10 2000/11/06 10:00:34 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.11 2002/02/11 15:25:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -502,6 +502,7 @@ typedef struct {				// Message
 	ulong		offset; 		// Offset (number of records) into index
 	uchar		forwarded;		// Forwarded from agent to another
 	when_t		expiration; 	// Message will exipre on this day (if >0)
+	uint		subnum;			// Sub-board number (not initialized by smblib)
 
 	} smbmsg_t;
 
