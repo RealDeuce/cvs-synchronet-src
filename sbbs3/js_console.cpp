@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.49 2003/07/08 22:06:52 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.50 2003/07/10 22:16:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -904,7 +904,8 @@ js_ansi(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&attr);
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&attr);
 	if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr)))==NULL)
 		return(JS_FALSE);
 
@@ -1010,7 +1011,8 @@ js_cursor_up(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&val);
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_up(val);
 	*rval=JSVAL_VOID;
     return(JS_TRUE);
@@ -1025,7 +1027,8 @@ js_cursor_down(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&val);
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_down(val);
 	*rval=JSVAL_VOID;
     return(JS_TRUE);
@@ -1040,7 +1043,8 @@ js_cursor_right(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&val);
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_right(val);
 	*rval=JSVAL_VOID;
     return(JS_TRUE);
@@ -1055,7 +1059,8 @@ js_cursor_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&val);
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_left(val);
 	*rval=JSVAL_VOID;
     return(JS_TRUE);
