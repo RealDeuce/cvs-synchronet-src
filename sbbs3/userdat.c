@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.60 2003/04/03 01:11:31 rswindell Exp $ */
+/* $Id: userdat.c,v 1.61 2003/04/05 02:12:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -115,6 +115,34 @@ uint DLLCALL matchuser(scfg_t* cfg, char *name, BOOL sysop_alias)
 		return((l/(LEN_ALIAS+2))+1); 
 	return(0);
 }
+
+/****************************************************************************/
+uint DLLCALL total_users(scfg_t* cfg)
+{
+    char	str[MAX_PATH+1];
+    uint	total_users=0;
+	int		file;
+    long	l,length;
+
+	if(!VALID_CFG(cfg))
+		return(0);
+
+	sprintf(str,"%suser/user.dat", cfg->data_dir);
+	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
+		return(0);
+	length=filelength(file);
+	for(l=0;l<length;l+=U_LEN) {
+		lseek(file,l+U_MISC,SEEK_SET);
+		read(file,str,8);
+		getrec(str,0,8,str);
+		if(ahtoul(str)&(DELETED|INACTIVE))
+			continue;
+		total_users++;
+	}
+	close(file);
+	return(total_users);
+}
+
 
 /****************************************************************************/
 /* Returns the number of the last user in user.dat (deleted ones too)		*/
