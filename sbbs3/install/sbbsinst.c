@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.8 2003/01/22 05:35:17 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.9 2003/01/22 05:35:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 params_t params; /* Build parameters */
 
-#define MAKEFILE = "/tmp/SBBSmakefile";
+#define MAKEFILE "/tmp/SBBSmakefile";
 
 char **opt;
 char tmp[256];
