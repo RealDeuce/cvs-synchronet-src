@@ -119,9 +119,9 @@
 /* For DLL versions, definitions of function or data that is exported from */
 /* a module or imported into a module.                                     */
 #ifdef OD_DLL
-#if defined(_MSC_VER) || defined(__BORLANDC__)
+#ifdef _MSC_VER
 #define OD_EXPORT __declspec(dllexport)
-#else /* !_MSC_VER || __BORLANDC__ */
+#else /* !_MSC_VER */
 #define OD_EXPORT _export
 #endif /* !_MSC_VER */
 #define OD_IMPORT DECLSPEC_IMPORT
@@ -545,15 +545,14 @@ typedef void OD_PERSONALITY_PROC;
 /* ========================================================================= */
 
 /* Force byte alignment, if possible */
-/* 04/05 Why do this?  It's not like you write structs to disk!
-/* #ifdef __TURBOC__ */
-/* #if(__TURBOC__ >= 0x295) */
-/* #pragma option -a- */
-/* #endif /* __TURBOC__ >= 0x295 */
-/* #endif /* __TURBOC__ */
-/* #ifdef _MSC_VER */
-/* #pragma pack(1) */
-/* #endif /* _MSC_VER */
+#ifdef __TURBOC__
+#if(__TURBOC__ >= 0x295)
+#pragma option -a-
+#endif /* __TURBOC__ >= 0x295 */
+#endif /* __TURBOC__ */
+#ifdef _MSC_VER
+#pragma pack(1)
+#endif /* _MSC_VER */
 
 typedef struct
 {
