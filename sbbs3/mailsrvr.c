@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.80 2001/11/05 04:14:36 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.81 2001/11/08 23:50:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1406,7 +1406,7 @@ static void smtp_thread(void* arg)
 						sockprintf(socket, "452 ERROR %d (%s) saving message"
 							,i,smb.last_error);
 					} else {
-						lprintf("%04d SMTP %s posted a message on sub-board: %s"
+						lprintf("%04d SMTP %s posted a message on %s"
 							,socket, sender_addr, scfg.sub[subnum]->sname);
 						sockprintf(socket,SMTP_OK);
 					}
