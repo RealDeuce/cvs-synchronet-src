@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.129 2002/03/19 22:48:25 rswindell Exp $ */
+/* $Id: main.cpp,v 1.130 2002/03/20 00:59:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ uint riobp;
 #define TELNET_SERVER "Synchronet Telnet Server"
 #define STATUS_WFC	"Listening"
 
-#define TIMEOUT_THREAD_WAIT		15		// Seconds (was 30)
+#define TIMEOUT_THREAD_WAIT		60		// Seconds (was 15)
 #define IO_THREAD_BUF_SIZE	   	10000   // Bytes
 
 // Globals
