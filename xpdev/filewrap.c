@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.24 2003/04/29 23:25:48 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.25 2003/07/24 11:37:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,7 @@ int DLLCALL sopen(const char *fn, int access, int share, ...)
 }
 #endif /* !QNX */
 
-#elif defined _MSC_VER || defined __MINGW32__
+#elif defined(_MSC_VER) || defined(__MINGW32__) || defined(__DMC__)
 
 #include <io.h>				/* tell */
 #include <stdio.h>			/* SEEK_SET */
