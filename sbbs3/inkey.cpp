@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.4 2001/08/29 17:15:46 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.5 2001/11/14 01:31:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,6 +98,10 @@ char sbbs_t::inkey(long mode)
 		if(action!=NODE_MAIN && action!=NODE_XFER)
 			return(26);
 		return(0); }
+
+	if(mode&K_UPPER)
+		ch=toupper(ch);
+
 	if(console&CON_RAW_IN)	 /* ignore ctrl-key commands if in raw mode */
 		return(ch);
 
