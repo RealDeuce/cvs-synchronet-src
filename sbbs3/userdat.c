@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.89 2004/12/29 04:38:14 rswindell Exp $ */
+/* $Id: userdat.c,v 1.91 2005/02/09 21:35:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1472,7 +1472,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				break;
 			case AR_RANDOM:
-				n=sbbs_random(i+1);
+				n=xp_random(i+1);
 				if((equal && n!=i) || (!equal && n<i))
 					result=not;
 				else
@@ -1960,11 +1960,11 @@ char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name)
 
 char* DLLCALL alias(scfg_t* cfg, char* name, char* buf)
 {
-	int		file;
 	char	line[128];
 	char*	p;
 	char*	np;
 	char*	tp;
+	char*	vp;
 	char	fname[MAX_PATH+1];
 	size_t	namelen;
 	size_t	cmplen;
@@ -1976,24 +1976,29 @@ char* DLLCALL alias(scfg_t* cfg, char* name, char* buf)
 	p=name;
 
 	sprintf(fname,"%salias.cfg",cfg->ctrl_dir);
-	if((file=sopen(fname,O_RDONLY|O_BINARY,SH_DENYNO))==-1)
+	if((fp=fopen(fname,"r"))==NULL)
 		return(name);
-
-	if((fp=fdopen(file,"rb"))==NULL) {
-		close(file);
-		return(name);
-	}
 
 	while(!feof(fp)) {
 		if(!fgets(line,sizeof(line),fp))
 			break;
 		np=line;
 		SKIP_WHITESPACE(np);
-		if(*np==';')
+		if(*np==';' || *np==0)	/* no name value, or comment */
 			continue;
 		tp=np;
 		FIND_WHITESPACE(tp);
-		if(*tp) *tp=0;
+
+		if(*tp==0)	/* no alias value */
+			continue;
+		*tp=0;
+
+		vp=tp+1;
+		SKIP_WHITESPACE(vp);
+		truncsp(vp);
+		if(*vp==0)	/* no value */
+			continue;
+
 		if(*np=='*') {
 			np++;
 			cmplen=strlen(np);
@@ -2002,21 +2007,15 @@ char* DLLCALL alias(scfg_t* cfg, char* name, char* buf)
 				continue;
 			if(strnicmp(np,name+(namelen-cmplen),cmplen))
 				continue;
-			np=tp+1;
-			SKIP_WHITESPACE(np);
-			truncsp(np);
-			if(*np=='*') 
-				sprintf(buf,"%.*s%s",(int)(namelen-cmplen),name,np+1);
+			if(*vp=='*') 
+				sprintf(buf,"%.*s%s",(int)(namelen-cmplen),name,vp+1);
 			else
-				strcpy(buf,np);
+				strcpy(buf,vp);
 			p=buf;
 			break;
 		}
 		if(!stricmp(np,name)) {
-			np=tp+1;
-			SKIP_WHITESPACE(np);
-			truncsp(np);
-			strcpy(buf,np);
+			strcpy(buf,vp);
 			p=buf;
 			break;
 		}
