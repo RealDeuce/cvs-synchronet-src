@@ -2,13 +2,13 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.17 2003/09/05 00:07:31 rswindell Exp $ */
+/* $Id: node.c,v 1.18 2003/09/26 04:19:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
 	long value=0;
 	node_t node;
 
-	printf("\nSynchronet Node Display/Control Utility v1.10  Copyright 2000 Rob Swindell\n\n");
+	printf("\nSynchronet Node Display/Control Utility v1.10  Copyright 2003 Rob Swindell\n\n");
 
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
 		printf("COMPILER ERROR: sizeof(node_t)=%d instead of %d\n"
