@@ -1,4 +1,4 @@
-/* $Id: keys.h,v 1.8 2004/07/05 07:53:00 deuce Exp $ */
+/* $Id: keys.h,v 1.7 2004/07/05 07:44:28 deuce Exp $ */
 
 #define CIO_KEY_HOME      0x47 << 8
 #define CIO_KEY_UP        72   << 8
@@ -12,4 +12,7 @@
 #define CIO_KEY_PPAGE     0x49 << 8
 #define CIO_KEY_NPAGE     0x51 << 8
 
-#define CIO_KEY_MOUSE    0xff02
+#define CIO_KEY_BACKSPACE    0xff01   /* Windows never differentiates between a
+				   * backspace keypress and the backspace
+				   * char
+				   */
