@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.219 2004/03/23 23:55:29 deuce Exp $ */
+/* $Id: sbbs.h,v 1.218 2003/12/07 03:52:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1023,11 +1023,6 @@ BOOL 	md(char *path);
 
 	/* file.cpp */
 	BOOL	filematch(char *filename, char *filespec);
-
-	/* sbbscon.c */
-	#if defined(__unix__) && defined(NEEDS_DAEMON)
-	int daemon(int nochdir, int noclose);
-	#endif
 
 #endif /* SBBS */
 

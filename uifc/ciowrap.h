@@ -1,4 +1,4 @@
-/* $Id: ciowrap.h,v 1.6 2004/03/24 02:47:33 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.5 2003/12/16 16:03:59 deuce Exp $ */
 
 #include "curs_fix.h"
 
@@ -61,7 +61,7 @@ int wherey(void);
 int wherex(void);
 void _putch(unsigned char ch, BOOL refresh_now);
 int cprintf(char *fmat, ...);
-void cputs(unsigned char *str);
+void cputs(char *str);
 void gotoxy(int x, int y);
 void clrscr(void);
 void initciowrap(long inmode);
