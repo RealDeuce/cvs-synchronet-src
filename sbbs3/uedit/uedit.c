@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.37 2004/09/28 05:37:57 deuce Exp $ */
+/* $Id: uedit.c,v 1.38 2004/10/27 04:28:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1646,6 +1646,7 @@ int edit_user(scfg_t *cfg, int usernum)
 			case 0:
 				user.misc ^= DELETED;
 				putuserrec(cfg,user.number,U_MISC,8,ultoa(user.misc,str,16));
+				putusername(cfg,user.number,nulstr);
 				break;
 
 			case 1:
@@ -1909,7 +1910,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
