@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 
-#ifndef ServicesCfgDlgUnitH
-#define ServicesCfgDlgUnitH
+#ifndef WebCfgDlgUnitH
+#define WebCfgDlgUnitH
 //---------------------------------------------------------------------------
 #include <Classes.hpp>
 #include <Controls.hpp>
@@ -9,42 +9,63 @@
 #include <Forms.hpp>
 #include <ComCtrls.hpp>
 #include <Dialogs.hpp>
-#include "MainFormUnit.h"
 //---------------------------------------------------------------------------
-class TServicesCfgDlg : public TForm
+class TWebCfgDlg : public TForm
 {
 __published:	// IDE-managed Components
     TPageControl *PageControl;
     TTabSheet *GeneralTabSheet;
+    TLabel *MaxClientesLabel;
+    TLabel *MaxInactivityLabel;
+    TLabel *PortLabel;
     TLabel *InterfaceLabel;
     TCheckBox *AutoStartCheckBox;
+    TEdit *MaxClientsEdit;
+    TEdit *MaxInactivityEdit;
+    TEdit *PortEdit;
     TEdit *NetworkInterfaceEdit;
     TCheckBox *HostnameCheckBox;
+    TTabSheet *HttpTabSheet;
+    TLabel *HtmlDirLabel;
+    TEdit *HtmlRootEdit;
+    TEdit *ErrorSubDirEdit;
+    TEdit *ServerSideJsExtEdit;
+    TTabSheet *LogTabSheet;
+    TCheckBox *DebugTxCheckBox;
+    TCheckBox *DebugRxCheckBox;
+    TCheckBox *AccessLogCheckBox;
     TTabSheet *SoundTabSheet;
     TLabel *AnswerSoundLabel;
     TLabel *HangupSoundLabel;
+    TLabel *HackAttemptSoundLabel;
     TEdit *AnswerSoundEdit;
     TButton *AnswerSoundButton;
     TEdit *HangupSoundEdit;
     TButton *HangupSoundButton;
+    TEdit *HackAttemptSoundEdit;
+    TButton *HackAttemptSoundButton;
     TButton *OKBtn;
     TButton *CancelBtn;
     TButton *ApplyBtn;
-    TButton *OKButton;
-    TButton *CancelButton;
-    TButton *ApplyButton;
+    TLabel *ErrorSubDirLabel;
+    TLabel *ServerSideJsExtLabel;
+    TLabel *EmbeddedJsExtLabel;
+    TEdit *EmbeddedJsExtEdit;
+    TCheckBox *VirtualHostsCheckBox;
+    TEdit *LogBaseNameEdit;
+    TLabel *LogBaseLabel;
     TOpenDialog *OpenDialog;
-	TButton *ServicesIniButton;
-    void __fastcall ServicesCfgButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
-    void __fastcall OKButtonClick(TObject *Sender);
     void __fastcall AnswerSoundButtonClick(TObject *Sender);
     void __fastcall HangupSoundButtonClick(TObject *Sender);
+    void __fastcall HackAttemptSoundButtonClick(TObject *Sender);
+    void __fastcall OKBtnClick(TObject *Sender);
+    void __fastcall AccessLogCheckBoxClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
-    __fastcall TServicesCfgDlg(TComponent* Owner);
+    __fastcall TWebCfgDlg(TComponent* Owner);
 };
 //---------------------------------------------------------------------------
-extern PACKAGE TServicesCfgDlg *ServicesCfgDlg;
+extern PACKAGE TWebCfgDlg *WebCfgDlg;
 //---------------------------------------------------------------------------
 #endif
