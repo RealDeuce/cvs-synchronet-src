@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.8 2003/03/07 10:22:52 rswindell Exp $
+# $Id: GNUmakefile,v 1.9 2003/07/11 06:10:20 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 USE_CURSES	=	1	# Curses version of UIFC
@@ -36,10 +36,11 @@ LIBDIR	:=	/usr/lib
 DELETE	=	rm -f -v
 OUTLIB	=	-o
 
-CFLAGS	+=	-O2
+CFLAGS	+=	-g
+#CFLAGS	+=	-O2
 CFLAGS	+=	-MMD -Wall -I$(UIFC) -I$(XPDEV) -I..
 
-LFLAGS	:=	-static -L/usr/local/lib
+LFLAGS	:=	-L/usr/local/lib
 
 ODIR	:=	$(ODIR).release
 
@@ -89,7 +90,7 @@ $(SBBSINST): $(OBJS)
    endif
 	@echo Linking $@
 	@$(CC) -o $@ $(OBJS) $(LFLAGS)
-	@strip $@
+#	@strip $@
 
 # Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
 -include ./*.d
