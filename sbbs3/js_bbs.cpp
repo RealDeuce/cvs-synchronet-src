@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.51 2003/01/09 00:16:22 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.52 2003/01/09 01:34:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1014,6 +1014,21 @@ js_chksyspass(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	*rval = BOOLEAN_TO_JSVAL(sbbs->chksyspass());
 	return(JS_TRUE);
 }
+
+static JSBool
+js_chkpass(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	sbbs_t*		sbbs;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	JSString* str=JS_ValueToString(cx,argv[0]);
+
+	*rval = BOOLEAN_TO_JSVAL(sbbs->chkpass(JS_GetStringBytes(str),&sbbs->useron,true));
+	return(JS_TRUE);
+}
+
 
 static JSBool
 js_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2651,7 +2666,10 @@ static jsMethodSpec js_bbs_functions[] = {
 	/* security */
 	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("prompt for and verify system password")
-	},		
+	},
+	{"good_password",	js_chkpass,			1,	JSTYPE_STRING,	JSDOCSTR("string password")
+	,JSDOCSTR("check if requested user password meets minimum password requirements (length, uniqueness, etc.)")
+	},
 	/* chat/node stuff */
 	{"page_sysop",		js_pagesysop,		0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("page the sysop for chat")
