@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.14 2002/03/08 02:30:20 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.15 2002/05/09 09:04:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@ extern const uchar* nular;
 #define FREE_AR(x)		if(x!=NULL && x!=nular)	{ FREE(x); x=NULL; }	
 
 char*	get_alloc(long *offset, char *outstr, int maxlen, FILE *instream);
-BOOL	allocerr(char* error, long offset, char *fname, uint size);
+BOOL	allocerr(FILE*, char* error, long offset, char *fname, uint size);
 char*	readline(long *offset, char *str, int maxlen, FILE *stream);
 
 BOOL	read_node_cfg(scfg_t* cfg, char* error);
