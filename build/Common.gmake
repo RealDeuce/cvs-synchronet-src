@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.30 2004/12/12 09:41:44 deuce Exp $
+# $Id: Common.gmake,v 1.34 2005/01/25 06:37:50 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -50,6 +50,7 @@
 #  DONT_CLOBBER_CC	- Do not change the default setting of CC				#
 #  OBJPATH_SUFFIX	- Suffix appended to OBJPATH usefull for compiling 		#
 #					  different options of the same source file				#
+#  STATIC			- Create a statically linked build if possible			#
 #																			#
 # Common Build Macros Defined:												#
 #  DELETE			- Delete files (Preferrably verbose)					#
@@ -204,6 +205,11 @@ UL_SUF		:=
 OUTPUT		:=	-o
 LOUTPUT		:=	-o
 
+ifdef STATIC
+ LDFLAGS	+=	-static
+ CFLAGS		+=	-DSTATIC_LINK
+endif
+
 ifeq ($(os),openbsd)
  SOFILE	:=	$(SOFILE).$(VERSION)
 else
@@ -221,7 +227,6 @@ ifeq ($(os),netbsd)	# NetBSD
 endif
 ifeq ($(os),darwin)
  CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
- LDFLAGS +=  -lm
 endif
 
 # PThread-specific flags
@@ -243,7 +248,7 @@ else
  else
   ifeq ($(os),netbsd)    # NetBSD
    MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
-   MT_LDFLAGS    +=   -L/usr/pkg/lib -lpthread
+   MT_LDFLAGS    +=   -L/usr/pkg/lib
    XP_SEM    :=    1
   else
    ifeq ($(os),qnx)    # QNX
@@ -251,18 +256,15 @@ else
     ifeq ($(os),darwin)    # Darwin/Mac OS X
      CFLAGS    += -D__unix__ 
      MT_CFLAGS    += -DUSE_XP_SEMAPHORES -D__DARWIN__
-     MT_LDFLAGS    += -lpthread
      XP_SEM    := 1
     else
      ifeq ($(os),sunos)  # Solaris
       XP_SEM :=    1
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      MT_LDFLAGS    +=    -lpthread
      else            # Linux / Other UNIX
       XP_SEM :=    1
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      MT_LDFLAGS    +=    -lpthread
      endif
     endif
    endif
