@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.65 2003/03/07 22:07:16 deuce Exp $ */
+/* $Id: websrvr.c,v 1.66 2003/03/08 00:03:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1099,9 +1099,9 @@ static void unescape(char *p)
 	
 	dst=p;
 	for(;*p;p++) {
-		if(*p=='%' && isxdigit(*p) && isxdigit(*p)) {
-			sprintf(code,"%.2s",p);
-			*(dst++)=(char)strtol(p+1,NULL,16);
+		if(*p=='%' && isxdigit(*(p+1)) && isxdigit(*(p+2))) {
+			sprintf(code,"%.2s",p+1);
+			*(dst++)=(char)strtol(code,NULL,16);
 			p+=2;
 		}
 		else  {
@@ -2147,7 +2147,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.65 $", "%*s %s", revision);
+	sscanf("$Revision: 1.66 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
