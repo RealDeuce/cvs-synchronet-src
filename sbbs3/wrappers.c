@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.29 2000/12/04 22:14:18 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.30 2000/12/05 03:26:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,6 +313,24 @@ ulong _beginthread(void( *start_address )( void * )
 #endif
 
 #endif	/* __unix__ */
+
+/****************************************************************************/
+/* Win32 implementation of POSIX sem_getvalue() function					*/
+/****************************************************************************/
+#ifdef _WIN32
+int sem_getvalue(sem_t* psem, int* val)
+{
+	if(psem==NULL || val==NULL)
+		return(-1);
+
+	if(WaitForSingleObject(*(psem),0)==WAIT_OBJECT_0)
+		*val=1;
+	else
+		*val=0;
+
+	return(0);
+}
+#endif
 
 /****************************************************************************/
 /* Return free disk space in bytes (up to a maximum of 4GB)					*/
