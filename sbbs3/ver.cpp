@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.2 2000/10/21 04:37:26 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.3 2000/10/26 02:55:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,21 +53,7 @@ void sbbs_t::ver()
 	center(str);
 	CRLF;
 
-#if defined(__BORLANDC__)
-	sprintf(compiler,"BCC %X.%02X"
-		,__BORLANDC__>>8
-		,__BORLANDC__&0xff);
-#elif defined(_MSC_VER)
-	sprintf(compiler,"MSC %u", _MSC_VER);
-#elif defined(__GNUC__) && defined(__GLIBC__)
-	sprintf(compiler,"GCC %u.%02u (GLIBC %u.%u)"
-		,__GNUC__
-		,__GNUC_MINOR__
-		,__GLIBC__
-		,__GLIBC_MINOR__);
-#else
-	strcpy(compiler,"UNKNOWN COMPILER");
-#endif
+	COMPILER_DESC(compiler);
 
 	sprintf(str,"Revision %c%s %s %.5s  "
 		"SMBLIB %s  %s"

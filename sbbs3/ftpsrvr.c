@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.17 2000/10/24 11:30:00 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.18 2000/10/26 02:55:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2920,15 +2920,7 @@ char* ftp_ver(void)
 	static char ver[256];
 	char compiler[32];
 
-#if defined(__BORLANDC__)
-	sprintf(compiler,"BCC %X.%02X"
-		,__BORLANDC__>>8
-		,__BORLANDC__&0xff);
-#elif defined(_MSC_VER)
-	sprintf(compiler,"MSC %u", _MSC_VER);
-#else
-	strcpy(compiler,"UNKNOWN COMPILER");
-#endif
+	COMPILER_DESC(compiler);
 
 	sprintf(ver,"Synchronet FTP Server v%s%s  "
 		"Compiled %s %s with %s"
@@ -2986,15 +2978,7 @@ void ftp_server(void* arg)
 #endif
 		);
 
-#if defined(__BORLANDC__)
-	sprintf(compiler,"BCC %X.%02X"
-		,__BORLANDC__>>8
-		,__BORLANDC__&0xff);
-#elif defined(_MSC_VER)
-	sprintf(compiler,"MSC %u", _MSC_VER);
-#else
-	strcpy(compiler,"UNKNOWN COMPILER");
-#endif
+	COMPILER_DESC(compiler);
 
 	lprintf("Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
