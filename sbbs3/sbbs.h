@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.14 2000/10/30 08:43:53 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.15 2000/10/30 11:11:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,7 +121,7 @@ public:
 
     RingBuf	inbuf;
     RingBuf	outbuf;
-	HANDLE	output_event;
+	sem_t	output_sem;
 	HANDLE	input_thread;
 
 	int 	outcom(uchar ch); 	   // send character

@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.13 2000/10/30 09:47:40 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.14 2000/10/30 11:11:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,10 @@ extern "C" {
 	#include <dirent.h>	/* POSIX directory functions */
 #endif
 
+/***************/
+/* OS-specific */
+/***************/
+
 #ifdef __unix__
 
 	#include <glob.h>	/* POSIX.2 directory pattern matching function */
@@ -115,9 +119,24 @@ extern "C" {
 
 #endif
 
-/***************/
-/* OS-specific */
-/***************/
+#ifdef __unix__
+
+	#include <semaphores.h>	/* POSIX 1003.1b semaphores */
+
+#elif defined(_WIN32)	/* semaphores */
+
+	typedef HANDLE sem_t;
+	#define sem_init(psem,ps,v) ResetEvent(*(psem))
+	#define sem_wait(psem)		WaitForSingleObject(*(psem),INFINITE)
+	#define sem_post(psem)		SetEvent(*(psem))
+	#define sem_destroy(psem)	CloseHandle(*(psem))
+
+#else
+
+	#warning "Need semaphore wrappers."
+
+#endif
+
 
 #if defined(_WIN32)
 
