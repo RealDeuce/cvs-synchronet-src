@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.327 2004/06/04 19:16:01 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.328 2004/06/09 09:15:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3459,14 +3459,14 @@ static void sendmail_thread(void* arg)
 			msg.offset=offset;
 
 			if((i=smb_lockmsghdr(&smb,&msg))!=0) {
-				lprintf(LOG_WARNING,"0000 !SEND ERROR %d (%s) locking message header #%lu"
-					,i, smb.last_error, msg.idx.number);
+				lprintf(LOG_WARNING,"0000 !SEND ERROR %d (%s) locking message header #%lu (offset %lu)"
+					,i, smb.last_error, msg.idx.number, offset);
 				continue;
 			}
 			if((i=smb_getmsghdr(&smb,&msg))!=0) {
 				smb_unlockmsghdr(&smb,&msg);
-				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) reading message header #%lu"
-					,i, smb.last_error, msg.idx.number);
+				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) reading message header #%lu (offset %lu)"
+					,i, smb.last_error, msg.idx.number, offset);
 				continue; 
 			}
 			if(msg.to_net.type!=NET_INTERNET || msg.to_net.addr==NULL) {
@@ -3755,7 +3755,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.327 $", "%*s %s", revision);
+	sscanf("$Revision: 1.328 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
