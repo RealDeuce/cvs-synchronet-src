@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.6 2001/10/21 15:07:56 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.7 2001/12/14 17:59:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,6 +104,7 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     DeliveryAttemptsEdit->Text
         =AnsiString(MainForm->mail_startup.max_delivery_attempts);
     RescanFreqEdit->Text=AnsiString(MainForm->mail_startup.rescan_frequency);
+    DefaultUserEdit->Text=AnsiString(MainForm->mail_startup.default_user);
 
     DebugTXCheckBox->Checked=MainForm->mail_startup.options
         &MAIL_OPT_DEBUG_TX;
@@ -168,6 +169,9 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
         =DeliveryAttemptsEdit->Text.ToIntDef(10);
     MainForm->mail_startup.rescan_frequency=RescanFreqEdit->Text.ToIntDef(300);
 
+    sprintf(MainForm->mail_startup.default_user,"%.*s"
+	    ,sizeof(MainForm->mail_startup.default_user)-1
+        ,DefaultUserEdit->Text.c_str());
     sprintf(MainForm->mail_startup.dns_server,"%.*s"
 	    ,sizeof(MainForm->mail_startup.dns_server)-1
         ,DNSServerEdit->Text.c_str());
