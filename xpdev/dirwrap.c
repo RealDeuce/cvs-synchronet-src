@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.6 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.7 2002/04/26 22:56:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,7 +288,7 @@ time_t DLLCALL fdate(char *filename)
 /****************************************************************************/
 long DLLCALL flength(char *filename)
 {
-#if defined(__BORLANDC__)	/* stat() doesn't work right */
+#if defined(__BORLANDC__) && !defined(__unix__)	/* stat() doesn't work right */
 
 	long	handle;
 	struct _finddata_t f;
