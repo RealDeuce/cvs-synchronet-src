@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.33 2002/10/25 00:35:14 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.34 2002/10/25 02:07:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+
+static char* ContinueText = "Continue";
 
 /****************************************************************************/
 /* This function is invoked when a user enters "NEW" at the NN: prompt		*/
@@ -204,6 +206,8 @@ BOOL sbbs_t::newuser()
 					|| trashcan(useron.alias,"name")
 					|| (!(cfg.uq&UQ_ALIASES) && !strchr(useron.alias,SP))) {
 					bputs(text[YouCantUseThatName]);
+					if(!yesno(ContinueText))
+						return(FALSE);
 					continue; 
 				}
 				break; 
@@ -223,6 +227,8 @@ BOOL sbbs_t::newuser()
 					bputs(text[YouCantUseThatName]);
 				else
 					break; 
+				if(!yesno(ContinueText))
+					return(FALSE);
 			} 
 		}
 		else if(cfg.uq&UQ_COMPANY) {
@@ -245,6 +251,8 @@ BOOL sbbs_t::newuser()
 				bputs(text[YouCantUseThatName]);
 			else
 				break; 
+			if(!yesno(ContinueText))
+				return(FALSE);
 		}
 		if(!online) return(FALSE);
 		if(cfg.uq&UQ_ADDRESS)
