@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.17 2003/04/29 04:01:39 deuce Exp $ */
+/* $Id: inkey.cpp,v 1.18 2003/04/30 20:37:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,6 @@
 char sbbs_t::inkey(long mode)
 {
 	uchar	ch=0;
-
-	YIELD();
 
     if(keybuftop!=keybufbot) {
         ch=keybuf[keybufbot++];
