@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.14 2003/02/14 00:47:53 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.15 2003/03/12 03:16:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,6 +103,8 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
         =MainForm->bbs_startup.options&BBS_OPT_USE_2ND_RLOGIN;
     QWKEventsCheckBox->Checked
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_QWK_EVENTS);
+    EventsCheckBox->Checked
+        =!(MainForm->bbs_startup.options&BBS_OPT_NO_EVENTS);
     JavaScriptCheckBox->Checked
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_JAVASCRIPT);
 
@@ -177,6 +179,10 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
         MainForm->bbs_startup.options&=~BBS_OPT_NO_QWK_EVENTS;
     else
         MainForm->bbs_startup.options|=BBS_OPT_NO_QWK_EVENTS;
+    if(EventsCheckBox->Checked==true)
+        MainForm->bbs_startup.options&=~BBS_OPT_NO_EVENTS;
+    else
+        MainForm->bbs_startup.options|=BBS_OPT_NO_EVENTS;
     if(JavaScriptCheckBox->Checked==true)
         MainForm->bbs_startup.options&=~BBS_OPT_NO_JAVASCRIPT;
     else
