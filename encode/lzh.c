@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.c,v 1.4 2001/02/04 16:44:46 rswindell Exp $ */
+/* $Id: lzh.c,v 1.5 2002/04/18 00:18:35 rswindell Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -588,7 +588,7 @@ short int lzh_decode_position(uchar *inbuf, long *incnt, long inlen)
 	while (j--) {
 		i = (i << 1) + lzh_getbit(inbuf,incnt,inlen);
 	}
-	return c | i & 0x3f;
+	return c | (i & 0x3f);
 }
 
 /* Compression */

@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.28 2002/04/17 21:56:27 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.29 2002/04/18 00:18:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,9 +52,10 @@
 
 /* ANSI */
 #include <stdio.h>
-#include <time.h>	/* time */
-#include <errno.h>	/* errno */
-#include <string.h>	/* strrchr */
+#include <time.h>		/* time */
+#include <errno.h>		/* errno */
+#include <string.h>		/* strrchr */
+#include <ctype.h>		/* toupper */
 
 #include "genwrap.h"	/* stricmp */
 #include "dirwrap.h"	/* fexist */
