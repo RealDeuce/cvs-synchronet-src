@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.134 2002/08/30 22:51:43 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.135 2002/09/04 03:46:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -828,8 +828,24 @@ extern "C" {
 
 #ifdef JAVASCRIPT
 
+	typedef struct {
+		const char      *name;
+		JSNative        call;
+		uint8           nargs;
+		const char*		type;		/* return type */
+		const char*		args;		/* arguments */
+		const char*		desc;		/* description */
+		const char**	alias;		/* aliases */
+	} jsMethodSpec;
+
+	const char* jstype_void		= "void";
+	const char* jstype_bool		= "boolean";
+	const char* jstype_str		= "string";
+	const char* jstype_num		= "number";
+
 	/* main.cpp */
-	DLLEXPORT JSBool	DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, JSFunctionSpec *fs);
+	DLLEXPORT int		DLLCALL js_MethodsToFunctions(jsMethodSpec meth[], JSFunctionSpec func[]);
+	DLLEXPORT JSBool	DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *fs);
 
 	/* js_global.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg);
