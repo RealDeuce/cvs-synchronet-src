@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.21 2003/05/09 20:12:52 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.22 2003/06/12 09:07:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,9 +101,9 @@ void sbbs_t::batchmenu()
 					break; 
 				}
 				for(i=0,totalcdt=0;i<batdn_total;i++)
+					if(!is_download_free(&cfg,batdn_dir[i],&useron))
 						totalcdt+=batdn_cdt[i];
-				if(!(useron.exempt&FLAG('D'))
-					&& totalcdt>useron.cdt+useron.freecdt) {
+				if(totalcdt>useron.cdt+useron.freecdt) {
 					bprintf(text[YouOnlyHaveNCredits]
 						,ultoac(useron.cdt+useron.freecdt,tmp));
 					break; 
@@ -353,9 +353,9 @@ BOOL sbbs_t::start_batch_download()
 		return(FALSE); 
 	}
 	for(i=0,totalcdt=0;i<batdn_total;i++)
-		totalcdt+=batdn_cdt[i];
-	if(!(useron.exempt&FLAG('D'))
-		&& totalcdt>useron.cdt+useron.freecdt) {
+		if(is_download_free(&cfg,batdn_dir[i],&useron))
+			totalcdt+=batdn_cdt[i];
+	if(totalcdt>useron.cdt+useron.freecdt) {
 		bprintf(text[YouOnlyHaveNCredits]
 			,ultoac(useron.cdt+useron.freecdt,tmp));
 		return(FALSE); 
@@ -788,10 +788,12 @@ bool sbbs_t::addtobatdl(file_t* f)
 		return(false); 
 	}
 	for(i=0,totalcdt=0;i<batdn_total;i++)
-		totalcdt+=batdn_cdt[i];
+		if(!is_download_free(&cfg,batdn_dir[i],&useron))
+			totalcdt+=batdn_cdt[i];
 	if(cfg.dir[f->dir]->misc&DIR_FREE) f->cdt=0L;
-	totalcdt+=f->cdt;
-	if(!(useron.exempt&FLAG('D')) && totalcdt>useron.cdt+useron.freecdt) {
+	if(!is_download_free(&cfg,f->dir,&useron))
+		totalcdt+=f->cdt;
+	if(totalcdt>useron.cdt+useron.freecdt) {
 		bprintf(text[CantAddToQueue],f->name);
 		bprintf(text[YouOnlyHaveNCredits],ultoac(useron.cdt+useron.freecdt,tmp));
 		return(false); 

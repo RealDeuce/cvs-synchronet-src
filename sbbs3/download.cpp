@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.20 2003/06/06 23:27:18 rswindell Exp $ */
+/* $Id: download.cpp,v 1.21 2003/06/12 09:07:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ void sbbs_t::downloadfile(file_t* f)
 	/****************************/
 	useron.dls=(ushort)adjustuserrec(&cfg,useron.number,U_DLS,5,1);
 	useron.dlb=adjustuserrec(&cfg,useron.number,U_DLB,10,length);
-	if(!(cfg.dir[f->dir]->misc&DIR_FREE) && !(useron.exempt&FLAG('D')))
+	if(!is_download_free(&cfg,f->dir,&useron))
 		subtract_cdt(&cfg,&useron,f->cdt);
 	/**************************/
 	/* Update Uploader's Info */
