@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.105 2003/05/01 00:10:17 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.106 2003/05/03 02:49:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2590,15 +2590,17 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
     if(TrayIcon->Visible) {
         /* Animate TrayIcon when in use */
         AnsiString NumClients;
-        if(clients) {
-            TrayIcon->IconIndex=(TrayIcon->IconIndex==4) ? 59 : 4;
-            NumClients=" ("+AnsiString(clients)+" client";
-            if(clients>1)
-                NumClients+="s";
-            NumClients+=")";
-        } else if(TrayIcon->IconIndex!=4)
-            TrayIcon->IconIndex=4;
-        TrayIcon->Hint=AnsiString(APP_TITLE)+NumClients;
+        try {
+            if(clients) {
+                TrayIcon->IconIndex=(TrayIcon->IconIndex==4) ? 59 : 4;
+                NumClients=" ("+AnsiString(clients)+" client";
+                if(clients>1)
+                    NumClients+="s";
+                NumClients+=")";
+            } else if(TrayIcon->IconIndex!=4)
+                TrayIcon->IconIndex=4;
+            TrayIcon->Hint=AnsiString(APP_TITLE)+NumClients;
+        } catch(...) { /* ignore exceptions here */ };
     }
 }
 //---------------------------------------------------------------------------
@@ -2752,13 +2754,14 @@ void __fastcall TMainForm::FormMinimize(TObject *Sender)
             ConfigureTrayMenuItem->Enabled=false;
             UserEditTrayMenuItem->Enabled=false;
         } else {
-        	TrayIcon->RestoreOn=imDoubleClick;
+        	TrayIcon->RestoreOn=imLeftClickUp;
             CloseTrayMenuItem->Enabled=true;
             ConfigureTrayMenuItem->Enabled=true;
             UserEditTrayMenuItem->Enabled=true;
         }
-        TrayIcon->Visible=true;
-        TrayIcon->Minimize();
+        if(!TrayIcon->Visible)
+	        TrayIcon->Visible=true;
+   	    TrayIcon->Minimize();
     }
 }
 
@@ -2766,6 +2769,7 @@ void __fastcall TMainForm::TrayIconRestore(TObject *Sender)
 {
     TrayIcon->Visible=false;
 }
+
 //---------------------------------------------------------------------------
 
 void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
