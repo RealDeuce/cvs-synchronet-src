@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.50 2004/08/11 10:11:38 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.51 2004/08/11 10:20:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,6 +303,8 @@ size_t iniAddSection(str_list_t* list, const char* section
 
 	i=find_section_index(*list, section);
 	if((*list)[i]==NULL) {
+		if(style==NULL)
+			style=&default_style;
 		if(style->section_separator!=NULL)
 			strListAppend(list, style->section_separator, i++);
 		SAFEPRINTF(str,"[%s]",section);
