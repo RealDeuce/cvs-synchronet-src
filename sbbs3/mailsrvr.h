@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.25 2002/04/26 11:01:12 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.26 2002/07/13 09:03:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ typedef struct {
     char	relay_server[128];
     char	dns_server[128];
     char	default_user[128];
-    char	reserved_path7[128];
+    char	dnsbl_flag[128];
     char	reserved_path6[128];
     char	reserved_path5[128];
     char	reserved_path4[128];
@@ -100,13 +100,12 @@ typedef struct {
 #define MAIL_OPT_RELAY_TX			(1<<5)	/* Use SMTP relay server */
 #define MAIL_OPT_DEBUG_POP3			(1<<6)
 #define MAIL_OPT_ALLOW_RX_BY_NUMBER	(1<<7)	/* Allow mail sent to user # */
-#define MAIL_OPT_USE_RBL			(1<<8)	/* SPAM filters */
-#define MAIL_OPT_USE_DUL			(1<<9)
-#define MAIL_OPT_USE_RSS			(1<<10)
 #define MAIL_OPT_NO_HOST_LOOKUP		(1<<11)	/* Don't look-up hostnames */
 #define MAIL_OPT_USE_TCP_DNS		(1<<12)	/* Use TCP vs UDP for DNS req */
 #define MAIL_OPT_NO_SENDMAIL		(1<<13)	/* Don't run SendMail thread */
 #define MAIL_OPT_ALLOW_RELAY		(1<<14)	/* Allow relays from stored user IPs */
+#define MAIL_OPT_DNSBL_REFUSE		(1<<15) /* Refuse session, return error */
+#define MAIL_OPT_DNSBL_IGNORE		(1<<16) /* Dump mail, return success */
 #define MAIL_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define MAIL_OPT_MUTE				(1<<31)
 
