@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.21 2002/10/20 21:40:18 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.22 2002/12/12 03:07:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -344,7 +344,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		nextline[0]=0;
 		fgets(nextline,255,stream);
 		truncsp(curline);
-		if(curline[0]<=SP || (uchar)curline[0]>=0x7e)
+		if(curline[0]<=SP || (mode&ASCII_ONLY && (uchar)curline[0]>=0x7e))
 			continue;
 		printf("%s\n",curline);
 		strcpy(fname,curline);
@@ -366,7 +366,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			continue;
 
 		for(i=0;i<12;i++)
-			if(f.name[i]<SP || (uchar)f.name[i]>0x7e)
+			if(f.name[i]<SP || (mode&ASCII_ONLY && (uchar)f.name[i]>0x7e))
 				break;
 
 		if(i<12)					/* Ctrl chars or EX-ASCII in filename? */
@@ -662,7 +662,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.21 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.22 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
