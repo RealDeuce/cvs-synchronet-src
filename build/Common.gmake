@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.12 2004/09/12 23:25:11 deuce Exp $
+# $Id: Common.gmake,v 1.13 2004/09/12 23:26:36 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -85,6 +85,8 @@
 #  UIFC_SRC			- Path to uifc											#
 #  CIOLIB_SRC		- Path to ciolib										#
 #  SMBLIB_SRC		- Path to smblib										#
+#  MT_CFLAGS		- CFLAGS for building MT objects						#
+#  MT_LDFLAGS		- LDFLAGS for linking MT targets						#
 #																			#
 # Common Targets Defined:													#
 #  Implicit C and C++ targets												#
