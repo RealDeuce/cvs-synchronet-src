@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.29 2003/02/10 08:59:25 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.30 2003/02/16 13:10:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -280,7 +280,7 @@ void sbbs_read_ini(
 	mail->rescan_frequency
 		=iniReadShortInt(fp,section,"RescanFrequency",3600);	/* 60 minutes */
 	mail->lines_per_yield
-		=iniReadShortInt(fp,section,"LinesPerYield",100);
+		=iniReadShortInt(fp,section,"LinesPerYield",10);
 	mail->max_recipients
 		=iniReadShortInt(fp,section,"MaxRecipients",100);
 
