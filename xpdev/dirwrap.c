@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.44 2005/04/01 07:21:45 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.43 2005/03/25 06:42:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -818,7 +818,7 @@ char* DLLCALL backslash(char* path)
 
 	p=lastchar(path);
 
-	if(!IS_PATH_DELIM(*p)) {
+	if(*p!='/' && *p!='\\') {
 		*(++p)=PATH_DELIM;
 		*(++p)=0;
 	}
