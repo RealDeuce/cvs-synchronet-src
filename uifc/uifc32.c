@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.45 2004/03/29 23:20:48 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.46 2004/03/30 04:05:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1335,8 +1335,9 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	ch=0;
 	while(ch!=CR)
 	{
-		getstrupd(left, top, width, str, i, &soffset);
 		if(i>j) j=i;
+		str[j]=0;
+		getstrupd(left, top, width, str, i, &soffset);
 		if(f || inkey(1))
 		{
 			if(f)
@@ -1400,7 +1401,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 							for(k=i;k<=j;k++)
 								str[k]=str[k+1]; 
 						}
-						continue; 
+						continue;
 					}
 				case KEY_DC:	/* delete */
 					if(i<j)
