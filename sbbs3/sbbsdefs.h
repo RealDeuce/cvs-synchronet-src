@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.69 2002/07/11 09:50:57 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.70 2002/07/15 20:40:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -964,15 +964,8 @@ typedef struct {						/* File (transfers) Data */
 
 } file_t;
 
-typedef struct {						/* Mail data (taken from index) */
-	ulong	offset, 					/* Offset to header (in bytes) */
-			number; 					/* Number of message */
-	time_t	time;						/* Time imported */
-	ushort	to, 						/* To user # */
-			from,						/* From user # */
-			subj,						/* CRC-16 of subject */
-			attr;						/* Attributes */
-} mail_t;
+typedef idxrec_t post_t;
+typedef idxrec_t mail_t;
 
 typedef struct {						/* System/Node Statistics */
 	ulong 	logons,						/* Total Logons on System */
