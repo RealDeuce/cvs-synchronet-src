@@ -2,7 +2,7 @@
 
 /* Tone Generation Utility (using PC speaker, not sound card) */
 
-/* $Id: tone.c,v 1.7 2005/01/21 03:10:39 rswindell Exp $ */
+/* $Id: tone.c,v 1.8 2005/01/21 03:32:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,8 @@ int s=0;		/* Stacato */
 int octave=4;	/* Default octave */
 
 double pitch=523.50/32.0;	 /* low 'C' */
+
+BOOL use_xp_beep=FALSE;
 
 void play(char *freq, char *dur)
 {
@@ -142,8 +144,12 @@ void play(char *freq, char *dur)
 		len=(d*t)-(d*s);
 	else
 		len=(d*t);
-	if(f)
-		BEEP(f,len);
+	if(f) {
+		if(use_xp_beep)
+			xpbeep(f,len);
+		else
+			BEEP(f,len);
+	}
 	else
 		SLEEP(len);
 	if(s) {
@@ -190,7 +196,7 @@ int main(int argc, char **argv)
 	int		i,j;
 	FILE*	stream;
 
-	sscanf("$Revision: 1.7 $", "%*s %s", revision);
+	sscanf("$Revision: 1.8 $", "%*s %s", revision);
 
 	printf("\nTone Generation Utility  %s  Copyright 2003 Rob Swindell\n\n", revision);
 
@@ -213,6 +219,9 @@ int main(int argc, char **argv)
 						break;
 					case 'V':
 						mode^=NO_VISUAL;
+						break;
+					case 'X':
+						use_xp_beep=TRUE;
 						break;
 					default:
 						usage();
