@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.22 2004/09/01 10:14:16 rswindell Exp $ */
+/* $Id: str_list.c,v 1.21 2004/08/30 06:51:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,11 @@ size_t strListCount(const str_list_t list)
 {
 	size_t i;
 
-	COUNT_LIST_ITEMS(list,i);
+	if(list==NULL)
+		return(0);
+
+	for(i=0; list[i]!=NULL; i++)
+		;
 
 	return(i);
 }
