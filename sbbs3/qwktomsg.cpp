@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.33 2004/12/28 04:32:15 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.32 2004/09/08 03:41:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,20 +44,19 @@
 bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	, uint touser)
 {
-	char*		body;
-	char*		tail;
-	char*		header;
-	char		str[256],col=0,lastch=0,*p,qwkbuf[QWK_BLOCK_LEN+1];
-	uint 		i,j,k,lzh=0,skip=0;
-	long		bodylen,taillen;
-	bool		header_cont=false;
-	bool		success=false;
-	ulong		block,blocks;
+	char*	body;
+	char*	tail;
+	char*	header;
+	char	str[256],col=0,lastch=0,*p,*lzhbuf,qwkbuf[QWK_BLOCK_LEN+1];
+	uint 	i,j,k,lzh=0,storage,skip=0;
+	ushort	xlat;
+	long	l,bodylen,taillen,length;
+	bool	header_cont=false;
+	bool	success=true;
+	ulong	crc,block,blocks;
 	smbmsg_t	msg;
-	struct		tm tm;
-	ushort		xlat=XLAT_NONE;
-	int			storage=SMB_SELFPACK;
-	long		dupechk_hashes=SMB_HASH_SOURCE_ALL;
+	smbmsg_t	remsg;
+	struct	tm tm;
 
 	memset(&msg,0,sizeof(smbmsg_t));		/* Initialize message header */
 	msg.hdr.version=smb_ver();
@@ -109,13 +108,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	if(!(useron.rest&FLAG('Q')) && !fromhub)
 		msg.hdr.thread_back=atol((char *)hdrblk+108);
 
-	if(subnum==INVALID_SUB) { 		/* E-mail */
-		if(cfg.sys_misc&SM_FASTMAIL)
-			storage=SMB_FASTALLOC;
-
-		/* duplicate message-IDs must be allowed in mail database */
-		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
-
+	if((uint)subnum==INVALID_SUB) { 		/* E-mail */
 		msg.idx.to=touser;
 
 		username(&cfg,touser,str);
@@ -123,21 +116,11 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		sprintf(str,"%u",touser);
 		smb_hfield_str(&msg,RECIPIENTEXT,str); 
 	} else {
-		if(cfg.sub[subnum]->misc&SUB_HYPER)
-			storage = SMB_HYPERALLOC;
-		else if(cfg.sub[subnum]->misc&SUB_FAST)
-			storage = SMB_FASTALLOC;
-
-		if(cfg.sub[subnum]->misc&SUB_LZH)
-			xlat=XLAT_LZH;
-
 		sprintf(str,"%25.25s",(char *)hdrblk+21);     /* To user */
 		truncsp(str);
 		smb_hfield_str(&msg,RECIPIENT,str);
 		strlwr(str);
 		msg.idx.to=crc16(str,0); 
-		if(cfg.sub[subnum]->misc&SUB_LZH)
-			xlat=XLAT_LZH;
 	}
 
 	sprintf(str,"%25.25s",hdrblk+71);   /* Subject */
@@ -363,36 +346,174 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 	free(header);
 
-	/* smb_addmsg required ASCIIZ strings */
-	body[bodylen]=0;
-	tail[taillen]=0;
+	/*****************/
+	/* Calculate CRC */
+	/*****************/
+
+	if(smb.status.max_crcs) {
+		crc=0xffffffffUL;
+		for(l=0;l<bodylen;l++)
+			crc=ucrc32(body[l],crc);
+		crc=~crc;
+
+		/*******************/
+		/* Check for dupes */
+		/*******************/
+
+		j=smb_addcrc(&smb,crc);
+		if(j) {
+			if(j==SMB_DUPE_MSG) {
+				bprintf("\r\nDuplicate message\r\n");
+				if(!fromhub) {
+					if(subnum==INVALID_SUB) {
+						sprintf(str,"%s duplicate e-mail attempt",useron.alias);
+						logline("E!",str); 
+					} else {
+						sprintf(str,"%s duplicate message attempt in %s %s"
+							,useron.alias
+							,cfg.grp[cfg.sub[subnum]->grp]->sname
+							,cfg.sub[subnum]->lname);
+						logline("P!",str); 
+					}
+				}
+			} else
+				errormsg(WHERE,ERR_CHK,smb.file,j);
+
+			smb_freemsgmem(&msg);
+			LFREE(body);
+			LFREE(tail);
+			return(false); 
+		} 
+	}
 
 	if(online==ON_REMOTE)
 		bputs(text[WritingIndx]);
 
-	if(smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
-		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+	/*************************************/
+	/* Write SMB message header and text */
+	/*************************************/
 
-	if((i=smb_addmsg(&smb,&msg,storage,dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
-		success=true;
-	else if(i==SMB_DUPE_MSG) {
-		bprintf("\r\n%s\r\n",smb.last_error);
-		if(!fromhub) {
-			if(subnum==INVALID_SUB) {
-				sprintf(str,"%s duplicate e-mail attempt (%s)",useron.alias,smb.last_error);
-				logline("E!",str); 
-			} else {
-				sprintf(str,"%s duplicate message attempt in %s %s (%s)"
-					,useron.alias
-					,cfg.grp[cfg.sub[subnum]->grp]->sname
-					,cfg.sub[subnum]->lname
-					,smb.last_error);
-				logline("P!",str); 
+	if(subnum!=INVALID_SUB && cfg.sub[subnum]->misc&SUB_LZH && bodylen
+		&& bodylen+2+taillen+2>=SDT_BLOCK_LEN
+		&& (lzhbuf=(char *)LMALLOC(bodylen*2))!=NULL) {
+		length=lzh_encode((uchar *)body,bodylen,(uchar *)lzhbuf);
+		if(length>1L
+			&& smb_datblocks(length+4L+taillen+2L)
+				<smb_datblocks(bodylen+2L+taillen+2L)) {
+			bodylen=length; 	/* Compressable */
+			length+=4L;
+			lzh=1;
+			LFREE(body);
+			body=lzhbuf; 
+		}
+		else {					/* Non-compressable */
+			length=bodylen+2L;
+			LFREE(lzhbuf); 
+		} 
+	}
+	else
+		length=bodylen+2L;					 /* +2 for translation string */
+
+	if(taillen)
+		length+=taillen+2L;
+
+	if(length&0xfff00000UL) {
+		errormsg(WHERE,ERR_LEN,"REP msg",length);
+		smb_freemsgmem(&msg);
+		LFREE(body);
+		LFREE(tail);
+		return(false); 
+	}
+
+	if((i=smb_locksmbhdr(&smb))!=0) {
+		errormsg(WHERE,ERR_LOCK,smb.file,i);
+		FREE(body);
+		FREE(tail);
+		return(false); 
+	}
+
+	if(msg.reply_id!=NULL 
+		&& smb_getmsgidx_by_msgid(&smb,&remsg,msg.reply_id)==SMB_SUCCESS)
+		msg.hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
+
+	if(msg.hdr.thread_back
+		&& smb_getstatus(&smb)==SMB_SUCCESS) {
+
+		memset(&remsg,0,sizeof(remsg));
+		remsg.hdr.number=msg.hdr.thread_back;
+
+		if(smb_getmsgidx(&smb,&remsg)==SMB_SUCCESS
+			&& smb_lockmsghdr(&smb,&remsg)==SMB_SUCCESS) {
+
+			if(smb_getmsghdr(&smb,&remsg)==SMB_SUCCESS) {
+
+				/* Add RFC-822 Reply-ID (generate if necessary) */
+				if(msg.reply_id==NULL)
+					smb_hfield_str(&msg,RFC822REPLYID,get_msgid(&cfg,smb.subnum,&remsg));
+
+				/* Add FidoNet Reply if original message has FidoNet MSGID */
+				if(msg.ftn_reply==NULL && remsg.ftn_msgid!=NULL)
+					smb_hfield_str(&msg,FIDOREPLYID,remsg.ftn_msgid);
+
+				smb_updatethread(&smb,&remsg,smb.status.last_msg+1);
+				smb_freemsgmem(&remsg);
 			}
+
+			smb_unlockmsghdr(&smb,&remsg);
 		}
 	}
-	else 
+
+	if(smb.status.attr&SMB_HYPERALLOC) {
+		msg.hdr.offset=smb_hallocdat(&smb);
+		storage=SMB_HYPERALLOC; 
+	}
+	else {
+		if((i=smb_open_da(&smb))!=0) {
+			errormsg(WHERE,ERR_OPEN,smb.file,i);
+			FREE(body);
+			FREE(tail);
+			return(false); 
+		}
+		if((subnum==INVALID_SUB && cfg.sys_misc&SM_FASTMAIL)
+			|| (subnum!=INVALID_SUB && cfg.sub[subnum]->misc&SUB_FAST)) {
+			msg.hdr.offset=smb_fallocdat(&smb,length,1);
+			storage=SMB_FASTALLOC; 
+		}
+		else {
+			msg.hdr.offset=smb_allocdat(&smb,length,1);
+			storage=SMB_SELFPACK; 
+		}
+		smb_close_da(&smb); 
+	}
+
+	if(msg.hdr.offset && msg.hdr.offset<1L) {
+		smb_unlocksmbhdr(&smb);
+		errormsg(WHERE,ERR_READ,smb.file,msg.hdr.offset);
+		smb_freemsgmem(&msg);
+		FREE(body);
+		FREE(tail); 
+	}
+	fseek(smb.sdt_fp,msg.hdr.offset,SEEK_SET);
+	if(lzh) {
+		xlat=XLAT_LZH;
+		fwrite(&xlat,2,1,smb.sdt_fp); 
+	}
+	xlat=XLAT_NONE;
+	fwrite(&xlat,2,1,smb.sdt_fp);
+	fwrite(body,bodylen,1,smb.sdt_fp);
+	smb_dfield(&msg,TEXT_BODY,bodylen+2+(lzh ? 2:0));
+	if(taillen) {
+		fwrite(&xlat,2,1,smb.sdt_fp);
+		fwrite(tail,taillen,1,smb.sdt_fp);
+		smb_dfield(&msg,TEXT_TAIL,taillen+2); 
+	}
+	fflush(smb.sdt_fp);
+
+	if((i=smb_addmsghdr(&smb,&msg,storage))!=SMB_SUCCESS) {	// calls smb_unlocksmbhdr() 
 		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		smb_freemsg_dfields(&smb,&msg,1);
+		success=false;
+	}
 
 	smb_freemsgmem(&msg);
 
