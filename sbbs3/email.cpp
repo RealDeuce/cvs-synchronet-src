@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.11 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: email.cpp,v 1.12 2002/03/14 17:07:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,9 +87,9 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	sprintf(str,"%sFEEDBACK.BIN", cfg.exec_dir);
+	sprintf(str,"%sfeedback.*", cfg.exec_dir);
 	if(usernumber==1 && useron.fbacks && fexist(str)) {
-		exec_bin("FEEDBACK",&main_csi);
+		exec_bin("feedback",&main_csi);
 		if(main_csi.logic!=LOGIC_TRUE)
 			return(false); }
 
