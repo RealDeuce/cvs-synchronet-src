@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.14 2001/10/26 16:20:40 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.15 2001/11/14 21:06:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,6 +90,7 @@
 
 static  wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
+#define sendsocket(s,b,l)	send(s,b,l,0)
 
 #else	/* BSD sockets */
 
@@ -103,6 +104,7 @@ static  wsa_error;
 #define closesocket		close
 #define ioctlsocket		ioctl
 #define ERROR_VALUE		errno
+#define sendsocket		write		// FreeBSD send() is broken
 
 #endif	/* __unix__ */
 
