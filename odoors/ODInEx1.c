@@ -476,7 +476,11 @@ malloc_error:
       /* variables that we must initialize if they weren't already set */
       /* when the custom drop file was read.                           */
       if(od_control.user_timelimit == 0) od_control.user_timelimit = 60;
+#ifdef ODPLAT_NIX
+      if(od_control.port == -1) od_control.baud = 1L;
+#else
       if(od_control.port == -1) od_control.baud = 0L;
+#endif
    }
 
    /* Setup inbound local/remote buffer. */
@@ -505,7 +509,11 @@ force_local:
       od_control.od_info_type = NO_DOOR_FILE;
 
       /* Operate in local mode. */
+#ifdef ODPLAT_NIX
+      od_control.baud = 1L;
+#else
       od_control.baud = 0L;
+#endif
 
       if(!bParsedCmdLine)
       {
@@ -648,7 +656,11 @@ read_dorinfox:
           od_control.port=szIFTemp[3]-'1';
                                           /* determine BPS rate of connection */
           if(fgets((char *)apszDropFileInfo[0],255,pfDropFile)==NULL) goto DropFileFail;
+#ifdef ODPLAT_NIX
+          od_control.baud= (od_control.port == -1) ? 1 : atol((char *)apszDropFileInfo[0]);
+#else
           od_control.baud= (od_control.port == -1) ? 0 : atol((char *)apszDropFileInfo[0]);
+#endif
 
           if(fgets((char *)apszDropFileInfo[1],80,pfDropFile)==NULL) goto DropFileFail;
 
@@ -742,7 +754,11 @@ read_dorinfox:
           if(fgets(szIFTemp,255,pfDropFile)==NULL) goto DropFileFail;
           if(strcmp(szIFTemp,"KB")==0)
           {
+#ifdef ODPLAT_NIX
+             od_control.baud=1;
+#else
              od_control.baud=0;
+#endif
           }
           else
           {
@@ -827,7 +843,11 @@ read_dorinfox:
                 od_control.baud = atol(szIFTemp);
              }
 
+#ifdef ODPLAT_NIX
+             if(od_control.port == -1) od_control.baud = 1L;
+#else
              if(od_control.port == -1) od_control.baud = 0L;
+#endif
 
              /* Read line 6. */
              if(fgets((char *)apszDropFileInfo[3],80,pfDropFile)==NULL) goto DropFileFail;
@@ -1070,7 +1090,11 @@ again:
              if(fgets(szIFTemp,255,pfDropFile)==NULL) goto DropFileFail;
              if(od_control.port==-1)
              {
+#ifdef ODPLAT_NIX
+                od_control.baud=1L;
+#else
                 od_control.baud=0L;
+#endif
              }
              else
              {
@@ -1322,7 +1346,11 @@ finished:
 
 			 /* Read line 3: Baud rate */
           if(fgets((char *)apszDropFileInfo[0],255,pfDropFile)==NULL) goto DropFileFail;
+#ifdef ODPLAT_NIX
+          od_control.baud= (od_control.port == -1) ? 1 : atol((char *)apszDropFileInfo[0]);
+#else
           od_control.baud= (od_control.port == -1) ? 0 : atol((char *)apszDropFileInfo[0]);
+#endif
 
 			 /* Read line 4: BBS Software name and version - unused. */
           if(fgets(szIFTemp, 255, pfDropFile) == NULL) goto DropFileFail;

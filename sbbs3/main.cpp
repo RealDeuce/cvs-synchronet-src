@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.323 2004/03/24 08:11:31 rswindell Exp $ */
+/* $Id: main.cpp,v 1.324 2004/03/30 22:52:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1950,7 +1950,7 @@ void event_thread(void* arg)
 						while(!sbbs->terminated) {
 							mswait(1000);
 							now=time(NULL);
-							if(now-lastnodechk<10)
+							if(now-start>10 && now-lastnodechk<10)
 								continue;
 							for(j=first_node;j<=last_node;j++) {
 								if(sbbs->getnodedat(j,&node,1)!=0)
@@ -1990,7 +1990,7 @@ void event_thread(void* arg)
 						while(!sbbs->terminated) {
 							mswait(1000);
 							now=time(NULL);
-							if(now-lastnodechk<10)
+							if(now-start>10 && now-lastnodechk<10)
 								continue;
 							lastnodechk=now;
 							// Check/change the status of the nodes that we're in control of
