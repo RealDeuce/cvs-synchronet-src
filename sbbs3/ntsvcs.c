@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.25 2005/02/18 10:07:36 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.24 2004/12/04 16:45:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -363,10 +363,11 @@ static void svc_started(void* p)
 	SetServiceStatus(svc->status_handle, &svc->status);
 }
 
-static void read_ini(sbbs_ntsvc_t* svc)
+static void svc_recycle(void *p)
 {
 	char	str[MAX_PATH*2];
 	FILE*	fp;
+	sbbs_ntsvc_t* svc = (sbbs_ntsvc_t*)p;
 	bbs_startup_t*		bbs_startup=NULL;
 	ftp_startup_t*		ftp_startup=NULL;
 	mail_startup_t*		mail_startup=NULL;
@@ -384,10 +385,11 @@ static void read_ini(sbbs_ntsvc_t* svc)
 	else if(svc==&services)
 		services_startup=svc->startup;
 
-	if((fp=fopen(ini_file,"r"))!=NULL) {
-		sprintf(str,"Reading %s",ini_file);
-		svc_lputs(NULL,LOG_INFO,str);
-	}
+	SAFEPRINTF(str,"Reading %s",ini_file);
+	svc_lputs(svc,LOG_INFO,str);
+
+	/* Read .ini file here */
+	fp=fopen(ini_file,"r");
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp 
@@ -402,11 +404,6 @@ static void read_ini(sbbs_ntsvc_t* svc)
 	/* close .ini file here */
 	if(fp!=NULL)
 		fclose(fp);
-}
-
-static void svc_recycle(void *p)
-{
-	read_ini((sbbs_ntsvc_t*)p);
 }
 
 static void svc_terminated(void* p, int code)
@@ -462,8 +459,6 @@ static void WINAPI svc_main(sbbs_ntsvc_t* svc, DWORD argc, LPTSTR *argv)
 
 	svc->status.dwCurrentState=SERVICE_START_PENDING;
 	SetServiceStatus(svc->status_handle, &svc->status);
-
-	read_ini(svc);
 
 	svc->thread(svc->startup);
 
@@ -930,17 +925,18 @@ int main(int argc, char** argv)
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp 
 		,NULL	/* global_startup */
-		,&bbs.autostart			,NULL
-		,&ftp.autostart			,NULL
-		,&web.autostart			,NULL
-		,&mail.autostart		,NULL
-		,&services.autostart	,NULL
+		,&bbs.autostart			,&bbs_startup
+		,&ftp.autostart			,&ftp_startup 
+		,&web.autostart			,&web_startup
+		,&mail.autostart		,&mail_startup 
+		,&services.autostart	,&services_startup
 		);
 
 	/* close .ini file here */
 	if(fp!=NULL)
 		fclose(fp);
 
+	ctrl_dir = bbs_startup.ctrl_dir;
 	if(chdir(ctrl_dir)!=0) {
 		sprintf(str,"!ERROR %d changing directory to: %s", errno, ctrl_dir);
 		svc_lputs(NULL,LOG_ERR,str);
