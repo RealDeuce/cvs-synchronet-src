@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.29 2002/06/14 09:31:49 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.30 2002/06/16 06:20:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -471,7 +471,7 @@ static JSBool
 js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int			opt;
-	int			val=1;
+	int32		val=1;
 	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
