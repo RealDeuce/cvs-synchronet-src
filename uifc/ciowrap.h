@@ -1,4 +1,4 @@
-/* $Id: ciowrap.h,v 1.12 2004/07/02 20:19:06 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.13 2004/07/02 20:27:00 deuce Exp $ */
 
 #ifndef _CIOWRAP_H_
 #define _CIOWRAP_H_
@@ -10,7 +10,7 @@
 #include "curs_fix.h"
 #include "keys.h"
 
-#define MONO	1
+#define MONO	2
 #define	BW80	MONO
 #define COLOR_MODE	3
 
