@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.149 2004/09/08 07:18:56 deuce Exp $
+# $Id: GNUmakefile,v 1.145 2004/07/20 18:38:47 rswindell Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -22,8 +22,6 @@ endif
 
 UIFC_SRC =	../uifc/
 XPDEV	 =	../xpdev/
-SMBLIB_SRC	=	../smblib/
-NEED_SMBLIB	:=	1
 SBBS_SRC =	./
 
 NEED_JAVASCRIPT	:= 1
@@ -32,7 +30,6 @@ NEED_THREADS	:= 1
 include $(XPDEV)/Common.gmake
 include $(SBBS_SRC)/Common.gmake
 include $(UIFC_SRC)/Common.gmake
-include $(SMBLIB_SRC)/Common.gmake
 
 ifeq ($(os),freebsd)
  BSD	=	1
@@ -114,6 +111,11 @@ SERVICE_OBJS	= $(LIBODIR)/services.o $(LIBODIR)/ini_file.o $(LIBODIR)/str_list.o
 
 MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(WEB_OBJS) \
 			$(MAIL_OBJS) $(SERVICE_OBJS)
+SMBLIB_OBJS = \
+	$(LIBODIR)/smblib.o \
+	$(LIBODIR)/filewrap.o \
+	$(LIBODIR)/crc16.o
+
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
@@ -236,9 +238,9 @@ $(NODE): $(NODE_OBJS)
 # FIXSMB Utility
 FIXSMB_OBJS = \
 	$(LIBODIR)/fixsmb.o \
+	$(SMBLIB_OBJS) \
 	$(LIBODIR)/genwrap.o \
 	$(LIBODIR)/dirwrap.o \
-	$(LIBODIR)/str_list.o \
 	$(LIBODIR)/str_util.o
 FORCE$(FIXSMB): $(FIXSMB_OBJS)
 	
@@ -249,6 +251,7 @@ $(FIXSMB): $(FIXSMB_OBJS)
 # CHKSMB Utility
 CHKSMB_OBJS = \
 	$(LIBODIR)/chksmb.o \
+	$(SMBLIB_OBJS) \
 	$(LIBODIR)/smbdump.o \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
@@ -262,9 +265,14 @@ $(CHKSMB): $(CHKSMB_OBJS)
 # SMB Utility
 SMBUTIL_OBJS = \
 	$(LIBODIR)/smbutil.o \
+	$(SMBLIB_OBJS) \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(LIBODIR)/smbtxt.o \
+	$(LIBODIR)/smbdump.o \
+	$(LIBODIR)/crc32.o \
+	$(LIBODIR)/lzh.o \
 	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/str_util.o
 FORCE$(SMBUTIL): $(SMBUTIL_OBJS)
@@ -277,6 +285,7 @@ $(SMBUTIL): $(SMBUTIL_OBJS)
 SBBSECHO_OBJS = \
 	$(LIBODIR)/sbbsecho.o \
 	$(LIBODIR)/ars.o \
+	$(LIBODIR)/crc32.o \
 	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/load_cfg.o \
 	$(LIBODIR)/scfglib1.o \
@@ -289,7 +298,9 @@ SBBSECHO_OBJS = \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
-	$(SMB_OBJS)
+	$(SMBLIB_OBJS) \
+	$(LIBODIR)/smbtxt.o \
+	$(LIBODIR)/lzh.o
 
 FORCE$(SBBSECHO): $(SBBSECHO_OBJS)
 
@@ -331,6 +342,7 @@ ADDFILES_OBJS = \
 	$(LIBODIR)/filedat.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(SMBLIB_OBJS)
 
 FORCE$(ADDFILES): $(ADDFILES_OBJS)
 
@@ -352,6 +364,7 @@ FILELIST_OBJS = \
 	$(LIBODIR)/filedat.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(SMBLIB_OBJS)
 
 FORCE$(FILELIST): $(FILELIST_OBJS)
 
@@ -373,6 +386,7 @@ MAKEUSER_OBJS = \
 	$(LIBODIR)/userdat.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(SMBLIB_OBJS)
 
 FORCE$(MAKEUSER): $(MAKEUSER_OBJS)
 
