@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.105 2003/05/17 04:40:18 deuce Exp $ */
+/* $Id: websrvr.c,v 1.106 2003/05/17 04:48:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1453,7 +1453,7 @@ static BOOL check_request(http_session_t * session)
 	SAFECOPY(str,path);
 	last_slash=str+strlen(root_dir)-1;
 	/* Loop while there's more /s in path*/
-	while((last_slash=strchr(last_slash+1,'/'))!=NULL) {
+	while(((last_slash=strchr(last_slash+1,'/'))!=NULL) || ((last_slash=strchr(last_slash+1,'\\'))!=NULL)) {
 		/* Terminate the path after the slash */
 		*(last_slash+1)=0;
 		strcat(str,"access.ars");
@@ -2330,7 +2330,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.105 $", "%*s %s", revision);
+	sscanf("$Revision: 1.106 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
