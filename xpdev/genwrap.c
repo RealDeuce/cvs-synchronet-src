@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.4 2002/04/06 02:05:25 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.5 2002/04/06 08:46:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,12 +38,15 @@
 #include <string.h>     /* strlen() */
 #include <stdlib.h>	/* RAND_MAX */
 #include <fcntl.h>	/* O_NOCTTY */
+
+#ifdef __unix__
 #ifndef __FreeBSD__
 #include <sys/kd.h>	/* KIOCSOUND */
 #endif
 #ifdef __FreeBSD__
 #include <sys/kbio.h>
 #endif
+#endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
 
