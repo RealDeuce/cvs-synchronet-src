@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.269 2003/07/25 08:18:40 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.270 2003/07/25 10:07:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2469,9 +2469,9 @@ static void smtp_thread(void* arg)
 					,socket, str, reverse_path);
 				strcpy(tmp,"REFUSED");
 				if(dnsbl_result.s_addr==0)	{ /* Don't double-filter */
-					lprintf("%04d !FILTERING IP ADDRESS: %s", socket, host_ip);
+					lprintf("%04d !BLOCKING IP ADDRESS: %s in %s", socket, host_ip, spam_block);
 					filter_ip(&scfg, "SMTP", str, host_name, host_ip, reverse_path, spam_block);
-					strcat(tmp," and FILTERED");
+					strcat(tmp," and BLOCKED");
 				}
 				spamlog(&scfg, "SMTP", tmp, "Attempted recipient in SPAM BAIT list"
 					,host_name, host_ip, rcpt_addr, reverse_path);
@@ -3293,7 +3293,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.269 $", "%*s %s", revision);
+	sscanf("$Revision: 1.270 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
