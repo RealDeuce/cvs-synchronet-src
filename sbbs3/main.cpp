@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.248 2003/04/29 22:47:11 rswindell Exp $ */
+/* $Id: main.cpp,v 1.249 2003/04/30 20:32:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2741,7 +2741,6 @@ int sbbs_t::outcom(uchar ch)
 		return(TXBOF);
 	sem_post(&output_sem);
 	return(0);
-	YIELD();
 }
 
 void sbbs_t::putcom(char *str, int len)
