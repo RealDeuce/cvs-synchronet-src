@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.4 2004/09/15 09:11:08 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.1 2004/09/11 09:27:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,10 +86,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 
 		if(smb_findhash(smb, hashes, &found, /* update? */FALSE)==SMB_SUCCESS) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"duplicate %s: %s found in message #%lu"
-				,smb_hashsourcetype(found.source)
-				,smb_hashsource(msg,found.source)
-				,found.number);
+				,"duplicate %s hash found (message #%lu)"
+				,smb_hashsource(found.source), found.number);
 			retval=SMB_DUPE_MSG;
 			break;
 		}

@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) alloc/free routines */
 
-/* $Id: smballoc.c,v 1.2 2004/09/13 00:31:17 rswindell Exp $ */
+/* $Id: smballoc.c,v 1.1 2004/09/11 09:27:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,7 +157,7 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, ushort refs)
 		if(fseek(smb->sda_fp,sda_offset,SEEK_SET)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) seeking to %lu (0x%lX) of allocation file"
-				,get_errno(),STRERROR(get_errno())
+				,errno,STRERROR(errno)
 				,sda_offset,sda_offset);
 			retval=SMB_ERR_SEEK;
 			break;
@@ -177,7 +177,7 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, ushort refs)
 		if(fseek(smb->sda_fp,-(int)sizeof(i),SEEK_CUR)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) seeking backwards 2 bytes in allocation file"
-				,get_errno(),STRERROR(get_errno()));
+				,errno,STRERROR(errno));
 			retval=SMB_ERR_SEEK;
 			break;
 		}
