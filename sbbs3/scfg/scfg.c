@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.4 2002/01/17 02:25:11 rswindell Exp $ */
+/* $Id: scfg.c,v 1.5 2002/01/20 16:05:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -706,8 +706,8 @@ This is a list of Command Shells configured for your system.
 Command shells are the programmable command and menu structures which
 are available for your BBS.
 
-To add a command shell section, select the desired location with the arrow
-keys and hit  INS .
+To add a command shell section, select the desired location with the
+arrow keys and hit  INS .
 
 To delete a command shell, select it and hit  DEL .
 

@@ -1,6 +1,6 @@
 /* scfgchat.c */
 
-/* $Id: scfgchat.c,v 1.2 2002/01/16 03:12:31 rswindell Exp $ */
+/* $Id: scfgchat.c,v 1.3 2002/01/20 16:05:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,8 +427,8 @@ SETHELP(WHERE);
 /*
 Channel Action Set:
 
-This is a list of available chat action sets.  Select the one that you wish
-to have available in this channel.
+This is a list of available chat action sets.  Select the one that you
+wish to have available in this channel.
 */
 				k=0;
 				for(j=0;j<cfg.total_actsets && j<MAX_OPTS;j++)
@@ -761,7 +761,8 @@ hit  INS .
 
 To delete an action set, select it with the arrow keys and hit  DEL .
 
-To configure an action set, select it with the arrow keys and hit  ENTER .
+To configure an action set, select it with the arrow keys and hit
+ ENTER .
 */
 	i=ulist(j,0,0,45,&actset_dflt,&actset_bar,"Chat Action Sets",opt);
 	if((signed)i==-1)
