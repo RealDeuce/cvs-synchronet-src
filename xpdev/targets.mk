@@ -2,13 +2,10 @@
 
 # Make 'include file' defining targets for xpdel wrappers
 
-# $Id: targets.mk,v 1.1 2002/04/06 10:49:25 rswindell Exp $
+# $Id: targets.mk,v 1.2 2004/03/11 06:26:00 deuce Exp $
 
 # ODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
-WRAPTEST	= $(ODIR)$(SLASH)wraptest$(EXEFILE) 
+WRAPTEST	= $(EXEODIR)$(SLASH)wraptest$(EXEFILE) 
 
-all: $(ODIR) $(WRAPTEST)
-
-clean:
-	@$(DELETE) $(ODIR)$(SLASH)*
+all: $(EXEODIR) $(LIBODIR) $(WRAPTEST)
