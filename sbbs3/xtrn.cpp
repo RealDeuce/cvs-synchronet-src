@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.165 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.168 2004/11/04 02:56:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1031,7 +1031,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 //	lprintf("%s returned %d",realcmdline, retval);
 
-	errorlevel = retval; // Baja-retrievable error value
+	errorlevel = retval; // Baja or JS retrievable error value
 
 	return(retval);
 }
@@ -1235,14 +1235,20 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	int	high_fd;
 	struct timeval timeout;
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
+
 	XTRN_LOADABLE_MODULE;
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 	XTRN_LOADABLE_JS_MODULE;
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
     SAFECOPY(str,cmdline);			/* Set fname to program name only */
 	truncstr(str," ");
     SAFECOPY(fname,getfname(str));
@@ -1259,6 +1265,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	else
 		SAFECOPY(fullcmdline,cmdline);
 
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
  	if(native) { // Native (32-bit) external
 
 		// Current environment passed to child process
@@ -1271,6 +1278,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		sprintf(sbbsnnum,"%u",cfg.node_num);
 		if(setenv("SBBSNNUM",sbbsnnum,1))
         	errormsg(WHERE,ERR_WRITE,"environment",0);
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 	} else {
 #if defined(__FreeBSD__)
@@ -1315,6 +1323,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		sprintf(fullcmdline,"%s -F %s",startup->dosemu_path,str);
 
 #elif defined(__linux__) && defined(USE_DOSEMU)
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 		/* dosemu integration  --  Ryan Underwood, <nemesis @ icequake.net> */
 
@@ -1456,6 +1465,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(dosemubat,"%s\r\n",xtrndrive);
 
 		if(startup_dir!=NULL && startup_dir[0]) {
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 
 			SAFECOPY(str,startup_dir);
 
@@ -1565,6 +1575,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 
 	if(!(mode&EX_INR) && input_thread_running) {
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		pthread_mutex_lock(&input_thread_mutex);
 		input_thread_mutex_locked=true;
 	}
@@ -1575,6 +1586,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 
 	if((mode&EX_INR) && (mode&EX_OUTR))  {
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		struct winsize winsize;
 		struct termios term;
 		memset(&term,0,sizeof(term));
@@ -1602,6 +1614,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		out_pipe[0]=in_pipe[1];
 	}
 	else  {
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		if(mode&EX_INR)
 			if(pipe(in_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"in_pipe",0);
@@ -1623,6 +1636,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			return(-1);
 		}
 	}
+	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 	if(pid==0) {	/* child process */
 		/* Give away all privs for good now */
 		if(startup->setuid!=NULL)
@@ -1893,7 +1907,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		input_thread_mutex_locked=false;
 	}
 
-	return(WEXITSTATUS(i));
+	return(errorlevel = WEXITSTATUS(i));
 }
 
 #endif	/* !WIN32 */
@@ -1970,8 +1984,8 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case 'O':   /* SysOp */
                     strcat(cmd,cfg.sys_op);
                     break;
-                case 'P':   /* COM Port */
-                    strcat(cmd,ultoa(online==ON_LOCAL ? 0:cfg.com_port,str,10));
+                case 'P':   /* Client protocol */
+                    strcat(cmd,client.protocol);
                     break;
                 case 'Q':   /* QWK ID */
                     strcat(cmd,cfg.sys_id);
@@ -2126,7 +2140,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'O':   /* SysOp */
                     strcat(cmd,cfg->sys_op);
                     break;
-                case 'P':   /* COM Port */
+                case 'P':   /* Client protocol */
                     break;
                 case 'Q':   /* QWK ID */
                     strcat(cmd,cfg->sys_id);
