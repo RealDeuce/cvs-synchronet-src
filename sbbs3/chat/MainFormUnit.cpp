@@ -2,7 +2,7 @@
 
 /* Local sysop chat module (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.3 2000/11/03 01:03:51 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.4 2001/07/25 02:42:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -257,6 +257,7 @@ void __fastcall TMainForm::TimerTick(TObject *Sender)
         Local->ReadOnly=false;
     }
     else if(!node.status || node.status>NODE_QUIET || node.action!=NODE_PCHT) {
+        Beep();
         OutputDebugString("CHAT: User Disconnected\r\n");
         MainForm->Caption=MainForm->Caption+" - Disconnected!";
         Timer->Enabled=false;
