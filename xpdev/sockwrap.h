@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.6 2002/08/06 23:53:49 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.7 2002/08/07 08:38:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,6 +110,8 @@ static  wsa_error;
 #define sendsocket		write		// FreeBSD send() is broken
 
 #endif	/* __unix__ */
+
+int sendfilesocket(int sock, int file, long *offset, long count);
 
 #ifndef SHUT_RDWR
 #define SHUT_RDWR		2	/* for shutdown() */
