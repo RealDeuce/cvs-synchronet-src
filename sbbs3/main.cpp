@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.160 2002/06/29 07:00:29 rswindell Exp $ */
+/* $Id: main.cpp,v 1.161 2002/07/07 18:47:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,7 +83,7 @@ static	bool	scfg_reloaded=true;
 static	char *	text[TOTAL_TEXT];
 static	WORD	first_node;
 static	WORD	last_node;
-static	bool	recycle_server=FALSE;
+static	bool	recycle_server=false;
 
 extern "C" {
 
@@ -3124,7 +3124,7 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 #endif
 
-	recycle_server=TRUE;
+	recycle_server=true;
 	do {
 
 	thread_up();
@@ -3557,7 +3557,7 @@ void DLLCALL bbs_thread(void* arg)
 				break;
 			}
 			lprintf("!ERROR %d accepting connection", ERROR_VALUE);
-			continue;
+			break;	// was continue, July-01-2002
 		}
 		char host_ip[32];
 
@@ -3791,8 +3791,10 @@ void DLLCALL bbs_thread(void* arg)
 
 	cleanup(0);
 
-	if(recycle_server) 
+	if(recycle_server) {
 		lprintf("Recycling server...");
+		mswait(2000);
+	}
 
 	} while(recycle_server);
 
