@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.225 2004/09/11 09:36:18 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.226 2004/09/24 20:30:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,8 +103,10 @@
 /***********************/
 /* Synchronet-specific */
 /***********************/
+#ifdef __cplusplus
+	#include "startup.h"
+#endif
 #ifdef SBBS	
-	#include "threadwrap.h"	/* must be before dirwrap.h for OpenBSD FULLPATH */
 	#include "text.h"
 #endif
 #include "genwrap.h"
