@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.29 2002/10/25 00:35:14 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.30 2003/01/09 00:16:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1698,14 +1698,7 @@ int sbbs_t::exec(csi_t *csi)
 			RESTORELINE;
 			return(0);
 		case CS_SELECT_SHELL:
-			csi->logic=LOGIC_TRUE;
-			for(i=0;i<cfg.total_shells;i++)
-				uselect(1,i,"Command Shell",cfg.shell[i]->name,cfg.shell[i]->ar);
-			if((i=uselect(0,useron.shell,0,0,0))>=0) {
-				useron.shell=i;
-				putuserrec(&cfg,useron.number,U_SHELL,8,cfg.shell[i]->code); }
-			else
-				csi->logic=LOGIC_FALSE;
+			csi->logic=select_shell() ? LOGIC_TRUE:LOGIC_FALSE;
 			return(0);
 		case CS_SET_SHELL:
 			csi->logic=LOGIC_TRUE;
@@ -1721,15 +1714,7 @@ int sbbs_t::exec(csi_t *csi)
 			return(0);
 
 		case CS_SELECT_EDITOR:
-			csi->logic=LOGIC_TRUE;
-			for(i=0;i<cfg.total_xedits;i++)
-				uselect(1,i,"External Editor",cfg.xedit[i]->name,cfg.xedit[i]->ar);
-			if(useron.xedit) useron.xedit--;
-			if((i=uselect(0,useron.xedit,0,0,0))>=0) {
-				useron.xedit=i+1;
-				putuserrec(&cfg,useron.number,U_XEDIT,8,cfg.xedit[i]->code); }
-			else
-				csi->logic=LOGIC_FALSE;
+			csi->logic=select_editor() ? LOGIC_TRUE:LOGIC_FALSE;
 			return(0);
 		case CS_SET_EDITOR:
 			csi->logic=LOGIC_TRUE;
@@ -1832,3 +1817,31 @@ int sbbs_t::exec(csi_t *csi)
 			return(0); }
 }
 
+bool sbbs_t::select_shell(void)
+{
+	int i;
+
+	for(i=0;i<cfg.total_shells;i++)
+		uselect(1,i,"Command Shell",cfg.shell[i]->name,cfg.shell[i]->ar);
+	if((i=uselect(0,useron.shell,0,0,0))>=0) {
+		useron.shell=i;
+		putuserrec(&cfg,useron.number,U_SHELL,8,cfg.shell[i]->code); 
+		return(true); 
+	}
+	return(false);
+}
+
+bool sbbs_t::select_editor(void)
+{
+	int i;
+
+	for(i=0;i<cfg.total_xedits;i++)
+		uselect(1,i,"External Editor",cfg.xedit[i]->name,cfg.xedit[i]->ar);
+	if(useron.xedit) useron.xedit--;
+	if((i=uselect(0,useron.xedit,0,0,0))>=0) {
+		useron.xedit=i+1;
+		putuserrec(&cfg,useron.number,U_XEDIT,8,cfg.xedit[i]->code); 
+		return(true);
+	}
+	return(false);
+}

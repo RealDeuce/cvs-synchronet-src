@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.159 2003/01/05 12:33:16 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.160 2003/01/09 00:16:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -360,6 +360,9 @@ public:
 	bool	ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest);
 	bool	ftp_get(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest, bool dir=false);
 	SOCKET	ftp_data_sock(csi_t* csi, SOCKET ctrl_sock, SOCKADDR_IN*);
+
+	bool	select_shell(void);
+	bool	select_editor(void);
 
 	void	sys_info(void);
 	void	user_info(void);
