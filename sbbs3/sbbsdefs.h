@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.9 2000/11/06 11:02:33 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.10 2000/11/06 11:02:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@
 #elif defined(__MSDOS__)
 								"DOS"\
 #else
-								"Uknown OS"\
+								"Unknown OS"\
 #endif
 								"  Version 3.00  "
 #define COPYRIGHT_NOTICE	"Copyright 2000 Rob Swindell"
