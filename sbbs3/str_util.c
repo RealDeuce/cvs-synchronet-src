@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.5 2002/08/16 23:02:51 rswindell Exp $ */
+/* $Id: str_util.c,v 1.6 2002/08/22 08:48:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,6 +239,20 @@ void DLLCALL truncsp(char *str)
 	c=strlen(str);
 	while(c && (uchar)str[c-1]<=SP) c--;
 	str[c]=0;
+}
+
+/****************************************************************************/
+/* Truncate string at first occurance of char in specified character set	*/
+/****************************************************************************/
+char* DLLCALL truncate(char* str, const char* set)
+{
+	char* p;
+
+	p=strpbrk(str,set);
+	if(p!=NULL)
+		*p=0;
+
+	return(p);
 }
 
 /****************************************************************************/
