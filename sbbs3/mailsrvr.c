@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.211 2002/11/13 06:25:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.212 2002/11/14 04:34:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -578,10 +578,15 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 	}
     if(msg->hdr.auxattr&MSG_FILEATTACH) { 
 	    sockprintf(socket,"");
-		lprintf("%04u MIME Encoding %s",socket,filepath);
+		lprintf("%04u MIME Encoding and sending %s",socket,filepath);
         if(!mimeattach(socket,boundary,filepath))
-			lprintf("%04u !ERROR opening/encoding %s",socket,filepath);
-        endmime(socket,boundary);
+			lprintf("%04u !ERROR opening/encoding/sending %s",socket,filepath);
+		else {
+			endmime(socket,boundary);
+			if(msg->hdr.auxattr&MSG_KILLFILE)
+				if(remove(filepath)!=0)
+					lprintf("%04u !ERROR %d removing %s",socket,filepath);
+		}
     }
     sockprintf(socket,".");	/* End of text */
     if(boundary) FREE(boundary);
@@ -2876,7 +2881,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.211 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.212 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
