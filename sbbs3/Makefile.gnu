@@ -7,11 +7,12 @@
 #																		#
 # Linux: make -f Makefile.gnu											#
 # Win32: make -f Makefile.gnu os=win32									#
+# FreeBSD: make -f Makefile.gnu os=freebsd								#
 #																		#
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.22 2000/11/14 00:16:15 rswindell Exp $
+# $Id: Makefile.gnu,v 1.23 2001/10/26 16:27:53 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -33,21 +34,35 @@ DELETE	=	echo y | del
 OUTLIB	=	--output-lib
 LIBS	=	$(LIBDIR)/libwsock32.a $(LIBDIR)/libwinmm.a
 
-else	# Linux
+else	# Unix (begin)
 
 LD		=	ld
 LIBFILE	=	.a
 EXEFILE	=	
+
+ifeq ($(os),freebsd)	# FreeBSD
+LIBODIR	:=	gcc.freebsd.lib
+EXEODIR	:=	gcc.freebsd.exe
+else                    # Linux
 LIBODIR	:=	gcc.linux.lib
 EXEODIR	:=	gcc.linux.exe
+endif
+
 LIBDIR	:=	/usr/lib
-CFLAGS	:=	
 LFLAGS  :=	
 DELETE	=	rm -f -v
 OUTLIB	=	-o
-LIBS	=	$(LIBDIR)/libpthread.a
 
+ifeq ($(os),freebsd)	# FreeBSD
+LIBS	=	
+LIBS	=	-L/usr/local/lib /usr/local/lib/liblthread_p.a
+CFLAGS	:=	-I/usr/local/include/pthread/linuxthreads
+else			        # Linux / Other UNIX
+CFLAGS	:=	
+LIBS	=	$(LIBDIR)/libpthread.a
 endif
+
+endif   # Unix (end)
 
 ifdef DEBUG
 CFLAGS	:=	$(CFLAGS) -g -O0 -D_DEBUG 
