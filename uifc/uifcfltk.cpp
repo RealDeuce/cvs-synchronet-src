@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.15 2003/05/19 19:46:31 rswindell Exp $ */
+/* $Id: uifcfltk.cpp,v 1.16 2003/05/20 21:05:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -797,6 +797,9 @@ int uifcinifltk(uifcapi_t* uifcapi)
     api->list=ulist;
     api->input=uinput;
     api->sethelp=sethelp;
+    api->showhelp=help;
+	api->showbuf=NULL;
+	api->timedisplay=NULL;
 
     api->scrn_len=24;
 	api->scrn_width=80;

@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.28 2002/04/26 01:29:48 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.29 2003/05/20 21:05:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,6 +77,9 @@ int uifcinid(uifcapi_t* uifcapi)
     api->list=ulist;
     api->input=uinput;
     api->sethelp=sethelp;
+    api->showhelp=help;
+	api->showbuf=NULL;
+	api->timedisplay=NULL;
 
     setvbuf(stdout,NULL,_IONBF,0);
     api->scrn_len=24;
