@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.36 2002/12/20 09:51:42 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.37 2002/12/20 09:52:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -215,8 +215,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	if(l<1) {
 		fprintf(qwk,"%-128.128s","Produced by " VERSION_NOTICE "  " COPYRIGHT_NOTICE);
 		msgndx=1; 
-	} else
+	} else {
 		msgndx=l/QWK_BLOCK_LEN;
+		fseek(qwk,0,SEEK_END);
+	}
 	sprintf(str,"%sNEWFILES.DAT",cfg.temp_dir);
 	remove(str);
 	if(!(useron.rest&FLAG('T')) && useron.qwk&QWK_FILES)
