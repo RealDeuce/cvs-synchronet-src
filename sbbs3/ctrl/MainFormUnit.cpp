@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.68 2002/03/19 02:31:15 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.69 2002/03/19 22:33:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,6 +256,7 @@ static void bbs_terminated(int code)
 	Screen->Cursor=crDefault;
 	MainForm->TelnetStart->Enabled=true;
 	MainForm->TelnetStop->Enabled=false;
+	MainForm->TelnetRecycle->Enabled=false;    
     Application->ProcessMessages();
 }
 static void bbs_started(void)
@@ -263,6 +264,7 @@ static void bbs_started(void)
 	Screen->Cursor=crDefault;
 	MainForm->TelnetStart->Enabled=false;
     MainForm->TelnetStop->Enabled=true;
+    MainForm->TelnetRecycle->Enabled=true;    
     Application->ProcessMessages();
 }
 static void bbs_start(void)
@@ -2409,6 +2411,13 @@ void __fastcall TMainForm::ServicesRecycleExecute(TObject *Sender)
 {
 	services_startup.recycle_now=true;
     ServicesRecycle->Enabled=false;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::TelnetRecycleExecute(TObject *Sender)
+{
+	bbs_startup.recycle_now=true;
+    TelnetRecycle->Enabled=false;
 }
 //---------------------------------------------------------------------------
 
