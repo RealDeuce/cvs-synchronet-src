@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.22 2001/06/14 23:47:47 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.23 2001/06/20 01:21:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,13 +338,13 @@ enum {								/* Values for xtrn_t.type			*/
 	,XTRN_DOOR32					/* DOOR32.SYS						*/
 	};
 
-enum {								/* Values for xtrn_t.event			*/
+typedef enum {						/* Values for xtrn_t.event			*/
 	 EVENT_NONE 					/* Only accessible by menu			*/
 	,EVENT_LOGON					/* Execute during logon sequence	*/
 	,EVENT_LOGOFF					/* Execute during logoff sequence	*/
 	,EVENT_NEWUSER					/* Execute during newuser app.		*/
 	,EVENT_BIRTHDAY 				/* Execute on birthday				*/
-	};
+} user_event_t;
 
 									/* Misc bits for event_t.misc		*/
 #define EVENT_EXCL	(1L<<0) 		/* Exclusive						*/
