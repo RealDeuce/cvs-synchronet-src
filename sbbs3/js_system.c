@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.36 2002/09/06 02:20:53 rswindell Exp $ */
+/* $Id: js_system.c,v 1.37 2002/09/06 02:26:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -733,7 +733,7 @@ js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc<1)
 		t=time(NULL);	/* use current time */
 	else
-		JS_ValueToInt32(cx,argv[0],&t);
+		JS_ValueToInt32(cx,argv[0],(int32*)&t);
 	timestr(cfg,&t,str);
 	js_str = JS_NewStringCopyZ(cx, str);
 
@@ -782,7 +782,7 @@ js_secondstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc<1)
 		t=time(NULL);	/* use current time */
 	else
-		JS_ValueToInt32(cx,argv[0],&t);
+		JS_ValueToInt32(cx,argv[0],(int32*)&t);
 	sectostr(t,str);
 	js_str = JS_NewStringCopyZ(cx, str);
 

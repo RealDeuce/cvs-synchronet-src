@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.42 2002/09/06 02:01:15 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.43 2002/09/06 02:26:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2438,7 +2438,7 @@ js_getnstime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	if(argc)
-		JS_ValueToInt32(cx,argv[0],&t);
+		JS_ValueToInt32(cx,argv[0],(int32*)&t);
 
 	if(sbbs->inputnstime(&t)==true)
 		*rval = INT_TO_JSVAL(t);
