@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.8 2001/03/14 22:02:56 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.9 2001/03/25 14:54:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,7 @@ void sbbs_t::logout()
 	#endif
 		sys_status&=~SS_SYSALERT;
 		if(cfg.sys_logout[0])		/* execute system logoff event */
-			external(cmdstr(cfg.sys_logout,nulstr,nulstr,NULL),EX_OUTL);	/* EX_CC */
+			external(cmdstr(cfg.sys_logout,nulstr,nulstr,NULL),EX_OUTL|EX_OFFLINE);
 		}
 
 	if(cfg.logout_mod[0])
