@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.267 2005/02/16 02:32:04 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.268 2005/02/17 01:58:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1724,7 +1724,7 @@ static BOOL get_fullpath(http_session_t * session)
 		else
 			safe_snprintf(str,sizeof(str),"%s%s",root_dir,session->req.physical_path);
 	} else
-		sprintf(str,"%s%s",root_dir,session->req.physical_path);
+		safe_snprintf(str,sizeof(str),"%s%s",root_dir,session->req.physical_path);
 
 	if(FULLPATH(session->req.physical_path,str,sizeof(session->req.physical_path))==NULL) {
 		send_error(session,error_500);
@@ -3004,7 +3004,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.267 $", "%*s %s", revision);
+	sscanf("$Revision: 1.268 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
