@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.276 2003/05/11 19:38:17 deuce Exp $ */
+/* $Id: main.cpp,v 1.277 2003/05/12 22:26:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3814,6 +3814,7 @@ void DLLCALL bbs_thread(void* arg)
 	            lprintf("Node %d !ERROR %d binding local spy socket %d to %s"
 	                , i, errno, uspy_listen_socket[i-1], uspy_addr.sun_path);
 	            close_socket(uspy_listen_socket[i-1]);
+				uspy_listen_socket[i-1]=INVALID_SOCKET;
 	            continue;
 	        }
             lprintf("Node %d local spy socket %d bound to %s"
@@ -3821,6 +3822,7 @@ void DLLCALL bbs_thread(void* arg)
 	        if(listen(uspy_listen_socket[i-1],1))  {
 	            lprintf("Node %d !ERROR %d listening local spy socket %d", i, errno);
 	            close_socket(uspy_listen_socket[i-1]);
+				uspy_listen_socket[i-1]=INVALID_SOCKET;
 	            continue;
 			}
 	        uspy_addr_len=sizeof(uspy_addr);
