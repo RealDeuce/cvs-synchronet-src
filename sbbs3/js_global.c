@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.49 2003/03/13 01:48:04 rswindell Exp $ */
+/* $Id: js_global.c,v 1.50 2003/03/13 02:59:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,6 +85,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     jsval		result;
 	scfg_t*		cfg;
 	JSObject*	js_argv;
+	JSBool		success;
 
 	*rval=JSVAL_FALSE;
 
@@ -119,11 +120,16 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JS_ClearPendingException(cx);
 
 	if((script=JS_CompileFile(cx, obj, path))==NULL)
-		return(JS_TRUE);
+		return(JS_FALSE);
 
-	*rval = BOOLEAN_TO_JSVAL(JS_ExecuteScript(cx, obj, script, &result));
+	success = JS_ExecuteScript(cx, obj, script, &result);
 
 	JS_DestroyScript(cx, script);
+
+	if(!success)
+		return(JS_FALSE);
+
+	*rval = result;
 
     return(JS_TRUE);
 }
