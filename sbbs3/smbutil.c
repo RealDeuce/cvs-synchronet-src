@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.3 2000/10/29 04:58:17 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.4 2000/10/30 02:24:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,7 @@
 
 /* ANSI */
 #include <time.h>	/* time */
+#include <errno.h>	/* errno */
 
 #include "smblib.h"
 #include "smbwrap.h"
@@ -567,10 +568,10 @@ while(l<count) {
 		break; }
 
 	sprintf(when_written,"%.24s %s"
-		,timestr(&msg.hdr.when_written.time)
+		,timestr((time_t*)&msg.hdr.when_written.time)
 		,zonestr(msg.hdr.when_written.zone));
 	sprintf(when_imported,"%.24s %s"
-		,timestr(&msg.hdr.when_imported.time)
+		,timestr((time_t*)&msg.hdr.when_imported.time)
 		,zonestr(msg.hdr.when_imported.zone));
 
 	printf( "%-20.20s %s\n"
@@ -1245,7 +1246,7 @@ while(!done) {
 				? faddrtoa(*(fidoaddr_t *)msg.from_net.addr)
 					: msg.from_net.addr);
 		printf("\nDate : %.24s %s"
-			,timestr(&msg.hdr.when_written.time)
+			,timestr((time_t*)&msg.hdr.when_written.time)
 			,zonestr(msg.hdr.when_written.zone));
 
 		printf("\n\n");
