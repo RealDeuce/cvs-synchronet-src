@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.6 2002/05/02 20:52:25 rswindell Exp $
+# $Id: GNUmakefile,v 1.7 2002/05/02 21:16:34 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -75,5 +75,5 @@ $(ODIR):
 # Executable Build Rule
 $(WRAPTEST): $(ODIR)/wraptest.o $(OBJS)
 	@echo Linking $@
-	@$(CC) $(LFLAGS) -o $@ $^
+	@$(CC) -o $@ $(LFLAGS) $^
 
