@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.127 2003/07/11 08:22:53 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.128 2003/07/11 22:18:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1433,6 +1433,10 @@ int main(int argc, char** argv)
 	/* Read in configuration files */
     memset(&scfg,0,sizeof(scfg));
     SAFECOPY(scfg.ctrl_dir,bbs_startup.ctrl_dir);
+
+	if(chdir(scfg.ctrl_dir)!=0)
+		fprintf(stderr,"\n!ERROR %d changing directory to: %s\n", errno, scfg.ctrl_dir);
+
     scfg.size=sizeof(scfg);
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
 	sprintf(str,"Loading configuration files from %s", scfg.ctrl_dir);
