@@ -9,7 +9,7 @@
 # Win32: make -f Makefile.gnu os=win32									#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.10 2000/10/30 12:35:21 rswindell Exp $
+# $Id: Makefile.gnu,v 1.11 2000/10/30 12:53:27 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -29,6 +29,7 @@ CFLAGS	:=	-mno-cygwin
 LFLAGS  :=	--target=i386-mingw32 -mno-cygwin
 DELETE	=	echo y | del 
 OUTLIB	=	--output-lib
+LIBS	=	$(LIBDIR)/libwsock32.a $(LIBDIR)/libwinmm.a
 
 else	# Linux
 
@@ -42,6 +43,7 @@ CFLAGS	:=
 LFLAGS  :=	
 DELETE	=	rm -f -v
 OUTLIB	=	-o
+LIBS	=	$(LIBDIR)/libc.a
 
 endif
 
@@ -62,7 +64,6 @@ include sbbsdefs.mak	# defines $(SBBSDEFS)
 
 SBBSLIB	=	$(LIBODIR)/sbbs.a
 	
-LIBS	=	$(LIBDIR)/libwsock32.a $(LIBDIR)/libwinmm.a
 
 # Implicit C Compile Rule for SBBS
 $(LIBODIR)/%.o : %.c
