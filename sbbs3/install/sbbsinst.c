@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.4 2003/01/22 03:36:41 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.5 2003/01/22 03:37:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -358,7 +358,7 @@ endif
 		fputs("SUFFIX  :=  debug\n",makefile);
 		fputs("MKFLAGS	+=	DEBUG=1\n",makefile);
 	}
-	if(param.cflags[0])
+	if(params.cflags[0])
 		fprintf(makefile,"MKFLAGS	+=	CFLAGS=%s\n",params.cflags);
 	fputs("SBBSDIR := ",makefile);
 	fputs(params.install_path,makefile);
