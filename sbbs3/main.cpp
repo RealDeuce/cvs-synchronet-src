@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.278 2003/05/13 00:12:05 rswindell Exp $ */
+/* $Id: main.cpp,v 1.279 2003/05/13 05:07:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -909,6 +909,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 {
 	char buf[16];
+	
+	if(sys_status&SS_RLOGIN)	
+		return; /* RLogin does not use Telnet commands */
 
 	if(cmd<TELNET_WILL) {
 		if(startup->options&BBS_OPT_DEBUG_TELNET)
