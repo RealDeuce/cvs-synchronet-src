@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.45 2000/12/20 18:47:18 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.46 2001/03/03 00:00:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -481,9 +481,14 @@ static void sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, char* fromadd
 static u_long resolve_ip(char *addr)
 {
 	HOSTENT*	host;
+	char*		p;
 
-	if(isdigit(addr[0]) && strchr(addr,'.'))
+	for(p=addr;*p;p++)
+		if(*p!='.' && !isdigit(*p))
+			break;
+	if(!(*p))
 		return(inet_addr(addr));
+
 	if ((host=gethostbyname(addr))==NULL) {
 		lprintf("0000 !ERROR resolving host name: %s",addr);
 		return(0);
