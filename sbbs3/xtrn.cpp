@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.137 2003/05/07 18:28:03 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.138 2003/05/07 22:05:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1355,10 +1355,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			if(rd>(int)sizeof(buf))
 				rd=sizeof(buf);
 
-			if((rd=read(out_pipe[0],buf,rd))<1) {
-				YIELD();
+			if((rd=read(out_pipe[0],buf,rd))<1)
 				continue;
-			}
 				
 			if(mode&EX_BIN)	/* telnet IAC expansion */
    	       		bp=telnet_expand(buf, rd, output_buf, output_len);
