@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.19 2004/09/08 03:39:15 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.17 2004/04/08 00:27:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,6 +53,8 @@ extern "C" {
 
 extern const char*	scfgnulstr;
 
+#define FREE_AND_NULL(x) if(x!=NULL) { FREE(x); x=NULL; }
+
 #if defined(SCFG)	/* Don't compile AR strings for SCFG */
 	#define ARSTR(str,cfg)	NULL
     #define FREE_AR(x)
@@ -86,6 +88,7 @@ void	free_chat_cfg(scfg_t* cfg);
 
 long	aftol(char *str);              /* Converts flag string to long */
 char*	ltoaf(long l, char *str);     /* Converts long to flag string */
+char*	faddrtoa(faddr_t* addr, char* str);   /* FidoNet address to ASCII text conversion */
 uchar	attrstr(char *str);		/* Convert ATTR string into attribute int */
 
 #ifdef __cplusplus

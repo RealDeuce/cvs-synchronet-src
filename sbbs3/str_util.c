@@ -2,13 +2,13 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.29 2004/09/08 03:37:11 rswindell Exp $ */
+/* $Id: str_util.c,v 1.27 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -313,6 +313,86 @@ int strsame(char *str1, char *str2)
 	return(j);
 }
 
+/****************************************************************************/
+/* Returns an ASCII string for FidoNet address 'addr'                       */
+/****************************************************************************/
+char *faddrtoa(faddr_t* addr, char* outstr)
+{
+	static char str[64];
+    char point[25];
+
+	if(addr==NULL)
+		return("0:0/0");
+	sprintf(str,"%hu:%hu/%hu",addr->zone,addr->net,addr->node);
+	if(addr->point) {
+		sprintf(point,".%hu",addr->point);
+		strcat(str,point); }
+	if(outstr==NULL)
+		return(str);
+	strcpy(outstr,str);
+	return(outstr);
+}
+
+char* DLLCALL net_addr(net_t* net)
+{
+	if(net->type==NET_FIDO)
+		return(faddrtoa((faddr_t*)net->addr,NULL));
+	return(net->addr);
+}
+
+static ulong msgid_serialno(smbmsg_t* msg)
+{
+	return (msg->idx.time-1000000000) + msg->idx.number;
+}
+
+/****************************************************************************/
+/* Returns a FidoNet (FTS-9) message-ID										*/
+/****************************************************************************/
+char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg)
+{
+	static char msgid[256];
+
+	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0)
+		return(msg->ftn_msgid);
+
+	snprintf(msgid,sizeof(msgid)
+		,"%s %08lx %lu.%s %08lX"
+		,faddrtoa(&sub->faddr,NULL)
+		,msgid_serialno(msg)
+		,msg->idx.number
+		,sub->code
+		,msgid_serialno(msg)
+		);
+
+	return(msgid);
+}
+
+/****************************************************************************/
+/* Return a general purpose (RFC-822) message-ID							*/
+/****************************************************************************/
+char* DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg)
+{
+	static char msgid[256];
+
+	if(msg->id!=NULL && *msg->id!=0)
+		return(msg->id);
+
+	if(subnum>=cfg->total_subs)
+		snprintf(msgid,sizeof(msgid)
+			,"<%08lX.%lu@%s>"
+			,msg->idx.time
+			,msg->idx.number
+			,cfg->sys_inetaddr);
+	else
+		snprintf(msgid,sizeof(msgid)
+			,"<%08lX.%lu.%s@%s>"
+			,msg->idx.time
+			,msg->idx.number
+			,cfg->sub[subnum]->code
+			,cfg->sys_inetaddr);
+
+	return(msgid);
+}
 
 /****************************************************************************/
 /* Returns string for 2 digit hex+ numbers up to 575						*/
@@ -415,3 +495,17 @@ size_t DLLCALL strip_invalid_attr(char *strin)
 	return(a);
 }
 
+ushort DLLCALL subject_crc(char *subj)
+{
+	char str[512];
+
+	while(!strnicmp(subj,"RE:",3)) {
+		subj+=3;
+		while(*subj==' ')
+			subj++; 
+	}
+
+	SAFECOPY(str,subj);
+	strlwr(str);
+	return(crc16(str,0));
+}

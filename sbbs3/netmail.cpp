@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.30 2004/09/02 21:53:47 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.29 2003/12/07 03:52:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -143,13 +143,13 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 			remove(msgpath);
 			return(false); } }
 
-	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=SMB_SUCCESS) {
+	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);
 		return(false); }
 	sprintf(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=INVALID_SUB;
-	if((i=smb_open(&smb))!=SMB_SUCCESS) {
+	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(false); }
@@ -159,13 +159,13 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 		smb.status.max_age=cfg.mail_maxage;
 		smb.status.max_msgs=MAX_SYSMAIL;
 		smb.status.attr=SMB_EMAIL;
-		if((i=smb_create(&smb))!=SMB_SUCCESS) {
+		if((i=smb_create(&smb))!=0) {
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			errormsg(WHERE,ERR_CREATE,smb.file,i);
 			return(false); } }
 
-	if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
+	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_LOCK,smb.file,i);
@@ -180,7 +180,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 		errormsg(WHERE,ERR_LEN,msgpath,length);
 		return(false); }
 
-	if((i=smb_open_da(&smb))!=SMB_SUCCESS) {
+	if((i=smb_open_da(&smb))!=0) {
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
@@ -259,11 +259,10 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 	smb_stack(&smb,SMB_STACK_POP);
 
 	smb_freemsgmem(&msg);
-	if(i!=SMB_SUCCESS) {
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+	if(i) {
 		smb_freemsgdat(&smb,offset,length,1);
-		return(false); 
-	}
+		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		return(false); }
 
 	if(mode&WM_FILE && online==ON_REMOTE)
 		autohangup();
@@ -339,13 +338,13 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 		bputs(text[Aborted]);
 		return(false); }
 
-	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=SMB_SUCCESS) {
+	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);
 		return(false); }
 	sprintf(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=INVALID_SUB;
-	if((i=smb_open(&smb))!=SMB_SUCCESS) {
+	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(false); }
@@ -355,13 +354,13 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 		smb.status.max_msgs=MAX_SYSMAIL;
 		smb.status.max_age=cfg.mail_maxage;
 		smb.status.attr=SMB_EMAIL;
-		if((i=smb_create(&smb))!=SMB_SUCCESS) {
+		if((i=smb_create(&smb))!=0) {
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			errormsg(WHERE,ERR_CREATE,smb.file,i,smb.last_error);
 			return(false); } }
 
-	if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
+	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
@@ -376,7 +375,7 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 		errormsg(WHERE,ERR_LEN,msgpath,length);
 		return(false); }
 
-	if((i=smb_open_da(&smb))!=SMB_SUCCESS) {
+	if((i=smb_open_da(&smb))!=0) {
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
@@ -448,11 +447,10 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 	smb_stack(&smb,SMB_STACK_POP);
 
 	smb_freemsgmem(&msg);
-	if(i!=SMB_SUCCESS) {
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+	if(i) {
 		smb_freemsgdat(&smb,offset,length,1);
-		return(false); 
-	}
+		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		return(false); }
 
 	useron.emails++;
 	logon_emails++;
