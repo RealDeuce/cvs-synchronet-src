@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.30 2003/04/08 23:55:53 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.31 2003/04/09 00:09:44 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -64,6 +64,7 @@ int main()
 		else
 			SLEEP(1);
 	}
+	printf("Waiting for all sopen_child_threads to close...\n");
 	SLEEP(5000);	/* wait for all threads to quit */
 
 	/* Exclusive sopen test */
@@ -96,9 +97,8 @@ int main()
 	else
 		printf("!FAILURE lock() non-functional (or file already locked)\n");
 	if(lock(fd,LOCK_OFFSET,LOCK_LEN)==0)
-		printf("Subsequent lock succeeded\n");
-	else
-		perror("!Subsequent lock of "LOCK_FNAME);
+		printf("!FAILURE: Subsequent lock of region was allowed\n");
+		
 	if(_beginthread(
 		  lock_test_thread	/* entry point */
 		 ,0  				/* stack size (0=auto) */
