@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.4 2004/09/13 06:23:27 deuce Exp $
+# $Id: Makefile,v 1.5 2004/09/14 02:37:11 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -22,8 +22,7 @@ OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)win32cio$(OFILE)
 
 # SBBS DLL Link Rule
 $(CIOLIB-MT): $(OBJS)
-    @echo Creating $<
+	@echo Creating $< ...
 	-$(QUIET)$(DELETE) $@
-	$(QUIET)for %f in ($(OBJS)) do $(QUIET)tlib $@ +%f
-
+	&$(QUIET)tlib $@ +$**
 
