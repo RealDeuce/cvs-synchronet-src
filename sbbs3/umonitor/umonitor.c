@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.53 2004/02/23 02:08:32 deuce Exp $ */
+/* $Id: umonitor.c,v 1.52 2004/02/23 01:49:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -474,12 +474,12 @@ int view_logs(scfg_t *cfg)
 				freeopt(opt);
 				return(0);
 			case 0:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.lol",cfg->logs_dir,tm.tm_mon+1,tm.tm_mday
+				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg->logs_dir,tm.tm_mon+1,tm.tm_mday
 					,TM_YEAR(tm.tm_year));
 				view_log(str,"Todays Callers");
 				break;
 			case 1:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.lol",cfg->logs_dir,tm_yest.tm_mon+1
+				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg->logs_dir,tm_yest.tm_mon+1
 					,tm_yest.tm_mday,TM_YEAR(tm_yest.tm_year));
 				view_log(str,"Yesterdays Callers");
 				break;
@@ -788,7 +788,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.53 $", "%*s %s", revision);
+	sscanf("$Revision: 1.52 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
