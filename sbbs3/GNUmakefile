@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.75 2003/04/30 10:41:25 rswindell Exp $
+# $Id: GNUmakefile,v 1.76 2003/04/30 16:27:23 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -46,7 +46,7 @@ else
   COMPILE_MSG	:= Depending
  else
   CC		=	gcc
-  CCPP	=	c++
+  CCPP	=	g++
   LD		=	ld
   COMPILE_MSG	:= Compiling
  endif
