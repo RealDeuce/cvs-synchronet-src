@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.100 2003/04/15 00:18:13 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.101 2003/04/22 03:07:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2600,7 +2600,7 @@ int fmsgtosmsg(uchar HUGE16 *fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		crc=~crc;
 		i=smb_addcrc(&smb[cur_smb],crc);
 		if(i) {
-			if(i==1)
+			if(i==SMB_DUPE_MSG)
 				printf("Duplicate ");
 			else
 				printf("smb_addcrc returned %d ",i);
@@ -4054,7 +4054,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.100 $", "%*s %s", revision);
+	sscanf("$Revision: 1.101 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.21 2003/04/01 09:36:33 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.22 2003/04/22 03:07:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -351,7 +351,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 
 		j=smb_addcrc(&smb,crc);
 		if(j) {
-			if(j==1) {
+			if(j==SMB_DUPE_MSG) {
 				bprintf("\r\nDuplicate message\r\n");
 				if(!fromhub) {
 					if(subnum==INVALID_SUB) {
