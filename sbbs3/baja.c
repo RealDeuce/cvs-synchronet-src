@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.1 2000/10/10 11:25:58 rswindell Exp $ */
+/* $Id: baja.c,v 1.2 2000/10/21 00:25:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3121,7 +3121,7 @@ int main(int argc, char **argv)
 	int i,j;
 
 printf("\nBAJA v2.10 ú Synchronet Shell/Module Compiler ú "
-	"Developed 1995-97 Rob Swindell\n");
+	"Copyright 2000 Rob Swindell\n");
 
 for(i=1;i<argc;i++)
 	if(argv[i][0]=='/')
