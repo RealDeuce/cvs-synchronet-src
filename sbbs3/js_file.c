@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.72 2004/08/23 23:34:46 rswindell Exp $ */
+/* $Id: js_file.c,v 1.70 2004/06/16 09:54:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,9 +113,6 @@ static int fopenflags(char *mode)
 		else
 			flags|=O_RDONLY;
 	}
-
-	if(strchr(mode,'e'))
-		flags|=O_EXCL;
 
 	return(flags);
 }
@@ -470,27 +467,27 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	key=JS_GetStringBytes(JS_ValueToString(cx, argv[1]));
 
 	if(dflt==JSVAL_VOID) {	/* unspecified default value */
-		*rval=get_value(cx,iniReadString(p->fp,section,key,NULL,buf));
+		*rval=get_value(cx,iniGetString(p->fp,section,key,NULL,buf));
 		return(JS_TRUE);
 	}
 
 	switch(JSVAL_TAG(dflt)) {
 		case JSVAL_STRING:
 			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,
-				iniReadString(p->fp,section,key
+				iniGetString(p->fp,section,key
 					,JS_GetStringBytes(JS_ValueToString(cx,dflt)),buf)));
 			break;
 		case JSVAL_BOOLEAN:
 			*rval = BOOLEAN_TO_JSVAL(
-				iniReadBool(p->fp,section,key,JSVAL_TO_BOOLEAN(dflt)));
+				iniGetBool(p->fp,section,key,JSVAL_TO_BOOLEAN(dflt)));
 			break;
 		case JSVAL_DOUBLE:
 			JS_NewNumberValue(cx
-				,iniReadFloat(p->fp,section,key,*JSVAL_TO_DOUBLE(dflt)),rval);
+				,iniGetFloat(p->fp,section,key,*JSVAL_TO_DOUBLE(dflt)),rval);
 			break;
 		case JSVAL_OBJECT:
 		    array = JS_NewArrayObject(cx, 0, NULL);
-			list=iniReadStringList(p->fp,section,key,",",JS_GetStringBytes(JS_ValueToString(cx,dflt)));
+			list=iniGetStringList(p->fp,section,key,",",JS_GetStringBytes(JS_ValueToString(cx,dflt)));
 			for(i=0;list && list[i];i++) {
 				val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,list[i]));
 				if(!JS_SetElement(cx, array, i, &val))
@@ -502,7 +499,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		default:
 			if(JSVAL_IS_NUMBER(dflt)) {
 				JS_ValueToInt32(cx,dflt,&i);
-				JS_NewNumberValue(cx,iniReadInteger(p->fp,section,key,i),rval);
+				JS_NewNumberValue(cx,iniGetInteger(p->fp,section,key,i),rval);
 				break;
 			}
 			break;
@@ -594,7 +591,7 @@ js_iniGetSections(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 
     array = JS_NewArrayObject(cx, 0, NULL);
 
-	list = iniReadSectionList(p->fp,prefix);
+	list = iniGetSectionList(p->fp,prefix);
     for(i=0;list && list[i];i++) {
 		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,list[i]));
         if(!JS_SetElement(cx, array, i, &val))
@@ -628,7 +625,7 @@ js_iniGetKeys(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
     array = JS_NewArrayObject(cx, 0, NULL);
 
-	list = iniReadKeyList(p->fp,section);
+	list = iniGetKeyList(p->fp,section);
     for(i=0;list && list[i];i++) {
 		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,list[i]));
         if(!JS_SetElement(cx, array, i, &val))
@@ -661,7 +658,7 @@ js_iniGetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
     object = JS_NewObject(cx, NULL, NULL, obj);
 
-	list = iniReadNamedStringList(p->fp,section);
+	list = iniGetNamedStringList(p->fp,section);
     for(i=0;list && list[i];i++) {
 		JS_DefineProperty(cx, object, list[i]->name
 			,get_value(cx,list[i]->value)
@@ -743,7 +740,7 @@ js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
     array = JS_NewArrayObject(cx, 0, NULL);
 
-	sec_list = iniReadSectionList(p->fp,prefix);
+	sec_list = iniGetSectionList(p->fp,prefix);
     for(i=0;sec_list && sec_list[i];i++) {
 	    object = JS_NewObject(cx, NULL, NULL, obj);
 
@@ -754,7 +751,7 @@ js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,sec_name))
 			,NULL,NULL,JSPROP_ENUMERATE);
 
-		key_list = iniReadNamedStringList(p->fp,sec_list[i]);
+		key_list = iniGetNamedStringList(p->fp,sec_list[i]);
 		for(k=0;key_list && key_list[k];k++)
 			JS_DefineProperty(cx, object, key_list[k]->name
 				,get_value(cx,key_list[k]->value)
@@ -1493,7 +1490,6 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>w+</tt> open an empty file for both reading and writing; if the given file exists, its contents are destroyed<br>"
 		"<tt>a+</tt> open for reading and appending<br>"
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
-		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access<br>"
 		)
 	,310
 	},		
