@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.11 2003/05/15 02:32:52 deuce Exp $
+# $Id: GNUmakefile,v 1.12 2003/05/16 01:02:09 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -79,6 +79,7 @@ endif
 vpath %.c $(UIFC) $(XPDEV) $(SBBS3)
 
 OBJS	:=	$(LIBODIR)/filewrap.o \
+			$(LIBODIR)/chat.o \
 			$(LIBODIR)/uifcc.o \
 			$(LIBODIR)/sockwrap.o \
 			$(LIBODIR)/dirwrap.o \
