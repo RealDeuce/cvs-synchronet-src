@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.22 2004/03/11 01:19:44 deuce Exp $ */
+/* $Id: uedit.c,v 1.23 2004/03/11 06:04:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1683,7 +1683,6 @@ int finduser(scfg_t *cfg, user_t *user)
 		for(i=1; i<=last; i++) {
 			user->number=i;
 			getuserdat(cfg,user);
-			/* Only FreeBSD has strcasestr */
 			if(strcasestr(user->alias, str)!=NULL || strcasestr(user->name, str)!=NULL || strcasestr(user->handle, str)!=NULL 
 					|| user->number==un) {
 				if((opt[j]=(struct user_list *)malloc(sizeof(struct user_list)))==NULL)
@@ -1729,7 +1728,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.22 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
