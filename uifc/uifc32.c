@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.75 2004/07/05 08:03:27 deuce Exp $ */
+/* $Id: uifc32.c,v 1.82 2004/07/26 22:35:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -48,7 +48,7 @@
 	#define mswait(x) Sleep(x)
 #endif
 
-#include "ciowrap.h"
+#include "ciolib.h"
 #include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
@@ -289,9 +289,8 @@ int uifcini32(uifcapi_t* uifcapi)
  */
 #endif
 #ifdef __unix__
-	initciowrap(api->mode);
 	#ifdef NCURSES_VERSION_MAJOR
-		if(cio_api.mode==CURSES_MODE) {
+		if(cio_api.mode==CIOWRAP_CURSES_MODE) {
 			ESCDELAY=api->esc_delay;
 			if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
 				api->mode|=UIFC_MOUSE;
@@ -433,7 +432,7 @@ static void hidemouse(void)
 			mouse_set(0);
 		#endif
 		#ifdef NCURSES_VERSION_MAJOR
-			if(cio_api.mode==CURSES_MODE)
+			if(cio_api.mode==CIOWRAP_CURSES_MODE)
 				mousemask(0,NULL);
 		#endif
 	}
@@ -446,7 +445,7 @@ static void showmouse(void)
 			mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED);
 		#endif
 		#ifdef NCURSES_VERSION_MAJOR
-			if(cio_api.mode==CURSES_MODE)
+			if(cio_api.mode==CIOWRAP_CURSES_MODE)
 				mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL);
 		#endif
 	}
@@ -518,7 +517,7 @@ void uifcbail(void)
 	hidemouse();
 	clrscr();
 #ifdef __unix__
-	if(cio_api.mode==CURSES_MODE) {
+	if(cio_api.mode==CIOWRAP_CURSES_MODE) {
 		nl();
 		nocbreak();
 		noraw();
@@ -637,7 +636,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	if(mode&WIN_PUT) bline|=BL_PUT;
 	bottomline(bline);
 	while(opts<MAX_OPTS)
-		if(option[opts][0]==0)
+		if(option[opts]==NULL || option[opts][0]==0)
 			break;
 		else opts++;
 	if(mode&WIN_XTR && opts<MAX_OPTS)
@@ -964,7 +963,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			i=inkey();
 			if(i==BS)
 				i=ESC;
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 			if(i==CIO_KEY_MOUSE) {
 #else
 			if(0) {
@@ -1403,7 +1402,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					default:
-						return(-2-i);
+						if(mode&WIN_EXTKEYS)
+							return(-2-i);
+						break;
 				} 
 			}
 			else {
@@ -1587,7 +1588,7 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	if(mode&WIN_T2B)
 		top=(api->scrn_len-height+1)/2-2;
 	if(mode&WIN_L2R)
-		left=(SCRN_RIGHT-SCRN_LEFT-width+2)/2;
+		left=(SCRN_RIGHT-SCRN_LEFT-width+1)/2;
 	if(left<=-(SCRN_LEFT))
 		left=-(SCRN_LEFT)+1;
 	if(top<0)
@@ -1766,7 +1767,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		}
 #endif
 		f=inkey();
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 		if(f==CIO_KEY_MOUSE) {
 #else
 		if(0) {
@@ -1811,7 +1812,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				ch=f;
 			else {
 				ch=inkey();
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 				if(ch==CIO_KEY_MOUSE) {
 #else
 				if(0) {
@@ -2379,7 +2380,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
 			if(kbwait()) {
 				j=inkey();
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 				if(j==CIO_KEY_MOUSE) {
 #else
 				if(0) {
