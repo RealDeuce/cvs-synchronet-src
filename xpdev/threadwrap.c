@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.17 2003/04/26 17:31:45 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.18 2003/04/26 21:47:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,8 +64,7 @@ ulong _beginthread(void( *start_address )( void * )
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	/* Default stack size in BSD is too small for JS stuff */
-/* #ifdef BSD */
-#if 0
+#ifdef BSD
 	if(stack_size==0)
 		stack_size=1<<17;
 #endif
