@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.36 2003/06/06 23:27:18 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.37 2003/08/20 09:59:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,9 +465,13 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	}
 	length=strlen(msgbuf);
 
+	/* Remove white-space from end of message text */
+	while(length && (uchar)msgbuf[length-1]<=' ')
+		length--;
+
 	/* Calculate CRC-32 of message text (before encoding, if any) */
 	if(smb->status.max_crcs) {
-		for(l=0;msgbuf[l];l++)
+		for(l=0;l<length;l++)
 			crc=ucrc32(msgbuf[l],crc); 
 		crc=~crc;
 	}
