@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.57 2004/09/15 20:24:37 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.56 2004/09/10 01:38:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,25 +467,11 @@ typedef struct _PACK {		/* Index record */
 #define SMB_HASH_LOWERCASE	(1<<7)	/* Convert A-Z to a-z first			*/
 #define SMB_HASH_PROC_MASK	(SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
 
-enum {
-	 SMB_HASH_SOURCE_BODY
-	,SMB_HASH_SOURCE_MSG_ID
-	,SMB_HASH_SOURCE_FTN_ID
-
-/* Add new ones here (max value of 31) */
-
-    ,SMB_HASH_SOURCE_TYPES
-};
-
-#define SMB_HASH_SOURCE_MASK	0x1f
-#define SMB_HASH_SOURCE_NONE	0
-#define SMB_HASH_SOURCE_ALL		0xff
-
 typedef struct _PACK {
 
 	ulong	number;					/* Message number */
 	ulong	time;					/* Local time of fingerprinting */
-	uchar	source;					/* SMB_HASH_SOURCE* (in low 5-bits) */
+	uchar	source;					/* (e.g. TEXT_BODY, RFC822MSGID, FIDOMSGID) */
 	uchar	flags;					/* indications of valid hashes and pre-processing */
 	ushort	crc16;					/* CRC-16 of source */
 	ulong	crc32;					/* CRC-32 of source */
