@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.4 2002/06/20 07:40:52 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.5 2002/06/25 09:12:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,8 @@
 #define EINTR			(WSAEINTR-WSABASEERR)
 #undef  ENOTSOCK
 #define ENOTSOCK		(WSAENOTSOCK-WSABASEERR)
+#undef  EMSGSIZE
+#define EMSGSIZE		(WSAEMSGSIZE-WSABASEERR)
 #undef  EWOULDBLOCK
 #define EWOULDBLOCK		(WSAEWOULDBLOCK-WSABASEERR)
 #undef  ECONNRESET
@@ -96,6 +98,7 @@ static  wsa_error;
 /* WinSock-isms */
 #define HOSTENT			struct hostent
 #define IN_ADDR			struct in_addr
+#define SOCKADDR		struct sockaddr
 #define SOCKADDR_IN		struct sockaddr_in
 #define LINGER			struct linger
 #define SOCKET			int
