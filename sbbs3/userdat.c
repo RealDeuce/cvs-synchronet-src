@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.78 2003/07/25 08:17:30 rswindell Exp $ */
+/* $Id: userdat.c,v 1.79 2003/08/19 01:09:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2078,14 +2078,12 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 	sprintf(tmp,"%04u.*",user->number);
 	sprintf(str,"%sfile",cfg->data_dir);
 	delfiles(str,tmp);
+	sprintf(str,"%suser",cfg->data_dir);
+	delfiles(str,tmp);
 
 	sprintf(str,"%suser/ptrs/%04u.ixb",cfg->data_dir,user->number); /* msg ptrs */
 	remove(str);
 	sprintf(str,"%smsgs/%04u.msg",cfg->data_dir,user->number); /* delete short msg */
-	remove(str);
-	sprintf(str,"%suser/%04u.msg",cfg->data_dir,user->number); /* delete ex-comment */
-	remove(str);
-	sprintf(str,"%suser/%04u.sig",cfg->data_dir,user->number); /* delete signature */
 	remove(str);
 
 	/* Update daily statistics database (for system and node) */
