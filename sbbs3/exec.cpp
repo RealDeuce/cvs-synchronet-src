@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.37 2003/04/30 23:48:05 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.38 2003/05/07 06:04:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1680,14 +1680,14 @@ int sbbs_t::exec(csi_t *csi)
 			csi->cmd=getkey(0);
 			return(0);
 		case CS_INKEY:
-			csi->cmd=toupper(inkey(K_GETSTR));
+			csi->cmd=toupper(inkey(K_NONE,1));
 			if(csi->cmd)
 				csi->logic=LOGIC_TRUE;
 			else
 				csi->logic=LOGIC_FALSE;
 			return(0);
 		case CS_INCHAR:
-			csi->cmd=inkey(K_GETSTR);
+			csi->cmd=inkey(K_NONE,1);
 			if(csi->cmd)
 				csi->logic=LOGIC_TRUE;
 			else
