@@ -1,14 +1,14 @@
 /* ntsvcs.h */
 
-/* Synchronet BBS  Windows NT Service Names */
+/* Synchronet BBS Windows NT Service Names */
 
-/* $Id: ntsvcs.h,v 1.2 2003/10/09 08:33:51 rswindell Exp $ */
+/* $Id: ntsvcs.h,v 1.3 2004/12/04 16:45:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,6 +45,13 @@
 #define NTSVC_NAME_MAIL		"SynchronetMail"
 #define NTSVC_NAME_SERVICES "SynchronetServices"
 
-#define SERVICE_CONTROL_RECYCLE	128	/* User-defined control code */
+/* User-defined control codes */
+enum {
+	 SERVICE_CONTROL_RECYCLE=128
+	,SERVICE_CONTROL_MUTE
+	,SERVICE_CONTROL_UNMUTE
+	,SERVICE_CONTROL_SYSOP_AVAILABLE		/* BBS service only */
+	,SERVICE_CONTROL_SYSOP_UNAVAILABLE		/* BBS service only */
+};
 
 #endif	/* Don't add anything after this line */

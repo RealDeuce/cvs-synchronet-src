@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.59 2004/10/13 23:50:48 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.60 2004/12/10 22:23:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -620,7 +620,7 @@ typedef struct {				/* Message */
 	hfield_t	*hfield;		/* Header fields (fixed length portion) */
 	void		**hfield_dat;	/* Header fields (variable length portion) */
 	dfield_t	*dfield;		/* Data fields (fixed length portion) */
-	ulong		offset; 		/* Offset (number of records) into index */
+	long		offset; 		/* Offset (number of records) into index */
 	int			forwarded;		/* Forwarded from agent to another */
 	ulong		expiration; 	/* Message will expire on this day (if >0) */
 	ulong		priority;		/* Message priority (0 is lowest) */
