@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.26 2003/05/01 10:20:30 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.27 2003/05/18 06:48:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,13 +58,15 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	}
 
 	memset(node,0,sizeof(node_t));
+	sprintf(str,"%snode.dab",cfg.ctrl_dir);
 	if(nodefile==-1) {
-		sprintf(str,"%snode.dab",cfg.ctrl_dir);
 		if((nodefile=nopen(str,O_RDWR|O_DENYNONE))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE);
 			return(errno); 
 		}
 	}
+	else
+		utime(str,NULL);		/* NFS fix... utime() forces a cache refresh */
 
 	number--;	/* make zero based */
 	for(count=0;count<LOOP_NODEDAB;count++) {
