@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.320 2004/03/05 23:46:43 deuce Exp $ */
+/* $Id: main.cpp,v 1.322 2004/03/23 23:55:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,10 @@
 
 #ifdef __unix__
 	#include <sys/un.h>
+	#ifndef SUN_LEN
+		#define SUN_LEN(su) \
+	        (sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
+	#endif
 #endif
 
 //---------------------------------------------------------------------------
@@ -994,6 +998,11 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	BYTE*	first_cr=NULL;
 	int 	i;
 
+	if(inlen<1) {
+		outlen=0;
+		return(inbuf);	// no length? No interpretation
+	}
+
     first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
 
 	if(!(sbbs->telnet_mode&(TELNET_MODE_BIN_RX|TELNET_MODE_GATE)) 
@@ -1250,7 +1259,9 @@ void input_thread(void *arg)
 
 		if(rd == SOCKET_ERROR)
 		{
+#ifdef __unix__
 			if(sock==sbbs->client_socket)  {
+#endif
 	        	if(ERROR_VALUE == ENOTSOCK)
     	            lprintf(LOG_NOTICE,"Node %d socket closed by peer on receive", sbbs->cfg.node_num);
         	    else if(ERROR_VALUE==ECONNRESET) 
@@ -1263,9 +1274,8 @@ void input_thread(void *arg)
 					lprintf(LOG_WARNING,"Node %d !ERROR %d receiving from socket %d"
         	        	,sbbs->cfg.node_num, ERROR_VALUE, sock);
 				break;
-			}
 #ifdef __unix__
-			else  {
+			} else  {
 				if(ERROR_VALUE != EAGAIN)  {
 					lprintf(LOG_ERR,"Node %d !ERROR %d on local spy socket %d receive"
 						, sbbs->cfg.node_num, errno, sock);
@@ -3998,7 +4008,7 @@ void DLLCALL bbs_thread(void* arg)
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node;i++)  {
-	    if((uspy_listen_socket[i-1]=socket(PF_LOCAL,SOCK_STREAM,0))==INVALID_SOCKET)
+	    if((uspy_listen_socket[i-1]=socket(PF_UNIX,SOCK_STREAM,0))==INVALID_SOCKET)
 	        lprintf(LOG_ERR,"Node %d !ERROR %d creating local spy socket"
 	            , i, errno);
 	    else {
@@ -4007,7 +4017,7 @@ void DLLCALL bbs_thread(void* arg)
 	            startup->socket_open(startup->cbdata,TRUE);
 	    }
 	
-	    uspy_addr.sun_family=AF_LOCAL;
+	    uspy_addr.sun_family=AF_UNIX;
 	    if((unsigned int)snprintf(str,sizeof(uspy_addr.sun_path),
 	            "%slocalspy%d.sock", startup->temp_dir, i)
 	            >=sizeof(uspy_addr.sun_path))
