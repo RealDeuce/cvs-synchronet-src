@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.168 2002/07/10 18:38:58 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.169 2002/07/11 09:49:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2535,6 +2535,11 @@ static void sendmail_thread(void* arg)
 				sprintf(to,"%.*s",(int)sizeof(to)-1,(char*)msg.to_net.addr);
 				p=strrchr(to,'>');	/* Truncate '>' */
 				if(p!=NULL) *p=0;
+
+				/* truncate at first white-space char */
+				p=to;
+				while(*p && *p>' ') p++;
+				*p=0;
 
 				p=strrchr(to,'@');
 				if(p==NULL) {
