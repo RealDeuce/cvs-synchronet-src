@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.355 2005/01/07 02:32:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.356 2005/01/13 02:48:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3015,13 +3015,16 @@ static void smtp_thread(void* arg)
 				mailproc_match[i]=FALSE;
 				if(mailproc_list[i].to!=NULL) {
 					for(j=0;mailproc_list[i].to[j]!=NULL;j++) {
-						if(stricmp(p,mailproc_list[i].to[j])==0)
+						if(stricmp(p,mailproc_list[i].to[j])==0) {
 							mailproc_match[i]=TRUE;
+							if(!mailproc_list[i].passthru)
+								break;
+						}
 					}
 				}
 			}
 			/* destined for an external mail processor */
-			if(i<mailproc_count && !mailproc_list[i].passthru) {
+			if(i<mailproc_count) {
 				fprintf(rcptlst,"[%u]\n",rcpt_count++);
 				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 #if 0	/* should we fall-through to the sysop account? */
@@ -3900,7 +3903,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.355 $", "%*s %s", revision);
+	sscanf("$Revision: 1.356 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
