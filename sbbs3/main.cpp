@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.79 2001/11/16 01:06:01 rswindell Exp $ */
+/* $Id: main.cpp,v 1.80 2001/11/26 01:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3010,8 +3010,6 @@ void DLLCALL bbs_thread(void* arg)
 
 	thread_up();
 
-	uptime=time(NULL);
-
 	status("Initializing");
 
 	/* Defeat the lameo hex0rs - the name and copyright must remain intact */
@@ -3073,6 +3071,8 @@ void DLLCALL bbs_thread(void* arg)
 			return;
 		}
 	}
+
+	uptime=time(NULL);
 
 #ifdef _WIN32
     if((exec_mutex=CreateMutex(NULL,false,NULL))==NULL) {
