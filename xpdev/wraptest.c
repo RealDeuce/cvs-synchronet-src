@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.33 2003/04/11 07:22:47 deuce Exp $ */
+/* $Id: wraptest.c,v 1.34 2003/04/11 07:24:13 deuce Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -116,7 +116,7 @@ int main()
 		printf("!FAILURE file locking\n");
 	else
 		printf("SUCCESS!  Record locking\n");
-	if((fd2=sopen(LOCK_FNAME,O_RDWR,SH_DENYRW))!=-1) {
+	if((fd2=sopen(LOCK_FNAME,O_RDWR,SH_DENYRW))==-1) {
 		printf("SUCCESS!  Cannot reopen SH_DENYRW while lock is held\n");
 		close(fd2);
 	}
