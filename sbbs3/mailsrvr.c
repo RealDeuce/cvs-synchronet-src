@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.195 2002/10/16 05:08:00 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.196 2002/10/31 01:58:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2440,6 +2440,11 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	if((i=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK))!=0)
 		lprintf("0000 !BOUNCE ERROR %d (%s) adding message header"
 			,i,smb->last_error);
+	else {
+		if((i=smb_incmsg(smb,&newmsg))!=0)
+			lprintf("0000 !BOUNCE ERROR %d (%s) incrementing data allocation units"
+				,i,smb->last_error);
+	}
 
 	newmsg.dfield=NULL;				/* Don't double-free the data fields */
 	newmsg.hdr.total_dfields=0;
@@ -2843,7 +2848,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.195 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.196 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
