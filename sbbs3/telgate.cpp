@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.24 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.26 2004/12/30 02:57:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,9 +133,10 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 		l=p-(char*)buf;
 		sendsocket(remote_socket,(char*)buf,l);
 	}
-	
+
 	/* This is required for gating to Unix telnetd */
-	request_telnet_opt(TELNET_DONT,TELNET_TERM_TYPE);	// Re-negotiation of terminal type
+	if(mode&TG_NOTERMTYPE)
+		request_telnet_opt(TELNET_DONT,TELNET_TERM_TYPE);	// Re-negotiation of terminal type
 
 	/* Text/NVT mode by default */
 	request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
@@ -187,6 +188,8 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 					attr(LIGHTGRAY);
 					console=save_console;
 				}
+				else if(*buf<' ' && mode&TG_CTRLKEYS)
+					handle_ctrlkey(*buf, K_NONE);
 				gotline=false;
 				if(mode&TG_LINEMODE && buf[0]!='\r') {
 					ungetkey(buf[0]);
