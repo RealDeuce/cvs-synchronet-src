@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.7 2001/07/17 18:19:15 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.8 2001/07/30 18:11:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 		return(JS_FALSE);
 	}
 
-	dbprintf(FALSE, sock, "socket object constructed");
+	dbprintf(FALSE, sock, "object constructed");
 	return(JS_TRUE);
 }
 
@@ -551,7 +551,7 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 		return(NULL);
 	}
 
-	dbprintf(FALSE, sock, "socket object created");
+	dbprintf(FALSE, sock, "object created");
 
 	return(obj);
 }
