@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.9 2005/01/13 11:28:24 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.10 2005/01/13 11:53:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,7 +83,6 @@ typedef struct {
     DWORD	size;
 #ifdef RINGBUF_SEM
 	sem_t	sem;			/* semaphore used to signal data waiting */
-	sem_t	empty_sem;		/* semaphore used to signal empty buffer */
 	sem_t	highwater_sem;	/* semaphore used to signal highwater mark reached */
 	DWORD	highwater_mark;
 #endif
