@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.268 2004/09/17 23:53:40 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.269 2004/10/14 09:08:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4123,7 +4123,8 @@ static void ctrl_thread(void* arg)
 					sockprintf(sock,"553 Insufficient access.");
 					continue;
 				}
-				if(strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
+				if(*p=='-'
+					|| strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
 					|| trashcan(&scfg,p,"file")) {
 					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
 						,sock,user.alias,p);
@@ -4463,7 +4464,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.268 $", "%*s %s", revision);
+	sscanf("$Revision: 1.269 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4649,7 +4650,7 @@ void DLLCALL ftp_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"%04d FTP socket opened",server_socket);
+		lprintf(LOG_DEBUG,"%04d FTP Server socket opened",server_socket);
 
 		/*****************************/
 		/* Listen for incoming calls */
@@ -4782,6 +4783,10 @@ void DLLCALL ftp_server(void* arg)
 			served++;
 		}
 
+#ifdef _DEBUG
+		lprintf(LOG_DEBUG,"0000 server_socket: %d",server_socket);
+		lprintf(LOG_DEBUG,"0000 terminate_server: %d",terminate_server);
+#endif
 		if(active_clients) {
 			lprintf(LOG_DEBUG,"0000 Waiting for %d active clients to disconnect...", active_clients);
 			start=time(NULL);
