@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.93 2003/02/10 01:39:48 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.94 2003/02/16 13:13:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -642,7 +642,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     mail_startup.socket_open=socket_open;
     mail_startup.max_delivery_attempts=50;
     mail_startup.rescan_frequency=3600;  /* 60 minutes */
-    mail_startup.lines_per_yield=100;
+    mail_startup.lines_per_yield=10;
     mail_startup.max_clients=10;
 
     memset(&ftp_startup,0,sizeof(ftp_startup));

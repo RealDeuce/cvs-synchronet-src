@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.13 2002/12/06 07:12:04 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.14 2003/02/16 13:13:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,7 +183,7 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     MainForm->mail_startup.max_delivery_attempts
         =DeliveryAttemptsEdit->Text.ToIntDef(10);
     MainForm->mail_startup.rescan_frequency=RescanFreqEdit->Text.ToIntDef(300);
-    MainForm->mail_startup.lines_per_yield=LinesPerYieldEdit->Text.ToIntDef(100);
+    MainForm->mail_startup.lines_per_yield=LinesPerYieldEdit->Text.ToIntDef(10);
 
     SAFECOPY(MainForm->mail_startup.default_user
         ,DefaultUserEdit->Text.c_str());
