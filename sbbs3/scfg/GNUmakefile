@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.1 2002/04/12 08:23:31 rswindell Exp $
+# $Id: GNUmakefile,v 1.2 2002/04/12 08:43:13 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -31,7 +31,7 @@ LIBDIR	:=	/usr/lib
 DELETE	=	rm -f -v
 OUTLIB	=	-o
 
-CFLAGS	:=	-I../../uifc -I/usr/local/include -I../  -D_THREAD_SAFE
+CFLAGS	:=	-I../../uifc -I../../xpdev -I/usr/local/include -I../  -D_THREAD_SAFE
 
 LFLAGS	:=	-L/usr/local/lib
 
@@ -84,7 +84,7 @@ ifdef USE_DIALOG
 	@$(MAKE) -C ../../libdialog
 endif
 	@echo Linking $@
-	@$(CC) $(LFLAGS) -o $@ $(OBJS)
+	@$(CC) -o $@ $(OBJS) $(LFLAGS)
 
 include depends.mk	# defines dependencies
 
