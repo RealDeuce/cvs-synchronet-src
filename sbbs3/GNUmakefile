@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.121 2003/08/29 00:31:59 rswindell Exp $
+# $Id: GNUmakefile,v 1.122 2003/08/30 01:25:14 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -147,6 +147,10 @@ endif
 
 ifdef PREFIX
  CFLAGS += -DPREFIX=$(PREFIX)
+endif
+
+ifdef USE_DOSEMU
+ CFLAGS += -DUSE_DOSEMU
 endif
 
 ifndef JSLIBDIR
