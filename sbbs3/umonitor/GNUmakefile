@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.19 2004/03/19 02:47:29 deuce Exp $
+# $Id: GNUmakefile,v 1.20 2004/03/24 03:32:40 deuce Exp $
 
 #USE_CURSES	:=	1	#Use old curses UIFC implementation
 USE_UIFC32	:=	1	# Use new uifc32 implementation
@@ -24,6 +24,10 @@ NEED_UIFC	:=	1
 include $(XPDEV)Common.gmake
 include $(SBBS_SRC)Common.gmake
 include $(UIFC)Common.gmake
+
+ifeq ($(os),sunos)
+ LDFLAGS	+=	-lsocket -lnsl
+endif
 
 FORCE$(EXEODIR)/umonitor: $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 
