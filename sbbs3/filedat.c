@@ -2,7 +2,7 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.3 2000/10/29 00:53:35 rswindell Exp $ */
+/* $Id: filedat.c,v 1.4 2000/10/30 08:43:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -542,6 +542,21 @@ char* DLLCALL padfname(char *filename, char *str)
 	str[d]=0;
 	return(str);
 }
+
+char* DLLCALL getfname(char* path)
+{
+	char *fname;
+
+	fname=strrchr(path,'\\');
+	if(fname==NULL) 
+		fname=strrchr(path,'/');
+	if(fname!=NULL) 
+		fname++;
+	else 
+		fname=path;
+	return(fname);
+}
+
 
 /****************************************************************************/
 /* Turns FILE    .EXT into FILE.EXT                                         */
