@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.32 2003/01/31 02:16:50 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.33 2003/02/20 23:33:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1681,7 +1681,14 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	}
 
 	start=time(NULL);
-	external(cmdstr(cfg.xtrn[xtrnnum]->cmd,path,dropdir,NULL),mode
+	external(cmdstr(cfg.xtrn[xtrnnum]->cmd,path
+#if 0	/* old way */
+		,dropdir
+#else	/* new way, as of Feb-20-2003 */
+		,cfg.xtrn[xtrnnum]->path
+#endif
+		,NULL)
+		,mode
 		,cfg.xtrn[xtrnnum]->path);
 	end=time(NULL);
 	if(cfg.xtrn[xtrnnum]->misc&FREETIME)
