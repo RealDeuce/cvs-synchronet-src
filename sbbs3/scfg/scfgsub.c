@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.23 2004/05/30 06:56:06 deuce Exp $ */
+/* $Id: scfgsub.c,v 1.24 2004/09/08 03:44:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -923,7 +923,7 @@ compatible mail programs you use support the LZH translation.
 					sprintf(opt[n++],"%-27.27s%s","FidoNet EchoMail"
 						,cfg.sub[i]->misc&SUB_FIDO ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","FidoNet Address"
-                        ,faddrtoa(&cfg.sub[i]->faddr,tmp));
+                        ,smb_faddrtoa(&cfg.sub[i]->faddr,tmp));
 					sprintf(opt[n++],"EchoMail Origin Line");
 					opt[n][0]=0;
 					uifc.savnum=2;
@@ -1141,7 +1141,7 @@ option to Yes.
 								cfg.sub[i]->misc&=~SUB_FIDO; }
                             break;
 						case 8:
-							faddrtoa(&cfg.sub[i]->faddr,str);
+							smb_faddrtoa(&cfg.sub[i]->faddr,str);
 							SETHELP(WHERE);
 /*
 Sub-board FidoNet Address:
