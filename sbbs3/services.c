@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.42 2002/03/19 13:31:29 rswindell Exp $ */
+/* $Id: services.c,v 1.43 2002/03/20 01:00:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@
 #define SERVICES_VERSION		"1.00"
 
 #define MAX_SERVICES			128
-#define TIMEOUT_THREAD_WAIT		30		/* Seconds */
+#define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
