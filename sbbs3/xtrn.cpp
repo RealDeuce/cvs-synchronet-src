@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.134 2003/05/04 10:46:54 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.135 2003/05/07 04:57:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -937,11 +937,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}	
 
 	 	// Get return value
-    	sprintf(str,"%sDOSXTRN.RET", cfg.node_dir);
-        FILE* fp=fopen(str,"r");
-        if(fp!=NULL) {
-			fscanf(fp,"%d",&retval);
-			fclose(fp);
+		if(!native) {
+    		sprintf(str,"%sDOSXTRN.RET", cfg.node_dir);
+			FILE* fp=fopen(str,"r");
+			if(fp!=NULL) {
+				fscanf(fp,"%d",&retval);
+				fclose(fp);
+			}
 		}
 	}
 
