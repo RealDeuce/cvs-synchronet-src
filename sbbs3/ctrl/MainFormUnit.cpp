@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.56 2002/02/06 19:40:43 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.57 2002/02/06 22:30:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,7 @@
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma link "trayicon"
+#pragma link "Trayicon"
 #pragma resource "*.dfm"
 TMainForm *MainForm;
 
@@ -341,6 +342,24 @@ static void services_started(void)
 	MainForm->ServicesStart->Enabled=false;
     MainForm->ServicesStop->Enabled=true;
     Application->ProcessMessages();
+}
+
+static void services_clients(int clients)
+{
+	static HANDLE mutex;
+    static save_clients;
+
+    if(clients>save_clients)
+        client_add(TRUE);
+    else if(clients<save_clients)
+        client_add(FALSE);
+    save_clients=clients;
+
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
+    ReleaseMutex(mutex);
 }
 
 static int mail_lputs(char *str)
@@ -657,6 +676,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     services_startup.interface_addr=INADDR_ANY;
     services_startup.lputs=service_log;
     services_startup.status=services_status;
+    services_startup.clients=services_clients;
     services_startup.started=services_started;
     services_startup.terminated=services_terminated;
     services_startup.thread_up=thread_up;
