@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2002/04/12 10:30:15 rswindell Exp $
+# $Id: GNUmakefile,v 1.4 2002/04/25 23:14:17 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -37,7 +37,7 @@ LIBDIR	:=	/usr/lib
 DELETE	=	rm -f -v
 OUTLIB	=	-o
 
-CFLAGS	:=	-I$(UIFC) -I$(XPDEV) -I/usr/local/include -I../  -D_THREAD_SAFE
+CFLAGS	:=	-Wall -I$(UIFC) -I$(XPDEV) -I/usr/local/include -I../  -D_THREAD_SAFE
 
 LFLAGS	:=	-L/usr/local/lib
 
