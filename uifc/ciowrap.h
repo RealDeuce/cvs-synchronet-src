@@ -1,4 +1,4 @@
-/* $Id: ciowrap.h,v 1.14 2004/07/02 22:29:31 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.15 2004/07/03 22:59:55 deuce Exp $ */
 
 #ifndef _CIOWRAP_H_
 #define _CIOWRAP_H_
@@ -74,7 +74,8 @@ typedef struct {
 	void	(*setcursortype)(int);
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
-	int	(*getch)	(void);
+	int		(*getch)		(void);
+	int		(*beep)			(void);
 } cioapi_t;
 
 extern cioapi_t cio_api;
@@ -98,6 +99,7 @@ extern cioapi_t cio_api;
 #define textcolor(a)		cio_api.textcolor(a)
 #undef getch
 #define getch()			cio_api.getch()
+#define beep()				cio_api.beep()
 
 #endif
 
