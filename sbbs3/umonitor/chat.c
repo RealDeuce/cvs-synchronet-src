@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.3 2003/05/16 02:20:37 deuce Exp $ */
+/* $Id: chat.c,v 1.4 2003/05/16 02:37:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ int chatchar(WINDOW *win, int ch, box_t *boxch) {
 			wmove(win,cury,curx);
 			wrefresh(win);
 			break;
-		
+
 		case '\r':
 		case '\n':
 			curx=2;
@@ -145,6 +145,11 @@ int chatchar(WINDOW *win, int ch, box_t *boxch) {
 			wrefresh(win);
 			break;
 			
+		case TAB:
+			curx+=8;
+			curx-=((curx-2)%8)+1;
+			wmove(win,cury,curx);
+			ch=' ';
 		default:
 			waddch(win,ch);
 			getyx(win,cury,curx);

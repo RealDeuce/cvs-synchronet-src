@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.36 2003/05/16 02:20:37 deuce Exp $ */
+/* $Id: umonitor.c,v 1.37 2003/05/16 02:37:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,7 +227,7 @@ int sendmessage(scfg_t *cfg, int nodenum,node_t *node)  {
 	char str[80],str2[80];
 
 	uifc.input(WIN_MID,0,0,"Telegram",str2,58,K_WRAP|K_MSG);
-	sprintf(str,"\1n\1y\1hMessage From Sysop:\1w %s",str2);
+	sprintf(str,"\1n\1y\1hMessage From Sysop:\1w %s\r\n",str2);
 	if(getnodedat(cfg,nodenum,node,NULL))
 		return(-1);
 	if(node->useron==0)
@@ -270,7 +270,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.36 $", "%*s %s", revision);
+	sscanf("$Revision: 1.37 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
