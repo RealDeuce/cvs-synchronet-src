@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.15 2004/09/16 05:05:47 rswindell Exp $ */
+/* $Id: link_list.c,v 1.16 2004/09/16 05:11:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -386,6 +386,7 @@ list_node_t* listAddNode(link_list_t* list, void* data, list_node_t* after)
 		return(NULL);
 
 	memset(node,0,sizeof(list_node_t));
+	node->data = data;
 
 	return(list_add_node(list,node,after));
 }
