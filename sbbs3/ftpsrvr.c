@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.170 2002/06/29 06:47:43 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.171 2002/07/07 18:49:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4595,8 +4595,10 @@ void DLLCALL ftp_server(void* arg)
 
 		cleanup(0,__LINE__);
 
-		if(recycle_server) 
+		if(recycle_server) {
 			lprintf("Recycling server...");
+			mswait(2000);
+		}
 
 	} while(recycle_server);
 }

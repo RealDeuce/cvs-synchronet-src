@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.164 2002/06/29 06:48:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.165 2002/07/07 18:49:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3187,8 +3187,10 @@ void DLLCALL mail_server(void* arg)
 
 		cleanup(0);
 
-		if(recycle_server) 
+		if(recycle_server) {
 			lprintf("Recycling server...");
+			mswait(2000);
+		}
 
 	} while(recycle_server);
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.61 2002/06/25 09:48:43 rswindell Exp $ */
+/* $Id: services.c,v 1.62 2002/07/07 18:49:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1402,8 +1402,10 @@ void DLLCALL services_thread(void* arg)
 		service=NULL;
 
 		cleanup(0);
-		if(!terminated)
+		if(!terminated) {
 			lprintf("Recycling server...");
+			mswait(2000);
+		}
 
 	} while(!terminated);
 }
