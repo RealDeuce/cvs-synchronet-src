@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.29 2004/10/06 17:16:30 deuce Exp $ */
+/* $Id: win32cio.c,v 1.30 2004/10/07 03:38:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,7 +189,7 @@ int win32_getch(void)
 		}
 
 		while(1) {
-			GetNumberOfConsoleInputEvents(GetStdHandle(STD_INPUT_HANDLE), &num)
+			GetNumberOfConsoleInputEvents(GetStdHandle(STD_INPUT_HANDLE), &num);
 			if(num || mouse_pending())
 				break;
 			SLEEP(1);
