@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Node control program */
 
-/* $id$ */
+/* $Id: node.c,v 1.15 2003/01/18 00:27:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
