@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.6 2003/05/11 23:36:04 deuce Exp $
+# $Id: GNUmakefile,v 1.7 2003/05/11 23:57:22 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -71,11 +71,14 @@ DELETE	=	rm -f
 CFLAGS	+=	-I../../include/mozilla/js -I$(XPDEV) -I$(UIFC) -I$(SBBS3)
 LFLAGS	+=	-lcurses
 
+ifeq ($(os),netbsd)
+ CFLAGS	+=	-D__unix__
+endif
+
 vpath %.c $(UIFC) $(XPDEV)
 
 OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/uifcc.o \
-			$(LIBODIR)/uifcx.o \
 			$(LIBODIR)/sockwrap.o \
 			$(LIBODIR)/dirwrap.o \
 			$(LIBODIR)/genwrap.o \
