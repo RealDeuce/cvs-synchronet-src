@@ -9,7 +9,7 @@
 # Win32: make -f Makefile.gnu os=win32									#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.11 2000/10/30 12:53:27 rswindell Exp $
+# $Id: Makefile.gnu,v 1.12 2000/11/02 13:23:44 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -112,11 +112,11 @@ $(FIXSMB): fixsmb.c smblib.c smbwrap.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 # CHKSMB Utility
-$(CHKSMB): chksmb.c smblib.c smbwrap.c
+$(CHKSMB): chksmb.c smblib.c smbwrap.c conwrap.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 # SMB Utility
-$(SMBUTIL): smbutil.c smblib.c smbwrap.c smbtxt.c lzh.c
+$(SMBUTIL): smbutil.c smblib.c smbwrap.c conwrap.c smbtxt.c lzh.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 
