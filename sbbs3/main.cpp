@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.13 2001/04/30 00:45:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.14 2001/05/02 02:00:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1186,7 +1186,7 @@ void event_thread(void* arg)
 				close(file);
 
 				if(sbbs->cfg.phub[i]->call[0]) {
-					sbbs->cfg.node_num=sbbs->cfg.event[i]->node;
+					sbbs->cfg.node_num=sbbs->cfg.phub[i]->node;
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					// status("PostLink Networking");
 #if 0
@@ -1324,7 +1324,8 @@ void event_thread(void* arg)
 						node.status=NODE_EVENT_RUNNING;
 						sbbs->putnodedat(sbbs->cfg.event[i]->node,&node);
 					}
-					eprintf("Running event: %s",sbbs->cfg.event[i]->code);
+					strcpy(str,sbbs->cfg.event[i]->code);
+					eprintf("Running event: %s",strupr(str));
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,nulstr,NULL)
 						,EX_OFFLINE
