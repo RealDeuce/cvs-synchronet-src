@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.12 2004/03/03 18:58:31 deuce Exp $ */
+/* $Id: uedit.c,v 1.13 2004/03/03 22:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1440,7 +1440,7 @@ int edit_personal(scfg_t *cfg, user_t *user)
 				/* Gender */
 				sprintf(onech,"%c",user->sex);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Gender",onech,1,K_UPPER|K_ALPHA|K_EDIT);
-				if(onech[0]!=user->sex && (onech[0]=='M' || onech[0]=='F')) {
+				if(onech[0]!=user->sex) {
 					modified=1;
 					user->sex=onech[0];
 				}
@@ -1612,7 +1612,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.12 $", "%*s %s", revision);
+	sscanf("$Revision: 1.13 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
