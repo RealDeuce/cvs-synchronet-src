@@ -2,7 +2,7 @@
 
 /* Synchronet message-related command shell/module routines */
 
-/* $Id: execmsg.cpp,v 1.7 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: execmsg.cpp,v 1.6 2002/02/12 16:40:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,9 +59,9 @@ int sbbs_t::exec_msg(csi_t *csi)
 						for(i=0;i<usrgrps && !msgabort();i++) {
 							if(i==curgrp)
 								outchar('*');
-							else outchar(' ');
-							if(i<9) outchar(' ');
-							if(i<99) outchar(' ');
+							else outchar(SP);
+							if(i<9) outchar(SP);
+							if(i<99) outchar(SP);
 							bprintf(text[CfgGrpLstFmt]
 								,i+1, cfg.grp[usrgrp[i]]->lname); } }
 					sprintf(str,text[JoinWhichGrp],curgrp+1);
@@ -82,12 +82,12 @@ int sbbs_t::exec_msg(csi_t *csi)
 					bprintf(text[SubLstHdr], cfg.grp[usrgrp[j]]->lname);
 					for(i=0;i<usrsubs[j] && !msgabort();i++) {
 						if(i==cursub[j]) outchar('*');
-						else outchar(' ');
+						else outchar(SP);
 						sprintf(str,text[SubLstFmt],i+1
 							,cfg.sub[usrsub[j][i]]->lname,nulstr
 							,getposts(&cfg,usrsub[j][i]));
-						if(i<9) outchar(' ');
-						if(i<99) outchar(' ');
+						if(i<9) outchar(SP);
+						if(i<99) outchar(SP);
 						bputs(str); } }
 				sprintf(str,text[JoinWhichSub],cursub[j]+1);
 				mnemonics(str);
@@ -200,8 +200,8 @@ int sbbs_t::exec_msg(csi_t *csi)
 			for(i=0;i<usrgrps && !msgabort();i++) {
 				if(i==curgrp)
 					outchar('*');
-				else outchar(' ');
-				if(i<9) outchar(' ');
+				else outchar(SP);
+				if(i<9) outchar(SP);
 				bprintf(text[GrpLstFmt],i+1
 					,cfg.grp[usrgrp[i]]->lname,nulstr,usrsubs[i]); }
 			return(0);
@@ -217,12 +217,12 @@ int sbbs_t::exec_msg(csi_t *csi)
 			bprintf(text[SubLstHdr],cfg.grp[usrgrp[curgrp]]->lname);
 			for(i=0;i<usrsubs[curgrp] && !msgabort();i++) {
 				if(i==cursub[curgrp]) outchar('*');
-				else outchar(' ');
+				else outchar(SP);
 				sprintf(str,text[SubLstFmt],i+1
 					,cfg.sub[usrsub[curgrp][i]]->lname,nulstr
 					,getposts(&cfg,usrsub[curgrp][i]));
-				if(i<9) outchar(' ');
-				if(i<99) outchar(' ');
+				if(i<9) outchar(SP);
+				if(i<99) outchar(SP);
 				bputs(str); }
 			return(0);
 

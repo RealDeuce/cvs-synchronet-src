@@ -2,7 +2,7 @@
 
 /* Synchronet file database sorting routines */
 
-/* $Id: sortdir.cpp,v 1.5 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: sortdir.cpp,v 1.4 2003/03/02 11:48:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,7 @@ void sbbs_t::resort(uint dirnum)
 		newoffset=(ulong)i*(ulong)F_LEN;
 
 		j=datbuf[offset+F_MISC];  /* misc bits */
-		if(j!=ETX) j-=' ';
+		if(j!=ETX) j-=SP;
 		if(j&FM_EXTDESC) { /* extended description */
 			lseek(exbfile,(offset/F_LEN)*512L,SEEK_SET);
 			memset(ext,0,512);
