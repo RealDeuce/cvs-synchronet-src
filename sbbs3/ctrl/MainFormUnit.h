@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.32 2002/02/06 19:40:43 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.33 2002/02/20 01:08:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,7 @@
 #include <Graphics.hpp>
 #include <vcl\Registry.hpp>	/* TRegistry */
 #include "trayicon.h"
+#include "Trayicon.h"
 //---------------------------------------------------------------------------
 #define APP_TITLE "Synchronet Control Panel"
 #define REG_KEY "\\Software\\Swindell\\"APP_TITLE"\\"
@@ -307,6 +308,7 @@ __published:	// IDE-managed Components
     void __fastcall ServicesStopExecute(TObject *Sender);
     void __fastcall ServicesConfigureExecute(TObject *Sender);
     void __fastcall UserTruncateMenuItemClick(TObject *Sender);
+	void __fastcall TrayIconClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
@@ -321,6 +323,7 @@ public:		// User declarations
     AnsiString		CtrlDirectory;
     AnsiString      LoginCommand;
     AnsiString      ConfigCommand;
+    AnsiString		Password;
     bool            MinimizeToSysTray;
     bool            UndockableForms;
     scfg_t		    cfg;
