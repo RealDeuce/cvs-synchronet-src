@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.17 2002/01/29 00:33:42 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.18 2002/01/29 00:58:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -352,7 +352,7 @@ void help()
 {
 	char hbuf[HELPBUF_SIZE],str[256];
     char *p;
-	ushort line;
+	unsigned short line;
 	long l;
 	FILE *fp;
 

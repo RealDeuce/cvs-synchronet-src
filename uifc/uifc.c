@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.10 2002/01/29 00:22:04 rswindell Exp $ */
+/* $Id: uifc.c,v 1.11 2002/01/29 00:58:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1664,7 +1664,7 @@ void help()
 		,hbuf[HELPBUF_SIZE],str[256];
     char *p;
 	uint i,j,k,len;
-	ushort line;
+	unsigned short line;
 	long l;
 	FILE *fp;
 #ifndef __FLAT__
