@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.2 2000/10/31 04:14:51 rswindell Exp $ */
+/* $Id: startup.h,v 1.3 2000/10/31 13:26:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,7 @@
 #endif
 
 #include "client.h"
+#include "ringbuf.h"
 
 typedef struct {
 
@@ -57,7 +58,7 @@ typedef struct {
     DWORD	rlogin_interface;
     DWORD	reserved_dword7;
     DWORD	reserved_dword6;
-    DWORD	reserved_dword5;
+    RingBuf** spybuf;
     DWORD	reserved_dword4;
     DWORD	reserved_dword3;
     DWORD	reserved_dword2;
