@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.5 2004/08/02 02:43:59 deuce Exp $ */
+/* $Id: ciolib.h,v 1.8 2004/08/17 22:16:39 deuce Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
@@ -12,9 +12,11 @@ enum {
 	,CIOLIB_MODE_CONIO
 };
 
-#ifndef __unix__		/* presumably, Win32 */
-#include <conio.h>
-#include <io.h>			/* isatty */
+#if defined(__BORLANDC__)	/* presumably, Win32 */
+
+	#include <conio.h>
+	#include <io.h>			/* isatty */
+
 #else
 
 #ifndef BOOL
@@ -126,11 +128,13 @@ typedef struct {
 	int		(*getmouse)		(struct cio_mouse_event *mevent);
 	int		(*hidemouse)	(void);
 	int		(*showmouse)	(void);
+	void	(*settitle)		(const char *);
 } cioapi_t;
 
 extern cioapi_t cio_api;
 extern int _wscroll;
 extern int directvideo;
+extern int dont_move_cursor;
 
 #define _conio_kbhit()		kbhit()
 
@@ -171,6 +175,7 @@ void ciolib_window(int sx, int sy, int ex, int ey);
 void ciolib_delline(void);
 void ciolib_insline(void);
 char *ciolib_getpass(const char *prompt);
+void settitle(const char *title);
 #ifdef __cplusplus
 }
 #endif
@@ -212,6 +217,7 @@ char *ciolib_getpass(const char *prompt);
 	#define getmouse(a)				ciolib_getmouse(a)
 	#define	hidemouse()				ciolib_hidemouse()
 	#define showmouse()				ciolib_showmouse()
+	#define settitle(a)				ciolib_settitle(a)
 #endif
 
 #endif	/* Do not add anything after this line */
