@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.178 2005/03/26 16:11:06 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.173 2004/12/12 09:25:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -328,10 +328,7 @@ BYTE* cr_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
 /****************************************************************************/
 int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 {
-	char	str[MAX_PATH+1];
-	char*	p;
-	char*	env_block=NULL;
-	char*	env_strings;
+	char	str[MAX_PATH+1],*p;
 	const char* p_startup_dir;
 	char	path[MAX_PATH+1];
 	char	fname[MAX_PATH+1];
@@ -349,7 +346,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
     bool	was_online=true;
 	bool	rio_abortable_save=rio_abortable;
 	bool	use_pipes=false;	// NT-compatible console redirection
-	BOOL	success;
 	BOOL	processTerminated=false;
 	uint	i;
     time_t	hungup=0;
@@ -372,7 +368,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	DWORD	last_error;
 	DWORD	loop_since_io=0;
 	struct	tm tm;
-	str_list_t	env_list;
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
@@ -427,37 +422,31 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
  	if(native) { // Native (32-bit) external
 
-		if((env_list=strListInit())==NULL) {
-			XTRN_CLEANUP;
-        	errormsg(WHERE, ERR_CREATE, "env_list", 0);
-            return(errno);
-		}
-
 		// Current environment passed to child process
-		sprintf(str,"DSZLOG=%sPROTOCOL.LOG",cfg.node_dir);		strListPush(&env_list,str);
-		sprintf(str,"SBBSNODE=%s",cfg.node_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSCTRL=%s",cfg.ctrl_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSDATA=%s",cfg.data_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSEXEC=%s",cfg.exec_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSNNUM=%d",cfg.node_num);				strListPush(&env_list,str);
+		sprintf(dszlog,"DSZLOG=%sPROTOCOL.LOG",cfg.node_dir);
+		sprintf(sbbsnode,"SBBSNODE=%s",cfg.node_dir);
+		sprintf(sbbsctrl,"SBBSCTRL=%s",cfg.ctrl_dir);
+		sprintf(sbbsdata,"SBBSDATA=%s",cfg.data_dir);
+		sprintf(sbbsexec,"SBBSEXEC=%s",cfg.exec_dir);
+		sprintf(sbbsnnum,"SBBSNNUM=%d",cfg.node_num);
+		putenv(dszlog); 		/* Makes the DSZ LOG active */
+		putenv(sbbsnode);
+		putenv(sbbsctrl);
+		putenv(sbbsdata);
+		putenv(sbbsexec);
+		putenv(sbbsnnum);
 		/* date/time env vars */
-		sprintf(str,"DAY=%02u",tm.tm_mday);						strListPush(&env_list,str);
-		sprintf(str,"WEEKDAY=%s",wday[tm.tm_wday]);				strListPush(&env_list,str);
-		sprintf(str,"MONTHNAME=%s",mon[tm.tm_mon]);				strListPush(&env_list,str);
-		sprintf(str,"MONTH=%02u",tm.tm_mon+1);					strListPush(&env_list,str);
-		sprintf(str,"YEAR=%u",1900+tm.tm_year);					strListPush(&env_list,str);
-
-		env_strings=GetEnvironmentStrings();
-		env_block=strListCopyBlock(env_strings);
-		if(env_strings!=NULL)
-			FreeEnvironmentStrings(env_strings);
-		env_block=strListAppendBlock(env_block,env_list);
-		strListFree(&env_list);
-		if(env_block==NULL) {
-			XTRN_CLEANUP;
-        	errormsg(WHERE, ERR_CREATE, "env_block", 0);
-            return(errno);
-		}
+		sprintf(env_day			,"DAY=%02u"			,tm.tm_mday);
+		sprintf(env_weekday		,"WEEKDAY=%s"		,wday[tm.tm_wday]);
+		sprintf(env_monthname	,"MONTHNAME=%s"		,mon[tm.tm_mon]);
+		sprintf(env_month		,"MONTH=%02u"		,tm.tm_mon+1);
+		sprintf(env_year		,"YEAR=%u"			,1900+tm.tm_year);
+		putenv(env_day);
+		putenv(env_weekday);
+		putenv(env_monthname);
+		putenv(env_month);
+		if(putenv(env_year))
+        	errormsg(WHERE,ERR_WRITE,"environment",0);
 
     } else { // DOS external
 
@@ -649,22 +638,18 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 	}
 
-    success=CreateProcess(
+    if(!CreateProcess(
 		NULL,			// pointer to name of executable module
 		fullcmdline,  	// pointer to command line string
 		NULL,  			// process security attributes
 		NULL,   		// thread security attributes
 		native && !(mode&EX_OFFLINE),	 			// handle inheritance flag
 		CREATE_NEW_CONSOLE/*|CREATE_SEPARATE_WOW_VDM*/, // creation flags
-        env_block, 		// pointer to new environment block
+        NULL,  			// pointer to new environment block
 		p_startup_dir,	// pointer to current directory name
 		&startup_info,  // pointer to STARTUPINFO
 		&process_info  	// pointer to PROCESS_INFORMATION
-		);
-
-	strListFreeBlock(env_block);
-
-	if(!success) {
+		)) {
 		XTRN_CLEANUP;
 		if(input_thread_mutex_locked && input_thread_running) {
 			pthread_mutex_unlock(&input_thread_mutex);
@@ -1080,8 +1065,6 @@ static int setenv(const char *name, const char *value, int overwrite)
 			errno=ENOMEM;
 			return(-1);
 		}
-		/* Note, on some platforms, this can be free()d... */
-		sprintf(envstr,"%s=%s",name,value);
 		putenv(envstr);
 	}
 	return(0);
@@ -1253,8 +1236,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 
-	if(startup_dir==NULL)
-		startup_dir=nulstr;
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -1286,8 +1267,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		setenv("SBBSCTRL",cfg.ctrl_dir,1);
 		setenv("SBBSDATA",cfg.data_dir,1);
 		setenv("SBBSEXEC",cfg.exec_dir,1);
-		sprintf(str,"%u",cfg.node_num);
-		if(setenv("SBBSNNUM",str,1))
+		sprintf(sbbsnnum,"%u",cfg.node_num);
+		if(setenv("SBBSNNUM",sbbsnnum,1))
         	errormsg(WHERE,ERR_WRITE,"environment",0);
 
 	} else {

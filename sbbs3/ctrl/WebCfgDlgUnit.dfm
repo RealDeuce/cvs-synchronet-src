@@ -25,8 +25,8 @@ object WebCfgDlg: TWebCfgDlg
     Top = 4
     Width = 342
     Height = 245
-    ActivePage = SoundTabSheet
-    TabIndex = 3
+    ActivePage = HttpTabSheet
+    TabIndex = 1
     TabOrder = 0
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
@@ -415,7 +415,6 @@ object WebCfgDlg: TWebCfgDlg
   end
   object OpenDialog: TOpenDialog
     Filter = 'Wave Files|*.wav'
-    Options = [ofHideReadOnly, ofNoChangeDir, ofEnableSizing, ofDontAddToRecent]
     Top = 240
   end
 end
