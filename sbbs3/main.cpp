@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.158 2002/06/25 09:50:11 rswindell Exp $ */
+/* $Id: main.cpp,v 1.159 2002/06/29 01:30:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,6 +213,9 @@ BOOL socket_check(SOCKET sock, BOOL* rd_p)
 
 	if(rd_p!=NULL)
 		*rd_p=FALSE;
+
+	if(sock==INVALID_SOCKET)
+		return(FALSE);
 
 	FD_ZERO(&socket_set);
 	FD_SET(sock,&socket_set);
