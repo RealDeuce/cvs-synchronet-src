@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.1 2003/10/26 22:56:50 rswindell Exp $ */
+/* $Id: js_server.c,v 1.2 2003/10/27 20:48:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,6 +68,7 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case SERVER_PROP_INTERFACE:
 			if(p->interface_addr!=NULL) {
 				in_addr.s_addr=*(p->interface_addr);
+				in_addr.s_addr=htonl(in_addr.s_addr);
 				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,inet_ntoa(in_addr)));
 			}
 			break;
