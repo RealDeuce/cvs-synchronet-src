@@ -22,8 +22,6 @@ struct terminal {
 	char *scrollback;
 	int backpos;
 	int backlines;
-	int	xpos;
-	int ypos;
 };
 
 static struct terminal term;
@@ -99,7 +97,14 @@ void clear2eol(void)
 	char *buf;
 	int i,j;
 
-	clreol();
+	buf=(char *)malloc((term.width-wherex()+1)*2);
+	j=0;
+	for(i=wherex();i<=term.width;i++) {
+		buf[j++]=' ';
+		buf[j++]=term.attr;
+	}
+	puttext(term.x+wherex(),term.y+wherey(),term.x+term.width,term.y+wherey(),buf);
+	free(buf);
 }
 
 void clearscreen(char attr)
@@ -107,15 +112,24 @@ void clearscreen(char attr)
 	char *buf;
 	int x,y,j;
 
+	term.backpos+=term.height;
 	if(term.scrollback!=NULL) {
-		term.backpos+=term.height;
 		if(term.backpos>term.backlines) {
 			memmove(term.scrollback,term.scrollback+term.width*2*(term.backpos-term.backlines),term.width*2*(term.backlines-(term.backpos-term.backlines)));
 			term.backpos=term.backlines;
 		}
 		gettext(term.x+1,term.y+1,term.x+term.width,term.y+term.height,term.scrollback+(term.backpos-term.height)*term.width*2);
 	}
-	clrscr();
+	buf=(char *)malloc(term.width*(term.height)*2);
+	j=0;
+	for(x=0;x<term.width;x++) {
+		for(y=0;y<term.height;y++) {
+			buf[j++]=' ';
+			buf[j++]=attr;
+		}
+	}
+	puttext(term.x+1,term.y+1,term.x+term.width,term.y+term.height,buf);
+	free(buf);
 }
 
 void do_ansi(char *retbuf, int retsize)
@@ -281,7 +295,7 @@ void do_ansi(char *retbuf, int retsize)
 						p2[j++]=' ';
 						p2[j++]=term.attr;
 					}
-					for(i=0;j<i;i++) {
+					for(k-0;j<i;i++) {
 						puttext(term.x+1,term.y+i,term.x+term.width,term.y+i,p2);
 					}
 					free(p2);
@@ -440,18 +454,14 @@ void do_ansi(char *retbuf, int retsize)
 					i=atoi(term.escbuf+1);
 					switch(i) {
 						case 6:
-							if(retbuf!=NULL) {
-								sprintf(tmp,"%c[%d;%dR",27,wherey(),wherex());
-								if(strlen(retbuf)+strlen(tmp) < retsize)
-									strcat(retbuf,tmp);
-							}
+							sprintf(tmp,"%c[%d;%dR",27,wherey(),wherex());
+							if(strlen(retbuf)+strlen(tmp) < retsize)
+								strcat(retbuf,tmp);
 							break;
 						case 255:
-							if(retbuf!=NULL) {
-								sprintf(tmp,"%c[%d;%dR",27,term.height,term.width);
-								if(strlen(retbuf)+strlen(tmp) < retsize)
-									strcat(retbuf,tmp);
-							}
+							sprintf(tmp,"%c[%d;%dR",27,term.height,term.width);
+							if(strlen(retbuf)+strlen(tmp) < retsize)
+								strcat(retbuf,tmp);
 							break;
 					}
 					break;
@@ -510,7 +520,7 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 		memset(term.scrollback,0,term.width*2*term.backlines);
 	textattr(term.attr);
 	_setcursortype(_NORMALCURSOR);
-	window(term.x,term.y,term.x+term.width-1,term.y+term.height-1);
+	window(term.x+1,term.y+1,term.x+term.width,term.y+term.height);
 	clrscr();
 	gotoxy(1,1);
 }
@@ -522,18 +532,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 	int	key;
 	int i,j,k;
 	char	*ret;
-	struct text_info	ti;
-	int	olddmc;
 
-	olddmc=dont_move_cursor;
-	dont_move_cursor=1;
-	if(retbuf!=NULL)
-		retbuf[0]=0;
-	gettextinfo(&ti);
-	window(term.x,term.y,term.x+term.width-1,term.y+term.height-1);
-	gotoxy(term.xpos,term.ypos);
-	textattr(term.attr);
-	ch[1]=0;
+	retbuf[0]=0;
 	switch(buflen) {
 		case 0:
 			break;
@@ -596,16 +596,6 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 			prn[0]=0;
 			break;
 	}
-	term.xpos=wherex();
-	term.ypos=wherey();
-#if 0
-	window(ti.winleft,ti.wintop,ti.winright,ti.wintop);
-	gotoxy(ti.curx,ti.cury);
-	textattr(ti.attribute);
-#endif
-
-	dont_move_cursor=olddmc;
-	gotoxy(wherex(),wherey());
 	return(retbuf);
 }
 
