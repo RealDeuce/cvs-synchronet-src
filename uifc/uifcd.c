@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.10 2002/01/28 21:30:28 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.11 2002/01/28 21:31:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -209,7 +209,7 @@ int ulist(int mode, char left, int top, char width, int *cur, int *bar
 #endif
 		else  {
 			/* make sure we're wide enough to display the application title */
-			if(width<strlen(app_title)
+			if(width<strlen(app_title))
 				width=strlen(app_title);
             dialog_clear_norefresh();
 			scrollpos=0;
