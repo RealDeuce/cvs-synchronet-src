@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.69 2003/02/09 08:21:37 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.70 2003/02/09 08:23:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,7 +123,7 @@ char tmp[256];
 char error[256];
 char cflags[MAX_PATH+1];
 char cvsroot[MAX_PATH+1];
-char distlist_rev[128]="unspecified";
+char distlist_rev[128]="Unspecified";
 char revision[16];
 
 int  backup_level=5;
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=TRUE;
 
-	sscanf("$Revision: 1.69 $", "%*s %s", revision);
+	sscanf("$Revision: 1.70 $", "%*s %s", revision);
 
     printf("\r\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\r\n",revision,PLATFORM_DESC);
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
 		sprintf(mopt[i++],"%-27.27s","Start Installation...");
 		mopt[i][0]=0;
 
-		sprintf(str,"Synchronet Installation (Distribution List %s)",distlist_rev);
+		sprintf(str,"Synchronet Installation - Distribution List %s",distlist_rev);
 		uifc.helpbuf=	"`Synchronet Installation:`\n"
 						"\nToDo: Add help.";
 		switch(uifc.list(WIN_ESC|WIN_MID|WIN_ACT|WIN_ORG,0,0,70,&main_dflt,0
