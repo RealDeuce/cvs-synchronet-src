@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.115 2004/06/13 23:16:43 deuce Exp $ */
+/* $Id: js_global.c,v 1.117 2004/08/16 10:29:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -362,19 +362,6 @@ js_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-
-static char* dupestr(char* str)
-{
-	char* p;
-
-	p = (char*)malloc(strlen(str)+1);
-
-	if(p == NULL)
-		return(NULL);
-
-	return(strcpy(p,str));
-}
-
 static JSBool
 js_ascii_str(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -385,7 +372,7 @@ js_ascii_str(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
-	if((p=dupestr(str))==NULL)
+	if((p=strdup(str))==NULL)
 		return(JS_FALSE);
 
 	ascii_str(p);
@@ -410,7 +397,7 @@ js_strip_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
-	if((p=dupestr(str))==NULL)
+	if((p=strdup(str))==NULL)
 		return(JS_FALSE);
 
 	strip_ctrl(p);
@@ -434,7 +421,7 @@ js_strip_exascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
-	if((p=dupestr(str))==NULL)
+	if((p=strdup(str))==NULL)
 		return(JS_FALSE);
 
 	strip_exascii(p);
@@ -615,7 +602,7 @@ js_rot13(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
-	if((p=dupestr(str))==NULL)
+	if((p=strdup(str))==NULL)
 		return(JS_FALSE);
 
 	js_str = JS_NewStringCopyZ(cx, rot13(p));
@@ -1633,7 +1620,7 @@ js_truncsp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
-	if((p=dupestr(str))==NULL)
+	if((p=strdup(str))==NULL)
 		return(JS_FALSE);
 
 	truncsp(p);
@@ -1661,8 +1648,7 @@ js_truncstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((set=JS_GetStringBytes(JS_ValueToString(cx, argv[1])))==NULL) 
 		return(JS_FALSE);
 
-
-	if((p=dupestr(str))==NULL)
+	if((p=strdup(str))==NULL)
 		return(JS_FALSE);
 
 	truncstr(p,set);
@@ -1675,6 +1661,27 @@ js_truncstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
+
+static JSBool
+js_backslash(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char		path[MAX_PATH+1];
+	char*		str;
+	JSString*	js_str;
+
+	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
+		return(JS_FALSE);
+	
+	SAFECOPY(path,str);
+	backslash(path);
+
+	if((js_str = JS_NewStringCopyZ(cx, path))==NULL)
+		return(JS_FALSE);
+
+	*rval = STRING_TO_JSVAL(js_str);
+	return(JS_TRUE);
+}
+
 
 static JSBool
 js_getfname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1907,16 +1914,33 @@ js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 static JSBool
-js_touch(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_ftouch(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		p;
+	char*		fname;
 
-	if((p=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) {
+	if((fname=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) {
 		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 		return(JS_TRUE);
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(ftouch(p));
+	*rval = BOOLEAN_TO_JSVAL(ftouch(fname));
+	return(JS_TRUE);
+}
+
+static JSBool
+js_fmutex(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		fname;
+	char*		text=NULL;
+
+	if((fname=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) {
+		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		return(JS_TRUE);
+	}
+	if(argc>1)
+		text=JS_GetStringBytes(JS_ValueToString(cx,argv[1]));
+
+	*rval = BOOLEAN_TO_JSVAL(fmutex(fname,text));
 	return(JS_TRUE);
 }
 		
@@ -2259,17 +2283,22 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"truncsp",			js_truncsp,			1,	JSTYPE_STRING,	JSDOCSTR("string text")
-	,JSDOCSTR("truncate white-space characters off end of string")
+	,JSDOCSTR("truncate (trim) white-space characters off end of string")
 	,310
-	},		
+	},
 	{"truncstr",		js_truncstr,		2,	JSTYPE_STRING,	JSDOCSTR("string text, charset")
-	,JSDOCSTR("truncate string at first char in <i>charset</i>")
+	,JSDOCSTR("truncate (trim) string at first char in <i>charset</i>")
 	,310
 	},		
 	{"lfexpand",		js_lfexpand,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF)")
 	,310
-	},		
+	},
+	{"backslash",		js_backslash,		1,	JSTYPE_STRING,	JSDOCSTR("string path")
+	,JSDOCSTR("returns directory path with trailing (platform-specific) path delimeter "
+		"(i.e. \"slash\" or \"backslash\")")
+	,311
+	},
 	{"file_getname",	js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("string path")
 	,JSDOCSTR("returns filename portion of passed path string")
 	,311
@@ -2329,9 +2358,14 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"or change to current time")
 	,311
 	},
-	{"file_touch",		js_touch,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
+	{"file_touch",		js_ftouch,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
 	,JSDOCSTR("updates a file's last modification date/time to current time, "
 		"creating an empty file if it doesn't already exist")
+	,311
+	},
+	{"file_mutex",		js_fmutex,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename [,text]")
+	,JSDOCSTR("attempts to create an exclusive (e.g. lock) file, "
+		"optinally with the contents of <i>text</i>")
 	,311
 	},
 	{"directory",		js_directory,		1,	JSTYPE_ARRAY,	JSDOCSTR("string pattern [,flags]")
