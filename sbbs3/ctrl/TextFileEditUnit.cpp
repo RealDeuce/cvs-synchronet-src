@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TextFileEditUnit.cpp,v 1.3 2002/02/01 00:07:30 rswindell Exp $ */
+/* $Id: TextFileEditUnit.cpp,v 1.4 2003/05/15 02:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ void __fastcall TTextFileEditForm::FormShow(TObject *Sender)
         EditReplaceMenuItem->Enabled=false;
         ReplacePopupMenuItem->Enabled=false;
     }
-    Caption=Caption+AnsiString(" - ")+Filename.UpperCase();
+    Caption=Caption+AnsiString(" - ")+Filename;
     try {
         Memo->Lines->LoadFromFile(Filename);
     } catch(...) { }
