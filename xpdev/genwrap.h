@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.40 2003/05/01 22:09:02 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.41 2003/05/01 22:16:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ extern "C" {
 								select(0,NULL,NULL,NULL,&tv); })
 	#endif
 
-	#define YIELD			SLEEP(1)
+	#define YIELD()			SLEEP(1)
 
 	#if defined(_THREAD_SAFE)
 		#if defined(__FreeBSD__)
