@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.9 2001/06/20 01:21:23 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.10 2001/11/14 22:40:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,7 +131,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 		strcpy(p,"vt100/57600");
 		p+=strlen(p)+1;
 		l=p-(char*)buf;
-		send(remote_socket,(char*)buf,l,0);
+		sendsocket(remote_socket,(char*)buf,l);
 	}
 
 	while(online) {
@@ -190,7 +190,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 					sem_post(&output_sem);
 				}
 			}
-			if((i=send(remote_socket,(char*)buf,rd,0))<0) {
+			if((i=sendsocket(remote_socket,(char*)buf,rd))<0) {
 				lprintf("!TELGATE ERROR %d sending on socket %d",ERROR_VALUE,remote_socket);
 				break;
 			}

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.15 2001/11/11 18:54:30 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.16 2001/11/14 22:40:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,7 +239,7 @@ js_send(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	cp=JS_GetStringBytes(str);
 	len=strlen(cp);
 
-	if(send(p->sock,cp,len,0)==len) {
+	if(sendsocket(p->sock,cp,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
 		*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
 	} else {

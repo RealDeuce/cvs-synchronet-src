@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.8 2001/10/25 02:14:50 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.9 2001/11/14 22:40:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -274,7 +274,7 @@ int sbbs_t::exec_net(csi_t* csi)
 			if(!lp || !pp || !(*pp))
 				return(0);
 
-			if(send(*lp,*pp,strlen(*pp),0)>0)
+			if(sendsocket(*lp,*pp,strlen(*pp))>0)
 				csi->logic=LOGIC_TRUE;
 			else
 				csi->socket_error=ERROR_VALUE;
@@ -465,7 +465,7 @@ bool sbbs_t::ftp_cmd(csi_t* csi, SOCKET sock, char* cmdsrc, char* rsp)
 			bputs(cmd);
 
 		len=strlen(cmd);
-		if(send(sock,cmd,len,0)!=len) {
+		if(sendsocket(sock,cmd,len)!=len) {
 			csi->socket_error=ERROR_VALUE;
 			return(FALSE);
 		}
@@ -846,7 +846,7 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 		if(!socket_check(ctrl_sock,NULL))
 			break; /* Control connection lost */
 
-		if(send(data_sock,buf,rd,0)<1) {
+		if(sendsocket(data_sock,buf,rd)<1) {
 			error=true;
 			break;
 		}

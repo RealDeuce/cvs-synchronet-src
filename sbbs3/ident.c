@@ -2,7 +2,7 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.c,v 1.6 2001/10/09 00:56:47 rswindell Exp $ */
+/* $Id: ident.c,v 1.7 2001/11/14 22:40:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,7 @@ char* identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf, size_t m
 		}
 
 		sprintf(req,"%u, %u\r\n", ntohs(client_addr->sin_port), local_port);
-		if(send(sock,req,strlen(req),0)!=(int)strlen(req)) {
+		if(sendsocket(sock,req,strlen(req))!=(int)strlen(req)) {
 			sprintf(buf,"ERROR %d sending request",ERROR_VALUE);
 			break;
 		}
