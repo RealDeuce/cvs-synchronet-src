@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.254 2003/05/04 10:48:51 rswindell Exp $ */
+/* $Id: main.cpp,v 1.255 2003/05/07 11:03:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,8 +52,8 @@ uint riobp;
 #define TELNET_SERVER "Synchronet Telnet Server"
 #define STATUS_WFC	"Listening"
 
-#define TIMEOUT_THREAD_WAIT		60		// Seconds (was 15)
-#define IO_THREAD_BUF_SIZE	   	10000   // Bytes
+#define TIMEOUT_THREAD_WAIT		60			// Seconds (was 15)
+#define IO_THREAD_BUF_SIZE	   	20000		// Bytes
 
 // Globals
 #ifdef _WIN32
@@ -2699,12 +2699,18 @@ int sbbs_t::incom(unsigned long timeout)
 {
 	uchar	ch;
 
+#if 0	/* looping version */
+	while(!RingBufRead(&inbuf, &ch, 1))
+		if(sem_trywait_block(&inbuf.sem,timeout)!=0 || sys_status&SS_ABORT)
+			return(NOINP);
+#else
 	if(!RingBufRead(&inbuf, &ch, 1)) {
 		if(sem_trywait_block(&inbuf.sem,timeout)!=0)
 			return(NOINP);
 		if(!RingBufRead(&inbuf, &ch, 1))
 			return(NOINP);
 	}
+#endif
 	return(ch);
 }
 
