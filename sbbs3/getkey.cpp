@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.11 2001/08/29 17:23:32 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.12 2001/10/16 23:38:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,8 +50,10 @@ char sbbs_t::getkey(long mode)
 	char	telnet_cmd[16];
 	time_t	last_telnet_cmd=0;
 
-	if(!online || !input_thread_running)
+	if(!online || !input_thread_running) {
+		mswait(1);	// just in case someone is looping on getkey() when they shouldn't
 		return(0);
+	}
 	sys_status&=~SS_ABORT;
 	if((sys_status&SS_USERON || action==NODE_DFLT) && !(mode&K_GETSTR))
 		mode|=(useron.misc&SPIN);
