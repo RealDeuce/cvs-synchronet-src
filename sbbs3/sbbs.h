@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.141 2002/09/06 01:19:36 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.142 2002/09/13 01:08:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -579,7 +579,6 @@ public:
 	bool	removefcdt(file_t* f);
 	bool	movefile(file_t* f, int newdir);
 	char *	getfilespec(char *str);
-	uint	delfiles(char *path, char *spec);
 	bool	checkfname(char *fname);
 	bool	addtobatdl(file_t* f);
 
@@ -940,7 +939,9 @@ BOOL 	md(char *path);
 	int		fdatecmp_a(uchar **buf1, uchar **buf2);
 	int		fdatecmp_d(uchar **buf1, uchar **buf2);
 
+	/* file.cpp */
 	BOOL	filematch(char *filename, char *filespec);
+	uint	delfiles(char *path, char *spec);
 
 #endif /* SBBS */
 

@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.12 2002/01/20 14:45:21 rswindell Exp $ */
+/* $Id: file.cpp,v 1.13 2002/09/13 01:08:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,7 +270,7 @@ BOOL filematch(char *filename, char *filespec)
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /****************************************************************************/
-uint sbbs_t::delfiles(char *inpath, char *spec)
+uint delfiles(char *inpath, char *spec)
 {
 	char	path[MAX_PATH+1];
     uint	i,files=0;
@@ -284,9 +284,7 @@ uint sbbs_t::delfiles(char *inpath, char *spec)
 		if(isdir(g.gl_pathv[i]))
 			continue;
 		CHMOD(g.gl_pathv[i],S_IWRITE);	// Incase it's been marked RDONLY
-		if(remove(g.gl_pathv[i]))
-			errormsg(WHERE,ERR_REMOVE,g.gl_pathv[i],0);
-		else
+		if(remove(g.gl_pathv[i])==0)
 			files++;
 	}
 	globfree(&g);
