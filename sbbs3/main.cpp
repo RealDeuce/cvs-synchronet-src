@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.349 2004/11/04 19:47:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.350 2004/11/05 00:32:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1244,6 +1244,7 @@ void input_thread(void *arg)
 	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
 		&& node_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) {
 
+		lprintf(LOG_DEBUG,"Node %d %s %d", sbbs->cfg.node_num,__FILE__,__LINE__);
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
 
 		FD_ZERO(&socket_set);
@@ -1260,7 +1261,9 @@ void input_thread(void *arg)
 		tv.tv_sec=1;
 		tv.tv_usec=0;
 
+		lprintf(LOG_DEBUG,"Node %d %s %d", sbbs->cfg.node_num,__FILE__,__LINE__);
 		if((i=select(high_socket+1,&socket_set,NULL,NULL,&tv))<1) {
+			lprintf(LOG_DEBUG,"Node %d %s %d", sbbs->cfg.node_num,__FILE__,__LINE__);
 			pthread_mutex_unlock(&sbbs->input_thread_mutex);
 			if(i==0)
 				continue;
@@ -1297,6 +1300,7 @@ void input_thread(void *arg)
 			}
 #endif
 		}
+		lprintf(LOG_DEBUG,"Node %d %s %d", sbbs->cfg.node_num,__FILE__,__LINE__);
 
 		if(sbbs->client_socket==INVALID_SOCKET)
 			break;
@@ -1318,6 +1322,7 @@ void input_thread(void *arg)
 		else
 			continue;
 
+		lprintf(LOG_DEBUG,"Node %d %s %d", sbbs->cfg.node_num,__FILE__,__LINE__);
 		if(sbbs->client_socket==INVALID_SOCKET) {
 			pthread_mutex_unlock(&sbbs->input_thread_mutex);
 			break;
@@ -1341,9 +1346,9 @@ void input_thread(void *arg)
 	    if(rd > (int)sizeof(inbuf))
         	rd=sizeof(inbuf);
 
-		lprintf(LOG_DEBUG,"Node %d -> recv", sbbs->cfg.node_num);
+		lprintf(LOG_DEBUG,"Node %d %s %d", sbbs->cfg.node_num,__FILE__,__LINE__);
     	rd = recv(sock, (char*)inbuf, rd, 0);
-		lprintf(LOG_DEBUG,"Node %d <- recv", sbbs->cfg.node_num);
+		lprintf(LOG_DEBUG,"Node %d %s %d", sbbs->cfg.node_num,__FILE__,__LINE__);
 
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
 
