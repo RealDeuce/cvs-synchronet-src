@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.290 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.285 2005/01/07 03:50:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,8 +96,8 @@ static DWORD	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
-static str_list_t recycle_semfiles;
-static str_list_t shutdown_semfiles;
+static link_list_t recycle_semfiles;
+static link_list_t shutdown_semfiles;
 
 #ifdef _DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
@@ -2266,7 +2266,7 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts)
 
 static char* ftp_tmpfname(char* str, SOCKET sock)
 {
-	safe_snprintf(str,MAX_PATH,"%sSBBS_FTP.%u.%u.tx",scfg.temp_dir,getpid(),sock);
+	sprintf(str,"%sftp%u%u.tx",scfg.data_dir,getpid(),sock);
 	return(str);
 }
 
@@ -2728,7 +2728,6 @@ static void ctrl_thread(void* arg)
 			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
 			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
 			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
-			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa(logintime,str,16));
 			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
@@ -4458,7 +4457,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.290 $", "%*s %s", revision);
+	sscanf("$Revision: 1.285 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4569,7 +4568,8 @@ void DLLCALL ftp_server(void* arg)
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
-		sbbs_srand();	/* Seed random number generator */
+		srand(time(NULL));	/* Seed random number generator */
+		sbbs_random(10);	/* Throw away first number */
 
 		if(!winsock_startup()) {
 			cleanup(1,__LINE__);
@@ -4610,18 +4610,11 @@ void DLLCALL ftp_server(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		if(startup->temp_dir[0])
+		if(startup->temp_dir[0]) {
 			SAFECOPY(scfg.temp_dir,startup->temp_dir);
-		else
-			SAFECOPY(scfg.temp_dir,"../temp");
-	   	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-		MKDIR(scfg.temp_dir);
-		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
-		if(!isdir(scfg.temp_dir)) {
-			lprintf(LOG_ERR,"!Invalid temp directory: %s", scfg.temp_dir);
-			cleanup(1,__LINE__);
-			return;
-		}
+			backslash(scfg.temp_dir);
+		} else
+			prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 		if(!startup->max_clients) {
 			startup->max_clients=scfg.sys_nodes;
@@ -4686,14 +4679,14 @@ void DLLCALL ftp_server(void* arg)
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
-		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
-		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","ftp");
+		semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","ftp");
+		semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","ftp");
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
 			initialized=time(NULL);
-			semfile_list_check(&initialized,recycle_semfiles);
-			semfile_list_check(&initialized,shutdown_semfiles);
+			semfile_list_check(&initialized,&recycle_semfiles);
+			semfile_list_check(&initialized,&shutdown_semfiles);
 		}
 
 
@@ -4705,7 +4698,7 @@ void DLLCALL ftp_server(void* arg)
 
 			if(active_clients==0) {
 				if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
-					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
+					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 						break;
 					}
@@ -4719,7 +4712,7 @@ void DLLCALL ftp_server(void* arg)
 						break;
 					}
 				}
-				if(((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL
+				if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
 						&& lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p))
 					|| (startup->shutdown_now==TRUE
 						&& lprintf(LOG_INFO,"0000 Shutdown semaphore signaled"))) {
