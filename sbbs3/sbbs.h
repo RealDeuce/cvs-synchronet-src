@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.188 2003/06/26 01:28:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.189 2003/06/26 06:42:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,7 +171,7 @@ public:
 
 	void	send_telnet_cmd(uchar cmd, uchar opt);
     uchar	telnet_cmd[64];
-    int		telnet_cmdlen;
+    uint	telnet_cmdlen;
 	ulong	telnet_mode;
 	uchar	telnet_last_rxch;
 	char	terminal[TELNET_TERM_MAXLEN+1];
