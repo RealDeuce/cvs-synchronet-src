@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.17 2002/02/02 04:09:21 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.18 2002/02/15 13:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,13 +52,6 @@
 /* SMB-specific */
 #include "smblib.h"		/* SMBCALL */
 #include "smbwrap.h"	/* Verify prototypes */
-
-#ifdef _WIN32
-#define stat(f,s)	_stat(f,s)
-#define STAT		struct _stat
-#else
-#define STAT		struct stat
-#endif
 
 /****************************************************************************/
 /* Convert ASCIIZ string to upper case										*/
@@ -111,7 +104,7 @@ long SMBCALL flength(char *filename)
 
 #else 
 
-	STAT st;
+	struct stat st;
 
 	if(access(filename,0)==-1)
 		return(-1L);
@@ -196,7 +189,7 @@ BOOL SMBCALL fexist(char *filespec)
 /****************************************************************************/
 long SMBCALL filelength(int fd)
 {
-	STAT st;
+	struct stat st;
 
 	if(fstat(fd, &st)!=0)
 		return(-1L);
