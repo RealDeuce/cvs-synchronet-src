@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.38 2003/02/09 04:23:38 rswindell Exp $ */
+/* $Id: scfg.c,v 1.39 2003/02/16 08:49:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -192,6 +192,7 @@ if(chdir(cfg.ctrl_dir)!=0) {
 		,errno,cfg.ctrl_dir);
 	exit(-1);
 }
+FULLPATH(".",cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
 uifc.size=sizeof(uifc);
 #if defined(USE_FLTK)
