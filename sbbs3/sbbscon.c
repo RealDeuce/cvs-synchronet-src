@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.70 2002/05/03 01:47:03 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.71 2002/07/13 10:13:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -680,9 +680,6 @@ int main(int argc, char** argv)
 #ifdef __unix__
 	mail_startup.seteuid=do_seteuid;
 #endif
-	/* Spam filtering */
-	mail_startup.options|=MAIL_OPT_USE_RBL;	/* Realtime Blackhole List */
-	mail_startup.options|=MAIL_OPT_USE_RSS;	/* Relay Spam Stopper */
     strcpy(mail_startup.ctrl_dir,ctrl_dir);
 
 #ifdef __unix__	/* Look up DNS server address */
