@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.32 2002/06/28 23:41:05 rswindell Exp $ */
+/* $Id: smblib.c,v 1.33 2002/07/12 09:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -799,6 +799,12 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			case RFC822REPLYID:
 				msg->reply_id=msg->hfield_dat[i];
 				break;
+			case USENETPATH:
+				msg->path=msg->hfield_dat[i];
+				break;
+			case USENETNEWSGROUPS:
+				msg->newsgroups=msg->hfield_dat[i];
+				break;
 			case FIDOMSGID:
 				msg->ftn_msgid=msg->hfield_dat[i];
 				break;
@@ -927,6 +933,22 @@ int SMBCALL smb_hfield(smbmsg_t* msg, ushort type, size_t length, void* data)
 	else
 		msg->hfield_dat[i]=NULL;
 	return(0);
+}
+
+/****************************************************************************/
+/* Searches for a specific header field (by type) and returns it			*/
+/****************************************************************************/
+void* SMBCALL smb_get_hfield(smbmsg_t* msg, ushort type, hfield_t* hfield)
+{
+	int i;
+
+	for(i=0;i<msg->total_hfields;i++)
+		if(msg->hfield[i].type == type) {
+			hfield = &msg->hfield[i];
+			return(msg->hfield_dat[i]);
+		}
+
+	return(NULL);
 }
 
 /****************************************************************************/
