@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.20 2003/10/24 21:46:55 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.21 2003/11/07 03:59:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,7 +139,8 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	telnet_mode&=~TELNET_MODE_BIN_RX;
 
 	while(online) {
-		gettimeleft();
+		if(!(mode&TG_NOCHKTIME))
+			gettimeleft();
 		rd=RingBufRead(&inbuf,buf,sizeof(buf));
 		if(rd) {
 			if(!(telnet_mode&TELNET_MODE_BIN_RX)) {
