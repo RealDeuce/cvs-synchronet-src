@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.76 2005/02/04 00:29:02 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.77 2005/02/04 00:58:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@ char		host_name_buf[128];
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
-BOOL		recycled=FALSE;
+BOOL		recycled;
 DWORD		log_mask=DEFAULT_LOG_MASK;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
 
@@ -717,7 +717,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.76 $", "%*s %s", revision);
+	sscanf("$Revision: 1.77 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -858,16 +858,15 @@ int main(int argc, char **argv, char** environ)
 	signal(SIGINT,break_handler);
 	signal(SIGTERM,break_handler);
 
-	if(loop)
-		signal(SIGHUP,recycle_handler);
-	else
-		signal(SIGHUP,SIG_IGN);
+	signal(SIGHUP,recycle_handler);
 
 	/* Don't die on SIGPIPE  */
 	signal(SIGPIPE,SIG_IGN);
 #endif
 
 	do {
+
+		recycled=FALSE;
 
 		if(!js_init(environ)) {
 			lprintf(LOG_ERR,"!JavaScript initialization failure\n");
@@ -883,7 +882,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"JavaScript: Destroying runtime\n");
 		JS_DestroyRuntime(js_runtime);	
 
-	} while(loop && !terminated);
+	} while((recycled || loop) && !terminated);
 
 	bail(result);
 
