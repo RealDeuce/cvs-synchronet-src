@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.5 2005/01/12 12:15:48 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.6 2005/01/13 04:47:52 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -241,7 +241,7 @@ typedef struct {
 	int n_cans;
 
 	/* Stuff added by RRS */
-	SOCKET	sock;					/* socket descriptor */
+	void*	cbdata;
 	long*	mode;
 	FILE*	statfp;
 	FILE*	errfp;

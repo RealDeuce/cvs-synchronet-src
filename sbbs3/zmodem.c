@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.7 2005/01/12 12:15:48 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.8 2005/01/13 04:47:52 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -189,6 +189,11 @@ int getcom7()
 int opt_v = TRUE;		/* show progress output */
 int opt_d = TRUE;		/* show debug output */
 
+/* temporary */
+int		recv_byte(void* cbdata, unsigned timeout);
+int		send_byte(void* cbdata, uchar ch, unsigned timeout);
+extern	SOCKET sock;
+
 /*
  * read bytes as long as rdchk indicates that
  * more data is available.
@@ -197,7 +202,7 @@ int opt_d = TRUE;		/* show debug output */
 void
 zmodem_rx_purge(zmodem_t* zm)
 {
-	while(recv_byte(zm->sock,0,*zm->mode)<=0xff);
+	while(recv_byte(zm->cbdata,0)<=0xff);
 }
 
 /* 
@@ -211,7 +216,7 @@ zmodem_tx_raw(zmodem_t* zm, unsigned char ch)
 	if(zm->raw_trace)
 		fprintf(zm->statfp,"%s ",chr(ch));
 
-	if(send_byte(zm->sock,ch,10,*zm->mode))
+	if(send_byte(zm->cbdata,ch,10))
 		fprintf(zm->errfp,"!Send error: %u\n",ERROR_VALUE);
 
 	zm->last_sent = ch;
@@ -623,7 +628,7 @@ zmodem_rx_poll(zmodem_t* zm)
 {
 	int rd=0;
 
-	socket_check(zm->sock,&rd,NULL,0);
+	socket_check(sock,&rd,NULL,0);
 
 	return(rd);
 }
@@ -642,7 +647,7 @@ zmodem_rx_raw(zmodem_t* zm, int to)
 {
 	int c;
 
-	if((c=recv_byte(zm->sock,to,*zm->mode)) > 0xff)
+	if((c=recv_byte(zm->cbdata,to)) > 0xff)
 		return TIMEOUT;
 
 //	fprintf(zm->statfp,"%02X  ",c);
@@ -1806,7 +1811,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.7 $", "%*s %s", buf);
+	sscanf("$Revision: 1.8 $", "%*s %s", buf);
 
 	return(buf);
 }
