@@ -2,13 +2,13 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.20 2004/08/27 09:04:16 rswindell Exp $ */
+/* $Id: date_str.c,v 1.19 2003/08/30 05:51:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*

@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.68 2004/08/27 09:04:16 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.65 2004/04/02 12:39:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -380,34 +380,6 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return(JS_TRUE);
 }
 
-static JSBool
-js_chdir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		p;
-
-	if((p=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) {
-		*rval = INT_TO_JSVAL(-1);
-		return(JS_TRUE);
-	}
-
-	*rval = BOOLEAN_TO_JSVAL(chdir(p)==0);
-	return(JS_TRUE);
-}
-
-static JSBool
-js_putenv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		p;
-
-	if((p=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) {
-		*rval = INT_TO_JSVAL(-1);
-		return(JS_TRUE);
-	}
-
-	*rval = BOOLEAN_TO_JSVAL(putenv(p)==0);
-	return(JS_TRUE);
-}
-
 static jsSyncMethodSpec js_global_functions[] = {
 	{"log",				js_log,				1},
 	{"read",			js_read,            1},
@@ -419,8 +391,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"alert",			js_alert,			1},
 	{"prompt",			js_prompt,			1},
 	{"confirm",			js_confirm,			1},
-	{"chdir",			js_chdir,			1},
-	{"putenv",			js_putenv,			1},
     {0}
 };
 
@@ -748,7 +718,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.68 $", "%*s %s", revision);
+	sscanf("$Revision: 1.65 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);

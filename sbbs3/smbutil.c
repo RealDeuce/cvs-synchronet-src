@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.61 2004/08/30 08:32:13 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.60 2004/07/20 09:11:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1382,7 +1382,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.61 $", "%*s %s", revision);
+	sscanf("$Revision: 1.60 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1427,7 +1427,7 @@ int main(int argc, char **argv)
 						to="All";
 						from="Sysop";
 						from_number="1";
-						subj="Announcement";
+						subj="Anouncement";
 						break;
 					case 'Z':
 						tzone=str2tzone(argv[x]+j+1);

@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.23 2004/08/30 10:18:26 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.20 2003/09/09 02:31:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -85,7 +85,7 @@ void sort_index(smb_t* smb)
 	printf("\n");
 }
 
-void unlock_msgbase(void)
+void unlock_mail(void)
 {
 	int i;
 	if((i=smb_unlock(&smb))!=0)
@@ -97,7 +97,6 @@ char *usage="usage: fixsmb [-renumber] <smb_file>\n";
 int main(int argc, char **argv)
 {
 	char*		p;
-	char*		text;
 	char		str[MAX_PATH+1],c;
 	char		revision[16];
 	int 		i,w;
@@ -105,9 +104,9 @@ int main(int argc, char **argv)
 	BOOL		renumber=FALSE;
 	smbmsg_t	msg;
 
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
+	sscanf("$Revision: 1.20 $", "%*s %s", revision);
 
-	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
+	printf("\nFIXSMB v2.01-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
 
 	memset(&smb,0,sizeof(smb));
@@ -138,7 +137,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	atexit(unlock_msgbase);
+	atexit(unlock_mail);
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
@@ -207,19 +206,6 @@ int main(int argc, char **argv)
 		}
 		size=smb_hdrblocks(smb_getmsghdrlen(&msg))*SHD_BLOCK_LEN;
 		printf("#%-5lu (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
-
-		/* Create hash record */
-		if(msg.hdr.attr&MSG_DELETE)
-			text=NULL;
-		else
-			text=smb_getmsgtxt(&smb,&msg,GETMSGTXT_BODY_ONLY);
-		i=smb_hashmsg(&smb,&msg,text,TRUE /* update */);
-		if(i!=SMB_SUCCESS)
-			printf("!ERROR %d hashing message\n", i);
-		if(text!=NULL)
-			free(text);
-
-		/* Index the header */
 		if(msg.hdr.attr&MSG_DELETE)
 			printf("Not indexing deleted message\n");
 		else {   
