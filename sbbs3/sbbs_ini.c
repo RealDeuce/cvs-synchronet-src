@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.41 2003/05/05 06:25:11 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.42 2003/05/08 06:43:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,6 +198,11 @@ void sbbs_read_ini(
 		=iniReadShortInt(fp,section,"FirstNode",1);
 	bbs->last_node
 		=iniReadShortInt(fp,section,"LastNode",4);
+
+	bbs->outbuf_highwater_mark
+		=iniReadShortInt(fp,section,"OutbufHighwaterMark",128);
+	bbs->outbuf_drain_timeout
+		=iniReadShortInt(fp,section,"OutbufDrainTimeout",10);
 
 	bbs->xtrn_polls_before_yield
 		=iniReadInteger(fp,section,"ExternalYield",10);
