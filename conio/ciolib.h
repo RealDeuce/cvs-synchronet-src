@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.19 2004/09/30 05:40:25 deuce Exp $ */
+/* $Id: ciolib.h,v 1.20 2004/10/17 02:07:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,7 +255,7 @@ void ciolib_settitle(const char *title);
 	#define cgets(a)				ciolib_cgets(a)
 	#define kbhit()					ciolib_kbhit()
 	#define getch()					ciolib_getch()
-	#define getchr()				ciolib_getche()
+	#define getche()				ciolib_getche()
 	#define ungetch(a)				ciolib_ungetch(a)
 	#define gettextinfo(a)			ciolib_gettextinfo(a)
 	#define wherex()				ciolib_wherex()

@@ -1,6 +1,6 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.1 2004/10/15 23:32:19 rswindell Exp $ */
+/* $Id: semfile.c,v 1.4 2004/10/17 07:17:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,9 @@ BOOL DLLCALL semfile_check(time_t* t, const char* fname)
 {
 	time_t	ft;
 
+	if(*t==0)	/* uninitialized */
+		*t=time(NULL);
+
 	if((ft=fdate(fname))==-1 || ft<=*t)
 		return(FALSE);
 
@@ -72,17 +75,45 @@ char* DLLCALL semfile_list_check(time_t* t, link_list_t* filelist)
 }
 
 void DLLCALL semfile_list_init(link_list_t* filelist, const char* parent, 
-							   const char* action, const char* hostname, const char* service)
+							   const char* action, const char* service)
 {
 	char path[MAX_PATH+1];
+	char hostname[128];
 
 	listInit(filelist,0);
 	SAFEPRINTF2(path,"%s%s",parent,action);
 	listPushNodeString(filelist,path);
-	SAFEPRINTF3(path,"%s%s.%s",parent,action,hostname);
-	listPushNodeString(filelist,path);
 	SAFEPRINTF3(path,"%s%s.%s",parent,action,service);
 	listPushNodeString(filelist,path);
-	SAFEPRINTF4(path,"%s%s.%s.%s",parent,action,hostname,service);
-	listPushNodeString(filelist,path);
+	if(gethostname(hostname,sizeof(hostname))==0) {
+		SAFEPRINTF3(path,"%s%s.%s",parent,action,hostname);
+		listPushNodeString(filelist,path);
+		SAFEPRINTF4(path,"%s%s.%s.%s",parent,action,hostname,service);
+		listPushNodeString(filelist,path);
+	}
+}
+
+void DLLCALL semfile_list_add(link_list_t* filelist, const char* path)
+{
+	listPushNodeString(filelist, path);
+}
+
+void DLLCALL semfile_list_free(link_list_t* filelist)
+{
+	listFree(filelist);
+}
+
+BOOL DLLCALL semfile_signal(const char* fname, const char* text)
+{
+	int file;
+	char hostname[128];
+
+	if((file=nopen(fname,O_CREAT|O_WRONLY))<0)
+		return(FALSE);
+	if(text==NULL && gethostname(hostname,sizeof(hostname))==0)
+		text=hostname;
+	if(text!=NULL)
+		write(file,text,strlen(text));
+	close(file);
+	return(TRUE);
 }
