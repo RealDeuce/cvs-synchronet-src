@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.h,v 1.4 2003/04/23 07:48:02 rswindell Exp $ */
+/* $Id: ClientFormUnit.h,v 1.5 2004/10/18 00:01:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,7 +55,6 @@ __published:	// IDE-managed Components
     TPopupMenu *PopupMenu;
     TMenuItem *CloseSocketMenuItem;
 	TMenuItem *FilterIpMenuItem;
-    void __fastcall FormShow(TObject *Sender);
     void __fastcall FormHide(TObject *Sender);
     void __fastcall TimerTimer(TObject *Sender);
     void __fastcall CloseSocketMenuItemClick(TObject *Sender);
@@ -63,7 +62,6 @@ __published:	// IDE-managed Components
 private:	// User declarations
 public:		// User declarations
     __fastcall TClientForm(TComponent* Owner);
-    TMainForm* 		MainForm;
     HANDLE          ListMutex;
 };
 //---------------------------------------------------------------------------

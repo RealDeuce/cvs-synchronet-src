@@ -1,4 +1,4 @@
-/* $Id: WebFormUnit.cpp,v 1.1 2004/10/14 03:29:37 rswindell Exp $ */
+/* $Id: WebFormUnit.cpp,v 1.2 2004/10/18 00:04:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,17 +45,5 @@ __fastcall TWebForm::TWebForm(TComponent* Owner)
     : TForm(Owner)
 {
 	MainForm=(TMainForm*)Application->MainForm;
-}
-//---------------------------------------------------------------------------
-void __fastcall TWebForm::FormShow(TObject *Sender)
-{
-	MainForm->ViewWebServerMenuItem->Checked=true;
-	MainForm->ViewWebServerButton->Down=true;
-}
-//---------------------------------------------------------------------------
-void __fastcall TWebForm::FormHide(TObject *Sender)
-{
-	MainForm->ViewWebServerMenuItem->Checked=false;
-	MainForm->ViewWebServerButton->Down=false;
 }
 //---------------------------------------------------------------------------
