@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.175 2002/07/20 10:50:44 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.176 2002/07/21 05:28:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1714,12 +1714,15 @@ static void receive_thread(void* arg)
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-					remove(tmp);
-					system(cmdstr(xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd));
-					if(!fexist(tmp)) {
-						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
+					if(fexistcase(tmp))
 						remove(tmp);
+					system(cmdstr(xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd));
+					if(!fexistcase(tmp)) {
+						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
+						if(fexistcase(tmp))
+							remove(tmp);
 						system(cmdstr(xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd)); 
+						fexistcase(tmp);	/* fixes filename case */
 					}
 					if((file=nopen(tmp,O_RDONLY))!=-1) {
 						memset(ext,0,sizeof(ext));
@@ -4265,7 +4268,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.175 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.176 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
