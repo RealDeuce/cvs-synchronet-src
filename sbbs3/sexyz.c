@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.4 2003/09/18 03:43:06 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.5 2003/11/20 10:36:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1122,6 +1122,7 @@ int main(int argc, char **argv)
 	uint	fnames=0;
 	FILE*	fp;
 	FILE*	log=NULL;
+	BOOL	b;
 	char	compiler[32];
 
 	DESCRIBE_COMPILER(compiler);
@@ -1129,7 +1130,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.4 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2003 Rob Swindell\n\n"
@@ -1303,6 +1304,11 @@ int main(int argc, char **argv)
 	val=1;
 	ioctlsocket(sock,FIONBIO,&val);	
 #endif
+
+	/* Enable the Nagle Algorithm */
+	b=0;
+	setsockopt(sock,IPPROTO_TCP,TCP_NODELAY,(char*)&b,sizeof(b));
+
 	if(!DCDHIGH) {
 		newline();
 		fprintf(statfp,"No carrier\n");
