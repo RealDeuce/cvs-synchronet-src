@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.42 2003/12/16 16:03:59 deuce Exp $ */
+/* $Id: uifc32.c,v 1.41 2003/12/08 07:29:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,27 @@
 #define BL_DEL      (1<<1)  /* DEL key */
 #define BL_GET      (1<<2)  /* Get key */
 #define BL_PUT      (1<<3)  /* Put key */
+
+#ifdef __unix__
+enum {
+	 BLACK
+	,BLUE	
+	,GREEN	
+	,CYAN
+	,RED
+	,MAGENTA
+	,BROWN	
+	,LIGHTGRAY	
+	,DARKGRAY
+	,LIGHTBLUE	
+	,LIGHTGREEN	
+	,LIGHTCYAN
+	,LIGHTRED
+	,LIGHTMAGENTA
+	,YELLOW
+	,WHITE
+};
+#endif
 
 #define BLINK	128
 
@@ -370,7 +391,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	if(mode&WIN_FAT) {
 		s_top=1;
-		s_left=2;
+		s_left=0;
 		s_right=api->scrn_width-3;  /* Leave space for the shadow */
 		s_bottom=api->scrn_len-1;   /* Leave one for the shadow */
 	}
