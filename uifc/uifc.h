@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.9 2002/01/25 15:49:14 rswindell Exp $ */
+/* $Id: uifc.h,v 1.10 2002/01/26 11:34:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+/* OS Specific */
 #if defined(_WIN32)
     #include <windows.h>
 #endif
@@ -56,7 +57,6 @@
     #include <dos.h>
 #endif
 
-/* OS Specific */
 #if defined(__FLAT__)
 	#define far
 #endif
@@ -65,6 +65,9 @@
     #include <bios.h>
 #endif
 
+#if defined(__unix__) && !defined(stricmp)
+    #define stricmp strcasecmp
+#endif
 
 /****************************************************************************/
 /* MALLOC/FREE Macros for various compilers and environments				*/
