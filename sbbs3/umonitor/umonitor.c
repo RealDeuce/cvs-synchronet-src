@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.65 2004/09/28 05:39:59 deuce Exp $ */
+/* $Id: umonitor.c,v 1.66 2004/11/05 01:08:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,6 +252,7 @@ int clearerrors(scfg_t *cfg, int nodenum, node_t *node) {
 	}
 	node->errors=0;
 	putnodedat(cfg,nodenum,node,nodefile);
+	uifc.msg("Error count cleared for this node.");
 	return(0);
 }
 
@@ -826,7 +827,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.65 $", "%*s %s", revision);
+	sscanf("$Revision: 1.66 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);

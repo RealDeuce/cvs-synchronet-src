@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.63 2004/10/19 01:16:52 rswindell Exp $
+# $Id: Makefile,v 1.64 2004/11/17 02:04:09 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -22,6 +22,12 @@ CFLAGS = $(CFLAGS) -DJAVASCRIPT
 !else
 	CFLAGS = $(CFLAGS) -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)js
 !endif
+!ifdef NSPRINCLUDE
+	CFLAGS = $(CFLAGS) -I$(NSPRINCLUDE)
+!else
+	CFLAGS = $(CFLAGS) -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)nspr
+!endif
+
 !ifndef JSLIBDIR
 	JSLIBDIR = $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)win32.$(BUILDPATH)
 !endif

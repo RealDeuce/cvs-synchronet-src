@@ -1,14 +1,14 @@
-/* semwrap.c */
+/* msg_queue.h */
 
-/* Semaphore-related cross-platform development wrappers */
+/* Uni or Bi-directional FIFO message queue */
 
-/* $Id: semwrap.c,v 1.12 2004/11/10 23:13:09 rswindell Exp $ */
+/* $Id: msg_queue.h,v 1.3 2004/11/10 07:46:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,76 +35,54 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <errno.h>
-#include "semwrap.h"
+#ifndef _MSG_QUEUE_H
+#define _MSG_QUEUE_H
 
-#if defined(__unix__)
+#include "link_list.h"
 
-#include <sys/time.h>	/* timespec */
-#include <stdlib.h>	/* NULL */
-
-int
-sem_trywait_block(sem_t *sem, unsigned long timeout)
-{
-	int	retval;
-	struct timespec abstime;
-	struct timeval currtime;
-	
-	gettimeofday(&currtime,NULL);
-	abstime.tv_sec=currtime.tv_sec + (currtime.tv_usec/1000 + timeout)/1000;
-	abstime.tv_nsec=(currtime.tv_usec*1000 + timeout*1000000)%1000000000;
-
-	retval=sem_timedwait(sem, &abstime);
-	if(retval && errno==ETIMEDOUT)
-		errno=EAGAIN;
-	return retval;
-}
-
-#elif defined(_WIN32)
-
-#include <limits.h>		/* INT_MAX */
-
-#if defined(__BORLANDC__)
-	#pragma argsused
+#if defined(__cplusplus)
+extern "C" {
 #endif
-int sem_init(sem_t* psem, int pshared, unsigned int value)
-{
 
-	if((*(psem)=CreateSemaphore(NULL,value,INT_MAX,NULL))==NULL)
-		return -1;
-		
-	return 0;
+typedef struct {
+	char			name[128];			/* for named-queues */
+	link_list_t		in;
+	link_list_t		out;
+	DWORD			owner_thread_id;	/* reads from in, writes to out */
+	long			refs;
+	unsigned long	flags;				/* private use flags */
+	void*			private_data;
+} msg_queue_t;
+
+#define MSG_QUEUE_MALLOC		(1<<0)	/* Queue allocated with malloc() */
+#define MSG_QUEUE_BIDIR			(1<<1)	/* Bi-directional message queue */
+
+msg_queue_t*	msgQueueInit(msg_queue_t*, long flags);
+BOOL			msgQueueFree(msg_queue_t*);
+
+long			msgQueueAttach(msg_queue_t*);
+long			msgQueueDetach(msg_queue_t*);
+
+/* Get/Set queue private data */
+void*			msgQueueSetPrivateData(msg_queue_t*, void*);
+void*			msgQueueGetPrivateData(msg_queue_t*);
+
+BOOL			msgQueueWait(msg_queue_t* q, long timeout);
+long			msgQueueReadLevel(msg_queue_t*);
+void*			msgQueueRead(msg_queue_t*, long timeout);
+void*			msgQueuePeek(msg_queue_t*, long timeout);
+void*			msgQueueFind(msg_queue_t*, const void*, size_t length);
+list_node_t*	msgQueueFirstNode(msg_queue_t*);
+list_node_t*	msgQueueLastNode(msg_queue_t*);
+#define			msgQueueNextNode(node)			listNextNode(node)
+#define			msgQueuePrevNode(node)			listPrevNode(node)
+#define			msgQueueNodeData(node)			listNodeData(node)
+
+long			msgQueueWriteLevel(msg_queue_t*);
+BOOL			msgQueueWrite(msg_queue_t*, const void*, size_t length);
+
+#if defined(__cplusplus)
 }
+#endif
 
-int sem_trywait_block(sem_t* psem, unsigned long timeout)
-{
-	if(WaitForSingleObject(*(psem),timeout)!=WAIT_OBJECT_0) {
-		errno=EAGAIN;
-		return -1;
-	}
-
-	return 0;
-}
-
-int sem_post(sem_t* psem)
-{
-	if(ReleaseSemaphore(*(psem),1,NULL)==TRUE)
-		return 0;
-
-	return -1;
-}
-
-int sem_getvalue(sem_t* psem, int* vp)
-{
-	ReleaseSemaphore(*(psem),0,(LPLONG)vp);
-	return 0;
-}
-
-int sem_destroy(sem_t* psem)
-{
-	if(CloseHandle(*(psem))==TRUE)
-		return 0;
-	return -1;
-}
-
-#endif /* _WIN32 */
+#endif	/* Don't add anything after this line */
