@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.42 2001/11/09 17:05:12 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.43 2001/11/11 21:40:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,6 +65,8 @@
 #define FNOPEN_BUF_SIZE		(2*1024)
 
 #define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
+
+#define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 
 #ifndef __FLAT__
 #define __FLAT__	/* 32-bit "flat" memory model */
