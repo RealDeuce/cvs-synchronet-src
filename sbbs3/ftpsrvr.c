@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.219 2003/03/03 04:10:12 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.220 2003/03/03 05:53:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2403,12 +2403,6 @@ static void ctrl_thread(void* arg)
 
 	SAFECOPY(host_ip,inet_ntoa(ftp.client_addr.sin_addr));
 
-	if(trashcan(&scfg,host_ip,"ip-silent")) {
-		ftp_close_socket(&sock,__LINE__);
-		thread_down();
-		return;
-	}
-
 	lprintf ("%04d CTRL connection accepted from: %s port %u"
 		,sock, host_ip, ntohs(ftp.client_addr.sin_port));
 
@@ -4440,7 +4434,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.219 $", "%*s %s", revision);
+	sscanf("$Revision: 1.220 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4712,6 +4706,11 @@ void DLLCALL ftp_server(void* arg)
 			if(startup->socket_open!=NULL)
 				startup->socket_open(TRUE);
 			sockets++;
+
+			if(trashcan(&scfg,inet_ntoa(client_addr.sin_addr),"ip-silent")) {
+				ftp_close_socket(&client_socket,__LINE__);
+				continue;
+			}
 
 			if(active_clients>=startup->max_clients) {
 				lprintf("%04d !MAXMIMUM CLIENTS (%d) reached, access denied"

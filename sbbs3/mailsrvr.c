@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.234 2003/02/16 14:07:23 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.235 2003/03/03 05:53:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -657,12 +657,6 @@ static void pop3_thread(void* arg)
 #endif
 
 	SAFECOPY(host_ip,inet_ntoa(pop3.client_addr.sin_addr));
-
-	if(trashcan(&scfg,host_ip,"ip-silent")) {
-		mail_close_socket(socket);
-		thread_down();
-		return;
-	}
 
 	if(startup->options&MAIL_OPT_DEBUG_POP3)
 		lprintf("%04d POP3 connection accepted from: %s port %u"
@@ -1494,12 +1488,6 @@ static void smtp_thread(void* arg)
 	memset(&user,0,sizeof(user));
 
 	SAFECOPY(host_ip,inet_ntoa(smtp.client_addr.sin_addr));
-
-	if(trashcan(&scfg,host_ip,"ip-silent")) {
-		mail_close_socket(socket);
-		thread_down();
-		return;
-	}
 
 	lprintf("%04d SMTP connection accepted from: %s port %u"
 		, socket, host_ip, ntohs(smtp.client_addr.sin_port));
@@ -3139,7 +3127,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.234 $", "%*s %s", revision);
+	sscanf("$Revision: 1.235 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3461,6 +3449,11 @@ void DLLCALL mail_server(void* arg)
 					startup->socket_open(TRUE);
 				sockets++;
 
+				if(trashcan(&scfg,inet_ntoa(client_addr.sin_addr),"ip-silent")) {
+					mail_close_socket(client_socket);
+					continue;
+				}
+
 				if(active_clients>=startup->max_clients) {
 					lprintf("%04d !MAXMIMUM CLIENTS (%u) reached, access denied"
 						,client_socket, startup->max_clients);
@@ -3510,6 +3503,11 @@ void DLLCALL mail_server(void* arg)
 				if(startup->socket_open!=NULL)
 					startup->socket_open(TRUE);
 				sockets++;
+
+				if(trashcan(&scfg,inet_ntoa(client_addr.sin_addr),"ip-silent")) {
+					mail_close_socket(client_socket);
+					continue;
+				}
 
 				if(active_clients>=startup->max_clients) {
 					lprintf("%04d !MAXMIMUM CLIENTS (%u) reached, access denied"
