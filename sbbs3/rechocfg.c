@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.15 2003/03/06 22:37:18 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.16 2003/04/15 00:18:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,6 +202,7 @@ void read_echo_cfg()
 	cfg.maxbdlsize=DFLT_BDL_SIZE;
 	cfg.badecho=-1;
 	cfg.log=LOG_DEFAULTS;
+	cfg.check_path=TRUE;
 
 	while(1) {
 		if(!fgets(str,256,stream))
@@ -259,6 +260,11 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"REGNUM"))
 			continue;
+
+		if(!stricmp(tmp,"NOPATHCHECK")) {
+			cfg.check_path=FALSE;
+			continue;
+		}
 
 		if(!stricmp(tmp,"NOTIFY")) {
 			cfg.notify=atoi(cleanstr(p));
