@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.31 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: fido.cpp,v 1.33 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -195,8 +195,8 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 	hdr.orignode	=cfg.faddr[i].node;
 	hdr.origpoint	=cfg.faddr[i].point;
 
-	faddrtoa(&cfg.faddr[i],str);
-	bprintf(text[NetMailing],hdr.to,faddrtoa(&addr,tmp),hdr.from,str);
+	smb_faddrtoa(&cfg.faddr[i],str);
+	bprintf(text[NetMailing],hdr.to,smb_faddrtoa(&addr,tmp),hdr.from,str);
 
 	hdr.attr=(FIDO_LOCAL|FIDO_PRIVATE);
 
@@ -356,11 +356,11 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 		if(mode&WM_FILE)
 			sprintf(str,"%s sent NetMail file attachment to %s (%s)"
 				,useron.alias
-				,hdr.to,faddrtoa(&addr,tmp));
+				,hdr.to,smb_faddrtoa(&addr,tmp));
 		else
 			sprintf(str,"%s sent NetMail to %s (%s)"
 				,useron.alias
-				,hdr.to,faddrtoa(&addr,tmp));
+				,hdr.to,smb_faddrtoa(&addr,tmp));
 		logline("EN",str);
 
 		cc_found=0;
@@ -553,7 +553,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 		sprintf(str,"%.25s",block+71);              /* Title */
 		smb_hfield(&msg,SUBJECT,strlen(str),str);
-		msg.idx.subj=subject_crc(str); 
+		msg.idx.subj=smb_subject_crc(str); 
 	}
 
 	if(qnet) {
@@ -575,7 +575,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			strcpy(fulladdr,senderaddr);
 			sprintf(str,"BADADDR: %s",addr);
 			smb_hfield(&msg,SUBJECT,strlen(str),str);
-			msg.idx.subj=subject_crc(str);
+			msg.idx.subj=smb_subject_crc(str);
 			net=NET_NONE;
 			smb_hfield(&msg,SENDERNETTYPE,sizeof(net),&net);
 		}
@@ -697,9 +697,10 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		smb_stack(&smb,SMB_STACK_POP);
 
 		smb_freemsgmem(&msg);
-		if(i) {
+		if(i!=SMB_SUCCESS) {
+			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
 			smb_freemsgdat(&smb,offset,length,1);
-			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); }
+		}
 		else {		/* Successful */
 			if(inet) {
 				if(cfg.inetmail_sem[0]) 	 /* update semaphore file */
@@ -775,8 +776,8 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	hdr.orignode	=cfg.faddr[i].node;
 	hdr.origpoint   =cfg.faddr[i].point;
 
-	faddrtoa(&cfg.faddr[i],str);
-	bprintf(text[NetMailing],hdr.to,faddrtoa(&fidoaddr,tmp),hdr.from,str);
+	smb_faddrtoa(&cfg.faddr[i],str);
+	bprintf(text[NetMailing],hdr.to,smb_faddrtoa(&fidoaddr,tmp),hdr.from,str);
 	tm.tm_mon=((qwkbuf[8]&0xf)*10)+(qwkbuf[9]&0xf);
 	if (tm.tm_mon) tm.tm_mon--;
 	tm.tm_mday=((qwkbuf[11]&0xf)*10)+(qwkbuf[12]&0xf);
@@ -872,7 +873,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 	sprintf(str,"%s sent NetMail to %s @%s via QWK"
 		,useron.alias
-		,hdr.to,faddrtoa(&fidoaddr,tmp));
+		,hdr.to,smb_faddrtoa(&fidoaddr,tmp));
 	logline("EN",str);
 	}
 

@@ -1,4 +1,4 @@
-/* $Id: curs_cio.h,v 1.7 2004/08/02 02:43:59 deuce Exp $ */
+/* $Id: curs_cio.h,v 1.8 2004/09/10 23:24:49 deuce Exp $ */
 
 #ifdef __unix__
 #include "ciolib.h"
@@ -27,7 +27,6 @@ void curs_setcursortype(int type);
 int curs_getch(void);
 int curs_getche(void);
 void curs_textmode(int mode);
-int curs_getmouse(struct cio_mouse_event *mevent);
 int curs_showmouse(void);
 int curs_hidemouse(void);
 #ifdef __cplusplus

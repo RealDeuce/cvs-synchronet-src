@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.29 2004/09/02 01:34:31 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.32 2004/09/08 03:41:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	ushort	xlat;
 	long	l,bodylen,taillen,length;
 	bool	header_cont=false;
+	bool	success=true;
 	ulong	crc,block,blocks;
 	smbmsg_t	msg;
 	smbmsg_t	remsg;
@@ -125,7 +126,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	sprintf(str,"%25.25s",hdrblk+71);   /* Subject */
 	truncsp(str);
 	smb_hfield_str(&msg,SUBJECT,str);
-	msg.idx.subj=subject_crc(str);
+	msg.idx.subj=smb_subject_crc(str);
 
 	/********************************/
 	/* Convert the QWK message text */
@@ -455,10 +456,10 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 					smb_hfield_str(&msg,FIDOREPLYID,remsg.ftn_msgid);
 
 				smb_updatethread(&smb,&remsg,smb.status.last_msg+1);
+				smb_freemsgmem(&remsg);
 			}
 
 			smb_unlockmsghdr(&smb,&remsg);
-			smb_freemsgmem(&remsg);
 		}
 	}
 
@@ -508,13 +509,16 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 	fflush(smb.sdt_fp);
 
-	if((i=smb_addmsghdr(&smb,&msg,storage))!=0)	// calls smb_unlocksmbhdr() 
-		errormsg(WHERE,ERR_WRITE,smb.file,i);
+	if((i=smb_addmsghdr(&smb,&msg,storage))!=SMB_SUCCESS) {	// calls smb_unlocksmbhdr() 
+		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		smb_freemsg_dfields(&smb,&msg,1);
+		success=false;
+	}
 
 	smb_freemsgmem(&msg);
 
 	LFREE(body);
 	LFREE(tail);
 
-	return(true);
+	return(success);
 }
