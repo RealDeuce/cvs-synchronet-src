@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.63 2001/04/15 16:49:25 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.64 2001/04/16 12:36:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2448,7 +2448,8 @@ static void ctrl_thread(void* arg)
 				filepos=atol(p);
 			else
 				filepos=0;
-			sockprintf(sock,"200 File marker set to %ld",filepos);
+			sockprintf(sock,"350 Restarting at %ld. Send STORE or RETRIEVE to initiate transfer."
+				,filepos);
 			continue;
 		}
 
