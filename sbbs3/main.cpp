@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.219 2003/01/03 12:29:42 rswindell Exp $ */
+/* $Id: main.cpp,v 1.220 2003/01/03 20:53:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -268,19 +268,6 @@ DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* nam
 		,NULL,NULL,flags));
 }
 
-static JSClass js_method_class = {
-     "Method"				/* name			*/
-    ,0						/* flags		*/
-	,JS_PropertyStub		/* addProperty	*/
-	,JS_PropertyStub		/* delProperty	*/
-	,JS_PropertyStub		/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
-	,JS_ConvertStub			/* convert		*/
-	,JS_FinalizeStub		/* finalize		*/
-};
-
 /* Convert from Synchronet-specific jsMethodSpec to JSAPI's JSFunctionSpec */
 
 JSBool
@@ -353,7 +340,7 @@ DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *funcs)
 		if(funcs[i].type==JSTYPE_ALIAS)
 			continue;
 
-		method = JS_NewObject(cx, &js_method_class, NULL, method_array);
+		method = JS_NewObject(cx, NULL, NULL, method_array);
 
 		if(method==NULL)
 			return(JS_FALSE);
