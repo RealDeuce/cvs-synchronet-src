@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.22 2003/04/29 23:09:11 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.23 2003/04/29 23:10:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,7 +168,7 @@ int DLLCALL sopen(const char *fn, int access, int share, ...)
 
     if(access&O_CREAT) {
         va_start(ap,share);
-        pmode = va_arg(ap,unsigned int));
+        pmode = va_arg(ap,unsigned int);
         va_end(ap);
     }
 
