@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.11 2001/11/26 17:08:49 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.12 2002/08/27 07:53:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -686,15 +686,12 @@ bool sbbs_t::ftp_get(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest, bool d
 		SOCKET accept_sock;
 
 		addr_len=sizeof(addr);
-		if((accept_sock=accept(data_sock,(struct sockaddr*)&addr,&addr_len))
+		if((accept_sock=accept_socket(data_sock,(struct sockaddr*)&addr,&addr_len))
 			==INVALID_SOCKET) {
 			csi->socket_error=ERROR_VALUE;
 			closesocket(data_sock);
 			return(false);
 		}
-
-		if(startup->socket_open!=NULL)
-			startup->socket_open(TRUE);
 
 		close_socket(data_sock);
 		data_sock=accept_sock;
@@ -815,15 +812,12 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 		SOCKET accept_sock;
 
 		addr_len=sizeof(addr);
-		if((accept_sock=accept(data_sock,(struct sockaddr*)&addr,&addr_len))
+		if((accept_sock=accept_socket(data_sock,(struct sockaddr*)&addr,&addr_len))
 			==INVALID_SOCKET) {
 			csi->socket_error=ERROR_VALUE;
 			closesocket(data_sock);
 			return(false);
 		}
-
-		if(startup->socket_open!=NULL)
-			startup->socket_open(TRUE);
 
 		close_socket(data_sock);
 		data_sock=accept_sock;
