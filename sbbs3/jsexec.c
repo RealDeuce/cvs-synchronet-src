@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.80 2005/02/16 22:36:44 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.81 2005/02/18 08:54:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -762,7 +762,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.80 $", "%*s %s", revision);
+	sscanf("$Revision: 1.81 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -889,7 +889,8 @@ int main(int argc, char **argv, char** environ)
 		fprintf(errfp,"!ERROR loading configuration files: %s\n",error);
 		bail(1);
 	}
-	prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+	SAFECOPY(scfg.temp_dir,"../temp");
+	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 	if(host_name==NULL)
 		host_name=scfg.sys_inetaddr;

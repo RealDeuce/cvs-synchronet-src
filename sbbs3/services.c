@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.176 2005/02/09 05:15:10 rswindell Exp $ */
+/* $Id: services.c,v 1.177 2005/02/18 08:54:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1525,7 +1525,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.176 $", "%*s %s", revision);
+	sscanf("$Revision: 1.177 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1644,13 +1644,18 @@ void DLLCALL services_thread(void* arg)
 			return;
 		}
 
-#if 0	/* ToDo */
-		if(startup->temp_dir[0]) {
+		if(startup->temp_dir[0])
 			SAFECOPY(scfg.temp_dir,startup->temp_dir);
-			backslash(scfg.temp_dir);
-		} else
-#endif
-			prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+		else
+			SAFECOPY(scfg.temp_dir,"../temp");
+	   	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+		MKDIR(scfg.temp_dir);
+		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
+		if(!isdir(scfg.temp_dir)) {
+			lprintf(LOG_ERR,"!Invalid temp directory: %s", scfg.temp_dir);
+			cleanup(1);
+			return;
+		}
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
