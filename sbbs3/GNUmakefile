@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.50 2003/02/08 02:44:01 rswindell Exp $
+# $Id: GNUmakefile,v 1.51 2003/02/08 02:47:55 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -273,10 +273,9 @@ $(ECHOCFG): \
 	$(EXEODIR)/nopen.o \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/filewrap.o \
-	$(EXEODIR)/genwrap.o \
-	../../lib/fltk/$(os)/libfltk.a
+	$(EXEODIR)/genwrap.o
 	@echo Linking $@
-	@$(CC) -o $@ $^
+	@$(CC) -o -L../../lib/fltk/$(os) -lfltk -lcurses $@ $^
 
 # ADDFILES
 $(ADDFILES): \
