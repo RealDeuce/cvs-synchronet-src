@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.37 2005/01/27 04:21:21 deuce Exp $ */
+/* $Id: console.c,v 1.38 2005/01/27 04:35:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -471,6 +471,9 @@ video_update_text()
 		}
 		lines[r].changed = 0;
 		memset(lines[r].exposed,0,CONSOLE_MAX_COLS * sizeof(u_char));
+		if(flush)
+			x11.XFlush(dpy);
+		flush=0;
 	}
 
 	if (CursStart <= CursEnd && CursEnd <= FH &&
@@ -490,15 +493,13 @@ video_update_text()
 			   2 +CursCol * FW,
 			   2 + CursRow * FH + CursStart * FS,
 			   FW, (CursEnd + 1)*FS - (CursStart*FS));
-		flush=1;
+		x11.XFlush(dpy);
 	}
 
 	or =CursRow;
 	oc =CursCol;
 	os =show;
 
-	if(flush)
-		x11.XFlush(dpy);
 }
 
 void
