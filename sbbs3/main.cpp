@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.16 2001/05/03 23:30:11 rswindell Exp $ */
+/* $Id: main.cpp,v 1.17 2001/05/14 23:21:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,8 +303,8 @@ bool sbbs_t::js_initcx()
 		if(!JS_SetProperty(js_cx, sysobj, "version_detail", &val))
 			break;
 
-		/* Terminal Object */
-		if(js_CreateTerminalObject(js_cx, js_glob)==NULL)
+		/* Console Object */
+		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
 			break;
 
 		success=true;
