@@ -69,9 +69,6 @@
 #include <termios.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 #endif
 #include "ODCore.h"
 #include "ODGen.h"
@@ -114,15 +111,6 @@
 /* Serial I/O mechanisms supported inder *nix version */
 #ifdef ODPLAT_NIX
 #define INCLUDE_STDIO_COM
-#define INCLUDE_SOCKET_COM                          /* TCP/IP socket I/O.    */
-
-/* Win32 Compat. Stuff */
-#define SOCKET	int
-#define WSAEWOULDBLOCK	EAGAIN
-#define SOCKET_ERROR -1
-#define WSAGetLastError() errno
-#define ioctlsocket	ioctl
-#define closesocket	close
 #endif /* ODPLAT_NIX */
 
 /* Include "windows.h" for Win32-API based serial I/O. */
@@ -187,7 +175,6 @@ typedef struct
 #endif /* INCLUDE_DOOR32_COM */
 #ifdef INCLUDE_SOCKET_COM
 	SOCKET	socket;
-	int	old_delay;
 #endif
 } tPortInfo;
 
@@ -1784,11 +1771,11 @@ no_fossil:
    if(pPortInfo->Method == kComMethodStdIO ||
       pPortInfo->Method == kComMethodUnspecified)
    {
-		if (isatty(STDOUT_FILENO))  {
-			tcgetattr(STDOUT_FILENO,&tio_default);
+		if (isatty(STDIN_FILENO))  {
+			tcgetattr(STDIN_FILENO,&tio_default);
 			tio_raw = tio_default;
 			cfmakeraw(&tio_raw);
-			tcsetattr(STDOUT_FILENO,TCSANOW,&tio_raw);
+			tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
 			setvbuf(stdout, NULL, _IONBF, 0);
 		}
 
@@ -1834,15 +1821,13 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
 
 #ifdef INCLUDE_SOCKET_COM
 	if(pPortInfo->Method == kComMethodSocket) {
-		int delay=FALSE;
+		int bufsize=1024;
 
 		pPortInfo->socket = dwExistingHandle;
 
-		getsockopt(pPortInfo->socket, IPPROTO_TCP, TCP_NODELAY, &(pPortInfo->old_delay), &delay);
-		delay=FALSE;
-		setsockopt(pPortInfo->socket, IPPROTO_TCP, TCP_NODELAY, &delay, sizeof(delay));
-
         pPortInfo->bIsOpen = TRUE;
+
+		setsockopt(pPortInfo->socket, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
 		return(kODRCSuccess);
 	}
@@ -1973,14 +1958,13 @@ tODResult ODComClose(tPortHandle hPort)
 
 #ifdef INCLUDE_SOCKET_COM
       case kComMethodSocket:
-		 setsockopt(pPortInfo->socket, IPPROTO_TCP, TCP_NODELAY, &(pPortInfo->old_delay), sizeof(pPortInfo->old_delay));
          closesocket(pPortInfo->socket);
          break;
 #endif /* INCLUDE_SOCKET_COM */
 
 #ifdef INCLUDE_STDIO_COM
 	  case kComMethodStdIO:
-		 tcsetattr(STDOUT_FILENO,TCSANOW,&tio_default);
+		 tcsetattr(STDIN_FILENO,TCSANOW,&tio_default);
 	     break;
 #endif
 
@@ -2786,7 +2770,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 					break;
 				if(WSAGetLastError() != WSAEWOULDBLOCK)
 					return (kODRCGeneralFailure);
-				od_sleep(50);
+				Sleep(50);
 			} while (bWait);
 
 			if (recv_ret == 0)
@@ -2970,7 +2954,7 @@ keep_going:
 			do {
 				send_ret = send(pPortInfo->socket, &btToSend, 1, 0);
 				if (send_ret != 1)
-					od_sleep(50);
+					Sleep(50);
 			} while ((send_ret == SOCKET_ERROR) && (WSAGetLastError() == WSAEWOULDBLOCK));
 
 			if (send_ret == SOCKET_ERROR)
@@ -3455,7 +3439,7 @@ try_again:
 				send_ret = send(pPortInfo->socket, pbtBuffer, nSize, 0);
 				if (send_ret != SOCKET_ERROR)
 					break;
-				od_sleep(25);
+				Sleep(25);
 			} while (WSAGetLastError() == WSAEWOULDBLOCK);
 
 			if (send_ret != nSize)
