@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.142 2004/03/23 23:55:29 deuce Exp $
+# $Id: GNUmakefile,v 1.143 2004/03/24 01:20:39 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -117,12 +117,18 @@ SMBLIB_OBJS = \
 
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
-MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
-MKSHPPLIB		:=	libtool -dynamic -framework System -lcc_dynamic -lstdc++
-SHLIBOPTS	:=	
+ MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
+ MKSHPPLIB		:=	libtool -dynamic -framework System -lcc_dynamic -lstdc++
+ SHLIBOPTS	:=	
 else
-MKSHLIB		:=	$(CC)
-MKSHPPLIB		:=	$(CXX)
+ ifeq ($(os),sunos)
+  MKSHLIB		:=	/usr/ccs/bin/ld -G
+  MKSHPPLIB		:=	/usr/ccs/bin/ld -G -L/usr/local/lib -lstdc++
+  SHLIBOPTS	:=	
+ else
+  MKSHLIB		:=	$(CC)
+  MKSHPPLIB		:=	$(CXX)
+ endif
 endif
 
 # Monolithic Synchronet executable Build Rule

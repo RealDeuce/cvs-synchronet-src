@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.57 2004/03/23 02:22:09 deuce Exp $ */
+/* $Id: genwrap.h,v 1.59 2004/03/27 06:49:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,12 @@
 
 #ifndef _GENWRAP_H
 #define _GENWRAP_H
+
+#if (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)) || defined (__NetBSD__)
+#ifndef __unix__
+#define __unix__
+#endif
+#endif
 
 #include <stdio.h>		/* sprintf */
 #include "gen_defs.h"	/* ulong */
@@ -198,7 +204,7 @@ extern "C" {
 	#define SLEEP(x)		DosSleep(x)
 	#define BEEP(freq,dur)	DosBeep(freq,dur)
 
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__APPLE__)
 
 	#if defined(_PTH_PTHREAD_H_)
 		#define SLEEP(x)		({ int y=x; struct timeval tv; \
