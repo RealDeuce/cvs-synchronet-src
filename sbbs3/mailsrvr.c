@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.47 2001/03/14 22:02:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.48 2001/03/25 14:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -689,6 +689,7 @@ static void pop3_thread(void* arg)
 			rd = sockreadline(socket, buf, sizeof(buf));
 			if(rd<1) 
 				break;
+			truncsp(buf);
 			if(startup->options&MAIL_OPT_DEBUG_POP3)
 				lprintf("%04d POP3 RX: %s", socket, buf);
 			if(!stricmp(buf, "NOOP")) {
@@ -1204,6 +1205,7 @@ static void smtp_thread(void* arg)
 		rd = sockreadline(socket, buf, sizeof(buf));
 		if(rd<1) 
 			break;
+		truncsp(buf);
 		if(spy!=NULL)
 			fprintf(spy,"%s\n",buf);
 		if(state>=SMTP_STATE_DATA_HEADER) {
@@ -2164,8 +2166,8 @@ static void sendmail_thread(void* arg)
 				sockprintf(sock,"RCPT TO: %s", (char*)msg.to_net.addr);
 			else
 				sockprintf(sock,"RCPT TO: <%s>", (char*)msg.to_net.addr);
-			if(!sockgetrsp(sock,"250", buf, sizeof(buf))) {
-				sprintf(err,"%s replied with '%s' instead of 250",server,buf);
+			if(!sockgetrsp(sock,"25", buf, sizeof(buf))) {
+				sprintf(err,"%s replied with '%s' instead of 25*",server,buf);
 				bounce(&smb,&msg,err,buf[0]=='5');
 				continue;
 			}
