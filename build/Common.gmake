@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.15 2004/09/13 01:06:23 deuce Exp $
+# $Id: Common.gmake,v 1.16 2004/09/13 01:17:19 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -272,6 +272,10 @@ include		$(CIOLIB_SRC)$(DIRSEP)Common.make
 include		$(UIFC_SRC)$(DIRSEP)Common.make
 include		$(SMBLIB_SRC)$(DIRSEP)Common.make
 include		$(XPDEV_SRC)$(DIRSEP)Common.make
+-include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
+-include		$(UIFC_SRC)$(DIRSEP)Common.gmake
+-include		$(SMBLIB_SRC)$(DIRSEP)Common.gmake
+-include		$(XPDEV_SRC)$(DIRSEP)Common.gmake
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
