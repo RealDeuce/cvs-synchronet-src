@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.28 2001/12/27 16:28:42 rswindell Exp $ */
+/* $Id: userdat.c,v 1.29 2002/01/11 01:04:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,7 @@ char* nulstr="";
 /* Makes dots and underscores synomynous with spaces for comparisions		*/
 /* Returns the number of the perfect matched username or 0 if no match		*/
 /****************************************************************************/
-uint DLLCALL matchuser(scfg_t* cfg, char *name)
+uint DLLCALL matchuser(scfg_t* cfg, char *name, BOOL sysop_alias)
 {
 	int file;
 	char dat[LEN_ALIAS+2];
@@ -58,7 +58,8 @@ uint DLLCALL matchuser(scfg_t* cfg, char *name)
 	ulong l,length;
 	FILE *stream;
 
-	if(!stricmp(name,"SYSOP") || !stricmp(name,"POSTMASTER") || !stricmp(name,cfg->sys_id))
+	if(sysop_alias &&
+		(!stricmp(name,"SYSOP") || !stricmp(name,"POSTMASTER") || !stricmp(name,cfg->sys_id)))
 		return(1);
 
 	sprintf(str,"%suser/name.dat",cfg->data_dir);
