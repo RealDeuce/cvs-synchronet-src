@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.27 2005/01/24 00:00:52 deuce Exp $ */
+/* $Id: console.c,v 1.28 2005/01/24 01:34:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1014,23 +1014,34 @@ video_async_event(void *crap)
 					x11.XSetSelectionOwner(dpy, XA_PRIMARY, win, CurrentTime);
 				}
 				if(!sem_trywait(&pastebuf_request)) {
-					Window sowner;
+					Window sowner=None;
 					int format;
 					unsigned long len, bytes_left, dummy;
 					Atom type;
 
 					sowner=x11.XGetSelectionOwner(dpy, XA_PRIMARY);
 					if(sowner != None) {
-						x11.XConvertSelection(dpy, XA_PRIMARY, XA_STRING, None, sowner, CurrentTime);
-						x11.XFlush(dpy);
-						x11.XGetWindowProperty(dpy, sowner, XA_STRING, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
-						if(bytes_left > 0)
-							x11.XGetWindowProperty(dpy,sowner,XA_STRING,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&pastebuf);
+						if(sowner==win) {
+							/* Get your own primary selection */
+							pastebuf=(unsigned char *)malloc(strlen(copybuf)+1);
+							if(pastebuf!=NULL)
+								strcpy(pastebuf,copybuf);
+						}
+						else {
+							x11.XConvertSelection(dpy, XA_PRIMARY, XA_STRING, None, sowner, CurrentTime);
+							x11.XFlush(dpy);
+							x11.XGetWindowProperty(dpy, sowner, XA_STRING, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
+							if(bytes_left > 0)
+								x11.XGetWindowProperty(dpy,sowner,XA_STRING,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&pastebuf);
+						}
 					}
 					/* Set paste buffer */
 					sem_post(&pastebuf_set);
 					sem_wait(&pastebuf_request);
-					x11.XFree(pastebuf);
+					if(sowner==win)
+						free(pastebuf);
+					else
+						x11.XFree(pastebuf);
 				}
 				break;
 			default:
