@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.91 2002/07/31 08:03:34 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.92 2002/07/31 08:04:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1212,7 +1212,7 @@ int main(int argc, char** argv)
  			bbs_startup.options|=BBS_OPT_NO_RECYCLE;
 			ftp_startup.options|=FTP_OPT_NO_RECYCLE;
 			mail_startup.options|=MAIL_OPT_NO_RECYCLE;
-			service_startup.options|=BBS_OPT_NO_RECYCLE;
+			services_startup.options|=BBS_OPT_NO_RECYCLE;
 		}
 	}
 
