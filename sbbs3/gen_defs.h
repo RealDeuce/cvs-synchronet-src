@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.5 2000/10/31 14:36:11 cmartin Exp $ */
+/* $Id: gen_defs.h,v 1.6 2000/11/01 02:28:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,13 +41,14 @@
 									/* Control characters */
 #define STX 	0x02				/* Start of text			^B	*/
 #define ETX 	0x03				/* End of text				^C	*/
-#define BS		0x08				/* Back space				^H	*/
-#define TAB 	0x09				/* Horizontal tabulation	^I	*/
-#define LF		0x0a				/* Line feed				^J	*/
+#define BEL		0x07				/* Bell/beep				^G	*/
 #define FF		0x0c				/* Form feed				^L	*/
-#define CR		0x0d				/* Carriage return			^M	*/
 #define ESC 	0x1b				/* Escape					^[	*/
-#define SP		0x20				/* Space						*/
+#define BS		'\b'				/* Back space				^H	*/
+#define TAB 	'\t'				/* Horizontal tabulation	^I	*/
+#define LF		'\n'				/* Line feed				^J	*/
+#define CR		'\r'				/* Carriage return			^M	*/
+#define SP		' '					/* Space						*/
 
 #ifndef MAX_PATH
 	#ifdef MAXPATHLEN
