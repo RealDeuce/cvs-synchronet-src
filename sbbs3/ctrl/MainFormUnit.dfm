@@ -10,7 +10,7 @@ object MainForm: TMainForm
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
+  Font.Height = -14
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   Icon.Data = {
@@ -46,11 +46,11 @@ object MainForm: TMainForm
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnShow = FormShow
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 16
   object HorizontalSplitter: TSplitter
     Left = 0
-    Top = 164
+    Top = 195
     Width = 632
     Height = 1
     Cursor = crVSplit
@@ -61,9 +61,9 @@ object MainForm: TMainForm
   end
   object Logo: TImage
     Left = 0
-    Top = 165
+    Top = 196
     Width = 632
-    Height = 162
+    Height = 121
     Align = alClient
     Center = True
     IncrementalDisplay = True
@@ -1962,7 +1962,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 30
     Width = 632
-    Height = 134
+    Height = 165
     Align = alTop
     BevelOuter = bvNone
     Constraints.MinHeight = 100
@@ -1970,18 +1970,18 @@ object MainForm: TMainForm
     TabOrder = 1
     Visible = False
     object TopVerticalSplitter: TSplitter
-      Left = 235
+      Left = 289
       Top = 0
-      Width = 2
-      Height = 134
+      Width = 3
+      Height = 165
       Cursor = crHSplit
       MinSize = 1
     end
     object UpperLeftPageControl: TPageControl
       Left = 0
       Top = 0
-      Width = 235
-      Height = 134
+      Width = 289
+      Height = 165
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -1989,10 +1989,10 @@ object MainForm: TMainForm
       OnUnDock = PageControlUnDock
     end
     object UpperRightPageControl: TPageControl
-      Left = 237
+      Left = 292
       Top = 0
-      Width = 395
-      Height = 134
+      Width = 340
+      Height = 165
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -2002,26 +2002,26 @@ object MainForm: TMainForm
   end
   object BottomPanel: TPanel
     Left = 0
-    Top = 165
+    Top = 196
     Width = 632
-    Height = 162
+    Height = 121
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
     Visible = False
     object BottomVerticalSplitter: TSplitter
-      Left = 235
+      Left = 289
       Top = 0
-      Width = 2
-      Height = 162
+      Width = 3
+      Height = 121
       Cursor = crHSplit
       MinSize = 1
     end
     object LowerLeftPageControl: TPageControl
       Left = 0
       Top = 0
-      Width = 235
-      Height = 162
+      Width = 289
+      Height = 121
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -2029,10 +2029,10 @@ object MainForm: TMainForm
       OnUnDock = PageControlUnDock
     end
     object LowerRightPageControl: TPageControl
-      Left = 237
+      Left = 292
       Top = 0
-      Width = 395
-      Height = 162
+      Width = 340
+      Height = 121
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -2042,7 +2042,7 @@ object MainForm: TMainForm
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 327
+    Top = 317
     Width = 632
     Height = 25
     Panels = <
@@ -2273,78 +2273,73 @@ object MainForm: TMainForm
         ImageIndex = 19
         object BBSEditIPFilter: TMenuItem
           Caption = 'IP Address Filter'
-          Hint = 'ip.can'
+          Hint = 'IP.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditIPFilterSilent: TMenuItem
           Caption = 'IP Address Filter (silent)'
-          Hint = 'ip-silent.can'
+          Hint = 'IP-SILENT.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditIPFilterMsg: TMenuItem
           Caption = 'IP Address Filter Message'
-          Hint = 'badip.msg'
+          Hint = 'BADIP.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditHostFilter: TMenuItem
           Caption = 'Host Name Filter'
-          Hint = 'host.can'
+          Hint = 'HOST.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditHostFilterMsg: TMenuItem
           Caption = 'Host Name Filter Message'
-          Hint = 'badhost.msg'
+          Hint = 'BADHOST.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditNameFilter: TMenuItem
           Caption = 'User Name Filter'
-          Hint = 'name.can'
+          Hint = 'NAME.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditNameFilterBadMsg: TMenuItem
           Caption = 'User Name Filter Message'
-          Hint = 'badname.msg'
+          Hint = 'BADNAME.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditEmailFilterMenuItem: TMenuItem
           Caption = 'E-mail Address Filter'
-          Hint = 'email.can'
+          Hint = 'EMAIL.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditBadEmailMessageMenuItem: TMenuItem
           Caption = 'E-mail Address Filter Message'
-          Hint = 'bademail.msg'
+          Hint = 'BADEMAIL.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditSubjectFilterMenuItem: TMenuItem
           Caption = 'E-mail Subject Filter'
-          Hint = 'subject.can'
+          Hint = 'SUBJECT.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditFilenameFilter: TMenuItem
           Caption = 'File Name Filter'
-          Hint = 'file.can'
+          Hint = 'FILE.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditFileFilterBadMsg: TMenuItem
           Caption = 'File Name Filter Message'
-          Hint = 'badfile.msg'
+          Hint = 'BADFILE.MSG'
           OnClick = TextMenuItemEditClick
         end
         object PhoneNumberPHONECAN1: TMenuItem
           Caption = 'Phone Number Filter'
-          Hint = 'phone.can'
+          Hint = 'PHONE.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditPhoneFilterBadMsg: TMenuItem
           Caption = 'Phone Number Filter Message'
-          Hint = 'badphone.msg'
+          Hint = 'BADPHONE.MSG'
           OnClick = TextMenuItemEditClick
-        end
-        object BBSEditTwitList: TMenuItem
-          Caption = 'Twit List'
-          Hint = 'twitlist.cfg'
-          OnClick = CtrlMenuItemEditClick
         end
       end
       object N10: TMenuItem
@@ -2700,7 +2695,7 @@ object MainForm: TMainForm
       end
       object HelpFAQMenuItem: TMenuItem
         Caption = 'Frequently Asked Questions'
-        Hint = 'http://www.synchro.net/docs/v3cfgfaq.txt'
+        Hint = 'ftp://vert.synchro.net/Synchronet/v3cfgfaq.txt'
         OnClick = WebPageMenuItemClick
       end
       object N7: TMenuItem

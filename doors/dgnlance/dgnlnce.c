@@ -1,1107 +1,2238 @@
 #include <ctype.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 #include "OpenDoor.h"
 
-#include "xp64.h"
-#include "xpdev.h"
-#include "dgnlnce.h"
-#include "combat.h"
-#include "fileutils.h"
-#include "userfile.h"
-#include "utils.h"
+#include "gen_defs.h"
+#include "genwrap.h"
 
-struct playertype player[3];
-/* In these arrays, 0 isn't actually used */
-QWORD           required[29];	       /* Experience required for each level */
-struct weapon   weapon[26];
-struct armour   armour[26];
+struct playertype {
+	char		name[31];
+	char		pseudo[31];
+	char		password[31];
+	char		ally[31];
+	char		killer[31];
+	char		gaspd[61];
+	INT16		status;
+	INT16		flights;
+	INT16		alliance;
+	INT16		plus;
+	double	r;
+	double	experience;
+	double	strength;
+	double	intelligence;
+	double	gold;
+	double	luck;
+	double	dexterity;
+	double	constitution;
+	double	charisma;
+	double	weapon;
+	double	vehicle;
+	double	shield;
+	double	damage;
+	double	bank;
+	double	attack;
+	double	power;
+	double	wins;
+	double	loses;
+};
 
-const char      dots[] = "...............................................";
-char            temp[81];
+struct opponent {
+	char	name[31];
+	double	gold;
+	double	strength;
+	double	dexterity;
+	double	shield;
+	double	luck;
+	double	experience;
+	double	weapon;
+	double	weapon2;
+	double	attack;
+	double	power;
+	double	vehicle;
+};
+
+double	required[29];	/* In these arrays, 0 isn't actually used */
+char		wname[26][31];
+char		sname[26][31];
+char		cross[51];
+char		strip[51];
+char		string[51];
+char		temp[51];
+double	cost[26];
+double	w2[26];
+double	w3[26];
+double	vary;
+double	vary2;
+double	d;
+double	e;
+double	rd;
+double	roll;
+double	z;
+double	opt;
+double	x;
+double	buy;
+double	g;
+char		option;
+char		mess[21][86];
+char		blt[5][61];
+FILE		*infile;
+FILE		*outfile;
+FILE		*messfile;
+struct opponent	opp;
+char		name[31];
+char		password[31];
+char		ugh[31];
+char		ugh2[61];
+char		ugh3[61];
+INT16		enemy;
+INT16		a;
+INT16		b;
+INT16		m;
+INT16		j;
+INT16		number;
+INT16		dog;
+INT16		f;
+INT16		y;
+INT16		p;
+INT16		number_of_players;
+INT16		number2;
+INT16		verify;
+INT16		okea;
+INT16		gam;
+INT16		trips;
+INT16		tint;
+INT16		spc;
+INT16		amount;
+BOOL		allied;
+BOOL		finder;
+BOOL		play;
+BOOL		doga;
+BOOL		uni;
+BOOL		live;
+BOOL		found;
+BOOL		ftn;
+BOOL		badchar;
+BOOL		mg;
+BOOL		fini;
+BOOL		next;
+BOOL		partone;
+BOOL		bothover;
+BOOL		healall;
+struct playertype	player[31];
+char		result[31][81];
+char		opty;
+BOOL		abrt;
+BOOL		gonado;
+BOOL		logit;
+BOOL		yaya;
+unsigned char	currfg=7;
+unsigned char	currbg=0;
+char	tempaa[51];
+char	tempbb[51];
+char	tempcc[51];
+char	tempdd[51];
+char	tempee[51];
+char	tempff[51];
+char	tempgg[51];
+char	temphh[51];
+char	tempii[51];
+char	tempjj[51];
+char	tempkk[51];
+char	templl[51];
+char	tempmm[51];
+char	tempnn[51];
+char	tempoo[51];
+char	temppp[51];
+char	tempqq[51];
+char	emptykey=0;
+double temp1a,temp1b,temp1c,temp1d,temp1e,temp1f;
+int	addtofore=0;
+
+/*****************************/
+/* Functions from Pascal RTL */
+/*****************************/
+long int round(double v)
+{
+	long int ret;
+
+	ret=(v+0.5);
+	return(ret);
+}
+
 /*****************************/
 /* Functions from common.pas */
 /*****************************/
 
-char           *
-date(void)
+void cls(void)
 {
-    static char     retdate[9];
-    time_t          now;
-    now = time(NULL);
-    strftime(retdate, sizeof(retdate), "%m/%d/%y", localtime(&now));
-    return (retdate);
+	od_clr_scr();
 }
+
+char	*date(void)
+{
+	static	char retdate[9];
+	time_t	now;
+
+	now=time(NULL);
+	strftime(retdate, sizeof(retdate), "%m/%d/%y", localtime(&now));
+	return(retdate);
+}
+
+void textcolor(int c)
+{
+	currfg=c;
+	od_set_color(currfg,currbg);
+}
+
+void textbackground(int c)
+{
+	currbg=c;
+	od_set_color(currfg,currbg);
+}
+
+void ansic(int c)
+{
+	if(c==1 || c==0)
+		c=0;
+	else {
+		if(c==2)
+			c=7;
+		else
+			c=c-2;
+	}
+	switch(c) {
+		case 0: addtofore=0; textcolor(7); textbackground(0); break;
+		case 1: addtofore=8; textcolor(11); textbackground(0); break;
+		case 2: addtofore=8; textcolor(14); textbackground(0); break;
+		case 3: addtofore=0; textcolor(5); textbackground(0); break;
+		case 4: addtofore=8; textcolor(15); textbackground(1); break;
+		case 5: addtofore=0; textcolor(2); textbackground(0); break;
+		case 6: addtofore=8; textcolor(12); textbackground(8); break;
+		case 7: addtofore=8; textcolor(9); textbackground(0); break;
+		case 8: addtofore=0; textcolor(1); textbackground(0); break;
+		case 9: addtofore=8; textcolor(15); textbackground(0); break;
+	}
+}
+
+void prompt(char *prmpt)
+{
+	char *p;
+
+	for(p=prmpt; *p; p++) {
+		switch(*p) {
+			case 10:
+				ansic(0);
+				/* Fall through */
+			default:
+				od_putch(*p);
+		}
+	}
+}
+
+void nugetkey(char *c)
+{
+	if(emptykey) {
+		*c=emptykey;
+		emptykey=0;
+		return;
+	}
+	*c=od_get_key(TRUE);
+}
+
+void pausescr(void)
+{
+	char	c;
+
+	ansic(3);
+	prompt("[Pause]");
+	ansic(0);
+	nugetkey(&c);
+	prompt("\010 \010\010 \010\010 \010\010 \010\010 \010\010 \010\010 \010");
+}
+
+void nl(void)
+{
+	prompt("\r\n");
+}
+
+void print(char *pr)
+{
+	prompt(pr);
+	nl();
+}
+
+void prt(char *i)
+{
+	ansic(4);
+	prompt(i);
+	ansic(0);
+}
+
+BOOL empty(void)
+{
+	if(emptykey)
+		return(FALSE);
+	emptykey=od_get_key(FALSE);
+	if(emptykey)
+		return(FALSE);
+	return(TRUE);
+}
+
+void wkey(BOOL *abrt, BOOL *next)
+{
+	char	cc;
+
+	for(;!(empty() || abrt);) {
+		nugetkey(&cc);
+		if(cc==' ' || cc==3 || cc==24 || cc==11)
+			*abrt=TRUE;
+		if(cc==14) {
+			*abrt=TRUE;
+			*next=TRUE;
+		}
+		if(cc==19 || cc=='P' || cc=='p')
+			nugetkey(&cc);
+	}
+}
+
+void printa(char *i, BOOL *abrt, BOOL *next)
+{
+	int	c;
+	*abrt=FALSE;
+	*next=FALSE;
+	if(!empty())
+		wkey(abrt, next);
+	for(c=0; i[c];) {
+		if(i[c]==3) {
+			switch(i[c+1]) {
+				case 0:
+				case '0':
+					ansic(0);
+					break;
+				case 1:
+					ansic(1);
+					break;
+				case 2:
+					ansic(2);
+					break;
+				case 3:
+				case '1':
+					ansic(3);
+					break;
+				case 4:
+				case '2':
+					ansic(4);
+					break;
+				case 5:
+				case '3':
+					ansic(5);
+					break;
+				case 6:
+				case '4':
+					ansic(6);
+					break;
+				case 7:
+				case '5':
+					ansic(7);
+					break;
+				case 8:
+				case '6':
+					ansic(8);
+					break;
+				case '7':
+					ansic(9);
+					break;
+				case '8':
+					ansic(10);
+					break;
+				case '9':
+					ansic(11);
+					break;
+			}
+		}
+		else if(i[c]==1) {
+			switch(i[c+1]) {
+				case 'K': textcolor(0+addtofore); break;
+				case 'R': textcolor(4+addtofore); break;
+				case 'G': textcolor(2+addtofore); break;
+				case 'Y': textcolor(6+addtofore); break;
+				case 'B': textcolor(1+addtofore); break;
+				case 'M': textcolor(5+addtofore); break;
+				case 'C': textcolor(3+addtofore); break;
+				case 'W': textcolor(7+addtofore); break;
+				case '0': textbackground(0); break;
+				case '1': textbackground(4); break;
+				case '2': textbackground(2); break;
+				case '3': textbackground(6); break;
+				case '4': textbackground(1); break;
+				case '5': textbackground(5); break;
+				case '6': textbackground(3); break;
+				case '7': textbackground(7); break;
+				case 'H': addtofore=8; break;
+				case 'N': 
+					addtofore=0;
+					textcolor(7);
+					textbackground(0);
+					break;
+				case 1:
+					od_putch(1);
+					break;
+				case 0:
+					nl();
+					break;
+			}
+		}
+		if(!empty())
+			wkey(abrt, next);
+		if((i[c]==3 || i[c]==1) && i[c+1])
+			c++;
+		else
+			od_putch(i[c]);
+		c++;
+	}
+}
+
+void printacr(char *i, BOOL *abrt, BOOL *next)
+{
+	if(!*abrt) {
+		printa(i,abrt,next);
+		if(*(lastchar(i))!=1)
+			printa("\001",abrt,next);
+	}
+}
+
+void pfl(char *fn, BOOL *abrt, BOOL cr)
+{
+	FILE	*fil;
+	char	i[256];
+	BOOL	next;
+	INT16	linecount=0;
+
+	fil=fopen(fn,"rb");
+	if(fil==NULL) {
+		prompt(fn);
+		print(" not found.");
+	}
+	else {
+		*abrt=FALSE;
+		while(!feof(fil) && (!*abrt)) {
+			fgets(i,sizeof(i),fil);
+			truncsp(i);
+			if(cr) {
+				printacr(i,abrt,&next);
+				if(++linecount == od_control.user_screen_length-1) {
+					pausescr();
+					linecount=0;
+				}
+			}
+			else
+				printa(i,abrt,&next);
+		}
+        fclose(fil);
+	}
+	nl();
+	nl();
+}
+
+void printfile(char *fn)
+{
+	BOOL	abt;
+	pfl(fn,&abt,TRUE);
+}
+
 /********************************/
 /* Functions from original .pas */
 /********************************/
 
-void
-depobank(void)
+double playerattack(void)
 {
-    QWORD           tempbank;
-    tempbank = user.gold;
-    user.gold = user.gold - tempbank;
-    user.bank = user.bank + tempbank;
-    nl();
-    od_set_color(L_CYAN, D_BLACK);
-    od_printf("%" QWORDFORMAT " Steel pieces are in the bank.\r\n", user.bank);
+	return ((vary*player[b].attack*player[b].strength*player[b].dexterity*(xp_random(5)+1))/
+                  (opp.vehicle*opp.dexterity*opp.luck*vary2));
 }
 
-void
-withdrawbank(void)
+double playerattack2(void)
 {
-    QWORD           tempbank;
-    tempbank = user.bank;
-    user.gold = user.gold + tempbank;
-    user.bank = user.bank - tempbank;
-    nl();
-    od_set_color(D_MAGENTA, D_BLACK);
-    od_printf("You are now carrying %" QWORDFORMAT " Steel pieces.\r\n", user.gold);
+	return(round((vary*player[b].power*player[b].strength*(xp_random(5)+1)*(xp_random(5)+1))/
+                   ((opp.vehicle)*opp.luck*vary2)));
 }
 
-void
-checkday(void)
+INT16	roller(void)
 {
-    char            oldy[256];
-    DWORD           h, i, j;
-    FILE           *outfile;
-    BOOL            newday = FALSE;
-    FILE           *infile;
-    struct playertype **playerlist = NULL;
-    struct playertype **ra;
-    infile = fopen("data/date.lan", "r+b");
-    readline(oldy, sizeof(oldy), infile);
+	return(round(xp_random(3)+1));
+}
 
-    if (strcmp(oldy, date())) {
-	fseek(infile, 0, SEEK_SET);
-	fputs(date(), infile);
-	fputs("\n", infile);
-	newday = TRUE;
-	outfile = fopen("data/record.lan", "wb");
+double opponentattack(void)
+{
+	return((vary2*opp.weapon*opp.strength*opp.dexterity*(xp_random(5)+1))/
+                    ((player[b].vehicle)*player[b].dexterity*player[b].luck*vary));
+}
+
+double opponentattack2(void)
+{
+	return(round((vary2*opp.weapon2*opp.strength*(xp_random(5)+1)*((xp_random(5))+1))/
+                     ((player[b].vehicle)*player[b].luck*vary)));
+}
+
+double find1(void)
+{
+	return(w2[round(player[b].weapon)]);
+}
+
+double find2()
+{
+	return(w3[round(player[b].weapon)]);
+}
+
+double supplant(void)
+{
+	return(xp_random(4)/10+(0.8));
+}
+
+double experience(void)
+{
+	return(((opp.vehicle-1+(opp.weapon+opp.weapon2-2)/2)*20+(opp.shield*7.5)+((opp.strength-10)*20)+
+		(opp.luck+opp.dexterity-20)*17));
+}
+
+double spin(void)
+{
+	return((xp_random(6)+1)+(xp_random(6)+1)+(xp_random(6)+1));
+}
+
+void depobank(void)
+{
+	double tempbank;
+	tempbank=player[b].gold;
+	if(tempbank<0)
+		tempbank=0;
+	player[b].gold=player[b].gold-tempbank;
+	player[b].bank=player[b].bank+tempbank;
+	sprintf(temp, "%1.0f", player[b].bank);
+	nl();
+	ansic(3);
+	prompt(temp);
+	print(" Steel pieces are in the bank. ");
+}
+
+void withdrawbank(void)
+{
+	double	tempbank;
+	tempbank=player[b].bank;
+	if(tempbank<0)
+		tempbank=0;
+	player[b].gold=player[b].gold+tempbank;
+	player[b].bank=player[b].bank-tempbank;
+	sprintf(temp,"%1.0f",player[b].gold);
+	nl();
+	ansic(5);
+	prompt("You are now carring ");
+	prompt(temp);
+	print(" Steel pieces.");
+}
+
+void checkday(void)
+{
+	char	oldy[256];
+	INT16	h,a;
+	for(a=1; a<number_of_players; a++) {
+		for(h=a+1; h<= number_of_players; h++) {
+			if(player[h].experience>player[a].experience) {
+				if(h==b)
+					b=a;
+				else if(a==b)
+					b=h;
+				player[number_of_players+1]=player[h];
+				player[h]=player[a];
+				player[a]=player[number_of_players+1];
+			}
+		}
+	}
+
+	infile=fopen("data/date.lan","r+b");
+	fgets(oldy,sizeof(oldy),infile);
+	truncsp(oldy);
+
+	if(strcmp(oldy,date())) {
+		fseek(infile, 0, SEEK_SET);
+		fputs(date(),infile);
+		fputs("\n",infile);
+		for(a=1; a<=number_of_players; a++) {
+			player[a].flights=3;
+			player[a].status=0;
+		}
+		outfile=fopen("data/record.lan","wb");
+		fputs("0",outfile);
+		fputs("\n",outfile);
+		fclose(outfile);
+	}
+	fclose(infile);
+}
+
+void	playerlist(void)
+{
+	INT16		q;
+	INT16		v;
+	INT16		spc;
+	char		ts[256];
+	char		tch[6];
+	char		line[81];
+
+	checkday();
+	cls();
+	nl();
+	ansic(5);
+	print("Hero Rankings:");
+	print("!!!!!!!!!!!!!!");
+	a=1;
+	for(a=1;a<=number_of_players && !abrt; a++) {
+		nl();
+		sprintf(temp,"%f",a);
+		sprintf(tempaa,"%2.0f",player[a].r);
+		sprintf(tempcc,"%2.0f",player[a].wins);
+		sprintf(tempdd,"%2.0f",player[a].loses);
+		if(player[a].status==1)
+			SAFECOPY(tch,"SLAIN");
+		else
+			SAFECOPY(tch,"ALIVE");
+		ansic(5);
+		if(a<10)
+			prompt(" ");
+		prompt(temp);
+		prompt(".  ");
+		ansic(3);
+		prompt(player[a].pseudo);
+		for(spc=1; spc<=(30-strlen(player[a].pseudo)); spc++)
+			prompt(".");
+		ansic(2);
+		sprintf(line,"Lev=%s  W=%s  L=%s  S=%s",tempaa,tempcc,tempdd,tch);
+		printa(line,&abrt,&next);
+		a++;
+	}
+}
+
+void leave(void)
+{
+	INT16		a;
+
+	nl();
+	outfile=fopen("data/characte.lan","wb");
+	fprintf(outfile,"%d\n",number_of_players);
+	for(a=1;a<=number_of_players;a++) {
+		fprintf(outfile,"%s\n",player[a].name);
+		fprintf(outfile,"%s\n",player[a].pseudo);
+		fprintf(outfile,"%s\n",player[a].gaspd);
+		fprintf(outfile,"%d\n",player[a].status);
+		if(player[a].status==1)
+			fprintf(outfile,"%s\n",player[a].killer);
+		fprintf(outfile,"%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
+				round(player[a].strength),round(player[a].intelligence),
+				round(player[a].luck),round(player[a].dexterity),round(player[a].constitution),
+				round(player[a].charisma),round(player[a].experience),
+				round(player[a].r),round(player[a].shield),round(player[a].weapon),
+				round(player[a].vehicle),round(player[a].gold),
+				player[a].flights,round(player[a].bank),round(player[a].wins),round(player[a].loses),
+				player[a].plus);
+	}
 	fclose(outfile);
-    }
-    fclose(infile);
+}
 
-    infile = fopen("data/characte.lan", "rb");
-    fgets(temp, sizeof(temp), infile);
-    if (feof(infile))
-	return;
-    i = 0;
-    while (loadnextuser(&tmpuser, infile)) {
-	ra = (struct playertype **) realloc(playerlist, sizeof(struct playertype *) * (i + 1));
-	if (ra == NULL)
-	    exit(1);
-	playerlist = ra;
-	playerlist[i] = (struct playertype *) malloc(sizeof(struct playertype));
-	if (playerlist[i] == NULL)
-	    exit(1);
-	*playerlist[i] = tmpuser;
-	if (newday) {
-	    playerlist[i]->battles = BATTLES_PER_DAY;
-	    playerlist[i]->fights = FIGHTS_PER_DAY;
-	    playerlist[i]->flights = FLIGHTS_PER_DAY;
-	    playerlist[i]->status &= ~DEAD;
-	    playerlist[i]->damage = 0;
-	    playerlist[i]->vary = supplant();
+void heal(void)
+{
+	char	tempts[51];
+	healall=FALSE;
+	cls();
+	sprintf(temp,"%d",round(8*player[b].r));
+	ansic(5);
+	prompt("Clerics want ");
+	prompt(temp);
+	print(" Steel pieces per wound.");
+	sprintf(tempts,"%1.0f",player[b].damage);
+	ansic(4);
+	prompt("You have ");
+	prompt(tempts);
+	print(" points of damage to heal.");
+	ansic(3);
+	prompt("How many do points do you want healed? ");
+	od_input_str(temp,3,'0','9');
+	opt=atoi(temp);
+	if(opt<0)
+		opt=0;
+	if(healall)
+		opt=player[b].damage;
+	if(((round(opt))*(player[b].r)*10)>player[b].gold) {
+		ansic(8);
+		print("Sorry, you do not have enough Steel .");
+		opt=0;
 	}
-	i++;
-    }
-    fclose(infile);
-    for (j = 0; j < (i - 1); j++) {
-	for (h = j + 1; h < i; h++) {
-	    if (playerlist[h]->experience > playerlist[j]->experience) {
-		tmpuser = *playerlist[h];
-		*playerlist[h] = *playerlist[j];
-		*playerlist[j] = tmpuser;
-	    }
-	}
-    }
-    outfile = fopen("data/characte.lan", "wb");
-    fprintf(outfile, "%lu\n", i);
-    for (j = 0; j < i; j++) {
-	writenextuser(playerlist[j], outfile);
-	free(playerlist[j]);
-    }
-    free(playerlist);
-    fclose(outfile);
+	else if(opt>player[b].damage)
+		opt=player[b].damage;
+	player[b].damage=player[b].damage-opt;
+	player[b].gold=player[b].gold-8*opt*player[b].r;
+	sprintf(temp,"%1.0f",opt);
+	prompt(temp);
+	print(" hit points healed.");
 }
 
-void
-playerlist(void)
+void findo(void)
 {
-    int             i, a;
-    FILE           *infile;
-    checkday();
-    od_clr_scr();
-    nl();
-    od_set_color(D_MAGENTA, D_BLACK);
-    od_disp_str("Hero Rankings:\r\n");
-    od_disp_str("!!!!!!!!!!!!!!\r\n");
-    infile = fopen("data/characte.lan", "rb");
-    fgets(temp, sizeof(temp), infile);
-    i = 3;
-    a = 1;
-    while (loadnextuser(&tmpuser, infile)) {
 	nl();
-	od_set_color(D_MAGENTA, D_BLACK);
-	od_printf("%2u.  `bright cyan`%.30s%.*s`green`Lev=%-2u  W=%-6" QWORDFORMAT " L=%-6" QWORDFORMAT " S=%s `blinking red`%s"
-	    ,a, tmpuser.pseudo, 30 - strlen(tmpuser.pseudo), dots, tmpuser.r
-		  ,tmpuser.wins, tmpuser.loses
-		  ,((tmpuser.status & DEAD) ? "SLAIN" : "ALIVE"), ((tmpuser.status & ONLINE) ? "ONLINE" : ""));
-	if (++i >= od_control.user_screen_length)
-	    pausescr();
-	a++;
-    }
-    fclose(infile);
-}
-
-void
-leave(void)
-{
-    user.status &= ~ONLINE;
-    saveuser(&user);
-}
-
-void
-heal(void)
-{
-    WORD            opt;
-    od_clr_scr();
-    od_set_color(D_MAGENTA, D_BLACK);
-    od_printf("Clerics want %u Steel pieces per wound.\r\n", 8 * user.r);
-    od_set_color(L_YELLOW, D_BLACK);
-    od_printf("You have %u points of damage to heal.\r\n", user.damage);
-    od_set_color(L_CYAN, D_BLACK);
-    od_disp_str("How many do points do you want healed? ");
-    od_input_str(temp, 3, '0', '9');
-    opt = strtoul(temp, NULL, 10);
-    if (!temp[0])
-	opt = user.damage;
-    if (((opt) * (user.r) * 10) > user.gold) {
-	od_set_color(L_RED, B_BLACK);
-	od_disp_str("Sorry, you do not have enough Steel.\r\n");
-	opt = 0;
-    } else if (opt > user.damage)
-	opt = user.damage;
-    user.damage -= opt;
-    user.gold = user.gold - 8 * opt * user.r;
-    od_printf("%u hit points healed.\r\n", opt);
-}
-
-void
-levelupdate(void)
-{
-    int             x;
-    if (user.experience > required[user.r + 1]) {
-	user.r++;
-	od_set_color(L_YELLOW, D_BLACK);
-	od_printf("Welcome to level %u!\r\n", user.r);
-	x = xp_random(6) + 1;
-	switch (x) {
-	    case 1:
-		user.strength++;
-		break;
-	    case 2:
-		user.intelligence++;
-		break;
-	    case 3:
-		user.luck++;
-		break;
-	    case 4:
-		user.dexterity++;
-		break;
-	    case 5:
-		user.constitution++;
-		break;
-	    case 6:
-		user.charisma++;
-		break;
-	}
-	user.hps = user.hps + (xp_random(5) + 1) + (user.constitution / 4);
-    }
-}
-BOOL
-incre(void)
-{
-    od_disp_str("Increase which stat? ");
-    switch (od_get_answer("123456Q")) {
-	case '1':
-	    od_disp_str("Strength\r\n");
-	    tmpuser.strength++;
-	    break;
-	case '2':
-	    od_disp_str("Intelligence\r\n");
-	    tmpuser.intelligence++;
-	    break;
-	case '3':
-	    od_disp_str("Dexterity\r\n");
-	    tmpuser.dexterity++;
-	    break;
-	case '4':
-	    od_disp_str("Luck\r\n");
-	    tmpuser.luck++;
-	    break;
-	case '5':
-	    od_disp_str("Constitution\r\n");
-	    tmpuser.constitution++;
-	    break;
-	case '6':
-	    od_disp_str("Charisma\r\n");
-	    tmpuser.charisma++;
-	    break;
-	case 'Q':
-	    od_disp_str("Quit\r\n");
-	    return (FALSE);
-    }
-    return (TRUE);
-}
-BOOL
-decre(void)
-{
-    od_disp_str("Decrease which stat? ");
-    switch (od_get_answer("123456Q")) {
-	case '1':
-	    od_disp_str("Strength\r\n");
-	    tmpuser.strength -= 2;
-	    break;
-	case '2':
-	    od_disp_str("Intelligence\r\n");
-	    tmpuser.intelligence -= 2;
-	    break;
-	case '3':
-	    od_disp_str("Dexterity\r\n");
-	    tmpuser.dexterity -= 2;
-	    break;
-	case '4':
-	    od_disp_str("Luck\r\n");
-	    tmpuser.luck -= 2;
-	    break;
-	case '5':
-	    od_disp_str("Constitution\r\n");
-	    tmpuser.constitution -= 2;
-	    break;
-	case '6':
-	    od_disp_str("Charisma\r\n");
-	    tmpuser.charisma -= 2;
-	    break;
-	case 'Q':
-	    od_disp_str("Quit\r\n");
-	    return (FALSE);
-    }
-    return (TRUE);
-}
-BOOL
-ministat(void)
-{
-    BOOL            yaya = TRUE;
-    nl();
-    od_disp_str("Status Change:\r\n");
-    od_disp_str("^^^^^^^^^^^^^^\r\n");
-    od_printf("1> Str: %u\r\n", tmpuser.strength);
-    od_printf("2> Int: %u\r\n", tmpuser.intelligence);
-    od_printf("3> Dex: %u\r\n", tmpuser.dexterity);
-    od_printf("4> Luk: %u\r\n", tmpuser.luck);
-    od_printf("5> Con: %u\r\n", tmpuser.constitution);
-    od_printf("6> Chr: %u\r\n", tmpuser.charisma);
-    nl();
-    if (tmpuser.strength < 6) {
-	yaya = FALSE;
-	nl();
-	od_disp_str("Strength cannot go below 6\r\n");
-    }
-    if (tmpuser.intelligence < 6) {
-	yaya = FALSE;
-	nl();
-	od_disp_str("Intelligence cannot go below 6\r\n");
-    }
-    if (tmpuser.dexterity < 6) {
-	yaya = FALSE;
-	nl();
-	od_disp_str("Dexterity cannot go below 6\r\n");
-    }
-    if (tmpuser.luck < 6) {
-	yaya = FALSE;
-	nl();
-	od_disp_str("Luck cannot go below 6\r\n");
-    }
-    if (tmpuser.constitution < 6) {
-	yaya = FALSE;
-	nl();
-	od_disp_str("Constitution cannot go below 6\r\n");
-    }
-    if (tmpuser.charisma < 6) {
-	yaya = FALSE;
-	nl();
-	od_disp_str("Charisma cannot go below 6\r\n");
-    }
-    if (yaya) {
-	od_disp_str("Is this correct? ");
-	if (od_get_answer("YN") == 'Y') {
-	    od_disp_str("Yes\r\n");
-	    user = tmpuser;
-	    return (TRUE);
-	} else {
-	    od_disp_str("No\r\n");
-	    return (FALSE);
-	}
-    } else
-	return (FALSE);
-}
-
-void
-chstats(void)
-{
-    od_clr_scr();
-
-    for (;;) {
-	tmpuser = user;
-	od_disp_str("Status Change:\r\n");
-	od_disp_str("@@@@@@@@@@@@@\r\n");
-	od_disp_str("You may increase any stat by one,\r\n");
-	od_disp_str("yet you must decrease another by two.\r\n");
-	nl();
-	od_printf("1> Str: %u\r\n", tmpuser.strength);
-	od_printf("2> Int: %u\r\n", tmpuser.intelligence);
-	od_printf("3> Dex: %u\r\n", tmpuser.dexterity);
-	od_printf("4> Luk: %u\r\n", tmpuser.luck);
-	od_printf("5> Con: %u\r\n", tmpuser.constitution);
-	od_printf("6> Chr: %u\r\n", tmpuser.charisma);
-	nl();
-	if (incre()) {
-	    if (decre()) {
-		if (ministat())
-		    break;
-	    }
-	} else
-	    break;
-    }
-}
-
-void
-credits(void)
-{
-    od_clr_scr();
-    od_set_color(D_GREEN, D_BLACK);
-    od_disp_str("Dragonlance 3.0 Credits\r\n");
-    od_disp_str("@@@@@@@@@@@@@@@@@@@@@@@\r\n");
-    od_disp_str("Original Dragonlance   :  Raistlin Majere & TML   \r\n");
-    od_disp_str("Special Thanks To      : The Authors Of Dragonlance\r\n");
-    od_disp_str("Dragonlance's Home     : The Tower Of High Sorcery\r\n");
-    od_disp_str("Originally modified from the Brazil Source Code.\r\n");
-    od_disp_str("C Port                 : Deuce\r\n");
-    od_disp_str("Home Page              : http://doors.synchro.net/\r\n");
-    od_disp_str("Support                : deuce@nix.synchro.net\r\n");
-    nl();
-    pausescr();
-}
-
-void
-docs()
-{
-    od_clr_scr();
-    od_send_file("text/docs");
-    pausescr();
-}
-
-void
-vic(void)
-{
-    BOOL            ahuh;
-    for (ahuh = FALSE; !ahuh;) {
-	nl();
-	od_set_color(L_CYAN, D_BLACK);
-	od_disp_str("Enter your new Battle Cry.\r\n");
-	od_disp_str("> ");
-	od_input_str(user.bcry, 60, ' ', '~');
-	od_disp_str("Is this correct? ");
-	if (od_get_answer("YN") == 'Y') {
-	    ahuh = TRUE;
-	    od_disp_str("Yes\r\n");
-	} else {
-	    ahuh = FALSE;
-	    od_disp_str("No\r\n");
-	}
-    }
-
-    for (ahuh = FALSE; !ahuh;) {
-	nl();
-	od_set_color(L_CYAN, D_BLACK);
-	od_disp_str("What will you say when you're mortally wounded?.\r\n");
-	od_disp_str("> ");
-	od_input_str(user.gaspd, 60, ' ', '~');
-	od_disp_str("Is this correct? ");
-	if (od_get_answer("YN") == 'Y') {
-	    ahuh = TRUE;
-	    od_disp_str("Yes\r\n");
-	} else {
-	    ahuh = FALSE;
-	    od_disp_str("No\r\n");
-	}
-    }
-
-    for (ahuh = FALSE; !ahuh;) {
-	nl();
-	od_set_color(L_CYAN, D_BLACK);
-	od_disp_str("What will you say when you win?\r\n");
-	od_disp_str("> ");
-	od_input_str(user.winmsg, 60, ' ', '~');
-	od_disp_str("Is this correct? ");
-	if (od_get_answer("YN") == 'Y') {
-	    ahuh = TRUE;
-	    od_disp_str("Yes\r\n");
-	} else {
-	    ahuh = FALSE;
-	    od_disp_str("No\r\n");
-	}
-    }
-}
-
-void
-create(BOOL isnew)
-{
-    user.vary = supplant();
-    user.strength = 12;
-    user.status = ONLINE;
-    user.intelligence = 12;
-    user.luck = 12;
-    user.damage = 0;
-    user.dexterity = 12;
-    user.constitution = 12;
-    user.charisma = 12;
-    user.gold = xp_random(100) + 175;
-    user.weapon = 1;
-    user.armour = 1;
-    user.experience = 0;
-    user.plus = 0;
-    user.bank = (xp_random(199) + 1);
-    user.r = 1;
-    user.hps = (xp_random(4) + 1) + user.constitution;
-    user.wins = 0;
-    user.loses = 0;
-    user.sex = 'M';
-    if (isnew) {
-	user.bcry[0] = 0;
-	user.gaspd[0] = 0;
-	user.winmsg[0] = 0;
-	nl();
-	SAFECOPY(user.name, od_control.user_name);
-	SAFECOPY(user.pseudo, od_control.user_name);
-	vic();
-	user.battles = BATTLES_PER_DAY;
-	user.fights = FIGHTS_PER_DAY;
-	user.flights = FLIGHTS_PER_DAY;
-    }
-    od_printf("What sex would you like your character to be? (M/F) ");
-    user.sex = od_get_answer("MF");
-    nl();
-}
-
-void
-weaponlist(void)
-{
-    int             i = 1;
-    nl();
-    nl();
-    od_disp_str("  Num. Weapon                      Armour                          Price   \r\n");
-    od_disp_str("(-------------------------------------------------------------------------)\r\n");
-    od_set_color(L_YELLOW, D_BLACK);
-    for (i = 1; i <= 25; i++)
-	od_printf("  %2d>  %-25.25s   %-25.25s   %9u\r\n", i, weapon[i].name, armour[i].name, weapon[i].cost);
-}
-
-void
-weaponshop(void)
-{
-    WORD            buy;
-    DWORD           buyprice;
-    od_clr_scr();
-    od_set_color(L_YELLOW, D_BLACK);
-    od_disp_str("Weapon & Armour Shop\r\n");
-    od_set_color(D_GREEN, D_BLACK);
-    od_disp_str("$$$$$$$$$$$$$$$$$$$$\r\n");
-    while (1) {
-	nl();
-	od_disp_str("(B)rowse, (S)ell, (P)urchase, or (Q)uit? ");
-	switch (od_get_answer("BSQP")) {
-	    case 'Q':
-		od_disp_str("Quit\r\n");
-		return;
-	    case 'B':
-		od_disp_str("Browse\r\n");
-		weaponlist();
-		break;
-	    case 'P':
-		od_disp_str("Purchase\r\n");
-		nl();
-		nl();
-		od_disp_str("Enter weapon/armour # you wish buy: ");
-		od_input_str(temp, 2, '0', '9');
-		buy = strtoul(temp, NULL, 10);
-		if (buy == 0)
-		    return;
-		if (weapon[buy].cost > user.gold)
-		    od_disp_str("You do not have enough Steel.\r\n");
-		else {
-		    nl();
-		    od_disp_str("(W)eapon or (A)rmour: ");
-		    switch (od_get_answer("WA")) {
-			case 'W':
-			    od_disp_str("Weapon\r\n");
-			    od_disp_str("Are you sure you want buy it? ");
-			    if (od_get_answer("YN") == 'Y') {
-				od_disp_str("Yes\r\n");
-				user.gold -= weapon[buy].cost;
-				user.weapon = buy;
-				nl();
-				od_set_color(D_MAGENTA, D_BLACK);
-				od_printf("You've bought a %s\r\n", weapon[buy].name);
-				user.attack = weapon[user.weapon].attack;
-				user.power = weapon[user.weapon].power;
-			    } else
-				od_disp_str("No\r\n");
-			    break;
-			case 'A':
-			    od_disp_str("Armour\r\n");
-			    od_disp_str("Are you sure you want buy it? ");
-			    if (od_get_answer("YN") == 'Y') {
-				od_disp_str("Yes\r\n");
-				user.gold -= armour[buy].cost;
-				user.armour = buy;
-				nl();
-				od_set_color(D_MAGENTA, D_BLACK);
-				od_printf("You've bought a %s\r\n", armour[buy].name);
-			    } else
-				od_disp_str("No\r\n");
-			    break;
-		    }
+	ansic(4);
+	print("The Vile Enemy Dropped Something!");
+	prompt("Do you want to get it? ");
+	if(od_get_answer("YN")=='Y') {
+		print("Y");
+		okea=round(xp_random(99)+1);
+		if ((okea < 10) && (player[b].weapon>=25)) {
+			player[b].weapon=player[b].weapon+1;
+			prompt("you have found a ");
+			prompt(wname[round(player[b].weapon)]);
+			print(".");
 		}
-		break;
-	    case 'S':
-		od_disp_str("Sell\r\n");
+		if ((okea > 11) && (okea < 40)) {
+			player[b].gold=player[b].gold+40;
+			print("you have come across 40 Steel pieces");
+		}
+		else
+			print("it's gone!!!!");
+	}
+	else {
+		print("N");
+		print("I wonder what it was?!?");
+	}
+}
+
+void battle(void);
+
+void recorda(void)
+{
+	INT16	o;
+	outfile=fopen("data/record.lan","wb");
+	fprintf(outfile,"%d\n",number);
+	for(o=1; o<= number; o++)
+		fprintf(outfile,"%s\n",result[o]);
+	fclose(outfile);
+}
+
+void readla(void)
+{
+	INT16	o;
+	char	tmpstr[100];
+
+	infile=fopen("data/record.lan","rb");
+	fgets(temp,sizeof(temp),infile);
+	truncsp(temp);
+	number=atoi(temp);
+	if(number >30)
+		number=30;
+	for(o=1; o<=number; o++) {
+		fgets(result[o],sizeof(result[o]),infile);
+		truncsp(result[o]);
+	}
+	fclose(infile);
+}
+
+void mutantvictory(void)
+{
+	INT16	bt;
+	a=m;
+	if(!doga)
+		opp.gold=opp.gold*supplant();
+	sprintf(temp,"%0.0f",opp.gold);
+	nl();
+	prompt("You take his ");
+	prompt(temp);
+	print(" Steel pieces.");
+	player[b].gold=player[b].gold+opp.gold;
+	if(doga) {
 		nl();
-		od_disp_str("(W)eapon,(A)rmour,(Q)uit : ");
-		switch (od_get_answer("AWQ")) {
-		    case 'Q':
-			od_disp_str("Quit\r\n");
-			return;
-		    case 'W':
-			od_disp_str("Weapon\r\n");
-			buyprice = user.charisma;
-			buyprice = buyprice * weapon[user.weapon].cost;
-			buyprice = (buyprice / 20);
-			nl();
-			od_printf("I will purchase it for %u, okay? ", buyprice);
-			if (od_get_answer("YN") == 'Y') {
-			    od_disp_str("Yes\r\n");
-			    od_set_color(D_GREEN, D_BLACK);
-			    od_disp_str("Is it Dwarven Made?\r\n");
-			    user.weapon = 1;
-			    user.gold = user.gold + buyprice;
-			} else
-			    od_disp_str("No\r\n");
-			break;
-		    case 'A':
-			od_disp_str("Armour\r\n");
-			buyprice = user.charisma * armour[user.armour].cost / 20;
-			nl();
-			od_printf("I will purchase it for %u, okay? ", buyprice);
-			if (od_get_answer("YN") == 'Y') {
-			    od_disp_str("Yes\r\n");
-			    od_disp_str("Fine Craftsmanship!\r\n");
-			    user.armour = 1;
-			    user.gold = user.gold + buyprice;
-			} else
-			    od_disp_str("No\r\n");
-			break;
+		ansic(7);
+		print("The Last Words He Utters Are...");
+		nl();
+		prompt("\"");
+		prompt(player[a].gaspd);
+		print("\"");
+		nl();
+		player[b].wins++;
+		player[a].loses++;
+		SAFECOPY(player[a].killer,player[b].name);
+		player[a].status=1;
+		player[a].gold=0;
+		if(player[a].weapon>player[b].weapon) {
+			d=player[b].weapon;
+			player[b].weapon=player[a].weapon;
+			player[a].weapon=d;
+			bt=player[b].plus;
+			player[b].plus=player[a].plus;
+			player[a].plus=bt;
+			ansic(7);
+			print("You Hath Taken His Weapon.");
+		}
+		if(player[a].vehicle>player[b].vehicle) {
+			d=player[b].vehicle;
+			player[b].vehicle=player[a].vehicle;
+			player[a].vehicle=d;
+			ansic(4);
+			print("You Hath Taken His Armour.");
+		}
+		player[b].attack=find1();
+		player[b].power=find2();
+		readla();
+		number++;
+		sprintf(result[number],"%s conquered %s",player[b].pseudo,player[a].pseudo);
+		recorda();
+	}
+	z*=supplant();
+	player[b].experience+=z;
+	sprintf(temp,"%0.0f",z);
+	prompt("You obtain ");
+	prompt(temp);
+	print(" exp points.");
+	doga=FALSE;
+}
+
+void levelupdate(void)
+{
+	INT16 x,a;
+
+	sprintf(temp,"%3d",round(player[b].r+1));
+	ansic(7);
+	sprintf(temp,"%9.0f",player[b].experience);
+	if(player[b].experience>required[round(player[b].r+1)]) {
+		player[b].r++;
+		sprintf(tempaa,"%2.0f",player[b].r);
+		ansic(4);
+		prompt("Welcome to level ");
+		prompt(tempaa);
+		print("!");
+		x=xp_random(6)+1;
+		switch(x) {
+            	case 1:player[b].strength++; break;
+            	case 2:player[b].intelligence++; break;
+            	case 3:player[b].luck++; break;
+            	case 4:player[b].dexterity++; break;
+            	case 5:player[b].constitution++; break;
+            	case 6:player[b].charisma++; break;
+		}
+		player[b].shield=player[b].shield+(xp_random(5)+1)+(player[b].constitution/4);
+	}
+}
+
+void quickexit(void)
+{
+	print("The Gods of Krynn Disapprove of your actions!");
+	exit(1);
+}
+
+void amode(void)
+{
+	roll=playerattack();
+	if(roll<1.5) {
+		tint=round(xp_random(3)+1);
+		switch(tint) {
+			case 1:print("Swish you missed!"); break;
+			case 2:print("HA HA! He dodges your swing!"); break;
+			case 3:print("CLANG, The attack is blocked!"); break;
+			case 4:print("You Fight vigorously and miss!"); break;
 		}
 	}
-    }
-}
-
-void
-listplayers(void)
-{
-    od_clr_scr();
-    od_set_color(L_YELLOW, D_BLACK);
-    od_disp_str("Heroes That Have Been Defeated\r\n");
-    od_set_color(D_MAGENTA, D_BLACK);
-    od_disp_str("+++++++++++++++++++++++++++++++\r\n");
-    od_set_color(L_CYAN, D_BLACK);
-    od_send_file("data/record.lan");
-}
-
-void
-spy(void)
-{
-    char            aa[31];
-    od_clr_scr();
-    od_disp_str("Spying on another user eh.. well you may spy, but to keep\r\n");
-    od_disp_str("you from copying this person's stats, they will not be   \r\n");
-    od_disp_str("available to you.  Note that this is gonna cost you some \r\n");
-    od_disp_str("cash too.  Cost: 20 Steel pieces                         \r\n");
-    nl();
-    od_disp_str("Who do you wish to spy on? ");
-    od_input_str(aa, sizeof(aa) - 1, ' ', '~');
-    if (loaduser(aa, FALSE, &tmpuser)) {
-	if (user.gold < 20) {
-	    od_set_color(L_RED, B_BLACK);
-	    od_disp_str("You do not have enough Steel!\r\n");
-	} else {
-	    user.gold -= 20;
-	    nl();
-	    od_set_color(L_RED, B_BLACK);
-	    od_printf("%s\r\n", tmpuser.pseudo);
-	    nl();
-	    od_printf("Level  : %u\r\n", tmpuser.r);
-	    od_printf("Exp    : %" QWORDFORMAT "\r\n", tmpuser.experience);
-	    od_printf("Flights: %u\r\n", tmpuser.flights);
-	    od_printf("Hps    : %u(%u)\r\n", tmpuser.hps - tmpuser.damage, tmpuser.hps);
-	    nl();
-	    od_set_color(D_MAGENTA, D_BLACK);
-	    od_printf("Weapon : %s\r\n", weapon[tmpuser.weapon].name);
-	    od_printf("Armour : %s\r\n", armour[tmpuser.armour].name);
-	    nl();
-	    od_set_color(L_YELLOW, D_BLACK);
-	    od_printf("Steel  (in hand): %" QWORDFORMAT "\r\n", tmpuser.gold);
-	    od_printf("Steel  (in bank): %" QWORDFORMAT "\r\n", tmpuser.bank);
-	    nl();
-	    pausescr();
-	}
-    }
-}
-
-void
-gamble(void)
-{
-    char            tempgd[6];
-    INT32           realgold;
-    int             okea;
-    nl();
-    if (user.fights == 0)
-	od_disp_str("The Shooting Gallery is closed until tomorrow!\r\n");
-    else {
-	od_clr_scr();
-	od_disp_str("  Welcome to the Shooting Gallery\r\n");
-	od_disp_str(" Maximum wager is 25,000 Steel pieces\r\n");
-	nl();
-	od_set_color(L_YELLOW, D_BLACK);
-	od_disp_str("How many Steel pieces do you wish to wager? ");
-	od_set_color(D_GREY, D_BLACK);
-	od_input_str(tempgd, sizeof(tempgd) - 1, '0', '9');
-	realgold = strtoull(tempgd, NULL, 10);
-	if (realgold > user.gold) {
-	    nl();
-	    od_disp_str("You do not have enough Steel!\r\n");
-	}
-	if ((realgold != 0) && ((user.gold >= realgold) && (realgold <= 25000) && (realgold >= 1))) {
-	    okea = xp_random(99) + 1;
-	    if (okea <= 3) {
-		realgold *= 100;
-		user.gold += realgold;
-		od_printf("You shot all the targets and win %u Steel pieces!\r\n", realgold);
-	    } else if ((okea > 3) && (okea <= 15)) {
-		realgold *= 10;
-		user.gold += realgold;
-		od_printf("You shot 50%% if the targets and win %u Steel pieces!\r\n", realgold);
-	    } else if ((okea > 15) && (okea <= 30)) {
-		realgold *= 3;
-		user.gold += realgold;
-		od_printf("You shot 25%% if the targets and win %u Steel pieces!\r\n", realgold);
-	    } else {
-		user.gold -= realgold;
-		od_disp_str("Sorry You Hath Lost!\r\n");
-	    }
-	}
-    }
-}
-
-void
-bulletin(void)
-{
-    BOOL            endfil;
-    int             countr;
-    char            tempcoun[3];
-    char            blt[5][61];
-    FILE           *messfile;
-    od_clr_scr();
-    countr = 0;
-    endfil = FALSE;
-    od_send_file("text/bullet.lan");
-    nl();
-    od_disp_str("Do you wish to enter a News Bulletin? ");
-    if (od_get_answer("YN") == 'Y') {
-	od_disp_str("Yes\r\n");
-	nl();
-	while (!endfil) {
-	    countr++;
-	    sprintf(tempcoun, "%d", countr);
-	    od_set_color(L_YELLOW, D_BLACK);
-	    od_disp_str(tempcoun);
-	    od_disp_str("> ");
-	    od_set_color(D_GREY, D_BLACK);
-	    od_input_str(blt[countr], 60, ' ', '~');
-	    if (countr == 4)
-		endfil = TRUE;
-	}
-	nl();
-	od_disp_str("Is the bulletin correct? ");
-	if (od_get_answer("YN") == 'Y') {
-	    od_disp_str("Yes\r\n");
-	    od_disp_str("Saving Bulletin...\r\n");
-	    messfile = fopen("text/bullet.lan", "ab");
-	    fputs(blt[1], messfile);
-	    fputs("\n", messfile);
-	    fputs(blt[2], messfile);
-	    fputs("\n", messfile);
-	    fputs(blt[3], messfile);
-	    fputs("\n", messfile);
-	    fputs(blt[4], messfile);
-	    fputs("\n", messfile);
-	    fclose(messfile);
-	} else
-	    od_disp_str("No\r\n");
-    } else
-	od_disp_str("No\r\n");
-}
-
-void
-training(void)
-{
-    char            temptrain[2];
-    int             realtrain;
-    int             tttgld;
-    nl();
-    if (user.fights == 0)
-	od_disp_str("The Training Grounds are closed until tomorrow!\r\n");
-    else {
-	od_clr_scr();
-	od_disp_str("Training Grounds\r\n");
-	od_disp_str("%%%%%%%%%%%%%%%%\r\n");
-	od_disp_str("Each characteristic you wish to upgrade\r\n");
-	od_disp_str("will cost 1,000,000 Steel pieces per point.\r\n");
-	nl();
-	tttgld = 10000;
-	od_disp_str("Do you wish to upgrade a stat? ");
-	if (od_get_answer("YN") == 'Y') {
-	    od_disp_str("Yes\r\n");
-	    if (user.gold < (tttgld * 100))
-		od_disp_str("Sorry, but you do not have enough Steel!\r\n");
-	    else {
-		nl();
-		od_disp_str("1> Strength       2> Intelligence\r\n");
-		od_disp_str("3> Dexterity      4> Luck        \r\n");
-		od_disp_str("5> Constitution   6> Charisma    \r\n");
-		nl();
-		od_set_color(L_YELLOW, D_BLACK);
-		od_disp_str("Which stat do you wish to increase? ");
-		od_set_color(D_GREY, D_BLACK);
-		temptrain[0] = od_get_answer("123456");
-		switch (temptrain[0]) {
-		    case 1:
-			od_disp_str("Strength\r\n");
-			break;
-		    case 2:
-			od_disp_str("Intelligence\r\n");
-			break;
-		    case 3:
-			od_disp_str("Dexterity\r\n");
-			break;
-		    case 4:
-			od_disp_str("Luck\r\n");
-			break;
-		    case 5:
-			od_disp_str("Constitution\r\n");
-			break;
-		    case 6:
-			od_disp_str("Charisma\r\n");
-			break;
-		}
-		realtrain = temptrain[0] - '0';
-		od_disp_str("Are you sure? ");
-		if (od_get_answer("YN") == 'Y') {
-		    od_disp_str("Yes\r\n");
-		    user.gold -= tttgld * 100;
-		    switch (realtrain) {
+	else {
+	      roll=playerattack2();
+		if(roll>5*player[b].power)
+			roll=5*player[b].power;
+		opp.shield=opp.shield-roll;
+		sprintf(temp,"%d",round(roll));
+		tint=round(xp_random(2)+1);
+		switch(tint) {
 			case 1:
-			    user.strength++;
-			    break;
+				prompt("You Sliced him for ");
+				prompt(temp);
+				print(".");
+				break;
 			case 2:
-			    user.intelligence++;
-			    break;
+				prompt("You made contact to his body for ");
+				prompt(temp);
+				print(".");
+				break;
 			case 3:
-			    user.dexterity++;
-			    break;
-			case 4:
-			    user.luck++;
-			    break;
-			case 5:
-			    user.constitution++;
-			    break;
-			case 6:
-			    user.charisma++;
-			    break;
-		    }
-		} else
-		    od_disp_str("No\r\n");
-	    }
-	} else
-	    od_disp_str("No\r\n");
-    }
+				prompt("You hacked him for ");
+				prompt(temp);
+				print(".");
+				break;
+		}
+		if(opp.shield<=0) {
+			nl();
+			tint=round(xp_random(3)+1);
+			switch(tint) {
+				case 1:print("A Painless Death!"); break;
+				case 2:print("It Hath died!"); break;
+				case 3:print("A Smooth killing!"); break;
+				case 4:print("It has gone to the Abyss!"); break;
+			}
+			okea=round(xp_random(99)+1);
+			if(okea<30)
+				findo();
+			mutantvictory();
+			live=FALSE;
+		}
+	}
 }
 
-void
-menuit(void)
+void bmode(void)
 {
-    od_clr_scr();
-    od_send_file("text/menu");
+	INT16	bt;
+
+	if((opp.shield>0) && live) {
+		roll=opponentattack();
+		if(roll<1.5) {
+			ansic(7);
+			print("His attack tears your armour.");
+		}
+		else {
+			roll=opponentattack2();
+			if(roll>5*opp.weapon2)
+				roll=5*opp.weapon2;
+			sprintf(temp,"%d",round(roll));
+			tint=round(xp_random(2)+1);
+			switch(tint) {
+				case 1:
+					prompt("He hammered you for ");
+					prompt(temp);
+					print(".");
+					break;
+				case 2:
+					prompt("He swung and hit for ");
+					prompt(temp);
+					print(".");
+					break;
+				case 3:
+					prompt("You are suprised when he hits you for ");
+					prompt(temp);
+					print(".");
+					break;
+			}
+			player[b].damage=player[b].damage+roll;
+			if(player[b].damage>=player[b].shield) {
+				nl();
+				tint=round(xp_random(3)+1);
+				switch(tint) {
+					case 1:print("Return This Knight To Huma's Breast...."); break;
+					case 2:print("You Hath Been Slain!!"); break;
+					case 3:print("Return Soon Brave Warrior!"); break;
+					case 4:print("May Palidine Be With You!!"); break;
+				}
+				if(doga) {
+					player[a].wins++;
+					player[b].loses++;
+					player[a].gold+=player[b].gold;
+					player[b].gold=0;
+					readla();
+					number++;
+					sprintf(result[number],"%s killed %s",player[b].name,player[a].name);
+					recorda();
+				}
+				live=FALSE;
+				leave();
+				play=FALSE;
+			}
+		}
+	}
 }
 
-int
-main(int argc, char **argv)
+void statshow(void)
 {
-    DWORD           i;
-    BOOL            found;
-    FILE           *infile;
-    od_init();
-    checkday();
-    atexit(leave);
+	char	word[21];
 
-    found = FALSE;
-    nl();
-    nl();
-    credits();
-    od_clr_scr();
-    od_printf("`bright yellow`----------`blinking red`   -=-=DRAGONLANCE=-=-      `bright yellow`    /\\     \r\n");
-    od_printf("\\        /`white`       Version 3.0          `bright yellow`    ||     \r\n");
-    od_printf(" \\      /                                 ||     \r\n");
-    od_printf("  \\    /  `bright blue`  Welcome To The World of   `bright yellow`    ||     \r\n");
-    od_printf("   |  |   `bright cyan`  Krynn, Where the gods     `bright yellow`    ||     \r\n");
-    od_printf("  /    \\  `bright blue`  of good and evil battle.  `bright yellow`  \\ || /   \r\n");
-    od_printf(" /      \\ `bright cyan`  Help the People Of Krynn. `bright yellow`   \\==/    \r\n");
-    od_printf("/        \\                                ##     \r\n");
-    od_printf("----------`blinking red`        ON WARD!!!          `bright yellow`    ##     \r\n");
-    nl();
-    od_disp_str("News Bulletin:\r\n");
-    nl();
-    od_send_file("text/bullet.lan");
-    if (!loaduser(od_control.user_name, TRUE, &user))
-	create(TRUE);
-    if (user.status == DEAD) {
-	if (!strcmp(date(), user.laston)) {
-	    od_printf("You have already died today...\r\n");
-	    od_printf("Return tomorrow for your revenge!\r\n");
-	    exit(0);
-	} else {
-	    nl();
-	    od_set_color(L_CYAN, D_BLACK);
-	    od_printf("A defeat was lead over you by %s.", user.killer);
-	}
-    }
-    SAFECOPY(user.laston, date());
-    if (user.flights < 1) {
-	user.fights = 0;
-	user.battles = 0;
-    } else
-	user.flights--;
-    nl();
-    pausescr();
-    od_clr_scr();
-    infile = fopen("data/weapons.lan", "rb");
-    od_set_color(L_BLUE, D_BLACK);
-    for (i = 1; i <= 25; i++) {
-	readline(weapon[i].name, sizeof(weapon[i].name), infile);
-	weapon[i].attack = readnumb(1, infile);
-	weapon[i].power = readnumb(1, infile);
-	endofline(infile);
-    }
-    fclose(infile);
-    infile = fopen("data/armor.lan", "rb");
-    od_set_color(L_BLUE, D_BLACK);
-    for (i = 1; i <= 25; i++)
-	readline(armour[i].name, sizeof(armour[i].name), infile);
-    fclose(infile);
-    infile = fopen("data/prices.lan", "rb");
-    for (i = 1; i <= 25; i++) {
-	weapon[i].cost = readnumb(100000000, infile);
-	armour[i].cost = weapon[i].cost;
-	endofline(infile);
-    }
-    fclose(infile);
-    user.attack = weapon[user.weapon].attack;
-    user.power = weapon[user.weapon].power;
-    infile = fopen("data/experience.lan", "rb");
-    for (i = 1; i <= 28; i++) {
-	required[i] = readnumb(100000000, infile);
-	endofline(infile);
-    }
-    fclose(infile);
-    od_set_color(L_YELLOW, D_BLACK);
-    user.status = ONLINE;
-    statshow();
-    saveuser(&user);
-    while (user.damage < user.hps) {
-	levelupdate();
-	if (((user.wins + 1) * 4) < (user.loses)) {
-	    nl();
-	    od_disp_str("As you were Travelling along a Wilderness Path an   \r\n");
-	    od_disp_str("Evil Wizard Confronted You.  When you tried to fight\r\n");
-	    od_disp_str("Him off, he cast a Spell of Instant Death Upon you.  \r\n");
-	    od_disp_str("Instantly you were slain by the Archmage, Leaving you\r\n");
-	    od_disp_str("as nothing more than a pile of ashes.  Re-Rolled!   \r\n");
-	    nl();
-	    pausescr();
-	    create(FALSE);
-	    if (user.flights)
-		user.flights--;
-	}
+	cls();
+	sprintf(tempaa,"%1.0f",player[b].r);
+	sprintf(tempbb,"%1.0f",player[b].gold);
+	sprintf(tempcc,"%2.0f",player[b].strength);
+	sprintf(tempdd,"%2.0f",player[b].intelligence);
+	sprintf(tempee,"%2.0f",player[b].luck);
+	sprintf(tempff,"%2.0f",player[b].dexterity);
+	sprintf(tempmm,"%2.0f",player[b].constitution);
+	sprintf(tempnn,"%2.0f",player[b].charisma);
+	sprintf(tempgg,"%1.0f",player[b].experience);
+	sprintf(temphh,"%1.0f",player[b].shield-player[b].damage);
+	sprintf(tempii,"%1.0f",player[b].shield);
+	sprintf(tempjj,"%1.0f",player[b].bank);
+	sprintf(tempkk,"%d",player[b].flights);
+	sprintf(tempoo,"%d",round(3-dog));
+	sprintf(temppp,"%d",round(player[b].wins));
+	sprintf(tempqq,"%d",round(player[b].loses));
+	sprintf(templl,"%d",10-trips);
+
+	ansic(5);
+	prompt("Name: ");
+	prompt(player[b].pseudo);
+	prompt("   Level: ");
+	print(tempaa);
+	ansic(3);
+	prompt("W/L: ");
+	prompt(temppp);
+	prompt("/");
+	prompt(tempqq);
+	prompt("   Exp: ");
+	print(tempgg);
 	nl();
+	ansic(4);
+	prompt("Steel  (in hand): ");
+	print(tempbb);
+	ansic(4);
+	prompt("Steel  (in bank): ");
+	print(tempjj);
 	nl();
-	od_set_color(L_YELLOW, D_BLACK);
-	od_disp_str("Command (?): ");
-	switch (od_get_answer("QVP12345CHWLADGFRSTX+-?EZ*#")) {
-	    case 'Q':
-		od_disp_str("Quit\r\n");
-		od_disp_str("LEAVE KRYNN? Are you sure? ");
-		if (od_get_answer("YN") == 'Y') {
-		    od_disp_str("Yes\r\n");
-		    return (0);
-		} else
-		    od_disp_str("No\r\n");
-		break;
-	    case '1':
-		od_disp_str("1\r\n");
-		afight(1);
-		break;
-	    case '2':
-		od_disp_str("2\r\n");
-		afight(2);
-		break;
-	    case '3':
-		od_disp_str("3\r\n");
-		afight(3);
-		break;
-	    case '4':
-		od_disp_str("4\r\n");
-		afight(4);
-		break;
-	    case '5':
-		od_disp_str("5\r\n");
-		afight(5);
-		break;
-	    case 'C':
-		od_disp_str("Change Stats\r\n");
-		chstats();
-		break;
-	    case 'H':
-		od_disp_str("Heal\r\n");
-		heal();
-		break;
-	    case 'W':
-		od_disp_str("Weapon Shop\r\n");
-		weaponshop();
-		break;
-	    case 'L':
-		od_disp_str("Level Update\r\n");
-		levelupdate();
-		break;
-	    case 'A':
-		od_disp_str("Battle Another User\r\n");
-		doggie();
-		break;
-	    case 'D':
-		od_disp_str("Docs\r\n");
-		docs();
-		break;
-	    case 'G':
-		od_disp_str("Gamble\r\n");
-		gamble();
-		break;
-	    case 'F':
-		od_disp_str("Battles Today\r\n");
-		listplayers();
-		break;
-	    case 'R':
-		od_disp_str("Rank Players\r\n");
-		playerlist();
-		break;
-	    case 'S':
-		od_disp_str("Status\r\n");
-		statshow();
-		break;
-	    case 'T':
-		od_disp_str("Training Grounds\r\n");
-		training();
-		break;
-	    case 'X':
-		od_disp_str("Re-Roll\r\n");
-		od_disp_str("Please note that this will completely purge\r\n");
-		od_disp_str("your current hero of all atributes!\r\n");
+	ansic(2);
+	prompt("Battles: ");
+	prompt(tempoo);
+	prompt("   Retreats: ");
+	prompt(tempkk);
+	prompt("    Fights: ");
+	prompt(templl);
+	prompt("   Hps: ");
+	prompt(temphh);
+	prompt("(");
+	prompt(tempii);
+	print(")");
+	nl();
+	ansic(3);
+	prompt("Weapon: ");
+	prompt(wname[round(player[b].weapon)]);
+	prompt("     Armor: ");
+	print(sname[round(player[b].vehicle)]);
+}
+
+void incre(void)
+{
+	prompt("Increase which stat? ");
+	switch(od_get_answer("123456Q")) {
+		case '1':print("1"); player[b].strength++; break;
+		case '2':print("2"); player[b].intelligence++; break;
+		case '3':print("3"); player[b].dexterity++; break;
+		case '4':print("4"); player[b].luck++; break;
+		case '5':print("5"); player[b].constitution++; break;
+		case '6':print("6"); player[b].charisma++; break;
+		case 'Q':print("Q"); partone=FALSE; break;
+	}
+}
+
+void decre(void)
+{
+	prompt("Decrease which stat? ");
+	switch(od_get_answer("123456")) {
+		case '1':print("1"); player[b].strength-=2; break;
+		case '2':print("2"); player[b].intelligence-=2; break;
+		case '3':print("3"); player[b].dexterity-=2; break;
+		case '4':print("4"); player[b].luck-=2; break;
+		case '5':print("5"); player[b].constitution-=2; break;
+		case '6':print("6"); player[b].charisma-=2; break;
+	}
+}
+
+void ministat(void)
+{
+	yaya=TRUE;
+	partone=FALSE;
+	sprintf(tempaa,"%1.0f",player[b].strength);
+	sprintf(tempbb,"%1.0f",player[b].intelligence);
+	sprintf(tempdd,"%1.0f",player[b].dexterity);
+	sprintf(tempcc,"%1.0f",player[b].luck);
+	sprintf(tempee,"%1.0f",player[b].constitution);
+	sprintf(tempff,"%1.0f",player[b].charisma);
+	nl();
+	print("Status Change:");
+	print("^^^^^^^^^^^^^^");
+	prompt("1> Str: ");
+	print(tempaa);
+	prompt("2> Int: ");
+	print(tempbb);
+	prompt("3> Dex: ");
+	print(tempdd);
+	prompt("4> Luk: ");
+	print(tempcc);
+	prompt("5> Con: ");
+	print(tempee);
+	prompt("6> Chr: ");
+	print(tempff); 
+	nl();
+	if(player[b].strength < 6) {
+		yaya=FALSE;
 		nl();
-		od_disp_str("Are you sure you want to REROLL your character? ");
-		if (od_get_answer("YN") == 'Y') {
-		    od_disp_str("Yes\r\n");
-		    create(FALSE);
-		    if (user.flights)
-			user.flights--;
-		} else
-		    od_disp_str("No\r\n");
-		break;
-	    case '+':
-		od_disp_str("Deposit\r\n");
-		depobank();
-		break;
-	    case 'P':
-		od_disp_str("Plug\r\n");
-		od_send_file("text/plug");
-		break;
-	    case '-':
-		od_disp_str("Withdraw\r\n");
-		withdrawbank();
-		break;
-	    case '?':
-		od_disp_str("Help\r\n");
-		menuit();
-		break;
-	    case 'E':
-		od_disp_str("Edit Announcement\r\n");
-		bulletin();
-		break;
-	    case 'Z':
-		od_disp_str("Spy\r\n");
-		spy();
-		break;
-	    case 'V':
-		od_disp_str("Version\r\n");
-		od_set_color(L_BLUE, D_BLACK);
-		od_disp_str("This Is Dragonlance version 3.0\r\n");
-		pausescr();
-		break;
-	    case '*':
-		od_disp_str("Change Name\r\n");
+		print("Strength cannot go below 6");
+	}
+	if(player[b].intelligence < 6) {
+		yaya=FALSE;
 		nl();
-		od_set_color(L_CYAN, D_BLACK);
-		od_disp_str("Your family crest has been stolen, they\r\n");
-		od_disp_str("inscribe a new one with the name...\r\n");
-		od_disp_str("> ");
-		od_input_str(temp, 30, ' ', '~');
+		print("Intelligence cannot go below 6");
+	}
+	if(player[b].dexterity < 6) {
+		yaya=FALSE;
 		nl();
-		od_disp_str("Are you sure? ");
-		if (od_get_answer("YN") == 'Y') {
-		    od_disp_str("Yes\r\n");
-		    if (strlen(temp))
-			SAFECOPY(user.pseudo, temp);
-		} else
-		    od_disp_str("No\r\n");
-		break;
-	    case '#':
-		od_disp_str("Change Battle Cry\r\n");
+		print("Dexterity cannot go below 6");
+	}
+	if(player[b].luck < 6) {
+		yaya=FALSE;
+		nl();
+		print("Luck cannot go below 6");
+	}
+	if(player[b].constitution < 6) {
+		yaya=FALSE;
+		nl();
+		print("Constitution cannot go below 6");
+	}
+	if(player[b].charisma < 6) {
+		yaya=FALSE;
+		nl();
+		print("Charisma cannot go below 6");
+	}
+	if(yaya) {
+		prompt("Is this correct? ");
+		if(od_get_answer("YN")=='Y') {
+			print("Y");
+			player[b].strength=temp1a;
+			player[b].intelligence=temp1b;
+			player[b].dexterity=temp1d;
+			player[b].luck=temp1c;
+			player[b].constitution=temp1e;
+			player[b].charisma=temp1f;
+			bothover=FALSE;
+		}
+		else {
+			print("N");
+			bothover=FALSE;
+		}
+	}
+	else {
+		if(!yaya) {
+			player[b].strength=temp1a;
+			player[b].intelligence=temp1b;
+			player[b].dexterity=temp1d;
+			player[b].luck=temp1c;
+			player[b].constitution=temp1e;
+			player[b].charisma=temp1f;
+			bothover=FALSE;
+		}
+		else
+			bothover=FALSE;
+	}
+}
+
+void chstats(void)
+{
+	cls();
+	bothover=FALSE;
+	temp1a=player[b].strength;
+	temp1b=player[b].intelligence;
+	temp1c=player[b].luck;
+	temp1d=player[b].dexterity;
+	temp1e=player[b].constitution;
+	temp1f=player[b].charisma;
+
+	sprintf(tempaa,"%1.0f",player[b].strength);
+	sprintf(tempbb,"%1.0f",player[b].intelligence);
+	sprintf(tempdd,"%1.0f",player[b].dexterity);
+	sprintf(tempcc,"%1.0f",player[b].luck);
+	sprintf(tempee,"%1.0f",player[b].constitution);
+	sprintf(tempff,"%1.0f",player[b].charisma);
+
+	for(;;) {
+		partone=TRUE;
+		print("Status Change:");
+		print("@@@@@@@@@@@@@");
+		print("You may increase any stat by one,");
+		print("yet you must decrease another by two.");
+		nl();
+		prompt("1> Str: ");
+		print(tempaa);
+		prompt("2> Int: ");
+		print(tempbb);
+		prompt("3> Dex: ");
+		print(tempdd);
+		prompt("4> Luk: ");
+		print(tempcc);
+		prompt("5> Con: ");
+		print(tempee);
+		prompt("6> Chr: ");
+		print(tempff); 
+		nl();
+		incre();
+		if(partone)
+			decre();
+		else
+			partone=FALSE;
+		if(partone)
+			bothover=TRUE;
+		if(!partone)
+			bothover=FALSE;
+		else
+			ministat();
+		if(!bothover)
+			break;
+	}
+}
+
+void attackmodes(void)
+{
+	if(opp.dexterity>player[b].dexterity) {
+		if(play)
+			bmode();
+		if(play)
+			amode();
+	}
+	else if(opp.dexterity<player[b].dexterity) {
+		if(play)
+			amode();
+		if(play)
+			bmode();
+	}
+	else {
+		if(play)
+			amode();
+		if(play)
+			bmode();
+	}
+}
+
+double readnumb(void)
+{
+	unsigned char	buf[101];
+	int	pos=0;
+	int	rd;
+	double ret;
+
+	buf[0]=0;
+	while((rd=fgetc(infile))!=EOF) {
+		if(rd=='\r')
+			continue;
+		if(rd=='\n') {
+			ungetc('\n',infile);
+			break;
+		}
+		/* Skip leading spaces */
+		if(!pos && isspace(rd))
+			continue;
+		if(isspace(rd))
+			break;
+		buf[pos++]=rd;
+	}
+	buf[pos++]=0;
+	ret=atol(buf);
+	return(ret);
+}
+
+void endofline(void)
+{
+	int rd;
+
+	while((rd=fgetc(infile))!=EOF) {
+		if(rd=='\n');
+			break;
+	}
+}
+
+void searcher(void)
+{
+	INT16 a;
+
+	trips++;
+	fgets(tempaa,sizeof(tempaa),infile);
+	amount=atoi(tempaa);
+	rd=xp_random(amount-1)+1;
+	amount=round(rd);
+	for(a=1;a<=amount;a++) {
+		fgets(opp.name,sizeof(opp.name),infile);
+		truncsp(opp.name);
+		opp.shield=readnumb();
+		opp.weapon=readnumb();
+		opp.weapon2=readnumb();
+		opp.vehicle=readnumb();
+		opp.luck=readnumb();
+		opp.strength=readnumb();
+		opp.dexterity=readnumb();
+		opp.gold=readnumb();
+		z=readnumb();
+		endofline();
+	}
+	fclose(infile);
+	opp.weapon*=supplant();
+	opp.weapon2*=supplant();
+	opp.vehicle*=supplant();
+	opp.luck*=supplant();
+	opp.strength*=supplant();
+	opp.dexterity*=supplant();
+	opp.shield*=supplant();
+}
+
+void fight(char *filename)
+{
+	infile=fopen(filename,"rb");
+	searcher();
+	battle();
+}
+
+void doggie(void)
+{
+	char	tmpgg[11];
+	char	tmphh[3];
+	char	tch[6];
+	INT16	spc,a;
+	BOOL	gono;
+	char	line[81];
+
+	if(dog<=3) {
+		nl();
+		checkday();
+		for(finder=FALSE; finder==FALSE;) {
+			for(enemy=0; enemy!=0;) {
+				cls();
+				ansic(4);
+				print("Battle Another Hero:");
+				print("********************");
+				if(number_of_players==1) {
+					print("You are the only hero on Krynn!");
+					return;
+				}
+				else {
+					a=1;
+					for(a=1; a<=number_of_players && !abrt;) {
+						if(player[a].r>player[b].r-4) {
+							nl();
+							sprintf(temp,"%d",a);
+							sprintf(tempaa,"%2.0f",player[a].r);
+							sprintf(tempcc,"%2.0f",player[a].wins);
+							sprintf(tempdd,"%2.0f",player[a].loses);
+							if(player[a].status==1)
+								SAFECOPY(tch,"SLAIN");
+							else
+								SAFECOPY(tch,"ALIVE");
+							ansic(5);
+							if(a<10) {
+								prompt(" ");
+								prompt(temp);
+								prompt(".  ");
+							}
+							else {
+								prompt(temp);
+								prompt(".  ");
+							}
+							ansic(3);
+							prompt(player[a].pseudo);
+							for(spc=1;spc<=30-strlen(player[a].pseudo);spc++)
+								prompt(".");
+							ansic(2);
+							sprintf(line,"Lev=%s  W=%s  L=%s  S=%s",tempaa,tempcc,tempdd,tch);
+							printa(line,&abrt,&next);
+						}
+						a+=1;
+					}
+					nl();
+					ansic(3);
+					prompt("Enter the rank # of your opponent: ");
+					od_input_str(tmphh,2,'0','9');
+					enemy=atoi(tmphh);
+					if((enemy==0) || (!strcmp(player[enemy].pseudo,player[b].pseudo)) || (player[enemy].status==1))
+						return;
+				}
+			}
+			for(a=1; a<=number_of_players; a++) {
+				if(enemy==a) {
+					if(player[a].r>(player[b].r-4)) {
+						finder=TRUE;
+						m=a;
+					}
+				}
+			}
+		}
+		a=m;
+		SAFECOPY(opp.name,player[a].pseudo);
+		opp.shield=player[a].shield;
+		f=b;
+		vary2=supplant();
+		doga=TRUE;
+		d=player[b].attack;
+		e=player[b].power;
+		g=player[b].weapon;
+		b=a;
+		dog=dog+1;
+		opp.weapon=find1();
+		opp.weapon2=find2();
+		b=f;
+		player[b].weapon=g;
+		player[b].attack=d;
+		player[b].power=e;
+		opp.vehicle=player[a].vehicle;
+		opp.luck=player[a].luck;
+		opp.strength=player[a].strength;
+		opp.dexterity=player[a].dexterity;
+		opp.gold=player[a].gold;
+		if(opp.gold<0)
+			opp.gold=0;
+		z=player[a].experience/10;
+		finder=FALSE;
+		player[b].alliance=0;
+		player[a].alliance=0;
+		battle();
+	}
+}
+
+void battle(void)
+{
+	double 	loss,playerrem;
+	char		tempxx[51];
+
+	nl();
+	live=TRUE;
+	while(live==TRUE) {
+		playerrem=player[b].shield-player[b].damage;
+		sprintf(tempxx,"%1.0f",playerrem);
+		nl();
+		ansic(4);
+		prompt("You are attacked by a ");
+		prompt(opp.name);
+		print(".");
+		for(option='?'; option=='?';) {
+			ansic(2);
+			prompt("Combat (");
+			prompt(tempxx);
+			prompt(" hps): (B,F,S): ");
+			option=od_get_answer("BFS?");
+			if(option=='?') {
+				nl();
+				nl();
+				print("(B)attle your opponent.");
+				print("(F)lee from your opponent.");
+				print("(S)tatus check.");
+				nl();
+			}
+		}
+		switch(option) {
+			case 'B':attackmodes(); break;
+			case 'S':statshow(); break;
+			case 'F':
+				if((xp_random(4)+1)+player[b].dexterity>opp.dexterity) {
+					nl();
+					ansic(7);
+					print("You Ride away on a Silver Dragon.");
+					doga=FALSE;
+					live=FALSE;
+					uni=FALSE;
+				}
+				break;
+		}
+	}
+}
+
+void credits(void)
+{
+	cls();
+	ansic(7);
+	print("Dragonlance 3.0 Credits");
+	ansic(7);
+	print("@@@@@@@@@@@@@@@@@@@@@@@");
+	print("Original Dragonlance   :  Raistlin Majere & TML   ");
+	print("Special Thanks To      : The Authors Of Dragonlance");
+	print("Dragonlance's Home     : The Tower Of High Sorcery");
+	print("Originally modified from the Brazil Source Code.");
+	print("C Port                 : Deuce");
+	print("Home Page              : http://doors.synchro.net/");
+	print("Support                : deuce@nix.synchro.net");
+	nl();
+	pausescr();
+}
+
+void docs()
+{
+	cls();
+	printfile("text/docs.lan");
+	pausescr();
+}
+
+void vic(void)
+{
+	BOOL ahuh;
+
+	for(ahuh=FALSE; !ahuh; ) {
+		nl();
+		ansic(3);
+		print("Enter your new Battle Cry.");
+		prompt(">");
+		od_input_str(ugh3, 60, ' ', '~');
+		prompt("Is this correct? ");
+		if(od_get_answer("YN")=='Y') {
+			ahuh=TRUE;
+			print("Y");
+		}
+		else {
+			ahuh=FALSE;
+			print("N");
+		}
+	}
+	ahuh=TRUE;
+}
+
+void create(BOOL isnew)
+{
+	if(isnew) {
+		nl();
+		a=number_of_players+1;
+		SAFECOPY(player[a].name,od_control.user_name);
+		SAFECOPY(player[a].pseudo,od_control.user_name);
+		a=number_of_players+1;
 		vic();
-		break;
 	}
-    }
-    return (0);
+	else {
+		a=b;
+	}
+      player[a].strength=12;
+      player[a].status=0;
+      if(isnew)
+		number_of_players++;
+      player[a].intelligence=12;
+      player[a].luck=12;
+      player[a].alliance=0;
+      player[a].damage=0;
+      SAFECOPY(player[a].gaspd,ugh3);
+      player[a].dexterity=12;
+      player[a].constitution=12;
+      player[a].charisma=12;
+      player[a].gold=round(xp_random(100)+175);
+      player[a].weapon=1;
+      player[a].vehicle=1;
+      player[a].experience=0;
+      player[a].plus=0;
+      player[a].bank=(xp_random(199)+1);
+      player[a].r=1;
+      player[a].shield=(xp_random(4)+1)+player[a].constitution;
+      player[a].flights=3;
+      player[a].wins=0;
+      player[a].loses=0;
+	nl();
+	b=a;
+}
+
+void strait(void)
+{
+	INT16	p;
+	INT16	add;
+
+	add=25-strlen(strip);
+	for(p=1;p<=add;p++)
+		strcat(strip," ");
+}
+
+void stripe(void)
+{
+	INT16	p;
+	INT16	add;
+
+	add=25-strlen(cross);
+	for(p=1;p<=add;p++)
+		strcat(cross," ");
+}
+
+void weaponlist(void)
+{
+	char	line[81];
+
+	nl();
+	nl();
+	a=1;
+	print("  Num. Weapon                      Armour                          Price   ");
+	print("(-------------------------------------------------------------------------)");
+	for(a=1; a<=25 && !abrt; a++) {
+		sprintf(temp,"%9.0f",cost[a]);
+		sprintf(opp.name,"%2d",a);
+		ansic(4);
+		SAFECOPY(strip,wname[a]);
+		strait();
+		SAFECOPY(cross,sname[a]);
+		stripe();
+		sprintf(line,"  %s>  %s   %s   %s",opp.name,strip,cross,temp);
+		printa(line,&abrt,&next);
+		nl();
+	}
+}
+
+void readlist(void)
+{
+	infile=fopen("data/characte.lan","rb");
+	fgets(temp,sizeof(temp),infile);
+	truncsp(temp);
+	number_of_players=atoi(temp);
+	a=1;
+	b=1;
+	while (a<=number_of_players) {
+		fgets(player[a].name,sizeof(player[a].name),infile);
+		truncsp(player[a].name);
+		fgets(player[a].pseudo,sizeof(player[a].pseudo),infile);
+		truncsp(player[a].pseudo);
+		fgets(player[a].gaspd,sizeof(player[a].gaspd),infile);
+		truncsp(player[a].gaspd);
+		fgets(temp,sizeof(temp),infile);
+		player[a].status=atoi(temp);
+		if(player[a].status==1) {
+			fgets(player[a].killer,sizeof(player[a].killer),infile);
+			truncsp(player[a].killer);
+		}
+		player[a].strength=readnumb();
+		player[a].intelligence=readnumb();
+		player[a].luck=readnumb();
+		player[a].dexterity=readnumb();
+		player[a].constitution=readnumb();
+		player[a].charisma=readnumb();
+		player[a].experience=readnumb();
+		player[a].r=readnumb();
+		player[a].shield=readnumb();
+		player[a].weapon=readnumb();
+		player[a].vehicle=readnumb();
+		player[a].gold=readnumb();
+		player[a].flights=readnumb();
+		player[a].bank=readnumb();
+		player[a].wins=readnumb();
+		player[a].loses=readnumb();
+		player[a].plus=readnumb();
+		endofline();
+		a+=b;
+	}
+	fclose(infile);
+}
+
+void weaponshop(void)
+{
+	char	tmpvv[3];
+	cls();
+	ansic(4);
+	print("Weapon & Armour Shop");
+	ansic(7);
+	print("$$$$$$$$$$$$$$$$$$$$");
+	while(1) {
+		nl();
+		prompt("(B)rowse, (S)ell, (P)urchase, or (Q)uit? ");
+		opty=od_get_answer("BSQP");
+		switch(opty) {
+			case 'Q':
+				print("Q");
+				return;
+			case 'B':
+				print("B");
+				weaponlist();
+				break;
+			case 'P':
+				print("P");
+				nl();
+				nl();
+				prompt("Enter weapon/armour # you wish buy: ");
+				od_input_str(temp,2,'0','9');
+				buy=atoi(temp);
+				if(buy==0)
+					return;
+				if(cost[round(buy)]>player[b].gold)
+					print("You do not have enough Steel .");
+				else {
+					nl();
+					prompt("(W)eapon or (A)rmour: ");
+					opty=od_get_answer("WA");
+					switch(opty) {
+						case 'W':
+							print("W");
+							prompt("Are you sure you want buy it? ");
+							if(od_get_answer("YN")=='Y') {
+								player[b].gold-=cost[round(buy)];
+								player[b].weapon=buy;
+								nl();
+								ansic(5);
+								prompt("You've bought a ");
+								print(wname[round(buy)]);
+								player[b].attack=find1();
+								player[b].power=find2();
+							}
+							break;
+						case 'A':
+							print("A");
+							prompt("Are you sure you want buy it? ");
+							if(od_get_answer("YN")=='Y') {
+								player[b].gold-=cost[round(buy)];
+								player[b].vehicle=buy;
+								nl();
+								ansic(5);
+								prompt("You've bought a ");
+								print(sname[round(buy)]);
+							}
+							break;
+					}
+				}
+				break;
+			case 'S':
+				print("S");
+				nl();
+				prompt("(W)eapon,(A)rmour,(Q)uit : ");
+				opty=od_get_answer("AWQ");
+				switch(opty) {
+					case 'Q':
+						print("Q");
+						return;
+					case 'W':
+						print("W");
+						y=(round(player[b].weapon));
+						x=player[b].charisma;
+						x=x*cost[y];
+						x=((1/20)*x);
+						sprintf(temp,"%0.0f",x);
+						nl();
+						prompt("I will purchase it for ");
+						prompt(temp);
+						prompt(", okay? ");
+						opty=od_get_answer("YN");
+						if(opty=='Y') {
+							print("Y");
+							ansic(7);
+							print("Is it Dwarven Made?");
+							player[b].weapon=1;
+							player[b].gold=player[b].gold+x;
+						}
+						else
+							print("N");
+						break;
+					case 'A':
+						x=((1/20)*(player[b].charisma)*(cost[round(player[b].vehicle)]));
+						sprintf(temp,"%7.0f",x);
+						nl();
+						prompt("I will purchase it for ");
+						prompt(temp);
+						prompt(", okay? ");
+						opty=od_get_answer("YN");
+						if(opty=='Y') {
+							print("Y");
+							print("Fine Craftsmanship!");
+							player[b].vehicle=1;
+							player[b].gold=player[b].gold+x;
+						}
+						else
+							print("N");
+						break;
+				}
+		}
+	}
+}
+
+void listplayers(void)
+{
+	INT16	a;
+	cls();
+	ansic(4);
+	print("Heroes That Have Been Defeated");
+	ansic(5);
+	print("+++++++++++++++++++++++++++++++");
+	readla();
+	for(a=1;a<number && !abrt; a++) {
+		ansic(3);
+		printa(result[a],&abrt,&next);
+	}
+}
+
+void spy(void)
+{
+	char	aa[31];
+	char	bb[31];
+	char	cc[31];
+	char	dd[31];
+	char	ee[31];
+	char	ff[31];
+	char	gg[31];
+	char	hh[31];
+	INT16	a;
+	cls();
+	print("Spying on another user eh.. well you may spy, but to keep");
+	print("you from copying this person's stats, they will not be   ");
+	print("available to you.  Note that this is gonna cost you some ");
+	print("cash too.  Cost: 20 Steel pieces                         ");
+	nl();
+	prompt("Who do you wish to spy on? ");
+	od_input_str(aa,sizeof(aa)-1,' ','~');
+	for(a=1;a<=number_of_players;a++) {
+		if(!stricmp(player[a].pseudo,aa)) {
+			if(player[b].gold<20) {
+				ansic(8);
+				print("You do not have enough Steel!");
+			}
+			else {
+				player[b].gold-=20;
+				sprintf(bb,"%1.0f",player[a].r);
+				sprintf(cc,"%1.0f",player[a].experience);
+				sprintf(dd,"%d",player[a].flights);
+				sprintf(ee,"%1.0f",(player[a].shield-player[a].damage));
+				sprintf(ff,"%1.0f",player[a].bank);
+				sprintf(gg,"%1.0f",player[a].gold);
+				sprintf(hh,"%1.0f",player[a].shield);
+				nl();
+				ansic(8);
+				print(player[a].pseudo);
+				nl();
+				prompt("Level  :");
+				print(bb);
+				prompt("Exp    :");
+				print(cc);
+				prompt("Flights:");
+				print(dd);
+				prompt("Hps    :");
+				prompt(ee);
+				prompt("(");
+				prompt(hh);
+				print(")");
+				nl();
+				ansic(5);
+				prompt("Weapon :");
+				print(wname[round(player[a].weapon)]);
+				ansic(5);
+				prompt("Armour :");
+				print(sname[round(player[a].vehicle)]);
+				nl();
+				ansic(4);
+				prompt("Steel  (in hand):");
+				print(gg);
+				ansic(4);
+				prompt("Steel  (in bank):");
+				print(ff);
+				nl();
+				pausescr();
+			}
+		}
+	}
+}
+
+void gamble(void)
+{
+	char		tempgd[6];
+	double	realgold;
+
+	nl();
+	if(trips>10)
+		print("The Shooting Gallery is closed until tomorrow!");
+	else {
+		cls();
+		print("  Welcome to the Shooting Gallery");
+		print(" Maximum wager is 25,000 Steel pieces");
+		nl();
+		prt("How many Steel pieces do you wish to wager? ");
+		od_input_str(tempgd,sizeof(tempgd)-1,'0','9');
+		realgold=round(atof(tempgd));
+		if(realgold>player[b].gold) {
+			nl();
+			print("You do not have enough Steel !");
+		}
+		if ((realgold!=0) && ((player[b].gold>=realgold) && (realgold<=25000) && (realgold>=1))) {
+			okea=round(xp_random(99)+1);
+			if(okea <= 3) {
+				realgold*=100;
+				player[b].gold+=realgold;
+				sprintf(tempgd,"%1.0f",realgold);
+				prompt("You shot all the targets and win ");
+				prompt(tempgd);
+				print(" Steel pieces!");
+			}
+			else if ((okea>3) && (okea<=15)) {
+				realgold*=10;
+				player[b].gold+=realgold;
+				sprintf(tempgd,"%1.0f",realgold);
+				prompt("You shot 50% of the targets and win ");
+				prompt(tempgd);
+				print(" Steel pieces!");
+			}
+			else if ((okea>15) && (okea<=30)) {
+				realgold*=3;
+				player[b].gold+=realgold;
+				sprintf(tempgd,"%1.0f",realgold);
+				prompt("You shot 25% of the targets and win ");
+				prompt(tempgd);
+				print(" Steel pieces!");
+			}
+			else {
+				player[b].gold-=realgold;
+				print("Sorry You Hath Lost!");
+			}
+		}
+	}
+}
+
+void afight(int lev)
+{
+	char	fname[32];
+
+	uni=TRUE;
+	while(uni) {
+		if(trips>10) {
+			nl();
+			ansic(5);
+			print("It's Getting Dark Out!");
+			ansic(5);
+			print("Return to the Nearest Inn!");
+			uni=FALSE;
+		}
+		else {
+			cls();
+			sprintf(fname,"data/junkm%d.lan",lev);
+			fight(fname);
+			uni=FALSE;
+		}
+	}
+}
+
+void bulletin(void)
+{
+	BOOL	endfil;
+	INT16	countr;
+	char	tempcoun[3];
+
+	cls();
+  	countr=0;
+	endfil=FALSE;
+	printfile("text/bullet.lan");
+	nl();
+	prompt("Do you wish to enter a News Bulletin? ");
+	if(od_get_answer("YN")=='Y') {
+		print("Y");
+		nl();
+		while(!endfil) {
+			countr++;
+			sprintf(tempcoun,"%d",countr);
+			prt(tempcoun);
+			prt("> ");
+			od_input_str(blt[countr],60,' ','~');
+			if(countr==4)
+				endfil=TRUE;
+		}
+		nl();
+		prompt("Is the bulletin correct? ");
+		if(od_get_answer("YN")=='Y') {
+			print("Y");
+			print("Saving Bulletin...");
+			messfile=fopen("text/bullet.lan","ab");
+			fputs(blt[1],messfile);
+			fputs("\n",messfile);
+			fputs(blt[2],messfile);
+			fputs("\n",messfile);
+			fputs(blt[3],messfile);
+			fputs("\n",messfile);
+			fputs(blt[4],messfile);
+			fputs("\n",messfile);
+			fclose(messfile);
+		}
+		else
+			print("N");
+	}
+	else
+		print("N");
+}
+
+void training(void)
+{
+	char		temptrain[2];
+	INT16		realtrain;
+	INT16		tttgld;
+
+	nl();
+	if(trips>10)
+		print("The Training Grounds are closed until tomorrow!");
+	else {
+		cls();
+		print("Training Grounds");
+		print("%%%%%%%%%%%%%%%%");
+		print("Each characteristic you wish to upgrade");
+		print("will cost 1,000,000 Steel pieces per point.");
+		nl();
+		tttgld=10000;
+		prompt("Do you wish to upgrade a stat? ");
+		if(od_get_answer("YN")=='Y') {
+			if(player[b].gold<(tttgld*100))
+				print("Sorry, but you do not have enough Steel!");
+			else {
+				nl();
+				print("1> Strength       2> Intelligence");
+				print("3> Dexterity      4> Luck        ");
+				print("5> Constitution   6> Charisma    ");
+				nl();
+				prt("Which stat do you wish to increase? ");
+				temptrain[1]=0;
+				temptrain[0]=od_get_answer("123456");
+				print(temptrain);
+				realtrain=temptrain[0]-'0';
+				prompt("Are you sure? ");
+				if(od_get_answer("YN")=='Y') {
+					print("Y");
+					player[b].gold-=tttgld*100;
+					switch(realtrain) {
+						case 1:
+							player[b].strength++;
+							break;
+						case 2:
+							player[b].intelligence++;
+							break;
+						case 3:
+							player[b].dexterity++;
+							break;
+						case 4:
+							player[b].luck++;
+							break;
+						case 5:
+							player[b].constitution++;
+							break;
+						case 6:
+							player[b].charisma++;
+							break;
+					}
+				}
+				else
+					print("N");
+			}
+		}
+		else
+			print("N");
+	}
+}
+
+void menuit(void)
+{
+	cls();
+	printfile("text/menu.lan");
+}
+
+int main(int argc, char **argv)
+{
+	atexit(leave);
+
+	od_init();
+	gonado=TRUE;
+	allied=FALSE;
+	ftn=FALSE;
+	vary=supplant();
+	dog=0;
+	doga=FALSE;
+	for(a=1; a<=30; a++)
+		player[a].damage=0;
+	play=TRUE;
+	trips=0;
+	found=FALSE;
+	verify=0;
+	SAFECOPY(name,od_control.user_name);
+	nl();
+	nl();
+	credits();
+	cls();
+	prt("----------");ansic(8);prompt("   -=-=DRAGONLANCE=-=-      ");prt("    /\\     ");nl();
+	prt("\\        /");ansic(1);prompt("       Version 3.0          ");prt("    ||     ");nl();
+	prt(" \\      / ");ansic(1);prompt("                            ");prt("    ||     ");nl();
+	prt("  \\    /  ");ansic(2);prompt("  Welcome To The World of   ");prt("    ||     ");nl();
+	prt("   |  |   ");ansic(3);prompt("  Krynn, Where the gods     ");prt("    ||     ");nl();
+	prt("  /    \\  ");ansic(2);prompt("  of good and evil battle.  ");prt("  \\ || /   ");nl();
+	prt(" /      \\ ");ansic(3);prompt("  Help the People Of Krynn. ");prt("   \\==/    ");nl();
+	prt("/        \\");ansic(1);prompt("                            ");prt("    ##     ");nl();
+	prt("----------");ansic(8);prompt("        ON WARD!!!          ");prt("    ##     ");nl();
+	nl();
+	print("News Bulletin:");
+	nl();
+	printfile("text/bullet.lan");
+	infile=fopen("data/characte.lan","rb");
+	fgets(temp,sizeof(temp),infile);
+	number=atoi(temp);
+      number_of_players=number;
+	a=1;
+	b=1;
+	while(a<=number_of_players) {
+		fgets(player[a].name,sizeof(player[a].name),infile);
+		truncsp(player[a].name);
+		fgets(player[a].pseudo,sizeof(player[a].pseudo),infile);
+		truncsp(player[a].pseudo);
+		fgets(player[a].gaspd,sizeof(player[a].gaspd),infile);
+		truncsp(player[a].gaspd);
+		fgets(temp,sizeof(temp),infile);
+		player[a].status=atoi(temp);
+		if(player[a].status==1) {
+			fgets(player[a].killer,sizeof(player[a].killer),infile);
+			truncsp(player[a].killer);
+		}
+		player[a].strength=readnumb();
+		player[a].intelligence=readnumb();
+		player[a].luck=readnumb();
+		player[a].dexterity=readnumb();
+		player[a].constitution=readnumb();
+		player[a].charisma=readnumb();
+		player[a].experience=readnumb();
+		player[a].r=readnumb();
+		player[a].shield=readnumb();
+		player[a].weapon=readnumb();
+		player[a].vehicle=readnumb();
+		player[a].gold=readnumb();
+		player[a].flights=readnumb();
+		player[a].bank=readnumb();
+		player[a].wins=readnumb();
+		player[a].loses=readnumb();
+		player[a].plus=readnumb();
+		endofline();
+		a+=b;
+	}
+	fclose(infile);
+	for(a=1; a<=number_of_players; a++) {
+		if(!strcmp(player[a].name,name)) {
+			found=TRUE;
+			b=a;
+		}
+	}
+	if(!found) {
+		if(number_of_players >= 30)
+			quickexit();
+		else
+			create(TRUE);
+	}
+	if(player[b].status==1) {
+		nl();
+		ansic(3);
+		prompt("A defeat was lead over you by ");
+		prompt(player[b].killer);
+		print(".");
+	}
+	checkday();
+	if(player[b].flights<1) {
+		trips=12;
+		dog=4;
+	}
+	player[b].flights--;
+	nl();
+	pausescr();
+	cls();
+	infile=fopen("data/weapons.lan","rb");
+	ansic(2);
+	for(a=1; a<=25; a++) {
+		fgets(wname[a],sizeof(wname[a]),infile);
+		truncsp(wname[a]);
+		w2[a]=readnumb();
+		w3[a]=readnumb();
+		endofline();
+	}
+	fclose(infile);
+	prompt("\r");
+	infile=fopen("data/armor.lan","rb");
+	ansic(2);
+	for(a=1; a<=25; a++) {
+		fgets(sname[a],sizeof(sname[a]),infile);
+		truncsp(sname[a]);
+	}
+	fclose(infile);
+	infile=fopen("data/prices.lan","rb");
+	for(a=1; a<=25; a++) {
+		cost[a]=readnumb();
+		endofline();
+	}
+	fclose(infile);
+	player[b].attack=find1();
+	player[b].power=find2();
+	infile=fopen("data/experience.lan","rb");
+	for(a=1; a<=28; a++) {
+		required[a]=readnumb();
+		endofline();
+	}
+	fclose(infile);
+	ansic(4);
+	player[b].status=0;
+	vary2=1;
+	statshow();
+	mg=FALSE;
+	for(play=TRUE; play && gonado;) {
+		levelupdate();
+		vary2=1;
+		if (((player[b].wins+1)*4)-(player[b].loses)<0) {
+			nl();
+			print("As you were Travelling along a Wilderness Path an   ");
+			print("Evil Wizard Confronted You.  When you tried to fight");
+			print("Him off, he cast a Spell of Instant Death Upon you.  ");
+			print("Instantly you were slain by the Archmage, Leaving you");
+			print("as nothing more than a pile of ashes.  Re-Rolled!   ");
+			nl();
+			pausescr();
+			create(FALSE);
+			player[b].flights--;
+		}
+		nl();
+		nl();
+		ansic(4);
+		prompt("Command (?): ");
+		opty=od_get_answer("QVP12345CHWLADGFRSTX+-?EZ*#");
+		temp[0]=opty;
+		temp[1]=0;
+		print(temp);
+		switch(opty) {
+			case 'Q':
+				prompt("LEAVE KRYNN? Are you sure? ");
+				if(od_get_answer("YN")=='Y') {
+					print("Y");
+					play=FALSE;
+				}
+				else
+					print("N");
+				break;
+			case '1':afight(1); break;
+			case '2':afight(2); break;
+			case '3':afight(3); break;
+			case '4':afight(4); break;
+			case '5':afight(5); break;
+			case 'C':chstats(); break;
+			case 'H':heal(); break;
+			case 'W':weaponshop(); break;
+			case 'L':levelupdate(); break;
+			case 'A':doggie(); break;
+			case 'D':docs(); break;
+			case 'G':gamble(); break;
+			case 'F':listplayers(); break;
+			case 'R':playerlist(); break;
+			case 'S':statshow(); break;
+			case 'T':training(); break;
+			case 'X':
+				print("Please note that this will completely purge");
+                        print("your current hero of all atributes!");
+				nl();
+                        prompt("Are you sure you want to REROLL your character? ");
+				if(od_get_answer("YN")=='Y') {
+					print("Y");
+					create(FALSE);
+					player[b].flights--;
+				}
+				else
+					print("N");
+				break;
+			case '+':depobank(); break;
+			case 'P':printfile("text/plug.lan"); break;
+			case '-':withdrawbank(); break;
+			case '?':menuit(); break;
+			case 'E':bulletin(); break;
+			case 'Z':spy(); break;
+			case 'V':
+				ansic(2); 
+				print("This Is Dragonlance version 3.0");
+				pausescr();
+				break;
+			case '*':
+				nl();
+				ansic(3);
+				print("Your family crest has been stolen, they");
+				ansic(3);
+				print("inscribe a new one with the name...");
+				prompt(">");
+				od_input_str(ugh,30,' ','~');
+				nl();
+				prompt("Are you sure? ");
+				if(od_get_answer("YN")=='Y') {
+					print("Y");
+					if(strlen(ugh))
+						SAFECOPY(player[b].pseudo,ugh);
+				}
+				else
+					print("N");
+				break;
+			case '#':
+				vic(); 
+				SAFECOPY(player[b].gaspd,ugh3);
+				break;
+		}
+	}
+	return(0);
 }
