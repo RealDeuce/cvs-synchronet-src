@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.h,v 1.13 2003/04/05 02:54:02 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.h,v 1.14 2003/09/17 07:38:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,6 +126,7 @@ __published:
 	TLabel *MaxMsgSizeLabel;
 	TEdit *MaxMsgSizeEdit;
 	TCheckBox *AuthViaIpCheckBox;
+	TCheckBox *NotifyCheckBox;
     void __fastcall InboundSoundButtonClick(TObject *Sender);
     void __fastcall OutboundSoundButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);

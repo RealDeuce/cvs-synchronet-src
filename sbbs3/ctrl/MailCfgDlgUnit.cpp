@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.16 2003/04/05 02:54:02 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.17 2003/09/17 07:38:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,6 +118,8 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
         &MAIL_OPT_DEBUG_RX_RSP;
     DebugHeadersCheckBox->Checked=MainForm->mail_startup.options
         &MAIL_OPT_DEBUG_RX_HEADER;
+    NotifyCheckBox->Checked
+    	=!(MainForm->mail_startup.options&MAIL_OPT_NO_NOTIFY);
     POP3EnabledCheckBox->Checked=MainForm->mail_startup.options
         &MAIL_OPT_ALLOW_POP3;
     POP3LogCheckBox->Checked=MainForm->mail_startup.options
@@ -222,6 +224,10 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_DEBUG_RX_RSP;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_DEBUG_RX_RSP;
+	if(NotifyCheckBox->Checked==false)
+    	MainForm->mail_startup.options|=MAIL_OPT_NO_NOTIFY;
+    else
+	    MainForm->mail_startup.options&=~MAIL_OPT_NO_NOTIFY;
 	if(DebugHeadersCheckBox->Checked==true)
     	MainForm->mail_startup.options|=MAIL_OPT_DEBUG_RX_HEADER;
     else
