@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.73 2003/05/15 00:48:05 rswindell Exp $ */
+/* $Id: js_global.c,v 1.74 2003/05/16 00:21:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1211,6 +1211,32 @@ js_fdate(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
+js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*			fname;
+	struct utimbuf	tbuf;
+	struct utimbuf*	t=NULL;
+
+	*rval = JSVAL_FALSE;
+
+	if((fname=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL)
+		return(JS_TRUE);
+
+	if(argc>1) {
+		memset(&tbuf,0,sizeof(tbuf));
+		tbuf.actime=tbuf.modtime=time(NULL);
+		JS_ValueToInt32(cx,argv[1],&tbuf.actime);
+		JS_ValueToInt32(cx,argv[2],&tbuf.modtime);
+		t=&tbuf;
+	}
+
+	*rval = BOOLEAN_TO_JSVAL(utime(fname,t)==0);
+
+	return(JS_TRUE);
+}
+
+
+static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -1463,7 +1489,11 @@ static jsMethodSpec js_global_functions[] = {
 	},		
 	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("string filename")
 	,JSDOCSTR("get a file's last modified date/time (in time_t format)")
-	},		
+	},
+	{"file_utime",		js_utime,			3,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename [,access_time] [,mod_time]")
+	,JSDOCSTR("change a file's last accessed and modification date/time (in time_t format), "
+		"or change to current time")
+	},
 	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("string filename")
 	,JSDOCSTR("get a file's length (in bytes)")
 	},		
