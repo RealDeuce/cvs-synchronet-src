@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.166 2004/10/17 06:10:48 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.171 2004/11/07 23:20:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1031,7 +1031,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 //	lprintf("%s returned %d",realcmdline, retval);
 
-	errorlevel = retval; // Baja-retrievable error value
+	errorlevel = retval; // Baja or JS retrievable error value
 
 	return(retval);
 }
@@ -1237,6 +1237,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
+
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -1565,7 +1566,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 
 	if(!(mode&EX_INR) && input_thread_running) {
-		pthread_mutex_lock(&input_thread_mutex);
+		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
+		if(pthread_mutex_lock(&input_thread_mutex)!=0)
+			errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
 		input_thread_mutex_locked=true;
 	}
 
@@ -1593,7 +1596,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		winsize.ws_col=cols;
 		if((pid=forkpty(&in_pipe[1],NULL,&term,&winsize))==-1) {
 			if(input_thread_mutex_locked && input_thread_running) {
-				pthread_mutex_unlock(&input_thread_mutex);
+				if(pthread_mutex_unlock(&input_thread_mutex)!=0)
+					errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				input_thread_mutex_locked=false;
 			}
 			errormsg(WHERE,ERR_EXEC,fullcmdline,0);
@@ -1602,6 +1606,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		out_pipe[0]=in_pipe[1];
 	}
 	else  {
+		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		if(mode&EX_INR)
 			if(pipe(in_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"in_pipe",0);
@@ -1616,7 +1621,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		if((pid=FORK())==-1) {
 			if(input_thread_mutex_locked && input_thread_running) {
-				pthread_mutex_unlock(&input_thread_mutex);
+				if(pthread_mutex_unlock(&input_thread_mutex)!=0)
+					errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				input_thread_mutex_locked=false;
 			}
 			errormsg(WHERE,ERR_EXEC,fullcmdline,0);
@@ -1691,7 +1697,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
+	if(online!=ON_LOCAL)
+		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
@@ -1889,11 +1896,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	close(err_pipe[0]);
 
 	if(input_thread_mutex_locked && input_thread_running) {
-		pthread_mutex_unlock(&input_thread_mutex);
+		if(pthread_mutex_unlock(&input_thread_mutex)!=0)
+			errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 		input_thread_mutex_locked=false;
 	}
 
-	return(WEXITSTATUS(i));
+	return(errorlevel = WEXITSTATUS(i));
 }
 
 #endif	/* !WIN32 */
