@@ -1,5 +1,5 @@
 #include <uifc.h>
-#include <ciolib.h>
+#include <conio.h>
 #include <keys.h>
 
 #include "term.h"

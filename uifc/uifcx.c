@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.23 2004/07/27 22:36:54 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.21 2004/05/30 07:16:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
     int lines;
 
     for(opts=0;opts<MAX_OPTS;opts++)
-    	if(option[opts]==NULL || option[opts][0]==0)
+    	if(option[opts][0]==0)
     		break;
 
     if((*cur)>=opts)
@@ -278,16 +278,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 help();
                 break;
             case 'A':   /* Add/Insert */
-				if(!(mode&WIN_INS))
-					break;
 				if(!opts)
     				return(MSK_INS);
                 if(i>0 && i<=opts+1)
         			return((i-1)|MSK_INS);
                 return(which("Add before",opts+1)|MSK_INS);
             case 'D':   /* Delete */
-				if(!(mode&WIN_DEL))
-					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
@@ -296,8 +292,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                     return(MSK_DEL);
                 return(which("Delete",opts)|MSK_DEL);
             case 'C':   /* Copy/Get */
-				if(!(mode&WIN_GET))
-					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
@@ -306,8 +300,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                     return(MSK_GET);
                 return(which("Copy",opts)|MSK_GET);
             case 'P':   /* Paste/Put */
-				if(!(mode&WIN_PUT))
-					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
