@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.10 2001/07/03 02:23:10 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.11 2001/07/08 03:46:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,31 +70,31 @@ typedef struct {
 extern "C" {
 #endif
 
-char *get_alloc(long *offset, char *outstr, int maxlen, FILE *instream);
-BOOL allocerr(read_cfg_text_t* txt, long offset, char *fname, uint size);
-char *readline(long *offset, char *str, int maxlen, FILE *stream);
+char*	get_alloc(long *offset, char *outstr, int maxlen, FILE *instream);
+BOOL	allocerr(read_cfg_text_t* txt, long offset, char *fname, uint size);
+char*	readline(long *offset, char *str, int maxlen, FILE *stream);
 
-BOOL read_node_cfg(scfg_t* cfg, read_cfg_text_t* txt);
-BOOL read_main_cfg(scfg_t* cfg, read_cfg_text_t* txt);
-BOOL read_xtrn_cfg(scfg_t* cfg, read_cfg_text_t* txt);
-BOOL read_file_cfg(scfg_t* cfg, read_cfg_text_t* txt);
-BOOL read_msgs_cfg(scfg_t* cfg, read_cfg_text_t* txt);
-BOOL read_chat_cfg(scfg_t* cfg, read_cfg_text_t* txt);
-BOOL read_attr_cfg(scfg_t* cfg, read_cfg_text_t* txt);
-void prep_path(char* path); 
-void make_data_dirs(scfg_t* cfg);
+BOOL	read_node_cfg(scfg_t* cfg, read_cfg_text_t* txt);
+BOOL	read_main_cfg(scfg_t* cfg, read_cfg_text_t* txt);
+BOOL	read_xtrn_cfg(scfg_t* cfg, read_cfg_text_t* txt);
+BOOL	read_file_cfg(scfg_t* cfg, read_cfg_text_t* txt);
+BOOL	read_msgs_cfg(scfg_t* cfg, read_cfg_text_t* txt);
+BOOL	read_chat_cfg(scfg_t* cfg, read_cfg_text_t* txt);
+BOOL	read_attr_cfg(scfg_t* cfg, read_cfg_text_t* txt);
+char*	prep_path(char* path); 
+void	make_data_dirs(scfg_t* cfg);
 
-void free_node_cfg(scfg_t* cfg);
-void free_main_cfg(scfg_t* cfg);
-void free_xtrn_cfg(scfg_t* cfg);
-void free_file_cfg(scfg_t* cfg);
-void free_msgs_cfg(scfg_t* cfg);
-void free_chat_cfg(scfg_t* cfg);
+void	free_node_cfg(scfg_t* cfg);
+void	free_main_cfg(scfg_t* cfg);
+void	free_xtrn_cfg(scfg_t* cfg);
+void	free_file_cfg(scfg_t* cfg);
+void	free_msgs_cfg(scfg_t* cfg);
+void	free_chat_cfg(scfg_t* cfg);
 
-long aftol(char *str);              /* Converts flag string to long */
-char *ltoaf(long l, char *str);     /* Converts long to flag string */
-char *faddrtoa(faddr_t addr);   /* FidoNet address to ASCII text conversion */
-uchar attrstr(char *str);		/* Convert ATTR string into attribute int */
+long	aftol(char *str);              /* Converts flag string to long */
+char*	ltoaf(long l, char *str);     /* Converts long to flag string */
+char*	faddrtoa(faddr_t addr);   /* FidoNet address to ASCII text conversion */
+uchar	attrstr(char *str);		/* Convert ATTR string into attribute int */
 
 #ifdef __cplusplus
 }
