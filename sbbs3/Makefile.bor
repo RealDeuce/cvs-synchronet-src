@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.bor,v 1.17 2002/01/20 12:41:48 rswindell Exp $
+# $Id: Makefile.bor,v 1.18 2002/01/21 04:09:41 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -92,6 +92,11 @@ $(MAILSRVR): mailsrvr.c mxlookup.c mime.c crc32.c $(SBBSLIB)
 $(FTPSRVR): ftpsrvr.c $(SBBSLIB)
     @echo Compiling $** ...
 	$(CC) $(CFLAGS) -WD -WM -lGi -n$(LIBODIR) -DFTPSRVR_EXPORTS $** $(LIBS)
+
+# Services DLL Link Rule
+$(SERVICES): services.c $(SBBSLIB)
+    @echo Compiling $** ...
+	$(CC) $(CFLAGS) -WD -WM -lGi -n$(LIBODIR) -DSERVICES_EXPORTS $** $(LIBS)
 
 # Synchronet Console Build Rule
 $(SBBSCON): sbbscon.c $(SBBSLIB)

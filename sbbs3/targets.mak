@@ -2,13 +2,14 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mak,v 1.7 2001/12/01 01:57:42 rswindell Exp $
+# $Id: targets.mak,v 1.8 2002/01/21 04:09:41 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
 SBBS	=	$(LIBODIR)$(SLASH)sbbs$(LIBFILE) 
 FTPSRVR	=	$(LIBODIR)$(SLASH)ftpsrvr$(LIBFILE)
 MAILSRVR=	$(LIBODIR)$(SLASH)mailsrvr$(LIBFILE)
+SERVICES=	$(LIBODIR)$(SLASH)services$(LIBFILE)
 SBBSCON	=	$(EXEODIR)$(SLASH)sbbscon$(EXEFILE)
 SBBSMONO=	$(EXEODIR)$(SLASH)sbbs$(EXEFILE)
 NODE	=	$(EXEODIR)$(SLASH)node$(EXEFILE)
@@ -25,7 +26,7 @@ utils:	$(LIBDIR) $(EXEODIR) \
 		$(FIXSMB) $(CHKSMB) $(SMBUTIL) $(BAJA) $(NODE)
 
 dlls:	$(LIBDIR) $(EXEODIR) \
-		$(SBBS) $(FTPSRVR) $(MAILSRVR)
+		$(SBBS) $(FTPSRVR) $(MAILSRVR) $(SERVICES)
 
 mono:	$(LIBDIR) $(EXEODIR) \
 		$(SBBSMONO)
