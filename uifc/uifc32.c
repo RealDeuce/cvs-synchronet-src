@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.90 2004/08/11 00:48:32 deuce Exp $ */
+/* $Id: uifc32.c,v 1.82 2004/07/26 22:35:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,6 +98,21 @@ static int *last_menu_bar=NULL;
 static int save_menu_cur=-1;
 static int save_menu_bar=-1;
 
+/* Internal Structs */
+struct uifc_mouse_event {
+	int	x;
+	int	y;
+	int	button;
+};
+
+/* Mouse support */
+#ifdef _WIN32
+static struct uifc_mouse_event	uifc_last_button_press;
+static struct uifc_mouse_event	last_mouse_click;
+#define kbhit()	console_hit()
+int	console_hit(void);
+#endif
+
 static void reset_dynamic(void) {
 	last_menu_cur=NULL;
 	last_menu_bar=NULL;
@@ -120,15 +135,118 @@ int kbwait(void) {
 	return(FALSE);
 }
 
+#ifdef _WIN32
+
+int console_hit(void)
+{
+	INPUT_RECORD input;
+	DWORD num=0;
+
+	while(1) {
+		if(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			|| !num)
+			break;
+		if(input.EventType==KEY_EVENT && input.Event.KeyEvent.bKeyDown)
+			return(1);
+		if(input.EventType==MOUSE_EVENT) {
+			if(!input.Event.MouseEvent.dwEventFlags
+				&& (!input.Event.MouseEvent.dwButtonState
+					|| input.Event.MouseEvent.dwButtonState==FROM_LEFT_1ST_BUTTON_PRESSED
+					|| input.Event.MouseEvent.dwButtonState==RIGHTMOST_BUTTON_PRESSED))
+				return(1);
+		}
+		if(ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			&& num) {
+			continue;
+		}
+	}
+	return(0);
+}
+
+int inkey()
+{
+	char str[128];
+	INPUT_RECORD input;
+	DWORD num=0;
+
+	while(1) {
+		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
+			continue;
+
+		switch(input.EventType) {
+			case KEY_EVENT:
+				if(!input.Event.KeyEvent.bKeyDown)
+					continue;
+#if 0
+				sprintf(str,"keydown=%d\n",input.Event.KeyEvent.bKeyDown);
+				OutputDebugString(str);
+				sprintf(str,"repeat=%d\n",input.Event.KeyEvent.wRepeatCount);
+				OutputDebugString(str);
+				sprintf(str,"keycode=%x\n",input.Event.KeyEvent.wVirtualKeyCode);
+				OutputDebugString(str);
+				sprintf(str,"scancode=%x\n",input.Event.KeyEvent.wVirtualScanCode);
+				OutputDebugString(str);
+				sprintf(str,"ascii=%d\n",input.Event.KeyEvent.uChar.AsciiChar);
+				OutputDebugString(str);
+				sprintf(str,"dwControlKeyState=%lx\n",input.Event.KeyEvent.dwControlKeyState);
+				OutputDebugString(str);
+#endif
+
+				if(input.Event.KeyEvent.uChar.AsciiChar)
+					return(input.Event.KeyEvent.uChar.AsciiChar);
+
+				return(input.Event.KeyEvent.wVirtualScanCode<<8);
+				break;
+			case MOUSE_EVENT:
+				if(input.Event.MouseEvent.dwEventFlags!=0)
+					continue;
+				if(input.Event.MouseEvent.dwButtonState==0) {
+					if(uifc_last_button_press.button
+							&& uifc_last_button_press.x==input.Event.MouseEvent.dwMousePosition.X
+							&& uifc_last_button_press.y==input.Event.MouseEvent.dwMousePosition.Y) {
+						memcpy(&last_mouse_click,&uifc_last_button_press,sizeof(last_mouse_click));
+						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+						return(CIO_KEY_MOUSE);
+					}
+					else {
+						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+					}
+				}
+				else {
+					memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+					switch(input.Event.MouseEvent.dwButtonState) {
+						case FROM_LEFT_1ST_BUTTON_PRESSED:
+							uifc_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
+							uifc_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
+							uifc_last_button_press.button=1;
+							break;
+						case RIGHTMOST_BUTTON_PRESSED:
+							uifc_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
+							uifc_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
+							uifc_last_button_press.button=2;
+							break;
+					}
+				}
+		}
+	}
+
+	return(0);
+}
+
+#else 
+
 int inkey()
 {
 	int c;
 
 	c=getch();
-	if(!c || c==0xff)
-		c|=(getch()<<8);
+	if(!c)
+		c=(getch()<<8);
 	return(c);
 }
+
+#endif
 
 int uifcini32(uifcapi_t* uifcapi)
 {
@@ -160,11 +278,6 @@ int uifcini32(uifcapi_t* uifcapi)
 	if(api->esc_delay < 10)
 		api->esc_delay=25;
 
-#ifdef NCURSES_VERSION_MAJOR
-	if(cio_api.mode==CIOLIB_MODE_CURSES) {
-		ESCDELAY=api->esc_delay;
-#endif
-
 #ifdef PDCURSES
 /*	
  * "ALL  DESCRIPTIONS  ARE  GUESSES.  I DON'T KNOW ANYONE WHO KNOWS EXACTLY WHAT THESE FUNCTIONS DO!"
@@ -174,6 +287,18 @@ int uifcini32(uifcapi_t* uifcapi)
  *	else
  *		mouse_set(0);
  */
+#endif
+#ifdef __unix__
+	#ifdef NCURSES_VERSION_MAJOR
+		if(cio_api.mode==CIOWRAP_CURSES_MODE) {
+			ESCDELAY=api->esc_delay;
+			if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
+				api->mode|=UIFC_MOUSE;
+			else
+				mousemask(0,NULL);
+		}
+	#endif
+	
 #endif
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
@@ -220,6 +345,9 @@ int uifcini32(uifcapi_t* uifcapi)
 
     gettextinfo(&txtinfo);
 #ifdef _WIN32
+	memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+	memset(&last_mouse_click,0,sizeof(last_mouse_click));
+	api->mode|=UIFC_MOUSE;
     /* unsupported mode? */
     if(txtinfo.screenheight<MIN_LINES
 /*        || txtinfo.screenheight>MAX_LINES */
@@ -228,6 +356,10 @@ int uifcini32(uifcapi_t* uifcapi)
         gettextinfo(&txtinfo);
     }
 
+	if(GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
+		conmode&=~ENABLE_PROCESSED_INPUT;
+		conmode|=ENABLE_MOUSE_INPUT;
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode);
 #endif
 
     api->scrn_len=txtinfo.screenheight;
@@ -290,19 +422,75 @@ int uifcini32(uifcapi_t* uifcapi)
     cursor=_NOCURSOR;
     _setcursortype(cursor);
 
-	if(cio_api.mouse)
-		api->mode|=UIFC_MOUSE;
-
     return(0);
 }
 
-static int uifc_getmouse(struct cio_mouse_event *mevent)
+static void hidemouse(void)
+{
+	if(api->mode&UIFC_MOUSE) {
+		#ifdef XCURSES
+			mouse_set(0);
+		#endif
+		#ifdef NCURSES_VERSION_MAJOR
+			if(cio_api.mode==CIOWRAP_CURSES_MODE)
+				mousemask(0,NULL);
+		#endif
+	}
+}
+
+static void showmouse(void)
+{
+	if(api->mode&UIFC_MOUSE) {
+		#ifdef XCURSES
+			mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED);
+		#endif
+		#ifdef NCURSES_VERSION_MAJOR
+			if(cio_api.mode==CIOWRAP_CURSES_MODE)
+				mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL);
+		#endif
+	}
+}
+
+static int uifc_getmouse(struct uifc_mouse_event *mevent)
 {
 	mevent->x=0;
 	mevent->y=0;
 	mevent->button=0;
 	if(api->mode&UIFC_MOUSE) {
-		getmouse(mevent);
+		#ifdef _WIN32
+			memcpy(mevent,&last_mouse_click,sizeof(last_mouse_click));
+		#endif
+		#ifdef NCURSES_VERSION_MAJOR
+			MEVENT	mevnt;
+
+			if(getmouse(&mevnt)==OK) {
+				mevent->x=mevnt.x;
+				mevent->y=mevnt.y;
+				switch(mevnt.bstate) {
+					case BUTTON1_CLICKED:
+						mevent->button=1;
+						break;
+					case BUTTON3_CLICKED:
+						mevent->button=2;
+						break;
+				}
+			}
+			else
+				return(-1);
+		#endif
+		#ifdef XCURSES
+			if(getmouse()==0) {
+				mevent->x=Mouse_status.x;
+				mevent->y=Mouse_status.y;
+				if(Mouse_status.button[1]==BUTTON_CLICKED)
+					mevent->button=1;
+				if(Mouse_status.button[3]==BUTTON_CLICKED)
+					mevent->button=3;
+			}
+			else
+				return(-1);
+		#endif
+
 		if(mevent->button==2)
 			return(ESC);
 		if(mevent->y==api->buttony) {
@@ -329,7 +517,7 @@ void uifcbail(void)
 	hidemouse();
 	clrscr();
 #ifdef __unix__
-	if(cio_api.mode==CIOLIB_MODE_CURSES) {
+	if(cio_api.mode==CIOWRAP_CURSES_MODE) {
 		nl();
 		nocbreak();
 		noraw();
@@ -361,7 +549,6 @@ int uscrn(char *str)
     gotoxy(1,api->scrn_len+1);
     clreol();
 	reset_dynamic();
-	settitle(str);
     return(0);
 }
 
@@ -421,7 +608,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	uint s_right=SCRN_RIGHT;
 	uint s_bottom=api->scrn_len-3;
 	uint title_len;
-	struct cio_mouse_event mevnt;
+	struct uifc_mouse_event mevnt;
 	char	*title;
 	int	a,b,c,longopt;
 
@@ -776,7 +963,11 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			i=inkey();
 			if(i==BS)
 				i=ESC;
+#ifdef CIO_KEY_MOUSE
 			if(i==CIO_KEY_MOUSE) {
+#else
+			if(0) {
+#endif
 				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
 					if(mevnt.x>=s_left+left+2
@@ -1520,7 +1711,6 @@ void umsg(char *str)
 /***************************************/
 void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *scrnoffset)
 {
-	_setcursortype(_NOCURSOR);
 	if(cursoffset<*scrnoffset)
 		*scrnoffset=cursoffset;
 
@@ -1530,7 +1720,6 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 	gotoxy(left,top);
 	cprintf("%-*.*s",width,width,outstr+*scrnoffset);
 	gotoxy(left+(cursoffset-*scrnoffset),top);
-	_setcursortype(_NORMALCURSOR);
 }
 
 /****************************************************************************/
@@ -1544,7 +1733,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
 	int	soffset=0;
-	struct cio_mouse_event	mevnt;
+	struct uifc_mouse_event	mevnt;
 
 	if((str=(uchar *)malloc(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
@@ -1578,7 +1767,11 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		}
 #endif
 		f=inkey();
+#ifdef CIO_KEY_MOUSE
 		if(f==CIO_KEY_MOUSE) {
+#else
+		if(0) {
+#endif
 			if((f=uifc_getmouse(&mevnt))==0) {
 				if(mevnt.x>=left-1
 						&& mevnt.x<=left+width-1
@@ -1613,24 +1806,31 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		if(i>j) j=i;
 		str[j]=0;
 		getstrupd(left, top, width, str, i, &soffset);
-		if(f || (ch=inkey())!=0)
+		if(f || kbwait())
 		{
 			if(f)
 				ch=f;
-			f=0;
-			if(ch==CIO_KEY_MOUSE) {
-				if((ch=uifc_getmouse(&mevnt))==0) {
-					if(mevnt.x>=left-1
-							&& mevnt.x<=left+width-1
-							&& mevnt.button==1) {
-						i=mevnt.x-left+soffset+1;
-						if(i>j)
-							i=j;
+			else {
+				ch=inkey();
+#ifdef CIO_KEY_MOUSE
+				if(ch==CIO_KEY_MOUSE) {
+#else
+				if(0) {
+#endif
+					if((ch=uifc_getmouse(&mevnt))==0) {
+						if(mevnt.x>=left-1
+								&& mevnt.x<=left+width-1
+								&& mevnt.button==1) {
+							i=mevnt.x-left+soffset+1;
+							if(i>j)
+								i=j;
+						}
 					}
 				}
 			}
 			if(lastkey != NULL)
 				*lastkey=ch;
+			f=0;
 			switch(ch)
 			{
 				case CIO_KEY_F(1):	/* F1 Help */
@@ -1760,6 +1960,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				str[i++]=ch; 
 			}
 		}
+		else
+			mswait(1);
 	}
 
 
@@ -2002,7 +2204,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	int pad=1;
 	int	is_redraw=0;
 	uint title_len=0;
-	struct cio_mouse_event	mevnt;
+	struct uifc_mouse_event	mevnt;
 
 	_setcursortype(_NOCURSOR);
 	
@@ -2178,7 +2380,11 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
 			if(kbwait()) {
 				j=inkey();
+#ifdef CIO_KEY_MOUSE
 				if(j==CIO_KEY_MOUSE) {
+#else
+				if(0) {
+#endif
 					/* Ignores return value to avoid hitting help/exit hotspots */
 					if(uifc_getmouse(&mevnt)>=0) {
 						/* Clicked Scroll Up */
