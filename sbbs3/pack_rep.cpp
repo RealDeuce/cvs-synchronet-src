@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.29 2004/01/10 11:07:36 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.28 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,6 +82,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 	/*********************/
 	/* Pack new messages */
 	/*********************/
+	console|=CON_L_ECHO;
+
 	sprintf(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=INVALID_SUB;
