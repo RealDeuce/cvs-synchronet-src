@@ -3,12 +3,12 @@ object ServicesCfgDlg: TServicesCfgDlg
   Top = 317
   BorderStyle = bsDialog
   Caption = 'Services Configuration'
-  ClientHeight = 245
-  ClientWidth = 286
+  ClientHeight = 301
+  ClientWidth = 352
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -10
+  Font.Height = -13
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   Icon.Data = {
@@ -40,33 +40,33 @@ object ServicesCfgDlg: TServicesCfgDlg
   Position = poScreenCenter
   OnShow = FormShow
   DesignSize = (
-    286
-    245)
-  PixelsPerInch = 96
-  TextHeight = 13
+    352
+    301)
+  PixelsPerInch = 120
+  TextHeight = 16
   object PageControl: TPageControl
-    Left = 3
-    Top = 3
-    Width = 278
-    Height = 199
+    Left = 4
+    Top = 4
+    Width = 342
+    Height = 245
     ActivePage = GeneralTabSheet
     TabIndex = 0
     TabOrder = 0
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
       object InterfaceLabel: TLabel
-        Left = 7
-        Top = 34
-        Width = 78
-        Height = 20
+        Left = 9
+        Top = 42
+        Width = 96
+        Height = 25
         AutoSize = False
         Caption = 'Interface (IP)'
       end
       object AutoStartCheckBox: TCheckBox
-        Left = 7
-        Top = 10
-        Width = 117
-        Height = 20
+        Left = 9
+        Top = 12
+        Width = 144
+        Height = 25
         Hint = 'Automatically start Services'
         Caption = 'Auto Startup'
         ParentShowHint = False
@@ -74,9 +74,9 @@ object ServicesCfgDlg: TServicesCfgDlg
         TabOrder = 0
       end
       object NetworkInterfaceEdit: TEdit
-        Left = 85
-        Top = 34
-        Width = 156
+        Left = 105
+        Top = 42
+        Width = 192
         Height = 24
         Hint = 'Your network adapter'#39's static IP address or blank for <ANY>'
         ParentShowHint = False
@@ -84,26 +84,38 @@ object ServicesCfgDlg: TServicesCfgDlg
         TabOrder = 2
       end
       object HostnameCheckBox: TCheckBox
-        Left = 148
-        Top = 10
-        Width = 119
-        Height = 20
+        Left = 182
+        Top = 12
+        Width = 147
+        Height = 25
         Hint = 'Automatically lookup client'#39's hostnames via DNS'
         Caption = 'Hostname Lookup'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 1
       end
-      object ServicesIniButton: TButton
-        Left = 7
-        Top = 74
-        Width = 250
-        Height = 23
-        Hint = 'services.ini'
-        Caption = 'Edit Services Configuration File'
+      object ServicesCfgButton: TButton
+        Left = 8
+        Top = 80
+        Width = 97
+        Height = 25
+        Hint = 'Edit LEGACY services configuration file'
+        Caption = 'services.cfg'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 3
+        OnClick = ServicesCfgButtonClick
+      end
+      object ServicesIniButton: TButton
+        Left = 8
+        Top = 120
+        Width = 97
+        Height = 25
+        Hint = 'Edit NEW services configuration file'
+        Caption = 'services.ini'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 4
         OnClick = ServicesCfgButtonClick
       end
     end
@@ -111,55 +123,55 @@ object ServicesCfgDlg: TServicesCfgDlg
       Caption = 'Sound'
       ImageIndex = 2
       object AnswerSoundLabel: TLabel
-        Left = 7
-        Top = 10
-        Width = 65
-        Height = 20
+        Left = 9
+        Top = 12
+        Width = 80
+        Height = 25
         AutoSize = False
         Caption = 'Connect'
       end
       object HangupSoundLabel: TLabel
-        Left = 7
-        Top = 36
-        Width = 65
-        Height = 20
+        Left = 9
+        Top = 44
+        Width = 80
+        Height = 25
         AutoSize = False
         Caption = 'Disconnect'
       end
       object AnswerSoundEdit: TEdit
-        Left = 85
-        Top = 10
-        Width = 156
-        Height = 21
+        Left = 105
+        Top = 12
+        Width = 192
+        Height = 24
         Hint = 'Sound file to play when users connect'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
       end
       object AnswerSoundButton: TButton
-        Left = 247
-        Top = 10
-        Width = 20
-        Height = 21
+        Left = 304
+        Top = 12
+        Width = 25
+        Height = 26
         Caption = '...'
         TabOrder = 1
         OnClick = AnswerSoundButtonClick
       end
       object HangupSoundEdit: TEdit
-        Left = 85
-        Top = 36
-        Width = 156
-        Height = 21
+        Left = 105
+        Top = 44
+        Width = 192
+        Height = 24
         Hint = 'Sound file to play when users disconnect'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 2
       end
       object HangupSoundButton: TButton
-        Left = 247
-        Top = 36
-        Width = 20
-        Height = 21
+        Left = 304
+        Top = 44
+        Width = 25
+        Height = 26
         Caption = '...'
         TabOrder = 3
         OnClick = HangupSoundButtonClick
@@ -167,10 +179,10 @@ object ServicesCfgDlg: TServicesCfgDlg
     end
   end
   object OKBtn: TButton
-    Left = 20
-    Top = -38
-    Width = 76
-    Height = 24
+    Left = 25
+    Top = -47
+    Width = 93
+    Height = 30
     Anchors = [akLeft, akBottom]
     Caption = 'OK'
     Default = True
@@ -178,10 +190,10 @@ object ServicesCfgDlg: TServicesCfgDlg
     TabOrder = 1
   end
   object CancelBtn: TButton
-    Left = 104
-    Top = -38
-    Width = 75
-    Height = 24
+    Left = 128
+    Top = -47
+    Width = 92
+    Height = 30
     Anchors = [akLeft, akBottom]
     Cancel = True
     Caption = 'Cancel'
@@ -189,20 +201,20 @@ object ServicesCfgDlg: TServicesCfgDlg
     TabOrder = 2
   end
   object ApplyBtn: TButton
-    Left = 189
-    Top = -38
-    Width = 76
-    Height = 24
+    Left = 233
+    Top = -47
+    Width = 93
+    Height = 30
     Anchors = [akLeft, akBottom]
     Cancel = True
     Caption = 'Apply'
     TabOrder = 3
   end
   object OKButton: TButton
-    Left = 20
-    Top = 211
-    Width = 76
-    Height = 25
+    Left = 25
+    Top = 260
+    Width = 93
+    Height = 30
     Anchors = [akLeft, akBottom]
     Caption = 'OK'
     Default = True
@@ -211,10 +223,10 @@ object ServicesCfgDlg: TServicesCfgDlg
     OnClick = OKButtonClick
   end
   object CancelButton: TButton
-    Left = 104
-    Top = 211
-    Width = 75
-    Height = 25
+    Left = 128
+    Top = 260
+    Width = 92
+    Height = 30
     Anchors = [akLeft, akBottom]
     Cancel = True
     Caption = 'Cancel'
@@ -222,10 +234,10 @@ object ServicesCfgDlg: TServicesCfgDlg
     TabOrder = 5
   end
   object ApplyButton: TButton
-    Left = 189
-    Top = 211
-    Width = 76
-    Height = 25
+    Left = 233
+    Top = 260
+    Width = 93
+    Height = 30
     Anchors = [akLeft, akBottom]
     Cancel = True
     Caption = 'Apply'
@@ -234,7 +246,6 @@ object ServicesCfgDlg: TServicesCfgDlg
   end
   object OpenDialog: TOpenDialog
     Filter = 'Wave Files|*.wav'
-    Left = 128
-    Top = 144
+    Top = 240
   end
 end

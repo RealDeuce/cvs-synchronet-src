@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.55 2004/11/03 03:58:54 deuce Exp $ */
+/* $Id: mailsrvr.h,v 1.49 2004/09/26 20:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,8 +38,9 @@
 #ifndef _MAILSRVR_H_
 #define _MAILSRVR_H_
 
-#include "startup.h"
+#include "client.h"				/* client_t */
 #include "sockwrap.h"           /* SOCKET */
+#include "semwrap.h"			/* sem_t */
 
 typedef struct {
 
@@ -66,7 +67,6 @@ typedef struct {
 	int 	(*lputs)(void*, int, char*);
 	void	(*status)(void*, char*);
     void	(*started)(void*);
-	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
     void	(*clients)(void*, int active);
     void	(*thread_up)(void*, BOOL up, BOOL setuid);
@@ -81,6 +81,7 @@ typedef struct {
     char	default_user[128];
     char	dnsbl_tag[32];		// Tag to add to blacklisted subject
 	char	dnsbl_hdr[32];		// Header field to add to msg header
+    char	proc_cfg_file[128];
 	char	inbound_sound[128];
 	char	outbound_sound[128];
     char	pop3_sound[128];
@@ -90,8 +91,6 @@ typedef struct {
 	BOOL	recycle_now;
 	sem_t	recycle_sem;
 	DWORD	log_mask;
-	uint	bind_retry_count;		/* Number of times to retry bind() calls */
-	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
 	/* Relay Server */
     char	relay_server[128];
@@ -100,17 +99,6 @@ typedef struct {
 	char	relay_pass[128];
 
 } mail_startup_t;
-
-/* startup options that requires re-initialization/recycle when changed */
-#if defined(STARTUP_INIT_FIELD_TABLES)
-static struct init_field mail_init_fields[] = { 
-	 OFFSET_AND_SIZE(mail_startup_t,smtp_port)
-	,OFFSET_AND_SIZE(mail_startup_t,pop3_port)
-	,OFFSET_AND_SIZE(mail_startup_t,interface_addr)
-	,OFFSET_AND_SIZE(mail_startup_t,ctrl_dir)
-	,{ 0,0 }	/* terminator */
-};
-#endif
 
 #define MAIL_OPT_DEBUG_RX_HEADER		(1<<0)
 #define MAIL_OPT_DEBUG_RX_BODY			(1<<1)
@@ -141,44 +129,6 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_MUTE					(1<<31)
 
 #define MAIL_OPT_RELAY_AUTH_MASK		(MAIL_OPT_RELAY_AUTH_PLAIN|MAIL_OPT_RELAY_AUTH_LOGIN|MAIL_OPT_RELAY_AUTH_CRAM_MD5)
-
-/* mail_startup_t.options bits that require re-init/recycle when changed */
-#define MAIL_INIT_OPTS	(MAIL_OPT_ALLOW_POP3|MAIL_OPT_NO_SENDMAIL|MAIL_OPT_LOCAL_TIMEZONE)
-
-#if defined(STARTUP_INI_BITDESC_TABLES)
-static ini_bitdesc_t mail_options[] = {
-
-	{ MAIL_OPT_DEBUG_RX_HEADER		,"DEBUG_RX_HEADER"		},
-	{ MAIL_OPT_DEBUG_RX_BODY		,"DEBUG_RX_BODY"		},	
-	{ MAIL_OPT_ALLOW_POP3			,"ALLOW_POP3"			},
-	{ MAIL_OPT_DEBUG_TX				,"DEBUG_TX"				},
-	{ MAIL_OPT_DEBUG_RX_RSP			,"DEBUG_RX_RSP"			},
-	{ MAIL_OPT_RELAY_TX				,"RELAY_TX"				},
-	{ MAIL_OPT_DEBUG_POP3			,"DEBUG_POP3"			},
-	{ MAIL_OPT_ALLOW_RX_BY_NUMBER	,"ALLOW_RX_BY_NUMBER"	},
-	{ MAIL_OPT_NO_NOTIFY			,"NO_NOTIFY"			},
-	{ MAIL_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
-	{ MAIL_OPT_USE_TCP_DNS			,"USE_TCP_DNS"			},
-	{ MAIL_OPT_NO_SENDMAIL			,"NO_SENDMAIL"			},
-	{ MAIL_OPT_ALLOW_RELAY			,"ALLOW_RELAY"			},
-	{ MAIL_OPT_SMTP_AUTH_VIA_IP		,"SMTP_AUTH_VIA_IP"		},
-	{ MAIL_OPT_DNSBL_REFUSE			,"DNSBL_REFUSE"			},
-	{ MAIL_OPT_DNSBL_IGNORE			,"DNSBL_IGNORE"			},
-	{ MAIL_OPT_DNSBL_BADUSER		,"DNSBL_BADUSER"		},
-	{ MAIL_OPT_DNSBL_CHKRECVHDRS	,"DNSBL_CHKRECVHDRS"	},
-	{ MAIL_OPT_DNSBL_THROTTLE		,"DNSBL_THROTTLE"		},
-	{ MAIL_OPT_DNSBL_DEBUG			,"DNSBL_DEBUG"			},
-	{ MAIL_OPT_SEND_INTRANSIT		,"SEND_INTRANSIT"		},
-	{ MAIL_OPT_RELAY_AUTH_PLAIN		,"RELAY_AUTH_PLAIN"		},
-	{ MAIL_OPT_RELAY_AUTH_LOGIN		,"RELAY_AUTH_LOGIN"		},
-	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
-	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ MAIL_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
-	{ MAIL_OPT_MUTE					,"MUTE"					},
-	/* terminator */
-	{ 0 							,NULL					}
-};
-#endif
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
