@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.6 2004/09/15 22:58:18 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.1 2004/09/11 09:27:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 
 /****************************************************************************/
 /****************************************************************************/
-int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
+int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 					   ,ushort xlat, const uchar* body, const uchar* tail)
 {
 	uchar*		lzhbuf=NULL;
@@ -82,14 +82,12 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 		msg->hdr.number=smb->status.last_msg+1;
 
-		hashes=smb_msghashes(msg,body);
+		hashes=smb_msghashes(msg,body,dupechk);
 
-		if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
+		if(smb_findhash(smb, hashes, &found, /* update? */FALSE)==SMB_SUCCESS) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"duplicate %s: %s found in message #%lu"
-				,smb_hashsourcetype(found.source)
-				,smb_hashsource(msg,found.source)
-				,found.number);
+				,"duplicate %s hash found (message #%lu)"
+				,smb_hashsource(found.source), found.number);
 			retval=SMB_DUPE_MSG;
 			break;
 		}
@@ -104,7 +102,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				bodylen--;
 
 			/* Calculate CRC-32 of message text (before encoding, if any) */
-			if(smb->status.max_crcs && dupechk_hashes&SMB_HASH_SOURCE_BODY) {
+			if(smb->status.max_crcs && dupechk) {
 				for(l=0;l<bodylen;l++)
 					crc=ucrc32(body[l],crc); 
 				crc=~crc;
@@ -246,15 +244,9 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			msg->hdr.when_written = msg->hdr.when_imported;
 		msg->idx.time=msg->hdr.when_imported.time;
 
-		/* Look-up thread_back if RFC822 Reply-ID was specified */
+		/* Look-up thread_back if Reply-ID was specified */
 		if(msg->hdr.thread_back==0 && msg->reply_id!=NULL) {
 			if(smb_getmsgidx_by_msgid(smb,&remsg,msg->reply_id)==SMB_SUCCESS)
-				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
-		}
-
-		/* Look-up thread_back if FTN REPLY was specified */
-		if(msg->hdr.thread_back==0 && msg->ftn_reply!=NULL) {
-			if(smb_getmsghdr_by_ftnid(smb,&remsg,msg->ftn_reply)==SMB_SUCCESS)
 				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
 		}
 
