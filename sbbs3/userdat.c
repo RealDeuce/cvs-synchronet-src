@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.32 2002/02/24 04:06:34 rswindell Exp $ */
+/* $Id: userdat.c,v 1.33 2002/03/11 02:07:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,7 +127,7 @@ uint DLLCALL lastuser(scfg_t* cfg)
 }
 
 /****************************************************************************/
-/* Returns the number of the last user in user.dat (deleted ones too)		*/
+/* Deletes last user record in user.dat										*/
 /****************************************************************************/
 BOOL DLLCALL del_lastuser(scfg_t* cfg)
 {
