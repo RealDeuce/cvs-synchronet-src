@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.16 2002/12/31 02:08:36 rswindell Exp $
+# $Id: Makefile,v 1.17 2003/01/02 01:21:44 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -34,7 +34,7 @@ DELETE	=	echo y | del
 .cacheautodepend	
 
 # Optional compile flags (disable banner, warnings and such)
-CFLAGS	=	$(CFLAGS) -q -d -H -X- -w-csu -w-pch -w-ccc -w-rch -w-par
+CFLAGS	=	$(CFLAGS) -q -d -H -X- -w-csu -w-pch -w-ccc -w-rch -w-par -w-8004
 CFLAGS	=	$(CFLAGS) -DWRAPPER_EXPORTS
 
 # Debug or release build?
