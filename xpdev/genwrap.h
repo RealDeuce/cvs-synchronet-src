@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.15 2002/08/24 23:29:03 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.16 2002/10/29 08:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,6 +97,8 @@ extern "C" {
 	#define PLATFORM_DESC	"Linux"
 #elif defined(__FreeBSD__)
 	#define PLATFORM_DESC	"FreeBSD"
+#elif defined(__OpenBSD__)
+	#define PLATFORM_DESC	"OpenBSD"
 #elif defined(BSD)
 	#define PLATFORM_DESC	"BSD"
 #elif defined(__unix__)
