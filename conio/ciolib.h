@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.17 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: ciolib.h,v 1.18 2004/09/22 21:55:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,16 +49,6 @@ enum {
 
 	#include <io.h>			/* isatty */
 
-#endif
-
-#ifndef BOOL
-#define BOOL    int
-#ifndef TRUE
-#define TRUE    1
-#endif
-#ifndef FALSE
-#define FALSE   0
-#endif
 #endif
 
 enum {
