@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.132 2003/05/01 00:09:49 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.133 2003/05/04 02:59:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1296,9 +1296,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		if(mode&EX_BG)	/* background execution, detach child */
 		{
-			if(FORK())
-				return(0);
-			lprintf("Detaching external process pgid=%d",setsid());
+			lprintf("Detaching external process");
+			daemon(TRUE,FALSE);
    	    }
 	
 		execvp(argv[0],argv);
