@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.46 2003/11/20 10:09:14 rswindell Exp $ */
+/* $Id: js_user.c,v 1.49 2003/12/09 10:34:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,25 +335,25 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			val=user.logontime;
 			break;
 		case USER_PROP_TIMEPERCALL:
-			val=p->cfg->level_timepercall[user.number];
+			val=p->cfg->level_timepercall[user.level];
 			break;
 		case USER_PROP_TIMEPERDAY:
-			val=p->cfg->level_timeperday[user.number];
+			val=p->cfg->level_timeperday[user.level];
 			break;
 		case USER_PROP_CALLSPERDAY:
-			val=p->cfg->level_callsperday[user.number];
+			val=p->cfg->level_callsperday[user.level];
 			break;
 		case USER_PROP_LINESPERMSG:
-			val=p->cfg->level_linespermsg[user.number];
+			val=p->cfg->level_linespermsg[user.level];
 			break;
 		case USER_PROP_POSTSPERDAY:
-			val=p->cfg->level_postsperday[user.number];
+			val=p->cfg->level_postsperday[user.level];
 			break;
 		case USER_PROP_EMAILPERDAY:
-			val=p->cfg->level_emailperday[user.number];
+			val=p->cfg->level_emailperday[user.level];
 			break;
 		case USER_PROP_FREECDTPERDAY:
-			val=p->cfg->level_freecdtperday[user.number];
+			val=p->cfg->level_freecdtperday[user.level];
 			break;
 
 		default:	
@@ -832,9 +832,8 @@ static JSClass js_user_stats_class = {
 	,JS_EnumerateStub		/* enumerate	*/
 	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
-	,JS_FinalizeStub		/* finalize		*/
+	,JS_FinalizeStub        /* finalize		*/
 };
-
 
 static JSClass js_user_security_class = {
      "UserSecurity"			/* name			*/
@@ -846,7 +845,20 @@ static JSClass js_user_security_class = {
 	,JS_EnumerateStub		/* enumerate	*/
 	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
-	,JS_FinalizeStub		/* finalize		*/
+	,JS_FinalizeStub        /* finalize		*/
+};
+
+static JSClass js_user_limits_class = {
+     "UserLimits"			/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_user_get			/* getProperty	*/
+	,js_user_set			/* setProperty	*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,JS_FinalizeStub        /* finalize		*/
 };
 
 /* User Constructor (creates instance of user class) */
@@ -860,6 +872,7 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	private_t*	p;
 	JSObject*	statsobj;
 	JSObject*	securityobj;
+	JSObject*	limitsobj;
 
 	JS_ValueToInt32(cx,argv[0],&val);
 	user.number=(ushort)val;
@@ -884,6 +897,15 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	if(!js_DefineSyncProperties(cx, securityobj, js_user_security_properties))
 		return(JS_FALSE);
 
+	/* user.limits */
+	if((limitsobj=JS_DefineObject(cx, obj, "limits"
+		,&js_user_limits_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
+		return(JS_FALSE);
+
+	if(!js_DefineSyncProperties(cx, limitsobj, js_user_limits_properties))
+		return(JS_FALSE);
+
+	/* other user properties */
 	if(!js_DefineSyncProperties(cx, obj, js_user_properties))
 		return(JS_FALSE);
 
@@ -903,6 +925,7 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	JS_SetPrivate(cx, statsobj, p);
 	JS_SetPrivate(cx, securityobj, p);
+	JS_SetPrivate(cx, limitsobj, p);
 
 	return(JS_TRUE);
 }
@@ -990,7 +1013,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 
 	/* user.limits */
 	limitsobj = JS_DefineObject(cx, userobj, "limits"
-		,&js_user_stats_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
+		,&js_user_limits_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(limitsobj==NULL) {
 		free(p);
