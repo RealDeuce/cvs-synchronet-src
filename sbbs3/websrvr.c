@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.96 2003/05/07 19:08:28 deuce Exp $ */
+/* $Id: websrvr.c,v 1.97 2003/05/07 20:29:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -948,7 +948,7 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 
 	start=time(NULL);
 	for(i=0;TRUE;) {
-		if(!socket_check(session->socket,&rd)) {
+		if(!socket_check(session->socket,&rd,1000)) {
 			session->req.keep_alive=FALSE;
 			close_request(session);
 			session->socket=INVALID_SOCKET;
@@ -962,7 +962,6 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 				session->socket=INVALID_SOCKET;
 				return(-1);        /* time-out */
 			}
-			YIELD();
 			continue;       /* no data */
 		}
 
@@ -1053,8 +1052,8 @@ int recvbufsocket(int sock, char *buf, long count)
 	}
 
 	/* ToDo Timeout here too? */
-	while(rd<count && socket_check(sock,NULL))  {
-		i=read(sock,buf,count-rd);
+	while(rd<count && socket_check(sock,NULL,100))  {
+		i=recv(sock,buf,count-rd,0);
 		if(i<=0)  {
 			*buf=0;
 			return(0);
@@ -2343,7 +2342,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.96 $", "%*s %s", revision);
+	sscanf("$Revision: 1.97 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
