@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.21 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.22 2000/11/06 23:59:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,7 +373,7 @@ static void usermailaddr(char* addr, char* name)
 {
 	int i;
 
-	if(strchr(name,'.'))
+	if(strchr(name,'.')) /* unresolved exception here Nov-06-2000 */
 		sprintf(addr,"\"%s\"@",name);
 	else {
 		sprintf(addr,"%s@",name);
@@ -885,7 +885,7 @@ static void pop3_thread(void* arg)
 					sprintf(fromaddr,"\"%s@%s\"@%s"
 						,msg.from,(char*)msg.from_net.addr,scfg.sys_inetaddr);
 				else 
-					usermailaddr(fromaddr,msg.from);
+					usermailaddr(fromaddr,msg.from);	/* unresolved exception here Nov-06-2000 */
 				sockmsgtxt(socket,&msg,msgtxt,fromaddr,lines);
 				/* if(startup->options&MAIL_OPT_DEBUG_POP3) */
 				lprintf("%04d POP3 Mail transfer complete", socket);
