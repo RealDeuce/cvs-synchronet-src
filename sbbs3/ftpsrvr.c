@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.37 2000/11/14 00:30:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.38 2000/11/14 03:27:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2895,7 +2895,7 @@ static void cleanup(int code)
 		lprintf("0000 !WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 
-    lprintf("0000 FTP Server thread terminated");
+    lprintf("#### FTP Server thread terminated");
 	status("Down");
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(code);

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.30 2000/11/14 00:30:32 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.31 2000/11/14 03:27:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2228,7 +2228,7 @@ static void cleanup(int code)
 		lprintf("0000 !WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 
-    lprintf("0000 Mail Server thread terminated");
+    lprintf("#### Mail Server thread terminated");
 	status("Down");
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(code);
