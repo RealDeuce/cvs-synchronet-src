@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.27 2004/05/30 06:56:06 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.28 2004/09/08 03:44:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -489,7 +489,7 @@ export the current message group into.
 						,cfg.sub[j]->origline
 						,cfg.sub[j]->post_sem
 						,cfg.sub[j]->newsgroup
-						,faddrtoa(&cfg.sub[j]->faddr,tmp)
+						,smb_faddrtoa(&cfg.sub[j]->faddr,tmp)
 						);
 					fprintf(stream,"%lu\r\n%lu\r\n%u\r\n%u\r\n%s\r\n"
 						,cfg.sub[j]->maxmsgs
