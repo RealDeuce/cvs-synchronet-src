@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.153 2004/09/24 08:33:42 deuce Exp $ */
+/* $Id: websrvr.c,v 1.154 2004/09/24 08:36:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1859,9 +1859,11 @@ static BOOL exec_cgi(http_session_t *session)
 					if(i>0)  {
 						int snt=0;
 						start=time(NULL);
-						snt=write(session->socket,buf,i);
-						if(snt>0)
-							session->req.ld->size+=snt;
+						if(session->req.method!=HTTP_HEAD) {
+							snt=write(session->socket,buf,i);
+							if(snt>0)
+								session->req.ld->size+=snt;
+						}
 					}
 					else
 						done_reading=TRUE;
@@ -2607,7 +2609,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.153 $", "%*s %s", revision);
+	sscanf("$Revision: 1.154 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
