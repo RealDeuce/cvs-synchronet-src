@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.46 2003/09/20 06:20:19 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.47 2003/09/26 21:28:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,8 +84,8 @@ void usage(FILE* fp)
 		"\t-m <bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s <bytes>      set context stack size (default=%u bytes)\n"
 		"\t-b <limit>      set branch limit (default=%u, 0=unlimited)\n"
-		"\t-y <freq>       set yield interval (default=%u, 0=never)\n"
-		"\t-g <freq>       set garbage collection interval (default=%u, 0=never)\n"
+		"\t-y <interval>   set yield interval (default=%u, 0=never)\n"
+		"\t-g <interval>   set garbage collection interval (default=%u, 0=never)\n"
 		"\t-H              use local host name (instead of SCFG value)\n"
 		"\t-h <hostname>   use specified host name (instead of SCFG value)\n"
 		"\t-t <filename>   send console output to stdout and filename\n"
@@ -655,7 +655,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.46 $", "%*s %s", revision);
+	sscanf("$Revision: 1.47 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
