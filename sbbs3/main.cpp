@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.49 2001/08/03 21:11:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.50 2001/08/04 01:33:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,6 +125,8 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((fmt = JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
+
+	memset(arglist,0,sizeof(arglist));	// Initialize arglist to NULLs
 
     for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
 		if(JSVAL_IS_STRING(argv[i])) {
