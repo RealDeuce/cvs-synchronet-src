@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.18 2002/01/21 03:47:06 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.19 2002/02/08 17:15:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -419,7 +419,10 @@ bool sbbs_t::listfile(char *fname, char HUGE16 *buf, uint dirnum
 		else {
 			if(cdt<1024)    /* 1k is smallest size */
 				cdt=1024;
-			bprintf("%5luk",cdt/1024L); } }
+			if(cdt>(99999*1024))
+				bprintf("%5luM",cdt/(1024*1024));
+			else
+				bprintf("%5luk",cdt/1024L); } }
 	else {
 		if(!cdt) {  /* FREE file */
 			attr(curatr^(HIGH|BLINK));
