@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.103 2005/03/10 09:59:03 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.104 2005/03/27 08:41:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -497,6 +497,9 @@ void sbbs_read_ini(
 			,iniReadString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
 		SAFECOPY(web->logfile_base
 			,iniReadString(fp,section,"HttpLogFile",nulstr,value));
+
+		SAFECOPY(web->default_cgi_content
+			,iniReadString(fp,section,"DefaultCGIContent",WEB_DEFAULT_CGI_CONTENT,value));
 
 		iniFreeStringList(web->index_file_name);
 		web->index_file_name
@@ -1077,6 +1080,11 @@ BOOL sbbs_write_ini(
 		if(!iniSetString(lp,section,"ErrorDirectory",web->error_dir,&style))
 			break;
 		if(!iniSetString(lp,section,"CGIDirectory",web->cgi_dir,&style))
+			break;
+		if(!iniSetString(lp,section,"HttpLogFile",web->logfile_base,&style))
+			break;
+
+		if(!iniSetString(lp,section,"DefaultCGIContent",web->default_cgi_content,&style))
 			break;
 
 		if(!iniSetStringList(lp,section,"IndexFileNames", "," ,web->index_file_name,&style))
