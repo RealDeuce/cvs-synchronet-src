@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.10 2001/06/15 03:38:46 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.11 2001/09/05 18:09:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,27 +146,13 @@ void sbbs_t::logout()
 			useron.min=0L;
 		putuserrec(&cfg,useron.number,U_MIN,10,ultoa(useron.min,str,10)); }
 
-	useron.tlast=(now-logontime)/60;
-	useron.timeon+=useron.tlast;
-	useron.ttoday+=useron.tlast;
-
 	if(timeleft>0 && starttime-logontime>0) 			/* extra time */
 		useron.textra+=(starttime-logontime)/60;
 
-	tm=gmtime(&logontime);
-	if(tm==NULL)
-		return;
-	if(tm->tm_mday!=tm_now.tm_mday) { /* date has changed while online */
-		putuserrec(&cfg,useron.number,U_LTODAY,5,"0");
-		useron.ttoday=0;			/* so zero logons today and time on today */
-		useron.textra=0; }			/* and extra time */
-
-	putuserrec(&cfg,useron.number,U_NS_TIME,8,ultoa(last_ns_time,str,16));
-	putuserrec(&cfg,useron.number,U_LASTON,8,ultoa(useron.laston,str,16));
-	putuserrec(&cfg,useron.number,U_TIMEON,5,ultoa(useron.timeon,str,10));
-	putuserrec(&cfg,useron.number,U_TTODAY,5,ultoa(useron.ttoday,str,10));
 	putuserrec(&cfg,useron.number,U_TEXTRA,5,ultoa(useron.textra,str,10));
-	putuserrec(&cfg,useron.number,U_TLAST,5,ultoa(useron.tlast,str,10));
+	putuserrec(&cfg,useron.number,U_NS_TIME,8,ultoa(last_ns_time,str,16));
+
+	logoffuserdat(&cfg, &useron, now, logontime);
 
 	getusrsubs();
 	getusrdirs();
