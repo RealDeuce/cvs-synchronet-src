@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.63 2002/04/22 09:32:28 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.64 2002/04/26 07:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,6 +62,7 @@
 #define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
+#define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
 
 #ifdef JAVASCRIPT
 	#define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
