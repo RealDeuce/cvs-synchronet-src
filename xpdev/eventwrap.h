@@ -2,7 +2,7 @@
 
 /* Event-related cross-platform development wrappers (Win32 API emulation) */
 
-/* $Id: eventwrap.h,v 1.3 2005/01/14 00:42:28 rswindell Exp $ */
+/* $Id: eventwrap.h,v 1.1 2005/01/14 00:28:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 #elif defined(_WIN32)	
 
 	typedef HANDLE xpevent_t;
-	#define WaitForEvent(event,ms)		WaitForSingleObject(event,ms)
+	#define EventWait(event,ms)			WaitForSingleObject(event,ms)
 	#define CloseEvent(event)			CloseHandle(event)
 
 #else

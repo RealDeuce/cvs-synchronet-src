@@ -1,4 +1,3 @@
-#include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
 #include <keys.h>
@@ -6,9 +5,6 @@
 #include "cterm.h"
 #include "term.h"
 #include "uifcinit.h"
-#include "bbslist.h"
-#include "conn.h"
-#include "window.h"
 
 void viewscroll(void)
 {
@@ -18,7 +14,6 @@ void viewscroll(void)
 	char	*scrollback;
 	struct	text_info txtinfo;
 	int	x,y;
-	struct mouse_event mevent;
 
 	x=wherex();
 	y=wherey();
@@ -38,17 +33,8 @@ void viewscroll(void)
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
 		key=getch();
 		switch(key) {
-			case 0xff:
 			case 0:
-				switch(key|getch()<<8) {
-					case CIO_KEY_MOUSE:
-						getmouse(&mevent);
-						switch(mevent.event) {
-							case CIOLIB_BUTTON_1_DRAG_START:
-								mousedrag(scrollback);
-								break;
-						}
-						break;
+				switch(getch()<<8) {
 					case CIO_KEY_UP:
 						top--;
 						break;
@@ -101,12 +87,11 @@ void viewscroll(void)
 	return;
 }
 
-int syncmenu(struct bbslist *bbs)
+int syncmenu(void)
 {
-	char	*opts[4]={
+	char	*opts[3]={
 						 "Scrollback (ALT-S)"
 						,"Disconnect (CTRL-Q)"
-						,"Send Login (ALT-L)"
 						,""};
 	int		opt=0;
 	int		i;
@@ -118,12 +103,6 @@ int syncmenu(struct bbslist *bbs)
 	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
-	if(cio_api.mode!=CIOLIB_MODE_CURSES
-			&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
-			&& cio_api.mode!=CIOLIB_MODE_ANSI) {
-		opts[1]="Disconnect (ALT-H)";
-	}
-
 	for(ret=0;!ret;) {
 		init_uifc();
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
@@ -132,20 +111,11 @@ int syncmenu(struct bbslist *bbs)
 				ret=1;
 				break;
 			case 0:		/* Scrollback */
-				uifcbail();
-				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 				viewscroll();
 				break;
 			case 1:		/* Disconnect */
 				ret=-1;
 				break;
-			case 2:		/* Login */
-				ret=1;
-				conn_send(bbs->user,strlen(bbs->user),0);
-				conn_send("\r",1,0);
-				SLEEP(10);
-				conn_send(bbs->password,strlen(bbs->password),0);
-				conn_send("\r",1,0);
 		}
 	}
 
