@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.27 2002/07/16 08:15:22 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.28 2002/07/27 06:42:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -439,7 +439,6 @@ char* DLLCALL prep_dir(char* base, char* path)
 	for(p=str;*p;p++)
 		if(*p=='\\') 
 			*p='/';
-	strlwr(str);	/* temporary hack */
 #endif
 
 	backslashcolon(str);
