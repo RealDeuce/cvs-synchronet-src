@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.259 2003/05/08 07:29:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.260 2003/05/08 08:06:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2369,7 +2369,7 @@ sbbs_t::~sbbs_t()
 
 	if(cfg.node_num>0)
 		node_inbuf[cfg.node_num-1]=NULL;
-	if(!input_thread_running)
+	if(cfg.node_num>0 && !input_thread_running)
 		RingBufDispose(&inbuf);
 	if(!output_thread_running)
 		RingBufDispose(&outbuf);
