@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.102 2004/10/20 11:23:56 deuce Exp $ */
+/* $Id: uifc32.c,v 1.101 2004/09/21 05:22:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1477,7 +1477,7 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 	gotoxy(left,top);
 	cprintf("%-*.*s",width,width,outstr+*scrnoffset);
 	gotoxy(left+(cursoffset-*scrnoffset),top);
-	_setcursortype(cursor);
+	_setcursortype(_NORMALCURSOR);
 }
 
 /****************************************************************************/
