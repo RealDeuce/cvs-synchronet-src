@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.18 2001/06/15 03:40:30 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.19 2001/06/29 16:25:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@
 
 const char *scfgnulstr="";
 
-void prep_dir(char* base, char* path)
+void DLLEXPORT prep_dir(char* base, char* path)
 {
 #ifdef __unix__
 	char	*p;

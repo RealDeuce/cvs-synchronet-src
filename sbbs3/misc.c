@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.11 2001/06/15 03:39:31 rswindell Exp $ */
+/* $Id: misc.c,v 1.12 2001/06/29 16:25:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,7 @@ int bstrlen(char *str)
 	return(i);
 }
 
-void strip_ctrl(char *str)
+void DLLCALL strip_ctrl(char *str)
 {
 	char tmp[1024];
 	int i,j,k;
@@ -138,7 +138,7 @@ void strip_ctrl(char *str)
 	strcpy(str,tmp);
 }
 
-void strip_exascii(char *str)
+void DLLCALL strip_exascii(char *str)
 {
 	char tmp[1024];
 	int i,j,k;
