@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.96 2004/12/31 23:46:10 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.97 2005/01/01 01:11:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ static const char*	strLogMask="LogMask";
 static const char*	strBindRetryCount="BindRetryCount";
 static const char*	strBindRetryDelay="BindRetryDelay";
 
-#if defined(SBBSNTSVCS)
+#if defined(SBBSNTSVCS) && 0	/* sbbs_ini.obj is shared with sbbs.exe (!) */
 	#define DEFAULT_LOG_MASK		0x3f	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE */
 #else
 	#define DEFAULT_LOG_MASK		0xff	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO|DEBUG */
