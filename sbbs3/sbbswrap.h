@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.28 2001/02/04 16:50:30 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.29 2001/03/10 01:34:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,10 +195,12 @@ extern "C" {
 
 	#define COMPILER_DESC(str) sprintf(str,"MSC %u", _MSC_VER);
 
+/***
 #elif defined(__GNUC__) && defined(__GLIBC__)
 
 	#define COMPILER_DESC(str) sprintf(str,"GCC %u.%02u (GLIBC %u.%u)" \
 		,__GNUC__,__GNUC_MINOR__,__GLIBC__,__GLIBC_MINOR__);
+***/
 
 #elif defined(__GNUC__)
 
