@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: WebCfgDlgUnit.cpp,v 1.2 2005/01/02 01:28:01 rswindell Exp $ */
+/* $Id: WebCfgDlgUnit.cpp,v 1.1 2004/11/08 09:32:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,6 @@ __fastcall TWebCfgDlg::TWebCfgDlg(TComponent* Owner)
 void __fastcall TWebCfgDlg::FormShow(TObject *Sender)
 {
     char str[128];
-    char** p;
 
     if(MainForm->web_startup.interface_addr==0)
         NetworkInterfaceEdit->Text="<ANY>";
@@ -80,13 +79,6 @@ void __fastcall TWebCfgDlg::FormShow(TObject *Sender)
     ErrorSubDirEdit->Text=AnsiString(MainForm->web_startup.error_dir);
     EmbeddedJsExtEdit->Text=AnsiString(MainForm->web_startup.js_ext);
     ServerSideJsExtEdit->Text=AnsiString(MainForm->web_startup.ssjs_ext);
-
-    IndexFileEdit->Text.SetLength(0);
-    for(p=MainForm->web_startup.index_file_name;*p;p++) {
-        if(p!=MainForm->web_startup.index_file_name)
-            IndexFileEdit->Text=IndexFileEdit->Text+",";
-        IndexFileEdit->Text=IndexFileEdit->Text+AnsiString(*p);
-    }
 
     AnswerSoundEdit->Text=AnsiString(MainForm->web_startup.answer_sound);
     HangupSoundEdit->Text=AnsiString(MainForm->web_startup.hangup_sound);
@@ -140,10 +132,6 @@ void __fastcall TWebCfgDlg::OKBtnClick(TObject *Sender)
         ,EmbeddedJsExtEdit->Text.c_str());
     SAFECOPY(MainForm->web_startup.ssjs_ext
         ,ServerSideJsExtEdit->Text.c_str());
-
-    strListFree(&MainForm->web_startup.index_file_name);
-    strListSplitCopy(&MainForm->web_startup.index_file_name,
-        IndexFileEdit->Text.c_str(),",");
 
     SAFECOPY(MainForm->web_startup.answer_sound
         ,AnswerSoundEdit->Text.c_str());
