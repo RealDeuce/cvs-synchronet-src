@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.40 2002/07/09 10:00:22 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.41 2002/07/31 06:23:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,7 +180,7 @@ __published:	// IDE-managed Components
     TMenuItem *BBSEditHostFilter;
     TMenuItem *BBSEditHostFilterMsg;
     TMenuItem *AllowedRelayList;
-    TMenuItem *SaveSettingsMenuOption;
+	TMenuItem *SaveSettingsMenuItem;
     TMenuItem *N6;
     TMenuItem *TelnetEditMenuItem;
     TMenuItem *TelnetEditRLoginList;
@@ -254,6 +254,9 @@ __published:	// IDE-managed Components
 	TMenuItem *Recycle3;
 	TAction *TelnetRecycle;
 	TMenuItem *DnsBlacklists;
+	TMenuItem *ExportSettingsMenuItem;
+	TMenuItem *ImportSettingsMenuItem;
+	TMenuItem *DNSBLExemptions;
     void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -300,6 +303,8 @@ __published:	// IDE-managed Components
     void __fastcall UserEditExecute(TObject *Sender);
     void __fastcall FileOpenMenuItemClick(TObject *Sender);
     void __fastcall SaveSettings(TObject *Sender);
+    void __fastcall ImportSettings(TObject *Sender);
+    void __fastcall ExportSettings(TObject *Sender);
     void __fastcall BBSLoginMenuItemClick(TObject *Sender);
     void __fastcall ViewLogClick(TObject *Sender);
     void __fastcall UserListExecute(TObject *Sender);
