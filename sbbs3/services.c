@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.159 2004/10/16 00:55:59 rswindell Exp $ */
+/* $Id: services.c,v 1.168 2004/11/08 07:57:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@
 #ifndef JAVASCRIPT
 #define JAVASCRIPT	/* required to include JS API headers */
 #endif
+#define SERVICES_INI_BITDESC_TABLE	/* required to defined service_options */
 #include "sbbs.h"
 #include "services.h"
 #include "ident.h"	/* identify() */
@@ -77,7 +78,6 @@
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
-static DWORD	active_clients=0;
 static DWORD	sockets=0;
 static BOOL		terminated=FALSE;
 static time_t	uptime=0;
@@ -108,21 +108,6 @@ typedef struct {
 	BOOL	running;
 	BOOL	terminated;
 } service_t;
-
-static ini_bitdesc_t service_options[] = {
-
-	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
-	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
-	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ BBS_OPT_MUTE					,"MUTE"					},
-	{ SERVICE_OPT_UDP				,"UDP"					},
-	{ SERVICE_OPT_STATIC			,"STATIC"				},
-	{ SERVICE_OPT_STATIC_LOOP		,"LOOP"					},
-	{ SERVICE_OPT_NATIVE			,"NATIVE"				},
-	{ SERVICE_OPT_FULL_ACCEPT		,"FULL_ACCEPT"			},
-	/* terminator */				
-	{ -1							,NULL					}
-};
 
 typedef struct {
 	SOCKET			socket;
@@ -187,10 +172,21 @@ static BOOL winsock_startup(void)
 
 #endif
 
+static ulong active_clients()
+{
+	ulong i;
+	ulong total_clients=0;
+
+	for(i=0;i<services;i++) 
+		total_clients+=service[i].clients;
+
+	return(total_clients);
+}
+
 static void update_clients(void)
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,active_clients);
+		startup->clients(startup->cbdata,active_clients());
 }
 
 static void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -617,23 +613,7 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = BOOLEAN_TO_JSVAL(client->service->terminated);
 			break;
 		case SERVER_PROP_CLIENTS:
-			*vp = INT_TO_JSVAL(active_clients);
-			break;
-	}
-
-	return(JS_TRUE);
-}
-
-static JSBool js_server_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-    jsint       tiny;
-
-    tiny = JSVAL_TO_INT(id);
-
-	switch(tiny) {
-		case SERVER_PROP_CLIENTS:
-			JS_ValueToInt32(cx,*vp,(int32*)&active_clients);
-			update_clients();
+			*vp = INT_TO_JSVAL(active_clients());
 			break;
 	}
 
@@ -646,7 +626,7 @@ static struct JSPropertySpec js_server_properties[] = {
 /*		 name				,tinyid					,flags,				getter,	setter	*/
 
 	{	"terminated"		,SERVER_PROP_TERMINATED	,SERVER_PROP_FLAGS,	NULL,NULL},
-	{	"clients"			,SERVER_PROP_CLIENTS	,JSPROP_ENUMERATE,	NULL,NULL},
+	{	"clients"			,SERVER_PROP_CLIENTS	,SERVER_PROP_FLAGS,	NULL,NULL},
 	{0}
 };
 
@@ -656,7 +636,7 @@ static JSClass js_server_class = {
         ,JS_PropertyStub	/* addProperty	*/
 		,JS_PropertyStub	/* delProperty	*/
 		,js_server_get		/* getProperty	*/
-		,js_server_set		/* setProperty	*/
+		,JS_PropertyStub	/* setProperty	*/
 		,JS_EnumerateStub	/* enumerate	*/
 		,JS_ResolveStub		/* resolve		*/
 		,JS_ConvertStub		/* convert		*/
@@ -676,11 +656,13 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 
-	active_clients++, update_clients();
-
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
+	service_client->service->clients++;
+	update_clients();
+	service_client->service->served++;
+	served++;
 	memset(&client,0,sizeof(client));
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
@@ -703,8 +685,10 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
 	client_on(sock, &client, /* update? */ FALSE);
-#if 0
-	lprintf(LOG_DEBUG,"client_add(%04u,%s,%s)",sock,client.user,client.host);
+#ifdef _DEBUG
+	lprintf(LOG_DEBUG,"%04d %s client_add(%04u,%s,%s)"
+		,service_client->service->socket,service_client->service->protocol
+		,sock,client.user,client.host);
 #endif
 	return(JS_TRUE);
 }
@@ -742,8 +726,10 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
 	client_on(sock, &client, /* update? */ TRUE);
-#if 0
-	lprintf(LOG_DEBUG,"client_update(%04u,%s,%s)",sock,client.user,client.host);
+#ifdef _DEBUG
+	lprintf(LOG_DEBUG,"%04d %s client_update(%04u,%s,%s)"
+		,service_client->service->socket,service_client->service->protocol
+		,sock,client.user,client.host);
 #endif
 	return(JS_TRUE);
 }
@@ -753,15 +739,29 @@ static JSBool
 js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	SOCKET	sock=INVALID_SOCKET;
+	service_client_t* service_client;
 
-	if(active_clients)
-		active_clients--, update_clients();
+	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
 
 	sock=js_socket(cx,argv[0]);
 
-	client_off(sock);
-#if 0	
-	lprintf(LOG_DEBUG,"client_remove(%04u)",sock);
+	if(sock!=INVALID_SOCKET) {
+
+		client_off(sock);
+
+		if(service_client->service->clients==0)
+			lprintf(LOG_WARNING,"%04d %s !client_remove() called with 0 service clients"
+				,service_client->service->socket, service_client->service->protocol);
+		else {
+			service_client->service->clients--;
+			update_clients();
+		}
+	}
+
+#ifdef _DEBUG
+	lprintf(LOG_DEBUG,"%04d %s client_remove(%04u)"
+		,service_client->service->socket, service_client->service->protocol, sock);
 #endif
 	return(JS_TRUE);
 }
@@ -1053,8 +1053,6 @@ static void js_service_thread(void* arg)
 	client.user="<unknown>";
 	service_client.client=&client;
 
-	active_clients++, update_clients();
-
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
 
@@ -1064,13 +1062,13 @@ static void js_service_thread(void* arg)
 			,socket,service->protocol);
 		client_off(socket);
 		close_socket(socket);
-		if(active_clients)
-			active_clients--, update_clients();
 		if(service->clients)
 			service->clients--;
 		thread_down();
 		return;
 	}
+
+	update_clients();
 
 	/* RUN SCRIPT */
 	SAFECOPY(fname,service->cmd);
@@ -1120,8 +1118,7 @@ static void js_service_thread(void* arg)
 
 	if(service->clients)
 		service->clients--;
-	if(active_clients)
-		active_clients--, update_clients();
+	update_clients();
 
 #ifdef _WIN32
 	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE)
@@ -1131,7 +1128,7 @@ static void js_service_thread(void* arg)
 
 	thread_down();
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread terminated (%u clients remain, %d total, %lu served)"
-		, socket, service->protocol, service->clients, active_clients, service->served);
+		, socket, service->protocol, service->clients, active_clients(), service->served);
 
 	client_off(socket);
 	close_socket(socket);
@@ -1216,6 +1213,12 @@ static void js_static_service_thread(void* arg)
 		JS_DestroyContext(js_cx);	/* Free Context */
 
 	JS_DestroyRuntime(js_runtime);
+
+	if(service->clients) {
+		lprintf(LOG_WARNING,"%04d %s !service terminating with %u active clients"
+			,socket, service->protocol, service->clients);
+		service->clients=0;
+	}
 
 	thread_down();
 	lprintf(LOG_DEBUG,"%04d %s static JavaScript service thread terminated (%lu clients served)"
@@ -1382,7 +1385,7 @@ static void native_service_thread(void* arg)
 	socket_dup = dup(socket);
 #endif
 
-	active_clients++, update_clients();
+	update_clients();
 
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
@@ -1398,8 +1401,7 @@ static void native_service_thread(void* arg)
 
 	if(service->clients)
 		service->clients--;
-	if(active_clients)
-		active_clients--, update_clients();
+	update_clients();
 
 #ifdef _WIN32
 	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE)
@@ -1409,7 +1411,7 @@ static void native_service_thread(void* arg)
 
 	thread_down();
 	lprintf(LOG_DEBUG,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
-		,socket, service->protocol, service->clients, active_clients, service->served);
+		,socket, service->protocol, service->clients, active_clients(), service->served);
 
 	client_off(socket);
 	close_socket(socket);
@@ -1429,83 +1431,24 @@ void DLLCALL services_terminate(void)
 
 #define NEXT_FIELD(p)	FIND_WHITESPACE(p); SKIP_WHITESPACE(p)
 
-static service_t* read_services_cfg(service_t* service, char* services_cfg, DWORD* services)
-{
-	char*	p;
-	char*	tp;
-	char	line[1024];
-	FILE*	fp;
-	service_t*	np;
-	service_t*	serv;
-	
-	if((fp=fopen(services_cfg,"r"))==NULL)
-		return(service);
-
-	lprintf(LOG_INFO,"Reading %s",services_cfg);
-	for((*services)=0;!feof(fp) && (*services)<MAX_SERVICES;) {
-		if(!fgets(line,sizeof(line),fp))
-			break;
-		p=line;
-		SKIP_WHITESPACE(p);
-		if(*p==0 || *p==';')	/* ignore blank lines or comments */
-			continue;
-		
-		if((np=(service_t*)realloc(service,sizeof(service_t)*((*services)+1)))==NULL) {
-			lprintf(LOG_CRIT,"!MALLOC FAILURE");
-			return(service);
-		}
-		service=np;
-		serv=&service[*services];
-		memset(serv,0,sizeof(service_t));
-		serv->socket=INVALID_SOCKET;
-
-		/* These are not configurable per service when using services.cfg */
-		serv->listen_backlog=DEFAULT_LISTEN_BACKLOG;
-		serv->interface_addr=startup->interface_addr;
-
-		/* JavaScript operating parameters */
-		serv->js_max_bytes=startup->js_max_bytes;
-		serv->js_cx_stack=startup->js_cx_stack;
-		serv->js_branch_limit=startup->js_branch_limit;
-		serv->js_gc_interval=startup->js_gc_interval;
-		serv->js_yield_interval=startup->js_yield_interval;
-
-		tp=p; 
-		FIND_WHITESPACE(tp);
-		*tp=0;
-		SAFECOPY(serv->protocol,p);
-		p=tp+1;
-		SKIP_WHITESPACE(p);
-		serv->port=atoi(p);
-		NEXT_FIELD(p);
-		serv->max_clients=strtol(p,NULL,10);
-		NEXT_FIELD(p);
-		serv->options=strtol(p,NULL,16);
-		NEXT_FIELD(p);
-
-		SAFECOPY(serv->cmd,p);
-		truncsp(serv->cmd);
-
-		(*services)++;
-	}
-	fclose(fp);
-
-	return(service);
-}
-
-static service_t* read_services_ini(service_t* service, char* services_ini, DWORD* services)
+static service_t* read_services_ini(service_t* service, DWORD* services)
 {
 	uint		i,j;
 	FILE*		fp;
 	char		cmd[INI_MAX_VALUE_LEN];
 	char		host[INI_MAX_VALUE_LEN];
 	char		prot[INI_MAX_VALUE_LEN];
+	char		services_ini[MAX_PATH+1];
 	char**		sec_list;
 	service_t*	np;
 	service_t	serv;
 
-	if((fp=fopen(services_ini,"r"))==NULL)
-		return(service);
+	iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
+
+	if((fp=fopen(services_ini,"r"))==NULL) {
+		lprintf(LOG_ERR,"!ERROR %d opening %s", errno, services_ini);
+		return(NULL);
+	}
 
 	lprintf(LOG_INFO,"Reading %s",services_ini);
 	sec_list = iniReadSectionList(fp,"");
@@ -1561,9 +1504,11 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 	return(service);
 }
 
-
 static void cleanup(int code)
 {
+	FREE_AND_NULL(service);
+	services=0;
+
 	free_cfg(&scfg);
 
 	semfile_list_free(&recycle_semfiles);
@@ -1591,7 +1536,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.159 $", "%*s %s", revision);
+	sscanf("$Revision: 1.168 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1625,7 +1570,6 @@ void DLLCALL services_thread(void* arg)
 	int				i;
 	int				result;
 	int				optval;
-	ulong			total_clients;
 	ulong			total_running;
 	time_t			t;
 	time_t			initialized=0;
@@ -1665,6 +1609,8 @@ void DLLCALL services_thread(void* arg)
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
+	startup->shutdown_now=FALSE;
+
 	do {
 
 		thread_up(FALSE /* setuid */);
@@ -1736,23 +1682,12 @@ void DLLCALL services_thread(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		active_clients=0, update_clients();
-
-		if(startup->cfg_file[0]==0)			
-			sprintf(startup->cfg_file,"%sservices.cfg",scfg.ctrl_dir);
-		service=read_services_cfg(service, startup->cfg_file, &services);
-
-		if(startup->ini_file[0]==0)			
-			sprintf(startup->ini_file,"%sservices.ini",scfg.ctrl_dir);
-		service=read_services_ini(service, startup->ini_file, &services);
-
-		if(service==NULL) {
-			lprintf(LOG_ERR,"!Failure reading configuration file (%s or %s)"
-				,startup->cfg_file,startup->ini_file);
+		if((service=read_services_ini(service, &services))==NULL) {
 			cleanup(1);
 			return;
 		}
 
+		update_clients();
 
 		/* Open and Bind Listening Sockets */
 		total_sockets=0;
@@ -1797,12 +1732,11 @@ void DLLCALL services_thread(void* arg)
 
 			if(startup->seteuid!=NULL)
 				startup->seteuid(FALSE);
-			result=bind(socket, (struct sockaddr *) &addr, sizeof(addr));
+			result=retry_bind(socket, (struct sockaddr *) &addr, sizeof(addr)
+				,startup->bind_retry_count, startup->bind_retry_delay, service[i].protocol, lprintf);
 			if(startup->seteuid!=NULL)
 				startup->seteuid(TRUE);
 			if(result!=0) {
-				lprintf(LOG_ERR,"%04d !ERROR %d binding %s socket to port %u"
-					,socket, ERROR_VALUE, service[i].protocol, service[i].port);
 				lprintf(LOG_ERR,"%04d %s",socket,BIND_FAILURE_HELP);
 				close_socket(socket);
 				continue;
@@ -1867,27 +1801,30 @@ void DLLCALL services_thread(void* arg)
 		/* Main Server Loop */
 		while(!terminated) {
 
-			total_clients=0;
-			for(i=0;i<(int)services;i++) 
-				total_clients+=service[i].clients;
-
-			if(total_clients==0 && !(startup->options&BBS_OPT_NO_RECYCLE)) {
-				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
+			if(active_clients()==0) {
+				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
+					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
+						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
+						break;
+					}
+#if 0	/* unused */
+					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+						startup->recycle_now=TRUE;
+#endif
+					if(startup->recycle_now==TRUE) {
+						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
+						startup->recycle_now=FALSE;
+						break;
+					}
+				}
+				if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
+						&& lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p))
+					|| (startup->shutdown_now==TRUE
+						&& lprintf(LOG_INFO,"0000 Shutdown semaphore signaled"))) {
+					startup->shutdown_now=FALSE;
+					terminated=TRUE;
 					break;
 				}
-				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-					startup->recycle_now=TRUE;
-				if(startup->recycle_now==TRUE) {
-					lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
-					startup->recycle_now=FALSE;
-					break;
-				}
-			}
-			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
-				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
-				terminated=TRUE;
-				break;
 			}
 
 			/* Setup select() parms */
@@ -1921,7 +1858,7 @@ void DLLCALL services_thread(void* arg)
             		lprintf(LOG_NOTICE,"0000 Services sockets closed");
 				else
 					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
-				break;
+				continue;
 			}
 
 			/* Determine who services this socket */
@@ -2119,17 +2056,9 @@ void DLLCALL services_thread(void* arg)
 		}
 
 		/* Wait for Dynamic Service Threads to terminate */
-		total_clients=0;
-		for(i=0;i<(int)services;i++) 
-			total_clients+=service[i].clients;
-		if(total_clients) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d clients to disconnect",total_clients);
-			while(1) {
-				total_clients=0;
-				for(i=0;i<(int)services;i++) 
-					total_clients+=service[i].clients;
-				if(!total_clients)
-					break;
+		if(active_clients()) {
+			lprintf(LOG_DEBUG,"0000 Waiting for %d clients to disconnect",active_clients());
+			while(active_clients()) {
 				mswait(500);
 			}
 			lprintf(LOG_DEBUG,"0000 Done waiting");
@@ -2152,15 +2081,12 @@ void DLLCALL services_thread(void* arg)
 			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
-		/* Free Service Data */
-		services=0;
-		free(service);
-		service=NULL;
-
 		cleanup(0);
 		if(!terminated) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
+			if(startup->recycle!=NULL)
+				startup->recycle(startup->cbdata);
 		}
 
 	} while(!terminated);

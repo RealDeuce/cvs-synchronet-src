@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.233 2004/10/17 07:17:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.234 2004/10/27 21:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -452,7 +452,6 @@ public:
 	void	show_msg(smbmsg_t* msg, long mode);
 	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
 	void	quotemsg(smbmsg_t* msg, int tails);
-	void	putmsg_fp(FILE *fp, long length, long mode);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum,char *dest, char *title, long mode
 				,uint subnum);
