@@ -11,7 +11,7 @@
 # Optional build targets: clean
 #########################################################################
 
-# $Id: GNUmakefile,v 1.39 2004/04/07 23:52:27 rswindell Exp $
+# $Id: GNUmakefile,v 1.40 2004/04/17 19:18:14 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 #USE_FLTK =	1	# Use Windowed version
@@ -29,6 +29,11 @@ CFLAGS		=	-DSCFG
 include $(XPDEV)/Common.gmake
 include $(UIFC_SRC)/Common.gmake
 include $(SBBS_SRC)/Common.gmake
+
+ifeq ($(os),netbsd)
+ CFLAGS		+=	$(PTHREAD_CFLAGS)
+ LDFLAGS	+=	$(PTHREAD_LDFLAGS)
+endif
 
 SCFG	:=	$(EXEODIR)$(SLASH)scfg$(EXEFILE)
 
