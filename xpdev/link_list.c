@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.26 2004/11/22 20:41:15 rswindell Exp $ */
+/* $Id: link_list.c,v 1.17 2004/09/16 05:42:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,10 +40,11 @@
 #include "link_list.h"
 
 #if defined(LINK_LIST_THREADSAFE)
-	#define MUTEX_INIT(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_init((pthread_mutex_t*)&list->mutex,NULL);	}
-	#define MUTEX_DESTROY(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_destroy((pthread_mutex_t*)&list->mutex);	}
-	#define MUTEX_LOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_lock((pthread_mutex_t*)&list->mutex);		}
-	#define MUTEX_UNLOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_unlock((pthread_mutex_t*)&list->mutex);		}
+	#define MUTEX_INIT(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_init(&list->mutex,NULL);	}
+	#define MUTEX_DESTROY(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_destroy(&list->mutex);		}
+	#define MUTEX_LOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_lock(&list->mutex);			}
+	#define MUTEX_UNLOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_unlock(&list->mutex);		}
+
 #else
 	#define MUTEX_INIT(list)
 	#define MUTEX_DESTROY(list)
@@ -64,14 +65,6 @@ link_list_t* listInit(link_list_t* list, long flags)
 	list->flags = flags;
 
 	MUTEX_INIT(list);
-
-#if defined(LINK_LIST_THREADSAFE)
-	if(list->flags&LINK_LIST_SEMAPHORE) 
-		sem_init(&list->sem,0,0);
-#endif
-
-	if(flags&LINK_LIST_ATTACH)
-		listAttach(list);
 
 	return(list);
 }
@@ -125,101 +118,11 @@ BOOL listFree(link_list_t* list)
 
 	MUTEX_DESTROY(list);
 
-#if defined(LINK_LIST_THREADSAFE)
-	if(list->flags&LINK_LIST_SEMAPHORE) {
-		sem_destroy(&list->sem);
-		list->sem=NULL;
-	}
-#endif
-
 	if(list->flags&LINK_LIST_MALLOC)
 		free(list);
 
 	return(TRUE);
 }
-
-long listAttach(link_list_t* list)
-{
-	if(list==NULL)
-		return(-1);
-
-	MUTEX_LOCK(list);
-	list->refs++;
-	MUTEX_UNLOCK(list);
-
-	return(list->refs);
-}
-
-long listDettach(link_list_t* list)
-{
-	int refs;
-
-	if(list==NULL || list->refs<1)
-		return(-1);
-
-	MUTEX_LOCK(list);
-	if((refs=--list->refs)==0)
-		listFree(list);
-	else
-		MUTEX_UNLOCK(list);
-
-	return(refs);
-}
-
-void* listSetPrivateData(link_list_t* list, void* p)
-{
-	void* old;
-
-	if(list==NULL)
-		return(NULL);
-
-	old=list->private_data;
-	list->private_data=p;
-	return(old);
-}
-
-void* listGetPrivateData(link_list_t* list)
-{
-	if(list==NULL)
-		return(NULL);
-	return(list->private_data);
-}
-
-#if defined(LINK_LIST_THREADSAFE)
-
-BOOL listSemPost(link_list_t* list)
-{
-	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
-		return(FALSE);
-
-	return(sem_post(&list->sem)==0);
-}
-
-BOOL listSemWait(link_list_t* list)
-{
-	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
-		return(FALSE);
-
-	return(sem_wait(&list->sem)==0);
-}
-
-BOOL listSemTryWait(link_list_t* list)
-{
-	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
-		return(FALSE);
-
-	return(sem_trywait(&list->sem)==0);
-}
-
-BOOL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
-{
-	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
-		return(FALSE);
-
-	return(sem_trywait_block(&list->sem,timeout));
-}
-
-#endif
 
 #if defined(__BORLANDC__)
 	#pragma argsused
@@ -258,7 +161,7 @@ long listCountNodes(const link_list_t* list)
 	return(count);
 }
 
-list_node_t* listFindNode(const link_list_t* list, const void* data, size_t length)
+list_node_t* listFindNode(const link_list_t* list, void* data, size_t length)
 {
 	list_node_t* node;
 
@@ -267,13 +170,9 @@ list_node_t* listFindNode(const link_list_t* list, const void* data, size_t leng
 
 	MUTEX_LOCK(list);
 
-	for(node=list->first; node!=NULL; node=node->next) {
-		if(length==0) {
-			if(node->data==data)
-				break;
-		} else if(node->data!=NULL && memcmp(node->data,data,length)==0)
+	for(node=list->first; node!=NULL; node=node->next)
+		if(node->data!=NULL && memcmp(node->data,data,length)==0)
 			break;
-	}
 
 	MUTEX_UNLOCK(list);
 
@@ -315,14 +214,14 @@ str_list_t listSubStringList(const list_node_t* node, long max)
 	if((str_list=strListInit())==NULL)
 		return(NULL);
 
-	MUTEX_LOCK(node->list);
+	MUTEX_LOCK(list);
 
 	for(count=0; count<max && node!=NULL; node=node->next) {
 		if(node->data!=NULL)
 			strListAppend(&str_list, (char*)node->data, count++);
 	}
 
-	MUTEX_UNLOCK(node->list);
+	MUTEX_UNLOCK(list);
 
 	return(str_list);
 }
@@ -474,11 +373,6 @@ static list_node_t* list_add_node(link_list_t* list, list_node_t* node, list_nod
 
 	MUTEX_UNLOCK(list);
 
-#if defined(LINK_LIST_THREADSAFE)
-	if(list->flags&LINK_LIST_SEMAPHORE)
-		listSemPost(list);
-#endif
-
 	return(node);
 }
 
@@ -619,7 +513,7 @@ link_list_t* listExtract(link_list_t* dest_list, const list_node_t* node, long m
 	return(list);
 }
 
-void* listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_data)
+void* listRemoveNode(link_list_t* list, list_node_t* node)
 {
 	void*	data;
 
@@ -645,7 +539,8 @@ void* listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_data)
 	if(list->last==node)
 		list->last = node->prev;
 
-	if(free_data)
+	if((list->flags&LINK_LIST_ALWAYS_FREE || node->flags&LINK_LIST_MALLOC)
+		&& !(list->flags&LINK_LIST_NEVER_FREE))
 		listFreeNodeData(node);
 
 	data = node->data;
@@ -660,7 +555,7 @@ void* listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_data)
 	return(data);
 }
 
-long listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOOL free_data)
+long listRemoveNodes(link_list_t* list, list_node_t* node, long max)
 {
 	long count;
 
@@ -673,7 +568,7 @@ long listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOOL free_d
 		node=list->first;
 
 	for(count=0; node!=NULL && count<max; node=node->next, count++)
-		if(listRemoveNode(list, node, free_data)==NULL)
+		if(listRemoveNode(list, node)==NULL)
 			break;
 
 	MUTEX_UNLOCK(list);
@@ -726,13 +621,13 @@ int main(int arg, char** argv)
 	char	str[32];
 	link_list_t list;
 
-	listInit(&list,0);
+	listInit(&list,LINK_LIST_NEVER_FREE);
 	for(i=0; i<100; i++) {
 		sprintf(str,"%u",i);
 		listPushNodeString(&list,str);
 	}
 
-	while((p=listShiftNode(&list))!=NULL)
+	while((p=listRemoveNode(&list,NULL))!=NULL)
 		printf("%d %s\n",listCountNodes(&list),p), free(p);
 
 	/* Yes, this test code leaks heap memory. :-) */

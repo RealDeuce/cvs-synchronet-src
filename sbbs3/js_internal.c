@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.20 2004/12/02 09:03:59 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.17 2003/11/26 11:50:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,9 +71,7 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,(char *)JS_GetImplementationVersion()));
 			break;
 		case PROP_TERMINATED:
-			if(branch->terminated==NULL)
-				*vp=JSVAL_FALSE;
-			else
+			if(branch->terminated!=NULL)
 				*vp=BOOLEAN_TO_JSVAL(*branch->terminated);
 			break;
 		case PROP_AUTO_TERMINATE:
@@ -195,18 +193,16 @@ static char* prop_desc[] = {
 };
 #endif
 
-DLLEXPORT JSBool DLLCALL
-js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
+#ifdef EVAL_BRANCH_CALLBACK
+static JSBool
+js_BranchCallback(JSContext *cx, JSScript *script)
 {
-	branch->counter++;
+	js_branch_t*	branch;
 
-	/* Terminated? */
-	if(branch->auto_terminate &&
-		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportError(cx,"Terminated");
-		branch->counter=0;
+	if((branch=(js_branch_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
-	}
+
+	branch->counter++;
 
 	/* Infinite loop? */
 	if(branch->limit && branch->counter > branch->limit) {
@@ -214,17 +210,19 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 		branch->counter=0;
 		return(JS_FALSE);
 	}
-
 	/* Give up timeslices every once in a while */
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
 		YIELD();
 
-	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
 		JS_MaybeGC(cx), branch->gc_attempts++;
 
+	if(branch->terminated!=NULL && *branch->terminated)
+		return(JS_FALSE);
+
     return(JS_TRUE);
 }
+#endif
 
 /* Execute a string in its own context (away from Synchronet objects) */
 static JSBool

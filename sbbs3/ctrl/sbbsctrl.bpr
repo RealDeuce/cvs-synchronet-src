@@ -11,8 +11,7 @@
       emulvt.obj UserListFormUnit.obj UserMsgFormUnit.obj PropertiesDlgUnit.obj 
       EventsFormUnit.obj ConfigWizardUnit.obj ServicesFormUnit.obj 
       TelnetCfgDlgUnit.obj MailCfgDlgUnit.obj FtpCfgDlgUnit.obj 
-      ServicesCfgDlgUnit.obj ..\sbbs_ini.obj PreviewFormUnit.obj WebFormUnit.obj 
-      WebCfgDlgUnit.obj"/>
+      ServicesCfgDlgUnit.obj ..\sbbs_ini.obj PreviewFormUnit.obj WebFormUnit.obj"/>
     <RESFILES value="sbbsctrl.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -24,7 +23,7 @@
       UserListFormUnit.dfm UserMsgFormUnit.dfm PropertiesDlgUnit.dfm 
       EventsFormUnit.dfm ConfigWizardUnit.dfm ServicesFormUnit.dfm 
       TelnetCfgDlgUnit.dfm MailCfgDlgUnit.dfm FtpCfgDlgUnit.dfm 
-      ServicesCfgDlgUnit.dfm PreviewFormUnit.dfm WebFormUnit.dfm WebCfgDlgUnit.dfm"/>
+      ServicesCfgDlgUnit.dfm PreviewFormUnit.dfm WebFormUnit.dfm"/>
     <LIBFILES value="sbbs.lib mailsrvr.lib ftpsrvr.lib services.lib 
       ..\..\xpdev\bcc.win32.lib.debug\xpdev_mt.lib websrvr.lib"/>
     <LIBRARIES value="bcb2kaxserver.lib indy.lib dbxcds.lib dclocx.lib soaprtl.lib bcbie.lib 
@@ -111,7 +110,6 @@
       <FILE FILENAME="WebFormUnit.cpp" FORMNAME="WebForm" UNITNAME="WebFormUnit" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\xpdev\bcc.win32.lib.debug\xpdev_mt.lib" FORMNAME="" UNITNAME="xpdev_mt.lib" CONTAINERID="LibTool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="websrvr.lib" FORMNAME="" UNITNAME="websrvr.lib" CONTAINERID="LibTool" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="WebCfgDlgUnit.cpp" FORMNAME="WebCfgDlg" UNITNAME="WebCfgDlgUnit" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
   </FILELIST>
   <BUILDTOOLS>
   </BUILDTOOLS>
