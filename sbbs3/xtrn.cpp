@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.90 2002/08/06 09:33:08 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.91 2002/10/29 09:19:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,9 +44,11 @@
 #ifdef __unix__
 	#include <sys/wait.h>	// WEXITSTATUS
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
-#else
+#elif defined(__OpenBSD__)
+	#include <util.h>
+#elif defined(__linux__)
 	#include <pty.h>
 #endif
 	#include <termios.h>
