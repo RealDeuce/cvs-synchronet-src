@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.80 2003/01/31 02:16:50 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.81 2003/02/05 21:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1784,6 +1784,31 @@ BOOL unpack_bundle(void)
 	static int		gi;
 
 	for(i=0;i<7;i++) {
+#if defined(__unix__)	/* support upper or lower case */
+		switch(i) {
+			case 0:
+				p="[Ss][Uu]";
+				break;
+			case 1:
+				p="[Mm][Oo]";
+				break;
+			case 2:
+				p="[Tt][Uu]";
+				break;
+			case 3:
+				p="[Ww][Ee]";
+				break;
+			case 4:
+				p="[Tt][Hh]";
+				break;
+			case 5:
+				p="[Ff][Rr]";
+				break;
+			default:
+				p="[Ss][Aa]";
+				break;
+		}
+#else
 		switch(i) {
 			case 0:
 				p="su";
@@ -1807,6 +1832,7 @@ BOOL unpack_bundle(void)
 				p="sa";
 				break;
 		}
+#endif
 		sprintf(str,"%s*.%s?",secure ? cfg.secure : cfg.inbound,p);
 		if(gi>=g.gl_pathc) {
 			gi=0;
@@ -3969,7 +3995,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.80 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.81 $" + 11, "%s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
