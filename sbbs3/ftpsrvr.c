@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.92 2001/07/25 03:04:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.93 2001/08/03 21:10:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2136,7 +2136,7 @@ static void ctrl_thread(void* arg)
 	
 	lprintf("%04d CTRL thread started", sock);
 
-	free(arg);
+	free(arg);	/* unexplicable assertion here on July 26, 2001 */
 
 #ifdef _WIN32
 	if(startup->answer_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
@@ -4045,7 +4045,7 @@ static void cleanup(int code)
 	thread_down();
 }
 
-char* DLLCALL ftp_ver(void)
+const char* DLLCALL ftp_ver(void)
 {
 	static char ver[256];
 	char compiler[32];

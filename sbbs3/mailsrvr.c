@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.58 2001/07/12 23:53:23 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.59 2001/08/03 21:10:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2271,7 +2271,7 @@ static void cleanup(int code)
 	thread_down();
 }
 
-char* DLLCALL mail_ver(void)
+const char* DLLCALL mail_ver(void)
 {
 	static char ver[256];
 	char compiler[32];

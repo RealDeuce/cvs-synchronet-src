@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.8 2001/07/18 03:34:04 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.9 2001/08/03 21:10:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,9 +134,9 @@ typedef struct {
 extern "C" {
 #endif
 /* arg is pointer to static mail_startup_t* */
-DLLEXPORT void	DLLCALL mail_server(void* arg);
-DLLEXPORT void	DLLCALL mail_terminate(void);
-DLLEXPORT char*	DLLCALL mail_ver(void);
+DLLEXPORT void			DLLCALL mail_server(void* arg);
+DLLEXPORT void			DLLCALL mail_terminate(void);
+DLLEXPORT const	char*	DLLCALL mail_ver(void);
 #ifdef __cplusplus
 }
 #endif

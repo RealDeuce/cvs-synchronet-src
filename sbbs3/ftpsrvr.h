@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.12 2001/07/25 02:46:04 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.13 2001/08/03 21:10:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,9 +131,9 @@ typedef struct {
 extern "C" {
 #endif
 /* arg is pointer to static ftp_startup_t */
-DLLEXPORT void	DLLCALL ftp_server(void* arg);
-DLLEXPORT void	DLLCALL ftp_terminate(void);
-DLLEXPORT char*	DLLCALL ftp_ver(void);
+DLLEXPORT void			DLLCALL ftp_server(void* arg);
+DLLEXPORT void			DLLCALL ftp_terminate(void);
+DLLEXPORT const char*	DLLCALL ftp_ver(void);
 #ifdef __cplusplus
 }
 #endif
