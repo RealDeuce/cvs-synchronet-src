@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.7 2003/05/11 23:57:22 deuce Exp $
+# $Id: GNUmakefile,v 1.8 2003/05/12 06:12:01 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -22,6 +22,7 @@ endif
 
 ifdef DEBUG
  BUILD	=	debug
+ CFLAGS	+=	-g
 else
  BUILD	=	release
 endif
