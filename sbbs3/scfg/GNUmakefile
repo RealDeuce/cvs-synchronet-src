@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.34 2003/09/05 20:44:57 rswindell Exp $
+# $Id: GNUmakefile,v 1.35 2003/11/02 23:13:55 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -89,6 +89,10 @@ include objects.mk		# defines $(OBJS)
 
 ifeq ($(os),netbsd)
  CFLAGS	+=	-D__unix__ -I/usr/pkg/include
+endif
+
+ifeq ($(os),darwin)
+ CFLAGS +=  -D__unix__ -D__DARWIN__
 endif
 
 ifdef USE_DIALOG		
