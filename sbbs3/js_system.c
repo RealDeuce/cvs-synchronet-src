@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.77 2003/10/01 23:56:41 deuce Exp $ */
+/* $Id: js_system.c,v 1.78 2003/10/09 08:55:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,7 +336,8 @@ static struct JSPropertySpec js_system_properties[] = {
 	{	"settings",	SYS_PROP_MISC,		JSPROP_ENUMERATE,	NULL,	NULL },
 	{	"psname",	SYS_PROP_PSNAME,	SYSOBJ_FLAGS,		NULL,	NULL },
 	{	"psnum",	SYS_PROP_PSNUM,		SYSOBJ_FLAGS,		NULL,	NULL },
-	{	"inetaddr",	SYS_PROP_INETADDR,	SYSOBJ_FLAGS,		NULL,	NULL },
+	{	"inetaddr",	SYS_PROP_INETADDR,	JSPROP_READONLY,	NULL,	NULL },	/* alias */
+	{	"inet_addr",SYS_PROP_INETADDR,	SYSOBJ_FLAGS,		NULL,	NULL },
 	{	"location",	SYS_PROP_LOCATION,	SYSOBJ_FLAGS,		NULL,	NULL },
 	{	"timezone",	SYS_PROP_TIMEZONE,	SYSOBJ_FLAGS,		NULL,	NULL },
 	{	"pwdays",	SYS_PROP_PWDAYS,	SYSOBJ_FLAGS,		NULL,	NULL },
