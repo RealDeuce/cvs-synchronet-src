@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.29 2001/07/03 02:22:47 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.30 2001/07/08 03:48:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -258,6 +258,7 @@
 #define SUB_LZH 	(1L<<25)		/* Use LZH compression for msgs */
 #define SUB_SSDEF	(1L<<26)		/* Default ON for Scan for Your msgs */
 #define SUB_HYPER	(1L<<27)		/* Hyper allocation */
+#define SUB_HDRMOD	(1L<<31)		/* Modified sub-board header info (SCFG) */
 
                                     /* Bit values for dir[x].misc */
 #define DIR_FCHK	(1L<<0) 		/* Check for file existance */
