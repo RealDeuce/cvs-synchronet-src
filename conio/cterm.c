@@ -1,38 +1,4 @@
-/* $Id: */
-
-/****************************************************************************
- * @format.tab-size 4		(Plain Text/Source Code File Header)			*
- * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
- *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
- *																			*
- * This library is free software; you can redistribute it and/or			*
- * modify it under the terms of the GNU Lesser General Public License		*
- * as published by the Free Software Foundation; either version 2			*
- * of the License, or (at your option) any later version.					*
- * See the GNU Lesser General Public License for more details: lgpl.txt or	*
- * http://www.fsf.org/copyleft/lesser.html									*
- *																			*
- * Anonymous FTP access to the most recent released source is available at	*
- * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
- *																			*
- * Anonymous CVS access to the development source and modification history	*
- * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
- *     (just hit return, no password is necessary)							*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
- *																			*
- * For Synchronet coding style and modification guidelines, see				*
- * http://www.synchro.net/source.html										*
- *																			*
- * You are encouraged to submit any modifications (preferably in Unix diff	*
- * format) via e-mail to mods@synchro.net									*
- *																			*
- * Note: If this box doesn't appear square, then you need to fix your tabs.	*
- ****************************************************************************/
-
 #include <stdlib.h>
-#include <string.h>
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -45,7 +11,7 @@
 struct cterminal cterm;
 
 /* const int tabs[11]={1,8,16,24,32,40,48,56,64,72,80}; */
-const int cterm_tabs[11]={9,17,25,33,41,49,57,65,73,80,80.1};
+const int tabs[11]={9,17,25,33,41,49,57,65,73,80,80.1};
 
 void play_music(void)
 {
@@ -333,8 +299,8 @@ void do_ansi(char *retbuf, int retsize)
 					break;
 				case 'Z':
 					for(j=10;j>=0;j--) {
-						if(cterm_tabs[j]<wherex()) {
-							gotoxy(cterm_tabs[j],wherey());
+						if(tabs[j]<wherex()) {
+							gotoxy(tabs[j],wherey());
 							break;
 						}
 					}
@@ -570,8 +536,8 @@ void ctputs(char *buf)
 				break;
 			case '\t':
 				for(i=0;i<10;i++) {
-					if(cterm_tabs[i]>cx) {
-						while(cx<cterm_tabs[i]) {
+					if(tabs[i]>cx) {
+						while(cx<tabs[i]) {
 							cx++;
 						}
 						break;
@@ -680,8 +646,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 							ctputs(prn);
 							prn[0]=0;
 							for(k=0;k<11;k++) {
-								if(cterm_tabs[k]>wherex()) {
-									gotoxy(cterm_tabs[k],wherey());
+								if(tabs[k]>wherex()) {
+									gotoxy(tabs[k],wherey());
 									break;
 								}
 							}
