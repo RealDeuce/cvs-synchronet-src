@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.1 2001/11/13 05:15:03 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.2 2001/11/13 17:06:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,6 +137,20 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			strlwr(str);
 			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 			if(!JS_SetProperty(cx, subobj, "newsgroup", &val))
+				return(NULL);
+
+			if(user==NULL || chk_ar(cfg,cfg->sub[d]->read_ar,user))
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
+			else
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
+			if(!JS_SetProperty(cx, subobj, "can_read", &val))
+				return(NULL);
+
+			if(user==NULL || chk_ar(cfg,cfg->sub[d]->post_ar,user))
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
+			else
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
+			if(!JS_SetProperty(cx, subobj, "can_post", &val))
 				return(NULL);
 
 			if(!JS_GetArrayLength(cx, sub_list, &index))
