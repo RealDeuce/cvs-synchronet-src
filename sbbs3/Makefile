@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.3 2002/04/13 07:42:24 rswindell Exp $
+# $Id: Makefile,v 1.4 2002/04/25 07:58:42 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -129,6 +129,20 @@ $(CHKSMB): chksmb.c $(SMBLIB) $(XPDEV)dirwrap.c
 
 # SMB Utility
 $(SMBUTIL): smbutil.c smbtxt.c crc32.c lzh.c $(SMBLIB) $(XPDEV)dirwrap.c
+	@echo Creating $@
+	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
+
+# SBBSecho (FidoNet Packet Tosser)
+$(SBBSECHO): sbbsecho.c rechocfg.c smbtxt.c crc32.c lzh.c $(SMBLIB) \
+	$(LIBODIR)\ars.obj \
+	$(LIBODIR)\misc.obj \
+	$(LIBODIR)\date_str.obj \
+	userdat.c \
+	genwrap.c \
+	dirwrap.c \
+	$(LIBODIR)\load_cfg.obj \
+	$(LIBODIR)\scfglib1.obj \
+	$(LIBODIR)\scfglib2.obj
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 

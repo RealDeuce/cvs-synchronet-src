@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.14 2002/04/18 02:09:39 rswindell Exp $
+# $Id: GNUmakefile,v 1.15 2002/04/25 07:58:42 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -175,6 +175,27 @@ $(CHKSMB): $(EXEODIR)/chksmb.o $(SMBLIB) $(EXEODIR)/conwrap.o $(EXEODIR)/dirwrap
 # SMB Utility
 $(SMBUTIL): $(EXEODIR)/smbutil.o $(SMBLIB) $(EXEODIR)/conwrap.o $(EXEODIR)/dirwrap.o \
 	$(EXEODIR)/genwrap.o $(EXEODIR)/smbtxt.o $(EXEODIR)/crc32.o $(EXEODIR)/lzh.o 
+	@echo Linking $@
+	@$(CC) $^ -o $@
+
+# SBBSecho (FidoNet Packet Tosser)
+$(SBBSECHO): \
+	$(EXEODIR)/sbbsecho.o \
+	$(EXEODIR)/ars.o \
+	$(EXEODIR)/crc32.o \
+	$(EXEODIR)/date_str.o \
+	$(EXEODIR)/load_cfg.o \
+	$(EXEODIR)/scfglib1.o \
+	$(EXEODIR)/scfglib2.o \
+	$(EXEODIR)/misc.o \
+	$(EXEODIR)/userdat.o \
+	$(EXEODIR)/rechocfg.o \
+	$(EXEODIR)/conwrap.o \ 
+	$(EXEODIR)/dirwrap.o \
+	$(EXEODIR)/genwrap.o \
+	$(SMBLIB) \
+	$(EXEODIR)/smbtxt.o \
+	$(EXEODIR)/lzh.o 
 	@echo Linking $@
 	@$(CC) $^ -o $@
 
