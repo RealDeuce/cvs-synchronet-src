@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.190 2002/08/27 11:04:33 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.191 2002/08/27 11:14:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -463,7 +463,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 		s=sockprintf(socket,"From: %s",p);	/* use original RFC822 header field */
 	else {
 		if(msg->from_net.type==NET_INTERNET && msg->from_net.addr!=NULL)
-			SAFECOPY(fromaddr,msg->from_net.addr);
+			SAFECOPY(fromaddr,(char*)msg->from_net.addr);
 		else if(msg->from_net.type==NET_QWK && msg->from_net.addr!=NULL)
 			sprintf(fromaddr,"\"%s@%s\"@%s"
 				,msg->from,(char*)msg->from_net.addr,scfg.sys_inetaddr);
@@ -2851,7 +2851,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.190 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.191 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
