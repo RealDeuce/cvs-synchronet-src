@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.3 2000/12/11 23:03:16 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.4 2001/04/10 01:12:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -309,12 +309,12 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 /****************************************************************************/
 /* Returns total number of posts in a sub-board 							*/
 /****************************************************************************/
-ulong sbbs_t::getposts(uint subnum)
+ulong getposts(scfg_t* cfg, uint subnum)
 {
 	char str[128];
 	ulong l;
 
-	sprintf(str,"%s%s.sid",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	sprintf(str,"%s%s.sid",cfg->sub[subnum]->data_dir,cfg->sub[subnum]->code);
 	l=flength(str);
 	if((long)l==-1)
 		return(0);
