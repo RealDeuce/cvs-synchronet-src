@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.140 2004/11/08 09:32:47 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.144 2005/01/01 22:10:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -968,7 +968,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
 
     // Verify SBBS.DLL version
     long bbs_ver = bbs_ver_num();
-    if(bbs_ver < (0x31000 | 'M'-'A') || bbs_ver > (0x399<<8)) {
+    if(bbs_ver < (0x31200 | 'A'-'A') || bbs_ver > (0x399<<8)) {
         char str[128];
         sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -1880,11 +1880,11 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             ServicesAutoStart=true;
 
         if(Registry->ValueExists("Hostname"))
-            SAFECOPY(global.host_name,Registry->ReadString("Hostname"));
-        if(Registry->ValueExists("CtrlDirectory"))
-            SAFECOPY(global.ctrl_dir,Registry->ReadString("CtrlDirectory"));
+            SAFECOPY(global.host_name,Registry->ReadString("Hostname").c_str());
+		if(Registry->ValueExists("CtrlDirectory"))
+            SAFECOPY(global.ctrl_dir,Registry->ReadString("CtrlDirectory").c_str());
         if(Registry->ValueExists("TempDirectory"))
-            SAFECOPY(global.temp_dir,Registry->ReadString("TempDirectory"));
+            SAFECOPY(global.temp_dir,Registry->ReadString("TempDirectory").c_str());
 
         if(Registry->ValueExists("SemFileCheckFrequency"))
             global.sem_chk_freq=Registry->ReadInteger("SemFileCheckFrequency");
@@ -2078,7 +2078,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("ServicesOptions"))
             services_startup.options=Registry->ReadInteger("ServicesOptions");
 
-        if(SaveIniSettings(Sender))
+		if(SaveIniSettings(Sender))
             Registry->WriteBool("Imported",true);   /* Use the .ini file for these settings from now on */
     }
 
@@ -2641,8 +2641,6 @@ void __fastcall TMainForm::ViewStatusBarMenuItemClick(TObject *Sender)
     ViewStatusBarMenuItem->Checked=StatusBar->Visible;
 }
 //---------------------------------------------------------------------------
-
-
 void __fastcall TMainForm::HelpAboutMenuItemClick(TObject *Sender)
 {
 	Application->CreateForm(__classid(TAboutBoxForm), &AboutBoxForm);
@@ -2650,26 +2648,39 @@ void __fastcall TMainForm::HelpAboutMenuItemClick(TObject *Sender)
     delete AboutBoxForm;
 }
 //---------------------------------------------------------------------------
+BOOL MuteService(SC_HANDLE svc, SERVICE_STATUS* status, BOOL mute)
+{
+	if(svc==NULL || controlService==NULL)
+    	return(FALSE);
 
-
-
+	return controlService(svc
+        ,mute ? SERVICE_CONTROL_MUTE:SERVICE_CONTROL_UNMUTE, status);
+}
+//---------------------------------------------------------------------------
 void __fastcall TMainForm::SoundToggleExecute(TObject *Sender)
 {
     SoundToggle->Checked=!SoundToggle->Checked;
+
     if(!SoundToggle->Checked) {
 	    bbs_startup.options|=BBS_OPT_MUTE;
 	    ftp_startup.options|=FTP_OPT_MUTE;
+	    web_startup.options|=FTP_OPT_MUTE;
 	    mail_startup.options|=MAIL_OPT_MUTE;
+	    services_startup.options|=MAIL_OPT_MUTE;
 	} else {
 	    bbs_startup.options&=~BBS_OPT_MUTE;
 	    ftp_startup.options&=~FTP_OPT_MUTE;
+	    web_startup.options&=~FTP_OPT_MUTE;
 	    mail_startup.options&=~MAIL_OPT_MUTE;
+	    services_startup.options&=~MAIL_OPT_MUTE;
     }
+    MuteService(bbs_svc,&bbs_svc_status,!SoundToggle->Checked);
+    MuteService(ftp_svc,&ftp_svc_status,!SoundToggle->Checked);
+    MuteService(web_svc,&web_svc_status,!SoundToggle->Checked);
+    MuteService(mail_svc,&mail_svc_status,!SoundToggle->Checked);
+    MuteService(services_svc,&services_svc_status,!SoundToggle->Checked);
 }
 //---------------------------------------------------------------------------
-
-
-
 void __fastcall TMainForm::BBSStatisticsLogMenuItemClick(TObject *Sender)
 {
 	StatsForm->LogButtonClick(Sender);
@@ -2839,6 +2850,10 @@ void __fastcall TMainForm::ChatToggleExecute(TObject *Sender)
     else
         bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
 
+	if(bbs_svc!=NULL && controlService!=NULL)
+        controlService(bbs_svc
+            ,ChatToggle->Checked ? SERVICE_CONTROL_SYSOP_AVAILABLE : SERVICE_CONTROL_SYSOP_UNAVAILABLE
+            ,&bbs_svc_status);
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::UserEditExecute(TObject *Sender)
@@ -3147,11 +3162,12 @@ void __fastcall TMainForm::UserTruncateMenuItemClick(TObject *Sender)
 
 BOOL RecycleService(SC_HANDLE svc, SERVICE_STATUS* status)
 {
-	if(controlService==NULL)
+	if(svc==NULL || controlService==NULL)
     	return(FALSE);
 
 	return controlService(svc, SERVICE_CONTROL_RECYCLE, status);
 }
+
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::MailRecycleExecute(TObject *Sender)
 {
@@ -3481,7 +3497,7 @@ void __fastcall TMainForm::ServiceStatusTimerTick(TObject *Sender)
 void __fastcall TMainForm::EditFile(AnsiString filename, AnsiString Caption)
 {
    if(!UseFileAssociations
-        || (int)ShellExecute(Handle, "open", filename.c_str(), NULL,NULL,SW_SHOWDEFAULT)<=32) {
+        || (int)ShellExecute(Handle, "edit", filename.c_str(), NULL,NULL,SW_SHOWDEFAULT)<=32) {
         Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
         TextFileEditForm->Filename=filename;
         TextFileEditForm->Caption=Caption;
