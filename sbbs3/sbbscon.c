@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.173 2004/10/20 23:19:52 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.166 2004/09/13 21:52:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,15 +45,12 @@
 #endif
 
 /* Synchronet-specific headers */
+#include "conwrap.h"	/* kbhit/getch */
 #include "sbbs.h"		/* load_cfg() */
 #include "sbbs_ini.h"	/* sbbs_read_ini() */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
 #include "mailsrvr.h"	/* mail_startup_t, mail_server */
 #include "services.h"	/* services_startup_t, services_thread */
-
-/* XPDEV headers */
-#include "conwrap.h"	/* kbhit/getch */
-#include "threadwrap.h"	/* pthread_mutex_t */
 
 #ifdef __unix__
 
@@ -65,6 +62,11 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
+#endif
+
+/* Temporary: Do not include web server in 3.1x-Win32 release build */
+#if defined(_MSC_VER)
+	#define NO_WEB_SERVER
 #endif
 
 /* Services doesn't work without JavaScript support */
@@ -198,9 +200,6 @@ static int log_puts(int level, char *str)
 {
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
-
-	if(!(bbs_startup.log_mask&(1<<level)))
-		return(0);
 
 #ifdef __unix__
 
@@ -464,9 +463,6 @@ static int ftp_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(!(ftp_startup.log_mask&(1<<level)))
-		return(0);
-
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -524,9 +520,6 @@ static int mail_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(!(mail_startup.log_mask&(1<<level)))
-		return(0);
-
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -579,9 +572,6 @@ static int services_lputs(void* p, int level, char *str)
 	char		tstr[64];
 	time_t		t;
 	struct tm	tm;
-
-	if(!(services_startup.log_mask&(1<<level)))
-		return(0);
 
 #ifdef __unix__
 	if (is_daemon)  {
@@ -636,9 +626,6 @@ static int event_lputs(int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(!(bbs_startup.log_mask&(1<<level)))
-		return(0);
-
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -675,9 +662,6 @@ static int web_lputs(void* p, int level, char *str)
 	char		tstr[64];
 	time_t		t;
 	struct tm	tm;
-
-	if(!(web_startup.log_mask&(1<<level)))
-		return(0);
 
 #ifdef __unix__
 	if (is_daemon)  {
@@ -754,8 +738,7 @@ static void terminate(void)
 	}
 }
 
-static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup_t* web
-							 ,mail_startup_t* mail, services_startup_t* services)
+static void read_startup_ini(void)
 {
 	char	str[MAX_PATH+1];
 	FILE*	fp=NULL;
@@ -776,11 +759,11 @@ static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
 		NULL,			/* global_startup */
-		&run_bbs,		bbs,
-		&run_ftp,		ftp, 
-		&run_web,		web,
-		&run_mail,		mail, 
-		&run_services,	services);
+		&run_bbs,		&bbs_startup,
+		&run_ftp,		&ftp_startup, 
+		&run_web,		&web_startup,
+		&run_mail,		&mail_startup, 
+		&run_services,	&services_startup);
 
 	/* read/default any sbbscon-specific .ini keys here */
 #if defined(__unix__)
@@ -798,28 +781,6 @@ static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup
 		fclose(fp);
 }
 
-/* Server recycle callback (read relevant startup .ini file section)		*/
-void recycle(void* cbdata)
-{
-	bbs_startup_t* bbs=NULL;
-	ftp_startup_t* ftp=NULL;
-	web_startup_t* web=NULL;
-	mail_startup_t* mail=NULL;
-	services_startup_t* services=NULL;
-
-	if(cbdata==&bbs_startup)
-		bbs=cbdata;
-	else if(cbdata==&ftp_startup)
-		ftp=cbdata;
-	else if(cbdata==&web_startup)
-		web=cbdata;
-	else if(cbdata==&mail_startup)
-		mail=cbdata;
-	else if(cbdata==&services_startup)
-		services=cbdata;
-
-	read_startup_ini(bbs,ftp,web,mail,services);
-}
 
 #if defined(_WIN32)
 BOOL WINAPI ControlHandler(DWORD CtrlType)
@@ -994,12 +955,10 @@ int main(int argc, char** argv)
 	/* Initialize BBS startup structure */
     memset(&bbs_startup,0,sizeof(bbs_startup));
     bbs_startup.size=sizeof(bbs_startup);
-	bbs_startup.cbdata=&bbs_startup;
-	bbs_startup.log_mask=~0;
+
 	bbs_startup.lputs=bbs_lputs;
 	bbs_startup.event_lputs=event_lputs;
     bbs_startup.started=bbs_started;
-	bbs_startup.recycle=recycle;
     bbs_startup.terminated=bbs_terminated;
     bbs_startup.thread_up=thread_up;
     bbs_startup.socket_open=socket_open;
@@ -1017,11 +976,8 @@ int main(int argc, char** argv)
 	/* Initialize FTP startup structure */
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
-	ftp_startup.cbdata=&ftp_startup;
-	ftp_startup.log_mask=~0;
 	ftp_startup.lputs=ftp_lputs;
     ftp_startup.started=ftp_started;
-	ftp_startup.recycle=recycle;
     ftp_startup.terminated=ftp_terminated;
 	ftp_startup.thread_up=thread_up;
     ftp_startup.socket_open=socket_open;
@@ -1036,11 +992,8 @@ int main(int argc, char** argv)
 	/* Initialize Web Server startup structure */
     memset(&web_startup,0,sizeof(web_startup));
     web_startup.size=sizeof(web_startup);
-	web_startup.cbdata=&web_startup;
-	web_startup.log_mask=~0;
 	web_startup.lputs=web_lputs;
     web_startup.started=web_started;
-	web_startup.recycle=recycle;
     web_startup.terminated=web_terminated;
 	web_startup.thread_up=thread_up;
     web_startup.socket_open=socket_open;
@@ -1053,11 +1006,8 @@ int main(int argc, char** argv)
 	/* Initialize Mail Server startup structure */
     memset(&mail_startup,0,sizeof(mail_startup));
     mail_startup.size=sizeof(mail_startup);
-	mail_startup.cbdata=&mail_startup;
-	mail_startup.log_mask=~0;
 	mail_startup.lputs=mail_lputs;
     mail_startup.started=mail_started;
-	mail_startup.recycle=recycle;
     mail_startup.terminated=mail_terminated;
 	mail_startup.thread_up=thread_up;
     mail_startup.socket_open=socket_open;
@@ -1096,11 +1046,8 @@ int main(int argc, char** argv)
 	/* Initialize Services startup structure */
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
-	services_startup.cbdata=&services_startup;
-	services_startup.log_mask=~0;
 	services_startup.lputs=services_lputs;
     services_startup.started=services_started;
-	services_startup.recycle=recycle;
     services_startup.terminated=services_terminated;
 	services_startup.thread_up=thread_up;
     services_startup.socket_open=socket_open;
@@ -1126,7 +1073,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	read_startup_ini(&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
+	read_startup_ini();
 
 #if SBBS_MAGIC_FILENAMES	/* This stuff is just broken */
 
