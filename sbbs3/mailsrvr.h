@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.20 2002/03/18 23:52:09 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.21 2002/03/19 01:47:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ typedef struct {
 	char	outbound_sound[128];
     char	pop3_sound[128];
     char	reserved_path1[128];
-	sem_t	recycle_sem;
+	BOOL	recycle_now;
 
 } mail_startup_t;
 
