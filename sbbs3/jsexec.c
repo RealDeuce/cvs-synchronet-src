@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.28 2003/07/17 20:46:43 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.29 2003/07/17 20:48:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -558,7 +558,7 @@ long js_exec(const char *fname, char** args)
 			break;
 		line_no++;
 #ifdef __unix__	/* Support Unix Shell Scripts that start with #!/path/to/jsexec */
-		if(line_no==1 && strncmp(line,"#!",2))
+		if(line_no==1 && strncmp(line,"#!",2)==0)
 			continue;
 #endif
 		if((js_buf=realloc(js_buf,js_buflen+strlen(line)))==NULL) {
@@ -620,7 +620,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.28 $", "%*s %s", revision);
+	sscanf("$Revision: 1.29 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
