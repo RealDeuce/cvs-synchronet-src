@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.113 2002/02/25 03:15:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.114 2002/02/26 16:57:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1135,7 +1135,7 @@ static void smtp_thread(void* arg)
 	ushort		dest_port;
 	int			addr_len;
 	ushort		xlat;
-	ushort		nettype=NET_NONE;
+	ushort		nettype;
 	uint		usernum;
 	ulong		crc;
 	ulong		lines=0;
@@ -1389,7 +1389,8 @@ static void smtp_thread(void* arg)
 
 					/* Send telegram to users */
 					rewind(rcptlst);
-					while(!feof(rcptlst)) {
+					rcpt_count=0;
+					while(!feof(rcptlst)  && rcpt_count<MAX_RECIPIENTS) {
 						if(fgets(str,sizeof(str)-1,rcptlst)==NULL)
 							break;
 						usernum=atoi(str);
@@ -1402,6 +1403,7 @@ static void smtp_thread(void* arg)
 						putsmsg(&scfg,usernum,telegram_buf);
 						lprintf("%04d SMTP Created telegram from %s to %s <%s>"
 							,socket, sender_addr, rcpt_name, rcpt_addr);
+						rcpt_count++;
 					}
 					free(telegram_buf);
 					sockprintf(socket,SMTP_OK);
@@ -1672,6 +1674,7 @@ static void smtp_thread(void* arg)
 					if(tp) *tp=0;
 					sprintf(rcpt_name,"%.*s",sizeof(rcpt_name)-1,p);
 				}
+				smb_hfield(&msg, RFC822HEADER, (ushort)strlen(buf), buf);
 				continue;
 			}
 			if(!strnicmp(buf, "REPLY-TO:",9)) {
