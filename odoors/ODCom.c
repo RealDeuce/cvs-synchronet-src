@@ -67,6 +67,7 @@
 #include <sys/ioctl.h>
 #include <signal.h>
 #include <termios.h>
+#include <errno.h>
 #endif
 #include "ODCore.h"
 #include "ODGen.h"
@@ -2958,7 +2959,20 @@ keep_going:
 #ifdef INCLUDE_STDIO_COM
 	  case kComMethodStdIO:
 	    {
-		    if((write(1,&btToSend,1,0))!=1)
+		fd_set  fdset;
+		struct  timeval tv;
+		int             send_ret;
+
+		FD_ZERO(&fdset);
+		FD_SET(1,&fdset);
+
+		tv.tv_sec=1;
+		tv.tv_usec=0;
+
+		if(select(2,NULL,&fdset,NULL,&tv) != 1)
+			return(kODRCGeneralFailure);
+
+		    if((send_ret=write(1,&btToSend,1,0))!=1)
 			   return(kODRCGeneralFailure);
 			break;
 		}
@@ -3423,8 +3437,40 @@ try_again:
 #ifdef INCLUDE_STDIO_COM
       case kComMethodStdIO:
 	    {
-			if(write(1,pbtBuffer,nSize)!=nSize)
-				return (kODRCGeneralFailure);
+			int pos=0;
+			int oldpos=-1;
+			fd_set  fdset;
+			struct  timeval tv;
+			int     send_ret;
+
+			while(pos>oldpos && pos<nSize) {
+				FD_ZERO(&fdset);
+				FD_SET(1,&fdset);
+
+				tv.tv_sec=1;
+				tv.tv_usec=0;
+
+				if(select(2,NULL,&fdset,NULL,&tv) != 1)
+					return(kODRCGeneralFailure);
+
+				send_ret=write(1,pbtBuffer,nSize-pos);
+				if(send_ret==0)
+					return (kODRCGeneralFailure);
+				if(send_ret==-1) {
+					switch(errno) {
+						case EINTR:
+						case EAGAIN:
+							od_sleep(1);
+							send_ret=0;
+							break;
+						default:
+							return (kODRCGeneralFailure);
+					}
+				}
+
+				oldpos=pos;
+				pos+=send_ret;
+			}
 		    break;
 		}
 #endif

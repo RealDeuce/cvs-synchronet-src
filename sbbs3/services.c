@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.152 2003/12/06 19:18:31 rswindell Exp $ */
+/* $Id: services.c,v 1.153 2003/12/30 00:19:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,7 @@ static char		revision[16];
 
 typedef struct {
 	/* These are sysop-configurable */
+	DWORD   interface_addr;
 	WORD	port;
 	char	protocol[34];
 	char	cmd[128];
@@ -851,7 +852,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 			service_client->service->js_server_props.clients=
 				&service_client->service->clients;
 			service_client->service->js_server_props.interface_addr=
-				&startup->interface_addr;
+				&service_client->service->interface_addr;
 			service_client->service->js_server_props.options=
 				&service_client->service->options;
 		}
@@ -1458,9 +1459,12 @@ static service_t* read_services_cfg(service_t* service, char* services_cfg, DWOR
 		serv=&service[*services];
 		memset(serv,0,sizeof(service_t));
 		serv->socket=INVALID_SOCKET;
-		serv->listen_backlog=DEFAULT_LISTEN_BACKLOG;
 
 		/* These are not configurable per service when using services.cfg */
+		serv->listen_backlog=DEFAULT_LISTEN_BACKLOG;
+		serv->interface_addr=startup->interface_addr;
+
+		/* JavaScript operating parameters */
 		serv->js_max_bytes=startup->js_max_bytes;
 		serv->js_cx_stack=startup->js_cx_stack;
 		serv->js_branch_limit=startup->js_branch_limit;
@@ -1509,6 +1513,7 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 		memset(&serv,0,sizeof(service_t));
 		SAFECOPY(serv.protocol,sec_list[i]);
 		serv.socket=INVALID_SOCKET;
+		serv.interface_addr=iniGetIpAddress(fp,sec_list[i],"Interface",startup->interface_addr);
 		serv.port=iniGetShortInt(fp,sec_list[i],"Port",0);
 		serv.max_clients=iniGetInteger(fp,sec_list[i],"MaxClients",0);
 		serv.listen_backlog=iniGetInteger(fp,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
@@ -1523,19 +1528,20 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 		serv.js_yield_interval=iniGetInteger(fp,sec_list[i]	,strJavaScriptYieldInterval	,startup->js_yield_interval);
 
 		for(j=0;j<*services;j++)
-			if(service[j].port==serv.port && (service[j].options&SERVICE_OPT_UDP)==(serv.options&SERVICE_OPT_UDP))
+			if(service[j].interface_addr==serv.interface_addr && service[j].port==serv.port
+				&& (service[j].options&SERVICE_OPT_UDP)==(serv.options&SERVICE_OPT_UDP))
 				break;
 		if(j<*services)	{ /* ignore duplicate services */
 			lprintf(LOG_NOTICE,"Ignoring duplicate service: %s",sec_list[i]);
 			continue;
 		}
 
-		if(stricmp(iniGetString(fp,sec_list[i],"Host",startup->host_name,host), startup->host_name)) {
+		if(stricmp(iniGetString(fp,sec_list[i],"Host",startup->host_name,host), startup->host_name)!=0) {
 			lprintf(LOG_NOTICE,"Ignoring service (%s) for host: %s", sec_list[i], host);
 			continue;
 		}
 		if(stricmp(iniGetString(fp,sec_list[i],"NotHost","",host), startup->host_name)==0) {
-			lprintf(LOG_NOTICE,"Ignoring service (%s) for host: %s", sec_list[i], host);
+			lprintf(LOG_NOTICE,"Ignoring service (%s) not for host: %s", sec_list[i], host);
 			continue;
 		}
 
@@ -1581,7 +1587,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.152 $", "%*s %s", revision);
+	sscanf("$Revision: 1.153 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1772,7 +1778,7 @@ void DLLCALL services_thread(void* arg)
 			}
 			memset(&addr, 0, sizeof(addr));
 
-			addr.sin_addr.s_addr = htonl(startup->interface_addr);
+			addr.sin_addr.s_addr = htonl(service[i].interface_addr);
 			addr.sin_family = AF_INET;
 			addr.sin_port   = htons(service[i].port);
 
@@ -1964,7 +1970,7 @@ void DLLCALL services_thread(void* arg)
 				   #endif
 
 					memset(&addr, 0, sizeof(addr));
-					addr.sin_addr.s_addr = htonl(startup->interface_addr);
+					addr.sin_addr.s_addr = htonl(service[i].interface_addr);
 					addr.sin_family = AF_INET;
 					addr.sin_port   = htons(service[i].port);
 
