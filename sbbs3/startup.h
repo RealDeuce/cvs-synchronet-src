@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.44 2003/10/09 17:27:05 deuce Exp $ */
+/* $Id: startup.h,v 1.45 2003/10/11 11:26:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,8 +72,8 @@ typedef struct {
 	void*	cbdata;					/* Private data passed to callbacks */ 
 
 	/* Callbacks (NULL if unused) */
-    int 	(*event_log)(char*);	/* Event log - put string			*/
-	int 	(*lputs)(void*, char*);	/* Log - put string					*/
+	int 	(*lputs)(void*, int, char*);	/* Log - put string					*/
+    int 	(*event_lputs)(int, char*);		/* Event log - put string			*/
 	void	(*status)(void*, char*);
     void	(*started)(void*);
     void	(*terminated)(void*, int code);

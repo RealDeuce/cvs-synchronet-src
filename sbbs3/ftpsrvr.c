@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.254 2003/10/09 02:06:44 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.255 2003/10/11 11:26:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ static int lprintf(char *fmt, ...)
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-    result=startup->lputs(startup->cbdata,sbuf);
+    result=startup->lputs(startup->cbdata,LOG_INFO,sbuf);
 
 	return(result);
 }
@@ -4456,7 +4456,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.254 $", "%*s %s", revision);
+	sscanf("$Revision: 1.255 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

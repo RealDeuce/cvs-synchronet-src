@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.145 2003/10/11 03:42:52 rswindell Exp $ */
+/* $Id: services.c,v 1.146 2003/10/11 11:26:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,7 +153,7 @@ static int lprintf(char *fmt, ...)
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-    return(startup->lputs(startup->cbdata,sbuf));
+    return(startup->lputs(startup->cbdata,LOG_INFO,sbuf));
 }
 
 #ifdef _WINSOCKAPI_
@@ -1547,7 +1547,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.145 $", "%*s %s", revision);
+	sscanf("$Revision: 1.146 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
