@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.10 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: scansubs.cpp,v 1.9 2002/11/07 08:01:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,8 +198,8 @@ void sbbs_t::new_scan_ptr_cfg()
 		bputs(text[CfgGrpLstHdr]);
 		for(i=0;i<usrgrps && !msgabort();i++) {
 			checkline();
-			if(i<9) outchar(' ');
-			if(i<99) outchar(' ');
+			if(i<9) outchar(SP);
+			if(i<99) outchar(SP);
 			bprintf(text[CfgGrpLstFmt],i+1,cfg.grp[usrgrp[i]]->lname); }
 		SYNC;
 		mnemonics(text[WhichOrAll]);
@@ -241,8 +241,8 @@ void sbbs_t::new_scan_ptr_cfg()
 			bprintf(text[CfgSubLstHdr],cfg.grp[usrgrp[i]]->lname);
 			for(j=0;j<usrsubs[i] && !msgabort();j++) {
 				checkline();
-				if(j<9) outchar(' ');
-				if(j<99) outchar(' ');
+				if(j<9) outchar(SP);
+				if(j<99) outchar(SP);
 				t=getmsgtime(usrsub[i][j],subscan[usrsub[i][j]].ptr);
 				if(t>(long)l)
 					l=t;
@@ -318,8 +318,8 @@ void sbbs_t::new_scan_cfg(ulong misc)
 		bputs(text[CfgGrpLstHdr]);
 		for(i=0;i<usrgrps && !msgabort();i++) {
 			checkline();
-			if(i<9) outchar(' ');
-			if(i<99) outchar(' ');
+			if(i<9) outchar(SP);
+			if(i<99) outchar(SP);
 			bprintf(text[CfgGrpLstFmt],i+1,cfg.grp[usrgrp[i]]->lname); }
 		SYNC;
 		if(misc&SUB_CFG_NSCAN)
@@ -336,8 +336,8 @@ void sbbs_t::new_scan_cfg(ulong misc)
 			bprintf(text[CfgSubLstHdr],cfg.grp[usrgrp[i]]->lname);
 			for(j=0;j<usrsubs[i] && !msgabort();j++) {
 				checkline();
-				if(j<9) outchar(' ');
-				if(j<99) outchar(' ');
+				if(j<9) outchar(SP);
+				if(j<99) outchar(SP);
 				bprintf(text[CfgSubLstFmt],j+1
 					,cfg.sub[usrsub[i][j]]->lname
 					,subscan[usrsub[i][j]].cfg&misc ?

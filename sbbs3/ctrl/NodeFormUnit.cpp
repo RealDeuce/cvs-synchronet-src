@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.25 2004/05/28 23:48:07 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.24 2003/06/07 01:42:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -154,9 +154,8 @@ void __fastcall TNodeForm::TimerTick(TObject *Sender)
 		return;
 
     if(nodedab<1) {
-    	char path[MAX_PATH+1];
-        sprintf(path,"%sNODE.DAB",MainForm->global.ctrl_dir);
-    	nodedab=_sopen(path,O_RDONLY|O_BINARY|O_CREAT, SH_DENYNONE, S_IREAD|S_IWRITE);
+    	nodedab=_sopen(AnsiString(MainForm->CtrlDirectory+"NODE.DAB").c_str()
+        	,O_RDONLY|O_BINARY|O_CREAT, SH_DENYNONE, S_IREAD|S_IWRITE);
 		if(nodedab==-1) {
 		    ListBox->Items->Clear();
         	ListBox->Items->Add("Error "+AnsiString(errno)+" opening NODE.DAB");

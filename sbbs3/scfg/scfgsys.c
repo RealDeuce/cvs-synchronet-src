@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.26 2004/05/30 06:56:06 deuce Exp $ */
+/* $Id: scfgsys.c,v 1.25 2004/04/21 22:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -683,7 +683,7 @@ to Yes.
 					,cfg.new_xedit);
 				sprintf(opt[i++],"%-27.27s%s","Command Shell"
 					,cfg.shell[cfg.new_shell]->code);
-				if(cfg.new_prot!=' ')
+				if(cfg.new_prot!=SP)
                     sprintf(str,"%c",cfg.new_prot);
                 else
                     strcpy(str,"None");
@@ -882,8 +882,8 @@ This option allows you to set the default download protocol of new users
 							,"Default Download Protocol (SPACE=Disabled)"
 							,str,1,K_EDIT|K_UPPER);
 						cfg.new_prot=str[0];
-						if(cfg.new_prot<' ')
-							cfg.new_prot=' ';
+						if(cfg.new_prot<SP)
+							cfg.new_prot=SP;
                         break;
 					case 13:
 						SETHELP(WHERE);

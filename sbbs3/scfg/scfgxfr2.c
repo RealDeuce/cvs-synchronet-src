@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.23 2004/05/30 06:56:06 deuce Exp $ */
+/* $Id: scfgxfr2.c,v 1.22 2004/05/14 01:15:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -457,7 +457,7 @@ command: DIR /ON /AD /B > DIRS.RAW
 					tmpdir.dn_pct=cfg.cdt_dn_pct; 
 
 					p=str;
-					while(*p && *p<=' ') p++;
+					while(*p && *p<=SP) p++;
 
 					if(k==2) { /* raw */
 						SAFECOPY(tmp_code,p);
@@ -470,14 +470,14 @@ command: DIR /ON /AD /B > DIRS.RAW
 						if(strnicmp(p,"AREA ",5))
 							continue;
 						p+=5;
-						while(*p && *p<=' ') p++;
+						while(*p && *p<=SP) p++;
 						SAFECOPY(tmp_code,p);
-						while(*p>' ') p++;			/* Skip areaname */
-						while(*p && *p<=' ') p++;	/* Skip space */
-						while(*p>' ') p++;			/* Skip level */
-						while(*p && *p<=' ') p++;	/* Skip space */
-						while(*p>' ') p++;			/* Skip flags */
-						while(*p && *p<=' ') p++;	/* Skip space */
+						while(*p>SP) p++;			/* Skip areaname */
+						while(*p && *p<=SP) p++;	/* Skip space */
+						while(*p>SP) p++;			/* Skip level */
+						while(*p && *p<=SP) p++;	/* Skip space */
+						while(*p>SP) p++;			/* Skip flags */
+						while(*p && *p<=SP) p++;	/* Skip space */
 						SAFECOPY(tmpdir.sname,p); 
 						SAFECOPY(tmpdir.lname,p); 
 						ported++; 
@@ -666,7 +666,7 @@ the file transfer prompt.
 			,K_EDIT)<1)
             continue;
 		sprintf(code,"%.8s",str2);
-		p=strchr(code,' ');
+		p=strchr(code,SP);
 		if(p) *p=0;
 		strupr(code);
 		SETHELP(WHERE);

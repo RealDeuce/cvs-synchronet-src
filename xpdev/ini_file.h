@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.15 2004/06/04 01:12:57 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.14 2004/05/28 17:10:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,6 @@ typedef struct {
 typedef struct {
 	int			key_len;
 	const char* key_prefix;
-	const char* section_separator;
 	const char* value_separator;
 	const char*	bit_separator;
 } ini_style_t;
@@ -99,8 +98,7 @@ str_list_t	iniReadFile(FILE*);
 BOOL		iniWriteFile(FILE*, const str_list_t);
 
 /* StringList functions */
-size_t		iniAddSection(str_list_t*, const char* section
-					,ini_style_t*);
+size_t		iniAddSection(str_list_t*, const char* section);
 char*		iniSetString(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
 char*		iniSetInteger(str_list_t*, const char* section, const char* key, long value
