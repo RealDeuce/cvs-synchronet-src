@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mak,v 1.2 2000/10/26 11:42:22 rswindell Exp $
+# $Id: objects.mak,v 1.3 2000/10/29 00:55:50 rswindell Exp $
 
 # ODIR, SLASH, and OFILE must be pre-defined
 
@@ -63,6 +63,7 @@ OBJS	=	$(ODIR)$(SLASH)ansiterm.$(OFILE)\
 			$(ODIR)$(SLASH)scfglib1.$(OFILE)\
 			$(ODIR)$(SLASH)scfglib2.$(OFILE)\
 			$(ODIR)$(SLASH)smblib.$(OFILE)\
+			$(ODIR)$(SLASH)smbwrap.$(OFILE)\
 			$(ODIR)$(SLASH)sortdir.$(OFILE)\
 			$(ODIR)$(SLASH)str.$(OFILE)\
 			$(ODIR)$(SLASH)telgate.$(OFILE)\
