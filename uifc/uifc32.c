@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.64 2004/06/01 22:35:24 deuce Exp $ */
+/* $Id: uifc32.c,v 1.65 2004/06/03 05:00:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1526,8 +1526,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(mode&WIN_DYN) {
 			save_menu_cur=*cur;
 			save_menu_bar=*bar;
-			return(-2-i);
 		}
+		if(mode&WIN_DYN || mode&WIN_EXTKEYS) {
+			return(-2-i);
 	}
 }
 
