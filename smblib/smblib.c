@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.63 2003/05/23 10:58:41 rswindell Exp $ */
+/* $Id: smblib.c,v 1.64 2003/06/14 10:03:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,9 +68,11 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.21"      /* SMB library version */
+#define SMBLIB_VERSION		"2.22"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
+
+static char* nulstr="";
 
 int SMBCALL smb_ver(void)
 {
@@ -967,11 +969,10 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 		l+=msg->hfield[i].length; 
 	}
 
-	if(!msg->from || !msg->to || !msg->subj) {
-		sprintf(smb->last_error,"missing required header field (from/to/subj)");
-		smb_freemsgmem(msg);
-		return(SMB_ERR_HDR_FIELD); 
-	}
+	/* These convenience pointers must point to something */
+	if(msg->from==NULL)	msg->from=nulstr;
+	if(msg->to==NULL)	msg->to=nulstr;
+	if(msg->subj==NULL)	msg->subj=nulstr;
 
 	/* If no reverse path specified, use sender's address */
 	if(msg->reverse_path == NULL)
