@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.45 2001/12/14 18:00:31 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.46 2002/01/11 22:56:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2247,6 +2247,30 @@ void __fastcall TMainForm::ServicesConfigureExecute(TObject *Sender)
 	Application->CreateForm(__classid(TServicesCfgDlg), &ServicesCfgDlg);
 	ServicesCfgDlg->ShowModal();
     delete ServicesCfgDlg;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::UserTruncateMenuItemClick(TObject *Sender)
+{
+    int usernumber;
+    int deleted=0;
+    user_t user;
+
+    Screen->Cursor=crHourGlass;
+    while((user.number=lastuser(&cfg))!=0) {
+        if(getuserdat(&cfg,&user)!=0)
+            break;
+        if(!(user.misc&DELETED))
+            break;
+        if(!del_lastuser(&cfg))
+            break;
+        deleted++;
+        Sleep(1);
+    }
+    Screen->Cursor=crDefault;
+    char str[128];
+    sprintf(str,"%u Deleted User Records Removed",deleted);
+   	Application->MessageBox(str,"Users Truncated",MB_OK);
 }
 //---------------------------------------------------------------------------
 
