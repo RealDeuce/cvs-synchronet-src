@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.60 2003/02/09 08:18:27 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.61 2003/02/15 13:24:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1899,6 +1899,7 @@ static void respond(http_session_t * session)
 
 void http_session_thread(void* arg)
 {
+	int				i;
 	char*			host_name;
 	HOSTENT*		host;
 	SOCKET			socket;
@@ -1926,6 +1927,9 @@ void http_session_thread(void* arg)
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
 		lprintf("%04d Hostname: %s", session.socket, host_name);
 		SAFECOPY(session.host_name,host_name);
+		for(i=0;host!=NULL && host->h_aliases!=NULL 
+			&& host->h_aliases[i]!=NULL;i++)
+			lprintf("%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 	}
 
 	/* host_ip wasn't defined in http_session_thread */
@@ -2026,7 +2030,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.60 $", "%*s %s", revision);
+	sscanf("$Revision: 1.61 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
