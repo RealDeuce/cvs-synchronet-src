@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.1 2003/05/16 01:02:09 deuce Exp $ */
+/* $Id: chat.c,v 1.2 2003/05/16 01:58:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,13 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch) {
 		if(getnodedat(cfg,nodenum,node,NULL)) {
 			break;
 		}
-	    if(node->misc&NODE_LCHAT) {
+		if(node->misc&NODE_LCHAT) {
+			if((ch=wgetch(swin))) {
+				if(ch==ESC || ch==3) {
+					close(in);
+					in=-1;
+				}
+			}
 			YIELD();
 			continue;
 		}
