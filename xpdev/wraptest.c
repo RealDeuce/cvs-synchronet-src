@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.39 2003/05/02 23:45:36 deuce Exp $ */
+/* $Id: wraptest.c,v 1.40 2003/05/08 09:31:54 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -278,6 +278,10 @@ int main()
 		}
 		sem_wait(&thread_data.child_sem);	/* wait for thread to end */
 	}
+	printf("\nsem_trywait_block test...");
+	t=time(NULL);
+	sem_trywait_block(&thread_data.parent_sem,5000);
+	printf("\ntimed-out after %ld seconds (should be 5 seconds)\n",time(NULL)-t);
 	sem_destroy(&thread_data.parent_sem);
 	sem_destroy(&thread_data.child_sem);
 	return 0;
