@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.55 2001/03/09 23:24:39 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.56 2001/03/14 22:01:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@
 #define LOCAL_FSYS_DIR			"local:"
 #define BBS_FSYS_DIR			"bbs:"
 
-#define TIMEOUT_THREAD_WAIT		60		/* Seconds */
+#define TIMEOUT_THREAD_WAIT		15		/* Seconds */
 
 #define XFER_REPORT_INTERVAL	60		/* Seconds */
 
