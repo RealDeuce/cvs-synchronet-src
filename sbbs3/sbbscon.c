@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.105 2002/12/30 21:17:22 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.106 2002/12/31 21:27:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -797,6 +797,7 @@ static void handle_sigs(void)  {
 				break;
 			default:
 				sprintf(str,"     Got unhandled signal (%d)",sig);
+				lputs(str);
 		}
 	}
 }
