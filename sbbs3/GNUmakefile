@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.139 2004/03/11 07:16:50 deuce Exp $
+# $Id: GNUmakefile,v 1.140 2004/03/11 07:18:53 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -66,10 +66,6 @@ endif
 
 ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
-endif
-
-ifeq ($(XP_SEM),1)
- OBJS	+=	$(LIBODIR)$(SLASH)xpsem.$(OFILE)
 endif
 
 #SBBSLIB	=	$(LIBODIR)$(SLASH)libsbbs.so
