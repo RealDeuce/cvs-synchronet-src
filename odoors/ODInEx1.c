@@ -2004,7 +2004,7 @@ malloc_error:
          ODComSetPreferredMethod(hSerialPort, kComMethodSocket);
       }
 
-#if defined ODPLAT_WIN32 || defined ODPLAT_NIX
+#ifdef ODPLAT_WIN32
       /* Check whether a handle has been provided by the caller. */
       if(od_control.od_open_handle != 0)
       {
@@ -2224,8 +2224,8 @@ malloc_error:
       od_control.baud=19200;
       gethostname(od_control.system_name,sizeof(od_control.system_name));
       od_control.system_name[sizeof(od_control.system_name)-1]=0;
-      if (isatty(STDOUT_FILENO))  {
-        tcgetattr(STDOUT_FILENO,&term);
+      if (isatty(STDIN_FILENO))  {
+        tcgetattr(STDIN_FILENO,&term);
    	  od_control.baud=cfgetispeed(&term);
         if(!od_control.baud)
    	    od_control.baud=cfgetispeed(&term);
