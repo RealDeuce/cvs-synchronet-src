@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.12 2002/04/18 00:25:34 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.13 2002/07/15 20:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,14 +265,9 @@ mail_t* DLLCALL loadmail(smb_t* smb, ulong* msgs, uint usernumber
 			smb_unlocksmbhdr(smb);
 			return(NULL); 
 		}
-		mail[l].offset=idx.offset;
-		mail[l].number=idx.number;
-		mail[l].to=idx.to;
-		mail[l].from=idx.from;
-		mail[l].subj=idx.subj;
-		mail[l].time=idx.time;
-		mail[l].attr=idx.attr;
-		l++; }
+		mail[l]=idx;
+		l++; 
+	}
 	smb_unlocksmbhdr(smb);
 	*msgs=l;
 	return(mail);
