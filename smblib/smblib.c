@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.45 2002/10/30 10:53:21 rswindell Exp $ */
+/* $Id: smblib.c,v 1.46 2002/10/31 01:56:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1494,6 +1494,28 @@ int SMBCALL smb_incdat(smb_t* smb, ulong offset, ulong length, ushort headers)
 		}
 	}
 	fflush(smb->sda_fp);
+	return(0);
+}
+
+/****************************************************************************/
+/* Increments data allocation records (message references) by number of		*/
+/* headers specified (usually 1)											*/
+/* The opposite function of smb_freemsg()									*/
+/****************************************************************************/
+int SMBCALL smb_incmsg(smb_t* smb, smbmsg_t* msg)
+{
+	int		i;
+	ushort	x;
+
+	if(smb->status.attr&SMB_HYPERALLOC)  /* Nothing to do */
+		return(0);
+
+	for(x=0;x<msg->hdr.total_dfields;x++) {
+		if((i=smb_incdat(smb,msg->hdr.offset+msg->dfield[x].offset
+			,msg->dfield[x].length,1))!=0)
+			return(i); 
+	}
+
 	return(0);
 }
 
