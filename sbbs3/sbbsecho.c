@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.61 2002/08/29 01:48:34 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.62 2002/09/02 05:55:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2140,41 +2140,38 @@ time_t fmsgtime(char *str)
 
 static short fmsgzone(char* p)
 {
-	char hr[4];
-	char min[4];
-	short val;
-	BOOL west=TRUE;
+	char	hr[4]="";
+	char	min[4]="";
+	short	val;
+	BOOL	west=TRUE;
 
 	if(*p=='-')
 		p++;
 	else
 		west=FALSE;
 
-	sprintf(hr,"%.2s",p);
-	sprintf(min,"%.2s",p+1);
+	if(strlen(p)>=2)
+		sprintf(hr,"%.2s",p);
+	if(strlen(p+2)>=2)
+		sprintf(min,"%.2s",p+2);
 
 	val=atoi(hr)*60;
 	val+=atoi(min);
 
 	if(west)
-		switch(val) {
-			case 0x0F0:
-				return(AST);
-			case 0x12C:
-				return(EST);
-			case 0x168:
-				return(CST);
-			case 0x1A4:
-				return(MST);
-			case 0x1E0:
-				return(PST);
-			case 0x21C:
-				return(YST);
-			case 0x258:
-				return(HST);
-			case 0x294:
-				return(BST);
+		switch(val|US_ZONE) {
+			case AST:
+			case EST:
+			case CST:
+			case MST:
+			case PST:
+			case YST:
+			case HST:
+			case BST:
+				/* standard US timezone */
+				return(val|US_ZONE);
 			default: 
+				/* non-standard timezone */
 				return(-val);
 		}
 	return(val);
@@ -3941,7 +3938,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.61 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.62 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
