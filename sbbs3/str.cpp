@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.38 2002/08/16 21:59:37 rswindell Exp $ */
+/* $Id: str.cpp,v 1.39 2002/09/06 01:19:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@
 /****************************************************************************/
 /* Lists all users who have access to the current sub.                      */
 /****************************************************************************/
-void sbbs_t::userlist(char mode)
+void sbbs_t::userlist(long mode)
 {
 	char	name[256],sort=0;
 	char 	tmp[512];

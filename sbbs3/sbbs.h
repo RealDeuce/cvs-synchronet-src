@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.140 2002/09/05 09:21:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.141 2002/09/06 01:19:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -392,7 +392,7 @@ public:
 	/* str.cpp */
 	char*	timestr(time_t *intime);
     char	timestr_output[60];
-	void	userlist(char subonly);
+	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, char *tmplt, long mode);
 	void	sif(char *fname, char *answers, long len);	/* Synchronet Interface File */
 	void	sof(char *fname, char *answers, long len);
