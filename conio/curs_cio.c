@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.14 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.15 2004/09/22 21:55:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "gen_defs.h"	/* xpdev, for BOOL/TRUE/FALSE */
 
 #include "ciolib.h"
 #include "curs_cio.h"
