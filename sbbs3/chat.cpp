@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.42 2005/03/18 01:47:22 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.41 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -784,7 +784,7 @@ void sbbs_t::privchat(bool local)
 				checkline();
 				gettimeleft();
 				SYNC; 
-				inkey(K_NONE,500);
+				SLEEP(500);
 			} 
 		}
 	}
