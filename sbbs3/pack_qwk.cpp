@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.5 2000/11/28 14:49:52 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.6 2000/11/29 05:43:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	if(prepack)
 		ex|=EX_OFFLINE;
 
-	delfiles(cfg.temp_dir,"*");
+	delfiles(cfg.temp_dir,ALLFILES);
 	sprintf(str,"%sfile/%04u.qwk",cfg.data_dir,useron.number);
 	if(fexist(str)) {
 		for(k=0;k<cfg.total_fextrs;k++)
@@ -78,7 +78,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				break;
 		if(k>=cfg.total_fextrs)
 			k=0;
-		i=external(cmdstr(cfg.fextr[k]->cmd,str,"*",NULL),ex);
+		i=external(cmdstr(cfg.fextr[k]->cmd,str,ALLFILES,NULL),ex);
 		if(!i)
 			preqwk=1; }
 

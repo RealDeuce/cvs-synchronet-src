@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.5 2000/11/28 14:49:52 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.6 2000/11/29 05:43:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,7 +197,7 @@ void sbbs_t::temp_xfer()
 				sys_status&=~SS_ABORT;
 				break;
 			case 'F':   /* Create a file list */
-				delfiles(cfg.temp_dir,"*");
+				delfiles(cfg.temp_dir,ALLFILES);
 				create_filelist("FILELIST.TXT",0);
 				if(!(sys_status&SS_ABORT))
 					logline(nulstr,"Created list of all files");
@@ -231,7 +231,7 @@ void sbbs_t::temp_xfer()
 					bprintf(text[TempDirTotal],ultoac(bytes,tmp),files);
 				break;
 			case 'N':   /* Create a list of new files */
-				delfiles(cfg.temp_dir,"*");
+				delfiles(cfg.temp_dir,ALLFILES);
 				create_filelist("NEWFILES.TXT",FL_ULTIME);
 				if(!(sys_status&SS_ABORT))
 					logline(nulstr,"Created list of new files");

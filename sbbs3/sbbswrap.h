@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.24 2000/11/15 02:59:15 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.25 2000/11/29 05:43:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,8 @@ extern "C" {
 
 #ifdef __unix__
 
-	#include <glob.h>	/* POSIX.2 directory pattern matching function */
+	#include <glob.h>		/* POSIX.2 directory pattern matching function */
+	#define ALLFILES "*"	/* matches all files in a directory */
 
 #else	/* glob-compatible findfirst/findnext wrapper */
 
@@ -116,6 +117,8 @@ extern "C" {
 
 	DLLEXPORT int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t*);
 	DLLEXPORT void	DLLCALL globfree(glob_t*);
+
+	#define ALLFILES "*.*"	/* matches all files in a directory */
 
 #endif
 

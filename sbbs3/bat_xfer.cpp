@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.4 2000/11/28 14:49:51 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.5 2000/11/29 05:43:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,7 +312,7 @@ void sbbs_t::batchmenu()
 					action=NODE_ULNG;
 					SYNC;
 					if(online==ON_REMOTE) {
-						delfiles(cfg.temp_dir,"*");
+						delfiles(cfg.temp_dir,ALLFILES);
 						start=time(NULL);
 						protocol(cmdstr(cfg.prot[xfrprot]->batulcmd,str,nulstr,NULL),1);
 						end=time(NULL);
@@ -320,13 +320,13 @@ void sbbs_t::batchmenu()
 							starttime+=end-start; 
 					}
 					batch_upload();
-					delfiles(cfg.temp_dir,"*");
+					delfiles(cfg.temp_dir,ALLFILES);
 					autohangup(); 
 				}
 				break; 
 		} 
 	}
-	delfiles(cfg.temp_dir,"*");
+	delfiles(cfg.temp_dir,ALLFILES);
 }
 
 /****************************************************************************/
