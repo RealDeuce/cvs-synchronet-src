@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.1 2001/06/22 01:44:01 rswindell Exp $ */
+/* $Id: js_client.c,v 1.2 2001/06/22 02:31:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,7 +124,7 @@ static JSClass js_client_class = {
 };
 
 JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
-										,char* name, client_t* client)
+										,char* name, client_t* client, SOCKET sock)
 {
 	JSObject*	obj;
 
@@ -136,6 +136,8 @@ JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
 	JS_SetPrivate(cx, obj, client);	/* Store a pointer to client_t */
 
 	JS_DefineProperties(cx, obj, js_client_properties);
+
+	js_CreateSocketObject(cx, obj, "socket", sock);
 
 	return(obj);
 }
