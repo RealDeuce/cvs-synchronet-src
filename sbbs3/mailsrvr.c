@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.41 2000/12/01 22:25:51 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.42 2000/12/02 23:31:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2353,7 +2353,8 @@ void DLLCALL mail_server(void* arg)
 	}
 
 	t=time(NULL);
-	lprintf("Initializing on %s",ctime(&t));
+	lprintf("Initializing on %.24s with options: %lx"
+		,ctime(&t),startup->options);
 
 	/* Initial configuration and load from CNF files */
     memset(&scfg, 0, sizeof(scfg));
