@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.7 2002/04/26 11:01:57 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.8 2002/12/12 03:14:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,7 +162,7 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
         char*   p;
         if(fp!=NULL) {
             while(!feof(fp)) {
-                if(!fgets(str,sizeof(str)-1,fp))
+                if(!fgets(str,sizeof(str),fp))
                     break;
                 p=str;
                 while(*p && *p<=' ') p++;
