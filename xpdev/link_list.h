@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.11 2004/11/09 17:28:57 rswindell Exp $ */
+/* $Id: link_list.h,v 1.12 2004/11/09 18:15:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,10 +86,12 @@ BOOL			listFree(link_list_t*);
 long			listFreeNodes(link_list_t*);
 BOOL			listFreeNodeData(list_node_t* node);
 
+#if defined(LINK_LIST_THREADSAFE)
 BOOL			listSemPost(const link_list_t*);
 BOOL			listSemWait(const link_list_t*);
 BOOL			listSemTryWait(const link_list_t*);
 BOOL			listSemTryWaitBlock(const link_list_t*, unsigned long timeout);
+#endif
 
 /* Lock/unlock mutex-protected linked lists (no-op for unprotected lists) */
 void			listLock(const link_list_t*);
