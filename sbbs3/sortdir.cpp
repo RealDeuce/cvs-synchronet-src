@@ -2,7 +2,7 @@
 
 /* Synchronet file database sorting routines */
 
-/* $Id: sortdir.cpp,v 1.3 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: sortdir.cpp,v 1.4 2003/03/02 11:48:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,7 +195,7 @@ void sbbs_t::resort(uint dirnum)
 /****************************************************************************/
 int fnamecmp_a(char **str1, char **str2)
 {
-	return(strncmp(*str1,*str2,11));
+	return(strnicmp(*str1,*str2,11));
 }
 
 /****************************************************************************/
@@ -203,7 +203,7 @@ int fnamecmp_a(char **str1, char **str2)
 /****************************************************************************/
 int fnamecmp_d(char **str1, char **str2)
 {
-	return(strncmp(*str2,*str1,11));
+	return(strnicmp(*str2,*str1,11));
 }
 
 /****************************************************************************/
