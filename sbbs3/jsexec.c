@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.78 2005/02/16 22:23:41 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.79 2005/02/16 22:28:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -764,7 +764,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.78 $", "%*s %s", revision);
+	sscanf("$Revision: 1.79 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -849,6 +849,11 @@ int main(int argc, char **argv, char** environ)
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
 					break;
+#if defined(__unix__)
+				case 'd':
+					daemonize=TRUE;
+					break;
+#endif
 				default:
 					fprintf(errfp,"\n!Unsupported option: %s\n",argv[argn]);
 				case '?':
