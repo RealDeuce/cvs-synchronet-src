@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.7 2003/03/22 00:14:31 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.8 2003/04/02 00:47:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,7 +146,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 		areaobj = JSVAL_TO_OBJECT(val);
 	else
 		areaobj = JS_DefineObject(cx, parent, "xtrn_area", &js_xtrn_area_class
-									, NULL, JSPROP_ENUMERATE);
+									, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(areaobj==NULL)
 		return(NULL);

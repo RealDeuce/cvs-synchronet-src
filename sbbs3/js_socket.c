@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.76 2003/03/21 23:42:24 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.77 2003/04/02 00:47:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1325,7 +1325,8 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 	JSObject* obj;
 	private_t*	p;
 
-	obj = JS_DefineObject(cx, parent, name, &js_socket_class, NULL, JSPROP_ENUMERATE);
+	obj = JS_DefineObject(cx, parent, name, &js_socket_class, NULL
+		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
 		return(NULL);

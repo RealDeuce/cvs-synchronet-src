@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.53 2003/03/21 23:42:24 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.54 2003/04/02 00:47:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2745,7 +2745,8 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 {
 	JSObject* obj;
 
-	obj = JS_DefineObject(cx, parent, "bbs", &js_bbs_class, NULL, JSPROP_ENUMERATE);
+	obj = JS_DefineObject(cx, parent, "bbs", &js_bbs_class, NULL
+		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
 		return(NULL);

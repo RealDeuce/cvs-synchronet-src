@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.40 2003/04/01 09:34:51 rswindell Exp $ */
+/* $Id: js_file.c,v 1.41 2003/04/02 00:47:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1123,7 +1123,8 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 	JSObject* obj;
 	private_t*	p;
 
-	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL, JSPROP_ENUMERATE);
+	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
+		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
 		return(NULL);

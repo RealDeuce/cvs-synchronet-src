@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.234 2003/03/29 11:34:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.235 2003/04/02 00:47:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -735,7 +735,7 @@ bool sbbs_t::js_init()
 
 		/* Server Object */
 		if((server=JS_DefineObject(js_cx, js_glob, "server", &js_server_class
-			,NULL,JSPROP_ENUMERATE))==NULL)
+			,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
 			break;
 
 		js_DescribeObject(js_cx,server,"Server-specifc properties");

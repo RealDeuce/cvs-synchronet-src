@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.40 2003/03/21 23:42:24 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.41 2003/04/02 00:47:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1199,7 +1199,8 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(NULL);
 
-	if((obj=JS_DefineObject(cx, parent, "console", &js_console_class, NULL, JSPROP_ENUMERATE))==NULL)
+	if((obj=JS_DefineObject(cx, parent, "console", &js_console_class, NULL
+		,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
 		return(NULL);
 
 	if(!JS_DefineProperties(cx, obj, js_console_properties))
