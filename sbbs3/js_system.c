@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.10 2001/10/13 00:21:10 rswindell Exp $ */
+/* $Id: js_system.c,v 1.11 2001/10/17 19:20:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -634,7 +634,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static JSBool js_node_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
 	uint		node_num;
-	uint		val=0;
+	jsint		val=0;
     jsint       tiny;
 	node_t		node;
 	scfg_t*		cfg;

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.7 2001/08/03 16:14:01 rswindell Exp $ */
+/* $Id: js_user.c,v 1.8 2001/10/17 19:20:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -322,7 +322,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
 	char*		str;
 	char		tmp[64];
-	ulong		val;
+	jsint		val;
 	ulong		usermisc;
     jsint       tiny;
 	JSString*	js_str;
@@ -341,7 +341,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case USER_PROP_NUMBER:
-			JS_ValueToInt32(cx, *vp, &p->usernumber);
+			JS_ValueToInt32(cx, *vp, (jsint*)&p->usernumber);
 			break;
 		case USER_PROP_ALIAS:
 			/* update USER.DAT */

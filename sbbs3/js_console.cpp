@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.6 2001/08/02 04:12:56 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.7 2001/10/17 19:20:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -608,7 +608,6 @@ js_printtail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_editfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.4 2001/07/30 18:11:04 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.5 2001/10/17 19:20:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	JSObject*	lib_list;
 	JSObject*	dir_list;
 	jsval		val;
-	jsint		index;
+	jsuint		index;
 	uint		l,d;
 	JSBool		found;
 
