@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.4 2000/11/07 04:44:44 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.5 2000/11/07 12:00:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -401,7 +401,7 @@ bool sbbs_t::noyes(char *str)
 /****************************************************************************/
 long sbbs_t::getkeys(char *keys, ulong max)
 {
-	char	str[27];
+	char	str[81];
 	uchar	ch,n=0,c;
 	ulong	i=0;
 
