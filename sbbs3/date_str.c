@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.9 2002/03/08 17:58:47 rswindell Exp $ */
+/* $Id: date_str.c,v 1.10 2002/03/09 00:23:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,8 +232,11 @@ when_t DLLCALL rfc822date(char* date)
 	p+=4;
 	/* YEAR */
 	tm.tm_year=atoi(p);
-	if(tm.tm_year>1900)
+	if(tm.tm_year<Y2K_2DIGIT_WINDOW)
+		tm.tm_year+=100;
+	else if(tm.tm_year>1900)
 		tm.tm_year-=1900;
+
 	while(*p && isdigit(*p)) p++;
 	/* HOUR */
 	while(*p && *p<=' ') p++;
