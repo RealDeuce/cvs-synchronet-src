@@ -2,7 +2,7 @@
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
-/* $Id: qwknodes.c,v 1.10 2002/04/23 08:08:14 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.11 2002/04/23 08:20:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,8 +227,7 @@ int lprintf(char *fmat, ...)
 
 	va_start(argptr,fmat);
 	chcount=vsnprintf(sbuf,sizeof(sbuf),fmat,argptr);
-	if(chcount<0)
-		sbuf[sizeof(sbuf)-1]=0;
+	sbuf[sizeof(sbuf)-1]=0;
 	va_end(argptr);
 	lputs(sbuf);
 	return(chcount);

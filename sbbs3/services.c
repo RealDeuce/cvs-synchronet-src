@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.51 2002/04/23 08:08:14 rswindell Exp $ */
+/* $Id: services.c,v 1.52 2002/04/23 08:20:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,8 +120,8 @@ static int lprintf(char *fmt, ...)
 #endif
 
 	va_start(argptr,fmt);
-    if(vsnprintf(sbuf,sizeof(sbuf),fmt,argptr)<0)
-		sbuf[sizeof(sbuf)-1]=0;
+    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     return(startup->lputs(sbuf));
 }
