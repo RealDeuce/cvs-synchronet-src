@@ -1,9 +1,40 @@
-/* $Id: ciolib.h,v 1.11 2004/09/10 23:24:49 deuce Exp $ */
+/* $Id: ciolib.h,v 1.17 2004/09/22 04:03:06 deuce Exp $ */
+
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
 
-#include <mouse.h>
+#include "mouse.h"
 
 enum {
 	 CIOLIB_MODE_AUTO
@@ -50,14 +81,62 @@ enum {
 };
 #define BLINK 128
 
-#define LASTMODE	-1
-#define BW40		0
-#define C40			1
-#define BW80		2
-#define	C80			3
-#define MONO		7
-#define C4350		64
-#define C80X50		64
+enum text_modes
+{
+    /* DOS-compatible modes */
+
+    LASTMODE = -1,
+    BW40     = 0,
+    C40,
+    BW80,
+    C80,
+    MONO     = 7,
+
+    /* New Color modes */
+
+    C40X14   = 8,
+    C40X21,
+    C40X28,
+    C40X43,
+    C40X50,
+    C40X60,
+
+    C80X14,
+    C80X21,
+    C80X28,
+    C80X43,
+    C80X50,
+    C80X60,
+
+    /* New Black & White modes */
+
+    BW40X14,
+    BW40X21,
+    BW40X28,
+    BW40X43,
+    BW40X50,
+    BW40X60,
+
+    BW80X14,
+    BW80X21,
+    BW80X28,
+    BW80X43,
+    BW80X50,
+    BW80X60,
+
+    /* New Monochrome modes */
+
+    MONO14,             /* Invalid VGA mode */
+    MONO21,
+    MONO28,
+    MONO43,
+    MONO50,
+    MONO60,
+
+    C4350    = C80X50,	/* this is actually "64" in the "real" conio */
+
+    _ORIGMODE = 65      /* original mode at program startup */
+};
 
 #define COLOR_MODE	C80
 
@@ -160,9 +239,9 @@ void ciolib_lowvideo(void);
 void ciolib_normvideo(void);
 int ciolib_puttext(int a,int b,int c,int d,unsigned char *e);
 int ciolib_gettext(int a,int b,int c,int d,unsigned char *e);
-void ciolib_textattr(unsigned char a);
+void ciolib_textattr(int a);
 void ciolib_delay(long a);
-int ciolib_putch(unsigned char a);
+int ciolib_putch(int a);
 void ciolib_setcursortype(int a);
 void ciolib_textmode(int mode);
 void ciolib_window(int sx, int sy, int ex, int ey);
@@ -170,6 +249,9 @@ void ciolib_delline(void);
 void ciolib_insline(void);
 char *ciolib_getpass(const char *prompt);
 void settitle(const char *title);
+int ciolib_showmouse(void);
+int ciolib_hidemouse(void);
+void ciolib_settitle(const char *title);
 #ifdef __cplusplus
 }
 #endif
