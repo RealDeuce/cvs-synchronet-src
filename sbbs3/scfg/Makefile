@@ -8,7 +8,7 @@
 # usage: make -f makefile.bor											#
 #########################################################################
 
-# $Id: Makefile,v 1.4 2002/11/18 03:43:45 rswindell Exp $
+# $Id: Makefile,v 1.5 2003/01/02 01:23:35 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -18,7 +18,7 @@ SLASH	=	\\
 OFILE	=	obj
 EXEFILE	=	.exe
 ODIR	=	bcc.win32	# Executable output directory
-XPDEV	=   ..\..\xpdev
+XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
 CFLAGS	=	-M -I..;$(UIFC);$(XPDEV) -g1
 DELETE	=	echo y | del 
@@ -30,7 +30,7 @@ DELETE	=	echo y | del
 .cacheautodepend	
 
 # Optional compile flags (disable banner, warnings and such)
-CFLAGS	=	$(CFLAGS) -q -d -H -X- -w-csu -w-pch -w-ccc -w-rch -w-par -w-pro 
+CFLAGS	=	$(CFLAGS) -q -d -H -X- -w-csu -w-pch -w-ccc -w-rch -w-par -w-pro -w-8004
 #-w-aus
 
 # Debug or release build?
