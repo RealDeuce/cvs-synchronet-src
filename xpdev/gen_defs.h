@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.16 2004/06/04 11:17:30 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.15 2004/05/30 07:14:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,11 +182,7 @@ typedef struct {
 /***********************/
 
 /* This is a bound-safe version of strcpy basically - only works with fixed-length arrays */
-#define SAFECOPY(dst,src)				sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
-#define TERMINATE(str)					str[sizeof(str)-1]=0
-#define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg), TERMINATE(dst)
-#define SAFEPRINTF2(dst,fmt,a1,a2)		snprintf(dst,sizeof(dst),fmt,a1,a2), TERMINATE(dst)
-#define SAFEPRINTF3(dst,fmt,a1,a2,a3)	snprintf(dst,sizeof(dst),fmt,a1,a2,a3), TERMINATE(dst)
+#define SAFECOPY(dst,src)	sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
 
 /* Replace every occurance of c1 in str with c2, using p as a temporary char pointer */
 #define REPLACE_CHARS(str,c1,c2,p)	for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
