@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.31 2005/01/20 06:14:17 deuce Exp $
+# $Id: Common.gmake,v 1.30 2004/12/12 09:41:44 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -181,7 +181,6 @@ OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
 MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
 EXEODIR :=	$(CCPRE).$(machine).exe.$(BUILDPATH)
 LDFLAGS	+=	-L$(LIBODIR)
-LDFLAGS +=  -lm
 
 ifeq ($(os),openbsd)
  DELETE :=	rm -f
@@ -222,6 +221,7 @@ ifeq ($(os),netbsd)	# NetBSD
 endif
 ifeq ($(os),darwin)
  CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
+ LDFLAGS +=  -lm
 endif
 
 # PThread-specific flags
