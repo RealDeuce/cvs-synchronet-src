@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.90 2003/07/03 05:48:11 rswindell Exp $
+# $Id: GNUmakefile,v 1.91 2003/07/03 05:49:48 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -471,7 +471,7 @@ FORCE$(JSEXEC): $(JSEXEC_OBJS)
 
 $(JSEXEC): $(JSEXEC_OBJS)
 	@echo Linking $@
-	@$(CC) -o $@ $^
+	@$(CC) -o $@ $(LIBS) $^
 	
 # ANS2MSG
 FORCE$(ANS2MSG): $(ANS2MSG).o
