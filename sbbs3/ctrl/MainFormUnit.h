@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.2 2000/10/12 00:13:09 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.3 2000/10/24 22:20:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,6 +175,7 @@ __published:	// IDE-managed Components
     TMenuItem *BBSEditIPFilterMsg;
     TMenuItem *BBSEditHostFilter;
     TMenuItem *BBSEditHostFilterMsg;
+    TMenuItem *AllowedRelayList1;
     void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall PanelUnDock(TObject *Sender, TControl *Client,
@@ -216,7 +217,6 @@ __published:	// IDE-managed Components
 	void __fastcall ForceNetworkCalloutMenuItemClick(TObject *Sender);
 	void __fastcall TextMenuItemEditClick(TObject *Sender);
 	void __fastcall CtrlMenuItemEditClick(TObject *Sender);
-	void __fastcall MailEditAliasListClick(TObject *Sender);
     void __fastcall UpTimerTick(TObject *Sender);
     void __fastcall BBSViewErrorLogMenuItemClick(TObject *Sender);
     void __fastcall ChatToggleExecute(TObject *Sender);
