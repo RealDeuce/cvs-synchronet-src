@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.6 2002/08/12 21:11:30 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.7 2002/08/15 06:54:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,6 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 		count=len;
 
 	rd=read(file,buf,count);
-	close(file);
 	if(rd!=count) {
 		free(buf);
 		return(-1);
