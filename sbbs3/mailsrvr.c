@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.222 2002/12/13 19:34:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.223 2003/01/04 02:55:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1656,6 +1656,7 @@ static void smtp_thread(void* arg)
 					telegram_buf[length+strlen(str)]=0;	/* Need ASCIIZ */
 
 					/* Send telegram to users */
+					rewind(rcptlst);
 					rcpt_count=0;
 					while(!feof(rcptlst)  && rcpt_count<startup->max_recipients) {
 						if(fgets(str,sizeof(str),rcptlst)==NULL)
@@ -3105,7 +3106,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.222 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.223 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
