@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.7 2002/08/26 08:34:40 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.8 2002/10/29 09:15:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 /* ANSI */
 
-#ifdef __FreeBSD__
+#ifdef __unix__
 	#include <stdlib.h>		/* malloc/realloc/free is defined here */
 #else
 	#include <malloc.h>
