@@ -21,7 +21,6 @@ struct bbslist_file {
 	unsigned int	calls;
 	char			user[MAX_USER_LEN+1];
 	char			password[MAX_PASSWD_LEN+1];
-	int				dumb;
 };
 
 void sort_list(struct bbslist **list)  {
@@ -70,7 +69,6 @@ void write_list(struct bbslist **list)
 			bbs.added=list[i]->added;
 			bbs.connected=list[i]->connected;
 			bbs.calls=list[i]->calls;
-			bbs.dumb=list[i]->dumb;
 			strcpy(bbs.user,list[i]->user);
 			strcpy(bbs.password,list[i]->password);
 			fwrite(&bbs,sizeof(bbs),1,listfile);
@@ -78,8 +76,6 @@ void write_list(struct bbslist **list)
 		fclose(listfile);
 	}
 	else {
-		uifc.helpbuf=	"`Can't save list`\n\n"
-						"The system is unable to save your dialing list\n";
 		sprintf(str,"Can't save list to %.*s",MAX_PATH-20,listpath);
 		uifc.msg(str);
 	}
@@ -105,7 +101,6 @@ void read_list(char *listpath, struct bbslist **list, int *i, int type)
 			list[*i]->calls=bbs.calls;
 			strcpy(list[*i]->user,bbs.user);
 			strcpy(list[*i]->password,bbs.password);
-			list[*i]->dumb=bbs.dumb;
 			list[*i]->type=type;
 			list[*i]->id=(*i)++;
 		}
@@ -127,11 +122,6 @@ int edit_list(struct bbslist *item)
 	for(i=0;i<6;i++)
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
-		uifc.helpbuf=	"`Cannot edit system BBS list`\n\n"
-						"SyncTERM supports system-wide and per-user lists.  You may only edit entries"
-						"in your own personal list.\n"
-						"\n"
-						"The Be Dumb option can be used to connect to BBSs which support 'dumb' telnet";
 		uifc.msg("Cannot edit system BBS list");
 		return(0);
 	}
@@ -142,35 +132,19 @@ int edit_list(struct bbslist *item)
 		sprintf(opt[2],"RLogin Port:    %hu",item->port);
 		sprintf(opt[3],"Username:       %s",item->user);
 		sprintf(opt[4],"Password");
-		sprintf(opt[5],"Be Dumb:        %s",item->dumb?"Yes":"No");
 		uifc.changes=0;
-
-		uifc.helpbuf=	"`Edit BBS`\n\n"
-						"Select item to edit.";
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,"Edit Entry",opts)) {
 			case -1:
 				return(changed);
 			case 0:
-				uifc.helpbuf=	"`BBS Name`\n\n"
-								"Enter the BBS name as it is to appear in the list.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",item->name,LIST_NAME_MAX,K_EDIT);
 				break;
 			case 1:
-				uifc.helpbuf=	"`RLogin address`\n\n"
-								"Enter the domain name of the system to connect to ie:\n"
-								"nix.synchro.net";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"RLogin Address",item->addr,LIST_ADDR_MAX,K_EDIT);
 				break;
 			case 2:
 				i=item->port;
 				sprintf(str,"%hu",item->port?item->port:513);
-				uifc.helpbuf=	"`RLogin port`\n\n"
-								"Enter the port which RLogin is listening to on the remote system\n\n"
-								"~ NOTE:~\n"
-								"Connecting to telnet ports currently appears to work... however, if an\n"
-								"ASCII 255 char is sent by either end, it will be handled incorreclty by\n"
-								"the remote system.  Further, if the remote system follows the RFC, some\n"
-								"Terminal weirdness should be expected.  This program DOES NOT do telnet.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"RLogin Port",str,5,K_EDIT|K_NUMBER);
 				j=atoi(str);
 				if(j<1 || j>65535)
@@ -182,13 +156,9 @@ int edit_list(struct bbslist *item)
 					uifc.changes=0;
 				break;
 			case 3:
-				uifc.helpbuf=	"`Username`\n\n"
-								"Enter the username to attempt auto-login to the remote with.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Username",item->user,MAX_USER_LEN,K_EDIT);
 				break;
 			case 4:
-				uifc.helpbuf=	"`Password`\n\n"
-								"Enter your password for auto-login.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Password",item->password,MAX_PASSWD_LEN,K_EDIT);
 				break;
 		}
@@ -212,7 +182,6 @@ struct bbslist *show_bbslist(int mode)
 	int		val;
 	int		listcount=0;
 	char	str[6];
-	char	*YesNo[3]={"Yes","No",""};
 
 	if(init_uifc())
 		return(NULL);
@@ -240,11 +209,6 @@ struct bbslist *show_bbslist(int mode)
 	sort_list(list);
 
 	for(;;) {
-		uifc.helpbuf=	"`SyncTERM Dialing List`\n\n"
-						"Commands:\n"
-						"~ CTRL-E ~ Switch listing to Edit mode\n"
-						"~ CTRL-D ~ Switch listing to Dial mode\n"
-						"Select a bbs to edit/dial an entry.";
 		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)|WIN_SAV|WIN_MID|WIN_INS|WIN_DEL|WIN_EXTKEYS,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Select BBS":"Edit BBS",(char **)list);
 		if(val==listcount)
 			val=listcount|MSK_INS;
@@ -264,9 +228,6 @@ struct bbslist *show_bbslist(int mode)
 			switch(val&MSK_ON) {
 				case MSK_INS:
 					if(listcount>=MAX_OPTS) {
-						uifc.helpbuf=	"`Max List size reached`\n\n"
-										"The total combined size of loaded BBS lists is currently the highest\n"
-										"Supported size.  You must delete entries before adding more.";
 						uifc.msg("Max List size reached!");
 						break;
 					}
@@ -276,14 +237,9 @@ struct bbslist *show_bbslist(int mode)
 					memset(list[listcount-1],0,sizeof(struct bbslist));
 					list[listcount-1]->id=listcount-1;
 					uifc.changes=0;
-					uifc.helpbuf=	"`BBS Name`\n\n"
-									"Enter the BBS name as it is to appear in the list.";
 					uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",list[listcount-1]->name,LIST_NAME_MAX,K_EDIT);
 					if(uifc.changes) {
 						uifc.changes=0;
-						uifc.helpbuf=	"`RLogin address`\n\n"
-										"Enter the domain name of the system to connect to ie:\n"
-										"nix.synchro.net";
 						uifc.input(WIN_MID|WIN_SAV,0,0,"RLogin Address",list[listcount-1]->addr,LIST_ADDR_MAX,K_EDIT);
 					}
 					if(!uifc.changes) {
@@ -295,37 +251,14 @@ struct bbslist *show_bbslist(int mode)
 						while(!list[listcount-1]->port) {
 							list[listcount-1]->port=513;
 							sprintf(str,"%hu",list[listcount-1]->port);
-							uifc.helpbuf=	"`RLogin port`\n\n"
-											"Enter the port which RLogin is listening to on the remote system\n\n"
-											"~ NOTE:~\n"
-											"Connecting to telnet ports currently appears to work... however, if an\n"
-											"ASCII 255 char is sent by either end, it will be handled incorreclty by\n"
-											"the remote system.  Further, if the remote system follows the RFC, some\n"
-											"Terminal weirdness should be expected.  This program DOES NOT do telnet.";
 							uifc.input(WIN_MID|WIN_SAV,0,0,"RLogin Port",str,5,K_EDIT|K_NUMBER);
 							j=atoi(str);
 							if(j<1 || j>65535)
 								j=0;
 							list[listcount-1]->port=j;
 						}
-						if(list[listcount-1]->port != 513) {
-							uifc.helpbuf=	"`Be Dumb`\n\n"
-											"Select this option if attempting to connect to a dumb telnet BBS";
-							list[listcount-1]->dumb=0;
-							uifc.list(WIN_MID|WIN_SAV,0,0,0,&list[listcount-1]->dumb,NULL,"Be Dumb",YesNo);
-						}
-						if(list[listcount-1]->dumb) {
-							uifc.helpbuf=	"`Username`\n\n"
-											"Enter the username to attempt auto-login to the remote with.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"User Name",list[listcount-1]->user,MAX_USER_LEN,K_EDIT);
-							uifc.helpbuf=	"`Password`\n\n"
-											"Enter your password for auto-login.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Password",list[listcount-1]->password,MAX_PASSWD_LEN,K_EDIT);
-						}
-						else {
-							list[listcount-1]->user[0]=0;
-							list[listcount-1]->password[0]=0;
-						}
+						uifc.input(WIN_MID|WIN_SAV,0,0,"User Name",list[listcount-1]->user,MAX_USER_LEN,K_EDIT);
+						uifc.input(WIN_MID|WIN_SAV,0,0,"Password",list[listcount-1]->password,MAX_PASSWD_LEN,K_EDIT);
 						sort_list(list);
 						for(j=0;list[j]->name[0];j++) {
 							if(list[j]->id==listcount-1)
@@ -335,20 +268,7 @@ struct bbslist *show_bbslist(int mode)
 					}
 					break;
 				case MSK_DEL:
-					uifc.msg("Huh?");
 					if(!list[opt]->name[0]) {
-						uifc.helpbuf=	"`Calming down`\n\n";
-										"~ Some handy tips on calming down ~\n"
-										"Close your eyes, imagine yourself alone on a brilliant white beach...\n"
-										"Picture the palm trees up towards the small town...\n"
-										"Glory in the deep blue of the perfectly clean ocean...\n"
-										"Feel the plush comfort of your beach towel...\n"
-										"Enjoy the shade of your satellite internet feed which envelops\n"
-										"your head, keeping you cool...\n"
-										"Set your TEMPEST rated laptop aside on the beach, knowing it's\n"
-										"completely impervious to anything on the beach...\n"
-										"Reach over to your fridge, grab a cold one...\n"
-										"Watch the seagulls in their dance...\n";
 						uifc.msg("It's gone, calm down man!");
 						break;
 					}
