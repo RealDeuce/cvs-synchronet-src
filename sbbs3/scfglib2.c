@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.26 2002/12/04 05:32:03 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.27 2002/12/13 01:54:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -901,7 +901,7 @@ uchar attrstr(char *str)
 
 	atr=LIGHTGRAY;
 	while(str[l]) {
-		switch(str[l]) {
+		switch(toupper(str[l])) {
 			case 'H': 	/* High intensity */
 				atr|=HIGH;
 				break;
