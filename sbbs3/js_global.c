@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.112 2004/04/08 03:32:57 rswindell Exp $ */
+/* $Id: js_global.c,v 1.113 2004/06/11 23:29:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -796,7 +796,7 @@ static struct {
 	{ 8595	,"darr"		}, /* downwards arrow */
 	{ 8594	,"rarr"		}, /* rightwards arrow */
 	{ 8592	,"larr"		}, /* leftwards arrow */
-	{ 8976	,NULL		}, /* reversed not sign */
+	{ 8985	,NULL		}, /* turned not sign */
 	{ 8596	,"harr"		}, /* left right arrow */
 	{ 9650	,NULL		}, /* black up-pointing triangle */
 	{ 9660	,NULL		}  /* black down-pointing triangle */
