@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.159 2002/04/13 08:11:09 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.160 2002/04/15 19:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4232,7 +4232,8 @@ static void ctrl_thread(void* arg)
 	tmp_sock=sock;
 	ftp_close_socket(&tmp_sock,__LINE__);
 
-	active_clients--;
+	if(active_clients>0)
+		active_clients--;
 	update_clients();
 
 	thread_down();
