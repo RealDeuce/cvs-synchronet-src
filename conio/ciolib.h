@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.21 2005/01/23 22:21:47 deuce Exp $ */
+/* $Id: ciolib.h,v 1.22 2005/01/23 23:30:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,7 @@
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
 
+#include <string.h>	/* size_t */
 #include "mouse.h"
 
 enum {
