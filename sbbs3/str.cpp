@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.41 2002/11/13 03:08:00 rswindell Exp $ */
+/* $Id: str.cpp,v 1.42 2003/02/01 02:57:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1068,9 +1068,9 @@ void sbbs_t::change_user(void)
 		}
 	}
 	putmsgptrs();
-	putuserrec(&cfg,useron.number,U_CURSUB,8
+	putuserrec(&cfg,useron.number,U_CURSUB,0
 		,cfg.sub[usrsub[curgrp][cursub[curgrp]]]->code);
-	putuserrec(&cfg,useron.number,U_CURDIR,8
+	putuserrec(&cfg,useron.number,U_CURDIR,0
 		,cfg.dir[usrdir[curlib][curdir[curlib]]]->code);
 	useron.number=i;
 	getuserdat(&cfg,&useron);
