@@ -47,9 +47,6 @@
 #include "console.h"
 #include "vparams.h"
 
-#include "keys.h"
-#include "mouse.h"
-
 /* Console definition variables */
 BYTE VideoMode;
 int FW, FH, FD;
@@ -564,67 +561,58 @@ static int
 video_event(XEvent *ev)
 {
 	switch (ev->type) {
-		case MotionNotify: {
-				XMotionEvent *me = (XMotionEvent *)ev;
-				me->x -= 2;
-				me->y -= 8;
-				me->x/=FW;
-				me->y/=FH;
-				me->x++;
-				me->y++;
-				if(me->x<1)
-					me->x=1;
-				if(me->y<1)
-					me->y=1;
-				if(me->x>DpyCols)
-					me->x=DpyCols;
-				if(me->y>DpyRows+1)
-					me->y=DpyRows+1;
-				ciomouse_gotevent(CIOLIB_MOUSE_MOVE,me->x,me->y);
-				break;
-	    	}
-		case ButtonRelease: {
-				XButtonEvent *be = (XButtonEvent *)ev;
-				be->x -= 2;
-				be->y -= 8;
-				be->x/=FW;
-				be->y/=FH;
-				be->x++;
-				be->y++;
-				if(be->x<1)
-					be->x=1;
-				if(be->y<1)
-					be->y=1;
-				if(be->x>DpyCols)
-					be->x=DpyCols;
-				if(be->y>DpyRows+1)
-					be->y=DpyRows+1;
-				if (be->button <= 3) {
-					ciomouse_gotevent(CIOLIB_BUTTON_RELEASE(be->button),be->x,be->y);
-				}
-				break;
-	    	}
-		case ButtonPress: {
-				XButtonEvent *be = (XButtonEvent *)ev;
-				be->x -= 2;
-				be->y -= 8;
-				be->x/=FW;
-				be->y/=FH;
-				be->x++;
-				be->y++;
-				if(be->x<1)
-					be->x=1;
-				if(be->y<1)
-					be->y=1;
-				if(be->x>DpyCols)
-					be->x=DpyCols;
-				if(be->y>DpyRows+1)
-					be->y=DpyRows+1;
-				if (be->button <= 3) {
-					ciomouse_gotevent(CIOLIB_BUTTON_PRESS(be->button),be->x,be->y);
-				}
-				break;
-	    	}
+	case MotionNotify: {
+		XMotionEvent *me = (XMotionEvent *)ev;
+		me->x -= 2;
+		me->y -= 2;
+
+		mouse_status.x = (me->x < mouse_status.range.x)
+				    ? mouse_status.range.x
+				    : (me->x > mouse_status.range.w)
+				    ? mouse_status.range.w : me->x;
+		mouse_status.y = (me->y < mouse_status.range.y)
+				    ? mouse_status.range.y
+				    : (me->y > mouse_status.range.h)
+				    ? mouse_status.range.h : me->y;
+		break;
+	    }
+	case ButtonRelease: {
+		XButtonEvent *be = (XButtonEvent *)ev;
+		be->x -= 2;
+		be->y -= 2;
+
+		if (be->button < 3)
+		    mouse_status.ups[be->button]++;
+
+		mouse_status.x = (be->x < mouse_status.range.x)
+				    ? mouse_status.range.x
+				    : (be->x > mouse_status.range.w)
+				    ? mouse_status.range.w : be->x;
+		mouse_status.y = (be->y < mouse_status.range.y)
+				    ? mouse_status.range.y
+				    : (be->y > mouse_status.range.h)
+				    ? mouse_status.range.h : be->y;
+		break;
+	    }
+	case ButtonPress: {
+		XButtonEvent *be = (XButtonEvent *)ev;
+		be->x -= 2;
+		be->y -= 2;
+
+		if (be->button < 3)
+		    mouse_status.downs[be->button]++;
+
+		mouse_status.x = (be->x < mouse_status.range.x)
+				    ? mouse_status.range.x
+				    : (be->x > mouse_status.range.w)
+				    ? mouse_status.range.w : be->x;
+		mouse_status.y = (be->y < mouse_status.range.y)
+				    ? mouse_status.range.y
+				    : (be->y > mouse_status.range.h)
+				    ? mouse_status.range.h : be->y;
+
+		break;
+	    }
         case NoExpose:
                 break;
         case GraphicsExpose:
@@ -1346,26 +1334,20 @@ tty_read(int flag)
 		return(r & 0xff);
 	}
 
-	if (KbdEmpty() && !mouse_pending()) {
+	if (KbdEmpty()) {
 		if (flag & TTYF_BLOCK) {
-			while (KbdEmpty() && !mouse_pending())
+			while (KbdEmpty())
 			tty_pause();
 		} else {
 			return(-1);
 		}
     }
 
-	if(mouse_pending()) {
-		x_nextchar=CIO_KEY_MOUSE>>8;
-		return(CIO_KEY_MOUSE&0xff);
-	}
-	else {
-    	r = KbdRead();
-    	if ((r & 0xff) == 0)
-			x_nextchar = r >> 8;
-    	r &= 0xff;
-    	return(r & 0xff);
-	}
+    r = KbdRead();
+    if ((r & 0xff) == 0)
+		x_nextchar = r >> 8;
+    r &= 0xff;
+    return(r & 0xff);
 }
 
 int
