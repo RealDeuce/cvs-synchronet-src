@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.149 2004/07/13 23:18:30 deuce Exp $ */
+/* $Id: websrvr.c,v 1.151 2004/09/05 18:11:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,35 @@
  * Should support RFC2617 Digest auth.
  *
  * Fix up all the logging stuff.
+ *
+ * SSJS stuff could work using three different methods:
+ * 1) Temporary file as happens currently
+ *		Advantages:
+ *			Allows to keep current connection (keep-alive works)
+ *			write() doesn't need to be "special"
+ *		Disadvantages:
+ *			Depends on the temp dir being writable and capable of holding
+ *				the full reply
+ *			Everything goes throug the disk, so probobly some performance
+ *				penalty is involved
+ *			No way of sending directly to the remote system
+ * 2) nph- style
+ *		Advantages:
+ *			No file I/O involved
+ *			Can do magic tricks (ala my perl web wrapper)
+ *		Disadvantages:
+ *			Pretty much everything needs to be handled by the script.
+ * 3) Return body in http_reply object
+ *		All the advantages of 1)
+ *		Could use a special write() to make everything just great.
+ *		Still doesn't allow page to be sent until fully composed (ie: long
+ *			delays)
+ * 4) Type three with a callback that sends the header and current body, then
+ *		converts write() to send directly to remote.
+ *
+ * Add in support to pass connections through to a different webserver...
+ *      probobly in access.ars... with like a simplified mod_rewrite.
+ *      This would allow people to run apache and Synchronet as the same site.
  */
 
 #if defined(__unix__)
@@ -2500,7 +2529,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.149 $", "%*s %s", revision);
+	sscanf("$Revision: 1.151 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
