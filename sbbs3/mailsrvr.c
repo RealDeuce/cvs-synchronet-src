@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.233 2003/02/15 13:24:36 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.234 2003/02/16 14:07:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1886,6 +1886,15 @@ static void smtp_thread(void* arg)
 
 				length=filelength(fileno(msgtxt))-ftell(msgtxt);
 
+				if(startup->max_msg_size && length>startup->max_msg_size) {
+					lprintf("%04d !SMTP message size (%lu) exceeds maximum: %lu bytes"
+						,socket,length,startup->max_msg_size);
+					sockprintf(socket, "552 Message size (%lu) exceeds maximum: %lu bytes"
+						,length,startup->max_msg_size);
+					subnum=INVALID_SUB;
+					continue;
+				}
+
 				if((msgbuf=(char*)malloc(length+1))==NULL) {
 					lprintf("%04d !SMTP ERROR allocating %d bytes of memory"
 						,socket,length+1);
@@ -3130,7 +3139,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.233 $", "%*s %s", revision);
+	sscanf("$Revision: 1.234 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
