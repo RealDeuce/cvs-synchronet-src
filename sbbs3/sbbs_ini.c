@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.99 2005/02/08 01:27:56 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.100 2005/02/18 03:32:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,12 +303,8 @@ void sbbs_read_ini(
 		SAFECOPY(ftp->hack_sound
 			,iniReadString(fp,section,"HackAttemptSound",nulstr,value));
 
-		if(ftp->temp_dir[0])
-			p=ftp->temp_dir;
-		else
-			p=_PATH_TMP;
 		SAFECOPY(ftp->temp_dir
-			,iniReadString(fp,section,strTempDirectory,p,value));
+			,iniReadString(fp,section,strTempDirectory,ftp->temp_dir,value));
 
 		ftp->log_mask
 			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
