@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.22 2002/04/18 01:32:03 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.23 2002/04/18 02:02:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,9 +126,9 @@ bool sbbs_t::logon()
 			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
 		bprintf(text[CreditedAccount]
 			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
-		sprintf(str,"%s #%u was billed $%d T: %u seconds"
+		sprintf(str,"%s #%u was billed $%d T: %lu seconds"
 			,useron.alias,useron.number
-			,cfg.node_dollars_per_call,(uint)now-answertime);
+			,cfg.node_dollars_per_call,now-answertime);
 		logline("$+",str);
 		hangup();
 		return(false); }
