@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.100 2002/01/22 01:50:27 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.101 2002/01/22 23:51:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1338,7 +1338,7 @@ static void smtp_thread(void* arg)
 					p=strchr(sender_addr,'@');
 					if(p==NULL || resolve_ip(p+1)!=smtp.client_addr.sin_addr.s_addr) 
 						/* Append real IP and hostname if different */
-						sprintf(str,"%s%s \1w[\1n%s\1h] (\1n%s\1h)%s"
+						sprintf(str,"%s%s\r\n\1w[\1n%s\1h] (\1n%s\1h)%s"
 							,head,sender_addr,host_ip,host_name,tail);
 					else
 						sprintf(str,"%s%s%s",head,sender_addr,tail);
