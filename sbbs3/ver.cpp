@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.5 2000/10/31 13:26:02 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.6 2000/11/08 01:30:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,13 +106,19 @@ void sbbs_t::ver()
 			,winver.dwMajorVersion, winver.dwMinorVersion
 			,winver.dwBuildNumber,winver.szCSDVersion);
 
-#elif defined(__linux__)
-
-	sprintf(str,"Linux");
-
 #elif defined(__unix__)
 
-	sprintf(str,"Unix");
+	struct utsname unixver;
+
+	if(uname(&unixver)!=0)
+		sprintf(str,"Unix (uname errno: %d)",errno);
+	else
+		sprintf(str,"%s %s %s %s"
+			,unixver.sysname	/* e.g. "Linux" */
+			,unixver.release	/* e.g. "2.2.14-5.0" */
+			,unixver.version	/* e.g. "#1 Tue Mar 7 20:53:41 EST 2000" */
+			,unixver.machine	/* e.g. "i586" */
+			);
 
 #else	/* DOS && __BORLANDC__*/
 
