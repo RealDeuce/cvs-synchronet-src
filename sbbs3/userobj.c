@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: userobj.c,v 1.2 2001/04/15 16:45:13 rswindell Exp $ */
+/* $Id: userobj.c,v 1.3 2001/04/16 23:54:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -436,7 +436,7 @@ static JSClass js_user_security_class = {
 	,JS_FinalizeStub		/* finalize		*/
 };
 
-JSObject* DLLCALL CreateUserObject(scfg_t* cfg, JSContext* cx, JSObject* parent, char* name, user_t* user)
+JSObject* DLLCALL js_CreateUserObject(scfg_t* cfg, JSContext* cx, JSObject* parent, char* name, user_t* user)
 {
 	JSObject*	userobj;
 	JSObject*	statsobj;

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: sysobj.c,v 1.2 2001/04/15 16:45:48 rswindell Exp $ */
+/* $Id: sysobj.c,v 1.3 2001/04/16 23:54:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -318,7 +318,7 @@ static JSClass js_sysstats_class = {
 };
 
 
-JSObject* DLLCALL CreateSystemObject(scfg_t* cfg, JSContext* cx, JSObject* parent)
+JSObject* DLLCALL js_CreateSystemObject(scfg_t* cfg, JSContext* cx, JSObject* parent)
 {
 	JSObject*	sysobj;
 	JSObject*	statsobj;
