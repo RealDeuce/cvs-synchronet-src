@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.22 2002/01/23 03:54:12 rswindell Exp $ */
+/* $Id: services.c,v 1.23 2002/01/26 14:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1030,7 +1030,8 @@ void DLLCALL services_thread(void* arg)
 
 	lprintf("Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
-	srand(time(NULL));
+	srand(clock());		/* Seed random number generator */
+	sbbs_random(10);	/* Throw away first number */
 
 	if(!(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
 		if(PUTENV("TZ=UTC0"))

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.127 2002/01/24 12:19:24 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.128 2002/01/26 14:00:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4310,7 +4310,8 @@ void DLLCALL ftp_server(void* arg)
 
 	lprintf("Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
-	srand(time(NULL));
+	srand(clock());		/* Seed random number generator */
+	sbbs_random(10);	/* Throw away first number */
 
 	if(!(startup->options&FTP_OPT_LOCAL_TIMEZONE)) { 
 		if(PUTENV("TZ=UTC0"))
