@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.41 2002/07/16 23:40:12 rswindell Exp $ */
+/* $Id: userdat.c,v 1.42 2002/07/20 03:15:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -330,7 +330,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 {
     int		i,file;
-    char	userdat[U_LEN+1],str[U_LEN+1];
+    char	userdat[U_LEN],str[MAX_PATH+1];
     node_t	node;
 
 	if(!user->number) 
@@ -429,8 +429,8 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_NS_TIME,8,ultoa(user->ns_time,str,16));
 	putrec(userdat,U_LOGONTIME,8,ultoa(user->logontime,str,16));
 
-	putrec(userdat,U_UNUSED,29,crlf);
-	putrec(userdat,U_UNUSED+29,2,crlf);
+	putrec(userdat,U_UNUSED,U_LEN-(U_UNUSED)-2,crlf);
+	putrec(userdat,U_UNUSED+(U_LEN-(U_UNUSED)-2),2,crlf);
 
 	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDWR|O_CREAT|O_DENYNONE))==-1) {
