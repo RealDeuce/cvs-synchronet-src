@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.9 2001/07/03 02:25:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,12 +65,12 @@ void sbbs_t::temp_xfer()
 		errormsg(WHERE,ERR_ALLOC,"temp_dir",sizeof(dir_t));
 		return; }
 	memset(cfg.dir[dirnum],0,sizeof(dir_t));
-	cfg.dir[dirnum]->lname="Temporary";
-	cfg.dir[dirnum]->sname="Temp";
+	strcpy(cfg.dir[dirnum]->lname,"Temporary");
+	strcpy(cfg.dir[dirnum]->sname,"Temp");
 	strcpy(cfg.dir[dirnum]->code,"TEMP");
-	cfg.dir[dirnum]->path=cfg.temp_dir;
+	strcpy(cfg.dir[dirnum]->path,cfg.temp_dir);
+	strcpy(cfg.dir[dirnum]->data_dir,cfg.dir[0]->data_dir);
 	cfg.dir[dirnum]->maxfiles=MAX_FILES;
-	cfg.dir[dirnum]->data_dir=cfg.dir[0]->data_dir;
 	cfg.dir[dirnum]->op_ar=(uchar *)nulstr;
 	temp_dirnum=curdirnum=usrdir[curlib][curdir[curlib]];
 	cfg.total_dirs++;
