@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.3 2005/04/07 00:23:34 deuce Exp $ */
+/* $Id: datewrap.c,v 1.2 2005/04/06 08:51:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,8 +41,6 @@
 
 #if defined(_WIN32)
 	#include <windows.h>	/* SYSTEMTIME and GetLocalTime() */
-#else
-	#include <sys/time.h>	/* stuct timeval, gettimeofday() */
 #endif
 
 #include "datewrap.h"	/* struct defs, verify prototypes */
