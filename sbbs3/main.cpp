@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.260 2003/05/08 08:06:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.261 2003/05/08 09:57:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1024,6 +1024,9 @@ void input_thread(void *arg)
 			pthread_mutex_unlock(&sbbs->input_thread_mutex);
 			if(i==0 && sock==sbbs->client_socket)
 				continue;
+
+			if(sbbs->client_socket==INVALID_SOCKET)
+				break;
 
 			if(sock==sbbs->client_socket)  {
 	        	if(ERROR_VALUE == ENOTSOCK)
