@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.51 2003/10/01 03:48:16 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.52 2003/10/09 08:55:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,8 +316,11 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSString *	prompt;
     JSString *	str;
 
-	if((prompt=JS_ValueToString(cx, argv[0]))==NULL)
-	    return(JS_FALSE);
+	if(!JSVAL_IS_VOID(argv[0])) {
+		if((prompt=JS_ValueToString(cx, argv[0]))==NULL)
+			return(JS_FALSE);
+		fprintf(confp,"%s: ",JS_GetStringBytes(prompt));
+	}
 
 	if(argc>1) {
 		if((str=JS_ValueToString(cx, argv[1]))==NULL)
@@ -325,8 +328,6 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		SAFECOPY(instr,JS_GetStringBytes(str));
 	} else
 		instr[0]=0;
-
-	fprintf(confp,"%s: ",JS_GetStringBytes(prompt));
 
 	if(!fgets(instr,sizeof(instr),stdin)) {
 		*rval = JSVAL_VOID;
@@ -646,7 +647,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.51 $", "%*s %s", revision);
+	sscanf("$Revision: 1.52 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
