@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.5 2004/03/24 02:47:33 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.6 2004/03/26 07:45:24 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -588,7 +588,6 @@ void initciowrap(long inmode)
 	nonl();
 	keypad(stdscr, TRUE);
 	scrollok(stdscr,FALSE);
-	idcok(stdscr,FALSE);
 	raw();
 
 	/* Set up color pairs */
