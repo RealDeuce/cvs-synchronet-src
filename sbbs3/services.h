@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.31 2004/11/03 03:58:54 deuce Exp $ */
+/* $Id: services.h,v 1.26 2004/09/26 20:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,12 @@
 #ifndef _SERVICES_H_
 #define _SERVICES_H_
 
-#include "startup.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#include "client.h"
+#include "semwrap.h"			/* sem_t */
 
 typedef struct {
 
@@ -58,7 +63,6 @@ typedef struct {
 	int 	(*lputs)(void*, int, char*);		/* Log - put string */
 	void	(*status)(void*, char*);
     void	(*started)(void*);
-	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
     void	(*clients)(void*, int active);
     void	(*thread_up)(void*, BOOL up, BOOL setuid);
@@ -69,6 +73,8 @@ typedef struct {
 
 	/* Paths */
     char    ctrl_dir[128];
+    char	cfg_file[128];
+	char	ini_file[128];
 	char	answer_sound[128];
 	char	hangup_sound[128];
 
@@ -77,19 +83,8 @@ typedef struct {
 	BOOL	recycle_now;
 	sem_t	recycle_sem;
 	DWORD	log_mask;
-	uint	bind_retry_count;		/* Number of times to retry bind() calls */
-	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
 } services_startup_t;
-
-#if 0
-/* startup options that requires re-initialization/recycle when changed */
-static struct init_field services_init_fields[] = { 
-	 OFFSET_AND_SIZE(services_startup_t,interface_addr)
-	,OFFSET_AND_SIZE(services_startup_t,ctrl_dir)
-	,{ 0,0 }	/* terminator */
-};
-#endif
 
 /* Option bit definitions	*/
 #define SERVICE_OPT_UDP			(1<<0)	/* UDP Socket */
@@ -97,26 +92,6 @@ static struct init_field services_init_fields[] = {
 #define SERVICE_OPT_STATIC_LOOP (1<<2)	/* Loop static service until terminated */
 #define SERVICE_OPT_NATIVE		(1<<3)	/* non-JavaScript service */
 #define SERVICE_OPT_FULL_ACCEPT	(1<<4)	/* Accept/close connections when server is full */
-
-/* services_startup_t.options bits that require re-init/recycle when changed */
-#define SERVICE_INIT_OPTS	(BBS_OPT_LOCAL_TIMEZONE)
-
-#if defined(STARTUP_INI_BITDESC_TABLES) || defined(SERVICES_INI_BITDESC_TABLE)
-static ini_bitdesc_t service_options[] = {
-
-	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
-	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
-	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ BBS_OPT_MUTE					,"MUTE"					},
-	{ SERVICE_OPT_UDP				,"UDP"					},
-	{ SERVICE_OPT_STATIC			,"STATIC"				},
-	{ SERVICE_OPT_STATIC_LOOP		,"LOOP"					},
-	{ SERVICE_OPT_NATIVE			,"NATIVE"				},
-	{ SERVICE_OPT_FULL_ACCEPT		,"FULL_ACCEPT"			},
-	/* terminator */				
-	{ 0 							,NULL					}
-};
-#endif
 
 #ifdef __cplusplus
 extern "C" {
