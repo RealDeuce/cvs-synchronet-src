@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.21 2004/11/03 06:05:49 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.22 2004/11/03 07:29:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -241,7 +241,7 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 	uint	i;
 
 	if(addr->sa_family==AF_INET)
-		SAFEPRINTF(port_str," to port %u",htons(((SOCKADDR_IN *)(addr))->sin_port)); 
+		SAFEPRINTF(port_str," to port %u",ntohs(((SOCKADDR_IN *)(addr))->sin_port)); 
 	else
 		port_str[0]=0;
 	for(i=0;i<=retries;i++) {
