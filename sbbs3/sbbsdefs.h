@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.56 2002/03/11 18:29:13 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.57 2002/03/12 14:50:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@
 #ifdef JAVASCRIPT
 	#define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 	#define JAVASCRIPT_CONTEXT_STACK	(16*1024)
-	#define JAVASCRIPT_BRANCH_LIMIT		100000000
+	#define JAVASCRIPT_BRANCH_LIMIT		99999999
 	#define JAVASCRIPT_YIELD_FREQUENCY	10000
 #endif
 
