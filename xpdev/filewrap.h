@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.8 2002/07/24 10:03:53 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.9 2002/08/24 23:29:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,9 +67,6 @@
 	#define SH_DENYWR			OF_SHARE_DENY_WRITE
 	#define SH_DENYRW			OF_SHARE_EXCLUSIVE
 	#endif
-	#ifndef O_DENYNONE
-	#define O_DENYNONE			SH_DENYNO
-	#endif
 
 #elif defined(__unix__)
 
@@ -87,6 +84,14 @@
 	#define chsize(fd,size)		ftruncate(fd,size)
 	#define tell(fd)			lseek(fd,0,SEEK_CUR)
 
+#elif defined(__OS2__)
+
+	#include <share.h>			/* SH_DENY */
+
+#endif
+
+#ifndef O_DENYNONE
+#define O_DENYNONE		SH_DENYNO
 #endif
 
 /**************/
