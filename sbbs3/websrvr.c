@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.132 2003/11/01 07:11:39 deuce Exp $ */
+/* $Id: websrvr.c,v 1.133 2003/11/01 07:29:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1649,23 +1649,16 @@ static BOOL exec_cgi(http_session_t *session)
 		lprintf(LOG_ERR,"%04d Can't create in_pipe",session->socket,buf);
 		return(FALSE);
 	}
-    fcntl(in_pipe[0],F_SETFL,fcntl(in_pipe[0],F_GETFL)|O_NONBLOCK);
-    fcntl(in_pipe[1],F_SETFL,fcntl(in_pipe[1],F_GETFL)|O_NONBLOCK);
 
 	if(pipe(out_pipe)!=0) {
 		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket,buf);
 		return(FALSE);
 	}
-    fcntl(out_pipe[0],F_SETFL,fcntl(out_pipe[0],F_GETFL)|O_NONBLOCK);
-    fcntl(out_pipe[1],F_SETFL,fcntl(out_pipe[1],F_GETFL)|O_NONBLOCK);
-
 
 	if(pipe(err_pipe)!=0) {
 		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket,buf);
 		return(FALSE);
 	}
-    fcntl(err_pipe[0],F_SETFL,fcntl(err_pipe[0],F_GETFL)|O_NONBLOCK);
-    fcntl(err_pipe[1],F_SETFL,fcntl(err_pipe[1],F_GETFL)|O_NONBLOCK);
 
 	if((child=fork())==0)  {
 		/* Do a full suid thing. */
@@ -2463,7 +2456,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.132 $", "%*s %s", revision);
+	sscanf("$Revision: 1.133 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
