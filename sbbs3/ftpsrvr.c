@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.124 2002/01/11 01:11:53 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.125 2002/01/20 15:41:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4155,7 +4155,7 @@ static void ctrl_thread(void* arg)
 	}
 
 	if(js_runtime!=NULL) {
-		lprintf("%04d JavaScript: Destroying runtime");
+		lprintf("%04d JavaScript: Destroying runtime",sock);
 		JS_DestroyRuntime(js_runtime);
 	}
 
