@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.7 2004/04/02 07:10:16 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.8 2004/05/30 07:16:23 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -601,7 +601,13 @@ void initciowrap(long inmode)
 {
 	short	fg, bg, pair=0;
 
+#ifdef XCURSES
+	char	*argv[2]={"Syhcnronet",NULL};
+
+	Xinitscr(1,argv);
+#else
 	initscr();
+#endif
 	start_color();
 	cbreak();
 	noecho();
