@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.12 2002/11/07 09:31:30 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.13 2002/11/07 09:46:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,6 @@
 void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 {
 	char*	p;
-	char	str[128];
 	uchar	buf[512];
 	int		i;
 	int		rd;
