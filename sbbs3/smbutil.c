@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.83 2004/10/27 21:16:59 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.82 2004/09/17 11:34:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1322,7 +1322,7 @@ void readmsgs(ulong start)
 
 			printf("\n\n");
 
-			if((inbuf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL))!=NULL) {
+			if((inbuf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS))!=NULL) {
 				printf("%s",inbuf);
 				FREE(inbuf); 
 			}
@@ -1455,7 +1455,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.83 $", "%*s %s", revision);
+	sscanf("$Revision: 1.82 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.273 2004/10/20 23:09:10 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.269 2004/10/14 09:08:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,9 +95,6 @@ static DWORD	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
-static link_list_t recycle_semfiles;
-static link_list_t shutdown_semfiles;
-
 #ifdef _DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
 
@@ -1382,7 +1379,7 @@ static void send_thread(void* arg)
 
 	length=flength(xfer.filename);
 
-	if((fp=fnopen(NULL,xfer.filename,O_RDONLY|O_BINARY))==NULL) {	/* was fopen(...,"rb") */
+	if((fp=fopen(xfer.filename,"rb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !DATA ERROR %d opening %s",xfer.ctrl_sock,errno,xfer.filename);
 		sockprintf(xfer.ctrl_sock,"450 ERROR %d opening %s.",errno,xfer.filename);
 		if(xfer.tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
@@ -4440,10 +4437,6 @@ static void cleanup(int code, int line)
 	lprintf(LOG_INFO,"0000 cleanup called from line %d",line);
 #endif
 	free_cfg(&scfg);
-	free_text(text);
-
-	semfile_list_free(&recycle_semfiles);
-	semfile_list_free(&shutdown_semfiles);
 
 	if(server_socket!=INVALID_SOCKET)
 		ftp_close_socket(&server_socket,__LINE__);
@@ -4471,7 +4464,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.273 $", "%*s %s", revision);
+	sscanf("$Revision: 1.269 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4489,7 +4482,6 @@ const char* DLLCALL ftp_ver(void)
 
 void DLLCALL ftp_server(void* arg)
 {
-	char*			p;
 	char			path[MAX_PATH+1];
 	char			error[256];
 	char			compiler[32];
@@ -4692,17 +4684,13 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_NOTICE,"%04d FTP Server thread started on port %d",server_socket,startup->port);
 		status(STATUS_WFC);
 
-		/* Setup recycle/shutdown semaphore file lists */
-		semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","ftp");
-		semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","ftp");
-		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
-		semfile_list_add(&recycle_semfiles,path);
-		if(!initialized) {
+		if(initialized==0) {
 			initialized=time(NULL);
-			semfile_list_check(&initialized,&recycle_semfiles);
-			semfile_list_check(&initialized,&shutdown_semfiles);
+			sprintf(path,"%sftpsrvr.rec",scfg.ctrl_dir);
+			t=fdate(path);
+			if(t!=-1 && t>initialized)
+				initialized=t;
 		}
-
 
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
@@ -4710,23 +4698,21 @@ void DLLCALL ftp_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(active_clients==0 && !(startup->options&FTP_OPT_NO_RECYCLE)) {
-				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
+			if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
+				sprintf(path,"%sftpsrvr.rec",scfg.ctrl_dir);
+				t=fdate(path);
+				if(!active_clients && t!=-1 && t>initialized) {
+					lprintf(LOG_NOTICE,"0000 Recycle semaphore file (%s) detected", path);
+					initialized=t;
 					break;
 				}
 				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
 					startup->recycle_now=TRUE;
-				if(startup->recycle_now==TRUE) {
+				if(!active_clients && startup->recycle_now==TRUE) {
 					lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;
 					break;
 				}
-			}
-			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
-				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
-				terminate_server=TRUE;
-				break;
 			}
 			/* now wait for connection */
 
@@ -4832,8 +4818,6 @@ void DLLCALL ftp_server(void* arg)
 		if(!terminate_server) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
-			if(startup->recycle!=NULL)
-				startup->recycle(startup->cbdata);
 		}
 
 	} while(!terminate_server);
