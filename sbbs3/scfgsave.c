@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.3 2001/07/29 18:43:13 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.4 2001/07/31 03:08:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,7 +356,7 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 {
 	char	str[128],c;
-	char	dir[LEN_DIR+1];
+	char	dir[LEN_DIR+1]="";
 	int 	i,j,k,file,x;
 	short	n;
 	long	l;
