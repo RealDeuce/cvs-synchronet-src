@@ -385,10 +385,8 @@ static void ansi_keythread(void *params)
 	_beginthread(ansi_keyparse,1024,NULL);
 
 	for(;;) {
-		if(!ansi_raw_inch) {
-			if(read(fileno(stdin),&ansi_raw_inch,1)!=1)
-				ansi_raw_inch=0;
-		}
+		if(!ansi_raw_inch)
+			ansi_raw_inch=fgetc(stdin);
 		else
 			SLEEP(1);
 	}
@@ -423,7 +421,7 @@ int ansi_putch(int ch)
 	struct text_info ti;
 	WORD sch;
 	int i;
-	unsigned char buf[2];
+	char buf[2];
 
 	buf[0]=ch;
 	buf[1]=ansi_curr_attr>>8;
