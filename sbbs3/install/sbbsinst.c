@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.59 2003/02/07 07:03:56 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.60 2003/02/07 07:05:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -612,12 +612,12 @@ get_distlist(void)
 			"%s\n- %s\n"
 			"%s\n- %s\n"
 			"%s\n- %s\n"
-			"%s\n- %s\n",
-			DIST_LIST_URL1,ftpErrString(ret1),
-			DIST_LIST_URL2,ftpErrString(ret2),
-			DIST_LIST_URL3,ftpErrString(ret3),
-			DIST_LIST_URL4,ftpErrString(ret4),
-			DIST_LIST_URL5,ftpErrString(ret5),
+			"%s\n- %s\n"
+			,DIST_LIST_URL1,ftpErrString(ret1)
+			,DIST_LIST_URL2,ftpErrString(ret2)
+			,DIST_LIST_URL3,ftpErrString(ret3)
+			,DIST_LIST_URL4,ftpErrString(ret4)
+			,DIST_LIST_URL5,ftpErrString(ret5)
 			);
 		exit(EXIT_FAILURE);
 	}
