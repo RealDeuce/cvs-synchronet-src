@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbsctrl.c,v 1.2 2000/11/04 09:00:28 rswindell Exp $ */
+/* $Id: sbbsctrl.c,v 1.3 2000/11/06 22:12:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
 
 	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
 	if(ctrl_dir==NULL)
-		ctrl_dir="/sbbs/ctrl";		/* Not set? Use default */
+		ctrl_dir="/sbbs/ctrl/";		/* Not set? Use default */
 
     strcpy(bbs_startup.ctrl_dir,ctrl_dir);
 
