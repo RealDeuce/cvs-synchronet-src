@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.9 2000/12/31 03:41:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,7 +232,8 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		}
 
 		if(cfg.sub[j]->misc&SUB_FIDO && cfg.sub[j]->echomail_sem[0]) /* update semaphore */
-			if((file=nopen(cfg.sub[j]->echomail_sem,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
+			if((file=nopen(cmdstr(cfg.sub[j]->echomail_sem,nulstr,nulstr,NULL)
+				,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
 				close(file);
 		lprintf("Message from %s Posted on %s %s"
 			,cfg.qhub[hubnum]->id,cfg.grp[cfg.sub[j]->grp]->sname,cfg.sub[j]->lname); 

@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.2 2000/10/30 09:34:33 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.3 2000/12/31 03:41:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,7 +335,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	sprintf(str,"Posted on %s %s",cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
 	logline("P+",str);
 	if(cfg.sub[subnum]->misc&SUB_FIDO && cfg.sub[subnum]->echomail_sem[0]) /* semaphore */
-		if((file=nopen(cfg.sub[subnum]->echomail_sem,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
+		if((file=nopen(cmdstr(cfg.sub[subnum]->echomail_sem,nulstr,nulstr,NULL)
+			,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
 			close(file);
 	return(true);
 }

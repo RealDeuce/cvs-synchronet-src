@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.7 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.8 2000/12/31 03:41:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,7 +177,8 @@ bool sbbs_t::uploadfile(file_t *f)
 	sprintf(str,"Uploaded %s to %s %s",f->name,cfg.lib[cfg.dir[f->dir]->lib]->sname
 		,cfg.dir[f->dir]->sname);
 	if(cfg.dir[f->dir]->upload_sem[0])
-		if((file=nopen(cfg.dir[f->dir]->upload_sem,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
+		if((file=nopen(cmdstr(cfg.dir[f->dir]->upload_sem,nulstr,nulstr,NULL)
+			,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
 			close(file);
 	logline("U+",str);
 	/**************************/

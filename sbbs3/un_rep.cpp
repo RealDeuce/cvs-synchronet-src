@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.9 2000/12/31 03:41:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -396,7 +396,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 			sprintf(str,"Posted on %s/%s",cfg.grp[cfg.sub[n]->grp]->sname
 				,cfg.sub[n]->lname);
 			if(cfg.sub[n]->misc&SUB_FIDO && cfg.sub[n]->echomail_sem[0])  /* semaphore */
-				if((file=nopen(cfg.sub[n]->echomail_sem,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
+				if((file=nopen(cmdstr(cfg.sub[n]->echomail_sem,nulstr,nulstr,NULL)
+					,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
 					close(file);
 			logline("P+",str); } }         /* end of public message */
 
