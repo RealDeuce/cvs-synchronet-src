@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.13 2001/11/04 01:13:02 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.14 2001/11/04 03:15:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,8 @@ void sbbs_t::temp_xfer()
 {
     char	str[256],tmp2[256],done=0,ch;
 	char 	tmp[512];
-    uint	i,dirnum=cfg.total_dirs,j,files;
+	int		error;
+    uint	i,dirnum=cfg.total_dirs,files;
     ulong	bytes;
 	ulong	space;
     time_t	start,end,t;
@@ -175,7 +176,7 @@ void sbbs_t::temp_xfer()
 
 					putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 					start=time(NULL);
-					j=protocol(cmdstr(cfg.prot[i]->dlcmd,str,nulstr,NULL),false);
+					error=protocol(cmdstr(cfg.prot[i]->dlcmd,str,nulstr,NULL),false);
 					end=time(NULL);
 					if(cfg.dir[temp_dirnum]->misc&DIR_TFREE)
 						starttime+=end-start;
@@ -185,7 +186,7 @@ void sbbs_t::temp_xfer()
 						else
 							notdownloaded(f.size,start,end); }
 					else {
-						if(!j)
+						if(!error)
 							downloadfile(&f);
 						else {
 							bprintf(text[FileNotSent],f.name);
