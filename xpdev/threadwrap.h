@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.13 2003/02/11 09:33:49 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.14 2003/02/15 22:40:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@ extern "C" {
 	ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist);
 
-	#if defined(__OpenBSD__)	/* thread-safe version of realpath for OpenBSD */
+	#if defined(BSD)	/* thread-safe version of realpath for BSD */
 		char* realpath_r(const char *pathname, char *resolvedname);
 	#endif
 

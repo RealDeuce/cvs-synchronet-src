@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.9 2002/12/20 00:38:48 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.10 2003/02/15 22:40:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,8 +84,9 @@ ulong _beginthread(void( *start_address )( void * )
 
 /****************************************************************************/
 /* Thread-safe (reentrant) version of realpath() - required for OpenBSD		*/
+/* And for NON-DEBUG FreeBSD builds (on 4.7 anyways)						*/
 /****************************************************************************/
-#if defined(__OpenBSD__)
+#if defined(BSD)
 char* realpath_r(const char *pathname, char *resolvedname)  
 {
     static pthread_mutex_t mutex=PTHREAD_MUTEX_INITIALIZER;
