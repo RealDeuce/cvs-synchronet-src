@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.10 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.11 2001/06/20 01:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -426,7 +426,7 @@ bool sbbs_t::logon()
 		,cfg.level_timeperday[useron.level]+useron.min);
 	bprintf(text[LiMailWaiting],mailw);
 	strcpy(str,text[LiSysopIs]);
-	if(cfg.startup->options&BBS_OPT_SYSOP_AVAILABLE 
+	if(startup->options&BBS_OPT_SYSOP_AVAILABLE 
 		|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron)))
 		strcat(str,text[LiSysopAvailable]);
 	else

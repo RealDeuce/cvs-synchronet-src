@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.10 2001/06/15 03:40:40 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.11 2001/06/20 01:21:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -793,7 +793,7 @@ void sbbs_t::maindflts(user_t* user)
 		if(cfg.sys_misc&SM_FWDTONET)
 			bprintf(text[UserDefaultsNetMail]
 				,user->misc&NETMAIL ? text[On] : text[Off]);
-		if(cfg.startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
+		if(startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
 			bprintf(text[UserDefaultsAutoLogon]
 			,user->misc&AUTOLOGON ? text[On] : text[Off]);
 		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
@@ -819,7 +819,7 @@ void sbbs_t::maindflts(user_t* user)
 			strcat(str,"E");
 		if(cfg.sys_misc&SM_FWDTONET)
 			strcat(str,"M");
-		if(cfg.startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
+		if(startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
 			strcat(str,"I");
 		if(cfg.total_shells>1)
 			strcat(str,"K");

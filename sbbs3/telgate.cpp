@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.8 2001/05/14 13:01:29 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.9 2001/06/20 01:21:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	}
 
 	memset(&addr,0,sizeof(addr));
-	addr.sin_addr.s_addr = htonl(cfg.startup->telnet_interface);
+	addr.sin_addr.s_addr = htonl(startup->telnet_interface);
 	addr.sin_family = AF_INET;
 
 	if((i=bind(remote_socket, (struct sockaddr *) &addr, sizeof (addr)))!=0) {

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.1 2000/10/10 11:25:16 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.2 2001/06/20 01:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -293,8 +293,6 @@ typedef struct
 	char     *wfc_scmd[12];      /* F1-F12 WFC shrinking DOS commands */
 
 	#endif
-
-	bbs_startup_t*	startup;
 
 } scfg_t;
 
