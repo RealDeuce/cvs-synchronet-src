@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.21 2002/05/09 09:04:53 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.22 2002/08/21 11:13:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -302,8 +302,10 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 		get_str(cfg->lib[i]->arstr,instream);
 		cfg->lib[i]->ar=arstr(NULL,cfg->lib[i]->arstr,cfg);
 
-		for(j=0;j<48;j++)
-			get_int(n,instream);
+		get_str(cfg->lib[i]->root,instream);
+
+		for(j=0;j<16;j++)
+			get_int(n,instream);	/* 0xffff */
 		}
 	cfg->total_libs=i;
 

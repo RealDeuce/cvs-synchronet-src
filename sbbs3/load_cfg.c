@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.31 2002/08/10 09:56:25 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.32 2002/08/21 11:13:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,6 +182,11 @@ void prep_cfg(scfg_t* cfg)
 			strcpy(cfg->sub[i]->origline,cfg->origline);
 	}
 
+	for(i=0;i<cfg->total_libs;i++) {
+		if(cfg->lib[i]->root[0])
+			prep_dir(cfg->ctrl_dir, cfg->lib[i]->root);
+	}
+
 	for(i=0;i<cfg->total_dirs;i++) {
 #ifdef __unix__
 		strlwr(cfg->dir[i]->code); 	/* temporary Unix-compatibility hack */
@@ -193,7 +198,10 @@ void prep_cfg(scfg_t* cfg)
 
 		if(!cfg->dir[i]->path[0])		/* no file storage path specified */
             sprintf(cfg->dir[i]->path,"%sdirs/%s/",cfg->data_dir,cfg->dir[i]->code);
-		prep_dir(cfg->ctrl_dir, cfg->dir[i]->path);
+		else if(cfg->lib[cfg->dir[i]->lib]->root[0])
+			prep_dir(cfg->lib[cfg->dir[i]->lib]->root, cfg->dir[i]->path);
+		else
+			prep_dir(cfg->ctrl_dir, cfg->dir[i]->path);
 
 		prep_path(cfg->dir[i]->upload_sem);
 	}
