@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.31 2003/06/12 09:08:14 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.32 2003/07/08 10:19:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -492,20 +492,6 @@ bool sbbs_t::listfile(char *fname, char HUGE16 *buf, uint dirnum
 		if(!(*ptr)) ptr++;
 		while(*ptr==LF || *ptr==CR) ptr++; }
 	return(true);
-}
-
-void sbbs_t::clearline(void)
-{
-	int i;
-
-	outchar(CR);
-	if(useron.misc&ANSI)
-		bputs("\x1b[K");
-	else {
-		for(i=0;i<79;i++)
-			outchar(SP);
-		outchar(CR); 
-	}
 }
 
 /****************************************************************************/
