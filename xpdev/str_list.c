@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.19 2004/07/21 02:04:39 rswindell Exp $ */
+/* $Id: str_list.c,v 1.20 2004/07/28 10:05:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,6 +145,9 @@ char* strListReplace(const str_list_t list, size_t index, const char* str)
 	char*	buf;
 	size_t	count;
 
+	if(str==NULL)
+		return(NULL);
+
 	count = strListCount(list);
 
 	if(index==STR_LIST_LAST_INDEX && count)
@@ -189,6 +192,9 @@ char* strListAppend(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
 
+	if(str==NULL)
+		return(NULL);
+
 	if((buf=(char*)malloc(strlen(str)+1))==NULL)
 		return(NULL);
 
@@ -216,6 +222,9 @@ char* strListInsert(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
 
+	if(str==NULL)
+		return(NULL);
+
 	if((buf=(char*)malloc(strlen(str)+1))==NULL)
 		return(NULL);
 
@@ -242,6 +251,9 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 	char*	token;
 	str_list_t	list;
 
+	if(str==NULL || delimit==NULL)
+		return(NULL);
+
 	if(lp==NULL) {
 		if((list = strListInit())==NULL)
 			return(0);
@@ -260,6 +272,9 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delimit)
 {
 	char*	buf;
+
+	if(str==NULL)
+		return(NULL);
 
 	if((buf=(char*)malloc(strlen(str)+1))==NULL)
 		return(NULL);

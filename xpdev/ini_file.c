@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.42 2004/07/20 01:12:12 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.46 2004/08/09 06:40:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,29 +53,7 @@
 
 static ini_style_t default_style;
 
-/****************************************************************************/
-/* Truncates all white-space chars off end of 'str'							*/
-/****************************************************************************/
-static void truncsp(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
-	str[c]=0;
-}
-
-/****************************************************************************/
-/* Truncates carriage-return and line-feed chars off end of 'str'			*/
-/****************************************************************************/
-static void truncnl(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
-	str[c]=0;
-}
+#include "truncsp.c"	/* truncsp() and truncnl() */
 
 static char* section_name(char* p)
 {
@@ -178,7 +156,7 @@ static char* key_name(char* p, char** vp)
 static char* get_value(FILE* fp, const char* section, const char* key, char* value)
 {
 	char*	p;
-	char*	vp;
+	char*	vp=NULL;
 	char	str[INI_MAX_LINE_LEN];
 
 	if(fp==NULL)
@@ -196,6 +174,8 @@ static char* get_value(FILE* fp, const char* section, const char* key, char* val
 			break;
 		if(stricmp(p,key)!=0)
 			continue;
+		if(vp==NULL)
+			break;
 		/* key found */
 		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,vp);
 		return(value);
@@ -316,6 +296,8 @@ char* iniSetString(str_list_t* list, const char* section, const char* key, const
 		style->key_prefix="";
 	if(style->value_separator==NULL)
 		style->value_separator="=";
+	if(value==NULL)
+		value="";
 	sprintf(str, "%s%-*s%s%s", style->key_prefix, style->key_len, key, style->value_separator, value);
 	i=find_value_index(*list, section, key, curval);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
@@ -370,7 +352,7 @@ char* iniSetIpAddress(str_list_t* list, const char* section, const char* key, ul
 					,ini_style_t* style)
 {
 	struct in_addr in_addr;
-	in_addr.s_addr=value;
+	in_addr.s_addr=htonl(value);
 	return iniSetString(list, section, key, inet_ntoa(in_addr), style);
 }
 #endif
@@ -728,9 +710,9 @@ str_list_t iniReadFile(FILE* fp)
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
 	if(list!=NULL) {
-		/* truncate the white-space off end of strings */
+		/* truncate new-line chars off end of strings */
 		for(i=0; list[i]!=NULL; i++)
-			truncsp(list[i]);
+			truncnl(list[i]);
 	}
 
 	return(list);
