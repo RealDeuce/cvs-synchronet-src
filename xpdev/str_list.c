@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.26 2005/03/26 08:54:01 rswindell Exp $ */
+/* $Id: str_list.c,v 1.24 2005/03/26 06:51:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,87 +391,4 @@ size_t strListWriteFile(FILE* fp, const str_list_t list, const char* separator)
 	}
 	
 	return(i);
-}
-
-size_t strListBlockLength(char* block)
-{
-	char*	p=block;
-	size_t	str_len;
-	size_t	block_len=0;
-
-	if(block==NULL)
-		return(0);
-
-	/* calculate total block length */
-	while((str_len=strlen(p))!=0) {
-		block_len+=(str_len + 1);
-		p+=(str_len + 1);
-	}
-	/* block must be double-NULL terminated */
-	if(!block_len)
-		block_len=1;
-	block_len++;
-
-	return(block_len);
-}
-
-char* strListCopyBlock(char* block)
-{
-	char*	p;
-	size_t	block_len;
-	
-	if((block_len=strListBlockLength(block))==0)
-		return(NULL);
-
-	if((p=(char*)malloc(block_len))==NULL)
-		return(NULL);
-	memcpy(p, block, block_len);
-	return(p);
-}
-
-char* strListAppendBlock(char* block, str_list_t list)
-{
-	char*	p;
-	size_t	str_len;
-	size_t	block_len;	
-	size_t	i;
-
-	if((block_len=strListBlockLength(block))!=0)
-		block_len--;	/* Over-write existing NULL terminator */
-
-	for(i=0; list[i]!=NULL; i++) {
-		str_len=strlen(list[i]);
-		if(str_len==0)
-			continue;	/* can't include empty strings in block */
-		if((p=(char*)realloc(block, block_len + str_len + 1))==NULL) {
-			FREE_AND_NULL(block);
-			return(block);
-		}
-		block=p;
-		strcpy(block + block_len, list[i]);
-		block_len += (str_len + 1);
-	}
-
-	/* block must be double-NULL terminated */
-	if(!block_len)
-		block_len=1;
-	block_len++;
-	if((p=(char*)realloc(block, block_len))==NULL) {
-		FREE_AND_NULL(block);
-		return(block);
-	}
-	block=p;
-	memset(block + (block_len-2), 0, 2);
-
-	return(block);
-}
-
-char* strListCreateBlock(str_list_t list)
-{
-	return(strListAppendBlock(NULL,list));
-}
-
-void strListFreeBlock(char* block)
-{
-	FREE_AND_NULL(block);	/* this must be done here for Windows-DLL reasons */
 }
