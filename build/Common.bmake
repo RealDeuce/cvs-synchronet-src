@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.12 2004/09/13 01:24:59 deuce Exp $
+# $Id: Common.bmake,v 1.13 2004/09/13 01:25:54 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -149,7 +149,7 @@ OUTPUT	=	-o
 LOUTPUT	=	$(OUTPUT)
 CFLAGS	=	-q 
 LDFLAGS	=	$(CFLAGS)
-CFLAGS  =	$(CFLAGS) -M -WD -X-
+CFLAGS  =	$(CFLAGS) -M -X-
 MT_CFLAGS = -WM 
 !ifdef DEBUG
 CFLAGS	=	$(CFLAGS) -v
