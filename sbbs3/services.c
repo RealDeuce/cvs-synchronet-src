@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.52 2002/04/23 08:20:55 rswindell Exp $ */
+/* $Id: services.c,v 1.53 2002/04/25 22:16:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,18 +232,6 @@ static time_t checktime(void)
     tm.tm_year=94;
     tm.tm_mday=1;
     return(mktime(&tm)-0x2D24BD00L);
-}
-
-/************************************************/
-/* Truncates white-space chars off end of 'str' */
-/************************************************/
-static void truncsp(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
-	str[c]=0;
 }
 
 /* Global JavaScript Methods */

@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.66 2002/04/23 07:12:53 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.67 2002/04/25 22:16:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,18 +303,6 @@ static void client_on(BOOL on, int sock, client_t* client, BOOL update)
 		client_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(NULL); /* update displayed stats */
-}
-
-/************************************************/
-/* Truncates white-space chars off end of 'str' */
-/************************************************/
-static void truncsp(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
-	str[c]=0;
 }
 
 /****************************************************************************/

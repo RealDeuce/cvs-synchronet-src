@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.147 2002/04/24 07:34:45 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.148 2002/04/25 22:16:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -396,19 +396,6 @@ static int sockreadline(SOCKET socket, char* buf, int len)
 	
 	return(rd);
 }
-
-/************************************************/
-/* Truncates white-space chars off end of 'str' */
-/************************************************/
-static void truncsp(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
-	str[c]=0;
-}
-
 
 static BOOL sockgetrsp(SOCKET socket, char* rsp, char *buf, int len)
 {
