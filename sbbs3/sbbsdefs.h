@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.38 2001/11/03 20:56:27 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.39 2001/11/04 00:44:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -708,7 +708,7 @@ enum {						/* readmail and delmailidx which types		*/
 #endif
 
 							/* Bits in the mode of external()           */
-#define EX_CC       (1<<0)	/* Use command.com to load other process    */
+#define EX_SH       (1<<0)	/* Use command shell to load other process  */
 #define EX_OUTR     (1<<1)  /* Copy DOS output to remote                */
 #define EX_OUTL 	(1<<2)	/* Use _lputc() for local DOS output		*/
 #define EX_INR		(1<<3)	/* Trap int 16h keyboard input requests     */
