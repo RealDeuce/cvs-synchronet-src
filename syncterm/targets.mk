@@ -1,1 +1,1 @@
-all: $(LIBODIR) $(BUILD_DEPENDS) $(EXEODIR)/syncterm$(EXEFILE)
+all: $(LIBODIR) $(BUILD_DEPENDS) ${EXEODIR}/syncterm
