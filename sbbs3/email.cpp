@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.19 2002/08/26 21:56:57 rswindell Exp $ */
+/* $Id: email.cpp,v 1.20 2002/12/12 02:33:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,10 +78,11 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 	if(l&(DELETED|INACTIVE)) {              /* Deleted or Inactive User */
 		bputs(text[UnknownUser]);
 		return(false); }
-	if(l&NETMAIL && cfg.sys_misc&SM_FWDTONET
-		&& yesno(text[ForwardMailQ])) { /* Forward to netmail address */
+	if(l&NETMAIL && cfg.sys_misc&SM_FWDTONET) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
-		return(netmail(str,subj,mode));
+		bprintf(text[UserNetMail],str);
+		if(yesno(text[ForwardMailQ])) /* Forward to netmail address */
+			return(netmail(str,subj,mode));
 	}
 	bprintf(text[Emailing],username(&cfg,usernumber,tmp),usernumber);
 	action=NODE_SMAL;
