@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.29 2002/08/22 22:20:37 rswindell Exp $ */
+/* $Id: js_system.c,v 1.30 2002/08/30 19:46:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1146,7 +1146,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	}	
 
 	if(!JS_DefineProperty(cx, sysobj, "node_list", OBJECT_TO_JSVAL(node_list)
-		, NULL, NULL, 0))
+		, NULL, NULL, JSPROP_ENUMERATE))
 		return(NULL);
 
 	return(sysobj);
