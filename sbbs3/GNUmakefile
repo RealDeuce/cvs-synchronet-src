@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.6 2002/04/12 09:40:58 rswindell Exp $
+# $Id: GNUmakefile,v 1.7 2002/04/12 09:42:02 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -21,7 +21,7 @@ OFILE	=	o
 
 LD		=	ld
 LIBFILE	=	.a
-XPDEV	=	..\xpdev
+XPDEV	=	../xpdev
 
 ifndef $(os)
 os		=	$(shell uname)
