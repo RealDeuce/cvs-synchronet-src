@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.32 2003/05/21 04:40:47 deuce Exp $
+# $Id: GNUmakefile,v 1.33 2003/05/21 05:33:27 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -65,8 +65,9 @@ ifdef USE_CURSES
  CFLAGS	+=	-DUSE_CURSES
 endif
 
-ifdef UIFC32
+ifdef USE_UIFC32
  LFLAGS	+=	$(CURSESLIB)
+ CFLAGS	+=	-DUSE_UIFC32
 endif
 
 ifdef USE_FLTK
@@ -96,7 +97,7 @@ ifdef USE_CURSES
  OBJS += $(ODIR)$(SLASH)uifcc.$(OFILE)
 endif
 
-ifdef UIFC32
+ifdef USE_UIFC32
  OBJS += $(ODIR)$(SLASH)uifc32.$(OFILE)
  OBJS += $(ODIR)$(SLASH)ciowrap.$(OFILE)
 endif

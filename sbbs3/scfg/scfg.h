@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.12 2003/03/04 10:56:57 rswindell Exp $ */
+/* $Id: scfg.h,v 1.13 2003/05/21 05:33:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "conwrap.h"
 #include "uifc.h"
 #include "sbbs.h"
 
