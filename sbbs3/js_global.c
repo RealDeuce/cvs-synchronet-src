@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.50 2003/03/13 02:59:37 rswindell Exp $ */
+/* $Id: js_global.c,v 1.51 2003/03/18 21:21:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,9 +313,7 @@ js_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	} else
 		ch=(char)JSVAL_TO_INT(argv[0]);
 
-	ch=toupper(ch)&~0x20;
-
-	str[0]=*p;
+	str[0]=toupper(ch)&~0x20;
 	str[1]=0;
 
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
