@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.36 2001/04/12 00:41:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.37 2001/04/15 16:48:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -742,10 +742,10 @@ extern "C" {
 	DLLEXPORT	long	DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 
 	/* str.cpp */
-	DLLEXPORT	BOOL	DLLCALL trashcan(scfg_t* cfg, char *insearch, char *name);
-
+	DLLEXPORT	char*	DLLCALL ascii_str(uchar* str);
 	DLLEXPORT ushort	DLLCALL crc16(char *str);
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
+	DLLEXPORT	BOOL	DLLCALL trashcan(scfg_t* cfg, char *insearch, char *name);
 	DLLEXPORT int		DLLCALL putsmsg(scfg_t* cfg, int usernumber, char *strin);
 
 	/* load_cfg.C */
@@ -766,6 +766,8 @@ extern "C" {
 	/* logfile.cpp */
 	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, 
 										char* host, SOCKADDR_IN* addr);
+
+	DLLEXPORT char*		DLLCALL remove_ctrl_a(char* instr, char* outstr);
 
 #ifdef JAVASCRIPT
 
@@ -808,9 +810,6 @@ extern "C" {
 
 	/* qwk.cpp */
 	void	remove_re(char *str);
-#ifdef __cplusplus
-	char*	remove_ctrl_a(char* instr, char* outstr=NULL);
-#endif
 
 	/* sortdir.cpp */
 	int		fnamecmp_a(char **str1, char **str2);	 /* for use with resort() */
