@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="smblib" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="smblib_mt" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Static Library" 0x0104
 
-CFG=smblib - Win32 Debug
+CFG=smblib_mt - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "smblib.mak".
+!MESSAGE NMAKE /f "smblib_mt.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "smblib.mak" CFG="smblib - Win32 Debug"
+!MESSAGE NMAKE /f "smblib_mt.mak" CFG="smblib_mt - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "smblib - Win32 Release" (based on "Win32 (x86) Static Library")
-!MESSAGE "smblib - Win32 Debug" (based on "Win32 (x86) Static Library")
+!MESSAGE "smblib_mt - Win32 Release" (based on "Win32 (x86) Static Library")
+!MESSAGE "smblib_mt - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE 
 
 # Begin Project
@@ -28,7 +28,7 @@ CFG=smblib - Win32 Debug
 CPP=cl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "smblib - Win32 Release"
+!IF  "$(CFG)" == "smblib_mt - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -37,11 +37,11 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "msvc.win32.release"
-# PROP Intermediate_Dir "msvc.win32.release"
+# PROP Output_Dir "msvc.win32.mt.release"
+# PROP Intermediate_Dir "msvc.win32.mt.release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\xpdev" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /YX /Zl /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\xpdev" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -49,22 +49,22 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"msvc.win32.release\smb.lib"
+# ADD LIB32 /nologo /out:"msvc.win32.mt.release\smb.lib"
 
-!ELSEIF  "$(CFG)" == "smblib - Win32 Debug"
+!ELSEIF  "$(CFG)" == "smblib_mt - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "smblib___Win32_Debug"
-# PROP BASE Intermediate_Dir "smblib___Win32_Debug"
+# PROP BASE Output_Dir "Debug"
+# PROP BASE Intermediate_Dir "Debug"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "msvc.win32.debug"
-# PROP Intermediate_Dir "msvc.win32.debug"
+# PROP Output_Dir "msvc.win32.mt.debug"
+# PROP Intermediate_Dir "msvc.win32.mt.debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\xpdev" /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /YX /Zl /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\xpdev" /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -72,14 +72,14 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"msvc.win32.debug\smb.lib"
+# ADD LIB32 /nologo /out:"msvc.win32.mt.debug\smb.lib"
 
 !ENDIF 
 
 # Begin Target
 
-# Name "smblib - Win32 Release"
-# Name "smblib - Win32 Debug"
+# Name "smblib_mt - Win32 Release"
+# Name "smblib_mt - Win32 Debug"
 # Begin Source File
 
 SOURCE=.\crc16.c
