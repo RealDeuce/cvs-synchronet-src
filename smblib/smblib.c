@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.48 2002/11/01 09:43:18 rswindell Exp $ */
+/* $Id: smblib.c,v 1.49 2002/11/12 07:03:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1511,19 +1511,28 @@ int SMBCALL smb_incdat(smb_t* smb, ulong offset, ulong length, ushort headers)
 /****************************************************************************/
 int SMBCALL smb_incmsg(smb_t* smb, smbmsg_t* msg)
 {
-	int		i;
+	int		i=0;
+	int		da_opened=0;
 	ushort	x;
 
 	if(smb->status.attr&SMB_HYPERALLOC)  /* Nothing to do */
 		return(0);
 
+	if(smb->sda_fp==NULL) {
+		if((i=smb_open_da(smb))!=0)
+			return(i);
+		da_opened=1;
+	}
+
 	for(x=0;x<msg->hdr.total_dfields;x++) {
 		if((i=smb_incdat(smb,msg->hdr.offset+msg->dfield[x].offset
 			,msg->dfield[x].length,1))!=0)
-			return(i); 
+			break; 
 	}
 
-	return(0);
+	if(da_opened)
+		smb_close_da(smb);
+	return(i);
 }
 
 /****************************************************************************/
