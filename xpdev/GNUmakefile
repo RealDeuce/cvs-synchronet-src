@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.5 2002/04/26 23:43:14 rswindell Exp $
+# $Id: GNUmakefile,v 1.6 2002/05/02 20:52:25 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -66,7 +66,7 @@ include targets.mk		# defines all and clean targets
 # Implicit C Compile Rule
 $(ODIR)/%.o : %.c
 	@echo Compiling $<
-	@$(CC) $(CFLAGS) -c $< -o$@
+	@$(CC) $(CFLAGS) -o $@ -c $<
 
 # Create output directories
 $(ODIR):
@@ -75,5 +75,5 @@ $(ODIR):
 # Executable Build Rule
 $(WRAPTEST): $(ODIR)/wraptest.o $(OBJS)
 	@echo Linking $@
-	@$(CC) $(LFLAGS) $^ -o$@
+	@$(CC) $(LFLAGS) -o $@ $^
 
