@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.24 2002/06/26 02:49:51 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.25 2002/07/25 01:33:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1565,11 +1565,14 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	sprintf(str,"%sINTRSBBS.DAT"
 			,cfg.xtrn[xtrnnum]->path[0] ? cfg.xtrn[xtrnnum]->path : cfg.node_dir);
-	remove(str);
+	if(fexistcase(str))
+		remove(str);
 	sprintf(str,"%shangup.now",cfg.node_dir);
-	remove(str);
+	if(fexistcase(str))
+		remove(str);
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
-	remove(str);
+	if(fexistcase(str))
+		remove(str);
 
 	mode=0; 	/* EX_SH */
 	if(cfg.xtrn[xtrnnum]->misc&IO_INTS)
@@ -1606,7 +1609,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	batch_add_list(str);
 
 	sprintf(str,"%shangup.now",cfg.node_dir);
-	if(fexist(str)) {
+	if(fexistcase(str)) {
 		remove(str);
 		hangup(); 
 	}
