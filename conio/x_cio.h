@@ -1,7 +1,7 @@
-/* $Id: x_cio.h,v 1.10 2004/07/05 08:22:36 deuce Exp $ */
+/* $Id: x_cio.h,v 1.3 2004/07/26 23:08:36 rswindell Exp $ */
 
 #ifdef __unix__
-#include "ciowrap.h"
+#include "ciolib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,7 +15,7 @@ int x_wherey(void);
 int x_wherex(void);
 int x_putch(unsigned char ch);
 void x_gotoxy(int x, int y);
-void x_initciowrap(long inmode);
+void x_initciolib(long inmode);
 void x_gettextinfo(struct text_info *info);
 void x_setcursortype(int type);
 int x_getch(void);
