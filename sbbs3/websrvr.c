@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.40 2002/11/09 11:30:38 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.41 2002/11/09 23:04:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,10 @@
 	#include <sys/wait.h>		/* waitpid() */
 #endif
 
+#ifndef JAVASCRIPT
 #define JAVASCRIPT
+#endif
+
 #include "sbbs.h"
 #include "sockwrap.h"		/* sendfilesocket() */
 #include "threadwrap.h"		/* _beginthread() */
@@ -2101,7 +2104,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.40 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.41 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
