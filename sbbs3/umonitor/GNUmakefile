@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.10 2003/05/14 22:59:51 deuce Exp $
+# $Id: GNUmakefile,v 1.11 2003/05/15 02:32:52 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -95,6 +95,7 @@ OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/crc16.o \
 			$(LIBODIR)/load_cfg.o \
 			$(LIBODIR)/date_str.o \
+			$(LIBODIR)/spyon.o \
 			$(LIBODIR)/umonitor.o
 
 all: $(LIBODIR) $(BUILD_DEPENDS)$(EXEODIR)/umonitor
