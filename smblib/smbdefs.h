@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.43 2003/12/06 10:48:05 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.44 2003/12/07 03:52:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,6 +207,8 @@
 #define SENDERORG			0x06
 #define SENDERIPADDR		0x07		/* for tracing */
 #define SENDERHOSTNAME		0x08		/* for tracing */
+#define SENDERPROTOCOL		0x09		/* for tracing */
+#define SENDERPORT			0x0a		/* for tracing */
 
 #define AUTHOR				0x10
 #define AUTHORAGENT 		0x11
