@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.17 2002/01/28 20:15:59 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.18 2002/01/28 20:36:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,6 +190,7 @@ js_connect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	str = JS_ValueToString(cx, argv[0]);
+	dbprintf(FALSE, p, "resolving hostname: %s", JS_GetStringBytes(str));
 	if((ip_addr=resolve_ip(JS_GetStringBytes(str)))==0) {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "resolve_ip failed with error %d",ERROR_VALUE);
