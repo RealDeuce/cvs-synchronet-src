@@ -5,7 +5,9 @@
 #define CIOLIB_NO_MACROS
 #include "ciolib.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+ #include "win32cio.h"
+#else
  #ifndef NO_X
   #include "x_cio.h"
  #endif
@@ -57,12 +59,15 @@ void ciolib_delline(void);
 void ciolib_insline(void);
 char *ciolib_getpass(const char *prompt);
 
+#define CIOLIB_INIT()		{ if(!initialized) initciolib(CIOLIB_MODE_AUTO); }
+
 #ifndef _WIN32
  #ifndef NO_X
 int try_x_init(int mode)
 {
 	if(!console_init()) {
-		cio_api.mode=CIOLIB_X_MODE;
+		cio_api.mode=CIOLIB_MODE_X;
+		cio_api.mouse=0;
 		cio_api.puttext=x_puttext;
 		cio_api.gettext=x_gettext;
 		cio_api.textattr=x_textattr;
@@ -77,6 +82,10 @@ int try_x_init(int mode)
 		cio_api.getch=x_getch;
 		cio_api.getche=x_getche;
 		cio_api.textmode=x_textmode;
+		cio_api.getmouse=NULL;
+		cio_api.showmouse=NULL;
+		cio_api.hidemouse=NULL;
+		cio_api.settitle=x_settitle;
 		return(1);
 	}
 	fprintf(stderr,"X init failed\n");
@@ -87,7 +96,7 @@ int try_x_init(int mode)
 int try_curses_init(int mode)
 {
 	if(curs_initciolib(mode)) {
-		cio_api.mode=CIOLIB_CURSES_IBM_MODE;
+		cio_api.mode=CIOLIB_MODE_CURSES_IBM;
 		cio_api.puttext=curs_puttext;
 		cio_api.gettext=curs_gettext;
 		cio_api.textattr=curs_textattr;
@@ -102,6 +111,10 @@ int try_curses_init(int mode)
 		cio_api.getch=curs_getch;
 		cio_api.getche=curs_getche;
 		cio_api.textmode=curs_textmode;
+		cio_api.getmouse=curs_getmouse;
+		cio_api.showmouse=curs_showmouse;
+		cio_api.hidemouse=curs_hidemouse;
+		cio_api.settitle=NULL;
 		return(1);
 	}
 	fprintf(stderr,"Curses init failed\n");
@@ -112,7 +125,8 @@ int try_curses_init(int mode)
 int try_ansi_init(int mode)
 {
 	if(ansi_initciolib(mode)) {
-		cio_api.mode=CIOLIB_ANSI_MODE;
+		cio_api.mode=CIOLIB_MODE_ANSI;
+		cio_api.mouse=0;
 		cio_api.puttext=ansi_puttext;
 		cio_api.gettext=ansi_gettext;
 		cio_api.textattr=ansi_textattr;
@@ -127,6 +141,10 @@ int try_ansi_init(int mode)
 		cio_api.getch=ansi_getch;
 		cio_api.getche=ansi_getche;
 		cio_api.textmode=ansi_textmode;
+		cio_api.getmouse=NULL;
+		cio_api.showmouse=NULL;
+		cio_api.hidemouse=NULL;
+		cio_api.settitle=NULL;
 		return(1);
 	}
 	fprintf(stderr,"ANSI init failed\n");
@@ -134,27 +152,32 @@ int try_ansi_init(int mode)
 }
 
 #ifdef _WIN32
+#if defined(__BORLANDC__)
+        #pragma argsused
+#endif
 int try_conio_init(int mode)
 {
-	if(mode==CIOLIB_MODE_AUTO);	/* Shut up stupid warning */
 	/* This should test for something or other */
-	if(isatty(fileno(stdout))) {
-		cio_api.mode=CIOLIB_CONIO_MODE;
-		cio_api.puttext=puttext;
-		cio_api.gettext=gettext;
-		cio_api.textattr=textattr;
-		cio_api.kbhit=kbhit;
-//		cio_api.delay=delay;
-		cio_api.wherey=wherey;
-		cio_api.wherex=wherex;
-		cio_api.putch=putch;
-		cio_api.gotoxy=gotoxy;
-		cio_api.gettextinfo=gettextinfo;
-		cio_api.setcursortype=_setcursortype;
-		cio_api.getch=getch;
-		cio_api.getche=getche;
-//		cio_api.beep=beep;
-		cio_api.textmode=textmode;
+	if(win32_initciolib(mode)) {
+		cio_api.mode=CIOLIB_MODE_CONIO;
+		cio_api.mouse=1;
+		cio_api.puttext=win32_puttext;
+		cio_api.gettext=win32_gettext;
+		cio_api.textattr=win32_textattr;
+		cio_api.kbhit=win32_kbhit;
+		cio_api.wherey=win32_wherey;
+		cio_api.wherex=win32_wherex;
+		cio_api.putch=win32_putch;
+		cio_api.gotoxy=win32_gotoxy;
+		cio_api.gettextinfo=win32_gettextinfo;
+		cio_api.setcursortype=win32_setcursortype;
+		cio_api.getch=win32_getch;
+		cio_api.getche=win32_getche;
+		cio_api.textmode=win32_textmode;
+		cio_api.getmouse=win32_getmouse;
+		cio_api.showmouse=win32_showmouse;
+		cio_api.hidemouse=win32_hidemouse;
+		cio_api.settitle=NULL;
 		return(1);
 	}
 	fprintf(stderr,"CONIO init failed\n");
@@ -162,37 +185,41 @@ int try_conio_init(int mode)
 }
 #endif
 
-
 int initciolib(int mode)
 {
 	switch(mode) {
-		case CIOLIB_AUTO_MODE:
+		case CIOLIB_MODE_AUTO:
 #ifdef _WIN32
 			if(!try_conio_init(mode))
 #else
+#ifndef NO_X
 			if(!try_x_init(mode))
+#endif
 				if(!try_curses_init(mode))
 #endif
 					try_ansi_init(mode);
 			break;
 #ifdef _WIN32
-		case CIOLIB_CONIO_MODE:
+		case CIOLIB_MODE_CONIO:
 			try_conio_init(mode);
 			break;
 #else
-		case CIOLIB_CURSES_MODE:
-		case CIOLIB_CURSES_IBM_MODE:
+		case CIOLIB_MODE_CURSES:
+		case CIOLIB_MODE_CURSES_IBM:
 			try_curses_init(mode);
 			break;
-		case CIOLIB_X_MODE:
+
+		case CIOLIB_MODE_X:
+#ifndef NO_X
 			try_x_init(mode);
+#endif
 			break;
 #endif
-		case CIOLIB_ANSI_MODE:
+		case CIOLIB_MODE_ANSI:
 			try_ansi_init(mode);
 			break;
 	}
-	if(cio_api.mode==CIOLIB_AUTO_MODE) {
+	if(cio_api.mode==CIOLIB_MODE_AUTO) {
 		fprintf(stderr,"CIOLIB initialization failed!");
 		return(-1);
 	}
@@ -209,8 +236,7 @@ int initciolib(int mode)
 
 int ciolib_kbhit(void)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
 	if(ungotch)
 		return(1);
 	return(cio_api.kbhit());
@@ -220,8 +246,8 @@ int ciolib_getch(void)
 {
 	int ch;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+
 	if(ungotch) {
 		ch=ungotch;
 		ungotch=0;
@@ -234,8 +260,8 @@ int ciolib_getche(void)
 {
 	int ch;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+
 	if(ungotch) {
 		ch=ungotch;
 		ungotch=0;
@@ -247,8 +273,8 @@ int ciolib_getche(void)
 
 int ciolib_ungetch(int ch)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	if(ungotch)
 		return(EOF);
 	ungotch=ch;
@@ -259,13 +285,13 @@ int ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy)
 {
 	int width;
 	int height;
-	char *buf;
+	unsigned char *buf;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	width=ex-sx;
 	height=ey-sy;
-	buf=(char *)malloc((width+1)*(height+1)*2);
+	buf=(unsigned char *)malloc((width+1)*(height+1)*2);
 	if(buf==NULL)
 		return(0);
 	if(!ciolib_gettext(sx,sy,ex,ey,buf)) {
@@ -287,8 +313,8 @@ char *ciolib_cgets(char *str)
 	int chars;
 	int ch;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	maxlen=*(unsigned char *)str;
 	while((ch=ciolib_getche())!='\n') {
 		switch(ch) {
@@ -326,8 +352,8 @@ int ciolib_cscanf (char *format , ...)
     va_list argptr;
 	int ret;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	str[0]=-1;
 	va_start(argptr,format);
 	ret=vsscanf(ciolib_cgets(str),format,argptr);
@@ -342,8 +368,8 @@ char *ciolib_getpass(const char *prompt)
 	int chars;
 	int ch;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_cputs((char *)prompt);
 	while((ch=getch())!='\n') {
 		switch(ch) {
@@ -374,7 +400,7 @@ char *ciolib_getpass(const char *prompt)
 void ciolib_gettextinfo(struct text_info *info)
 {
 	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+		initciolib(CIOLIB_MODE_AUTO);
 	else {
 		cio_api.gettextinfo(&cio_textinfo);
 	}
@@ -400,8 +426,8 @@ void ciolib_wscroll(void)
 	int os;
 	struct text_info ti;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&ti);
 	if(!_wscroll)
 		return;
@@ -418,8 +444,8 @@ int ciolib_wherex(void)
 {
 	int x;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	x=cio_api.wherex();
 	x=x-cio_textinfo.winleft+1;
 	return(x);
@@ -429,8 +455,8 @@ int ciolib_wherey(void)
 {
 	int y;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	y=cio_api.wherey();
 	y=y-cio_textinfo.wintop+1;
 	return(y);
@@ -442,8 +468,8 @@ void ciolib_gotoxy(int x, int y)
 	int ny;
 	struct text_info ti;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&ti);
 	if(		x < 1
 			|| x > ti.winright-ti.winleft+1
@@ -457,8 +483,8 @@ void ciolib_gotoxy(int x, int y)
 
 void ciolib_textmode(mode)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	if(mode==-1) {
 		ciolib_gettextinfo(&cio_textinfo);
 		cio_api.textmode(lastmode);
@@ -478,8 +504,8 @@ void ciolib_textmode(mode)
 
 void ciolib_window(int sx, int sy, int ex, int ey)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&cio_textinfo);
 	if(		   sx < 1
 			|| sy < 1
@@ -504,8 +530,8 @@ void ciolib_clreol(void)
 	int os;
 	struct text_info	ti;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&ti);
 	os=_wscroll;
 	_wscroll=0;
@@ -516,18 +542,18 @@ void ciolib_clreol(void)
 
 void ciolib_clrscr(void)
 {
-	char *buf;
+	unsigned char *buf;
 	int i;
 	int width,height;
 	struct text_info ti;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&ti);
 
 	width=ti.winright-ti.winleft+1;
 	height=ti.winbottom-ti.wintop+1;
-	buf=(char *)malloc(width*height*2);
+	buf=(unsigned char *)malloc(width*height*2);
 	for(i=0;i<width*height*2;) {
 		buf[i++]=' ';
 		buf[i++]=ti.attribute;
@@ -540,8 +566,8 @@ void ciolib_delline(void)
 {
 	struct text_info ti;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&ti);
 
 	ciolib_movetext(ti.winleft,ti.cury+1,ti.winright,ti.winbottom,ti.winleft,ti.cury);
@@ -554,8 +580,8 @@ void ciolib_insline(void)
 {
 	struct text_info ti;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&ti);
 
 	ciolib_movetext(ti.winleft,ti.cury,ti.winright,ti.winbottom,ti.winleft,ti.cury+1);
@@ -575,11 +601,11 @@ int ciolib_cprintf(char *fmat, ...)
 	char	*str;
 #endif
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
     va_start(argptr,fmat);
 #ifdef _WIN32
-	ret=vsnprintf(str,sizeof(str)-1,fmat,argptr);
+	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
     ret=vsnprintf(NULL,0,fmat,argptr);
 	str=(char *)malloc(ret+1);
@@ -603,8 +629,8 @@ int ciolib_cputs(char *str)
 	int		pos;
 	int		ret=0;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	for(pos=0;str[pos];pos++)
 	{
 		ret=str[pos];
@@ -619,8 +645,8 @@ void ciolib_textbackground(int colour)
 {
 	unsigned char attr;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr&=143;
@@ -632,8 +658,8 @@ void ciolib_textcolor(int colour)
 {
 	unsigned char attr;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr&=240;
@@ -645,8 +671,8 @@ void ciolib_highvideo(void)
 {
 	int attr;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr |= 8;
@@ -657,8 +683,8 @@ void ciolib_lowvideo(void)
 {
 	int attr;
 
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr &= 0xf7;
@@ -667,49 +693,80 @@ void ciolib_lowvideo(void)
 
 void ciolib_normvideo(void)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	ciolib_textattr(0x07);
 }
 
 int ciolib_puttext(int a,int b,int c,int d,unsigned char *e)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	return(cio_api.puttext(a,b,c,d,e));
 }
 
 int ciolib_gettext(int a,int b,int c,int d,unsigned char *e)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	return(cio_api.gettext(a,b,c,d,e));
 }
 
 void ciolib_textattr(unsigned char a)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	cio_api.textattr(a);
 }
 
 void ciolib_delay(long a)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	cio_api.delay(a);
 }
 
 int ciolib_putch(unsigned char a)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+
 	return(cio_api.putch(a));
 }
 
 void ciolib_setcursortype(int a)
 {
-	if(!initialized)
-		initciolib(CIOLIB_AUTO_MODE);
+	CIOLIB_INIT();
+	
 	cio_api.setcursortype(a);
+}
+
+int ciolib_getmouse(struct cio_mouse_event *mevent) {
+	CIOLIB_INIT();
+
+	if(cio_api.getmouse!=NULL)
+		return(cio_api.getmouse(mevent));
+	return(-1);
+}
+
+int ciolib_showmouse(void) {
+	CIOLIB_INIT();
+
+	if(cio_api.showmouse!=NULL)
+		return(cio_api.showmouse());
+	return(-1);
+}
+
+int ciolib_hidemouse(void) {
+	CIOLIB_INIT();
+
+	if(cio_api.hidemouse!=NULL)
+		return(cio_api.hidemouse());
+	return(-1);
+}
+
+void ciolib_settitle(const char *title) {
+	CIOLIB_INIT();
+
+	if(cio_api.settitle!=NULL)
+		cio_api.settitle(title);
 }
