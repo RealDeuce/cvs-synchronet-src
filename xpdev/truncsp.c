@@ -2,7 +2,7 @@
 
 /* Static functions to truncate white-space chars off end of ASCIIZ strings */
 
-/* $Id: truncsp.c,v 1.2 2004/08/04 04:42:50 rswindell Exp $ */
+/* $Id: truncsp.c,v 1.3 2004/08/04 04:44:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@ static char* truncsp(char* str)
 	unsigned c;
 
 	c=strlen(str);
-	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n') c--;
+	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n')) c--;
 	str[c]=0;
 
 	return(str);
