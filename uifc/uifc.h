@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.50 2004/07/09 03:25:07 rswindell Exp $ */
+/* $Id: uifc.h,v 1.51 2004/09/20 03:51:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -143,7 +143,7 @@
 #endif
 #define MAX_OPLN	75		/* Maximum length of each option per menu call */
 #define MAX_BUFS	7		/* Maximum number of screen buffers to save */
-#define MIN_LINES   20      /* Minimum number of screen lines supported */
+#define MIN_LINES   14      /* Minimum number of screen lines supported */
 #define MAX_LINES   60      /* Maximum number of screen rows supported */ 
 #define MAX_BFLN	80*MAX_LINES*2	/* Maximum size of screen buffers */
 
