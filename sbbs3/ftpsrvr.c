@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.56 2001/03/14 22:01:31 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.57 2001/03/15 14:12:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2492,7 +2492,7 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%-*s %s\r\n"
 							,INDEX_FNAME_LEN,scfg.dir[i]->code,scfg.dir[i]->lname);
 					}
-				} else {
+				} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user)){
 					sprintf(cmd,"%s*",scfg.dir[dir]->path);
 					glob(cmd,0,NULL,&g);
 					for(i=0;i<(int)g.gl_pathc;i++) {
