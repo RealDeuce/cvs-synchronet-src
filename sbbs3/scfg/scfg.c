@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.24 2002/04/25 06:30:28 rswindell Exp $ */
+/* $Id: scfg.c,v 1.25 2002/04/26 01:13:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,11 +77,8 @@ int main(int argc, char **argv)
 	char	**mopt,*p;
     char    errormsg[MAX_PATH*2];
 	int 	i,j,main_dflt=0,chat_dflt=0;
-	uint	u;
-	long	l;
 	char 	str[129];
     BOOL    door_mode=FALSE;
-	FILE	*instream;
 
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2002 "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION);
@@ -1795,10 +1792,6 @@ int lprintf(char *fmt, ...)
 
 void bail(int code)
 {
-	char		str[256];
-	int 		i,x;
-	smbstatus_t status;
-
     if(code) {
         puts("\nHit a key...");
         getch(); }
@@ -1828,13 +1821,14 @@ void bail(int code)
 /****************************************************************************/
 void errormsg(int line, char *source,  char action, char *object, ulong access)
 {
-	char scrn_buf[MAX_BFLN];
     char actstr[256];
 
 #if !defined(__unix__)
+	char scrn_buf[MAX_BFLN];
     gettext(1,1,80,uifc.scrn_len,scrn_buf);
     clrscr();
 #endif
+
     switch(action) {
         case ERR_OPEN:
             strcpy(actstr,"opening");

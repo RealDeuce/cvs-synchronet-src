@@ -1,6 +1,6 @@
 /* scfgchat.c */
 
-/* $Id: scfgchat.c,v 1.4 2002/01/24 19:47:16 rswindell Exp $ */
+/* $Id: scfgchat.c,v 1.5 2002/04/26 01:13:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@ void page_cfg()
 
 while(1) {
 	for(i=0;i<cfg.total_pages && i<MAX_OPTS;i++)
-		sprintf(opt[i],"%-40.40s %.-20s",cfg.page[i]->cmd,cfg.page[i]->arstr);
+		sprintf(opt[i],"%-40.40s %-.20s",cfg.page[i]->cmd,cfg.page[i]->arstr);
 	opt[i][0]=0;
 	uifc.savnum=0;
 	j=WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT;
@@ -448,7 +448,7 @@ void chatact_cfg(uint setnum)
 {
 	static int chatact_dflt,chatact_bar;
 	char str[128],cmd[128],out[128];
-	int j,k;
+	int j;
 	uint i,n,chatnum[MAX_OPTS+1];
 	static chatact_t savchatact;
 

@@ -1,6 +1,6 @@
 /* scfgnode.c */
 
-/* $Id: scfgnode.c,v 1.15 2002/04/12 08:41:13 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.16 2002/04/26 01:13:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 void node_menu()
 {
-	char	done,str[81],savnode=0;
+	char	str[81],savnode=0;
 	int 	i,j;
 	static int node_menu_dflt, node_bar;
 
@@ -177,7 +177,7 @@ void node_cfg()
 	static	int node_dflt;
 	char	done,str[81];
 	static	int adv_dflt,tog_dflt,tog_bar;
-	int 	i,j;
+	int 	i;
 
 while(1) {
 	i=0;

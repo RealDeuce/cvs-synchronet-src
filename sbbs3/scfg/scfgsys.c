@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.12 2002/03/13 23:31:39 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.13 2002/04/26 01:13:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,8 +38,8 @@
 void sys_cfg(void)
 {
 	static int sys_dflt,adv_dflt,tog_dflt,new_dflt;
-	char str[81],str2[81],done=0,*dupehelp;
-	int i,j,k,dflt,bar,savchanges;
+	char str[81],done=0;
+	int i,j,k,dflt,bar;
 
 while(1) {
 	i=0;
