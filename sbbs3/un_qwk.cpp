@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.1 2000/10/10 11:25:39 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.2 2000/10/24 11:30:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,7 +247,7 @@ void sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		if(!(ff.attrib&_A_SUBDIR)) {
 			// Create directory if necessary
 			sprintf(str,"%sQNET/%s.IN",cfg.data_dir,cfg.qhub[hubnum]->id);
-			mkdir(str);
+			_mkdir(str);
 			// Copy files
 			sprintf(str,"%s%s",cfg.temp_dir,ff.name);
 			sprintf(fname,"%sQNET/%s.IN/%s",cfg.data_dir,cfg.qhub[hubnum]->id,ff.name);

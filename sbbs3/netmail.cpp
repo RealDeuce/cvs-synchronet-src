@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.1 2000/10/10 11:24:54 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.2 2000/10/24 11:30:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 
 	if(mode&WM_FILE) {
 		sprintf(str2,"%sFILE/%04u.OUT",cfg.data_dir,useron.number);
-		mkdir(str2);
+		_mkdir(str2);
 		sprintf(str2,"%sFILE/%04u.OUT/%s",cfg.data_dir,useron.number,title);
 		if(fexist(str2)) {
 			bputs(text[FileAlreadyThere]);

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.1 2000/10/10 11:24:21 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.2 2000/10/24 11:30:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -209,7 +209,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 	if(mode&WM_FILE) {
 		strcpy(fname,subj);
 		sprintf(str,"%sFILE/%04u.OUT", cfg.data_dir, useron.number);
-		mkdir(str);
+		_mkdir(str);
 		strcpy(tmp, cfg.data_dir);
 		if(tmp[0]=='.')    /* Relative path */
 			sprintf(tmp,"%s%s", cfg.node_dir, cfg.data_dir);

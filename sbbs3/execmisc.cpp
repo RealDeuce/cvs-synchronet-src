@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.3 2000/10/24 07:55:55 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.4 2000/10/24 11:30:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1339,7 +1339,7 @@ int sbbs_t::exec_misc(csi_t *csi, char *path)
 					if(pp && *pp)
 						switch(*(csi->ip-5)) {
 							case MAKE_DIR:
-								csi->logic=mkdir(*pp);
+								csi->logic=_mkdir(*pp);
 								break;
 							case REMOVE_DIR:
 								csi->logic=rmdir(*pp);

@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.3 2000/10/24 11:04:43 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.4 2000/10/24 11:30:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,8 @@ extern "C" {
 	#define stricmp(x,y)		strcasecmp(x,y)
 	#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#define chsize(fd,size)		ftruncate(fd,size)
+	#define _mkdir(dir)			mkdir(dir,0777)
+	#define _rmdir(dir)			rmdir(dir)
 
 	DLLEXPORT void	sbbs_beep(int freq, int dur);
 	DLLEXPORT long	filelength(int fd);
@@ -94,6 +96,10 @@ extern "C" {
 /*********************/
 /* Compiler-specific */
 /*********************/
+
+#ifdef _MSC_VER
+	#define snprintf			_snprintf
+#endif
 
 #ifdef __BORLANDC__
 	#define sbbs_random(x)		random(x)

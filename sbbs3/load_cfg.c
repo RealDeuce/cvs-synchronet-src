@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.1 2000/10/10 11:24:38 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.2 2000/10/24 11:30:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ BOOL md(char *path)
 	ff_handle=_findfirst(path,&ff);
 	if (ff_handle==-1) {
 		lprintf("Creating Directory %s... ",path);
-		if(mkdir(path)) {
+		if(_mkdir(path)) {
 			lprintf("!Fix configuration or make directory by "
 				"hand.");
 			return(FALSE); } }
