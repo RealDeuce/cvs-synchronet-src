@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.32 2005/01/24 08:18:02 deuce Exp $
+# $Id: Common.gmake,v 1.33 2005/01/24 09:36:33 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -242,7 +242,7 @@ else
  else
   ifeq ($(os),netbsd)    # NetBSD
    MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
-   MT_LDFLAGS    +=   -L/usr/pkg/lib -lpthread
+   MT_LDFLAGS    +=   -L/usr/pkg/lib
    XP_SEM    :=    1
   else
    ifeq ($(os),qnx)    # QNX
@@ -250,18 +250,15 @@ else
     ifeq ($(os),darwin)    # Darwin/Mac OS X
      CFLAGS    += -D__unix__ 
      MT_CFLAGS    += -DUSE_XP_SEMAPHORES -D__DARWIN__
-     MT_LDFLAGS    += -lpthread
      XP_SEM    := 1
     else
      ifeq ($(os),sunos)  # Solaris
       XP_SEM :=    1
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      MT_LDFLAGS    +=    -lpthread
      else            # Linux / Other UNIX
       XP_SEM :=    1
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      MT_LDFLAGS    +=    -lpthread
      endif
     endif
    endif
