@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.23 2004/10/14 03:28:22 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.22 2004/04/08 05:36:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,10 +135,11 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	}
 	
 	/* This is required for gating to Unix telnetd */
-	request_telnet_opt(TELNET_DONT,TELNET_TERM_TYPE);	// Re-negotiation of terminal type
+	send_telnet_cmd(TELNET_DONT,TELNET_TERM_TYPE);	// Re-negotiation of terminal type
 
 	/* Text/NVT mode by default */
-	request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
+	send_telnet_cmd(TELNET_DONT,TELNET_BINARY);
+	telnet_mode&=~TELNET_MODE_BIN_RX;
 
 	while(online) {
 		if(!(mode&TG_NOCHKTIME))
