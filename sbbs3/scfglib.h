@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.15 2002/05/09 09:04:45 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.17 2004/04/08 00:27:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,12 +52,18 @@ extern "C" {
 #endif
 
 extern const char*	scfgnulstr;
-extern const uchar* nular;
 
 #define FREE_AND_NULL(x) if(x!=NULL) { FREE(x); x=NULL; }
 
-/* allocated with arstr() */	
-#define FREE_AR(x)		if(x!=NULL && x!=nular)	{ FREE(x); x=NULL; }	
+#if defined(SCFG)	/* Don't compile AR strings for SCFG */
+	#define ARSTR(str,cfg)	NULL
+    #define FREE_AR(x)
+#else
+	extern const uchar* nular;
+	#define ARSTR(str,cfg)	arstr(NULL,str,cfg)
+	/* allocated with arstr() */
+	#define FREE_AR(x)		if(x!=NULL && x!=nular)	{ FREE(x); x=NULL; }
+#endif
 
 char*	get_alloc(long *offset, char *outstr, int maxlen, FILE *instream);
 BOOL	allocerr(FILE*, char* error, long offset, char *fname, uint size);

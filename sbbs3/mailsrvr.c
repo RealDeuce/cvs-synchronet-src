@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.317 2004/04/02 12:40:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.323 2004/04/15 12:27:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,7 +98,8 @@ static DWORD	thread_count=0;
 static BOOL		sendmail_running=FALSE;
 static DWORD	sockets=0;
 static DWORD	served=0;
-static BOOL		recycle_server=FALSE;
+static BOOL		terminate_server=FALSE;
+static BOOL		terminate_sendmail=FALSE;
 static sem_t	sendmail_wakeup_sem;
 static char		revision[16];
 static time_t	uptime;
@@ -345,7 +346,7 @@ static int sockreadline(SOCKET socket, char* buf, int len)
 	
 	while(rd<len-1) {
 
-		if(server_socket==INVALID_SOCKET) {
+		if(server_socket==INVALID_SOCKET || terminate_server) {
 			lprintf(LOG_WARNING,"%04d !ABORTING sockreadline",socket);
 			return(-1);
 		}
@@ -577,10 +578,19 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 	return(lines);
 }
 
-static u_long resolve_ip(char *addr)
+static u_long resolve_ip(char *inaddr)
 {
 	char*		p;
+	char*		addr;
+	char		buf[128];
 	HOSTENT*	host;
+
+	SAFECOPY(buf,inaddr);
+	addr=buf;
+	if(*addr=='[' && *(p=lastchar(addr))==']') { /* Support [ip_address] notation */
+		addr++;
+		*p=0;
+	}
 
 	if(*addr==0)
 		return((u_long)INADDR_NONE);
@@ -591,8 +601,8 @@ static u_long resolve_ip(char *addr)
 	if(!(*p))
 		return(inet_addr(addr));
 
-	if((host=gethostbyname(addr))==NULL) {
-		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",addr);
+	if((host=gethostbyname(inaddr))==NULL) {
+		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",inaddr);
 		return((u_long)INADDR_NONE);
 	}
 	return(*((ulong*)host->h_addr_list[0]));
@@ -706,6 +716,7 @@ static void pop3_thread(void* arg)
 		memset(&smb,0,sizeof(smb));
 		memset(&msg,0,sizeof(msg));
 		memset(&user,0,sizeof(user));
+		password[0]=0;
 
 		srand(time(NULL));	/* seed random number generator */
 		rand();	/* throw-away first result */
@@ -1281,9 +1292,10 @@ static void signal_smtp_sem(void)
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
 static char* mailcmdstr(char* instr, char* msgpath, char* lstpath, char* errpath
-						,char* host, char* ip, uint usernum, char* cmd)
+						,char* host, char* ip, uint usernum
+						,char* sender, char* sender_addr, char* reverse_path, char* cmd)
 {
-	char	str[256];
+	char	str[1024];
     int		i,j,len;
 
     len=strlen(instr);
@@ -1323,6 +1335,15 @@ static char* mailcmdstr(char* instr, char* msgpath, char* lstpath, char* errpath
                 case 'Q':   /* QWK ID */
                     strcat(cmd,scfg.sys_id);
                     break;
+				case 'R':	/* reverse path */
+					strcat(cmd,reverse_path);
+					break;
+				case 'S':	/* sender name */
+					strcat(cmd,sender);
+					break;
+				case 'A':	/* sender address */
+					strcat(cmd,sender_addr);
+					break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
 					strcat(cmd,str);
@@ -1440,7 +1461,8 @@ static JSFunctionSpec js_global_functions[] = {
 static BOOL
 js_mailproc(SOCKET sock, client_t* client, user_t* user
 			,char* fname, char* cmdline
-			,char* msgtxt_fname, char* rcptlst_fname, char* proc_err_fname)
+			,char* msgtxt_fname, char* rcptlst_fname, char* proc_err_fname
+			,char* sender, char* sender_addr, char* reverse_path)
 {
 	char*		p;
 	char		path[MAX_PATH+1];
@@ -1544,6 +1566,18 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 
 		JS_DefineProperty(js_cx, js_glob, "processing_error_filename"
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,proc_err_fname))
+			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+
+		JS_DefineProperty(js_cx, js_glob, "sender_name"
+			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,sender))
+			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+
+		JS_DefineProperty(js_cx, js_glob, "sender_address"
+			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,sender_addr))
+			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+
+		JS_DefineProperty(js_cx, js_glob, "reverse_path"
+			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,reverse_path))
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 		if(getfext(fname)==NULL) /* No extension specified, assume '.js' */
@@ -1720,6 +1754,7 @@ static void smtp_thread(void* arg)
 	socklen_t	addr_len;
 	ushort		hfield_type;
 	ushort		nettype;
+	ushort		agent;
 	uint		usernum;
 	ulong		lines=0;
 	ulong		hdr_lines=0;
@@ -1733,7 +1768,7 @@ static void smtp_thread(void* arg)
 	BOOL		auth_login;
 	BOOL		routed=FALSE;
 	BOOL		dnsbl_recvhdr;
-	BOOL		msg_rejected;
+	BOOL		msg_handled;
 	uint		subnum=INVALID_SUB;
 	FILE*		msgtxt=NULL;
 	char		msgtxt_fname[MAX_PATH+1];
@@ -2027,7 +2062,7 @@ static void smtp_thread(void* arg)
 				fclose(rcptlst), rcptlst=NULL;
 
 				/* External Mail Processing here */
-				msg_rejected=FALSE;
+				msg_handled=FALSE;
 				if(startup->proc_cfg_file[0] 
 					&& (proc_cfg=fopen(startup->proc_cfg_file,"r"))!=NULL) {
 					sprintf(proc_err_fname,"%sSMTP.%s.err", scfg.data_dir, session_id);
@@ -2042,7 +2077,7 @@ static void smtp_thread(void* arg)
 						if(*p==';' || *p==0)	/* comment or blank line */
 							continue;
 						mailcmdstr(p, msgtxt_fname, rcptlst_fname, proc_err_fname
-							,host_name, host_ip, relay_user.number, str);
+							,host_name, host_ip, relay_user.number, sender, sender_addr, reverse_path, str);
 						lprintf(LOG_DEBUG,"%04d SMTP Executing external process: %s", socket, str);
 #ifdef JAVASCRIPT
 						if(*p=='?') {
@@ -2050,7 +2085,8 @@ static void smtp_thread(void* arg)
 							SAFECOPY(fname,str+1);
 							truncstr(fname," \t");
 							js_mailproc(socket, &client, &relay_user
-								,fname, p ,msgtxt_fname, rcptlst_fname, proc_err_fname);
+								,fname, p ,msgtxt_fname, rcptlst_fname, proc_err_fname
+								,sender, sender_addr, reverse_path);
 						} else									
 #endif
 							/* Native */
@@ -2079,40 +2115,39 @@ static void smtp_thread(void* arg)
 									,str);
 						}
 						fclose(proc_err);
-						msg_rejected=TRUE;
+						msg_handled=TRUE;
 					}
 					remove(proc_err_fname);	/* Remove error file here */
-					if(!msg_rejected
+					if(!msg_handled
 						&& (!fexist(msgtxt_fname) || !fexist(rcptlst_fname))) {
 						lprintf(LOG_WARNING,"%04d SMTP External process removed %s file"
 							,socket, fexist(msgtxt_fname)==FALSE ? "message text" : "recipient list");
 						sockprintf(socket,ok_rsp);
-						msg_rejected=TRUE;
+						msg_handled=TRUE;
 					}
 				}
 
 				/* Re-open files */
-				/* We must do this before continuing for rejected msgs */
+				/* We must do this before continuing for handled msgs */
 				/* to prevent freopen(NULL) and orphaned temp files */
-				if((rcptlst=fopen(rcptlst_fname,"r"))==NULL) {
+				if((rcptlst=fopen(rcptlst_fname,fexist(rcptlst_fname) ? "r":"w+"))==NULL) {
 					lprintf(LOG_ERR,"%04d !SMTP ERROR %d re-opening recipient list: %s"
 						,socket, errno, rcptlst_fname);
-					if(!msg_rejected)
+					if(!msg_handled)
 						sockprintf(socket,sys_error);
 					continue;
 				}
 			
-				if((msgtxt=fopen(msgtxt_fname,"rb"))==NULL) {
-					lprintf(LOG_ERR,"%04d !SMTP ERROR %d re-opening message file: %s"
-						,socket, errno, msgtxt_fname);
-					if(!msg_rejected)
-						sockprintf(socket,sys_error);
+				if(msg_handled) {
+					lprintf(LOG_NOTICE,"%04d SMTP Message handled by external mail processor"
+						,socket);
 					continue;
 				}
 
-				if(msg_rejected) {
-					lprintf(LOG_NOTICE,"%04d SMTP Message rejected by external mail processor"
-						,socket);
+				if((msgtxt=fopen(msgtxt_fname,"rb"))==NULL) {
+					lprintf(LOG_ERR,"%04d !SMTP ERROR %d re-opening message file: %s"
+						,socket, errno, msgtxt_fname);
+					sockprintf(socket,sys_error);
 					continue;
 				}
 
@@ -2355,6 +2390,7 @@ static void smtp_thread(void* arg)
 
 					SAFECOPY(rcpt_name,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
 					usernum=iniGetInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
+					agent=iniGetShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTAGENT),AGENT_PERSON);
 					nettype=iniGetShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTNETTYPE),NET_NONE);
 					sprintf(str,"#%u",usernum);
 					SAFECOPY(rcpt_addr,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
@@ -2382,6 +2418,8 @@ static void smtp_thread(void* arg)
 						smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(nettype), &nettype);
 						smb_hfield_str(&newmsg, RECIPIENTNETADDR, rcpt_addr);
 					}
+					if(agent!=newmsg.to_agent)
+						smb_hfield(&newmsg, RECIPIENTAGENT, sizeof(agent), &agent);
 
 					i=smb_addmsghdr(&smb,&newmsg,SMB_SELFPACK);
 					smb_freemsgmem(&newmsg);
@@ -2719,7 +2757,6 @@ static void smtp_thread(void* arg)
 			else if(!strnicmp(buf,"SAML FROM:",10))
 				cmd=SMTP_CMD_SAML;
 
-			/* reset recipient list */
 			/* reset recipient list */
 			if((rcptlst=freopen(rcptlst_fname,"w+",rcptlst))==NULL) {
 				lprintf(LOG_ERR,"%04d !SMTP ERROR %d re-opening %s"
@@ -3157,23 +3194,26 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	ushort		agent=AGENT_SMTPSYSMSG;
 	smbmsg_t	newmsg;
 
+	msg->hdr.delivery_attempts++;
+	lprintf(LOG_WARNING,"0000 !Delivery attempt #%u FAILED (%s) for message #%lu from %s to %s"
+		,msg->hdr.delivery_attempts
+		,err
+		,msg->hdr.number
+		,msg->from
+		,msg->to_net.addr);
+
 	if((i=smb_lockmsghdr(smb,msg))!=0) {
 		lprintf(LOG_WARNING,"0000 !BOUNCE ERROR %d (%s) locking message header #%lu"
 			,i, smb->last_error, msg->hdr.number);
 		return(FALSE);
 	}
 
-	msg->hdr.delivery_attempts++;
 	if((i=smb_putmsg(smb,msg))!=0) {
 		lprintf(LOG_ERR,"0000 !BOUNCE ERROR %d (%s) incrementing delivery attempt counter"
 			,i, smb->last_error);
 		smb_unlockmsghdr(smb,msg);
 		return(FALSE);
 	}
-
-	lprintf(LOG_WARNING,"0000 !Delivery attempt #%u FAILED for message #%lu from %s to %s"
-		,msg->hdr.delivery_attempts, msg->hdr.number
-		,msg->from, msg->to_net.addr);
 
 	if(!immediate && msg->hdr.delivery_attempts<startup->max_delivery_attempts) {
 		smb_unlockmsghdr(smb,msg);
@@ -3316,13 +3356,14 @@ static void sendmail_thread(void* arg)
 	thread_up(TRUE /* setuid */);
 
 	sendmail_running=TRUE;
+	terminate_sendmail=FALSE;
 
 	lprintf(LOG_DEBUG,"0000 SendMail thread started");
 
 	memset(&msg,0,sizeof(msg));
 	memset(&smb,0,sizeof(smb));
 
-	while(server_socket!=INVALID_SOCKET) {
+	while(server_socket!=INVALID_SOCKET && !terminate_sendmail) {
 
 		if(startup->options&MAIL_OPT_NO_SENDMAIL) {
 			sem_trywait_block(&sendmail_wakeup_sem,1000);
@@ -3374,7 +3415,7 @@ static void sendmail_thread(void* arg)
 			if(active_sendmail!=0)
 				active_sendmail=0, update_clients();
 
-			if(server_socket==INVALID_SOCKET)	/* server stopped */
+			if(server_socket==INVALID_SOCKET || terminate_sendmail)	/* server stopped */
 				break;
 
 			if(sock!=INVALID_SOCKET) {
@@ -3654,12 +3695,8 @@ static void sendmail_thread(void* arg)
 
 void DLLCALL mail_terminate(void)
 {
-	recycle_server=FALSE;
-	if(server_socket!=INVALID_SOCKET) {
-    	lprintf(LOG_DEBUG,"%04d MAIL Terminate: closing socket",server_socket);
-		mail_close_socket(server_socket);
-	    server_socket=INVALID_SOCKET;
-    }
+  	lprintf(LOG_DEBUG,"%04d Mail Server terminate",server_socket);
+	terminate_server=TRUE;
 }
 
 static void cleanup(int code)
@@ -3685,8 +3722,9 @@ static void cleanup(int code)
 
 	thread_down();
 	status("Down");
-    lprintf(LOG_INFO,"#### Mail Server thread terminated (%u threads remain, %lu clients served)"
-		,thread_count, served);
+	if(terminate_server || code)
+		lprintf(LOG_INFO,"#### Mail Server thread terminated (%u threads remain, %lu clients served)"
+			,thread_count, served);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -3698,7 +3736,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.317 $", "%*s %s", revision);
+	sscanf("$Revision: 1.323 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3767,7 +3805,7 @@ void DLLCALL mail_server(void* arg)
 	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=50;
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
 	if(startup->max_recipients==0) 			startup->max_recipients=100;
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=5;
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 	if(startup->proc_cfg_file[0]==0)			
 		sprintf(startup->proc_cfg_file,"%smailproc.cfg",scfg.ctrl_dir);
 
@@ -3779,7 +3817,7 @@ void DLLCALL mail_server(void* arg)
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
-	recycle_server=TRUE;
+	terminate_server=FALSE;
 
 	do {
 
@@ -3972,7 +4010,7 @@ void DLLCALL mail_server(void* arg)
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
 
-		while(server_socket!=INVALID_SOCKET) {
+		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
 			if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
 				sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
@@ -4017,7 +4055,7 @@ void DLLCALL mail_server(void* arg)
 				break;
 			}
 
-			if(server_socket!=INVALID_SOCKET
+			if(server_socket!=INVALID_SOCKET && !terminate_server
 				&& FD_ISSET(server_socket,&socket_set)) {
 
 				client_addr_len = sizeof(client_addr);
@@ -4147,8 +4185,7 @@ void DLLCALL mail_server(void* arg)
 		}
 
 		if(sendmail_running) {
-			mail_close_socket(server_socket);
-			server_socket=INVALID_SOCKET; /* necessary to terminate sendmail_thread */
+			terminate_sendmail=TRUE;
 			sem_post(&sendmail_wakeup_sem);
 			mswait(100);
 		}
@@ -4169,10 +4206,10 @@ void DLLCALL mail_server(void* arg)
 
 		cleanup(0);
 
-		if(recycle_server) {
+		if(!terminate_server) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
 		}
 
-	} while(recycle_server);
+	} while(!terminate_server);
 }
