@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.28 2004/10/21 08:58:25 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.27 2004/09/21 06:37:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,7 +153,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			}
 			if(!filelength(fileno(smb.shd_fp))) {
 				smb.status.max_crcs=cfg.mail_maxcrcs;
-				smb.status.max_msgs=0;
+				smb.status.max_msgs=MAX_SYSMAIL;
 				smb.status.max_age=cfg.mail_maxage;
 				smb.status.attr=SMB_EMAIL;
 				if((k=smb_create(&smb))!=0) {
