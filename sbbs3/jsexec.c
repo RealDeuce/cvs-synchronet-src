@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.64 2004/02/19 23:06:57 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.63 2003/12/05 11:23:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -293,17 +293,17 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	memset(arglist,0,sizeof(arglist));	// Initialize arglist to NULLs
 
     for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
-		if(JSVAL_IS_DOUBLE(argv[i]))
-			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
-		else if(JSVAL_IS_INT(argv[i]))
-			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
-		else {
-			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-				JS_ReportError(cx,"JS_ValueToString failed");
+		if(JSVAL_IS_STRING(argv[i])) {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			    return(JS_FALSE);
-			}
 			arglist[i-1]=JS_GetStringBytes(str);
-		}
+		} 
+		else if(JSVAL_IS_DOUBLE(argv[i]))
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
+		else if(JSVAL_IS_INT(argv[i]) || JSVAL_IS_BOOLEAN(argv[i]))
+			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else
+			arglist[i-1]=NULL;
 	}
 	
 	if((p=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL)
@@ -714,7 +714,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.64 $", "%*s %s", revision);
+	sscanf("$Revision: 1.63 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
