@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.97 2004/09/20 05:40:09 deuce Exp $ */
+/* $Id: uifc32.c,v 1.101 2004/09/21 05:22:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ int kbwait(void) {
 	return(FALSE);
 }
 
-int inkey()
+int inkey(void)
 {
 	int c;
 
@@ -146,9 +146,6 @@ int uifcini32(uifcapi_t* uifcapi)
 {
 	int 	i;
 	struct	text_info txtinfo;
-#ifdef _WIN32
-	DWORD	conmode;
-#endif
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
         return(-1);
@@ -179,39 +176,27 @@ int uifcini32(uifcapi_t* uifcapi)
 
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
-#ifdef C80X14
             case 14:
                 textmode(C80X14);
                 break;
-#endif
-#ifdef C80X21
             case 21:
                 textmode(C80X21);
                 break;
-#endif
             case 25:
                 textmode(C80);
                 break;
-#ifdef C80X28
             case 28:
                 textmode(C80X28);
                 break;
-#endif
-#ifdef C80X43
             case 43:
                 textmode(C80X43);
                 break;
-#endif
-#ifdef C80X50
             case 50:
                 textmode(C80X50);
                 break;
-#endif
-#ifdef C80X60
             case 60:
                 textmode(C80X60);
                 break;
-#endif
             default:
                 textmode(C4350);
                 break;
@@ -247,16 +232,18 @@ int uifcini32(uifcapi_t* uifcapi)
 
     if(!(api->mode&UIFC_COLOR)
         && (api->mode&UIFC_MONO
-            || txtinfo.currmode==MONO || txtinfo.currmode==BW80)) {
+            || txtinfo.currmode==MONO || txtinfo.currmode==BW40 || txtinfo.currmode==BW80
+            || txtinfo.currmode==MONO14 || txtinfo.currmode==BW40X14 || txtinfo.currmode==BW80X14
+            || txtinfo.currmode==MONO21 || txtinfo.currmode==BW40X21 || txtinfo.currmode==BW80X21
+            || txtinfo.currmode==MONO28 || txtinfo.currmode==BW40X28 || txtinfo.currmode==BW80X28
+            || txtinfo.currmode==MONO43 || txtinfo.currmode==BW40X43 || txtinfo.currmode==BW80X43
+            || txtinfo.currmode==MONO50 || txtinfo.currmode==BW40X50 || txtinfo.currmode==BW80X50
+            || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60))
+	{
         bclr=BLACK;
         hclr=WHITE;
         lclr=LIGHTGRAY;
         cclr=LIGHTGRAY;
-#ifdef __unix__
-		if(txtinfo.currmode==MONO)
-			lbclr=WHITE|(BLACK<<4);		/* no color on curses means no inverse either */
-		else
-#endif
 			lbclr=BLACK|(LIGHTGRAY<<4);	/* lightbar color */
     } else {
         bclr=BLUE;
@@ -328,18 +315,6 @@ void uifcbail(void)
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
 	clrscr();
-#ifdef __unix__
-	if(cio_api.mode==CIOLIB_MODE_CURSES) {
-		nl();
-		nocbreak();
-		noraw();
-		refresh();
-		endwin();
-#ifdef XCURSES
-		XCursesExit();
-#endif
-	}
-#endif
 	FREE(blk_scrn);
 	FREE(tmp_buffer);
 	FREE(tmp_buffer2);
@@ -780,7 +755,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
 					if(mevnt.startx>=s_left+left+3
-							&& mevnt.startx<=s_left+left+width+1
+							&& mevnt.startx<=s_left+left+width-2
 							&& mevnt.starty>=s_top+top+3
 							&& mevnt.starty<=(s_top+top+height)-2
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
@@ -838,6 +813,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 						i=CIO_KEY_NPAGE;
 					}
+					/* Clicked Outside of Window */
+					if(mevnt.startx<s_left+left
+							|| mevnt.startx>s_left+left+width-1
+							|| mevnt.starty<s_top+top
+							|| mevnt.starty>s_top+top+height-1)
+						i=ESC;
 				}
 			}
 			if(i>255) {
