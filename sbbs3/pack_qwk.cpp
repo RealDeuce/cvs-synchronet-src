@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.23 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.24 2002/02/21 19:11:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -494,7 +494,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			if(!mv(str,tmp2,1))
 				netfiles++;
 		}
-		closedir(dir);
+		if(dir!=NULL)
+			closedir(dir);
 		if(netfiles)
 			CRLF; }
 
@@ -616,7 +617,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			if(!isdir(tmp))
 				remove(tmp); 
 		}
-		closedir(dir);
+		if(dir!=NULL)
+			closedir(dir);
 	}
 
 	return(true);

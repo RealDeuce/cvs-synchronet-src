@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.11 2001/11/13 15:01:10 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.12 2002/02/21 19:11:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -642,7 +642,8 @@ void sbbs_t::batch_upload()
 			uploadfile(&f); 
 		}
 	}
-	closedir(dir);
+	if(dir!=NULL)
+		closedir(dir);
 }
 
 /****************************************************************************/

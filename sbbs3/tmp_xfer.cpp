@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.17 2001/11/13 15:01:11 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.18 2002/02/21 19:11:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -311,7 +311,8 @@ void sbbs_t::extract(uint dirnum)
         		if(!isdir(str))
 					remove(str);
 			}
-			closedir(dir);
+			if(dir!=NULL)
+				closedir(dir);
 			CRLF; 
 		} 
 	}
