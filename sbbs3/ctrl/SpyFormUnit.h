@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: SpyFormUnit.h,v 1.8 2003/05/04 10:39:03 rswindell Exp $ */
+/* $Id: SpyFormUnit.h,v 1.9 2003/05/10 03:15:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,6 +80,7 @@ public:		// User declarations
     RingBuf**   inbuf;
     RingBuf**   outbuf;
     __fastcall TSpyForm(TComponent* Owner);
+    __fastcall ~TSpyForm();
 };
 //---------------------------------------------------------------------------
 extern PACKAGE TSpyForm *SpyForms[];
