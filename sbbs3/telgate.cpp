@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.24 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.23 2004/10/14 03:28:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 				lprintf(LOG_DEBUG,"Node %d Telnet cmd from client: %s", cfg.node_num, dump);
 			}
 #endif
-			if(telnet_remote_option[TELNET_BINARY_TX]!=TELNET_WILL) {
+			if(!(telnet_mode&TELNET_MODE_BIN_RX)) {
 				if(*buf==0x1d) { // ^]
 					save_console=console;
 					console&=~CON_RAW_IN;	// Allow Ctrl-U/Ctrl-P
@@ -256,7 +256,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	telnet_mode&=~TELNET_MODE_GATE;
 
 	/* Disable Telnet Terminal Echo */
-	request_telnet_opt(TELNET_WILL,TELNET_ECHO);
+	send_telnet_cmd(TELNET_WILL,TELNET_ECHO);
 
 	close_socket(remote_socket);
 
