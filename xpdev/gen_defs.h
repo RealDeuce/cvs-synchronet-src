@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.11 2003/10/17 10:38:45 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.12 2003/12/04 06:50:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,13 @@
 
 #ifndef _GEN_DEFS_H
 #define _GEN_DEFS_H
+
+#include <errno.h>
+
+/* Resolve multi-named errno constants */
+#if defined(EDEADLK) && !defined(EDEADLOCK)
+	#define EDEADLOCK EDEADLK
+#endif
 
 #if defined(_WIN32)
 	#define WIN32_LEAN_AND_MEAN	/* Don't bring in excess baggage */
