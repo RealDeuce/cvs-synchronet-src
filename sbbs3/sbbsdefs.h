@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.95 2003/07/02 03:15:22 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.96 2003/07/02 10:57:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -456,6 +456,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_NO_INACT	(1<<13)	/* Console inactivity detection disabled	*/
 #define CON_BACKSPACE	(1<<14)	/* Backspace hit, exiting from getstr()		*/
 #define CON_LEFTARROW	(1<<15)	/* Left arrow hit, exiting from getstr()	*/
+#define CON_INSERT		(1<<16)	/* Insert mode, for getstr()				*/
 																			
 							/* Number of milliseconds						*/
 #define DELAY_HANGUP 250    /* Delay before modem drops carrier				*/
