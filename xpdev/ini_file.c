@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.59 2004/10/22 02:25:23 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.60 2004/10/23 00:35:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -506,6 +506,7 @@ static str_list_t splitList(char* list, const char* sep)
 
 	token=strtok(list,sep);
 	while(token!=NULL) {
+		SKIP_WHITESPACE(token);
 		truncsp(token);
 		if(strListAppend(&lp,token,items++)==NULL)
 			break;
@@ -524,6 +525,9 @@ str_list_t iniReadStringList(FILE* fp, const char* section, const char* key
 
 	if((value=read_value(fp,section,key,buf))==NULL || *value==0 /* blank */)
 		value=(char*)deflt;
+
+	if(value==NULL)
+		return(NULL);
 
 	SAFECOPY(list,value);
 
