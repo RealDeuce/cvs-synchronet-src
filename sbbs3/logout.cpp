@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.7 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.8 2001/03/14 22:02:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,6 @@ void sbbs_t::logout()
 	ushort	ttoday;
 	node_t	node;
 	struct	tm * tm, tm_now;
-	FILE	*stream;
 
 	now=time(NULL);
 	tm=gmtime(&now);
@@ -86,12 +85,7 @@ void sbbs_t::logout()
 #endif
 		batdn_total=0; }
 
-	if(batdn_total) {
-		sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
-		if((stream=fnopen(NULL,str,O_WRONLY|O_TRUNC|O_CREAT))!=NULL) {
-			for(i=0;i<(int)batdn_total;i++)
-				fprintf(stream,"%s\r\n",batdn_name[i]);
-			fclose(stream); } }
+	batch_create_list();
 
 	if(sys_status&SS_USERON && thisnode.status!=NODE_QUIET && !(useron.rest&FLAG('Q')))
 		for(i=1;i<=cfg.sys_nodes;i++)
