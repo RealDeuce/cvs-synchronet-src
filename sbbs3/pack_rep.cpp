@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.29 2004/01/10 11:07:36 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.30 2005/01/05 01:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	int 	file,mode;
 	uint	i,j,k;
 	long	l,msgcnt,submsgs,posts,packedmail,netfiles=0,deleted;
-	ulong	mailmsgs;
+	long	mailmsgs;
 	ulong	last,msgs;
 	post_t	HUGE16 *post;
 	mail_t	*mail;
@@ -98,7 +98,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	packedmail=0;
 	if(mailmsgs) {
 		eprintf(LOG_INFO,"Packing NetMail for %s", cfg.qhub[hubnum]->id);
-		for(l=0;(ulong)l<mailmsgs;l++) {
+		for(l=0;l<mailmsgs;l++) {
 	//		bprintf("\b\b\b\b\b%-5lu",l+1);
 
 			memset(&msg,0,sizeof(msg));
@@ -270,7 +270,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 
 		deleted=0;
 		/* Mark as READ and DELETE */
-		for(l=0;(ulong)l<mailmsgs;l++) {
+		for(l=0;l<mailmsgs;l++) {
 			if(mail[l].number>qwkmail_last)
 				continue;
 			memset(&msg,0,sizeof(msg));

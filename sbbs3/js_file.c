@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.76 2004/11/17 10:18:07 rswindell Exp $ */
+/* $Id: js_file.c,v 1.78 2004/12/31 02:39:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1553,7 +1553,7 @@ static char* file_prop_desc[] = {
 static jsSyncMethodSpec js_file_functions[] = {
 	{"open",			js_open,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[string mode, boolean shareable, number buflen]")
 	,JSDOCSTR("open file, <i>shareable</i> defaults to <i>false</i>, <i>buflen</i> defaults to 2048 bytes, "
-		"mode (default: <tt>w+</tt>) specifies the type of access requested for the file, as follows:<br>"
+		"mode (default: <tt>'w+'</tt>) specifies the type of access requested for the file, as follows:<br>"
 		"<tt>r&nbsp</tt> open for reading; if the file does not exist or cannot be found, the open call fails<br>"
 		"<tt>w&nbsp</tt> open an empty file for writing; if the given file exists, its contents are destroyed<br>"
 		"<tt>a&nbsp</tt> open for writing at the end of the file (appending); creates the file first if it doesn’t exist<br>"
@@ -1561,7 +1561,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>w+</tt> open an empty file for both reading and writing; if the given file exists, its contents are destroyed<br>"
 		"<tt>a+</tt> open for reading and appending<br>"
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
-		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access<br>"
+		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.12)</i><br>"
 		)
 	,310
 	},		
@@ -1645,7 +1645,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"if <i>section</i> is undefined, returns key names from the <i>root</i> section")
 	,311
 	},
-	{"iniGetValue",		js_iniGetValue,		3,	JSTYPE_STRING,	JSDOCSTR("section, key [,default]")
+	{"iniGetValue",		js_iniGetValue,		3,	JSTYPE_UNDEF,	JSDOCSTR("section, key [,default]")
 	,JSDOCSTR("parse a key from a <tt>.ini</tt> file and return its value (format = '<tt>key = value</tt>'). "
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
 		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
@@ -1657,7 +1657,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("set the specified <i>key</i> to the specified <i>value</i> in the specified <i>section</i> "
 		"of a <tt>.ini</tt> file. "
 		"to set a key in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
-	,311
+	,312
 	},
 	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section]")
 	,JSDOCSTR("parse an entire section from a .ini file "
@@ -1669,7 +1669,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("write all the properties of the specified <i>object</i> as separate <tt>key=value</tt> pairs "
 		"in the specified <i>section</i> of a <tt>.ini</tt> file. "
 		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
-	,311
+	,312
 	},
 	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix]")
 	,JSDOCSTR("parse all sections from a .ini file and return all (non-<i>root</i>) sections "
@@ -1683,7 +1683,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property]")
 	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
 	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
-	,311
+	,312
 	},
 	{0}
 };
@@ -1777,7 +1777,9 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 					"<li>optional end-of-text (<i>etx</i>) character for automatic record padding/termination"
 					"<li>Synchronet <tt>.dat</tt> files use an <i>etx</i> value of 3 (Ctrl-C)"
 					"</ol>"
-				"<li>supports <tt>.ini</tt> formated configuration files"
+				"<li>supports <tt>.ini</tt> formated configuration files<ol type=square>"
+					"<li>concept and support of <i>root</i> ini sections added in v3.12"
+					"</ol>"
 				"<li>optional ROT13 encoding/translation"
 				"</ol>"
 			"<li>Dynamically-calculated industry standard checksums (e.g. CRC-16, CRC-32, MD5)"
