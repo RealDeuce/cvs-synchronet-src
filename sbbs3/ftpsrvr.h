@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.17 2002/02/24 18:32:51 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.18 2002/02/24 18:45:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@ typedef struct {
     DWORD   interface_addr;
     DWORD	options;			/* See FTP_OPT definitions */
     DWORD	js_max_bytes;
-    DWORD	user_id;			/* Unix uid to use for threads */
+    DWORD	reserved_dword7;
     DWORD	reserved_dword6;
     DWORD	reserved_dword5;
     DWORD	reserved_dword4;
