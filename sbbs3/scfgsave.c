@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.38 2003/10/07 02:14:11 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.39 2004/04/19 16:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -348,8 +348,11 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	for(i=0;i<158;i++)
 		put_int(n,stream);
 	n=(ushort)0xffff;
-	for(i=0;i<256;i++)
+	for(i=0;i<254;i++)
 		put_int(n,stream);
+
+	put_int(cfg->user_backup_level,stream);
+	put_int(cfg->mail_backup_level,stream);
 
 	n=0;
 	for(i=0;i<10;i++) {
