@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.16 2002/03/18 00:34:32 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.17 2002/04/01 18:26:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,8 +196,9 @@ void __fastcall TNodeForm::TimerTick(TObject *Sender)
                 strcat(str,"Waiting for all nodes to become inactive");
                 break;
             case NODE_EVENT_LIMBO:
-                sprintf(str,"Waiting for node %d to finish external event"
+                sprintf(tmp,"Waiting for node %d to finish external event"
                 	,node.aux);
+                strcat(str,tmp);
                 break;
             case NODE_EVENT_RUNNING:
                 strcat(str,"Running external event");
