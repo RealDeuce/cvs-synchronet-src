@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.9 2001/07/25 02:47:20 rswindell Exp $ */
+/* $Id: startup.h,v 1.10 2001/07/29 18:44:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@ typedef struct {
     WORD	last_node;
 	WORD	telnet_port;
 	WORD	rlogin_port;
-	WORD	event_interval;
+	WORD	reserved_word4;
 	WORD	reserved_word3;
 	WORD	reserved_word2;
 	WORD	reserved_word1;
