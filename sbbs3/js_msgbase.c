@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.16 2002/03/08 17:58:47 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.17 2002/03/08 18:05:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -266,6 +266,7 @@ static BOOL parse_header_object(JSContext* cx, JSObject* hdr, uint subnum, smbms
 static JSBool
 js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	char		date[128];
 	char		msg_id[128];
 	char		reply_id[128];
 	char*		val;
@@ -385,6 +386,10 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 
 	l=smb_getmsgdatlen(&msg);
 	JS_DefineProperty(cx, hdrobj, "data_length", INT_TO_JSVAL(l)
+		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+
+	JS_DefineProperty(cx, hdrobj, "date"
+		,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msgdate(msg.hdr.when_written,date)))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	/* Reply-ID (References) */
