@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.263 2003/07/09 19:15:44 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.264 2003/07/09 19:29:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2463,11 +2463,14 @@ static void smtp_thread(void* arg)
 				sprintf(str,"SPAM BAIT (%s) taken", rcpt_addr);
 				lprintf("%04d !SMTP %s by: %s"
 					,socket, str, reverse_path);
-				spamlog(&scfg, "SMTP", "REFUSED and FILTERED", str
+				strcpy(tmp,"REFUSED");
+				if(dnsbl_result.s_addr==0)	{ /* Don't double-filter */
+					filter_ip(&scfg, "SMTP", str, host_ip, reverse_path);
+					strcat(tmp," and FILTERED");
+				}
+				spamlog(&scfg, "SMTP", tmp, "Spam Bait Taken"
 					,host_name, host_ip, rcpt_addr, reverse_path);
-				filter_ip(&scfg, "SMTP", str, host_ip, reverse_path);
-				sockprintf(socket, "550 Unknown User:%s", buf+8);
-				continue;
+				break;
 			}
 
 			/* Check for blocked recipients */
@@ -3285,7 +3288,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.263 $", "%*s %s", revision);
+	sscanf("$Revision: 1.264 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
