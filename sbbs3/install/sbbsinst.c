@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.3 2003/01/22 01:26:40 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.4 2003/01/22 03:36:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,6 @@ void allocfail(uint size)
 int main(int argc, char **argv)
 {
 	char	**mopt;
-    char    errormsg[MAX_PATH*2];
 	int 	i=0;
 	int		main_dflt=1;
 	char 	str[129];
@@ -359,7 +358,8 @@ endif
 		fputs("SUFFIX  :=  debug\n",makefile);
 		fputs("MKFLAGS	+=	DEBUG=1\n",makefile);
 	}
-	fprintf(makefile,"MKFLAGS	+=	CFLAGS=%s\n",params.cflags);
+	if(param.cflags[0])
+		fprintf(makefile,"MKFLAGS	+=	CFLAGS=%s\n",params.cflags);
 	fputs("SBBSDIR := ",makefile);
 	fputs(params.install_path,makefile);
 	fputs("\n",makefile);
