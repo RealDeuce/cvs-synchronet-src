@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.155 2004/09/24 20:04:30 deuce Exp $ */
+/* $Id: websrvr.c,v 1.156 2004/09/24 20:26:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2609,7 +2609,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.155 $", "%*s %s", revision);
+	sscanf("$Revision: 1.156 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2628,8 +2628,8 @@ const char* DLLCALL web_ver(void)
 void http_logging_thread(void* arg)
 {
 	char	base[128];
-	char	filename[128+14];
-	char	newfilename[128+14];
+	char	filename[128+15];
+	char	newfilename[128+15];
 	FILE*	logfile=NULL;
 
 	SAFECOPY(base,arg);
@@ -2658,7 +2658,7 @@ void http_logging_thread(void* arg)
 			continue;
 		}
 		SAFECOPY(newfilename,base);
-		strftime(strchr(newfilename,0),14,"%G-%m-%d.log",&ld->completed);
+		strftime(strchr(newfilename,0),15,"%G-%m-%d.log",&ld->completed);
 		if(strcmp(newfilename,filename)) {
 			if(logfile!=NULL)
 				fclose(logfile);
