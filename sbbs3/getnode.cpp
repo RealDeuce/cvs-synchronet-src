@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.15 2002/06/18 08:11:21 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.16 2002/06/18 09:32:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,6 +112,13 @@ void sbbs_t::nodesync()
 	if(thisnode.action!=action) {
 		getnodedat(cfg.node_num,&thisnode,1);
 		thisnode.action=action;
+		putnodedat(cfg.node_num,&thisnode); 
+	}
+
+	if(thisnode.status==NODE_WFC) {
+		logline("!!","Fixing node status (from WFC to INUSE)");
+		getnodedat(cfg.node_num,&thisnode,1);
+		thisnode.status=NODE_INUSE;
 		putnodedat(cfg.node_num,&thisnode); 
 	}
 
