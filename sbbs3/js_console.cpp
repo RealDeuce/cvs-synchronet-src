@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.25 2002/11/02 20:59:08 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.26 2002/11/05 07:44:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -545,10 +545,6 @@ static JSBool
 js_strlen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSString*	str;
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
