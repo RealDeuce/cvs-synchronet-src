@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.3 2001/10/30 18:12:13 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.4 2001/11/03 17:58:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,11 @@ char HUGE16*  SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 	ushort	xlat;
 	int 	i,lzh;
 	long	l=0,lzhlen,length;
+
+	if(!msg->hdr.total_dfields) {
+		sprintf(smb->last_error,"no data fields");
+		return(NULL);
+	}
 
 	for(i=0;i<msg->hdr.total_dfields;i++) {
 		if(!(msg->dfield[i].type==TEXT_BODY
