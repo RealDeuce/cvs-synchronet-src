@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.143 2004/03/24 01:20:39 deuce Exp $
+# $Id: GNUmakefile,v 1.144 2004/05/11 02:08:17 rswindell Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -104,9 +104,10 @@ CON_OBJS	= $(LIBODIR)/sbbscon.o $(LIBODIR)/conwrap.o \
 CON_LDFLAGS	= -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 FTP_OBJS	= $(LIBODIR)/ftpsrvr.o
 MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o \
- 		  $(LIBODIR)/mime.o $(LIBODIR)/base64.o $(LIBODIR)/ini_file.o
+ 		  $(LIBODIR)/mime.o $(LIBODIR)/base64.o $(LIBODIR)/ini_file.o \
+		  $(LIBODIR)/str_list.o
 WEB_OBJS	= $(LIBODIR)/websrvr.o $(LIBODIR)/sockwrap.o $(LIBODIR)/base64.o
-SERVICE_OBJS	= $(LIBODIR)/services.o $(LIBODIR)/ini_file.o
+SERVICE_OBJS	= $(LIBODIR)/services.o $(LIBODIR)/ini_file.o $(LIBODIR)/str_list.o
 
 MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(WEB_OBJS) \
 			$(MAIL_OBJS) $(SERVICE_OBJS)
