@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.56 2003/02/08 17:23:10 deuce Exp $
+# $Id: GNUmakefile,v 1.57 2003/02/08 18:03:37 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -21,7 +21,7 @@ ifndef DEBUG
 endif
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
-USE_FLTK =     1       # Use Windowed version
+#USE_FLTK =     1       # Use Windowed version
 USE_CURSES      =       1       # Curses version of UIFC
 
 ifdef DEBUG
