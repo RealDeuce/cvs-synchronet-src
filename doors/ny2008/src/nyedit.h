@@ -26,7 +26,7 @@
 
 #include <OpenDoor.h>                   // Must be included in all doors
 #include <dirwrap.h>
-#include <conio.h>
+#include <ciowrap.h>
 #include <filewrap.h>
 #include <genwrap.h>
 
