@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.314 2004/03/24 08:11:30 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.317 2004/04/02 12:40:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -422,6 +422,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 	char*		p;
 	char*		tp;
 	char*		boundary=NULL;
+	char*		content_type=NULL;
 	int			i;
 	int			s;
 	ulong		lines;
@@ -491,11 +492,20 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 			return(0);
     for(i=0;i<msg->total_hfields;i++) { 
 		if(msg->hfield[i].type==RFC822HEADER) { 
+			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0)
+				content_type=msg->hfield_dat[i];
 			if(!sockprintf(socket,"%s",(char*)msg->hfield_dat[i]))
 				return(0);
         } else if(msg->hdr.auxattr&MSG_FILEATTACH && msg->hfield[i].type==FILEATTACH) 
             strncpy(filepath,(char*)msg->hfield_dat[i],sizeof(filepath)-1);
     }
+	/* Default MIME Content-Type for non-Internet messages */
+	if(msg->from_net.type!=NET_INTERNET && content_type==NULL) {
+		/* No content-type specified, so assume IBM code-page 437 (full ex-ASCII) */
+		sockprintf(socket,"Content-Type: text/plain; charset=IBM437");
+		sockprintf(socket,"Content-Transfer-Encoding: 8bit");
+	}
+
 	if(msg->hdr.auxattr&MSG_FILEATTACH) {
 		if(filepath[0]==0) { /* filename stored in subject */
 			if(msg->idx.to!=0)
@@ -1359,6 +1369,10 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	line[64];
 	char	file[MAX_PATH+1];
 	char*	warning;
+	SOCKET*		sock;
+
+	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
+		return;
 
 	if(report==NULL) {
 		lprintf(LOG_ERR,"!JavaScript: %s", message);
@@ -1383,9 +1397,45 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	} else
 		warning="";
 
-	lprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
+	lprintf(LOG_ERR,"%04d !JavaScript %s%s%s: %s"
+		,*sock, warning ,file, line, message);
 }
 
+static JSBool
+js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+    uintN		i=0;
+	int32		level=LOG_INFO;
+    JSString*	str=NULL;
+	SOCKET*		sock;
+
+	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	if(JSVAL_IS_NUMBER(argv[i]))
+		JS_ValueToInt32(cx,argv[i++],&level);
+
+	for(; i<argc; i++) {
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+			return(JS_FALSE);
+		lprintf(level,"%04d JavaScript: %s",*sock,JS_GetStringBytes(str));
+	}
+
+	if(str==NULL)
+		*rval = JSVAL_VOID;
+	else
+		*rval = STRING_TO_JSVAL(str);
+
+    return(JS_TRUE);
+}
+
+static JSFunctionSpec js_global_functions[] = {
+	{"write",			js_log,				0},
+	{"writeln",			js_log,				0},
+	{"print",			js_log,				0},
+	{"log",				js_log,				0},
+    {0}
+};
 
 static BOOL
 js_mailproc(SOCKET sock, client_t* client, user_t* user
@@ -1422,8 +1472,13 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 
 		JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
+		JS_SetContextPrivate(js_cx, &sock);
+
 		/* Global Object */
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL /*js_global_functions*/))==NULL)
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL)
+			break;
+
+		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
 			break;
 
 		/* Internal JS Object */
@@ -2237,6 +2292,19 @@ static void smtp_thread(void* arg)
 				/* Do external JavaScript processing here? */
 
 				if(subnum!=INVALID_SUB) {	/* Message Base */
+					if(relay_user.number==0)
+						memset(&relay_user,0,sizeof(relay_user));
+
+					if(!chk_ar(&scfg,scfg.grp[scfg.sub[subnum]->grp]->ar, &relay_user)
+						|| !chk_ar(&scfg,scfg.sub[subnum]->ar, &relay_user)
+						|| !chk_ar(&scfg,scfg.sub[subnum]->post_ar, &relay_user)) {
+						lprintf(LOG_WARNING,"%04d !SMTP %s has insufficient access to post on %s"
+							,socket, sender_addr, scfg.sub[subnum]->sname);
+						sockprintf(socket,"550 Insufficient access");
+						subnum=INVALID_SUB;
+						continue;
+					}
+
 					if(rcpt_name[0]==0)
 						strcpy(rcpt_name,"All");
 					smb_hfield_str(&msg, RECIPIENT, rcpt_name);
@@ -3630,7 +3698,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.314 $", "%*s %s", revision);
+	sscanf("$Revision: 1.317 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
