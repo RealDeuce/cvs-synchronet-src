@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.33 2002/03/11 02:07:21 rswindell Exp $ */
+/* $Id: userdat.c,v 1.34 2002/03/12 17:32:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -523,6 +523,7 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 	char str[256];
 	int file;
 	long length;
+	uint total_users;
 
 	if (number<1) 
 		return(-1);
@@ -531,6 +532,12 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 	if((file=nopen(str,O_RDWR|O_CREAT))==-1) 
 		return(-2); 
 	length=filelength(file);
+
+	/* Truncate corrupted name.dat */
+	total_users=lastuser(cfg);
+	if((uint)(length/(LEN_ALIAS+2))>total_users)
+		chsize(file,total_users*(LEN_ALIAS+2));
+
 	if(length && length%(LEN_ALIAS+2)) {
 		close(file);
 		return(-3); 
