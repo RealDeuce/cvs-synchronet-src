@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.157 2002/06/23 09:39:05 rswindell Exp $ */
+/* $Id: main.cpp,v 1.158 2002/06/25 09:50:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,7 +228,8 @@ BOOL socket_check(SOCKET sock, BOOL* rd_p)
 		return(TRUE);
 
 	rd=recv(sock,&ch,1,MSG_PEEK);
-	if(rd==1) {
+	if(rd==1 
+		|| (rd==SOCKET_ERROR && ERROR_VALUE==EMSGSIZE)) {
 		if(rd_p!=NULL)
 			*rd_p=TRUE;
 		return(TRUE);
