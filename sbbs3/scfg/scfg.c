@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.29 2002/07/19 01:50:49 rswindell Exp $ */
+/* $Id: scfg.c,v 1.30 2002/07/19 02:03:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,8 @@ int main(int argc, char **argv)
     char    errormsg[MAX_PATH*2];
 	int 	i,j,main_dflt=0,chat_dflt=0;
 	char 	str[129];
-    BOOL    door_mode=FALSE;
+ 	char	exepath[MAX_PATH+1];
+	BOOL    door_mode=FALSE;
 
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2002 "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION);
@@ -166,6 +167,8 @@ int main(int argc, char **argv)
 
 backslashcolon(cfg.ctrl_dir);
 
+FULLPATH(exepath,argv[0],sizeof(exepath));	/* Must do this before chdir */
+
 if(chdir(cfg.ctrl_dir)!=0) {
 	printf("!ERROR %d changing current directory to: %s\n"
 		,errno,cfg.ctrl_dir);
@@ -207,7 +210,7 @@ for(i=0;i<14;i++)
 if((p=getenv("SBBSEXEC"))!=NULL)
 	SAFECOPY(str,p);
 else {
-	SAFECOPY(str,argv[0]);
+	SAFECOPY(str,exepath);
 	p=strrchr(str,'/');
 	if(p==NULL)
 	    p=strrchr(str,'\\');
