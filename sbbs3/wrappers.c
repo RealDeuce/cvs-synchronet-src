@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.11 2000/10/30 08:41:55 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.12 2000/10/30 09:35:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,9 @@
 /* POSIX.2 directory pattern matching function								*/
 /****************************************************************************/
 #ifndef __unix__
+#ifdef __BORLANDC__
+	#pragma argsused
+#endif
 int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 {
     struct	_finddata_t ff;
@@ -89,7 +92,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 		glob->gl_pathv=NULL;
 	}
 
-	ff_handle=_findfirst(pattern,&ff);
+	ff_handle=_findfirst((char*)pattern,&ff);
 	while(ff_handle!=-1) {
 		if(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR) {
 			if((new_pathv=realloc(glob->gl_pathv
