@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.13 2002/08/16 23:43:15 rswindell Exp $
+# $Id: Makefile,v 1.14 2002/10/31 03:23:05 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -184,5 +184,22 @@ $(ADDFILES): addfiles.c \
 	$(LIBODIR)\scfglib2.obj
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
+
+# FILELIST
+$(FILELIST): filelist.c \
+	$(LIBODIR)\ars.obj \
+	$(LIBODIR)\nopen.obj \
+	$(LIBODIR)\str_util.obj \
+	$(LIBODIR)\date_str.obj \
+	dat_rec.c \
+	filedat.c \
+	genwrap.c \
+	dirwrap.c \
+	$(LIBODIR)\load_cfg.obj \
+	$(LIBODIR)\scfglib1.obj \
+	$(LIBODIR)\scfglib2.obj
+	@echo Creating $@
+	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
+
 
 !include depends.mk		# defines dependencies

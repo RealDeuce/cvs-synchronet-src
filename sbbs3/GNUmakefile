@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.36 2002/09/18 02:15:59 rswindell Exp $
+# $Id: GNUmakefile,v 1.37 2002/10/31 03:23:05 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -260,6 +260,24 @@ $(ECHOCFG): \
 # ADDFILES
 $(ADDFILES): \
 	$(EXEODIR)/addfiles.o \
+	$(EXEODIR)/ars.o \
+	$(EXEODIR)/date_str.o \
+	$(EXEODIR)/load_cfg.o \
+	$(EXEODIR)/scfglib1.o \
+	$(EXEODIR)/scfglib2.o \
+	$(EXEODIR)/nopen.o \
+	$(EXEODIR)/str_util.o \
+	$(EXEODIR)/dat_rec.o \
+	$(EXEODIR)/filedat.o \
+	$(EXEODIR)/filewrap.o \
+	$(EXEODIR)/dirwrap.o \
+	$(EXEODIR)/genwrap.o
+	@echo Linking $@
+	@$(CC) -o $@ $^
+
+# FILELIST
+$(FILELIST): \
+	$(EXEODIR)/filelist.o \
 	$(EXEODIR)/ars.o \
 	$(EXEODIR)/date_str.o \
 	$(EXEODIR)/load_cfg.o \

@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.5 2002/08/08 05:41:24 rswindell Exp $
+# $Id: targets.mk,v 1.6 2002/10/31 03:23:05 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -21,12 +21,13 @@ SMBUTIL		= $(EXEODIR)$(SLASH)smbutil$(EXEFILE)
 SBBSECHO	= $(EXEODIR)$(SLASH)sbbsecho$(EXEFILE)
 ECHOCFG		= $(EXEODIR)$(SLASH)echocfg$(EXEFILE)
 ADDFILES	= $(EXEODIR)$(SLASH)addfiles$(EXEFILE)
+FILELIST	= $(EXEODIR)$(SLASH)filelist$(EXEFILE)
 
 all:	$(LIBODIR) $(EXEODIR) $(SBBSMONO) \
-		$(FIXSMB) $(CHKSMB) $(SMBUTIL) $(BAJA) $(NODE) $(SBBSECHO) $(ECHOCFG) $(ADDFILES)
+		$(FIXSMB) $(CHKSMB) $(SMBUTIL) $(BAJA) $(NODE) $(SBBSECHO) $(ECHOCFG) $(ADDFILES) $(FILELIST)
 
 utils:	$(EXEODIR) \
-		$(FIXSMB) $(CHKSMB) $(SMBUTIL) $(BAJA) $(NODE) $(SBBSECHO) $(ECHOCFG) $(ADDFILES)
+		$(FIXSMB) $(CHKSMB) $(SMBUTIL) $(BAJA) $(NODE) $(SBBSECHO) $(ECHOCFG) $(ADDFILES) $(FILELIST)
 
 dlls:	$(LIBODIR) \
 		$(SBBS) $(FTPSRVR) $(MAILSRVR) $(SERVICES)
