@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.5 2004/09/15 20:24:37 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.6 2004/09/15 22:58:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,9 +246,15 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			msg->hdr.when_written = msg->hdr.when_imported;
 		msg->idx.time=msg->hdr.when_imported.time;
 
-		/* Look-up thread_back if Reply-ID was specified */
+		/* Look-up thread_back if RFC822 Reply-ID was specified */
 		if(msg->hdr.thread_back==0 && msg->reply_id!=NULL) {
 			if(smb_getmsgidx_by_msgid(smb,&remsg,msg->reply_id)==SMB_SUCCESS)
+				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
+		}
+
+		/* Look-up thread_back if FTN REPLY was specified */
+		if(msg->hdr.thread_back==0 && msg->ftn_reply!=NULL) {
+			if(smb_getmsghdr_by_ftnid(smb,&remsg,msg->ftn_reply)==SMB_SUCCESS)
 				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
 		}
 
