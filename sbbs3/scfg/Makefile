@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.17 2004/09/11 00:10:43 rswindell Exp $
+# $Id: Makefile,v 1.18 2004/09/11 00:21:45 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -54,7 +54,7 @@ LIBODIR =	$(EXEODIR)
 
 !ifdef USE_UIFC32
 OBJS = $(OBJS) $(EXEODIR)\uifc32.$(OFILE) \
-	$(EXEODIR)\ciolib.$(OFILE) $(EXEODIR)\ansi_cio.$(OFILE) $(EXEODIR)\win32cio.$(OFILE)
+	$(EXEODIR)\ciolib.$(OFILE) $(EXEODIR)\ansi_cio.$(OFILE) $(EXEODIR)\win32cio.$(OFILE) $(EXEODIR)\mouse.$(OFILE)
 CFLAGS  =   $(CFLAGS) -DUSE_UIFC32 -WM
 !else
 OBJS = $(OBJS) $(EXEODIR)\uifc.$(OFILE)
