@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.37 2003/06/07 07:19:22 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.38 2003/10/07 02:14:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,7 @@ BOOL DLLCALL fcopy(char* src, char* dest)
 	ulong	count=0;
 	FILE*	in;
 	FILE*	out;
+	BOOL	success=TRUE;
 
 	if((in=fopen(src,"rb"))==NULL)
 		return(FALSE);
@@ -93,10 +94,12 @@ BOOL DLLCALL fcopy(char* src, char* dest)
 	}
 
 	while(!feof(in)) {
-		ch=fgetc(in);
-		if(ch==EOF)
+		if((ch=fgetc(in))==EOF)
 			break;
-		fputc(ch,out);
+		if(fputc(ch,out)==EOF) {
+			success=FALSE;
+			break;
+		}
 		if(((count++)%(32*1024))==0)
 			YIELD();
 	}
@@ -104,7 +107,7 @@ BOOL DLLCALL fcopy(char* src, char* dest)
 	fclose(in);
 	fclose(out);
 
-	return(TRUE);
+	return(success);
 }
 
 /****************************************************************************/
