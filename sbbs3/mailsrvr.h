@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.27 2002/07/20 10:49:24 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.28 2002/07/21 05:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,9 @@ typedef struct {
     char	relay_server[128];
     char	dns_server[128];
     char	default_user[128];
-    char	dnsbl_flag[128];
+    char	dnsbl_tag[32];		// Tag to add to blacklisted subject
+	char	dnsbl_hdr[32];		// Header field to add to msg header
+	char	reserved_string[64];
     char	reserved_path6[128];
     char	reserved_path5[128];
     char	reserved_path4[128];
@@ -106,6 +108,7 @@ typedef struct {
 #define MAIL_OPT_ALLOW_RELAY		(1<<14)	/* Allow relays from stored user IPs */
 #define MAIL_OPT_DNSBL_REFUSE		(1<<15) /* Refuse session, return error */
 #define MAIL_OPT_DNSBL_IGNORE		(1<<16) /* Dump mail, return success */
+#define MAIL_OPT_DNSBL_BADUSER		(1<<17) /* Refuse mail (bad user name) */
 #define MAIL_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define MAIL_OPT_MUTE				(1<<31)
 
