@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.23 2003/02/11 10:40:00 deuce Exp $
+# $Id: GNUmakefile,v 1.24 2003/03/04 10:55:49 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -35,6 +35,8 @@ ifndef os
  $(warning OS not specified on command line, setting to '$(os)'.)
 endif
 os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
+# remove '/' from "os/2"
+os      :=  $(shell echo $(os) | tr -d "/")
 
 ODIR	:=	gcc.$(os)
 
