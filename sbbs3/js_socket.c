@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.100 2003/12/02 03:15:56 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.101 2004/04/08 03:32:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,10 +125,13 @@ static ushort js_port(JSContext* cx, jsval val, int type)
 {
 	char*			cp;
 	JSString*		str;
+	int32			i=0;
 	struct servent*	serv;
 
-	if(JSVAL_IS_INT(val))
-		return((ushort)JSVAL_TO_INT(val));
+	if(JSVAL_IS_NUMBER(val)) {
+		JS_ValueToInt32(cx,val,&i);
+		return((ushort)i);
+	}
 	if(JSVAL_IS_STRING(val)) {
 		str = JS_ValueToString(cx,val);
 		cp = JS_GetStringBytes(str);
