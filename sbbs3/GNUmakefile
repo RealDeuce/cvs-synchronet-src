@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.8 2002/04/12 09:57:19 rswindell Exp $
+# $Id: GNUmakefile,v 1.9 2002/04/12 10:01:12 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -162,7 +162,7 @@ $(NODE): $(EXEODIR)/node.o $(EXEODIR)/genwrap.o $(EXEODIR)/filewrap.o
 SMBLIB = $(EXEODIR)/smblib.o $(EXEODIR)/filewrap.o
 
 # FIXSMB Utility
-$(FIXSMB): $(EXEODIR)/fixsmb.o 
+$(FIXSMB): $(EXEODIR)/fixsmb.o $(SMBLIB)
 	@echo Linking $@
 	@$(CC) $^ -o $@
 
