@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.57 2003/03/06 09:51:08 rswindell Exp $ */
+/* $Id: js_system.c,v 1.58 2003/03/12 22:31:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -375,7 +375,8 @@ static char* sys_prop_desc[] = {
 	,"days to preserve deleted user records"
 
 	,"last useron"
-	,"free disk space"
+	,"amount of free disk space (in bytes)"
+	,"amount of free disk space (in kilobytes)"
 
 	,"total number of BBS nodes"
 	,"last displayable node number"
