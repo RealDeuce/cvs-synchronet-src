@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.63 2002/02/27 03:35:04 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.64 2002/03/07 02:07:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1008,6 +1008,9 @@ void __fastcall TMainForm::BBSConfigureMenuItemClick(TObject *Sender)
 		&startup_info,  // pointer to STARTUPINFO
 		&process_info  	// pointer to PROCESS_INFORMATION
 		);
+	// Resource leak if you don't close these:
+	CloseHandle(process_info.hThread);
+	CloseHandle(process_info.hProcess);
 }
 //---------------------------------------------------------------------------
 
