@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.11 2003/02/08 07:38:13 rswindell Exp $ */
+/* $Id: uifcfltk.cpp,v 1.12 2003/02/09 00:19:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -783,7 +783,7 @@ int uifcinifltk(uifcapi_t* uifcapi)
     api->scrn_len=24;
 	api->mode |= UIFC_MOUSE;
 
-	Fl::scheme("plastic");
+//	Fl::scheme("plastic");
 	Fl::add_handler(handle_escape);
 	Fl::visible_focus(TRUE);
 	Fl::visual(FL_DOUBLE|FL_INDEX);
