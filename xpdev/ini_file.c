@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.34 2004/06/16 01:52:19 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.35 2004/06/16 02:11:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,7 +86,7 @@ static BOOL find_section(FILE* fp, const char* section)
 
 	rewind(fp);
 
-	if(section==NULL)
+	if(section==ROOT_SECTION)
 		return(TRUE);
 
 	while(!feof(fp)) {
@@ -106,7 +106,7 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	if(section==NULL)
+	if(section==ROOT_SECTION)
 		return(0);
 
 	for(i=0; list[i]!=NULL; i++) {
@@ -198,7 +198,7 @@ size_t iniAddSection(str_list_t* list, const char* section
 	char	str[INI_MAX_LINE_LEN];
 	size_t	i;
 
-	if(section==NULL)
+	if(section==ROOT_SECTION)
 		return(0);
 
 	i=find_section_index(*list, section);

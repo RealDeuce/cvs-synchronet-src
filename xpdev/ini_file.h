@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.16 2004/06/16 01:50:03 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.17 2004/06/16 02:11:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@
 #include "str_list.h"	/* strList_t */
 
 #define INI_MAX_VALUE_LEN	1024		/* Maximum value length, includes '\0' */
+#define ROOT_SECTION		NULL
 
 typedef struct {
 	ulong		bit;
