@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.48 2003/10/24 21:46:55 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.49 2003/10/24 22:16:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,6 @@ static void prep_cfg(scfg_t* cfg);
 static void free_attr_cfg(scfg_t* cfg);
 
 char *	readtext(long *line, FILE *stream);
-/*int 	lprintf(char *fmt, ...);*/
 
 /****************************************************************************/
 /* Initializes system and node configuration information and data variables */
