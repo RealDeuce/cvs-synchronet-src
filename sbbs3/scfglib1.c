@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.42 2003/01/03 11:12:16 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.43 2003/01/11 00:25:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,6 +201,7 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	get_str(cfg->sys_pass,instream);
 	get_int(cfg->sys_nodes,instream);
 
+#if 0	/* removed Jan-10-2003: cfg->node_num may be old or uninitialized */
 	if(!cfg->sys_nodes || cfg->sys_nodes<cfg->node_num || cfg->sys_nodes>MAX_NODES) {
 		if(!cfg->sys_nodes)
 			sprintf(error,"Total nodes on system must be non-zero.");
@@ -212,6 +213,7 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 		fclose(instream);
 		return(FALSE); 
 	}
+#endif
 
 	for(i=0;i<cfg->sys_nodes;i++) {
 		get_str(cfg->node_path[i],instream);
