@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.13 2000/12/05 01:04:21 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.14 2000/12/05 03:37:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,6 +70,8 @@ void prep_dir(char* base, char* path)
 void prep_path(char* path)
 {
 #ifdef __unix__				/* Change backslashes to forward slashes on Unix */
+	char	*p;
+
 	for(p=path;*p;p++)
 		if(*p=='\\') 
 			*p='/';
