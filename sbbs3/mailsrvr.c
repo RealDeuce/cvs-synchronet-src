@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.361 2005/02/18 08:54:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.357 2005/01/13 03:14:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1999,7 +1999,7 @@ static void smtp_thread(void* arg)
 	rand();	/* throw-away first result */
 	SAFEPRINTF3(session_id,"%x%x%lx",socket,rand(),clock());
 
-	SAFEPRINTF2(rcptlst_fname,"%sSBBS_SMTP.%s.lst", scfg.temp_dir, session_id);
+	SAFEPRINTF2(rcptlst_fname,"%sSMTP.%s.lst", scfg.data_dir, session_id);
 	rcptlst=fopen(rcptlst_fname,"w+");
 	if(rcptlst==NULL) {
 		lprintf(LOG_ERR,"%04d !SMTP ERROR %d creating recipient list: %s"
@@ -2126,7 +2126,7 @@ static void smtp_thread(void* arg)
 				/* External Mail Processing here */
 				msg_handled=FALSE;
 				if(mailproc_count) {
-					SAFEPRINTF2(proc_err_fname,"%sSBBS_SMTP.%s.err", scfg.temp_dir, session_id);
+					SAFEPRINTF2(proc_err_fname,"%sSMTP.%s.err", scfg.data_dir, session_id);
 					remove(proc_err_fname);
 
 					for(i=0;i<mailproc_count;i++) {
@@ -2134,9 +2134,6 @@ static void smtp_thread(void* arg)
 						/* This processor is for specific recipients only and did not match */
 						if(strListCount(mailproc_list[i].to) && !mailproc_match[i])
 							continue;
-
-						if(!mailproc_list[i].passthru)
-							msg_handled=TRUE;
 
 						mailcmdstr(mailproc_list[i].cmdline
 							,msgtxt_fname, rcptlst_fname, proc_err_fname
@@ -2176,15 +2173,14 @@ static void smtp_thread(void* arg)
 						fclose(proc_err);
 						msg_handled=TRUE;
 					}
-					else if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname)) {
+					remove(proc_err_fname);	/* Remove error file here */
+					if(!msg_handled
+						&& (!fexist(msgtxt_fname) || !fexist(rcptlst_fname))) {
 						lprintf(LOG_WARNING,"%04d SMTP External process removed %s file"
 							,socket, fexist(msgtxt_fname)==FALSE ? "message text" : "recipient list");
 						sockprintf(socket,ok_rsp);
 						msg_handled=TRUE;
 					}
-					else if(msg_handled)
-						sockprintf(socket,ok_rsp);
-					remove(proc_err_fname);	/* Remove error file here */
 				}
 
 				/* Re-open files */
@@ -2859,13 +2855,6 @@ static void smtp_thread(void* arg)
 				p+=strlen(NO_FORWARD);
 			}
 
-			if(*p==0) {
-				lprintf(LOG_WARNING,"%04d !SMTP NO RECIPIENT SPECIFIED"
-					,socket);
-				sockprintf(socket, "500 No recipient specified");
-				continue;
-			}
-
 			rcpt_name[0]=0;
 			SAFECOPY(rcpt_addr,p);
 
@@ -3197,7 +3186,7 @@ static void smtp_thread(void* arg)
 				if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
 					unlink(msgtxt_fname);
 			}
-			SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
+			SAFEPRINTF2(msgtxt_fname,"%sSMTP.%s.msg", scfg.data_dir, session_id);
 			if((msgtxt=fopen(msgtxt_fname,"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !SMTP ERROR %d opening %s"
 					,socket, errno, msgtxt_fname);
@@ -3916,7 +3905,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.361 $", "%*s %s", revision);
+	sscanf("$Revision: 1.357 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4024,7 +4013,7 @@ void DLLCALL mail_server(void* arg)
 
 		lprintf(LOG_INFO,"SMBLIB %s (format %x.%02x)",smb_lib_ver(),smb_ver()>>8,smb_ver()&0xff);
 
-		sbbs_srand();
+		srand(time(NULL));
 
 		if(!winsock_startup()) {
 			cleanup(1);
@@ -4043,19 +4032,6 @@ void DLLCALL mail_server(void* arg)
 		if(!load_cfg(&scfg, NULL, TRUE, error)) {
 			lprintf(LOG_ERR,"!ERROR %s",error);
 			lprintf(LOG_ERR,"!Failed to load configuration files");
-			cleanup(1);
-			return;
-		}
-
-		if(startup->temp_dir[0])
-			SAFECOPY(scfg.temp_dir,startup->temp_dir);
-		else
-			SAFECOPY(scfg.temp_dir,"../temp");
-	   	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-		MKDIR(scfg.temp_dir);
-		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
-		if(!isdir(scfg.temp_dir)) {
-			lprintf(LOG_ERR,"!Invalid temp directory: %s", scfg.temp_dir);
 			cleanup(1);
 			return;
 		}
