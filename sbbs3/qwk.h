@@ -2,7 +2,7 @@
 
 /* Synchronet QWK-related structures, constants, and prototypes */ 
 
-/* $Id: qwk.h,v 1.2 2002/07/03 08:19:02 rswindell Exp $ */
+/* $Id: qwk.h,v 1.3 2002/08/06 02:42:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,14 +35,10 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-typedef union {
-	uchar	uc[10];
-	ushort	ui[5];
-	ulong	ul[2];
-	float	f[2];
-	double	d[1]; } converter;
+#define QWK_NEWLINE		'\xe3'	/* QWK line terminator */
+#define QWK_BLOCK_LEN	128
 
-#define LEN_QWKBUF	20000	/* 20k buffer for each message */
+/* QWK mode bits */
 #define TAGLINE 	(1<<5)	/* Place tagline at end of qwk message */
 #define TO_QNET 	(1<<6)	/* Sending to hub */
 #define REP 		(1<<7)	/* It's a REP packet */
