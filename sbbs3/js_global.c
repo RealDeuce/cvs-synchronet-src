@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.72 2003/05/14 09:20:46 rswindell Exp $ */
+/* $Id: js_global.c,v 1.73 2003/05/15 00:48:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1433,7 +1433,7 @@ static jsMethodSpec js_global_functions[] = {
 	{"lfexpand",		js_lfexpand,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF)")
 	},		
-	{"getfilename",		js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
+	{"file_getname",	js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("returns filename portion of passed path string")
 	},		
 	{"file_exists",		js_fexist,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
