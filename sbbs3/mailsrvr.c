@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.69 2001/10/03 17:38:46 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.70 2001/10/09 00:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,6 +214,8 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	int		result;
 	va_list argptr;
 	char	sbuf[1024];
+	fd_set	socket_set;
+	struct timeval tv;
 
     va_start(argptr,fmt);
     len=vsprintf(sbuf,fmt,argptr);
@@ -222,6 +224,20 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	strcat(sbuf,"\r\n");
 	len+=2;
     va_end(argptr);
+
+	/* Check socket for writability (using select) */
+	tv.tv_sec=60;
+	tv.tv_usec=0;
+
+	FD_ZERO(&socket_set);
+	FD_SET(sock,&socket_set);
+
+	if((result=select(sock+1,NULL,&socket_set,NULL,&tv))<1) {
+		lprintf("%04d !ERROR %d (%d) selecting socket for send"
+			,sock, result, ERROR_VALUE, sock);
+		return(0);
+	}
+
 	while((result=send(sock,sbuf,len,0))!=len) {
 		if(result==SOCKET_ERROR) {
 			if(ERROR_VALUE==EWOULDBLOCK) {

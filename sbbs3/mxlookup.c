@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.12 2001/09/28 15:07:11 rswindell Exp $ */
+/* $Id: mxlookup.c,v 1.13 2001/10/09 00:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -225,6 +225,24 @@ int dns_getmx(char* name, char* mx, char* mx2
 		len-=sizeof(msghdr.length);
 	}
 
+	/* check for writability (using select) */
+	tv.tv_sec=timeout;
+	tv.tv_usec=0;
+
+	FD_ZERO(&socket_set);
+	FD_SET(sock,&socket_set);
+
+	i=select(sock+1,NULL,&socket_set,NULL,&tv);
+	if(i<1) {
+		if(i==SOCKET_ERROR)
+			result=ERROR_VALUE;
+		else 
+			result=-1;
+		mail_close_socket(sock);
+		return(result);
+	}
+
+	/* send query */
 	i=send(sock,msg+offset,len,0);
 	if(i!=len) {
 		if(i==SOCKET_ERROR)
@@ -234,6 +252,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 		return(result);
 	}
 
+	/* check for readability (using select) */
 	tv.tv_sec=timeout;
 	tv.tv_usec=0;
 
@@ -250,6 +269,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 		return(result);
 	}
 
+	/* receive response */
 	rd=recv(sock,msg,sizeof(msg),0);
 	if(rd>0) {
 

@@ -2,7 +2,7 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.c,v 1.5 2001/10/02 19:40:37 rswindell Exp $ */
+/* $Id: ident.c,v 1.6 2001/10/09 00:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,18 @@ char* identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf, size_t m
 
 		if(connect(sock, (struct sockaddr*)&addr, sizeof(addr))!=0) {
 			sprintf(buf,"ERROR %d connecting to server",ERROR_VALUE);
+			break;
+		}
+
+		tv.tv_sec=10;
+		tv.tv_usec=0;
+
+		FD_ZERO(&socket_set);
+		FD_SET(sock,&socket_set);
+
+		i=select(sock+1,NULL,&socket_set,NULL,&tv);
+		if(i<1) {
+			sprintf(buf,"ERROR %d selecting socket for send",ERROR_VALUE);
 			break;
 		}
 
