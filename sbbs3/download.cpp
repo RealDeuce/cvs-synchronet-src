@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.15 2002/12/12 02:32:30 rswindell Exp $ */
+/* $Id: download.cpp,v 1.16 2003/02/09 23:35:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "telnet.h"
 
 /****************************************************************************/
 /* Updates downloader, uploader and downloaded file data                    */
@@ -192,13 +193,27 @@ int sbbs_t::protocol(char *cmdline, bool cd)
 		p=NULL;
 	sprintf(msg,"Transferring %s",cmdline);
 	spymsg(msg);
-	sys_status|=SS_FILEXFER;
+	sys_status|=SS_FILEXFER;	/* disable spy during file xfer */
+	/* enable telnet binary transmission in both directions */
+	if(!(telnet_mode&TELNET_MODE_BIN_RX)) {
+		send_telnet_cmd(TELNET_DO,TELNET_BINARY);
+		telnet_mode|=TELNET_MODE_BIN_RX;
+	}
+	send_telnet_cmd(TELNET_WILL,TELNET_BINARY);
 	i=external(cmdline
 		,EX_OUTL
 #ifdef __unix__		/* file xfer progs use stdio on Unix */
 		|EX_INR|EX_OUTR|EX_BIN
 #endif
 		,p);
+	/* disable telnet binary transmission mode */
+	send_telnet_cmd(TELNET_WONT,TELNET_BINARY);
+	/* Got back to Text/NVT mode */
+	if(telnet_mode&TELNET_MODE_BIN_RX) {
+		send_telnet_cmd(TELNET_DONT,TELNET_BINARY);
+		telnet_mode&=~TELNET_MODE_BIN_RX;
+	}
+
 	sys_status&=~SS_FILEXFER;
 	if(online==ON_REMOTE)
 		rioctl(IOFB);
