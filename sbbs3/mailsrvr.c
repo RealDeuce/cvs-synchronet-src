@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.10 2000/10/23 23:11:51 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.11 2000/10/23 23:30:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,9 +188,9 @@ static void thread_down(void)
 		startup->thread_up(FALSE);
 }
 
-int open_socket(int type)
+SOCKET open_socket(int type)
 {
-	int sock;
+	SOCKET sock;
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 

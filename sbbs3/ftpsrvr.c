@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.12 2000/10/23 23:11:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.13 2000/10/23 23:30:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,9 +227,9 @@ static void thread_down(void)
 		startup->thread_up(FALSE);
 }
 
-int open_socket(int type)
+SOCKET open_socket(int type)
 {
-	int		sock;
+	SOCKET sock;
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
