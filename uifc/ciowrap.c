@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.7 2004/04/02 07:10:16 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.5 2004/03/24 02:47:33 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -331,26 +331,6 @@ void textattr(unsigned char attr)
 	bkgdset(colour);
 }
 
-void textbackground(int colour)
-{
-	unsigned char attr;
-	
-	attr=lastattr;
-	attr&=143;
-	attr|=(colour<<4);
-	textattr(attr);
-}
-
-void textcolor(int colour)
-{
-	unsigned char attr;
-	
-	attr=lastattr;
-	attr&=240;
-	attr|=colour;
-	textattr(attr);
-}
-
 int kbhit(void)
 {
 	struct timeval timeout;
@@ -608,6 +588,7 @@ void initciowrap(long inmode)
 	nonl();
 	keypad(stdscr, TRUE);
 	scrollok(stdscr,FALSE);
+	idcok(stdscr,FALSE);
 	raw();
 
 	/* Set up color pairs */
