@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.22 2002/02/06 00:39:36 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.23 2002/02/06 14:07:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,7 +195,7 @@ int sbbs_t::exec_function(csi_t *csi)
 			csi->logic=guru_page() ? LOGIC_TRUE:LOGIC_FALSE;
 			return(0);
 		case CS_SPY:
-			csi->logic_state=spy(atoi(csi->str)) ? LOGIC_TRUE:LOGIC_FALSE;
+			csi->logic=spy(atoi(csi->str)) ? LOGIC_TRUE:LOGIC_FALSE;
 			return(0);
 		case CS_PRIVATE_CHAT:
 			privchat();
