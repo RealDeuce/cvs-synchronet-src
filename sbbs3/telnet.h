@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.4 2002/06/28 00:21:56 rswindell Exp $ */
+/* $Id: telnet.h,v 1.5 2003/05/13 05:31:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,6 +109,7 @@ enum {
 #define TELNET_MODE_BIN_RX	(1<<0)   
 #define TELNET_MODE_ECHO	(1<<1)   
 #define TELNET_MODE_GATE	(1<<2)	// Pass-through telnet commands/responses
+#define TELNET_MODE_OFF		(1<<3)	// This is not a Telnet connection
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
