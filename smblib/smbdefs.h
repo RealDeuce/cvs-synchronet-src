@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.56 2004/09/10 01:38:23 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.53 2004/09/01 11:10:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,7 +131,6 @@
 #define SMB_ERR_HDR_FIELD	-105		/* Missing header field */
 #define SMB_ERR_NOT_FOUND	-110		/* Item not found */
 #define SMB_ERR_DAT_OFFSET	-120		/* Invalid data offset (>2GB) */
-#define SMB_ERR_DAT_LEN		-121		/* Invalid data length (>2GB) */
 #define SMB_ERR_OPEN		-200		/* File open error */
 #define SMB_ERR_SEEK		-201		/* File seek/setpos error */
 #define SMB_ERR_LOCK		-202		/* File lock error */
@@ -553,7 +552,7 @@ typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 #pragma pack(pop)		/* original packing */
 #endif
 
-typedef struct {		/* Network (type and address) */
+typedef struct _PACK {		/* Network (type and address) */
 
     ushort  type;
 	void	*addr;
@@ -619,6 +618,7 @@ typedef struct {			/* Message base */
 	ulong	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 	/* Status header record */
 	BOOL	locked;			/* SMB header is locked */
+	char	shd_buf[SHD_BLOCK_LEN]; 	/* File I/O buffer for header file */
 	char	last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */

@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.50 2004/09/08 03:27:12 rswindell Exp $
+# $Id: Makefile,v 1.48 2004/09/02 11:03:34 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -26,8 +26,7 @@ EXEODIR =	bcc.win32.exe	# Executable output directory
 UIFC	=	..\uifc\		# Path to User Interfce library
 CIOLIB	=	..\conio\		# Path to Console I/O library
 XPDEV	=	..\xpdev\		# Path to Cross-platform wrappers
-SMBDIR	=	..\smblib\		# Path to Synchronet Message Base Library
-CFLAGS	=	-M -I$(SMBDIR) -I$(XPDEV) -I$(UIFC) -I$(CIOLIB)
+CFLAGS	=	-M -I$(XPDEV) -I$(UIFC) -I$(CIOLIB)
 LFLAGS  =	-m -s -c -Tpd -Gi -I$(LIBODIR)
 DELETE	=	echo y | del 
 WILDARGS=	$(MAKEDIR)\..\lib\wildargs.obj
@@ -77,8 +76,8 @@ SBBSLIB	=	$(LIBODIR)\sbbs.lib
 
 $(SBBSLIB):	$(SBBS)
 
-.path.c = .;$(XPDEV);$(UIFC);$(CIOLIB);$(SMBDIR)
-.path.cpp = .;$(XPDEV);$(UIFC);$(CIOLIB);$(SMBDIR)
+.path.c = .;$(XPDEV);$(UIFC);$(CIOLIB)
+.path.cpp = .;$(XPDEV);$(UIFC);$(CIOLIB)
 
 # Implicit C Compile Rule for SBBS.DLL
 .c.obj:
@@ -170,7 +169,6 @@ SMBLIB = $(LIBODIR)\smblib.obj $(LIBODIR)\smbdump.obj $(LIBODIR)\smbtxt.obj \
 # FIXSMB Utility
 $(FIXSMB): fixsmb.c \
 	$(SMBLIB) \
-	$(LIBODIR)\str_list.obj \
 	$(LIBODIR)\str_util.obj \
 	$(LIBODIR)\dirwrap.obj
 	@echo Creating $@

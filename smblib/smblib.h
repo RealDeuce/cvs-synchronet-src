@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.52 2004/09/11 00:06:40 rswindell Exp $ */
+/* $Id: smblib.h,v 1.46 2004/09/02 11:01:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,14 +88,13 @@
 #define SMB_IS_OPEN(smb)	((smb)->shd_fp!=NULL)
 
 /* Legacy API functions */
-#include "filewrap.h"		/* SH_DENYRW */
 #define smb_incmsg(smb,msg)	smb_incmsg_dfields(smb,msg,1)
 #define smb_incdat			smb_incmsgdat
-#define smb_open_da(smb)	smb_open_fp(smb,&(smb)->sda_fp,SH_DENYRW)
+#define smb_open_da(smb)	smb_open_fp(smb,&(smb)->sda_fp)
 #define smb_close_da(smb)	smb_close_fp(&(smb)->sda_fp)
-#define smb_open_ha(smb)	smb_open_fp(smb,&(smb)->sha_fp,SH_DENYRW)
+#define smb_open_ha(smb)	smb_open_fp(smb,&(smb)->sha_fp)
 #define smb_close_ha(smb)	smb_close_fp(&(smb)->sha_fp)
-#define smb_open_hash(smb)	smb_open_fp(smb,&(smb)->hash_fp,SH_DENYRW)
+#define smb_open_hash(smb)	smb_open_fp(smb,&(smb)->hash_fp)
 #define smb_close_hash(smb)	smb_close_fp(&(smb)->hash_fp)
 
 #ifdef __cplusplus
@@ -106,7 +105,7 @@ SMBEXPORT int 		SMBCALL smb_ver(void);
 SMBEXPORT char*		SMBCALL smb_lib_ver(void);
 SMBEXPORT int 		SMBCALL smb_open(smb_t* smb);
 SMBEXPORT void		SMBCALL smb_close(smb_t* smb);
-SMBEXPORT int 		SMBCALL smb_open_fp(smb_t* smb, FILE**, int share);
+SMBEXPORT int 		SMBCALL smb_open_fp(smb_t* smb, FILE**);
 SMBEXPORT void		SMBCALL smb_close_fp(FILE**);
 SMBEXPORT int 		SMBCALL smb_create(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_stack(smb_t* smb, int op);
@@ -138,9 +137,7 @@ SMBEXPORT void*		SMBCALL smb_get_hfield(smbmsg_t* msg, ushort type, hfield_t* hf
 SMBEXPORT char*		SMBCALL smb_hfieldtype(ushort type);
 SMBEXPORT ushort	SMBCALL smb_hfieldtypelookup(const char*);
 SMBEXPORT char*		SMBCALL smb_dfieldtype(ushort type);
-SMBEXPORT int 		SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage);
-SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
-						,ushort xlat, const uchar* body, const uchar* tail);
+SMBEXPORT int 		SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg,int storage);
 SMBEXPORT int 		SMBCALL smb_putmsg(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 		SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 		SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg);
@@ -164,11 +161,6 @@ SMBEXPORT void		SMBCALL smb_freemsgtxt(char* buf);
 SMBEXPORT int		SMBCALL	smb_copymsgmem(smb_t* smb, smbmsg_t* destmsg, smbmsg_t* srcmsg);
 SMBEXPORT int		SMBCALL smb_tzutc(short timezone);
 SMBEXPORT int		SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum);
-SMBEXPORT ushort	SMBCALL smb_subject_crc(const char *subj);
-
-SMBEXPORT char*		SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* outstr);
-SMBEXPORT char*		SMBCALL smb_netaddr(net_t* net);
-SMBEXPORT char*		SMBCALL smb_zonestr(short zone, char* outstr);
 
 /* hash-related functions */
 SMBEXPORT int		SMBCALL smb_findhash(smb_t* smb, hash_t** compare_list, hash_t* found, BOOL mark);
@@ -177,9 +169,8 @@ SMBEXPORT hash_t*	SMBCALL	smb_hash(ulong msgnum, ulong time, unsigned source
 								,unsigned flags, const void* data, size_t length);
 SMBEXPORT hash_t*	SMBCALL	smb_hashstr(ulong msgnum, ulong time, unsigned source
 								,unsigned flags, const char* str);
-SMBEXPORT char*		SMBCALL smb_hashsource(uchar type);
-SMBEXPORT hash_t**	SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* text, BOOL dupechk);
-SMBEXPORT int		SMBCALL smb_addhashes(smb_t* smb, hash_t** hash_list, BOOL skip_marked);
+SMBEXPORT hash_t**	SMBCALL smb_msghashes(smb_t* smb, smbmsg_t* msg, const uchar* text);
+SMBEXPORT int		SMBCALL smb_addhashes(smb_t* smb, hash_t** hash_list);
 
 /* Fast look-up functions (using hashes) */
 SMBEXPORT int 		SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
@@ -219,7 +210,7 @@ SMBEXPORT int 		SMBCALL smb_fputc(int ch, FILE* fp);
 SMBEXPORT int 		SMBCALL smb_fseek(FILE* fp, long offset, int whence);
 SMBEXPORT long		SMBCALL smb_ftell(FILE* fp);
 SMBEXPORT size_t	SMBCALL smb_fread(smb_t*, void* buf, size_t bytes, FILE* fp);
-SMBEXPORT size_t	SMBCALL smb_fwrite(smb_t*, const void* buf, size_t bytes, FILE* fp);
+SMBEXPORT size_t	SMBCALL smb_fwrite(smb_t*, void* buf, size_t bytes, FILE* fp);
 SMBEXPORT long		SMBCALL smb_fgetlength(FILE* fp);
 SMBEXPORT int 		SMBCALL smb_fsetlength(FILE* fp, long length);
 SMBEXPORT void		SMBCALL smb_rewind(FILE* fp);
