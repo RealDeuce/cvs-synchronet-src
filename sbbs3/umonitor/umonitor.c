@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.56 2004/08/04 06:31:51 deuce Exp $ */
+/* $Id: umonitor.c,v 1.55 2004/05/28 23:45:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "sbbs.h"
+#include "conwrap.h"	/* this has to go BEFORE curses.h so getkey() can be macroed around */
+#include <curses.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <time.h>
@@ -44,10 +47,6 @@
 #endif
 #include <stdio.h>
 #include <unistd.h>
-
-#include "ciolib.h"
-#define __COLORS		/* Disable the colour macros in sbbsdefs.h ToDo */
-#include "sbbs.h"
 #include "genwrap.h"
 #include "uifc.h"
 #include "sbbsdefs.h"
@@ -521,23 +520,10 @@ int view_logs(scfg_t *cfg)
 int do_cmd(char *cmd)
 {
 	int i;
-	struct text_info ti;
-	char *p;
-
-#if 0
+	
 	endwin();
-#else
-	gettextinfo(&ti);
-	p=malloc(ti.screenheight*ti.screenwidth*2);
-	gettext(1,1,ti.screenwidth,ti.screenheight,p);
-#endif
 	i=system(cmd);
-#if 0
 	refresh();
-#else
-	puttext(1,1,ti.screenwidth,ti.screenheight,p);
-	free(p);
-#endif
 	return(i);
 }
 
@@ -802,7 +788,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.56 $", "%*s %s", revision);
+	sscanf("$Revision: 1.55 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);

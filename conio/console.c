@@ -689,24 +689,24 @@ video_event(XEvent *ev)
 		static char buf[128];
 		KeySym ks;
 		int n;
-		int nlock = 0;
+    	    	int nlock = 0;
 		u_short scan = 0xffff;
 
-		if (!(ev->xkey.state & ShiftMask)) {
+    	    	if (!(ev->xkey.state & ShiftMask)) {
 		    K1_STATUS &= ~K1_LSHIFT;
 		    K1_STATUS &= ~K1_RSHIFT;
 		}
-		if (!(ev->xkey.state & ControlMask)) {
+    	    	if (!(ev->xkey.state & ControlMask)) {
 			K1_STATUS &= ~K1_CTRL;
 			K2_STATUS &= ~K2_LCTRL;
 			K3_STATUS &= ~K3_RCTRL;
 		}
-		if (!(ev->xkey.state & Mod1Mask)) {
+    	    	if (!(ev->xkey.state & Mod1Mask)) {
                         K1_STATUS &= ~K1_ALT;
                         K2_STATUS &= ~K2_LALT;
                         K3_STATUS &= ~K3_RALT;
 		}
-		if (!(ev->xkey.state & LockMask)) {
+    	    	if (!(ev->xkey.state & LockMask)) {
                         K2_STATUS &= ~K2_CLOCK;
 		}
 
@@ -882,6 +882,12 @@ video_event(XEvent *ev)
 			goto docode;
 
 		default:
+    	    	    	if ((K1_STATUS&(K1_ALT|K1_CTRL)) == (K1_ALT|K1_CTRL)) {
+				if (ks == 'R' || ks == 'r') {
+                                    kill(getpid(), SIGALRM);	/* redraw */
+				    break;
+				}
+			}
 			if (ks < ' ' || ks > '~')
 				break;
 			scan = Ascii2Scan[ks]; 
@@ -1264,7 +1270,7 @@ console_init()
     if(mouse_init())
 		return(-1);
 
-	_beginthread(video_async_event,1<<16,NULL);
+	_beginthread(video_async_event,16384,NULL);
 	return(0);
 }
 
