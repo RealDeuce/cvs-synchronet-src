@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.26 2002/02/14 03:03:55 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.27 2002/02/14 17:21:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -385,7 +385,10 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		/* Strip FidoNet Kludge Lines? */
 		if(buf[l]==1 && useron.xedit
 			&& cfg.xedit[useron.xedit-1]->misc&STRIPKLUDGE) {
-			while(buf[l]!=LF) l++;
+			while(buf[l] && buf[l]!=LF) 
+				l++;
+			if(buf[l]==0)
+				break;
 			continue;
 		}
 		if(!(mode&(WM_EMAIL|WM_NETMAIL))
