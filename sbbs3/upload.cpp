@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.28 2003/03/02 10:29:50 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.29 2003/03/28 00:32:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,6 @@ bool sbbs_t::uploadfile(file_t *f)
 				if((stream=fopen(str,"r"))!=NULL) {
 					if(fgets(str,128,stream)) {
 						truncsp(str);
-						strupr(str);
 						padfname(str,f->name);
 						strcpy(tmp,f->name);
 						truncsp(tmp);
