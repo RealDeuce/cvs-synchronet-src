@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.3 2004/09/13 03:17:12 deuce Exp $
+# $Id: Makefile,v 1.4 2004/09/13 06:23:27 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -18,6 +18,7 @@ SRC_ROOT = ..
 !include ..\build\Common.bmake	# defines clean and output directory rules
 
 CFLAGS = $(CFLAGS) $(XPDEV-MT_CFLAGS) $(MT_CFLAGS) -I$(CIOLIB_SRC)
+OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)win32cio$(OFILE)
 
 # SBBS DLL Link Rule
 $(CIOLIB-MT): $(OBJS)
