@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.4 2002/08/06 03:46:27 rswindell Exp $ */
+/* $Id: str_util.c,v 1.5 2002/08/16 23:02:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -447,4 +447,19 @@ size_t DLLCALL strip_invalid_attr(char *strin)
 	str[d]=0;
 	strcpy(strin,str);
 	return(a);
+}
+
+ushort DLLCALL subject_crc(char *subj)
+{
+	char str[512];
+
+	while(!strnicmp(subj,"RE:",3)) {
+		subj+=3;
+		while(*subj==SP)
+			subj++; 
+	}
+
+	SAFECOPY(str,subj);
+	strlwr(str);
+	return(crc16(str));
 }
