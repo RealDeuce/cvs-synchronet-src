@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.346 2004/11/15 23:41:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.350 2004/11/18 09:12:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,7 @@
 #include <errno.h>			/* errno */
 
 /* Synchronet-specific headers */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "mailsrvr.h"
 #include "mime.h"
@@ -224,7 +225,7 @@ int mail_close_socket(SOCKET sock)
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
-	if(/* result==0 && */ startup!=NULL && startup->socket_open!=NULL)
+	if(startup!=NULL && startup->socket_open!=NULL)
 		startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 	if(result!=0) {
@@ -2322,9 +2323,6 @@ static void smtp_thread(void* arg)
 					msg.idx.subj=smb_subject_crc(p);
 				}
 
-				/* Security logging */
-				msg_client_hfields(&msg,&client);
-
 				length=filelength(fileno(msgtxt))-ftell(msgtxt);
 
 				if(startup->max_msg_size && length>startup->max_msg_size) {
@@ -2367,7 +2365,7 @@ static void smtp_thread(void* arg)
 					smb_hfield_str(&msg, RECIPIENT, rcpt_name);
 
 					smb.subnum=subnum;
-					if((i=savemsg(&scfg, &smb, &msg, msgbuf))!=SMB_SUCCESS) {
+					if((i=savemsg(&scfg, &smb, &msg, &client, msgbuf))!=SMB_SUCCESS) {
 						lprintf(LOG_WARNING,"%04d !SMTP ERROR %d (%s) saving message"
 							,socket,i,smb.last_error);
 						sockprintf(socket, "452 ERROR %d (%s) saving message"
@@ -2386,7 +2384,7 @@ static void smtp_thread(void* arg)
 
 				/* E-mail */
 				smb.subnum=INVALID_SUB;
-				i=savemsg(&scfg, &smb, &msg, msgbuf);
+				i=savemsg(&scfg, &smb, &msg, &client, msgbuf);
 				free(msgbuf);
 				if(i!=SMB_SUCCESS) {
 					smb_close(&smb);
@@ -3895,7 +3893,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.346 $", "%*s %s", revision);
+	sscanf("$Revision: 1.350 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4200,7 +4198,8 @@ void DLLCALL mail_server(void* arg)
 			if(active_clients==0) {
 				if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
+						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
+							,server_socket,p);
 						break;
 					}
 #if 0	/* unused */
@@ -4208,15 +4207,16 @@ void DLLCALL mail_server(void* arg)
 						startup->recycle_now=TRUE;
 #endif
 					if(startup->recycle_now==TRUE) {
-						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
+						lprintf(LOG_NOTICE,"%04d Recycle semaphore signaled", server_socket);
 						startup->recycle_now=FALSE;
 						break;
 					}
 				}
 				if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
-						&& lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p))
+						&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
+						,server_socket,p))
 					|| (startup->shutdown_now==TRUE
-						&& lprintf(LOG_INFO,"0000 Shutdown semaphore signaled"))) {
+						&& lprintf(LOG_INFO,"%04d Shutdown semaphore signaled",server_socket))) {
 					startup->shutdown_now=FALSE;
 					terminate_server=TRUE;
 					break;
@@ -4242,11 +4242,11 @@ void DLLCALL mail_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"0000 Mail Server listening interrupted");
+					lprintf(LOG_NOTICE,"%04d Mail Server listening interrupted",server_socket);
 				else if(ERROR_VALUE == ENOTSOCK)
-            		lprintf(LOG_NOTICE,"0000 Mail Server sockets closed");
+            		lprintf(LOG_NOTICE,"%04d Mail Server sockets closed",server_socket);
 				else
-					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
+					lprintf(LOG_WARNING,"%04d !ERROR %d selecting sockets",server_socket,ERROR_VALUE);
 				continue;
 			}
 
@@ -4385,11 +4385,13 @@ void DLLCALL mail_server(void* arg)
 		}
 
 		if(active_clients) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d active clients to disconnect...", active_clients);
+			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
+				,server_socket, active_clients);
 			start=time(NULL);
 			while(active_clients) {
-				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"!TIMEOUT waiting for %d active clients ",active_clients);
+				if(time(NULL)-start>startup->max_inactivity) {
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
+						,server_socket, active_clients);
 					break;
 				}
 				mswait(100);
@@ -4402,12 +4404,13 @@ void DLLCALL mail_server(void* arg)
 			mswait(100);
 		}
 		if(sendmail_running) {
-			lprintf(LOG_DEBUG,"0000 Waiting for SendMail thread to terminate...");
+			lprintf(LOG_DEBUG,"%04d Waiting for SendMail thread to terminate..."
+				,server_socket);
 			start=time(NULL);
 			while(sendmail_running) {
 				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"!TIMEOUT waiting for sendmail thread to "
-            			"terminate");
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for sendmail thread to terminate"
+						,server_socket);
 					break;
 				}
 				mswait(500);
