@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.258 2005/02/12 02:47:34 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.259 2005/02/14 03:40:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,7 +190,7 @@ typedef struct  {
 
 	/* Dynamically (sever-side JS) generated HTML parameters */
 	FILE*	fp;
-
+	char		*cleanup_file;
 } http_request_t;
 
 typedef struct  {
@@ -751,6 +751,11 @@ static void close_request(http_session_t * session)
 	}
 	if(session->subscan!=NULL)
 		putmsgptrs(&scfg, session->user.number, session->subscan);
+
+	if(session->req.cleanup_file!=NULL) {
+		unlink(session->req.cleanup_file);
+		free(session->req.cleanup_file);
+	}
 
 	memset(&session->req,0,sizeof(session->req));
 }
@@ -1575,6 +1580,7 @@ static int is_dynamic_req(http_session_t* session)
 			send_error(session,error_500);
 			return(IS_STATIC);
 		}
+		session->req.cleanup_file=strdup(path);
 		return(i);
 	}
 
@@ -2866,7 +2872,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.258 $", "%*s %s", revision);
+	sscanf("$Revision: 1.259 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
