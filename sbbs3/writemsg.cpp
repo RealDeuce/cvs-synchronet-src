@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.56 2004/08/14 22:17:55 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.55 2004/08/11 19:21:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -888,7 +888,6 @@ void sbbs_t::editfile(char *str)
 
 	maxlines=cfg.level_linespermsg[useron.level];
 	sprintf(str2,"%sQUOTES.TXT",cfg.node_dir);
-	fexistcase(str2);
 	remove(str2);
 	if(cfg.node_editor[0] && online==ON_LOCAL) {
 		external(cmdstr(cfg.node_editor,str,nulstr,NULL),0,cfg.node_dir);
