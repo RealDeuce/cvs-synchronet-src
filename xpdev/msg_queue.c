@@ -2,7 +2,7 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.7 2004/11/11 06:12:06 rswindell Exp $ */
+/* $Id: msg_queue.c,v 1.8 2004/11/12 03:40:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,11 +150,11 @@ static BOOL list_wait(link_list_t* list, long timeout)
 {
 #if defined(LINK_LIST_THREADSAFE)
 	if(timeout<0)	/* infinite */
-		return listSemWait(list)==0;
+		return listSemWait(list);
 	if(timeout==0)	/* poll */
-		return listSemTryWait(list)==0;
+		return listSemTryWait(list);
 
-	return listSemTryWaitBlock(list,timeout)==0;
+	return listSemTryWaitBlock(list,timeout);
 #else
 	clock_t	start;
 	long	count;
