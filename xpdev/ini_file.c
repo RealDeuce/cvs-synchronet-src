@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.4 2002/07/24 00:20:09 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.5 2002/07/24 01:00:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,6 +139,9 @@ long iniReadInteger(FILE* fp, const char* section, const char* key, long deflt)
 	if((value=get_value(fp,section,key))==NULL)
 		return(deflt);
 
+	if(*value==0)		/* blank value */
+		return(deflt);
+
 	return(strtol(value,NULL,0));
 }
 
@@ -154,6 +157,9 @@ ulong iniReadIpAddress(FILE* fp, const char* section, const char* key, ulong def
 	if((value=get_value(fp,section,key))==NULL)
 		return(deflt);
 
+	if(*value==0)		/* blank value */
+		return(deflt);
+
 	if(strchr(value,'.')==NULL)
 		return(strtol(value,NULL,0));
 
@@ -167,6 +173,9 @@ double iniReadFloat(FILE* fp, const char* section, const char* key, double deflt
 	if((value=get_value(fp,section,key))==NULL)
 		return(deflt);
 
+	if(*value==0)		/* blank value */
+		return(deflt);
+
 	return(atof(value));
 }
 
@@ -175,6 +184,9 @@ BOOL iniReadBool(FILE* fp, const char* section, const char* key, BOOL deflt)
 	char* value;
 
 	if((value=get_value(fp,section,key))==NULL)
+		return(deflt);
+
+	if(*value==0)		/* blank value */
 		return(deflt);
 
 	if(!stricmp(value,"TRUE"))
