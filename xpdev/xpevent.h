@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.h,v 1.2 2005/01/14 00:19:07 deuce Exp $ */
+/* $Id: xpevent.h,v 1.3 2005/01/14 00:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ xpevent_t	CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *na
 BOOL		SetEvent(xpevent_t event);
 BOOL		ResetEvent(xpevent_t event);
 BOOL		CloseEvent(xpevent_t event);
-DWORD		WaitEvent(xpevent_t event, DWORD ms);
+DWORD		WaitForEvent(xpevent_t event, DWORD ms);
 #if defined(__cplusplus)
 }
 #endif

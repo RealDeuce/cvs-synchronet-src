@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.4 2005/01/14 00:28:27 deuce Exp $ */
+/* $Id: xpevent.c,v 1.5 2005/01/14 00:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,7 +135,7 @@ CloseEvent(xpevent_t event)
 }
 
 DWORD
-WaitEvent(xpevent_t event, DWORD ms)
+WaitForEvent(xpevent_t event, DWORD ms)
 {
 	DWORD	retval=WAIT_FAILED;
 	struct timespec abstime;
