@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.172 2003/04/18 22:30:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.173 2003/04/23 08:32:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -920,7 +920,6 @@ extern "C" {
 /* str_util.c */
 int		bstrlen(char *str);
 void	backslashcolon(char *str);
-void	backslash(char *str);
 ulong	ahtoul(char *str);	/* Converts ASCII hex to ulong */
 char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
 uint	hptoi(char *str);
