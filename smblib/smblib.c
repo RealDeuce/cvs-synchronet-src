@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.120 2004/10/14 00:05:58 rswindell Exp $ */
+/* $Id: smblib.c,v 1.124 2004/11/18 22:07:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,6 @@ void SMBCALL smb_close(smb_t* smb)
 		smb_unlocksmbhdr(smb);		   /* In case it's been locked */
 		smb_close_fp(&smb->shd_fp); 
 	}
-	smb_close_fp(&smb->sid_fp);
 	smb_close_fp(&smb->sdt_fp);
 	smb_close_fp(&smb->sid_fp);
 	smb_close_fp(&smb->sda_fp);
@@ -419,16 +418,18 @@ int SMBCALL smb_putstatus(smb_t* smb)
 /****************************************************************************/
 int SMBCALL smb_unlocksmbhdr(smb_t* smb)
 {
-	if(smb->shd_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
-		return(SMB_ERR_NOT_OPEN);
+	if(smb->locked) {
+		if(smb->shd_fp==NULL) {
+			safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+			return(SMB_ERR_NOT_OPEN);
+		}
+		if(unlock(fileno(smb->shd_fp),0L,sizeof(smbhdr_t)+sizeof(smbstatus_t))!=0) {
+			safe_snprintf(smb->last_error,sizeof(smb->last_error)
+				,"%d '%s' unlocking message base header",get_errno(),STRERROR(get_errno()));
+			return(SMB_ERR_UNLOCK);
+		}
+		smb->locked=FALSE;
 	}
-	if(unlock(fileno(smb->shd_fp),0L,sizeof(smbhdr_t)+sizeof(smbstatus_t))!=0) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%d '%s' unlocking message base header",get_errno(),STRERROR(get_errno()));
-		return(SMB_ERR_UNLOCK);
-	}
-	smb->locked=FALSE;
 	return(SMB_SUCCESS);
 }
 
@@ -1153,6 +1154,26 @@ int SMBCALL smb_hfield_str(smbmsg_t* msg, ushort type, const char* str)
 }
 
 /****************************************************************************/
+/* Convenience function to add an ASCIIZ string header field				*/
+/****************************************************************************/
+int	SMBCALL smb_hfield_netaddr(smbmsg_t* msg, ushort type, const char* str, ushort* nettype)
+{
+	fidoaddr_t	sys_addr = {0,0,0,0};	/* replace unspecified fields with 0 (don't assume 1:1/1) */
+	fidoaddr_t	fidoaddr;
+	ushort		tmp_nettype=NET_UNKNOWN;
+
+	if(nettype==NULL)
+		nettype=&tmp_nettype;
+	if(*nettype==NET_UNKNOWN)
+		*nettype=smb_netaddr_type(str);
+	if(*nettype==NET_FIDO) {
+		fidoaddr=smb_atofaddr(&sys_addr,str);
+		return smb_hfield_bin(msg,type,fidoaddr);
+	} else
+		return smb_hfield_str(msg,type,str);
+}
+
+/****************************************************************************/
 /* Appends data to an existing header field (in memory only)				*/
 /****************************************************************************/
 int SMBCALL smb_hfield_append(smbmsg_t* msg, ushort type, size_t length, void* data)
@@ -1382,6 +1403,8 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		return(i);
 	}
 
+	if(msg->hdr.version==0)
+		msg->hdr.version=SMB_VERSION;
 	msg->hdr.length=(ushort)hdrlen;
 	if(storage==SMB_HYPERALLOC)
 		l=smb_hallochdr(smb);
