@@ -628,7 +628,7 @@ void doterm(void)
 		}
 		
 		/* Get local input */
-		while(kbhit()) {
+		if(kbhit()) {
 			key=getch();
 			switch(key) {
 				case 17:	/* CTRL-Q */
@@ -693,6 +693,5 @@ void doterm(void)
 					
 			}
 		}
-		SLEEP(1);
 	}
 }
