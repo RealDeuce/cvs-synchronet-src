@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.14 2001/11/08 21:51:55 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.15 2001/11/08 22:06:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,7 @@
 #endif
 
 /* ANSI */
+#include <stdio.h>
 #include <time.h>	/* time */
 #include <errno.h>	/* errno */
 #include <string.h>	/* strrchr */
