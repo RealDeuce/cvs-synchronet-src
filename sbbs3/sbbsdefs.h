@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.37 2001/10/09 00:59:20 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.38 2001/11/03 20:56:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -718,6 +718,7 @@ enum {						/* readmail and delmailidx which types		*/
 #define EX_OFFLINE	(1<<8)	/* Run this program offline					*/
 #define EX_NATIVE	(1<<9)	/* Native 32-bit application				*/
 #define EX_BG		(1<<10)	/* Back-ground/detached process				*/
+#define EX_BIN		(1<<11)	/* Binary mode (no Unix LF to CRLF)			*/
 
 #define OS2_POPEN	(1<<0)	/* Leave COM port open						*/
 
