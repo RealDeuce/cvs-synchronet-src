@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.33 2003/10/01 23:45:40 deuce Exp $ */
+/* $Id: genwrap.c,v 1.34 2003/10/03 03:24:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,7 +151,6 @@ void DLLCALL unix_beep(int freq, int dur)
 		tone.frequency=freq;
 		tone.duration=dur;
 		ioctl(speaker_fd,SPKRTONE,&tone);
-		SLEEP(dur);
 		close(speaker_fd);
 		return;
 	}
