@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.2 2004/09/11 08:31:33 rswindell Exp $
+# $Id: Common.bmake,v 1.26 2004/09/13 06:32:32 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -78,6 +78,16 @@
 #  DIRSEP			- The directory seperator this system likes most		#
 #  VERSION			- Synchronet version number in MAJOR.MINOR format		#
 #					  (Numeric ONLY)										#
+#  OUTPUT			- Compiler flag specifying output filename				#
+#  LOUTPUT			- Linker flag specifying output filename				#
+#  XPDEV_SRC		- Path to xpdev											#
+#  UIFC_SRC			- Path to uifc											#
+#  CIOLIB_SRC		- Path to ciolib										#
+#  SMBLIB_SRC		- Path to smblib										#
+#  MT_CFLAGS		- CFLAGS for building MT objects						#
+#  MT_LDFLAGS		- LDFLAGS for linking MT targets						#
+#  UL_PRE           - Use Library prefix (*nix is -l)                       #
+#  UL_SUF           - Use Library siffix (bcc is .lib)                      #
 #																			#
 # Common Targets Defined:													#
 #  Implicit C and C++ targets												#
@@ -85,6 +95,9 @@
 #  Output directory targets													#
 #																			#
 #############################################################################
+
+.autodepend
+.cacheautodepend
 
 # Macros
 # Set VERSION
@@ -94,15 +107,15 @@
 
 # Set DEBUG
 !ifdef DEBUG
- !ifdef RELEASE
-  !undef RELEASE
- !endif
+!ifdef RELEASE
+!undef RELEASE
+!endif
 !endif
 
 !ifndef DEBUG
- !ifndef RELEASE
+!ifndef RELEASE
   DEBUG	=	1
- !endif
+!endif
 !endif
 
 # VERBOSE/QUIET
@@ -117,6 +130,9 @@ OFILE	=	.obj
 SOFILE	=	.dll
 LIBFILE	=	.lib
 DELETE	=	echo y | del 
+IFNOTEXIST = if not exist $@
+UL_PRE	=	
+UL_SUF	=	$(LIBFILE)
 
 # Compiler-specific
 !ifdef msc	# Microsoft Visual C++
@@ -138,9 +154,11 @@ CCPRE	=	bcc
 LD		=	ilink32
 OUTPUT	=	-o
 LOUTPUT	=	$(OUTPUT)
-CFLAGS	=	-n$(LIBODIR) -WM -q 
+CFLAGS	=	-q 
 LDFLAGS	=	$(CFLAGS)
-CFLAGS  =	$(CFLAGS) -M -WD -WM -X-
+CFLAGS  =	$(CFLAGS) -M -X-
+MT_CFLAGS = -WM 
+MT_LDFLAGS = -WM 
 !ifdef DEBUG
 CFLAGS	=	$(CFLAGS) -v
 !endif
@@ -158,19 +176,112 @@ BUILDPATH	=	debug
 BUILDPATH	=	release
 !endif
 
-LIBODIR :=	$(CCPRE).win32.lib.$(BUILDPATH)
-OBJODIR :=	$(CCPRE).win32.obj.$(BUILDPATH)$(OBJPATH_SUFFIX)
-EXEODIR :=	$(CCPRE).win32.exe.$(BUILDPATH)
+OBJODIR =	$(CCPRE).win32.obj.$(BUILDPATH)
+MTOBJODIR =	$(CCPRE).win32.obj.$(BUILDPATH)_mt
+LIBODIR =	$(CCPRE).win32.lib.$(BUILDPATH)
+EXEODIR =	$(CCPRE).win32.exe.$(BUILDPATH)
+
+# Paths
+XPDEV_SRC	=	$(SRC_ROOT)$(DIRSEP)xpdev
+CIOLIB_SRC	=	$(SRC_ROOT)$(DIRSEP)conio
+SMBLIB_SRC	=	$(SRC_ROOT)$(DIRSEP)smblib
+UIFC_SRC	=	$(SRC_ROOT)$(DIRSEP)uifc
+
+# Pull in lib-specific flags
+!include     $(CIOLIB_SRC)$(DIRSEP)Common.make
+!include     $(UIFC_SRC)$(DIRSEP)Common.make
+!include     $(SMBLIB_SRC)$(DIRSEP)Common.make
+!include     $(XPDEV_SRC)$(DIRSEP)Common.make
+
+.path.obj	=	$(OBJODIR);$(MTOBJODIR)
+.path.c		=	.
+.path.cpp	=	.
 
 !include targets.mk
 !include $(SRC_ROOT)/build/rules.mk
 !include objects.mk		# defines $(OBJS)
-!include libobjs.mk		# defines $(LIB_OBJS)
+#!include libobjs.mk		# defines $(LIB_OBJS)
 
+.SUFFIXES
+.SUFFIXES .c .cpp
 # Implicit C Compile Rule
-{.}.c$(OFILE):
-	@$(CC) $(CFLAGS) $(CCFLAGS) -c $< $(OUTPUT)$@
+{.}.c{$(OBJODIR)}$(OFILE):
+	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -n$(OBJODIR) -c $< $(OUTPUT)$@
 
 # Implicit C++ Compile Rule
-{.}.cpp$(OFILE):
-	@$(CC) $(CFLAGS) $(CXXFLAGS) -c $< $(OUTPUT)$@
+{.}.cpp{$(OBJODIR)}$(OFILE):
+	$(QUIET)$(CC) $(CFLAGS) $(CXXFLAGS) -n$(OBJODIR) -c $< $(OUTPUT)$@
+
+# Implicit MT C Compile Rule
+{.}.c{$(MTOBJODIR)}$(OFILE):
+	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -n$(MTOBJODIR) $(MT_CFLAGS) -c $< $(OUTPUT)$@
+
+# Implicit MT C++ Compile Rule
+{.}.cpp{$(MTOBJODIR)}$(OFILE):
+	$(QUIET)$(CC) $(CFLAGS) $(CXXFLAGS) -n$(MTOBJODIR) $(MT_CFLAGS) -c $< $(OUTPUT)$@
+
+xpdev:
+	$(COMSPEC) <<|
+	set VERSION=$(VERSION)
+	set DEBUG=$(DEBUG)
+	set RELEASE=$(RELEASE)
+	set VERBOSE=$(VERBOSE)
+	cd $(XPDEV_SRC)
+	$(MAKE) -$(MAKEFLAGS) lib
+	exit
+|
+
+xpdev-mt:
+	$(COMSPEC) <<|
+	set VERSION=$(VERSION)
+	set DEBUG=$(DEBUG)
+	set RELEASE=$(RELEASE)
+	set VERBOSE=$(VERBOSE)
+	cd $(XPDEV_SRC)
+	$(MAKE) -$(MAKEFLAGS) mtlib
+	exit
+|
+
+smblib:
+	$(COMSPEC) <<|
+	set VERSION=$(VERSION)
+	set DEBUG=$(DEBUG)
+	set RELEASE=$(RELEASE)
+	set VERBOSE=$(VERBOSE)
+	cd $(SMBLIB_SRC)
+	$(MAKE) -$(MAKEFLAGS) lib
+	exit
+|
+
+ciolib-mt:
+	$(COMSPEC) <<|
+	set VERSION=$(VERSION)
+	set DEBUG=$(DEBUG)
+	set RELEASE=$(RELEASE)
+	set VERBOSE=$(VERBOSE)
+	cd $(CIOLIB_SRC)
+	$(MAKE) -$(MAKEFLAGS) mtlib
+	exit
+|
+
+uifc:
+	$(COMSPEC) <<|
+	set VERSION=$(VERSION)
+	set DEBUG=$(DEBUG)
+	set RELEASE=$(RELEASE)
+	set VERBOSE=$(VERBOSE)
+	cd $(UIFC_SRC)
+	$(MAKE) -$(MAKEFLAGS) lib
+	exit
+|
+
+uifc-mt:
+	$(COMSPEC) <<|
+	set VERSION=$(VERSION)
+	set DEBUG=$(DEBUG)
+	set RELEASE=$(RELEASE)
+	set VERBOSE=$(VERBOSE)
+	cd $(UIFC_SRC)
+	$(MAKE) -$(MAKEFLAGS) mtlib
+	exit
+|
