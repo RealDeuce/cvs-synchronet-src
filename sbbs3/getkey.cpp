@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.3 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.4 2000/11/07 04:44:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -399,11 +399,13 @@ bool sbbs_t::noyes(char *str)
 /* it is echoed (upper case) and is the return value.                       */
 /* Called from quite a few functions                                        */
 /****************************************************************************/
-long sbbs_t::getkeys(char *str, ulong max)
+long sbbs_t::getkeys(char *keys, ulong max)
 {
-	uchar ch,n=0,c;
-	ulong i=0;
+	char	str[27];
+	uchar	ch,n=0,c;
+	ulong	i=0;
 
+	sprintf(str,"%.*s",sizeof(str)-1,keys);
 	strupr(str);
 	while(online) {
 		ch=getkey(K_UPPER);
