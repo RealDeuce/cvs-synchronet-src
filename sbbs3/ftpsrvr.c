@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.50 2000/12/04 01:42:56 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.51 2000/12/05 19:06:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -937,14 +937,19 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 		_beginthread(send_thread,0,(void*)&xfer);
 }
 
-
+/* convert "user name" to "user.name" or "mr. user" to "mr._user" */
 char* dotname(char* in, char* out)
 {
-	int i;
+	char	ch;
+	int		i;
 
+	if(strchr(in,'.')==NULL)
+		ch='.';
+	else
+		ch='_';
 	for(i=0;in[i];i++)
 		if(in[i]<=' ')
-			out[i]='.';
+			out[i]=ch;
 		else
 			out[i]=in[i];
 	out[i]=0;
@@ -1449,12 +1454,6 @@ static void ctrl_thread(void* arg)
 
 			sprintf(password,"%.*s",(int)sizeof(password)-1,p);
 			user.number=matchuser(&scfg,user.alias);
-			if(!user.number) {
-				for(i=0;user.alias[i];i++)
-					if(user.alias[i]=='.')
-						user.alias[i]=' ';
-				user.number=matchuser(&scfg,user.alias);
-			}
 			if(!user.number) {
 				lprintf("%04d !FTP: UNKNOWN USER: %s",sock,user.alias);
 				sockprintf(sock,"530 Password not accepted.");
