@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.2 2004/09/13 00:31:17 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.1 2004/09/11 09:27:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,10 +161,10 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 	while(1) {
 		if((file=sopen(path,O_RDWR|O_CREAT|O_BINARY,share,S_IREAD|S_IWRITE))!=-1)
 			break;
-		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
+		if(errno!=EACCES && errno!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) opening %s"
-				,get_errno(),STRERROR(get_errno()),path);
+				,errno,STRERROR(errno),path);
 			return(SMB_ERR_OPEN);
 		}
 		if(!start)
@@ -181,7 +181,7 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 	if((*fp=fdopen(file,"r+b"))==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) fdopening %s (%d)"
-			,get_errno(),STRERROR(get_errno()),path,file);
+			,errno,STRERROR(errno),path,file);
 		close(file);
 		return(SMB_ERR_OPEN); 
 	}
