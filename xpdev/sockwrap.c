@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.22 2004/11/03 07:29:12 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.23 2004/12/27 20:27:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,8 @@
 int sendfilesocket(int sock, int file, long *offset, long count)
 {
 /* sendfile() on Linux may or may not work with non-blocking sockets ToDo */
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) && 0
+#warning FreeBSD sendfile may cause problems!
 	off_t	total=0;
 	off_t	wr=0;
 	int		i;
