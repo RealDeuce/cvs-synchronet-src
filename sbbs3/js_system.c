@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.98 2005/02/20 02:42:46 rswindell Exp $ */
+/* $Id: js_system.c,v 1.96 2004/12/31 02:39:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,10 +180,10 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 
 		case SYS_PROP_NEW_PASS:
-			p=cfg->new_pass;
+			p=cfg->new_magic;
 			break;
 		case SYS_PROP_NEW_MAGIC:
-			p=cfg->new_magic;
+			p=cfg->new_pass;
 			break;
 		case SYS_PROP_NEW_LEVEL:
 			*vp = INT_TO_JSVAL(cfg->new_level);
@@ -472,7 +472,7 @@ static char* sys_prop_desc[] = {
 	,"private host name that uniquely identifies this system on the local network"
 
 	/* Manually created (non-tabled) properties */
-	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inet_addr</i>)"
+	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inetaddr</i>)"
 	,"Synchronet version number (e.g. '3.10')"
 	,"Synchronet revision letter (e.g. 'k')"
 	,"Synchronet alpha/beta designation (e.g. ' beta')"

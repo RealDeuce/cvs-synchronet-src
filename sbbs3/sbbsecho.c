@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.164 2005/02/11 02:13:11 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.163 2004/12/29 10:16:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,9 +356,6 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 		ch='#';
 	else
 		ch='^';
-	if(*attachment == '^')	/* work-around for BRE/FE inter-BBS attachment bug */
-		attachment++;
-	fexistcase(attachment);	/* just in-case it's the wrong case for a Unix file system */
 	sprintf(searchstr,"%c%s",ch,attachment);
 	if(findstr(searchstr,fname))	/* file already in FLO file */
 		return(0);
@@ -3949,7 +3946,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.164 $", "%*s %s", revision);
+	sscanf("$Revision: 1.163 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
