@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.25 2003/03/20 04:38:06 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.26 2003/03/27 23:18:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -478,15 +478,7 @@ BOOL DLLCALL fexistcase(char *path)
 		return(FALSE);
 	
 	if(glb.gl_pathc>0)  {
-		/**********************************************************
-		 * If multiple matches are found, return TRUE only if one *
-		 * EXACTLY matches path or all but one are directories	  *
-		 **********************************************************/
 		for(i=0;i<glb.gl_pathc;i++)  {
-			if(strcmp(path,glb.gl_pathv[i])==0)  {
-				globfree(&glb);
-				return TRUE;
-			}
 			if(*lastchar(glb.gl_pathv[i]) != '/')
 				break;
 		}
