@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.102 2005/02/18 10:05:41 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.98 2005/01/05 06:35:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,10 +110,6 @@ static void read_ini_globals(FILE* fp, global_startup_t* global)
     }
 
 	p=iniReadString(fp,section,strTempDirectory,nulstr,value);
-#if defined(__unix__)
-	if(*p==0)
-		p=_PATH_TMP;	/* Good idea to use "/tmp" on Unix */
-#endif
 	if(*p) {
 	    SAFECOPY(global->temp_dir,value);
 		backslash(global->temp_dir);
@@ -154,6 +150,7 @@ void sbbs_read_ini(
 {
 	const char*	section;
 	const char* default_term_ansi;
+	const char*	default_cgi_temp;
 	const char*	default_dosemu_path;
 	char		value[INI_MAX_VALUE_LEN];
 	global_startup_t global_buf;
@@ -168,25 +165,21 @@ void sbbs_read_ini(
 	if(global->ctrl_dir[0]) {
 		if(bbs!=NULL)		SAFECOPY(bbs->ctrl_dir,global->ctrl_dir);
 		if(ftp!=NULL)		SAFECOPY(ftp->ctrl_dir,global->ctrl_dir);
-		if(web!=NULL)		SAFECOPY(web->ctrl_dir,global->ctrl_dir);
 		if(mail!=NULL)		SAFECOPY(mail->ctrl_dir,global->ctrl_dir);
 		if(services!=NULL)	SAFECOPY(services->ctrl_dir,global->ctrl_dir);
 	}
 	if(global->temp_dir[0]) {
 		if(bbs!=NULL)		SAFECOPY(bbs->temp_dir,global->temp_dir);
 		if(ftp!=NULL)		SAFECOPY(ftp->temp_dir,global->temp_dir);
-		if(web!=NULL)		SAFECOPY(web->temp_dir,global->temp_dir);
-		if(mail!=NULL)		SAFECOPY(mail->temp_dir,global->temp_dir);
-		if(services!=NULL)	SAFECOPY(services->temp_dir,global->temp_dir);
 	}
 													
 	/***********************************************************************/
-	section = "BBS";
-
-	if(run_bbs!=NULL)
-		*run_bbs=iniReadBool(fp,section,"AutoStart",TRUE);
-
 	if(bbs!=NULL) {
+
+		section = "BBS";
+
+		if(run_bbs!=NULL)
+			*run_bbs=iniReadBool(fp,section,"AutoStart",TRUE);
 
 		bbs->telnet_interface
 			=iniReadIpAddress(fp,section,"TelnetInterface",global->interface_addr);
@@ -229,9 +222,6 @@ void sbbs_read_ini(
 		SAFECOPY(bbs->host_name
 			,iniReadString(fp,section,strHostName,global->host_name,value));
 
-		SAFECOPY(bbs->temp_dir
-			,iniReadString(fp,section,strTempDirectory,bbs->temp_dir,value));
-
 		/* Set default terminal type to "stock" termcap closest to "ansi-bbs" */
 	#if defined(__FreeBSD__)
 		default_term_ansi="cons25";
@@ -269,12 +259,12 @@ void sbbs_read_ini(
 	}
 
 	/***********************************************************************/
-	section = "FTP";
-
-	if(run_ftp!=NULL)
-		*run_ftp=iniReadBool(fp,section,"AutoStart",TRUE);
-
 	if(ftp!=NULL) {
+
+		section = "FTP";
+
+		if(run_ftp!=NULL)
+			*run_ftp=iniReadBool(fp,section,"AutoStart",TRUE);
 
 		ftp->interface_addr
 			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
@@ -312,9 +302,6 @@ void sbbs_read_ini(
 		SAFECOPY(ftp->hack_sound
 			,iniReadString(fp,section,"HackAttemptSound",nulstr,value));
 
-		SAFECOPY(ftp->temp_dir
-			,iniReadString(fp,section,strTempDirectory,ftp->temp_dir,value));
-
 		ftp->log_mask
 			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		ftp->options
@@ -326,12 +313,12 @@ void sbbs_read_ini(
 	}
 
 	/***********************************************************************/
-	section = "Mail";
-
-	if(run_mail!=NULL)
-		*run_mail=iniReadBool(fp,section,"AutoStart",TRUE);
-
 	if(mail!=NULL) {
+
+		section = "Mail";
+
+		if(run_mail!=NULL)
+			*run_mail=iniReadBool(fp,section,"AutoStart",TRUE);
 
 		mail->interface_addr
 			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
@@ -360,9 +347,6 @@ void sbbs_read_ini(
 
 		SAFECOPY(mail->host_name
 			,iniReadString(fp,section,strHostName,global->host_name,value));
-
-		SAFECOPY(mail->temp_dir
-			,iniReadString(fp,section,strTempDirectory,mail->temp_dir,value));
 
 		SAFECOPY(mail->relay_server
 			,iniReadString(fp,section,"RelayServer",mail->relay_server,value));
@@ -406,12 +390,12 @@ void sbbs_read_ini(
 	}
 
 	/***********************************************************************/
-	section = "Services";
-
-	if(run_services!=NULL)
-		*run_services=iniReadBool(fp,section,"AutoStart",TRUE);
-
 	if(services!=NULL) {
+
+		section = "Services";
+
+		if(run_services!=NULL)
+			*run_services=iniReadBool(fp,section,"AutoStart",TRUE);
 
 		services->interface_addr
 			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
@@ -434,9 +418,6 @@ void sbbs_read_ini(
 		SAFECOPY(services->host_name
 			,iniReadString(fp,section,strHostName,global->host_name,value));
 
-		SAFECOPY(services->temp_dir
-			,iniReadString(fp,section,strTempDirectory,services->temp_dir,value));
-
 		SAFECOPY(services->answer_sound
 			,iniReadString(fp,section,"AnswerSound",nulstr,value));
 		SAFECOPY(services->hangup_sound
@@ -453,12 +434,12 @@ void sbbs_read_ini(
 	}
 
 	/***********************************************************************/
-	section = "Web";
-
-	if(run_web!=NULL)
-		*run_web=iniReadBool(fp,section,"AutoStart",FALSE);
-
 	if(web!=NULL) {
+
+		section = "Web";
+
+		if(run_web!=NULL)
+			*run_web=iniReadBool(fp,section,"AutoStart",FALSE);
 
 		web->interface_addr
 			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
@@ -486,9 +467,6 @@ void sbbs_read_ini(
 		SAFECOPY(web->host_name
 			,iniReadString(fp,section,strHostName,global->host_name,value));
 
-		SAFECOPY(web->temp_dir
-			,iniReadString(fp,section,strTempDirectory,web->temp_dir,value));
-
 		SAFECOPY(web->root_dir
 			,iniReadString(fp,section,"RootDirectory",WEB_DEFAULT_ROOT_DIR,value));
 		SAFECOPY(web->error_dir
@@ -513,6 +491,11 @@ void sbbs_read_ini(
 			=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
 		web->max_cgi_inactivity
 			=iniReadShortInt(fp,section,"MaxCgiInactivity",120);	/* seconds */
+
+
+		default_cgi_temp = _PATH_TMP;
+		SAFECOPY(web->cgi_temp_dir
+			,iniReadString(fp,section,"CGITempDirectory",default_cgi_temp,value));
 
 		web->log_mask
 			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
@@ -705,11 +688,6 @@ BOOL sbbs_write_ini(
 		else if(!iniSetString(lp,section,strHostName,bbs->host_name,&style))
 			break;
 
-		if(stricmp(bbs->temp_dir,global->temp_dir)==0)
-			iniRemoveKey(lp,section,strTempDirectory);
-		else if(!iniSetString(lp,section,strTempDirectory,bbs->temp_dir,&style))
-			break;
-
 		if(!iniSetString(lp,section,"ExternalTermANSI",bbs->xtrn_term_ansi,&style))
 			break;
 		if(!iniSetString(lp,section,"ExternalTermDumb",bbs->xtrn_term_dumb,&style))
@@ -782,11 +760,6 @@ BOOL sbbs_write_ini(
             || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,ftp->host_name,&style))
-			break;
-
-		if(stricmp(ftp->temp_dir,global->temp_dir)==0)
-			iniRemoveKey(lp,section,strTempDirectory);
-		else if(!iniSetString(lp,section,strTempDirectory,ftp->temp_dir,&style))
 			break;
 
 		if(!iniSetString(lp,section,"IndexFileName",ftp->index_file_name,&style))
@@ -864,11 +837,6 @@ BOOL sbbs_write_ini(
             || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,mail->host_name,&style))
-			break;
-
-		if(stricmp(mail->temp_dir,global->temp_dir)==0)
-			iniRemoveKey(lp,section,strTempDirectory);
-		else if(!iniSetString(lp,section,strTempDirectory,mail->temp_dir,&style))
 			break;
 
 		if(!iniSetString(lp,section,"RelayServer",mail->relay_server,&style))
@@ -975,11 +943,6 @@ BOOL sbbs_write_ini(
 		else if(!iniSetString(lp,section,strHostName,services->host_name,&style))
 			break;
 
-		if(stricmp(services->temp_dir,global->temp_dir)==0)
-			iniRemoveKey(lp,section,strTempDirectory);
-		else if(!iniSetString(lp,section,strTempDirectory,services->temp_dir,&style))
-			break;
-
 		if(!iniSetString(lp,section,"AnswerSound",services->answer_sound,&style))
 			break;
 		if(!iniSetString(lp,section,"HangupSound",services->hangup_sound,&style))
@@ -1060,11 +1023,6 @@ BOOL sbbs_write_ini(
 		else if(!iniSetString(lp,section,strHostName,web->host_name,&style))
 			break;
 
-		if(stricmp(web->temp_dir,global->temp_dir)==0)
-			iniRemoveKey(lp,section,strTempDirectory);
-		else if(!iniSetString(lp,section,strTempDirectory,web->temp_dir,&style))
-			break;
-
 		if(!iniSetString(lp,section,"RootDirectory",web->root_dir,&style))
 			break;
 		if(!iniSetString(lp,section,"ErrorDirectory",web->error_dir,&style))
@@ -1083,6 +1041,9 @@ BOOL sbbs_write_ini(
 		if(!iniSetShortInt(lp,section,"MaxInactivity",web->max_inactivity,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"MaxCgiInactivity",web->max_cgi_inactivity,&style))
+			break;
+
+		if(!iniSetString(lp,section,"CGITempDirectory",web->cgi_temp_dir,&style))
 			break;
 
 		if(!iniSetBitField(lp,section,strOptions,web_options,web->options,&style))
