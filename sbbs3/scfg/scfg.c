@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.58 2004/07/16 23:12:18 rswindell Exp $ */
+/* $Id: scfg.c,v 1.59 2004/07/20 01:13:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	BOOL	gui_mode=FALSE;
 	BOOL    door_mode=FALSE;
 
-    printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2003 "
+    printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2004 "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION);
 
 	cfg.size=sizeof(cfg);
