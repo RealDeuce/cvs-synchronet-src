@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.10 2001/03/25 14:56:08 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.11 2001/04/10 01:27:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1030,7 +1030,10 @@ int sbbs_t::exec(csi_t *csi)
 				putmsg(cmdstr((char*)csi->ip,path,csi->str,(char*)buf),P_SAVEATR|P_NOABORT);
 				break;
 			case CS_PRINT_LOCAL:
-				lputs(cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
+				if(online==ON_LOCAL)
+					eprintf("%s",cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
+				else
+					lputs(cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
 				break;
 			case CS_PRINT_REMOTE:
 				putcom(cmdstr((char*)csi->ip,path,csi->str,(char*)buf));

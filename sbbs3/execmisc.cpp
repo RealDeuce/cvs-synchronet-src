@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.12 2001/03/09 22:02:27 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.13 2001/04/10 01:27:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,8 +83,12 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					vsprintf(tmp,str,(char*)arglist);
 					if(op==VAR_PRINTF)
 						putmsg(cmdstr(tmp,path,csi->str,buf),P_SAVEATR|P_NOABORT);
-					else
-						lputs(cmdstr(tmp,path,csi->str,buf));
+					else {
+						if(online==ON_LOCAL)
+							eprintf("%s",cmdstr(tmp,path,csi->str,buf));
+						else
+							lputs(cmdstr(tmp,path,csi->str,buf));
+					}
 					return(0);
 				case SHOW_VARS:
 					bprintf("shell     str=(%08lX) %s\r\n"
