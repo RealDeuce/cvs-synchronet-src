@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.121 2003/07/25 01:53:47 rswindell Exp $ */
+/* $Id: services.c,v 1.122 2003/07/27 10:30:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -470,17 +470,17 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		lprintf("%04d %s !JavaScript ERROR creating user objects"
 			,client->socket,client->service->protocol);
 
+	memcpy(&client->user,&user,sizeof(user));
+
 	if(client->client!=NULL) {
-		client->client->user=user.alias;
+		client->client->user=client->user.alias;
 		client_on(client->socket,client->client,TRUE /* update */);
 	}
-
-	memcpy(&client->user,&user,sizeof(user));
 
 	client->logintime=time(NULL);
 
 	lprintf("%04d %s Logging in %s"
-		,client->socket,client->service->protocol,user.alias);
+		,client->socket,client->service->protocol,client->user.alias);
 
 	val = BOOLEAN_TO_JSVAL(JS_TRUE);
 	JS_SetProperty(cx, obj, "logged_in", &val);
@@ -1383,7 +1383,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.121 $", "%*s %s", revision);
+	sscanf("$Revision: 1.122 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
