@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.3 2000/11/10 03:49:55 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.4 2000/11/10 03:56:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
 
 	bbs_terminate();
 	ftp_terminate();
-	mail_terminate();
+//	mail_terminate();
 
 	printf("\nWaiting for servers to terminate...");
 
