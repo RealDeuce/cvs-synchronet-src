@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.249 2003/04/30 20:32:00 rswindell Exp $ */
+/* $Id: main.cpp,v 1.250 2003/04/30 22:04:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2077,6 +2077,7 @@ bool sbbs_t::init()
 	}
 
     RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
+	sem_init(&output_sem,0,0);
 
 	if(cfg.node_num && client_socket!=INVALID_SOCKET) {
 
@@ -2116,20 +2117,6 @@ bool sbbs_t::init()
 		errormsg(WHERE, ERR_CHK, "shell/comspec", 0);
 		return(false);
 	}
-
-#ifdef _WIN32
-	output_sem=CreateEvent(
-					 NULL	// pointer to security attributes
-					,false	// flag for manual-reset event
-					,false	// flag for initial state
-					,NULL	// pointer to event-object name
-					);
-	if(output_sem==NULL) {
-		errormsg(WHERE, ERR_CREATE, "output_sem", 0);
-		return(false);
-	}
-#endif
-	sem_init(&output_sem,0,0);
 
 	md(cfg.temp_dir);
 
