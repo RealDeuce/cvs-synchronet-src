@@ -3,7 +3,28 @@
 # Make 'include file' for building Synchronet DLLs 
 # Used with GNU and Borland compilers
 
-# $Id: headers.mk,v 1.1 2002/04/12 09:56:43 rswindell Exp $
+# $Id: headers.mk,v 1.2 2002/04/13 07:41:41 rswindell Exp $
 
-HEADERS =	sbbs.h sbbsdefs.h sbbswrap.h sbbsinet.h scfgdefs.h gen_defs.h \
-			nodedefs.h smblib.h smbdefs.h text.h
+HEADERS = \
+	ars_defs.h \
+	client.h \
+	cmdshell.h \
+	nodedefs.h \
+	post.h \
+	ringbuf.h \
+	riodefs.h \
+	sbbs.h \
+	sbbsdefs.h \
+	scfgdefs.h \
+	scfglib.h \
+	smbdefs.h \
+	smblib.h \
+	text.h \
+	userdat.h \
+	$(XPDEV)gen_defs.h \
+	$(XPDEV)genwrap.h \
+	$(XPDEV)wrapdll.h \
+	$(XPDEV)dirwrap.h \
+	$(XPDEV)filewrap.h \
+	$(XPDEV)sockwrap.h \
+	$(XPDEV)threadwrap.h
