@@ -2,7 +2,7 @@
 
 /* Functions that deal with line-based (text) data files and lists */
 
-/* $Id: dat_file.c,v 1.1 2004/08/04 09:41:39 rswindell Exp $ */
+/* $Id: dat_file.c,v 1.2 2004/09/11 09:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,8 +40,6 @@
 #include "filewrap.h"	/* chsize */
 #include <stdlib.h>		/* malloc */
 #include <string.h>		/* strdup */
-
-#include "truncsp.c"	/* truncsp() and truncnl() */
 
 /***********************************/
 /* CSV (Comma Separated Value) API */
