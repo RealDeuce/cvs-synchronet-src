@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.284 2005/03/14 05:20:28 deuce Exp $ */
+/* $Id: websrvr.c,v 1.285 2005/03/14 09:18:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2934,12 +2934,11 @@ void http_session_thread(void* arg)
 
 	while(!session.finished && server_socket!=INVALID_SOCKET) {
 	    memset(&(session.req), 0, sizeof(session.req));
-		SAFECOPY(session.req.status,"200 OK");
-		session.req.send_location=NO_LOCATION;
 		redirp=NULL;
 		loop_count=0;
 		while((redirp==NULL || session.req.send_location >= MOVED_TEMP)
 				 && !session.finished && server_socket!=INVALID_SOCKET) {
+			SAFECOPY(session.req.status,"200 OK");
 			session.req.send_location=NO_LOCATION;
 			session.req.ld=NULL;
 			if(startup->options&WEB_OPT_HTTP_LOGGING) {
@@ -3050,7 +3049,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.284 $", "%*s %s", revision);
+	sscanf("$Revision: 1.285 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
