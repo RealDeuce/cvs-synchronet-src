@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.8 2002/08/08 08:24:50 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.9 2002/08/08 08:45:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -910,9 +910,13 @@ static BOOL check_request(http_session_t * session)
 	FILE*	file;
 	
 	lprintf("Validating request: %s",session->req.request);
-	if(session->host[0])
-		sprintf(path,"%s%s%s",root_dir,session->host,session->req.request);
-	else
+	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
+		session->host[0]=0;
+	if(session->host[0]) {
+		sprintf(path,"%s%s",root_dir,session->host);
+		if(isdir(path))
+			sprintf(path,"%s%s%s",root_dir,session->host,session->req.request);
+	} else
 		sprintf(path,"%s%s",root_dir,session->req.request);
 	
 	if(FULLPATH(session->req.request,path,sizeof(session->req.request))==NULL) {
@@ -1085,7 +1089,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.8 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.9 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
