@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.132 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.133 2004/10/18 06:45:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3686,6 +3686,7 @@ void __fastcall TMainForm::ServiceStatusTimerTick(TObject *Sender)
 	if(queryServiceStatus==NULL || queryServiceConfig==NULL
     	|| (bbs_svc==NULL
         && ftp_svc==NULL
+		&& web_svc==NULL
         && mail_svc==NULL
         && services_svc==NULL)) {
     	ServiceStatusTimer->Enabled=false;
