@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.61 2003/03/04 10:55:08 rswindell Exp $
+# $Id: GNUmakefile,v 1.62 2003/03/20 18:46:05 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -104,6 +104,8 @@ ifdef DEBUG
   CFLAGS	+=	-ggdb
  endif
  CFLAGS  +=	-D_DEBUG
+else
+ CFLAGS	+= -O3
 endif
 
 ifdef JSLIB
