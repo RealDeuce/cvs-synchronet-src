@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.281 2005/03/11 20:39:48 deuce Exp $ */
+/* $Id: websrvr.c,v 1.282 2005/03/13 15:58:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1577,6 +1577,7 @@ static BOOL parse_headers(http_session_t * session)
 		}
 		else  {
 			lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,content_len);
+			send_error(session,"413 Request entity too large");
 			return(FALSE);
 		}
 	}
@@ -1801,8 +1802,10 @@ static BOOL get_req(http_session_t * session, char *request_line)
 				session->req.keep_alive=TRUE;
 			if(!is_redir)
 				get_request_headers(session);
-			if(!get_fullpath(session))
+			if(!get_fullpath(session)) {
+				send_error(session,error_500);
 				return(FALSE);
+			}
 			if(session->req.ld!=NULL)
 				session->req.ld->vhost=strdup(session->req.vhost);
 			session->req.dynamic=is_dynamic_req(session);
@@ -1828,7 +1831,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 		}
 	}
 	session->req.keep_alive=FALSE;
-	close_request(session);
+	send_error(session,"400 Bad Request");
 	return FALSE;
 }
 
@@ -3031,7 +3034,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.281 $", "%*s %s", revision);
+	sscanf("$Revision: 1.282 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
