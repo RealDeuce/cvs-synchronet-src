@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.5 2003/01/26 20:36:00 deuce Exp $ */
+/* $Id: uifcfltk.cpp,v 1.6 2003/02/07 23:44:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -395,6 +395,18 @@ int UIFC_Button::handle(int event)  {
 			i=i+1;
 			if(i>parent()->children()-3)
 				i=0;
+			Fl::focus(parent()->child(i));
+			parent()->child(i)->handle(FL_FOCUS);
+			return(1);
+		}
+		if(key==FL_HOME)  {
+			i=0;
+			Fl::focus(parent()->child(i));
+			parent()->child(i)->handle(FL_FOCUS);
+			return(1);
+		}
+		if(key==FL_End)  {
+			i=parent()->children*()-3;
 			Fl::focus(parent()->child(i));
 			parent()->child(i)->handle(FL_FOCUS);
 			return(1);
