@@ -2,7 +2,7 @@
 
 /* Functions to deal with comma-separated value (CSV) files and lists */
 
-/* $Id: csv_file.h,v 1.2 2004/07/29 11:15:32 rswindell Exp $ */
+/* $Id: csv_file.h,v 1.3 2004/07/30 02:03:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,9 +44,10 @@
 extern "C" {
 #endif
 
-str_list_t	csvCreate(str_list_t* records, str_list_t columns);
-str_list_t*	csvParse(str_list_t records);
-str_list_t*	csvReadFile(FILE* fp, str_list_t* columns);
+str_list_t	csvCreateList(str_list_t records[], str_list_t columns /* optional */);
+str_list_t	csvParseLine(char* line);
+str_list_t*	csvParseList(str_list_t list, str_list_t* columns /* optional */);
+str_list_t*	csvReadFile(FILE* fp, str_list_t* columns /* optional */);
 
 #if defined(__cplusplus)
 }
