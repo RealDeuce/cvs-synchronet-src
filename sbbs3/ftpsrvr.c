@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.115 2001/11/15 18:57:24 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.116 2001/11/16 00:54:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2029,7 +2029,7 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 	*pp+=tp-path;	/* skip "lib/dir/" */
 }
 
-BOOL alias(char* fullalias, char* filename, user_t* user, int* curdir)
+static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 {
 	char*	p;
 	char*	tp;
@@ -3402,7 +3402,7 @@ static void ctrl_thread(void* arg)
 			else if(!strncmp(p,"./",2))
 				p+=2;
 
-			if(lib<0 && alias(p, fname, &user, &dir)==TRUE) {
+			if(lib<0 && ftpalias(p, fname, &user, &dir)==TRUE) {
 				success=TRUE;
 				credits=TRUE;	/* include in d/l stats */
 				tmpfile=FALSE;
@@ -4006,7 +4006,7 @@ static void ctrl_thread(void* arg)
 			success=FALSE;
 
 			/* Directory Alias? */
-			if(curlib<0 && alias(p,NULL,&user,&curdir)==TRUE) {
+			if(curlib<0 && ftpalias(p,NULL,&user,&curdir)==TRUE) {
 				if(curdir>=0)
 					curlib=scfg.dir[curdir]->lib;
 				success=TRUE;
