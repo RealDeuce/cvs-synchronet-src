@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.16 2003/03/20 03:32:49 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.17 2003/04/26 17:31:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 
 #if defined(__unix__)
 	#include <unistd.h>	/* _POSIX_THREADS */
+	#include <sys/param.h>	/* BSD */
 #endif
 
 #include "threadwrap.h"	/* DLLCALL */
@@ -62,8 +63,9 @@ ulong _beginthread(void( *start_address )( void * )
 	   that thread resources are freed on exit() */
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-#ifdef BSD
 	/* Default stack size in BSD is too small for JS stuff */
+/* #ifdef BSD */
+#if 0
 	if(stack_size==0)
 		stack_size=1<<17;
 #endif

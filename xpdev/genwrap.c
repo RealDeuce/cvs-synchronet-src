@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.23 2003/02/11 09:33:49 deuce Exp $ */
+/* $Id: genwrap.c,v 1.24 2003/04/26 17:31:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,7 +123,7 @@ void DLLCALL unix_beep(int freq, int dur)
 {
 	static int console_fd=-1;
 
-#if !defined(__OpenBSD__) && !defined(__GNU__)
+#if !defined(__OpenBSD__) && !defined(__GNU__) && !defined(__NetBSD__) && !defined(__QNX__)
 	if(console_fd == -1) 
   		console_fd = open("/dev/console", O_NOCTTY);
 	
