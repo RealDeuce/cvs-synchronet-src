@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.45 2003/01/22 22:23:19 rswindell Exp $
+# $Id: GNUmakefile,v 1.46 2003/01/23 11:00:36 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -319,6 +319,7 @@ $(MAKEUSER): \
 	@$(CC) -o $@ $^
 
 
-# Auto-dependency files
+# Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
+-include ./*.d
 -include $(LIBODIR)/*.d
 -include $(EXEODIR)/*.d

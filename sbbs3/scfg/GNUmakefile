@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.15 2003/01/17 22:43:28 rswindell Exp $
+# $Id: GNUmakefile,v 1.16 2003/01/23 11:00:49 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -120,5 +120,6 @@ $(SCFG): $(OBJS)
 	@echo Linking $@
 	@$(CC) -o $@ $(OBJS) $(LFLAGS)
 
-# Auto-dependency files
+# Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
+-include ./*.d
 -include $(ODIR)/*.d
