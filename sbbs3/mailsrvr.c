@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.221 2002/12/12 21:29:42 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.222 2002/12/13 19:34:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1699,6 +1699,8 @@ static void smtp_thread(void* arg)
 						system(cmdstr(p, msgtxt_fname, rcptlst_fname, proc_err_fname, str));
 						if(flength(proc_err_fname)>0)
 							break;
+						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
+							break;
 					}
 					fclose(proc_cfg);
 					if(flength(proc_err_fname)>0 
@@ -1718,6 +1720,12 @@ static void smtp_thread(void* arg)
 						}
 						fclose(proc_err);
 						remove(proc_err_fname);
+						continue;
+					}
+					if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname)) {
+						lprintf("%04d SMTP external process removed %s"
+							,socket, fexist(msgtxt_fname)==FALSE ? "message text" : "recipient list");
+						sockprintf(socket,ok_rsp);
 						continue;
 					}
 				}
@@ -3097,7 +3105,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.221 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.222 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
