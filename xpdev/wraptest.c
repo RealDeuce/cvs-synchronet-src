@@ -2,6 +2,8 @@
 
 /* Verification of cross-platform development wrappers */
 
+/* $Id: wraptest.c,v 1.15 2002/04/25 22:47:23 rswindell Exp $ */
+
 #include <time.h>	/* ctime */
 
 #include "genwrap.h"
