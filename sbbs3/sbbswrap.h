@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.4 2000/10/24 11:30:00 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.5 2000/10/25 21:50:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,7 +83,6 @@ extern "C" {
 
 	DLLEXPORT void	sbbs_beep(int freq, int dur);
 	DLLEXPORT long	filelength(int fd);
-	DLLEXPORT char* ultoa(ulong, char*, int radix);
 	DLLEXPORT char*	strupr(char* str);
 	DLLEXPORT char*	strlwr(char* str);
 
@@ -111,6 +110,12 @@ extern "C" {
 	#define _chmod(p,f,a)		_rtl_chmod(p,f,a) 	/* _chmod obsolete in 4.x */
 #endif
 
+#if !defined _MSC_VER && !defined __BORLANDC__
+DLLEXPORT char* ultoa(ulong, char*, int radix);
+#endif
+
+
+/* General file system wrappers for all platforms and compilers */
 DLLEXPORT BOOL		fexist(char *filespec);
 DLLEXPORT long		flength(char *filename);
 DLLEXPORT long		fdate(char *filename);

@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.4 2000/10/24 11:15:11 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.5 2000/10/25 21:50:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ int sbbs_random(int n)
 /* Return ASCII string representation of ulong								*/
 /* There may be a native GNU C Library function to this...					*/
 /****************************************************************************/
-#ifdef __unix__
+#if !defined _MSC_VER && !defined __BORLANDC__
 char* ultoa(ulong val, char* str, int radix)
 {
 	switch(radix) {
