@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.1 2002/04/06 00:40:31 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.2 2002/04/06 08:46:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,7 @@
 /* Wrapper for Win32 create/begin thread function							*/
 /* Uses POSIX threads														*/
 /****************************************************************************/
-#if defined(__unix__) && defined(SBBS)
+#if defined(__unix__)
 #if defined(_POSIX_THREADS)
 ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist)
