@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.1 2000/10/10 11:26:33 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.2 2000/10/18 06:26:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,7 +107,8 @@ void sbbs_t::temp_xfer()
 				space=getfreediskspace(cfg.temp_dir);
 				if(space<(ulong)cfg.min_dspace*1024L) {
 					bputs(text[LowDiskSpace]);
-					sprintf(str,"Diskspace is low: %s",cfg.temp_dir);
+					sprintf(str,"Diskspace is low: %s (%lu bytes)"
+						,cfg.temp_dir,space);
 					errorlog(str);
 					if(!dir_op(dirnum))
 						break; }
@@ -290,7 +291,7 @@ void sbbs_t::extract(uint dirnum)
 	space=getfreediskspace(cfg.temp_dir);
 	if(space<(ulong)cfg.min_dspace*1024L) {
 		bputs(text[LowDiskSpace]);
-		sprintf(str,"Diskspace is low: %s",cfg.temp_dir);
+		sprintf(str,"Diskspace is low: %s (%lu bytes)",cfg.temp_dir,space);
 		errorlog(str);
 		if(!dir_op(dirnum))
 			return; }
