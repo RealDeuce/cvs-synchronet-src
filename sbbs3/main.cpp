@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.188 2002/09/13 01:08:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.189 2002/10/13 11:15:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3736,7 +3736,7 @@ void DLLCALL bbs_thread(void* arg)
 		if(FD_ISSET(telnet_socket,&socket_set)) 
 			client_socket = accept_socket(telnet_socket, (struct sockaddr *)&client_addr
 	        	,&client_addr_len);
-		else if(FD_ISSET(rlogin_socket,&socket_set)) {
+		else if(rlogin_socket!=INVALID_SOCKET && FD_ISSET(rlogin_socket,&socket_set)) {
 			client_socket = accept_socket(rlogin_socket, (struct sockaddr *)&client_addr
 	        	,&client_addr_len);
 			rlogin = true;
