@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.83 2002/11/05 09:12:53 rswindell Exp $ */
+/* $Id: services.c,v 1.84 2002/11/07 06:53:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -396,19 +396,9 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	putuserdat(&scfg,&user);
 
-	/* user object */
-	if(js_CreateUserObject(cx, obj, &scfg, "user", user.number)==NULL) 
-		lprintf("%04d %s !JavaScript ERROR creating user object"
-			,client->socket,client->service->protocol);
-
-	/* file_area object */
-	if(js_CreateFileAreaObject(cx, obj, &scfg, &user, "")==NULL) 
-		lprintf("%04d %s !JavaScript ERROR creating file_area object"
-			,client->socket,client->service->protocol);
-
-	/* msg_area object */
-	if(js_CreateMsgAreaObject(cx, obj, &scfg, &user, NULL)==NULL) 
-		lprintf("%04d %s !JavaScript ERROR creating msg_area object"
+	/* user-specific objects */
+	if(!js_CreateUserObjects(cx, obj, &scfg, &user, NULL, NULL)) 
+		lprintf("%04d %s !JavaScript ERROR creating user objects"
 			,client->socket,client->service->protocol);
 
 	if(client->client!=NULL) {
@@ -1208,7 +1198,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.83 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.84 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
