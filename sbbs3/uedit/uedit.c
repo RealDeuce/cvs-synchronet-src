@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.29 2004/09/12 22:00:25 deuce Exp $ */
+/* $Id: uedit.c,v 1.35 2004/09/21 05:00:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1733,11 +1733,11 @@ int finduser(scfg_t *cfg, user_t *user)
 /* Get newly created Default User "New User" and set for Editing */
 /*               Adapted from finduser function                  */
 
-int getnewuser(scfg_t *cfg, user_t *user)
+int getuser(scfg_t *cfg, user_t *user, char* str)
 {
 	int i,j,last;
 	ushort un;
-	char* str ;
+	/* char* str ; */
 	struct user_list **opt;
 	int done=0;
 
@@ -1746,7 +1746,7 @@ int getnewuser(scfg_t *cfg, user_t *user)
 	for(i=0;i<(MAX_OPTS+1);i++)
 		opt[i]=NULL;
 
-    str="New User";
+	/* strcpy(str, username); */
 	/* User List */
 	done=0;
 	while(!done) {
@@ -1899,6 +1899,8 @@ int main(int argc, char** argv)  {
 	int		last, newlast;
 	user_t	user;
 	int		edtuser=0;
+	int		ciolib_mode=CIOLIB_MODE_AUTO;
+
 	/******************/
 	/* Ini file stuff */
 	/******************/
@@ -1906,7 +1908,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.29 $", "%*s %s", revision);
+	sscanf("$Revision: 1.35 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -1979,15 +1981,44 @@ int main(int argc, char** argv)  {
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
 				case 'I':
-					/* Set up ex-ascii codes */
-					uifc.mode|=UIFC_IBM;
+					switch(toupper(argv[i][2])) {
+						case 'A':
+							ciolib_mode=CIOLIB_MODE_ANSI;
+							break;
+						case 'C':
+							ciolib_mode=CIOLIB_MODE_CURSES;
+							break;
+						case 0:
+							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
+							SLEEP(2000);
+						case 'F':
+							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
+							break;
+						case 'X':
+							ciolib_mode=CIOLIB_MODE_X;
+							break;
+						case 'W':
+							ciolib_mode=CIOLIB_MODE_CONIO;
+							break;
+						default:
+							goto USAGE;
+					}
 					break;
                 default:
+					USAGE:
                     printf("\nusage: %s [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
                         "-c  =  force color mode\n"
                         "-e# =  set escape delay to #msec\n"
-						"-i  =  force IBM charset\n"
+						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
+#ifdef __unix__
+						"       X = X11 mode\r\n"
+						"       C = Curses mode\r\n"
+						"       F = Curses mode with forced IBM charset\r\n"
+#else
+						"       W = Win32 native mode\r\n"
+#endif
+						"       A = ANSI mode\r\n"
                         "-l# =  set screen lines to #\n"
 						,argv[0]
                         );
@@ -2002,11 +2033,12 @@ int main(int argc, char** argv)  {
 #endif
 
 	uifc.size=sizeof(uifc);
-#ifdef USE_CURSES
-	i=uifcinic(&uifc);  /* curses */
-#else
+	i=initciolib(ciolib_mode);
+	if(i!=0) {
+    	printf("ciolib library init returned error %d\n",i);
+    	exit(1);
+	}
 	i=uifcini32(&uifc);  /* curses */
-#endif
 	if(i!=0) {
 		printf("uifc library init returned error %d\n",i);
 		exit(1);
@@ -2072,7 +2104,7 @@ int main(int argc, char** argv)  {
 			/* New User */
 			    createdefaults();
 			    lprintf("Please edit defaults using next screen.");
-			    getnewuser(&cfg,&user);
+			    getuser(&cfg,&user,"New User");
 		}
 		if(j==1) {
 		    /* Find User */
@@ -2102,4 +2134,5 @@ int main(int argc, char** argv)  {
 		}
 	}
 }
+
 
