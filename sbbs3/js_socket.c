@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.89 2003/06/26 02:55:10 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.90 2003/09/30 01:59:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -944,7 +944,7 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		else if(JSVAL_IS_DOUBLE(argv[argn])) {
 			JS_ValueToNumber(cx,argv[argn],&jsd);
 			tv.tv_sec = (int)jsd;
-			tv.tv_usec = (int)(jsd*1000.0);
+			tv.tv_usec = (int)(jsd*1000000.0)%1000000;
 		}
 	}
 

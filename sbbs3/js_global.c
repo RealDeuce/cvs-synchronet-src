@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.85 2003/09/30 00:11:32 rswindell Exp $ */
+/* $Id: js_global.c,v 1.86 2003/09/30 01:59:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1421,7 +1421,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		else if(JSVAL_IS_DOUBLE(argv[argn])) {
 			JS_ValueToNumber(cx,argv[argn],&jsd);
 			tv.tv_sec = (int)jsd;
-			tv.tv_usec = (int)(jsd*1000.0);
+			tv.tv_usec = (int)(jsd*1000000.0)%1000000;
 		}
 	}
 
