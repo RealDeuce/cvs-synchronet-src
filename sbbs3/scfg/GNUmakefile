@@ -6,12 +6,12 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #																		#
 # Linux: gmake															#
-# FreeBSD: gmake os=freebsd												#
+# FreeBSD: gmake os=FreeBSD												#
 #																		#
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.2 2002/04/12 08:43:13 rswindell Exp $
+# $Id: GNUmakefile,v 1.3 2002/04/12 10:30:15 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -19,9 +19,15 @@ USE_DIALOG =	1	# Comment out for stdio (uifcx) version
 CC		=	gcc
 SLASH	=	/
 OFILE	=	o
-EXEFILE	=	
+UIFC	=	../../uifc
+XPDEV	=	../../xpdev
 
-ifeq ($(os),freebsd)	# FreeBSD
+ifndef $(os)
+os		=	$(shell uname)
+$(warning OS not specified on command line, setting to '$(os)'.)
+endif
+
+ifeq ($(os),FreeBSD)	# FreeBSD
 ODIR	:=	gcc.freebsd
 else                    # Linux
 ODIR	:=	gcc.linux
@@ -31,7 +37,7 @@ LIBDIR	:=	/usr/lib
 DELETE	=	rm -f -v
 OUTLIB	=	-o
 
-CFLAGS	:=	-I../../uifc -I../../xpdev -I/usr/local/include -I../  -D_THREAD_SAFE
+CFLAGS	:=	-I$(UIFC) -I$(XPDEV) -I/usr/local/include -I../  -D_THREAD_SAFE
 
 LFLAGS	:=	-L/usr/local/lib
 
@@ -60,8 +66,8 @@ OBJS := $(OBJS)			$(ODIR)$(SLASH)uifcd.$(OFILE)
 endif
 
 vpath %.c ..
-vpath %.c ../../uifc
-vpath %.c ../../xpdev
+vpath %.c $(UIFC)
+vpath %.c $(XPDEV)
 
 # Implicit C Compile Rule for SCFG
 $(ODIR)/%.o : %.c
