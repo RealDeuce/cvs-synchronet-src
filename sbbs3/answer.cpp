@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.17 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.18 2002/06/28 00:21:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,7 @@ bool sbbs_t::answer()
 		/* Disable Telnet Terminal Echo */
 		sprintf(str,"%c%c%c",TELNET_IAC,TELNET_WILL,TELNET_ECHO);
 		putcom(str,3);
-		/* Will supress Go Ahead */
+		/* Will suppress Go Ahead */
 		sprintf(str,"%c%c%c",TELNET_IAC,TELNET_WILL,TELNET_SUP_GA);
 		putcom(str,3);
 	}

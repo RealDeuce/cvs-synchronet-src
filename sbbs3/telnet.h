@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.3 2002/02/02 04:01:10 rswindell Exp $ */
+/* $Id: telnet.h,v 1.4 2002/06/28 00:21:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,7 @@ enum {
  	 TELNET_BINARY
 	,TELNET_ECHO
 	,TELNET_RECONN
-	,TELNET_SUP_GA		// supress go ahead
+	,TELNET_SUP_GA		// suppress go ahead
 	,TELNET_APPROX_MSG_SIZE
 	,TELNET_STATUS
 	,TELNET_TIMING_MARK
