@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.28 2003/08/20 09:54:58 rswindell Exp $ */
+/* $Id: smblib.h,v 1.29 2003/09/08 23:06:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,6 +104,9 @@ SMBEXPORT void	SMBCALL smb_close_ha(smb_t* smb);
 SMBEXPORT int 	SMBCALL smb_create(smb_t* smb);
 SMBEXPORT int 	SMBCALL smb_stack(smb_t* smb, int op);
 SMBEXPORT int 	SMBCALL smb_trunchdr(smb_t* smb);
+SMBEXPORT int	SMBCALL smb_lock(smb_t* smb);
+SMBEXPORT int	SMBCALL smb_unlock(smb_t* smb);
+SMBEXPORT int	SMBCALL smb_islocked(smb_t* smb);
 SMBEXPORT int 	SMBCALL smb_locksmbhdr(smb_t* smb);
 SMBEXPORT int 	SMBCALL smb_getstatus(smb_t* smb);
 SMBEXPORT int 	SMBCALL smb_putstatus(smb_t* smb);
