@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.53 2003/11/03 03:17:49 deuce Exp $ */
+/* $Id: genwrap.h,v 1.54 2003/11/04 21:26:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ extern "C" {
 	#define YIELD()			Sleep(1) /* Must sleep at least 1ms to avoid 100% CPU utilization */
 	#define	MAYBE_YIELD()	Sleep(0)
 	#define SLEEP(x)		Sleep(x)
-	#define BEEP(freq,dur)	Beep(freq,dur)
+	#define BEEP(freq,dur)	Beep((DWORD)(freq),(DWORD)(dur))
 	#define	popen			_popen
 	#define pclose			_pclose
 
