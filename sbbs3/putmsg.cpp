@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.10 2004/10/27 21:19:55 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.11 2004/10/27 22:02:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,11 +212,11 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 			l+=2; 
 		}
 		else {
-			if(str[l]==LF) {
+			if(str[l]=='\n') {
 				if(exatr) 	/* clear at newline for extra attr codes */
 					attr(LIGHTGRAY);
-				if(l && str[l-1]!=CR)	/* convert sole LF to CR/LF */
-					outchar(CR);
+				if(l==0 || str[l-1]!='\r')	/* expand sole LF to CR/LF */
+					outchar('\r');
 			}
 
 			/* ansi escape sequence */
