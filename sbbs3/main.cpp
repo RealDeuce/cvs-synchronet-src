@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.91 2002/01/23 03:25:18 rswindell Exp $ */
+/* $Id: main.cpp,v 1.92 2002/01/23 03:54:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,6 +140,11 @@ int lprintf(char *fmt, ...)
 
     if(startup==NULL || startup->lputs==NULL)
         return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
 
     va_start(argptr,fmt);
     vsprintf(sbuf,fmt,argptr);

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.125 2002/01/20 15:41:13 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.126 2002/01/23 03:54:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,6 +144,11 @@ static int lprintf(char *fmt, ...)
 
     if(startup==NULL || startup->lputs==NULL)
         return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
 
     va_start(argptr,fmt);
     vsprintf(sbuf,fmt,argptr);
@@ -2159,7 +2164,6 @@ static void ctrl_thread(void* arg)
 	char		qwkfile[MAX_PATH+1];
 	char		aliasfile[MAX_PATH+1];
 	char		aliasline[512];
-	char		alias_buf[80];
 	char		desc[501]="";
 	char		sys_pass[128];
 	char*		host_name;
