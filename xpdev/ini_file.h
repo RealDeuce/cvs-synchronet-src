@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.25 2004/08/24 02:27:39 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.26 2004/09/09 07:43:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,8 +96,10 @@ void*		iniFreeNamedStringList(named_string_t** list);
 
 
 /* File I/O Functions */
+FILE*		iniOpenFile(const char* fname);
 str_list_t	iniReadFile(FILE*);
 BOOL		iniWriteFile(FILE*, const str_list_t);
+BOOL		iniCloseFile(FILE*);
 
 /* StringList functions */
 str_list_t	iniGetSectionList(str_list_t* list, const char* prefix);
