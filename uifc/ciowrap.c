@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.12 2004/06/01 08:00:21 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.13 2004/06/10 06:26:28 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -58,7 +58,7 @@ int puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	unsigned char orig_attr;
 	int oldx, oldy;
 
-	getyx(stdscr,oldy,oldx);	
+	getyx(stdscr,oldy,oldx);
 	orig_attr=lastattr;
 	for(y=sy-1;y<=ey-1;y++)
 	{
@@ -556,19 +556,6 @@ void _putch(unsigned char ch, BOOL refresh_now)
 				cha=ch;
 		}
 	}
-	else
-	{
-		switch(ch) {
-			case 30:
-				cha=ACS_UARROW;
-				break;
-			case 31:
-				cha=ACS_DARROW;
-				break;
-			default:
-				cha=ch;
-		}
-	}
 
 	if(ch == ' ')
 		addch(A_BOLD|' ');
@@ -576,6 +563,9 @@ void _putch(unsigned char ch, BOOL refresh_now)
  		attron(A_REVERSE);
 		addch(cha+'A'-1);
 		attroff(A_REVERSE);
+		refresh();
+		printf("\b%c",cha);
+		refresh();
 	}
 	else
 		addch(cha);
