@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.8 2000/11/04 02:26:39 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.9 2000/11/08 11:25:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,9 +84,11 @@
 
 #define ERROR_VALUE		WSAGetLastError()
 
+#define SHUT_RDWR		2	/* for shutdown() */
+
 #else	/* BSD sockets */
 
-/* WinSockisms */
+/* WinSock-isms */
 #define HOSTENT			struct hostent
 #define SOCKADDR_IN		struct sockaddr_in
 #define LINGER			struct linger
