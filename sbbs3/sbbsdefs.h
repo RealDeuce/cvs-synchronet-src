@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.89 2003/03/06 03:11:16 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.90 2003/04/18 04:54:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,7 +138,7 @@
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
 #define SM_LOCAL_TZ		(1L<<13)	/* Use local timezone representations		*/
-#define SM_L_SYSOP		(1L<<14)	/* Allow local sysop logon/commands 		*/
+#define SM_AUTO_DST		(1L<<14)	/* Automatic Daylight Savings Toggle (US)   */
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
 #define SM_EURODATE		(1L<<17)	/* Europian date format (DD/MM/YY)			*/
