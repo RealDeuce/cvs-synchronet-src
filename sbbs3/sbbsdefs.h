@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.93 2003/06/04 02:02:10 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.94 2003/06/06 23:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -362,6 +362,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 	,EVENT_LOGOFF					/* Execute during logoff sequence		*/
 	,EVENT_NEWUSER					/* Execute during newuser app.			*/
 	,EVENT_BIRTHDAY 				/* Execute on birthday					*/
+	,EVENT_POST						/* Execute after posting a message		*/
+	,EVENT_UPLOAD					/* Execute after uploading a file		*/
+	,EVENT_DOWNLOAD					/* Execute after downloading a file		*/
 } user_event_t;																
 																			
 									/* Misc bits for event_t.misc			*/

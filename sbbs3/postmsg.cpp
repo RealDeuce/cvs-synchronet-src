@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.35 2003/06/06 22:09:21 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.36 2003/06/06 23:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,6 +391,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	logline("P+",str);
 
 	signal_sub_sem(&cfg,subnum);
+
+	user_event(EVENT_POST);
 
 	return(true);
 }
