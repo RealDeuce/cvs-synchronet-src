@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.5 2002/01/26 14:57:47 rswindell Exp $ */
+/* $Id: scfg.h,v 1.6 2002/01/28 15:59:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,6 @@ int  bits(long l);
 char oneflag(long l);
 void getar(char *desc, char *ar);
 char *ultoac(ulong l,char *str);
-FILE *fnopen(int *file, char *str, int access);
 
 /* scfgnet.h */
 faddr_t atofaddr(char *str);
