@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.116 2002/03/07 14:40:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.117 2002/03/07 20:20:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,7 +335,10 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((p=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL)
 		return(JS_FALSE);
 
-	sbbs->bputs(p);
+	if(sbbs->online==ON_LOCAL)
+		eprintf("%s",p);
+	else
+		sbbs->bputs(p);
 	JS_smprintf_free(p);
 
 	*rval = JSVAL_VOID;
