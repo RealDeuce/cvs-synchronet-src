@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.10 2003/09/06 20:45:48 deuce Exp $ */
+/* $Id: echocfg.c,v 1.11 2003/10/24 00:47:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -645,7 +645,7 @@ int main(int argc, char **argv)
 					sprintf(opt[i++],"%-35.35s%-3.3s","In-bound Packet Information"
 						,cfg.log&LOG_PACKETS ? "Yes":"No");
 					sprintf(opt[i++],"%-35.35s%-3.3s","In-bound Security Violations"
-						,cfg.log&LOG_SECURITY ? "Yes":"No");
+						,cfg.log&LOG_SECURE ? "Yes":"No");
 					sprintf(opt[i++],"%-35.35s%-3.3s","In-bound Grunged Messages"
 						,cfg.log&LOG_GRUNGED ? "Yes":"No");
 					sprintf(opt[i++],"%-35.35s%-3.3s","Disallowed Private EchoMail"
@@ -694,7 +694,7 @@ int main(int argc, char **argv)
 							cfg.log^=LOG_PACKETS;
 							break;
 						case 10:
-							cfg.log^=LOG_SECURITY;
+							cfg.log^=LOG_SECURE;
 							break;
 						case 11:
 							cfg.log^=LOG_GRUNGED;
