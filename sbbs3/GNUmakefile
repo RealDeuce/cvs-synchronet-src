@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.109 2003/07/17 02:25:24 deuce Exp $
+# $Id: GNUmakefile,v 1.110 2003/07/17 03:20:50 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -235,6 +235,8 @@ SMBLIB_OBJS = \
 
 # Monolithic Synchronet executable Build Rule
 FORCE$(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
+
+$(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
 	@echo Linking $@
 	$(QUIET)$(CCPP) -o $@ $(LFLAGS) $^
 
