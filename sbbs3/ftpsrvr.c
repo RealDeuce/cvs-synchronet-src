@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.200 2003/01/14 20:51:00 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.201 2003/01/17 20:52:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4350,7 +4350,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.200 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.201 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4488,7 +4488,7 @@ void DLLCALL ftp_server(void* arg)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
 		/* Use DATA/TEMP for temp dir - should ch'd to be FTP/HOST specific */
-		prep_dir(scfg.data_dir, scfg.temp_dir);
+		prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 		if(!startup->max_clients) {
 			startup->max_clients=scfg.sys_nodes;

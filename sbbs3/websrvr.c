@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.57 2003/01/14 21:02:48 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.58 2003/01/17 20:52:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2026,7 +2026,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.57 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.58 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2094,8 +2094,8 @@ void DLLCALL web_server(void* arg)
 	SAFECOPY(error_dir,startup->error_dir);
 
 	/* Change to absolute path */
-	prep_dir(startup->ctrl_dir, root_dir);
-	prep_dir(startup->ctrl_dir, error_dir);
+	prep_dir(startup->ctrl_dir, root_dir, sizeof(root_dir));
+	prep_dir(startup->ctrl_dir, error_dir, sizeof(error_dir));
 
 	/* Trim off trailing slash/backslash */
 	if(*(p=lastchar(root_dir))==BACKSLASH)	*p=0;

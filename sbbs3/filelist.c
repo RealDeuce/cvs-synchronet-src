@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.3 2002/10/31 10:05:34 rswindell Exp $ */
+/* $Id: filelist.c,v 1.4 2003/01/17 20:52:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 	time_t	uld,dld;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.3 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.4 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"!ERROR loading configuration files: %s\n",error);
 		exit(1);
 	}
-	prep_dir(scfg.data_dir, scfg.temp_dir);
+	prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 	if(!(scfg.sys_misc&SM_LOCAL_TZ))
 		putenv("TZ=UTC0");

@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.160 2003/01/09 00:16:22 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.161 2003/01/17 20:52:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -817,7 +817,7 @@ extern "C" {
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
 
 	/* scfglib1.c */
-	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir);
+	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text 

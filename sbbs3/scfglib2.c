@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.28 2002/12/30 05:26:48 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.29 2003/01/17 20:52:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -347,18 +347,6 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 		get_str(cfg->dir[i]->code,instream);
 
 		get_str(cfg->dir[i]->data_dir,instream);
-
-#if 0 /* default data dir stuff */
-		fread(str,LEN_DIR+1,1,instream);   /* substitute data dir */
-		offset+=LEN_DIR+1;
-		if(str[0]) {
-			prep_dir(cfg->ctrl_dir, str);
-			if((cfg->dir[i]->data_dir=(char *)MALLOC(strlen(str)+1))==NULL)
-				return allocerr(instream,error,offset,fname,strlen(str)+1);
-			strcpy(cfg->dir[i]->data_dir,str); 
-		} else
-			cfg->dir[i]->data_dir=cfg->data_dir_dirs;
-#endif
 
 		get_str(cfg->dir[i]->arstr,instream);
 		get_str(cfg->dir[i]->ul_arstr,instream);
