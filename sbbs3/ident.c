@@ -2,7 +2,7 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.c,v 1.4 2001/09/28 15:06:49 rswindell Exp $ */
+/* $Id: ident.c,v 1.5 2001/10/02 19:40:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,7 @@ char* identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf, size_t m
 			break;
 		}
 		buf[rd]=0;
+		truncsp(buf);
 		identity=buf;
 	} while(0);
 
