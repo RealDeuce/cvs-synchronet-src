@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.17 2001/06/27 02:30:00 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.18 2001/07/25 02:45:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -543,6 +543,12 @@ long sbbs_t::js_execfile(char *cmd)
 	JSScript*	js_script=NULL;
 	jsval		rval;
 	
+	if(js_cx==NULL) {
+		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
+		errormsg(WHERE,ERR_EXEC,cmd,0);
+		return(-1);
+	}
+
 	sprintf(cmdline,"%.*s",sizeof(cmdline)-1,cmd);
 	p=strchr(cmdline,' ');
 	if(p!=NULL) {
