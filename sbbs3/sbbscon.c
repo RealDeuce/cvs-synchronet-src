@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.112 2003/03/11 23:07:19 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.113 2003/03/20 20:36:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,6 +124,7 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 							"\ttd         enable Telnet command debug output\n"
 							"\ttc         emabble sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
+							"\tt-         disable Telnet/RLogin server\n"
 							"\n"
 							"FTP server settings:\n"
 							"\n"
@@ -1037,6 +1038,9 @@ int main(int argc, char** argv)
 #endif
 			case 'T':	/* Telnet settings */
 				switch(toupper(*(arg++))) {
+					case '-':	
+						run_bbs=FALSE;
+						break;
 					case 'D': /* debug output */
 						bbs_startup.options|=BBS_OPT_DEBUG_TELNET;
 						break;
@@ -1232,6 +1236,9 @@ int main(int argc, char** argv)
 						break;
 					case 'S':	/* Services */
 						run_services=FALSE;
+						break;
+					case 'T':	/* Telnet */
+						run_bbs=FALSE;
 						break;
 					case 'E': /* No Events */
 						bbs_startup.options		|=BBS_OPT_NO_EVENTS;
