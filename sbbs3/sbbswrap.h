@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.22 2000/11/11 01:20:17 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.23 2000/11/15 02:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,13 +125,21 @@ extern "C" {
 	ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist);
 
-#elif defined(_WIN32)	/* semaphores */
+#elif defined(_WIN32)	
 
+	/* POIX semaphores */
 	typedef HANDLE sem_t;
-	#define sem_init(psem,ps,v) ResetEvent(*(psem))
-	#define sem_wait(psem)		WaitForSingleObject(*(psem),INFINITE)
-	#define sem_post(psem)		SetEvent(*(psem))
-	#define sem_destroy(psem)	CloseHandle(*(psem))
+	#define sem_init(psem,ps,v)			ResetEvent(*(psem))
+	#define sem_wait(psem)				WaitForSingleObject(*(psem),INFINITE)
+	#define sem_post(psem)				SetEvent(*(psem))
+	#define sem_destroy(psem)			CloseHandle(*(psem))
+
+	/* POIX mutexes */
+	typedef HANDLE pthread_mutex_t;
+	#define pthread_mutex_init(pmtx,v)	*(pmtx)=CreateMutex(NULL,FALSE,NULL)
+	#define pthread_mutex_lock(pmtx)	WaitForSingleObject(*(pmtx),INFINITE)
+	#define pthread_mutex_unlock(pmtx)	ReleaseMutex(*(pmtx))
+	#define	pthread_mutex_destroy(pmtx)	CloseHandle(*(pmtx))
 
 #else
 
