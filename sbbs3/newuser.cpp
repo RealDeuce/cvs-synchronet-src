@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.26 2002/03/10 01:58:34 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.27 2002/03/11 14:35:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,11 +412,16 @@ void sbbs_t::newuser()
 		fclose(stream); }
 
 	j=lastuser(&cfg);		/* Check against data file */
-	if(i<=j) {			/* Overwriting existing user */
+
+	if(i>j+1) {				/* Corrupted name.dat? */
+		errormsg(WHERE,ERR_CHK,"name.dat",i);
+		i=j+1;
+	} else if(i<=j) {			/* Overwriting existing user */
 		getuserrec(&cfg,i,U_MISC,8,str);
 		misc=ahtoul(str);
 		if(!(misc&DELETED)) /* Not deleted? Set usernumber to end+1 */
-			i=j+1; }
+			i=j+1; 
+	}
 
 	useron.number=i;
 	if((i=putuserdat(&cfg,&useron))!=0) {
