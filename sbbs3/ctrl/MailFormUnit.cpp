@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailFormUnit.cpp,v 1.1 2000/10/10 11:26:56 rswindell Exp $ */
+/* $Id: MailFormUnit.cpp,v 1.2 2002/03/19 02:31:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,4 +63,5 @@ void __fastcall TMailForm::FormHide(TObject *Sender)
 	MainForm->ViewMailServerButton->Down=false;
 }
 //---------------------------------------------------------------------------
+
 
