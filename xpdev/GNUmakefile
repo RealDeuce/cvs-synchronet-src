@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.8 2002/05/02 21:23:31 rswindell Exp $
+# $Id: GNUmakefile,v 1.9 2002/05/02 21:27:40 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -42,7 +42,7 @@ CFLAGS	+= -D_THREAD_SAFE
 LFLAGS	:=	-pthread
 else					# Linux / Other UNIX
 ifdef bcc
-LFLAGS	:=	-q libpthread.a
+LFLAGS	:=	libpthread.a
 else
 LFLAGS	:=	-lpthread
 endif
@@ -75,5 +75,5 @@ $(ODIR):
 # Executable Build Rule
 $(WRAPTEST): $(ODIR)/wraptest.o $(OBJS)
 	@echo Linking $@
-	@$(CC) -o $@ $(LFLAGS) $^
+	@$(CC) $(CFLAGS) -o $@ $(LFLAGS) $^
 
