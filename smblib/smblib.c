@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.41 2002/10/29 09:15:28 rswindell Exp $ */
+/* $Id: smblib.c,v 1.42 2002/10/29 11:54:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -800,6 +800,18 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 				break;
 			case SUBJECT:
 				msg->subj=(char*)msg->hfield_dat[i];
+				break;
+			case SMB_SUMMARY:
+				msg->summary=(char*)msg->hfield_dat[i];
+				break;
+			case SMB_EXPIRATION:
+				msg->expiration=*(time_t*)msg->hfield_dat[i];
+				break;
+			case SMB_PRIORITY:
+				msg->priority=*(ulong*)msg->hfield_dat[i];
+				break;
+			case SMB_COST:
+				msg->cost=*(ulong*)msg->hfield_dat[i];
 				break;
 			case RFC822MSGID:
 				msg->id=(char*)msg->hfield_dat[i];
