@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.318 2004/02/14 07:23:30 rswindell Exp $ */
+/* $Id: main.cpp,v 1.320 2004/03/05 23:46:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -657,17 +657,17 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	memset(arglist,0,sizeof(arglist));	// Initialize arglist to NULLs
 
     for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
-		if(JSVAL_IS_STRING(argv[i])) {
-			if((str=JS_ValueToString(cx, argv[i]))==NULL)
-			    return(JS_FALSE);
-			arglist[i-1]=JS_GetStringBytes(str);
-		} 
-		else if(JSVAL_IS_DOUBLE(argv[i]))
+		if(JSVAL_IS_DOUBLE(argv[i]))
 			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
-		else if(JSVAL_IS_INT(argv[i]) || JSVAL_IS_BOOLEAN(argv[i]))
+		else if(JSVAL_IS_INT(argv[i]))
 			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
-		else
-			arglist[i-1]=NULL;
+		else {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+				JS_ReportError(cx,"JS_ValueToString failed");
+			    return(JS_FALSE);
+			}
+			arglist[i-1]=JS_GetStringBytes(str);
+		}
 	}
 	
 	if((p=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL)
@@ -1212,6 +1212,7 @@ void input_thread(void *arg)
 				&& FD_ISSET(uspy_socket[sbbs->cfg.node_num-1],&socket_set))  {
 			if(!socket_check(uspy_socket[sbbs->cfg.node_num-1],NULL,NULL,0)) {
 				close_socket(uspy_socket[sbbs->cfg.node_num-1]);
+				lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
 				uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
 				continue;
 			}
@@ -4185,7 +4186,7 @@ void DLLCALL bbs_thread(void* arg)
 						close_socket(new_socket);
 					}
 					else  {
-						lprintf(LOG_ERR,"!Spy socket %s connected",uspy_addr.sun_path);
+						lprintf(LOG_ERR,"!Spy socket %s (%d) connected",uspy_addr.sun_path,new_socket);
 						uspy_socket[i-1]=new_socket;
 						sprintf(str,"Spy connection established to node %d\r\n",i);
 						send(uspy_socket[i-1],str,strlen(str),0);

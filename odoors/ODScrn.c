@@ -948,7 +948,8 @@ tODResult ODScrnInitialize(void)
 
    /* In silent mode, we perform all output in a block of memory that is */
    /* never displayed.                                                   */
-   /* *nix is always in "silent mode"									 */
+   /* *nix is always in "silent mode"                                   
+                         */
 #ifndef ODPLAT_NIX
    if(od_control.od_silent_mode)
    {
@@ -1114,7 +1115,8 @@ void ODScrnShutdown(void)
    }
 #else /* !ODPLAT_WIN32 */
    /* In silent mode, we must deallocate screen buffer memory. */
-   /* *nix is always in silent mode							   */
+   /* *nix is always in silent mode                                     
+           */
 #ifndef ODPLAT_NIX
    if(od_control.od_silent_mode && pAllocatedBufferMemory != NULL)
    {
@@ -1731,7 +1733,8 @@ static void ODScrnScrollUpOneLine(void)
  *             pbtBuffer - A pointer to the buffer to copy to. It is the
  *                         caller's responsibility to ensure that this buffer
  *                         is large enough. This buffer must be at least
- *                         2 x (Width of area) x (Height of area) bytes in size.
+ *                         2 x (Width of area) x (Height of area) bytes in size
+.
  *
  *     Return: TRUE on success, or FALSE on failure.
  */
@@ -1969,7 +1972,8 @@ void ODScrnDisplayBuffer(char *pBuffer, INT nCharsToDisplay)
             {
                btCurrentColumn = 0;
 
-               /* If moving cursor down one line advances past end of window. */
+               /* If moving cursor down one line advances past end of window. *
+/
                if(++btCursorRow > btBottomBoundary - btTopBoundary)
                {
                   /* Move cursor back to bottom line of window. */
@@ -2549,3 +2553,4 @@ void ODScrnRemoveMessage(void *pMessageInfo)
    ODScrnEnableCaret(TRUE);
 #endif /* !ODPLAT_WIN32 */
 }
+
