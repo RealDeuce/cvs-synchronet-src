@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.1 2002/07/21 12:01:02 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.2 2002/07/21 13:12:34 rob Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,8 @@
  ****************************************************************************/
 
 #include <stdlib.h>		/* strtol */
+#include <string.h>		/* strlen */
+#include <ctype.h>		/* isdigit */
 #include "sockwrap.h"	/* inet_addr */
 #include "ini_file.h"
 
