@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.73 2001/10/30 21:28:11 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.74 2001/10/30 23:33:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1463,7 +1463,7 @@ static void smtp_thread(void* arg)
 						,scfg.sys_inetaddr,inet_ntoa(server_addr.sin_addr)
 						,PLATFORM_DESC,MAIL_VERSION
 						,esmtp ? "ESMTP" : "SMTP"
-						,rcpt_addr,msgdate(msg.hdr.when_imported,date));
+						,rcpt_name,msgdate(msg.hdr.when_imported,date));
 					smb_hfield(&newmsg, RFC822HEADER, (ushort)strlen(hdrfield), hdrfield);
 
 					smb_hfield(&newmsg, RECIPIENT, (ushort)strlen(rcpt_name), rcpt_name);
@@ -1834,6 +1834,8 @@ static void smtp_thread(void* arg)
 						!findstr(&scfg,host_ip,relay_list)) {
 						lprintf("%04d !SMTP ILLEGAL RELAY ATTEMPT from %s [%s] to %s"
 							,socket, host_name, host_ip, tp+1);
+						sprintf(str,"Illegal relay attempt to %s", tp+1);
+						spamlog(&scfg, str, host_name, host_ip);
 						sockprintf(socket, "550 Relay not allowed.");
 						continue;
 					}
