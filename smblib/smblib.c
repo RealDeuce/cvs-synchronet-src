@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.12 2001/11/13 17:06:16 rswindell Exp $ */
+/* $Id: smblib.c,v 1.13 2001/11/17 16:01:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -483,6 +483,10 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 	idxrec_t idx;
 	ulong	 l,length,total,bot,top;
 
+	if(smb->sid_fp==NULL) {
+		sprintf(smb->last_error,"index not open");
+		return(1);
+	}
 	clearerr(smb->sid_fp);
 	if(!msg->hdr.number) {
 		fseek(smb->sid_fp,msg->offset*sizeof(idxrec_t),SEEK_SET);
