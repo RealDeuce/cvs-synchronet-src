@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.47 2003/01/06 20:57:38 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.48 2003/03/01 06:59:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,6 +373,8 @@ public:		// User declarations
     void __fastcall WriteColor(TRegistry*, AnsiString, TColor);
     void __fastcall ReadFont(AnsiString, TFont*);
     void __fastcall WriteFont(AnsiString, TFont*);
+    void __fastcall FilterIP(char* ip_addr
+						,char* prot, char* username);
 };
 
 //---------------------------------------------------------------------------

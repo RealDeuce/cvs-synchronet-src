@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.95 2003/02/16 14:08:13 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.96 2003/03/01 06:59:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2948,6 +2948,23 @@ void __fastcall TMainForm::TelnetRecycleExecute(TObject *Sender)
 {
 	bbs_startup.recycle_now=true;
     TelnetRecycle->Enabled=false;
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::FilterIP(char* ip_addr
+	,char* prot, char* username)
+{
+	char filename[MAX_PATH+1];
+    FILE* fp;
+    time_t now=time(NULL);
+
+    sprintf(filename,"%sip.can",cfg.text_dir);
+
+    if((fp=fopen(filename,"a"))==NULL)
+    	return;
+
+    fprintf(fp,"\n;%s abuse by %s on %s%s\n"
+    	,prot,username,ctime(&now),ip_addr);
+    fclose(fp);
 }
 //---------------------------------------------------------------------------
 

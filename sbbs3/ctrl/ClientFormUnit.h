@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.h,v 1.1 2000/10/10 11:27:06 rswindell Exp $ */
+/* $Id: ClientFormUnit.h,v 1.2 2003/03/01 06:59:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,10 +54,12 @@ __published:	// IDE-managed Components
     TListView *ListView;
     TPopupMenu *PopupMenu;
     TMenuItem *CloseSocketMenuItem;
+	TMenuItem *FilterIpMenuItem;
     void __fastcall FormShow(TObject *Sender);
     void __fastcall FormHide(TObject *Sender);
     void __fastcall TimerTimer(TObject *Sender);
     void __fastcall CloseSocketMenuItemClick(TObject *Sender);
+	void __fastcall FilterIpMenuItemClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TClientForm(TComponent* Owner);
