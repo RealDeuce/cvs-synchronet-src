@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.80 2002/11/13 07:57:27 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.81 2002/11/13 08:10:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2262,6 +2262,7 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
     section = "Global";
     IniFile->WriteString(section,"Hostname",Hostname);
     IniFile->WriteString(section,"CtrlDirectory",CtrlDirectory);
+    IniFile->WriteInteger(section,"JavaScriptMaxBytes",JS_MaxBytes);
 
     /***********************************************************************/
 	section = "BBS";
