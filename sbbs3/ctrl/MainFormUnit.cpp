@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.130 2004/10/14 03:29:37 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.129 2004/08/20 02:08:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,6 @@
 #include "EventsFormUnit.h"
 #include "ServicesFormUnit.h"
 #include "FtpFormUnit.h"
-#include "WebFormUnit.h"
 #include "MailFormUnit.h"
 #include "NodeFormUnit.h"
 
@@ -1103,12 +1102,7 @@ void __fastcall TMainForm::ViewFtpServerExecute(TObject *Sender)
     ViewFtpServer->Checked=FtpForm->Visible;
 }
 //---------------------------------------------------------------------------
-void __fastcall TMainForm::ViewWebServerExecute(TObject *Sender)
-{
-    WebForm->Visible=!WebForm->Visible;
-    ViewWebServer->Checked=WebForm->Visible;
-}
-//---------------------------------------------------------------------------
+
 void __fastcall TMainForm::FtpStartExecute(TObject *Sender)
 {
 	if(!StartNTsvc(ftp_svc,&ftp_svc_status,ftp_svc_config,ftp_svc_config_size))
@@ -1586,8 +1580,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             ,&SysAutoStart   		,&bbs_startup
             ,&FtpAutoStart 			,&ftp_startup
             ,&WebAutoStart 			,&web_startup
-            ,&MailAutoStart 	    ,&mail_startup
-            ,&ServicesAutoStart     ,&services_startup
+            ,&MailAutoStart 	    	,&mail_startup
+            ,&ServicesAutoStart     	,&services_startup
             );
        	StatusBar->Panels->Items[4]->Text="Imported " + AnsiString(ini_file);
         fclose(fp);
@@ -3519,5 +3513,4 @@ void __fastcall TMainForm::ViewFile(AnsiString filename, AnsiString Caption)
     }
 }
 //---------------------------------------------------------------------------
-
 
