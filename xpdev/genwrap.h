@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.46 2003/06/11 02:00:35 deuce Exp $ */
+/* $Id: genwrap.h,v 1.47 2003/06/11 02:01:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -260,7 +260,7 @@ extern "C" {
 DLLEXPORT int		DLLCALL	xp_random(int);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
-DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, char *fmt, ...)
+DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, char *fmt, ...);
 #if defined(__cplusplus)
 }
 #endif
