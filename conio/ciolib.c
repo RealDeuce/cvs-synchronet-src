@@ -90,6 +90,7 @@ int try_x_init(int mode)
 		cio_api.settitle=x_settitle;
 		return(1);
 	}
+	fprintf(stderr,"X init failed\n");
 	return(0);
 }
  #endif
@@ -117,6 +118,7 @@ int try_curses_init(int mode)
 		cio_api.settitle=NULL;
 		return(1);
 	}
+	fprintf(stderr,"Curses init failed\n");
 	return(0);
 }
 #endif
@@ -145,6 +147,7 @@ int try_ansi_init(int mode)
 		cio_api.settitle=NULL;
 		return(1);
 	}
+	fprintf(stderr,"ANSI init failed\n");
 	return(0);
 }
 
@@ -155,7 +158,7 @@ int try_ansi_init(int mode)
 int try_conio_init(int mode)
 {
 	/* This should test for something or other */
-	if(win32_initciolib(C80)) {
+	if(win32_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_CONIO;
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
@@ -176,6 +179,7 @@ int try_conio_init(int mode)
 		cio_api.settitle=win32_settitle;
 		return(1);
 	}
+	fprintf(stderr,"CONIO init failed\n");
 	return(0);
 }
 #endif
@@ -215,7 +219,7 @@ int initciolib(int mode)
 			break;
 	}
 	if(cio_api.mode==CIOLIB_MODE_AUTO) {
-		fprintf(stderr,"CIOLIB initialization failed!\n");
+		fprintf(stderr,"CIOLIB initialization failed!");
 		return(-1);
 	}
 
