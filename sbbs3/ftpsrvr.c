@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.205 2003/02/04 01:14:16 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.206 2003/02/05 22:06:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1865,11 +1865,11 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons((WORD)(startup->port-1));	/* 20? */
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
 		result=bind(*data_sock, (struct sockaddr *) &server_addr,sizeof(server_addr));
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(result!=0) {
+			server_addr.sin_port = 0;	/* any user port */
+			result=bind(*data_sock, (struct sockaddr *) &server_addr,sizeof(server_addr));
+		}
 		if(result!=0) {
 			lprintf ("%04d !DATA ERROR %d (%d) binding socket %d"
 				,ctrl_sock, result, ERROR_VALUE, *data_sock);
@@ -4361,7 +4361,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.205 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.206 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
