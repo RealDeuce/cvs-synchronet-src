@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.3 2000/10/30 09:33:37 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.4 2000/10/30 11:04:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -918,7 +918,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					break; }
 			if(p>=usrxfrbuf+usrxfrlen) /* file wasn't found */
 				continue; }
-		if((mode==FI_REMOVE) && (!dir_op(dirnum) && strcmpi(f.uler
+		if((mode==FI_REMOVE) && (!dir_op(dirnum) && stricmp(f.uler
 			,useron.alias) && !(useron.exempt&FLAG('R'))))
 			continue;
 		found++;
@@ -1053,7 +1053,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 								addfiledat(&cfg,&f);
 								if(f.misc&FM_EXTDESC)
 									putextdesc(f.dir,f.datoffset,ext); } } }
-					if(dir_op(dirnum) || strcmpi(f.uler,useron.alias)) {
+					if(dir_op(dirnum) || stricmp(f.uler,useron.alias)) {
 						if(noyes(text[RemoveCreditsQ]))
 	/* Fall through */      break; }
 				case 'C':   /* remove credits only */
