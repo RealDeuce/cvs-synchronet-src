@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.26 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.25 2004/05/28 23:48:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,13 +57,30 @@ TNodeForm *NodeForm;
 __fastcall TNodeForm::TNodeForm(TComponent* Owner)
         : TForm(Owner)
 {
+//    OutputDebugString("NodeForm constructor\n");
+	MainForm=(TMainForm*)Application->MainForm;
     MainForm->bbs_startup.node_spybuf
         =(RingBuf**)calloc(1,sizeof(RingBuf*)*MAX_NODES);
 }
 //---------------------------------------------------------------------------
+
+
 void __fastcall TNodeForm::FormHide(TObject *Sender)
 {
-	MainForm->ViewNodes->Checked=false;
+	MainForm->ViewNodesMenuItem->Checked=false;
+    MainForm->ViewNodesButton->Down=false;
+}
+//---------------------------------------------------------------------------
+
+
+
+
+void __fastcall TNodeForm::FormShow(TObject *Sender)
+{
+//    OutputDebugString("NodeForm::FormShow\n");
+
+	MainForm->ViewNodesMenuItem->Checked=true;
+    MainForm->ViewNodesButton->Down=true;
 }
 //---------------------------------------------------------------------------
 int __fastcall TNodeForm::getnodedat(int node_num, node_t* node, int* file)

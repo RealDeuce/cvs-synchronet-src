@@ -16,6 +16,7 @@ object NodeForm: TNodeForm
   OldCreateOrder = False
   Position = poDefault
   OnHide = FormHide
+  OnShow = FormShow
   PixelsPerInch = 120
   TextHeight = 16
   object Toolbar: TToolBar

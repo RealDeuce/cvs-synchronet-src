@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.86 2004/10/17 06:46:31 rswindell Exp $ */
+/* $Id: userdat.c,v 1.85 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1612,15 +1612,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				if(user==NULL 
 					|| user->shell>=cfg->total_shells
 					|| stricmp(cfg->shell[user->shell]->code,(char*)*ptrptr))
-					result=not;
-				else
-					result=!not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_PROT:
-				if(user==NULL
-					|| stricmp(user->modem,(char*)*ptrptr))	/* should this be changed to client.prot? */
 					result=not;
 				else
 					result=!not;
