@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.81 2002/11/13 08:10:09 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.82 2002/12/12 03:13:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1400,6 +1400,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	CtrlDirectory=Registry->ReadString("CtrlDirectory");
     if(Registry->ValueExists("JS_MaxBytes"))
     	JS_MaxBytes=Registry->ReadInteger("JS_MaxBytes");
+    if(JS_MaxBytes==0)
+        JS_MaxBytes=JAVASCRIPT_MAX_BYTES;
 
     if(Registry->ValueExists("LoginCommand"))
     	LoginCommand=Registry->ReadString("LoginCommand");
