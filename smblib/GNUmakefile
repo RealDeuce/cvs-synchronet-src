@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2004/09/12 23:59:42 deuce Exp $
+# $Id: GNUmakefile,v 1.4 2004/09/13 00:04:49 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -19,8 +19,6 @@ include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rule
 
 CFLAGS += -I$(XPDEV_SRC)
 
-lib:	$(LIBODIR) $(SMBLIB)
-mtlib:	$(LIBODIR) $(SMBLIB-MT)
 
 # SMBLIB Library Link Rule
 $(SMBLIB): $(OBJODIR) $(OBJS)
