@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.123 2004/11/18 08:16:35 rswindell Exp $ */
+/* $Id: smblib.c,v 1.124 2004/11/18 22:07:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1403,6 +1403,8 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		return(i);
 	}
 
+	if(msg->hdr.version==0)
+		msg->hdr.version=SMB_VERSION;
 	msg->hdr.length=(ushort)hdrlen;
 	if(storage==SMB_HYPERALLOC)
 		l=smb_hallochdr(smb);
