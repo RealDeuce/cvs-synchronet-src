@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.43 2002/07/24 10:00:55 rswindell Exp $ */
+/* $Id: userdat.c,v 1.44 2002/07/24 10:12:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -888,7 +888,7 @@ void DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node)
 					printf("performing sysop activities");
 					break;
 				default:
-					printf(itoa(node->action,tmp,10));
+					printf(ultoa(node->action,tmp,10));
 					break;  }
 			if(!node->connection)
 				printf(" locally");
