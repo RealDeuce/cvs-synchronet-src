@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.21 2002/04/13 09:29:29 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.22 2002/04/13 09:35:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -758,7 +758,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 						bprintf(text[MoveToLibLstFmt],i+1,cfg.lib[usrlib[i]]->lname);
 					SYNC;
 					bprintf(text[MoveToLibPrompt],cfg.dir[dirnum]->lib+1);
-					if((ml=getnum(usrlibs))==-1)
+					if((int)(ml=getnum(usrlibs))==-1)
 						return(2);
 					if(!ml)
 						ml=cfg.dir[dirnum]->lib;
