@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.156 2002/04/12 08:41:01 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.157 2002/04/12 09:43:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2956,7 +2956,7 @@ static void ctrl_thread(void* arg)
 
 			if(!stricmp(cmd,"CDUP") || !stricmp(cmd,"XCUP")) {
 				sprintf(path,"%s..",local_dir);
-				if(_fullpath(local_dir,path,sizeof(local_dir))==NULL)
+				if(FULLPATH(local_dir,path,sizeof(local_dir))==NULL)
 					sockprintf(sock,"550 Directory does not exist.");
 				else
 					sockprintf(sock,"200 CDUP command successful.");
