@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.6 2002/11/11 08:15:09 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.7 2002/11/13 08:49:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@ typedef struct {
 	WORD	port;
 	WORD	max_clients;
 	WORD	max_inactivity;
-	WORD	reserved_word4;
+	WORD	max_cgi_inactivity;
 	WORD	reserved_word3;
 	WORD	reserved_word2;
 	WORD	reserved_word1;
