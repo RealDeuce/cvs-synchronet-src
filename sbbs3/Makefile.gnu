@@ -9,7 +9,7 @@
 # Win32: make -f Makefile.gnu os=win32									#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.14 2000/11/04 01:59:45 rswindell Exp $
+# $Id: Makefile.gnu,v 1.15 2000/11/04 09:02:38 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -80,6 +80,9 @@ $(LIBODIR):
 $(EXEODIR):
 	mkdir $(EXEODIR)
 
+# Monolithic Synchronet executable Build Rule
+$(SBBSMONO): sbbsctrl.c $(OBJS) $(LIBODIR)/ver.o # $(LIBODIR)/ftpsrvr.o $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o
+	$(CC) -o $(SBBSMONO) $^ $(LIBS)
 
 # Synchronet BBS library Link Rule
 $(SBBS): $(OBJS) $(LIBODIR)/ver.o
