@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.30 2002/02/21 19:01:59 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.31 2002/02/24 18:40:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,14 @@ static void lputs(char *str)
 	printf(prompt);
 	fflush(stdout);
 	pthread_mutex_unlock(&mutex);
+}
+
+static void thread_up(BOOL up)
+{
+	if(up==TRUE) {
+		/* Add setuid code here */
+		;
+	}
 }
 
 /************************************************/
@@ -321,10 +329,10 @@ int main(int argc, char** argv)
 	bbs_startup.event_log=event_lputs;
     bbs_startup.started=bbs_started;
     bbs_startup.terminated=bbs_terminated;
+    bbs_startup.thread_up=thread_up;
 /*	These callbacks haven't been created yet
     bbs_startup.status=bbs_status;
     bbs_startup.clients=bbs_clients;
-    bbs_startup.thread_up=thread_up;
     bbs_startup.client_on=client_on;
     bbs_startup.socket_open=socket_open;
 */
@@ -336,6 +344,7 @@ int main(int argc, char** argv)
 	ftp_startup.lputs=ftp_lputs;
     ftp_startup.started=ftp_started;
     ftp_startup.terminated=ftp_terminated;
+	ftp_startup.thread_up=thread_up;
 	ftp_startup.options=FTP_OPT_INDEX_FILE|FTP_OPT_ALLOW_QWK;
     strcpy(ftp_startup.index_file_name,"00index");
     strcpy(ftp_startup.ctrl_dir,ctrl_dir);
@@ -346,6 +355,7 @@ int main(int argc, char** argv)
 	mail_startup.lputs=mail_lputs;
     mail_startup.started=mail_started;
     mail_startup.terminated=mail_terminated;
+	mail_startup.thread_up=thread_up;
 	mail_startup.options|=MAIL_OPT_ALLOW_POP3;
 	/* Spam filtering */
 	mail_startup.options|=MAIL_OPT_USE_RBL;	/* Realtime Blackhole List */
@@ -384,6 +394,7 @@ int main(int argc, char** argv)
 	services_startup.lputs=services_lputs;
     services_startup.started=services_started;
     services_startup.terminated=services_terminated;
+	services_startup.thread_up=thread_up;
     strcpy(services_startup.ctrl_dir,ctrl_dir);
 
 	/* Process arguments */
