@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.51 2004/09/20 03:51:48 deuce Exp $ */
+/* $Id: uifc.h,v 1.52 2004/11/19 00:34:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,6 +223,37 @@
 #define CR		'\r'				/* Carriage return			^M	*/
 #define ESC 	0x1b				/* Escape					^[	*/
 #define DEL     0x7f                /* Delete                   ^BS */
+#endif
+
+#if !CTRL_A
+enum {
+	 CTRL_A=1
+	,CTRL_B
+	,CTRL_C
+	,CTRL_D	
+	,CTRL_E
+	,CTRL_F
+	,CTRL_G
+	,CTRL_H
+	,CTRL_I
+	,CTRL_J
+	,CTRL_K
+	,CTRL_L
+	,CTRL_M
+	,CTRL_N
+	,CTRL_O
+	,CTRL_P
+	,CTRL_Q
+	,CTRL_R
+	,CTRL_S
+	,CTRL_T
+	,CTRL_U
+	,CTRL_V
+	,CTRL_W
+	,CTRL_X
+	,CTRL_Y
+	,CTRL_Z
+};
 #endif
 
 #define CLREOL 256
