@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.153 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.154 2002/05/03 00:37:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1146,7 +1146,7 @@ static void smtp_thread(void* arg)
 	char*		msgbuf;
 	char		dest_host[128];
 	ushort		dest_port;
-	int			addr_len;
+	socklen_t	addr_len;
 	ushort		xlat;
 	ushort		nettype;
 	uint		usernum;
@@ -2690,7 +2690,7 @@ void DLLCALL mail_server(void* arg)
 	char			compiler[32];
 	SOCKADDR_IN		server_addr;
 	SOCKADDR_IN		client_addr;
-	int				client_addr_len;
+	socklen_t		client_addr_len;
 	SOCKET			client_socket;
 	int				i;
 	int				result;

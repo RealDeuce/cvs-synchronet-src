@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.54 2002/04/26 07:11:12 rswindell Exp $ */
+/* $Id: services.c,v 1.55 2002/05/03 00:37:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -966,7 +966,7 @@ void DLLCALL services_thread(void* arg)
 	char			cmd[128];
 	SOCKADDR_IN		addr;
 	SOCKADDR_IN		client_addr;
-	int				client_addr_len;
+	socklen_t		client_addr_len;
 	SOCKET			socket;
 	SOCKET			client_socket;
 	int				i;

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.26 2002/04/23 08:20:55 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.27 2002/05/03 00:37:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -444,7 +444,7 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 {
 	int			lvl;
 	int			opt;
-	int			len;
+	socklen_t	len;
 	int			val;
 	private_t*	p;
 
