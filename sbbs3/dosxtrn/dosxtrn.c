@@ -2,7 +2,7 @@
 
 /* Synchronet External DOS Program Launcher (16-bit MSVC 1.52c project) */
 
-/* $Id: dosxtrn.c,v 1.4 2001/07/20 02:50:55 rswindell Exp $ */
+/* $Id: dosxtrn.c,v 1.5 2001/07/21 14:18:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,7 @@ char win95int14[]={
 
 union REGS inregs;
 struct SREGS sregs;
+BOOL inside_int14=FALSE;
 
 /* This function is only necessary for naughty programs that call the vector
    directly instead of issuing an interrupt 
@@ -147,6 +148,12 @@ void interrupt win95int14(
     unsigned flags )
 {
 	union REGS outregs;
+
+	/* prevent recursion, just incase the VXD isn't handling int14h */
+	if(inside_int14)	
+		return;
+
+	inside_int14=TRUE;
 
 	inregs.x.ax=_ax;
 	inregs.x.bx=_bx;
@@ -164,6 +171,8 @@ void interrupt win95int14(
 	/* FOSSIL driver only touches these AX and BX */
 	_ax= outregs.x.ax;
 	_bx= outregs.x.bx;
+
+	inside_int14=FALSE;
 }
 
 #endif
