@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.116 2003/04/24 05:24:22 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.117 2003/04/24 06:47:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -821,7 +821,7 @@ static void handle_sigs(void)  {
 				_sighandler_rerun(sig);
 				break;
 			default:
-				sprintf(str,"     Signal has no handler (unexpected)",sig);
+				sprintf(str,"     Signal has no handler (unexpected)");
 				lputs(str);
 		}
 	}
