@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.25 2002/09/17 00:36:33 rswindell Exp $ */
+/* $Id: js_user.c,v 1.26 2002/09/17 06:58:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -850,10 +850,10 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 
 	/* Return existing user object if it's already been created */
 	if(JS_GetProperty(cx,parent,name,&val) && val!=JSVAL_VOID)
-		return(JSVAL_TO_OBJECT(val));
-
-	userobj = JS_DefineObject(cx, parent, name, &js_user_class, NULL, JSPROP_ENUMERATE);
-
+		userobj = JSVAL_TO_OBJECT(val);
+	else
+		userobj = JS_DefineObject(cx, parent, name, &js_user_class
+								, NULL, JSPROP_ENUMERATE);
 	if(userobj==NULL)
 		return(NULL);
 

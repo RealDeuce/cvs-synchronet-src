@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.16 2002/08/30 22:54:03 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.17 2002/09/17 06:58:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,10 +78,10 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 	/* Return existing object if it's already been created */
 	if(JS_GetProperty(cx,parent,"file_area",&val) && val!=JSVAL_VOID)
-		return(JSVAL_TO_OBJECT(val));
-
-	areaobj = JS_DefineObject(cx, parent, "file_area", &js_file_area_class, NULL, JSPROP_ENUMERATE);
-
+		areaobj = JSVAL_TO_OBJECT(val);
+	else
+		areaobj = JS_DefineObject(cx, parent, "file_area", &js_file_area_class
+								, NULL, JSPROP_ENUMERATE);
 	if(areaobj==NULL)
 		return(NULL);
 
