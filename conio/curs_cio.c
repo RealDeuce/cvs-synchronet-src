@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.12 2004/09/15 09:17:50 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.13 2004/09/15 09:18:32 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -1017,9 +1017,11 @@ int curs_hidemouse(void)
 
 int curs_showmouse(void)
 {
+/*
 	#ifdef NCURSES_VERSION_MAJOR
 		if(mousemask(BUTTON1_PRESSED|BUTTON1_RELEASED|BUTTON2_PRESSED|BUTTON2_RELEASED|BUTTON3_PRESSED|BUTTON3_RELEASED|REPORT_MOUSE_POSITION,NULL)==BUTTON1_PRESSED|BUTTON1_RELEASED|BUTTON2_PRESSED|BUTTON2_RELEASED|BUTTON3_PRESSED|BUTTON3_RELEASED|REPORT_MOUSE_POSITION)
 			return(0);
 	#endif
 	return(-1);
+*/
 }
