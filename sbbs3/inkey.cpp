@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.8 2002/02/02 04:10:28 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.9 2002/02/20 23:35:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,9 @@ char sbbs_t::inkey(long mode)
 						if(i && !(useron.rows)) {	/* auto-detect rows */
 							str[i]=0;
 							rows=atoi(str);
-							if(rows<5 || rows>99) rows=24; }
+							lprintf("Node %d ANSI cursor position report: %u rows"
+								,cfg.node_num, rows);
+							if(rows<10 || rows>99) rows=24; }
 						return(0); }
 					str[i++]=ch; }
 				else {
