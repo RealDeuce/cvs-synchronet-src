@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.23 2002/07/15 20:44:29 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.24 2002/07/21 05:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -550,7 +550,7 @@ void sbbs_t::qwk_sec()
 
 		if(ch=='B') {   /* Bidirectional QWK and REP packet transfer */
 			sprintf(str,"%s%s.qwk",cfg.temp_dir,cfg.sys_id);
-			if(!fexist(str) && !pack_qwk(str,&msgcnt,0)) {
+			if(!fexistcase(str) && !pack_qwk(str,&msgcnt,0)) {
 				for(i=0;i<cfg.total_subs;i++)
 					subscan[i].ptr=sav_ptr[i];
 				remove(str);

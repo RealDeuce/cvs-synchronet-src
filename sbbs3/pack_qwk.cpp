@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.29 2002/07/15 20:47:18 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.30 2002/07/21 05:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 
 	delfiles(cfg.temp_dir,ALLFILES);
 	sprintf(str,"%sfile/%04u.qwk",cfg.data_dir,useron.number);
-	if(fexist(str)) {
+	if(fexistcase(str)) {
 		for(k=0;k<cfg.total_fextrs;k++)
 			if(!stricmp(cfg.fextr[k]->ext,useron.tmpext)
 				&& chk_ar(cfg.fextr[k]->ar,&useron))

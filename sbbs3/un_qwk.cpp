@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.14 2002/04/12 08:41:01 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.15 2002/07/21 05:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		return(false); 
 	}
 	sprintf(str,"%sMESSAGES.DAT",cfg.temp_dir);
-	if(!fexist(str)) {
+	if(!fexistcase(str)) {
 		sprintf(str,"%s doesn't contain MESSAGES.DAT",packet);
 		errorlog(str);
 		return(false); 

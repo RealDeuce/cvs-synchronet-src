@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.21 2002/05/02 08:00:44 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.22 2002/07/21 05:25:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -143,12 +143,16 @@ bool sbbs_t::uploadfile(file_t *f)
 				break;
 		if(i<cfg.total_fextrs) {
 			sprintf(str,"%sFILE_ID.DIZ",cfg.temp_dir);
-			remove(str);
-			external(cmdstr(cfg.fextr[i]->cmd,path,"FILE_ID.DIZ",NULL),EX_OUTL);
-			if(!fexist(str)) {
-				sprintf(str,"%sDESC.SDI",cfg.temp_dir);
+			if(fexistcase(str))
 				remove(str);
-				external(cmdstr(cfg.fextr[i]->cmd,path,"DESC.SDI",NULL),EX_OUTL); }
+			external(cmdstr(cfg.fextr[i]->cmd,path,"FILE_ID.DIZ",NULL),EX_OUTL);
+			if(!fexistcase(str)) {
+				sprintf(str,"%sDESC.SDI",cfg.temp_dir);
+				if(fexistcase(str))
+					remove(str);
+				external(cmdstr(cfg.fextr[i]->cmd,path,"DESC.SDI",NULL),EX_OUTL); 
+				fexistcase(str);
+			}
 			if((file=nopen(str,O_RDONLY))!=-1) {
 				memset(ext,0,F_EXBSIZE+1);
 				read(file,ext,F_EXBSIZE);
