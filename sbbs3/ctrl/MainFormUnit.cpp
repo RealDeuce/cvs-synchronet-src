@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.49 2002/01/18 15:20:07 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.50 2002/01/18 16:07:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -941,6 +941,7 @@ void __fastcall TMainForm::BBSConfigureMenuItemClick(TObject *Sender)
     STARTUPINFO startup_info={0};
     PROCESS_INFORMATION process_info;
     startup_info.cb=sizeof(startup_info);
+    startup_info.lpTitle="Synchronet Configuration Utility";
 	CreateProcess(
 		NULL,			// pointer to name of executable module
 		str,  			// pointer to command line string
