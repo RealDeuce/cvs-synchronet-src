@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.181 2002/09/04 04:22:27 rswindell Exp $ */
+/* $Id: main.cpp,v 1.182 2002/09/04 04:27:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,7 +273,7 @@ static const char* method_array_name = "_method_list";
  * Keep this in sync with jspubtd.h -- an assertion below will insist that
  * its length match the JSType enum's JSTYPE_LIMIT limit value.
  */
-const char *js_type_str[] = {
+static const char *js_type_str[] = {
     "undefined",
     "object",
     "function",
