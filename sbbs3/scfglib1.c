@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.22 2001/07/09 02:34:43 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.23 2001/07/11 02:29:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -753,7 +753,6 @@ void free_msgs_cfg(scfg_t* cfg)
 void make_data_dirs(scfg_t* cfg)
 {
 	char	str[MAX_PATH+1];
-	int		i;
 
 	md(cfg->data_dir);
 	sprintf(str,"%ssubs",cfg->data_dir);
@@ -776,6 +775,8 @@ void make_data_dirs(scfg_t* cfg)
 	md(str);
 
 #if 0
+	int		i;
+
 	for(i=0;i<cfg->total_subs;i++) {
 		if(cfg->sub[i]->data_dir[0]) {
 			backslash(cfg->sub[i]->data_dir);
