@@ -1,32 +1,12 @@
-# smblib/Makefile
+XPDEV		:=	../xpdev/
+UIFC_SRC	:=	./
+NEED_UIFC	:=	1
+USE_UIFC32	:=	1
 
-#########################################################################
-# Makefile for Synchronet Message Base Library (SMBLIB)					#
-# For use with Borland C++ Builder 5+ or Borland C++ 5.5 for Win32      #
-# @format.tab-size 4													#
-#																		#
-# usage: make															#
-#########################################################################
+include $(XPDEV)Common.gmake
+include $(UIFC_SRC)Common.gmake
 
-# $Id: GNUmakefile,v 1.5 2004/09/13 00:05:17 deuce Exp $
-
-# Macros
-#DEBUG	=	1				# Comment out for release (non-debug) version
-
-SRC_ROOT = ..
-# Cross platform/compiler definitions
-include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
-
-CFLAGS += -I$(XPDEV_SRC) $(CIOLIB-MT_CFLAGS)
-
-# UIFC Library Link Rule
-$(UIFCLIB): $(OBJODIR) $(OBJS)
-	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $(OBJS)
-	$(QUIET)ranlib $@
-
-# MT-UIFC Library Link Rule
-$(UIFCLIB-MT): $(MTOBJODIR) $(MT_OBJS)
-	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $(MT_OBJS)
-	$(QUIET)ranlib $@
+# Executable Build Rule
+${EXEODIR}/uifctest: $(LIBODIR)/uifctest.o $(OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $^
