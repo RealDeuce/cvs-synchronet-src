@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.29 2002/01/11 01:04:06 rswindell Exp $ */
+/* $Id: userdat.c,v 1.30 2002/01/11 22:41:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,6 +125,29 @@ uint DLLCALL lastuser(scfg_t* cfg)
 		return((uint)(length/U_LEN));
 	return(0);
 }
+
+/****************************************************************************/
+/* Returns the number of the last user in user.dat (deleted ones too)		*/
+/****************************************************************************/
+BOOL DLLCALL del_lastuser(scfg_t* cfg)
+{
+	char	str[256];
+	int		file;
+	long	length;
+
+	sprintf(str,"%suser/user.dat", cfg->data_dir);
+	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1)
+		return(FALSE);
+	length=filelength(file);
+	if(length<U_LEN) {
+		close(file);
+		return(FALSE);
+	}
+	chsize(file,length-U_LEN);
+	close(file);
+	return(TRUE);
+}
+
 
 /****************************************************************************/
 /* Fills the structure 'user' with info for user.number	from user.dat		*/
