@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.29 2002/08/08 07:36:52 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.30 2002/08/09 09:15:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -431,7 +431,7 @@ char* DLLCALL prep_dir(char* base, char* path)
 	if(!path[0])
 		return(path);
 	if(path[0]!='\\' && path[0]!='/' && path[1]!=':')           /* Relative to NODE directory */
-		sprintf(str,"%s%s",base,path);
+		sprintf(str,"%s/%s",base,path);
 	else
 		strcpy(str,path);
 
