@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.1 2000/10/10 11:26:12 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.2 2000/10/10 18:49:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2318,6 +2318,7 @@ static void ctrl_thread(void* arg)
 				if(fexist(str)) {
 					lprintf("%04d !TIMEOUT waiting for QWK packet creation",sock);
 					sockprintf(sock,"451 Time-out waiting for packet creation.");
+					remove(str);
 					filepos=0;
 					continue;
 				}
