@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.121 2004/11/09 03:27:23 rswindell Exp $ */
+/* $Id: js_global.c,v 1.137 2004/12/09 08:07:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	return(JS_TRUE);
 }
 
-#define GLOBOBJ_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY
+#define GLOBOBJ_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_SHARED
 
 static struct JSPropertySpec js_global_properties[] = {
 /*		 name,		tinyid,				flags */
@@ -84,32 +84,60 @@ static struct JSPropertySpec js_global_properties[] = {
 };
 
 typedef struct {
-	JSContext*	cx;
-	JSContext*	parent_cx;
-	JSObject*	obj;
-	JSObject*	parent_obj;
-	JSScript*	script;
-	JSObject*	retobj;
-} background_load_t;
+	JSRuntime*		runtime;
+	JSContext*		cx;
+	JSContext*		parent_cx;
+	JSObject*		obj;
+	JSScript*		script;
+	msg_queue_t*	msg_queue;
+	js_branch_t		branch;
+	JSErrorReporter error_reporter;
+} background_data_t;
 
-static void load_thread(void* arg)
+static void background_thread(void* arg)
 {
-	background_load_t* bg = (background_load_t*)arg;
-
+	background_data_t* bg = (background_data_t*)arg;
 	jsval result=JSVAL_VOID;
 
+	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
-
-	JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result);
-	if(bg->retobj!=NULL) {
-		JS_BeginRequest(bg->parent_cx);
-		JS_DefineProperty(bg->parent_cx, bg->parent_obj, "retval", result
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_EndRequest(bg->parent_cx);
-	}
+	if(JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result) && result!=JSVAL_VOID)
+		js_enqueue_value(bg->cx, bg->msg_queue, result, NULL);
 	JS_DestroyScript(bg->cx, bg->script);
 	JS_DestroyContext(bg->cx);
+	JS_DestroyRuntime(bg->runtime);
 	free(bg);
+}
+
+static void
+js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
+{
+	background_data_t* bg;
+
+	if((bg=(background_data_t*)JS_GetContextPrivate(cx))==NULL)
+		return;
+
+	/* Use parent's context private data */
+	JS_SetContextPrivate(cx, JS_GetContextPrivate(bg->parent_cx));
+
+	/* Call parent's error reporter */
+	bg->error_reporter(cx, message, report);
+
+	/* Restore our context private data */
+	JS_SetContextPrivate(cx, bg);
+}
+
+static JSBool js_BranchCallback(JSContext *cx, JSScript* script)
+{
+	background_data_t* bg;
+
+	if((bg=(background_data_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	if(bg->parent_cx!=NULL && !JS_IsRunning(bg->parent_cx)) 	/* die when parent dies */
+		return(JS_FALSE);
+
+	return js_CommonBranchCallback(cx,&bg->branch);
 }
 
 static JSBool
@@ -121,14 +149,13 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     const char*	filename;
     JSScript*	script;
 	scfg_t*		cfg;
+	jsval		val;
 	JSObject*	js_argv;
 	JSObject*	exec_obj;
 	JSContext*	exec_cx=cx;
 	JSBool		success;
 	JSBool		background=JS_FALSE;
-	background_load_t* bg;
-	JSErrorReporter	reporter;
-	JSBranchCallback callback;
+	background_data_t* bg;
 
 	*rval=JSVAL_VOID;
 
@@ -142,36 +169,57 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(background) {
 
-	    if((exec_cx = JS_NewContext(JS_GetRuntime(cx), 8192))==NULL)
+		if((bg=(background_data_t*)malloc(sizeof(background_data_t)))==NULL)
 			return(JS_FALSE);
+		memset(bg,0,sizeof(background_data_t));
 
-		if((bg=(background_load_t*)malloc(sizeof(background_load_t)))==NULL)
-			return(JS_FALSE);
-
-		memset(bg,0,sizeof(background_load_t));
-
-		bg->cx = exec_cx;
 		bg->parent_cx = cx;
-		bg->parent_obj = obj;
 
-		if((exec_obj=js_CreateGlobalObject(exec_cx, cfg, NULL))==NULL) 
+		/* Setup default values for branch settings */
+		bg->branch.limit=JAVASCRIPT_BRANCH_LIMIT;
+		bg->branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
+		bg->branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
+		if(JS_GetProperty(cx, obj,"js",&val))	/* copy branch settings from parent */
+			memcpy(&bg->branch,JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)),sizeof(bg->branch));
+		bg->branch.terminated=NULL;	/* could be bad pointer at any time */
+		bg->branch.counter=0;
+		bg->branch.gc_attempts=0;
+
+		if((bg->runtime = JS_NewRuntime(JAVASCRIPT_MAX_BYTES))==NULL)
 			return(JS_FALSE);
 
-		/* Use the error reporter from the parent context */
-		reporter=JS_SetErrorReporter(cx,NULL);
-		JS_SetErrorReporter(cx,reporter);
-		JS_SetErrorReporter(exec_cx,reporter);
+	    if((bg->cx = JS_NewContext(bg->runtime, JAVASCRIPT_CONTEXT_STACK))==NULL)
+			return(JS_FALSE);
 
-		/* Use the private data from the parent context */
-		JS_SetContextPrivate(exec_cx, JS_GetContextPrivate(cx));
+		if((bg->obj=js_CreateCommonObjects(bg->cx
+				,cfg			/* common config */
+				,NULL			/* node-specific config */
+				,NULL			/* additional global methods */
+				,0				/* uptime */
+				,""				/* hostname */
+				,""				/* socklib_desc */
+				,&bg->branch	/* js */
+				,NULL			/* client */
+				,INVALID_SOCKET	/* client_socket */
+				,NULL			/* server props */
+				))==NULL) 
+			return(JS_FALSE);
 
-		/* Use the branch callback from the parent context */
-		callback=JS_SetBranchCallback(cx,NULL);
-		JS_SetBranchCallback(exec_cx, callback);
-		JS_SetBranchCallback(cx, callback);
+		bg->msg_queue = msgQueueInit(NULL,MSG_QUEUE_BIDIR);
 
-		if(JSVAL_IS_OBJECT(argv[argn]))
-			bg->retobj=JSVAL_TO_OBJECT(argv[argn++]);
+		js_CreateQueueObject(bg->cx, bg->obj, "parent_queue", bg->msg_queue);
+
+		/* Save parent's error reporter (for later use by our error reporter) */
+		bg->error_reporter=JS_SetErrorReporter(cx,NULL);
+		JS_SetErrorReporter(cx,bg->error_reporter);
+		JS_SetErrorReporter(bg->cx,js_ErrorReporter);
+
+		/* Set our branch callback (which calls the generic branch callback) */
+		JS_SetContextPrivate(bg->cx, bg);
+		JS_SetBranchCallback(bg->cx, js_BranchCallback);
+
+		exec_cx = bg->cx;
+		exec_obj = bg->obj;
 		
 	} else if(JSVAL_IS_OBJECT(argv[argn]))	/* Scope specified */
 		obj=JSVAL_TO_OBJECT(argv[argn++]);
@@ -211,8 +259,8 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(background) {
 
 		bg->script = script;
-		bg->obj = exec_obj;
-		success = _beginthread(load_thread,0,bg)!=-1;
+		*rval = OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue));
+		success = _beginthread(background_thread,0,bg)!=-1;
 
 	} else {
 
@@ -1025,7 +1073,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			free(tmpbuf);
 			return(JS_FALSE);
 		}
-		j=sprintf(outbuf,"<DIV STYLE=\"%s\"><SPAN STYLE=\"%s\">",htmlansi[7],htmlansi[7]);
+		j=sprintf(outbuf,"<span style=\"%s\">",htmlansi[7]);
 		clear_screen=j;
 		for(i=0;tmpbuf[i];i++) {
 			if(j>(obsize/2))		/* Completely arbitrary here... must be carefull with this eventually ToDo */
@@ -1135,7 +1183,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						lastcolor=0;
 						l=ansi_param[0]>0?ansi_param[0]:1;
 						if(wrappos==0 && wrapvpos==currrow)  {
-							j+=sprintf(outbuf+j,"<!-- \r\nC after A l=%d hpos=%d -->",l,hpos);
+							/* j+=sprintf(outbuf+j,"<!-- \r\nC after A l=%d hpos=%d -->",l,hpos); */
 							l=l-hpos;
 							wrapvpos=-2;	/* Prevent additional move right */
 						}
@@ -1486,7 +1534,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 			}
 		}
-		strcpy(outbuf+j,"</SPAN></DIV>");
+		strcpy(outbuf+j,"</span>");
 
 		js_str = JS_NewStringCopyZ(cx, outbuf);
 		free(outbuf);
@@ -1658,7 +1706,7 @@ js_b64_decode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_TRUE);
 	}
 
-	js_str = JS_NewStringCopyZ(cx, outbuf);
+	js_str = JS_NewStringCopyN(cx, outbuf, res);
 	free(outbuf);
 	if(js_str==NULL)
 		return(JS_FALSE);
@@ -2296,6 +2344,32 @@ js_resolve_host(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 
 }
 
+extern link_list_t named_queues;	/* js_queue.c */
+
+static JSBool
+js_list_named_queues(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	JSObject*	array;
+    jsint       len=0;
+	jsval		val;
+	list_node_t* node;
+	msg_queue_t* q;
+
+    if((array = JS_NewArrayObject(cx, 0, NULL))==NULL)
+		return(JS_FALSE);
+
+	for(node=listFirstNode(&named_queues);node!=NULL;node=listNextNode(node)) {
+		if((q=listNodeData(node))==NULL)
+			continue;
+		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,q->name));
+        if(!JS_SetElement(cx, array, len++, &val))
+			break;
+	}
+
+    *rval = OBJECT_TO_JSVAL(array);
+
+    return(JS_TRUE);
+}
 	
 static JSClass js_global_class = {
      "Global"				/* name			*/
@@ -2316,11 +2390,18 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"optionally setting the global property <tt>exit_code</tt> to the specified numeric value")
 	,311
 	},		
-	{"load",            js_load,            1,	JSTYPE_VOID,	JSDOCSTR("[object scope,] string filename [,args]")
+	{"load",            js_load,            1,	JSTYPE_VOID
+	,JSDOCSTR("[<i>bool</i> background or <i>object</i> scope,] <i>string</i> filename [,args]")
 	,JSDOCSTR("load and execute a JavaScript module (<i>filename</i>), "
 		"optionally specifying a target <i>scope</i> object (default: <i>this</i>) "
 		"and a list of arguments to pass to the module (as <i>argv</i>), "
-		"returns the result of the script execution (or <i>undefined</i>)")
+		"returns the result of the script execution "
+		"or a newly created <i>Queue</i> object if <i>background</i> is <i>true</i>)<br>"
+		"<b>Background</b>:<br>"
+		"If <i>background</i> is <i>true</i>, the loaded script can communicate with the parent "
+		"script by writing to the <i>parent_queue</i> or the result of last executed statemement "
+		"of the script will automatically be written to the <i>Queue</i> to be read later by the "
+		"parent script.")
 	,311
 	},		
 	{"sleep",			js_mswait,			0,	JSTYPE_ALIAS },
@@ -2553,6 +2634,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"(e.g. <tt>NET_INTERNET</tt> for Internet e-mail or <tt>NET_NONE</tt> for local e-mail)")
 	,312
 	},
+	{"list_named_queues",js_list_named_queues,0,JSTYPE_ARRAY,	JSDOCSTR("")
+	,JSDOCSTR("returns an array of <i>named queues<i> (created with the <i>Queue</i> constructor)")
+	,312
+	},
 
 	{0}
 };
@@ -2623,10 +2708,14 @@ static jsConstIntSpec js_global_const_ints[] = {
 	{"LOG_ALERT"		,LOG_ALERT		},
 	{"LOG_CRIT"			,LOG_CRIT		},
 	{"LOG_ERR"			,LOG_ERR		},
+	{"LOG_ERROR"		,LOG_ERR		},
 	{"LOG_WARNING"		,LOG_WARNING	},
 	{"LOG_NOTICE"		,LOG_NOTICE		},
 	{"LOG_INFO"			,LOG_INFO		},
 	{"LOG_DEBUG"		,LOG_DEBUG		},
+
+	/* Other useful constants */
+	{"INVALID_SOCKET"	,INVALID_SOCKET	},
 
 	/* Terminator (Governor Arnold) */
 	{0}
@@ -2664,5 +2753,73 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 
 	return(glob);
 }
+
+JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
+										,scfg_t* cfg				/* common */
+										,scfg_t* node_cfg			/* node-specific */
+										,jsSyncMethodSpec* methods	/* global */
+										,time_t uptime				/* system */
+										,char* host_name			/* system */
+										,char* socklib_desc			/* system */
+										,js_branch_t* branch		/* js */
+										,client_t* client			/* client */
+										,SOCKET client_socket		/* client */
+										,js_server_props_t* props	/* server */
+										)
+{
+	JSObject*	js_glob;
+
+	if(node_cfg==NULL)
+		node_cfg=cfg;
+
+	/* Global Object */
+	if((js_glob=js_CreateGlobalObject(js_cx, cfg, methods))==NULL)
+		return(NULL);
+
+	/* System Object */
+	if(js_CreateSystemObject(js_cx, js_glob, node_cfg, uptime, host_name, socklib_desc)==NULL)
+		return(NULL);
+
+	/* Internal JS Object */
+	if(branch!=NULL 
+		&& js_CreateInternalJsObject(js_cx, js_glob, branch)==NULL)
+		return(NULL);
+
+	/* Client Object */
+	if(client!=NULL 
+		&& js_CreateClientObject(js_cx, js_glob, "client", client, client_socket)==NULL)
+		return(NULL);
+
+	if(props!=NULL
+		&& js_CreateServerObject(js_cx, js_glob, props)==NULL)
+		return(NULL);
+
+	/* Socket Class */
+	if(js_CreateSocketClass(js_cx, js_glob)==NULL)
+		return(NULL);
+
+	/* Queue Class */
+	if(js_CreateQueueClass(js_cx, js_glob)==NULL)
+		return(NULL);
+
+	/* MsgBase Class */
+	if(js_CreateMsgBaseClass(js_cx, js_glob, cfg)==NULL)
+		return(NULL);
+
+	/* File Class */
+	if(js_CreateFileClass(js_cx, js_glob)==NULL)
+		return(NULL);
+
+	/* User class */
+	if(js_CreateUserClass(js_cx, js_glob, cfg)==NULL) 
+		return(NULL);
+
+	/* Area Objects */
+	if(!js_CreateUserObjects(js_cx, js_glob, cfg, NULL, NULL, NULL)) 
+		return(NULL);
+
+	return(js_glob);
+}
+
 
 #endif	/* JAVSCRIPT */

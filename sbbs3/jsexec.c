@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.69 2004/09/16 10:10:30 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.75 2004/12/09 08:07:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	p=fgets(buf,len+1,stdin);
 
 	if(p!=NULL)
-		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p));
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p)));
 
 	free(buf);
     return(JS_TRUE);
@@ -462,27 +462,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static JSBool
 js_BranchCallback(JSContext *cx, JSScript *script)
 {
-	branch.counter++;
-
-	/* Infinite loop? */
-	if(branch.limit && branch.counter > branch.limit) {
-		JS_ReportError(cx,"Infinite loop (%lu branches) detected",branch.counter);
-		branch.counter=0;
-		return(JS_FALSE);
-	}
-	/* Give up timeslices every once in a while */
-	if(branch.yield_interval && (branch.counter%branch.yield_interval)==0)
-		YIELD();
-
-	if(branch.gc_interval && (branch.counter%branch.gc_interval)==0)
-		JS_MaybeGC(cx), branch.gc_attempts++;
-
-	if(branch.auto_terminate && terminated) {
-		JS_ReportError(cx,"Terminated");
-		return(JS_FALSE);
-	}
-
-    return(JS_TRUE);
+    return(js_CommonBranchCallback(cx,&branch));
 }
 
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
@@ -534,35 +514,12 @@ static BOOL js_init(char** environ)
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if((js_glob=js_CreateGlobalObject(js_cx, &scfg, js_global_functions))==NULL)
-		return(FALSE);
-
-	/* Internal JS Object */
-	if(js_CreateInternalJsObject(js_cx, js_glob, &branch)==NULL)
-		return(FALSE);
-
-	/* System Object */
-	if(js_CreateSystemObject(js_cx, js_glob, &scfg, time(NULL), host_name, SOCKLIB_DESC)==NULL)
-		return(FALSE);
-
-	/* Socket Class */
-	if(js_CreateSocketClass(js_cx, js_glob)==NULL)
-		return(FALSE);
-
-	/* MsgBase Class */
-	if(js_CreateMsgBaseClass(js_cx, js_glob, &scfg)==NULL)
-		return(FALSE);
-
-	/* File Class */
-	if(js_CreateFileClass(js_cx, js_glob)==NULL)
-		return(FALSE);
-
-	/* User class */
-	if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
-		return(FALSE);
-
-	/* Area Objects */
-	if(!js_CreateUserObjects(js_cx, js_glob, &scfg, NULL, NULL, NULL)) 
+	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
+		,time(NULL), host_name, SOCKLIB_DESC	/* system */
+		,&branch								/* js */
+		,NULL,INVALID_SOCKET					/* client */
+		,NULL									/* server */
+		))==NULL)
 		return(FALSE);
 
 	/* Environment Object (associative array) */
@@ -750,7 +707,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.69 $", "%*s %s", revision);
+	sscanf("$Revision: 1.75 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
