@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.227 2004/09/26 20:06:44 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.234 2004/10/27 21:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,10 +110,14 @@
 #ifdef SBBS	
 	#include "text.h"
 #endif
+
+/* xpdev */
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "sockwrap.h"
+#include "link_list.h"
+
 #include "smblib.h"
 #include "ars_defs.h"
 #include "scfgdefs.h"
@@ -172,8 +176,11 @@ public:
 	void	putcom(char *str, int len=0);  // Send string
 	void	hangup(void);		   // Hangup modem
 
-
+	uchar	telnet_local_option[0x100];
+	uchar	telnet_remote_option[0x100];
 	void	send_telnet_cmd(uchar cmd, uchar opt);
+	void	request_telnet_opt(uchar cmd, uchar opt);
+
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
@@ -445,7 +452,6 @@ public:
 	void	show_msg(smbmsg_t* msg, long mode);
 	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
 	void	quotemsg(smbmsg_t* msg, int tails);
-	void	putmsg_fp(FILE *fp, long length, long mode);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum,char *dest, char *title, long mode
 				,uint subnum);
@@ -871,6 +877,16 @@ extern "C" {
 	/* xtrn.cpp */
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
+
+	/* semfile.c */
+	DLLEXPORT BOOL		DLLCALL semfile_signal(const char* fname, const char* text);
+	DLLEXPORT BOOL		DLLCALL semfile_check(time_t* t, const char* fname);
+	DLLEXPORT char*		DLLCALL semfile_list_check(time_t* t, link_list_t* filelist);
+	DLLEXPORT void		DLLCALL semfile_list_init(link_list_t* filelist, const char* parent, 
+												   const char* action, const char* service);
+	DLLEXPORT void		DLLCALL semfile_list_add(link_list_t* filelist, const char* fname);
+	DLLEXPORT void		DLLCALL semfile_list_free(link_list_t* filelist);
+
 
 #ifdef JAVASCRIPT
 
