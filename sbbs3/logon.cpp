@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.32 2003/04/18 04:56:35 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.33 2003/04/18 21:28:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -479,7 +479,7 @@ bool sbbs_t::logon()
 	}
 
 	if(sys_status&SS_EVENT)
-		bputs(text[ReducedTime]);
+		bprintf(text[ReducedTime],timestr(&event_time));
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.misc&=~(NODE_AOFF|NODE_POFF);
 	if(useron.chat&CHAT_NOACT)
