@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.74 2001/06/14 18:02:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.75 2001/06/19 23:51:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -450,6 +450,8 @@ JSContext* js_initcx(SOCKET sock, JSObject** glob)
 
     if((js_cx = JS_NewContext(js_runtime, JAVASCRIPT_CONTEXT_STACK))==NULL)
 		return(NULL);
+
+	lprintf("%04d JavaScript: Context created",sock);
 
 	JS_BeginRequest(js_cx);	/* Required for multi-thread support */
 
