@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.37 2002/08/24 23:30:52 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.38 2002/10/15 00:44:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,9 +427,10 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 	get_int(cfg->smb_retry_time,instream);	 /* odd byte */
 	if(!cfg->smb_retry_time)
 		cfg->smb_retry_time=30;
-	for(i=0;i<235;i++)	/* NULL */
+	for(i=0;i<234;i++)	/* NULL */
 		get_int(n,instream);
-	for(i=0;i<256;i++)	/* 0xff */
+	get_int(cfg->msg_misc,instream);
+	for(i=0;i<255;i++)	/* 0xff */
 		get_int(n,instream);
 
 

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.15 2002/08/21 22:04:35 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.16 2002/10/15 00:44:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -449,6 +449,7 @@ typedef struct
 	char	sys_chat_arstr[LEN_ARSTR+1];	/* chat override */
 	uchar * sys_chat_ar;
 
+	long	msg_misc;			/* Global Message-Related Settings */
 	long 	file_misc;			/* File Misc Settings */
 	long	xtrn_misc;			/* External Programs Misc Settings */
 
