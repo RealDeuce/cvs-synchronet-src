@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.21 2002/03/04 21:20:49 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.22 2002/03/07 20:21:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,7 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 static void js_finalize_socket(JSContext *cx, JSObject *obj)
 {
 	private_t* p;
-	
+
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
@@ -602,6 +602,7 @@ static JSFunctionSpec js_socket_functions[] = {
 	{"peek",			js_peek,			0},		/* receive a string, leave in buffer */
 	{"recvline",		js_recvline,		0},		/* receive a \n terminated string	*/
 	{"readline",		js_recvline,		0},		/* receive a \n terminated string	*/
+	{"readln",			js_recvline,		0},		/* receive a \n terminated string	*/
 	{"getoption",		js_getsockopt,		2},		/* getsockopt(level,opt)			*/
 	{"setoption",		js_setsockopt,		3},		/* setsockopt(level,opt,val)		*/
 	{"ioctl",			js_ioctlsocket,		1},		/* ioctl(cmd,arg)					*/
