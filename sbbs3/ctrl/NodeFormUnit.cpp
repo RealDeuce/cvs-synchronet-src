@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.20 2003/04/09 01:31:04 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.21 2003/05/01 10:20:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,12 +163,15 @@ void __fastcall TNodeForm::TimerTick(TObject *Sender)
 	    lseek(nodedab, n*sizeof(node_t), SEEK_SET);
         if(eof(nodedab))
         	break;
+#ifdef USE_LOCKING
         if(locking(nodedab, LK_NBLCK, sizeof(node_t))!=0)
         	continue;
-
+#endif
         rd=read(nodedab,&node, sizeof(node_t));
         lseek(nodedab, n*sizeof(node_t), SEEK_SET);
+#ifdef USE_LOCKING
         locking(nodedab, LK_UNLCK, sizeof(node_t));
+#endif
 
         if(rd!=sizeof(node_t))
         	continue;
