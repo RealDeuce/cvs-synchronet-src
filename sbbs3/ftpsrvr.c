@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.169 2002/06/14 09:53:58 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.170 2002/06/29 06:47:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,6 +313,11 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	strcat(sbuf,"\r\n");
 	len+=2;
     va_end(argptr);
+
+	if(sock==INVALID_SOCKET) {
+		lprintf("!INVALID SOCKET in call to sockprintf");
+		return(0);
+	}
 
 	/* Check socket for writability (using select) */
 	tv.tv_sec=60;
@@ -1098,6 +1103,13 @@ int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 	int		i,rd=0;
 	fd_set	socket_set;
 	struct timeval	tv;
+
+	buf[0]=0;
+
+	if(socket==INVALID_SOCKET) {
+		lprintf("INVALID SOCKET in call to sockreadline");
+		return(0);
+	}
 	
 	while(rd<len-1) {
 
