@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.23 2002/06/18 09:31:19 rswindell Exp $
+# $Id: GNUmakefile,v 1.24 2002/06/18 09:38:04 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -235,7 +235,9 @@ $(ECHOCFG): \
 	$(EXEODIR)/rechocfg.o \
 	$(EXEODIR)/uifcx.o \
 	$(EXEODIR)/nopen.o \
-	$(EXEODIR)/str_util.o
+	$(EXEODIR)/str_util.o \
+	$(EXEODIR)/filewrap.o \
+	$(EXEODIR)/genwrap.o
 	@echo Linking $@
 	@$(CC) -o $@ $^
 
