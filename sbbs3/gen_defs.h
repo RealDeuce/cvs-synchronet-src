@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.6 2000/11/01 02:28:40 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.7 2000/11/02 05:02:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 #define BEL		0x07				/* Bell/beep				^G	*/
 #define FF		0x0c				/* Form feed				^L	*/
 #define ESC 	0x1b				/* Escape					^[	*/
+#define DEL		0x7f				/* Delete					^BS	*/
 #define BS		'\b'				/* Back space				^H	*/
 #define TAB 	'\t'				/* Horizontal tabulation	^I	*/
 #define LF		'\n'				/* Line feed				^J	*/
