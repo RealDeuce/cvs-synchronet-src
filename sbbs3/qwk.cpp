@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.22 2002/07/03 08:39:47 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.23 2002/07/15 20:44:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "post.h"
 #include "qwk.h"
 
 /****************************************************************************/
