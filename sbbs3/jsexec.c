@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.62 2003/11/26 12:28:11 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.63 2003/12/05 11:23:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -481,6 +481,8 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
+	fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
+
 	fprintf(statfp,"JavaScript: Creating runtime: %lu bytes\n"
 		,js_max_bytes);
 
@@ -712,7 +714,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.62 $", "%*s %s", revision);
+	sscanf("$Revision: 1.63 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
