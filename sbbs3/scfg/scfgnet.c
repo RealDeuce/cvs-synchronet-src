@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.12 2002/04/26 00:28:32 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.13 2002/04/26 00:29:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1121,7 +1121,7 @@ perform a call-out.
 void qhub_sub_edit(uint num)
 {
 	char str[256];
-	int i,j,k,l,m,n,bar=0;
+	int j,k,l,m,n,bar=0;
 
 k=0;
 while(1) {
@@ -1321,7 +1321,7 @@ void phub_edit(int num)
 {
 	static int phub_dflt;
 	char *p,done=0,str[256];
-	int i,j,k,n;
+	int i,j;
 
 while(!done) {
 	i=0;
