@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.52 2003/03/19 02:36:42 rswindell Exp $ */
+/* $Id: js_global.c,v 1.53 2003/03/21 21:13:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1110,7 +1110,7 @@ js_strftime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JSString*	js_str;
 
 	fmt=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
-	if(argc)
+	if(argc>1)
 		JS_ValueToInt32(cx,argv[1],(int32*)&t);
 
 	strcpy(str,"-Invalid time-");
@@ -1221,7 +1221,7 @@ static jsMethodSpec js_global_functions[] = {
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string directory")
 	,JSDOCSTR("remove directory")
 	},		
-	{"strftime",		js_strftime,		2,	JSTYPE_STRING,	JSDOCSTR("string format, number time")
+	{"strftime",		js_strftime,		1,	JSTYPE_STRING,	JSDOCSTR("string format [,number time]")
 	,JSDOCSTR("return a formatted time string")
 	},		
 	{"format",			js_format,			1,	JSTYPE_STRING,	JSDOCSTR("string format [,args]")
