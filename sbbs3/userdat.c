@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.36 2002/03/16 00:14:14 rswindell Exp $ */
+/* $Id: userdat.c,v 1.37 2002/03/16 00:22:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -688,8 +688,10 @@ int DLLCALL putnodedat(scfg_t* cfg, uint number, node_t* node, int file)
 	int		wrerr;
 	int		attempts;
 
-	if(!number || number>cfg->sys_nodes) 
+	if(!number || number>cfg->sys_nodes || file<0) {
+		close(file);
 		return(-1);
+	}
 
 	number--;	/* make zero based */
 	for(attempts=0;attempts<10;attempts++) {
