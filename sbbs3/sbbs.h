@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.80 2001/11/27 18:35:16 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.81 2001/12/01 01:04:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,7 +95,6 @@
 	#else
 		#define XP_PC
 	#endif
-	#define JS_THREADSAFE	/* required for multi-thread support */
 	#include <jsapi.h>
 	#include <jsprf.h>		/* JS-safe sprintf functions */
 
