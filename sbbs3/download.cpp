@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.7 2000/12/11 23:21:11 rswindell Exp $ */
+/* $Id: download.cpp,v 1.8 2001/03/02 23:58:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,7 @@ void sbbs_t::notdownloaded(ulong size, time_t start, time_t end)
 /****************************************************************************/
 int sbbs_t::protocol(char *cmdline, int cd)
 {
-	char	protlog[256],*p=NULL;
+	char	protlog[256],*p;
 	char	msg[256];
     int		i;
 	FILE*	stream;
@@ -186,6 +186,8 @@ int sbbs_t::protocol(char *cmdline, int cd)
 	//lprintf("%s",cmdline);
 	if(cd) 
 		p=cfg.temp_dir;
+	else
+		p=NULL;
 	sprintf(msg,"Transferring %s",cmdline);
 	spymsg(msg);
 	sys_status|=SS_FILEXFER;
