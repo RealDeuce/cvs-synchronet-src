@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.242 2004/12/17 06:32:50 deuce Exp $ */
+/* $Id: websrvr.c,v 1.249 2005/01/11 03:48:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,7 +170,8 @@ typedef struct  {
 	BOOL		keep_alive;
 	char		ars[256];
 	char    	auth[128];				/* UserID:Password */
-	char		host[128];				/* The requested host. (virtual hosts) */
+	char		host[128];				/* The requested host. (as used for self-referencing URLs) */
+	char		vhost[128];				/* The requested host. (virtual host) */
 	int			send_location;
 	const char*	mime_type;
 	link_list_t	headers;
@@ -205,7 +206,6 @@ typedef struct  {
 	time_t			logon_time;
 	char			username[LEN_NAME+1];
 	int				last_js_user_num;
-	subscan_t		*subscan;
 
 	/* JavaScript parameters */
 	JSRuntime*		js_runtime;
@@ -215,6 +215,7 @@ typedef struct  {
 	JSObject*		js_header;
 	JSObject*		js_request;
 	js_branch_t		js_branch;
+	subscan_t		*subscan;
 
 	/* Client info */
 	client_t		client;
@@ -750,11 +751,10 @@ static void close_request(http_session_t * session)
 	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)) {
 		JS_GC(session->js_cx);
 	}
-
-	memset(&session->req,0,sizeof(session->req));
 	if(session->subscan!=NULL)
 		putmsgptrs(&scfg, session->user.number, session->subscan);
-	FREE_AND_NULL(session->subscan);
+
+	memset(&session->req,0,sizeof(session->req));
 }
 
 static int get_header_type(char *header)
@@ -1010,17 +1010,13 @@ void http_logon(http_session_t * session, user_t *usr)
 	else
 		session->user=*usr;
 
-	if(session->user.number!=0) {
-		FREE_AND_NULL(session->subscan);
-		session->subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
-		if(session->subscan!=NULL)
-			getmsgptrs(&scfg,session->user.number,session->subscan);
-	}
-
 	if(session->user.number==session->last_user_num)
 		return;
 
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (%d)",session->socket,session->user.number);
+
+	if(session->subscan!=NULL)
+		getmsgptrs(&scfg,session->user.number,session->subscan);
 
 	if(session->user.number==0)
 		SAFECOPY(session->username,unknown);
@@ -1067,7 +1063,7 @@ BOOL http_checkuser(http_session_t * session)
 		}
 		else {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
-				,NULL /* ftp index file */, NULL /* subscan */)) {
+				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
 				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
@@ -1618,6 +1614,9 @@ static char *get_request(http_session_t * session, char *req_line)
 	if(!strnicmp(session->req.physical_path,http_scheme,http_scheme_len)) {
 		/* Set HOST value... ignore HOST header */
 		SAFECOPY(session->req.host,session->req.physical_path+http_scheme_len);
+		SAFECOPY(session->req.vhost,session->req.host);
+		/* Remove port specification */
+		strtok(session->req.vhost,":");
 		strtok(session->req.physical_path,"/");
 		p=strtok(NULL,"/");
 		if(p==NULL) {
@@ -1684,9 +1683,11 @@ static BOOL get_request_headers(http_session_t * session)
 				case HEAD_HOST:
 					if(session->req.host[0]==0) {
 						SAFECOPY(session->req.host,value);
-						if(startup->options&WEB_OPT_DEBUG_RX)
-							lprintf(LOG_INFO,"%04d Grabbing from virtual host: %s"
-								,session->socket,value);
+						SAFECOPY(session->req.vhost,value);
+						/* Remove port part of host (Win32 doesn't allow : in dir names) */
+						/* Either an existing : will be replaced with a null, or nothing */
+						/* Will happen... the return value is not relevent here */
+						strtok(session->req.vhost,":");
 					}
 					break;
 				default:
@@ -1702,11 +1703,11 @@ static BOOL get_fullpath(http_session_t * session)
 	char	str[MAX_PATH+1];
 
 	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
-		session->req.host[0]=0;
-	if(session->req.host[0]) {
-		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.host);
+		session->req.vhost[0]=0;
+	if(session->req.vhost[0]) {
+		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.vhost);
 		if(isdir(str))
-			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.host,session->req.physical_path);
+			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.vhost,session->req.physical_path);
 		else
 			safe_snprintf(str,sizeof(str),"%s%s",root_dir,session->req.physical_path);
 	} else
@@ -2311,7 +2312,6 @@ JSObject* DLLCALL js_CreateHttpRequestObject(JSContext* cx
 											 ,JSObject* parent, http_session_t *session)
 {
 /*	JSObject*	cookie; */
-	JSString*	js_str;
 	jsval		val;
 
 	/* Return existing object if it's already been created */
@@ -2734,7 +2734,8 @@ void http_session_thread(void* arg)
 	session.last_user_num=-1;
 	session.last_js_user_num=-1;
 	session.logon_time=0;
-	session.subscan=NULL;
+
+	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
 
 	while(!session.finished && server_socket!=INVALID_SOCKET) {
 	    memset(&(session.req), 0, sizeof(session.req));
@@ -2854,7 +2855,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.242 $", "%*s %s", revision);
+	sscanf("$Revision: 1.249 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3010,8 +3011,8 @@ void DLLCALL web_server(void* arg)
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
-	if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,"ssjs");
-	if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,"bbs");
+	if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,".ssjs");
+	if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,".bbs");
 
 	sprintf(js_server_props.version,"%s %s",server_name,revision);
 	js_server_props.version_detail=web_ver();
