@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.10 2003/05/18 05:45:54 deuce Exp $ */
+/* $Id: chat.c,v 1.11 2003/05/18 07:54:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,11 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 	FREE(p);
 	lseek(in,0,SEEK_SET);
 	lseek(out,0,SEEK_SET);
+	#ifdef __NetBSD__
+	timeout(100);
+	#else
 	halfdelay(1);
+	#endif
 
 	togglechat(cfg,nodenum,node,TRUE);
 
@@ -279,7 +283,9 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 
 		if((ch=wgetch(swin))) {
 			switch(ch)  {
+				#if ERR!=0
 				case 0:
+				#endif
 				case ERR:
 					ch=0;
 					write(out,&ch,1);
