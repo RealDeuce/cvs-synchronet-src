@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.53 2002/08/21 00:08:23 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.54 2002/08/21 06:33:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -360,7 +360,11 @@ faddr_t getsysfaddr(short zone)
 ******************************************************************************/
 int write_flofile(char *attachment, faddr_t dest)
 {
-	char fname[256],outbound[128],str[128],ch;
+	char fname[MAX_PATH+1];
+	char outbound[MAX_PATH+1];
+	char str[MAX_PATH+1];
+	char ch;
+	char searchstr[MAX_PATH+1];
 	ushort attr=0;
 	int i,file;
 	FILE *stream;
@@ -391,12 +395,14 @@ int write_flofile(char *attachment, faddr_t dest)
 		sprintf(fname,"%s%08x.%clo",outbound,dest.point,ch);
 	else
 		sprintf(fname,"%s%04x%04x.%clo",outbound,dest.net,dest.node,ch);
+	sprintf(searchstr,"^%s",attachment);
+	if(findstr(searchstr,fname))	/* file already in FLO file */
+		return(0);
 	if((stream=fnopen(&file,fname,O_WRONLY|O_APPEND|O_CREAT))==NULL) {
 		printf("\7ERROR line %d opening %s %s\n",__LINE__,fname,sys_errlist[errno]);
 		logprintf("ERROR line %d opening %s %s",__LINE__,fname,sys_errlist[errno]);
-		return(-1); }
-
-	fseek(stream,0L,SEEK_END);
+		return(-1); 
+	}
 	fprintf(stream,"^%s\r\n",attachment);
 	fclose(stream);
 	return(0);
@@ -3822,7 +3828,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.53 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.54 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
