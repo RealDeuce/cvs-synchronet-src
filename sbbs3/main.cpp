@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.243 2003/04/27 07:12:14 deuce Exp $ */
+/* $Id: main.cpp,v 1.244 2003/04/29 02:37:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1000,7 +1000,7 @@ void input_thread(void *arg)
 			}
 		}
 		else  {
-			if(curr_socket==sbbs->client_socket)
+			if(curr_socket==sbbs->client_socket && spy_socket[sbbs->cfg.node_num]==spy_insock)
 				curr_socket=spy_insock;
 			else
 				curr_socket=sbbs->client_socket;
