@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.28 2004/09/11 09:36:18 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.26 2004/08/30 18:32:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,19 @@ char *faddrtoa(fidoaddr_t addr)
 		strcat(str,point); 
 	}
 	return(str);
+}
+
+/****************************************************************************/
+/* Truncates white-space chars off end of 'str'								*/
+/****************************************************************************/
+void truncsp(char *str)
+{
+	uint c;
+
+	c=strlen(str);
+	while(c && (uchar)str[c-1]<=' ') c--;
+	if(str[c]!=0)
+		str[c]=0;
 }
 
 char* DLLCALL strip_ctrl(char *str)
@@ -320,9 +333,8 @@ int main(int argc, char **argv)
 		}
 
 		/* Look-up the message hashes */
-		hashes=smb_msghashes(&msg,body,TRUE);
-		if(hashes[0]!=NULL 
-			&& (i=smb_findhash(&smb,hashes,NULL,FALSE /* mark */))!=SMB_SUCCESS) {
+		hashes=smb_msghashes(&smb,&msg,body);
+		if((i=smb_findhash(&smb,hashes,NULL,FALSE /* mark */))!=SMB_SUCCESS) {
 			fprintf(stderr,"%sFailed to find hash\n",beep);
 			msgerr=1;
 			if(extinfo)
