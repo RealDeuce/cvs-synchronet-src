@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.4 2002/04/25 23:14:17 rswindell Exp $
+# $Id: GNUmakefile,v 1.5 2002/04/26 00:33:57 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -87,7 +87,7 @@ $(SCFGHELP): $(OBJS) makehelp
 # Monolithic Synchronet executable Build Rule
 $(SCFG): $(OBJS)
 ifdef USE_DIALOG
-	@$(MAKE) -C ../../libdialog
+	@$(MAKE) --no-print-directory -C ../../libdialog
 endif
 	@echo Linking $@
 	@$(CC) -o $@ $(OBJS) $(LFLAGS)
