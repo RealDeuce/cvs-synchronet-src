@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.28 2001/07/02 14:39:04 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.29 2001/07/03 02:22:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,8 +86,14 @@
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
 
 
-#define LEN_DIR 63			/* Maximum length of directory paths		*/
-#define LEN_CMD 63			/* Maximum length of command lines			*/
+#define LEN_DIR		63		/* Maximum length of directory paths		*/
+#define LEN_CMD		63		/* Maximum length of command lines			*/
+
+							/* MS-DOS limited values					*/
+#define LEN_CODE	8		/* Maximum length of internal codes			*/
+#define LEN_QWKID	8		/* Maximum length of QWK-ID					*/
+#define LEN_MODNAME 8		/* Maximum length of loadable module name	*/
+#define LEN_SIFNAME 8		/* Maximum length of SIF filename			*/
 
 							/* Lengths of various strings				*/
 #define LEN_GSNAME	15		/* Group/Lib short name						*/
