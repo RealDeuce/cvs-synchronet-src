@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.15 2002/04/26 00:40:24 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.16 2002/04/26 06:51:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,7 +248,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
         
         truncsp(str);
         i=atoi(str);
-        if(i>0) {
+        if(i>0 && i<=opts) {
             *cur=--i;
             return(*cur);
         }
