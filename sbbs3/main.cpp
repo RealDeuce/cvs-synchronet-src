@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.300 2003/09/10 07:19:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.301 2003/09/10 08:02:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -767,6 +767,7 @@ bool sbbs_t::js_init()
 	js_branch.gc_interval = JAVASCRIPT_GC_INTERVAL;
 	js_branch.yield_interval = JAVASCRIPT_YIELD_INTERVAL;
 	js_branch.counter = 0;	/* loop counter */
+	js_branch.terminated = (BOOL*)&terminated;
 
 	bool success=false;
 

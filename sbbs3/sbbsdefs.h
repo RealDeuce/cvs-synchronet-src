@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.105 2003/09/10 07:19:35 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.106 2003/09/10 08:02:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,8 @@ typedef struct {
 	ulong	limit;
 	ulong	yield_interval;
 	ulong	gc_interval;
+	ulong	gc_attempts;
+	BOOL*	terminated;
 } js_branch_t;
 
 #ifndef __FLAT__

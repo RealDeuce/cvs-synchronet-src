@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.135 2003/09/10 07:19:35 rswindell Exp $ */
+/* $Id: services.c,v 1.136 2003/09/10 08:02:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -885,7 +885,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		YIELD();
 
 	if(client->branch.gc_interval && (client->branch.counter%client->branch.gc_interval)==0)
-		JS_MaybeGC(cx);
+		JS_MaybeGC(cx), client->branch.gc_attempts++;
 
     return(JS_TRUE);
 }
@@ -1135,6 +1135,7 @@ static void js_static_service_thread(void* arg)
 	service_client.branch.limit = JAVASCRIPT_BRANCH_LIMIT;
 	service_client.branch.gc_interval = JAVASCRIPT_GC_INTERVAL;
 	service_client.branch.yield_interval = JAVASCRIPT_YIELD_INTERVAL;
+	service_client.branch.terminated = &service->terminated;
 
 	if((js_runtime=JS_NewRuntime(startup->js_max_bytes))==NULL) {
 		lprintf("%04d !%s ERROR initializing JavaScript runtime"
@@ -1530,7 +1531,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.135 $", "%*s %s", revision);
+	sscanf("$Revision: 1.136 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -2014,6 +2015,7 @@ void DLLCALL services_thread(void* arg)
 				client->branch.limit=JAVASCRIPT_BRANCH_LIMIT;
 				client->branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 				client->branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
+				client->branch.terminated=&client->service->terminated;
 
 				udp_buf = NULL;
 

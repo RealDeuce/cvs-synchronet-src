@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.39 2003/09/10 07:19:35 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.40 2003/09/10 08:02:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -401,7 +401,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		YIELD();
 
 	if(branch.gc_interval && (branch.counter%branch.gc_interval)==0)
-		JS_MaybeGC(cx);
+		JS_MaybeGC(cx), branch.gc_attempts++;
 
 	if(terminated) {
 	
@@ -661,8 +661,9 @@ int main(int argc, char **argv, char** environ)
 	branch.limit=JAVASCRIPT_BRANCH_LIMIT;
 	branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
+	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.39 $", "%*s %s", revision);
+	sscanf("$Revision: 1.40 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
