@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.11 2000/11/07 02:51:10 rswindell Exp $ */
+/* $Id: baja.c,v 1.12 2000/11/09 02:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -570,7 +570,6 @@ void compile(char *src)
 			ar=arstr(&i,arg,NULL);
 			fprintf(out,"%c%c",CS_COMPARE_ARS,(uchar)i);
 			fwrite(ar,i,1,out);
-			FREE(ar);
 			continue; }
 
 		if(!stricmp(p,"CHKSYSPASS")) {
