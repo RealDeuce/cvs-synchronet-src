@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.75 2004/09/02 20:48:56 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.74 2004/08/23 23:34:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,19 +77,18 @@ static void read_ini_globals(FILE* fp, global_startup_t* global)
 {
 	const char* section = "Global";
 	char		value[INI_MAX_VALUE_LEN];
-	char*		p;
 
-	if(*(p=iniReadString(fp,section,"CtrlDirectory",nulstr,value))) {
+	if(*iniReadString(fp,section,"CtrlDirectory",nulstr,value)) {
 	    SAFECOPY(global->ctrl_dir,value);
 		backslash(global->ctrl_dir);
     }
 
-	if(*(p=iniReadString(fp,section,"TempDirectory",nulstr,value))) {
+	if(*iniReadString(fp,section,"TempDirectory",nulstr,value)) {
 	    SAFECOPY(global->temp_dir,value);
 		backslash(global->temp_dir);
     }
 
-	if(*(p=iniReadString(fp,section,strHostName,nulstr,value)))
+	if(*iniReadString(fp,section,strHostName,nulstr,value))
         SAFECOPY(global->host_name,value);
 
 	global->sem_chk_freq=iniReadShortInt(fp,section,strSemFileCheckFrequency,0);
