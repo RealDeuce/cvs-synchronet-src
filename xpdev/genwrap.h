@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.24 2003/01/23 21:28:37 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.25 2003/02/11 09:33:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,6 +106,8 @@ extern "C" {
 	#define PLATFORM_DESC	"Solaris"
 #elif defined(__sun__)
 	#define PLATFORM_DESC	"SunOS"
+#elif defined(__gnu__)
+	#define PLATFORM_DESC	"GNU/Hurd"
 #elif defined(__unix__)
 	#define PLATFORM_DESC	"Unix"
 #else

@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.12 2003/01/02 22:46:07 rswindell Exp $ */
+/* $Id: threadwrap.h,v 1.13 2003/02/11 09:33:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,11 @@ extern "C" {
 #if defined(__unix__)
 
 	#include <pthread.h>	/* POSIX threads and mutexes */
+#if defined(_NEED_SEM)
+	#include "sem.h"
+#else
 	#include <semaphore.h>	/* POSIX semaphores */
+#endif
 	ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist);
 
