@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.158 2004/03/08 19:22:30 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.159 2004/03/14 20:56:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -860,13 +860,16 @@ daemon(nochdir, noclose)
 #endif /* NEEDS_DAEMON */
 
 static void handle_sigs(void)  {
-	int		sig;
-	sigset_t			sigs;
+	int			sig;
+	sigset_t	sigs;
 	char		str[1024];
 
 	thread_up(NULL,TRUE,TRUE);
 
 	if (is_daemon) {
+		/* Write the standard .pid file if running as a daemon */
+		/* Must be here so signals are sent to the correct thread */
+
 		if(pidfile!=NULL) {
 			fprintf(pidfile,"%d",getpid());
 			fclose(pidfile);
@@ -1469,12 +1472,9 @@ int main(int argc, char** argv)
 			is_daemon=FALSE;
 		}
 
-		/* Write the standard .pid file if running as a daemon */
-		/* Must be here so signals are sent to the correct thread */
-
+		/* Open here to use startup permissions to create the file */
 		pidfile=fopen(SBBS_PID_FILE,"w");
 	}
-
 	old_uid = getuid();
 	if((pw_entry=getpwnam(new_uid_name))!=0)
 	{
