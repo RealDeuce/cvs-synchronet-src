@@ -2,7 +2,7 @@
 
 /* Synchronet initialization file (.ini) bit-field descriptions */
 
-/* $Id: ini_opts.h,v 1.2 2004/07/02 02:15:11 rswindell Exp $ */
+/* $Id: ini_opts.h,v 1.1 2004/05/28 09:51:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,9 +121,6 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_DNSBL_THROTTLE		,"DNSBL_THROTTLE"		},
 	{ MAIL_OPT_DNSBL_DEBUG			,"DNSBL_DEBUG"			},
 	{ MAIL_OPT_SEND_INTRANSIT		,"SEND_INTRANSIT"		},
-	{ MAIL_OPT_RELAY_AUTH_PLAIN		,"RELAY_AUTH_PLAIN"		},
-	{ MAIL_OPT_RELAY_AUTH_LOGIN		,"RELAY_AUTH_LOGIN"		},
-	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ MAIL_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
