@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.14 2001/08/29 16:07:46 rswindell Exp $ */
+/* $Id: misc.c,v 1.15 2001/12/13 17:19:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -304,7 +304,7 @@ char* DLLCALL zonestr(short zone)
     static char str[32];
 
 	switch((ushort)zone) {
-		case 0:     return("UT");
+		case 0:     return("UTC");
 		case AST:   return("AST");
 		case EST:   return("EST");
 		case CST:   return("CST");
