@@ -2,13 +2,13 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.31 2004/09/08 03:41:22 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.30 2004/09/02 21:53:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -250,7 +250,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 	strcpy(str,title);
-	msg.idx.subj=smb_subject_crc(str);
+	msg.idx.subj=subject_crc(str);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -439,7 +439,7 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
-	msg.idx.subj=smb_subject_crc(title);
+	msg.idx.subj=subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 

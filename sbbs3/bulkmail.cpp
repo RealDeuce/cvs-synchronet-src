@@ -2,13 +2,13 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.21 2004/09/08 03:41:22 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.20 2004/09/02 21:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -104,7 +104,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
-	msg.idx.subj=smb_subject_crc(title);
+	msg.idx.subj=subject_crc(title);
 
 	msg.hdr.when_written.time=time(NULL);
 	msg.hdr.when_written.zone=sys_timezone(&cfg);
