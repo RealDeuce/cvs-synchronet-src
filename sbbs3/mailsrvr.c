@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.97 2002/01/15 21:39:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.98 2002/01/20 00:46:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1071,7 +1071,7 @@ static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_i
 	return(FALSE);
 }
 
-static void signal_smtp_sem()
+static void signal_smtp_sem(void)
 {
 	int file;
 

@@ -1,6 +1,6 @@
 /* mime.h */
 
-/* $Id: mime.h,v 1.1 2001/12/20 01:32:24 rswindell Exp $ */
+/* $Id: mime.h,v 1.2 2002/01/20 00:46:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 #define _MIME_H_
 
 /* mime.c */
-char *  mimegetboundary();
+char *  mimegetboundary(void);
 void    mimeheaders(SOCKET socket, char * boundary);
 void    mimeblurb(SOCKET socket, char * boundary);
 void    mimetextpartheader(SOCKET socket, char * boundary);

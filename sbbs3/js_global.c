@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.12 2002/01/14 17:04:16 rswindell Exp $ */
+/* $Id: js_global.c,v 1.13 2002/01/20 00:46:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -419,7 +419,7 @@ static JSBool
 js_directory(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int			i;
-	int			flags=GLOB_MARK;
+	int32		flags=GLOB_MARK;
 	char*		p;
 	glob_t		g;
 	JSObject*	array;
