@@ -2,13 +2,13 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.16 2003/03/20 03:32:49 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.17 2003/04/23 06:59:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -77,6 +77,9 @@ extern "C" {
 	#define pthread_mutex_lock(pmtx)	EnterCriticalSection(pmtx)
 	#define pthread_mutex_unlock(pmtx)	LeaveCriticalSection(pmtx)
 	#define	pthread_mutex_destroy(pmtx)	DeleteCriticalSection(pmtx)
+	/* TryEnterCriticalSection only available on NT4+ :-( */
+	#define pthread_mutex_trylock(pmtx) (TryEnterCriticalSection(pmtx)?0:EBUSY)
+
 #else	/* Implemented as Win32 Mutexes (much slower) */
 	typedef HANDLE pthread_mutex_t;
 	#define PTHREAD_MUTEX_INITIALIZER	CreateMutex(NULL,FALSE,NULL)
@@ -84,6 +87,7 @@ extern "C" {
 	#define pthread_mutex_lock(pmtx)	WaitForSingleObject(*(pmtx),INFINITE)
 	#define pthread_mutex_unlock(pmtx)	ReleaseMutex(*(pmtx))
 	#define	pthread_mutex_destroy(pmtx)	CloseHandle(*(pmtx))
+	#define pthread_mutex_trylock(pmtx) (WaitForSingleObject(*(pmtx),0)==WAIT_OBJECT_0?0:EBUSY)
 #endif
 
 #elif defined(__OS2__)	/* These have *not* been tested! */
