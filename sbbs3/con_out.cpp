@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.16 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.17 2002/04/13 08:40:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,7 +242,7 @@ void sbbs_t::center(char *instr)
 	char str[256];
 	int i,j;
 
-	sprintf(str,"%.*s",sizeof(str)-1,instr);
+	SAFECOPY(str,instr);
 	truncsp(str);
 	j=bstrlen(str);
 	for(i=0;i<(80-j)/2;i++)

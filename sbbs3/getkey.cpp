@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.14 2002/03/13 12:31:17 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.15 2002/04/13 08:40:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -426,7 +426,7 @@ long sbbs_t::getkeys(char *keys, ulong max)
 	uchar	ch,n=0,c;
 	ulong	i=0;
 
-	sprintf(str,"%.*s",sizeof(str)-1,keys);
+	SAFECOPY(str,keys);
 	strupr(str);
 	while(online) {
 		ch=getkey(K_UPPER);

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.10 2002/02/05 23:16:43 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.11 2002/04/13 08:40:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -366,7 +366,7 @@ js_gettemplate(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if(js_str==NULL)
 		str[0]=0;
 	else
-		sprintf(str, "%.*s", sizeof(str)-1, JS_GetStringBytes(js_str));
+		SAFECOPY(str,JS_GetStringBytes(js_str));
 
 	sbbs->gettmplt(str,JS_GetStringBytes(js_fmt),mode);
 	js_str = JS_NewStringCopyZ(cx, str);

@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.24 2002/03/12 15:29:52 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.25 2002/04/13 08:40:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -578,7 +578,7 @@ long sbbs_t::js_execfile(char *cmd)
 		return(-1);
 	}
 
-	sprintf(cmdline,"%.*s",sizeof(cmdline)-1,cmd);
+	SAFECOPY(cmdline,cmd);
 	p=strchr(cmdline,' ');
 	if(p!=NULL) {
 		*p=0;
@@ -590,7 +590,7 @@ long sbbs_t::js_execfile(char *cmd)
 	if(!strchr(fname,BACKSLASH))
 		sprintf(path,"%s%s",cfg.exec_dir,fname);
 	else
-		sprintf(path,"%.*s",sizeof(path)-4,fname);
+		sprintf(path,"%.*s",(int)sizeof(path)-4,fname);
 	if(!strchr(path,'.'))
 		strcat(path,".js");
 

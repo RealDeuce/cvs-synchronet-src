@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.22 2002/04/12 08:35:13 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.23 2002/04/13 08:40:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 		for(i=0;i<cfg->sys_nodes;i++) 
 			prep_dir(cfg->ctrl_dir, cfg->node_path[i]);
 
-	sprintf(cfg->node_dir,"%.*s",sizeof(cfg->node_dir)-1,cfg->node_path[cfg->node_num-1]);
+	SAFECOPY(cfg->node_dir,cfg->node_path[cfg->node_num-1]);
 	prep_dir(cfg->ctrl_dir, cfg->node_dir);
 	if(read_node_cfg(cfg, error)==FALSE)
 		return(FALSE);
@@ -253,7 +253,7 @@ BOOL md(char *inpath)
 	DIR*	dir;
 	char	path[MAX_PATH+1];
 
-	sprintf(path,"%.*s",MAX_PATH,inpath);
+	SAFECOPY(path,inpath);
 
 	if(path[0]==0)
 		return(FALSE);

@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.80 2002/04/08 20:01:17 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.81 2002/04/13 08:40:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,7 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
 
 #define XTRN_LOADABLE_MODULE								\
 	if(cmdline[0]=='*') {   /* Baja module or JavaScript */	\
-		sprintf(str,"%.*s",sizeof(str)-1,cmdline+1);		\
+		SAFECOPY(str,cmdline+1);							\
 		p=strchr(str,SP);									\
 		if(p) {												\
 			strcpy(main_csi.str,p+1);						\

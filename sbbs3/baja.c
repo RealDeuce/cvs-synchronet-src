@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.23 2002/04/12 09:23:11 rswindell Exp $ */
+/* $Id: baja.c,v 1.24 2002/04/13 08:40:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3448,7 +3448,7 @@ int main(int argc, char **argv)
 		bail(1); 
 	}
 
-	sprintf(bin_file,"%.*s",sizeof(bin_file)-1,str);
+	SAFECOPY(bin_file,str);
 
 	printf("\nCompiling %s...\n",src);
 

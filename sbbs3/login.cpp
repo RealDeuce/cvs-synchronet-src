@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.9 2002/03/05 13:10:25 rswindell Exp $ */
+/* $Id: login.cpp,v 1.10 2002/04/13 08:40:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@ int sbbs_t::login(char *username, char *pw)
 	if(cfg.node_dollars_per_call && noyes(text[AreYouSureQ]))
 		return(LOGIC_FALSE);
 
-	sprintf(str,"%.*s",sizeof(str)-1,username);
+	SAFECOPY(str,username);
 
 	if(str[0]=='*') {
 		memmove(str,str+1,strlen(str));
