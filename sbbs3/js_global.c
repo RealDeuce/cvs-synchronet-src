@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.98 2003/10/09 20:24:19 rswindell Exp $ */
+/* $Id: js_global.c,v 1.99 2003/10/11 03:30:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,8 +44,6 @@
 #define MAX_ANSI_PARAMS	8
 
 #ifdef JAVASCRIPT
-
-void js_timeval(JSContext* cx, jsval val, struct timeval* tv);	/* js_socket.c */
 
 /* Global Object Properites */
 enum {
@@ -1972,7 +1970,6 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	jsuint		i;
     jsuint      limit;
 	SOCKET*		index;
-	SOCKET*		psock;
 	jsval		val;
 	int			len=0;
 
@@ -2009,12 +2006,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
     for(i=0;i<limit;i++) {
         if(!JS_GetElement(cx, inarray, i, &val))
 			break;
-		if(JSVAL_IS_OBJECT(val)) {	/* Socket object? */
-			if((psock=(SOCKET*)JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)))==NULL)
-				continue;
-			sock=*psock;
-		} else 
-			JS_ValueToInt32(cx,val,(int32*)&sock);
+		sock=js_socket(cx,val);
 		FD_SET(sock,&socket_set);
 		if(sock>maxsock)
 			maxsock=sock;
