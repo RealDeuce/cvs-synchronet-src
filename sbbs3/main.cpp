@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.117 2002/03/07 20:20:31 rswindell Exp $ */
+/* $Id: main.cpp,v 1.118 2002/03/08 02:41:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,6 +137,14 @@ int lputs(char* str)
 {
 	if(startup==NULL || startup->lputs==NULL)
     	return(0);
+
+#if defined(_WIN32) && defined(_DEBUG)
+	if(IsBadCodePtr((FARPROC)startup->lputs)) {
+		DebugBreak();
+		return(0);
+	}
+#endif
+
     return(startup->lputs(str));
 }
 
@@ -147,13 +155,6 @@ int lprintf(char *fmt, ...)
 
     if(startup==NULL || startup->lputs==NULL)
         return(0);
-
-#if defined(_WIN32) && defined(_DEBUG)
-	if(IsBadCodePtr((FARPROC)startup->lputs)) {
-		DebugBreak();
-		return(0);
-	}
-#endif
 
     va_start(argptr,fmt);
     vsprintf(sbuf,fmt,argptr);
