@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.62 2003/03/20 18:46:05 deuce Exp $
+# $Id: GNUmakefile,v 1.63 2003/03/29 04:53:38 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -181,7 +181,7 @@ CON_OBJS	= $(EXEODIR)/sbbscon.o $(EXEODIR)/conwrap.o \
 FTP_OBJS	= $(LIBODIR)/ftpsrvr.o
 MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o \
  		  $(LIBODIR)/mime.o
-WEB_OBJS	= $(LIBODIR)/websrvr.o $(LIBODIR)/sockwrap.o
+WEB_OBJS	= $(LIBODIR)/websrvr.o $(LIBODIR)/sockwrap.o $(LIBODIR)/base64.o
 SERVICE_OBJS= $(LIBODIR)/services.o
 
 MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(WEB_OBJS) \
@@ -226,6 +226,10 @@ $(LIBODIR)/mime.o: mime.c
 	@$(CC) $(CFLAGS) -DMAILSRVR_EXPORTS -o $@ -c $<		
 
 $(LIBODIR)/websrvr.o: websrvr.c websrvr.h
+	@echo Compiling $<
+	@$(CC) $(CFLAGS) -DWEBSRVR_EXPORTS -o $@ -c $<
+
+$(LIBODIR)/base64.o: base64.c base64.h
 	@echo Compiling $<
 	@$(CC) $(CFLAGS) -DWEBSRVR_EXPORTS -o $@ -c $<
 
