@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.189 2004/10/21 19:34:09 deuce Exp $ */
+/* $Id: websrvr.c,v 1.190 2004/10/21 22:21:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1751,7 +1751,7 @@ static BOOL check_request(http_session_t * session)
 			,session->socket,path,root_dir);
 		return(FALSE);
 	}
-	if(stat(path,&sb)) {
+	if(stat(path,&sb) || IS_PATH_DELIM(*(lastchar(path)))) {
 		/* Check if sneaky CGI script */
 		if(!check_extra_path(session,path))
 		{
@@ -2713,7 +2713,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.189 $", "%*s %s", revision);
+	sscanf("$Revision: 1.190 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
