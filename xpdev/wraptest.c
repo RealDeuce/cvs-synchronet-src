@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.40 2003/05/08 09:31:54 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.41 2003/07/24 09:28:32 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -35,7 +35,7 @@ int main()
 {
 	char	str[128];
 	char	compiler[128];
-	char	fullpath[MAX_PATH+1];
+	char	fpath[MAX_PATH+1];
 	char*	path = ".";
 	char*	glob_pattern = "*wrap*";
 	int		i;
@@ -207,7 +207,7 @@ int main()
 	/* opendir (and other directory functions) test */
 	printf("\nopendir(%s) test\n",path);
 	getkey();
-	printf("\nDirectory of %s\n\n",FULLPATH(fullpath,path,sizeof(fullpath)));
+	printf("\nDirectory of %s\n\n",FULLPATH(fpath,path,sizeof(fpath)));
 	dir=opendir(path);
 	while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
 		t=fdate(dirent->d_name);
