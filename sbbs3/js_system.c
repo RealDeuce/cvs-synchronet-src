@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.76 2003/09/30 01:57:44 rswindell Exp $ */
+/* $Id: js_system.c,v 1.77 2003/10/01 23:56:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,7 @@ enum {
 	,SYS_PROP_MODS_DIR
 	,SYS_PROP_LOGS_DIR
 
-	/* clock() access */
+	/* msclock() access */
 	,SYS_PROP_CLOCK
 	,SYS_PROP_CLOCK_PER_SEC
 
@@ -284,10 +284,10 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 
 		case SYS_PROP_CLOCK:
-			JS_NewNumberValue(cx,clock(),vp);
+			JS_NewNumberValue(cx,msclock(),vp);
 			break;
 		case SYS_PROP_CLOCK_PER_SEC:
-			JS_NewNumberValue(cx,CLOCKS_PER_SEC,vp);
+			JS_NewNumberValue(cx,MSCLOCKS_PER_SEC,vp);
 			break;
 
 		case SYS_PROP_LOCAL_HOSTNAME:
