@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.229 2003/02/09 08:18:27 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.230 2003/02/15 04:03:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2662,6 +2662,10 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		|| (msg->idx.from==0 && msg->from_net.type==NET_NONE)
 		|| (msg->reverse_path!=NULL && *msg->reverse_path==0)) {
 		lprintf("0000 !Deleted undeliverable message from %s", msg->from);
+		i=smb_freemsgdat(smb,msg->hdr.offset,smb_getmsgdatlen(msg),1);
+		if(i!=SMB_SUCCESS)
+			lprintf("0000 !ERROR %d (%s) freeing data blocks for undeliverable message"
+				,i,smb->last_error);
 		return(TRUE);
 	}
 	
@@ -3117,7 +3121,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.229 $", "%*s %s", revision);
+	sscanf("$Revision: 1.230 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
