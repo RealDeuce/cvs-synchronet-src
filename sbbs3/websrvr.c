@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.306 2005/04/07 23:18:10 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.304 2005/04/06 13:30:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1742,11 +1742,6 @@ static BOOL get_request_headers(http_session_t * session)
 			}
 		}
 	}
-
-	if(!(session->req.vhost[0]))
-		SAFECOPY(session->req.vhost, startup->host_name);
-	if(!(session->req.host[0]))
-		SAFECOPY(session->req.host, startup->host_name);
 	return TRUE;
 }
 
@@ -1754,7 +1749,9 @@ static BOOL get_fullpath(http_session_t * session)
 {
 	char	str[MAX_PATH+1];
 
-	if(session->req.vhost[0] && startup->options&WEB_OPT_VIRTUAL_HOSTS) {
+	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
+		session->req.vhost[0]=0;
+	if(session->req.vhost[0]) {
 		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.vhost);
 		if(isdir(str))
 			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.vhost,session->req.physical_path);
@@ -3369,7 +3366,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.306 $", "%*s %s", revision);
+	sscanf("$Revision: 1.304 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

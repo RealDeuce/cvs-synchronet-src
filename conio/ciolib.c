@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.36 2005/04/10 08:41:59 deuce Exp $ */
+/* $Id: ciolib.c,v 1.35 2005/02/21 03:39:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -698,7 +698,7 @@ int ciolib_cprintf(char *fmat, ...)
 		ciolib_cputs(str);
 	else
 		ret=EOF;
-#ifndef _MSC_VER
+#ifndef _WIN32
 	free(str);
 #endif
     return(ret);
