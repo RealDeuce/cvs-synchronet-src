@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.89 2002/07/24 10:33:06 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.90 2002/08/06 09:33:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,8 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 #include "telnet.h"
+
+#include <signal.h>			// kill()
 
 #ifdef __unix__
 	#include <sys/wait.h>	// WEXITSTATUS
