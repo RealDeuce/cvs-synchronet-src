@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.224 2004/09/08 03:39:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.222 2004/08/04 08:28:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,12 +810,12 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL net_addr(net_t* net);
 	DLLEXPORT BOOL		DLLCALL validattr(char a);
 	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
-	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
-	DLLEXPORT char *	DLLCALL rot13(char* str);
-
-	/* msg_id.c */
+	DLLEXPORT ushort	DLLCALL subject_crc(char *subj);
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg);
 	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg);
+	DLLEXPORT BOOL		DLLCALL get_msg_by_id(scfg_t* scfg, smb_t* smb, char* id, smbmsg_t* msg);
+	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
+	DLLEXPORT char *	DLLCALL rot13(char* str);
 
 
 	/* date_str.c */
