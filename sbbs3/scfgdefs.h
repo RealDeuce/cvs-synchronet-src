@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.22 2003/02/01 03:04:18 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.23 2003/03/02 07:46:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -480,6 +480,7 @@ typedef struct
 	ushort	node_sem_check; 	/* Seconds between semaphore checks */
 	ushort	node_stat_check;	/* Seconds between statistic checks */
 
+	char	new_install;		/* This is a brand new installation */
 	char 	new_pass[41];		/* New User Password */
 	char 	new_magic[21];		/* New User Magic Word */
 	char 	new_sif[LEN_SIFNAME+1]; 		/* New User SIF Questionaire */

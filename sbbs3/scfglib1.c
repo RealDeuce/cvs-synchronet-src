@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.48 2003/02/07 03:50:53 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.49 2003/03/02 07:46:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,7 +272,7 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	get_int(cfg->new_prot,instream);
 	if(cfg->new_prot<SP)
 		cfg->new_prot=SP;
-	get_int(c,instream);
+	get_int(cfg->new_install,instream);
 	for(i=0;i<7;i++)
 		get_int(n,instream);
 
