@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.7 2001/12/20 01:26:13 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.8 2001/12/20 01:40:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,10 +86,10 @@ extern "C" void delfattach(scfg_t* cfg, smbmsg_t* msg)
 	char *tp,*sp,*p;
 
 	if(msg->idx.to==0) {	/* netmail */
-		sprintf(str,"%s%04u.out/%s"
+		sprintf(str,"%sfile/%04u.out/%s"
 			,cfg->data_dir,msg->idx.from,getfname(msg->subj));
 		remove(str);
-		sprintf(str,"%s%04u.out"
+		sprintf(str,"%sfile/%04u.out"
 			,cfg->data_dir,msg->idx.from);
 		rmdir(str);
 		return;
