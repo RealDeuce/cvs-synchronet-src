@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.14 2002/02/02 04:01:10 rswindell Exp $ */
+/* $Id: userdat.h,v 1.15 2002/03/16 00:14:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,8 +82,8 @@ DLLEXPORT BOOL	DLLCALL del_lastuser(scfg_t* cfg);
 DLLEXPORT char	DLLCALL getage(scfg_t* cfg, char *birthdate);
 DLLEXPORT char*	DLLCALL username(scfg_t* cfg, int usernumber, char * str);
 DLLEXPORT char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name);
-DLLEXPORT int	DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, char lockit);
-DLLEXPORT int	DLLCALL putnodedat(scfg_t* cfg, uint number, node_t *node);
+DLLEXPORT int	DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* file);
+DLLEXPORT int	DLLCALL putnodedat(scfg_t* cfg, uint number, node_t *node, int file);
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen, char *dat
 							,BOOL del);
 
