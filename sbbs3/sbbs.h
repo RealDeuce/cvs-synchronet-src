@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.102 2002/03/08 17:58:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.103 2002/03/11 18:28:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,9 +107,6 @@
 	#endif
 	#include <jsapi.h>
 	#include <jsprf.h>		/* JS-safe sprintf functions */
-
-	#define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
-	#define JAVASCRIPT_CONTEXT_STACK	(16*1024)
 #endif
 
 /***********************/
@@ -190,6 +187,7 @@ public:
 	JSRuntime*	js_runtime;
 	JSContext*	js_cx;
 	JSObject*	js_glob;
+	ulong		js_loop;
 	long		js_execfile(char *fname);
 	bool		js_init(void);
 
