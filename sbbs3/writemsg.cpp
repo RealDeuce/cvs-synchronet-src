@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.43 2003/05/09 03:32:11 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.44 2003/05/14 20:24:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -581,7 +581,7 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 		menu("msgtabs");
 	else {
 		for(i=0;i<79;i++) {
-			if(i%TABSIZE || !i)
+			if(i%EDIT_TABSIZE || !i)
 				outchar('-');
 			else 
 				outchar('+');
