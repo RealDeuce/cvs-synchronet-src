@@ -2,7 +2,7 @@
 
 /* DOS's kbhit and getch functions for Unix - Casey Martin 2000 */
 
-/* $Id: conwrap.c,v 1.11 2004/11/02 22:48:50 deuce Exp $ */
+/* $Id: conwrap.c,v 1.10 2004/07/20 23:17:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,7 +109,7 @@ void _termios_setup(void)
     atexit(_termios_reset);
 
     /* install the Ctrl-Z handler */
-    signal(SIGTSTP, _sighandler_stop);
+    signal(SIGSTOP, _sighandler_stop);
     signal(SIGCONT, _sighandler_cont);
 }
 
@@ -124,9 +124,6 @@ int kbhit(void)
 		if(!istty)
 			return 0;
 	}
-
-    if(!beensetup)
-    	_termios_setup();
 
 	/* set up select() args */
 	FD_ZERO(&inp);
