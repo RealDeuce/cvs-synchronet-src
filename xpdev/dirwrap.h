@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.22 2003/07/03 01:11:11 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.23 2003/07/03 01:34:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,10 @@
 
 #if defined(__unix__)
 	#include <sys/param.h>	/* PATH_MAX */
+#endif
+
+#if defined(INCLUDE_PATHS_H)
+	#include <paths.h>		/* _PATHS_* macros */
 #endif
 
 #include "gen_defs.h"	/* ulong */
