@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.25 2004/11/17 01:52:34 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.22 2004/09/17 07:57:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,6 +100,9 @@ bool sbbs_t::bulkmail(uchar *ar)
 	smb_hfield_str(&msg,SENDEREXT,str);
 	msg.idx.from=useron.number;
 
+	/* Security logging */
+	msg_client_hfields(&msg,&client);
+
 	smb_hfield_str(&msg,SUBJECT,title);
 	msg.idx.subj=smb_subject_crc(title);
 
@@ -108,7 +111,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, msgbuf);
+	i=savemsg(&cfg, &smb, &msg, msgbuf);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);
@@ -136,7 +139,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	else
 		while(online) {
 			bputs(text[EnterAfterLastDestUser]);
-			if(!getstr(str,LEN_ALIAS,cfg.uq&UQ_NOUPRLWR ? K_NONE:K_UPRLWR))
+			if(!getstr(str,LEN_ALIAS,K_UPRLWR))
 				break;
 			if((i=finduser(str))!=0) {
 				if((x=bulkmailhdr(&smb, &msg, i))!=SMB_SUCCESS) {
@@ -174,7 +177,7 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 {
     char		str[256];
     int			i,j;
-	ushort		nettype=NET_UNKNOWN;
+	ushort		nettype;
     node_t		node;
 	user_t		user;
 	smbmsg_t	newmsg;
@@ -191,8 +194,9 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 
 	if(cfg.sys_misc&SM_FWDTONET && user.misc&NETMAIL && user.netmail[0]) {
 		bprintf(text[UserNetMail],user.netmail);
-		smb_hfield_netaddr(&newmsg,RECIPIENTNETADDR,user.netmail,&nettype);
-		smb_hfield_bin(&newmsg,RECIPIENTNETTYPE,nettype);
+		nettype=NET_INTERNET;
+		smb_hfield(&newmsg,RECIPIENTNETTYPE,sizeof(nettype),&nettype);
+		smb_hfield_str(&newmsg,RECIPIENTNETADDR,user.netmail);
 	} else {
 		sprintf(str,"%u",usernum);
 		smb_hfield_str(&newmsg,RECIPIENTEXT,str);
