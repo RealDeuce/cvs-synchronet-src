@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.11 2004/10/27 22:02:08 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.9 2003/08/28 00:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,11 +212,11 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 			l+=2; 
 		}
 		else {
-			if(str[l]=='\n') {
+			if(str[l]==LF) {
 				if(exatr) 	/* clear at newline for extra attr codes */
 					attr(LIGHTGRAY);
-				if(l==0 || str[l-1]!='\r')	/* expand sole LF to CR/LF */
-					outchar('\r');
+				if(l && str[l-1]!=CR)	/* convert sole LF to CR/LF */
+					outchar(CR);
 			}
 
 			/* ansi escape sequence */
@@ -239,7 +239,7 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 				if(i)					/* if valid string, go to top */
 					continue; 
 			}
-			if(str[l]!=CTRL_Z)
+			if(str[l]!=26)
 				outchar(str[l]);
 			l++; 
 		} 
@@ -258,3 +258,19 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 	return(str[l]);
 }
 
+/****************************************************************************/
+/* Displays a text file to the screen										*/
+/****************************************************************************/
+void sbbs_t::putmsg_fp(FILE *fp, long length, long mode)
+{
+	char*	buf;
+
+	if((buf=(char*)MALLOC(length+1))==NULL) {
+		errormsg(WHERE,ERR_ALLOC,"fp",length+1);
+		return; 
+	}
+	memset(buf,0,length+1);
+	fread(buf,sizeof(char),length,fp);
+	putmsg(buf,mode);
+	FREE(buf); 
+}

@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.70 2004/11/10 04:49:21 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.69 2004/09/16 10:10:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -534,11 +534,35 @@ static BOOL js_init(char** environ)
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if((js_glob=js_CreateGlobalObjects(js_cx, &scfg, js_global_functions
-		,time(NULL), host_name, SOCKLIB_DESC	/* system */
-		,&branch								/* js */
-		,NULL,INVALID_SOCKET					/* client */
-		))==NULL)
+	if((js_glob=js_CreateGlobalObject(js_cx, &scfg, js_global_functions))==NULL)
+		return(FALSE);
+
+	/* Internal JS Object */
+	if(js_CreateInternalJsObject(js_cx, js_glob, &branch)==NULL)
+		return(FALSE);
+
+	/* System Object */
+	if(js_CreateSystemObject(js_cx, js_glob, &scfg, time(NULL), host_name, SOCKLIB_DESC)==NULL)
+		return(FALSE);
+
+	/* Socket Class */
+	if(js_CreateSocketClass(js_cx, js_glob)==NULL)
+		return(FALSE);
+
+	/* MsgBase Class */
+	if(js_CreateMsgBaseClass(js_cx, js_glob, &scfg)==NULL)
+		return(FALSE);
+
+	/* File Class */
+	if(js_CreateFileClass(js_cx, js_glob)==NULL)
+		return(FALSE);
+
+	/* User class */
+	if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
+		return(FALSE);
+
+	/* Area Objects */
+	if(!js_CreateUserObjects(js_cx, js_glob, &scfg, NULL, NULL, NULL)) 
 		return(FALSE);
 
 	/* Environment Object (associative array) */
@@ -726,7 +750,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.70 $", "%*s %s", revision);
+	sscanf("$Revision: 1.69 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);

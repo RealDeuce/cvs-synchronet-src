@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.279 2004/11/08 02:17:18 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.271 2004/10/16 00:55:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1382,8 +1382,7 @@ static void send_thread(void* arg)
 
 	length=flength(xfer.filename);
 
-	if((fp=fnopen(NULL,xfer.filename,O_RDONLY|O_BINARY))==NULL	/* non-shareable open failed */
-		&& (fp=fopen(xfer.filename,"rb"))==NULL) {				/* shareable open failed */
+	if((fp=fopen(xfer.filename,"rb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !DATA ERROR %d opening %s",xfer.ctrl_sock,errno,xfer.filename);
 		sockprintf(xfer.ctrl_sock,"450 ERROR %d opening %s.",errno,xfer.filename);
 		if(xfer.tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
@@ -2322,6 +2321,7 @@ static void ctrl_thread(void* arg)
 	u_short		p1,p2;	/* For PORT command */
 	int			i;
 	int			rd;
+	int			file;
 	int			result;
 	int			lib;
 	int			dir;
@@ -3367,7 +3367,7 @@ static void ctrl_thread(void* arg)
 				/* QWK Packet */
 				if(startup->options&FTP_OPT_ALLOW_QWK/* && fexist(qwkfile)*/) {
 					if(detail) {
-						if(fexistcase(qwkfile)) {
+						if(fexist(qwkfile)) {
 							t=fdate(qwkfile);
 							l=flength(qwkfile);
 						} else {
@@ -3644,40 +3644,41 @@ static void ctrl_thread(void* arg)
 			sprintf(str,"%s.qwk",scfg.sys_id);
 			if(lib<0 && startup->options&FTP_OPT_ALLOW_QWK 
 				&& !stricmp(p,str) && !delecmd) {
-				if(!fexistcase(qwkfile)) {
-					lprintf(LOG_INFO,"%04d %s creating QWK packet...",sock,user.alias);
-					sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
-					if(!ftouch(str))
-						lprintf(LOG_ERR,"%04d !ERROR creating semaphore file: %s"
-							,sock, str);
-					t=time(NULL);
-					while(fexist(str)) {
-						if(time(NULL)-t>startup->qwk_timeout)
-							break;
-						mswait(1000);
-					}
-					if(fexist(str)) {
-						lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
-						sockprintf(sock,"451 Time-out waiting for packet creation.");
-						remove(str);
-						filepos=0;
-						continue;
-					}
-					if(!fexistcase(qwkfile)) {
-						lprintf(LOG_INFO,"%04d No QWK Packet created (no new messages)",sock);
-						sockprintf(sock,"550 No QWK packet created (no new messages)");
-						filepos=0;
-						continue;
-					}
+				lprintf(LOG_INFO,"%04d %s creating/updating QWK packet...",sock,user.alias);
+				sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
+				if((file=open(str,O_WRONLY|O_CREAT,S_IWRITE))==-1) {
+					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock, errno, str);
+					sockprintf(sock, "451 !ERROR %d creating semaphore file",errno);
+					filepos=0;
+					continue;
+				}
+				close(file);
+				t=time(NULL);
+				while(fexist(str)) {
+					if(time(NULL)-t>startup->qwk_timeout)
+						break;
+					mswait(1000);
+				}
+				if(fexist(str)) {
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
+					sockprintf(sock,"451 Time-out waiting for packet creation.");
+					remove(str);
+					filepos=0;
+					continue;
+				}
+				if(!fexist(qwkfile)) {
+					lprintf(LOG_INFO,"%04d No QWK Packet created (no new messages)",sock);
+					sockprintf(sock,"550 No QWK packet created (no new messages)");
+					filepos=0;
+					continue;
 				}
 				SAFECOPY(fname,qwkfile);
 				success=TRUE;
 				delfile=TRUE;
 				credits=FALSE;
-				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
-						,sock,user.alias,flength(fname)
-						,pasv_sock==INVALID_SOCKET ? "active":"passive");
+				lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
+					,sock,user.alias,flength(fname)
+					,pasv_sock==INVALID_SOCKET ? "active":"passive");
 			/* ASCII Index File */
 			} else if(startup->options&FTP_OPT_INDEX_FILE 
 				&& !stricmp(p,startup->index_file_name)
@@ -4470,7 +4471,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.279 $", "%*s %s", revision);
+	sscanf("$Revision: 1.271 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4557,7 +4558,6 @@ void DLLCALL ftp_server(void* arg)
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
-	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
 
 	do {
@@ -4671,11 +4671,12 @@ void DLLCALL ftp_server(void* arg)
 
 		if(startup->seteuid!=NULL)
 			startup->seteuid(FALSE);
-		result=retry_bind(server_socket, (struct sockaddr *) &server_addr,sizeof(server_addr)
-			,startup->bind_retry_count,startup->bind_retry_delay,"FTP Server",lprintf);
+		result=bind(server_socket, (struct sockaddr *) &server_addr,sizeof(server_addr));
 		if(startup->seteuid!=NULL)
 			startup->seteuid(TRUE);
 		if(result!=0) {
+			lprintf(LOG_ERR,"%04d !ERROR %d (%d) binding socket to port %u"
+				,server_socket, result, ERROR_VALUE,startup->port);
 			lprintf(LOG_ERR,"%04d %s", server_socket, BIND_FAILURE_HELP);
 			cleanup(1,__LINE__);
 			return;
@@ -4709,30 +4710,23 @@ void DLLCALL ftp_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(active_clients==0) {
-				if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
-					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
-						break;
-					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
-					if(startup->recycle_now==TRUE) {
-						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
-						startup->recycle_now=FALSE;
-						break;
-					}
-				}
-				if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
-						&& lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p))
-					|| (startup->shutdown_now==TRUE
-						&& lprintf(LOG_INFO,"0000 Shutdown semaphore signaled"))) {
-					startup->shutdown_now=FALSE;
-					terminate_server=TRUE;
+			if(active_clients==0 && !(startup->options&FTP_OPT_NO_RECYCLE)) {
+				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
+					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 					break;
 				}
+				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+					startup->recycle_now=TRUE;
+				if(startup->recycle_now==TRUE) {
+					lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
+					startup->recycle_now=FALSE;
+					break;
+				}
+			}
+			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
+				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
+				terminate_server=TRUE;
+				break;
 			}
 			/* now wait for connection */
 
@@ -4751,7 +4745,7 @@ void DLLCALL ftp_server(void* arg)
             		lprintf(LOG_NOTICE,"0000 FTP Server sockets closed");
 				else
 					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
-				continue;
+				break;
 			}
 
 			if(server_socket==INVALID_SOCKET || terminate_server)	/* terminated */
@@ -4838,8 +4832,6 @@ void DLLCALL ftp_server(void* arg)
 		if(!terminate_server) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
-			if(startup->recycle!=NULL)
-				startup->recycle(startup->cbdata);
 		}
 
 	} while(!terminate_server);

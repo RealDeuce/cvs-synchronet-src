@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.235 2004/11/10 04:48:38 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.233 2004/10/17 07:17:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,6 @@
 #include "filewrap.h"
 #include "sockwrap.h"
 #include "link_list.h"
-#include "msg_queue.h"
 
 #include "smblib.h"
 #include "ars_defs.h"
@@ -453,6 +452,7 @@ public:
 	void	show_msg(smbmsg_t* msg, long mode);
 	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
 	void	quotemsg(smbmsg_t* msg, int tails);
+	void	putmsg_fp(FILE *fp, long length, long mode);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum,char *dest, char *title, long mode
 				,uint subnum);
@@ -945,20 +945,9 @@ extern "C" {
 
 	/* js_global.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods);
-	DLLEXPORT JSObject*	DLLCALL js_CreateGlobalObjects(JSContext* cx
-													,scfg_t* cfg				/* common */
-													,jsSyncMethodSpec* methods	/* global */
-													,time_t uptime				/* system */
-													,char* host_name			/* system */
-													,char* socklib_desc			/* system */
-													,js_branch_t* js_branch		/* js */
-													,client_t* client			/* client */
-													,SOCKET client_socket		/* client */
-													);
 
 	/* js_internal.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
-	DLLEXPORT JSBool	DLLCALL js_GenericBranchCallback(JSContext *cx, js_branch_t*);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -1000,10 +989,6 @@ extern "C" {
 	DLLEXPORT void		DLLCALL js_timeval(JSContext* cx, jsval val, struct timeval* tv);
 	DLLEXPORT SOCKET	DLLCALL js_socket(JSContext *cx, jsval val);
 
-	/* js_queue.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateQueueClass(JSContext* cx, JSObject* parent);
-	DLLEXPORT JSObject* DLLCALL js_CreateQueueObject(JSContext* cx, JSObject* parent
-													,char *name, msg_queue_t* q);
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
