@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.74 2003/06/12 09:03:43 rswindell Exp $ */
+/* $Id: userdat.c,v 1.75 2003/06/26 06:42:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
