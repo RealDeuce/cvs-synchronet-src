@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.43 2003/04/30 23:50:22 rswindell Exp $ */
+/* $Id: str.cpp,v 1.44 2003/05/06 02:03:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -922,10 +922,9 @@ bool sbbs_t::spy(uint i /* node_num */)
 		&& client_socket!=INVALID_SOCKET 
 		&& spy_socket[i-1]!=INVALID_SOCKET 
 		&& !msgabort()) {
-		in=incom();
+		in=incom(1000);
 		if(in==NOINP) {
 			gettimeleft();
-			YIELD();
 			continue;
 		}
 		ch=in;
