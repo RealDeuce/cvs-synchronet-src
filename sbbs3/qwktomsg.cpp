@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.32 2004/09/08 03:41:23 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.27 2004/08/27 09:55:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	ushort	xlat;
 	long	l,bodylen,taillen,length;
 	bool	header_cont=false;
-	bool	success=true;
 	ulong	crc,block,blocks;
 	smbmsg_t	msg;
 	smbmsg_t	remsg;
@@ -106,7 +105,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 
 	hdrblk[116]=0;	// don't include number of blocks in "re: msg number"
 	if(!(useron.rest&FLAG('Q')) && !fromhub)
-		msg.hdr.thread_back=atol((char *)hdrblk+108);
+		msg.hdr.thread_orig=atol((char *)hdrblk+108);
 
 	if((uint)subnum==INVALID_SUB) { 		/* E-mail */
 		msg.idx.to=touser;
@@ -126,7 +125,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	sprintf(str,"%25.25s",hdrblk+71);   /* Subject */
 	truncsp(str);
 	smb_hfield_str(&msg,SUBJECT,str);
-	msg.idx.subj=smb_subject_crc(str);
+	msg.idx.subj=subject_crc(str);
 
 	/********************************/
 	/* Convert the QWK message text */
@@ -433,33 +432,22 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 
 	if(msg.reply_id!=NULL 
-		&& smb_getmsgidx_by_msgid(&smb,&remsg,msg.reply_id)==SMB_SUCCESS)
-		msg.hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
-
-	if(msg.hdr.thread_back
+		&& get_msg_by_id(&cfg, &smb, msg.reply_id, &remsg)==TRUE) {
+		msg.hdr.thread_orig=remsg.hdr.number;	/* needed for thread linkage */
+		smb_freemsgmem(&remsg);
+	}
+	if(msg.hdr.thread_orig
 		&& smb_getstatus(&smb)==SMB_SUCCESS) {
-
 		memset(&remsg,0,sizeof(remsg));
-		remsg.hdr.number=msg.hdr.thread_back;
-
+		remsg.hdr.number=msg.hdr.thread_orig;
 		if(smb_getmsgidx(&smb,&remsg)==SMB_SUCCESS
 			&& smb_lockmsghdr(&smb,&remsg)==SMB_SUCCESS) {
 
-			if(smb_getmsghdr(&smb,&remsg)==SMB_SUCCESS) {
-
-				/* Add RFC-822 Reply-ID (generate if necessary) */
-				if(msg.reply_id==NULL)
-					smb_hfield_str(&msg,RFC822REPLYID,get_msgid(&cfg,smb.subnum,&remsg));
-
-				/* Add FidoNet Reply if original message has FidoNet MSGID */
-				if(msg.ftn_reply==NULL && remsg.ftn_msgid!=NULL)
-					smb_hfield_str(&msg,FIDOREPLYID,remsg.ftn_msgid);
-
+			if(smb_getmsghdr(&smb,&remsg)==SMB_SUCCESS)
 				smb_updatethread(&smb,&remsg,smb.status.last_msg+1);
-				smb_freemsgmem(&remsg);
-			}
 
 			smb_unlockmsghdr(&smb,&remsg);
+			smb_freemsgmem(&remsg);
 		}
 	}
 
@@ -509,16 +497,13 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 	fflush(smb.sdt_fp);
 
-	if((i=smb_addmsghdr(&smb,&msg,storage))!=SMB_SUCCESS) {	// calls smb_unlocksmbhdr() 
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-		smb_freemsg_dfields(&smb,&msg,1);
-		success=false;
-	}
+	if((i=smb_addmsghdr(&smb,&msg,storage))!=0)	// calls smb_unlocksmbhdr() 
+		errormsg(WHERE,ERR_WRITE,smb.file,i);
 
 	smb_freemsgmem(&msg);
 
 	LFREE(body);
 	LFREE(tail);
 
-	return(success);
+	return(true);
 }
