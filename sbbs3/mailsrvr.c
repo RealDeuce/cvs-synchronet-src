@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.254 2003/05/09 03:38:48 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.255 2003/05/17 03:05:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2019,7 +2019,7 @@ static void smtp_thread(void* arg)
 
 				rcpt_count=0;
 				while(!feof(rcptlst) && rcpt_count<startup->max_recipients) {
-					if((i=smb_copymsgmem(&newmsg,&msg))!=0) {
+					if((i=smb_copymsgmem(&smb,&newmsg,&msg))!=0) {
 						lprintf("%04d !SMTP ERROR %d (%s) copying message"
 							,socket, i, smb.last_error);
 						break;
@@ -3271,7 +3271,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.254 $", "%*s %s", revision);
+	sscanf("$Revision: 1.255 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
