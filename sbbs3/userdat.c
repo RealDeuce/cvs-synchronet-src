@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.90 2005/01/25 04:53:54 rswindell Exp $ */
+/* $Id: userdat.c,v 1.91 2005/02/09 21:35:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1472,7 +1472,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				break;
 			case AR_RANDOM:
-				n=sbbs_random(i+1);
+				n=xp_random(i+1);
 				if((equal && n!=i) || (!equal && n<i))
 					result=not;
 				else
