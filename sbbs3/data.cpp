@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.5 2000/12/11 23:21:11 rswindell Exp $ */
+/* $Id: data.cpp,v 1.6 2001/04/10 01:11:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,12 +108,12 @@ uint sbbs_t::finduser(char *instr)
 /****************************************************************************/
 /* Returns the number of files in the directory 'dirnum'                    */
 /****************************************************************************/
-int sbbs_t::getfiles(uint dirnum)
+long getfiles(scfg_t* cfg, uint dirnum)
 {
 	char str[256];
 	long l;
 
-	sprintf(str,"%s%s.ixb",cfg.dir[dirnum]->data_dir, cfg.dir[dirnum]->code);
+	sprintf(str,"%s%s.ixb",cfg->dir[dirnum]->data_dir, cfg->dir[dirnum]->code);
 	l=flength(str);
 	if(l>0L)
 		return(l/F_IXBSIZE);
