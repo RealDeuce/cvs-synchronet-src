@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.246 2005/01/28 04:03:37 deuce Exp $ */
+/* $Id: sbbs.h,v 1.243 2004/12/09 08:07:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,6 +113,7 @@
 #endif
 
 /* xpdev */
+#define LINK_LIST_THREADSAFE
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
@@ -782,7 +783,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, ulong* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -922,11 +923,8 @@ extern "C" {
 		DWORD*		clients;
 	} js_server_props_t;
 
-	enum {
-		 JSTYPE_ARRAY=JSTYPE_LIMIT
-		,JSTYPE_ALIAS
-		,JSTYPE_UNDEF
-	};
+	#define JSTYPE_ARRAY JSTYPE_LIMIT
+	#define JSTYPE_ALIAS JSTYPE_LIMIT+1
 
 	#ifdef _DEBUG	/* String compiled into debug build only, for JS documentation generation */
 		#define	JSDOCSTR(s)	s
