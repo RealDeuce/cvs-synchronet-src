@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.18 2003/01/04 15:35:19 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.19 2003/01/30 23:13:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,6 +191,18 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		}
 
 		j=cfg.qhub[hubnum]->sub[j];
+
+		/* TWIT FILTER */
+		sprintf(fname,"%stwitlist.cfg",cfg.ctrl_dir);
+		sprintf(str,"%25.25s",block+46);  /* From user */
+		truncsp(str);
+
+		if(findstr(str,fname)) {
+			eprintf("!Filtering post from twit (%s) on %s %s"
+				,str
+				,cfg.grp[cfg.sub[j]->grp]->sname,cfg.sub[j]->lname); 
+			continue; 
+		}
 
 		if(j!=lastsub) {
 
