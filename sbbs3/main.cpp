@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.214 2002/12/19 22:14:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.215 2002/12/30 05:26:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1644,7 +1644,8 @@ void event_thread(void* arg)
 					&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.event[i]->time
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
 				&& sbbs->cfg.event[i]->days&(1<<now_tm.tm_wday)
-				&& (sbbs->cfg.event[i]->mday==0 || sbbs->cfg.event[i]->mday==now_tm.tm_mday))) 
+				&& (sbbs->cfg.event[i]->mdays==0 
+					|| sbbs->cfg.event[i]->mdays&(1<<now_tm.tm_mday)))) 
 			{
 				if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
 
