@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.42 2004/09/16 08:59:32 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.40 2004/09/11 09:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -443,13 +443,4 @@ char* DLLCALL truncnl(char* str)
 	str[c]=0;
 
 	return(str);
-}
-
-/****************************************************************************/
-/* Return errno from the proper C Library implementation					*/
-/* (single/multi-threaded)													*/
-/****************************************************************************/
-int DLLCALL	get_errno(void)
-{
-	return(errno);
 }
