@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.199 2002/11/05 02:54:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.200 2002/11/09 10:34:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1532,8 +1532,8 @@ static void smtp_thread(void* arg)
 							break;
 						truncsp(rcpt_addr);
 						putsmsg(&scfg,usernum,telegram_buf);
-						lprintf("%04d SMTP Created telegram from %s to %s <%s>"
-							,socket, sender_addr, rcpt_name, rcpt_addr);
+						lprintf("%04d SMTP Created telegram (%ld bytes) from %s to %s <%s>"
+							,socket, length, sender_addr, rcpt_name, rcpt_addr);
 						rcpt_count++;
 					}
 					free(telegram_buf);
@@ -2039,7 +2039,7 @@ static void smtp_thread(void* arg)
 			else
 				p++;
 
-			truncstr(str,"> ");
+			truncstr(str,">");	/* was truncating at space too */
 
 			forward=FALSE;
 			no_forward=FALSE;
@@ -2866,7 +2866,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.199 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.200 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
