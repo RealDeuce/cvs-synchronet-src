@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.154 2002/12/06 01:17:09 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.155 2002/12/08 22:42:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -600,7 +600,7 @@ public:
 	bool	create_bimodem_pth(void);
 	void	batch_upload(void);
 	void	batch_download(int xfrprot);
-	void	start_batch_download(void);
+	BOOL	start_batch_download(void);
 
 	/* tmp_xfer.cpp */
 	void	temp_xfer(void);
