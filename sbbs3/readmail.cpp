@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.29 2004/09/08 03:41:23 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.30 2004/10/21 08:43:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -436,7 +436,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			case 'F':  /* Forward last piece */
 				domsg=0;
 				bputs(text[ForwardMailTo]);
-				if(!getstr(str,LEN_ALIAS,K_UPRLWR))
+				if(!getstr(str,LEN_ALIAS,cfg.uq&UQ_NOUPRLWR ? K_NONE:K_UPRLWR))
 					break;
 				i=finduser(str);
 				if(!i)

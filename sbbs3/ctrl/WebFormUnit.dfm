@@ -1,11 +1,10 @@
-object TelnetForm: TTelnetForm
-  Left = 596
-  Top = 341
-  Width = 350
-  Height = 214
-  Caption = 'Telnet Server'
+object WebForm: TWebForm
+  Left = 548
+  Top = 684
+  Width = 462
+  Height = 229
+  Caption = 'Web Server'
   Color = clBtnFace
-  UseDockManager = True
   DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
@@ -14,14 +13,12 @@ object TelnetForm: TTelnetForm
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  Position = poDefault
-  OnHide = FormHide
   PixelsPerInch = 120
   TextHeight = 16
   object ToolBar: TToolBar
     Left = 0
     Top = 0
-    Width = 342
+    Width = 454
     Height = 25
     Caption = 'ToolBar'
     EdgeBorders = []
@@ -33,7 +30,7 @@ object TelnetForm: TTelnetForm
     object StartButton: TToolButton
       Left = 0
       Top = 0
-      Action = MainForm.TelnetStart
+      Action = MainForm.WebStart
       Grouped = True
       ParentShowHint = False
       ShowHint = True
@@ -41,7 +38,7 @@ object TelnetForm: TTelnetForm
     object StopButton: TToolButton
       Left = 23
       Top = 0
-      Action = MainForm.TelnetStop
+      Action = MainForm.WebStop
       Grouped = True
       ParentShowHint = False
       ShowHint = True
@@ -49,7 +46,7 @@ object TelnetForm: TTelnetForm
     object RecycleButton: TToolButton
       Left = 46
       Top = 0
-      Action = MainForm.TelnetRecycle
+      Action = MainForm.WebRecycle
     end
     object ToolButton1: TToolButton
       Left = 69
@@ -62,7 +59,7 @@ object TelnetForm: TTelnetForm
     object ConfigureButton: TToolButton
       Left = 77
       Top = 0
-      Action = MainForm.TelnetConfigure
+      Action = MainForm.WebConfigure
       ParentShowHint = False
       ShowHint = True
     end
@@ -110,8 +107,8 @@ object TelnetForm: TTelnetForm
   object Log: TMemo
     Left = 0
     Top = 25
-    Width = 342
-    Height = 156
+    Width = 454
+    Height = 171
     Align = alClient
     ReadOnly = True
     ScrollBars = ssBoth
