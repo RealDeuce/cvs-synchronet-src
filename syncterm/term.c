@@ -1,5 +1,7 @@
 #include <genwrap.h>
 #include <ciolib.h>
+#include <cterm.h>
+#include <mouse.h>
 #include <keys.h>
 
 #include "rlogin.h"
@@ -47,10 +49,17 @@ void doterm(void)
 
 		/* Get local input */
 		while(kbhit()) {
+			struct mouse_event mevent;
 			key=getch();
 			switch(key) {
+				case 0xff:
 				case 0:
-					switch(getch()<<8) {
+					key|=getch()<<8;
+					switch(key) {
+						case CIO_KEY_MOUSE:
+							getmouse(&mevent);
+							break;
+
 						case CIO_KEY_LEFT:
 							rlogin_send("\033[D",3,100);
 							break;
@@ -84,12 +93,9 @@ void doterm(void)
 						case CIO_KEY_F(4):
 							rlogin_send("\033Ox",3,100);
 							break;
-#ifdef __unix__
-						case 128|'S':	/* Under curses, ALT sets the high bit of the char */
-						case 128|'s':	/* Under curses, ALT sets the high bit of the char */
+						case 0x1f00:	/* ALT-S */
 							viewscroll();
 							break;
-#endif
 					}
 					break;
 				case 17:	/* CTRL-Q */
@@ -118,7 +124,6 @@ void doterm(void)
 					
 			}
 		}
-		if(!rcvtimeo)
-			SLEEP(1);
+		SLEEP(1);
 	}
 }
