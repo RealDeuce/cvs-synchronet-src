@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2004/09/12 12:38:31 deuce Exp $
+# $Id: GNUmakefile,v 1.4 2004/09/12 23:51:42 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -17,11 +17,19 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
 
-CFLAGS += -I$(XPDEV_SRC) $(CIOLIB_CFLAGS)
+CFLAGS += -I$(XPDEV_SRC) $(CIOLIB-MT_CFLAGS)
+
+lib: $(LIBODIR) $(UIFCLIB)
+mtlib: $(LIBODIR) $(UIFCLIB-MT)
 
 # UIFC Library Link Rule
-$(UIFCLIB): $(OBJS)
+$(UIFCLIB): $(OBJODIR) $(OBJS)
 	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $^
+	$(QUIET)ar rc $@ $(OBJS)
 	$(QUIET)ranlib $@
 
+# MT-UIFC Library Link Rule
+$(UIFCLIB-MT): $(MTOBJODIR) $(MT_OBJS)
+	@echo Creating $@ ...
+	$(QUIET)ar rc $@ $(MT_OBJS)
+	$(QUIET)ranlib $@
