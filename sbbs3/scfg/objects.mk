@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for Synchronet SCFG
 
-# $Id: objects.mk,v 1.11 2004/04/08 00:26:32 rswindell Exp $
+# $Id: objects.mk,v 1.10 2004/03/15 23:15:33 rswindell Exp $
 
 # LIBODIR, SBBSLIBODIR, SLASH, and OFILE must be pre-defined
 
@@ -21,6 +21,7 @@ OBJS	=	$(LIBODIR)$(SLASH)scfg.$(OFILE)\
             $(LIBODIR)$(SLASH)scfglib1.$(OFILE)\
             $(LIBODIR)$(SLASH)smblib.$(OFILE)\
             $(LIBODIR)$(SLASH)scfglib2.$(OFILE)\
+            $(LIBODIR)$(SLASH)ars.$(OFILE)\
             $(LIBODIR)$(SLASH)load_cfg.$(OFILE)\
             $(LIBODIR)$(SLASH)nopen.$(OFILE)\
             $(LIBODIR)$(SLASH)crc16.$(OFILE)\

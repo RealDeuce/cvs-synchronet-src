@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.156 2004/04/15 11:57:22 rswindell Exp $ */
+/* $Id: services.c,v 1.155 2004/03/25 04:20:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1419,10 +1419,15 @@ void DLLCALL services_terminate(void)
 {
 	DWORD i;
 
-   	lprintf(LOG_INFO,"0000 Services terminate");
 	terminated=TRUE;
-	for(i=0;i<services;i++)
-		service[i].terminated=TRUE;
+	for(i=0;i<services;i++) {
+		if(service[i].socket==INVALID_SOCKET)
+			continue;
+		if(service[i].options&SERVICE_OPT_STATIC)
+			continue;
+		close_socket(service[i].socket);
+		service[i].socket=INVALID_SOCKET;
+	}
 }
 
 #define NEXT_FIELD(p)	FIND_WHITESPACE(p); SKIP_WHITESPACE(p)
@@ -1572,8 +1577,7 @@ static void cleanup(int code)
 #endif
 
 	thread_down();
-	if(terminated || code)
-		lprintf(LOG_DEBUG,"#### Services thread terminated (%lu clients served)",served);
+    lprintf(LOG_DEBUG,"#### Services thread terminated (%lu clients served)",served);
 	status("Down");
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
@@ -1586,7 +1590,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.156 $", "%*s %s", revision);
+	sscanf("$Revision: 1.155 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1652,7 +1656,7 @@ void DLLCALL services_thread(void* arg)
 #endif
 
 	/* Setup intelligent defaults */
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=5;
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
 

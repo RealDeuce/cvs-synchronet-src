@@ -2,7 +2,7 @@
 
 /* Unix-to-unix encoding/decoding routines */
 
-/* $Id: uucode.c,v 1.4 2004/04/08 05:21:32 rswindell Exp $ */
+/* $Id: uucode.c,v 1.3 2003/04/23 01:51:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,9 +62,8 @@ int uudecode(char *target, size_t tlen, const char *source, size_t slen)
 			break;
 		block=0;
 		while(block<len && wr<tlen && rd<slen) {
-			memset(cell,0,sizeof(cell));
 			/* Remove space bias */
-			for(i=0;i<sizeof(cell) && rd<slen;i++) {
+			for(i=0;i<sizeof(cell);i++) {
 				cell[i]=source[rd++];
 				if(cell[i]>=' ') cell[i]-=' ';
 			}

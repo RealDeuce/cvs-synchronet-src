@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.89 2004/04/08 03:32:57 rswindell Exp $ */
+/* $Id: js_system.c,v 1.88 2004/02/14 07:16:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -919,7 +919,7 @@ js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
 			return(JS_TRUE);
 		}
-		JS_ValueToInt32(cx,argv[0],(int32*)&t);
+		t=JSVAL_TO_INT(argv[0]);
 	}
 	unixtodstr(cfg,t,str);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
@@ -996,7 +996,6 @@ static JSBool
 js_hacklog(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uintN		i;
-	int32		i32=0;
 	char*		p;
 	char*		prot=NULL;
 	char*		user=NULL;
@@ -1010,12 +1009,11 @@ js_hacklog(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	memset(&addr,0,sizeof(addr));
 	for(i=0;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i])) {
-			JS_ValueToInt32(cx,argv[i],&i32);
+		if(JSVAL_IS_INT(argv[i])) {
 			if(addr.sin_addr.s_addr==0)
-				addr.sin_addr.s_addr=i32;
+				addr.sin_addr.s_addr=JSVAL_TO_INT(argv[i]);
 			else
-				addr.sin_port=(ushort)i32;
+				addr.sin_port=(ushort)JSVAL_TO_INT(argv[i]);
 			continue;
 		}
 		if(!JSVAL_IS_STRING(argv[i]))

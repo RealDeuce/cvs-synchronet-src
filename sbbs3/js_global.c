@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.112 2004/04/08 03:32:57 rswindell Exp $ */
+/* $Id: js_global.c,v 1.111 2004/02/19 23:06:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -309,7 +309,6 @@ js_ascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
 	char		str[2];
-	int32		i=0;
 	JSString*	js_str;
 
 	if(JSVAL_IS_STRING(argv[0])) {	/* string to ascii-int */
@@ -322,8 +321,7 @@ js_ascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	/* ascii-int to str */
-	JS_ValueToInt32(cx,argv[0],&i);
-	str[0]=(uchar)i;
+	str[0]=(uchar)JSVAL_TO_INT(argv[0]);
 	str[1]=0;
 
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
@@ -339,7 +337,6 @@ js_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char		ch;
 	char*		p;
 	char		str[2];
-	int32		i=0;
 	JSString*	js_str;
 
 	if(JSVAL_IS_STRING(argv[0])) {	
@@ -347,10 +344,8 @@ js_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((p=JS_GetStringBytes(JSVAL_TO_STRING(argv[0])))==NULL) 
 			return(JS_FALSE);
 		ch=*p;
-	} else {
-		JS_ValueToInt32(cx,argv[0],&i);
-		ch=(char)i;
-	}
+	} else
+		ch=(char)JSVAL_TO_INT(argv[0]);
 
 	str[0]=toupper(ch)&~0x20;
 	str[1]=0;
