@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.2 2001/04/03 00:53:52 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.3 2001/04/03 15:31:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-extern "C" BOOL hacklog(scfg_t* cfg, char* prot, char* user, char* text, char* host, SOCKADDR_IN* addr)
+extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, char* host, SOCKADDR_IN* addr)
 {
 	char	hdr[512];
 	char	fname[MAX_PATH+1];
