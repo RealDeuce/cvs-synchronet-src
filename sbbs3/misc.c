@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.5 2000/10/24 07:55:55 rswindell Exp $ */
+/* $Id: misc.c,v 1.6 2000/10/26 15:06:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,7 +189,7 @@ void ucrc16(uchar ch, ushort *rcrc)
 /****************************************************************************/
 /* Returns CRC-16 of string (not including terminating NULL)				*/
 /****************************************************************************/
-ushort crc16(char *str)
+ushort DLLCALL crc16(char *str)
 {
 	int 	i=0;
 	ushort	crc=0;
@@ -239,7 +239,7 @@ int strsame(char *str1, char *str2)
 /****************************************************************************/
 /* Converts when_t.zone into ASCII format                                   */
 /****************************************************************************/
-char *zonestr(short zone)
+char* DLLCALL zonestr(short zone)
 {
     static char str[32];
 

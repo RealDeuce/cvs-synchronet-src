@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.4 2000/10/23 20:19:53 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.5 2000/10/26 15:06:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,23 +95,36 @@ typedef struct {
 #define FTP_OPT_NO_HOST_LOOKUP	(1<<11)
 #define FTP_OPT_MUTE			(1<<31)
 
+#ifdef DLLEXPORT
+#undef DLLEXPORT
+#endif
+#ifdef DLLCALL
+#undef DLLCALL
+#endif
+
 #ifdef _WIN32
 	#ifdef FTPSRVR_EXPORTS
-		#define FTP_CALL __declspec( dllexport )
+		#define DLLEXPORT __declspec(dllexport)
 	#else
-		#define FTP_CALL __declspec( dllimport )
+		#define DLLEXPORT __declspec(dllimport)
 	#endif
-#else	/* !_WIN32 */
-	#define FTP_CALL
+	#ifdef __BORLANDC__
+		#define DLLCALL __stdcall
+	#else
+		#define DLLCALL
+	#endif
+#else
+	#define DLLEXPORT
+	#define DLLCALL
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 /* arg is pointer to static ftp_startup_t */
-FTP_CALL void	ftp_server(void* arg);
-FTP_CALL void	ftp_terminate(void);
-FTP_CALL char*	ftp_ver(void);
+DLLEXPORT void	DLLCALL ftp_server(void* arg);
+DLLEXPORT void	DLLCALL ftp_terminate(void);
+DLLEXPORT char*	DLLCALL ftp_ver(void);
 #ifdef __cplusplus
 }
 #endif

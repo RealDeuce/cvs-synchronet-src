@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.2 2000/10/24 11:30:00 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.3 2000/10/26 15:06:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@
 /****************************************************************************/
 /* Initializes system and node configuration information and data variables */
 /****************************************************************************/
-BOOL load_cfg(scfg_t* cfg, char* text[])
+BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[])
 {
 	char	str[256],fname[13];
 	int		i;

@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.5 2000/10/26 02:54:44 rswindell Exp $ */
+/* $Id: smblib.h,v 1.6 2000/10/26 15:06:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,8 @@
 	#ifndef __FLAT__
 		#define __FLAT__
 	#endif
-	#ifdef SMB_VB_COMPATIBLE
-		#define SMBCALL __stdcall	/* VB Compatible */
+	#ifdef __BORLANDC__
+		#define SMBCALL __stdcall
 	#else
 		#define SMBCALL
 	#endif
