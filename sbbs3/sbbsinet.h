@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.7 2000/10/30 11:18:54 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.8 2000/11/04 02:26:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,8 @@
 #define EWOULDBLOCK		WSAEWOULDBLOCK
 #undef  ECONNRESET
 #define ECONNRESET		WSAECONNRESET
+#undef  ECONNABORTED
+#define ECONNABORTED	WSAECONNABORTED
 
 #define s_addr			S_un.S_addr
 
