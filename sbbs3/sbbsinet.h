@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.15 2001/11/14 21:06:52 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.16 2001/12/20 01:30:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,9 +62,10 @@
 #include <sys/time.h>	/* struct timeval */
 #include <arpa/inet.h>	/* inet_ntoa */
 #include <unistd.h>		/* close */
-#include <errno.h>		/* errno */
 
 #endif
+
+#include <errno.h>		/* errno */
 
 /**********************************/
 /* Socket Implementation-specific */
