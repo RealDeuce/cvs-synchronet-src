@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.7 2001/10/17 19:20:45 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.8 2001/12/01 02:02:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,7 +112,7 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	long		val=0;
+	int32		val=0;
     jsint       tiny;
 	sbbs_t*		sbbs;
 
