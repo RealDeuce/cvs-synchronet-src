@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.25 2001/12/01 02:47:12 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.26 2001/12/01 04:07:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,7 +227,7 @@ static int services_lputs(char *str)
 			,tm_p->tm_mon+1,tm_p->tm_mday
 			,tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
 
-	sprintf(logline,"%ssvc  %.*s",tstr,sizeof(logline)-2,str);
+	sprintf(logline,"%ssrvc %.*s",tstr,sizeof(logline)-2,str);
 	truncsp(logline);
 	lputs(logline);
 	
