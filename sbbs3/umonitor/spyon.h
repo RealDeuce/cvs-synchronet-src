@@ -1,8 +1,8 @@
-/* spyon.c */
+/* spyon.h */
 
 /* Synchronet for *nix node spy headers */
 
-/* $Id: spyon.h,v 1.1 2003/05/15 02:32:52 deuce Exp $ */
+/* $Id: spyon.h,v 1.2 2003/05/15 02:33:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
