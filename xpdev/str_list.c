@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.20 2004/07/28 10:05:20 rswindell Exp $ */
+/* $Id: str_list.c,v 1.21 2004/08/30 06:51:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -344,11 +344,7 @@ void strListFreeStrings(str_list_t list)
 {
 	size_t i;
 
-	if(list!=NULL) {
-		for(i=0; list[i]!=NULL; i++)
-			free(list[i]);
-		list[0]=NULL;	/* terminate */
-	}
+	FREE_LIST_ITEMS(list,i);
 }
 
 void strListFree(str_list_t* list)
