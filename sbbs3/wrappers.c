@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.31 2001/02/04 16:48:45 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.32 2001/04/10 01:28:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,6 +90,13 @@
 #ifdef __BORLANDC__
 	#pragma argsused
 #endif
+
+static int glob_compare( const void *arg1, const void *arg2 )
+{
+   /* Compare all of both strings: */
+   return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
+}
+
 int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 {
     struct	_finddata_t ff;
@@ -139,6 +146,10 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 
 	if(found==0)
 		return(GLOB_NOMATCH);
+
+	if(!(flags&GLOB_NOSORT)) {
+		qsort(glob->gl_pathv,found,sizeof(char*),glob_compare);
+	}
 
 	return(0);	/* success */
 }
@@ -384,7 +395,7 @@ ulong DLLCALL getfreediskspace(char* path)
 #else
 		if(avail.u.HighPart)
 #endif
-			return(~0);	/* 4GB max */
+			return(0x7fffffff);	/* 2GB max */
 
 #ifdef _ANONYMOUS_STRUCT
 		return(avail.LowPart);
