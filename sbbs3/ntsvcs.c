@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.14 2003/10/15 11:20:38 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.15 2003/10/16 09:59:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -268,7 +268,6 @@ static WORD event_type(int level)
 		case LOG_WARNING:
 			return(EVENTLOG_WARNING_TYPE);
 		case LOG_NOTICE:
-			return(EVENTLOG_SUCCESS);
 		case LOG_INFO:
 		case LOG_DEBUG:
 			return(EVENTLOG_INFORMATION_TYPE);
