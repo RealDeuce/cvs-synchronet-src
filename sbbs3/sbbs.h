@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.249 2005/02/18 07:35:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.245 2005/01/05 01:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,9 +113,7 @@
 #endif
 
 /* xpdev */
-#ifndef LINK_LIST_THREADSAFE
- #define LINK_LIST_THREADSAFE
-#endif
+#define LINK_LIST_THREADSAFE
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
@@ -778,10 +776,6 @@ public:
 extern "C" {
 #endif
 
-	/* main.cpp */
-	DLLEXPORT int		DLLCALL sbbs_random(int);
-	DLLEXPORT void		DLLCALL sbbs_srand(void);
-
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
@@ -949,9 +943,6 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
-	DLLEXPORT JSBool	DLLCALL jsval_isNaN(JSContext* cx, jsval);
-
-	#define JSVAL_IS_NUM(cx,v)	(JSVAL_IS_NUMBER(v) && !jsval_isNaN(cx,v))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
