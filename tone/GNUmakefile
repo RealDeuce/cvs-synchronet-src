@@ -1,6 +1,6 @@
-# tome/Makefile
+# tome/GNUmakefile
 #
-# $Id: Makefile,v 1.2 2004/09/12 22:13:55 deuce Exp $
+# $Id: GNUmakefile,v 1.1 2004/09/12 22:12:00 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -33,11 +33,11 @@
 # Note: If this box doesn't appear square, then you need to fix your tabs.	#
 #############################################################################
 
-SRC_ROOT	=	..
+SRC_ROOT	:=	..
 include $(SRC_ROOT)/build/Common.gmake
-LDFLAGS 	=	$(LDFLAGS) $(XPDEV_LDFLAGS)
-CFLAGS		=	$(CFLAGS) $(XPDEV_CFLAGS)
-LDLIBS		=	$(LDLIBS) -lm -lxpdev
+LDFLAGS 	+=	$(XPDEV_LDFLAGS)
+CFLAGS		+=	$(XPDEV_CFLAGS)
+LDLIBS		+=	-lm -lxpdev
 
 $(TONE):	$(OBJODIR)$(DIRSEP)tone$(OFILE)
 	@echo Creating $@
