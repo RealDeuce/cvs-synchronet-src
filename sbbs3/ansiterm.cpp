@@ -2,13 +2,13 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.5 2002/05/04 07:34:01 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.6 2003/04/30 23:46:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -104,7 +104,7 @@ void sbbs_t::ansi_getlines()
 		SYNC;
 		putcom("\x1b[s\x1b[99B\x1b[6n\x1b[u");
 		while(online && !rioctl(RXBC))
-			mswait(1);
+			YIELD();
 		inkey(0); }
 }
 
@@ -152,6 +152,6 @@ void sbbs_t::ansi_getxy(int* x, int* y)
         	lprintf("Node %d !TIMEOUT in ansi_getxy", cfg.node_num);
             break;
         }
-		mswait(1);
+		YIELD();
     }
 }
