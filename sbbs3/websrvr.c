@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.68 2003/03/11 08:39:31 deuce Exp $ */
+/* $Id: websrvr.c,v 1.69 2003/03/12 23:54:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1971,7 +1971,6 @@ static void respond(http_session_t * session)
 {
 	char		path[MAX_PATH+1];
 	BOOL		send_file=TRUE;
-	BOOL		success=FALSE;
 	JSScript*	js_script;
 	jsval		rval;
 
@@ -2012,11 +2011,7 @@ static void respond(http_session_t * session)
 				break;
 			}
 
-			if((success=JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval))!=TRUE) {
-				lprintf("%04d !JavaScript FAILED to execute script (%s)"
-					,session->socket,session->req.physical_path);
-				break;
-			}
+			JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 
 		} while(0);
 
@@ -2027,10 +2022,6 @@ static void respond(http_session_t * session)
 		if(session->req.fp!=NULL)
 			fclose(session->req.fp);
 
-		if(!success) {
-			send_error(session,"500 Internal Server Error");
-			return;
-		}
 		SAFECOPY(session->req.physical_path, path);
 	}
 
@@ -2182,7 +2173,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.68 $", "%*s %s", revision);
+	sscanf("$Revision: 1.69 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
