@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.48 2003/07/15 22:52:08 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.49 2003/08/20 10:01:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1085,7 +1085,7 @@ void packmsgs(ulong packable)
 		if(m<datoffsets) {				/* another index pointed to this data */
 			printf("duplicate index\n");
 			msg.hdr.offset=datoffset[m].new;
-			smb_incdat(&smb,datoffset[m].new,smb_getmsgdatlen(&msg),1); 
+			smb_incmsgdat(&smb,datoffset[m].new,smb_getmsgdatlen(&msg),1); 
 		} else {
 
 			if(!(smb.status.attr&SMB_HYPERALLOC))
@@ -1376,7 +1376,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.48 $", "%*s %s", revision);
+	sscanf("$Revision: 1.49 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
