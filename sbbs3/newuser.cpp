@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.22 2002/01/18 15:12:43 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.23 2002/01/20 12:52:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,7 +273,8 @@ void sbbs_t::newuser()
 			bputs(text[EnterYourSex]);
 			useron.sex=(char)getkeys("MF",0); }
 		while(cfg.uq&UQ_BIRTH && online) {
-			bputs(text[EnterYourBirthday]);
+			bprintf(text[EnterYourBirthday]
+				,cfg.sys_misc&SM_EURODATE ? "DD/MM/YY" : "MM/DD/YY");
 			if(gettmplt(useron.birth,"nn/nn/nn",K_EDIT)==8 && getage(&cfg,useron.birth))
 				break; }
 		if(yesno(text[UserInfoCorrectQ]))

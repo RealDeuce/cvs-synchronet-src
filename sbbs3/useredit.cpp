@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.16 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.17 2002/01/20 12:52:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,7 +180,8 @@ void sbbs_t::useredit(int usernumber)
 				putuserrec(&cfg,user.number,U_HANDLE,LEN_HANDLE,user.handle);
 				break;
 			case 'B':
-				bputs(text[EnterYourBirthday]);
+				bprintf(text[EnterYourBirthday]
+					,cfg.sys_misc&SM_EURODATE ? "DD/MM/YY" : "MM/DD/YY");
 				gettmplt(user.birth,"nn/nn/nn",K_LINE|K_EDIT|K_AUTODEL);
 				putuserrec(&cfg,user.number,U_BIRTH,LEN_BIRTH,user.birth);
 				break;
