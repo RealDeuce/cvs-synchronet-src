@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.16 2002/01/16 18:29:48 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.17 2002/01/16 22:17:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1205,7 +1205,7 @@ void sbbs_t::moduserdat(uint xtrnnum)
     FILE *	stream;
 
 	sprintf(startup,"%s/",cfg.xtrn[xtrnnum]->path);
-	if(cfg.xtrn[xtrnnum]->type==XTRN_RBBS || cfg.xtrn]xtrnnum]->type==XTRN_RBBS1) {
+	if(cfg.xtrn[xtrnnum]->type==XTRN_RBBS || cfg.xtrn[xtrnnum]->type==XTRN_RBBS1) {
 		sprintf(path,"%sEXITINFO.BBS"
 			,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? startup : cfg.node_dir);
 		if((file=nopen(path,O_RDONLY))!=-1) {
