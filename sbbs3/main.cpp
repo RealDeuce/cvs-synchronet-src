@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.286 2003/06/07 02:48:45 rswindell Exp $ */
+/* $Id: main.cpp,v 1.287 2003/06/26 01:33:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -865,8 +865,24 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
             continue;
         }
         if(inbuf[i]==TELNET_IAC || sbbs->telnet_cmdlen) {
-            sbbs->telnet_cmd[sbbs->telnet_cmdlen++]=inbuf[i];
-            if(sbbs->telnet_cmdlen==2 && inbuf[i]<TELNET_WILL) {
+			if(sbbs->telnet_cmdlen<sizeof(sbbs->telnet_cmd))
+				sbbs->telnet_cmd[sbbs->telnet_cmdlen++]=inbuf[i];
+			if(sbbs->telnet_cmdlen>=2 && sbbs->telnet_cmd[1]==TELNET_SB) {
+				if(inbuf[i]==TELNET_SE 
+					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
+					/* sub-option terminated */
+					if(sbbs->telnet_cmd[2]==TELNET_TERM_TYPE
+						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
+						sprintf(sbbs->terminal,"%.*s",sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						lprintf("Node %d %s telnet terminal type: %s"
+	                		,sbbs->cfg.node_num
+							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+							,sbbs->terminal);
+					}
+					sbbs->telnet_cmdlen=0;
+				}
+			}
+            else if(sbbs->telnet_cmdlen==2 && inbuf[i]<TELNET_WILL) {
 				if(startup->options&BBS_OPT_DEBUG_TELNET)
             		lprintf("Node %d %s telnet cmd: %s"
 	                	,sbbs->cfg.node_num
@@ -1946,6 +1962,8 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	SAFECOPY(client_name, name);
 	client_socket_dup=INVALID_SOCKET;
 	client_ident[0]=0;
+
+	terminal[0]=0;
 
 	/* Init some important variables */
 
