@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.23 2005/01/02 00:52:06 rswindell Exp $ */
+/* $Id: str_list.c,v 1.24 2005/03/26 06:51:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -191,10 +191,8 @@ char* strListAppend(str_list_t* list, const char* str, size_t index)
 	if(str==NULL)
 		return(NULL);
 
-	if((buf=(char*)malloc(strlen(str)+1))==NULL)
+	if((buf=strdup(str))==NULL)
 		return(NULL);
-
-	strcpy(buf,str);
 
 	if(index==STR_LIST_LAST_INDEX)
 		index=strListCount(*list);
@@ -221,10 +219,8 @@ char* strListInsert(str_list_t* list, const char* str, size_t index)
 	if(str==NULL)
 		return(NULL);
 
-	if((buf=(char*)malloc(strlen(str)+1))==NULL)
+	if((buf=strdup(str))==NULL)
 		return(NULL);
-
-	strcpy(buf,str);
 
 	return(str_list_insert(list,buf,index));
 }
