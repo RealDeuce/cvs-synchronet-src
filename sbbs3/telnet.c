@@ -2,7 +2,7 @@
 
 /* Synchronet telnet command/option functions */
 
-/* $Id: telnet.c,v 1.1 2000/10/10 11:25:51 rswindell Exp $ */
+/* $Id: telnet.c,v 1.2 2001/09/19 00:05:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 #include "gen_defs.h"
 #include "telnet.h"
 
-const char *telnet_cmd_desc(uchar cmd)
+const char* DLLCALL telnet_cmd_desc(uchar cmd)
 {
 	static char unknown[32];
 
@@ -112,7 +112,7 @@ char* telnet_option_descriptions[]={
 	,"TN3270E"
 };
 
-const char *telnet_opt_desc(uchar opt)
+const char* DLLCALL telnet_opt_desc(uchar opt)
 {
 	static char unknown[32];
 

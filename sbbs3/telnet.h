@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.1 2000/10/10 11:26:17 rswindell Exp $ */
+/* $Id: telnet.h,v 1.2 2001/09/19 00:05:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,11 +110,36 @@ enum {
 #define TELNET_MODE_ECHO	(1<<1)   
 #define TELNET_MODE_GATE	(1<<2)	// Pass-through telnet commands/responses
 
+#ifdef DLLEXPORT
+#undef DLLEXPORT
+#endif
+#ifdef DLLCALL
+#undef DLLCALL
+#endif
+
+#ifdef _WIN32
+	#ifdef SBBS_EXPORTS
+		#define DLLEXPORT __declspec(dllexport)
+	#else
+		#define DLLEXPORT __declspec(dllimport)
+	#endif
+	#ifdef __BORLANDC__
+		#define DLLCALL __stdcall
+	#else
+		#define DLLCALL
+	#endif
+#else
+	#define DLLEXPORT
+	#define DLLCALL
+#endif
+
 #ifdef __cplusplus  
 extern "C" {   
 #endif   
-const char *telnet_cmd_desc(uchar cmd);   
-const char *telnet_opt_desc(uchar opt);
+
+DLLEXPORT const char* DLLCALL telnet_cmd_desc(uchar cmd);   
+DLLEXPORT const char* DLLCALL telnet_opt_desc(uchar opt);
+
 #ifdef __cplusplus
 }
 #endif
