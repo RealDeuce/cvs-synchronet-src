@@ -2,7 +2,7 @@
 
 /* Synchronet QWKnet node list or ROUTE.DAT file generator */
 
-/* $Id: qwknodes.c,v 1.1 2000/10/10 11:24:58 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.2 2000/10/21 00:26:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -352,7 +352,7 @@ txt.allocerr="\7\r\nError allocating %u bytes of memory\r\n";
 txt.error="\7\r\nERROR: Offset %lu in %s\r\n\r\n";
 
 fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List  v1.20  "
-	"Developed 1995-1997 Rob Swindell\n");
+	"Copyright 2000 Rob Swindell\n");
 
 
 for(i=1;i<argc;i++)
