@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.3 2002/04/06 01:55:01 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.4 2002/04/06 02:05:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,14 @@
  ****************************************************************************/
 
 #include <string.h>     /* strlen() */
+#include <stdlib.h>	/* RAND_MAX */
+#include <fcntl.h>	/* O_NOCTTY */
+#ifndef __FreeBSD__
+#include <sys/kd.h>	/* KIOCSOUND */
+#endif
+#ifdef __FreeBSD__
+#include <sys/kbio.h>
+#endif
 
 #include "genwrap.h"	/* Verify prototypes */
 
@@ -94,7 +102,7 @@ void DLLCALL unix_beep(int freq, int dur)
 	
 	if(console_fd != -1) {
 		ioctl(console_fd, KIOCSOUND, (int) (1193180 / freq));
-		mswait(dur);
+		SLEEP(dur);
 		ioctl(console_fd, KIOCSOUND, 0);	/* turn off tone */
 	}
 }
