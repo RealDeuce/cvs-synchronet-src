@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.16 2004/06/03 21:59:57 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.21 2004/11/03 06:05:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -42,7 +42,7 @@
 #include <string.h>
 
 #include "genwrap.h"	/* SLEEP */
-#include "gen_defs.h"	/* BOOL */
+#include "gen_defs.h"	/* BOOL/LOG_WARNING */
 #include "sockwrap.h"	/* sendsocket */
 #include "filewrap.h"	/* filelength */
 
@@ -229,4 +229,32 @@ BOOL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 	}
 
 	return(FALSE);
+}
+
+int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
+			   ,uint retries, uint wait_secs
+			   ,const char* prot
+			   ,int (*lprintf)(int level, char *fmt, ...))
+{
+	char	port_str[128];
+	int		result=-1;
+	uint	i;
+
+	if(addr->sa_family==AF_INET)
+		SAFEPRINTF(port_str," to port %u",htons(((SOCKADDR_IN *)(addr))->sin_port)); 
+	else
+		port_str[0]=0;
+	for(i=0;i<=retries;i++) {
+		if((result=bind(s,addr,addrlen))==0)
+			break;
+		if(lprintf!=NULL)
+			lprintf(i<retries ? LOG_WARNING:LOG_ERR
+				,"%04d !ERROR %d binding %s socket%s", s, ERROR_VALUE, prot, port_str);
+		if(i<retries) {
+			if(lprintf!=NULL)
+				lprintf(LOG_WARNING,"%04d Will retry in %u seconds", s, wait_secs);
+			SLEEP(wait_secs*1000);
+		}
+	}
+	return(result);
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.33 2004/09/08 03:41:22 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.35 2004/10/27 09:09:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -634,7 +634,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 		if(smb_fgetlength(smb.shd_fp)<1L) {   /* Create it if it doesn't exist */
 			smb.status.max_crcs=cfg.mail_maxcrcs;
-			smb.status.max_msgs=MAX_SYSMAIL;
+			smb.status.max_msgs=0;
 			smb.status.max_age=cfg.mail_maxage;
 			smb.status.attr=SMB_EMAIL;
 			if((i=smb_create(&smb))!=0) {
@@ -875,15 +875,15 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		,useron.alias
 		,hdr.to,smb_faddrtoa(&fidoaddr,tmp));
 	logline("EN",str);
-	}
+}
 
-	/****************************************************************************/
-	/* Returns the FidoNet address kept in str as ASCII.                        */
-	/****************************************************************************/
-	faddr_t atofaddr(scfg_t* cfg, char *str)
-	{
-		char *p;
-		faddr_t addr;
+/****************************************************************************/
+/* Returns the FidoNet address kept in str as ASCII.                        */
+/****************************************************************************/
+faddr_t atofaddr(scfg_t* cfg, char *str)
+{
+	char *p;
+	faddr_t addr;
 
 	addr.zone=addr.net=addr.node=addr.point=0;
 	if((p=strchr(str,':'))!=NULL) {
