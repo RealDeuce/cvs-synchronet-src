@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.35 2002/08/15 07:05:29 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.36 2002/08/26 08:44:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -469,8 +469,12 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	FD_SET(sock,&socket_set);
 
 	if((result=select(sock+1,NULL,&socket_set,NULL,&tv))<1) {
-		lprintf("%04d !ERROR %d (%d) selecting socket for send"
-			,sock, result, ERROR_VALUE, sock);
+		if(result==0)
+			lprintf("%04d !TIMEOUT selecting socket for send"
+				,sock);
+		else
+			lprintf("%04d !ERROR %d selecting socket for send"
+				,sock, ERROR_VALUE);
 		return(0);
 	}
 
@@ -1791,7 +1795,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.35 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.36 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
