@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.45 2004/10/15 05:10:36 deuce Exp $ */
+/* $Id: genwrap.c,v 1.46 2004/10/15 09:23:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,9 +78,9 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 	dst[size-1]=0;
 #ifdef _MSC_VER
 	if(numchars==-1)
-		nuchars=strlen(dst);
+		numchars=strlen(dst);
 #endif
-	if(numchars>=size && numchars>0)
+	if(numchars>=(int)size && numchars>0)
 		numchars=size-1;
 	return(numchars);
 }
