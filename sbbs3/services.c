@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.157 2004/08/23 23:34:47 rswindell Exp $ */
+/* $Id: services.c,v 1.163 2004/10/28 21:01:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@
 #ifndef JAVASCRIPT
 #define JAVASCRIPT	/* required to include JS API headers */
 #endif
+#define SERVICES_INI_BITDESC_TABLE	/* required to defined service_options */
 #include "sbbs.h"
 #include "services.h"
 #include "ident.h"	/* identify() */
@@ -83,6 +84,8 @@ static BOOL		terminated=FALSE;
 static time_t	uptime=0;
 static DWORD	served=0;
 static char		revision[16];
+static link_list_t recycle_semfiles;
+static link_list_t shutdown_semfiles;
 
 typedef struct {
 	/* These are sysop-configurable */
@@ -106,21 +109,6 @@ typedef struct {
 	BOOL	running;
 	BOOL	terminated;
 } service_t;
-
-static ini_bitdesc_t service_options[] = {
-
-	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
-	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
-	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ BBS_OPT_MUTE					,"MUTE"					},
-	{ SERVICE_OPT_UDP				,"UDP"					},
-	{ SERVICE_OPT_STATIC			,"STATIC"				},
-	{ SERVICE_OPT_STATIC_LOOP		,"LOOP"					},
-	{ SERVICE_OPT_NATIVE			,"NATIVE"				},
-	{ SERVICE_OPT_FULL_ACCEPT		,"FULL_ACCEPT"			},
-	/* terminator */				
-	{ -1							,NULL					}
-};
 
 typedef struct {
 	SOCKET			socket;
@@ -1427,83 +1415,24 @@ void DLLCALL services_terminate(void)
 
 #define NEXT_FIELD(p)	FIND_WHITESPACE(p); SKIP_WHITESPACE(p)
 
-static service_t* read_services_cfg(service_t* service, char* services_cfg, DWORD* services)
-{
-	char*	p;
-	char*	tp;
-	char	line[1024];
-	FILE*	fp;
-	service_t*	np;
-	service_t*	serv;
-	
-	if((fp=fopen(services_cfg,"r"))==NULL)
-		return(service);
-
-	lprintf(LOG_INFO,"Reading %s",services_cfg);
-	for((*services)=0;!feof(fp) && (*services)<MAX_SERVICES;) {
-		if(!fgets(line,sizeof(line),fp))
-			break;
-		p=line;
-		SKIP_WHITESPACE(p);
-		if(*p==0 || *p==';')	/* ignore blank lines or comments */
-			continue;
-		
-		if((np=(service_t*)realloc(service,sizeof(service_t)*((*services)+1)))==NULL) {
-			lprintf(LOG_CRIT,"!MALLOC FAILURE");
-			return(service);
-		}
-		service=np;
-		serv=&service[*services];
-		memset(serv,0,sizeof(service_t));
-		serv->socket=INVALID_SOCKET;
-
-		/* These are not configurable per service when using services.cfg */
-		serv->listen_backlog=DEFAULT_LISTEN_BACKLOG;
-		serv->interface_addr=startup->interface_addr;
-
-		/* JavaScript operating parameters */
-		serv->js_max_bytes=startup->js_max_bytes;
-		serv->js_cx_stack=startup->js_cx_stack;
-		serv->js_branch_limit=startup->js_branch_limit;
-		serv->js_gc_interval=startup->js_gc_interval;
-		serv->js_yield_interval=startup->js_yield_interval;
-
-		tp=p; 
-		FIND_WHITESPACE(tp);
-		*tp=0;
-		SAFECOPY(serv->protocol,p);
-		p=tp+1;
-		SKIP_WHITESPACE(p);
-		serv->port=atoi(p);
-		NEXT_FIELD(p);
-		serv->max_clients=strtol(p,NULL,10);
-		NEXT_FIELD(p);
-		serv->options=strtol(p,NULL,16);
-		NEXT_FIELD(p);
-
-		SAFECOPY(serv->cmd,p);
-		truncsp(serv->cmd);
-
-		(*services)++;
-	}
-	fclose(fp);
-
-	return(service);
-}
-
-static service_t* read_services_ini(service_t* service, char* services_ini, DWORD* services)
+static service_t* read_services_ini(service_t* service, DWORD* services)
 {
 	uint		i,j;
 	FILE*		fp;
 	char		cmd[INI_MAX_VALUE_LEN];
 	char		host[INI_MAX_VALUE_LEN];
 	char		prot[INI_MAX_VALUE_LEN];
+	char		services_ini[MAX_PATH+1];
 	char**		sec_list;
 	service_t*	np;
 	service_t	serv;
 
-	if((fp=fopen(services_ini,"r"))==NULL)
-		return(service);
+	iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
+
+	if((fp=fopen(services_ini,"r"))==NULL) {
+		lprintf(LOG_ERR,"!ERROR %d opening %s", errno, services_ini);
+		return(NULL);
+	}
 
 	lprintf(LOG_INFO,"Reading %s",services_ini);
 	sec_list = iniReadSectionList(fp,"");
@@ -1562,7 +1491,13 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 
 static void cleanup(int code)
 {
+	FREE_AND_NULL(service);
+	services=0;
+
 	free_cfg(&scfg);
+
+	semfile_list_free(&recycle_semfiles);
+	semfile_list_free(&shutdown_semfiles);
 
 	update_clients();
 
@@ -1586,7 +1521,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.157 $", "%*s %s", revision);
+	sscanf("$Revision: 1.163 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1604,6 +1539,7 @@ const char* DLLCALL services_ver(void)
 
 void DLLCALL services_thread(void* arg)
 {
+	char*			p;
 	char			path[MAX_PATH+1];
 	char			error[256];
 	char			host_ip[32];
@@ -1732,21 +1668,10 @@ void DLLCALL services_thread(void* arg)
 
 		active_clients=0, update_clients();
 
-		if(startup->cfg_file[0]==0)			
-			sprintf(startup->cfg_file,"%sservices.cfg",scfg.ctrl_dir);
-		service=read_services_cfg(service, startup->cfg_file, &services);
-
-		if(startup->ini_file[0]==0)			
-			sprintf(startup->ini_file,"%sservices.ini",scfg.ctrl_dir);
-		service=read_services_ini(service, startup->ini_file, &services);
-
-		if(service==NULL) {
-			lprintf(LOG_ERR,"!Failure reading configuration file (%s or %s)"
-				,startup->cfg_file,startup->ini_file);
+		if((service=read_services_ini(service, &services))==NULL) {
 			cleanup(1);
 			return;
 		}
-
 
 		/* Open and Bind Listening Sockets */
 		total_sockets=0;
@@ -1841,14 +1766,17 @@ void DLLCALL services_thread(void* arg)
 
 		status("Listening");
 
-		if(initialized==0) {
+		/* Setup recycle/shutdown semaphore file lists */
+		semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","services");
+		semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","services");
+		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
+		semfile_list_add(&recycle_semfiles,path);
+		if(!initialized) {
 			initialized=time(NULL);
-			sprintf(path,"%sservices.rec",scfg.ctrl_dir);
-			t=fdate(path);
-			if(t!=-1 && t>initialized)
-				initialized=t;
+			semfile_list_check(&initialized,&recycle_semfiles);
+			semfile_list_check(&initialized,&shutdown_semfiles);
 		}
-			
+
 		terminated=FALSE;
 
 		/* signal caller that we've started up successfully */
@@ -1862,21 +1790,23 @@ void DLLCALL services_thread(void* arg)
 			for(i=0;i<(int)services;i++) 
 				total_clients+=service[i].clients;
 
-			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
-				sprintf(path,"%sservices.rec",scfg.ctrl_dir);
-				t=fdate(path);
-				if(!total_clients && t!=-1 && t>initialized) {
-					lprintf(LOG_NOTICE,"0000 Recycle semaphore file (%s) detected",path);
-					initialized=t;
+			if(total_clients==0 && !(startup->options&BBS_OPT_NO_RECYCLE)) {
+				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
+					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 					break;
 				}
 				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
 					startup->recycle_now=TRUE;
-				if(!total_clients && startup->recycle_now==TRUE) {
+				if(startup->recycle_now==TRUE) {
 					lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;
 					break;
 				}
+			}
+			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
+				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
+				terminated=TRUE;
+				break;
 			}
 
 			/* Setup select() parms */
@@ -2141,15 +2071,12 @@ void DLLCALL services_thread(void* arg)
 			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
-		/* Free Service Data */
-		services=0;
-		free(service);
-		service=NULL;
-
 		cleanup(0);
 		if(!terminated) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
+			if(startup->recycle!=NULL)
+				startup->recycle(startup->cbdata);
 		}
 
 	} while(!terminated);
