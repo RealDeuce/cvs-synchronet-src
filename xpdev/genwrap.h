@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.43 2003/05/02 18:56:55 deuce Exp $ */
+/* $Id: genwrap.h,v 1.44 2003/05/16 00:13:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,13 @@
 	#endif
 #elif defined(_WIN32)
 	#include <process.h>	/* getpid() */
+#endif
+
+/* utime() support */
+#if defined(_MSC_VER) || defined(__WATCOMC__)
+	#include <sys/utime.h>
+#else
+	#include <utime.h>
 #endif
 
 #if defined(__cplusplus)
@@ -182,9 +189,9 @@ extern "C" {
 #elif defined(__unix__)
 
 	#if defined(_PTH_PTHREAD_H_)
-		#define SLEEP(x)  ({ int y=x; struct timeval tv; \
-			tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
-			pth_nap(tv); })
+		#define SLEEP(x)		({ int y=x; struct timeval tv; \
+								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
+								pth_nap(tv); })
 	#else
 		#define SLEEP(x)		({	int y=x; struct timeval tv; \
 								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
