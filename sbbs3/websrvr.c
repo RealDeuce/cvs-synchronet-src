@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.38 2002/11/05 08:48:45 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.39 2002/11/05 11:14:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1838,7 +1838,7 @@ BOOL js_setup(http_session_t* session)
 		lprintf("%04d JavaScript: Creating runtime: %lu bytes"
 			,session->socket,startup->js_max_bytes);
 
-		if((session->js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL) {
+		if((session->js_runtime=JS_NewRuntime(startup->js_max_bytes))==NULL) {
 			lprintf("%04d !ERROR creating JavaScript runtime",session->socket);
 			send_error(session,"500 Error creating JavaScript runtime");
 			return(FALSE);
@@ -1846,7 +1846,8 @@ BOOL js_setup(http_session_t* session)
 	}
 
 	if(session->js_cx==NULL) {	/* Context not yet created, create it now */
-		if(((session->js_cx=js_initcx(session->js_runtime, session->socket,&session->js_glob))==NULL)) {
+		if(((session->js_cx=js_initcx(session->js_runtime, session->socket
+			,&session->js_glob))==NULL)) {
 			lprintf("%04d !ERROR initializing JavaScript context",session->socket);
 			send_error(session,"500 Error initializing JavaScript context");
 			return(FALSE);
@@ -1855,17 +1856,22 @@ BOOL js_setup(http_session_t* session)
 			lprintf("%04d !JavaScript ERROR creating user class",session->socket);
 
 		if(js_CreateFileClass(session->js_cx, session->js_glob)==NULL) 
-			lprintf("%04d !JavaScript ERROR creating file class",session->socket);
+			lprintf("%04d !JavaScript ERROR creating File class",session->socket);
 
-		if(js_CreateUserObject(session->js_cx, session->js_glob, &scfg, "user", session->user.number)==NULL) 
-			lprintf("%04d !JavaScript ERROR creating user object",session->socket);
+		if(js_CreateSocketClass(session->js_cx, session->js_glob)==NULL)
+			lprintf("%04d !JavaScript ERROR creating Socket class",session->socket);
+
+		if(js_CreateMsgBaseClass(session->js_cx, session->js_glob, &scfg)==NULL)
+			lprintf("%04d !JavaScript ERROR creating MsgBase class",session->socket);
+
+		if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
+			,NULL /* ftp index file */, NULL /* subscan */)) 
+			lprintf("%04d !JavaScript ERROR creating user objects",session->socket);
 #if 0
-		if(js_CreateClientObject(session->js_cx, session->js_glob, "client", &client, session->socket)==NULL) 
+		if(js_CreateClientObject(session->js_cx, session->js_glob, "client", &client
+			,session->socket)==NULL) 
 			lprintf("%04d !JavaScript ERROR creating client object",session->socket);
 #endif
-		if(js_CreateFileAreaObject(session->js_cx, session->js_glob, &scfg, &session->user
-			,NULL)==NULL) 
-			lprintf("%04d !JavaScript ERROR creating file area object",session->socket);
 
 		argv=JS_NewArrayObject(session->js_cx, 0, NULL);
 
@@ -2095,7 +2101,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.38 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.39 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
