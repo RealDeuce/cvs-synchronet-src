@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.153 2002/04/09 09:19:10 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.154 2002/04/12 06:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4276,7 +4276,7 @@ const char* DLLCALL ftp_ver(void)
 	static char ver[256];
 	char compiler[32];
 
-	COMPILER_DESC(compiler);
+	DESCRIBE_COMPILER(compiler);
 
 	sprintf(ver,"%s v%s%s  "
 		"Compiled %s %s with %s"
@@ -4366,7 +4366,7 @@ void DLLCALL ftp_server(void* arg)
 #endif
 			);
 
-		COMPILER_DESC(compiler);
+		DESCRIBE_COMPILER(compiler);
 
 		lprintf("Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
@@ -4406,7 +4406,7 @@ void DLLCALL ftp_server(void* arg)
 			sprintf(startup->host_name,"%.*s",sizeof(startup->host_name),scfg.sys_inetaddr);
 
 		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&FTP_OPT_LOCAL_TIMEZONE)) { 
-			if(PUTENV("TZ=UTC0"))
+			if(putenv("TZ=UTC0"))
 				lprintf("!putenv() FAILED");
 			tzset();
 
