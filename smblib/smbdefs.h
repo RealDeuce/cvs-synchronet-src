@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.8 2000/11/04 10:19:26 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.9 2000/11/04 12:07:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -372,7 +372,7 @@ enum {
 /************/
 
 #ifdef __GNUC__ 
-	#define _PACK __attribute__ ((packed));
+	#define _PACK __attribute__ ((packed))
 #else
 	#define _PACK
 #endif
