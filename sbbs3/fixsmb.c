@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.26 2004/09/08 03:32:36 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.25 2004/09/02 11:02:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,10 +40,7 @@
 #include <string.h>	/* strnicmp */
 #include <ctype.h>	/* toupper */
 
-#include "smblib.h"
-#include "genwrap.h"	/* PLATFORM_DESC */
-#include "str_list.h"	/* strList API */
-#include "crc16.h"
+#include "sbbs.h"
 
 smb_t	smb;
 BOOL	renumber=FALSE;
@@ -216,7 +213,7 @@ int fixsmb(char* sub)
 			msg.idx.number=msg.hdr.number;
 			msg.idx.attr=msg.hdr.attr;
 			msg.idx.time=msg.hdr.when_imported.time;
-			msg.idx.subj=smb_subject_crc(msg.subj);
+			msg.idx.subj=subject_crc(msg.subj);
 			if(smb.status.attr&SMB_EMAIL) {
 				if(msg.to_ext)
 					msg.idx.to=atoi(msg.to_ext);
@@ -285,7 +282,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+	sscanf("$Revision: 1.25 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
