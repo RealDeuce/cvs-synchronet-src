@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.6 2003/02/15 22:46:05 deuce Exp $ */
+/* $Id: filewrap.c,v 1.7 2003/04/08 03:10:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,11 @@ int DLLCALL unlock(int fd, long pos, int len)
 int DLLCALL sopen(char *fn, int access, int share)
 {
 	int fd;
+#ifdef USE_FLOCK			/* use flock */
+	int	flock_op=LOCK_NB;	/* non-blocking */
+#else
 	struct flock alock;
+#endif
 
 	if ((fd = open(fn, access, S_IREAD|S_IWRITE)) < 0)
 		return -1;
@@ -127,6 +131,18 @@ int DLLCALL sopen(char *fn, int access, int share)
 	if (share == SH_DENYNO)
 		// no lock needed
 		return fd;
+
+#ifdef USE_FLOCK	/* use flock */
+	if(share==SH_DENYRW)
+		flock_op|=LOCK_EX;
+	else   /* SH_DENYWR */
+		flock_op|=LOCK_SH;
+	if(flock(fd,flock_op)!=0) {
+		close(fd);
+		return(-1);
+	}
+
+#else /* use fcntl */
 
 	alock.l_type = share;
 	alock.l_whence = L_SET;
@@ -137,6 +153,7 @@ int DLLCALL sopen(char *fn, int access, int share)
 		close(fd);
 		return -1;
 	}
+#endif
 
 	return fd;
 }
