@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.3 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.4 2002/06/20 07:40:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,6 +95,7 @@ static  wsa_error;
 
 /* WinSock-isms */
 #define HOSTENT			struct hostent
+#define IN_ADDR			struct in_addr
 #define SOCKADDR_IN		struct sockaddr_in
 #define LINGER			struct linger
 #define SOCKET			int
