@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.8 2004/05/30 07:16:23 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.9 2004/05/30 20:16:25 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -322,10 +322,12 @@ void textattr(unsigned char attr)
 	{
 		attrs |= A_BLINK;
 	}
-	attrset(attrs);
 	colour = COLOR_PAIR( ((attr&7)|((attr>>1)&56))+1 );
 	#ifdef NCURSES_VERSION_MAJOR
+	attrset(attrs);
 	color_set(colour,NULL);
+	#else
+	attrset(attrs|colour);
 	#endif
 	/* bkgdset(colour); */
 	bkgdset(colour);
