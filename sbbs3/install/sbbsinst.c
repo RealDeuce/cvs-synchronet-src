@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.34 2003/01/29 03:55:17 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.35 2003/01/29 03:57:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -639,10 +639,8 @@ int choose_server(char **opts)
 
 	uifc.helpbuf=	"`Server List:`\n"
 				"\nToDo: Add help.";
-	uifc.savnum++;
 	i=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&srvr_dflt,0
 		,"Select Server",opts);
-	uifc.savnum--;
 	return(i);
 
 }
