@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.22 2003/08/30 03:50:18 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.23 2003/11/25 22:24:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -225,6 +225,11 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 	long lzhlen,length;
 
 	show_msghdr(msg);
+
+    for(i=0;i<msg->total_hfields;i++) 			/* delivery failure notification? */
+		if(msg->hfield[i].type==SMTPSYSMSG || msg->hfield[i].type==SMB_COMMENT)
+			bprintf("%s\r\n",(char*)msg->hfield_dat[i]);
+
 	for(i=0;i<msg->hdr.total_dfields;i++)
 		switch(msg->dfield[i].type) {
 			case TEXT_BODY:
