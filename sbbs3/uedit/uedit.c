@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.24 2004/05/28 23:44:42 rswindell Exp $ */
+/* $Id: uedit.c,v 1.23 2004/03/11 06:04:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1728,7 +1728,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.24 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -1760,13 +1760,7 @@ int main(int argc, char** argv)  {
 	}
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
-		NULL,		/* global_startup */
-		NULL, &bbs_startup, 
-		NULL, NULL, /* ftp_startup */
-		NULL, NULL, /* web_startup */ 
-		NULL, NULL, /* mail_startup */
-		NULL, NULL  /* services_startup */
-		);
+		NULL, &bbs_startup, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	/* close .ini file here */
 	if(fp!=NULL)
