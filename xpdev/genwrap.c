@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.19 2002/11/13 03:02:44 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.20 2002/11/13 03:18:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,25 +265,25 @@ struct tm* DLLCALL localtime_r(const time_t* t, struct tm* tm)
 	return(tm);
 }
 
-char* DLLCALL ctime_r(const time_t *t, char *buf, int buflen)
+char* DLLCALL ctime_r(const time_t *t, char *buf)
 {
 	char* p = ctime(t);
 
 	if(p==NULL)
 		return(NULL);
 
-	strncpy(buf,p,buflen);
+	strcpy(buf,p);
 	return(buf);
 }
 
-char* DLLCALL asctime_r(const struct tm *tm, char *buf, int buflen)
+char* DLLCALL asctime_r(const struct tm *tm, char *buf)
 {
 	char* p = asctime(tm);
 
 	if(p==NULL)
 		return(NULL);
 
-	strncpy(buf,p,buflen);
+	strcpy(buf,p);
 	return(buf);
 }
 
