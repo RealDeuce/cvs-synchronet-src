@@ -2,13 +2,13 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.h,v 1.8 2004/05/28 23:43:31 rswindell Exp $ */
+/* $Id: sbbs_ini.h,v 1.7 2003/09/27 10:59:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -64,7 +64,6 @@ void sbbs_get_ini_fname(
 
 void sbbs_read_ini(
 	 FILE*					fp
-	,global_startup_t*		global
 	,BOOL*					run_bbs
 	,bbs_startup_t*			bbs_startup
 	,BOOL*					run_ftp
@@ -76,22 +75,6 @@ void sbbs_read_ini(
 	,BOOL*					run_services
 	,services_startup_t*	services_startup
 	);
-
-BOOL sbbs_write_ini(
-	 FILE*					fp
-	,global_startup_t*		global
-	,BOOL					run_bbs
-	,bbs_startup_t*			bbs
-	,BOOL					run_ftp
-	,ftp_startup_t*			ftp
-	,BOOL					run_web
-	,web_startup_t*			web
-	,BOOL					run_mail		
-	,mail_startup_t*		mail
-	,BOOL					run_services
-	,services_startup_t*	services
-	);
-
 
 #if defined(__cplusplus)
 }
