@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.12 2000/11/07 11:17:46 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.13 2000/11/07 11:38:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,9 +179,16 @@ long SMBCALL filelength(int fd)
 /* Sets a lock on a portion of a file */
 int SMBCALL lock(int fd, long pos, int len)
 {
+	int	flags;
  	struct flock alock;
 
-	alock.l_type = F_WRLCK;   // set a write lock to prevent all access
+	if((flags=fcntl(fd,F_GETFL))<0)
+		return -1;
+
+	if(flags==O_RDONLY)
+		alock.l_type = F_RDLCK; // set read lock to prevent writes
+	else
+		alock.l_type = F_WRLCK; // set write lock to prevent all access
 	alock.l_whence = L_SET;	  // SEEK_SET
 	alock.l_start = pos;
 	alock.l_len = len;
