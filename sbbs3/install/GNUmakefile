@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.6 2003/03/01 20:12:54 deuce Exp $
+# $Id: GNUmakefile,v 1.7 2003/03/01 20:17:06 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 USE_CURSES	=	1	# Curses version of UIFC
@@ -45,13 +45,13 @@ include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
 
 ifdef USE_DIALOG		
- LFLAGS	+=	-L../../libdialog -ldialog -lcurses
+ LFLAGS	+=	-L../../libdialog -ldialog -lncurses
  CFLAGS	+=	-I../../libdialog -DUSE_DIALOG
  OBJS += $(ODIR)$(SLASH)uifcd.$(OFILE)
 endif
 
 ifdef USE_CURSES		
- LFLAGS	+=	-lcurses
+ LFLAGS	+=	-lncurses
  CFLAGS	+=	-DUSE_CURSES
  OBJS += $(ODIR)$(SLASH)uifcc.$(OFILE)
 endif
