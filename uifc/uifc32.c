@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.50 2004/05/19 07:52:48 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.49 2004/05/12 01:28:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,58 +128,24 @@ int kbwait(void) {
 	return(FALSE);
 }
 
-#ifdef _WIN32
-
-int inkey()
+int inkey(int mode)
 {
-	char str[128];
-	INPUT_RECORD input;
-	DWORD num=0;
+	int c;
 
-	while(1) {
-		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
-			|| !num || input.EventType!=KEY_EVENT)
-			continue;
-
-		if(!input.Event.KeyEvent.bKeyDown)
-			continue;
-#if 0
-		sprintf(str,"keydown=%d\n",input.Event.KeyEvent.bKeyDown);
-		OutputDebugString(str);
-		sprintf(str,"repeat=%d\n",input.Event.KeyEvent.wRepeatCount);
-		OutputDebugString(str);
-		sprintf(str,"keycode=%x\n",input.Event.KeyEvent.wVirtualKeyCode);
-		OutputDebugString(str);
-		sprintf(str,"scancode=%x\n",input.Event.KeyEvent.wVirtualScanCode);
-		OutputDebugString(str);
-		sprintf(str,"ascii=%d\n",input.Event.KeyEvent.uChar.AsciiChar);
-		OutputDebugString(str);
-		sprintf(str,"dwControlKeyState=%lx\n",input.Event.KeyEvent.dwControlKeyState);
-		OutputDebugString(str);
+	if(mode)
+		return(kbwait());
+	c=getch();
+#ifdef _WIN32
+	if(!c)
+		c=(getch()<<8);
 #endif
-
-		if(input.Event.KeyEvent.uChar.AsciiChar)
-			return(input.Event.KeyEvent.uChar.AsciiChar);
-
-		return(input.Event.KeyEvent.wVirtualScanCode<<8);
-	}
-
-	return(0);
+	return(c);
 }
-
-#else 
-
-	#define inkey() getch()
-
-#endif
 
 int uifcini32(uifcapi_t* uifcapi)
 {
 	int 	i;
 	struct	text_info txtinfo;
-#ifdef _WIN32
-	DWORD	conmode;
-#endif
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
         return(-1);
@@ -250,9 +216,6 @@ int uifcini32(uifcapi_t* uifcapi)
         textmode(C80);  /* set mode to 80x25*/
         gettextinfo(&txtinfo);
     }
-
-	if(GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
-		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode&=~ENABLE_PROCESSED_INPUT);
 #endif
 
     api->scrn_len=txtinfo.screenheight;
@@ -717,8 +680,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	#endif
 		timedisplay();
 		i=0;
-		if(kbwait()) {
-			i=inkey();
+		if(inkey(1)) {
+			i=inkey(0);
 			if(i==KEY_BACKSPACE || i==BS)
 				i=ESC;
 			if(i>255) {
@@ -1373,11 +1336,11 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		}
 		strcpy(str,outstr);
 #if 0
-		while(kbwait()==0) {
+		while(inkey(1)==0) {
 			mswait(1);
 		}
 #endif
-		f=inkey();
+		f=inkey(0);
 
 		if(f == CR 
 				|| (f >= 0xff && f != KEY_DC) 
@@ -1401,12 +1364,12 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		if(i>j) j=i;
 		str[j]=0;
 		getstrupd(left, top, width, str, i, &soffset);
-		if(f || kbwait())
+		if(f || inkey(1))
 		{
 			if(f)
 				ch=f;
 			else
-				ch=inkey();
+				ch=inkey(0);
 			if(lastkey != NULL)
 				*lastkey=ch;
 			f=0;
@@ -1940,8 +1903,8 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	else {
 		while(i==0) {
 			puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
-			if(kbwait()) {
-				switch(inkey()) {
+			if(inkey(1)) {
+				switch(inkey(0)) {
 					case KEY_HOME:	/* home */
 						p=textbuf;
 						break;
