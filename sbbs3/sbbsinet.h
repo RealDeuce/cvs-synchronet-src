@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.12 2001/02/04 16:45:10 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.13 2001/05/21 23:04:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,21 +69,24 @@
 #ifdef _WINSOCKAPI_
 
 #undef  EINTR
-#define EINTR			WSAEINTR
+#define EINTR			(WSAEINTR-WSABASEERR)
 #undef  ENOTSOCK
-#define ENOTSOCK		WSAENOTSOCK
+#define ENOTSOCK		(WSAENOTSOCK-WSABASEERR)
 #undef  EWOULDBLOCK
-#define EWOULDBLOCK		WSAEWOULDBLOCK
+#define EWOULDBLOCK		(WSAEWOULDBLOCK-WSABASEERR)
 #undef  ECONNRESET
-#define ECONNRESET		WSAECONNRESET
+#define ECONNRESET		(WSAECONNRESET-WSABASEERR)
+#undef  ESHUTDOWN
+#define ESHUTDOWN		(WSAESHUTDOWN-WSABASEERR)
 #undef  ECONNABORTED
-#define ECONNABORTED	WSAECONNABORTED
+#define ECONNABORTED	(WSAECONNABORTED-WSABASEERR)
 
 #define s_addr			S_un.S_addr
 
 #define socklen_t		int
 
-#define ERROR_VALUE		WSAGetLastError()
+static  wsa_error;
+#define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
 
 #else	/* BSD sockets */
 
