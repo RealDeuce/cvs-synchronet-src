@@ -12,7 +12,7 @@ int rlogin_recv(char *buffer, size_t buflen)
 	if(!socket_check(rlogin_socket, NULL, NULL, 0))
 		return(-1);
 	r=recv(rlogin_socket,buffer,buflen,0);
-	if(r==-1 && (errno==EAGAIN || errno==EINTR))
+	if(r==-1 && (errno==EAGAIN || errno==EINTR || errno==0))	/* WTF? */
 		r=0;
 	return(r);
 }
@@ -44,18 +44,14 @@ int rlogin_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int rlogin_connect(char *addr, int port, char *ruser, char *passwd)
+int rlogin_connect(char *addr, int port, char *ruser, char *passwd, int bedumb)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
 	char	nil=0;
 	char	*p;
 	unsigned int	neta;
-#ifdef _WIN32
-	int	tv;
-#else
-	struct	timeval	tv;
-#endif
+    sigset_t sigset;
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -86,8 +82,15 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd)
 	saddr.sin_addr.s_addr = neta;
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(port);
+	
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGIO);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_BLOCK, &sigset, 0);
 	if(connect(rlogin_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];
+
+	    sigprocmask(SIG_UNBLOCK, &sigset, 0);
 
 		rlogin_close();
 		sprintf(str,"Cannot connect to %s!",addr);
@@ -95,20 +98,16 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd)
 						"Cannot connect to the remost system... it is down or unreachable.");
 		return(-1);
 	}
+    sigprocmask(SIG_UNBLOCK, &sigset, 0);
 
-#ifdef _WIN32
-	tv=100000;
-#else
-	tv.tv_sec=0;
-	tv.tv_usec=100000;
-#endif
+	fcntl(rlogin_socket, F_SETFL, fcntl(rlogin_socket, F_GETFL)|O_NONBLOCK);
 
-	setsockopt(rlogin_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-
-	rlogin_send("",1,1000);
-	rlogin_send(passwd,strlen(passwd)+1,1000);
-	rlogin_send(ruser,strlen(ruser)+1,1000);
-	rlogin_send("ansi-bbs/9600",14,1000);
+	if(!bedumb) {
+		rlogin_send("",1,1000);
+		rlogin_send(passwd,strlen(passwd)+1,1000);
+		rlogin_send(ruser,strlen(ruser)+1,1000);
+		rlogin_send("ansi-bbs/9600",14,1000);
+	}
 	return(0);
 }
 
