@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.82 2002/12/12 03:13:39 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.83 2003/01/02 10:42:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -590,7 +590,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     /* Defaults */
     CtrlDirectory="c:\\sbbs\\ctrl\\";
     LoginCommand="telnet://localhost";
-    ConfigCommand="%sSCFG %s /T2";
+    ConfigCommand="%sscfg.exe %s -l25";
     JS_MaxBytes=JAVASCRIPT_MAX_BYTES;
     MinimizeToSysTray=false;
     UndockableForms=false;
