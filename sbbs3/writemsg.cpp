@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.58 2004/10/21 08:14:28 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.57 2004/09/02 21:56:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -315,10 +315,12 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 	}
 
 
-	else if(useron.xedit) {
+	else if((online==ON_LOCAL && cfg.node_misc&NM_LCL_EDIT && cfg.node_editor[0])
+		|| useron.xedit) {
 
 		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&IO_INTS) {
-			ex_mode|=(EX_OUTR|EX_INR);
+			if(online==ON_REMOTE)
+				ex_mode|=(EX_OUTR|EX_INR);
 			if(cfg.xedit[useron.xedit-1]->misc&WWIVCOLOR)
 				ex_mode|=EX_WWIV; 
 		}
@@ -333,12 +335,21 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 			qlen=flength(msgtmp);
 			qtime=fdate(msgtmp); 
 		}
+		if(online==ON_LOCAL) {
+			if(cfg.node_misc&NM_LCL_EDIT && cfg.node_editor[0])
+				external(cmdstr(cfg.node_editor,msgtmp,nulstr,NULL)
+					,0,cfg.node_dir); 
+			else
+				external(cmdstr(cfg.xedit[useron.xedit-1]->lcmd,msgtmp,nulstr,NULL)
+					,ex_mode,cfg.node_dir); 
+		}
 
-		CLS;
-		rioctl(IOCM|PAUSE|ABORT);
-		external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),ex_mode,cfg.node_dir);
-		rioctl(IOSM|PAUSE|ABORT); 
-
+		else {
+			CLS;
+			rioctl(IOCM|PAUSE|ABORT);
+			external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),ex_mode,cfg.node_dir);
+			rioctl(IOSM|PAUSE|ABORT); 
+		}
 		checkline();
 		if(!fexistcase(msgtmp) || !online
 			|| (linesquoted && qlen==flength(msgtmp) && qtime==fdate(msgtmp))) {
@@ -581,8 +592,10 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 	char	path[MAX_PATH+1];
     ulong	l,m;
 
-	rioctl(IOCM|ABORT);
-	rioctl(IOCS|ABORT); 
+	if(online==ON_REMOTE) {
+		rioctl(IOCM|ABORT);
+		rioctl(IOCS|ABORT); 
+	}
 
 	maxlines=cfg.level_linespermsg[useron.level];
 
@@ -599,7 +612,8 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 			for(i=0;i<lines;i++)
 				free(str[i]);
 			free(str);
-			rioctl(IOSM|ABORT);
+			if(online==ON_REMOTE)
+				rioctl(IOSM|ABORT);
 			return(0); 
 		}
 		for(i=0;i<79 && l<m;i++,l++) {
@@ -650,7 +664,8 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 		CRLF; 
 	}
 	SYNC;
-	rioctl(IOSM|ABORT);
+	if(online==ON_REMOTE)
+		rioctl(IOSM|ABORT);
 	while(online && !done) {
 		checkline();
 		if(line==lines) {
@@ -886,7 +901,8 @@ void sbbs_t::editfile(char *str)
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
 			mode|=EX_SH;
 		if(cfg.xedit[useron.xedit-1]->misc&IO_INTS) {
-			mode|=(EX_OUTR|EX_INR);
+			if(online==ON_REMOTE)
+				mode|=(EX_OUTR|EX_INR);
 			if(cfg.xedit[useron.xedit-1]->misc&WWIVCOLOR)
 				mode|=EX_WWIV; 
 		}

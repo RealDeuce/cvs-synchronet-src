@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.36 2004/10/20 23:09:10 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.35 2004/09/26 19:56:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,6 @@ typedef struct {
 	int 	(*lputs)(void*, int, char*);
 	void	(*status)(void*, char*);
     void	(*started)(void*);
-	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
     void	(*clients)(void*, int active);
     void	(*thread_up)(void*, BOOL up, BOOL setuid);
