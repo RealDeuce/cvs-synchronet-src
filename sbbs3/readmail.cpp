@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.6 2001/06/23 00:49:05 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.7 2001/08/05 11:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,6 +391,9 @@ void sbbs_t::readmail(uint usernumber, int which)
 							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); }
 				}
+
+				if(msg.hdr.attr&MSG_DELETE)	/* already marked for deletion */
+					break;
 
 				if(!yesno(str2)) {
 					if(curmsg<msgs-1) curmsg++;
