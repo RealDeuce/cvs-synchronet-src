@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.5 2004/09/23 19:04:02 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.2 2004/09/13 00:31:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <time.h>
 #include "smblib.h"
+#include "genwrap.h"
 
 int SMBCALL smb_feof(FILE* fp)
 {
@@ -100,7 +102,7 @@ size_t SMBCALL smb_fread(smb_t* smb, void* buf, size_t bytes, FILE* fp)
 	while(1) {
 		if((ret=fread(buf,sizeof(char),bytes,fp))==bytes)
 			return(ret);
-		if(get_errno()!=EDEADLOCK)
+		if(ferror(fp)!=EDEADLOCK)
 			return(ret);
 		if(!start)
 			start=time(NULL);

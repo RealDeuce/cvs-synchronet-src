@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.79 2004/09/28 07:06:42 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.76 2004/09/08 08:52:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@ static const char*	strInterface="Interface";
 static const char*	strHostName="HostName";
 static const char*	strLogMask="LogMask";
 
-#define DEFAULT_LOG_MASK		0x7f	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO */
+#define DEFAULT_LOG_MASK		0x1f	/* EMERG|ALERT|CRIT|ERR|WARNING */
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
@@ -79,20 +79,17 @@ static void read_ini_globals(FILE* fp, global_startup_t* global)
 	char		value[INI_MAX_VALUE_LEN];
 	char*		p;
 
-	p=iniReadString(fp,section,"CtrlDirectory",nulstr,value);
-	if(*p) {
+	if(*(p=iniReadString(fp,section,"CtrlDirectory",nulstr,value))) {
 	    SAFECOPY(global->ctrl_dir,value);
 		backslash(global->ctrl_dir);
     }
 
-	p=iniReadString(fp,section,"TempDirectory",nulstr,value);
-	if(*p) {
+	if(*(p=iniReadString(fp,section,"TempDirectory",nulstr,value))) {
 	    SAFECOPY(global->temp_dir,value);
 		backslash(global->temp_dir);
     }
 
-	p=iniReadString(fp,section,strHostName,nulstr,value);
-	if(*p)
+	if(*(p=iniReadString(fp,section,strHostName,nulstr,value)))
         SAFECOPY(global->host_name,value);
 
 	global->sem_chk_freq=iniReadShortInt(fp,section,strSemFileCheckFrequency,0);
@@ -434,8 +431,6 @@ void sbbs_read_ini(
 			,iniReadString(fp,section,"ErrorDirectory",WEB_DEFAULT_ERROR_DIR,value));
 		SAFECOPY(web->cgi_dir
 			,iniReadString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
-		SAFECOPY(web->logfile_base
-			,iniReadString(fp,section,"LogFile",WEB_DEFAULT_LOGFILE,value));
 
 		iniFreeStringList(web->index_file_name);
 		web->index_file_name
