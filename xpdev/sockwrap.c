@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.19 2004/11/03 04:17:34 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.20 2004/11/03 05:22:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,7 +242,7 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen, uint re
 			if(lprintf!=NULL) {
 				if(addr->sa_family==AF_INET) {
 					lprintf(LOG_WARNING,"%04d !WARNING %d (%d) error binding socket to port %d"
-						,s, result, ERROR_VALUE,((SOCKADDR_IN *)(addr))->sin_port);
+						,s, result, ERROR_VALUE,htons(((SOCKADDR_IN *)(addr))->sin_port));
 				}
 				else {
 					lprintf(LOG_WARNING,"%04d !WARNING %d (%d) error binding socket"
