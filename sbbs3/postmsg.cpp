@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.47 2003/12/07 03:52:33 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.48 2003/12/16 02:42:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -604,6 +604,8 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	msg->hdr.version=smb_ver();
 	msg->hdr.when_imported.time=time(NULL);
 	msg->hdr.when_imported.zone=sys_timezone(cfg);
+	if(msg->hdr.when_written.time==0)	/* Uninitialized */
+		msg->hdr.when_written = msg->hdr.when_imported;
 	msg->hdr.offset=offset;
 	msg->idx.time=msg->hdr.when_imported.time;
 	msg->idx.number=smb->status.last_msg+1; /* this *should* be the new message number */
