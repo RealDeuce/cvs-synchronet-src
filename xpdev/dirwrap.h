@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.21 2003/04/23 08:31:31 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.22 2003/07/03 01:11:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,9 +158,24 @@ extern "C" {
 #endif
 
 #if defined(__unix__)
-	#define BACKSLASH	'/'
+	#define PATH_DELIM			'/'
+	#define IS_PATH_DELIM(x)	(x=='/')
+
+	/* These may be pre-defined in paths.h (BSD) */
+	#ifndef _PATH_TMP
+	#define _PATH_TMP			"/tmp/"
+	#endif
+	#ifndef _PATH_DEVNULL
+	#define _PATH_DEVNULL		"/dev/null"
+	#endif
+
 #else /* MS-DOS based OS */
-	#define BACKSLASH	'\\'
+
+	#define PATH_DELIM			'\\'
+	#define IS_PATH_DELIM(x)	((x)=='/' || (x)=='\\')
+	#define _PATH_TMP			getenv("TEMP")
+	#define _PATH_DEVNULL		"NUL"
+
 #endif
 
 #if !defined(MAX_PATH)	/* maximum path length */
