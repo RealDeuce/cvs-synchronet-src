@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.23 2003/03/01 19:56:14 deuce Exp $ */
+/* $Id: uifc.h,v 1.24 2003/03/01 22:23:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,14 +42,12 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <sys/param.h>	/* PATH_MAX */
 /* OS Specific */
 #if defined(_WIN32)
     #include <windows.h>
 #endif
-#if !defined(__unix__)
-    #include <io.h>
-	#include <malloc.h>		/* malloc prototype */
+#if defined(__unix__)
+	#include <sys/param.h>	/* PATH_MAX */
 #endif
 #if (defined(__unix__) || defined(_WIN32)) && !defined(__FLAT__)
     #define __FLAT__
