@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.37 2003/10/21 22:32:59 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.38 2003/10/29 22:43:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -447,6 +447,9 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
 		}
+
+		if(tleft>0x7fff)	/* Reduce time-left for broken 16-bit doors		*/
+			tleft=0x7fff;	/* That interpret this value as a signed short	*/
 
 		sprintf(str,"%u\n%s\n%s\n%s\n%u\n%c\n"
 			,useron.number						/* User number */
@@ -1646,7 +1649,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	gettimeleft();
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
-	if(cfg.xtrn[xtrnnum]->maxtime && tleft>cfg.xtrn[xtrnnum]->maxtime)
+	if(cfg.xtrn[xtrnnum]->maxtime && tleft>(cfg.xtrn[xtrnnum]->maxtime*60))
 		tleft=(cfg.xtrn[xtrnnum]->maxtime*60);
 	xtrndat(name,dropdir,cfg.xtrn[xtrnnum]->type,tleft,cfg.xtrn[xtrnnum]->misc);
 	if(!online)
