@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.64 2005/01/08 02:31:59 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.62 2004/11/04 21:34:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -881,20 +881,14 @@ char* iniFileName(char* dest, size_t maxlen, const char* indir, const char* infn
 
 		if(gethostname(hostname,sizeof(hostname))==0) {
 			safe_snprintf(dest,maxlen,"%s%s.%s%s",dir,fname,hostname,ext);
-			if(fexistcase(dest))		/* path/file.host.domain.ini */
+			if(fexistcase(dest))
 				return(dest);
-			if((p=strchr(hostname,'.'))!=NULL) {
-				*p=0;
-				safe_snprintf(dest,maxlen,"%s%s.%s%s",dir,fname,hostname,ext);
-				if(fexistcase(dest))	/* path/file.host.ini */
-					return(dest);
-			}
 		}
 	}
 #endif
 	
 	safe_snprintf(dest,maxlen,"%s%s%s",dir,fname,ext);
-	fexistcase(dest);	/* path/file.ini */
+	fexistcase(dest);
 	return(dest);
 }
 
@@ -926,7 +920,7 @@ double iniGetFloat(str_list_t* list, const char* section, const char* key, doubl
 
 static BOOL parseBool(const char* value)
 {
-	if(stricmp(value,"TRUE")==0 || stricmp(value,"YES")==0 || stricmp(value,"ON")==0)
+	if(!stricmp(value,"TRUE") || !stricmp(value,"YES"))
 		return(TRUE);
 
 	return(INT_TO_BOOL(strtol(value,NULL,0)));
