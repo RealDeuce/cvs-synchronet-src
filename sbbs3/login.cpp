@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.10 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: login.cpp,v 1.11 2003/07/10 21:53:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ int sbbs_t::login(char *username, char *pw)
 			console|=CON_R_ECHOX;
 			if(!(cfg.sys_misc&SM_ECHO_PW))
 				console|=CON_L_ECHOX;
-			getstr(str,LEN_PASS,K_UPPER|K_LOWPRIO|K_TAB);
+			getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			bputs(text[InvalidLogon]);	/* why does this always fail? */
 			if(cfg.sys_misc&SM_ECHO_PW) 
@@ -105,7 +105,7 @@ int sbbs_t::login(char *username, char *pw)
 		console|=CON_R_ECHOX;
 		if(!(cfg.sys_misc&SM_ECHO_PW))
 			console|=CON_L_ECHOX;
-		getstr(str,LEN_PASS,K_UPPER|K_LOWPRIO|K_TAB);
+		getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 		console&=~(CON_R_ECHOX|CON_L_ECHOX);
 		if(!online) {
 			useron.number=0;
