@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.3 2005/02/05 02:42:00 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.4 2005/02/05 20:54:55 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -298,7 +298,7 @@ int telnet_connect(char *addr, int port, char *ruser, char *passwd)
 		telnet_close();
 		sprintf(str,"Cannot connect to %s!",addr);
 		uifcmsg(str,	"`Unable to connect`\n\n"
-						"Cannot connect to the remost system... it is down or unreachable.");
+						"Cannot connect to the remote system... it is down or unreachable.");
 		return(-1);
 	}
 
