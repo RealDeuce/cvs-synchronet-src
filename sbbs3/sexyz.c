@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.33 2005/01/20 06:22:40 deuce Exp $ */
+/* $Id: sexyz.c,v 1.38 2005/02/01 10:13:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,6 @@
 #include "ini_file.h"
 #include "eventwrap.h"
 #include "threadwrap.h"
-#include "xpbeep.h"
 
 /* sbbs */
 #include "ringbuf.h"
@@ -194,6 +193,14 @@ static char *chr(uchar ch)
 			case ZRINIT:	return("ZRINIT");
 			case ZSINIT:	return("ZSINIT");
 			case ZACK:		return("ZACK");
+			case ZFILE:		return("ZFILE");
+			case ZSKIP:		return("ZSKIP");
+			case ZNAK:		return("ZNAK");
+			case ZABORT:	return("ZABORT");
+			case ZFIN:		return("ZFIN");
+			case ZRPOS:		return("ZRPOS");
+			case ZDATA:		return("ZDATA");
+			case ZEOF:		return("ZEOF");
 			case ZPAD:		return("ZPAD");
 			case ZDLE:		return("ZDLE");
 			case ZDLEE:		return("ZDLEE");
@@ -206,6 +213,10 @@ static char *chr(uchar ch)
 			case ZVBIN32:	return("ZVBIN32");
 			case ZVBINR32:	return("ZVBINR32");
 			case ZRESC:		return("ZRESC");
+			case ZCRCE:		return("ZCRCE");
+			case ZCRCG:		return("ZCRCG");
+			case ZCRCQ:		return("ZCRCQ");
+			case ZCRCW:		return("ZCRCW");
 		}
 	} else {
 		switch(ch) {
@@ -528,6 +539,12 @@ static void output_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"output thread terminated\n%s", stats);
 }
+
+BOOL is_connected(void* unused)
+{
+	return socket_check(sock,NULL,NULL,0);
+}
+
 /****************************************************************************/
 /* Returns the number of blocks required to send len bytes					*/
 /****************************************************************************/
@@ -746,22 +763,23 @@ static int send_files(char** fname, uint fnames)
 
 			if((t=time(NULL)-startfile)<=0) 
 				t=1;
-			cps=sent_bytes/t;
+			if((cps=sent_bytes/t)==0)
+				cps=1;
 			if(success) {
 				xm.sent_files++;
 				xm.sent_bytes+=fsize;
 				lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 						,t/60,t%60,cps);
+
+				if(xm.total_files-xm.sent_files)
+					lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %lu"
+						,((xm.total_bytes-xm.sent_bytes)/cps)/60
+						,((xm.total_bytes-xm.sent_bytes)/cps)%60
+						,xm.total_files-xm.sent_files
+						,(xm.total_bytes-xm.sent_bytes)/1024
+						);
 			} else
 				lprintf(LOG_WARNING,"File Transfer Failure");
-
-			if(xm.total_files-xm.sent_files)
-				lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %lu"
-					,((xm.total_bytes-xm.sent_bytes)/cps)/60
-					,((xm.total_bytes-xm.sent_bytes)/cps)%60
-					,xm.total_files-xm.sent_files
-					,(xm.total_bytes-xm.sent_bytes)/1024
-					);
 
 			/* DSZLOG entry */
 			if(logfp) {
@@ -778,6 +796,7 @@ static int send_files(char** fname, uint fnames)
 					,flows
 					,xm.block_size
 					,path); 
+				fflush(logfp);
 			}
 			total_bytes += sent_bytes;
 		} /* while(gi<(int)g.gl_pathc) */
@@ -785,6 +804,10 @@ static int send_files(char** fname, uint fnames)
 		if(gi<(int)g.gl_pathc)/* error occurred */
 			break;
 	}
+
+	if(mode&ZMODEM && !zm.cancelled)
+		zmodem_get_zfin(&zm);
+
 	if(fnum<fnames) /* error occurred */
 		return(-1);
 
@@ -793,9 +816,7 @@ static int send_files(char** fname, uint fnames)
 
 	if(mode&XMODEM)
 		return(0);
-	if(mode&ZMODEM)
-		zmodem_send_zfin(&zm);
-	else {	/* YMODEM */
+	if(mode&YMODEM) {
 
 		if(xmodem_get_mode(&xm)) {
 
@@ -845,7 +866,7 @@ static int receive_files(char** fname_list, int fnames)
 	while((i=getcom(0))!=NOINP)
 		lprintf(LOG_WARNING,"Throwing out received: %s",chr((uchar)i));
 
-	while(!terminate && !cancelled) {
+	while(!terminate && !cancelled && is_connected(NULL)) {
 		if(mode&XMODEM) {
 			SAFECOPY(str,fname_list[0]);	/* we'll have at least one fname */
 			file_bytes=file_bytes_left=0x7fffffff;
@@ -883,9 +904,9 @@ static int receive_files(char** fname_list, int fnames)
 					);
 				lprintf(LOG_DEBUG,"Ymodem header (%u fields): %s", i, block+strlen(block)+1);
 				SAFECOPY(fname,block);
-				fprintf(statfp,"Incoming filename: %.64s ",fname);
 
 			} else {	/* Zmodem */
+				lprintf(LOG_INFO,"Waiting for Zmodem sender...");
 				i=zmodem_recv_init(&zm);
 				if(zm.cancelled)
 					return(1);
@@ -916,7 +937,7 @@ static int receive_files(char** fname_list, int fnames)
 						zmodem_send_nak(&zm);
 						break;
 					case ZFIN:
-						zmodem_send_zfin(&zm);
+						zmodem_send_zfin(&zm);	/* ACK */
 						/* fall-through */
 					case ZCOMPL:
 						return(0);
@@ -935,6 +956,8 @@ static int receive_files(char** fname_list, int fnames)
 				total_files=1;
 			if(total_bytes<file_bytes)
 				total_bytes=file_bytes;
+
+			lprintf(LOG_DEBUG,"Incoming filename: %.64s ",fname);
 
 			if(mode&RECVDIR)
 				sprintf(str,"%s%s",fname_list[0],getfname(fname));
@@ -960,12 +983,12 @@ static int receive_files(char** fname_list, int fnames)
 					} 
 				} 
 			}
-			fprintf(statfp,"\n"); 
 			fprintf(statfp,"File size: %lu bytes\n", file_bytes);
 			fprintf(statfp,"Remaining: %lu bytes in %u files\n", total_bytes, total_files);
 //			getchar();
 		}
 
+		lprintf(LOG_DEBUG,"Receiving: %.64s ",str);
 
 		fnum++;
 
@@ -1003,18 +1026,13 @@ static int receive_files(char** fname_list, int fnames)
 				,str
 				,file_bytes/1024
 				,mode&YMODEM ? mode&GMODE ? "Ymodem-G" : "Ymodem" :"Zmodem"
-				,mode&CRC ? "CRC-16" : "Checksum");
+				,mode&ZMODEM ? "" : (mode&CRC ? "CRC-16" : "Checksum"));
 
 		startfile=time(NULL);
 		success=FALSE;
 		if(mode&ZMODEM) {
 
-			for(errors=0; errors<zm.max_errors 
-				&& (ulong)ftell(fp) < file_bytes && !zm.cancelled; errors++) {
-				if((i = zmodem_recv_file_data(&zm,fp,0,file_bytes,startfile)) == ZEOF)
-					break;
-				lprintf(LOG_WARNING,"Error at byte %lu: %s", ftell(fp), chr((uchar)i));
-			}
+			errors=zmodem_recv_file_data(&zm,fp,0,file_bytes,startfile);
 
 			/*
  			 * wait for the eof header
@@ -1029,7 +1047,7 @@ static int receive_files(char** fname_list, int fnames)
 			errors=0;
 			block_num=1;
 			xmodem_put_nak(&xm, block_num);
-			while(1) {
+			while(is_connected(NULL)) {
 				xmodem_progress(NULL,block_num,ftell(fp),file_bytes,startfile);
 				i=xmodem_get_block(&xm, block, block_num); 	
 
@@ -1110,6 +1128,7 @@ static int receive_files(char** fname_list, int fnames)
 				,xm.block_size
 				,str
 				,serial_num); 
+			fflush(logfp);
 		}
 		if(mode&XMODEM)	/* maximum of one file */
 			break;
@@ -1146,7 +1165,7 @@ static const char* usage=
 #endif
 	"\n"
 	"opts   = -o  to overwrite files when receiving\n"
-	"         -a  to sound alarm at start and stop of transfer\n"
+	"         -s  disable Zmodem streaming (Slow Zmodem)\n"
 	"         -!  to pause after abnormal exit (error)\n"
 	"         -telnet to enable Telnet mode\n"
 	"         -rlogin to enable RLogin (pass-through) mode\n"
@@ -1171,6 +1190,7 @@ int main(int argc, char **argv)
 	char	fname[MAX_PATH+1];
 	char	ini_fname[MAX_PATH+1];
 	char*	p;
+	char*	arg;
 	int 	i;
 	int		retval;
 	uint	fnames=0;
@@ -1191,7 +1211,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.33 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1201,8 +1221,8 @@ int main(int argc, char **argv)
 
 	RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
 
-	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte);
-	zmodem_init(&zm,NULL,&mode,lputs,zmodem_progress,send_byte,recv_byte);
+	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected);
+	zmodem_init(&zm,NULL,&mode,lputs,zmodem_progress,send_byte,recv_byte,is_connected);
 
 	/* Generate path/sexyz[.host].ini from path/sexyz[.exe] */
 	SAFECOPY(str,argv[0]);
@@ -1322,28 +1342,30 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 
-
-			if(argv[i][0]=='-') {
-				if(stricmp(argv[i]+1,"telnet")==0) {
+			arg=argv[i];
+			if(*arg=='-') {
+				while(*arg=='-')
+					arg++;
+				if(stricmp(arg,"telnet")==0) {
 					telnet=TRUE;
 					continue;
 				}
-				if(stricmp(argv[i]+1,"rlogin")==0) {
+				if(stricmp(arg,"rlogin")==0) {
 					telnet=FALSE;
 					continue;
 				}
-				switch(toupper(argv[i][1])) {
+				switch(toupper(*arg)) {
 					case 'K':	/* sz/rz compatible */
 						xm.block_size=1024;
+						break;
+					case 'S':	/* disable Zmodem streaming */
+						zm.no_streaming=TRUE;
 						break;
 					case 'G':	/* Ymodem-G */
 						mode|=GMODE;
 						break;
 					case 'O':
 						mode|=OVERWRITE;
-						break;
-					case 'A':
-						mode|=ALARM;
 						break;
 					case '!':
 						pause_on_abend=TRUE;
@@ -1447,11 +1469,6 @@ int main(int argc, char **argv)
 //	if(mode&RECVDIR)
 //		backslash(fname[0]);
 
-	if(mode&ALARM) {
-		BEEP(1000,500);
-		BEEP(2000,500);
-	}
-
 	if(!winsock_startup())
 		return(-1);
 
@@ -1496,10 +1513,6 @@ int main(int argc, char **argv)
 //	sem_post(outbuf.sem);
 //	sem_post(outbuf.highwater_sem);
 
-	if(mode&ALARM) {
-		BEEP(2000,500);
-		BEEP(1000,500);
-	}
 	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);
 	fprintf(statfp,"\n");
