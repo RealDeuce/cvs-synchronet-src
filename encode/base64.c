@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.9 2003/03/29 06:17:21 deuce Exp $ */
+/* $Id: base64.c,v 1.10 2003/03/29 06:56:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ static int add_char(char *pos, char ch, int done, char *end)
 	if(done)
 		*pos=base64alphabet[64];
 	else
-		*pos=base64alphabet[ch];
+		*pos=base64alphabet[(int)ch];
 	return(0);
 }
 
