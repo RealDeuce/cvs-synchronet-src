@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.64 2001/09/28 15:07:37 rswindell Exp $ */
+/* $Id: main.cpp,v 1.65 2001/10/02 17:14:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2974,7 +2974,8 @@ void DLLCALL bbs_thread(void* arg)
 
 	lprintf("%s Version %s Revision %c%s"
 		,TELNET_SERVER
-		,VERSION,REVISION
+		,VERSION
+		,toupper(REVISION)
 #ifdef _DEBUG
 		," Debug"
 #else
