@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.54 2004/11/30 21:35:43 rswindell Exp $ */
+/* $Id: js_user.c,v 1.55 2004/12/30 10:59:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -762,6 +762,8 @@ static char* user_stats_prop_desc[] = {
 	,"total bytes downloaded"
 	,"total files downloaded"
 	,"suspected leech downloads"
+	,"number of e-mail messages currently waiting"
+	,"number of e-mail messages sent, currently pending deletion"
 	,NULL
 };
 #endif
