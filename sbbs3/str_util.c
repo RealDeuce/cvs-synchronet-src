@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.18 2003/04/01 09:22:19 rswindell Exp $ */
+/* $Id: str_util.c,v 1.19 2003/04/23 08:33:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,20 +254,6 @@ char* DLLCALL truncstr(char* str, const char* set)
 		*p=0;
 
 	return(p);
-}
-
-/****************************************************************************/
-/* Puts a backslash on path strings 										*/
-/****************************************************************************/
-void backslash(char *str)
-{
-    int i;
-
-	i=strlen(str);
-	if(i && str[i-1]!='\\' && str[i-1]!='/') {
-		str[i]=BACKSLASH; 
-		str[i+1]=0; 
-	}
 }
 
 /****************************************************************************/
