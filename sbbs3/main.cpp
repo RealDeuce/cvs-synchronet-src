@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.128 2002/03/19 13:33:45 rswindell Exp $ */
+/* $Id: main.cpp,v 1.129 2002/03/19 22:48:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2125,7 +2125,8 @@ sbbs_t::~sbbs_t()
 /****************************************************************************/
 /* Network open function. Opens all files DENYALL and retries LOOP_NOPEN    */
 /* number of times if the attempted file is already open or denying access  */
-/* for some other reason.	All files are opened in BINARY mode.			*/
+/* for some other reason.													*/
+/* All files are opened in BINARY mode, unless O_TEXT access bit is set.	*/
 /****************************************************************************/
 int sbbs_t::nopen(char *str, int access)
 {
@@ -2137,7 +2138,9 @@ int sbbs_t::nopen(char *str, int access)
         access&=~O_DENYNONE; }
     else if(access==O_RDONLY) share=SH_DENYWR;
     else share=SH_DENYRW;
-    while(((file=sopen(str,O_BINARY|access,share))==-1)
+	if(!(access&O_TEXT))
+		access|=O_BINARY;
+    while(((file=sopen(str,access,share))==-1)
         && errno==EACCES && count++<LOOP_NOPEN)
         if(count)
             mswait(100);
