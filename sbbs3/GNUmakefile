@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.164 2004/11/17 02:04:09 rswindell Exp $
+# $Id: GNUmakefile,v 1.165 2004/12/01 05:31:06 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -62,7 +62,8 @@ endif
 ifdef NSPRINCLUDE
  CFLAGS += -I$(NSPRINCLUDE)
 else
- CFLAGS += -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)nspr
+ # Use local NSPR first...
+ CFLAGS += -I/usr/local/include -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)nspr
 endif
 ifndef JSLIBDIR
  JSLIBDIR := $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)$(machine).$(BUILD)
