@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.36 2004/09/21 05:26:03 deuce Exp $ */
+/* $Id: uedit.c,v 1.30 2004/09/16 01:40:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "ciolib.h"
-#define __COLORS	1
 #include "sbbs.h"
 #include <sys/types.h>
 #include <time.h>
@@ -49,7 +47,6 @@
 #include <sys/time.h>
 #include <signal.h>
 #endif
-
 #include "genwrap.h"
 #include "uifc.h"
 #include "sbbsdefs.h"
@@ -1740,7 +1737,7 @@ int getuser(scfg_t *cfg, user_t *user, char* str)
 {
 	int i,j,last;
 	ushort un;
-	/* char* str ; */
+//	char* str ;
 	struct user_list **opt;
 	int done=0;
 
@@ -1749,7 +1746,7 @@ int getuser(scfg_t *cfg, user_t *user, char* str)
 	for(i=0;i<(MAX_OPTS+1);i++)
 		opt[i]=NULL;
 
-	/* strcpy(str, username); */
+//    strcpy(str, username);
 	/* User List */
 	done=0;
 	while(!done) {
@@ -1902,8 +1899,6 @@ int main(int argc, char** argv)  {
 	int		last, newlast;
 	user_t	user;
 	int		edtuser=0;
-	int		ciolib_mode=CIOLIB_MODE_AUTO;
-
 	/******************/
 	/* Ini file stuff */
 	/******************/
@@ -1911,7 +1906,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.36 $", "%*s %s", revision);
+	sscanf("$Revision: 1.30 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -1984,44 +1979,15 @@ int main(int argc, char** argv)  {
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
 				case 'I':
-					switch(toupper(argv[i][2])) {
-						case 'A':
-							ciolib_mode=CIOLIB_MODE_ANSI;
-							break;
-						case 'C':
-							ciolib_mode=CIOLIB_MODE_CURSES;
-							break;
-						case 0:
-							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
-							SLEEP(2000);
-						case 'F':
-							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
-							break;
-						case 'X':
-							ciolib_mode=CIOLIB_MODE_X;
-							break;
-						case 'W':
-							ciolib_mode=CIOLIB_MODE_CONIO;
-							break;
-						default:
-							goto USAGE;
-					}
+					/* Set up ex-ascii codes */
+					uifc.mode|=UIFC_IBM;
 					break;
                 default:
-					USAGE:
                     printf("\nusage: %s [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
                         "-c  =  force color mode\n"
                         "-e# =  set escape delay to #msec\n"
-						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
-#ifdef __unix__
-						"       X = X11 mode\r\n"
-						"       C = Curses mode\r\n"
-						"       F = Curses mode with forced IBM charset\r\n"
-#else
-						"       W = Win32 native mode\r\n"
-#endif
-						"       A = ANSI mode\r\n"
+						"-i  =  force IBM charset\n"
                         "-l# =  set screen lines to #\n"
 						,argv[0]
                         );
@@ -2036,12 +2002,11 @@ int main(int argc, char** argv)  {
 #endif
 
 	uifc.size=sizeof(uifc);
-	i=initciolib(ciolib_mode);
-	if(i!=0) {
-    	printf("ciolib library init returned error %d\n",i);
-    	exit(1);
-	}
+#ifdef USE_CURSES
+	i=uifcinic(&uifc);  /* curses */
+#else
 	i=uifcini32(&uifc);  /* curses */
+#endif
 	if(i!=0) {
 		printf("uifc library init returned error %d\n",i);
 		exit(1);
@@ -2107,7 +2072,8 @@ int main(int argc, char** argv)  {
 			/* New User */
 			    createdefaults();
 			    lprintf("Please edit defaults using next screen.");
-			    getuser(&cfg,&user,"New User");
+			    char* uname = "New User";
+			    getuser(&cfg,&user,uname);
 		}
 		if(j==1) {
 		    /* Find User */

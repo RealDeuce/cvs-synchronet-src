@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.30 2004/09/16 06:14:39 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.29 2004/09/15 22:09:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,9 +107,9 @@ char* DLLCALL strip_ctrl(char *str)
 char *usage="\nusage: chksmb [-opts] <filespec.SHD>\n"
 			"\n"
 			" opts:\n"
-			"       b - beep on error\n"
 			"       s - stop after errored message base\n"
 			"       p - pause after errored messsage base\n"
+			"       q - quiet mode (no beeps while checking)\n"
 			"       h - don't check hash file\n"
 			"       a - don't check allocation files\n"
 			"       t - don't check translation strings\n"
@@ -117,7 +117,7 @@ char *usage="\nusage: chksmb [-opts] <filespec.SHD>\n"
 
 int main(int argc, char **argv)
 {
-	char		str[128],*p,*s,*beep="";
+	char		str[128],*p,*s,*beep="\7";
 	char*		body;
 	char*		tail;
 	int 		h,i,j,x,y,lzh,errors,errlast;
@@ -170,9 +170,6 @@ int main(int argc, char **argv)
 				switch(toupper(argv[x][y])) {
 					case 'Q':
 						beep="";
-						break;
-					case 'B':
-						beep="\a";
 						break;
 					case 'P':
 						pause_on_error=TRUE;
