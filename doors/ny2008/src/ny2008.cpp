@@ -353,6 +353,7 @@ main(int argc,char *argv[]) {
 				rip=166;
 			} else if (strnicmp(argv[cnt],"-L",2)==0) {
 				od_control.od_force_local=TRUE;
+				initciowrap(COLOR_MODE);
 				clrscr();
 				textbackground(LIGHTCYAN);
 				textcolor(BLUE);
