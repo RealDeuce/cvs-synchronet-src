@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.27 2003/05/11 18:42:31 deuce Exp $ */
+/* $Id: uifc.h,v 1.28 2003/05/11 21:39:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -351,6 +351,11 @@ typedef struct {
 /* Shows the current help text												*/
 /****************************************************************************/
     void    (*showhelp)(void);
+	
+/****************************************************************************/
+/* Shows help title text													*/
+/****************************************************************************/
+    char	*helptitle;
 #endif
 } uifcapi_t;
 
