@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.9 2002/07/27 00:57:24 rswindell Exp $
+# $Id: Makefile,v 1.10 2002/07/27 02:15:01 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -144,6 +144,7 @@ $(SBBSECHO): sbbsecho.c rechocfg.c smbtxt.c crc32.c lzh.c $(SMBLIB) \
 	$(LIBODIR)\str_util.obj \
 	$(LIBODIR)\date_str.obj \
 	userdat.c \
+	dat_rec.c \
 	genwrap.c \
 	dirwrap.c \
 	$(LIBODIR)\load_cfg.obj \
@@ -166,7 +167,7 @@ $(ADDFILES): addfiles.c \
 	$(LIBODIR)\nopen.obj \
 	$(LIBODIR)\str_util.obj \
 	$(LIBODIR)\date_str.obj \
-	userdat.c \
+	dat_rec.c \
 	filedat.c \
 	genwrap.c \
 	dirwrap.c \
