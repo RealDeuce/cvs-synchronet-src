@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.28 2003/05/15 09:08:06 rswindell Exp $ */
+/* $Id: baja.c,v 1.29 2003/10/16 01:28:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,7 +242,8 @@ void writecstr(uchar *p)
 		if(*p=='\\')    { /* escape */
 			p++;
 			if(isdigit(*p)) {
-				str[j]=atoi(p); 		/* decimal, NOT octal */
+				sprintf(tmp,"%.3s",p);
+				str[j]=atoi(tmp); 		/* decimal, NOT octal */
 				if(isdigit(*(++p))) 	/* skip up to 3 digits */
 					if(isdigit(*(++p)))
 						p++;
