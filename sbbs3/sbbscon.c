@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.122 2003/05/15 09:10:46 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.123 2003/07/02 21:57:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1028,7 +1028,8 @@ int main(int argc, char** argv)
 	SAFECOPY(new_gid_name,iniGetString(fp,"UNIX","Group","",value));
 	is_daemon=iniGetBool(fp,"UNIX","Daemonize",FALSE);
 	SAFECOPY(daemon_type,iniGetString(fp,"UNIX","LogFacility","U",value));
-#endif			
+	umask(iniGetInteger(fp,"UNIX","umask",077));
+#endif
 	/* close .ini file here */
 	if(fp!=NULL)
 		fclose(fp);
