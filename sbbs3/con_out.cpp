@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.14 2002/02/18 14:48:59 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.15 2002/03/13 12:30:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,9 @@ char* DLLCALL ascii_str(uchar* str)
 	for(i=0;str[i];i++)
 		if(str[i]&0x80)
 			str[i]=sbtbl[str[i]^0x80];  /* seven bit table */
+		else if(str[i]==CTRL_A	        /* ctrl-a */
+			&& str[i+1]!=0)				/* valid */
+			i++;						/* skip the attribute code */
 
 	return((char*)str);
 }
@@ -74,7 +77,8 @@ int sbbs_t::bputs(char *str)
     ulong l=0;
 
 	while(str[l]) {
-		if(str[l]==CTRL_A) {        /* ctrl-a */
+		if(str[l]==CTRL_A	        /* ctrl-a */
+			&& str[l+1]!=0) {		/* valid */
 			ctrl_a(str[++l]);       /* skip the ctrl-a */
 			l++;					/* skip the attribute code */
 			continue; }
