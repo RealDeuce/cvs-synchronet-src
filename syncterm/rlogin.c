@@ -5,6 +5,8 @@
 
 static SOCKET	rlogin_socket=INVALID_SOCKET;
 
+int	rcvtimeo=0;
+
 int rlogin_recv(char *buffer, size_t buflen)
 {
 	int	r;
@@ -92,7 +94,22 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd, int bedumb)
 		return(-1);
 	}
 
-	fcntl(rlogin_socket, F_SETFL, fcntl(rlogin_socket, F_GETFL)|O_NONBLOCK);
+	if(rcvtimeo) {
+		#ifdef _WIN32
+		int	tv=10;
+		#else
+		struct timeval tv;
+
+		tv.tv_sec=0;
+		tv.tv_usec=10000;
+		#endif
+
+		setsockopt(rlogin_socket,SOL_SOCKET,SO_RCVTIMEO,(void *)&tv,sizeof(tv));
+	}
+	else {
+		unsigned long	l=1;
+		ioctlsocket(rlogin_socket, FIONBIO,&l);
+	}
 
 	if(!bedumb) {
 		rlogin_send("",1,1000);
