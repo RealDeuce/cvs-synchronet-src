@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.43 2002/11/11 08:15:09 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.44 2002/11/11 09:19:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,12 +332,11 @@ static void thread_down(void)
 static void grow_enviro(http_session_t *session)  {
 	char **new_cgi_env;
 
-	new_cgi_env=session->req.cgi_env;
 	new_cgi_env=realloc(session->req.cgi_env,
 		sizeof(void*)*(CGI_ENVIRON_BLOCK_SIZE+session->req.cgi_env_max_size));
 	if(new_cgi_env != NULL)  {
 		session->req.cgi_env=new_cgi_env;
-		memset(session->req.cgi_env+sizeof(void*)*session->req.cgi_env_max_size,0,
+		memset(session->req.cgi_env+session->req.cgi_env_max_size,0,
 			sizeof(void*)*(CGI_ENVIRON_BLOCK_SIZE));
 		session->req.cgi_env_max_size+=CGI_ENVIRON_BLOCK_SIZE;
 	} else  {
@@ -404,7 +403,7 @@ static void grow_heads(http_session_t *session)  {
 		sizeof(void*)*(CGI_HEADS_BLOCK_SIZE+session->req.cgi_heads_max_size));
 	if(new_cgi_heads != NULL)  {
 		session->req.cgi_heads=new_cgi_heads;
-		memset(session->req.cgi_heads+sizeof(void*)*session->req.cgi_heads_max_size,0,
+		memset(session->req.cgi_heads+session->req.cgi_heads_max_size,0,
 			sizeof(void*)*(CGI_HEADS_BLOCK_SIZE));
 		session->req.cgi_heads_max_size+=CGI_HEADS_BLOCK_SIZE;
 	} else  {
@@ -2113,7 +2112,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.43 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.44 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
