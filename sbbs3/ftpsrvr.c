@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.196 2002/12/10 09:38:42 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.197 2002/12/12 02:32:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -791,7 +791,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			if((alias_fp=fopen(path,"r"))!=NULL) {
 
 				while(!feof(alias_fp)) {
-					if(!fgets(aliasline,sizeof(aliasline)-1,alias_fp))
+					if(!fgets(aliasline,sizeof(aliasline),alias_fp))
 						break;
 
 					p=aliasline;	/* alias pointer */
@@ -1174,7 +1174,7 @@ int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
-char * cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *cmd)
+static char* cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *cmd)
 {
 	char	str[256];
     int		i,j,len;
@@ -2105,7 +2105,7 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 		return(FALSE);
 
 	while(!feof(fp)) {
-		if(!fgets(line,sizeof(line)-1,fp))
+		if(!fgets(line,sizeof(line),fp))
 			break;
 
 		p=line;	/* alias */
@@ -3254,7 +3254,7 @@ static void ctrl_thread(void* arg)
 				if((alias_fp=fopen(aliasfile,"r"))!=NULL) {
 
 					while(!feof(alias_fp)) {
-						if(!fgets(aliasline,sizeof(aliasline)-1,alias_fp))
+						if(!fgets(aliasline,sizeof(aliasline),alias_fp))
 							break;
 
 						alias_dir=FALSE;
@@ -3573,7 +3573,7 @@ static void ctrl_thread(void* arg)
 					if((alias_fp=fopen(aliasfile,"r"))!=NULL) {
 
 						while(!feof(alias_fp)) {
-							if(!fgets(aliasline,sizeof(aliasline)-1,alias_fp))
+							if(!fgets(aliasline,sizeof(aliasline),alias_fp))
 								break;
 
 							p=aliasline;	/* alias pointer */
@@ -4324,7 +4324,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.196 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.197 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

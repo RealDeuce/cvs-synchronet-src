@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.43 2002/11/02 13:13:41 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.44 2002/12/12 02:32:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ char	compiler[32];
 #endif
 
 /* gets is dangerous */
-#define gets(str)  fgets((str), sizeof(str) - 1, stdin)
+#define gets(str)  fgets((str), sizeof(str), stdin)
 
 /********************/
 /* Global variables */
@@ -216,7 +216,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 
 	if(to==NULL) {
 		printf("To User Name: ");
-		fgets(str,sizeof(str)-1,stdin); 
+		fgets(str,sizeof(str),stdin); 
 	} else
 		SAFECOPY(str,to);
 
@@ -1283,7 +1283,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.43 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.44 $" + 11, "%s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

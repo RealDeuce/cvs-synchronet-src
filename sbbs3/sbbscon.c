@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.102 2002/12/07 07:50:50 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.103 2002/12/12 02:32:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -915,7 +915,7 @@ int main(int argc, char** argv)
 
 		if((fp=fopen("/etc/resolv.conf","r"))!=NULL) {
 			while(!feof(fp)) {
-				if(fgets(str,sizeof(str)-1,fp)==NULL)
+				if(fgets(str,sizeof(str),fp)==NULL)
 					break;
 				truncsp(str);
 				p=str;
@@ -1440,7 +1440,7 @@ int main(int argc, char** argv)
 				case 'd':	/* down node */
 				case 'i':	/* interrupt node */
 					printf("\nNode number: ");
-					if((n=atoi(fgets(str,sizeof(str)-1,stdin)))<1)
+					if((n=atoi(fgets(str,sizeof(str),stdin)))<1)
 						break;
 					fflush(stdin);
 					printf("\n");
