@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.13 2003/04/26 17:31:45 deuce Exp $
+# $Id: GNUmakefile,v 1.14 2003/04/30 03:17:55 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -46,20 +46,18 @@ endif
 
 DELETE	=	rm -fv
 
+CFLAGS	+= -D_THREAD_SAFE
 ifeq ($(os),freebsd)	# FreeBSD
- CFLAGS	+= -D_THREAD_SAFE
  LFLAGS	:=	-pthread
 else
  ifeq ($(os),openbsd)	# OpenBSD
-  CFLAGS	+= -D_THREAD_SAFE
   LFLAGS	:=	-pthread
  else
   ifeq ($(os),netbsd)	# NetBSD
-  CFLAGS	+= -D_THREAD_SAFE -D__unix__ -D_NEED_SEM -I/usr/pkg/include
+  CFLAGS	+= -D__unix__ -D_NEED_SEM -I/usr/pkg/include
   LFLAGS	:=	-lpth -lpthread -L/usr/pkg/lib
   else
    ifeq ($(os),qnx)	# QNX
-    CFLAGS	+= -D_THREAD_SAFE
     LFLAGS	:= 
    else			# Linux / Other UNIX
     ifdef bcc

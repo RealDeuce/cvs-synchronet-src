@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.35 2003/04/30 03:09:34 deuce Exp $ */
+/* $Id: genwrap.h,v 1.36 2003/04/30 03:17:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,8 +47,10 @@
 	#include <sys/time.h>	/* struct timeval */
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
+	#ifdef _THREAD_SAFE
+		#include <pthread.h>	/* Check for GNU PTH libs */
+	#endif
 #endif
-
 
 #if defined(__cplusplus)
 extern "C" {
@@ -171,7 +173,7 @@ extern "C" {
 #elif defined(__unix__)
 
 
-	#if defined(_PTH_PTHREAD_H_)
+	#if
 		#define SLEEP(x)  ({ int y=x; struct timeval tv; \
 			tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
 			pth_nap(tv); })
