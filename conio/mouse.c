@@ -1,36 +1,3 @@
-/* $Id: mouse.c,v 1.21 2004/10/13 20:15:18 deuce Exp $ */
-
-/****************************************************************************
- * @format.tab-size 4		(Plain Text/Source Code File Header)			*
- * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
- *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
- *																			*
- * This library is free software; you can redistribute it and/or			*
- * modify it under the terms of the GNU Lesser General Public License		*
- * as published by the Free Software Foundation; either version 2			*
- * of the License, or (at your option) any later version.					*
- * See the GNU Lesser General Public License for more details: lgpl.txt or	*
- * http://www.fsf.org/copyleft/lesser.html									*
- *																			*
- * Anonymous FTP access to the most recent released source is available at	*
- * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
- *																			*
- * Anonymous CVS access to the development source and modification history	*
- * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
- *     (just hit return, no password is necessary)							*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
- *																			*
- * For Synchronet coding style and modification guidelines, see				*
- * http://www.synchro.net/source.html										*
- *																			*
- * You are encouraged to submit any modifications (preferably in Unix diff	*
- * format) via e-mail to mods@synchro.net									*
- *																			*
- * Note: If this box doesn't appear square, then you need to fix your tabs.	*
- ****************************************************************************/
-
 #include <stdlib.h>
 
 #include <genwrap.h>
@@ -93,8 +60,8 @@ struct mouse_state {
 	int	click_timeout;			/* Timeout between press and release events for a click (ms) */
 	int	multi_timeout;			/* Timeout after a click for detection of multi clicks (ms) */
 	int	click_drift;			/* Allowed "drift" during a click event */
-	link_list_t	input;
-	link_list_t	output;
+	link_list_t	*input;
+	link_list_t	*output;
 };
 
 struct mouse_state state;
@@ -104,10 +71,12 @@ static mouse_initialized=0;
 void init_mouse(void)
 {
 	memset(&state,0,sizeof(state));
+	state.input=malloc(sizeof(link_list_t));
+	state.output=malloc(sizeof(link_list_t));
 	state.click_timeout=0;
 	state.multi_timeout=300;
-	listInit(&state.input,0);
-	listInit(&state.output,0);
+	listInit(state.input,LINK_LIST_NEVER_FREE);
+	listInit(state.output,LINK_LIST_NEVER_FREE);
 	pthread_mutex_init(&in_mutex,NULL);
 	pthread_mutex_init(&out_mutex,NULL);
 	sem_init(&in_sem,0,0);
@@ -132,21 +101,10 @@ int ciomouse_delevents(int events)
 	return mouse_events;
 }
 
-int ciomouse_addevent(int event)
-{
-	mouse_events |= (1<<event);
-	return mouse_events;
-}
-
-int ciomouse_delevent(int event)
-{
-	mouse_events &= ~(1<<event);
-	return mouse_events;
-}
-
 void ciomouse_gotevent(int event, int x, int y)
 {
 	struct in_mouse_event *ime;
+	struct in_mouse_event **lastevent;
 
 	while(!mouse_initialized)
 		SLEEP(1);
@@ -159,7 +117,7 @@ void ciomouse_gotevent(int event, int x, int y)
 
 	pthread_mutex_lock(&in_mutex);
 
-	listPushNode(&state.input,ime);
+	listPushNode(state.input,ime);
 
 	pthread_mutex_unlock(&in_mutex);
 	sem_post(&in_sem);
@@ -168,6 +126,7 @@ void ciomouse_gotevent(int event, int x, int y)
 void add_outevent(int event, int x, int y)
 {
 	struct out_mouse_event *ome;
+	struct out_mouse_event **lastevent;
 	int	but=0;
 
 	if(!(mouse_events & 1<<event))
@@ -186,13 +145,15 @@ void add_outevent(int event, int x, int y)
 
 	pthread_mutex_lock(&out_mutex);
 
-	listPushNode(&state.output,ome);
+	listPushNode(state.output,ome);
 
 	pthread_mutex_unlock(&out_mutex);
 }
 
 int more_multies(int button, int clicks)
 {
+	int i;
+
 	switch(clicks) {
 		case 1:
 			if(mouse_events & (1<<CIOLIB_BUTTON_DBL_CLICK(button)))
@@ -209,6 +170,7 @@ int more_multies(int button, int clicks)
 
 void ciolib_mouse_thread(void *data)
 {
+	struct in_mouse_event *old_in_event;
 	int	timedout;
 	int timeout_button=0;
 	int but;
@@ -275,7 +237,7 @@ void ciolib_mouse_thread(void *data)
 			struct in_mouse_event *in;
 
 			pthread_mutex_lock(&in_mutex);
-			in=listRemoveNode(&state.input, FIRST_NODE);
+			in=listRemoveNode(state.input, FIRST_NODE);
 			pthread_mutex_unlock(&in_mutex);
 			if(in==NULL)
 					continue;
@@ -438,19 +400,20 @@ int mouse_pending(void)
 {
 	while(!mouse_initialized)
 		SLEEP(1);
-	return(listCountNodes(&state.output));
+	return(listCountNodes(state.output));
 }
 
 int ciolib_getmouse(struct mouse_event *mevent)
 {
 	int retval=0;
+	struct out_mouse_event *old_out_event;
 
 	while(!mouse_initialized)
 		SLEEP(1);
-	if(listCountNodes(&state.output)) {
+	if(listCountNodes(state.output)) {
 		struct out_mouse_event *out;
 		pthread_mutex_lock(&out_mutex);
-		out=listRemoveNode(&state.output,FIRST_NODE);
+		out=listRemoveNode(state.output,FIRST_NODE);
 		pthread_mutex_unlock(&out_mutex);
 		if(out==NULL)
 			return(-1);
@@ -463,23 +426,7 @@ int ciolib_getmouse(struct mouse_event *mevent)
 		mevent->endy=out->endy;
 		free(out);
 	}
-	else {
-		memset(mevent,0,sizeof(struct mouse_event));
+	else
 		retval=-1;
-	}
 	return(retval);
-}
-
-int ciolib_ungetmouse(struct mouse_event *mevent)
-{
-	int retval=0;
-	struct mouse_event *me;
-
-	if((me=(struct mouse_event *)malloc(sizeof(struct mouse_event)))==NULL)
-		return(-1);
-	memcpy(me,mevent,sizeof(struct mouse_event));
-	pthread_mutex_lock(&out_mutex);
-	listAddNode(&state.output,me,FIRST_NODE);
-	pthread_mutex_unlock(&out_mutex);
-	return(0);
 }
