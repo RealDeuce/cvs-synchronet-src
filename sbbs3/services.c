@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.127 2003/08/29 00:35:02 rswindell Exp $ */
+/* $Id: services.c,v 1.128 2003/08/29 02:19:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -890,8 +890,9 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(JS_TRUE);
 }
 
-static void js_init_cmdline(JSContext* js_cx, JSObject* js_obj, char* spath)
+static void js_init_cmdline(JSContext* js_cx, JSObject* js_obj, char* path)
 {
+	char					spath[MAX_PATH+1];
 	char*					p;
 	char*					args=NULL;
 	int						argc=0;
@@ -899,6 +900,7 @@ static void js_init_cmdline(JSContext* js_cx, JSObject* js_obj, char* spath)
 	JSObject*				argv;
 	jsval					val;
 
+	SAFECOPY(spath,path);
 	p=spath;
 	while(*p && *p>' ') p++;
 	if(*p) {
@@ -1523,7 +1525,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.127 $", "%*s %s", revision);
+	sscanf("$Revision: 1.128 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
