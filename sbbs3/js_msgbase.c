@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.82 2003/10/28 00:21:36 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.85 2003/12/07 07:07:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,6 +120,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	ushort		nettype;
 	ushort		type;
 	ushort		agent;
+	ushort		port;
 	int32		i32;
 	jsval		val;
 	JSObject*	array;
@@ -198,6 +199,30 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		JS_ValueToInt32(cx,val,&i32);
 		agent=(ushort)i32;
 		smb_hfield(msg, SENDERAGENT, sizeof(agent), &agent);
+	}
+
+	if(JS_GetProperty(cx, hdr, "from_ip_addr", &val) && val!=JSVAL_VOID) {
+		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
+			return(FALSE);
+		smb_hfield_str(msg, SENDERIPADDR, cp);
+	}
+
+	if(JS_GetProperty(cx, hdr, "from_host_name", &val) && val!=JSVAL_VOID) {
+		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
+			return(FALSE);
+		smb_hfield_str(msg, SENDERHOSTNAME, cp);
+	}
+
+	if(JS_GetProperty(cx, hdr, "from_protocol", &val) && val!=JSVAL_VOID) {
+		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
+			return(FALSE);
+		smb_hfield_str(msg, SENDERPROTOCOL, cp);
+	}
+
+	if(JS_GetProperty(cx, hdr, "from_port", &val) && val!=JSVAL_VOID) {
+		JS_ValueToInt32(cx,val,&i32);
+		port=(ushort)i32;
+		smb_hfield(msg, SENDERPORT, sizeof(port), &port);
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_ext", &val) && val!=JSVAL_VOID) {
@@ -509,6 +534,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	char		msg_id[256];
 	char		reply_id[256];
 	char*		val;
+	ushort*		port;
 	int			i;
 	uintN		n;
 	smbmsg_t	msg;
@@ -661,6 +687,29 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
 
+	if((val=smb_get_hfield(&msg,SENDERIPADDR,NULL))!=NULL
+		&& (js_str=JS_NewStringCopyZ(cx,val))!=NULL)
+		JS_DefineProperty(cx, hdrobj, "from_ip_addr"
+			,STRING_TO_JSVAL(js_str)
+			,NULL,NULL,JSPROP_ENUMERATE);
+
+	if((val=smb_get_hfield(&msg,SENDERHOSTNAME,NULL))!=NULL
+		&& (js_str=JS_NewStringCopyZ(cx,val))!=NULL)
+		JS_DefineProperty(cx, hdrobj, "from_host_name"
+			,STRING_TO_JSVAL(js_str)
+			,NULL,NULL,JSPROP_ENUMERATE);
+
+	if((val=smb_get_hfield(&msg,SENDERPROTOCOL,NULL))!=NULL
+		&& (js_str=JS_NewStringCopyZ(cx,val))!=NULL)
+		JS_DefineProperty(cx, hdrobj, "from_protocol"
+			,STRING_TO_JSVAL(js_str)
+			,NULL,NULL,JSPROP_ENUMERATE);
+
+	if((port=smb_get_hfield(&msg,SENDERPORT,NULL))!=NULL)
+		JS_DefineProperty(cx, hdrobj, "from_port"
+			,INT_TO_JSVAL(*port)
+			,NULL,NULL,JSPROP_ENUMERATE);
+		
 	JS_DefineProperty(cx, hdrobj, "forwarded",INT_TO_JSVAL(msg.forwarded)
 		,NULL,NULL,JSPROP_ENUMERATE);
 	JS_NewNumberValue(cx,msg.expiration,&v);
@@ -1480,6 +1529,10 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td><tt>from_org</tt><td>Sender's organization"
 	"<tr><td><tt>from_net_type</tt><td>Sender's network type (default: 0 for local)"
 	"<tr><td><tt>from_net_addr</tt><td>Sender's network address"
+	"<tr><td><tt>from_ip_addr</tt><td>Sender's IP address (if available, for security tracking)"
+	"<tr><td><tt>from_host_name</tt><td>Sender's host name (if available, for security tracking)"
+	"<tr><td><tt>from_protocol</tt><td>TCP/IP protocol used by sender (if available, for security tracking)"
+	"<tr><td><tt>from_port</tt><td>TCP/UDP port number used by sender (if available, for security tracking)"
 	"<tr><td><tt>replyto</tt><td>Replies should be sent to this name"
 	"<tr><td><tt>replyto_ext</tt><td>Replies should be sent to this user number"
 	"<tr><td><tt>replyto_org</tt><td>Replies should be sent to organization"
