@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.77 2002/03/16 02:52:11 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.78 2002/03/16 03:17:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1123,7 +1123,10 @@ char * sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
-            switch(toupper(instr[i])) {
+			char ch=instr[i];
+			if(isalpha(ch))
+				ch=toupper(ch);
+            switch(ch) {
                 case 'A':   /* User alias */
                     strcat(cmd,useron.alias);
                     break;
