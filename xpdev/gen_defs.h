@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.22 2004/10/14 23:05:54 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.21 2004/09/01 20:50:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -216,10 +216,6 @@ typedef struct {
 #define FIND_DIGIT(p)				while(*(p) && !isdigit(*(p)))			(p)++;
 #define SKIP_HEXDIGIT(p)			while(*(p) && isxdigit(*(p)))			(p)++;
 #define FIND_HEXDIGIT(p)			while(*(p) && !isxdigit(*(p)))			(p)++;
-
-/* Variable/buffer initialization (with zeros) */
-#define ZERO_VAR(var)				memset(&var,0,sizeof(var))
-#define ZERO_ARRAY(array)			memset(array,0,sizeof(array))
 
 /****************************************************************************/
 /* MALLOC/FREE Macros for various compilers and environments				*/

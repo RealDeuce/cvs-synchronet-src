@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.7 2004/09/23 18:11:04 rswindell Exp $
+# $Id: Makefile,v 1.5 2004/09/17 07:51:37 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -21,7 +21,7 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 !include ..\build\Common.bmake	# defines clean and output directory rules
 
-CFLAGS = $(CFLAGS) -I$(XPDEV_SRC) -DSMB_EXPORTS -DMD5_EXPORTS
+CFLAGS = $(CFLAGS) -I$(XPDEV_SRC)
 
 # SBBS DLL Link Rule
 $(SMBLIB_BUILD): $(OBJS)
