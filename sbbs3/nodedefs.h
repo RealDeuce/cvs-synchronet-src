@@ -2,7 +2,7 @@
 
 /* Synchronet node information structure and constant definitions */
 
-/* $Id: nodedefs.h,v 1.10 2002/05/03 01:15:58 rswindell Exp $ */
+/* $Id: nodedefs.h,v 1.11 2002/06/18 08:19:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,8 @@ enum {                              /* Node Status */
     ,NODE_EVENT_RUNNING             /* Running an external event */
     ,NODE_EVENT_LIMBO               /* Allowing another node to run an event */
     };
+
+#define NODE_INVALID_STATUS	0xff	/* Invalid status value */
 
                                     /* Bit values for node.misc */
 #define NODE_ANON   (1<<0)          /* Anonymous User */
