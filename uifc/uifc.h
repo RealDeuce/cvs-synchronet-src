@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.17 2002/05/03 00:06:55 rswindell Exp $ */
+/* $Id: uifc.h,v 1.18 2002/10/29 09:06:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,6 @@
 #endif
 #if !defined(__unix__)
     #include <io.h>
-#endif
-#if !defined(__FreeBSD__)
 	#include <malloc.h>		/* malloc prototype */
 #endif
 #if (defined(__unix__) || defined(_WIN32)) && !defined(__FLAT__)
