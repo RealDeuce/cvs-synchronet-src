@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.25 2003/04/26 17:44:35 deuce Exp $
+# $Id: GNUmakefile,v 1.26 2003/04/28 05:29:11 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -80,9 +80,8 @@ endif
 include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
 
-ifeq ($(os),gnu)
- OBJS	+=	$(ODIR)$(SLASH)sem.$(OFILE)
- CFLAGS	+=	-D_NEED_SEM
+ifeq ($(os),netbsd)
+ CFLAGS	+=	-D__unix__
 endif
 
 ifdef USE_DIALOG		
