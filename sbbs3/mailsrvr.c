@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.37 2000/11/29 17:19:46 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.38 2000/11/30 01:56:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2332,17 +2332,17 @@ void DLLCALL mail_server(void* arg)
 
 	srand(time(NULL));
 
-#ifndef __MINGW32__
-	if(PUTENV("TZ=UCT0"))
-		lprintf("!putenv() FAILED");
-	tzset();
+	if(!(startup->options&MAIL_OPT_LOCAL_TIMEZONE)) {
+		if(PUTENV("TZ=UCT0"))
+			lprintf("!putenv() FAILED");
+		tzset();
 
-	if((t=checktime())!=0) {   /* Check binary time */
-		lprintf("!TIME PROBLEM (%ld)",t);
-		cleanup(1);
-		return;
-    }
-#endif
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf("!TIME PROBLEM (%ld)",t);
+			cleanup(1);
+			return;
+		}
+	}
 
 	if(!winsock_startup()) {
 		cleanup(1);

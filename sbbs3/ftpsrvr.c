@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.44 2000/11/29 17:19:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.45 2000/11/30 01:56:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2990,17 +2990,17 @@ void DLLCALL ftp_server(void* arg)
 
 	srand(time(NULL));
 
-#ifndef __MINGW32__
-	if(PUTENV("TZ=UCT0"))
-		lprintf("!putenv() FAILED");
-	tzset();
+	if(!(startup->options&FTP_OPT_LOCAL_TIMEZONE)) { 
+		if(PUTENV("TZ=UCT0"))
+			lprintf("!putenv() FAILED");
+		tzset();
 
-	if((t=checktime())!=0) {   /* Check binary time */
-		lprintf("!TIME PROBLEM (%ld)",t);
-		cleanup(1);
-		return;
-    }
-#endif
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf("!TIME PROBLEM (%ld)",t);
+			cleanup(1);
+			return;
+		}
+	}
 
 	if(!winsock_startup()) {
 		cleanup(1);

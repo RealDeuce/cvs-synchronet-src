@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.5 2000/10/26 15:06:40 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.6 2000/11/30 01:56:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,15 +85,16 @@ typedef struct {
 
 } ftp_startup_t;
 
-#define FTP_OPT_DEBUG_RX		(1<<0)
-#define FTP_OPT_DEBUG_DATA		(1<<1)
-#define FTP_OPT_INDEX_FILE		(1<<2)	/* Auto-generate Index files */
-#define FTP_OPT_DEBUG_TX		(1<<3)
-#define FTP_OPT_ALLOW_QWK		(1<<4)
-#define FTP_OPT_NO_LOCAL_FSYS	(1<<5)
-#define FTP_OPT_DIR_FILES		(1<<6)	/* Allow access to files in dir but not in database */
-#define FTP_OPT_NO_HOST_LOOKUP	(1<<11)
-#define FTP_OPT_MUTE			(1<<31)
+#define FTP_OPT_DEBUG_RX			(1<<0)
+#define FTP_OPT_DEBUG_DATA			(1<<1)
+#define FTP_OPT_INDEX_FILE			(1<<2)	/* Auto-generate Index files */
+#define FTP_OPT_DEBUG_TX			(1<<3)
+#define FTP_OPT_ALLOW_QWK			(1<<4)
+#define FTP_OPT_NO_LOCAL_FSYS		(1<<5)
+#define FTP_OPT_DIR_FILES			(1<<6)	/* Allow access to files in dir but not in database */
+#define FTP_OPT_NO_HOST_LOOKUP		(1<<11)
+#define FTP_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UCT/GMT */
+#define FTP_OPT_MUTE				(1<<31)
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
