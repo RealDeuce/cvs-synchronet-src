@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.43 2002/10/16 10:53:33 rswindell Exp $ */
+/* $Id: js_system.c,v 1.44 2002/10/22 09:25:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,7 +655,6 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	int32		usernumber=0;
 	int			len;
 	scfg_t*		cfg;
-	BOOL		sysop_alias=TRUE;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
