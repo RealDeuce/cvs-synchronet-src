@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.34 2005/02/15 03:27:57 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.31 2004/12/02 09:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ typedef struct {
     char    ctrl_dir[128];
     char	root_dir[128];			/* HTML root directory */
     char	error_dir[128];			/* relative to root_dir */
-    char	temp_dir[128];
+    char	cgi_temp_dir[128];
     char**	index_file_name;		/* Index filenames */
 	char	logfile_base[128];		/* Logfile base name (date is appended) */
 	char	answer_sound[128];
@@ -113,7 +113,6 @@ static struct init_field web_init_fields[] = {
 
 #define WEB_OPT_DEBUG_RX			(1<<0)	/* Log all received requests		*/
 #define WEB_OPT_DEBUG_TX			(1<<1)	/* Log all transmitted responses	*/
-#define WEB_OPT_DEBUG_SSJS			(1<<2)	/* Don't delete sbbs_ssjs.*.html	*/
 #define WEB_OPT_VIRTUAL_HOSTS		(1<<4)	/* Use virutal host html subdirs	*/
 #define WEB_OPT_NO_CGI				(1<<5)	/* Disable CGI support				*/
 #define WEB_OPT_HTTP_LOGGING		(1<<6)	/* Create/write-to HttpLogFile		*/
@@ -126,7 +125,6 @@ static ini_bitdesc_t web_options[] = {
 
 	{ WEB_OPT_DEBUG_RX				,"DEBUG_RX"				},
 	{ WEB_OPT_DEBUG_TX				,"DEBUG_TX"				},
-	{ WEB_OPT_DEBUG_SSJS			,"DEBUG_SSJS"			},
 	{ WEB_OPT_VIRTUAL_HOSTS			,"VIRTUAL_HOSTS"		},
 	{ WEB_OPT_NO_CGI				,"NO_CGI"				},
 	{ WEB_OPT_HTTP_LOGGING			,"HTTP_LOGGING"			},
@@ -144,7 +142,7 @@ static ini_bitdesc_t web_options[] = {
 };
 #endif
 
-#define WEB_DEFAULT_ROOT_DIR		"../web/html"
+#define WEB_DEFAULT_ROOT_DIR		"../html"
 #define WEB_DEFAULT_ERROR_DIR		"error"
 #define WEB_DEFAULT_CGI_DIR			"cgi-bin"
 
