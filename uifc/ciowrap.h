@@ -1,4 +1,4 @@
-/* $Id: ciowrap.h,v 1.4 2003/11/01 08:17:41 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.5 2003/12/16 16:03:59 deuce Exp $ */
 
 #include "curs_fix.h"
 
@@ -15,6 +15,25 @@
 #define FALSE   0
 #endif
 #endif
+
+enum {
+	 BLACK
+	,BLUE	
+	,GREEN	
+	,CYAN
+	,RED
+	,MAGENTA
+	,BROWN	
+	,LIGHTGRAY	
+	,DARKGRAY
+	,LIGHTBLUE	
+	,LIGHTGREEN	
+	,LIGHTCYAN
+	,LIGHTRED
+	,LIGHTMAGENTA
+	,YELLOW
+	,WHITE
+};
 
 enum
 {
