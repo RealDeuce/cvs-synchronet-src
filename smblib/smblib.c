@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.10 2001/09/16 23:55:37 rswindell Exp $ */
+/* $Id: smblib.c,v 1.11 2001/11/05 04:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -929,6 +929,8 @@ int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 		if(l<smb->status.max_crcs) {				/* Dupe CRC found */
 			close(file);
 			FREE(buf);
+			sprintf(smb->last_error
+				,"duplicate message detected");
 			return(1); 
 		}
 		chsize(file,0L);				/* truncate it */
@@ -944,6 +946,8 @@ int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 		if(l<(ulong)(length/4L)) {					/* Dupe CRC found */
 			close(file);
 			FREE(buf);
+			sprintf(smb->last_error
+				,"duplicate message detected");
 			return(1); 
 		} 
 	}
@@ -1258,7 +1262,7 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length
 			sprintf(smb->last_error,"reading allocation bytes");
 			return(2);
 		}
-		if(headers>i)
+		if(!headers || headers>i)
 			i=0;			/* don't want to go negative */
 		else
 			i-=headers;
