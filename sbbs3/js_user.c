@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.29 2002/10/30 10:50:48 rswindell Exp $ */
+/* $Id: js_user.c,v 1.30 2002/10/30 11:24:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,8 @@
 #ifdef JAVASCRIPT
 
 static scfg_t* scfg=NULL;
+
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 typedef struct
 {
@@ -124,7 +126,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,"JS_GetPrivate failed");
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -348,7 +350,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,"JS_GetPrivate failed");
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
