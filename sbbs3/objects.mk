@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.10 2003/05/04 11:22:34 rswindell Exp $
+# $Id: objects.mk,v 1.11 2003/05/05 21:06:57 rswindell Exp $
 
 # LIBODIR, SLASH, and OFILE must be pre-defined
 
@@ -38,6 +38,7 @@ OBJS	=	$(LIBODIR)$(SLASH)ansiterm.$(OFILE)\
 			$(LIBODIR)$(SLASH)getmsg.$(OFILE)\
 			$(LIBODIR)$(SLASH)getnode.$(OFILE)\
 			$(LIBODIR)$(SLASH)getstr.$(OFILE)\
+			$(LIBODIR)$(SLASH)ini_file.$(OFILE)\
 			$(LIBODIR)$(SLASH)inkey.$(OFILE)\
 			$(LIBODIR)$(SLASH)ident.$(OFILE)\
 			$(LIBODIR)$(SLASH)js_bbs.$(OFILE)\
