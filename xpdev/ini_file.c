@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.29 2004/05/28 17:10:50 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.31 2004/06/03 21:59:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@ static void truncsp(char *str)
 	uint c;
 
 	c=strlen(str);
-	while(c && (uchar)str[c-1]<=SP) c--;
+	while(c && (uchar)str[c-1]<=' ') c--;
 	str[c]=0;
 }
 
@@ -459,7 +459,7 @@ iniGetNamedStringList(FILE* fp, const char* section)
 	named_string_t** lp;
 	named_string_t** np;
 
-	if((lp=malloc(sizeof(named_string_t*)))==NULL)
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
 		return(NULL);
 
 	*lp=NULL;
@@ -479,15 +479,15 @@ iniGetNamedStringList(FILE* fp, const char* section)
 			continue;
 		if(name==NEW_SECTION)
 			break;
-		if((np=realloc(lp,sizeof(named_string_t*)*(items+2)))==NULL)
+		if((np=(named_string_t**)realloc(lp,sizeof(named_string_t*)*(items+2)))==NULL)
 			break;
 		lp=np;
-		if((lp[items]=malloc(sizeof(named_string_t)))==NULL)
+		if((lp[items]=(named_string_t*)malloc(sizeof(named_string_t)))==NULL)
 			break;
-		if((lp[items]->name=malloc(strlen(name)+1))==NULL)
+		if((lp[items]->name=(char*)malloc(strlen(name)+1))==NULL)
 			break;
 		strcpy(lp[items]->name,name);
-		if((lp[items]->value=malloc(strlen(value)+1))==NULL)
+		if((lp[items]->value=(char*)malloc(strlen(value)+1))==NULL)
 			break;
 		strcpy(lp[items]->value,value);
 		items++;
