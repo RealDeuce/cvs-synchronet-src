@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.28 2003/05/09 03:45:00 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.29 2003/05/15 20:56:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,9 +37,7 @@
 
 #include "sbbs.h"
 
-#define ADDFILES_VER "3.00"
-
-char *crlf="\r\n";
+#define ADDFILES_VER "3.01"
 
 scfg_t scfg;
 
@@ -278,7 +276,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 			if(mode&FILE_ID) {
 				for(i=0;i<scfg.total_fextrs;i++)
-					if(!stricmp(scfg.fextr[i]->ext,f.name+9))
+					if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,NULL))
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
@@ -481,7 +479,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 		if(mode&FILE_ID) {
 			for(i=0;i<scfg.total_fextrs;i++)
-				if(!stricmp(scfg.fextr[i]->ext,f.name+9))
+				if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,NULL))
 					break;
 			if(i<scfg.total_fextrs) {
 				sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
@@ -689,7 +687,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.28 $", "%*s %s", revision);
+	sscanf("$Revision: 1.29 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -894,7 +892,7 @@ int main(int argc, char **argv)
 			printf("%s %7lu %s\n",f.name,f.cdt,f.desc);
 			if(mode&FILE_ID) {
 				for(i=0;i<scfg.total_fextrs;i++)
-					if(!stricmp(scfg.fextr[i]->ext,f.name+9))
+					if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,NULL))
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);

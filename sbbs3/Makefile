@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.28 2003/05/11 07:42:07 rswindell Exp $
+# $Id: Makefile,v 1.29 2003/05/15 20:56:56 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -189,6 +189,7 @@ $(ADDFILES): addfiles.c \
 	$(LIBODIR)\crc16.obj \
 	$(LIBODIR)\str_util.obj \
 	$(LIBODIR)\date_str.obj \
+	$(LIBODIR)\userdat.obj \
 	dat_rec.c \
 	filedat.c \
 	genwrap.c \

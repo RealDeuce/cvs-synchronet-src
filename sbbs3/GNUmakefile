@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.86 2003/05/14 19:45:55 deuce Exp $
+# $Id: GNUmakefile,v 1.87 2003/05/15 20:56:56 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -401,6 +401,7 @@ ADDFILES_OBJS = \
 	$(EXEODIR)/crc16.o \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/dat_rec.o \
+	$(EXEODIR)/userdat.o \
 	$(EXEODIR)/filedat.o \
 	$(EXEODIR)/filewrap.o \
 	$(EXEODIR)/dirwrap.o \
