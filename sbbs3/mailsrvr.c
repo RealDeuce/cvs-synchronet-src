@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.322 2004/04/15 12:21:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.323 2004/04/15 12:27:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,7 +587,7 @@ static u_long resolve_ip(char *inaddr)
 
 	SAFECOPY(buf,inaddr);
 	addr=buf;
-	if(*addr=='[' && *(p=lastchar(addr))==']')	{ /* Support [addr] notation */
+	if(*addr=='[' && *(p=lastchar(addr))==']') { /* Support [ip_address] notation */
 		addr++;
 		*p=0;
 	}
@@ -601,8 +601,8 @@ static u_long resolve_ip(char *inaddr)
 	if(!(*p))
 		return(inet_addr(addr));
 
-	if((host=gethostbyname(addr))==NULL) {
-		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",addr);
+	if((host=gethostbyname(inaddr))==NULL) {
+		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",inaddr);
 		return((u_long)INADDR_NONE);
 	}
 	return(*((ulong*)host->h_addr_list[0]));
@@ -3736,7 +3736,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.322 $", "%*s %s", revision);
+	sscanf("$Revision: 1.323 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
