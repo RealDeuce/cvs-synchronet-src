@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.22 2002/11/26 06:48:31 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.23 2003/01/23 10:26:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -160,7 +160,14 @@ extern "C" {
 
 #elif defined(__unix__)
 
+		/* usleep() apparently doesn't work right (100% CPU utilization) */
+#if 0	/* with multiple clients/threads on *BSD */
 	#define SLEEP(x)		usleep(x*1000)
+#else
+	#define SLEEP(x)		({	int y=x; struct timeval tv; \
+								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
+								select(0,NULL,NULL,NULL,&tv); })
+#endif
 	#define BEEP(freq,dur)	unix_beep(freq,dur)
 	DLLEXPORT void	DLLCALL	unix_beep(int freq, int dur);
 
