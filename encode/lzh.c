@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.c,v 1.5 2002/04/18 00:18:35 rswindell Exp $ */
+/* $Id: lzh.c,v 1.6 2002/10/29 09:12:23 rswindell Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -38,8 +38,8 @@
 
 /* FreeBSD's malloc.h is deprecated, it drops a warning and */
 /* #includes <stdlib.h>, which is already here.             */
-#ifndef __FreeBSD__
-#include <malloc.h>
+#if !defined(__unix__)
+	#include <malloc.h>
 #endif
 
 #include "lzh.h"
