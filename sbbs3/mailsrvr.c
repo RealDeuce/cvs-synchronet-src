@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.33 2000/11/15 04:14:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.34 2000/11/15 13:19:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2471,7 +2471,8 @@ void DLLCALL mail_server(void* arg)
     if(startup->started!=NULL)
     	startup->started();
 
-	_beginthread (sendmail_thread, 0, NULL);
+	if(!(startup->options&MAIL_OPT_NO_SENDMAIL))
+		_beginthread (sendmail_thread, 0, NULL);
 
 	lprintf("%04d Mail Server thread started",server_socket);
 	status(STATUS_WFC);
