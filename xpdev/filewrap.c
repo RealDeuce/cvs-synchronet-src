@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.2 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.3 2002/04/26 23:44:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,6 @@
 /* OS-specific */
 #if defined(__unix__)
 
-#include <glob.h>       /* glob() wildcard matching */
 #include <string.h>     /* strlen() */
 #include <unistd.h>     /* getpid() */
 #include <fcntl.h>      /* fcntl() file/record locking */
