@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.27 2003/06/11 02:07:31 deuce Exp $ */
+/* $Id: genwrap.c,v 1.28 2003/06/11 02:13:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include <string.h>     /* strlen() */
+#include <stdarg.h>	/* vsnprintf() */
 #include <stdlib.h>		/* RAND_MAX */
 #include <fcntl.h>		/* O_NOCTTY */
 #include <time.h>		/* clock() */
