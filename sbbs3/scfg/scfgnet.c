@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.15 2003/01/02 09:27:34 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.16 2003/01/05 12:52:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -930,7 +930,7 @@ value to 0.
 			continue;
 		if(!i) {
 			write_msgs_cfg(&cfg,backup_level);
-            rerun_nodes();
+            refresh_cfg(&cfg);
         }
 		break;
         }

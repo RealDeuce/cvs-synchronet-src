@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.18 2002/12/07 00:56:09 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.19 2003/01/05 12:52:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ entire system.
 				break;
 			if(!i) {
 				write_main_cfg(&cfg,backup_level);
-                rerun_nodes();
+                refresh_cfg(&cfg);
             }
 			return;
 		case 0:

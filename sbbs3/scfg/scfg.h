@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.9 2002/09/14 08:02:41 rswindell Exp $ */
+/* $Id: scfg.h,v 1.10 2003/01/05 12:52:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,6 @@ void bail(int code);
 void errormsg(int line, char *source,  char action, char *object, ulong access);
 void clearptrs(int subnum);
 int  save_changes(int mode);
-void rerun_nodes(void);
 void node_menu(void);
 void node_cfg(void);
 void results(int i);

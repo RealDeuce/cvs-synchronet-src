@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.12 2002/12/13 00:38:44 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.13 2003/01/05 12:52:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,7 +175,7 @@ those sub-boards for a more organized message structure.
 		   continue;
 		if(!j) {
 			write_msgs_cfg(&cfg,backup_level);
-            rerun_nodes();
+            refresh_cfg(&cfg);
         }
 		return;
     }
@@ -816,7 +816,7 @@ E-mail and public posts (on sub-boards).
 				if(!i) {
 					write_msgs_cfg(&cfg,backup_level);
 					write_main_cfg(&cfg,backup_level);
-                    rerun_nodes();
+                    refresh_cfg(&cfg);
                 }
 				return;
 			case 0:
