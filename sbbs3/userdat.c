@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.37 2002/03/16 00:22:01 rswindell Exp $ */
+/* $Id: userdat.c,v 1.38 2002/03/16 00:39:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -649,7 +649,7 @@ int DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* fp)
 		return(-1);
 
 	sprintf(str,"%snode.dab",cfg->ctrl_dir);
-	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1) {
+	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1) {
 		memset(node,0,sizeof(node_t));
 		if(fp!=NULL)
 			*fp=file;
@@ -696,7 +696,6 @@ int DLLCALL putnodedat(scfg_t* cfg, uint number, node_t* node, int file)
 	number--;	/* make zero based */
 	for(attempts=0;attempts<10;attempts++) {
 		lseek(file,(long)number*sizeof(node_t),SEEK_SET);
-		lock(file,(long)number*sizeof(node_t),sizeof(node_t));
 		if((wr=write(file,node,sizeof(node_t)))==sizeof(node_t))
 			break;
 		wrerr=errno;	/* save write error */
