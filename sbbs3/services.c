@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.171 2004/11/16 06:23:55 rswindell Exp $ */
+/* $Id: services.c,v 1.172 2004/11/18 09:12:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,6 +64,7 @@
 #define JAVASCRIPT	/* required to include JS API headers */
 #endif
 #define SERVICES_INI_BITDESC_TABLE	/* required to defined service_options */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "services.h"
 #include "ident.h"	/* identify() */
@@ -1536,7 +1537,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.171 $", "%*s %s", revision);
+	sscanf("$Revision: 1.172 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.219 2004/11/18 01:02:18 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.220 2004/11/18 09:12:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,6 +97,7 @@
 #define JAVASCRIPT
 #endif
 
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "sockwrap.h"		/* sendfilesocket() */
 #include "threadwrap.h"		/* pthread_mutex_t */
@@ -2841,7 +2842,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.219 $", "%*s %s", revision);
+	sscanf("$Revision: 1.220 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
