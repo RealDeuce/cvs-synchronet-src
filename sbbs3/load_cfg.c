@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.18 2001/10/26 16:23:21 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.19 2002/01/16 03:21:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,7 @@
 #include "sbbs.h"
 
 static void prep_cfg(scfg_t* cfg);
+char *	readtext(long *line, FILE *stream);
 
 /****************************************************************************/
 /* Initializes system and node configuration information and data variables */
