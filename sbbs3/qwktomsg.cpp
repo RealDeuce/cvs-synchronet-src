@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.16 2002/08/16 23:40:01 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.17 2002/08/25 12:07:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -437,9 +437,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		fwrite(tail,taillen,1,smb.sdt_fp);
 		smb_dfield(&msg,TEXT_TAIL,taillen+2); }
 	fflush(smb.sdt_fp);
-	smb_unlocksmbhdr(&smb);
 
-	if((i=smb_addmsghdr(&smb,&msg,storage))!=0)
+	if((i=smb_addmsghdr(&smb,&msg,storage))!=0)	// calls smb_unlocksmbhdr() 
 		errormsg(WHERE,ERR_WRITE,smb.file,i);
 
 	smb_freemsgmem(&msg);
