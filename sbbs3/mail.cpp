@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.11 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.12 2002/04/18 00:25:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 	smb.retry_time=cfg->smb_retry_time;
 	sprintf(str,"%s.sid",smb.file);
 	l=flength(str);
-	if(l<sizeof(idxrec_t))
+	if(l<(long)sizeof(idxrec_t))
 		return(0);
 	if(!usernumber) 
 		return(l/sizeof(idxrec_t)); 	/* Total system e-mail */
