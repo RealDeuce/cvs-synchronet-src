@@ -2,7 +2,7 @@
 
 /* Synchronet client information to share with SBBSCTRL */
 
-/* $Id: client.h,v 1.1 2000/10/10 11:26:21 rswindell Exp $ */
+/* $Id: client.h,v 1.2 2000/11/04 01:31:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,14 +44,14 @@
 #include <time.h>		/* time_t */
 
 typedef struct {
-	size_t	size;		/* size of this struct */
-	char	addr[16];	/* IP address */
-	char	host[64];	/* host name */
-	WORD	port;		/* TCP port number */
-	time_t	time;		/* connect time */
-	char*	protocol;	/* protocol description */
-	char*	user;		/* user name */
-	char	pad[32];	/* padding for future expansion */
+	size_t		size;		/* size of this struct */
+	char		addr[16];	/* IP address */
+	char		host[64];	/* host name */
+	WORD		port;		/* TCP port number */
+	time_t		time;		/* connect time */
+	const char*	protocol;	/* protocol description */
+	char*		user;		/* user name */
+	char		pad[32];	/* padding for future expansion */
 } client_t;
 
 #endif /* Don't add anything after this line */
