@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.45 2003/01/02 07:17:54 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.46 2003/02/09 08:18:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1285,7 +1285,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.45 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
