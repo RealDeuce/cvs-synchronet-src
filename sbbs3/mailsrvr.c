@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.90 2001/11/29 21:04:12 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.91 2001/11/29 21:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1562,6 +1562,7 @@ static void smtp_thread(void* arg)
 				if(*p=='.') p++;	/* Transparency (RFC821 4.5.2) */
 				if(msgtxt!=NULL) 
 					fprintf(msgtxt, "%s\r\n", p);
+				mswait(1);
 				continue;
 			}
 			/* RFC822 Header parsing */
