@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.61 2001/09/24 19:07:46 rswindell Exp $ */
+/* $Id: main.cpp,v 1.62 2001/09/27 17:56:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3152,6 +3152,7 @@ void DLLCALL bbs_thread(void* arg)
 	if(result != 0) {
 		lprintf("!ERROR %d (%d) binding Telnet socket to port %d"
 			,result, ERROR_VALUE,startup->telnet_port);
+		lprintf("!Another service may be using this port");
 		cleanup(1);
 		return;
 	}
@@ -3208,6 +3209,7 @@ void DLLCALL bbs_thread(void* arg)
 		if(result != 0) {
 			lprintf("!ERROR %d (%d) binding RLogin socket to port %d"
 				,result, ERROR_VALUE,startup->rlogin_port);
+			lprintf("!Another service may be using this port");
 			cleanup(1);
 			return;
 		}

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.64 2001/09/27 17:48:00 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.65 2001/09/27 17:56:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2482,6 +2482,7 @@ void DLLCALL mail_server(void* arg)
 	if (result != 0) {
 		lprintf("%04d !ERROR %d (%d) binding SMTP socket to port %u"
 			,server_socket, result, ERROR_VALUE, startup->smtp_port);
+		lprintf("!Another service may be using this port");
 		cleanup(1);
 		return;
 	}
@@ -2527,6 +2528,7 @@ void DLLCALL mail_server(void* arg)
 		if (result != 0) {
 			lprintf("%04d !ERROR %d (%d) binding POP3 socket to port %u"
 				,pop3_socket, result, ERROR_VALUE, startup->pop3_port);
+			lprintf("!Another service may be using this port");
 			cleanup(1);
 			return;
 		}
