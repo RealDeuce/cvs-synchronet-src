@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.31 2004/10/27 21:18:30 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.30 2004/09/16 06:14:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 		if(msg.hdr.attr&MSG_DELETE)
 			body=tail=NULL;
 		else {
-			if((body=smb_getmsgtxt(&smb,&msg,GETMSGTXT_BODY_ONLY))==NULL) {
+			if((body=smb_getmsgtxt(&smb,&msg,0))==NULL) {
 				fprintf(stderr,"%sGet text body failure\n",beep);
 				msgerr=TRUE;
 				if(extinfo)
