@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.1 2000/10/10 11:26:16 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.2 2000/10/21 00:26:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,8 +141,8 @@ int main(int argc, char **argv)
 	idxrec_t	idx;
 	smbmsg_t	msg;
 
-fprintf(stderr,"\nCHKSMB v2.10 ú Check Synchronet Message Base ú "
-	"Devloped 1995-2000 Rob Swindell\n");
+fprintf(stderr,"\nCHKSMB v2.10 - Check Synchronet Message Base - "
+	"Copyright 2000 Rob Swindell\n");
 
 if(argc<2) {
 	printf("%s",usage);
