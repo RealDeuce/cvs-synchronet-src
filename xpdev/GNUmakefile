@@ -1,19 +1,33 @@
-SRC_ROOT	?=	..
-include $(SRC_ROOT)/build/Common.gmake
+# GNUmakefile
 
-ifdef XP_SEM
-	MTOBJS	+=	$(MTOBJODIR)$(DIRSEP)xpsem$(OFILE)
-endif
+#########################################################################
+# Makefile for cross-platform development "wrappers" test				#
+# For use with GNU make and GNU C Compiler or Borland C++ (Kylix 3)								
+#
+# @format.tab-size 4, @format.use-tabs true								#
+#																		#
+# usage: gmake [os=target_os] [bcc=1]											
+#
+#########################################################################
+
+# $Id: GNUmakefile,v 1.22 2004/03/11 06:26:00 deuce Exp $
+NEED_THREADS	:=	1
+
+XPDEV	:=	./
+include $(XPDEV)Common.gmake
 
 # Executable Build Rule
-$(WRAPTEST): $(OBJODIR)/wraptest.o $(DEPS)
+$(WRAPTEST): $(LIBODIR)/wraptest.o $(OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $^ $(LIBS)
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $^
 
-$(XPDEV_LIB): $(OBJODIR) $(OBJS)
-	ar rc $@ $(OBJS)
-	ranlib $@
+lib: $(EXEODIR)/libxpdev.so $(EXEODIR)/libxpdev.a
 
-$(XPDEV-MT_LIB): $(MTOBJODIR) $(MTOBJS)
-	ar rc $@ $(MTOBJS)
-	ranlib $@
+$(EXEODIR)/libxpdev.so: $(OBJS)
+	@echo Linking $@
+	$(QUIET)gcc -shared $(OBJS) -o $(EXEODIR)/libxpdev.so
+
+$(EXEODIR)/libxpdev.a: $(OBJS)
+	@echo Linking $@
+	$(QUIET)ar -r $(EXEODIR)/libxpdev.a $(OBJS)
+	$(QUIET)ranlib $(EXEODIR)/libxpdev.a
