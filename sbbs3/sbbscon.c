@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.76 2002/07/21 21:11:06 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.77 2002/07/21 21:25:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,6 @@
 #include <ctype.h>
 
 /* Synchronet-specific headers */
-#include "sbbsdefs.h"	/* VERSION, REVISION, and COPYRIGHT_NOTICE */
 #include "conwrap.h"	/* kbhit/getch */
 #include "dirwrap.h"	/* BACKSLASH */
 #include "startup.h"	/* bbs_startup_t, bbs_thread */
@@ -50,6 +49,7 @@
 #include "services.h"	/* services_startup_t, services_thread */
 #include "ini_file.h"
 #include "sbbs_ini.h"
+#include "sbbsdefs.h"	/* VERSION, REVISION, and COPYRIGHT_NOTICE */
 
 #ifdef __unix__
 
