@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include <ciolib.h>
+#include <conio.h>
 #include <uifc.h>
 
 #include "uifcinit.h"
@@ -15,7 +15,7 @@ int	init_uifc(void) {
 		return(0);
 	uifc.size=sizeof(uifc);
 	uifc.mode=UIFC_IBM|UIFC_COLOR;
-	if((i=uifcini32(&uifc))!=0) {
+	if(i=uifcini32(&uifc)) {
 		fprintf(stderr,"uifc library init returned error %d\n",i);
 		return(-1);
 	}

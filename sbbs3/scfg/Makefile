@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.16 2004/08/11 00:28:14 rswindell Exp $
+# $Id: Makefile,v 1.14 2004/04/08 00:25:53 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -20,13 +20,12 @@ EXEFILE	=	.exe
 EXEODIR	=	bcc.win32	# Executable output directory
 XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
-CIOLIB	=	..\..\conio
 LIB	=	..\..\..\lib
 INCLUDE	=	..\..\..\include
-CFLAGS	=	-DSCFG -M -I..;$(UIFC);$(XPDEV);$(CIOLIB)
+CFLAGS	=	-DSCFG -M -I..;$(UIFC);$(XPDEV) 
 DELETE	=	-@echo y | del 
 
-.path.c = .;..;$(UIFC);$(XPDEV);$(CIOLIB)
+.path.c = .;..;$(UIFC);$(XPDEV)
 .path.cpp = $(UIFC)
 
 # Enable auto-dependency checking
@@ -52,9 +51,8 @@ LIBODIR =	$(EXEODIR)
 !include objects.mk	# defines $(OBJS)
 
 !ifdef USE_UIFC32
-OBJS = $(OBJS) $(EXEODIR)\uifc32.$(OFILE) \
-	$(EXEODIR)\ciolib.$(OFILE) $(EXEODIR)\ansi_cio.$(OFILE) $(EXEODIR)\win32cio.$(OFILE)
-CFLAGS  =   $(CFLAGS) -DUSE_UIFC32 -WM
+OBJS = $(OBJS) $(EXEODIR)\uifc32.$(OFILE)
+CFLAGS  =   $(CFLAGS) -DUSE_UIFC32
 !else
 OBJS = $(OBJS) $(EXEODIR)\uifc.$(OFILE)
 !endif
