@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.29 2004/01/15 03:06:14 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.30 2004/04/02 22:43:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,6 +217,8 @@ void sbbs_t::outchar(char ch)
 			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
 		}
 		else {
+			if(ch==TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 			i=0;
 			while(outcom(ch)&TXBOF && i<1440) { /* 3 minute pause delay */
 				if(!online)
