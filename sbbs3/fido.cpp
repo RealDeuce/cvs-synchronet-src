@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.31 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: fido.cpp,v 1.32 2004/09/02 21:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -697,9 +697,10 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		smb_stack(&smb,SMB_STACK_POP);
 
 		smb_freemsgmem(&msg);
-		if(i) {
+		if(i!=SMB_SUCCESS) {
+			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
 			smb_freemsgdat(&smb,offset,length,1);
-			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); }
+		}
 		else {		/* Successful */
 			if(inet) {
 				if(cfg.inetmail_sem[0]) 	 /* update semaphore file */
