@@ -2,7 +2,7 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.13 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: filedat.c,v 1.14 2002/04/13 09:08:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -485,7 +485,7 @@ BOOL DLLCALL removefiledat(scfg_t* cfg, file_t* f)
 /****************************************************************************/
 BOOL DLLCALL findfile(scfg_t* cfg, uint dirnum, char *filename)
 {
-	char str[256],c,fname[13],HUGE16 *ixbbuf;
+	char str[256],fname[13],HUGE16 *ixbbuf;
     int i,file;
     long length,l;
 

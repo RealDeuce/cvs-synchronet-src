@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.141 2002/04/13 08:11:10 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.142 2002/04/13 09:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,10 +82,6 @@ int dns_getmx(char* name, char* mx, char* mx2
 #define LINES_PER_YIELD			100		/* Yield every this many lines of text */
 
 #define STATUS_WFC	"Listening"
-
-static const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-static const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
-            ,"Jul","Aug","Sep","Oct","Nov","Dec"};
 
 static mail_startup_t* startup=NULL;
 static scfg_t	scfg;

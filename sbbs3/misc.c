@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.26 2002/04/12 06:20:39 rswindell Exp $ */
+/* $Id: misc.c,v 1.27 2002/04/13 09:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,7 +175,7 @@ char* DLLCALL prep_file_desc(char *str)
 char *ultoac(ulong l, char *string)
 {
 	char str[256];
-	char i,j,k;
+	int i,j,k;
 
 	ultoa(l,str,10);
 	i=strlen(str)-1;
