@@ -33,13 +33,12 @@ int	init_uifc(void) {
 void uifcbail(void)
 {
 	if(uifc_initialized) {
-		uifc.bail();
-		initciowrap(UIFC_IBM|COLOR_MODE);
+		uifc.bail;
 	}
 	uifc_initialized=0;
 }
 
-void uifcmsg(char *msg, char *helpbuf)
+void uifcmsg(char *msg)
 {
 	int i;
 	char	*buf;
@@ -52,10 +51,8 @@ void uifcmsg(char *msg, char *helpbuf)
 		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 	init_uifc();
-	if(uifc_initialized) {
-		uifc.helpbuf=helpbuf;
+	if(uifc_initialized)
 		uifc.msg(msg);
-	}
 	else
 		fprintf(stderr,"%s\n",msg);
 	if(!i) {

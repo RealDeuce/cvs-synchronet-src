@@ -16,12 +16,12 @@ static BOOL winsock_startup(void)
 	int		status;             /* Status Code */
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		fprintf(stderr,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
+		lprintf(LOG_INFO,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
 		WSAInitialized=TRUE;
 		return (TRUE);
 	}
 
-    fprintf(stderr,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
 	return (FALSE);
 }
 
@@ -59,9 +59,8 @@ int main(int argc, char **argv)
 			rlogin_close();
 		}
 	}
-	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
-		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
+		lprintf(LOG_ERR,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 }
