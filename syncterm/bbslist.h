@@ -25,9 +25,8 @@ struct bbslist {
 	int				type;
 	int				id;
 	int				dumb;
-	int				reversed;
 };
 
-struct bbslist *show_bbslist(int mode,char *path);
+struct bbslist *show_bbslist(int mode);
 
 #endif

@@ -1,5 +1,5 @@
 #include <uifc.h>
-#include <ciolib.h>
+#include <conio.h>
 #include <keys.h>
 
 #include "term.h"
@@ -7,7 +7,6 @@
 
 void viewscroll(void)
 {
-#if 0
 	int	top;
 	int key;
 	int i;
@@ -71,7 +70,6 @@ void viewscroll(void)
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	free(buf);
 	return;
-#endif
 }
 
 int syncmenu(void)
