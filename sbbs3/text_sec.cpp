@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.4 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: text_sec.cpp,v 1.5 2001/11/09 17:04:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,8 @@ int sbbs_t::text_sec()
 				strcpy(str,file[i]);
 			attr(LIGHTGRAY);
 			printfile(str,0);
-			sprintf(str,"Read Text File: %s",file[i]);
+			sprintf(str,"%s read text file: %s"
+				,useron.alias,file[i]);
 			logline("T-",str);
 			pause();
 			sys_status&=~SS_ABORT;

@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.12 2001/11/04 00:49:39 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.13 2001/11/09 17:04:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1429,7 +1429,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	xtrndat(name,dropdir,cfg.xtrn[xtrnnum]->type,tleft,cfg.xtrn[xtrnnum]->misc);
 	if(!online)
 		return(false);
-	sprintf(str,"Ran external: %s",cfg.xtrn[xtrnnum]->name);
+	sprintf(str,"%s running external program: %s"
+		,useron.alias,cfg.xtrn[xtrnnum]->name);
 	logline("X-",str);
 	if(cfg.xtrn[xtrnnum]->cmd[0]!='*' && logfile_fp!=NULL) {
 		fclose(logfile_fp);

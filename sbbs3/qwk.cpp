@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.11 2001/11/04 03:14:55 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.12 2001/11/09 17:04:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,7 +306,8 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 	}
 
 	if(!prepack) {
-		logline("D-","Downloaded QWK packet");
+		sprintf(str,"%s downloaded QWK packet",useron.alias);
+		logline("D-",str);
 		posts_read+=msgcnt;
 
 		sprintf(str,"%sfile/%04u.qwk",cfg.data_dir,useron.number);

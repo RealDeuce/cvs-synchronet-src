@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.15 2001/09/13 20:19:11 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.16 2001/11/09 17:04:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -983,7 +983,8 @@ void sbbs_t::maindflts(user_t* user)
 				now=time(NULL);
 				putuserrec(&cfg,user->number,U_PWMOD,8,ultoa(now,tmp,16));
 				bputs(text[PasswordChanged]);
-				logline(nulstr,"Changed password");
+				sprintf(str,"%s changed password",useron.alias);
+				logline(nulstr,str);
 				pause();
 				break;
 			case 'Z':
