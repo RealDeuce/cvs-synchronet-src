@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.6 2004/12/22 20:50:40 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.5 2004/09/16 08:58:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,8 +78,6 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 
 				if(compare[c]->source!=hash.source)
 					continue;	/* wrong source */
-				if(compare[c]->length!=hash.length)
-					continue;	/* wrong source length */
 				if(compare[c]->flags&SMB_HASH_MARKED)
 					continue;	/* already marked */
 				if((compare[c]->flags&SMB_HASH_PROC_MASK)!=(hash.flags&SMB_HASH_PROC_MASK))
@@ -182,7 +180,6 @@ hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 
 	hash->number=msgnum;
 	hash->time=t;
-	hash->length=length;
 	hash->source=source;
 	hash->flags=flags;
 	if(flags&SMB_HASH_CRC16)

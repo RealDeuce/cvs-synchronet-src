@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.30 2004/12/12 09:41:44 deuce Exp $
+# $Id: Common.gmake,v 1.28 2004/09/28 18:56:10 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -182,13 +182,17 @@ MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
 EXEODIR :=	$(CCPRE).$(machine).exe.$(BUILDPATH)
 LDFLAGS	+=	-L$(LIBODIR)
 
-ifeq ($(os),openbsd)
+ifeq ($(os),netbsd)
  DELETE :=	rm -f
 else
- ifeq ($(os),sunos)
+ ifeq ($(os),openbsd)
   DELETE :=	rm -f
  else
-  DELETE	=	rm -fv
+  ifeq ($(os),sunos)
+   DELETE :=	rm -f
+  else
+   DELETE	=	rm -fv
+  endif
  endif
 endif
 
@@ -217,7 +221,7 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_SETENV -DNEEDS_CFMAKERAW
 endif
 ifeq ($(os),netbsd)	# NetBSD
- CFLAGS	+=	-D__unix__ -I/usr/pkg/include
+ CFLAGS	+=	-D__unix__ -I/usr/pkg/include -I/usr/pkg/pthreads/include -DNEEDS_FORKPTY
 endif
 ifeq ($(os),darwin)
  CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
@@ -242,8 +246,9 @@ else
   XP_SEM    :=    1
  else
   ifeq ($(os),netbsd)    # NetBSD
+   CFLAGS    +=	-D__unix__
    MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
-   MT_LDFLAGS    +=   -L/usr/pkg/lib -lpthread
+   MT_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
    XP_SEM    :=    1
   else
    ifeq ($(os),qnx)    # QNX
