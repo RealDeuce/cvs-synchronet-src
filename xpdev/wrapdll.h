@@ -2,7 +2,7 @@
 
 /* Defines DLLEXPORT and DLLCALL for cross-platform development wrappers */
 
-/* $Id: wrapdll.h,v 1.3 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: wrapdll.h,v 1.4 2002/07/21 23:03:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,11 +45,11 @@
 	#undef DLLCALL
 #endif
 
-#if defined(_WIN32) && defined(WRAPPER_DLL)
-	#if defined(WRAPPER_EXPORTS)
-		#define DLLEXPORT	__declspec(dllexport)
-	#else
+#if defined(_WIN32) && (defined(WRAPPER_IMPORTS) || defined(WRAPPER_EXPORTS))
+	#if defined(WRAPPER_IMPORTS)
 		#define DLLEXPORT	__declspec(dllimport)
+	#else
+		#define DLLEXPORT	__declspec(dllexport)
 	#endif
 	#if defined(__BORLANDC__)
 		#define DLLCALL __stdcall
