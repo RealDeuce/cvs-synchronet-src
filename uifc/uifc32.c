@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.96 2004/09/20 05:33:42 deuce Exp $ */
+/* $Id: uifc32.c,v 1.97 2004/09/20 05:40:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -830,61 +830,13 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					if(mevnt.startx==s_left+left+1
 							&& mevnt.starty==s_top+top+3
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-						if(!opts)
-							continue;
-						*cur -= (height-5);
-						if(*cur<0)
-							*cur = 0;
-						if(bar)
-							*bar=0;
-						y=s_top+top;
-						gotoxy(s_left+left+1,s_top+top+3);
-						textattr(lclr|(bclr<<4));
-						if(*cur && opts>height-3)  /* Scroll mode */
-							putch(30);	   /* put the up arrow */
-						else
-							putch(' ');    /* delete the up arrow */
-						gotoxy(s_left+left+1,s_top+top+height-2);
-						if(opts > height-3 && *cur + height - 4 < opts)
-							putch(31);	   /* put the down arrow */
-						else
-							putch(' ');    /* delete the down arrow */
-						for(i=*cur,j=0;i<=*cur-5+height;i++,j++)
-							uprintf(s_left+left+3,s_top+top+3+j
-								,i==*cur ? lbclr
-									: lclr|(bclr<<4)
-								,"%-*.*s",width-4,width-4,option[i]);
-						continue;
+						i=CIO_KEY_PPAGE;
 					}
 					/* Clicked Scroll Down */
 					if(mevnt.startx==s_left+left+1
 							&& mevnt.starty==(s_top+top+height)-2
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-						if(!opts)
-							continue;
-						*cur += (height-5);
-						if(*cur>opts-1)
-							*cur = opts-1;
-						if(bar)
-							*bar = height-5;
-						y=height-5+s_top+top;
-						gotoxy(s_left+left+1,s_top+top+3);
-						textattr(lclr|(bclr<<4));
-						if(*cur>height-5)  /* Scroll mode */
-							putch(30);	   /* put the up arrow */
-						else
-							putch(' ');    /* delete the up arrow */
-						gotoxy(s_left+left+1,s_top+top+height-2);
-						if(*cur < opts-1)
-							putch(31);	   /* put the down arrow */
-						else
-							putch(' ');    /* delete the down arrow */
-						for(i=*cur+5-height,j=0;i<=*cur;i++,j++)
-							uprintf(s_left+left+3,s_top+top+3+j
-								,i==*cur ? lbclr
-									: lclr|(bclr<<4)
-								,"%-*.*s",width-4,width-4,option[i]);
-						continue;
+						i=CIO_KEY_NPAGE;
 					}
 				}
 			}
