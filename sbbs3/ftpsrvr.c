@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.128 2002/01/26 14:00:09 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.129 2002/02/01 00:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2509,7 +2509,7 @@ static void ctrl_thread(void* arg)
 						break;
 					continue;
 				}
-				lprintf("%04d Guest: %s",sock,password);
+				lprintf("%04d %s: <%s>",sock,user.alias,password);
 				putuserrec(&scfg,user.number,U_NETMAIL,LEN_NETMAIL,password);
 			}
 			else if(user.level>=SYSOP_LEVEL && !stricmp(password,sys_pass)) {
@@ -2530,7 +2530,12 @@ static void ctrl_thread(void* arg)
 			}
 
 			/* Update client display */
-			client.user=user.alias;
+			if(user.pass[0])
+				client.user=user.alias;
+			else {	/* anonymous */
+				sprintf(str,"%s <%.32s>",user.alias,password);
+				client.user=str;
+			}
 			client_on(sock,&client);
 
 
