@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.8 2002/01/28 21:18:40 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.9 2002/01/28 21:20:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -304,7 +304,7 @@ int uinput(int mode, char left, char top, char *prompt, char *outstr,
 	sprintf(str,"%.*s",sizeof(str)-1,outstr);
     dialog_inputbox(app_title, prompt, 9, max+4, outstr);
 	if(strcmp(str,outstr))
-		api.changes=TRUE;
+		api->changes=TRUE;
     return strlen(outstr);
 }
 
