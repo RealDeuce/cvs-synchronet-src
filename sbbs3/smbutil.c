@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.78 2004/09/15 17:22:54 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.79 2004/09/15 20:25:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,7 +334,8 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	}
 
 	if((i=smb_addmsg(&smb,&msg,smb.status.attr&SMB_HYPERALLOC
-		,INT_TO_BOOL(mode&NOCRC),xlat,msgtxt,NULL))!=SMB_SUCCESS) {
+		,mode&NOCRC ? SMB_HASH_SOURCE_NONE : SMB_HASH_SOURCE_ALL
+		,xlat,msgtxt,NULL))!=SMB_SUCCESS) {
 		fprintf(errfp,"\n\7!smb_addmsg returned %d: %s\n",i,smb.last_error);
 		bail(1); 
 	}
@@ -1408,7 +1409,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.78 $", "%*s %s", revision);
+	sscanf("$Revision: 1.79 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
