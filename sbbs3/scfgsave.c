@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.36 2003/06/05 08:40:03 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.37 2003/06/07 07:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1096,10 +1096,7 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
     node_t	node;
     
     for(i=0;i<cfg->sys_nodes;i++) {
-		file=-1;
-		memset(&node,0,sizeof(node));
-       	getnodedat(cfg,i+1,&node,&file);
-		if(file==-1)
+       	if(getnodedat(cfg,i+1,&node,&file)!=0)
 			continue;
         node.misc|=NODE_RRUN;
         if(putnodedat(cfg,i+1,&node,file))
