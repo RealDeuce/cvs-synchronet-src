@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.16 2002/01/26 15:01:40 rswindell Exp $ */
+/* $Id: scfg.c,v 1.17 2002/01/29 00:57:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,7 +223,7 @@ else
 sprintf(uifc.helpdatfile,"%s/scfghelp.dat",str);
 sprintf(uifc.helpixbfile,"%s/scfghelp.ixb",str);
 
-sprintf(str,"Synchronet Configuration for %s v%s",PLATFORM_DESC,VERSION);
+sprintf(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
 if(uifc.scrn(str)) {
 	printf(" USCRN (len=%d) failed!\r\n",uifc.scrn_len+1);
 	bail(1);
