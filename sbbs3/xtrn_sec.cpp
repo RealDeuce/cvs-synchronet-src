@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.18 2002/01/17 21:08:23 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.19 2002/01/23 03:20:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -377,9 +377,9 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 	#if defined(__OS2__)
 			,rio_handle
 	#elif defined(_WIN32)
-			,client_socket_dup
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
 	#elif defined(__unix__)
-			,client_socket
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket
 	#else
 			,-1
 	#endif
@@ -1171,9 +1171,14 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"2\r\n%d\r\n38400\r\n%s%c\r\n%d\r\n%s\r\n%s\r\n%d\r\n%d\r\n"
+		sprintf(str,"%d\r\n%d\r\n38400\r\n%s%c\r\n%d\r\n%s\r\n%s\r\n%d\r\n%d\r\n"
 			"%d\r\n%d\r\n"
-			,client_socket_dup
+			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
+#if defined(__unix__)
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket
+#else
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
+#endif
 			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
