@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.224 2004/11/26 22:47:03 deuce Exp $ */
+/* $Id: websrvr.c,v 1.225 2004/11/28 00:02:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2375,9 +2375,15 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
     for(i=0; i<argc; i++) {
+#if 0
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			continue;
 		fprintf(session->req.fp,"%s",JS_GetStringBytes(str));
+#else
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+			continue;
+		fwrite(JS_GetStringBytes(str),1,JS_GetStringLength(str),session->req.fp);
+#endif
 	}
 
 	return(JS_TRUE);
@@ -2397,9 +2403,15 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
     for (i=0; i<argc;i++) {
+#if 0
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			continue;
 		fprintf(session->req.fp,"%s",JS_GetStringBytes(str));
+#else
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+			continue;
+		fwrite(JS_GetStringBytes(str),1,JS_GetStringLength(str),session->req.fp);
+#endif
 	}
 
 	fprintf(session->req.fp,"\n");
@@ -2847,7 +2859,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.224 $", "%*s %s", revision);
+	sscanf("$Revision: 1.225 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
