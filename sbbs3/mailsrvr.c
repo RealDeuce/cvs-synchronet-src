@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.121 2002/03/08 17:22:06 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.122 2002/03/08 17:58:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,29 +389,6 @@ static BOOL sockgetrsp(SOCKET socket, char* rsp, char *buf, int len)
 	if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 		lprintf("%04d RX: %s",socket,buf);
 	return(TRUE);
-}
-
-static char *msgdate(when_t when, char* buf)
-{
-	struct tm	tm;
-	struct tm*	tm_p;
-	
-	tm_p=localtime((const time_t*)&when.time);
-	if(tm_p!=NULL)
-		tm=*tm_p;
-	else
-		memset(&tm,0,sizeof(tm));
-	sprintf(buf,"%s, %d %s %d %02d:%02d:%02d %s"
-		,wday[tm.tm_wday]
-		,tm.tm_mday
-		,mon[tm.tm_mon]
-		,1900+tm.tm_year
-		,tm.tm_hour
-		,tm.tm_min
-		,tm.tm_sec
-		,zonestr(when.zone)
-		);
-	return(buf);
 }
 
 #define MAX_LINE_LEN	1000

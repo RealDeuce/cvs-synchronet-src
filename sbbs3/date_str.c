@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.8 2002/03/08 17:22:06 rswindell Exp $ */
+/* $Id: date_str.c,v 1.9 2002/03/08 17:58:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,8 +186,9 @@ char* DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str)
 /* Convert RFC822 date header field to when_t structure						*/
 /* dd mon yyyy hh:mm:ss [zone]												*/
 /****************************************************************************/
-when_t DLLCALL rfc822date(char* p)
+when_t DLLCALL rfc822date(char* date)
 {
+	char*	p=date;
 	char	str[32];
 	char	month[32];
 	when_t	when;
@@ -274,4 +275,30 @@ when_t DLLCALL rfc822date(char* p)
 	when.time=mktime(&tm);
 
 	return(when);
+}
+
+/****************************************************************************/
+/* Convert when_t structure to RFC822 date header field (string)			*/
+/****************************************************************************/
+char* DLLCALL msgdate(when_t when, char* buf)
+{
+	struct tm	tm;
+	struct tm*	tm_p;
+	
+	tm_p=localtime((const time_t*)&when.time);
+	if(tm_p!=NULL)
+		tm=*tm_p;
+	else
+		memset(&tm,0,sizeof(tm));
+	sprintf(buf,"%s, %d %s %d %02d:%02d:%02d %s"
+		,wday[tm.tm_wday]
+		,tm.tm_mday
+		,mon[tm.tm_mon]
+		,1900+tm.tm_year
+		,tm.tm_hour
+		,tm.tm_min
+		,tm.tm_sec
+		,zonestr(when.zone)
+		);
+	return(buf);
 }
