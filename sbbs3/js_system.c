@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.11 2001/10/17 19:20:45 rswindell Exp $ */
+/* $Id: js_system.c,v 1.12 2001/10/17 22:34:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -663,25 +663,25 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	
     switch(tiny) {
 		case NODE_PROP_STATUS:
-			node.status=val;
+			node.status=(BYTE)val;
 			break;
 		case NODE_PROP_ERRORS:	
-			node.errors=val;
+			node.errors=(BYTE)val;
 			break;
 		case NODE_PROP_ACTION:	
-			node.action=val;
+			node.action=(BYTE)val;
 			break;
 		case NODE_PROP_USERON:	
-			node.useron=val;
+			node.useron=(WORD)val;
 			break;
 		case NODE_PROP_CONNECTION:
-			node.connection=val;
+			node.connection=(WORD)val;
 			break;
 		case NODE_PROP_MISC:		
-			node.misc=val;
+			node.misc=(WORD)val;
 			break;
 		case NODE_PROP_AUX:		
-			node.aux=val;
+			node.aux=(WORD)val;
 			break;
 		case NODE_PROP_EXTAUX:	
 			node.extaux=val;
