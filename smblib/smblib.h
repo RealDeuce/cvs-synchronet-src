@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.53 2004/09/11 09:27:44 rswindell Exp $ */
+/* $Id: smblib.h,v 1.54 2004/09/15 08:47:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,7 +206,8 @@ SMBEXPORT char*		SMBCALL smb_dfieldtype(ushort type);
 SMBEXPORT char*		SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* outstr);
 SMBEXPORT char*		SMBCALL smb_netaddr(net_t* net);
 SMBEXPORT char*		SMBCALL smb_zonestr(short zone, char* outstr);
-SMBEXPORT char*		SMBCALL smb_hashsource(uchar type);
+SMBEXPORT char*		SMBCALL smb_hashsource(smbmsg_t* msg, int source);
+SMBEXPORT char*		SMBCALL smb_hashsourcetype(uchar type);
 
 /* smbdump.c */
 SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);

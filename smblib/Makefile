@@ -8,11 +8,10 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.1 2004/09/11 10:44:41 rswindell Exp $
+# $Id: Makefile,v 1.3 2004/09/13 01:23:28 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
-XPDEV	=	..\xpdev\		# Path to Cross-platform wrappers
 
 # Enable auto-dependency checking
 .autodepend
@@ -22,14 +21,12 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 !include ..\build\Common.bmake	# defines clean and output directory rules
 
-CFLAGS = $(CFLAGS) -I$(XPDEV)
-
-.path.c = .;$(XPDEV)
+CFLAGS = $(CFLAGS) -I$(XPDEV_SRC)
 
 # SBBS DLL Link Rule
 $(SMBLIB): $(OBJS)
     @echo Creating $< ...
-	$(QUIET)$(DELETE) $@
-	$(QUIET)for %f in ($(OBJS)) do $(QUIET)tlib $@ +%f
+	-$(QUIET)$(DELETE) $@
+	&$(QUIET)tlib $@ +$**
 
 
