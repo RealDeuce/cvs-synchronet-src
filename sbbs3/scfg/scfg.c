@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.52 2003/09/03 07:05:58 rswindell Exp $ */
+/* $Id: scfg.c,v 1.53 2003/09/04 00:56:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "scfg.h"
+#include "conwrap.h" /* getch() */
 
 /********************/
 /* Global Variables */
