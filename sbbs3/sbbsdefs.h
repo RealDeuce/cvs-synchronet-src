@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.68 2002/07/03 08:19:02 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.69 2002/07/11 09:50:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,6 +127,7 @@
 #define UQ_NODEF		(1L<<16)	/* Don't ask for default settings       */
 #define UQ_NOCOMMAS		(1L<<17)	/* Do not require commas in location	*/
 #define UQ_NONETMAIL	(1L<<18)	/* Don't ask for e-mail/netmail address	*/
+#define UQ_NOUPRLWR		(1L<<19)	/* Don't force upper/lower case strings */
 						
 						
 									/* Different bits in sys_misc				*/
