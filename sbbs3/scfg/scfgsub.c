@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.19 2004/03/29 23:02:47 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.18 2003/12/03 08:45:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,7 +148,7 @@ usually an abreviation of the sub-board's name.
 			bail(1);
             continue; }
 
-		for(ptridx=0;ptridx<USHRT_MAX;ptridx++) { /* Search for unused pointer indx */
+		for(ptridx=0;ptridx>-1;ptridx++) { /* Search for unused pointer indx */
             for(n=0;n<cfg.total_subs;n++)
 				if(cfg.sub[n]->ptridx==ptridx)
                     break;

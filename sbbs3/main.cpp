@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.323 2004/03/24 08:11:31 rswindell Exp $ */
+/* $Id: main.cpp,v 1.322 2004/03/23 23:55:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,7 +223,7 @@ u_long resolve_ip(char *addr)
 	char*		p;
 
 	if(*addr==0)
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -231,7 +231,7 @@ u_long resolve_ip(char *addr)
 	if(!(*p))
 		return(inet_addr(addr));
 	if((host=gethostbyname(addr))==NULL) 
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 	return(*((ulong*)host->h_addr_list[0]));
 }
 
