@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.25 2005/03/26 07:43:03 rswindell Exp $ */
+/* $Id: str_list.c,v 1.23 2005/01/02 00:52:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -191,8 +191,10 @@ char* strListAppend(str_list_t* list, const char* str, size_t index)
 	if(str==NULL)
 		return(NULL);
 
-	if((buf=strdup(str))==NULL)
+	if((buf=(char*)malloc(strlen(str)+1))==NULL)
 		return(NULL);
+
+	strcpy(buf,str);
 
 	if(index==STR_LIST_LAST_INDEX)
 		index=strListCount(*list);
@@ -219,8 +221,10 @@ char* strListInsert(str_list_t* list, const char* str, size_t index)
 	if(str==NULL)
 		return(NULL);
 
-	if((buf=strdup(str))==NULL)
+	if((buf=(char*)malloc(strlen(str)+1))==NULL)
 		return(NULL);
+
+	strcpy(buf,str);
 
 	return(str_list_insert(list,buf,index));
 }
@@ -391,44 +395,4 @@ size_t strListWriteFile(FILE* fp, const str_list_t list, const char* separator)
 	}
 	
 	return(i);
-}
-
-char* strListCreateBlock(str_list_t list)
-{
-	char*	block=NULL;
-	char*	p;
-	size_t	str_len;
-	size_t	block_len=0;	
-	size_t	i;
-
-	for(i=0; list[i]!=NULL; i++) {
-		str_len=strlen(list[i]);
-		if(str_len==0)
-			continue;	/* can't include empty strings in block */
-		if((p=(char*)realloc(block, block_len + str_len + 1))==NULL) {
-			FREE_AND_NULL(block);
-			return(block);
-		}
-		block=p;
-		strcpy(block + block_len, list[i]);
-		block_len += (str_len + 1);
-	}
-
-	/* block must be double-NULL terminated */
-	if(!block_len)
-		block_len=1;
-	block_len++;
-	if((p=(char*)realloc(block, block_len))==NULL) {
-		FREE_AND_NULL(block);
-		return(block);
-	}
-	block=p;
-	memset(block + (block_len-2), 0, 2);
-
-	return(block);
-}
-
-void strListFreeBlock(char* block)
-{
-	FREE_AND_NULL(block);	/* this must be done here for Windows-DLL reasons */
 }
