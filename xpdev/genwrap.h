@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.58 2004/03/27 06:45:35 deuce Exp $ */
+/* $Id: genwrap.h,v 1.59 2004/03/27 06:49:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,12 @@
 
 #ifndef _GENWRAP_H
 #define _GENWRAP_H
+
+#if (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)) || defined (__NetBSD__)
+#ifndef __unix__
+#define __unix__
+#endif
+#endif
 
 #include <stdio.h>		/* sprintf */
 #include "gen_defs.h"	/* ulong */
