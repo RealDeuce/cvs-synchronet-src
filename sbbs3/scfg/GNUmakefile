@@ -11,11 +11,12 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.5 2002/04/26 00:33:57 rswindell Exp $
+# $Id: GNUmakefile,v 1.6 2002/04/30 08:01:58 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
-USE_DIALOG =	1	# Comment out for stdio (uifcx) version
+#USE_DIALOG =	1	# Dialog vesrion of UIFC
+USE_CURSES	=	1	# Curses version of UIFC
 CC		=	gcc
 SLASH	=	/
 OFILE	=	o
@@ -46,6 +47,11 @@ LFLAGS	:=	$(LFLAGS) -L../../libdialog -ldialog -lcurses
 CFLAGS	:=	$(CFLAGS) -I../../libdialog -DUSE_DIALOG
 endif
 
+ifdef USE_CURSES
+LFLAGS	:=	$(LFLAGS) -lcurses
+CFLAGS	:=	$(CFLAGS) -DUSE_CURSES
+endif
+
 # Math library needed
 LFLAGS	:=	$(LFLAGS) -lm
 
@@ -61,8 +67,12 @@ include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
 include headers.mk		# defines $(HEADERS)
 
-ifdef USE_DIALOG		# moved here from objects.mak
+ifdef USE_DIALOG		
 OBJS := $(OBJS)			$(ODIR)$(SLASH)uifcd.$(OFILE)
+endif
+
+ifdef USE_CURSES		
+OBJS := $(OBJS)			$(ODIR)$(SLASH)uifcc.$(OFILE)
 endif
 
 vpath %.c ..
