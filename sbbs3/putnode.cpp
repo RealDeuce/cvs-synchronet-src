@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.6 2001/06/06 00:28:24 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.7 2001/06/12 01:27:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,10 @@ void sbbs_t::putnodedat(uint number, node_t* node)
 	int		wrerr;
 	int		attempts;
 
-	if(!number || number>cfg.sys_nodes) {
+	if(!number)
+		return;
+
+	if(number>cfg.sys_nodes) {
 		errormsg(WHERE,ERR_CHK,"node number",number);
 		return; 
 	}
@@ -88,9 +91,9 @@ void sbbs_t::putnodedat(uint number, node_t* node)
 		wr=write(nodefile,node,sizeof(node_t));
 		if(wr==sizeof(node_t))
 			break;
+		wrerr=errno;	/* save write error */
 		mswait(100);
 	}
-	wrerr=errno;	/* save write error */
 	unlock(nodefile,(long)number*sizeof(node_t),sizeof(node_t));
 	close(nodefile);
 	nodefile=-1;
