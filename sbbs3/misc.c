@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.8 2000/10/30 08:44:54 rswindell Exp $ */
+/* $Id: misc.c,v 1.9 2000/11/14 01:58:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,46 @@ int nopen(char *str, int access)
         if(count>10)
             mswait(55);
     return(file);
+}
+/****************************************************************************/
+/* This function performs an nopen, but returns a file stream with a buffer */
+/* allocated.																*/
+/****************************************************************************/
+FILE * fnopen(int *fd, char *str, int access)
+{
+	char	mode[128];
+	int		file;
+	FILE *	stream;
+
+    if((file=nopen(str,access))==-1)
+        return(NULL);
+
+    if(fd!=NULL)
+        *fd=file;
+
+    if(access&O_APPEND) {
+        if(access&O_RDONLY)
+            strcpy(mode,"a+");
+        else
+            strcpy(mode,"a"); 
+	} else if(access&O_CREAT) {
+		if(access&O_TRUNC)
+			strcpy(mode,"w");
+		else
+			strcpy(mode,"w+");
+	} else {
+        if(access&O_WRONLY || (access&O_RDWR)==O_RDWR)
+            strcpy(mode,"r+");
+        else
+            strcpy(mode,"r"); 
+	}
+    stream=fdopen(file,mode);
+    if(stream==NULL) {
+        close(file);
+        return(NULL); 
+	}
+    setvbuf(stream,NULL,_IOFBF,FNOPEN_BUF_SIZE);
+    return(stream);
 }
 
 /****************************************************************************/

@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.20 2000/11/12 16:02:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.21 2000/11/14 01:58:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -492,7 +492,6 @@ public:
 
 	/* misc.cpp */
 	int		nopen(char *str, int access);
-	FILE *	fnopen(int *file, char *str,int access);
 	void	errormsg(int line, char *file, char action, char *object
 				,ulong access, char *extinfo=NULL);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
@@ -726,6 +725,7 @@ extern "C" {
 
 	/* misc.c */
 	int		nopen(char *str, int access);
+	FILE *	fnopen(int *file, char *str, int access);
 	int		bstrlen(char *str);
 	void	strip_ctrl(char *str);
 	void	strip_exascii(char *str);
