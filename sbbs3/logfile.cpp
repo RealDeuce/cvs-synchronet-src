@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.25 2002/11/13 03:08:00 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.26 2002/12/06 01:17:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,8 +67,9 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	return(TRUE);
 }
 
-extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action,
-								char* reason, char* host, char* ip_addr, char* to)
+extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
+								,char* reason, char* host, char* ip_addr
+								,char* to, char* from)
 {
 	char	hdr[512];
 	char	to_user[128];
@@ -86,13 +87,17 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action,
 		to_user[0]=0;
 	else
 		sprintf(to_user,"to: %s",to);
+
+	if(from==NULL)
+		from=host;
 		
-	sprintf(hdr,"SUSPECTED %s SPAM %s on %.24s\r\nFrom: %s [%s] %s\r\nReason: "
+	sprintf(hdr,"SUSPECTED %s SPAM %s on %.24s\r\nHost: %s [%s]\r\nFrom: %s %s\r\nReason: "
 		,prot
 		,action
 		,timestr(cfg,&now,tstr)
 		,host
 		,ip_addr
+		,from
 		,to_user
 		);
 	write(file,hdr,strlen(hdr));
