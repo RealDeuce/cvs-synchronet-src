@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.10 2001/08/01 23:22:24 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.11 2001/08/02 04:14:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -477,7 +477,8 @@ void sbbs_t::clearline(void)
 	else {
 		for(i=0;i<79;i++)
 			outchar(SP);
-		outchar(CR); }
+		outchar(CR); 
+	}
 }
 
 /****************************************************************************/
