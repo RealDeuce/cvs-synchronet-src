@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.8 2000/11/09 04:27:58 rswindell Exp $ */
+/* $Id: userdat.c,v 1.9 2000/11/14 20:46:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -813,7 +813,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				else result=!not;
 				break;
 			case AR_SYSOP:
-				if(user->level<90)
+				if(user->level<SYSOP_LEVEL)
 					result=not;
 				else result=!not;
 				break;

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.13 2000/11/10 12:07:13 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.14 2000/11/14 20:46:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -744,8 +744,9 @@ enum {						/* Values of mode for userlist function     */
 /**********/
 
 #define CRLF			{ outchar(CR); outchar(LF); }
-#define SYSOP			(useron.level>=90 || sys_status & SS_TMPSYSOP)
-#define REALSYSOP		(useron.level>=90)
+#define SYSOP_LEVEL		90
+#define SYSOP			(useron.level>=SYSOP_LEVEL || sys_status & SS_TMPSYSOP)
+#define REALSYSOP		(useron.level>=SYSOP_LEVEL)
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
 #define WHERE       	__LINE__,__FILE__
