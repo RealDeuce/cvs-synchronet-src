@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.29 2003/04/23 08:40:33 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.30 2003/05/17 04:13:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -497,17 +497,33 @@ BOOL DLLCALL fexistcase(char *path)
 #endif
 }
 
+#if !defined(S_ISDIR)
+	#define S_ISDIR(x)	((x)&S_IFDIR)
+#endif
+
 /****************************************************************************/
 /* Returns TRUE if the filename specified is a directory					*/
 /****************************************************************************/
 BOOL DLLCALL isdir(const char *filename)
 {
+	char	path[MAX_PATH+1];
+	char*	p;
 	struct stat st;
 
-	if(stat(filename, &st)!=0)
+	SAFECOPY(path,filename);
+
+	p=lastchar(path);
+	if(p!=path && (*p=='/' || *p==BACKSLASH)) {	/* chop off trailing slash */
+#if !defined(__unix__)
+		if(*(p-1)!=':')		/* Don't change C:\ to C: */
+#endif
+			*p=0;
+	}
+
+	if(stat(path, &st)!=0)
 		return(FALSE);
 
-	return((st.st_mode&S_IFDIR) ? TRUE : FALSE);
+	return(S_ISDIR(st.st_mode) ? TRUE : FALSE);
 }
 
 /****************************************************************************/
