@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.54 2001/06/21 01:31:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.55 2001/06/22 02:31:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -773,19 +773,24 @@ extern "C" {
 #ifdef JAVASCRIPT
 
 	/* js_global.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(scfg_t* cfg, JSContext* cx);
+	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg);
 
 	/* js_system.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(scfg_t* cfg, JSContext* cx, JSObject* parent);
+	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent, scfg_t* cfg);
 
+	/* js_client.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
+													,char* name, client_t* client, SOCKET sock);
 	/* js_user.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(scfg_t* cfg, JSContext* cx, JSObject* parent
+	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
 													,char* name, user_t* user);
 	/* js_file_area.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(scfg_t* cfg, JSContext* cx, JSObject* parent
+	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg 
 													,user_t* user, char* html_index_file);
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
+	DLLEXPORT JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent
+													,char *name, SOCKET sock);
 
 	/* js_console.cpp */
 	JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent);
