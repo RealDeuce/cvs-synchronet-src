@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.56 2003/05/21 11:55:36 rswindell Exp $ */
+/* $Id: js_file.c,v 1.57 2003/05/21 23:21:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -413,7 +413,7 @@ static jsval get_value(JSContext *cx, char* value)
 
 	/* integer or float? */
 	for(p=value;*p;p++) {
-		if(*p=='.')
+		if(*p=='.' && !f)
 			f=TRUE;
 		else if(!isdigit(*p))
 			break;
