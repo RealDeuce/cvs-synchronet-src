@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.96 2002/08/09 08:37:53 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.97 2002/10/25 01:20:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -734,6 +734,10 @@ int main(int argc, char** argv)
 		return(-1);
 
 	sprintf(ini_file,"%s%c%s.ini",ctrl_dir,BACKSLASH,host_name);
+#if defined(__unix__) && defined(PREFIX)
+	if(!fexist(ini_file))
+		sprintf(ini_file,"%s/etc/sbbs.ini",PREFIX);
+#endif
 	if(!fexist(ini_file))
 		sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,BACKSLASH);
 
