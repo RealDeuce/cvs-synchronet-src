@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.89 2004/04/08 03:32:57 rswindell Exp $ */
+/* $Id: js_system.c,v 1.90 2004/05/17 20:53:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1521,7 +1521,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	if(getnodedat(cfg, node_num, &node, &file)) 
 		return(JS_TRUE);
 
-	if(JSVAL_IS_INT(*vp))
+	if(JSVAL_IS_NUMBER(*vp))
 		JS_ValueToInt32(cx, *vp, &val);
 
 	tiny = JSVAL_TO_INT(id);

@@ -1784,11 +1784,11 @@ no_fossil:
    if(pPortInfo->Method == kComMethodStdIO ||
       pPortInfo->Method == kComMethodUnspecified)
    {
-		if (isatty(STDOUT_FILENO))  {
-			tcgetattr(STDOUT_FILENO,&tio_default);
+		if (isatty(STDIN_FILENO))  {
+			tcgetattr(STDIN_FILENO,&tio_default);
 			tio_raw = tio_default;
 			cfmakeraw(&tio_raw);
-			tcsetattr(STDOUT_FILENO,TCSANOW,&tio_raw);
+			tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
 			setvbuf(stdout, NULL, _IONBF, 0);
 		}
 
@@ -1980,7 +1980,8 @@ tODResult ODComClose(tPortHandle hPort)
 
 #ifdef INCLUDE_STDIO_COM
 	  case kComMethodStdIO:
-		 tcsetattr(STDOUT_FILENO,TCSANOW,&tio_default);
+	     if(isatty(STDIN_FILENO))
+		    tcsetattr(STDIN_FILENO,TCSANOW,&tio_default);
 	     break;
 #endif
 
@@ -2821,8 +2822,8 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 					return (kODRCNothingWaiting);
 			}
 
-			recv_ret = fread(pbtNext, 1, 1, stdin);
-			if(recv_ret != -1)
+			recv_ret = read(STDIN_FILENO, pbtNext, 1);
+			if(recv_ret == 1)
 				break;
 			return (kODRCGeneralFailure);
 
@@ -3002,7 +3003,7 @@ keep_going:
 			}
 		}
 
-	    if(fwrite(&btToSend,1,1,stdout)!=1)
+	    if(write(STDOUT_FILENO, &btToSend, 1)!=1)
 		   return(kODRCGeneralFailure);
 		break;
 		}
@@ -3486,7 +3487,7 @@ try_again:
 					return(kODRCGeneralFailure);
 				}
 
-				retval=fwrite(pbtBuffer+pos,1,nSize-pos,stdout);
+				retval=write(STDOUT_FILENO, pbtBuffer+pos,1);
 				if(retval!=nSize-pos) {
 					od_sleep(1);
 				}

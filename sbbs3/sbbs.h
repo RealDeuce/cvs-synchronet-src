@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.219 2004/03/23 23:55:29 deuce Exp $ */
+/* $Id: sbbs.h,v 1.220 2004/05/11 22:27:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -623,7 +623,7 @@ public:
 	void	batch_create_list(void);
 	void	batch_add_list(char *list);
 	bool	create_batchup_lst(void);
-	bool	create_batchdn_lst(void);
+	bool	create_batchdn_lst(bool native);
 	bool	create_bimodem_pth(void);
 	void	batch_upload(void);
 	void	batch_download(int xfrprot);
