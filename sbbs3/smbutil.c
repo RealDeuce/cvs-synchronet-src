@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.79 2004/09/15 20:25:25 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.76 2004/09/11 09:36:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,8 +334,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	}
 
 	if((i=smb_addmsg(&smb,&msg,smb.status.attr&SMB_HYPERALLOC
-		,mode&NOCRC ? SMB_HASH_SOURCE_NONE : SMB_HASH_SOURCE_ALL
-		,xlat,msgtxt,NULL))!=SMB_SUCCESS) {
+		,INT_TO_BOOL(mode&NOCRC),xlat,msgtxt,NULL))!=SMB_SUCCESS) {
 		fprintf(errfp,"\n\7!smb_addmsg returned %d: %s\n",i,smb.last_error);
 		bail(1); 
 	}
@@ -586,8 +585,8 @@ void dump_hashes(void)
 			break;
 		printf("\n");
 		printf("%-10s: %lu\n",		"Number",	hash.number);
-		printf("%-10s: %s\n",		"Source",	smb_hashsourcetype(hash.source));
-		printf("%-10s: %s\n",		"Time",		my_timestr((time_t*)&hash.time));
+		printf("%-10s: %s\n",		"Source",	smb_hashsource(hash.source));
+		printf("%-10s: %s\n",		"Time",		my_timestr(&hash.time));
 		printf("%-10s: %x\n",		"Flags",	hash.flags);
 		if(hash.flags&SMB_HASH_CRC16)
 			printf("%-10s: %04x\n",	"CRC-16",	hash.crc16);
@@ -1409,7 +1408,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.79 $", "%*s %s", revision);
+	sscanf("$Revision: 1.76 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

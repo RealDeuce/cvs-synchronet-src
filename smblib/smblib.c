@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.116 2004/09/15 20:24:37 rswindell Exp $ */
+/* $Id: smblib.c,v 1.114 2004/09/11 09:27:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,7 +201,7 @@ int SMBCALL smb_lock(smb_t* smb)
 			if(time(NULL)-start>=(time_t)smb->retry_time) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
 					,"%d (%s) creating %s"
-					,get_errno(),STRERROR(get_errno()),path);
+					,errno,STRERROR(errno),path);
 				return(SMB_ERR_LOCK);
 			}
 		SLEEP(smb->retry_delay);
@@ -218,7 +218,7 @@ int SMBCALL smb_unlock(smb_t* smb)
 	if(remove(path)!=0) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) removing %s"
-			,get_errno(),STRERROR(get_errno()),path);
+			,errno,STRERROR(errno),path);
 		return(SMB_ERR_DELETE);
 	}
 	return(SMB_SUCCESS);
@@ -302,10 +302,10 @@ int SMBCALL smb_trunchdr(smb_t* smb)
 	while(1) {
 		if(!chsize(fileno(smb->shd_fp),0L))
 			break;
-		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
+		if(errno!=EACCES && errno!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) changing header file size"
-				,get_errno(),STRERROR(get_errno()));
+				,errno,STRERROR(errno));
 			return(SMB_ERR_WRITE);
 		}
 		if(!start)
@@ -372,7 +372,7 @@ int SMBCALL smb_getstatus(smb_t* smb)
 	if(fseek(smb->shd_fp,sizeof(smbhdr_t),SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) seeking to %u in header file"
-			,get_errno(),STRERROR(get_errno()),sizeof(smbhdr_t));
+			,errno,STRERROR(errno),sizeof(smbhdr_t));
 		return(SMB_ERR_SEEK);
 	}
 	i=smb_fread(smb,&(smb->status),sizeof(smbstatus_t),smb->shd_fp);
@@ -399,7 +399,7 @@ int SMBCALL smb_putstatus(smb_t* smb)
 	if(fseek(smb->shd_fp,sizeof(smbhdr_t),SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) seeking to %u in header file"
-			,get_errno(),STRERROR(get_errno()),sizeof(smbhdr_t));
+			,errno,STRERROR(errno),sizeof(smbhdr_t));
 		return(SMB_ERR_SEEK);
 	}
 	i=fwrite(&(smb->status),1,sizeof(smbstatus_t),smb->shd_fp);
@@ -519,7 +519,7 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 		if(fseek(smb->sid_fp,msg->offset*sizeof(idxrec_t),SEEK_SET)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) seeking to %lu in index file"
-				,get_errno(),STRERROR(get_errno())
+				,errno,STRERROR(errno)
 				,msg->offset*sizeof(idxrec_t));
 			return(SMB_ERR_SEEK);
 		}
@@ -545,7 +545,7 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 		if(fseek(smb->sid_fp,l*sizeof(idxrec_t),SEEK_SET)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) seeking to offset %lu (byte %lu) in index file"
-				,get_errno(),STRERROR(get_errno())
+				,errno,STRERROR(errno)
 				,l,l*sizeof(idxrec_t));
 			return(SMB_ERR_SEEK);
 		}
@@ -590,7 +590,7 @@ int SMBCALL smb_getfirstidx(smb_t* smb, idxrec_t *idx)
 	if(fseek(smb->sid_fp,0,SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) seeking to beginning of index file"
-			,get_errno(),STRERROR(get_errno()));
+			,errno,STRERROR(errno));
 		return(SMB_ERR_SEEK);
 	}
 	if(smb_fread(smb,idx,sizeof(idxrec_t),smb->sid_fp)!=sizeof(idxrec_t)) {
@@ -623,7 +623,7 @@ int SMBCALL smb_getlastidx(smb_t* smb, idxrec_t *idx)
 	if(fseek(smb->sid_fp,length-sizeof(idxrec_t),SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) seeking to %u in index file"
-			,get_errno(),STRERROR(get_errno())
+			,errno,STRERROR(errno)
 			,(unsigned)(length-sizeof(idxrec_t)));
 		return(SMB_ERR_SEEK);
 	}
@@ -857,7 +857,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	if(fseek(smb->shd_fp,msg->idx.offset,SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) seeking to %lu in header"
-			,get_errno(),STRERROR(get_errno())
+			,errno,STRERROR(errno)
 			,msg->idx.offset);
 		return(SMB_ERR_SEEK);
 	}
@@ -1254,10 +1254,10 @@ int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 	while(1) {
 		if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
 			break;
-		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
+		if(errno!=EACCES && errno!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) opening %s"
-				,get_errno(),STRERROR(get_errno()),str);
+				,errno,STRERROR(errno),str);
 			return(SMB_ERR_OPEN);
 		}
 		if(!start)
@@ -1294,7 +1294,7 @@ int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 			FREE(buf);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) reading %ld bytes"
-				,get_errno(),STRERROR(get_errno()),length);
+				,errno,STRERROR(errno),length);
 			return(SMB_ERR_READ);
 		}
 
@@ -1323,7 +1323,7 @@ int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 	if(wr!=sizeof(crc)) {	
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) writing %u bytes"
-			,get_errno(),STRERROR(get_errno()),sizeof(crc));
+			,errno,STRERROR(errno),sizeof(crc));
 		return(SMB_ERR_WRITE);
 	}
 
@@ -1367,7 +1367,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	msg->idx.number=msg->hdr.number=smb->status.last_msg+1;
 
 	if(!(msg->flags&MSG_FLAG_HASHED) /* not already hashed */
-		&& (i=smb_hashmsg(smb,msg,NULL,/* update? */FALSE))!=SMB_SUCCESS) {
+		&& (i=smb_hashmsg(smb,msg,NULL,FALSE))!=SMB_SUCCESS) {
 		smb_unlocksmbhdr(smb);
 		return(i);	/* Duplicate message? */
 	}
@@ -1435,7 +1435,7 @@ int SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg)
 	if(fseek(smb->sid_fp,msg->offset*sizeof(idxrec_t),SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) seeking to %u in header"
-			,get_errno(),STRERROR(get_errno())
+			,errno,STRERROR(errno)
 			,(unsigned)(msg->offset*sizeof(idxrec_t)));
 		return(SMB_ERR_SEEK);
 	}
@@ -1473,7 +1473,7 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 	if(fseek(smb->shd_fp,msg->idx.offset,SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d (%s) seeking to %lu in index"
-			,get_errno(),STRERROR(get_errno()),msg->idx.offset);
+			,errno,STRERROR(errno),msg->idx.offset);
 		return(SMB_ERR_SEEK);
 	}
 

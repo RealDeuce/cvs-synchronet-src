@@ -1,2 +1,3 @@
 # conio/targets.mk
-mtlib:	$(MTOBJODIR) $(LIBODIR) $(CIOLIB-MT)
+CIOLIB	=	$(LIBODIR)$(DIRSEP)$(LIBPREFIX)ciolib$(LIBFILE)
+default: $(OBJODIR) $(LIBODIR) $(CIOLIB)
