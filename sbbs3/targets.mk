@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.15 2003/09/19 01:47:17 rswindell Exp $
+# $Id: targets.mk,v 1.16 2003/09/21 21:38:48 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -31,7 +31,7 @@ UTILS		= $(BUILD_DEPENDS)$(FIXSMB) $(BUILD_DEPENDS)$(CHKSMB) \
 			  $(BUILD_DEPENDS)$(SMBUTIL) $(BUILD_DEPENDS)$(BAJA) $(BUILD_DEPENDS)$(NODE) \
 			  $(BUILD_DEPENDS)$(SBBSECHO) $(BUILD_DEPENDS)$(ECHOCFG) $(BUILD_DEPENDS) \
 			  $(BUILD_DEPENDS)$(ADDFILES) $(BUILD_DEPENDS)$(FILELIST) $(BUILD_DEPENDS)$(MAKEUSER) \
-			  $(BUILD_DEPENDS)$(ANS2MSG) $(BUILD_DEPENDS)$(MSG2ANS) \
+			  $(BUILD_DEPENDS)$(ANS2ASC) $(BUILD_DEPENDS)$(ASC2ANS) \
 			  $(BUILD_DEPENDS)$(JSEXEC)
 
 all:	$(LIBODIR) $(EXEODIR) $(SBBSMONO) $(UTILS) $(SBBSCON)
