@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.327 2004/06/04 09:04:08 deuce Exp $ */
+/* $Id: main.cpp,v 1.330 2004/08/04 08:28:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -280,8 +280,8 @@ DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* nam
 	if(JS_GetProperty(cx,parent,name,&val) && val!=JSVAL_VOID)
 		array=JSVAL_TO_OBJECT(val);
 	else
-		if((array=JS_NewArrayObject(cx, 0, NULL))==NULL)
-			return(JS_FALSE);
+		if((array=JS_NewArrayObject(cx, 0, NULL))==NULL)	/* Assertion here, in _heap_alloc_dbg, June-21-2004 */
+			return(JS_FALSE);								/* Caused by nntpservice.js? */
 
 	if(!JS_DefineProperty(cx, parent, name, OBJECT_TO_JSVAL(array)
 		,NULL,NULL,flags))
@@ -1603,6 +1603,9 @@ void event_thread(void* arg)
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
+					sprintf(semfile,"%s.lock",g.gl_pathv[i]);
+					if(!fmutex(semfile,startup->host_name))
+						continue;
 					sbbs->online=ON_LOCAL;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
@@ -1612,6 +1615,7 @@ void event_thread(void* arg)
 					
 					/* putuserdat? */
 					remove(g.gl_pathv[i]);
+					remove(semfile);
 				}
 			}
 			globfree(&g);
@@ -1622,6 +1626,9 @@ void event_thread(void* arg)
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
+				sprintf(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
+				if(!fmutex(semfile,startup->host_name))
+					continue;
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
@@ -1648,6 +1655,7 @@ void event_thread(void* arg)
 					sbbs->online=0;
 				}
 				remove(g.gl_pathv[i]);
+				remove(semfile);
 			}
 			globfree(&g);
 
@@ -4004,7 +4012,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef __unix__	//	unix-domain spy sockets
-	for(i=first_node;i<=last_node;i++)  {
+	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
 	    if((uspy_listen_socket[i-1]=socket(PF_UNIX,SOCK_STREAM,0))==INVALID_SOCKET)
 	        lprintf(LOG_ERR,"Node %d !ERROR %d creating local spy socket"
 	            , i, errno);
