@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.13 2003/07/11 22:51:01 rswindell Exp $
+# $Id: targets.mk,v 1.14 2003/07/22 00:23:11 deuce Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -26,11 +26,6 @@ FILELIST	= $(EXEODIR)$(SLASH)filelist$(EXEFILE)
 MAKEUSER	= $(EXEODIR)$(SLASH)makeuser$(EXEFILE)
 ANS2MSG		= $(EXEODIR)$(SLASH)ans2msg$(EXEFILE)
 MSG2ANS		= $(EXEODIR)$(SLASH)msg2ans$(EXEFILE)
-SBBSFTP		= $(EXEODIR)$(SLASH)sbbs_ftp$(EXEFILE)
-SBBSWEB		= $(EXEODIR)$(SLASH)sbbs_web$(EXEFILE)
-SBBSMAIL	= $(EXEODIR)$(SLASH)sbbs_mail$(EXEFILE)
-SBBSSRVC	= $(EXEODIR)$(SLASH)sbbs_srvc$(EXEFILE)
-SBBS_BBS	= $(EXEODIR)$(SLASH)sbbs_bbs$(EXEFILE)
 
 UTILS		= $(BUILD_DEPENDS)$(FIXSMB) $(BUILD_DEPENDS)$(CHKSMB) \
 			  $(BUILD_DEPENDS)$(SMBUTIL) $(BUILD_DEPENDS)$(BAJA) $(BUILD_DEPENDS)$(NODE) \
@@ -39,19 +34,7 @@ UTILS		= $(BUILD_DEPENDS)$(FIXSMB) $(BUILD_DEPENDS)$(CHKSMB) \
 			  $(BUILD_DEPENDS)$(ANS2MSG) $(BUILD_DEPENDS)$(MSG2ANS) \
 			  $(BUILD_DEPENDS)$(JSEXEC)
 
-all:	$(LIBODIR) $(EXEODIR) $(SBBSMONO) $(UTILS) $(SBBSCON) separates
-
-web: $(SBBSWEB)
-
-mail: $(SBBSMAIL)
-
-ftp: $(SBBSFTP)
-
-bbs: $(SBBS_BBS)
-
-services: $(SBBSSRVC)
-
-separates: $(SBBSFTP) $(SBBSWEB) $(SBBSMAIL) $(SBBSSRVC) $(SBBS_BBS)
+all:	$(LIBODIR) $(EXEODIR) $(SBBSMONO) $(UTILS) $(SBBSCON)
 
 utils:	$(EXEODIR) $(UTILS)
 
