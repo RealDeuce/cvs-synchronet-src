@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.83 2004/10/27 21:16:59 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.84 2004/11/17 11:07:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -322,7 +322,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	}
 	msg.idx.subj=smb_subject_crc(str);
 
-	sprintf(str,"SMBUTIL %s-%s r%s %s %s"
+	safe_snprintf(str,sizeof(str),"SMBUTIL %s-%s r%s %s %s"
 		,SMBUTIL_VER
 		,PLATFORM_DESC
 		,revision
@@ -1455,7 +1455,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.83 $", "%*s %s", revision);
+	sscanf("$Revision: 1.84 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.169 2004/11/10 05:05:34 rswindell Exp $ */
+/* $Id: services.c,v 1.175 2004/12/12 22:46:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,6 +64,7 @@
 #define JAVASCRIPT	/* required to include JS API headers */
 #endif
 #define SERVICES_INI_BITDESC_TABLE	/* required to defined service_options */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "services.h"
 #include "ident.h"	/* identify() */
@@ -95,6 +96,7 @@ typedef struct {
 	DWORD	max_clients;
 	DWORD	options;
 	int		listen_backlog;
+	DWORD	stack_size;
     DWORD	js_max_bytes;
 	DWORD	js_cx_stack;
 	DWORD	js_branch_limit;
@@ -242,7 +244,7 @@ static int close_socket(SOCKET sock)
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
-	if(result==0 && startup!=NULL && startup->socket_open!=NULL) 
+	if(startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 	if(result!=0)
@@ -899,28 +901,14 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	client->branch.counter++;
-
 	/* Terminated? */ 
-	if(client->branch.auto_terminate && terminated) {
+	if(terminated) {
 		JS_ReportError(cx,"Terminated");
 		client->branch.counter=0;
 		return(JS_FALSE);
 	}
-	/* Infinite loop? */
-	if(client->branch.limit && client->branch.counter > client->branch.limit) {
-		JS_ReportError(cx,"Infinite loop (%lu branches) detected",client->branch.counter);
-		client->branch.counter=0;
-		return(JS_FALSE);
-	}
-	/* Give up timeslices every once in a while */
-	if(client->branch.yield_interval && (client->branch.counter%client->branch.yield_interval)==0)
-		YIELD();
 
-	if(client->branch.gc_interval && (client->branch.counter%client->branch.gc_interval)==0)
-		JS_MaybeGC(cx), client->branch.gc_attempts++;
-
-    return(JS_TRUE);
+	return js_CommonBranchCallback(cx,&client->branch);
 }
 
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
@@ -1460,6 +1448,7 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 		serv.port=iniReadShortInt(fp,sec_list[i],"Port",0);
 		serv.max_clients=iniReadInteger(fp,sec_list[i],"MaxClients",0);
 		serv.listen_backlog=iniReadInteger(fp,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
+		serv.stack_size=iniReadInteger(fp,sec_list[i],"StackSize",0);
 		serv.options=iniReadBitField(fp,sec_list[i],"Options",service_options,0);
 		SAFECOPY(serv.cmd,iniReadString(fp,sec_list[i],"Command","",cmd));
 
@@ -1536,7 +1525,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.169 $", "%*s %s", revision);
+	sscanf("$Revision: 1.175 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1774,9 +1763,9 @@ void DLLCALL services_thread(void* arg)
 
 			/* start thread here */
 			if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
-				_beginthread(native_static_service_thread, 0, &service[i]);
+				_beginthread(native_static_service_thread, service[i].stack_size, &service[i]);
 			else										/* JavaScript */
-				_beginthread(js_static_service_thread, 0, &service[i]);
+				_beginthread(js_static_service_thread, service[i].stack_size, &service[i]);
 		}
 
 		status("Listening");
@@ -1964,9 +1953,13 @@ void DLLCALL services_thread(void* arg)
             				lprintf(LOG_NOTICE,"%04d %s socket closed while listening"
 								,service[i].socket, service[i].protocol);
 						else
-							lprintf(LOG_WARNING,"%04d %s !ERROR %d accept failed" 
+							lprintf(LOG_WARNING,"%04d %s !ERROR %d accepting connection" 
 								,service[i].socket, service[i].protocol, ERROR_VALUE);
-						break;
+#ifdef _WIN32
+						if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
+							break;
+#endif
+						continue;
 					}
 					sockets++;
 #if 0 /*def _DEBUG */
@@ -2035,9 +2028,9 @@ void DLLCALL services_thread(void* arg)
 				udp_buf = NULL;
 
 				if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
-					_beginthread(native_service_thread, 0, client);
+					_beginthread(native_service_thread, service[i].stack_size, client);
 				else										/* JavaScript */
-					_beginthread(js_service_thread, 0, client);
+					_beginthread(js_service_thread, service[i].stack_size, client);
 				service[i].served++;
 				served++;
 			}
