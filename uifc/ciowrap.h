@@ -1,4 +1,4 @@
-/* $Id: ciowrap.h,v 1.7 2004/04/02 07:10:16 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.8 2004/04/02 07:24:28 deuce Exp $ */
 
 #include "curs_fix.h"
 
@@ -48,6 +48,9 @@ struct text_info {
 	unsigned char screenwidth;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #define clreol()	clrtoeol()
 #define putch(x)	echochar(x)
 short curses_color(short color);
@@ -71,3 +74,6 @@ void gettextinfo(struct text_info *info);
 void _setcursortype(int type);
 void textbackground(int colour);
 void textcolor(int colour);
+#ifdef __cplusplus
+}
+#endif
