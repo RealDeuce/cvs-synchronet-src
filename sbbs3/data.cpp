@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.9 2001/06/14 02:57:21 rswindell Exp $ */
+/* $Id: data.cpp,v 1.10 2001/06/27 20:45:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,6 +113,8 @@ long DLLCALL getfiles(scfg_t* cfg, uint dirnum)
 	char str[256];
 	long l;
 
+	if(dirnum>=cfg->total_dirs)	/* out of range */
+		return(0);
 	sprintf(str,"%s%s.ixb",cfg->dir[dirnum]->data_dir, cfg->dir[dirnum]->code);
 	l=flength(str);
 	if(l>0L)
