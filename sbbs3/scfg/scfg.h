@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.16 2004/09/25 21:20:15 rswindell Exp $ */
+/* $Id: scfg.h,v 1.17 2004/11/19 03:06:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <limits.h>	/* USHRT_MAX */
 
+#include "gen_defs.h"
 #include "uifc.h"
 #include "sbbs.h"
 
