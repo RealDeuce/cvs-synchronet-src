@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.12 2000/12/11 23:21:11 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.13 2001/04/03 00:52:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1324,7 +1324,7 @@ void sbbs_t::nodemsg()
 /****************************************************************************/
 void sbbs_t::guruchat(char *line, char *gurubuf, int gurunum)
 {
-	char	str[256],cstr[256],*ptr,*answer[100],answers,theanswer[769]
+	char	str[512],cstr[512],*ptr,*answer[100],answers,theanswer[1024]
 			,mistakes=1,hu=0;
 	char 	tmp[512];
 	int		file;
