@@ -2,13 +2,13 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.106 2005/04/06 18:51:26 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.103 2005/03/10 09:59:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -94,10 +94,7 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 	if(fexistcase(ini_file))
 		return;
 #endif
-	iniFileName(ini_file,MAX_PATH,ctrl_dir,"sbbs.ini");
-	if(fexistcase(ini_file))
-		return;
-	iniFileName(ini_file,MAX_PATH,ctrl_dir,"startup.ini");
+	sprintf(ini_file,"%ssbbs.ini",path);
 }
 
 static void read_ini_globals(FILE* fp, global_startup_t* global)
@@ -500,9 +497,6 @@ void sbbs_read_ini(
 			,iniReadString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
 		SAFECOPY(web->logfile_base
 			,iniReadString(fp,section,"HttpLogFile",nulstr,value));
-
-		SAFECOPY(web->default_cgi_content
-			,iniReadString(fp,section,"DefaultCGIContent",WEB_DEFAULT_CGI_CONTENT,value));
 
 		iniFreeStringList(web->index_file_name);
 		web->index_file_name
@@ -1083,11 +1077,6 @@ BOOL sbbs_write_ini(
 		if(!iniSetString(lp,section,"ErrorDirectory",web->error_dir,&style))
 			break;
 		if(!iniSetString(lp,section,"CGIDirectory",web->cgi_dir,&style))
-			break;
-		if(!iniSetString(lp,section,"HttpLogFile",web->logfile_base,&style))
-			break;
-
-		if(!iniSetString(lp,section,"DefaultCGIContent",web->default_cgi_content,&style))
 			break;
 
 		if(!iniSetStringList(lp,section,"IndexFileNames", "," ,web->index_file_name,&style))
