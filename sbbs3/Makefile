@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.38 2003/07/25 00:40:53 rswindell Exp $
+# $Id: Makefile,v 1.39 2003/07/25 01:00:16 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -182,15 +182,13 @@ $(SBBSECHO): sbbsecho.c rechocfg.c smbtxt.c crc32.c lzh.c $(SMBLIB) \
 $(ECHOCFG): echocfg.c rechocfg.c \
 	$(UIFC)uifc.c \
 	$(UIFC)uifcx.c \
-	$(UIFC)uifcfltk.cpp \
 	$(LIBODIR)\genwrap.obj \
 	$(LIBODIR)\dirwrap.obj \
 	$(LIBODIR)\nopen.obj \
 	$(LIBODIR)\crc16.obj \
-	$(LIBODIR)\str_util.obj \
-	..\..\lib\fltk\win32\fltk.lib
+	$(LIBODIR)\str_util.obj
 	@echo Creating $@
-	$(QUIET)$(CC) -DUSE_FLTK -I..\..\include\fltk $(CFLAGS) -n$(EXEODIR) $** 
+	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
 # ADDFILES
 $(ADDFILES): addfiles.c \
