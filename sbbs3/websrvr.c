@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.52 2002/11/16 23:35:59 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.53 2002/11/26 06:50:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2018,7 +2018,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.52 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.53 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2127,7 +2127,7 @@ void DLLCALL web_server(void* arg)
 
 		t=time(NULL);
 		lprintf("Initializing on %.24s with options: %lx"
-			,ctime_r(&t,logstr),startup->options);
+			,CTIME_R(&t,logstr),startup->options);
 
 		lprintf("Root HTML directory: %s", root_dir);
 		lprintf("Error HTML directory: %s", error_dir);

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.204 2002/11/13 06:51:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.205 2002/11/26 06:50:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3424,7 +3424,7 @@ void DLLCALL bbs_thread(void* arg)
 
 	t=time(NULL);
 	lprintf("Initializing on %.24s with options: %lx"
-		,ctime_r(&t,str),startup->options);
+		,CTIME_R(&t,str),startup->options);
 
 	if(chdir(startup->ctrl_dir)!=0)
 		lprintf("!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
