@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.66 2002/11/10 07:38:49 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.67 2002/11/12 08:40:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -318,7 +318,6 @@ js_sendto(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		cp;
 	int			len;
-	int32		i=0;
 	ulong		ip_addr;
 	ushort		port;
 	JSString*	data_str;
