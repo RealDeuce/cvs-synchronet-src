@@ -2,8 +2,6 @@
 #include <stdlib.h>	/* malloc */
 #include <stdio.h>
 
-#include <threadwrap.h>
-
 #define CIOLIB_NO_MACROS
 #include "ciolib.h"
 
@@ -158,7 +156,7 @@ int try_ansi_init(int mode)
 int try_conio_init(int mode)
 {
 	/* This should test for something or other */
-	if(win32_initciolib(C80)) {
+	if(win32_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_CONIO;
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
@@ -373,10 +371,10 @@ char *ciolib_getpass(const char *prompt)
 	CIOLIB_INIT();
 	
 	ciolib_cputs((char *)prompt);
-	while((ch=ciolib_getch())!='\n') {
+	while((ch=getch())!='\n') {
 		switch(ch) {
 			case 0:	/* Skip extended keys */
-				ciolib_getch();
+				getch();
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treeated as a \n? */
 				break;
