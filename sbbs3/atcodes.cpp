@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.5 2001/06/20 01:19:12 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.6 2001/06/27 02:28:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,6 +220,9 @@ int sbbs_t::atcodes(char *instr)
 
 	else if(!strcmp(sp,"BDATE"))
 		bputs(useron.birth);
+
+	else if(!strcmp(sp,"AGE"))
+		bprintf("%u",getage(&cfg,useron.birth));
 
 	else if(!strcmp(sp,"CALLS") || !strcmp(sp,"NUMTIMESON"))
 		bprintf("%u",useron.logons);
