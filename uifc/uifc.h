@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.5 2002/01/16 18:17:32 rswindell Exp $ */
+/* $Id: uifc.h,v 1.6 2002/01/24 13:43:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,7 +235,6 @@ void umsg(char *str);
 void upop(char *str);
 int  getstr(char *str, int maxlen, long mode);
 void timedisplay();
-void puttextinfo(struct text_info txt);
 int  lprintf(char *fmt,...);
 char *utimestr(time_t *intime);
 void help(void);
