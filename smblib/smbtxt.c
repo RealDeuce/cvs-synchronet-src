@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.2 2001/02/04 16:49:22 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.3 2001/10/30 18:12:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,9 @@
 
 /* ANSI */
 
-#ifndef __FreeBSD__
+#ifdef __FreeBSD__
+	#include <stdlib.h>		/* malloc/realloc/free is defined here */
+#else
 	#include <malloc.h>
 #endif
 
@@ -46,7 +48,9 @@
 
 char HUGE16*  SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 {
-	char	HUGE16* buf=NULL,HUGE16* lzhbuf,HUGE16* p;
+	char	HUGE16* buf=NULL;
+	char	HUGE16* lzhbuf;
+	char	HUGE16* p;
 	ushort	xlat;
 	int 	i,lzh;
 	long	l=0,lzhlen,length;
@@ -72,7 +76,7 @@ char HUGE16*  SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 			length-=2;
 			if(length<1)
 				continue;
-			if((lzhbuf=LMALLOC(length))==NULL) {
+			if((lzhbuf=(char HUGE16*)LMALLOC(length))==NULL) {
 				sprintf(smb->last_error
 					,"malloc failure of %ld bytes for LZH buffer"
 					,length);
@@ -80,7 +84,7 @@ char HUGE16*  SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 			}
 			smb_fread(lzhbuf,length,smb->sdt_fp);
 			lzhlen=*(long*)lzhbuf;
-			if((p=REALLOC(buf,l+lzhlen+3L))==NULL) {
+			if((p=(char HUGE16*)REALLOC(buf,l+lzhlen+3L))==NULL) {
 				sprintf(smb->last_error
 					,"realloc failure of %ld bytes for text buffer"
 					,l+lzhlen+3L);
@@ -93,7 +97,7 @@ char HUGE16*  SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 			l+=lzhlen; 
 		}
 		else {
-			if((p=REALLOC(buf,l+length+3L))==NULL) {
+			if((p=(char HUGE16*)REALLOC(buf,l+length+3L))==NULL) {
 				sprintf(smb->last_error
 					,"realloc failure of %ld bytes for text buffer"
 					,l+length+3L);
