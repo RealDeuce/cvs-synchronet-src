@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.185 2004/11/06 02:16:59 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.187 2004/11/18 09:12:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 #endif
 
 /* Synchronet-specific headers */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"		/* load_cfg() */
 #include "sbbs_ini.h"	/* sbbs_read_ini() */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
@@ -1064,6 +1065,7 @@ int main(int argc, char** argv)
     web_startup.terminated=web_terminated;
 	web_startup.thread_up=thread_up;
     web_startup.socket_open=socket_open;
+	web_startup.client_on=client_on;
 #ifdef __unix__
 	web_startup.seteuid=do_seteuid;
 	web_startup.setuid=do_setuid;
