@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.46 2001/08/01 03:57:27 rswindell Exp $ */
+/* $Id: main.cpp,v 1.47 2001/08/02 13:47:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1716,7 +1716,7 @@ bool sbbs_t::init()
 			return(false);
 		}
 
-		if((usrsub=(uint **)MALLOC(sizeof(uint *)*cfg.total_grps))==NULL) {
+		if((usrsub=(uint **)calloc(cfg.total_grps,sizeof(uint *)))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "usrsub", sizeof(uint)*cfg.total_grps);
 			return(false);
 		}
@@ -1784,7 +1784,7 @@ bool sbbs_t::init()
 			return(false);
 		}
 
-		if((usrdir=(uint **)MALLOC(sizeof(uint *)*cfg.total_libs))==NULL) {
+		if((usrdir=(uint **)calloc(cfg.total_libs,sizeof(uint *)))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "usrdir", sizeof(uint)*cfg.total_libs);
 			return(false);
 		}
