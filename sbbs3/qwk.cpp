@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.15 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.16 2002/03/06 13:59:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -476,6 +476,9 @@ void sbbs_t::qwk_sec()
 				bprintf("\1hV\1n) %-30s: \1h%s\1n\r\n"
 					,"Include Message Path (VIA)"
 					,useron.qwk&QWK_VIA ? text[Yes]:text[No]);
+				bprintf("\1hX\1n) %-30s: \1h%s\1n\r\n"
+					,"Extended (QWKE) Packet Format"
+					,useron.qwk&QWK_EXT ? text[Yes]:text[No]);
 				bputs(text[UserDefaultsWhich]);
 				ch=(char)getkeys("AQEDFIOQTYNCZV",0);
 				if(sys_status&SS_ABORT || !ch || ch=='Q')
@@ -530,7 +533,11 @@ void sbbs_t::qwk_sec()
 						break;
 					case 'Y':   /* Yourself */
 						useron.qwk^=QWK_BYSELF;
-						break; }
+						break; 
+					case 'X':	/* QWKE */
+						useron.qwk^=QWK_EXT;
+						break;
+				}
 				putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,str,16)); }
 			delfiles(cfg.temp_dir,ALLFILES);
 			continue; }
