@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.16 2004/06/03 21:59:57 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.15 2003/05/11 10:28:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,7 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 		count-=tell(file);		/* don't try to read beyond EOF */
 	}
 
-	if((buf=(char*)malloc(count))==NULL) {
+	if((buf=malloc(count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}
@@ -146,7 +146,7 @@ int recvfilesocket(int sock, int file, long *offset, long count)
 		return(-1);
 	}
 		
-	if((buf=(char*)malloc(count))==NULL) {
+	if((buf=malloc(count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}

@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.70 2004/06/16 09:54:43 rswindell Exp $ */
+/* $Id: js_file.c,v 1.66 2004/05/17 20:52:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -445,7 +445,7 @@ static jsval get_value(JSContext *cx, char* value)
 static JSBool
 js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*	section=ROOT_SECTION;
+	char*	section;
 	char*	key;
 	char**	list;
 	char	buf[INI_MAX_VALUE_LEN];
@@ -462,8 +462,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 	}
 
-	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
-		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+	section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
 	key=JS_GetStringBytes(JS_ValueToString(cx, argv[1]));
 
 	if(dflt==JSVAL_VOID) {	/* unspecified default value */
@@ -509,67 +508,6 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 }
 
 static JSBool
-js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*	section=ROOT_SECTION;
-	char*	key;
-	char*	result=NULL;
-	int32	i;
-	jsval	value=argv[2];
-	private_t*	p;
-	str_list_t	list;
-
-	*rval = JSVAL_FALSE;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
-
-	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
-		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
-	key=JS_GetStringBytes(JS_ValueToString(cx, argv[1]));
-
-	if((list=iniReadFile(p->fp))==NULL)
-		return(JS_TRUE);
-
-	if(value==JSVAL_VOID) 	/* unspecified value */
-		result = iniSetString(&list,section,key,"",NULL);
-	else {
-
-		switch(JSVAL_TAG(value)) {
-			case JSVAL_STRING:
-				result = iniSetString(&list,section,key,JS_GetStringBytes(JS_ValueToString(cx,value)),NULL);
-				break;
-			case JSVAL_BOOLEAN:
-				result = iniSetBool(&list,section,key,JSVAL_TO_BOOLEAN(value),NULL);
-				break;
-			case JSVAL_DOUBLE:
-				result = iniSetFloat(&list,section,key,*JSVAL_TO_DOUBLE(value),NULL);
-				break;
-			case JSVAL_OBJECT:
-				result = iniSetString(&list,section,key,JS_GetStringBytes(JS_ValueToString(cx,value)),NULL);
-				break;
-			default:
-				if(JSVAL_IS_NUMBER(value)) {
-					JS_ValueToInt32(cx,value,&i);
-					result = iniSetInteger(&list,section,key,i,NULL);
-					break;
-				}
-				break;
-		}
-	}
-
-	if(result != NULL)
-		*rval = BOOLEAN_TO_JSVAL(iniWriteFile(p->fp,list));
-
-	strListFree(&list);
-
-	return(JS_TRUE);
-}
-
-
-static JSBool
 js_iniGetSections(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		prefix=NULL;
@@ -607,7 +545,7 @@ js_iniGetSections(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 static JSBool
 js_iniGetKeys(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		section=ROOT_SECTION;
+	char*		section;
 	char**		list;
     jsint       i;
     jsval       val;
@@ -621,8 +559,7 @@ js_iniGetKeys(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 	}
 
-	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
-		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+	section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
     array = JS_NewArrayObject(cx, 0, NULL);
 
 	list = iniGetKeyList(p->fp,section);
@@ -641,7 +578,7 @@ js_iniGetKeys(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 static JSBool
 js_iniGetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		section=ROOT_SECTION;
+	char*		section;
     jsint       i;
     JSObject*	object;
 	private_t*	p;
@@ -654,8 +591,7 @@ js_iniGetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		return(JS_FALSE);
 	}
 
-	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
-		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+	section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
     object = JS_NewObject(cx, NULL, NULL, obj);
 
 	list = iniGetNamedStringList(p->fp,section);
@@ -671,45 +607,6 @@ js_iniGetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 
     return(JS_TRUE);
 }
-
-static JSBool
-js_iniSetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-    jsint       i;
-    JSObject*	object;
-	private_t*	p;
-	JSIdArray*	id_array;
-	jsval		set_argv[3];
-
-	*rval = JSVAL_FALSE;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
-
-	set_argv[0]=argv[0];	/* section */
-
-	if(!JSVAL_IS_OBJECT(argv[1]))
-		return(JS_TRUE);
-
-    object = JSVAL_TO_OBJECT(argv[1]);
-
-	if((id_array=JS_Enumerate(cx,object))==NULL)
-		return(JS_TRUE);
-
-	for(i=0; i<id_array->length; i++)  {
-		/* property */
-		JS_IdToValue(cx,id_array->vector[i],&set_argv[1]);	
-		/* value */
-		JS_GetProperty(cx,object,JS_GetStringBytes(JSVAL_TO_STRING(set_argv[1])),&set_argv[2]);
-		if(!js_iniSetValue(cx,obj,3,set_argv,rval))
-			break;
-	}
-
-    return(JS_TRUE);
-}
-
 
 static JSBool
 js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1567,41 +1464,26 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"optionally, only those section names that begin with the specified <i>prefix</i>")
 	,311
 	},
-	{"iniGetKeys",		js_iniGetKeys,		1,	JSTYPE_ARRAY,	JSDOCSTR("[section]")
+	{"iniGetKeys",		js_iniGetKeys,		0,	JSTYPE_ARRAY,	JSDOCSTR("section")
 	,JSDOCSTR("parse all key names from the specified <i>section</i> in a <tt>.ini</tt> file "
-		"and return the key names as an <i>array of strings</i>. "
-		"if <i>section</i> is undefined, returns key names from the <i>root</i> section")
+		"and return the key names as an <i>array of strings</i>")
 	,311
 	},
 	{"iniGetValue",		js_iniGetValue,		3,	JSTYPE_STRING,	JSDOCSTR("section, key [,default]")
 	,JSDOCSTR("parse a key from a <tt>.ini</tt> file and return its value (format = '<tt>key = value</tt>'). "
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
-		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
 		"will return a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
 		"determined by the type of <i>default</i> value specified")
 	,311
 	},
-	{"iniSetValue",		js_iniSetValue,		3,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key, value")
-	,JSDOCSTR("set the specified <i>key</i> to the specified <i>value</i> in the specified <i>section</i> "
-		"of a <tt>.ini</tt> file. "
-		"to set a key in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
-	,311
-	},
-	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section]")
+	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("section")
 	,JSDOCSTR("parse an entire section from a .ini file "
-		"and return all of its keys and values as properties of an object. "
-		"if <i>section</i> is undefined, returns key and values from the <i>root</i> section")
-	,311
-	},
-	{"iniSetObject",	js_iniSetObject,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, object")
-	,JSDOCSTR("write all the properties of the specified <i>object</i> as separate <tt>key=value</tt> pairs "
-		"in the specified <i>section</i> of a <tt>.ini</tt> file. "
-		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
+		"and return all of its keys and values as properties of an object")
 	,311
 	},
 	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix]")
-	,JSDOCSTR("parse all sections from a .ini file and return all (non-<i>root</i>) sections "
-		"in an array of objects with each section's keys as properties of each object. "
+	,JSDOCSTR("parse all sections from a .ini file and return all sections and keys "
+		"an array of objects with each section's keys as properties of each section object, "
 		"<i>name_property</i> is the name of the property to create to contain the section's name "
 		"(default is <tt>\"name\"</tt>), "
 		"the optional <i>prefix</i> has the same use as in the <tt>iniGetSections</tt> method, "

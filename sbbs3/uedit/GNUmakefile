@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.8 2004/06/04 09:04:09 deuce Exp $
+# $Id: GNUmakefile,v 1.7 2004/04/17 19:20:52 deuce Exp $
 
 #USE_CURSES	:=	1	#Use old curses UIFC implementation
 USE_UIFC32	:=	1	# Use new uifc32 implementation
@@ -37,4 +37,4 @@ FORCE$(EXEODIR)/uedit: $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 
 $(EXEODIR)/uedit: $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(OBJS) -o $@
+	@$(CC) $(LDFLAGS) $(OBJS) -o $@
