@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.23 2002/03/25 05:41:48 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.24 2002/04/12 06:19:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 #define _MAILSRVR_H_
 
 #include "client.h"				/* client_t */
-#include "sbbsinet.h"           /* SOCKET */
+#include "sockwrap.h"           /* SOCKET */
 
 typedef struct {
 

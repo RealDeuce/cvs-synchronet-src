@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.25 2002/03/26 10:55:08 rswindell Exp $ */
+/* $Id: js_system.c,v 1.26 2002/04/12 06:19:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1022,7 +1022,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if(!JS_SetProperty(cx, sysobj, "msgbase_lib", &val))
 		return(NULL);
 
-	COMPILER_DESC(str);
+	DESCRIBE_COMPILER(str);
 	val = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 	if(!JS_SetProperty(cx, sysobj, "compiled_with", &val))
 		return(NULL);
