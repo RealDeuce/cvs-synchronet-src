@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.7 2002/01/30 01:10:12 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.8 2002/02/02 04:10:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,7 +122,7 @@ char sbbs_t::inkey(long mode)
 				CRLF; 
 			}
 			hotkey_inside++;
-			external(cfg.hotkey[i]->cmd,0);
+			external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
 			hotkey_inside--;
 			if(!(sys_status&SS_SPLITP)) {
 				CRLF;
