@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include <dirwrap.h>
-#include <ini_file.h>
 #include <uifc.h>
 
 #include "bbslist.h"
@@ -11,6 +10,20 @@
 enum {
 	 USER_BBSLIST
 	,SYSTEM_BBSLIST
+};
+
+struct bbslist_file {
+	char			name[LIST_NAME_MAX+1];
+	char			addr[LIST_ADDR_MAX+1];
+	short unsigned int port;
+	time_t			added;
+	time_t			connected;
+	unsigned int	calls;
+	char			user[MAX_USER_LEN+1];
+	char			password[MAX_PASSWD_LEN+1];
+	int				dumb;
+	int				reversed;
+	char			padding[256];
 };
 
 void sort_list(struct bbslist **list)  {
@@ -31,6 +44,49 @@ void sort_list(struct bbslist **list)  {
 	}
 }
 
+void write_list(struct bbslist **list)
+{
+	char	*home;
+	char	listpath[MAX_PATH+1];
+	FILE	*listfile;
+	int		i;
+	struct bbslist_file bbs;
+	char	str[MAX_PATH+1];
+
+	home=getenv("HOME");
+	if(home==NULL)
+		getcwd(listpath,sizeof(listpath));
+	else
+		strcpy(listpath,home);
+	strncat(listpath,"/",sizeof(listpath));
+	strncat(listpath,"syncterm.lst",sizeof(listpath));
+	if(strlen(listpath)>MAX_PATH) {
+		fprintf(stderr,"Path to syncterm.lst too long");
+		return;
+	}
+	if((listfile=fopen(listpath,"wb"))!=NULL) {
+		for(i=0;list[i]->name[0];i++) {
+			strcpy(bbs.name,list[i]->name);
+			strcpy(bbs.addr,list[i]->addr);
+			bbs.port=list[i]->port;
+			bbs.added=list[i]->added;
+			bbs.connected=list[i]->connected;
+			bbs.calls=list[i]->calls;
+			bbs.dumb=list[i]->dumb;
+			strcpy(bbs.user,list[i]->user);
+			strcpy(bbs.password,list[i]->password);
+			fwrite(&bbs,sizeof(bbs),1,listfile);
+		}
+		fclose(listfile);
+	}
+	else {
+		uifc.helpbuf=	"`Can't save list`\n\n"
+						"The system is unable to save your dialing list\n";
+		sprintf(str,"Can't save list to %.*s",MAX_PATH-20,listpath);
+		uifc.msg(str);
+	}
+}
+
 /*
  * Reads in a BBS list from listpath using *i as the counter into bbslist
  * first BBS read goes into list[i]
@@ -38,46 +94,37 @@ void sort_list(struct bbslist **list)  {
 void read_list(char *listpath, struct bbslist **list, int *i, int type)
 {
 	FILE	*listfile;
-	char	*bbsname;
-	str_list_t	bbses;
-
+	struct	bbslist_file	bbs;
 	if((listfile=fopen(listpath,"r"))!=NULL) {
-		bbses=iniReadSectionList(listfile,NULL);
-		while((bbsname=strListPop(&bbses))!=NULL) {
+		while(*i<MAX_OPTS && fread(&bbs,sizeof(bbs),1,listfile)) {
 			if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL)
 				break;
-			strcpy(list[*i]->name,bbsname);
-			iniReadString(listfile,bbsname,"Address","",list[*i]->addr);
-			list[*i]->port=iniReadShortInt(listfile,bbsname,"Port",513);
-			list[*i]->added=iniReadInteger(listfile,bbsname,"Added",0);
-			list[*i]->connected=iniReadInteger(listfile,bbsname,"LastConnected",0);
-			list[*i]->calls=iniReadInteger(listfile,bbsname,"TotalCalls",0);
-			iniReadString(listfile,bbsname,"UserName","",list[*i]->user);
-			iniReadString(listfile,bbsname,"Password","",list[*i]->password);
-			list[*i]->dumb=iniReadBool(listfile,bbsname,"BeDumb",0);
-			list[*i]->reversed=iniReadBool(listfile,bbsname,"Reversed",0);
+			strcpy(list[*i]->name,bbs.name);
+			strcpy(list[*i]->addr,bbs.addr);
+			list[*i]->port=bbs.port;
+			list[*i]->added=bbs.added;
+			list[*i]->connected=bbs.connected;
+			list[*i]->calls=bbs.calls;
+			strcpy(list[*i]->user,bbs.user);
+			strcpy(list[*i]->password,bbs.password);
+			list[*i]->dumb=bbs.dumb;
 			list[*i]->type=type;
-			list[*i]->id=*i;
-			(*i)++;
+			list[*i]->id=(*i)++;
 		}
 		fclose(listfile);
-		strListFreeStrings(bbses);
 	}
 
 	/* Add terminator */
 	list[*i]=(struct bbslist *)"";
 }
 
-int edit_list(struct bbslist *item,char *listpath)
+int edit_list(struct bbslist *item)
 {
 	char	opt[8][80];
 	char	*opts[8];
 	int		changed=0;
 	int		copt=0,i,j;
 	char	str[6];
-	FILE *listfile;
-	str_list_t	inifile;
-	char	tmp[LIST_NAME_MAX+1];
 
 	for(i=0;i<8;i++)
 		opts[i]=opt[i];
@@ -91,12 +138,6 @@ int edit_list(struct bbslist *item,char *listpath)
 		return(0);
 	}
 	opt[7][0]=0;
-	if((listfile=fopen(listpath,"r"))!=NULL) {
-		inifile=iniReadFile(listfile);
-		fclose(listfile);
-	}
-	else
-		return(0);
 	for(;;) {
 		sprintf(opt[0],"BBS Name:       %s",item->name);
 		sprintf(opt[1],"RLogin Address: %s",item->addr);
@@ -111,25 +152,17 @@ int edit_list(struct bbslist *item,char *listpath)
 						"Select item to edit.";
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,"Edit Entry",opts)) {
 			case -1:
-				if((listfile=fopen(listpath,"w"))!=NULL) {
-					iniWriteFile(listfile,inifile);
-					fclose(listfile);
-				}
-				strListFreeStrings(inifile);
 				return(changed);
 			case 0:
 				uifc.helpbuf=	"`BBS Name`\n\n"
 								"Enter the BBS name as it is to appear in the list.";
-				strcpy(tmp,item->name);
 				uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",item->name,LIST_NAME_MAX,K_EDIT);
-				iniRenameSection(&inifile,tmp,item->name);
 				break;
 			case 1:
 				uifc.helpbuf=	"`RLogin address`\n\n"
 								"Enter the domain name of the system to connect to ie:\n"
 								"nix.synchro.net";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"RLogin Address",item->addr,LIST_ADDR_MAX,K_EDIT);
-				iniSetString(&inifile,item->name,"Address",item->addr,NULL);
 				break;
 			case 2:
 				i=item->port;
@@ -146,7 +179,6 @@ int edit_list(struct bbslist *item,char *listpath)
 				if(j<1 || j>65535)
 					j=513;
 				item->port=j;
-				iniSetShortInt(&inifile,item->name,"Port",item->port,NULL);
 				if(i!=j)
 					uifc.changes=1;
 				else
@@ -156,23 +188,19 @@ int edit_list(struct bbslist *item,char *listpath)
 				uifc.helpbuf=	"`Username`\n\n"
 								"Enter the username to attempt auto-login to the remote with.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Username",item->user,MAX_USER_LEN,K_EDIT);
-				iniSetString(&inifile,item->name,"UserName",item->user,NULL);
 				break;
 			case 4:
 				uifc.helpbuf=	"`Password`\n\n"
 								"Enter your password for auto-login.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Password",item->password,MAX_PASSWD_LEN,K_EDIT);
-				iniSetString(&inifile,item->name,"Password",item->password,NULL);
 				break;
 			case 5:
 				item->dumb=!item->dumb;
 				changed=1;
-				iniSetBool(&inifile,item->name,"BeDumb",item->dumb,NULL);
 				break;
 			case 6:
 				item->reversed=!item->reversed;
 				changed=1;
-				iniSetBool(&inifile,item->name,"Reversed",item->reversed,NULL);
 				break;
 		}
 		if(uifc.changes)
@@ -180,60 +208,11 @@ int edit_list(struct bbslist *item,char *listpath)
 	}
 }
 
-void add_bbs(char *listpath, struct bbslist *bbs)
-{
-	FILE *listfile;
-	str_list_t	inifile;
-
-	if((listfile=fopen(listpath,"r"))!=NULL) {
-		inifile=iniReadFile(listfile);
-		fclose(listfile);
-	}
-	else {
-		inifile=strListInit();
-	}
-	/* 
-	 * Redundant:
-	 * iniAddSection(&inifile,bbs->name,NULL);
-	 */
-	iniSetString(&inifile,bbs->name,"Address",bbs->addr,NULL);
-	iniSetShortInt(&inifile,bbs->name,"Port",bbs->port,NULL);
-	iniSetInteger(&inifile,bbs->name,"Added",time(NULL),NULL);
-	iniSetInteger(&inifile,bbs->name,"LastConnected",bbs->connected,NULL);
-	iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
-	iniSetString(&inifile,bbs->name,"UserName",bbs->user,NULL);
-	iniSetString(&inifile,bbs->name,"Password",bbs->password,NULL);
-	iniSetBool(&inifile,bbs->name,"BeDumb",bbs->dumb,NULL);
-	iniSetBool(&inifile,bbs->name,"Reversed",bbs->reversed,NULL);
-	if((listfile=fopen(listpath,"w"))!=NULL) {
-		iniWriteFile(listfile,inifile);
-		fclose(listfile);
-	}
-	strListFreeStrings(inifile);
-}
-
-void del_bbs(char *listpath, struct bbslist *bbs)
-{
-	FILE *listfile;
-	str_list_t	inifile;
-
-	if((listfile=fopen(listpath,"r"))!=NULL) {
-		inifile=iniReadFile(listfile);
-		fclose(listfile);
-		iniRemoveSection(&inifile,bbs->name);
-		if((listfile=fopen(listpath,"w"))!=NULL) {
-			iniWriteFile(listfile,inifile);
-			fclose(listfile);
-		}
-		strListFreeStrings(inifile);
-	}
-}
-
 /*
  * Displays the BBS list and allows edits to user BBS list
  * Mode is one of BBSLIST_SELECT or BBSLIST_EDIT
  */
-struct bbslist *show_bbslist(int mode, char *path)
+struct bbslist *show_bbslist(int mode)
 {
 	char	*home;
 	char	listpath[MAX_PATH+1];
@@ -252,12 +231,11 @@ struct bbslist *show_bbslist(int mode, char *path)
 	/* User BBS list */
 	home=getenv("HOME");
 	if(home==NULL)
-		home=getenv("USERPROFILE");
-	if(home==NULL)
-		strcpy(listpath,path);
+		getcwd(listpath,sizeof(listpath));
 	else
 		strcpy(listpath,home);
-	strncat(listpath,"/syncterm.lst",sizeof(listpath));
+	strncat(listpath,"/",sizeof(listpath));
+	strncat(listpath,"syncterm.lst",sizeof(listpath));
 	if(strlen(listpath)>MAX_PATH) {
 		fprintf(stderr,"Path to syncterm.lst too long");
 		return(NULL);
@@ -278,7 +256,7 @@ struct bbslist *show_bbslist(int mode, char *path)
 						"~ CTRL-E ~ Switch listing to Edit mode\n"
 						"~ CTRL-D ~ Switch listing to Dial mode\n"
 						"Select a bbs to edit/dial an entry.";
-		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)|WIN_SAV|WIN_MID|WIN_INS|WIN_DEL|WIN_EXTKEYS|WIN_INSACT,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Select BBS":"Edit BBS",(char **)list);
+		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)|WIN_SAV|WIN_MID|WIN_INS|WIN_DEL|WIN_EXTKEYS,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Select BBS":"Edit BBS",(char **)list);
 		if(val==listcount)
 			val=listcount|MSK_INS;
 		if(val<0) {
@@ -368,17 +346,17 @@ struct bbslist *show_bbslist(int mode, char *path)
 							list[listcount-1]->password[0]=0;
 							list[listcount-1]->reversed=0;
 						}
-						add_bbs(listpath,list[listcount-1]);
 						sort_list(list);
 						for(j=0;list[j]->name[0];j++) {
 							if(list[j]->id==listcount-1)
 								opt=j;
 						}
+						write_list(list);
 					}
 					break;
 				case MSK_DEL:
 					if(!list[opt]->name[0]) {
-						uifc.helpbuf=	"`Calming down`\n\n"
+						uifc.helpbuf=	"`Calming down`\n\n";
 										"~ Some handy tips on calming down ~\n"
 										"Close your eyes, imagine yourself alone on a brilliant white beach...\n"
 										"Picture the palm trees up towards the small town...\n"
@@ -393,7 +371,6 @@ struct bbslist *show_bbslist(int mode, char *path)
 						uifc.msg("It's gone, calm down man!");
 						break;
 					}
-					del_bbs(listpath,list[opt]);
 					free(list[opt]);
 					for(i=opt;list[i]->name[0];i++) {
 						list[i]=list[i+1];
@@ -401,6 +378,7 @@ struct bbslist *show_bbslist(int mode, char *path)
 					for(i=0;list[i]->name[0];i++) {
 						list[i]->id=i;
 					}
+					write_list(list);
 					listcount--;
 					break;
 			}
@@ -408,8 +386,9 @@ struct bbslist *show_bbslist(int mode, char *path)
 		else {
 			if(mode==BBSLIST_EDIT) {
 				i=list[opt]->id;
-				if(edit_list(list[opt],listpath)) {
+				if(edit_list(list[opt])) {
 					sort_list(list);
+					write_list(list);
 					for(j=0;list[j]->name[0];j++) {
 						if(list[j]->id==i)
 							opt=j;
