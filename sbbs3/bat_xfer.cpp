@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.13 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.14 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -709,7 +709,7 @@ void sbbs_t::batch_add_list(char *list)
 			sprintf(f.name,"%.12s",str);
 			strupr(f.name);
 			lncntr=0;
-			for(i=k=0;i<usrlibs;i++) {
+			for(i=j=k=0;i<usrlibs;i++) {
 				for(j=0;j<usrdirs[i];j++,k++) {
 					outchar('.');
 					if(k && !(k%5))

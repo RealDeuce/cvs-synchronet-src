@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.152 2002/04/26 11:11:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.153 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1150,7 +1150,7 @@ static void smtp_thread(void* arg)
 	ushort		xlat;
 	ushort		nettype;
 	uint		usernum;
-	ulong		crc;
+	ulong		crc=0;
 	ulong		lines=0;
 	ulong		length;
 	ulong		offset;

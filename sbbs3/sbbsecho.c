@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.40 2002/04/26 07:11:12 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.41 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3499,9 +3499,10 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 ******************************************************************************/
 void export_echomail(char *sub_code,faddr_t addr)
 {
-	char str[1025],tear,cr,HUGE16 *buf;
-	uchar HUGE16 *fmsgbuf=NULL;
-	int g,i,j,k,file;
+	char str[1025],tear,cr;
+	char*	buf=NULL;
+	uchar*	fmsgbuf=NULL;
+	int g,i,j,k=0,file;
 	ulong f,l,m,exp,ptr,msgs,lastmsg,posts,exported=0;
 	float export_time;
 	smbmsg_t msg;

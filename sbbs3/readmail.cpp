@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.17 2002/04/18 02:01:15 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.18 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,6 +389,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 						replied=email(1,str2,msg.subj,WM_EMAIL|WM_QUOTE);
 					else if((i=finduser(str))!=0)
 						replied=email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+					else
+						replied=false;
 					sprintf(str2,text[DeleteMailQ],msg.from); }
 
 				if(replied==true && !(msg.hdr.attr&MSG_REPLIED)) {

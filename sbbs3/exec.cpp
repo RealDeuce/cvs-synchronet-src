@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.25 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.26 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -505,7 +505,7 @@ void sbbs_t::freevars(csi_t *bin)
 char * sbbs_t::copystrvar(csi_t *csi, char *p, char *str)
 {
 	char *np;	/* New pointer after realloc */
-	int i;
+	int i=0;
 
 	if(p!=csi->str) {
 		if(p)

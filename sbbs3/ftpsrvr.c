@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.165 2002/04/26 07:11:11 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.166 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2204,7 +2204,7 @@ static void ctrl_thread(void* arg)
 	BOOL		delfile;
 	BOOL		tmpfile;
 	BOOL		credits;
-	BOOL		filedat;
+	BOOL		filedat=FALSE;
 	BOOL		transfer_inprogress;
 	BOOL		transfer_aborted;
 	BOOL		sysop=FALSE;
@@ -2224,7 +2224,7 @@ static void ctrl_thread(void* arg)
 	user_t		user;
 	time_t		t;
 	time_t		now;
-	time_t		logintime;
+	time_t		logintime=0;
 	time_t		lastactive;
 	file_t		f;
 	glob_t		g;

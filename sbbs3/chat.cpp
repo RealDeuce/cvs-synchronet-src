@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.23 2002/04/22 09:08:52 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.24 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -709,7 +709,7 @@ void sbbs_t::privchat(bool local)
 	char 	tmp[512];
 	uchar	ch;
 	int 	in,out,i,n,echo=1,x,y,activity,remote_activity;
-    int		local_y,remote_y;
+    int		local_y=1,remote_y=1;
 	node_t	node;
 
 	if(useron.rest&FLAG('C')) {
@@ -1202,7 +1202,7 @@ int sbbs_t::getnodetopage(int all, int telegram)
 /****************************************************************************/
 void sbbs_t::nodemsg()
 {
-	char	str[256],line[256],buf[512],logbuf[512],ch;
+	char	str[256],line[256],buf[512],logbuf[512],ch=0;
 	char 	tmp[512];
 	int 	i,usernumber,done=0;
 	node_t	node,savenode;

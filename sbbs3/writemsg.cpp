@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.29 2002/04/10 22:23:17 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.30 2002/05/02 23:55:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 	char	msgtmp[MAX_PATH+1];
 	char 	tmp[512];
 	int		i,j,file,linesquoted=0;
-	long	length,qlen,qtime,ex_mode=0;
+	long	length,qlen=0,qtime=0,ex_mode=0;
 	ulong	l;
 	FILE *	stream;
 

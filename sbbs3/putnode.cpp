@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.10 2002/03/17 02:26:39 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.11 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,8 +45,8 @@
 void sbbs_t::putnodedat(uint number, node_t* node)
 {
 	char	str[256],firston[25];
-	int		wr;
-	int		wrerr;
+	int		wr=0;
+	int		wrerr=0;
 	int		attempts;
 
 	if(!number)

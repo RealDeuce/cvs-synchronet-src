@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.21 2002/04/22 09:33:20 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.22 2002/05/02 23:55:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,7 +338,7 @@ void sbbs_t::extract(uint dirnum)
 				break; }
 		if(i==usrdirs[curlib]) { /* not found in cur lib */
 			bputs(text[SearchingAllLibs]);
-			for(i=0;i<usrlibs;i++) {
+			for(i=j=0;i<usrlibs;i++) {
 				if(i==curlib) continue;
 				for(j=0;j<usrdirs[i] && !msgabort();j++)
 					if(findfile(&cfg,usrdir[i][j],f.name))
@@ -420,7 +420,7 @@ ulong sbbs_t::create_filelist(char *name, long mode)
 	if(mode&FL_ULTIME) {
 		sprintf(str,"New files since: %s\r\n",timestr(&ns_time));
 		write(file,str,strlen(str)); }
-	for(i=d=0;i<usrlibs;i++) {
+	for(i=j=d=0;i<usrlibs;i++) {
 		for(j=0;j<usrdirs[i];j++,d++) {
 			outchar('.');
 			if(d && !(d%5))

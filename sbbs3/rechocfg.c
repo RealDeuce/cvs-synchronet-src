@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.10 2002/04/25 22:45:11 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.11 2002/05/02 23:55:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ int matchnode(faddr_t addr, int exact)
 void read_echo_cfg()
 {
 	uchar str[1025],tmp[512],*p,*tp;
-	short attr;
+	short attr=0;
 	int i,j,file;
 	FILE *stream;
 	faddr_t addr,route_addr;
