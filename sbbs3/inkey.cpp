@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.3 2001/06/15 03:38:29 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.4 2001/08/29 17:15:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,8 +59,13 @@ char sbbs_t::inkey(long mode)
 	} else
 		ch=incom();
 	if(ch==0) {
+		// moved here from getkey() on AUG-29-2001
+		if(sys_status&SS_SYSPAGE) 
+			sbbs_beep(sbbs_random(800),100);
+
 		if(!(mode&K_GETSTR) || mode&K_LOWPRIO || cfg.node_misc&NM_LOWPRIO)
 			mswait(1);
+
 		return(0);
 	}
 
