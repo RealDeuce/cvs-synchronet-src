@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.45 2001/10/02 17:15:55 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.46 2001/10/02 20:10:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -983,7 +983,7 @@ char * sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     break;
 				case '~':	/* DOS-compatible (8.3) filename */
 #ifdef _WIN32
-					char sfpath[MAX_PATH];
+					char sfpath[MAX_PATH+1];
 					strcpy(sfpath,fpath);
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
 					strcat(cmd,sfpath);

@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.7 2001/06/12 01:27:12 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.8 2001/10/02 20:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,7 @@ void sbbs_t::putnmsg(int num, char *strin)
 
 void sbbs_t::putnodeext(uint number, char *ext)
 {
-    char	str[MAX_PATH];
+    char	str[MAX_PATH+1];
     int		count;
 
 	if(!number || number>cfg.sys_nodes) {

@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.33 2001/07/18 14:55:01 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.34 2001/10/02 20:10:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
     struct	_finddata_t ff;
 	long	ff_handle;
 	size_t	found=0;
-	char	path[MAX_PATH];
+	char	path[MAX_PATH+1];
 	char*	p;
 	char**	new_pathv;
 

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.105 2001/09/27 17:56:55 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.106 2001/10/02 20:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1151,7 +1151,7 @@ char * cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *cmd)
 	char	str[256];
     int		i,j,len;
 #ifdef _WIN32
-	char sfpath[MAX_PATH];
+	char sfpath[MAX_PATH+1];
 #endif
 
     len=strlen(instr);

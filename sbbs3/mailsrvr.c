@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.67 2001/09/28 16:27:32 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.68 2001/10/02 20:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,7 +338,7 @@ static char* alias(char* name, char* alias)
 	char*	p=name;
 	char*	np;
 	char*	tp;
-	char	fname[MAX_PATH];
+	char	fname[MAX_PATH+1];
 	FILE*	fp;
 
 	sprintf(fname,"%salias.cfg",scfg.ctrl_dir);

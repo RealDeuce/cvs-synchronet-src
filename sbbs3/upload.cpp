@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.13 2001/08/29 16:09:04 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.14 2001/10/02 20:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -508,9 +508,9 @@ void sbbs_t::upload(uint dirnum)
 /****************************************************************************/
 bool sbbs_t::bulkupload(uint dirnum)
 {
-    char	str[MAX_PATH];
-	char	path[MAX_PATH];
-	char	spath[MAX_PATH];
+    char	str[MAX_PATH+1];
+	char	path[MAX_PATH+1];
+	char	spath[MAX_PATH+1];
     file_t	f;
 	DIR*	dir;
 	DIRENT*	dirent;

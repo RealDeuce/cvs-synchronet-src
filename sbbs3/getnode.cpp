@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.10 2001/09/06 02:28:49 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.11 2001/10/02 20:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 /****************************************************************************/
 void sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 {
-	char	str[MAX_PATH];
+	char	str[MAX_PATH+1];
 	int		count;
 
 	if(!number)
@@ -169,7 +169,7 @@ void sbbs_t::nodesync()
 /****************************************************************************/
 void sbbs_t::getnmsg()
 {
-	char	str[MAX_PATH], HUGE16 *buf;
+	char	str[MAX_PATH+1], HUGE16 *buf;
 	int		file;
 	long	length;
 
@@ -215,7 +215,7 @@ void sbbs_t::getnmsg()
 /****************************************************************************/
 void sbbs_t::getnodeext(uint number, char *ext)
 {
-    char	str[MAX_PATH];
+    char	str[MAX_PATH+1];
     int		count;
 
 	if(!number || number>cfg.sys_nodes) {
@@ -259,7 +259,7 @@ void sbbs_t::getnodeext(uint number, char *ext)
 /****************************************************************************/
 void sbbs_t::getsmsg(int usernumber)
 {
-	char	str[MAX_PATH], HUGE16 *buf;
+	char	str[MAX_PATH+1], HUGE16 *buf;
     int		file;
     long	length;
 

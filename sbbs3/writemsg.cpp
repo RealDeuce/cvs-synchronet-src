@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.9 2001/06/15 03:34:29 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.10 2001/10/02 20:10:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -938,7 +938,7 @@ void sbbs_t::automsg()
 {
     char	str[256],buf[300],anon=0;
 	char 	tmp[512];
-	char	automsg[MAX_PATH];
+	char	automsg[MAX_PATH+1];
     int		file;
 
 	sprintf(automsg,"%smsgs/auto.msg",cfg.data_dir);

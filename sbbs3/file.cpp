@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.7 2001/06/28 03:34:40 rswindell Exp $ */
+/* $Id: file.cpp,v 1.8 2001/10/02 20:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -244,7 +244,7 @@ BOOL filematch(char *filename, char *filespec)
 /****************************************************************************/
 uint sbbs_t::delfiles(char *inpath, char *spec)
 {
-	char	path[MAX_PATH];
+	char	path[MAX_PATH+1];
     uint	i,files=0;
 	glob_t	g;
 
