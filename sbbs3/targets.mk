@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.21 2004/09/16 19:02:02 deuce Exp $
+# $Id: targets.mk,v 1.19 2004/09/13 22:45:01 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -31,17 +31,19 @@ UTILS		= $(BUILD_DEPENDS)$(FIXSMB) $(BUILD_DEPENDS)$(CHKSMB) \
 			  $(BUILD_DEPENDS)$(SMBUTIL) $(BUILD_DEPENDS)$(BAJA) $(BUILD_DEPENDS)$(NODE) \
 			  $(BUILD_DEPENDS)$(SBBSECHO) $(BUILD_DEPENDS)$(ECHOCFG) $(BUILD_DEPENDS) \
 			  $(BUILD_DEPENDS)$(ADDFILES) $(BUILD_DEPENDS)$(FILELIST) $(BUILD_DEPENDS)$(MAKEUSER) \
-			  $(BUILD_DEPENDS)$(ANS2ASC) $(BUILD_DEPENDS)$(ASC2ANS) 
+			  $(BUILD_DEPENDS)$(ANS2ASC) $(BUILD_DEPENDS)$(ASC2ANS) \
+			  $(BUILD_DEPENDS)$(JSEXEC)
 
 all:	dlls utils console mono
 
 console:	xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
 		dlls \
-		$(SBBSCON) $(JSEXEC)
+		$(SBBSCON)
 
 utils:	smblib xpdev-mt xpdev ciolib-mt uifc-mt \
 		$(LIBODIR) $(OBJODIR) $(MTOBJODIR) $(EXEODIR) \
+		$(SBBS) \
 		$(UTILS)
 
 dlls:	smblib xpdev-mt \
@@ -51,27 +53,3 @@ dlls:	smblib xpdev-mt \
 mono:	xpdev-mt smblib \
 		$(MTOBJODIR) $(EXEODIR) \
 		$(SBBSMONO)
-
-
-# Library dependencies
-$(SBBS): 
-$(FTPSRVR): 
-$(WEBSRVR):
-$(MAILSRVR):
-$(SERVICES): 
-$(SBBSCON): $(XPDEV-MT_LIB) $(SMBLIB)
-$(SBBSMONO): $(XPDEV-MT_LIB) $(SMBLIB)
-$(JSEXEC): $(XPDEV-MT_LIB) $(SMBLIB)
-$(NODE): $(XPDEV_LIB)
-$(BAJA): $(XPDEV_LIB) $(SMBLIB)
-$(FIXSMB): $(XPDEV_LIB) $(SMBLIB)
-$(CHKSMB): $(XPDEV_LIB) $(SMBLIB)
-$(SMBUTIL): $(XPDEV_LIB) $(SMBLIB)
-$(SBBSECHO): $(XPDEV_LIB) $(SMBLIB)
-$(ECHOCFG): $(XPDEV-MT_LIB) $(SMBLIB) $(UIFCLIB-MT) $(CIOLIB-MT)
-$(ADDFILES): $(XPDEV_LIB)
-$(FILELIST): $(XPDEV_LIB)
-$(MAKEUSER): $(XPDEV_LIB)
-$(ANS2ASC):
-$(ASC2ANS):
-
