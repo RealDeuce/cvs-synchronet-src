@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.138 2004/03/11 06:26:00 deuce Exp $
+# $Id: GNUmakefile,v 1.139 2004/03/11 07:16:50 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -65,7 +65,7 @@ ifdef USE_DOSEMU
 endif
 
 ifdef DONT_BLAME_SYNCHRONET
- LDFLAGS += -DDONT_BLAME_SYNCHRONET
+ CFLAGS += -DDONT_BLAME_SYNCHRONET
 endif
 
 ifeq ($(XP_SEM),1)
