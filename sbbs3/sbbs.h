@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.34 2001/04/11 03:37:52 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.35 2001/04/12 00:34:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -766,7 +766,12 @@ extern "C" {
 
 #ifdef JAVASCRIPT
 
+	/* sysobj.c */
 	DLLEXPORT JSObject* DLLCALL CreateSystemObject(scfg_t* cfg, JSContext* cx, JSObject* parent);
+
+	/* userobj.c */
+	DLLEXPORT JSObject* DLLCALL CreateUserObject(scfg_t* cfg, JSContext* cx, JSObject* parent
+													,char* name, user_t* user);
 
 #endif
 
