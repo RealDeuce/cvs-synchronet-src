@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.6 2000/12/11 23:21:11 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.7 2001/03/14 22:00:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -756,6 +756,22 @@ void sbbs_t::batch_add_list(char *list)
 		fclose(stream);
 		remove(list);
 		CRLF; 
+	}
+}
+/****************************************************************************/
+void sbbs_t::batch_create_list()
+{
+	char	str[MAX_PATH+1];
+	int		i;
+	FILE*	stream;
+
+	if(batdn_total) {
+		sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
+		if((stream=fnopen(NULL,str,O_WRONLY|O_TRUNC|O_CREAT))!=NULL) {
+			for(i=0;i<(int)batdn_total;i++)
+				fprintf(stream,"%s\r\n",batdn_name[i]);
+			fclose(stream); 
+		} 
 	}
 }
 
