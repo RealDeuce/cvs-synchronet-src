@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.40 2003/04/23 08:44:36 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.41 2003/05/05 06:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -384,10 +384,12 @@ void sbbs_read_ini(
 	SAFECOPY(web->error_dir
 		,iniReadString(fp,section,"ErrorDirectory","../html/error"));
 
+	iniFreeStringList(web->index_file_name);
 	web->index_file_name
-		=iniReadStringList(fp,section,"IndexFileNames",",","index.html,index.ssjs");
+		=iniReadStringList(fp,section,"IndexFileNames", "," ,"index.html,index.ssjs");
+	iniFreeStringList(web->cgi_ext);
 	web->cgi_ext
-		=iniReadStringList(fp,section,"CGIExtensions",",",".cgi");
+		=iniReadStringList(fp,section,"CGIExtensions", "," ,".cgi");
 	SAFECOPY(web->ssjs_ext
 		,iniReadString(fp,section,"JavaScriptExtension",".ssjs"));
 
