@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.4 2001/04/10 01:11:23 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.5 2001/06/20 01:19:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,8 +212,11 @@ int sbbs_t::atcodes(char *instr)
 				p++;
 			bputs(p); } }
 
-	else if(!strcmp(sp,"CPU") || !strcmp(sp,"HOST"))
+	else if(!strcmp(sp,"CPU"))
 		bputs(useron.comp);
+		
+	else if(!strcmp(sp,"HOST"))
+		bputs(client_name);
 
 	else if(!strcmp(sp,"BDATE"))
 		bputs(useron.birth);
