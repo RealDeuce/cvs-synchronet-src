@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.7 2004/07/27 09:11:03 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.8 2004/07/31 08:59:03 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -633,6 +633,7 @@ int curs_initciolib(long inmode)
 	keypad(stdscr, TRUE);
 	scrollok(stdscr,FALSE);
 	raw();
+	atexit(endwin);
 
 	/* Set up color pairs */
 	for(bg=0;bg<8;bg++)  {
