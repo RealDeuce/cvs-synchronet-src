@@ -1,6 +1,6 @@
 # tome/GNUmakefile
 #
-# $Id: GNUmakefile,v 1.2 2005/01/24 08:11:56 deuce Exp $
+# $Id: GNUmakefile,v 1.1 2004/09/12 22:12:00 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -37,7 +37,7 @@ SRC_ROOT	:=	..
 include $(SRC_ROOT)/build/Common.gmake
 LDFLAGS 	+=	$(XPDEV_LDFLAGS)
 CFLAGS		+=	$(XPDEV_CFLAGS)
-LDLIBS		+=	$(XPDEV_LIBS)
+LDLIBS		+=	-lm -lxpdev
 
 $(TONE):	$(OBJODIR)$(DIRSEP)tone$(OFILE)
 	@echo Creating $@
