@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.53 2004/05/31 22:26:04 deuce Exp $ */
+/* $Id: uifc32.c,v 1.68 2004/06/03 07:00:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,12 +43,6 @@
 	#endif
 	#include "ciowrap.h"
     #define mswait(x) delay(x)
-	#if defined(putch) && defined(NO_ECHOCHAR)
-		#undef putch
-	#endif
-	#if !defined(putch)
-    	#define putch(x)	_putch(x,TRUE)
-	#endif
     #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
@@ -113,6 +107,14 @@ struct uifc_mouse_event {
 	int	button;
 };
 
+/* Mouse support */
+#ifdef _WIN32
+static struct uifc_mouse_event	uifc_last_button_press;
+static struct uifc_mouse_event	last_mouse_click;
+#define kbhit()	console_hit()
+int	console_hit(void);
+#endif
+
 static void reset_dynamic(void) {
 	last_menu_cur=NULL;
 	last_menu_bar=NULL;
@@ -137,6 +139,32 @@ int kbwait(void) {
 
 #ifdef _WIN32
 
+int console_hit(void)
+{
+	INPUT_RECORD input;
+	DWORD num=0;
+
+	while(1) {
+		if(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			|| !num)
+			break;
+		if(input.EventType==KEY_EVENT && input.Event.KeyEvent.bKeyDown)
+			return(1);
+		if(input.EventType==MOUSE_EVENT) {
+			if(!input.Event.MouseEvent.dwEventFlags
+				&& (!input.Event.MouseEvent.dwButtonState
+					|| input.Event.MouseEvent.dwButtonState==FROM_LEFT_1ST_BUTTON_PRESSED
+					|| input.Event.MouseEvent.dwButtonState==RIGHTMOST_BUTTON_PRESSED))
+				return(1);
+		}
+		if(ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			&& num) {
+			continue;
+		}
+	}
+	return(0);
+}
+
 int inkey()
 {
 	char str[128];
@@ -145,30 +173,64 @@ int inkey()
 
 	while(1) {
 		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
-			|| !num || input.EventType!=KEY_EVENT)
+			|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
 			continue;
 
-		if(!input.Event.KeyEvent.bKeyDown)
-			continue;
+		switch(input.EventType) {
+			case KEY_EVENT:
+				if(!input.Event.KeyEvent.bKeyDown)
+					continue;
 #if 0
-		sprintf(str,"keydown=%d\n",input.Event.KeyEvent.bKeyDown);
-		OutputDebugString(str);
-		sprintf(str,"repeat=%d\n",input.Event.KeyEvent.wRepeatCount);
-		OutputDebugString(str);
-		sprintf(str,"keycode=%x\n",input.Event.KeyEvent.wVirtualKeyCode);
-		OutputDebugString(str);
-		sprintf(str,"scancode=%x\n",input.Event.KeyEvent.wVirtualScanCode);
-		OutputDebugString(str);
-		sprintf(str,"ascii=%d\n",input.Event.KeyEvent.uChar.AsciiChar);
-		OutputDebugString(str);
-		sprintf(str,"dwControlKeyState=%lx\n",input.Event.KeyEvent.dwControlKeyState);
-		OutputDebugString(str);
+				sprintf(str,"keydown=%d\n",input.Event.KeyEvent.bKeyDown);
+				OutputDebugString(str);
+				sprintf(str,"repeat=%d\n",input.Event.KeyEvent.wRepeatCount);
+				OutputDebugString(str);
+				sprintf(str,"keycode=%x\n",input.Event.KeyEvent.wVirtualKeyCode);
+				OutputDebugString(str);
+				sprintf(str,"scancode=%x\n",input.Event.KeyEvent.wVirtualScanCode);
+				OutputDebugString(str);
+				sprintf(str,"ascii=%d\n",input.Event.KeyEvent.uChar.AsciiChar);
+				OutputDebugString(str);
+				sprintf(str,"dwControlKeyState=%lx\n",input.Event.KeyEvent.dwControlKeyState);
+				OutputDebugString(str);
 #endif
 
-		if(input.Event.KeyEvent.uChar.AsciiChar)
-			return(input.Event.KeyEvent.uChar.AsciiChar);
+				if(input.Event.KeyEvent.uChar.AsciiChar)
+					return(input.Event.KeyEvent.uChar.AsciiChar);
 
-		return(input.Event.KeyEvent.wVirtualScanCode<<8);
+				return(input.Event.KeyEvent.wVirtualScanCode<<8);
+				break;
+			case MOUSE_EVENT:
+				if(input.Event.MouseEvent.dwEventFlags!=0)
+					continue;
+				if(input.Event.MouseEvent.dwButtonState==0) {
+					if(uifc_last_button_press.button
+							&& uifc_last_button_press.x==input.Event.MouseEvent.dwMousePosition.X
+							&& uifc_last_button_press.y==input.Event.MouseEvent.dwMousePosition.Y) {
+						memcpy(&last_mouse_click,&uifc_last_button_press,sizeof(last_mouse_click));
+						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+						return(KEY_MOUSE);
+					}
+					else {
+						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+					}
+				}
+				else {
+					memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+					switch(input.Event.MouseEvent.dwButtonState) {
+						case FROM_LEFT_1ST_BUTTON_PRESSED:
+							uifc_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
+							uifc_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
+							uifc_last_button_press.button=1;
+							break;
+						case RIGHTMOST_BUTTON_PRESSED:
+							uifc_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
+							uifc_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
+							uifc_last_button_press.button=2;
+							break;
+					}
+				}
+		}
 	}
 
 	return(0);
@@ -211,10 +273,14 @@ int uifcini32(uifcapi_t* uifcapi)
 		api->esc_delay=25;
 
 #ifdef PDCURSES
-	if(mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED)==0)
-		api->mode|=UIFC_MOUSE;
-	else
-		mouse_set(0);
+/*	
+ * "ALL  DESCRIPTIONS  ARE  GUESSES.  I DON'T KNOW ANYONE WHO KNOWS EXACTLY WHAT THESE FUNCTIONS DO!"
+ *
+ * 	if(mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED)==0)
+ *		api->mode|=UIFC_MOUSE;
+ *	else
+ *		mouse_set(0);
+ */
 #endif
 #ifdef __unix__
 	initciowrap(api->mode);
@@ -262,6 +328,9 @@ int uifcini32(uifcapi_t* uifcapi)
 
     gettextinfo(&txtinfo);
 #ifdef _WIN32
+	memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+	memset(&last_mouse_click,0,sizeof(last_mouse_click));
+	api->mode|=UIFC_MOUSE;
     /* unsupported mode? */
     if(txtinfo.screenheight<MIN_LINES
 /*        || txtinfo.screenheight>MAX_LINES */
@@ -271,7 +340,9 @@ int uifcini32(uifcapi_t* uifcapi)
     }
 
 	if(GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
-		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode&=~ENABLE_PROCESSED_INPUT);
+		conmode&=~ENABLE_PROCESSED_INPUT;
+		conmode|=ENABLE_MOUSE_INPUT;
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode);
 #endif
 
     api->scrn_len=txtinfo.screenheight;
@@ -367,6 +438,9 @@ static int uifc_getmouse(struct uifc_mouse_event *mevent)
 	mevent->y=0;
 	mevent->button=0;
 	if(api->mode&UIFC_MOUSE) {
+		#ifdef _WIN32
+			memcpy(mevent,&last_mouse_click,sizeof(last_mouse_click));
+		#endif
 		#ifdef NCURSES_VERSION_MAJOR
 			MEVENT	mevnt;
 
@@ -397,11 +471,13 @@ static int uifc_getmouse(struct uifc_mouse_event *mevent)
 			else
 				return(-1);
 		#endif
+
+		if(mevent->button==2)
+			return(ESC);
 		if(mevent->y==api->buttony) {
-			if((mevent->x>=api->exitstart
+			if(mevent->x>=api->exitstart
 					&& mevent->x<=api->exitend
-					&& mevent->button==1)
-					|| mevent->button==2) {
+					&& mevent->button==1) {
 				return(ESC);
 			}
 			if(mevent->x>=api->helpstart
@@ -501,7 +577,7 @@ static void truncsp(char *str)
 int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
-	uchar line[256],shade[256],*ptr,a,b,c,longopt
+	uchar line[256],shade[256],*ptr
 		,search[MAX_OPLN],bline=0,*win;
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
@@ -512,9 +588,15 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	uint s_bottom=api->scrn_len-3;
 	uint title_len;
 	struct uifc_mouse_event mevnt;
-	char	title[MAX_OPLN];
+	char	*title;
+	int	a,b,c,longopt;
 
-	sprintf(title,"%.*s",sizeof(title)-1,initial_title);
+	if((title=(char *)MALLOC(strlen(initial_title)+1))==NULL) {
+		cprintf("UIFC line %d: error allocating %u bytes."
+			,__LINE__,strlen(title)+1);
+		return(-1);
+	}
+	strcpy(title,initial_title);
 	hidemouse();
 
 	title_len=strlen(title);
@@ -556,6 +638,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			*(title+width-6)='.';
 			*(title+width-5)='.';
 			*(title+width-4)=0;
+			title_len=strlen(title);
 		}
 	}
 	if(mode&WIN_L2R)
@@ -590,6 +673,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			if((sav[api->savnum].buf=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
+				free(title);
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -611,6 +695,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			if((sav[api->savnum].buf=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
+				free(title);
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -836,6 +921,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		else
 			y=top+3+(*cur);
 	}
+	free(title);
 
 	last_menu_cur=cur;
 	last_menu_bar=bar;
@@ -874,7 +960,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							(*bar)=(*cur);
 						y=top+3+((mevnt.y)-(s_top+top+2));
 
-						if(!opts || (mode&WIN_XTR && (*cur)==opts-1))
+						if(!opts)
 							continue;
 
 						if(mode&WIN_ACT) {
@@ -906,6 +992,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							free(sav[api->savnum].buf);
 							api->savdepth--;
 						}
+						if(mode&WIN_XTR && (*cur)==opts-1)
+							return(MSK_INS|*cur);
 						return(*cur);
 					}
 					/* Clicked Scroll Up */
@@ -939,7 +1027,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						continue;
 					}
 					/* Clicked Scroll Down */
-					if(mevnt.x=s_left+left
+					if(mevnt.x==s_left+left
 							&& mevnt.y==(s_top+top+height)-3
 							&& mevnt.button==1) {
 						if(!opts)
@@ -1243,7 +1331,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					case KEY_F(1):	/* F1 */
-						help();
+						api->showhelp();
 						break;
 					case KEY_F(5):	/* F5 */
 						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur)==opts-1))
@@ -1292,6 +1380,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							return((*cur)|MSK_DEL); 
 						}
 						break;
+					default:
+						return(-2-i);
 				} 
 			}
 			else {
@@ -1391,7 +1481,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				else
 					switch(i) {
 						case CR:
-							if(!opts || (mode&WIN_XTR && (*cur)==opts-1))
+							if(!opts)
 								break;
 							if(mode&WIN_ACT) {
 								gettext(s_left+left,s_top+top,s_left
@@ -1412,6 +1502,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								FREE(sav[api->savnum].buf);
 								api->savdepth--; 
 							}
+							if(mode&WIN_XTR && (*cur)==opts-1)
+								return(MSK_INS|*cur);
 							return(*cur);
 						case 3:
 						case ESC:
@@ -1432,8 +1524,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								api->savdepth--; 
 							}
 							return(-1);
-				} 
-			} 
+						default:
+							return(-2-i);
+				}
+			}
 		}
 		else
 			mswait(1);
@@ -1452,10 +1546,11 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 int uinput(int mode, int left, int top, char *prompt, char *str,
 	int max, int kmode)
 {
-	unsigned char c,save_buf[2048],in_win[2048]
-		,shade[160],height=3;
+	unsigned char save_buf[2048],in_win[2048]
+		,shade[160];
 	int	width;
-	int i,plen,slen;
+	int height=3;
+	int i,plen,slen,j;
 	int	iwidth;
 
 	reset_dynamic();
@@ -1482,7 +1577,7 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	i=0;
 	in_win[i++]='É';
 	in_win[i++]=hclr|(bclr<<4);
-	for(c=1;c<width-1;c++) {
+	for(j=1;j<width-1;j++) {
 		in_win[i++]='Í';
 		in_win[i++]=hclr|(bclr<<4);
 	}
@@ -1517,8 +1612,8 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 		in_win[i++]=lclr|(bclr<<4); 
 	}
 
-	for(c=0;prompt[c];c++) {
-		in_win[i++]=prompt[c];
+	for(j=0;prompt[j];j++) {
+		in_win[i++]=prompt[j];
 		in_win[i++]=lclr|(bclr<<4); 
 	}
 
@@ -1527,7 +1622,7 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 		in_win[i++]=lclr|(bclr<<4);
 	}
 
-	for(c=0;c<iwidth+2;c++) {
+	for(j=0;j<iwidth+2;j++) {
 		in_win[i++]=' ';
 		in_win[i++]=lclr|(bclr<<4); 
 	}
@@ -1536,7 +1631,7 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	in_win[i++]=hclr|(bclr<<4);
 	in_win[i++]='È';
 	in_win[i++]=hclr|(bclr<<4);
-	for(c=1;c<width-1;c++) {
+	for(j=1;j<width-1;j++) {
 		in_win[i++]='Í';
 		in_win[i++]=hclr|(bclr<<4); 
 	}
@@ -1548,14 +1643,14 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	if(bclr==BLUE) {
 		gettext(SCRN_LEFT+left+width,SCRN_TOP+top+1,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+(height-1),shade);
-		for(c=1;c<12;c+=2)
-			shade[c]=DARKGRAY;
+		for(j=1;j<12;j+=2)
+			shade[j]=DARKGRAY;
 		puttext(SCRN_LEFT+left+width,SCRN_TOP+top+1,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+(height-1),shade);
 		gettext(SCRN_LEFT+left+2,SCRN_TOP+top+3,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+height,shade);
-		for(c=1;c<width*2;c+=2)
-			shade[c]=DARKGRAY;
+		for(j=1;j<width*2;j+=2)
+			shade[j]=DARKGRAY;
 		puttext(SCRN_LEFT+left+2,SCRN_TOP+top+3,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+height,shade); 
 	}
@@ -1716,7 +1811,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			switch(ch)
 			{
 				case KEY_F(1):	/* F1 Help */
-					help();
+					api->showhelp();
 					continue;
 				case KEY_LEFT:	/* left arrow */
 					if(i)
@@ -1830,7 +1925,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			/* This broke swedish chars... */
 			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
 #else
-			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max))
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && ch < 256)
 #endif
 			{
 				if(mode&K_UPPER)
