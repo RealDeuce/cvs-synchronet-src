@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.106 2002/12/31 21:27:36 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.107 2003/01/04 13:07:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,7 @@
 #endif
 
 /* Do not include web server in 3.10-Win32 release build */
-#if defined(__unix__) || defined(_DEBUG)
+#if !defined(_MSC_VER)
 	#define WEB_SERVER
 #endif
 
