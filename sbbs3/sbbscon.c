@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.83 2002/07/24 07:03:05 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.84 2002/07/24 07:25:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -834,8 +834,9 @@ int main(int argc, char** argv)
 		&run_mail,		&mail_startup, 
 		&run_services,	&services_startup);
 
-	/* read any sbbscon-specific ini keys here */
+	/* read/default any sbbscon-specific .ini keys here */
 
+	/* close .ini file here */
 	if(fp!=NULL)
 		fclose(fp);
 
