@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.68 2004/06/03 07:00:19 deuce Exp $ */
+/* $Id: uifc32.c,v 1.73 2004/07/03 23:04:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,17 +41,16 @@
 	#ifdef __QNX__
 		#include <strings.h>
 	#endif
-	#include "ciowrap.h"
     #define mswait(x) delay(x)
-    #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
 	#include <conio.h>
 	#include <windows.h>
-	#include "keys.h"
 	#define mswait(x) Sleep(x)
 #endif
 
+#include "ciowrap.h"
+#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 							/* Bottom line elements */
@@ -238,7 +237,78 @@ int inkey()
 
 #else 
 
-	#define inkey() getch()
+int inkey()
+{
+	int c;
+
+	c=getch();
+	if(!c)
+		c=(getch()<<8);
+
+	switch(c) {
+		case CIO_KEY_HOME:
+			c=KEY_HOME;
+			break;
+		case CIO_KEY_UP:
+			c=KEY_UP;
+			break;
+		case CIO_KEY_END:
+			c=KEY_END;
+			break;
+		case CIO_KEY_DOWN:
+			c=KEY_DOWN;
+			break;
+		case CIO_KEY_F(1):
+			c=KEY_F(1);
+			break;
+		case CIO_KEY_F(2):
+			c=KEY_F(2);
+			break;
+		case CIO_KEY_F(3):
+			c=KEY_F(3);
+			break;
+		case CIO_KEY_F(4):
+			c=KEY_F(4);
+			break;
+		case CIO_KEY_F(5):
+			c=KEY_F(5);
+			break;
+		case CIO_KEY_F(6):
+			c=KEY_F(6);
+			break;
+		case CIO_KEY_F(7):
+			c=KEY_F(7);
+			break;
+		case CIO_KEY_F(8):
+			c=KEY_F(8);
+			break;
+		case CIO_KEY_F(9):
+			c=KEY_F(9);
+			break;
+		case CIO_KEY_F(10):
+			c=KEY_F(10);
+			break;
+		case CIO_KEY_IC:
+			c=KEY_IC;
+			break;
+		case CIO_KEY_DC:
+			c=KEY_DC;
+			break;
+		case CIO_KEY_LEFT:
+			c=KEY_LEFT;
+			break;
+		case CIO_KEY_RIGHT:
+			c=KEY_RIGHT;
+			break;
+		case CIO_KEY_PPAGE:
+			c=KEY_PPAGE;
+			break;
+		case CIO_KEY_NPAGE:
+			c=KEY_NPAGE;
+			break;
+	}
+	return(c);
+}
 
 #endif
 
@@ -285,12 +355,13 @@ int uifcini32(uifcapi_t* uifcapi)
 #ifdef __unix__
 	initciowrap(api->mode);
 	#ifdef NCURSES_VERSION_MAJOR
-		ESCDELAY=api->esc_delay;
-		
-		if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
-			api->mode|=UIFC_MOUSE;
-		else
-			mousemask(0,NULL);
+		if(cio_api.mode==CURSES_MODE) {
+			ESCDELAY=api->esc_delay;
+			if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
+				api->mode|=UIFC_MOUSE;
+			else
+				mousemask(0,NULL);
+		}
 	#endif
 	
 #else
@@ -415,7 +486,8 @@ static void hidemouse(void)
 			mouse_set(0);
 		#endif
 		#ifdef NCURSES_VERSION_MAJOR
-			mousemask(0,NULL);
+			if(cio_api.mode==CURSES_MODE)
+				mousemask(0,NULL);
 		#endif
 	}
 }
@@ -427,7 +499,8 @@ static void showmouse(void)
 			mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED);
 		#endif
 		#ifdef NCURSES_VERSION_MAJOR
-			mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL);
+			if(cio_api.mode==CURSES_MODE)
+				mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL);
 		#endif
 	}
 }
@@ -498,14 +571,16 @@ void uifcbail(void)
 	hidemouse();
 	clrscr();
 #ifdef __unix__
-	nl();
-	nocbreak();
-	noraw();
-	refresh();
-	endwin();
+	if(cio_api.mode==CURSES_MODE) {
+		nl();
+		nocbreak();
+		noraw();
+		refresh();
+		endwin();
 #ifdef XCURSES
-	XCursesExit();
+		XCursesExit();
 #endif
+	}
 #endif
 	FREE(blk_scrn);
 	FREE(tmp_buffer);
