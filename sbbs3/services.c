@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.57 2002/06/14 08:33:10 rswindell Exp $ */
+/* $Id: services.c,v 1.58 2002/06/14 10:32:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1217,9 +1217,6 @@ void DLLCALL services_thread(void* arg)
 				lprintf("%04d %s connection accepted from: %s port %u"
 					,client_socket
 					,service[i].protocol, host_ip, ntohs(client_addr.sin_port));
-
-				if(set_socket_options(&scfg, client_socket, error))
-					lprintf("%04d !ERROR %s",client_socket, error);
 
 				if(service[i].max_clients && service[i].clients+1>service[i].max_clients) {
 					lprintf("%04d !%s MAXMIMUM CLIENTS (%u) reached, access denied"
