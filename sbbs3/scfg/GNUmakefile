@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.16 2003/01/23 11:00:49 rswindell Exp $
+# $Id: GNUmakefile,v 1.17 2003/02/06 20:43:27 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -39,7 +39,7 @@ os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
 ODIR	:=	gcc.$(os)
 
 LIBDIR	:=	/usr/lib
-DELETE	=	rm -f -v
+DELETE	=	rm -f
 OUTLIB	=	-o
 
 CFLAGS	+=	-MMD
