@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.115 2004/06/13 23:16:43 deuce Exp $ */
+/* $Id: js_global.c,v 1.114 2004/06/12 04:46:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -665,7 +665,7 @@ static struct {
 	{ 163	,"pound"	}, /* 156 Pound sign */
 	{ 165	,"yen"		}, /* 157 Yen sign */
 	{ 8359	,NULL		}, /* 158 Pt (unicode) */
-	{ 402	,NULL		}, /* 402 Florin (non-standard alsi 159?) */
+	{ 131	,NULL		}, /* 159 Florin (non-standard) */
 	{ 225	,"aacute"	}, /* 160 a, acute accent */
 	{ 237	,"iacute"	}, /* 161 i, acute accent */
 	{ 243	,"oacute"	}, /* 162 o, acute accent */
@@ -743,7 +743,7 @@ static struct {
 	{ 937	,NULL		}, /* 234 greek char? */
 	{ 948	,NULL		}, /* 235 greek char? */
 	{ 8734	,NULL		}, /* 236 infinity symbol (unicode) */
-	{ 966	,"oslash"	}, /* 237 Greek Phi */
+	{ 248	,"oslash"	}, /* 237 o, slash (also #966?) */
 	{ 949	,NULL		}, /* 238 rounded E */
 	{ 8745	,NULL		}, /* 239 unside down U (unicode) */
 	{ 8801	,NULL		}, /* 240 drawing symbol (unicode) */
