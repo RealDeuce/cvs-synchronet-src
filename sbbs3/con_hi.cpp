@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.2 2001/06/15 03:36:11 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.3 2001/06/23 00:48:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,7 +168,7 @@ int sbbs_t::uselect(int add, uint n, char *title, char *item, uchar *ar)
 /****************************************************************************/
 /* Prompts user for System Password. Returns 1 if user entered correct PW	*/
 /****************************************************************************/
-bool sbbs_t::chksyspass(int local)
+bool sbbs_t::chksyspass()
 {
 	char	str[256],str2[256] /*,x,y,atr */;
 	int 	orgcon=console;
@@ -184,8 +184,7 @@ bool sbbs_t::chksyspass(int local)
 	console&=~(CON_R_ECHO|CON_L_ECHO);
 	getstr(str,40,K_UPPER);
 	console=orgcon;
-	if(!local)
-		CRLF;
+	CRLF;
 	if(strcmp(cfg.sys_pass,str)) {
 		sprintf(str2,"%s #%u System password attempt: '%s'"
 			,useron.alias,useron.number,str);
