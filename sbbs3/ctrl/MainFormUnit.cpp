@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.19 2001/04/10 01:32:42 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.20 2001/04/16 23:59:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -828,7 +828,10 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         FtpStopExecute(Sender);
     }
 
+    time_t start=time(NULL);
 	while(TelnetStop->Enabled || MailStop->Enabled || FtpStop->Enabled) {
+        if(time(NULL)-start>15)
+            break;
         Application->ProcessMessages();
         Sleep(1);
     }
