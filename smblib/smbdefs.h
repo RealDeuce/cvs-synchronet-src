@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.2 2000/10/23 23:13:58 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.3 2000/10/30 11:33:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,14 @@
 	#define ulong				unsigned long
 	#define uint				unsigned int
 	#endif
+#endif
+
+#ifndef BOOL
+	#define BOOL	int
+#endif
+#ifndef TRUE
+	#define TRUE	1
+	#define FALSE	0
 #endif
 
 /****************************************************************************/
