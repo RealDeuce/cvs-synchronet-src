@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.47 2001/11/01 17:18:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.48 2001/11/03 00:54:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -813,7 +813,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
         native=true;
 
 	if(!native) {
-		bprintf("\r\nExternal DOS programs are not yet supported in %s\r\n",VERSION_NOTICE);
+		bprintf("\r\nExternal DOS programs are not yet supported in\r\n%s\r\n",VERSION_NOTICE);
 		return(-1);
 	}
 
