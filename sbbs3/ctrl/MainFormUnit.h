@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.63 2004/08/20 02:08:42 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.65 2004/10/14 09:45:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,6 +275,13 @@ __published:	// IDE-managed Components
 	TMenuItem *SpamBlockList;
 	TTimer *LogTimer;
 	TTimer *ServiceStatusTimer;
+    TMenuItem *ViewWebServerMenuItem;
+    TAction *ViewWebServer;
+    TToolButton *ViewWebServerButton;
+    TAction *WebStart;
+    TAction *WebStop;
+    TAction *WebRecycle;
+    TAction *WebConfigure;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -351,6 +358,11 @@ __published:	// IDE-managed Components
 	void __fastcall FileEditConfigFilesClick(TObject *Sender);
 	void __fastcall BBSEditFileClick(TObject *Sender);
 	void __fastcall ServiceStatusTimerTick(TObject *Sender);
+    void __fastcall ViewWebServerExecute(TObject *Sender);
+    void __fastcall WebStartExecute(TObject *Sender);
+    void __fastcall WebStopExecute(TObject *Sender);
+    void __fastcall WebRecycleExecute(TObject *Sender);
+    void __fastcall WebConfigureExecute(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
