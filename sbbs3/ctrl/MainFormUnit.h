@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.46 2003/01/04 15:56:41 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.47 2003/01/06 20:57:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,7 @@
 #include <vcl\Registry.hpp>	/* TRegistry */
 #include "trayicon.h"
 #include "Trayicon.h"
+#include <Dialogs.hpp>
 //---------------------------------------------------------------------------
 #define APP_TITLE "Synchronet Control Panel"
 #define REG_KEY "\\Software\\Swindell\\"APP_TITLE"\\"
@@ -260,8 +261,10 @@ __published:	// IDE-managed Components
 	TMenuItem *DNSBLExemptions;
 	TMenuItem *BBSEditIPFilterSilent;
 	TMenuItem *ExternalMailProc;
+	TOpenDialog *OpenDialog;
+	TSaveDialog *SaveDialog;
 	TMenuItem *BBSEditNewUserEmail;
-    void __fastcall FileExitMenuItemClick(TObject *Sender);
+	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
 	void __fastcall FormCloseQuery(TObject *Sender, bool &CanClose);
