@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.35 2004/03/31 03:41:11 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.34 2003/10/24 21:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,14 +76,14 @@ bool sbbs_t::answer()
 	rlogin_name[0]=0;
 	if(sys_status&SS_RLOGIN) {
 		if(incom(1000)==0) {
-			for(i=0;i<(int)sizeof(str)-1;i++) {
+			for(i=0;i<LEN_ALIAS;i++) {
 				in=incom(1000);
 				if(in==0 || in==NOINP)
 					break;
 				str[i]=in;
 			}
 			str[i]=0;
-			for(i=0;i<(int)sizeof(str2)-1;i++) {
+			for(i=0;i<LEN_ALIAS;i++) {
 				in=incom(1000);
 				if(in==0 || in==NOINP)
 					break;
@@ -98,26 +98,18 @@ bool sbbs_t::answer()
 			}
 			terminal[i]=0;
 			truncstr(terminal,"/");
-			lprintf(LOG_DEBUG,"Node %d RLogin: '%.*s' / '%.*s' / '%s'"
-				,cfg.node_num
-				,LEN_ALIAS*2,str
-				,LEN_ALIAS*2,str2
-				,terminal);
+			lprintf(LOG_DEBUG,"Node %d RLogin: '%s' / '%s / %s'",cfg.node_num,str,str2,terminal);
 			SAFECOPY(rlogin_name
 				,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str2 : str);
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 			if(useron.number)
 				getuserdat(&cfg,&useron);
-			else
-				lprintf(LOG_DEBUG,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
-		}
-		if(rlogin_name[0]==0) {
-			lprintf(LOG_DEBUG,"!Node %d RLogin: No user name received",cfg.node_num);
-			sys_status&=~SS_RLOGIN;
 		}
 	}
+	if(rlogin_name[0]==0)
+		sys_status&=~SS_RLOGIN;
 
-	if(!(telnet_mode&TELNET_MODE_OFF)) {
+	if(!(sys_status&SS_RLOGIN)) {
 		/* Disable Telnet Terminal Echo */
 		send_telnet_cmd(TELNET_WILL,TELNET_ECHO);
 		/* Will suppress Go Ahead */

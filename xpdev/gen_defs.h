@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.13 2004/03/31 03:29:21 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.12 2003/12/04 06:50:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,14 +51,7 @@
 #elif defined(__OS2__)
 	#define INCL_BASE	/* need this for DosSleep prototype */
 	#include <os2.h>
-#else
-	#if (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)) || defined (__NetBSD__)
-		#ifndef __unix__
-			#define __unix__
-		#endif
-	#endif
 #endif
-
 
 #include <sys/types.h>
 
