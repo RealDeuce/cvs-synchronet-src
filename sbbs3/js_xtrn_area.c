@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.15 2004/12/07 08:51:58 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.16 2004/12/17 23:47:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,10 +239,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 		return(NULL);
 
 	for(l=0;l<cfg->total_xtrnsecs;l++) {
-#if 0
-		if(user==NULL && (*cfg->xtrnsec[l]->ar)!=AR_NULL)
-			continue;
-#endif
+
 		if(user!=NULL && !chk_ar(cfg,cfg->xtrnsec[l]->ar,user))
 			continue;
 
@@ -302,11 +299,11 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 		for(d=0;d<cfg->total_xtrns;d++) {
 			if(cfg->xtrn[d]->sec!=l)
 				continue;
-#if 0
-			if(user==NULL && (*cfg->xtrn[d]->ar)!=AR_NULL)
-				continue;
-#endif
+
 			if(user!=NULL && !chk_ar(cfg,cfg->xtrn[d]->ar,user))
+				continue;
+
+			if(cfg->xtrn[d]->misc&EVENTONLY)
 				continue;
 
 			if((progobj=JS_NewObject(cx, NULL, NULL, NULL))==NULL)
