@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.178 2004/10/29 22:49:30 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.179 2004/10/29 22:51:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1600,7 +1600,7 @@ int main(int argc, char** argv)
 
 #ifdef __unix__
 	if(getuid())  { /*  are we running as a normal user?  */
-		lprintf(LOG_WARN
+		lprintf(LOG_WARNING
 			,"!Started as non-root user.  Cannot bind() to ports below %u.", IPPORT_RESERVED);
 	}
 	
@@ -1675,7 +1675,7 @@ int main(int argc, char** argv)
             			(void)close(fd);
     			}
 				is_daemon=TRUE;
-				lputs(LOG_WARN, "STDIN is not a tty anymore... switching to syslog logging");
+				lputs(LOG_WARNING, "STDIN is not a tty anymore... switching to syslog logging");
 				select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
 			}
 #endif
