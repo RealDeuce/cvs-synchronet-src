@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.88 2004/03/11 06:03:55 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.87 2003/12/08 23:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.88 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -291,11 +291,7 @@ int main(int argc, char **argv)
 		i=uifcinifltk(&uifc);  /* fltk */
 	else
 #endif
-#if defined(USE_UIFC32)	/* "New" UIFC */
-	if(!door_mode)
-		i=uifcini32(&uifc);  /* dialog */
-	else
-#elif defined(USE_DIALOG)
+#if defined(USE_DIALOG)
 	if(!door_mode)
 		i=uifcinid(&uifc);  /* dialog */
 	else
