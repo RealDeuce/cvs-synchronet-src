@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.43 2004/10/21 08:44:30 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.39 2004/10/15 08:26:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,7 +42,7 @@ bool sbbs_t::answer()
 {
 	char	str[MAX_PATH+1],str2[MAX_PATH+1],c;
 	char 	tmp[MAX_PATH+1];
-	char 	path[MAX_PATH+1];
+	char 	tmp2[MAX_PATH+1];
 	int		i,l,in;
 	struct tm tm;
 	struct in_addr addr;
@@ -107,9 +107,7 @@ bool sbbs_t::answer()
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
-				useron.misc&=~(ANSI|COLOR|RIP|WIP);
-				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
-				if(!findstr(client.addr,path)) {
+				if(!trashcan(client.addr,"rlogin")) {
 					SAFECOPY(tmp
 						,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
 					for(i=0;i<3;i++) {
@@ -123,7 +121,8 @@ bool sbbs_t::answer()
 								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
 								logline("+!",str);
-							bputs(text[PasswordPrompt]);
+							/* ToDo: Hardcoded prompt! */
+							putcom("PW: ");
 							console|=CON_R_ECHOX;
 							if(!(cfg.sys_misc&SM_ECHO_PW))
 								console|=CON_L_ECHOX;
@@ -198,7 +197,6 @@ bool sbbs_t::answer()
 			);
 	i=l=0;
 	tos=1;
-	lncntr=0;
 	strcpy(str,VERSION_NOTICE);
 	strcat(str,"  ");
 	strcat(str,COPYRIGHT_NOTICE);
@@ -298,11 +296,11 @@ bool sbbs_t::answer()
 		/* Display ANSWER screen */
 		sprintf(str,"%sanswer",cfg.text_dir);
 		sprintf(tmp,"%s.%s",str,autoterm&WIP ? "wip":"rip");
-		sprintf(path,"%s.html",str);
+		sprintf(tmp2,"%s.html",str);
 		sprintf(str2,"%s.ans",str);
 		if(autoterm&(RIP|WIP) && fexist(tmp))
 			strcat(str,autoterm&WIP ? ".wip":".rip");
-		else if(autoterm&HTML && fexist(path))
+		else if(autoterm&HTML && fexist(tmp2))
 			strcat(str,".html");
 		else if(autoterm&ANSI && fexist(str2))
 			strcat(str,".ans");

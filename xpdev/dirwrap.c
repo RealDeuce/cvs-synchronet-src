@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.42 2004/10/28 22:00:56 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.41 2004/07/22 23:26:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -811,26 +811,4 @@ char* DLLCALL backslash(char* path)
 		*(++p)=0;
 	}
 	return(path);
-}
-
-/****************************************************************************/
-/* Returns true if the specified filename an aboslute pathname				*/
-/****************************************************************************/
-BOOL DLLCALL isabspath(const char *filename)
-{
-	char path[MAX_PATH+1];
-
-	return(stricmp(filename,FULLPATH(path,filename,sizeof(path)))==0);
-}
-
-/****************************************************************************/
-/* Returns true if the specified filename is a full ("rooted") path			*/
-/****************************************************************************/
-BOOL DLLCALL isfullpath(const char* filename)
-{
-	return(filename[0]=='/' 
-#ifdef WIN32
-		|| filename[0]=='\\' || filename[1]==':'
-#endif
-		);
 }

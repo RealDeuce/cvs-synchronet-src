@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.89 2004/11/03 03:58:54 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.81 2004/10/14 03:23:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,11 +35,10 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define STARTUP_INI_BITDESC_TABLES
-
 #include "dirwrap.h"	/* backslash */
 #include "sbbs_ini.h"
 #include "sbbsdefs.h"	/* JAVASCRIPT_* macros */
+#include "ini_opts.h"	/* bbs_options, ftp_options, etc. */
 
 static const char*	nulstr="";
 static const char*	strOptions="Options";
@@ -53,8 +52,7 @@ static const char*	strLogMask="LogMask";
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
     char host_name[128];
-    char path[MAX_PATH+1];
-
+    
     if(pHostName==NULL) {
 #if defined(_WINSOCKAPI_)
         WSADATA WSAData;
@@ -66,15 +64,13 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 #endif
         pHostName=host_name;
     }
-	SAFECOPY(path,ctrl_dir);
-	backslash(path);
-	sprintf(ini_file,"%s%s.ini",path,pHostName);
+	sprintf(ini_file,"%s%c%s.ini",ctrl_dir,PATH_DELIM,pHostName);
 #if defined(__unix__) && defined(PREFIX)
 	if(!fexistcase(ini_file))
 		sprintf(ini_file,PREFIX"/etc/sbbs.ini");
 #endif
 	if(!fexistcase(ini_file))
-		sprintf(ini_file,"%ssbbs.ini",path);
+		sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,PATH_DELIM);
 }
 
 static void read_ini_globals(FILE* fp, global_startup_t* global)
@@ -102,8 +98,6 @@ static void read_ini_globals(FILE* fp, global_startup_t* global)
 	global->sem_chk_freq=iniReadShortInt(fp,section,strSemFileCheckFrequency,0);
 	global->interface_addr=iniReadIpAddress(fp,section,strInterface,INADDR_ANY);
 	global->log_mask=iniReadBitField(fp,section,strLogMask,log_mask_bits,DEFAULT_LOG_MASK);
-	global->bind_retry_count=iniReadInteger(fp,section,"BindRetryCount",10);
-	global->bind_retry_delay=iniReadInteger(fp,section,"BindRetryDelay",15);
 
 	global->js.max_bytes		= iniReadInteger(fp,section,strJavaScriptMaxBytes		,JAVASCRIPT_MAX_BYTES);
 	global->js.cx_stack			= iniReadInteger(fp,section,strJavaScriptContextStack	,JAVASCRIPT_CONTEXT_STACK);
@@ -233,9 +227,6 @@ void sbbs_read_ini(
 		bbs->options
 			=iniReadBitField(fp,section,strOptions,bbs_options
 				,BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE);
-
-		bbs->bind_retry_count=iniReadInteger(fp,section,"BindRetryCount",global->bind_retry_count);
-		bbs->bind_retry_delay=iniReadInteger(fp,section,"BindRetryDelay",global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
@@ -287,9 +278,6 @@ void sbbs_read_ini(
 		ftp->options
 			=iniReadBitField(fp,section,strOptions,ftp_options
 				,FTP_OPT_INDEX_FILE|FTP_OPT_HTML_INDEX_FILE|FTP_OPT_ALLOW_QWK);
-
-		ftp->bind_retry_count=iniReadInteger(fp,section,"BindRetryCount",global->bind_retry_count);
-		ftp->bind_retry_delay=iniReadInteger(fp,section,"BindRetryDelay",global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
@@ -353,6 +341,9 @@ void sbbs_read_ini(
 		SAFECOPY(mail->outbound_sound
 			,iniReadString(fp,section,"OutboundSound",nulstr,value));
 
+		SAFECOPY(mail->proc_cfg_file
+			,iniReadString(fp,section,"ProcessConfigFile","mailproc.cfg",value));
+
 		/* JavaScript Operating Parameters */
 		mail->js_max_bytes
 			=iniReadInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
@@ -364,9 +355,6 @@ void sbbs_read_ini(
 		mail->options
 			=iniReadBitField(fp,section,strOptions,mail_options
 				,MAIL_OPT_ALLOW_POP3);
-
-		mail->bind_retry_count=iniReadInteger(fp,section,"BindRetryCount",global->bind_retry_count);
-		mail->bind_retry_delay=iniReadInteger(fp,section,"BindRetryDelay",global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
@@ -398,6 +386,12 @@ void sbbs_read_ini(
 		SAFECOPY(services->host_name
 			,iniReadString(fp,section,strHostName,global->host_name,value));
 
+		SAFECOPY(services->ini_file
+			,iniReadString(fp,section,"iniFile","services.ini",value));
+
+		SAFECOPY(services->cfg_file
+			,iniReadString(fp,section,"ConfigFile","services.cfg",value));
+
 		SAFECOPY(services->answer_sound
 			,iniReadString(fp,section,"AnswerSound",nulstr,value));
 		SAFECOPY(services->hangup_sound
@@ -408,9 +402,6 @@ void sbbs_read_ini(
 		services->options
 			=iniReadBitField(fp,section,strOptions,service_options
 				,BBS_OPT_NO_HOST_LOOKUP);
-
-		services->bind_retry_count=iniReadInteger(fp,section,"BindRetryCount",global->bind_retry_count);
-		services->bind_retry_delay=iniReadInteger(fp,section,"BindRetryDelay",global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
@@ -454,8 +445,6 @@ void sbbs_read_ini(
 			=iniReadStringList(fp,section,"CGIExtensions", "," ,".cgi");
 		SAFECOPY(web->ssjs_ext
 			,iniReadString(fp,section,"JavaScriptExtension",".ssjs",value));
-		SAFECOPY(web->js_ext
-			,iniReadString(fp,section,"EmbJavaScriptExtension",".bbs",value));
 
 		web->max_inactivity
 			=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
@@ -472,9 +461,6 @@ void sbbs_read_ini(
 		web->options
 			=iniReadBitField(fp,section,strOptions,web_options
 				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
-
-		web->bind_retry_count=iniReadInteger(fp,section,"BindRetryCount",global->bind_retry_count);
-		web->bind_retry_delay=iniReadInteger(fp,section,"BindRetryDelay",global->bind_retry_delay);
 	}
 }
 
@@ -609,11 +595,6 @@ BOOL sbbs_write_ini(
 
 		if(!iniSetBitField(lp,section,strOptions,bbs_options,bbs->options,&style))
 			break;
-
-		if(!iniSetInteger(lp,section,"BindRetryCount",bbs->bind_retry_count,&style))
-			break;
-		if(!iniSetInteger(lp,section,"BindRetryDelay",bbs->bind_retry_delay,&style))
-			break;
 	}
 	/***********************************************************************/
 	if(ftp!=NULL) {
@@ -680,11 +661,6 @@ BOOL sbbs_write_ini(
 			break;
 	
 		if(!iniSetBitField(lp,section,strOptions,ftp_options,ftp->options,&style))
-			break;
-
-		if(!iniSetInteger(lp,section,"BindRetryCount",ftp->bind_retry_count,&style))
-			break;
-		if(!iniSetInteger(lp,section,"BindRetryDelay",ftp->bind_retry_delay,&style))
 			break;
 	}
 
@@ -763,6 +739,9 @@ BOOL sbbs_write_ini(
 		if(!iniSetString(lp,section,"OutboundSound",mail->outbound_sound,&style))
 			break;
 
+		if(!iniSetString(lp,section,"ProcessConfigFile",mail->proc_cfg_file,&style))
+			break;
+
 		/* JavaScript Operating Parameters */
 		if(mail->js_max_bytes==global->js.max_bytes)
 			iniRemoveValue(lp,section,strJavaScriptMaxBytes);
@@ -775,11 +754,6 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(!iniSetBitField(lp,section,strOptions,mail_options,mail->options,&style))
-			break;
-
-		if(!iniSetInteger(lp,section,"BindRetryCount",mail->bind_retry_count,&style))
-			break;
-		if(!iniSetInteger(lp,section,"BindRetryDelay",mail->bind_retry_delay,&style))
 			break;
 	}
 
@@ -838,17 +812,17 @@ BOOL sbbs_write_ini(
 		else if(!iniSetString(lp,section,strHostName,services->host_name,&style))
 			break;
 
+		if(!iniSetString(lp,section,"iniFile",services->ini_file,&style))
+			break;
+		if(!iniSetString(lp,section,"ConfigFile",services->cfg_file,&style))
+			break;
+
 		if(!iniSetString(lp,section,"AnswerSound",services->answer_sound,&style))
 			break;
 		if(!iniSetString(lp,section,"HangupSound",services->hangup_sound,&style))
 			break;
 
 		if(!iniSetBitField(lp,section,strOptions,service_options,services->options,&style))
-			break;
-
-		if(!iniSetInteger(lp,section,"BindRetryCount",services->bind_retry_count,&style))
-			break;
-		if(!iniSetInteger(lp,section,"BindRetryDelay",services->bind_retry_delay,&style))
 			break;
 	}
 
@@ -919,11 +893,6 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(!iniSetBitField(lp,section,strOptions,web_options,web->options,&style))
-			break;
-
-		if(!iniSetInteger(lp,section,"BindRetryCount",web->bind_retry_count,&style))
-			break;
-		if(!iniSetInteger(lp,section,"BindRetryDelay",web->bind_retry_delay,&style))
 			break;
 	}
 
