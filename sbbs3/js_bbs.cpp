@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.63 2004/04/08 03:32:57 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.64 2004/04/08 05:39:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2842,6 +2842,7 @@ static JSClass js_bbs_class = {
 JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 {
 	JSObject* obj;
+	JSObject* mods;
 
 	obj = JS_DefineObject(cx, parent, "bbs", &js_bbs_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -2855,7 +2856,11 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 	if (!js_DefineSyncMethods(cx, obj, js_bbs_functions, FALSE)) 
 		return(NULL);
 
+	if((mods=JS_DefineObject(cx, obj, "mods", NULL, NULL ,JSPROP_ENUMERATE))==NULL)
+		return(NULL);
+
 #ifdef _DEBUG
+	js_DescribeSyncObject(cx,mods,"Global repository for 3rd party modifications",311);
 	js_DescribeSyncObject(cx,obj,"Controls the Telnet/RLogin BBS experience",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", bbs_prop_desc, JSPROP_READONLY);
 #endif
