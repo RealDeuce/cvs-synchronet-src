@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.18 2004/09/08 22:26:38 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.17 2004/05/28 23:48:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,7 +271,7 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
             strcpy(str,tz_str[i]);
         TimeZoneComboBox->Items->Add(str);
     }
-   	sprintf(str,"Other (%s)",smb_zonestr(scfg.sys_timezone,NULL));
+   	sprintf(str,"Other (%s)",zonestr(scfg.sys_timezone));
     TimeZoneComboBox->Items->Add(str);
 
     for(i=0;i<sizeof(tz_val)/sizeof(tz_val[0]);i++)

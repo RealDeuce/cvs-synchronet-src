@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.40 2004/09/11 09:24:55 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.39 2004/08/04 03:45:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -416,31 +416,3 @@ clock_t DLLCALL msclock(void)
 	return((clock_t)(usecs/(1000000/MSCLOCKS_PER_SEC)));
 }
 #endif
-
-/****************************************************************************/
-/* Truncates all white-space chars off end of 'str'	(needed by STRERRROR)	*/
-/****************************************************************************/
-char* DLLCALL truncsp(char* str)
-{
-	unsigned c;
-
-	c=strlen(str);
-	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n')) c--;
-	str[c]=0;
-
-	return(str);
-}
-
-/****************************************************************************/
-/* Truncates carriage-return and line-feed chars off end of 'str'			*/
-/****************************************************************************/
-char* DLLCALL truncnl(char* str)
-{
-	unsigned c;
-
-	c=strlen(str);
-	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
-	str[c]=0;
-
-	return(str);
-}
