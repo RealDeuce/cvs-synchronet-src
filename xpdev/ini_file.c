@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.3 2002/07/21 21:26:59 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.4 2002/07/24 00:20:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,9 @@ static char* get_value(FILE* fp, const char* section, const char* key)
 	char*	tp;
 	char	str[MAX_LINE_LEN];
 	static char value[MAX_VALUE_LEN];
+
+	if(fp==NULL)
+		return(NULL);
 
 	if(!find_section(fp,section))
 		return(NULL);
