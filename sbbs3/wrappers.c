@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.19 2000/11/03 12:29:46 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.20 2000/11/03 22:44:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,6 +288,11 @@ char* strrev(char* str)
 char* _fullpath(char* absPath, const char* relPath, size_t maxLength)
 {
 	char *curdir = (char *) malloc(PATH_MAX+1);
+
+	if(curdir == NULL) {
+		strcpy(absPath,relPath);
+		return(absPath);
+	}
 
     getcwd(curdir, PATH_MAX);
     chdir(relPath);
