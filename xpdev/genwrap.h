@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.50 2003/10/01 23:45:40 deuce Exp $ */
+/* $Id: genwrap.h,v 1.51 2003/10/01 23:47:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,6 +272,7 @@ DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, char *fmt, ...);
 
 #if defined(_WIN32)
 #define		msclock()	clock()
+#define		MSCLOCKS_PER_SEC	CLOCKS_PER_SEC
 #else
 #define		MSCLOCKS_PER_SEC	1000
 clock_t		msclock(void);
