@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.3 2002/06/20 21:17:01 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.4 2002/06/25 10:44:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -693,6 +693,8 @@ int main(int argc, char **argv)
 						"in Message Base",misc&STORE_KLUDGE ? "Yes":"No");
 					sprintf(opt[i++],"%-50.50s%-3.3s","Allow Nodes to Add Areas "
 						"in the AREAS.BBS List",misc&ELIST_ONLY?"No":"Yes");
+					sprintf(opt[i++],"%-50.50s%-3.3s","Strip Line Feeds "
+						"From Outgoing Messages",misc&STRIP_LF ? "Yes":"No");
 					sprintf(opt[i++],"%-50.50s%-3.3s","Kill/Ignore Empty NetMail "
 						"Messages",misc&KILL_EMPTY_MAIL ? "Yes":"No");
 					opt[i][0]=0;
@@ -725,8 +727,13 @@ int main(int argc, char **argv)
 							misc^=ELIST_ONLY;
 							break;
 						case 7:
+							misc^=STRIP_LF;
+							break;
+						case 8:
 							misc^=KILL_EMPTY_MAIL;
-							} }
+							break;
+					} 
+				}
 				break;
 			case 8:
 	uifc.helpbuf=
@@ -1050,6 +1057,9 @@ int main(int argc, char **argv)
 					fprintf(stream,"FLO_MAILER\n");
 				if(misc&ELIST_ONLY)
 					fprintf(stream,"ELIST_ONLY\n");
+				if(misc&STRIP_LF)
+					fprintf(stream,"STRIP_LF\n");
+
 				if(cfg.areafile[0])
 					fprintf(stream,"AREAFILE %s\n",cfg.areafile);
 				if(cfg.logfile[0])

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.12 2002/06/18 09:31:59 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.13 2002/06/25 10:44:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -287,8 +287,8 @@ void read_echo_cfg()
 			misc|=SECURE;
 			continue; }
 
-		if(!stricmp(tmp,"CHECKMEM")) {
-			misc|=CHECKMEM;
+		if(!stricmp(tmp,"STRIP_LF")) {
+			misc|=STRIP_LF;
 			continue; }
 
 		if(!stricmp(tmp,"STORE_SEENBY")) {

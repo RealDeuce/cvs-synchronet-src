@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.41 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.42 2002/06/25 10:44:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3675,8 +3675,10 @@ void export_echomail(char *sub_code,faddr_t addr)
 						if(!buf[l])
 							break;
 						continue; }
-					if(buf[l]==LF)	/* Ignore line feeds */
+					
+					if(misc&STRIP_LF && buf[l]==LF)	/* Ignore line feeds */
 						continue;
+
 					if(cr) {
 						if(buf[l]=='-' && buf[l+1]=='-'
 							&& buf[l+2]=='-'
@@ -4267,10 +4269,6 @@ int main(int argc, char **argv)
 			if(fmsgbuf) {
 				FREE(fmsgbuf);
 				fmsgbuf=0; }
-#if 0
-			if(misc&CHECKMEM)
-				checkmem();
-#endif
 			if(!fread(&ch,1,1,fidomsg)) 		 /* Message type (0200h) */
 				break;
 			if(ch!=02)
