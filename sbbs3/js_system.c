@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.86 2003/12/12 07:37:57 rswindell Exp $ */
+/* $Id: js_system.c,v 1.87 2004/01/20 06:49:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1719,7 +1719,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	/***********************/
 
-	val = INT_TO_JSVAL(uptime);
+	JS_NewNumberValue(cx,uptime,&val);
 	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
 		return(NULL);
 
