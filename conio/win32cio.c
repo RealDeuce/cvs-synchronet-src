@@ -26,7 +26,7 @@ const struct vid_mode vid_modes[VID_MODES]={
 };
 
 static int lastch=0;
-static int domouse=1;
+static int domouse=0;
 static DWORD last_state=0;
 static int xpos=1;
 static int ypos=1;
@@ -88,8 +88,6 @@ int win32_kbhit(void)
 	if(lastch)
 		return(1);
 	while(1) {
-		if(mouse_pending())
-			return(1);
 		if(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 			|| !num)
 			break;
@@ -130,6 +128,8 @@ int win32_kbhit(void)
 			continue;
 		}
 	}
+	if(mouse_pending())
+		return(1);
 	return(0);
 }
 
@@ -146,16 +146,8 @@ int win32_getch(void)
 			lastch>>=8;
 			return(ch);
 		}
-		while(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
-				&& !num && !mouse_pending()) {
-			SLEEP(1);
-		}
-
-		if(mouse_pending()) {
+		if(mouse_pending())
 			lastch=CIO_KEY_MOUSE;
-			continue;
-		}
-
 		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 			|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
 			continue;
@@ -248,13 +240,13 @@ int win32_initciolib(long inmode)
 
 int win32_hidemouse(void)
 {
-	/* domouse=0; */
+	domouse=0;
 	return(0);
 }
 
 int win32_showmouse(void)
 {
-	/* domouse=1; */
+	domouse=1;
 	return(0);
 }
 
