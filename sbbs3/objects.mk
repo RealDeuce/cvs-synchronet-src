@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.21 2004/09/08 06:39:27 deuce Exp $
+# $Id: objects.mk,v 1.22 2004/09/08 07:23:54 deuce Exp $
 
 # LIBODIR, SLASH, and OFILE must be pre-defined
 
@@ -63,6 +63,7 @@ OBJS	=	$(LIBODIR)$(SLASH)ansiterm.$(OFILE)\
 			$(LIBODIR)$(SLASH)logout.$(OFILE)\
 			$(LIBODIR)$(SLASH)mail.$(OFILE)\
 			$(LIBODIR)$(SLASH)main.$(OFILE)\
+			$(LIBODIR)$(SLASH)msg_id.$(OFILE)\
 			$(LIBODIR)$(SLASH)msgdate.$(OFILE)\
 			$(LIBODIR)$(SLASH)msgtoqwk.$(OFILE)\
 			$(LIBODIR)$(SLASH)netmail.$(OFILE)\
