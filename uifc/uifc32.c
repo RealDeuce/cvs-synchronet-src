@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.59 2004/06/01 04:52:54 deuce Exp $ */
+/* $Id: uifc32.c,v 1.60 2004/06/01 05:07:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,10 +278,14 @@ int uifcini32(uifcapi_t* uifcapi)
 		api->esc_delay=25;
 
 #ifdef PDCURSES
-	if(mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED)==0)
-		api->mode|=UIFC_MOUSE;
-	else
-		mouse_set(0);
+/*	
+ * "ALL  DESCRIPTIONS  ARE  GUESSES.  I DON'T KNOW ANYONE WHO KNOWS EXACTLY WHAT THESE FUNCTIONS DO!"
+ *
+ * 	if(mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED)==0)
+ *		api->mode|=UIFC_MOUSE;
+ *	else
+ *		mouse_set(0);
+ */
 #endif
 #ifdef __unix__
 	initciowrap(api->mode);
