@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.188 2004/10/20 23:09:10 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.189 2004/10/21 19:34:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1272,7 +1272,7 @@ static void unescape(char *p)
 	*(dst)=0;
 }
 
-static void js_parse_post(http_session_t * session)  
+static void js_parse_post(http_session_t * session)
 {
 	char		*p;
 	char		*key;
@@ -1394,10 +1394,10 @@ static BOOL parse_headers(http_session_t * session)
 				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,content_len,session->req.post_len);
 			if(session->req.post_len<0)
 				session->req.post_len=0;
+			session->req.post_data[session->req.post_len]=0;
 			if(session->req.dynamic==IS_SSJS)  {
 				js_parse_post(session);
 			}
-			session->req.post_data[session->req.post_len]=0;
 		}
 		else  {
 			lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,content_len);
@@ -2713,7 +2713,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.188 $", "%*s %s", revision);
+	sscanf("$Revision: 1.189 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
