@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.23 2002/01/26 14:00:10 rswindell Exp $ */
+/* $Id: services.c,v 1.24 2002/02/05 23:17:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -370,7 +370,7 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			,client->socket,client->service->protocol);
 
 	/* msg_area object */
-	if(js_CreateMsgAreaObject(cx, obj, &scfg, &user)==NULL) 
+	if(js_CreateMsgAreaObject(cx, obj, &scfg, &user, NULL)==NULL) 
 		lprintf("%04d %s !JavaScript ERROR creating msg_area object"
 			,client->socket,client->service->protocol);
 
