@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.47 2004/03/30 05:24:50 deuce Exp $ */
+/* $Id: uifc32.c,v 1.50 2004/05/19 07:52:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,12 @@
 	#endif
 	#include "ciowrap.h"
     #define mswait(x) delay(x)
-    #define putch(x)	_putch(x,TRUE)
+	#if defined(putch) && defined(NO_ECHOCHAR)
+		#undef putch
+	#endif
+	#if !defined(putch)
+    	#define putch(x)	_putch(x,TRUE)
+	#endif
     #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
@@ -123,24 +128,58 @@ int kbwait(void) {
 	return(FALSE);
 }
 
-int inkey(int mode)
-{
-	int c;
-
-	if(mode)
-		return(kbwait());
-	c=getch();
 #ifdef _WIN32
-	if(!c)
-		c=(getch()<<8);
+
+int inkey()
+{
+	char str[128];
+	INPUT_RECORD input;
+	DWORD num=0;
+
+	while(1) {
+		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			|| !num || input.EventType!=KEY_EVENT)
+			continue;
+
+		if(!input.Event.KeyEvent.bKeyDown)
+			continue;
+#if 0
+		sprintf(str,"keydown=%d\n",input.Event.KeyEvent.bKeyDown);
+		OutputDebugString(str);
+		sprintf(str,"repeat=%d\n",input.Event.KeyEvent.wRepeatCount);
+		OutputDebugString(str);
+		sprintf(str,"keycode=%x\n",input.Event.KeyEvent.wVirtualKeyCode);
+		OutputDebugString(str);
+		sprintf(str,"scancode=%x\n",input.Event.KeyEvent.wVirtualScanCode);
+		OutputDebugString(str);
+		sprintf(str,"ascii=%d\n",input.Event.KeyEvent.uChar.AsciiChar);
+		OutputDebugString(str);
+		sprintf(str,"dwControlKeyState=%lx\n",input.Event.KeyEvent.dwControlKeyState);
+		OutputDebugString(str);
 #endif
-	return(c);
+
+		if(input.Event.KeyEvent.uChar.AsciiChar)
+			return(input.Event.KeyEvent.uChar.AsciiChar);
+
+		return(input.Event.KeyEvent.wVirtualScanCode<<8);
+	}
+
+	return(0);
 }
+
+#else 
+
+	#define inkey() getch()
+
+#endif
 
 int uifcini32(uifcapi_t* uifcapi)
 {
 	int 	i;
 	struct	text_info txtinfo;
+#ifdef _WIN32
+	DWORD	conmode;
+#endif
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
         return(-1);
@@ -211,6 +250,9 @@ int uifcini32(uifcapi_t* uifcapi)
         textmode(C80);  /* set mode to 80x25*/
         gettextinfo(&txtinfo);
     }
+
+	if(GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode&=~ENABLE_PROCESSED_INPUT);
 #endif
 
     api->scrn_len=txtinfo.screenheight;
@@ -675,8 +717,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	#endif
 		timedisplay();
 		i=0;
-		if(inkey(1)) {
-			i=inkey(0);
+		if(kbwait()) {
+			i=inkey();
 			if(i==KEY_BACKSPACE || i==BS)
 				i=ESC;
 			if(i>255) {
@@ -1331,11 +1373,11 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		}
 		strcpy(str,outstr);
 #if 0
-		while(inkey(1)==0) {
+		while(kbwait()==0) {
 			mswait(1);
 		}
 #endif
-		f=inkey(0);
+		f=inkey();
 
 		if(f == CR 
 				|| (f >= 0xff && f != KEY_DC) 
@@ -1359,12 +1401,12 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		if(i>j) j=i;
 		str[j]=0;
 		getstrupd(left, top, width, str, i, &soffset);
-		if(f || inkey(1))
+		if(f || kbwait())
 		{
 			if(f)
 				ch=f;
 			else
-				ch=inkey(0);
+				ch=inkey();
 			if(lastkey != NULL)
 				*lastkey=ch;
 			f=0;
@@ -1481,7 +1523,12 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			}
 			if(mode&K_ALPHA && !isalpha(ch))
 				continue;
+#if 0
+			/* This broke swedish chars... */
 			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
+#else
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max))
+#endif
 			{
 				if(mode&K_UPPER)
 					ch=toupper(ch);
@@ -1893,8 +1940,8 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	else {
 		while(i==0) {
 			puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
-			if(inkey(1)) {
-				switch(inkey(0)) {
+			if(kbwait()) {
+				switch(inkey()) {
 					case KEY_HOME:	/* home */
 						p=textbuf;
 						break;

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.16 2003/04/15 00:18:13 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.17 2004/05/13 21:58:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -583,7 +583,7 @@ void read_echo_cfg()
 					*p=0;
 					++p;
 					while(*p && *p<=SP) p++;
-					sprintf(cfg.listcfg[cfg.listcfgs-1].password,"%.71s",tp); } }
+					SAFECOPY(cfg.listcfg[cfg.listcfgs-1].password,tp); } }
 			else
 				cfg.listcfg[cfg.listcfgs-1].misc|=NOFWD;
 			if(!*p)
