@@ -689,24 +689,24 @@ video_event(XEvent *ev)
 		static char buf[128];
 		KeySym ks;
 		int n;
-		int nlock = 0;
+    	    	int nlock = 0;
 		u_short scan = 0xffff;
 
-		if (!(ev->xkey.state & ShiftMask)) {
+    	    	if (!(ev->xkey.state & ShiftMask)) {
 		    K1_STATUS &= ~K1_LSHIFT;
 		    K1_STATUS &= ~K1_RSHIFT;
 		}
-		if (!(ev->xkey.state & ControlMask)) {
+    	    	if (!(ev->xkey.state & ControlMask)) {
 			K1_STATUS &= ~K1_CTRL;
 			K2_STATUS &= ~K2_LCTRL;
 			K3_STATUS &= ~K3_RCTRL;
 		}
-		if (!(ev->xkey.state & Mod1Mask)) {
+    	    	if (!(ev->xkey.state & Mod1Mask)) {
                         K1_STATUS &= ~K1_ALT;
                         K2_STATUS &= ~K2_LALT;
                         K3_STATUS &= ~K3_RALT;
 		}
-		if (!(ev->xkey.state & LockMask)) {
+    	    	if (!(ev->xkey.state & LockMask)) {
                         K2_STATUS &= ~K2_CLOCK;
 		}
 
@@ -882,6 +882,12 @@ video_event(XEvent *ev)
 			goto docode;
 
 		default:
+    	    	    	if ((K1_STATUS&(K1_ALT|K1_CTRL)) == (K1_ALT|K1_CTRL)) {
+				if (ks == 'R' || ks == 'r') {
+                                    kill(getpid(), SIGALRM);	/* redraw */
+				    break;
+				}
+			}
 			if (ks < ' ' || ks > '~')
 				break;
 			scan = Ascii2Scan[ks]; 
@@ -1103,7 +1109,6 @@ init_mode(int mode)
     
     idx = find_vmode(mode & 0x7f);
     if (idx == -1 || vmodelist[idx].type == NOMODE) {
-		fprintf(stderr,"Cannot initialize selected mode\n");
 		return(-1);
 	}
     vmode = vmodelist[idx];
@@ -1132,10 +1137,8 @@ init_mode(int mode)
 
     /* Update font. */
     xfont = vmode.fontname;
-    if(load_font()) {
-		fprintf(stderr,"Cannot load ``%s'' font\n",xfont);
+    if(load_font())
 		return(-1);
-	}
 
     /* Resize window if necessary. */
     resize_window();
@@ -1177,7 +1180,6 @@ init_window()
 
 	dpy = XOpenDisplay(NULL);
     if (dpy == NULL) {
-		fprintf(stderr,"Cannot open connection to X server\n");
 		return(-1);
 	}
     xfd = ConnectionNumber(dpy);
@@ -1261,20 +1263,14 @@ console_init()
 	if(dpy!=NULL)
 		return(0);
 
-    if(kbd_init()) {
-		fprintf(stderr,"Cannot initialize X keyboard\n");
+    if(kbd_init())
 		return(-1);
-	}
-    if(video_init()) {
-		fprintf(stderr,"X video init failure\n");
+    if(video_init())
 		return(-1);
-	}
-    if(mouse_init()) {
-		fprintf(stderr,"Cannot initialize X mouse\n");
+    if(mouse_init())
 		return(-1);
-	}
 
-	_beginthread(video_async_event,1<<16,NULL);
+	_beginthread(video_async_event,16384,NULL);
 	return(0);
 }
 
