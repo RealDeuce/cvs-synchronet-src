@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.110 2002/02/24 02:59:45 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.111 2002/02/24 04:05:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -432,7 +432,9 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, char* fromad
 	else
 		sockprintf(socket,"From: \"%s\" <%s>",msg->from,fromaddr);
 	sockprintf(socket,"Subject: %s",msg->subj);
-	if(msg->to_net.type==NET_INTERNET || msg->to_net.type==NET_QWK) {
+	if(strchr(msg->to,'@')!=NULL)
+		sockprintf(socket,"To: %s",msg->to);	/* Avoid double-@ */
+	else if(msg->to_net.type==NET_INTERNET || msg->to_net.type==NET_QWK) {
 		if(*((char*)msg->to_net.addr)=='<')
 			sockprintf(socket,"To: \"%s\" %s",msg->to,(char*)msg->to_net.addr);
 		else
