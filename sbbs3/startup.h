@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.11 2001/08/05 14:43:12 rswindell Exp $ */
+/* $Id: startup.h,v 1.12 2001/09/24 19:07:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,6 +98,7 @@ typedef struct {
 #define BBS_OPT_USE_2ND_RLOGIN		(1<<6)	/* Use 2nd username in BSD RLogin	*/
 #define BBS_OPT_NO_QWK_EVENTS		(1<<7)	/* Don't run QWK-related events		*/
 #define BBS_OPT_NO_HOST_LOOKUP		(1<<11)
+#define BBS_OPT_GET_IDENT			(1<<28)	/* Get Identity (RFC 1413)			*/
 #define BBS_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
 #define BBS_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UCT/GMT				*/
 #define BBS_OPT_MUTE				(1<<31)	/* Mute sounds						*/
