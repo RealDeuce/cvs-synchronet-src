@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.17 2003/04/23 06:59:08 rswindell Exp $ */
+/* $Id: threadwrap.h,v 1.18 2003/04/27 22:54:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -114,6 +114,14 @@ extern "C" {
 
 #if defined(__cplusplus)
 }
+#endif
+
+#ifdef _PTH_PTHREAD_H_
+#include <pth.h>
+#undef SLEEP
+#define SLEEP(x)		({	int y=x; struct timeval tv; \
+								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
+								pth_nap(tv); })
 #endif
 
 #endif	/* Don't add anything after this line */
