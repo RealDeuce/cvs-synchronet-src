@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.29 2004/10/27 21:16:59 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.27 2004/09/08 03:41:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -551,7 +551,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 		if(domsg && !(sys_status&SS_ABORT)) {
 
 			if(do_find && mode&SCAN_FIND) { 			/* Find text in messages */
-				buf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL);
+				buf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS);
 				if(!buf) {
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
@@ -809,7 +809,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				if(msg.from_net.addr==NULL)
 					strcpy(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO)
-					sprintf(str,"%s@%s",msg.from
+					sprintf(str,"%s @%s",msg.from
 						,smb_faddrtoa((faddr_t *)msg.from_net.addr,tmp));
 				else if(msg.from_net.type==NET_INTERNET)
 					strcpy(str,(char *)msg.from_net.addr);
@@ -1148,7 +1148,7 @@ int sbbs_t::searchposts(uint subnum, post_t HUGE16 *post, long start, long posts
 		if(!loadmsg(&msg,post[l].number))
 			continue;
 		smb_unlockmsghdr(&smb,&msg);
-		buf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL);
+		buf=smb_getmsgtxt(&smb,&msg,1);
 		if(!buf) {
 			smb_freemsgmem(&msg);
 			continue; 
