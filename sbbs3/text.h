@@ -2,13 +2,13 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.8 2004/10/21 09:03:11 rswindell Exp $ */
+/* $Id: text.h,v 1.6 2004/07/29 23:40:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -607,7 +607,7 @@ enum {
 	,No
 	,NoYesQuestion
 	,Pause
-	,ContinueQ /* was Wait */
+	,Wait
 	,SysStatsLogHdr
 	,NodeStatsLogHdr
 	,ReducedTime
