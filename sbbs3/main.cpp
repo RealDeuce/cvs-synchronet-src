@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.229 2003/02/20 23:37:19 rswindell Exp $ */
+/* $Id: main.cpp,v 1.230 2003/03/11 23:07:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3343,7 +3343,7 @@ void DLLCALL bbs_thread(void* arg)
 	time_t			start;
 	time_t			initialized=0;
 	node_t			node;
-	sbbs_t*			events;
+	sbbs_t*			events=NULL;
 	client_t		client;
 	startup=(bbs_startup_t*)arg;
 
@@ -3638,15 +3638,17 @@ void DLLCALL bbs_thread(void* arg)
 	}
 	_beginthread(output_thread, 0, sbbs);
 
-	events = new sbbs_t(0, server_addr.sin_addr.s_addr
-		,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
-    events->online = 0;
-	if(events->init()==false) {
-		lputs("!Events initialization failed");
-		cleanup(1);
-		return;
+	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
+		events = new sbbs_t(0, server_addr.sin_addr.s_addr
+			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
+		events->online = 0;
+		if(events->init()==false) {
+			lputs("!Events initialization failed");
+			cleanup(1);
+			return;
+		}
+		_beginthread(event_thread, 0, events);
 	}
-	_beginthread(event_thread, 0, events);
 
 	/* Save these values incase they're changed dynamically */
 	first_node=startup->first_node;
@@ -3986,7 +3988,8 @@ void DLLCALL bbs_thread(void* arg)
         }
 
 	sbbs->client_socket=INVALID_SOCKET;
-	events->terminated=true;
+	if(events!=NULL)
+		events->terminated=true;
     // Wake-up BBS output thread so it can terminate
     sem_post(&sbbs->output_sem);
 
@@ -4005,7 +4008,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 	// Wait for Events thread to terminate
-	if(events->event_thread_running) {
+	if(events!=NULL && events->event_thread_running) {
 		pthread_mutex_unlock(&event_mutex);
 		lprintf("Waiting for event thread to terminate...");
 		start=time(NULL);
@@ -4040,7 +4043,7 @@ void DLLCALL bbs_thread(void* arg)
         sbbs->putnodedat(i,&node);
     }
 
-	if(!events->event_thread_running)
+	if(events!=NULL && !events->event_thread_running)
 		delete events;
 
     if(!sbbs->output_thread_running)

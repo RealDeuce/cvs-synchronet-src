@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.111 2003/02/12 02:00:20 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.112 2003/03/11 23:07:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,6 +163,7 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 							"\tgi         get user identity (using IDENT protocol)\n"
 							"\tnh         disable hostname lookups\n"
 							"\tnj         disable JavaScript support\n"
+							"\tne         disable event thread\n"
 							"\tni         do not read settings from .ini file\n"
 #ifdef __unix__
 							"\tnd         do not read run as daemon - overrides .ini file\n"
@@ -1231,6 +1232,9 @@ int main(int argc, char** argv)
 						break;
 					case 'S':	/* Services */
 						run_services=FALSE;
+						break;
+					case 'E': /* No Events */
+						bbs_startup.options		|=BBS_OPT_NO_EVENTS;
 						break;
 					case 'Q': /* No QWK events */
 						bbs_startup.options		|=BBS_OPT_NO_QWK_EVENTS;
