@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.3 2000/10/26 15:06:41 rswindell Exp $ */
+/* $Id: userdat.h,v 1.4 2000/11/12 16:01:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #ifndef _USERDAT_H
 #define _USERDAT_H
+
+#include "scfgdefs.h"   /* scfg_t */
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
