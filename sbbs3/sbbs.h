@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.189 2003/06/26 06:42:34 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.190 2003/07/02 03:17:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -471,6 +471,7 @@ public:
 	void	center(char *str);
 
 	/* getstr.cpp */
+	size_t	getstr_offset;
 	size_t	getstr(char *str, size_t length, long mode);
 	long	getnum(ulong max);
 
