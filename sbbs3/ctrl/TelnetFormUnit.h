@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetFormUnit.h,v 1.1 2000/10/10 11:26:50 rswindell Exp $ */
+/* $Id: TelnetFormUnit.h,v 1.2 2002/03/19 22:33:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,7 @@ __published:	// IDE-managed Components
 	TToolButton *ToolButton3;
 	TProgressBar *ProgressBar;
 	TMemo *Log;
+	TToolButton *RecycleButton;
 	void __fastcall FormShow(TObject *Sender);
     void __fastcall FormHide(TObject *Sender);
 private:	// User declarations
