@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.97 2003/10/09 10:49:33 rswindell Exp $ */
+/* $Id: js_global.c,v 1.98 2003/10/09 20:24:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2334,6 +2334,10 @@ static jsMethodSpec js_global_functions[] = {
 	},
 	{0}
 };
+
+#if defined(EDEADLK) && !defined(EDEADLOCK)
+	#define EDEADLOCK EDEADLK
+#endif
 
 static jsConstIntSpec js_global_const_ints[] = {
 	/* Numeric error constants from errno.h (platform-dependant) */
