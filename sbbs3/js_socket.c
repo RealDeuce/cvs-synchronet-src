@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.65 2002/11/09 06:52:45 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.66 2002/11/10 07:38:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -349,8 +349,7 @@ js_sendto(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	/* port */
-	JS_ValueToInt32(cx, argv[2], &i);
-	port = (ushort)i;
+	port = js_port(cx,argv[2],p->type);
 
 	dbprintf(FALSE, p, "sending %d bytes to port %u at %s"
 		,len, port, JS_GetStringBytes(ip_str));
