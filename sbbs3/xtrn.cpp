@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.125 2003/03/18 21:34:47 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.126 2003/03/29 11:34:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1157,7 +1157,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		SAFECOPY(str,fullcmdline);
 		sprintf(fullcmdline,"%s -F %s",startup->dosemu_path,str);
 #else
-		bprintf("\r\nExternal DOS programs are not yet supported in\r\n%s\r\n"
+		bprintf("\r\nExternal DOS programs are not yet supported in \r\n%s\r\n"
 			,VERSION_NOTICE);
 		return(-1);
 #endif
