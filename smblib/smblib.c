@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.57 2003/03/10 09:25:41 rswindell Exp $ */
+/* $Id: smblib.c,v 1.58 2003/04/18 04:55:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2022,7 +2022,7 @@ int SMBCALL smb_tzutc(short zone)
 {
 	int tz;
 
-	if(zone<=1000 && zone>=-1000)	/* 720 is 12 hours */
+	if(OTHER_ZONE(zone))
 		return(zone);
 
 	tz=zone&0xfff;
