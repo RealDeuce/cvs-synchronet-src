@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.26 2000/12/06 00:27:50 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.27 2000/12/06 22:10:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -814,6 +814,14 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 				argv[argc++]=cmdline+i+1; /* point to the beginning of the next arg */
 			}
 		argv[argc]=0;
+
+		if(mode&EX_INR) 
+			dup2(client_socket,0);	/* redirect stdin to socket */
+
+		if(mode&EX_OUTR) {
+			dup2(client_socket,1);	/* stdout */
+			dup2(client_socket,2);	/* stderr */
+		}	
 
 		execvp(argv[0],argv);
 		exit(-1);	/* should never get here */
