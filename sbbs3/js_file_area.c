@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.19 2002/11/07 11:44:21 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.20 2002/11/14 23:33:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,6 +85,9 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	if(areaobj==NULL)
 		return(NULL);
 
+	if(html_index_file==NULL)
+		html_index_file="";
+
 #ifdef _DEBUG
 	js_DescribeObject(cx,areaobj,"File Transfer Areas");
 #endif
@@ -117,12 +120,10 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 		if(!JS_SetProperty(cx, libobj, "description", &val))
 			return(NULL);
 
-		if(html_index_file!=NULL) {
-			sprintf(vpath,"/%s/%s",cfg->lib[l]->sname,html_index_file);
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, vpath));
-			if(!JS_SetProperty(cx, libobj, "link", &val))
-				return(NULL);
-		}
+		sprintf(vpath,"/%s/%s",cfg->lib[l]->sname,html_index_file);
+		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, vpath));
+		if(!JS_SetProperty(cx, libobj, "link", &val))
+			return(NULL);
 
 #ifdef _DEBUG
 		js_DescribeObject(cx,libobj,"File Transfer Libraries");
@@ -205,15 +206,13 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if(!JS_SetProperty(cx, dirobj, "download_credit_pct", &val))
 				return(NULL);
 
-			if(html_index_file!=NULL) {
-				sprintf(vpath,"/%s/%s/%s"
-					,cfg->lib[l]->sname
-					,cfg->dir[d]->code
-					,html_index_file);
-				val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, vpath));
-				if(!JS_SetProperty(cx, dirobj, "link", &val))
-					return(NULL);
-			}
+			sprintf(vpath,"/%s/%s/%s"
+				,cfg->lib[l]->sname
+				,cfg->dir[d]->code
+				,html_index_file);
+			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, vpath));
+			if(!JS_SetProperty(cx, dirobj, "link", &val))
+				return(NULL);
 
 			if(user==NULL || chk_ar(cfg,cfg->dir[d]->ul_ar,user))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
