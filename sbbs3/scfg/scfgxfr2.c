@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.4 2002/01/24 01:32:07 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.5 2002/01/24 13:47:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -647,7 +647,7 @@ this directory will be stored. Example: C:\XFER\GAMES
 		memset((dir_t *)cfg.dir[dirnum[i]],0,sizeof(dir_t));
 		cfg.dir[dirnum[i]]->lib=libnum;
 		cfg.dir[dirnum[i]]->maxfiles=MAX_FILES<500 ? MAX_FILES:500;
-		if(strcmpi(str2,"OFFLINE"))
+		if(stricmp(str2,"OFFLINE"))
 			cfg.dir[dirnum[i]]->misc=(DIR_FCHK|DIR_MULT|DIR_DUPES
 				|DIR_CDTUL|DIR_CDTDL|DIR_DIZ);
 		strcpy(cfg.dir[dirnum[i]]->code,code);
