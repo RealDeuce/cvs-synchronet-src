@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.18 2000/11/10 03:45:52 rswindell Exp $
+# $Id: Makefile.gnu,v 1.19 2000/11/10 03:55:53 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -83,7 +83,7 @@ $(EXEODIR):
 	mkdir $(EXEODIR)
 
 # Monolithic Synchronet executable Build Rule
-$(SBBSMONO): sbbscon.c $(OBJS) $(LIBODIR)/ver.o # $(LIBODIR)/ftpsrvr.o $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o
+$(SBBSMONO): sbbscon.c conwrap.c $(OBJS) $(LIBODIR)/ver.o $(LIBODIR)/ftpsrvr.o # $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o
 	$(CC) -o $(SBBSMONO) $^ $(LIBS)
 
 # Synchronet BBS library Link Rule
