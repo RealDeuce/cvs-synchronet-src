@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.16 2003/05/12 06:12:01 deuce Exp $ */
+/* $Id: umonitor.c,v 1.17 2003/05/12 22:21:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -577,7 +577,7 @@ int main(int argc, char** argv)  {
 	char	*buf;
 	int		buffile;
 
-	sscanf("$Revision: 1.16 $", "%*s %s", revision);
+	sscanf("$Revision: 1.17 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -755,7 +755,7 @@ int main(int argc, char** argv)  {
 							break;
 							
 						case SPY_STDINLOST:
-							uifc.msg("STDIN has gone away... you probobly can't close this window.  :-)");
+							uifc.msg("STDIN has gone away... you probably can't close this window.  :-)");
 							break;
 							
 						case SPY_CLOSED:
