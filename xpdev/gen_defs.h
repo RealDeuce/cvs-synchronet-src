@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.6 2002/08/24 22:27:09 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.7 2002/08/24 23:29:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@
 	#define WIN32_LEAN_AND_MEAN	/* Don't bring in excess baggage */
 	#include <windows.h>
 #elif defined(__OS2__)
+	#define INCL_BASE	/* need this for DosSleep prototype */
 	#include <os2.h>
 #endif
 
