@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.312 2004/03/19 09:56:17 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.314 2004/03/24 08:11:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,9 +247,7 @@ int sockprintf(SOCKET sock, char *fmt, ...)
     len=vsnprintf(sbuf,maxlen=sizeof(sbuf)-2,fmt,argptr);
     va_end(argptr);
 
-	if(len<0)		/* format error? */
-		return(0);
-	if(len>maxlen)	/* output truncated */
+	if(len<0 || len > maxlen) /* format error or output truncated */
 		len=maxlen;
 	if(startup->options&MAIL_OPT_DEBUG_TX)
 		lprintf(LOG_DEBUG,"%04d TX: %.*s", sock, len, sbuf);
@@ -575,7 +573,7 @@ static u_long resolve_ip(char *addr)
 	HOSTENT*	host;
 
 	if(*addr==0)
-		return(INADDR_NONE);
+		return((u_long)INADDR_NONE);
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -585,7 +583,7 @@ static u_long resolve_ip(char *addr)
 
 	if((host=gethostbyname(addr))==NULL) {
 		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",addr);
-		return(INADDR_NONE);
+		return((u_long)INADDR_NONE);
 	}
 	return(*((ulong*)host->h_addr_list[0]));
 }
@@ -3632,7 +3630,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.312 $", "%*s %s", revision);
+	sscanf("$Revision: 1.314 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
