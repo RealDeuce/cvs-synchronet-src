@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.128 2003/10/24 00:47:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.129 2003/10/24 03:03:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -812,9 +812,9 @@ static void send_error(http_session_t * session, const char* message)
 			,"<HTML><HEAD><TITLE>%s Error</TITLE></HEAD>"
 			"<BODY><H1>%s Error</H1><BR><H3>In addition, "
 			"I can't seem to find the %s error file</H3><br>"
-			"please notify <a href=\"mailto:SysOp@%s\">"
-			"The SysOp</a></BODY></HTML>"
-			,error_code,error_code,error_code,scfg.sys_inetaddr);
+			"please notify <a href=\"mailto:sysop@%s\">"
+			"%s</a></BODY></HTML>"
+			,error_code,error_code,error_code,scfg.sys_inetaddr,scfg.sys_op);
 		sockprint(session->socket,sbuf);
 	}
 	close_request(session);
@@ -2458,7 +2458,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.128 $", "%*s %s", revision);
+	sscanf("$Revision: 1.129 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
