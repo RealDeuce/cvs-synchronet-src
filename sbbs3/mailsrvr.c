@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.54 2001/06/15 03:38:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.55 2001/06/19 16:16:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1089,6 +1089,9 @@ static void smtp_thread(void* arg)
 	if((i=getsockname(socket, (struct sockaddr *)&server_addr,&addr_len))!=0) {
 		lprintf("%04d !SMTP ERROR %d (%d) getting address/port"
 			,socket, i, ERROR_VALUE);
+		sockprintf(socket,"421 System error");
+		mail_close_socket(socket);
+		thread_down();
 		return;
 	} 
 
