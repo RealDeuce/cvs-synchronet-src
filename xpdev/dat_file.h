@@ -1,8 +1,8 @@
-/* xpendian.h */
+/* dat_file.h */
 
-/* Macros to convert integer "endianness" */
+/* Functions to deal with comma-separated value (CSV) files and lists */
 
-/* $Id: xpendian.h,v 1.4 2004/08/26 21:51:54 rswindell Exp $ */
+/* $Id: dat_file.h,v 1.1 2004/08/04 09:41:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,43 +35,47 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _XPENDIAN_H
-#define _XPENDIAN_H
+#ifndef _DAT_FILE_H
+#define _DAT_FILE_H
 
-/************************/
-/* byte-swapping macros */
-/************************/
-#define BYTE_SWAP_16(x)	((((short)(x)&0xff00)>>8) | (((short)(x)&0x00ff)<<8))
-#define BYTE_SWAP_32(x)	((((long)(x)&0xff000000)>>24) | (((long)(x)&0x00ff0000)>>8) | (((long)(x)&0x0000ff00)<<8) | (((long)(x)&0x000000ff)<<24))
+#include "str_list.h"
 
-/* these may need to be updated for > 32-bit platforms */
-#define BYTE_SWAP_SHORT(x)	BYTE_SWAP_16(x)
-#define BYTE_SWAP_LONG(x)	BYTE_SWAP_32(x)
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-/* auto-detect integer size */
-#define BYTE_SWAP_INT(x)	(sizeof(x)==sizeof(short) ? BYTE_SWAP_SHORT(x) : sizeof(x)==sizeof(long) ? BYTE_SWAP_LONG(x) : (x))
+/***************/
+/* Generic API */
+/***************/
 
-/********************************/
-/* Architecture-specific macros */
-/********************************/
-#ifdef __BIG_ENDIAN__	/* e.g. Motorola */
+typedef str_list_t	(*dataLineParser_t)(char*);
+typedef char*		(*dataLineCreator_t)(str_list_t);
 
-	#define BE_SHORT(x)		(x)
-	#define BE_LONG(x)		(x)
-	#define BE_INT(x)		(x)
-	#define LE_SHORT(x)		BYTE_SWAP_SHORT(x)
-	#define LE_LONG(x)		BYTE_SWAP_LONG(x)
-	#define LE_INT(x)		BYTE_SWAP_INT(x)
+/* columns arguments are optional (may be NULL) */
+str_list_t*	dataParseList(str_list_t list, str_list_t* columns, dataLineParser_t);
+str_list_t*	dataReadFile(FILE* fp, str_list_t* columns, dataLineParser_t);
 
-#else	/* Little Endian (e.g. Intel) */
+str_list_t	dataCreateList(str_list_t records[], str_list_t columns, dataLineCreator_t);
+BOOL		dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, dataLineCreator_t);
 
-	#define LE_SHORT(x)		(x)
-	#define LE_LONG(x)		(x)
-	#define LE_INT(x)		(x)
-	#define BE_SHORT(x)		BYTE_SWAP_SHORT(x)
-	#define BE_LONG(x)		BYTE_SWAP_LONG(x)
-	#define BE_INT(x)		BYTE_SWAP_INT(x)
+/* CSV (comma separated value) API */
+char*		csvLineCreator(str_list_t);
+str_list_t	csvLineParser(char* line);
+#define		csvParseList(list,col)		dataParseList(list,col,csvLineParser)
+#define		csvCreateList(rec,col)		dataCreateList(rec,col,csvLineCreator)
+#define		csvReadFile(fp,col)			dataReadFile(fp,col,csvLineParser)
+#define		csvWriteFile(fp,rec,col)	dataWriteFile(fp,rec,col,csvLineCreator)
 
+/* Tab-delimited API */
+char*		tabLineCreator(str_list_t);
+str_list_t	tabLineParser(char* line);
+#define		tabParseList(list,col)		dataParseList(list,col,tabLineParser)
+#define		tabCreateList(rec,col)		dataCreateList(rec,col,tabLineCreator)
+#define		tabReadFile(fp,col)			dataReadFile(fp,col,tabLineParser)
+#define		tabWriteFile(fp,rec,col)	dataWriteFile(fp,rec,col,tabLineCreator)
+
+#if defined(__cplusplus)
+}
 #endif
 
 #endif	/* Don't add anything after this line */
