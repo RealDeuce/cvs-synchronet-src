@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.61 2002/03/25 08:14:53 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.62 2002/03/25 08:30:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -871,6 +871,8 @@ int main(int argc, char** argv)
 							gethostname(services_startup.host_name
 								,sizeof(services_startup.host_name)-1);
 						}
+						printf("Setting hostname: %s\n",bbs_startup.host_name);
+						break;
 					default:
 						printf(usage,argv[0]);
 						return(0);
