@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.18 2001/12/13 17:15:22 rswindell Exp $ */
+/* $Id: services.c,v 1.19 2001/12/14 17:58:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -251,7 +251,7 @@ static u_long resolve_ip(char *addr)
 		return(inet_addr(addr));
 
 	if ((host=gethostbyname(addr))==NULL) {
-		lprintf("0000 !ERROR resolving host name: %s",addr);
+		lprintf("0000 !ERROR resolving hostname: %s",addr);
 		return(0);
 	}
 	return(*((ulong*)host->h_addr_list[0]));
