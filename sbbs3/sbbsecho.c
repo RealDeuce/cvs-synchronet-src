@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.152 2004/09/08 03:38:29 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.153 2004/09/10 09:29:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2259,6 +2259,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 {
 	uchar	ch,*sbody,*stail,*outbuf
 				,*p,str[128];
+	char	msg_id[256];
 	BOOL	done,esc,cr;
 	int 	i,chunk,lzh=0,storage;
 	uint	col;
@@ -2611,7 +2612,11 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		free(stail);
 		return(i); 
 	}
-
+#if 0
+	/* Generate default (RFC822) message-id (always) */
+	SAFECOPY(msg_id,get_msgid(&scfg,subnum,&msg));
+	smb_hfield_str(&msg,RFC822MSGID,msg_id);
+#endif
 	if(msg.ftn_reply!=NULL) {	/* auto-thread linkage */
 
 		if(smb_getstatus(smbfile)==SMB_SUCCESS
@@ -2619,8 +2624,9 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 
 			msg.hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
 
-			/* Add RFC-822 Reply-ID (generate if necessary) */
-			smb_hfield_str(&msg,RFC822REPLYID,get_msgid(&scfg,smbfile->subnum,&remsg));
+			/* Add RFC-822 Reply-ID if original message has RFC-822 Message-ID */
+			if(remsg.id!=NULL)
+				smb_hfield_str(&msg,RFC822REPLYID,remsg.id);
 
 			smb_updatethread(smbfile,&remsg,smbfile->status.last_msg+1);
 			smb_freemsgmem(&remsg);
@@ -4071,7 +4077,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.152 $", "%*s %s", revision);
+	sscanf("$Revision: 1.153 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
