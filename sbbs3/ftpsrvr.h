@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.2 2000/10/11 21:31:19 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.3 2000/10/23 09:45:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,10 +99,14 @@ typedef struct {
 #define FTP_OPT_NO_HOST_LOOKUP	(1<<11)
 #define FTP_OPT_MUTE			(1<<31)
 
+#ifdef _WIN32
 #ifdef FTPSRVR_EXPORTS
 #define FTP_CALL __declspec( dllexport )
 #else
 #define FTP_CALL __declspec( dllimport )
+#endif
+#else	/* !_WIN32 */
+#define FTP_CALL
 #endif
 
 #ifdef __cplusplus
