@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.26 2000/11/07 11:24:48 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.27 2000/11/07 11:41:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,9 +335,11 @@ ulong _beginthread(void( *start_address )( void * )
 
 	return(-1);	/* error */
 }
-#else	/* _POSIX_THREADS */
+#else
 
 #error "Need _beginthread implementation for non-POSIX thread library."
+
+#endif
 
 #endif	/* __unix__ */
 
