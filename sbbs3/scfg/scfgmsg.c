@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.15 2003/02/01 03:04:59 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.16 2003/03/04 10:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -843,6 +843,7 @@ E-mail and public posts (on sub-boards).
 				if(i==-1)
 				   continue;
 				if(!i) {
+					cfg.new_install=new_install;
 					write_msgs_cfg(&cfg,backup_level);
 					write_main_cfg(&cfg,backup_level);
                     refresh_cfg(&cfg);

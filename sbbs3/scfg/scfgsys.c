@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.20 2003/01/31 03:27:04 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.21 2003/03/04 10:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,6 +87,7 @@ entire system.
 			if(i==-1)
 				break;
 			if(!i) {
+				cfg.new_install=new_install;
 				write_main_cfg(&cfg,backup_level);
                 refresh_cfg(&cfg);
             }

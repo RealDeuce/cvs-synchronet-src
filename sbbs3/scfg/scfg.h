@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.11 2003/02/19 20:39:56 rswindell Exp $ */
+/* $Id: scfg.h,v 1.12 2003/03/04 10:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,6 +68,7 @@ extern char error[256];
 extern char *nulstr;
 extern char *invalid_code,*num_flags;
 extern int	backup_level;
+extern BOOL new_install;
 
 /***********************/
 /* Function Prototypes */
