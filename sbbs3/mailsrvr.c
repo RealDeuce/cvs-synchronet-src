@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.255 2003/05/17 03:05:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.256 2003/06/07 02:47:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2946,7 +2946,7 @@ static void sendmail_thread(void* arg)
 		if(first_cycle)
 			first_cycle=FALSE;
 		else
-			mswait(3000);
+			mswait(startup->sem_chk_freq*1000);
 
 		sprintf(smb.file,"%smail",scfg.data_dir);
 		smb.retry_time=scfg.smb_retry_time;
@@ -3271,7 +3271,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.255 $", "%*s %s", revision);
+	sscanf("$Revision: 1.256 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3336,6 +3336,7 @@ void DLLCALL mail_server(void* arg)
 	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=50;
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
 	if(startup->max_recipients==0) 			startup->max_recipients=100;
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=5;
 	if(startup->proc_cfg_file[0]==0)			
 		sprintf(startup->proc_cfg_file,"%smailproc.cfg",scfg.ctrl_dir);
 
@@ -3557,7 +3558,7 @@ void DLLCALL mail_server(void* arg)
 					high_socket_set=pop3_socket+1;
 			}
 
-			tv.tv_sec=2;
+			tv.tv_sec=startup->sem_chk_freq;
 			tv.tv_usec=0;
 
 			if((i=select(high_socket_set,&socket_set,NULL,NULL,&tv))<1) {

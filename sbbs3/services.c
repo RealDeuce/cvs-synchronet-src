@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.105 2003/05/14 23:10:39 rswindell Exp $ */
+/* $Id: services.c,v 1.106 2003/06/07 02:47:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1236,7 +1236,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.105 $", "%*s %s", revision);
+	sscanf("$Revision: 1.106 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1299,6 +1299,7 @@ void DLLCALL services_thread(void* arg)
 	}
 
 	/* Setup intelligent defaults */
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=5;
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 
 	uptime=0;
@@ -1519,7 +1520,7 @@ void DLLCALL services_thread(void* arg)
 				if(service[i].socket>high_socket)
 					high_socket=service[i].socket;
 			}
-			tv.tv_sec=2;
+			tv.tv_sec=startup->sem_chk_freq;
 			tv.tv_usec=0;
 			if((result=select(high_socket+1,&socket_set,NULL,NULL,&tv))<1) {
 				if(result==0)
