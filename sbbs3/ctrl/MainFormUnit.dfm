@@ -10,7 +10,7 @@ object MainForm: TMainForm
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
+  Font.Height = -14
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   Icon.Data = {
@@ -46,11 +46,11 @@ object MainForm: TMainForm
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnShow = FormShow
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 16
   object HorizontalSplitter: TSplitter
     Left = 0
-    Top = 164
+    Top = 195
     Width = 632
     Height = 1
     Cursor = crVSplit
@@ -61,9 +61,9 @@ object MainForm: TMainForm
   end
   object Logo: TImage
     Left = 0
-    Top = 165
+    Top = 196
     Width = 632
-    Height = 162
+    Height = 121
     Align = alClient
     Center = True
     IncrementalDisplay = True
@@ -1962,7 +1962,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 30
     Width = 632
-    Height = 134
+    Height = 165
     Align = alTop
     BevelOuter = bvNone
     Constraints.MinHeight = 100
@@ -1970,18 +1970,18 @@ object MainForm: TMainForm
     TabOrder = 1
     Visible = False
     object TopVerticalSplitter: TSplitter
-      Left = 235
+      Left = 289
       Top = 0
-      Width = 2
-      Height = 134
+      Width = 3
+      Height = 165
       Cursor = crHSplit
       MinSize = 1
     end
     object UpperLeftPageControl: TPageControl
       Left = 0
       Top = 0
-      Width = 235
-      Height = 134
+      Width = 289
+      Height = 165
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -1989,10 +1989,10 @@ object MainForm: TMainForm
       OnUnDock = PageControlUnDock
     end
     object UpperRightPageControl: TPageControl
-      Left = 237
+      Left = 292
       Top = 0
-      Width = 395
-      Height = 134
+      Width = 340
+      Height = 165
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -2002,26 +2002,26 @@ object MainForm: TMainForm
   end
   object BottomPanel: TPanel
     Left = 0
-    Top = 165
+    Top = 196
     Width = 632
-    Height = 162
+    Height = 121
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
     Visible = False
     object BottomVerticalSplitter: TSplitter
-      Left = 235
+      Left = 289
       Top = 0
-      Width = 2
-      Height = 162
+      Width = 3
+      Height = 121
       Cursor = crHSplit
       MinSize = 1
     end
     object LowerLeftPageControl: TPageControl
       Left = 0
       Top = 0
-      Width = 235
-      Height = 162
+      Width = 289
+      Height = 121
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -2029,10 +2029,10 @@ object MainForm: TMainForm
       OnUnDock = PageControlUnDock
     end
     object LowerRightPageControl: TPageControl
-      Left = 237
+      Left = 292
       Top = 0
-      Width = 395
-      Height = 162
+      Width = 340
+      Height = 121
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -2042,7 +2042,7 @@ object MainForm: TMainForm
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 327
+    Top = 317
     Width = 632
     Height = 25
     Panels = <
@@ -2399,8 +2399,8 @@ object MainForm: TMainForm
         ImageIndex = 27
         object TelnetEditRLoginList: TMenuItem
           Caption = 'Allowed RLogin List'
-          Hint = 'RLOGIN.CAN'
-          OnClick = TextMenuItemEditClick
+          Hint = 'rlogin.cfg'
+          OnClick = CtrlMenuItemEditClick
         end
       end
     end
@@ -2495,7 +2495,7 @@ object MainForm: TMainForm
         end
         object ExternalMailProc: TMenuItem
           Caption = 'External Mail Processing'
-          Hint = 'MAILPROC.CFG'
+          Hint = 'mailproc.ini'
           OnClick = CtrlMenuItemEditClick
         end
       end
@@ -2571,6 +2571,33 @@ object MainForm: TMainForm
         end
       end
     end
+    object WebMenuItem: TMenuItem
+      Caption = '&Web'
+      object Configure1: TMenuItem
+        Action = WebConfigure
+      end
+      object Start1: TMenuItem
+        Action = WebStart
+      end
+      object Stop1: TMenuItem
+        Action = WebStop
+      end
+      object Recycle4: TMenuItem
+        Action = WebRecycle
+      end
+      object N11: TMenuItem
+        Caption = '-'
+      end
+      object WebEditMenuItem: TMenuItem
+        AutoHotkeys = maManual
+        Caption = 'Edit'
+        object WebEditMimeTypesMenuItem: TMenuItem
+          Caption = 'MIME Types'
+          Hint = 'mime_types.ini'
+          OnClick = CtrlMenuItemEditClick
+        end
+      end
+    end
     object ServicesMenuItem: TMenuItem
       Caption = 'Services'
       object ServicesConfigureMenuItem: TMenuItem
@@ -2585,34 +2612,58 @@ object MainForm: TMainForm
       object Recycle3: TMenuItem
         Action = ServicesRecycle
       end
+      object N12: TMenuItem
+        Caption = '-'
+      end
+      object ServicesEditMenuItem: TMenuItem
+        AutoHotkeys = maManual
+        Caption = 'Edit'
+        object ServicesEditIniMenuOption: TMenuItem
+          Caption = 'services.ini'
+          Hint = 'services.ini'
+          OnClick = CtrlMenuItemEditClick
+        end
+      end
     end
     object ViewMenuItem: TMenuItem
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
+        AutoCheck = True
       end
       object ViewStatsMenuItem: TMenuItem
         Action = ViewStats
+        AutoCheck = True
         Caption = 'BBS &Statistics'
       end
       object ViewTelnetMenuItem: TMenuItem
         Action = ViewTelnet
-      end
-      object ViewMailServerMenuItem: TMenuItem
-        Action = ViewMailServer
-      end
-      object ViewFtpServerMenuItem: TMenuItem
-        Action = ViewFtpServer
-      end
-      object ViewWebServerMenuItem: TMenuItem
-        Action = ViewWebServer
-        Hint = 'View Web Server Window'
+        AutoCheck = True
       end
       object ViewEventsMenuItem: TMenuItem
         Action = ViewEvents
+        AutoCheck = True
+        Caption = 'BBS &Events'
+      end
+      object ViewMailServerMenuItem: TMenuItem
+        Action = ViewMailServer
+        AutoCheck = True
+      end
+      object ViewFtpServerMenuItem: TMenuItem
+        Action = ViewFtpServer
+        AutoCheck = True
+      end
+      object ViewWebServerMenuItem: TMenuItem
+        Action = ViewWebServer
+        AutoCheck = True
+      end
+      object ViewServicesMenuItem: TMenuItem
+        Action = ViewServices
+        AutoCheck = True
       end
       object Clients1: TMenuItem
         Action = ViewClients
+        AutoCheck = True
       end
       object ViewToolbarMenuItem: TMenuItem
         Caption = 'Tool&bar'
@@ -2716,37 +2767,73 @@ object MainForm: TMainForm
       OnExecute = MailConfigureExecute
     end
     object ViewTelnet: TAction
+      AutoCheck = True
       Caption = '&Telnet Server'
+      Checked = True
       Hint = 'View Telnet Server Window'
       ImageIndex = 9
       OnExecute = ViewTelnetExecute
     end
+    object ViewEvents: TAction
+      AutoCheck = True
+      Caption = '&Events'
+      Checked = True
+      ImageIndex = 49
+      OnExecute = ViewEventsExecute
+    end
+    object ViewStats: TAction
+      AutoCheck = True
+      Caption = '&Stats'
+      Checked = True
+      ImageIndex = 13
+      OnExecute = ViewStatsExecute
+    end
     object ViewNodes: TAction
+      AutoCheck = True
       Caption = 'BBS &Nodes'
+      Checked = True
       Hint = 'View Node Status Window'
       ImageIndex = 5
       OnExecute = ViewNodesExecute
     end
     object ViewMailServer: TAction
+      AutoCheck = True
       Caption = '&Mail Server'
+      Checked = True
       Hint = 'View Mail Server Window'
       ImageIndex = 7
       OnExecute = ViewMailServerExecute
     end
-    object ViewStats: TAction
-      Caption = '&Stats'
-      ImageIndex = 13
-      OnExecute = ViewStatsExecute
-    end
     object ViewFtpServer: TAction
+      AutoCheck = True
       Caption = '&FTP Server'
+      Checked = True
       Hint = 'View FTP Server Window'
       ImageIndex = 11
       OnExecute = ViewFtpServerExecute
     end
     object ViewWebServer: TAction
+      AutoCheck = True
       Caption = '&Web Server'
+      Checked = True
+      Hint = 'View Web Server Window'
+      ImageIndex = 59
       OnExecute = ViewWebServerExecute
+    end
+    object ViewServices: TAction
+      AutoCheck = True
+      Caption = '&Services'
+      Checked = True
+      Hint = 'View Services Window'
+      OnExecute = ViewServicesExecute
+    end
+    object ViewClients: TAction
+      AutoCheck = True
+      Caption = '&Clients'
+      Checked = True
+      Hint = 'View Active Clients Window'
+      ImageIndex = 35
+      OnExecute = ViewClientsExecute
     end
     object FtpStart: TAction
       Hint = 'Start FTP Server'
@@ -2783,12 +2870,6 @@ object MainForm: TMainForm
       ImageIndex = 33
       OnExecute = ChatToggleExecute
     end
-    object ViewClients: TAction
-      Caption = '&Clients'
-      Hint = 'View Active Clients Window'
-      ImageIndex = 35
-      OnExecute = ViewClientsExecute
-    end
     object UserEdit: TAction
       Caption = '&Editor'
       Hint = 'Edit Users'
@@ -2806,11 +2887,6 @@ object MainForm: TMainForm
       Hint = 'Control Panel Properties'
       ImageIndex = 4
       OnExecute = PropertiesExecute
-    end
-    object ViewEvents: TAction
-      Caption = '&Events'
-      ImageIndex = 49
-      OnExecute = ViewEventsExecute
     end
     object ReloadConfig: TAction
       Caption = '&Reload Configuration'
@@ -2843,6 +2919,32 @@ object MainForm: TMainForm
       Hint = 'Configure Services'
       ImageIndex = 4
       OnExecute = ServicesConfigureExecute
+    end
+    object WebStart: TAction
+      Caption = 'Start'
+      Hint = 'Start Web Server'
+      ImageIndex = 0
+      OnExecute = WebStartExecute
+    end
+    object WebStop: TAction
+      Caption = 'Stop'
+      Enabled = False
+      Hint = 'Stop Web Server'
+      ImageIndex = 2
+      OnExecute = WebStopExecute
+    end
+    object WebRecycle: TAction
+      Caption = 'Recycle'
+      Enabled = False
+      Hint = 'Recycle Web Server'
+      ImageIndex = 55
+      OnExecute = WebRecycleExecute
+    end
+    object WebConfigure: TAction
+      Caption = 'Configure'
+      Hint = 'Configure Web Server'
+      ImageIndex = 4
+      OnExecute = WebConfigureExecute
     end
   end
   object ImageList: TImageList
