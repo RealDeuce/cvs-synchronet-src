@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.63 2004/09/08 03:32:36 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.60 2004/07/20 09:11:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,11 +39,6 @@
 char	revision[16];
 char	compiler[32];
 
-const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
-            ,"Jul","Aug","Sep","Oct","Nov","Dec"};
-
-
 #define NOANALYSIS		(1L<<0)
 #define NOCRC			(1L<<1)
 
@@ -65,12 +60,12 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 #include <string.h>		/* strrchr */
 #include <ctype.h>		/* toupper */
 
+#include "sbbs.h"
 #include "genwrap.h"	/* stricmp */
 #include "dirwrap.h"	/* fexist */
 #include "conwrap.h"	/* getch */
 #include "filewrap.h"
 #include "smblib.h"
-#include "crc16.h"
 #include "crc32.h"
 #include "gen_defs.h"	/* MAX_PATH */
 
@@ -139,8 +134,6 @@ ulong lf_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf)
 	}
 	return(j);
 }
-
-#include "truncsp.c"
 
 /****************************************************************************/
 /* Adds a new message to the message base									*/
@@ -333,7 +326,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		smb_freemsgdat(&smb,offset,length,1);
 		exit(1); 
 	}
-	msg.idx.subj=smb_subject_crc(str);
+	msg.idx.subj=subject_crc(str);
 
 	i=smb_dfield(&msg,TEXT_BODY,length);
 	if(i) {
@@ -353,9 +346,9 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 
 	i=smb_addmsghdr(&smb,&msg,smb.status.attr&SMB_HYPERALLOC);
 
-	if(i!=SMB_SUCCESS) {
+	if(i) {
 		fprintf(stderr,"\n\7!smb_addmsghdr returned %d: %s\n",i,smb.last_error);
-		smb_freemsg_dfields(&smb,&msg,1);
+		smb_freemsgdat(&smb,offset,length,1);
 		exit(1); 
 	}
 	smb_freemsgmem(&msg);
@@ -1066,7 +1059,7 @@ void packmsgs(ulong packable)
 		msg.idx.number=msg.hdr.number;
 		msg.idx.attr=msg.hdr.attr;
 		msg.idx.time=msg.hdr.when_imported.time;
-		msg.idx.subj=smb_subject_crc(msg.subj);
+		msg.idx.subj=subject_crc(msg.subj);
 		if(smb.status.attr&SMB_EMAIL) {
 			if(msg.to_ext)
 				msg.idx.to=atoi(msg.to_ext);
@@ -1254,13 +1247,16 @@ void readmsgs(ulong start)
 			printf("Subj : %s\n",msg.subj);
 			printf("To   : %s",msg.to);
 			if(msg.to_net.type)
-				printf(" (%s)",smb_netaddr(&msg.to_net));
+				printf(" (%s)",msg.to_net.type==NET_FIDO
+					? faddrtoa((fidoaddr_t *)msg.to_net.addr,NULL) : (char*)msg.to_net.addr);
 			printf("\nFrom : %s",msg.from);
 			if(msg.from_net.type)
-				printf(" (%s)",smb_netaddr(&msg.from_net));
+				printf(" (%s)",msg.from_net.type==NET_FIDO
+					? faddrtoa((fidoaddr_t *)msg.from_net.addr,NULL)
+						: (char*)msg.from_net.addr);
 			printf("\nDate : %.24s %s"
 				,my_timestr((time_t*)&msg.hdr.when_written.time)
-				,smb_zonestr(msg.hdr.when_written.zone,NULL));
+				,zonestr(msg.hdr.when_written.zone));
 
 			printf("\n\n");
 
@@ -1386,7 +1382,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.63 $", "%*s %s", revision);
+	sscanf("$Revision: 1.60 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1431,7 +1427,7 @@ int main(int argc, char **argv)
 						to="All";
 						from="Sysop";
 						from_number="1";
-						subj="Announcement";
+						subj="Anouncement";
 						break;
 					case 'Z':
 						tzone=str2tzone(argv[x]+j+1);

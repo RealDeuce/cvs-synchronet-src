@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.155 2004/09/08 22:07:14 deuce Exp $
+# $Id: GNUmakefile,v 1.145 2004/07/20 18:38:47 rswindell Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -22,8 +22,6 @@ endif
 
 UIFC_SRC =	../uifc/
 XPDEV	 =	../xpdev/
-SMBLIB_SRC	=	../smblib/
-NEED_SMBLIB	:=	1
 SBBS_SRC =	./
 
 NEED_JAVASCRIPT	:= 1
@@ -32,9 +30,6 @@ NEED_THREADS	:= 1
 include $(XPDEV)/Common.gmake
 include $(SBBS_SRC)/Common.gmake
 include $(UIFC_SRC)/Common.gmake
-include $(SMBLIB_SRC)/Common.gmake
-
-UTIL_LDFLAGS	+=	$(SMBLIB_LDFLAGS)
 
 ifeq ($(os),freebsd)
  BSD	=	1
@@ -87,9 +82,22 @@ SBBSLIB	=	-lsbbs
 $(SBBSLIB) : $(SBBS)
 	$(QUIET)touch -- '$(SBBSLIB)'
 
-PWD	:=	$(shell pwd)
-LD_RUN_PATH	:=	.;$(PWD)/$(LIBODIR);$(PWD)/$(JSLIBDIR);$(PWD)/$(NSPRDIR)
-export LD_RUN_PATH
+ifneq ($(os),darwin)
+ifneq ($(os),sunos)
+SBBSLDFLAGS	:=	$(LDFLAGS) -rpath-link ./$(LIBODIR) -rpath ./ 
+#LDFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
+LDFLAGS		+=	-Xlinker -rpath
+LDFLAGS		+=	-Xlinker .
+ifneq ($(os),openbsd)
+LDFLAGS		+=	-Xlinker -rpath-link
+LDFLAGS		+=	-Xlinker ./$(LIBODIR)
+LDFLAGS		+=	-Xlinker -rpath-link
+LDFLAGS		+=	-Xlinker $(JSLIBDIR)
+LDFLAGS		+=	-Xlinker -rpath-link
+LDFLAGS		+=	-Xlinker $(NSPRDIR)
+endif
+endif
+endif
 
 CON_OBJS	= $(LIBODIR)/sbbscon.o $(LIBODIR)/conwrap.o \
 		  $(LIBODIR)/sbbs_ini.o
@@ -103,6 +111,11 @@ SERVICE_OBJS	= $(LIBODIR)/services.o $(LIBODIR)/ini_file.o $(LIBODIR)/str_list.o
 
 MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(WEB_OBJS) \
 			$(MAIL_OBJS) $(SERVICE_OBJS)
+SMBLIB_OBJS = \
+	$(LIBODIR)/smblib.o \
+	$(LIBODIR)/filewrap.o \
+	$(LIBODIR)/crc16.o
+
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
@@ -124,49 +137,49 @@ FORCE$(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
 
 $(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $^ $(ADD_LIBS)
+	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $^
 
 # Synchronet BBS library Link Rule
 FORCE$(SBBS): $(OBJS) $(LIBS)
 
 $(SBBS): $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $^ $(SHLIBOPTS) $(ADD_LIBS)
+	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $^ $(SHLIBOPTS)
 
 # FTP Server Link Rule
 FORCE$(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 
 $(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@ $(ADD_LIBS)
+	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@ 
 
 # Mail Server Link Rule
 FORCE$(MAILSRVR): $(MAIL_OBJS) $(LIBODIR)$(SLASH)$(SBBSLIB)
 
 $(MAILSRVR): $(MAIL_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@ $(ADD_LIBS)
+	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@
 
 # Mail Server Link Rule
 FORCE$(WEBSRVR): $(WEB_OBJS) $(SBBSLIB)
 
 $(WEBSRVR): $(WEB_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@ $(ADD_LIBS)
+	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@
 
 # Services Link Rule
 FORCE$(SERVICES): $(WEB_OBJS) $(SBBSLIB)
 
 $(SERVICES): $(SERVICE_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@ $(ADD_LIBS)
+	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@
 
 # Synchronet Console Build Rule
 FORCE$(SBBSCON): $(CON_OBJS) $(SBBSLIB) $(FTP_OBJS) $(MAIL_OBJS) $(WEB_OBJS) $(SERVICE_OBJS)
 
 $(SBBSCON): $(CON_OBJS) $(SBBSLIB) $(FTPSRVR) $(WEBSRVR) $(MAILSRVR) $(SERVICES)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CFLAGS) $(LDFLAGS) $(CON_LDFLAGS) -o $@ $(CON_OBJS) $(SBBSLIB) $(ADD_LIBS)
+	$(QUIET)$(CC) $(CFLAGS) $(LDFLAGS) $(CON_LDFLAGS) -o $@ $(CON_OBJS) $(SBBSLIB)
 
 # Specifc Compile Rules
 $(LIBODIR)/ftpsrvr.o: ftpsrvr.c ftpsrvr.h $(BUILD_DEPENDS)
@@ -209,7 +222,7 @@ FORCE$(BAJA): $(BAJA_OBJS)
 
 $(BAJA): $(BAJA_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # Node Utility
 NODE_OBJS = \
@@ -220,54 +233,59 @@ FORCE$(NODE): $(NODE_OBJS)
 
 $(NODE): $(NODE_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ 
 
 # FIXSMB Utility
 FIXSMB_OBJS = \
-	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/fixsmb.o \
+	$(SMBLIB_OBJS) \
 	$(LIBODIR)/genwrap.o \
 	$(LIBODIR)/dirwrap.o \
-	$(LIBODIR)/str_list.o \
 	$(LIBODIR)/str_util.o
 FORCE$(FIXSMB): $(FIXSMB_OBJS)
 	
 $(FIXSMB): $(FIXSMB_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # CHKSMB Utility
 CHKSMB_OBJS = \
 	$(LIBODIR)/chksmb.o \
+	$(SMBLIB_OBJS) \
 	$(LIBODIR)/smbdump.o \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
-	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/genwrap.o
 FORCE$(CHKSMB): $(CHKSMB_OBJS)
 
 $(CHKSMB): $(CHKSMB_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # SMB Utility
 SMBUTIL_OBJS = \
 	$(LIBODIR)/smbutil.o \
+	$(SMBLIB_OBJS) \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
-	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(LIBODIR)/smbtxt.o \
+	$(LIBODIR)/smbdump.o \
+	$(LIBODIR)/crc32.o \
+	$(LIBODIR)/lzh.o \
+	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/str_util.o
 FORCE$(SMBUTIL): $(SMBUTIL_OBJS)
 	
 $(SMBUTIL): $(SMBUTIL_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # SBBSecho (FidoNet Packet Tosser)
 SBBSECHO_OBJS = \
 	$(LIBODIR)/sbbsecho.o \
 	$(LIBODIR)/ars.o \
+	$(LIBODIR)/crc32.o \
 	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/load_cfg.o \
 	$(LIBODIR)/scfglib1.o \
@@ -278,17 +296,17 @@ SBBSECHO_OBJS = \
 	$(LIBODIR)/userdat.o \
 	$(LIBODIR)/rechocfg.o \
 	$(LIBODIR)/conwrap.o \
-	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
-	$(LIBODIR)/msg_id.o \
-	$(SMB_OBJS)
+	$(SMBLIB_OBJS) \
+	$(LIBODIR)/smbtxt.o \
+	$(LIBODIR)/lzh.o
 
 FORCE$(SBBSECHO): $(SBBSECHO_OBJS)
 
 $(SBBSECHO): $(SBBSECHO_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # SBBSecho Configuration Program
 ECHOCFG_OBJS = \
@@ -307,7 +325,7 @@ FORCE$(ECHOCFG): $(ECHOCFG_OBJS)
 
 $(ECHOCFG): $(ECHOCFG_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(UIFC_LDFLAGS) $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(UIFC_LDFLAGS)
 
 # ADDFILES
 ADDFILES_OBJS = \
@@ -322,15 +340,15 @@ ADDFILES_OBJS = \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/userdat.o \
 	$(LIBODIR)/filedat.o \
-	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(SMBLIB_OBJS)
 
 FORCE$(ADDFILES): $(ADDFILES_OBJS)
 
 $(ADDFILES): $(ADDFILES_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # FILELIST
 FILELIST_OBJS = \
@@ -344,15 +362,15 @@ FILELIST_OBJS = \
 	$(LIBODIR)/str_util.o \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/filedat.o \
-	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(SMBLIB_OBJS)
 
 FORCE$(FILELIST): $(FILELIST_OBJS)
 
 $(FILELIST): $(FILELIST_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # MAKEUSER
 MAKEUSER_OBJS = \
@@ -366,15 +384,15 @@ MAKEUSER_OBJS = \
 	$(LIBODIR)/str_util.o \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/userdat.o \
-	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(SMBLIB_OBJS)
 
 FORCE$(MAKEUSER): $(MAKEUSER_OBJS)
 
 $(MAKEUSER): $(MAKEUSER_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # JSEXEC
 JSEXEC_OBJS = \
@@ -385,23 +403,20 @@ FORCE$(JSEXEC): $(JSEXEC_OBJS)
 
 $(JSEXEC): $(JSEXEC_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CXX) $(UTIL_LDFLAGS) -o $@ $^ $(LDFLAGS) $(ADD_LIBS)
+	$(QUIET)$(CXX) $(UTIL_LDFLAGS) -o $@ $^ $(LDFLAGS)
 	
 # ANS2ASC
 FORCE$(ANS2ASC): $(LIBODIR)/ans2asc.o
 
 $(ANS2ASC): $(LIBODIR)/ans2asc.o
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 # ASC2ANS
 FORCE$(ASC2ANS): $(LIBODIR)/asc2ans.o
 
 $(ASC2ANS): $(LIBODIR)/asc2ans.o
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
 
 FORCE:
-
-SMBLIB:	$(SMBLIB_TARGET)
-
