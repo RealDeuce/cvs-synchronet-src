@@ -2,13 +2,13 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.42 2003/02/19 20:42:56 rswindell Exp $ */
+/* $Id: scfg.c,v 1.43 2003/02/28 10:49:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	BOOL	gui_mode=FALSE;
 	BOOL    door_mode=FALSE;
 
-    printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2002 "
+    printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2003 "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION);
 
     memset(&uifc,0,sizeof(uifc));
