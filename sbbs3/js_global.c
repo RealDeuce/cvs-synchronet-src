@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.126 2004/11/11 03:46:12 rswindell Exp $ */
+/* $Id: js_global.c,v 1.127 2004/11/17 21:04:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2394,7 +2394,12 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"optionally specifying a target <i>scope</i> object (default: <i>this</i>) "
 		"and a list of arguments to pass to the module (as <i>argv</i>), "
 		"returns the result of the script execution "
-		"or a newly created <i>Queue</i> object if <i>background</i> is <i>true</i>)")
+		"or a newly created <i>Queue</i> object if <i>background</i> is <i>true</i>)<br>"
+		"<b>Background</b>:<br>"
+		"If <i>background</i> is <i>true</i>, the loaded script can communicate with the parent "
+		"script by writing to the <i>parent_queue</i> or the result of last executed statemement "
+		"of the script will automatically be written to the <i>Queue</i> to be read later by the "
+		"parent script.")
 	,311
 	},		
 	{"sleep",			js_mswait,			0,	JSTYPE_ALIAS },
