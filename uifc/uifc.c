@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.11 2002/01/29 00:58:39 rswindell Exp $ */
+/* $Id: uifc.c,v 1.12 2002/01/29 23:10:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 
 #include "uifc.h"
 #include <share.h>
+#include <conio.h>
 
 #if defined(__OS2__)
 
