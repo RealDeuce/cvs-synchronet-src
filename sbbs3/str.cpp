@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.24 2001/10/02 19:48:43 rswindell Exp $ */
+/* $Id: str.cpp,v 1.25 2001/11/02 00:19:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,10 +71,10 @@ void sbbs_t::userlist(char mode)
 	char	name[256],sort=0;
 	char 	tmp[512];
 	int		i,j,k,users=0;
-	char *	line[1000];
+	char *	line[2500];
 	user_t	user;
 
-	if(lastuser(&cfg)<=1000)
+	if(lastuser(&cfg)<=(sizeof(line)/sizeof(line[0])))
 		sort=yesno(text[SortAlphaQ]);
 	if(sort) {
 		bputs(text[CheckingSlots]); }
