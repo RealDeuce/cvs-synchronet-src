@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.10 2001/03/09 21:56:12 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.11 2001/04/04 21:17:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,6 +72,13 @@ void sbbs_t::ver()
 	sprintf(str,"%s - http://www.synchro.net", COPYRIGHT_NOTICE);
 	center(str);
 	CRLF;
+
+#ifdef JAVASCRIPT
+
+	center((char *)JS_GetImplementationVersion());
+	CRLF;
+
+#endif
 
 #if defined(_WINSOCKAPI_)
 
