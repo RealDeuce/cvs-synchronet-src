@@ -1,20 +1,20 @@
 object WebForm: TWebForm
-  Left = 548
-  Top = 684
+  Left = 578
+  Top = 571
   Width = 462
   Height = 229
   Caption = 'Web Server'
   Color = clBtnFace
-  DragKind = dkDock
-  DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -14
+  Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  PixelsPerInch = 120
-  TextHeight = 16
+  OnHide = FormHide
+  OnShow = FormShow
+  PixelsPerInch = 96
+  TextHeight = 13
   object ToolBar: TToolBar
     Left = 0
     Top = 0
@@ -30,7 +30,7 @@ object WebForm: TWebForm
     object StartButton: TToolButton
       Left = 0
       Top = 0
-      Action = MainForm.WebStart
+      Action = MainForm.TelnetStart
       Grouped = True
       ParentShowHint = False
       ShowHint = True
@@ -38,7 +38,7 @@ object WebForm: TWebForm
     object StopButton: TToolButton
       Left = 23
       Top = 0
-      Action = MainForm.WebStop
+      Action = MainForm.TelnetStop
       Grouped = True
       ParentShowHint = False
       ShowHint = True
@@ -46,7 +46,7 @@ object WebForm: TWebForm
     object RecycleButton: TToolButton
       Left = 46
       Top = 0
-      Action = MainForm.WebRecycle
+      Action = MainForm.TelnetRecycle
     end
     object ToolButton1: TToolButton
       Left = 69
@@ -59,7 +59,7 @@ object WebForm: TWebForm
     object ConfigureButton: TToolButton
       Left = 77
       Top = 0
-      Action = MainForm.WebConfigure
+      Action = MainForm.TelnetConfigure
       ParentShowHint = False
       ShowHint = True
     end
@@ -108,7 +108,7 @@ object WebForm: TWebForm
     Left = 0
     Top = 25
     Width = 454
-    Height = 171
+    Height = 176
     Align = alClient
     ReadOnly = True
     ScrollBars = ssBoth

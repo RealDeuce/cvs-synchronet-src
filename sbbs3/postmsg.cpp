@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.60 2004/10/21 08:58:25 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.59 2004/09/08 03:41:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -466,7 +466,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 		if(smb->subnum==INVALID_SUB) {
 			smb->status.max_crcs=cfg->mail_maxcrcs;
 			smb->status.max_age=cfg->mail_maxage;
-			smb->status.max_msgs=0;
+			smb->status.max_msgs=MAX_SYSMAIL;
 			smb->status.attr=SMB_EMAIL;
 		} else {
 			smb->status.max_crcs=cfg->sub[smb->subnum]->maxcrcs;
