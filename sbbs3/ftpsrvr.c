@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.279 2004/11/08 02:17:18 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.284 2004/12/17 01:51:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +58,7 @@
 #include <sys/stat.h>		/* S_IWRITE */
 
 /* Synchronet-specific headers */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "text.h"			/* TOTAL_TEXT */
 #include "ftpsrvr.h"
@@ -254,7 +255,7 @@ static int ftp_close_socket(SOCKET* sock, int line)
 	shutdown(*sock,SHUT_RDWR);	/* required on Unix */
 
 	result=closesocket(*sock);
-	if(result==0 && startup!=NULL && startup->socket_open!=NULL) 
+	if(startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
 
 	sockets--;
@@ -507,33 +508,8 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 			,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
 			break;
 
-#if 0
-		char		ver[256];
-		JSObject*	server;
-		JSString*	js_str;
-		jsval		val;
-
-		if((server=JS_DefineObject(js_cx, js_glob, "server", NULL
-			,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
-			break;
-
-		sprintf(ver,"%s %s",FTP_SERVER,revision);
-		if((js_str=JS_NewStringCopyZ(js_cx, ver))==NULL)
-			break;
-		val = STRING_TO_JSVAL(js_str);
-		if(!JS_SetProperty(js_cx, server, "version", &val))
-			break;
-
-		if((js_str=JS_NewStringCopyZ(js_cx, ftp_ver()))==NULL)
-			break;
-		val = STRING_TO_JSVAL(js_str);
-		if(!JS_SetProperty(js_cx, server, "version_detail", &val))
-			break;
-
-#else
 		if(js_CreateServerObject(js_cx,js_glob,&js_server_props)==NULL)
 			break;
-#endif
 
 		if(glob!=NULL)
 			*glob=js_glob;
@@ -2762,7 +2738,8 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 
-		getuserdat(&scfg, &user);	/* get current user data */
+		if(!(user.rest&FLAG('G')))
+			getuserdat(&scfg, &user);	/* get current user data */
 
 		if((timeleft=gettimeleft(&scfg,&user,logintime))<1L) {
 			sockprintf(sock,"421 Sorry, you've run out of time.");
@@ -3870,6 +3847,10 @@ static void ctrl_thread(void* arg)
 						}
 					}
 				}
+
+				js_val=BOOLEAN_TO_JSVAL(INT_TO_BOOL(user.misc&EXTDESC));
+				JS_SetProperty(js_cx, js_ftp, "extended_descriptions", &js_val);
+
 #endif
 				if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
 					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
@@ -4470,7 +4451,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.279 $", "%*s %s", revision);
+	sscanf("$Revision: 1.284 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4746,11 +4727,11 @@ void DLLCALL ftp_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"0000 FTP Server listening interrupted");
+					lprintf(LOG_NOTICE,"%04d FTP Server listening interrupted", server_socket);
 				else if(ERROR_VALUE == ENOTSOCK)
-            		lprintf(LOG_NOTICE,"0000 FTP Server sockets closed");
+            		lprintf(LOG_NOTICE,"%04d FTP Server sockets closed", server_socket);
 				else
-					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
+					lprintf(LOG_WARNING,"%04d !ERROR %d selecting sockets",server_socket, ERROR_VALUE);
 				continue;
 			}
 
@@ -4763,11 +4744,19 @@ void DLLCALL ftp_server(void* arg)
 
 			if(client_socket == INVALID_SOCKET)
 			{
-				if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) 
+#if 0	/* is this necessary still? */
+				if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
             		lprintf(LOG_NOTICE,"0000 FTP socket closed while listening");
-				else
-					lprintf(LOG_WARNING,"0000 !ERROR %d accepting connection", ERROR_VALUE);
-				break;
+					break;
+				}
+#endif
+				lprintf(LOG_WARNING,"%04d !ERROR %d accepting connection"
+					,server_socket, ERROR_VALUE);
+#ifdef _WIN32
+				if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
+					break;
+#endif
+				continue;
 			}
 			if(startup->socket_open!=NULL)
 				startup->socket_open(startup->cbdata,TRUE);
@@ -4808,29 +4797,31 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_DEBUG,"0000 terminate_server: %d",terminate_server);
 #endif
 		if(active_clients) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d active clients to disconnect...", active_clients);
+			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
+				,server_socket, active_clients);
 			start=time(NULL);
 			while(active_clients) {
-				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"0000 !TIMEOUT waiting for %d active clients", active_clients);
+				if(time(NULL)-start>startup->max_inactivity) {
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
+						,server_socket, active_clients);
 					break;
 				}
 				mswait(100);
 			}
-			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
 		if(thread_count>1) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d threads to terminate...", thread_count-1);
+			lprintf(LOG_DEBUG,"%04d Waiting for %d threads to terminate..."
+				,server_socket, thread_count-1);
 			start=time(NULL);
 			while(thread_count>1) {
 				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"0000 !TIMEOUT waiting for %d threads",thread_count-1);
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d threads"
+						,server_socket, thread_count-1);
 					break;
 				}
 				mswait(100);
 			}
-			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
 		cleanup(0,__LINE__);
