@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.10 2001/07/29 18:44:22 rswindell Exp $ */
+/* $Id: startup.h,v 1.11 2001/08/05 14:43:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@ typedef struct {
     DWORD   telnet_interface;
     DWORD	options;			// See BBS_OPT definitions
     DWORD	rlogin_interface;
-    DWORD	reserved_dword7;
+    DWORD	xtrn_polls_before_yield;
     DWORD	reserved_dword6;
     RingBuf** node_spybuf;		// Spy output buffer (each node)
     RingBuf** node_inbuf;		// User input buffer (each node)

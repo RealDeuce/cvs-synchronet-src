@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.50 2001/08/04 01:33:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.51 2001/08/05 14:43:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2963,8 +2963,9 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 	/* Setup intelligent defaults */
-	if(startup->telnet_port==0)		startup->telnet_port=IPPORT_TELNET;
-	if(startup->rlogin_port==0)		startup->rlogin_port=513;
+	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
+	if(startup->rlogin_port==0)				startup->rlogin_port=513;
+	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
 
 	thread_up();
 
