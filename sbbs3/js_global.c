@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.26 2002/08/30 22:54:03 rswindell Exp $ */
+/* $Id: js_global.c,v 1.27 2002/09/04 03:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -707,7 +707,7 @@ static JSClass js_global_class = {
 	,JS_FinalizeStub		/* finalize		*/
 };
 
-static JSFunctionSpec js_global_functions[] = {
+static jsMethodSpec js_global_functions[] = {
 	{"exit",			js_exit,			0},		/* stop execution */
 	{"load",            js_load,            1},		/* Load and execute a javascript file */
 	{"format",			js_format,			1},		/* return a formatted string (ala printf) */
