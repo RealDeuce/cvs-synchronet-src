@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.26 2003/01/14 21:49:19 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.27 2003/02/15 08:16:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -494,7 +494,7 @@ void sbbs_t::useredit(int usernumber)
 				if(!noyes(text[UeditCopyUserQ])) {
 					bputs(text[UeditCopyUserToSlot]);
 					i=getnum(lastuser(&cfg));
-					if(i>0) {
+					if((int)i>0) {
 						user.number=i;
 						putusername(&cfg,user.number,user.alias);
 						putuserdat(&cfg,&user); } }
