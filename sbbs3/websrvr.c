@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.276 2005/03/08 17:02:23 deuce Exp $ */
+/* $Id: websrvr.c,v 1.277 2005/03/09 22:57:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2444,7 +2444,7 @@ static JSBool
 js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     uintN		i;
-    JSString *	str;
+    JSString*	str=NULL;
 	http_session_t* session;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
@@ -2478,6 +2478,11 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		else
 			fwrite(JS_GetStringBytes(str),1,JS_GetStringLength(str),session->req.fp);
 	}
+
+	if(str==NULL)
+		*rval = JSVAL_VOID;
+	else
+		*rval = STRING_TO_JSVAL(str);
 
 	return(JS_TRUE);
 }
@@ -2753,7 +2758,6 @@ static BOOL ssjs_send_headers(http_session_t* session)
 static BOOL exec_ssjs(http_session_t* session, char *script)  {
 	JSScript*	js_script;
 	jsval		rval;
-	jsval		val;
 	char		path[MAX_PATH+1];
 	BOOL		retval=TRUE;
 
@@ -3051,7 +3055,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.276 $", "%*s %s", revision);
+	sscanf("$Revision: 1.277 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
