@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.79 2002/10/13 06:33:06 rswindell Exp $ */
+/* $Id: services.c,v 1.80 2002/10/13 11:07:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1155,7 +1155,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.79 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.80 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1454,6 +1454,10 @@ void DLLCALL services_thread(void* arg)
 
 			/* Determine who services this socket */
 			for(i=0;i<(int)services;i++) {
+
+				if(service[i].socket==INVALID_SOCKET)
+					continue;
+
 				if(!FD_ISSET(service[i].socket,&socket_set))
 					continue;
 
