@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.87 2003/03/20 18:44:28 deuce Exp $ */
+/* $Id: websrvr.c,v 1.88 2003/03/29 04:48:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -850,6 +850,8 @@ static BOOL check_ars(http_session_t * session)
 	}
 
 	username=strtok(session->req.auth,":");
+	if(username==NULL)
+		username="";
 	password=strtok(NULL,":");
 	/* Require a password */
 	if(password==NULL)
@@ -2371,7 +2373,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.87 $", "%*s %s", revision);
+	sscanf("$Revision: 1.88 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
