@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.160 2004/11/17 21:10:05 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.156 2004/09/16 09:45:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1074,11 +1074,11 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 		if(option==1 && !strcmp(tmp,"AREAFIX")) {       /* Change Password */
 			if(!*p)
 				continue;
-			taddr=smb_atofaddr(&sys_faddr,p);
+			taddr=atofaddr(p);
 			if(!memcmp(&cfg.nodecfg[i].faddr,&taddr,sizeof(faddr_t))) {
-				FIND_WHITESPACE(p); /* Skip over address */
+				FIND_WHITESPACE(p); 	/* Skip over address */
 				SKIP_WHITESPACE(p);	/* Skip over whitespace */
-				FIND_WHITESPACE(p); /* Skip over password */
+				FIND_WHITESPACE(p); 	/* Skip over password */
 				SKIP_WHITESPACE(p);	/* Skip over whitespace */
 				fprintf(outfile,"%-10s %s %s %s\n",tmp
 					,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL),new,p);
@@ -2261,12 +2261,12 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 				,*p,str[128];
 	char	msg_id[256];
 	BOOL	done,esc,cr;
-	int 	i,storage=SMB_SELFPACK;
+	int 	i,storage;
 	uint	col;
-	ushort	xlat=XLAT_NONE,net;
+	ushort	xlat,net;
 	ulong	l,m,length,bodylen,taillen,crc;
 	ulong	save;
-	long	dupechk_hashes=SMB_HASH_SOURCE_ALL;
+	long	dupechk_hashes;
 	faddr_t faddr,origaddr,destaddr;
 	smb_t*	smbfile;
 	char	fname[MAX_PATH+1];
@@ -2541,6 +2541,11 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		smbfile->status.max_crcs = scfg.mail_maxcrcs;
 		if(scfg.sys_misc&SM_FASTMAIL)
 			storage= SMB_FASTALLOC;
+		else
+			storage = SMB_SELFPACK;
+		if(smbfile->status.max_crcs)
+			dupechk_hashes=SMB_HASH_SOURCE_BODY;
+		xlat=XLAT_NONE;
 	} else {
 		smbfile=&smb[cur_smb];
 		smbfile->status.max_age	 = scfg.sub[subnum]->maxage;
@@ -2550,11 +2555,16 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 			storage = smb->status.attr = SMB_HYPERALLOC;
 		else if(scfg.sub[subnum]->misc&SUB_FAST)
 			storage = SMB_FASTALLOC;
+		else
+			storage = SMB_SELFPACK;
+		dupechk_hashes=SMB_HASH_SOURCE_FTN_ID;
+		if(smbfile->status.max_crcs)
+			dupechk_hashes|=SMB_HASH_SOURCE_BODY;
 		if(scfg.sub[subnum]->misc&SUB_LZH)
 			xlat=XLAT_LZH;
+		else
+			xlat=XLAT_NONE;
 	}
-	if(smbfile->status.max_crcs==0)
-		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
 
 	i=smb_addmsg(smbfile, &msg, storage, dupechk_hashes, xlat, sbody, stail);
 
@@ -3376,7 +3386,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 
 	if(!filelength(fileno(email->shd_fp))) {
 		email->status.max_crcs=scfg.mail_maxcrcs;
-		email->status.max_msgs=0;
+		email->status.max_msgs=MAX_SYSMAIL;
 		email->status.max_age=scfg.mail_maxage;
 		email->status.attr=SMB_EMAIL;
 		if((i=smb_create(email))!=SMB_SUCCESS) {
@@ -3653,15 +3663,13 @@ void export_echomail(char *sub_code,faddr_t addr)
 						continue; } }
 
 				if((!addr.zone && !(misc&EXPORT_ALL)
-					&& (msg.from_net.type==NET_FIDO || msg.from_net.type==NET_FIDO_ASCII))
+					&& msg.from_net.type==NET_FIDO)
 					|| !strnicmp(msg.subj,"NE:",3)) {   /* no echo */
 					smb_unlockmsghdr(&smb[cur_smb],&msg);
 					smb_freemsgmem(&msg);
 					continue; }  /* From a Fido node, ignore it */
 
-				if(msg.from_net.type!=NET_NONE 
-					&& msg.from_net.type!=NET_FIDO
-					&& msg.from_net.type!=NET_FIDO_ASCII
+				if(msg.from_net.type && msg.from_net.type!=NET_FIDO
 					&& !(scfg.sub[i]->misc&SUB_GATE)) {
 					smb_unlockmsghdr(&smb[cur_smb],&msg);
 					smb_freemsgmem(&msg);
@@ -3688,7 +3696,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 				SAFECOPY(hdr.subj,msg.subj);
 
-				buf=smb_getmsgtxt(&smb[cur_smb],&msg,GETMSGTXT_ALL);
+				buf=smb_getmsgtxt(&smb[cur_smb],&msg,GETMSGTXT_TAILS);
 				if(!buf) {
 					smb_unlockmsghdr(&smb[cur_smb],&msg);
 					smb_freemsgmem(&msg);
@@ -3944,7 +3952,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.160 $", "%*s %s", revision);
+	sscanf("$Revision: 1.156 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

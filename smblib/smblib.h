@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.59 2004/10/27 21:15:35 rswindell Exp $ */
+/* $Id: smblib.h,v 1.57 2004/10/15 09:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,6 @@
 #define GETMSGTXT_NO_BODY	(1<<1)		/* Do not retrieve message body		*/
 #define GETMSGTXT_BODY_ONLY	0
 #define GETMSGTXT_TAIL_ONLY (GETMSGTXT_TAILS|GETMSGTXT_NO_BODY)
-#define GETMSGTXT_ALL		GETMSGTXT_TAILS
 
 #define SMB_IS_OPEN(smb)	((smb)->shd_fp!=NULL)
 
@@ -126,15 +125,11 @@ SMBEXPORT int 		SMBCALL smb_lockmsghdr(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 		SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 		SMBCALL smb_unlockmsghdr(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 		SMBCALL smb_addcrc(smb_t* smb, ulong crc);
-
 SMBEXPORT int 		SMBCALL smb_hfield(smbmsg_t* msg, ushort type, size_t length, void* data);
 SMBEXPORT int		SMBCALL smb_hfield_str(smbmsg_t* msg, ushort type, const char* str);
 SMBEXPORT int		SMBCALL smb_hfield_append(smbmsg_t* msg, ushort type, size_t length, void* data);
 SMBEXPORT int		SMBCALL smb_hfield_append_str(smbmsg_t* msg, ushort type, const char* data);
 SMBEXPORT int		SMBCALL smb_hfield_addlist(smbmsg_t* msg, hfield_t** hfield_list, void** hfield_dat);
-SMBEXPORT int		SMBCALL smb_hfield_netaddr(smbmsg_t* msg, ushort type, const char* str, ushort* nettype);
-#define smb_hfield_bin(msg, type, data) smb_hfield(msg, type, sizeof(data), &(data))
-
 SMBEXPORT int 		SMBCALL smb_dfield(smbmsg_t* msg, ushort type, ulong length);
 SMBEXPORT void*		SMBCALL smb_get_hfield(smbmsg_t* msg, ushort type, hfield_t* hfield);
 SMBEXPORT int 		SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage);
@@ -214,7 +209,6 @@ SMBEXPORT ushort	SMBCALL smb_netaddr_type(const char* str);
 SMBEXPORT char*		SMBCALL smb_zonestr(short zone, char* outstr);
 SMBEXPORT char*		SMBCALL smb_hashsource(smbmsg_t* msg, int source);
 SMBEXPORT char*		SMBCALL smb_hashsourcetype(uchar type);
-SMBEXPORT fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str);
 
 /* smbdump.c */
 SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
