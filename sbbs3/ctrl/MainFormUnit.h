@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.43 2002/11/05 10:47:35 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.44 2002/11/13 07:57:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,6 +346,7 @@ public:		// User declarations
     AnsiString      LoginCommand;
     AnsiString      ConfigCommand;
     AnsiString		Password;
+    DWORD			JS_MaxBytes;
     bool            MinimizeToSysTray;
     bool            UndockableForms;
     scfg_t		    cfg;
