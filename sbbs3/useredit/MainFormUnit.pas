@@ -1,6 +1,6 @@
 { Synchronet User Editor (Delphi 5 for Win32 project) }
 
-{ $Id: MainFormUnit.pas,v 1.5 2000/12/13 02:24:08 rswindell Exp $ }
+{ $Id: MainFormUnit.pas,v 1.6 2001/09/17 01:43:47 rswindell Exp $ }
 
 {****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -721,7 +721,11 @@ procedure PutDateField(buf : PChar; str : AnsiString);
 var val: Integer;
 begin
     { convert to days since 1970 }
-    val:=Round(StrToDate(str)-EncodeDate(1970,1,1));
+    try
+        val:=Round(StrToDate(str)-EncodeDate(1970,1,1));
+    except
+        val:=0;
+    end;
     if val < 0 then val:=0;
     { convert from days to seconds }
     val:=val*(24*60*60);
