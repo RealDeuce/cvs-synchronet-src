@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.94 2004/12/04 09:56:28 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.95 2004/12/23 22:28:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,10 +62,13 @@ static const char*	strBindRetryDelay="BindRetryDelay";
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
-    char host_name[128];
-    char path[MAX_PATH+1];
+    char	host_name[128];
+    char	path[MAX_PATH+1];
+	char*	p;
 
-    if(pHostName==NULL) {
+    if(pHostName!=NULL)
+		SAFECOPY(host_name,pHostName);
+	else {
 #if defined(_WINSOCKAPI_)
         WSADATA WSAData;
         WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */
@@ -74,17 +77,24 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 #if defined(_WINSOCKAPI_)
         WSACleanup();
 #endif
-        pHostName=host_name;
     }
 	SAFECOPY(path,ctrl_dir);
 	backslash(path);
-	sprintf(ini_file,"%s%s.ini",path,pHostName);
+	sprintf(ini_file,"%s%s.ini",path,host_name);
+	if(fexistcase(ini_file))
+		return;
+	if((p=strchr(host_name,'.'))!=NULL) {
+		*p=0;
+		sprintf(ini_file,"%s%s.ini",path,host_name);
+		if(fexistcase(ini_file))
+			return;
+	}
 #if defined(__unix__) && defined(PREFIX)
-	if(!fexistcase(ini_file))
-		sprintf(ini_file,PREFIX"/etc/sbbs.ini");
+	sprintf(ini_file,PREFIX"/etc/sbbs.ini");
+	if(fexistcase(ini_file))
+		return;
 #endif
-	if(!fexistcase(ini_file))
-		sprintf(ini_file,"%ssbbs.ini",path);
+	sprintf(ini_file,"%ssbbs.ini",path);
 }
 
 static void read_ini_globals(FILE* fp, global_startup_t* global)
