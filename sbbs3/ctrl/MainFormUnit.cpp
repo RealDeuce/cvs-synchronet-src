@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.3 2000/10/24 22:19:49 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.4 2000/10/25 09:15:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1579,18 +1579,6 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
     AnsiString Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[4]->Text=Str;
-
-    /* Memory allocated for this process */
-    MEMORYSTATUS memstat;
-
-    memstat.dwLength=sizeof(memstat);
-    GlobalMemoryStatus(&memstat);
-
-    sprintf(str,"Memory Used: %ld"
-        ,memstat.dwTotalVirtual-memstat.dwAvailVirtual);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[5]->Text=Str;
 }
 //---------------------------------------------------------------------------
 
