@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.197 2002/12/12 02:32:30 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.198 2003/01/02 00:58:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2502,6 +2502,7 @@ static void ctrl_thread(void* arg)
 				sockprintf(sock,"331 User name okay, give your full e-mail address as password.");
 			else
 				sockprintf(sock,"331 User name okay, need password.");
+			user.number=0;
 			continue;
 		}
 		if(!strnicmp(cmd, "PASS ",5) && user.alias[0]) {
@@ -4324,7 +4325,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.197 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.198 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
