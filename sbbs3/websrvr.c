@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.210 2004/11/15 20:41:15 deuce Exp $ */
+/* $Id: websrvr.c,v 1.211 2004/11/15 22:47:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2839,7 +2839,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.210 $", "%*s %s", revision);
+	sscanf("$Revision: 1.211 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3238,12 +3238,8 @@ void DLLCALL web_server(void* arg)
 			}
 
 			if(client_socket == INVALID_SOCKET)	{
-				if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
-            		lprintf(LOG_INFO,"Web Server socket closed");
-					break;
-				}
 				lprintf(LOG_WARNING,"!ERROR %d accepting connection", ERROR_VALUE);
-				break;
+				continue;
 			}
 
 			SAFECOPY(host_ip,inet_ntoa(client_addr.sin_addr));
