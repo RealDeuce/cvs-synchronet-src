@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.13 2003/04/29 22:54:56 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.14 2003/04/29 23:25:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,6 @@
 	#ifdef __QNX__
 		#include <share.h>
 		#define L_SET	SEEK_SET
-		#define sopen(x,y,z)	qnx_sopen(x,y,z)	/* Stupid macro trick */
 	#else
 		#define O_TEXT		0		/* all files in binary mode on Unix */
 		#define O_BINARY	0		/* all files in binary mode on Unix */
@@ -113,15 +112,13 @@
 extern "C" {
 #endif
 
-#if !defined(__BORLANDC__) && !defined(__QNX__)
-	DLLEXPORT int	DLLCALL	lock(int fd, long pos, int len);
-	DLLEXPORT int	DLLCALL unlock(int fd, long pos, int len);
+#if !defined(__BORLANDC__)
+	DLLEXPORT int	DLLCALL	lock(int fd, long pos, long len);
+	DLLEXPORT int	DLLCALL unlock(int fd, long pos, long len);
 #endif
 
 #if !defined(__BORLANDC__) && defined(__unix__)
-#if !defined(__QNX__)
 	DLLEXPORT int	DLLCALL sopen(const char* fn, int access, int share, ...);
-#endif
 	DLLEXPORT long	DLLCALL filelength(int fd);
 #endif
 
