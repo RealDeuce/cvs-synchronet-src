@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.76 2001/11/01 03:21:05 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.77 2001/11/01 03:23:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1555,7 +1555,7 @@ static void smtp_thread(void* arg)
 				p=buf+8;
 				while(*p && *p<=' ') p++;
 				if(trashcan(&scfg,p,"subject")) {
-					lprintf("%04d !SMTP ILLEGAL SUBJECT '%s' from %s [%s]"
+					lprintf("%04d !SMTP ILLEGAL SUBJECT '%s' from %s"
 						,socket, p, reverse_path);
 					sprintf(tmp,"Blocked subject '%s' from %s"
 						,p, reverse_path);
