@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.23 2003/04/01 09:43:00 rswindell Exp $
+# $Id: Makefile,v 1.24 2003/04/02 02:03:40 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -228,5 +228,15 @@ $(MAKEUSER): makeuser.c \
 	$(LIBODIR)\load_cfg.obj \
 	$(LIBODIR)\scfglib1.obj \
 	$(LIBODIR)\scfglib2.obj
+	@echo Creating $@
+	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
+
+# ANS2MSG
+$(ANS2MSG): ans2msg.c
+	@echo Creating $@
+	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
+
+# MSG2MSG
+$(MSG2ANS): msg2ans.c
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
