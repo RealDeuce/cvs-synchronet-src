@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.8 2002/07/21 05:23:14 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.9 2002/07/21 06:04:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +69,7 @@
 #include <stdlib.h>		/* rand */
 #include <errno.h>		/* ENOENT definitions */
 
+#include "genwrap.h"	/* strupr/strlwr */
 #include "dirwrap.h"	/* DLLCALL */
 
 /****************************************************************************/
