@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.37 2003/05/16 02:37:34 deuce Exp $ */
+/* $Id: umonitor.c,v 1.38 2003/05/16 09:30:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,7 @@
 #include "sbbs.h"
 #include "conwrap.h"	/* this has to go BEFORE curses.h so getkey() can be macroed around */
 #include <curses.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #ifdef __QNX__
@@ -270,7 +271,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -381,6 +382,8 @@ int main(int argc, char** argv)  {
         			exit(0);
            }
     }
+
+	signal(SIGPIPE, SIG_IGN);   
 
 	uifc.size=sizeof(uifc);
 	i=uifcinic(&uifc);  /* curses */
