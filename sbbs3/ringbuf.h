@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.9 2005/01/13 11:28:24 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.11 2005/01/15 04:46:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,9 @@
 #ifdef RINGBUF_SEM
 	#include "semwrap.h"	/* sem_t */
 #endif
+#ifdef RINGBUF_EVENT
+	#include "eventwrap.h"	/* xpevent_t */
+#endif
 #ifdef RINGBUF_MUTEX
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
@@ -83,9 +86,11 @@ typedef struct {
     DWORD	size;
 #ifdef RINGBUF_SEM
 	sem_t	sem;			/* semaphore used to signal data waiting */
-	sem_t	empty_sem;		/* semaphore used to signal empty buffer */
 	sem_t	highwater_sem;	/* semaphore used to signal highwater mark reached */
 	DWORD	highwater_mark;
+#endif
+#ifdef RINGBUF_EVENT
+	xpevent_t empty_event;
 #endif
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_t mutex;	/* mutex used to protect ring buffer pointers */
