@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.7 2000/10/29 00:54:15 rswindell Exp $ */
+/* $Id: misc.c,v 1.8 2000/10/30 08:44:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,9 @@ void backslash(char *str)
 
 	i=strlen(str);
 	if(i && str[i-1]!='\\' && str[i-1]!='/') {
-		str[i]='\\'; str[i+1]=0; }
+		str[i]=BACKSLASH; 
+		str[i+1]=0; 
+	}
 }
 
 /****************************************************************************/
@@ -167,7 +169,9 @@ void backslashcolon(char *str)
 
 	i=strlen(str);
 	if(i && str[i-1]!='\\' && str[i-1]!='/' && str[i-1]!=':') {
-		str[i]='\\'; str[i+1]=0; }
+		str[i]=BACKSLASH; 
+		str[i+1]=0; 
+	}
 }
 
 /****************************************************************************/
