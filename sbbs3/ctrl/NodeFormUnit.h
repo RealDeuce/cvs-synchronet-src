@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.h,v 1.4 2000/12/01 18:32:12 rswindell Exp $ */
+/* $Id: NodeFormUnit.h,v 1.5 2001/06/06 02:43:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,12 +78,12 @@ __published:	// IDE-managed Components
     TMenuItem *EditUser1;
     TToolButton *UserMsgButton;
     TMenuItem *SendMsgMenuItem;
+    TMenuItem *RefreshMenuItem;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TimerTick(TObject *Sender);
     void __fastcall FormHide(TObject *Sender);
 	void __fastcall InterruptNodeButtonClick(TObject *Sender);
 	void __fastcall LockNodeButtonClick(TObject *Sender);
-	void __fastcall ListBoxKeyPress(TObject *Sender, char &Key);
 	void __fastcall SelectAllMenuItemClick(TObject *Sender);
 	void __fastcall DownButtonClick(TObject *Sender);
     void __fastcall ClearErrorButtonClick(TObject *Sender);
@@ -92,6 +92,7 @@ __published:	// IDE-managed Components
     void __fastcall RerunNodeButtonClick(TObject *Sender);
     void __fastcall UserEditButtonClick(TObject *Sender);
     void __fastcall UserMsgButtonClick(TObject *Sender);
+    void __fastcall RefreshMenuItemClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
      __fastcall TNodeForm(TComponent* Owner);
