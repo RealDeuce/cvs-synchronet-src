@@ -1,8 +1,6 @@
-/* nopen.c */
+/* semfile.c */
 
-/* Network open functions (nopen and fnopen) */
-
-/* $Id: nopen.c,v 1.14 2004/10/19 01:00:32 rswindell Exp $ */
+/* $Id: semfile.c,v 1.4 2004/10/17 07:17:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,93 +34,84 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "crc32.h"
+#include "link_list.h"
 
 /****************************************************************************/
-/* Network open function. Opens all files DENYALL and retries LOOP_NOPEN    */
-/* number of times if the attempted file is already open or denying access  */
-/* for some other reason.	All files are opened in BINARY mode.			*/
+/* This function compares a single semaphore file's							*/
+/* date/time stamp (if the file exists) against the passed time stamp (t)	*/
+/* updating the time stamp to the latest dated semaphore file and returning	*/
+/* TRUE if any where newer than the initial value.							*/
 /****************************************************************************/
-int nopen(const char* str, int access)
+BOOL DLLCALL semfile_check(time_t* t, const char* fname)
 {
-	int file,share,count=0;
+	time_t	ft;
 
-    if(access&O_DENYNONE) {
-        share=SH_DENYNO;
-        access&=~O_DENYNONE; }
-    else if(access==O_RDONLY) share=SH_DENYWR;
-    else share=SH_DENYRW;
-	if(!(access&O_TEXT))
-		access|=O_BINARY;
-    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
-        && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
-        if(count)
-            mswait(100);
-    return(file);
-}
-/****************************************************************************/
-/* This function performs an nopen, but returns a file stream with a buffer */
-/* allocated.																*/
-/****************************************************************************/
-FILE* fnopen(int* fd, const char* str, int access)
-{
-	char	mode[128];
-	int		file;
-	FILE *	stream;
+	if(*t==0)	/* uninitialized */
+		*t=time(NULL);
 
-    if((file=nopen(str,access))==-1)
-        return(NULL);
-
-    if(fd!=NULL)
-        *fd=file;
-
-    if(access&O_APPEND) {
-        if((access&O_RDWR)==O_RDWR)
-            strcpy(mode,"a+");
-        else
-            strcpy(mode,"a"); 
-	} else if(access&(O_TRUNC|O_WRONLY)) {
-		if((access&O_RDWR)==O_RDWR)
-			strcpy(mode,"w+");
-		else
-			strcpy(mode,"w");
-	} else {
-        if((access&O_RDWR)==O_RDWR)
-            strcpy(mode,"r+");
-        else
-            strcpy(mode,"r"); 
-	}
-    stream=fdopen(file,mode);
-    if(stream==NULL) {
-        close(file);
-        return(NULL); 
-	}
-    setvbuf(stream,NULL,_IOFBF,FNOPEN_BUF_SIZE);
-    return(stream);
-}
-
-BOOL ftouch(const char* fname)
-{
-	int file;
-
-	if((file=nopen(fname,O_WRONLY|O_CREAT))<0)
+	if((ft=fdate(fname))==-1 || ft<=*t)
 		return(FALSE);
-	close(file);
 
+	*t=ft;
 	return(TRUE);
 }
 
-BOOL fmutex(const char* fname, const char* text)
+/****************************************************************************/
+/* This function goes through a list of semaphore files, comparing the file	*/
+/* date/time stamp (if the file exists) against the passed time stamp (t)	*/
+/* updating the time stamp to the latest dated semaphore file and returning	*/
+/* a pointer to the filename if any where newer than the initial timestamp.	*/
+/****************************************************************************/
+char* DLLCALL semfile_list_check(time_t* t, link_list_t* filelist)
+{
+	char*	signaled=NULL;
+	list_node_t* node;
+
+	for(node=listFirstNode(filelist);node!=NULL;node=listNextNode(node))
+		if(semfile_check(t, node->data))
+			signaled = node->data;
+
+	return(signaled);
+}
+
+void DLLCALL semfile_list_init(link_list_t* filelist, const char* parent, 
+							   const char* action, const char* service)
+{
+	char path[MAX_PATH+1];
+	char hostname[128];
+
+	listInit(filelist,0);
+	SAFEPRINTF2(path,"%s%s",parent,action);
+	listPushNodeString(filelist,path);
+	SAFEPRINTF3(path,"%s%s.%s",parent,action,service);
+	listPushNodeString(filelist,path);
+	if(gethostname(hostname,sizeof(hostname))==0) {
+		SAFEPRINTF3(path,"%s%s.%s",parent,action,hostname);
+		listPushNodeString(filelist,path);
+		SAFEPRINTF4(path,"%s%s.%s.%s",parent,action,hostname,service);
+		listPushNodeString(filelist,path);
+	}
+}
+
+void DLLCALL semfile_list_add(link_list_t* filelist, const char* path)
+{
+	listPushNodeString(filelist, path);
+}
+
+void DLLCALL semfile_list_free(link_list_t* filelist)
+{
+	listFree(filelist);
+}
+
+BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 {
 	int file;
-#if !defined(NO_SOCKET_SUPPORT)
 	char hostname[128];
+
+	if((file=nopen(fname,O_CREAT|O_WRONLY))<0)
+		return(FALSE);
 	if(text==NULL && gethostname(hostname,sizeof(hostname))==0)
 		text=hostname;
-#endif
-
-	if((file=open(fname,O_CREAT|O_WRONLY|O_EXCL,S_IREAD|S_IWRITE))<0)
-		return(FALSE);
 	if(text!=NULL)
 		write(file,text,strlen(text));
 	close(file);
