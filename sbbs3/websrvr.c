@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.73 2003/03/13 22:12:54 deuce Exp $ */
+/* $Id: websrvr.c,v 1.74 2003/03/13 22:32:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2288,7 +2288,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.73 $", "%*s %s", revision);
+	sscanf("$Revision: 1.74 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2473,7 +2473,7 @@ void DLLCALL web_server(void* arg)
 			return;
 		}
 
-		result = listen(server_socket, 16);
+		result = listen(server_socket, 0);
 
 		if(result != 0) {
 			lprintf("!ERROR %d (%d) listening on HTTP socket", result, ERROR_VALUE);
