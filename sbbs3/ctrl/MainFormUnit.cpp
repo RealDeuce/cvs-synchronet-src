@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.90 2003/01/31 03:29:16 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.91 2003/01/31 19:30:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1717,6 +1717,9 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     Initialized=true;
 
     UpTimer->Enabled=true; /* Start updating the status bar */
+
+    if(!Application->Active)	/* Starting up minimized? */
+    	FormMinimize(Sender);   /* Put icon in systray */
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::SaveSettings(TObject* Sender)
