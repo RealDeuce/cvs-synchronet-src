@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.56 2002/08/21 22:40:13 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.57 2002/08/22 22:10:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1541,6 +1541,8 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 			} 
 		}
 		fclose(stream);
+		if(!flength(fname))
+			remove(fname);
 		return(0); 
 	}
 
@@ -3833,7 +3835,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.56 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.57 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
