@@ -2,13 +2,13 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.39 2003/03/27 23:33:48 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.40 2003/04/30 23:49:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -314,7 +314,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					fwrite(&ch,1,1,ndx);
 					msgndx+=size/QWK_BLOCK_LEN; 
 				} 
-				mswait(1);	/* yield */
+				YIELD();	/* yield */
 			}
 			bprintf(text[QWKPackedEmail],mailmsgs);
 			if(ndx)
@@ -456,7 +456,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						break; 
 					} 
 					if(!(l%50))
-						mswait(1);	/* yield */
+						YIELD();	/* yield */
 				}
 				if(!(sys_status&SS_ABORT))
 					bprintf(text[QWKPackedSubboard],submsgs,(*msgcnt));
@@ -470,7 +470,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				LFREE(post);
 				if(l<posts)
 					break; 
-				mswait(1);	/* yield */
+				YIELD();	/* yield */
 			}
 		}
 		if(j<usrsubs[i]) /* if sub aborted, abort all */
