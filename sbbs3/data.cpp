@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.10 2001/06/27 20:45:13 rswindell Exp $ */
+/* $Id: data.cpp,v 1.11 2001/11/27 19:35:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -230,7 +230,7 @@ void sbbs_t::gettimeleft(void)
 		sys_status|=SS_EVENT; }
 #endif
 
-	if(timeleft<0)  /* timeleft can't go negative */
+	if((long)timeleft<0)  /* timeleft can't go negative */
 		timeleft=0;
 	if(thisnode.status==NODE_NEWUSER) {
 		timeleft=cfg.level_timepercall[cfg.new_level];
