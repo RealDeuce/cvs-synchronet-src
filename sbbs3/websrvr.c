@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.163 2004/09/25 06:07:32 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.164 2004/09/25 21:31:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2554,9 +2554,13 @@ void http_session_thread(void* arg)
 		while((redirp==NULL || session.req.send_location >= MOVED_TEMP)
 				 && !session.finished && server_socket!=INVALID_SOCKET) {
 			session.req.send_location=NO_LOCATION;
-			session.req.ld=malloc(sizeof(struct log_data));
+			if(startup->logfile_base[0])
+				session.req.ld=malloc(sizeof(struct log_data));
+			else
+				session.req.ld=NULL;
 			if(session.req.ld==NULL)
-				lprintf(LOG_ERR,"Cannot allocate memory for log data!");
+				if(startup->logfile_base[0])
+					lprintf(LOG_ERR,"Cannot allocate memory for log data!");
 			else {
 				memset(session.req.ld,0,sizeof(struct log_data));
 				session.req.ld->hostname=strdup(session.host_name);
@@ -2642,7 +2646,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.163 $", "%*s %s", revision);
+	sscanf("$Revision: 1.164 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
