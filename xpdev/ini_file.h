@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.14 2004/05/28 17:10:50 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.16 2004/06/16 01:50:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,7 @@
 #include "genwrap.h"
 #include "str_list.h"	/* strList_t */
 
-#define INI_MAX_VALUE_LEN	128		/* Maximum value length, includes '\0' */
+#define INI_MAX_VALUE_LEN	1024		/* Maximum value length, includes '\0' */
 
 typedef struct {
 	ulong		bit;
@@ -51,6 +51,7 @@ typedef struct {
 typedef struct {
 	int			key_len;
 	const char* key_prefix;
+	const char* section_separator;
 	const char* value_separator;
 	const char*	bit_separator;
 } ini_style_t;
@@ -98,7 +99,8 @@ str_list_t	iniReadFile(FILE*);
 BOOL		iniWriteFile(FILE*, const str_list_t);
 
 /* StringList functions */
-size_t		iniAddSection(str_list_t*, const char* section);
+size_t		iniAddSection(str_list_t*, const char* section
+					,ini_style_t*);
 char*		iniSetString(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
 char*		iniSetInteger(str_list_t*, const char* section, const char* key, long value

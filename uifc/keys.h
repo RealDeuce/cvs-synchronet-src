@@ -1,4 +1,4 @@
-/* $Id: keys.h,v 1.3 2003/08/29 11:42:28 rswindell Exp $ */
+/* $Id: keys.h,v 1.4 2004/05/31 23:52:58 deuce Exp $ */
 
 #define KEY_HOME      0x47 << 8
 #define KEY_UP        72   << 8
@@ -16,3 +16,5 @@
 				   * backspace keypress and the backspace
 				   * char
 				   */
+
+#define KEY_MOUSE	0xff02

@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.38 2004/03/23 02:22:09 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.39 2004/06/03 21:59:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,8 +87,8 @@
 /****************************************************************************/
 char* DLLCALL getfname(const char* path)
 {
-	char* fname;
-	char* bslash;
+	const char* fname;
+	const char* bslash;
 
 	fname=strrchr(path,'/');
 	bslash=strrchr(path,'\\');
@@ -98,7 +98,7 @@ char* DLLCALL getfname(const char* path)
 		fname++;
 	else 
 		fname=(char*)path;
-	return(fname);
+	return((char*)fname);
 }
 
 /****************************************************************************/
@@ -233,7 +233,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 	ff_handle=_findfirst((char*)pattern,&ff);
 	while(ff_handle!=-1) {
 		if(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR) {
-			if((new_pathv=realloc(glob->gl_pathv
+			if((new_pathv=(char**)realloc(glob->gl_pathv
 				,(glob->gl_pathc+1)*sizeof(char*)))==NULL) {
 				globfree(glob);
 				return(GLOB_NOSPACE);
@@ -246,7 +246,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 			*p=0;
 			strcat(path,ff.name);
 
-			if((glob->gl_pathv[glob->gl_pathc]=malloc(strlen(path)+2))==NULL) {
+			if((glob->gl_pathv[glob->gl_pathc]=(char*)malloc(strlen(path)+2))==NULL) {
 				globfree(glob);
 				return(GLOB_NOSPACE);
 			}
