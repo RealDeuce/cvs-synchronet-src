@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.6 2000/10/25 21:49:36 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.7 2000/10/30 11:18:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,6 +77,8 @@
 #define ECONNRESET		WSAECONNRESET
 
 #define s_addr			S_un.S_addr
+
+#define socklen_t		int
 
 #define ERROR_VALUE		WSAGetLastError()
 
