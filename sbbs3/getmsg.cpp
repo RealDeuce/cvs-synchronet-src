@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.19 2003/06/20 05:23:28 deuce Exp $ */
+/* $Id: getmsg.cpp,v 1.20 2003/06/22 20:07:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,7 +273,7 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 	char	tmp[13];
 
 	strcpy(tmp,"QUOTES.TXT");
-	if(cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
+	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
 		strlwr(tmp);
 	sprintf(str,"%s%s",cfg.node_dir,tmp);
 	remove(str);
