@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.124 2003/09/02 01:14:55 deuce Exp $
+# $Id: GNUmakefile,v 1.125 2003/09/02 10:57:20 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -113,7 +113,9 @@ else			# Linux / Other UNIX
 endif
 
 ifeq ($(os),linux)    # Linux
- CFLAGS	+= -D_THREAD_SUID_BROKEN
+ ifndef THREADS_ACTUALLY_WORK
+  CFLAGS	+= -D_THREAD_SUID_BROKEN
+ endif
 endif
 
 ifeq ($(os),sunos)    # Solaris
