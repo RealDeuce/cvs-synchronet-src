@@ -70,6 +70,8 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #endif
 #include "ODCore.h"
 #include "ODGen.h"
@@ -185,6 +187,7 @@ typedef struct
 #endif /* INCLUDE_DOOR32_COM */
 #ifdef INCLUDE_SOCKET_COM
 	SOCKET	socket;
+	int	old_delay;
 #endif
 } tPortInfo;
 
@@ -1781,11 +1784,11 @@ no_fossil:
    if(pPortInfo->Method == kComMethodStdIO ||
       pPortInfo->Method == kComMethodUnspecified)
    {
-		if (isatty(STDIN_FILENO))  {
-			tcgetattr(STDIN_FILENO,&tio_default);
+		if (isatty(STDOUT_FILENO))  {
+			tcgetattr(STDOUT_FILENO,&tio_default);
 			tio_raw = tio_default;
 			cfmakeraw(&tio_raw);
-			tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
+			tcsetattr(STDOUT_FILENO,TCSANOW,&tio_raw);
 			setvbuf(stdout, NULL, _IONBF, 0);
 		}
 
@@ -1831,8 +1834,13 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
 
 #ifdef INCLUDE_SOCKET_COM
 	if(pPortInfo->Method == kComMethodSocket) {
+		int delay=FALSE;
 
 		pPortInfo->socket = dwExistingHandle;
+
+		getsockopt(pPortInfo->socket, IPPROTO_TCP, TCP_NODELAY, &(pPortInfo->old_delay), &delay);
+		delay=FALSE;
+		setsockopt(pPortInfo->socket, IPPROTO_TCP, TCP_NODELAY, &delay, sizeof(delay));
 
         pPortInfo->bIsOpen = TRUE;
 
@@ -1965,13 +1973,14 @@ tODResult ODComClose(tPortHandle hPort)
 
 #ifdef INCLUDE_SOCKET_COM
       case kComMethodSocket:
+		 setsockopt(pPortInfo->socket, IPPROTO_TCP, TCP_NODELAY, &(pPortInfo->old_delay), sizeof(pPortInfo->old_delay));
          closesocket(pPortInfo->socket);
          break;
 #endif /* INCLUDE_SOCKET_COM */
 
 #ifdef INCLUDE_STDIO_COM
 	  case kComMethodStdIO:
-		 tcsetattr(STDIN_FILENO,TCSANOW,&tio_default);
+		 tcsetattr(STDOUT_FILENO,TCSANOW,&tio_default);
 	     break;
 #endif
 
