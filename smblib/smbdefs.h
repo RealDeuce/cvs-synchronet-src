@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.51 2004/08/30 18:32:34 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.52 2004/09/01 10:46:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -559,6 +559,9 @@ typedef struct _PACK {		/* Network (type and address) */
 
 } net_t;
 
+								/* Valid bits in smbmsg_t.flags					*/
+#define MSG_FLAG_HASHED	(1<<0)	/* Message has been hashed with smb_hashmsg()	*/
+
 typedef struct {				/* Message */
 
 	idxrec_t	idx;			/* Index */
@@ -598,6 +601,7 @@ typedef struct {				/* Message */
 	ulong		expiration; 	/* Message will expire on this day (if >0) */
 	ulong		priority;		/* Message priority (0 is lowest) */
 	ulong		cost;			/* Cost to download/read */
+	ulong		flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
 
 } smbmsg_t;
 
