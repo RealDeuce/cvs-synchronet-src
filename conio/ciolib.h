@@ -1,15 +1,15 @@
-/* $Id: ciolib.h,v 1.3 2004/07/26 23:20:24 deuce Exp $ */
+/* $Id: ciolib.h,v 1.4 2004/07/27 00:17:25 rswindell Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
 
 enum {
-	 CIOLIB_AUTO_MODE
-	,CIOLIB_CURSES_MODE
-	,CIOLIB_CURSES_IBM_MODE
-	,CIOLIB_ANSI_MODE
-	,CIOLIB_X_MODE
-	,CIOLIB_CONIO_MODE
+	 CIOLIB_MODE_AUTO
+	,CIOLIB_MODE_CURSES
+	,CIOLIB_MODE_CURSES_IBM
+	,CIOLIB_MODE_ANSI
+	,CIOLIB_MODE_X
+	,CIOLIB_MODE_CONIO
 };
 
 #ifndef __unix__		/* presumably, Win32 */
