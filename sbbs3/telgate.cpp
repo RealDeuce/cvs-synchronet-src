@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.25 2004/12/29 04:43:28 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.24 2004/10/14 23:56:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,8 +187,6 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 					attr(LIGHTGRAY);
 					console=save_console;
 				}
-				else if(*buf<' ' && mode&TG_CTRLKEYS)
-					handle_ctrlkey(*buf, K_NONE);
 				gotline=false;
 				if(mode&TG_LINEMODE && buf[0]!='\r') {
 					ungetkey(buf[0]);
