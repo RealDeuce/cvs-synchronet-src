@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.4 2004/09/13 00:04:49 deuce Exp $
+# $Id: GNUmakefile,v 1.5 2004/09/13 00:04:13 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -17,18 +17,16 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
 
-CFLAGS += -I$(XPDEV_SRC)
+CFLAGS += -I$(XPDEV_SRC) -I$(CIOLIB_SRC)
+OBJS	+=	$(OBJODIR)$(DIRSEP)curs_cio$(OFILE)
+ifndef NO_X
+ CFLAGS	+=	-I/usr/X11R6/include
+ OBJS	+=	$(OBJODIR)$(DIRSEP)console$(OFILE) \
+			$(OBJODIR)$(DIRSEP)x_cio$(OFILE)
+endif
 
-
-# SMBLIB Library Link Rule
-$(SMBLIB): $(OBJODIR) $(OBJS)
+# CIOLIB Library Link Rule
+$(CIOLIB-MT): $(MTOBJODIR) $(OBJS)
 	@echo Creating $@ ...
 	$(QUIET)ar rc $@ $(OBJS)
 	$(QUIET)ranlib $@
-
-# SMBLIB Library Link Rule
-$(SMBLIB-MT): $(MTOBJODIR) $(MTOBJS)
-	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $(MTOBJS)
-	$(QUIET)ranlib $@
-
