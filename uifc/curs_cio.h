@@ -1,4 +1,4 @@
-/* $Id: curs_cio.h,v 1.1 2004/07/02 20:19:06 deuce Exp $ */
+/* $Id: curs_cio.h,v 1.2 2004/07/04 23:28:29 deuce Exp $ */
 
 #ifdef __unix__
 #include "ciowrap.h"
@@ -26,6 +26,7 @@ void curs_setcursortype(int type);
 void curs_textbackground(int colour);
 void curs_textcolor(int colour);
 void curs_clreol(void);
+int curs_getch(void);
 #ifdef __cplusplus
 }
 #endif
