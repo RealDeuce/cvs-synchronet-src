@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TextFileEditUnit.cpp,v 1.2 2000/11/15 04:15:44 rswindell Exp $ */
+/* $Id: TextFileEditUnit.cpp,v 1.3 2002/02/01 00:07:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -236,4 +236,22 @@ void __fastcall TTextFileEditForm::UndoExecute(TObject *Sender)
     Memo->Undo();
 }
 //---------------------------------------------------------------------------
+
+void __fastcall TTextFileEditForm::ChangeFontExecute(TObject *Sender)
+{
+    FontDialog->Font->Assign(Memo->Font);
+    FontDialog->Execute();
+    Memo->Font->Assign(FontDialog->Font);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TTextFileEditForm::FontDialogApply(TObject *Sender,
+      HWND Wnd)
+{
+    Memo->Font->Assign(FontDialog->Font);
+}
+//---------------------------------------------------------------------------
+
+
+
 

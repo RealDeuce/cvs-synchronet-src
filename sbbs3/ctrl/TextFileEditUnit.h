@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TextFileEditUnit.h,v 1.1 2000/10/10 11:26:52 rswindell Exp $ */
+/* $Id: TextFileEditUnit.h,v 1.2 2002/02/01 00:07:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,6 +93,9 @@ __published:	// IDE-managed Components
     TMenuItem *CutPopupMenuItem;
     TMenuItem *CopyPopupMenuItem;
     TMenuItem *PastePopupMenuItem;
+    TFontDialog *FontDialog;
+    TMenuItem *FontMenuItem;
+    TAction *ChangeFont;
 	void __fastcall FormShow(TObject *Sender);
     void __fastcall FontButtonClick(TObject *Sender);
     void __fastcall FindDialogFind(TObject *Sender);
@@ -107,6 +110,8 @@ __published:	// IDE-managed Components
     void __fastcall CopyExecute(TObject *Sender);
     void __fastcall PasteExecute(TObject *Sender);
     void __fastcall UndoExecute(TObject *Sender);
+    void __fastcall ChangeFontExecute(TObject *Sender);
+    void __fastcall FontDialogApply(TObject *Sender, HWND Wnd);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TTextFileEditForm(TComponent* Owner);
