@@ -1,4 +1,4 @@
-/* $Id: */
+/* $Id: cterm.c,v 1.18 2005/02/05 02:42:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
