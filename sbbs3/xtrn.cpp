@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.109 2003/01/02 09:43:53 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.110 2003/01/21 10:13:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1160,7 +1160,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 
 		fclose(doscmdrc);
 		SAFECOPY(str,cmdline);
-		sprintf(cmdline,"/usr/bin/doscmd -xFQ %s",str);
+		sprintf(cmdline,"/usr/bin/doscmd -F %s",str);
 #endif
 	}
 
