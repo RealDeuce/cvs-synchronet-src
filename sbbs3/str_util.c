@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.10 2002/11/01 08:45:26 rswindell Exp $ */
+/* $Id: str_util.c,v 1.11 2002/11/01 11:45:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -342,11 +342,11 @@ char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg)
 {
 	static char msgid[256];
 
-	if(msg->ftn_msgid!=NULL)
+	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0)
 		return(msg->ftn_msgid);
 
 	snprintf(msgid,sizeof(msgid)
-		,"%s %08lX %lu.%s %08lX\r"
+		,"%s %08lx %lu.%s %08lX\r"
 		,faddrtoa(&sub->faddr,NULL)
 		,msgid_serialno(msg)
 		,msg->idx.number
@@ -364,7 +364,7 @@ char* DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg)
 {
 	static char msgid[256];
 
-	if(msg->id!=NULL)
+	if(msg->id!=NULL && *msg->id!=0)
 		return(msg->id);
 
 	if(subnum>=cfg->total_subs)
