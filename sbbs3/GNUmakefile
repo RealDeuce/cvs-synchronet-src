@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.156 2004/09/08 22:25:31 deuce Exp $
+# $Id: GNUmakefile,v 1.157 2004/09/09 18:48:55 rswindell Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -44,7 +44,7 @@ else
  endif
 endif
 
-CFLAGS  +=  -I$(XPDEV)
+CFLAGS  +=  -I$(XPDEV) -I$(SMBLIB_SRC)
 CFLAGS	+=  $(UIFC_CFLAGS)
 
 ifndef bcc
