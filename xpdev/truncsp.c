@@ -1,8 +1,8 @@
-/* conwrap.h */
+/* truncsp.c */
 
-/* Cross-platform local console I/O wrapppers */
+/* Static functions to truncate white-space chars off end of ASCIIZ strings */
 
-/* $Id: conwrap.h,v 1.4 2004/07/20 23:19:43 rswindell Exp $ */
+/* $Id: truncsp.c,v 1.1 2004/08/04 04:05:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,18 +35,30 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _CONWRAP_H
-#define _CONWRAP_H
+/****************************************************************************/
+/* Truncates all white-space chars off end of 'str'							*/
+/****************************************************************************/
+static char* truncsp(char* str)
+{
+	size_t c;
 
-#if defined(__unix__)
+	c=strlen(str);
+	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n') c--;
+	str[c]=0;
 
-	int kbhit(void);
-	int getch(void);
+	return(str);
+}
 
-#else	/* DOS-Based */
+/****************************************************************************/
+/* Truncates carriage-return and line-feed chars off end of 'str'			*/
+/****************************************************************************/
+static char* truncnl(char* str)
+{
+	size_t c;
 
-	#include <conio.h>
+	c=strlen(str);
+	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
 
-#endif
-
-#endif	/* _CONWRAP_H */
+	return(str);
+}
