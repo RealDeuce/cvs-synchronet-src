@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.14 2002/11/08 05:41:15 rswindell Exp $ */
+/* $Id: str_util.c,v 1.15 2003/02/15 01:07:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,7 +213,7 @@ int bstrlen(char *str)
 /* Returns in 'string' a character representation of the number in l with   */
 /* commas.																	*/
 /****************************************************************************/
-char *ultoac(ulong l, char *string)
+char* DLLCALL ultoac(ulong l, char *string)
 {
 	char str[256];
 	int i,j,k;
