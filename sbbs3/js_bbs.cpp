@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.64 2004/04/08 05:39:05 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.65 2004/05/17 20:53:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -601,7 +601,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     tiny = JSVAL_TO_INT(id);
 
-	if(JSVAL_IS_INT(*vp) || JSVAL_IS_BOOLEAN(*vp))
+	if(JSVAL_IS_NUMBER(*vp) || JSVAL_IS_BOOLEAN(*vp))
 		JS_ValueToInt32(cx, *vp, &val);
 	else if(JSVAL_IS_STRING(*vp)) {
 		if((js_str = JS_ValueToString(cx, *vp))==NULL)
