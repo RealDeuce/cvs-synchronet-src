@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.43 2004/09/20 05:23:20 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.44 2004/10/21 08:58:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -649,7 +649,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			return(FALSE); 
 		}
 		if(!filelength(fileno(smb.shd_fp))) {
-			smb.status.max_msgs=MAX_SYSMAIL;
+			smb.status.max_msgs=0;
 			smb.status.max_crcs=cfg->mail_maxcrcs;
 			smb.status.max_age=cfg->mail_maxage;
 			smb.status.attr=SMB_EMAIL;
@@ -667,7 +667,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			//errormsg(WHERE,ERR_READ,smb.file,x);
 			return(FALSE); 
 		}
-		smb.status.max_msgs=MAX_SYSMAIL;
+		smb.status.max_msgs=0;
 		smb.status.max_crcs=cfg->mail_maxcrcs;
 		smb.status.max_age=cfg->mail_maxage;
 		if(smb_putstatus(&smb)!=0) {
