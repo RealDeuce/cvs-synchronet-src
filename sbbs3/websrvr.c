@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.212 2004/11/15 23:41:09 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.213 2004/11/16 04:57:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2719,7 +2719,7 @@ void http_session_thread(void* arg)
 	session.client.protocol="http";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
-	client_on(session.socket, &session.client, TRUE);
+	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
 	if(session.socket!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL)
 		startup->socket_open(startup->cbdata,TRUE);
 
@@ -2839,7 +2839,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.212 $", "%*s %s", revision);
+	sscanf("$Revision: 1.213 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
