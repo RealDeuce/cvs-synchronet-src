@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.36 2002/08/26 07:03:10 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.37 2002/08/29 23:25:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,7 +142,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	int 	i;
 	long	l,length;
 	ulong	offset,crc;
-	ushort		agent=AGENT_PROCESS;
+	ushort		agent=AGENT_SMBUTIL;
 	smbmsg_t	msg;
 
 	/* Read message text from stream (file or stdin) */
@@ -1304,7 +1304,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.36 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.37 $" + 11, "%s", revision);
 
 	smb.file[0]=0;
 	fprintf(stderr,"\nSMBUTIL v%s-%s (rev %s) SMBLIB %s - Synchronet Message Base "\
