@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.3 2000/11/01 03:02:52 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.4 2000/11/02 01:15:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,7 @@ __fastcall TNodeForm::TNodeForm(TComponent* Owner)
 {
 //    OutputDebugString("NodeForm constructor\n");
 	MainForm=(TMainForm*)Application->MainForm;
-    MainForm->bbs_startup.spybuf
+    MainForm->bbs_startup.node_spybuf
         =(RingBuf**)calloc(1,sizeof(RingBuf*)*MAX_NODES);
 }
 //---------------------------------------------------------------------------
@@ -470,8 +470,9 @@ void __fastcall TNodeForm::SpyButtonClick(TObject *Sender)
     	if(ListBox->Selected[i]==true) {
             if(SpyForms[i]==NULL) {
                 Application->CreateForm(__classid(TSpyForm), &SpyForms[i]);
-                SpyForms[i]->spybuf=&MainForm->bbs_startup.spybuf[i];
-                SpyForms[i]->Caption="Spying on Node "+AnsiString(i+1);
+                SpyForms[i]->inbuf=&MainForm->bbs_startup.node_inbuf[i];
+                SpyForms[i]->outbuf=&MainForm->bbs_startup.node_spybuf[i];
+                SpyForms[i]->Caption="Node "+AnsiString(i+1);
             }
             SpyForms[i]->Show();
         }

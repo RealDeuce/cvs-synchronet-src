@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.4 2000/11/01 11:46:32 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.5 2000/11/02 01:15:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,6 +239,7 @@ public:		// User declarations
     int             SpyTerminalWidth;
     int             SpyTerminalHeight;
     TFont*          SpyTerminalFont;
+    bool            SpyTerminalKeyboardActive;
 	TPageControl* __fastcall PageControl(int num);
 	int __fastcall  PageNum(TPageControl* obj);
     void __fastcall SaveSettings(void);
