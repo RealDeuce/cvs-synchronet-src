@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.30 2001/03/14 22:03:30 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.31 2001/03/25 14:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,6 +80,18 @@
 
 #include <sys/stat.h>
 
+#ifdef JAVASCRIPT
+	#ifdef __unix__
+		#define XP_UNIX
+	#else
+		#define XP_PC
+	#endif
+	#include <jsapi.h>
+
+	#define	JAVASCRIPT_RUNTIME_MEMORY	(1*1024*1024)
+	#define JAVASCRIPT_CONTEXT_STACK	(8*1024)
+#endif
+
 /***********************/
 /* Synchronet-specific */
 /***********************/
@@ -148,6 +160,14 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
+
+#ifdef JAVASCRIPT
+
+	JSContext*	js_cx;
+	JSObject*	js_glob;
+	long		js_execfile(char *fname);
+
+#endif
 
 	char 	menu_dir[128];	/* Over-ride default menu dir */
 	char 	menu_file[128]; /* Over-ride menu file */
@@ -668,7 +688,7 @@ public:
 
 SOCKET	open_socket(int type);
 int		close_socket(SOCKET);
-bool	socket_check(SOCKET sock);
+bool	socket_check(SOCKET sock, bool *rd);
 u_long	resolve_ip(char *addr);
 
 #endif
