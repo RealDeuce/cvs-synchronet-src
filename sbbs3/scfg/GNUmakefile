@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.9 2002/11/26 07:11:36 rswindell Exp $
+# $Id: GNUmakefile,v 1.10 2003/01/06 00:51:51 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -67,7 +67,6 @@ endif
 
 include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
-include headers.mk		# defines $(HEADERS)
 
 ifdef USE_DIALOG		
  OBJS := $(OBJS)			$(ODIR)$(SLASH)uifcd.$(OFILE)

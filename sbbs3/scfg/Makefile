@@ -8,10 +8,10 @@
 # usage: make -f makefile.bor											#
 #########################################################################
 
-# $Id: Makefile,v 1.5 2003/01/02 01:23:35 rswindell Exp $
+# $Id: Makefile,v 1.6 2003/01/06 00:51:51 rswindell Exp $
 
 # Macros
-DEBUG	=	1				# Comment out for release (non-debug) version
+#DEBUG	=	1				# Comment out for release (non-debug) version
 CC		=	bcc32
 LD		=	ilink32
 SLASH	=	\\
@@ -45,7 +45,6 @@ ODIR	=	$(ODIR).release
 # Cross platform/compiler definitions
 !include targets.mk	# defines all targets
 !include objects.mk	# defines $(OBJS)
-!include headers.mk	# defines $(HEADERS)
 
 OBJS = $(OBJS) $(ODIR)\uifc.$(OFILE)
 
