@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.11 2001/06/29 16:24:35 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.12 2001/08/22 17:52:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@ bool sbbs_t::uploadfile(file_t *f)
     long length;
 	FILE *stream;
 
-	f->misc=0;
+	// f->misc=0; Removed AUG-22-2001 - broken anonymous uploads
 	curdirnum=f->dir;
 	if(findfile(&cfg,f->dir,f->name)) {
 		errormsg(WHERE,ERR_CHK,f->name,f->dir);
