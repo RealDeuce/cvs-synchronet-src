@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.19 2002/09/05 08:36:50 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.20 2002/09/05 09:22:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1016,12 +1016,12 @@ static jsMethodSpec js_console_functions[] = {
 	},		
 	{"ansi_save",		js_ansi_save,		0, JSTYPE_VOID,		""
 	,JSDOCSTR("Save current cursor position")
-	,"ansi_pushxy"
 	},
+	{"ansi_pushxy",		js_ansi_save,		0, JSTYPE_ALIAS	},
 	{"ansi_restore",	js_ansi_restore,	0, JSTYPE_VOID,		""
 	,JSDOCSTR("Restore saved cursor position")
-	,"ansi_popxy"
 	},
+	{"ansi_popxy",		js_ansi_restore,	0, JSTYPE_ALIAS },
 	{"ansi_gotoxy",		js_ansi_gotoxy,		2, JSTYPE_VOID,		JSDOCSTR("number x,y")
 	,JSDOCSTR("Move cursor to a specific screen coordinate (ANSI)")
 	},

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.26 2002/09/05 00:22:12 rswindell Exp $ */
+/* $Id: js_file.c,v 1.27 2002/09/05 09:22:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -879,12 +879,12 @@ static jsMethodSpec js_file_functions[] = {
 	},		
 	{"delete",			js_delete,			0,	JSTYPE_BOOLEAN, ""
 	,"Remove the file from the disk"
-	,"remove"
-	},		
+	},
+	{"remove",			js_delete,			0,	JSTYPE_ALIAS },
 	{"clear_error",		js_clear_error,		0,	JSTYPE_BOOLEAN, ""
 	,"Clears the current error value"
-	,"clearError"
 	},
+	{"clearError",		js_clear_error,		0,	JSTYPE_ALIAS },
 	{"flush",			js_flush,			0,	JSTYPE_BOOLEAN,	""
 	,"flush buffers"
 	},

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.185 2002/09/05 02:46:40 rswindell Exp $ */
+/* $Id: main.cpp,v 1.186 2002/09/05 09:22:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -328,6 +328,9 @@ DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *funcs)
 
 		JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0);
 
+		if(funcs[i].type==JSTYPE_ALIAS)
+			continue;
+
 		method = JS_NewObject(cx, &js_method_class, NULL, method_array);
 
 		if(method==NULL)
@@ -355,12 +358,6 @@ DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *funcs)
 			JS_SetProperty(cx, method, "desc", &val);
 		}
 
-		if(funcs[i].alias != NULL) {
-			JS_DefineFunction(cx, obj, funcs[i].alias, funcs[i].call, funcs[i].nargs, 0);
-			val = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,funcs[i].alias));
-			JS_SetProperty(cx, method, "alias", &val);
-		}
-
 		val=OBJECT_TO_JSVAL(method);
 		if(!JS_SetElement(cx, method_array, len+i, &val))
 			return(JS_FALSE);
@@ -380,11 +377,8 @@ DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *funcs)
 {
 	int			i;
 
-	for(i=0;funcs[i].name;i++) {
+	for(i=0;funcs[i].name;i++)
 		JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0);
-		if(funcs[i].alias != NULL)
-			JS_DefineFunction(cx, obj, funcs[i].alias, funcs[i].call, funcs[i].nargs, 0);
-	}
 	return(JS_TRUE);
 }
 

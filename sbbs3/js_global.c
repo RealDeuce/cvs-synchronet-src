@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.28 2002/09/04 09:23:26 rswindell Exp $ */
+/* $Id: js_global.c,v 1.29 2002/09/05 09:22:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -719,8 +719,8 @@ static jsMethodSpec js_global_functions[] = {
 	},		
 	{"mswait",			js_mswait,			0,	JSTYPE_VOID,	"[number milliseconds]"
 	,"millisecond wait/sleep routine"
-	,"sleep"
-	},		
+	},
+	{"sleep",			js_mswait,			0,	JSTYPE_ALIAS },
 	{"random",			js_random,			1,	JSTYPE_NUMBER,	"number max"
 	,"return random int between 0 and n"
 	},		
