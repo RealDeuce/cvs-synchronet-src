@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: CtrlPathDialogUnit.h,v 1.1 2000/10/10 11:26:53 rswindell Exp $ */
+/* $Id: CtrlPathDialogUnit.h,v 1.2 2003/01/13 09:39:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,7 @@ __published:
 	TButton *BrowseButton;
 	TOpenDialog *OpenDialog;
 	void __fastcall BrowseButtonClick(TObject *Sender);
+	void __fastcall FormShow(TObject *Sender);
 private:
 public:
 	virtual __fastcall TCtrlPathDialog(TComponent* AOwner);

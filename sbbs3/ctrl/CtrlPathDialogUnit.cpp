@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: CtrlPathDialogUnit.cpp,v 1.1 2000/10/10 11:26:53 rswindell Exp $ */
+/* $Id: CtrlPathDialogUnit.cpp,v 1.2 2003/01/13 09:39:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,7 @@
 //---------------------------------------------------------------------
 #pragma resource "*.dfm"
 TCtrlPathDialog *CtrlPathDialog;
-//--------------------------------------------------------------------- 
+//---------------------------------------------------------------------
 __fastcall TCtrlPathDialog::TCtrlPathDialog(TComponent* AOwner)
 	: TForm(AOwner)
 {
@@ -50,13 +50,14 @@ __fastcall TCtrlPathDialog::TCtrlPathDialog(TComponent* AOwner)
 void __fastcall TCtrlPathDialog::BrowseButtonClick(TObject *Sender)
 {
 	OpenDialog->InitialDir=Edit->Text;
-    OpenDialog->Options << ofFileMustExist;	
+    OpenDialog->Options << ofFileMustExist;
 	if(OpenDialog->Execute()==true)
     	Edit->Text=OpenDialog->FileName;
 }
 //---------------------------------------------------------------------------
-
-
-
-
+void __fastcall TCtrlPathDialog::FormShow(TObject *Sender)
+{
+   	Application->BringToFront();
+}
+//---------------------------------------------------------------------------
 
