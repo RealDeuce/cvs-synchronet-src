@@ -1,6 +1,4 @@
-/* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
-
-/* $Id: NodeFormUnit.h,v 1.10 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: WebFormUnit.h,v 1.2 2004/10/18 00:04:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -32,73 +30,38 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-
 //---------------------------------------------------------------------------
-#ifndef NodeFormUnitH
-#define NodeFormUnitH
+
+#ifndef WebFormUnitH
+#define WebFormUnitH
 //---------------------------------------------------------------------------
 #include <Classes.hpp>
 #include <Controls.hpp>
 #include <StdCtrls.hpp>
 #include <Forms.hpp>
-/* My Includes */
-#include "MainFormUnit.h"
 #include <ComCtrls.hpp>
-#include <ImgList.hpp>
 #include <ToolWin.hpp>
-#include <ExtCtrls.hpp>
-#include <Menus.hpp>
+#include "MainFormUnit.h"
 //---------------------------------------------------------------------------
-class TNodeForm : public TForm
+class TWebForm : public TForm
 {
 __published:	// IDE-managed Components
-	TTimer *Timer;
-	TToolBar *Toolbar;
-	TListBox *ListBox;
-	TToolButton *InterruptNodeButton;
-	TToolButton *LockNodeButton;
-	TPopupMenu *PopupMenu;
-	TMenuItem *InterruptMenuItem;
-	TMenuItem *LockMenuItem;
-	TMenuItem *N1;
-	TMenuItem *SelectAllMenuItem;
-	TToolButton *DownButton;
-	TMenuItem *DownMenuItem;
-    TToolButton *ClearErrorButton;
-    TMenuItem *ClearErrorsMenuItem;
-    TToolButton *ChatButton;
-    TMenuItem *ChatMenuItem;
-    TToolButton *SpyButton;
-    TMenuItem *SpyMenuItem;
-    TToolButton *RerunToolButton;
-    TMenuItem *RerunMenuItem;
-    TToolButton *UserEditButton;
-    TMenuItem *EditUser1;
-    TToolButton *UserMsgButton;
-    TMenuItem *SendMsgMenuItem;
-    TMenuItem *RefreshMenuItem;
-	void __fastcall TimerTick(TObject *Sender);
-    void __fastcall FormHide(TObject *Sender);
-	void __fastcall InterruptNodeButtonClick(TObject *Sender);
-	void __fastcall LockNodeButtonClick(TObject *Sender);
-	void __fastcall SelectAllMenuItemClick(TObject *Sender);
-	void __fastcall DownButtonClick(TObject *Sender);
-    void __fastcall ClearErrorButtonClick(TObject *Sender);
-    void __fastcall ChatButtonClick(TObject *Sender);
-    void __fastcall SpyButtonClick(TObject *Sender);
-    void __fastcall RerunNodeButtonClick(TObject *Sender);
-    void __fastcall UserEditButtonClick(TObject *Sender);
-    void __fastcall UserMsgButtonClick(TObject *Sender);
-    void __fastcall RefreshMenuItemClick(TObject *Sender);
+    TToolBar *ToolBar;
+    TToolButton *StartButton;
+    TToolButton *StopButton;
+    TToolButton *RecycleButton;
+    TToolButton *ToolButton1;
+    TToolButton *ConfigureButton;
+    TToolButton *ToolButton2;
+    TStaticText *Status;
+    TToolButton *ToolButton3;
+    TProgressBar *ProgressBar;
+    TMemo *Log;
 private:	// User declarations
-
 public:		// User declarations
-     __fastcall TNodeForm(TComponent* Owner);
-    int __fastcall getnodedat(int node_num, node_t* node, int* file);
-    int __fastcall putnodedat(int node_num, node_t* node, int file);
-
+    __fastcall TWebForm(TComponent* Owner);
 };
 //---------------------------------------------------------------------------
-extern PACKAGE TNodeForm *NodeForm;
+extern PACKAGE TWebForm *WebForm;
 //---------------------------------------------------------------------------
 #endif
