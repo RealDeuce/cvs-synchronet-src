@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.65 2004/04/08 03:32:57 rswindell Exp $ */
+/* $Id: js_file.c,v 1.64 2004/02/19 23:06:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -496,9 +496,9 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			*rval = OBJECT_TO_JSVAL(array);
 			break;
 		default:
-			if(JSVAL_IS_NUMBER(dflt)) {
-				JS_ValueToInt32(cx,dflt,&i);
-				JS_NewNumberValue(cx,iniGetInteger(p->fp,section,key,i),rval);
+			if(JSVAL_IS_INT(dflt)) {
+				*rval = INT_TO_JSVAL(
+					iniGetInteger(p->fp,section,key,JSVAL_TO_INT(dflt)));
 				break;
 			}
 			break;
@@ -1095,7 +1095,6 @@ enum {
 
 static JSBool js_file_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	int32		i=0;
     jsint       tiny;
 	private_t*	p;
 
@@ -1128,28 +1127,21 @@ static JSBool js_file_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			JS_ValueToBoolean(cx,*vp,&(p->network_byte_order));
 			break;
 		case FILE_PROP_POSITION:
-			if(p->fp!=NULL) {
-				JS_ValueToInt32(cx,*vp,&i);
-				fseek(p->fp,i,SEEK_SET);
-			}
+			if(p->fp!=NULL)
+				fseek(p->fp,JSVAL_TO_INT(*vp),SEEK_SET);
 			break;
 		case FILE_PROP_DATE:
-			JS_ValueToInt32(cx,*vp,&i);
-			setfdate(p->name,i);
+			setfdate(p->name,JSVAL_TO_INT(*vp));
 			break;
 		case FILE_PROP_LENGTH:
-			if(p->fp!=NULL) {
-				JS_ValueToInt32(cx,*vp,&i);
-				chsize(fileno(p->fp),i);
-			}
+			if(p->fp!=NULL)
+				chsize(fileno(p->fp),JSVAL_TO_INT(*vp));
 			break;
 		case FILE_PROP_ATTRIBUTES:
-			JS_ValueToInt32(cx,*vp,&i);
-			CHMOD(p->name,i);
+			CHMOD(p->name,JSVAL_TO_INT(*vp));
 			break;
 		case FILE_PROP_ETX:
-			JS_ValueToInt32(cx,*vp,&i);
-			p->etx = (uchar)i;
+			p->etx = (uchar)JSVAL_TO_INT(*vp);
 			break;
 	}
 
