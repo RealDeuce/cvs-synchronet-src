@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.cfg */
 
-/* $Id: sockopts.c,v 1.3 2002/06/14 09:21:10 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.4 2002/06/14 09:31:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ int DLLCALL sockopt(char* str)
 	int i;
 
 	for(i=0;option_names[i].name;i++) {
-		if(stricmp(str,option_names[i].name))
+		if(stricmp(str,option_names[i].name)==0)
 			return(option_names[i].value);
 	}
 	return(strtoul(str,NULL,0));
