@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.100 2004/09/21 02:58:52 deuce Exp $ */
+/* $Id: uifc32.c,v 1.101 2004/09/21 05:22:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,39 +176,27 @@ int uifcini32(uifcapi_t* uifcapi)
 
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
-#ifdef C80X14
             case 14:
                 textmode(C80X14);
                 break;
-#endif
-#ifdef C80X21
             case 21:
                 textmode(C80X21);
                 break;
-#endif
             case 25:
                 textmode(C80);
                 break;
-#ifdef C80X28
             case 28:
                 textmode(C80X28);
                 break;
-#endif
-#ifdef C80X43
             case 43:
                 textmode(C80X43);
                 break;
-#endif
-#ifdef C80X50
             case 50:
                 textmode(C80X50);
                 break;
-#endif
-#ifdef C80X60
             case 60:
                 textmode(C80X60);
                 break;
-#endif
             default:
                 textmode(C4350);
                 break;
