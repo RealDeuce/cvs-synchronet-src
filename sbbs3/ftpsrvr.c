@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.65 2001/04/16 23:56:16 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.66 2001/04/19 22:56:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -562,7 +562,7 @@ JSContext* js_initcx(JSObject** glob)
 }
 
 static JSClass js_file_class = {
-        "File",0, 
+        "FtpFile",0, 
         JS_PropertyStub,JS_PropertyStub,JS_PropertyStub,JS_PropertyStub, 
         JS_EnumerateStub,JS_ResolveStub,JS_ConvertStub,JS_FinalizeStub 
 }; 
