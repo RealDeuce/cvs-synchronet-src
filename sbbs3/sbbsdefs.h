@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.110 2003/10/11 11:24:57 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.111 2003/10/21 22:32:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -396,6 +396,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_CHKTIME	(1<<16)		/* Check time online (EX_CHKTIME)		*/
 #define XTRN_LWRCASE	(1<<17)		/* Use lowercase drop-file names		*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
+#define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 
 									/* Bits in cfg.xtrn_misc				*/
 #define XTRN_NO_MUTEX	(1<<0)		/* Do not use exec_mutex for FOSSIL VXD	*/

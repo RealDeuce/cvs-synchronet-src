@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.36 2003/10/21 02:29:36 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.37 2003/10/21 22:32:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,7 +181,8 @@ int sbbs_t::xtrn_sec()
 			}
 			exec_xtrn(usrxtrn[l]); 
 
-			lncntr=2;	/* force a pause before CLS */
+			if(cfg.xtrn[usrxtrn[l]]->misc&XTRN_PAUSE)
+				lncntr=2;	/* force a pause before CLS */
 		}
 		if(usrxsecs<2)
 			break; 
