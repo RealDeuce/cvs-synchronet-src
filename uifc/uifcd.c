@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.15 2002/01/29 00:01:53 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.16 2002/01/29 00:15:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,7 +355,7 @@ void help()
 {
 	char hbuf[HELPBUF_SIZE],str[256];
     char *p;
-	uint i,j,k,len;
+	ushort line;
 	long l;
 	FILE *fp;
 
@@ -377,8 +377,8 @@ void help()
                 if(!fread(str,12,1,fp))
                     break;
                 str[12]=0;
-                fread(&k,2,1,fp);
-                if(stricmp(str,p) || k!=helpline) {
+                fread(&line,2,1,fp);
+                if(stricmp(str,p) || line!=helpline) {
                     fseek(fp,4,SEEK_CUR);
                     continue; }
                 fread(&l,4,1,fp);
@@ -394,7 +394,11 @@ void help()
                 else {
                     fseek(fp,l,SEEK_SET);
                     fread(hbuf,HELPBUF_SIZE,1,fp);
-                    fclose(fp); } } } }
+                    fclose(fp); 
+				} 
+			} 
+		} 
+	}
     else
         strcpy(hbuf,api->helpbuf);
 
