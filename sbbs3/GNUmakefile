@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.100 2003/07/11 08:43:09 deuce Exp $
+# $Id: GNUmakefile,v 1.101 2003/07/11 09:17:36 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -178,7 +178,11 @@ vpath %.cpp $(UIFC)
 
 LFLAGS		+=	-L./$(LIBODIR)
 SBBSLDFLAGS	:=	$(LFLAGS) -rpath-link ./$(LIBODIR) -rpath ./ 
-LFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
+#LFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
+LFLAGS		+=	-Xlinker -rpath-link
+LFLAGS		+=	-Xlinker ./$(LIBODIR)
+LFLAGS		+=	-Xlinker -rpath
+LFLAGS		+=	-Xlinker .
 ifeq ($(os),freebsd)
 LFLAGS		+=	-pthread
 endif
