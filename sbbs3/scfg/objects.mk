@@ -1,8 +1,8 @@
-# objects.mak
+# objects.mk
 
 # Make 'include file' listing object files for Synchronet SCFG
 
-# $Id: objects.mk,v 1.2 2002/04/12 08:42:56 rswindell Exp $
+# $Id: objects.mk,v 1.3 2002/04/12 09:32:14 rswindell Exp $
 
 # LIBODIR, SBBSLIBODIR, SLASH, and OFILE must be pre-defined
 

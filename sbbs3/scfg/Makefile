@@ -8,7 +8,7 @@
 # usage: make -f makefile.bor											#
 #########################################################################
 
-# $Id: Makefile,v 1.1 2002/04/12 08:10:35 rswindell Exp $
+# $Id: Makefile,v 1.2 2002/04/12 09:32:14 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -22,7 +22,6 @@ CFLAGS	=	-M -I..;..\..\uifc;..\..\xpdev -g1
 DELETE	=	echo y | del 
 
 .path.c = .;..;..\..\uifc;..\..\xpdev
-
 
 # Optional compile flags (disable banner, warnings and such)
 CFLAGS	=	$(CFLAGS) -q -d -H -X- -w-csu -w-pch -w-ccc -w-rch -w-par -w-pro

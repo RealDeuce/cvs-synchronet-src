@@ -1,8 +1,8 @@
-# targets.mak
+# targets.mk
 
 # Make 'include file' defining targets for Synchronet SCFG project
 
-# $Id: targets.mk,v 1.1 2002/04/12 06:22:46 rswindell Exp $
+# $Id: targets.mk,v 1.2 2002/04/12 09:32:14 rswindell Exp $
 
 # ODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
