@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.16 2003/05/08 22:34:02 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.17 2003/10/09 16:11:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ static  wsa_error;
 #define closesocket		close
 #define ioctlsocket		ioctl
 #define ERROR_VALUE		errno
-#define sendsocket		write		// FreeBSD send() is broken
+#define sendsocket		write		/* FreeBSD send() is broken */
 
 #endif	/* __unix__ */
 
