@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.138 2004/10/23 06:42:10 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.139 2004/10/27 23:40:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2753,7 +2753,7 @@ void __fastcall TMainForm::CtrlMenuItemEditClick(TObject *Sender)
 {
 	char filename[MAX_PATH+1];
 
-    sprintf(filename,"%s%s"
+    iniFileName(filename,sizeof(filename)
     	,MainForm->cfg.ctrl_dir
         ,((TMenuItem*)Sender)->Hint.c_str());
     EditFile(filename,((TMenuItem*)Sender)->Caption);
