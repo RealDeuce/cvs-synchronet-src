@@ -1,6 +1,6 @@
 /* uifcx.c */
 
-/* $Id: uifcx.c,v 1.4 2002/01/25 12:46:41 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.5 2002/01/25 14:47:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
  ****************************************************************************/
 
 #include "uifc.h"
-#include <share.h>
 
 static char *helpfile=0;
 static uint helpline=0;
@@ -305,7 +304,7 @@ void help()
 
     printf("\n");
     if(!api->helpbuf) {
-        if((fp=_fsopen(api->helpixbfile,"rb",SH_DENYWR))==NULL)
+        if((fp=fopen(api->helpixbfile,"rb"))==NULL)
             sprintf(hbuf,"ERROR: Cannot open help index: %s"
                 ,api->helpixbfile);
         else {
@@ -332,7 +331,7 @@ void help()
                 sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
                     ,p,helpline,api->helpixbfile);
             else {
-                if((fp=_fsopen(api->helpdatfile,"rb",SH_DENYWR))==NULL)
+                if((fp=fopen(api->helpdatfile,"rb"))==NULL)
                     sprintf(hbuf,"ERROR: Cannot open help file: %s"
                         ,api->helpdatfile);
                 else {
