@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.5 2000/11/02 05:03:31 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.6 2000/11/02 11:30:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -884,6 +884,7 @@ void sbbs_t::privchat(bool local)
 					}
 					local_y=15+localline;
 				}
+				continue;
 			}
 			else if(ch>=SP || ch==CR) {
 				if(ch!=CR) {
