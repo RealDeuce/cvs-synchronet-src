@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.32 2002/05/09 09:04:53 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.33 2002/05/09 09:16:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -343,7 +343,9 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 #if 0	/* removed May 06, 2002 */
 		if(cfg->level_timeperday[i]>500)
 			cfg->level_timeperday[i]=500;
+#endif
 		get_int(cfg->level_timepercall[i],instream);
+#if 0	/* removed May 06, 2002 */
 		if(cfg->level_timepercall[i]>500)
 			cfg->level_timepercall[i]=500;
 #endif
