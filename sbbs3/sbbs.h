@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.239 2004/11/18 21:25:31 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.245 2005/01/05 01:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -783,7 +783,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, ulong* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -923,8 +923,11 @@ extern "C" {
 		DWORD*		clients;
 	} js_server_props_t;
 
-	#define JSTYPE_ARRAY JSTYPE_LIMIT
-	#define JSTYPE_ALIAS JSTYPE_LIMIT+1
+	enum {
+		 JSTYPE_ARRAY=JSTYPE_LIMIT
+		,JSTYPE_ALIAS
+		,JSTYPE_UNDEF
+	};
 
 	#ifdef _DEBUG	/* String compiled into debug build only, for JS documentation generation */
 		#define	JSDOCSTR(s)	s
@@ -947,7 +950,7 @@ extern "C" {
 
 	/* js_global.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods);
-	DLLEXPORT JSObject*	DLLCALL js_CreateGlobalObjects(JSContext* cx
+	DLLEXPORT JSObject*	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
 													,jsSyncMethodSpec* methods	/* global */
@@ -957,11 +960,12 @@ extern "C" {
 													,js_branch_t* js_branch		/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
+													,js_server_props_t* props	/* server */
 													);
 
 	/* js_internal.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
-	DLLEXPORT JSBool	DLLCALL js_GenericBranchCallback(JSContext *cx, js_branch_t*);
+	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext *cx, js_branch_t*);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent

@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.21 2004/09/16 19:02:02 deuce Exp $
+# $Id: targets.mk,v 1.22 2005/01/13 06:39:07 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -26,6 +26,7 @@ FILELIST	= $(EXEODIR)$(DIRSEP)filelist$(EXEFILE)
 MAKEUSER	= $(EXEODIR)$(DIRSEP)makeuser$(EXEFILE)
 ANS2ASC		= $(EXEODIR)$(DIRSEP)ans2asc$(EXEFILE)
 ASC2ANS		= $(EXEODIR)$(DIRSEP)asc2ans$(EXEFILE)
+SEXYZ		= $(EXEODIR)$(DIRSEP)sexyz$(EXEFILE)
 
 UTILS		= $(BUILD_DEPENDS)$(FIXSMB) $(BUILD_DEPENDS)$(CHKSMB) \
 			  $(BUILD_DEPENDS)$(SMBUTIL) $(BUILD_DEPENDS)$(BAJA) $(BUILD_DEPENDS)$(NODE) \
@@ -74,4 +75,4 @@ $(FILELIST): $(XPDEV_LIB)
 $(MAKEUSER): $(XPDEV_LIB)
 $(ANS2ASC):
 $(ASC2ANS):
-
+$(SEXYZ): $(XPDEV_LIB) $(SMBLIB)
