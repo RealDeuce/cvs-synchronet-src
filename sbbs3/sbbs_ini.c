@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.60 2003/10/16 09:56:07 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.61 2003/10/18 08:14:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -511,6 +511,9 @@ void sbbs_read_ini(
 		iniFreeStringList(web->cgi_ext);
 		web->cgi_ext
 			=iniGetStringList(fp,section,"CGIExtensions", "," ,".cgi");
+		iniFreeStringList(web->cgi_dir);
+		web->cgi_dir
+			=iniGetStringList(fp,section,"CGIDirectories", "," ,"../cgi-bin");
 		SAFECOPY(web->ssjs_ext
 			,iniGetString(fp,section,"JavaScriptExtension",".ssjs",value));
 

@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.16 2003/10/15 09:10:31 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.17 2003/10/18 08:14:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +69,7 @@ typedef struct {
 	/* Paths */
 	char	ssjs_ext[16];			/* Server-Side JavaScript file extension */
 	char**	cgi_ext;				/* CGI Extensions */
+	char**	cgi_dir;				/* CGI Directories (all files executable) */
     char    ctrl_dir[128];
     char	root_dir[128];
     char	error_dir[128];
