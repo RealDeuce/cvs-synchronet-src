@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.37 2003/09/06 15:48:36 deuce Exp $ */
+/* $Id: uifc32.c,v 1.38 2003/09/06 20:42:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,6 +180,10 @@ int uifcini32(uifcapi_t* uifcapi)
 	api->showbuf=showbuf;
 	api->timedisplay=timedisplay;
 	api->getstrxy=ugetstr;
+
+	/* A esc_delay of less than 10 is stupid... silently override */
+	if(api->esc_delay < 10)
+		api->esc_delay=25;
 
 #ifdef __unix__
 	initciowrap(api->mode);
