@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.25 2003/04/23 09:44:53 rswindell Exp $
+# $Id: Makefile,v 1.26 2003/05/05 21:12:58 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -83,7 +83,6 @@ $(EXEODIR):
 $(SBBSMONO): $(OBJS) \
 	$(LIBODIR)\sbbscon.obj \
 	$(LIBODIR)\sbbs_ini.obj \
-	$(LIBODIR)\ini_file.obj \
 	$(LIBODIR)\ver.obj \
 	$(LIBODIR)\ftpsrvr.obj \
 	$(LIBODIR)\websrvr.obj \
