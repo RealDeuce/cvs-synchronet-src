@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.20 2002/02/21 23:24:11 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.21 2002/03/01 17:00:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,6 +329,8 @@ int uinput(int mode, char left, char top, char *prompt, char *outstr,
 	sprintf(str,"%.*s",sizeof(str)-1,outstr);
     while(dialog_inputbox((char*)NULL, prompt, 9, max+4, outstr)==-2)
 		help();
+    if(kmode&K_UPPER)	/* convert to uppercase? */
+    	strupr(str);
 	if(strcmp(str,outstr))
 		api->changes=TRUE;
     return strlen(outstr);
