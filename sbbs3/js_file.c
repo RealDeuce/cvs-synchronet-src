@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.3 2001/09/19 01:26:05 rswindell Exp $ */
+/* $Id: js_file.c,v 1.4 2001/09/19 01:38:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -453,14 +453,16 @@ js_writeall(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
     JS_GetArrayLength(cx, array, &limit);
 
+    *rval = BOOLEAN_TO_JSVAL(JSVAL_TRUE);
+
     for(i=0;i<limit;i++) {
         if(!JS_GetElement(cx, array, i, &elemval))
 			break;
         elem = JSVAL_TO_OBJECT(elemval);
         js_writeln(cx, obj, 1, &elemval, rval);
+		if(*rval!=BOOLEAN_TO_JSVAL(JSVAL_TRUE))
+			break;
     }
-
-    *rval = BOOLEAN_TO_JSVAL(JSVAL_TRUE);
 
     return(JS_TRUE);
 }
