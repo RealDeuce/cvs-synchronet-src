@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.107 2002/02/11 16:55:31 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.108 2002/02/20 00:49:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1336,7 +1336,8 @@ static void smtp_thread(void* arg)
 				}
 
 				if(ftell(msgtxt)<1) {
-					lprintf("%04d !SMTP INVALID MESSAGE LENGTH: %ld", socket, ftell(msgtxt));
+					lprintf("%04d !SMTP INVALID MESSAGE LENGTH: %ld (%lu lines)"
+						, socket, ftell(msgtxt), lines);
 					sockprintf(socket,"554 No message text");
 					continue;
 				}
