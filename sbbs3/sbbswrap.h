@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.15 2000/10/30 11:20:01 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.16 2000/11/02 12:26:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,6 +158,7 @@ extern "C" {
 	DLLEXPORT void	DLLCALL sbbs_beep(int freq, int dur);
 	DLLEXPORT char*	DLLCALL strupr(char* str);
 	DLLEXPORT char*	DLLCALL strlwr(char* str);
+	DLLEXPORT char* DLLCALL strrev(char* str);
 
 #else	/* Unsupported OS */
 
