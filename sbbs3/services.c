@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.34 2002/03/06 21:51:40 rswindell Exp $ */
+/* $Id: services.c,v 1.35 2002/03/07 02:01:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -985,6 +985,7 @@ void DLLCALL services_thread(void* arg)
 	time_t			initialized;
 	fd_set			socket_set;
 	SOCKET			high_socket;
+	ulong			total_sockets;
 	struct timeval	tv;
 	service_client_t* client;
 
@@ -1083,6 +1084,7 @@ void DLLCALL services_thread(void* arg)
 		}
 
 		/* Open and Bind Listening Sockets */
+		total_sockets=0;
 		for(i=0;i<(int)services;i++) {
 
 			service[i].socket=INVALID_SOCKET;
@@ -1116,6 +1118,13 @@ void DLLCALL services_thread(void* arg)
 				continue;
 			}
 			service[i].socket=socket;
+			total_sockets++;
+		}
+
+		if(!total_sockets) {
+			lprintf("0000 !No service sockets bound");
+			cleanup(1);
+			return;
 		}
 
 		if(startup->setuid!=NULL)
