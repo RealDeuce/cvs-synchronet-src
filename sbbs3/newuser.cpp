@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.38 2003/01/14 21:50:59 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.39 2003/05/09 02:14:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,6 +197,7 @@ BOOL sbbs_t::newuser()
 				getstr(useron.alias,LEN_ALIAS,kmode);
 				truncsp(useron.alias);
 				if(useron.alias[0]<=SP || !isalpha(useron.alias[0])
+					|| alias(&cfg,useron.alias,tmp)!=useron.alias
 					|| !stricmp(useron.alias,cfg.sys_id)
 					|| strchr(useron.alias,0xff)
 					|| matchuser(&cfg,useron.alias,TRUE /* sysop_alias */) 
