@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.293 2003/07/11 08:09:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.294 2003/07/23 04:06:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -260,6 +260,10 @@ DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* nam
 		if((array=JS_NewArrayObject(cx, 0, NULL))==NULL)
 			return(JS_FALSE);
 
+	if(!JS_DefineProperty(cx, parent, name, OBJECT_TO_JSVAL(array)
+		,NULL,NULL,flags))
+		return(JS_FALSE);
+
 	if(!JS_GetArrayLength(cx, array, &len))
 		return(JS_FALSE);
 
@@ -271,8 +275,7 @@ DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* nam
 			break;
 	}
 
-	return(JS_DefineProperty(cx, parent, name, OBJECT_TO_JSVAL(array)
-		,NULL,NULL,flags));
+	return(JS_TRUE);
 }
 
 /* Convert from Synchronet-specific jsMethodSpec to JSAPI's JSFunctionSpec */
@@ -345,6 +348,10 @@ DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *funcs, BOOL
 		if((method_array=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 			return(JS_FALSE);
 
+	if(!JS_DefineProperty(cx, obj, method_array_name, OBJECT_TO_JSVAL(method_array)
+		, NULL, NULL, 0))
+		return(JS_FALSE);
+
 	if(append)
 		if(!JS_GetArrayLength(cx, method_array, &len))
 			return(JS_FALSE);
@@ -395,10 +402,6 @@ DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *funcs, BOOL
 		if(!JS_SetElement(cx, method_array, len+i, &val))
 			return(JS_FALSE);
 	}
-
-	if(!JS_DefineProperty(cx, obj, method_array_name, OBJECT_TO_JSVAL(method_array)
-		, NULL, NULL, 0))
-		return(JS_FALSE);
 
 	return(JS_TRUE);
 }

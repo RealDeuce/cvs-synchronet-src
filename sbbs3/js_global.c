@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.79 2003/07/15 11:16:29 rswindell Exp $ */
+/* $Id: js_global.c,v 1.80 2003/07/23 04:06:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,11 +99,12 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((js_argv=JS_NewArrayObject(cx, 0, NULL)) == NULL)
 			return(JS_FALSE);
 
+		JS_DefineProperty(cx, obj, "argv", OBJECT_TO_JSVAL(js_argv)
+			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+
 		for(i=1; i<argc; i++)
 			JS_SetElement(cx, js_argv, i-1, &argv[i]);
 
-		JS_DefineProperty(cx, obj, "argv", OBJECT_TO_JSVAL(js_argv)
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 		JS_DefineProperty(cx, obj, "argc", INT_TO_JSVAL(argc-1)
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}

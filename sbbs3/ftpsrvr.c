@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.248 2003/07/11 05:57:40 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.249 2003/07/23 04:06:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -657,8 +657,22 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
+		/* file[] */
+		val=OBJECT_TO_JSVAL(file_array);
+		if(!JS_SetProperty(js_cx, parent, "file_list", &val)) {
+			lprintf("%04d !JavaScript FAILED to set file property",sock);
+			break;
+		}
+
 		if((dir_array=JS_NewArrayObject(js_cx, 0, NULL))==NULL) {
 			lprintf("%04d !JavaScript FAILED to create dir_array",sock);
+			break;
+		}
+
+		/* dir[] */
+		val=OBJECT_TO_JSVAL(dir_array);
+		if(!JS_SetProperty(js_cx, parent, "dir_list", &val)) {
+			lprintf("%04d !JavaScript FAILED to set dir property",sock);
 			break;
 		}
 
@@ -682,20 +696,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 		val=STRING_TO_JSVAL(js_str);
 		if(!JS_SetProperty(js_cx, parent, "html_index_file", &val)) {
 			lprintf("%04d !JavaScript FAILED to set html_index_file property",sock);
-			break;
-		}
-
-		/* file[] */
-		val=OBJECT_TO_JSVAL(file_array);
-		if(!JS_SetProperty(js_cx, parent, "file_list", &val)) {
-			lprintf("%04d !JavaScript FAILED to set file property",sock);
-			break;
-		}
-
-		/* dir[] */
-		val=OBJECT_TO_JSVAL(dir_array);
-		if(!JS_SetProperty(js_cx, parent, "dir_list", &val)) {
-			lprintf("%04d !JavaScript FAILED to set dir property",sock);
 			break;
 		}
 
@@ -4458,7 +4458,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.248 $", "%*s %s", revision);
+	sscanf("$Revision: 1.249 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

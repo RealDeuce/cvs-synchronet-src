@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.118 2003/07/22 01:09:17 rswindell Exp $ */
+/* $Id: services.c,v 1.119 2003/07/23 04:06:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -767,6 +767,8 @@ static void js_init_cmdline(JSContext* js_cx, JSObject* js_obj, char* spath)
 		args=p+1;
 	}
 	argv=JS_NewArrayObject(js_cx, 0, NULL);
+	JS_DefineProperty(js_cx, js_obj, "argv", OBJECT_TO_JSVAL(argv)
+		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	if(args!=NULL && argv!=NULL) {
 		while(*args) {
@@ -786,8 +788,6 @@ static void js_init_cmdline(JSContext* js_cx, JSObject* js_obj, char* spath)
 			args+=(strlen(args)+1);
 		}
 	}
-	JS_DefineProperty(js_cx, js_obj, "argv", OBJECT_TO_JSVAL(argv)
-		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 	JS_DefineProperty(js_cx, js_obj, "argc", INT_TO_JSVAL(argc)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 }
@@ -1378,7 +1378,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.118 $", "%*s %s", revision);
+	sscanf("$Revision: 1.119 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
