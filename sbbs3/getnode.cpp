@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.11 2001/10/02 20:10:56 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.12 2002/02/06 00:40:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -320,6 +320,18 @@ int sbbs_t::whos_online(bool listself)
 	if(!j)
 		bputs(text[NoOtherActiveNodes]);
 	return(j);
+}
+
+void sbbs_t::nodelist(void)
+{
+	node_t	node;
+
+	CRLF;
+	bputs(text[NodeLstHdr]);
+	for(int i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
+		getnodedat(i,&node,0);
+		printnodedat(i,&node); 
+	}
 }
 
 /****************************************************************************/
