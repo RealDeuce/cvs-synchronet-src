@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.113 2004/06/11 23:29:12 deuce Exp $ */
+/* $Id: js_global.c,v 1.114 2004/06/12 04:46:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -908,6 +908,10 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 				else if(inbuf[i]>=' ' && inbuf[i]<DEL)
 					tmpbuf[j++]=inbuf[i];
+#if 0		/* ASCII 127 - Not displayed? */
+				else if(inbuf[i]==DEL && exascii)
+					j+=sprintf(tmpbuf+j,"&#8962;",exasctbl[ch].value);
+#endif
 				else if(inbuf[i]<' ') /* unknown control chars */
 				{
 					if(ansi && inbuf[i]==ESC)
