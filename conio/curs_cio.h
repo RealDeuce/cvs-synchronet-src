@@ -1,4 +1,4 @@
-/* $Id: curs_cio.h,v 1.3 2004/07/26 22:06:01 rswindell Exp $ */
+/* $Id: curs_cio.h,v 1.4 2004/07/26 23:08:36 rswindell Exp $ */
 
 #ifdef __unix__
 #include "conlib.h"
@@ -20,7 +20,7 @@ int curs_wherex(void);
 int _putch(unsigned char ch, BOOL refresh_now);
 int curs_putch(unsigned char ch);
 void curs_gotoxy(int x, int y);
-int curs_initciowrap(long inmode);
+int curs_initciolib(long inmode);
 void curs_gettextinfo(struct text_info *info);
 void curs_setcursortype(int type);
 int curs_getch(void);
