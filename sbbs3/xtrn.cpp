@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.166 2004/10/17 06:10:48 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.167 2004/11/03 01:46:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1031,7 +1031,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 //	lprintf("%s returned %d",realcmdline, retval);
 
-	errorlevel = retval; // Baja-retrievable error value
+	errorlevel = retval; // Baja or JS retrievable error value
 
 	return(retval);
 }
@@ -1893,7 +1893,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		input_thread_mutex_locked=false;
 	}
 
-	return(WEXITSTATUS(i));
+	return(errorlevel = WEXITSTATUS(i));
 }
 
 #endif	/* !WIN32 */
