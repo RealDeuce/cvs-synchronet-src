@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.26 2003/05/04 04:59:19 deuce Exp $ */
+/* $Id: answer.cpp,v 1.27 2003/05/06 01:30:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,10 +107,6 @@ bool sbbs_t::answer()
 		/* Will suppress Go Ahead */
 		send_telnet_cmd(TELNET_WILL,TELNET_SUP_GA);
 	}
-
-	/* if using xterm, set window title */
-	sprintf(str,"\033]2;%s\007",cfg.sys_name);
-	putcom(str);
 
 	/* Detect terminal type */
     mswait(200);
