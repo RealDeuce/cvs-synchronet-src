@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.h,v 1.10 2004/11/10 23:13:09 rswindell Exp $ */
+/* $Id: semwrap.h,v 1.9 2004/11/09 17:21:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,18 +61,28 @@ extern "C" {
 		#include <semaphore.h>	/* POSIX semaphores */
 	#endif
 
+	/* NOT POSIX */
+	int 	sem_trywait_block(sem_t *sem, unsigned long timeout);
+
 #elif defined(_WIN32)	
 
 	#include <process.h>	/* _beginthread */
+	#include <limits.h>		/* INT_MAX */
+	#include <errno.h>		/* EAGAIN and EBUSY */
 
 	/* POSIX semaphores */
 	typedef HANDLE sem_t;
-	int sem_init(sem_t*, int pshared, unsigned int value);
-	int sem_post(sem_t*);
-	int sem_getvalue(sem_t*, int* value);
-	int sem_destroy(sem_t*);
+	#define sem_init(psem,ps,v)			*(psem)=CreateSemaphore(NULL,v,INT_MAX,NULL),*(psem)==NULL?-1:0
+
+	/* NOT POSIX */
+	#define sem_trywait_block(psem,t)	(WaitForSingleObject(*(psem),t)==WAIT_OBJECT_0?0:(errno=EAGAIN,-1))
+
+	/* POSIX */
 	#define sem_wait(psem)				sem_trywait_block(psem,INFINITE)
 	#define sem_trywait(psem)			sem_trywait_block(psem,0)
+	#define sem_post(psem)				(ReleaseSemaphore(*(psem),1,NULL)==TRUE?0:-1)
+	#define sem_destroy(psem)			(CloseHandle(*(psem))==TRUE?0:-1)
+	#define sem_getvalue(psem,val)		ReleaseSemaphore(*(psem),0,(LPLONG)val)
 
 #elif defined(__OS2__)	/* These have *not* been tested! */
 
@@ -88,10 +98,6 @@ extern "C" {
 	#error "Need semaphore wrappers."
 
 #endif
-
-/* NOT POSIX */
-int sem_trywait_block(sem_t* psem, unsigned long timeout);
-
 
 /* Change semaphore to "unsignaled" (NOT POSIX) */
 #define sem_reset(psem)					while(sem_trywait(psem)==0)
