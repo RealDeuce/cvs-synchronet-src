@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.114 2003/01/28 22:39:18 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.115 2003/02/07 06:43:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -874,7 +874,8 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 
 						// Let's make sure the socket is up
 						// Sending will trigger a socket d/c detection
-						send_telnet_cmd(TELNET_GA,0);
+						if(startup->options&BBS_OPT_SEND_TELNET_GA)
+							send_telnet_cmd(TELNET_GA,0);
 
 						// Check if the node has been interrupted
 						getnodedat(cfg.node_num,&thisnode,0);

@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.26 2003/01/17 23:57:57 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.27 2003/02/07 06:43:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@ static ini_bitdesc_t bbs_options[] = {
 	{ BBS_OPT_ALLOW_RLOGIN			,"ALLOW_RLOGIN"			},
 	{ BBS_OPT_USE_2ND_RLOGIN		,"USE_2ND_RLOGIN"		},
 	{ BBS_OPT_NO_QWK_EVENTS			,"NO_QWK_EVENTS"		},
+	{ BBS_OPT_SEND_TELNET_GA		,"SEND_TELNET_GA"		},
 	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
