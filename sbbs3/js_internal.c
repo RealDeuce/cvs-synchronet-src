@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.4 2003/09/10 09:59:58 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.5 2003/10/03 09:01:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,9 +130,11 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case PROP_YIELD_INTERVAL:
 			JS_ValueToInt32(cx, *vp, (int32*)&branch->yield_interval);
 			break;
+#ifdef jscntxt_h___
 		case PROP_MAXBYTES:
 			JS_ValueToInt32(cx, *vp, (int32*)&cx->runtime->gcMaxBytes);
 			break;
+#endif
 	}
 
 	return(JS_TRUE);
