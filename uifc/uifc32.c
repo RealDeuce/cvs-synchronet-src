@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.62 2004/06/01 16:35:28 deuce Exp $ */
+/* $Id: uifc32.c,v 1.63 2004/06/01 22:33:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1025,7 +1025,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						continue;
 					}
 					/* Clicked Scroll Down */
-					if(mevnt.x=s_left+left
+					if(mevnt.x==s_left+left
 							&& mevnt.y==(s_top+top+height)-3
 							&& mevnt.button==1) {
 						if(!opts)
