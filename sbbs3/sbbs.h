@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.29 2001/03/09 22:32:26 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.30 2001/03/14 22:03:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -550,6 +550,7 @@ public:
 
 	/* bat_xfer.cpp */
 	void	batchmenu(void);
+	void	batch_create_list(void);
 	void	batch_add_list(char *list);
 	bool	create_batchup_lst(void);
 	bool	create_batchdn_lst(void);
