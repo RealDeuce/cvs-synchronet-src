@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.8 2004/12/29 00:15:58 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.5 2004/09/16 08:58:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,6 +64,7 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 
 		rewind(smb->hash_fp);
 		while(!feof(smb->hash_fp)) {
+			memset(&hash,0,sizeof(hash));
 			if(smb_fread(smb,&hash,sizeof(hash),smb->hash_fp)!=sizeof(hash))
 				break;
 
@@ -77,8 +78,6 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 
 				if(compare[c]->source!=hash.source)
 					continue;	/* wrong source */
-				if(compare[c]->length!=hash.length)
-					continue;	/* wrong source length */
 				if(compare[c]->flags&SMB_HASH_MARKED)
 					continue;	/* already marked */
 				if((compare[c]->flags&SMB_HASH_PROC_MASK)!=(hash.flags&SMB_HASH_PROC_MASK))
@@ -165,8 +164,7 @@ static char* strip_chars(uchar* str, uchar* set)
 			*(dst++)=*src;
 	}
 	*dst=0;
-	free(tmp);
-
+	
 	return(str);
 }
 
@@ -180,10 +178,8 @@ hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 	if((hash=(hash_t*)malloc(sizeof(hash_t)))==NULL)
 		return(NULL);
 
-	memset(hash,0,sizeof(hash_t));
 	hash->number=msgnum;
 	hash->time=t;
-	hash->length=length;
 	hash->source=source;
 	hash->flags=flags;
 	if(flags&SMB_HASH_CRC16)
