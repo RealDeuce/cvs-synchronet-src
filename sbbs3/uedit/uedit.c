@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.17 2004/03/03 22:40:48 deuce Exp $ */
+/* $Id: uedit.c,v 1.18 2004/03/03 22:51:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,8 +65,8 @@
 /* Global Variables */
 /********************/
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
-char *YesStr="Yes";
-char *NoStr="No";
+char YesStr[]="Yes";
+char NoStr[]="No";
 int 		modified=0;
 
 int lprintf(char *fmt, ...)
@@ -1614,7 +1614,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.17 $", "%*s %s", revision);
+	sscanf("$Revision: 1.18 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
