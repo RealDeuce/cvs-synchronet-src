@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.12 2004/07/21 02:37:51 rswindell Exp $ */
+/* $Id: link_list.c,v 1.16 2004/09/16 05:11:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,8 +356,9 @@ static list_node_t* list_add_node(link_list_t* list, list_node_t* node, list_nod
 	if(after==list->last)					/* append to list */
 		list->last = node;
 	if(after==FIRST_NODE) {					/* insert at beginning of list */
-		if(list->first!=NULL)
-			list->first->prev = node;
+		node->next = list->first;
+		if(node->next!=NULL)
+			node->next->prev = node;
 		list->first = node;
 	} else {
 		if(after->next!=NULL) {
@@ -383,6 +384,9 @@ list_node_t* listAddNode(link_list_t* list, void* data, list_node_t* after)
 
 	if((node=(list_node_t*)malloc(sizeof(list_node_t)))==NULL)
 		return(NULL);
+
+	memset(node,0,sizeof(list_node_t));
+	node->data = data;
 
 	return(list_add_node(list,node,after));
 }
@@ -587,9 +591,11 @@ BOOL listSwapNodes(list_node_t* node1, list_node_t* node2)
 	if(node1->list==NULL || node2->list==NULL)
 		return(FALSE);
 
+#if defined(LINK_LIST_THREADSAFE)
 	MUTEX_LOCK(node1->list);
 	if(node1->list != node2->list)
 		MUTEX_LOCK(node2->list);
+#endif
 
 	tmp=*node1;
 	node1->data=node2->data;
@@ -597,9 +603,11 @@ BOOL listSwapNodes(list_node_t* node1, list_node_t* node2)
 	node2->data=tmp.data;
 	node2->flags=tmp.flags;
 
+#if defined(LINK_LIST_THREADSAFE)
 	MUTEX_UNLOCK(node1->list);
 	if(node1->list != node2->list)
 		MUTEX_UNLOCK(node2->list);
+#endif
 
 	return(TRUE);
 }

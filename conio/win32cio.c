@@ -1,4 +1,5 @@
 #include <windows.h>	/* INPUT_RECORD, etc. */
+#include <genwrap.h>
 #include <stdio.h>		/* stdin */
 #include "ciolib.h"
 #include "keys.h"
@@ -92,7 +93,7 @@ int win32_kbhit(void)
 			return(1);
 		if(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 			|| !num)
-			break;
+			return(0);
 		if(input.EventType==KEY_EVENT && input.Event.KeyEvent.bKeyDown)
 			return(1);
 		if(domouse) {
@@ -125,12 +126,8 @@ int win32_kbhit(void)
 				}
 			}
 		}
-		if(ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
-			&& num) {
-			continue;
-		}
+		ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num);
 	}
-	return(0);
 }
 
 int win32_getch(void)

@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SMBLIB
 
-# $Id: objects.mk,v 1.2 2004/09/11 20:41:30 deuce Exp $
+# $Id: objects.mk,v 1.3 2004/09/12 23:59:42 deuce Exp $
 
 # OBJODIR, DIRSEP, and OFILE must be pre-defined
 
@@ -18,3 +18,16 @@ OBJS	=	$(OBJODIR)$(DIRSEP)smbadd$(OFILE)\
 			$(OBJODIR)$(DIRSEP)crc32$(OFILE)\
 			$(OBJODIR)$(DIRSEP)md5$(OFILE)\
 			$(OBJODIR)$(DIRSEP)lzh$(OFILE)
+
+MTOBJS	=	$(MTOBJODIR)$(DIRSEP)smbadd$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)smballoc$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)smbdump$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)smbfile$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)smbhash$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)smblib$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)smbstr$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)smbtxt$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)crc16$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)crc32$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)md5$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)lzh$(OFILE)
