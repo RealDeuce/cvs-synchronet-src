@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.4 2001/02/04 17:00:57 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.5 2001/10/30 18:39:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,8 +39,8 @@
 #include <string.h>	/* strnicmp */
 #include <ctype.h>	/* toupper */
 
-#include "smblib.h"
 #include "smbwrap.h"
+#include "smblib.h"
 
 char *usage="usage: fixsmb [/opts] <smb_file>\n"
 			"\n"

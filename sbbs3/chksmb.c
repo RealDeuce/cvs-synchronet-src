@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.6 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.7 2001/10/30 18:39:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,8 +40,8 @@
 #include <time.h>		/* ctime */
 
 /* SMB-specific */
-#include "smblib.h"
 #include "smbwrap.h"
+#include "smblib.h"
 #include "conwrap.h"	/* getch */
 
 /****************************************************************************/

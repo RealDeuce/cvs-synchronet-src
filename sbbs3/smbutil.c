@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.12 2000/11/28 02:46:10 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.13 2001/10/30 18:39:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,8 +55,8 @@
 #include <errno.h>	/* errno */
 #include <string.h>	/* strrchr */
 
-#include "smblib.h"
 #include "smbwrap.h"
+#include "smblib.h"
 #include "crc32.h"
 
 #ifdef __WATCOMC__
