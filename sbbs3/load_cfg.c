@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.5 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.6 2000/11/06 11:01:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,16 +108,23 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[])
 /****************************************************************************/
 /* If the directory 'path' doesn't exist, create it.                      	*/
 /****************************************************************************/
-BOOL md(char *path)
+BOOL md(char *inpath)
 {
 	DIR*	dir;
+	char	path[MAX_PATH+1];
+
+	sprintf(path,"%.*s",MAX_PATH,inpath);
+
+	/* Truncate '.' if present */
+	if(path[0]!=0 && path[strlen(path)-1]=='.')
+		path[strlen(path)-1]=0;
 
 	dir=opendir(path);
 	if(dir==NULL) {
 		lprintf("Creating Directory %s... ",path);
 		if(_mkdir(path)) {
-			lprintf("!Fix configuration or make directory by "
-				"hand.");
+			lprintf("!Error %d: Fix configuration or make directory by "
+				"hand.",errno);
 			return(FALSE); 
 		} 
 	}
