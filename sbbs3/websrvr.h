@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.10 2003/06/07 02:47:29 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.11 2003/09/16 21:49:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@ typedef struct {
     DWORD   interface_addr;
     DWORD	options;
     DWORD	js_max_bytes;
+	DWORD	js_cx_stack;
 	int 	(*lputs)(char*);
 	void	(*status)(char*);
     void	(*started)(void);
