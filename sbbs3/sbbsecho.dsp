@@ -100,10 +100,6 @@ SOURCE=.\load_cfg.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\msg_id.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\nopen.c
 # End Source File
 # Begin Source File
