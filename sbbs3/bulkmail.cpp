@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.11 2002/08/26 21:56:57 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.12 2003/05/22 22:59:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,7 +175,7 @@ void sbbs_t::bulkmail(uchar *ar)
 	if(!msgs)
 		smb_freemsgdat(&smb,offset,length,1);
 	else if(msgs>1)
-		smb_incdat(&smb,offset,length,msgs-1);
+		smb_incdat(&smb,offset,length,(ushort)msgs-1);
 	smb_close_da(&smb);
 
 	smb_close(&smb);

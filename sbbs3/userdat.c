@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.72 2003/05/15 20:47:27 rswindell Exp $ */
+/* $Id: userdat.c,v 1.73 2003/05/22 22:59:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1859,12 +1859,14 @@ void DLLCALL subtract_cdt(scfg_t* cfg, user_t* user, long amt)
 BOOL DLLCALL logoutuserdat(scfg_t* cfg, user_t* user, time_t now, time_t logontime)
 {
 	char str[128];
+	time_t tused;
 	struct tm tm, tm_now;
 
 	if(user==NULL)
 		return(FALSE);
 
-	user->tlast=(now-logontime)/60;
+	tused=(now-logontime)/60;
+	user->tlast=(ushort)(tused > USHRT_MAX ? USHRT_MAX : tused);
 
 	putuserrec(cfg,user->number,U_LASTON,8,ultoa(now,str,16));
 	putuserrec(cfg,user->number,U_TLAST,5,ultoa(user->tlast,str,10));

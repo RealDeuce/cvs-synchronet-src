@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.8 2002/02/05 23:16:04 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.9 2003/05/22 22:59:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,7 +131,7 @@ extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 			continue;
 		while(filelength(file)<(long)(cfg->sub[i]->ptridx)*10) {
 			lseek(file,0L,SEEK_END);
-			idx=tell(file)/10;
+			idx=(ushort)(tell(file)/10);
 			for(j=0;j<cfg->total_subs;j++)
 				if(cfg->sub[j]->ptridx==idx)
 					break;

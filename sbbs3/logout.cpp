@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.19 2003/02/01 02:58:13 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.20 2003/05/22 22:59:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,7 +144,7 @@ void sbbs_t::logout()
 		putuserrec(&cfg,useron.number,U_MIN,10,ultoa(useron.min,str,10)); }
 
 	if(timeleft>0 && starttime-logontime>0) 			/* extra time */
-		useron.textra+=(starttime-logontime)/60;
+		useron.textra+=(ushort)((starttime-logontime)/60);
 
 	putuserrec(&cfg,useron.number,U_TEXTRA,5,ultoa(useron.textra,str,10));
 	putuserrec(&cfg,useron.number,U_NS_TIME,8,ultoa(last_ns_time,str,16));
