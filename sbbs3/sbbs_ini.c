@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.81 2004/10/14 03:23:30 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.77 2004/09/16 10:10:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@ static const char*	strInterface="Interface";
 static const char*	strHostName="HostName";
 static const char*	strLogMask="LogMask";
 
-#define DEFAULT_LOG_MASK		0xff	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO|DEBUG */
+#define DEFAULT_LOG_MASK		0x1f	/* EMERG|ALERT|CRIT|ERR|WARNING */
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
@@ -434,8 +434,6 @@ void sbbs_read_ini(
 			,iniReadString(fp,section,"ErrorDirectory",WEB_DEFAULT_ERROR_DIR,value));
 		SAFECOPY(web->cgi_dir
 			,iniReadString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
-		SAFECOPY(web->logfile_base
-			,iniReadString(fp,section,"HttpLogFile",nulstr,value));
 
 		iniFreeStringList(web->index_file_name);
 		web->index_file_name
@@ -460,7 +458,7 @@ void sbbs_read_ini(
 			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		web->options
 			=iniReadBitField(fp,section,strOptions,web_options
-				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
+				,BBS_OPT_NO_HOST_LOOKUP);
 	}
 }
 
