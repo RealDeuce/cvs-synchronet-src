@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.26 2004/09/26 20:06:44 rswindell Exp $ */
+/* $Id: services.h,v 1.27 2004/10/20 23:09:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@ typedef struct {
 	int 	(*lputs)(void*, int, char*);		/* Log - put string */
 	void	(*status)(void*, char*);
     void	(*started)(void*);
+	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
     void	(*clients)(void*, int active);
     void	(*thread_up)(void*, BOOL up, BOOL setuid);
