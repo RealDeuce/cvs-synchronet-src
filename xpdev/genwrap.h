@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.31 2003/04/29 04:38:15 deuce Exp $ */
+/* $Id: genwrap.h,v 1.32 2003/04/29 05:38:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -216,6 +216,10 @@ DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 
 #if defined(__cplusplus)
 }
+#endif
+
+#ifndef YIELD
+#define	YIELD()
 #endif
 
 #endif	/* Don't add anything after this line */
