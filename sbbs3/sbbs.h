@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.150 2002/11/05 10:48:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.151 2002/11/07 09:20:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,6 +169,7 @@ public:
 	void	hangup(void);		   // Hangup modem
 
 
+	void	send_telnet_cmd(uchar cmd, uchar opt);
     uchar	telnet_cmd[10];
     int		telnet_cmdlen;
 	ulong	telnet_mode;
