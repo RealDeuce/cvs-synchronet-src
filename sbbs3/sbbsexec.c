@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.4 2001/09/16 21:37:37 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.5 2001/09/16 23:54:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,7 +264,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 				wrslot,					// mailslot handle 
  				&status->outbuf_size,	// address of maximum message size 
 				&status->outbuf_full,	// address of size of next message 
-				&count,					// address of number of messages 
+				NULL,					// address of number of messages 
  				NULL					// address of read time-out 
 				)) {
 				status->outbuf_full=0;
@@ -301,7 +301,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 				rdslot,		// mailslot handle 
  				NULL,		// address of maximum message size 
 				&retval,	// address of size of next message 
-				&count,		// address of number of messages 
+				NULL,		// address of number of messages 
  				NULL		// address of read time-out 
 				))
 				retval=0;
