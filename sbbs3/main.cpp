@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.363 2004/12/09 08:07:13 rswindell Exp $ */
+/* $Id: main.cpp,v 1.353 2004/11/06 02:31:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -208,7 +208,7 @@ int close_socket(SOCKET sock)
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
-	if(startup!=NULL && startup->socket_open!=NULL)
+	if(result==0 && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
 	if(result!=0 && ERROR_VALUE!=ENOTSOCK)
 		lprintf(LOG_ERR,"!ERROR %d closing socket %d",ERROR_VALUE,sock);
@@ -374,8 +374,8 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 		return(JS_FALSE);
 
 	for(i=0;props[i].name;i++) {
-		if(!JS_DefinePropertyWithTinyId(cx, obj, /* Never reserve any "slots" for properties */
-			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+		if(!JS_DefinePropertyWithTinyId(cx, obj, 
+			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags))
 			return(JS_FALSE);
 		if(props[i].flags&JSPROP_ENUMERATE) {	/* No need to version invisible props */
 			val = INT_TO_JSVAL(props[i].ver);
@@ -477,7 +477,7 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 
 	for(i=0;props[i].name;i++) 
 		if(!JS_DefinePropertyWithTinyId(cx, obj, 
-			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags))
 			return(JS_FALSE);
 
 	return(JS_TRUE);
@@ -883,13 +883,8 @@ bool sbbs_t::js_init()
 
 		JS_SetContextPrivate(js_cx, this);	/* Store a pointer to sbbs_t instance */
 
-		/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
-					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-					,&js_branch									/* js */
-					,&client, client_socket						/* client */
-					,&js_server_props							/* server */
-			))==NULL)
+		/* Global Object */
+		if((js_glob=js_CreateGlobalObject(js_cx, &cfg, js_global_functions))==NULL)
 			break;
 
 #ifdef _DEBUG
@@ -897,6 +892,17 @@ bool sbbs_t::js_init()
 			,NULL,NULL,JSPROP_READONLY);
 #endif
 
+		/* System Object */
+		if(js_CreateSystemObject(js_cx, js_glob, &cfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL)
+			break;
+
+		/* Internal JS Object */
+		if(js_CreateInternalJsObject(js_cx, js_glob, &js_branch)==NULL)
+			break;
+
+		/* Client Object */
+		if(js_CreateClientObject(js_cx, js_glob, "client", &client, client_socket)==NULL)
+			break;
 
 		/* BBS Object */
 		if(js_CreateBbsObject(js_cx, js_glob)==NULL)
@@ -905,6 +911,60 @@ bool sbbs_t::js_init()
 		/* Console Object */
 		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
 			break;
+
+		/* Socket Class */
+		if(js_CreateSocketClass(js_cx, js_glob)==NULL)
+			break;
+
+		/* MsgBase Class */
+		if(js_CreateMsgBaseClass(js_cx, js_glob, &scfg)==NULL)
+			break;
+
+		/* File Class */
+		if(js_CreateFileClass(js_cx, js_glob)==NULL)
+			break;
+
+		/* User class */
+		if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
+			break;
+
+		/* Area Objects */
+		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, NULL, NULL, NULL)) 
+			break;
+
+#if 0
+		char		ver[256];
+		jsval		val;
+		JSObject*	server;
+		JSString*	js_str;
+
+		/* Server Object */
+		if((server=JS_DefineObject(js_cx, js_glob, "server", NULL
+			,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
+			break;
+
+		sprintf(ver,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
+		if((js_str=JS_NewStringCopyZ(js_cx, ver))==NULL)
+			break;
+		val = STRING_TO_JSVAL(js_str);
+		if(!JS_SetProperty(js_cx, server, "version", &val))
+			break;
+
+		if((js_str=JS_NewStringCopyZ(js_cx, bbs_ver()))==NULL)
+			break;
+		val = STRING_TO_JSVAL(js_str);
+		if(!JS_SetProperty(js_cx, server, "version_detail", &val))
+			break;
+
+#ifdef _DEBUG
+		js_DescribeSyncObject(js_cx,server,"Server-specifc properties",310);
+		js_CreateArrayOfStrings(js_cx, server, "_property_desc_list", server_prop_desc, JSPROP_READONLY);
+#endif
+
+#else
+		if(js_CreateServerObject(js_cx,js_glob,&js_server_props)==NULL)
+			break;
+#endif
 
 		success=true;
 
@@ -1204,10 +1264,8 @@ void input_thread(void *arg)
 		if((i=select(high_socket+1,&socket_set,NULL,NULL,&tv))<1) {
 			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
-			if(i==0) {
-				YIELD();	/* This kludge is necessary on some Linux distros */
-				continue;	/* to allow other threads to lock the input_thread_mutex */
-			}
+			if(i==0)
+				continue;
 
 			if(sbbs->client_socket==INVALID_SOCKET)
 				break;
@@ -2353,20 +2411,10 @@ bool sbbs_t::init()
 #endif
 		);
 	if(comspec==NULL) {
-		errormsg(WHERE, ERR_CHK, 
-#ifdef __unix__
-		"SHELL"
-#else
-		"COMSPEC"
-#endif
-		" environment variable", 0);
-#if defined(__unix__)
-	#if defined(_PATH_BSHELL)
+#if defined(__unix__) && defined(_PATH_BSHELL)
 		comspec =  _PATH_BSHELL;
-	#else
-		comspec = "/bin/sh";
-	#endif
 #else
+		errormsg(WHERE, ERR_CHK, "SHELL or COMSPEC environment variable", 0);
 		return(false);
 #endif
 	}
@@ -4123,8 +4171,7 @@ void DLLCALL bbs_thread(void* arg)
 				break;
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-					lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
-						,telnet_socket,p);
+					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 					break;
 				}
 #if 0	/* unused */
@@ -4132,17 +4179,15 @@ void DLLCALL bbs_thread(void* arg)
 					startup->recycle_now=TRUE;
 #endif
 				if(startup->recycle_now==TRUE) {
-					lprintf(LOG_INFO,"%04d Recycle semaphore signaled",telnet_socket);
+					lprintf(LOG_INFO,"0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;
 					break;
 				}
 			}
 			if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
-					&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
-						,telnet_socket,p))
+					&& lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p))
 				|| (startup->shutdown_now==TRUE
-					&& lprintf(LOG_INFO,"%04d Shutdown semaphore signaled"
-						,telnet_socket))) {
+					&& lprintf(LOG_INFO,"0000 Shutdown semaphore signaled"))) {
 				startup->shutdown_now=FALSE;
 				terminate_server=TRUE;
 				break;
@@ -4263,18 +4308,12 @@ void DLLCALL bbs_thread(void* arg)
 			continue;
 
 		if(client_socket == INVALID_SOCKET)	{
-#if 0	/* is this necessary still? */
 			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
             	lputs(LOG_NOTICE,"BBS socket closed");
 				break;
 			}
-#endif
 			lprintf(LOG_ERR,"!ERROR %d accepting connection", ERROR_VALUE);
-#ifdef _WIN32
-			if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
-				break;
-#endif
-			continue;
+			break;	// was continue, July-01-2002
 		}
 		char host_ip[32];
 
