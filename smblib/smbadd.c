@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.1 2004/09/11 09:27:44 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.2 2004/09/15 05:05:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,17 @@
 #include "smblib.h"
 #include "genwrap.h"
 #include "crc32.h"
+
+static char* hash_source_string(smbmsg_t* msg, int source)
+{
+	switch(source) {
+		case RFC822MSGID:
+			return(msg->id);
+		case FIDOMSGID:
+			return(msg->ftn_msgid);
+	}
+	return("hash");
+}
 
 /****************************************************************************/
 /****************************************************************************/
@@ -86,8 +97,10 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 
 		if(smb_findhash(smb, hashes, &found, /* update? */FALSE)==SMB_SUCCESS) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"duplicate %s hash found (message #%lu)"
-				,smb_hashsource(found.source), found.number);
+				,"duplicate %s (%s) found in message #%lu"
+				,smb_hashsource(found.source)
+				,hash_source_string(msg,found.source)
+				,found.number);
 			retval=SMB_DUPE_MSG;
 			break;
 		}
