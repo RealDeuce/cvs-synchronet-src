@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.57 2002/03/22 04:08:05 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.58 2002/03/22 04:44:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,7 +131,7 @@ static const char* usage  = "usage: %s [[option] [...]]\n"
 							"\tug<group>  set group for BBS to run as\n"
 							"\td[x]       run as daemon, log using syslog\n"
 							"\t           x is the optional LOCALx facility to use\n"
-							"\t           if non is specified, uses USER\n"
+							"\t           if none is specified, uses USER\n"
 							"\t           if 'f' is specified, uses standard facilities\n"
 #endif
 							"\tgi         get user identity (using IDENT protocol)\n"
