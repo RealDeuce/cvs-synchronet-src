@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.31 2001/06/15 03:39:16 rswindell Exp $ */
+/* $Id: main.cpp,v 1.32 2001/06/20 01:20:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1450,6 +1450,8 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
     	strcpy(nodestr,name);
 
 	lprintf("%s constructor using socket %d", nodestr, sd);
+
+	startup = ::startup;	// Convert from global to class member
 
 	memcpy(&cfg, global_cfg, sizeof(cfg));
 
@@ -3005,7 +3007,6 @@ void DLLCALL bbs_thread(void* arg)
 		lprintf("!ERROR changing directory to: %s", startup->ctrl_dir);
 
 	/* Initial configuration and load from CNF files */
-	scfg.startup=startup;
     sprintf(scfg.ctrl_dir, "%.*s", (int)sizeof(scfg.ctrl_dir)-1
     	,startup->ctrl_dir);
     lprintf("Loading configuration files from %s", scfg.ctrl_dir);
