@@ -46,20 +46,29 @@ CC	:=	gcc
 #                tlink - For Borland compilers
 #                 link - For Microsoft compilers
 #
-LD	:=	ld
+# Get OS name
+OS      :=      $(shell uname)
+
+LD	:=	gcc
 #
 #------------------------------------------------------------------------------
 #
 # Compiler command-line flags.
 #
 CFLAGS	+=	-O2 -g -L. -I../xpdev
+ifeq ($(OS),Darwin)
+ CFLAGS		+=	-D__unix__
+ LDFLAGS	+=	$(CFLAGS) -dynamiclib -single_module
+else
+ LDFLAGS	+=	$(CFLAGS) -shared
+endif
 # /MTd /Zi - for debug
 #
 #------------------------------------------------------------------------------
 #
 # Link flags.
 #
-LDFLAGS	:=
+#LDFLAGS	:=
 #
 #------------------------------------------------------------------------------
 #
@@ -146,7 +155,7 @@ OBJECTS := ${OBJDIR}ODAuto${OBJFILE}\
 #         ${OBJDIR}odsys${OBJFILE}\	this file is missing
 
 ${LIBDIR}libODoors${SHLIB} : ${OBJECTS}
-	$(CC) $(CFLAGS) -shared -o ${LIBDIR}libODoors${SHLIB}.6.2 ${OBJECTS}
+	$(LD) $(LDFLAGS) -o ${LIBDIR}libODoors${SHLIB}.6.2 ${OBJECTS}
 	ln -fs ${LIBDIR}libODoors${SHLIB}.6.2 ${LIBDIR}libODoors${SHLIB}
 
 ${LIBDIR}libODoors${STATICLIB} : ${OBJECTS}
@@ -169,7 +178,7 @@ ex_ski: ex_ski.c ${LIBDIR}libODoors${SHLIB}
 	$(CC) $(CFLAGS) ex_ski.c -o ex_ski -lODoors
 
 ex_vote: ex_vote.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_vote.c -o ex_vote ../xpdev/filewrap.c -lODoors -DMULTINODE_AWARE
+	$(CC) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o ex_vote -lODoors -DMULTINODE_AWARE
 
 #
 #------------------------------------------------------------------------------
