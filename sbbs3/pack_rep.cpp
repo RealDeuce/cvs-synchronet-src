@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.31 2005/03/11 23:58:16 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.30 2005/01/05 01:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,7 +223,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 
 	if(!msgcnt && !netfiles && !packedmail) {
 		eprintf(LOG_INFO,remove_ctrl_a(text[QWKNoNewMessages],tmp));
-		return(true);	// Changed from false Mar-11-2005 (needs to be true to save updated ptrs)
+		return(false); 
 	}
 
 	/*******************/
