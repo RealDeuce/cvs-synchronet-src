@@ -2,13 +2,13 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.30 2003/04/24 10:00:51 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.31 2003/04/30 23:50:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -98,7 +98,7 @@ static BOOL fcopy(char* src, char* dest)
 			break;
 		fputc(ch,out);
 		if(((count++)%(32*1024))==0)
-			SLEEP(1);
+			YIELD();
 	}
 
 	fclose(in);

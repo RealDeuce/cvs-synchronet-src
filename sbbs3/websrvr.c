@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.94 2003/04/05 02:24:44 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.95 2003/04/30 23:50:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -453,7 +453,7 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	while((result=sendsocket(sock,sbuf,len))!=len) {
 		if(result==SOCKET_ERROR) {
 			if(ERROR_VALUE==EWOULDBLOCK) {
-				mswait(1);
+				YIELD();
 				continue;
 			}
 			if(ERROR_VALUE==ECONNRESET) 
@@ -962,7 +962,7 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 				session->socket=INVALID_SOCKET;
 				return(-1);        /* time-out */
 			}
-			mswait(1);
+			YIELD();
 			continue;       /* no data */
 		}
 
@@ -2343,7 +2343,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.94 $", "%*s %s", revision);
+	sscanf("$Revision: 1.95 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2574,7 +2574,7 @@ void DLLCALL web_server(void* arg)
 
 			if((i=select(high_socket_set,&socket_set,NULL,NULL,&tv))<1) {
 				if(i==0) {
-					mswait(1);
+					YIELD();
 					continue;
 				}
 				if(ERROR_VALUE==EINTR)
