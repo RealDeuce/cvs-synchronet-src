@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.26 2003/03/27 23:18:16 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.27 2003/04/23 08:31:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -716,3 +716,19 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	return(target);
 }
 #endif
+
+/****************************************************************************/
+/* Adds a trailing slash/backslash on path strings 							*/
+/****************************************************************************/
+char* DLLCALL backslash(char* path)
+{
+	char* p;
+
+	p=lastchar(str);
+
+	if(*p!='/' && *p!='\\') {
+		*(p++)=BACKSLASH;
+		*p=0;
+	}
+	return(path);
+}
