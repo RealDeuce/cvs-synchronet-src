@@ -24,7 +24,6 @@ struct bbslist {
 	char			password[MAX_PASSWD_LEN+1];
 	int				type;
 	int				id;
-	int				dumb;
 };
 
 struct bbslist *show_bbslist(int mode);

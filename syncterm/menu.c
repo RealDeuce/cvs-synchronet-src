@@ -9,16 +9,11 @@ void viewscroll(void)
 	int	top;
 	int key;
 	int i;
-	char	*buf;
-	struct	text_info txtinfo;
 
 	uifcbail();
-    gettextinfo(&txtinfo);
-	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	drawwin();
 	top=term.backpos-term.height;
-	for(i=0;!i;) {
+	for(;;) {
 		if(top<1)
 			top=1;
 		if(top>term.backpos-term.height)
@@ -47,8 +42,7 @@ void viewscroll(void)
 				top+=term.height;
 				break;
 			case ESC:
-				i=1;
-				break;
+				return;
 			case KEY_F(1):
 				init_uifc();
 				uifc.helpbuf=	"`Scrollback Buffer`\n\n"
@@ -62,20 +56,12 @@ void viewscroll(void)
 				break;
 		}
 	}
-	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	free(buf);
-	return;
 }
 
 int syncmenu(void)
 {
-	char	*opts[3]={
-#ifdef __unix__
-						 "Scrollback (ALT-S)"
-#else
-						 "Scrollback"
-#endif
-						,"Disconnect (CTRL-Q)"
+	char	*opts[3]={	 "Disconnect"
+						,"Scrollback"
 						,""};
 	int		opt=0;
 	int		i;
@@ -94,11 +80,11 @@ int syncmenu(void)
 			case -1:	/* Cancel */
 				ret=1;
 				break;
-			case 0:		/* Scrollback */
-				viewscroll();
-				break;
-			case 1:		/* Disconnect */
+			case 0:		/* Disconnect */
 				ret=-1;
+				break;
+			case 1:
+				viewscroll();
 				break;
 		}
 	}
