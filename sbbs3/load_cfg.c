@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.53 2004/09/15 20:08:26 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.54 2004/11/17 11:35:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 
 		if(i<TOTAL_TEXT) {
 			sprintf(error,"line %lu in %s: Less than TOTAL_TEXT (%u) strings defined in %s."
-				,line,fname
+				,i,fname
 				,TOTAL_TEXT,fname);
 			return(FALSE); 
 		}
