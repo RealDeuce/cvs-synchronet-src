@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.87 2002/01/28 15:59:26 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.88 2002/01/29 23:52:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -520,7 +520,8 @@ public:
 	void	multinodechat(int channel=1);
 	void	nodepage(void);
 	void	nodemsg(void);
-	int		nodemsg_inside;
+	uint	nodemsg_inside;
+	uint	hotkey_inside;
 	uchar	lastnodemsg;	/* Number of node last message was sent to */
 	char	lastnodemsguser[LEN_ALIAS+1];
 	void	guruchat(char *line, char *guru, int gurunum);
