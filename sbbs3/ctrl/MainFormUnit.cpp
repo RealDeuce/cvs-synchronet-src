@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.141 2004/12/04 17:00:22 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.142 2004/12/30 23:07:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3497,7 +3497,7 @@ void __fastcall TMainForm::ServiceStatusTimerTick(TObject *Sender)
 void __fastcall TMainForm::EditFile(AnsiString filename, AnsiString Caption)
 {
    if(!UseFileAssociations
-        || (int)ShellExecute(Handle, "open", filename.c_str(), NULL,NULL,SW_SHOWDEFAULT)<=32) {
+        || (int)ShellExecute(Handle, "edit", filename.c_str(), NULL,NULL,SW_SHOWDEFAULT)<=32) {
         Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
         TextFileEditForm->Filename=filename;
         TextFileEditForm->Caption=Caption;
