@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.72 2003/09/16 04:23:40 rswindell Exp $ */
+/* $Id: smblib.c,v 1.73 2003/09/17 05:43:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2238,7 +2238,7 @@ ushort SMBCALL smb_hfieldtypelookup(const char* str)
 	ushort type;
 
 	if(isdigit(*str))
-		return(strtol(str,NULL,0));
+		return((ushort)strtol(str,NULL,0));
 
 	for(type=0;type<=UNUSED;type++)
 		if(stricmp(str,smb_hfieldtype(type))==0)
