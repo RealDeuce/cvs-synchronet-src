@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.10 2002/01/29 22:59:35 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.11 2002/03/10 14:00:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,7 +587,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	if(!no_msghdr) {
 		strcpy(dir,cfg->data_dir);
 		prep_dir(cfg->ctrl_dir,dir);
-		sprintf(smb.file,"%sMAIL",dir);
+		sprintf(smb.file,"%smail",dir);
 		if(smb_open(&smb)!=0) {
 			return(FALSE); 
 		}
