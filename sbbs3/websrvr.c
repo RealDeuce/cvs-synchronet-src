@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.42 2002/11/09 23:10:15 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.43 2002/11/11 08:15:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -445,7 +445,11 @@ static void init_heads(http_session_t *session)  {
 	return;
 }
 
-static BOOL is_cgi(http_session_t *session)  {
+static BOOL is_cgi(http_session_t *session)  
+{
+
+	if(startup->options&WEB_OPT_NO_CGI)
+		return(FALSE);
 
 #ifdef __unix__
 	/* NOTE: (From the FreeBSD man page) 
@@ -1894,6 +1898,9 @@ BOOL is_js(http_session_t * session)
 {
 	char* p;
 
+	if(startup->options&BBS_OPT_NO_JAVASCRIPT)
+		return(FALSE);
+
 	if((p=strrchr(session->req.physical_path,'.'))==NULL)
 		return(FALSE);
 
@@ -2030,8 +2037,10 @@ void http_session_thread(void* arg)
 
 	while(!session.finished && server_socket!=INVALID_SOCKET) {
 	    memset(&(session.req), 0, sizeof(session.req));
-		init_enviro(&session);
-		init_heads(&session);
+		if(!(startup->options&WEB_OPT_NO_CGI)) {
+			init_enviro(&session);
+			init_heads(&session);
+		}
 		if(get_req(&session)) {
 			lprintf("%04d Got request %s method %d version %d"
 				,session.socket
@@ -2104,7 +2113,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.42 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.43 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

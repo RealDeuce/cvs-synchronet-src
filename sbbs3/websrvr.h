@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.5 2002/11/05 04:39:29 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.6 2002/11/11 08:15:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,6 +95,7 @@ typedef struct {
 #define WEB_OPT_DEBUG_RX			(1<<0)	/* Log all received requests		*/
 #define WEB_OPT_DEBUG_TX			(1<<1)	/* Log all transmitted responses	*/
 #define WEB_OPT_VIRTUAL_HOSTS		(1<<4)	/* Use virutal host html subdirs	*/
+#define WEB_OPT_NO_CGI				(1<<5)	/* Disable CGI support				*/
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
