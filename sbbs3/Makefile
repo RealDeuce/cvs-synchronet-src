@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.61 2004/09/23 18:13:20 rswindell Exp $
+# $Id: Makefile,v 1.62 2004/09/25 06:37:17 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -43,6 +43,7 @@ LDFLAGS	=	$(LDFLAGS) $(JS_LDFLAGS)
 
 !include sbbsdefs.mk
 MT_CFLAGS	=	$(MT_CFLAGS) $(SBBSDEFS)
+CFLAGS	=	$(CFLAGS) -DMD5_IMPORTS
 
 CON_LIBS	= $(UL_PRE)sbbs$(UL_SUF) $(UL_PRE)ftpsrvr$(UL_SUF) $(UL_PRE)websrvr$(UL_SUF) $(UL_PRE)mailsrvr$(UL_SUF) $(UL_PRE)services$(UL_SUF)
 
@@ -177,7 +178,7 @@ $(MTOBJODIR)$(DIRSEP)ftpsrvr$(OFILE): ftpsrvr.c
 			-n$(MTOBJODIR) $(MT_CFLAGS) -c $** $(OUTPUT)$@
 
 $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE): mailsrvr.c
-        $(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -DMAILSRVR_EXPORTS -DSMB_IMPORTS -DMD5_IMPORTS -USBBS_EXPORTS \
+        $(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -DMAILSRVR_EXPORTS -DSMB_IMPORTS -USBBS_EXPORTS \
 			-n$(MTOBJODIR) $(MT_CFLAGS) -c $** $(OUTPUT)$@
 
 $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE): websrvr.c
