@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.103 2003/07/11 18:57:25 deuce Exp $
+# $Id: GNUmakefile,v 1.104 2003/07/11 19:59:09 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -248,28 +248,28 @@ FORCE$(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 
 $(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 	@echo Linking $@
-	@$(LD) $(SBBSLDFLAGS) -S $^ $(LIBS) -shared -o $@ 
+	@$(CC) $(LFLAGS) -S $^ $(LIBS) -shared -o $@ 
 
 # Mail Server Link Rule
 FORCE$(MAILSRVR): $(MAIL_OBJS) $(LIBODIR)$(SLASH)$(SBBSLIB)
 
 $(MAILSRVR): $(MAIL_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	@$(LD) $(SBBSLDFLAGS) -S $^ $(LIBS) -shared -o $@
+	@$(CC) $(LFLAGS) -S $^ $(LIBS) -shared -o $@
 
 # Mail Server Link Rule
 FORCE$(WEBSRVR): $(WEB_OBJS) $(SBBSLIB)
 
 $(WEBSRVR): $(WEB_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	@$(LD) $(SBBSLDFLAGS) -S $^ $(LIBS) -shared -o $@
+	@$(CC) $(LFLAGS) -S $^ $(LIBS) -shared -o $@
 
 # Services Link Rule
 FORCE$(SERVICES): $(WEB_OBJS) $(SBBSLIB)
 
 $(SERVICES): $(SERVICE_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	@$(LD) $(SBBSLDFLAGS) -S $^ $(LIBS) -shared -o $@
+	@$(CC) $(LFLAGS) -S $^ $(LIBS) -shared -o $@
 
 # Synchronet Console Build Rule
 FORCE$(SBBSCON): $(CON_OBJS) $(SBBSLIB) $(FTP_OBJS) $(MAIL_OBJS) $(WEB_OBJS) $(SERVICE_OBJS)
