@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.25 2003/08/22 01:28:27 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.26 2003/08/22 10:06:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -762,10 +762,6 @@ bool sbbs_t::addtobatdl(file_t* f)
 		bputs(text[R_Download]);
 		return(false); 
 	}
-	/***
-	sprintf(str,"%s%s",f->altpath>0 && f->altpath<=altpaths ? altpath[f->altpath-1]
-		: cfg.dir[f->dir]->path,unpadfname(f->name,tmp));
-	***/
 	for(i=0;i<batdn_total;i++) {
 		if(!strcmp(batdn_name[i],f->name) && f->dir==batdn_dir[i]) {
 			bprintf(text[FileAlreadyInQueue],f->name);
