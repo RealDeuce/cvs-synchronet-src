@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.30 2003/05/18 05:15:16 rswindell Exp $
+# $Id: Makefile,v 1.31 2003/07/03 06:04:12 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -84,7 +84,6 @@ $(EXEODIR):
 $(SBBSMONO): $(OBJS) \
 	$(LIBODIR)\sbbscon.obj \
 	$(LIBODIR)\sbbs_ini.obj \
-	$(LIBODIR)\ver.obj \
 	$(LIBODIR)\ftpsrvr.obj \
 	$(LIBODIR)\websrvr.obj \
 	$(LIBODIR)\mailsrvr.obj $(LIBODIR)\mxlookup.obj $(LIBODIR)\mime.obj $(LIBODIR)\base64.obj \
@@ -94,9 +93,9 @@ $(SBBSMONO): $(OBJS) \
 |
 
 # SBBS DLL Link Rule
-$(SBBS): $(OBJS) $(LIBODIR)\ver.obj
+$(SBBS): $(OBJS)
     @echo Linking $< ...
-	@$(LD) $(LFLAGS) c0d32.obj $(LIBS) $(OBJS) $(LIBODIR)\ver.obj, $*, $*, \
+	@$(LD) $(LFLAGS) c0d32.obj $(LIBS) $(OBJS), $*, $*, \
 		import32.lib cw32mt.lib ws2_32.lib
 
 # Mail Server DLL Link Rule
@@ -233,6 +232,13 @@ $(MAKEUSER): makeuser.c \
 	$(LIBODIR)\load_cfg.obj \
 	$(LIBODIR)\scfglib1.obj \
 	$(LIBODIR)\scfglib2.obj
+	@echo Creating $@
+	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
+
+# JSEXEC
+$(JSEXEC): jsexec.c \
+	$(LIBS) \
+	$(LIBODIR)\sbbs.lib
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
