@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.44 2003/09/19 09:03:51 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.45 2003/09/19 09:05:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -386,9 +386,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static JSBool
 js_BranchCallback(JSContext *cx, JSScript *script)
 {
-	JSObject*	obj=js_glob;
-	jsval		val=JSVAL_VOID;
-
 	branch.counter++;
 
 	/* Infinite loop? */
@@ -654,7 +651,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.44 $", "%*s %s", revision);
+	sscanf("$Revision: 1.45 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
