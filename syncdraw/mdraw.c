@@ -34,8 +34,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include <dirwrap.h>
-
 #include "block.h"
 #include "config.h"
 #include "crt.h"
@@ -698,9 +696,6 @@ SelectFont(void)
 	char			buf[11*16*2];
 
 	memset(buf,0,sizeof(buf));
-	sprintf(FontFile, "%s%s", getenv("HOME")==NULL?"":getenv("HOME"), "/.mdraw");
-	if(!isdir(FontFile))
-		MKDIR(FontFile);
 	sprintf(FontFile, "%s%s", getenv("HOME")==NULL?"":getenv("HOME"), "/.mdraw/allfont.fnt");
 	DrawBox(10, 6, 27, 18);
 	DrawBox(30, 5, 61, 18);
