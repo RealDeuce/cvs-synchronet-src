@@ -9,23 +9,8 @@
 #define MAX_PASSWD_LEN	16
 
 enum {
-	 USER_BBSLIST
-	,SYSTEM_BBSLIST
-};
-
-enum {
 	 BBSLIST_SELECT
 	,BBSLIST_EDIT
-};
-
-enum {
-	 SCREEN_MODE_CURRENT
-	,SCREEN_MODE_80X25
-	,SCREEN_MODE_80X28
-	,SCREEN_MODE_80X43
-	,SCREEN_MODE_80X50
-	,SCREEN_MODE_80X60
-	,SCREEN_MODE_TERMINATOR
 };
 
 struct bbslist {
@@ -38,16 +23,11 @@ struct bbslist {
 	char			user[MAX_USER_LEN+1];
 	char			password[MAX_PASSWD_LEN+1];
 	int				type;
-	int				conn_type;
 	int				id;
+	int				dumb;
 	int				reversed;
-	int				screen_mode;
-	int				nostatus;
 };
 
 struct bbslist *show_bbslist(int mode,char *path);
-void read_list(char *listpath, struct bbslist **list, int *i, int type);
-void free_list(struct bbslist **list, int listcount);
-void add_bbs(char *listpath, struct bbslist *bbs);
 
 #endif
