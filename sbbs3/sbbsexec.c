@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.3 2001/07/19 00:32:31 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.4 2001/09/16 21:37:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -259,12 +259,12 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			status->inbuf_full+=RingBufFull(&rdbuf);
 			
 
-			/* OUTBUF FULL/SIZZE */
+			/* OUTBUF FULL/SIZE */
 			if(!GetMailslotInfo(
 				wrslot,					// mailslot handle 
  				&status->outbuf_size,	// address of maximum message size 
 				&status->outbuf_full,	// address of size of next message 
-				NULL,					// address of number of messages 
+				&count,					// address of number of messages 
  				NULL					// address of read time-out 
 				)) {
 				status->outbuf_full=0;
@@ -272,7 +272,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			}
 			if(status->outbuf_full==MAILSLOT_NO_MESSAGE)
 				status->outbuf_full=0;
-		
+
 			
 			/* ONLINE */
 			if(WaitForSingleObject(hungup_event,0)==WAIT_OBJECT_0)
