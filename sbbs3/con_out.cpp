@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.4 2001/04/15 16:47:00 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.5 2001/06/15 03:36:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ int sbbs_t::bputs(char *str)
     ulong l=0;
 
 	while(str[l]) {
-		if(str[l]==1) {             /* ctrl-a */
+		if(str[l]==CTRL_A) {        /* ctrl-a */
 			ctrl_a(str[++l]);       /* skip the ctrl-a */
 			l++;					/* skip the attribute code */
 			continue; }
@@ -365,7 +365,7 @@ void sbbs_t::ctrl_a(char x)
 			outchar(LF);
 			break;
 		case 'A':   /* Ctrl-A */
-			outchar(1);
+			outchar(CTRL_A);
 			break;
 		case 'H': 	/* High intensity */
 			atr|=HIGH;
@@ -553,12 +553,6 @@ bool sbbs_t::msgabort()
 	checkline();
 	if(sys_status&SS_ABORT)
 		return(true);
-#if 0	// no longer necessary
-	if(online==ON_REMOTE && rioctl(IOSTATE)&ABORT) {
-		rioctl(IOCS|ABORT);
-		sys_status|=SS_ABORT;
-		return(true); }
-#endif
 	if(!online)
 		return(true);
 	return(false);
