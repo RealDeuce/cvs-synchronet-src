@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.6 2000/11/07 03:14:07 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.7 2000/11/08 00:34:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -370,12 +370,16 @@ int sbbs_t::exec_function(csi_t *csi)
 					}
 					continue;
 				}
-				if(ch==16) {		/* Ctrl-P Private node-node comm */
-					nodesync(); 	/* read any waiting messages */
-					nodemsg();		/* send a message */
+				if(ch==16) {	/* Ctrl-P Private node-node comm */
+					lncntr=0;						/* defeat pause */
+					spy_socket[i-1]=NULL;			/* disable spy output */
+					nodesync(); 					/* read waiting messages */
+					nodemsg();						/* send a message */
+					spy_socket[i-1]=client_socket;	/* enable spy output */
 					continue; 
 				}
 				if(ch==21) {	/* Ctrl-U Users online */
+					lncntr=0;			/* defeat pause */
 					whos_online(true); 	/* list users */
 					continue;
 				}
