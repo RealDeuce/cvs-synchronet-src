@@ -2,7 +2,7 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.h,v 1.4 2004/11/18 06:14:59 rswindell Exp $ */
+/* $Id: msg_queue.h,v 1.3 2004/11/10 07:46:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@ typedef struct {
 	char			name[128];			/* for named-queues */
 	link_list_t		in;
 	link_list_t		out;
-	pthread_t		owner_thread_id;	/* reads from in, writes to out */
+	DWORD			owner_thread_id;	/* reads from in, writes to out */
 	long			refs;
 	unsigned long	flags;				/* private use flags */
 	void*			private_data;
