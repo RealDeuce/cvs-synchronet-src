@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.31 2001/08/05 14:43:36 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.32 2001/09/05 16:36:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1233,6 +1233,9 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             ,sizeof(mail_startup.relay_server)-1
             ,Registry->ReadString("MailRelayServer").c_str());
 
+    if(Registry->ValueExists("MailRelayPort"))
+    	mail_startup.relay_port=Registry->ReadInteger("MailRelayPort");
+
     if(Registry->ValueExists("MailDNSServer"))
         sprintf(mail_startup.dns_server,"%.*s"
             ,sizeof(mail_startup.dns_server)-1
@@ -1538,6 +1541,7 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     Registry->WriteInteger("MailPOP3Port",mail_startup.pop3_port);
 
     Registry->WriteString("MailRelayServer",mail_startup.relay_server);
+    Registry->WriteInteger("MailRelayPort",mail_startup.relay_port);
     Registry->WriteString("MailDNSServer",mail_startup.dns_server);
 
     Registry->WriteString("MailInboundSound",AnsiString(mail_startup.inbound_sound));
