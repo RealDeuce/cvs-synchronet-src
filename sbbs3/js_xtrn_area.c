@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.18 2004/12/31 02:39:19 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.17 2004/12/18 00:15:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 
 static char* xtrn_sec_prop_desc[] = {
 
-	 "index into sec_list array (or -1 if not in index) <i>(introduced in v3.12)</i>"
+	 "index into sec_list array (or -1 if not in index)"
 	,"unique number for this external program section"
 	,"external program section internal code"
 	,"external program section name"
@@ -53,11 +53,11 @@ static char* xtrn_sec_prop_desc[] = {
 
 static char* xtrn_prog_prop_desc[] = {
 
-	 "index into prog_list array (or -1 if not in index) <i>(introduced in v3.12)</i>"
+	 "index into prog_list array (or -1 if not in index)"
 	,"program number"
-	,"progarm section index <i>(introduced in v3.12)</i>"
+	,"progarm section index"
 	,"program section number"
-	,"program section internal code <i>(introduced in v3.12)</i>"
+	,"program section internal code"
 	,"internal code"
 	,"name"
 	,"command-line"
