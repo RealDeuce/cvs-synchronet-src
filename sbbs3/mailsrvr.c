@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.314 2004/03/24 08:11:30 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.313 2004/03/19 10:22:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -573,7 +573,7 @@ static u_long resolve_ip(char *addr)
 	HOSTENT*	host;
 
 	if(*addr==0)
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -583,7 +583,7 @@ static u_long resolve_ip(char *addr)
 
 	if((host=gethostbyname(addr))==NULL) {
 		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",addr);
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 	}
 	return(*((ulong*)host->h_addr_list[0]));
 }
@@ -3630,7 +3630,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.314 $", "%*s %s", revision);
+	sscanf("$Revision: 1.313 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

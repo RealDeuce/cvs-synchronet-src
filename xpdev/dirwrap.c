@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.38 2004/03/23 02:22:09 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.37 2004/02/11 20:17:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,10 +60,6 @@
 
 	#if defined(__GLIBC__)		/* actually, BSD, but will work for now */
 		#include <sys/vfs.h>    /* statfs() */
-	#endif
-
-	#if defined(__solaris__)
-		#include <sys/statvfs.h>
 	#endif
 
 #endif /* __unix__ */
@@ -717,17 +713,6 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 	struct statfs fs;
 
     if (statfs(path, &fs) < 0)
-    	return 0;
-
-	if(unit>1)
-		fs.f_bavail/=unit;
-    return fs.f_bsize * fs.f_bavail;
-    
-#elif defined(__solaris__)
-
-	struct statvfs fs;
-
-    if (statvfs(path, &fs) < 0)
     	return 0;
 
 	if(unit>1)
