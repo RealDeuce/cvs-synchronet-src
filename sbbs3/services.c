@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.68 2002/08/01 21:31:58 rswindell Exp $ */
+/* $Id: services.c,v 1.69 2002/08/06 23:16:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -964,7 +964,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.68 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.69 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1094,9 +1094,9 @@ void DLLCALL services_thread(void* arg)
 		active_clients=0;
 		update_clients();
 
-		if(startup->services_cfg[0]==0)			
-			sprintf(startup->services_cfg,"%sservices.cfg",scfg.ctrl_dir);
-		if((service=read_services_cfg(startup->services_cfg, &services))==NULL) {
+		if(startup->cfg_file[0]==0)			
+			sprintf(startup->cfg_file,"%sservices.cfg",scfg.ctrl_dir);
+		if((service=read_services_cfg(startup->cfg_file, &services))==NULL) {
 			lprintf("!Failure reading configuration file");
 			cleanup(1);
 			return;
