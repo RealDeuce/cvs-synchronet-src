@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.220 2003/03/03 05:53:12 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.221 2003/03/10 08:16:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1165,12 +1165,15 @@ int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 			recverror(socket,i,__LINE__);
 			return(i);
 		}
-		if(ch=='\n' && rd>=1) {
+		if(ch=='\n' /* && rd>=1 */) { /* Mar-9-2003: terminate on sole LF */
 			break;
 		}	
 		buf[rd++]=ch;
 	}
-	buf[rd-1]=0;
+	if(rd>0 && buf[rd-1]=='\r')
+		buf[rd-1]=0;
+	else
+		buf[rd]=0;
 	
 	return(rd);
 }
@@ -4434,7 +4437,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.220 $", "%*s %s", revision);
+	sscanf("$Revision: 1.221 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
