@@ -2,7 +2,7 @@
 #define _XPSEM_H_
 
 /*
- * $Id: xpsem.h,v 1.7 2005/01/24 10:46:07 deuce Exp $
+ * $Id: xpsem.h,v 1.8 2005/02/20 19:03:46 deuce Exp $
  *
  * semaphore.h: POSIX 1003.1b semaphores
 */
@@ -63,7 +63,7 @@ extern "C" {
 #endif
 int	 xp_sem_init (xp_sem_t *, int, unsigned int);
 int	 xp_sem_destroy (xp_sem_t *);
-xp_sem_t	*sem_open (const char *, int, ...);
+xp_sem_t	*xp_sem_open (const char *, int, ...);
 int	 xp_sem_close (xp_sem_t *);
 int	 xp_sem_unlink (const char *);
 int	 xp_sem_wait (xp_sem_t *);
@@ -77,7 +77,7 @@ int  xp_sem_timedwait (xp_sem_t *sem, const struct timespec *abs_timeout);
 #endif
 
 /*
-* $Id: xpsem.h,v 1.7 2005/01/24 10:46:07 deuce Exp $
+* $Id: xpsem.h,v 1.8 2005/02/20 19:03:46 deuce Exp $
 */
 
 /* Begin thread_private.h kluge */
