@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.69 2004/11/17 11:11:29 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.70 2005/01/20 06:17:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -204,7 +204,6 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define YIELD()			Sleep(1) /* Must sleep at least 1ms to avoid 100% CPU utilization */
 	#define	MAYBE_YIELD()	Sleep(0)
 	#define SLEEP(x)		Sleep(x)
-	#define BEEP(freq,dur)	Beep((DWORD)(freq),(DWORD)(dur))
 	#define	popen			_popen
 	#define pclose			_pclose
 	#define tzname			_tzname
@@ -214,7 +213,6 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define YIELD()			DosSleep(1)	/* Must sleep at least 1ms to avoid 100% CPU utilization */
 	#define	MAYBE_YIELD()	DosSleep(0)
 	#define SLEEP(x)		DosSleep(x)
-	#define BEEP(freq,dur)	DosBeep(freq,dur)
 
 #elif defined(__unix__) || defined(__APPLE__)
 
@@ -259,8 +257,6 @@ DLLEXPORT int DLLCALL	get_errno(void);
 		#define FORK()	fork()
 	#endif
 
-	#define BEEP(freq,dur)	unix_beep(freq,dur)
-	DLLEXPORT void	DLLCALL	unix_beep(int freq, int dur);
 
 #else	/* Unsupported OS */
 

@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.48 2005/01/19 23:39:30 deuce Exp $ */
+/* $Id: genwrap.c,v 1.51 2005/03/26 06:51:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -46,20 +46,6 @@
 #if defined(__unix__)
 	#include <sys/ioctl.h>		/* ioctl() */
 	#include <sys/utsname.h>	/* uname() */
-	/* KIOCSOUND */
-	#if defined(__FreeBSD__)
-		#include <sys/kbio.h>
-	#elif defined(__linux__)
-		#include <sys/kd.h>	
-	#elif defined(__solaris__)
-		#include <sys/kbio.h>
-		#include <sys/kbd.h>
-	#endif
-	#if defined(__OpenBSD__) || defined(__NetBSD__)
-		#include <machine/spkr.h>
-	#elif defined(__FreeBSD__)
-		#include <machine/speaker.h>
-	#endif
 #endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
@@ -106,10 +92,6 @@ char* DLLCALL lastchar(const char* str)
 char DLLCALL unescape_char(char ch)
 {
 	switch(ch) {
-		case '\\':	return('\\');
-		case '\'':	return('\'');
-		case '"':	return('"');
-		case '?':	return('?');
 		case 'a':	return('\a');
 		case 'b':	return('\b');
 		case 'f':	return('\f');
@@ -207,49 +189,6 @@ char* strrev(char* str)
     }
     return str;
 }
-
-/****************************************************************************/
-/* Generate a tone at specified frequency for specified milliseconds		*/
-/* Thanks to Casey Martin for this code										*/
-/****************************************************************************/
-void DLLCALL unix_beep(int freq, int dur)
-{
-	static int console_fd=-1;
-
-#if defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__)
-	int speaker_fd=-1;
-	tone_t tone;
-
-	speaker_fd = open("/dev/speaker", O_WRONLY|O_APPEND);
-	if(speaker_fd != -1)  {
-		tone.frequency=freq;
-		tone.duration=dur/10;
-		ioctl(speaker_fd,SPKRTONE,&tone);
-		close(speaker_fd);
-		return;
-	}
-#endif
-
-#if !defined(__GNU__) && !defined(__QNX__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__APPLE__)
-	if(console_fd == -1) 
-  		console_fd = open("/dev/console", O_NOCTTY);
-	
-	if(console_fd != -1) {
-#if defined(__solaris__)
-		ioctl(console_fd, KIOCCMD, KBD_CMD_BELL);
-#else
-		if(freq != 0)	/* Don't divide by zero */
-			ioctl(console_fd, KIOCSOUND, (int) (1193180 / freq));
-#endif /* solaris */
-		SLEEP(dur);
-#if defined(__solaris__)
-		ioctl(console_fd, KIOCCMD, KBD_CMD_NOBELL);	/* turn off tone */
-#else
-		ioctl(console_fd, KIOCSOUND, 0);	/* turn off tone */
-#endif /* solaris */
-	}
-#endif
-}
 #endif
 
 /****************************************************************************/
@@ -258,13 +197,7 @@ void DLLCALL unix_beep(int freq, int dur)
 int DLLCALL xp_random(int n)
 {
 	float f;
-	static BOOL initialized;
 
-	if(!initialized) {
-		srand(time(NULL));	/* seed random number generator */
-		rand();				/* throw away first result */
-		initialized=TRUE;
-	}
 	if(n<2)
 		return(0);
 	f=(float)rand()/(float)RAND_MAX;
