@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.154 2003/11/12 05:56:02 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.155 2003/11/20 03:02:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1099,6 +1099,8 @@ int main(int argc, char** argv)
 
 	read_startup_ini();
 
+#if 0	/* This stuff is just broken */
+
 	if(!command_is(argv[0],"sbbs"))  {
 		run_bbs=has_bbs=FALSE;
 		run_ftp=has_ftp=FALSE;
@@ -1131,6 +1133,8 @@ int main(int argc, char** argv)
 		run_web=has_web=TRUE;
 #endif
 	}
+
+#endif	/* Removed broken stuff */
 
 	prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu] (?=Help): ";
 
