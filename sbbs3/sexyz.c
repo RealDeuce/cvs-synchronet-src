@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.35 2005/01/22 20:59:25 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.36 2005/01/26 11:10:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1157,6 +1157,7 @@ static const char* usage=
 #endif
 	"\n"
 	"opts   = -o  to overwrite files when receiving\n"
+	"         -s  disable Zmodem streaming (Slow Zmodem)\n"
 	"         -!  to pause after abnormal exit (error)\n"
 	"         -telnet to enable Telnet mode\n"
 	"         -rlogin to enable RLogin (pass-through) mode\n"
@@ -1181,6 +1182,7 @@ int main(int argc, char **argv)
 	char	fname[MAX_PATH+1];
 	char	ini_fname[MAX_PATH+1];
 	char*	p;
+	char*	arg;
 	int 	i;
 	int		retval;
 	uint	fnames=0;
@@ -1201,7 +1203,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.36 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1332,19 +1334,24 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 
-
-			if(argv[i][0]=='-') {
-				if(stricmp(argv[i]+1,"telnet")==0) {
+			arg=argv[i];
+			if(*arg=='-') {
+				while(*arg=='-')
+					arg++;
+				if(stricmp(arg,"telnet")==0) {
 					telnet=TRUE;
 					continue;
 				}
-				if(stricmp(argv[i]+1,"rlogin")==0) {
+				if(stricmp(arg,"rlogin")==0) {
 					telnet=FALSE;
 					continue;
 				}
-				switch(toupper(argv[i][1])) {
+				switch(toupper(*arg)) {
 					case 'K':	/* sz/rz compatible */
 						xm.block_size=1024;
+						break;
+					case 'S':	/* disable Zmodem streaming */
+						zm.no_streaming=TRUE;
 						break;
 					case 'G':	/* Ymodem-G */
 						mode|=GMODE;
