@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.2 2002/04/06 02:06:09 rswindell Exp $
+# $Id: Makefile,v 1.3 2002/04/06 03:39:15 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -19,7 +19,7 @@ OFILE	=	obj
 LIBFILE	=	.dll
 EXEFILE	=	.exe
 ODIR	=	bcc.win32		# Output directory
-CFLAGS	=	-M -g1 
+CFLAGS	=	-M
 LFLAGS  =	-m -s -c -Tpd -Gi -I$(LIBODIR)
 DELETE	=	echo y | del 
 
@@ -32,6 +32,7 @@ CFLAGS	=	$(CFLAGS) -v -Od -D_DEBUG
 LFLAGS	=	$(LFLAGS) -v
 ODIR	=	$(ODIR).debug
 !else
+CFLAGS	=	$(CFLAGS) -g1
 ODIR	=	$(ODIR).release
 !endif
 
