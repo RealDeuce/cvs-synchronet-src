@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.12 2005/02/01 10:13:38 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.11 2005/01/19 05:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,6 @@ typedef struct {
 	void		(*progress)(void*, unsigned block_num, ulong offset, ulong fsize, time_t t);
 	int			(*send_byte)(void*, uchar ch, unsigned timeout);
 	int			(*recv_byte)(void*, unsigned timeout);
-	BOOL		(*is_connected)(void*);
 
 } xmodem_t;
 
@@ -71,9 +70,7 @@ void		xmodem_init(xmodem_t*, void* cbdata, long* mode
 						,int	(*lputs)(void*, int level, const char* str)
 						,void	(*progress)(void* unused, unsigned block_num, ulong offset, ulong fsize, time_t t)
 						,int	(*send_byte)(void*, uchar ch, unsigned timeout)
-						,int	(*recv_byte)(void*, unsigned timeout)
-						,BOOL	(*is_connected)(void*)
-						);
+						,int	(*recv_byte)(void*, unsigned timeout));
 char*		xmodem_ver(char *buf);
 const char* xmodem_source(void);
 void		xmodem_cancel(xmodem_t*);

@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.47 2005/01/23 22:21:47 deuce Exp $ */
+/* $Id: win32cio.c,v 1.43 2004/10/20 11:24:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -325,7 +325,6 @@ int win32_initciolib(long inmode)
 {
 	DWORD conmode;
 	int	i,j;
-	CONSOLE_SCREEN_BUFFER_INFO	sbuff;
 
 	if(!isatty(fileno(stdin)))
 		return(0);
@@ -343,47 +342,7 @@ int win32_initciolib(long inmode)
 	if(!SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), conmode))
 		return(0);
 
-	if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &sbuff)==0) {
-		win32_textmode(C80);
-	}
-	else {
-		/* Switch to closest mode to current screen size */
-		i=sbuff.srWindow.Right-sbuff.srWindow.Left+1;
-		j=sbuff.srWindow.Bottom-sbuff.srWindow.Top+1;
-		if(i>=80) {
-			if(j<21)
-				win32_textmode(C80X14);
-			else if(j<25)
-				win32_textmode(C80X21);
-			else if(j<28)
-				win32_textmode(C80);
-			else if(j<43)
-				win32_textmode(C80X28);
-			else if(j<50)
-				win32_textmode(C80X43);
-			else if(j<60)
-				win32_textmode(C80X50);
-			else
-				win32_textmode(C80X60);
-		}
-		else {
-			if(j<21)
-				win32_textmode(C40X14);
-			else if(j<25)
-				win32_textmode(C40X21);
-			else if(j<28)
-				win32_textmode(C40);
-			else if(j<43)
-				win32_textmode(C40X28);
-			else if(j<50)
-				win32_textmode(C40X43);
-			else if(j<60)
-				win32_textmode(C40X50);
-			else
-				win32_textmode(C40X60);
-		}
-	}
-
+	win32_textmode(inmode);
 	cio_api.mouse=1;
 	return(1);
 }
@@ -577,63 +536,46 @@ int win32_putch(int ch)
 {
 	struct text_info ti;
 	unsigned char buf[2];
-	int i;
 
 	buf[0]=ch;
 	buf[1]=currattr;
 
+	gettextinfo(&ti);
 	switch(ch) {
 		case '\r':
-			gotoxy(1,wherey());
+			win32_gotoxy(1,ypos);
 			break;
 		case '\n':
-			gettextinfo(&ti);
-			if(ti.cury==ti.winbottom-ti.wintop+1)
+			if(ypos==ti.winbottom-ti.wintop+1)
 				wscroll();
 			else
-				gotoxy(ti.curx,ti.cury+1);
+				win32_gotoxy(xpos,ypos+1);
 			break;
 		case '\b':
-			gettextinfo(&ti);
-			if(ti.curx>1) {
+			if(ti.curx>ti.winleft) {
 				buf[0]=' ';
-				gotoxy(ti.curx-1,ti.cury);
-				puttext(ti.winleft+ti.curx-2, ti.wintop+ti.cury-1,ti.winleft+ti.curx-2, ti.wintop+ti.cury-1,buf);
+				win32_gotoxy(xpos-1,ypos);
+				puttext(xpos,ypos,xpos,ypos,buf);
 			}
 			break;
 		case 7:		/* Bell */
 			MessageBeep(MB_OK);
 			break;
-		case '\t':
-			for(i=0;i<10;i++) {
-				if(cio_tabs[i]>wherex()) {
-					while(wherex()<cio_tabs[i]) {
-						putch(' ');
-					}
-					break;
-				}
-			}
-			if(i==10) {
-				putch('\r');
-				putch('\n');
-			}
-			break;
 		default:
-			gettextinfo(&ti);
-			if(ti.cury==ti.winbottom-ti.wintop+1
-					&& ti.curx==ti.winright-ti.winleft+1) {
-				puttext(ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,buf);
+			if(ypos==ti.winbottom-ti.wintop+1
+					&& xpos==ti.winright-ti.winleft+1) {
+				puttext(xpos,ypos,xpos,ypos,buf);
+				win32_gotoxy(1,ypos);
 				wscroll();
-				gotoxy(1,ti.cury);
 			}
 			else {
-				if(ti.curx==ti.winright-ti.winleft+1) {
-					puttext(ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,buf);
-					gotoxy(1,ti.cury+1);
+				if(xpos==ti.winright-ti.winleft+1) {
+					puttext(xpos,ypos,xpos,ypos,buf);
+					win32_gotoxy(1,ypos+1);
 				}
 				else {
-					puttext(ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,buf);
-					gotoxy(ti.curx+1,ti.cury);
+					puttext(xpos,ypos,xpos,ypos,buf);
+					win32_gotoxy(xpos+1,ypos);
 				}
 			}
 			break;
@@ -644,48 +586,4 @@ int win32_putch(int ch)
 void win32_settitle(const char *title)
 {
 	SetConsoleTitle(title);
-}
-
-void win32_copytext(const char *text, size_t buflen)
-{
-	HGLOBAL	clipbuf;
-	LPTSTR	clip;
-
-	if(!OpenClipboard(NULL))
-		return;
-	EmptyClipboard();
-	clipbuf=GlobalAlloc(GMEM_MOVEABLE, buflen+1);
-	if(clipbuf==NULL) {
-		CloseClipboard();
-		return;
-	}
-	clip=GlobalLock(clipbuf);
-	memcpy(clip, text, buflen);
-	clip[buflen]=0;
-	GlobalUnlock(clipbuf);
-	SetClipboardData(CF_OEMTEXT, clipbuf);
-	CloseClipboard();
-}
-
-char *win32_getcliptext(void)
-{
-	HGLOBAL	clipbuf;
-	LPTSTR	clip;
-	char *ret;
-
-	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
-		return(NULL);
-	if(!OpenClipboard(NULL))
-		return(NULL);
-	clipbuf=GetClipboardData(CF_OEMTEXT);
-	if(clipbuf!=NULL) {
-		clip=GlobalLock(clipbuf);
-		ret=(char *)malloc(strlen(clip)+1);
-		if(ret != NULL)
-			strcpy(ret, clip);
-		GlobalUnlock(clipbuf);
-	}
-	CloseClipboard();
-	
-	return(ret);
 }
