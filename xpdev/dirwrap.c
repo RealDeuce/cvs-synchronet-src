@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.16 2002/07/21 21:25:35 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.17 2002/07/25 02:36:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -407,7 +407,7 @@ BOOL DLLCALL fexistcase(char *path)
 		strncat(globme,tmp,MAX_PATH*4);
 	}
 	if(strcspn(path,"?*")!=strlen(path))  {
-		strncpy(path,globme,MAX_PATH);
+		sprintf(path,"%.*s",MAX_PATH,globme);
 		return(fexist(path));
 	}
 
@@ -428,7 +428,7 @@ BOOL DLLCALL fexistcase(char *path)
 				break;
 		}
 		if(i<glb.gl_pathc)  {
-			strncpy(path,glb.gl_pathv[i],MAX_PATH);
+			sprintf(path,"%.*s",MAX_PATH,glb.gl_pathv[i]);
 			globfree(&glb);
 			return TRUE;
 		}
