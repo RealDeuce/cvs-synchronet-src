@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.19 2004/09/15 09:01:11 deuce Exp $
+# $Id: Common.gmake,v 1.28 2004/09/28 18:56:10 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -102,6 +102,10 @@ ifndef VERSION
  VERSION	:=	3.12
 endif
 
+# Put local (optional) macro definitions in localdefs.mk
+-include localdefs.mk
+-include $(SRC_ROOT)/build/localdefs.mk
+
 # Set DEBUG
 ifdef DEBUG
  ifdef RELEASE
@@ -133,6 +137,8 @@ ifdef BUILD_DEPENDS
  CXX			:=	$(SRC_ROOT)/build/mkdep -a
  LD				:=	echo
  COMPILE_MSG	:=  Depending
+ AR				:=	echo
+ RANLIB			:=	echo
 else
  ifdef DONT_CLOBBER_CC
   CC			?=	gcc
@@ -143,6 +149,8 @@ else
  CXX			?=	g++
  LD				?=	ld
  COMPILE_MSG	:= Compiling
+ AR				?=	ar
+ RANLIB			?=	ranlib
 endif
 
 ifdef DEBUG
@@ -201,7 +209,7 @@ OUTPUT		:=	-o
 LOUTPUT		:=	-o
 
 ifeq ($(os),openbsd)
- SOFILE	:=	$(SOFILE)$(VERSION)
+ SOFILE	:=	$(SOFILE).$(VERSION)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
@@ -228,35 +236,37 @@ ifeq ($(os),linux)    # Linux
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
 ifeq ($(os),freebsd)    # FreeBSD
- CFLAGS    += -DUSE_XP_SEMAPHORES
+ MT_CFLAGS    += -DUSE_XP_SEMAPHORES
  MT_LDFLAGS    +=    -pthread
  XP_SEM    :=    1
 else
  ifeq ($(os),openbsd)    # OpenBSD
-  CFLAGS    += -DUSE_XP_SEMAPHORES
+  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
   MT_LDFLAGS    +=    -pthread
   XP_SEM    :=    1
  else
   ifeq ($(os),netbsd)    # NetBSD
-   CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES
+   CFLAGS    +=	-D__unix__
+   MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
    MT_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
    XP_SEM    :=    1
   else
    ifeq ($(os),qnx)    # QNX
    else
     ifeq ($(os),darwin)    # Darwin/Mac OS X
-     CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES -D__DARWIN__
+     CFLAGS    += -D__unix__ 
+     MT_CFLAGS    += -DUSE_XP_SEMAPHORES -D__DARWIN__
      MT_LDFLAGS    += -lpthread
      XP_SEM    := 1
     else
      ifeq ($(os),sunos)  # Solaris
       XP_SEM :=    1
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
-      CFLAGS    += -DUSE_XP_SEMAPHORES
+      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
       MT_LDFLAGS    +=    -lpthread
      else            # Linux / Other UNIX
       XP_SEM :=    1
-      CFLAGS    += -DUSE_XP_SEMAPHORES
+      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
       MT_LDFLAGS    +=    -lpthread
      endif
     endif
@@ -330,23 +340,26 @@ FORCE:
 -include $(LIBODIR)/*.d
 -include $(EXEODIR)/*.d
 
+$(XPDEV_LIB): xpdev
 xpdev:
 	$(MAKE) -C $(XPDEV_SRC) lib
 
+$(XPDEV-MT_LIB): xpdev-mt
 xpdev-mt:
 	$(MAKE) -C $(XPDEV_SRC) mtlib
 
+$(SMBLIB): smblib
 smblib:
 	$(MAKE) -C $(SMBLIB_SRC) lib
 
-smblib-mt:
-	$(MAKE) -C $(SMBLIB_SRC) mtlib
-
+$(CIOLIB-MT): ciolib-mt
 ciolib-mt:
 	$(MAKE) -C $(CIOLIB_SRC) mtlib
 
+$(UIFCLIB): uifc
 uifc:
 	$(MAKE) -C $(UIFC_SRC) lib
 
+$(UIFCLIB-MT): uifc-mt
 uifc-mt:
 	$(MAKE) -C $(UIFC_SRC) mtlib
