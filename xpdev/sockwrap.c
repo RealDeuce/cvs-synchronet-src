@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.8 2003/03/12 22:34:48 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.9 2003/03/14 06:20:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,26 @@
 
 int sendfilesocket(int sock, int file, long *offset, long count)
 {
+/* sendfile() on Linux may or may not work with non-blocking sockets ToDo */
+#if defined(__FreeBSD__)
+	off_t	total=0;
+	off_t	wr=0;
+	int		i;
+	long	len;
+
+	len=filelength(file);
+	if(count<1 || count>len) {
+		count=len;
+		count-=offset==NULL?0:*offset;
+	}
+	while((i=sendfile(file,sock,(offset==NULL?0:*offset)+total,count-total,NULL,&wr,0))==-1 && errno==EAGAIN)  {
+		total+=wr;
+		SLEEP(1);
+	}
+	if(i==0)
+		return((int)count);
+	return(i);
+#else
 	char*	buf;
 	long	len;
 	int		rd;
@@ -97,6 +117,7 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 		return(wr);
 
 	return(total);
+#endif
 }
 
 int recvfilesocket(int sock, int file, long *offset, long count)
