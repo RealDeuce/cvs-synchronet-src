@@ -43,7 +43,7 @@ void doterm(void)
 				break;
 			default:
 				cterm_write(buf,i,prn,sizeof(prn));
-				rlogin_send(prn,strlen(prn),100);
+				rlogin_send(prn,strlen(prn),0);
 				break;
 		}
 
@@ -54,50 +54,48 @@ void doterm(void)
 			switch(key) {
 				case 0xff:
 				case 0:
-					switch(key|(getch()<<8)) {
+					key|=getch()<<8;
+					switch(key) {
 						case CIO_KEY_MOUSE:
 							getmouse(&mevent);
 							break;
 
 						case CIO_KEY_LEFT:
-							rlogin_send("\033[D",3,100);
+							rlogin_send("\033[D",3,0);
 							break;
 						case CIO_KEY_RIGHT:
-							rlogin_send("\033[C",3,100);
+							rlogin_send("\033[C",3,0);
 							break;
 						case CIO_KEY_UP:
-							rlogin_send("\033[A",3,100);
+							rlogin_send("\033[A",3,0);
 							break;
 						case CIO_KEY_DOWN:
-							rlogin_send("\033[B",3,100);
+							rlogin_send("\033[B",3,0);
 							break;
 						case CIO_KEY_HOME:
-							rlogin_send("\033[H",3,100);
+							rlogin_send("\033[H",3,0);
 							break;
 						case CIO_KEY_END:
 #ifdef CIO_KEY_SELECT
 						case CIO_KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
 #endif
-							rlogin_send("\033[K",3,100);
+							rlogin_send("\033[K",3,0);
 							break;
 						case CIO_KEY_F(1):
-							rlogin_send("\033OP",3,100);
+							rlogin_send("\033OP",3,0);
 							break;
 						case CIO_KEY_F(2):
-							rlogin_send("\033OQ",3,100);
+							rlogin_send("\033OQ",3,0);
 							break;
 						case CIO_KEY_F(3):
-							rlogin_send("\033Ow",3,100);
+							rlogin_send("\033Ow",3,0);
 							break;
 						case CIO_KEY_F(4):
-							rlogin_send("\033Ox",3,100);
+							rlogin_send("\033Ox",3,0);
 							break;
-#ifdef __unix__
-						case 128|'S':	/* Under curses, ALT sets the high bit of the char */
-						case 128|'s':	/* Under curses, ALT sets the high bit of the char */
+						case 0x1f00:	/* ALT-S */
 							viewscroll();
 							break;
-#endif
 					}
 					break;
 				case 17:	/* CTRL-Q */
@@ -121,7 +119,7 @@ void doterm(void)
 				default:
 					if(key<256) {
 						ch[0]=key;
-						rlogin_send(ch,1,100);
+						rlogin_send(ch,1,0);
 					}
 					
 			}
