@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.8 2001/06/29 16:23:33 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.9 2001/09/17 16:26:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,6 +184,9 @@ int sbbs_t::atcodes(char *instr)
 
 	else if(!strcmp(sp,"PAUSE") || !strcmp(sp,"MORE"))
 		pause();
+
+	else if(!strcmp(sp,"RESETPAUSE"))
+		lncntr=0;
 
 	else if(!strcmp(sp,"NOPAUSE") || !strcmp(sp,"POFF"))
 		sys_status^=SS_PAUSEOFF;
