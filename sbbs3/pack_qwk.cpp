@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.44 2004/11/03 18:41:14 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.46 2004/11/07 23:21:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,9 +79,11 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				break;
 		if(k>=cfg.total_fextrs)
 			k=0;
-		i=external(cmdstr(cfg.fextr[k]->cmd,str,ALLFILES,NULL),ex);
-		if(!i)
+		p=cmdstr(cfg.fextr[k]->cmd,str,ALLFILES,NULL);
+		if((i=external(p,ex))==0)
 			preqwk=1; 
+		else 
+			errormsg(WHERE,ERR_EXEC,p,i);
 	}
 
 	if(useron.rest&FLAG('Q') && useron.qwk&QWK_RETCTLA)
@@ -504,26 +506,19 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			lprintf(LOG_INFO,"%s",str);
 	}
 
-	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 	fclose(qwk);			/* close MESSAGE.DAT */
-	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 	if(personal) {
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		fclose(personal);		 /* close PERSONAL.NDX */
 		sprintf(str,"%sPERSONAL.NDX",cfg.temp_dir);
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		if(!flength(str))
 			remove(str); 
 	}
 	CRLF;
-	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 
 	if(!prepack && (sys_status&SS_ABORT || !online))
 		return(false);
 
-	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 	if(/*!prepack && */ useron.rest&FLAG('Q')) { /* If QWK Net node, check for files */
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		sprintf(str,"%sqnet/%s.out/",cfg.data_dir,useron.alias);
 		dir=opendir(str);
 		while(dir!=NULL && (dirent=readdir(dir))!=NULL) {    /* Move files into temp dir */
@@ -547,7 +542,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	}
 
 	if(batdn_total) {
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		for(i=0,totalcdt=0;i<batdn_total;i++)
 			if(!is_download_free(&cfg,batdn_dir[i],&useron))
 				totalcdt+=batdn_cdt[i];
@@ -588,7 +582,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 
 	if(!(*msgcnt) && !mailmsgs && !files && !netfiles && !batdn_total
 		&& (prepack || !preqwk)) {
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		bputs(text[QWKNoNewMessages]);
 		return(false); 
 	}
@@ -597,7 +590,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		/***********************/					/* packets */
 		/* Copy QWK Text files */
 		/***********************/
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		sprintf(str,"%sQWK/HELLO",cfg.text_dir);
 		if(fexistcase(str)) {
 			sprintf(tmp2,"%sHELLO",cfg.temp_dir);
@@ -614,7 +606,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			mv(str,tmp2,1); 
 		}
 		sprintf(str,"%sQWK/BLT-*",cfg.text_dir);
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		glob(str,0,NULL,&g);
 		for(i=0;i<(uint)g.gl_pathc;i++) { 			/* Copy BLT-*.* files */
 			fname=getfname(g.gl_pathv[i]);
@@ -626,11 +617,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			}
 		}
 		globfree(&g);
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 	}
 
 	if(prepack) {
-		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 		for(i=1;i<=cfg.sys_nodes;i++) {
 			getnodedat(i,&node,0);
 			if((node.status==NODE_INUSE || node.status==NODE_QUIET
@@ -644,12 +633,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	/*******************/
 	/* Compress Packet */
 	/*******************/
-	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 	sprintf(tmp2,"%s%s",cfg.temp_dir,ALLFILES);
-	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 	i=external(cmdstr(temp_cmd(),packet,tmp2,NULL)
 		,ex|EX_WILDCARD);
-	lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__);
 	if(!fexist(packet)) {
 		bputs(text[QWKCompressionFailed]);
 		if(i)
