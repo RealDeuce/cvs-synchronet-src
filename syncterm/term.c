@@ -1,11 +1,23 @@
+#include <genwrap.h>
+#include <ciowrap.h>
+
 #include "term.h"
-#include "ciowrap.h"
 #include "uifcinit.h"
-#include "genwrap.h"
+#include "menu.h"
+
+#define	BUFSIZE	2048
 
 struct terminal term;
 
 const int tabs[11]={1,8,16,24,32,40,48,56,64,72,80};
+
+int backlines=2000;
+
+void play_music(void)
+{
+	/* ToDo Music code parsing stuff */
+	term.music=0;
+}
 
 void scrolldown(void)
 {
@@ -29,6 +41,12 @@ void scrollup(void)
 	char *buf;
 	int i,j;
 
+	term.backpos++;
+	if(term.backpos>backlines) {
+		memmove(term.scrollback,term.scrollback+term.width*2,term.width*2*(backlines-1));
+		term.backpos--;
+	}
+	gettext(term.x+1,term.y+1,term.x+term.width,term.y+1,term.scrollback+(term.backpos-1)*term.width*2);
 	buf=(char *)malloc(term.width*(term.height-1)*2);
 	gettext(term.x+1,term.y+2,term.x+term.width,term.y+term.height,buf);
 	puttext(term.x+1,term.y+1,term.x+term.width,term.y+term.height-1,buf);
@@ -76,6 +94,12 @@ void clearscreen(char attr)
 	char *buf;
 	int x,y,j;
 
+	term.backpos+=term.height;
+	if(term.backpos>backlines) {
+		memmove(term.scrollback,term.scrollback+term.width*2*(term.backpos-backlines),term.width*2*(backlines-(term.backpos-backlines)));
+		term.backpos=backlines;
+	}
+	gettext(term.x+1,term.y+1,term.x+term.width,term.y+term.height,term.scrollback+(term.backpos-term.height)*term.width*2);
 	buf=(char *)malloc(term.width*(term.height)*2);
 	j=0;
 	for(x=0;x<term.width;x++) {
@@ -215,6 +239,9 @@ void do_ansi(void)
 							break;
 						case 2:
 							clearscreen(term.attr);
+							term.ypos=1;
+							term.xpos=1;
+							set_cursor();
 							break;
 					}
 					break;
@@ -265,7 +292,7 @@ void do_ansi(void)
 					break;
 				case 'M':
 				case 'N':
-					/* ToDo add music */
+					term.music=1;
 					break;
 				case 'P':	/* Delete char */
 					i=atoi(term.escbuf+1);
@@ -288,6 +315,9 @@ void do_ansi(void)
 					break;
 				case 'U':
 					clearscreen(7);
+					term.ypos=1;
+					term.xpos=1;
+					set_cursor();
 					break;
 				case 'Y':	/* ToDo? BananaCom Clear Line */
 					break;
@@ -467,8 +497,10 @@ void do_ansi(void)
 void doterm(void)
 {
 	unsigned char ch[2];
+	unsigned char buf[BUFSIZE];
+	unsigned char prn[BUFSIZE];
 	int	key;
-	int i;
+	int i,j;
 
 	term.xpos=1;
 	term.ypos=1;
@@ -477,99 +509,190 @@ void doterm(void)
 	term.save_ypos=0;
 	term.escbuf[0]=0;
 	term.sequence=0;
-
+	term.music=0;
+	term.backpos=0;
+	term.scrollback=malloc(term.width*2*backlines);
+	memset(term.scrollback,0,term.width*2*backlines);
 	ch[1]=0;
-	/* Main input loop */
 	gotoxy(term.xpos,term.ypos);
 	textattr(term.attr);
 	_setcursortype(_NORMALCURSOR);
+	/* Main input loop */
 	for(;;) {
 		/* Get remote input */
-		i=rlogin_recv(ch,1,100);
+		i=rlogin_recv(buf,sizeof(buf));
 		switch(i) {
 			case -1:
-				uifcmsg("Disconnected");
+				uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
 				return;
-			case 1:
-				if(term.sequence) {
-					strcat(term.escbuf,ch);
-					if((ch[0]>='@' && ch[0]<='Z')
-							|| (ch[0]>='a' && ch[0]<='z')) {
-						do_ansi();
+			case 0:
+				break;
+			default:
+				prn[0]=0;
+				for(j=0;j<i;j++) {
+					ch[0]=buf[j];
+					if(term.sequence) {
+						strcat(term.escbuf,ch);
+						if((ch[0]>='@' && ch[0]<='Z')
+								|| (ch[0]>='a' && ch[0]<='z')) {
+							do_ansi();
+						}
 					}
-				}
-				else {
-					switch(ch[0]) {
-						case 0:
-							break;
-						case 7:			/* Beep */
-							#ifdef __unix__
-								beep();
-							#else
-								MessageBeep(MB_OK);
-							#endif
-							break;
-						case 12:		/* ^L - Clear screen */
-							clearscreen(term.attr);
-							term.ypos=1;
-							term.xpos=1;
-							set_cursor();
-							break;
-						case 27:		/* ESC */
-							term.sequence=1;
-							break;
-						case '\n':
-							term.ypos++;
-							if(term.ypos>term.height) {
-								term.ypos=term.height;
-								scrollup();
-							}
-							set_cursor();
-							break;
-						case '\t':
-							for(i=0;i<11;i++) {
-								if(tabs[i]>term.xpos) {
-									term.xpos=tabs[i];
-									break;
-								}
-							}
-							set_cursor();
-							break;
-						case '\r':
-							term.xpos=1;
-							set_cursor();
-							break;
-						case '\b':
-							term.xpos--;
-							if(term.xpos<1)
+					else if (term.music) {
+						strcat(term.musicbuf,ch);
+						if(ch[0]==14)
+							play_music();
+					}
+					else {
+						switch(buf[j]) {
+							case 0:
+								break;
+							case 7:			/* Beep */
+								cprintf(prn);
+								prn[0]=0;
+								#ifdef __unix__
+									beep();
+								#else
+									MessageBeep(MB_OK);
+								#endif
+								break;
+							case 12:		/* ^L - Clear screen */
+								cprintf(prn);
+								prn[0]=0;
+								clearscreen(term.attr);
+								term.ypos=1;
 								term.xpos=1;
-							putch(' ');
-							set_cursor();
-							break;
-						default:
-							putch(ch[0]);
-							term.xpos++;
-							if(term.xpos>term.width) {
-								term.xpos=1;
+								set_cursor();
+								break;
+							case 27:		/* ESC */
+								cprintf(prn);
+								prn[0]=0;
+								term.sequence=1;
+								break;
+							case '\n':
+								cprintf(prn);
+								prn[0]=0;
 								term.ypos++;
 								if(term.ypos>term.height) {
 									term.ypos=term.height;
 									scrollup();
 								}
 								set_cursor();
-							}
+								break;
+							case '\t':
+								cprintf(prn);
+								prn[0]=0;
+								for(i=0;i<11;i++) {
+									if(tabs[i]>term.xpos) {
+										term.xpos=tabs[i];
+										break;
+									}
+								}
+								set_cursor();
+								break;
+							case '\r':
+								cprintf(prn);
+								prn[0]=0;
+								term.xpos=1;
+								set_cursor();
+								break;
+							case '\b':
+								cprintf(prn);
+								prn[0]=0;
+								term.xpos--;
+								if(term.xpos<1)
+									term.xpos=1;
+								putch(' ');
+								set_cursor();
+								break;
+							default:
+								strcat(prn,ch);
+								term.xpos++;
+								if(term.xpos>term.width) {
+									cprintf(prn);
+									prn[0]=0;
+									term.xpos=1;
+									term.ypos++;
+									if(term.ypos>term.height) {
+										term.ypos=term.height;
+										scrollup();
+									}
+									set_cursor();
+								}
+						}
 					}
 				}
+				cprintf(prn);
+				prn[0]=0;
 				break;
 		}
 		
 		/* Get local input */
-		if(kbhit()) {
+		while(kbhit()) {
 			key=getch();
-			if(key<256) {
-				ch[0]=key;
-				rlogin_send(ch,1,100);
+			switch(key) {
+				case 17:	/* CTRL-Q */
+					free(term.scrollback);
+					return;
+				case 19:	/* CTRL-S */
+					switch(syncmenu()) {
+						case -1:
+							free(term.scrollback);
+							return;
+					}
+					set_cursor();
+					break;
+				case KEY_LEFT:
+					rlogin_send("\033[D",3,100);
+					break;
+				case KEY_RIGHT:
+					rlogin_send("\033[C",3,100);
+					break;
+				case KEY_UP:
+					rlogin_send("\033[A",3,100);
+					break;
+				case KEY_DOWN:
+					rlogin_send("\033[B",3,100);
+					break;
+				case KEY_HOME:
+					rlogin_send("\033[H",3,100);
+					break;
+				case KEY_END:
+#ifdef KEY_SELECT
+				case KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
+#endif
+					rlogin_send("\033[K",3,100);
+					break;
+				case KEY_F(1):
+					rlogin_send("\033OP",3,100);
+					break;
+				case KEY_F(2):
+					rlogin_send("\033OQ",3,100);
+					break;
+				case KEY_F(3):
+					rlogin_send("\033Ow",3,100);
+					break;
+				case KEY_F(4):
+					rlogin_send("\033Ox",3,100);
+					break;
+#ifdef __unix__
+				case 128|'S':	/* Under curses, ALT sets the high bit of the char */
+				case 128|'s':	/* Under curses, ALT sets the high bit of the char */
+					viewscroll();
+					break;
+#endif
+				case KEY_BACKSPACE:
+				case '\b':
+					key='\b';
+					/* FALLTHROUGH to default */
+				default:
+					if(key<256) {
+						ch[0]=key;
+						rlogin_send(ch,1,100);
+					}
+					
 			}
 		}
+		SLEEP(1);
 	}
 }

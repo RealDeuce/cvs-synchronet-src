@@ -16,12 +16,12 @@ static BOOL winsock_startup(void)
 	int		status;             /* Status Code */
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		lprintf(LOG_INFO,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
+		fprintf(stderr,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
 		WSAInitialized=TRUE;
 		return (TRUE);
 	}
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
+    fprintf(stderr,"!WinSock startup ERROR %d", status);
 	return (FALSE);
 }
 
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
 	atexit(uifcbail);
 	while((bbs=show_bbslist(BBSLIST_SELECT))!=NULL) {
-		if(!rlogin_connect(bbs->addr,bbs->port,bbs->user,bbs->password)) {
+		if(!rlogin_connect(bbs->addr,bbs->port,bbs->user,bbs->password,bbs->dumb)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			uifcbail();
@@ -59,6 +59,7 @@ int main(int argc, char **argv)
 			rlogin_close();
 		}
 	}
+	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
