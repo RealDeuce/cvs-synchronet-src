@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.14 2002/02/14 18:58:44 rswindell Exp $ */
+/* $Id: smblib.c,v 1.15 2002/02/14 19:00:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@
 #include "smbwrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.13"      /* SMB library version */
+#define SMBLIB_VERSION		"2.14"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
