@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.164 2004/09/25 21:31:38 deuce Exp $ */
+/* $Id: websrvr.c,v 1.165 2004/09/25 21:49:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2646,7 +2646,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.164 $", "%*s %s", revision);
+	sscanf("$Revision: 1.165 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2708,6 +2708,9 @@ void http_logging_thread(void* arg)
 		if(logfile!=NULL) {
 			sprintf(sizestr,"%d",ld->size);
 			strftime(timestr,sizeof(timestr),"%d/%b/%G:%H:%M:%S %z",&ld->completed);
+			while(!lock(fileno(logfile),0,1)) {
+				SLEEP(10);
+			}
 			fprintf(logfile,"%s %s %s [%s] \"%s\" %d %s \"%s\" \"%s\"\n"
 					,ld->hostname?(ld->hostname[0]?ld->hostname:"-"):"-"
 					,ld->ident?(ld->ident[0]?ld->ident:"-"):"-"
@@ -2719,6 +2722,7 @@ void http_logging_thread(void* arg)
 					,ld->referrer?(ld->referrer[0]?ld->referrer:"-"):"-"
 					,ld->agent?(ld->agent[0]?ld->agent:"-"):"-");
 			fflush(logfile);
+			unlock(fileno(logfile),0,1);
 			FREE_AND_NULL(ld->hostname);
 			FREE_AND_NULL(ld->ident);
 			FREE_AND_NULL(ld->user);
