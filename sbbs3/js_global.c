@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.118 2004/09/17 23:29:18 rswindell Exp $ */
+/* $Id: js_global.c,v 1.117 2004/08/16 10:29:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2522,16 +2522,6 @@ static jsConstIntSpec js_global_const_ints[] = {
 	{"ETIMEDOUT"		,ETIMEDOUT		},
 	{"ECONNREFUSED"		,ECONNREFUSED	},
 	{"EINPROGRESS"		,EINPROGRESS	},
-
-	/* Log priority values from syslog.h/sbbsdefs.h (possibly platform-dependant) */
-	{"LOG_EMERG"		,LOG_EMERG		},
-	{"LOG_ALERT"		,LOG_ALERT		},
-	{"LOG_CRIT"			,LOG_CRIT		},
-	{"LOG_ERR"			,LOG_ERR		},
-	{"LOG_WARNING"		,LOG_WARNING	},
-	{"LOG_NOTICE"		,LOG_NOTICE		},
-	{"LOG_INFO"			,LOG_INFO		},
-	{"LOG_DEBUG"		,LOG_DEBUG		},
 
 	/* Terminator (Governor Arnold) */
 	{0}

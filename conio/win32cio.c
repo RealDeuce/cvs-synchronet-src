@@ -1,36 +1,3 @@
-/* $Id: win32cio.c,v 1.37 2004/10/13 22:18:10 deuce Exp $ */
-
-/****************************************************************************
- * @format.tab-size 4		(Plain Text/Source Code File Header)			*
- * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
- *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
- *																			*
- * This library is free software; you can redistribute it and/or			*
- * modify it under the terms of the GNU Lesser General Public License		*
- * as published by the Free Software Foundation; either version 2			*
- * of the License, or (at your option) any later version.					*
- * See the GNU Lesser General Public License for more details: lgpl.txt or	*
- * http://www.fsf.org/copyleft/lesser.html									*
- *																			*
- * Anonymous FTP access to the most recent released source is available at	*
- * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
- *																			*
- * Anonymous CVS access to the development source and modification history	*
- * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
- *     (just hit return, no password is necessary)							*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
- *																			*
- * For Synchronet coding style and modification guidelines, see				*
- * http://www.synchro.net/source.html										*
- *																			*
- * You are encouraged to submit any modifications (preferably in Unix diff	*
- * format) via e-mail to mods@synchro.net									*
- *																			*
- * Note: If this box doesn't appear square, then you need to fix your tabs.	*
- ****************************************************************************/
-
 #include <windows.h>	/* INPUT_RECORD, etc. */
 #include <genwrap.h>
 #include <stdio.h>		/* stdin */
@@ -62,7 +29,6 @@ const struct vid_mode vid_modes[VID_MODES]={
 static int lastch=0;
 static int domouse=1;
 static DWORD last_state=0;
-static int LastX=-1, LastY=-1;
 static int xpos=1;
 static int ypos=1;
 
@@ -115,31 +81,71 @@ unsigned char WintoDOSAttr(WORD newattr)
 	return(ret);
 }
 
-int win32_keyboardio(int isgetch)
+int win32_kbhit(void)
 {
+	INPUT_RECORD input;
+	DWORD num=0;
+
+	if(lastch)
+		return(1);
+	while(1) {
+		if(mouse_pending())
+			return(1);
+		if(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			|| !num)
+			return(0);
+		if(input.EventType==KEY_EVENT && input.Event.KeyEvent.bKeyDown)
+			return(1);
+		if(domouse) {
+			if(input.EventType==MOUSE_EVENT) {
+				if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
+					ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+				}
+				if(!input.Event.MouseEvent.dwEventFlags) {
+					switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
+						case FROM_LEFT_1ST_BUTTON_PRESSED:
+							if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
+								ciomouse_gotevent(CIOLIB_BUTTON_1_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							else
+								ciomouse_gotevent(CIOLIB_BUTTON_1_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							break;
+						case FROM_LEFT_2ND_BUTTON_PRESSED:
+							if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED)
+								ciomouse_gotevent(CIOLIB_BUTTON_2_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							else
+								ciomouse_gotevent(CIOLIB_BUTTON_2_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							break;
+						case RIGHTMOST_BUTTON_PRESSED:
+							if(input.Event.MouseEvent.dwButtonState & RIGHTMOST_BUTTON_PRESSED)
+								ciomouse_gotevent(CIOLIB_BUTTON_3_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							else
+								ciomouse_gotevent(CIOLIB_BUTTON_3_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							break;
+					}
+					last_state=input.Event.MouseEvent.dwButtonState;
+				}
+			}
+		}
+		ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num);
+	}
+}
+
+int win32_getch(void)
+{
+	char str[128];
 	INPUT_RECORD input;
 	DWORD num=0;
 
 	while(1) {
 		if(lastch) {
-			if(isgetch) {
-				int ch;
-				ch=lastch&0xff;
-				lastch>>=8;
-				return(ch);
-			}
-			else
-				return(TRUE);
+			int ch;
+			ch=lastch&0xff;
+			lastch>>=8;
+			return(ch);
 		}
-
-		while(1) {
-			GetNumberOfConsoleInputEvents(GetStdHandle(STD_INPUT_HANDLE), &num);
-			if(num || mouse_pending())
-				break;
-			if(isgetch)
-				SLEEP(1);
-			else
-				return(FALSE);
+		while(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+				&& !num && !mouse_pending()) {
+			SLEEP(1);
 		}
 
 		if(mouse_pending()) {
@@ -148,7 +154,7 @@ int win32_keyboardio(int isgetch)
 		}
 
 		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
-				|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
+			|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
 			continue;
 
 		switch(input.EventType) {
@@ -170,29 +176,6 @@ int win32_keyboardio(int isgetch)
 				OutputDebugString(str);
 #endif
 
-				if(input.Event.KeyEvent.wVirtualScanCode==0x38 /* ALT */
-						|| input.Event.KeyEvent.wVirtualScanCode==0x36 /* SHIFT */
-						|| input.Event.KeyEvent.wVirtualScanCode==0x1D /* CTRL */ )
-					break;
-
-				if(input.Event.KeyEvent.dwControlKeyState & (LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED)) {
-					if(input.Event.KeyEvent.wVirtualScanCode >= 0x3B
-							&& input.Event.KeyEvent.wVirtualScanCode <= 0x44) {
-						/* Magic number to convert from Fx to ALT-Fx */
-						lastch=(input.Event.KeyEvent.wVirtualScanCode+45)<<8;
-						break;
-					}
-					if(input.Event.KeyEvent.wVirtualScanCode == 85
-							&& input.Event.KeyEvent.wVirtualScanCode == 86) {
-						/* Magic number to convert from F(x>10) to ALT-Fx */
-						lastch=(input.Event.KeyEvent.wVirtualScanCode+6)<<8;
-						break;
-					}
-
-					lastch=input.Event.KeyEvent.wVirtualScanCode<<8;
-					break;
-				}
-
 				if(input.Event.KeyEvent.uChar.AsciiChar)
 					lastch=input.Event.KeyEvent.uChar.AsciiChar;
 				else
@@ -200,47 +183,37 @@ int win32_keyboardio(int isgetch)
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {
-					if(input.Event.MouseEvent.dwMousePosition.X+1 != LastX || input.Event.MouseEvent.dwMousePosition.Y+1 != LastY) {
-						LastX=input.Event.MouseEvent.dwMousePosition.X+1;
-						LastY=input.Event.MouseEvent.dwMousePosition.Y+1;
-						ciomouse_gotevent(CIOLIB_MOUSE_MOVE,LastX,LastY);
-					}
-					if(last_state != input.Event.MouseEvent.dwButtonState) {
-						switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
-							case FROM_LEFT_1ST_BUTTON_PRESSED:
-								if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
-									ciomouse_gotevent(CIOLIB_BUTTON_1_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
-								else
-									ciomouse_gotevent(CIOLIB_BUTTON_1_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
-								break;
-							case FROM_LEFT_2ND_BUTTON_PRESSED:
-								if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED)
-									ciomouse_gotevent(CIOLIB_BUTTON_2_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
-								else
-									ciomouse_gotevent(CIOLIB_BUTTON_2_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
-								break;
-							case RIGHTMOST_BUTTON_PRESSED:
-								if(input.Event.MouseEvent.dwButtonState & RIGHTMOST_BUTTON_PRESSED)
-									ciomouse_gotevent(CIOLIB_BUTTON_3_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
-								else
-									ciomouse_gotevent(CIOLIB_BUTTON_3_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
-								break;
+					if(input.EventType==MOUSE_EVENT) {
+						if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
+							ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
 						}
-						last_state=input.Event.MouseEvent.dwButtonState;
+						if(!input.Event.MouseEvent.dwEventFlags) {
+							switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
+								case FROM_LEFT_1ST_BUTTON_PRESSED:
+									if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
+										ciomouse_gotevent(CIOLIB_BUTTON_1_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									else
+										ciomouse_gotevent(CIOLIB_BUTTON_1_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									break;
+								case FROM_LEFT_2ND_BUTTON_PRESSED:
+									if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED)
+										ciomouse_gotevent(CIOLIB_BUTTON_2_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									else
+										ciomouse_gotevent(CIOLIB_BUTTON_2_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									break;
+								case RIGHTMOST_BUTTON_PRESSED:
+									if(input.Event.MouseEvent.dwButtonState & RIGHTMOST_BUTTON_PRESSED)
+										ciomouse_gotevent(CIOLIB_BUTTON_3_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									else
+										ciomouse_gotevent(CIOLIB_BUTTON_3_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									break;
+							}
+							last_state=input.Event.MouseEvent.dwButtonState;
+						}
 					}
 				}
 		}
 	}
-}
-
-int win32_kbhit(void)
-{
-	return(win32_keyboardio(FALSE));
-}
-
-int win32_getch(void)
-{
-	return(win32_keyboardio(TRUE));
 }
 
 int win32_getche(void)
@@ -253,37 +226,20 @@ int win32_getche(void)
 	return(ch);
 }
 
-#ifndef ENABLE_EXTENDED_FLAGS
-#define ENABLE_INSERT_MODE		0x0020
-#define ENABLE_QUICK_EDIT_MODE	0x0040
-#define ENABLE_EXTENDED_FLAGS	0x0080
-#define ENABLE_AUTO_POSITION	0x0100
-#endif
-
 int win32_initciolib(long inmode)
 {
 	DWORD conmode;
-	int	i,j;
 
 	if(!isatty(fileno(stdin)))
 		return(0);
+	win32_textmode(inmode);
 	if(!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
 		return(0);
-	conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
+	conmode&=~ENABLE_PROCESSED_INPUT;
 	conmode|=ENABLE_MOUSE_INPUT;
 	if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode))
 		return(0);
-
-	if(!GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &conmode))
-		return(0);
-	conmode&=~ENABLE_PROCESSED_OUTPUT;
-	conmode&=~ENABLE_WRAP_AT_EOL_OUTPUT;
-	if(!SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), conmode))
-		return(0);
-
-	win32_textmode(inmode);
 	cio_api.mouse=1;
-	j=vid_modes[modeidx].ysize*vid_modes[modeidx].xsize*2;
 	return(1);
 }
 
@@ -304,6 +260,7 @@ void win32_textmode(int mode)
 	int i;
 	COORD	sz;
 	SMALL_RECT	rc;
+	CONSOLE_SCREEN_BUFFER_INFO	sb;
 
 	for(i=0;i<VID_MODES;i++) {
 		if(vid_modes[i].mode==mode)
@@ -474,7 +431,10 @@ int win32_wherey(void)
 int win32_putch(int ch)
 {
 	struct text_info ti;
+	WORD sch;
+	int i;
 	unsigned char buf[2];
+	DWORD wr;
 
 	buf[0]=ch;
 	buf[1]=currattr;
