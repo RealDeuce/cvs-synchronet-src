@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.3 2001/06/13 21:50:15 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.4 2001/06/22 02:33:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 		return JS_FALSE;
 	}
 
-	dbprintf(FALSE, sock, "opened");
+	dbprintf(FALSE, sock, "socket object constructed");
 	return JS_TRUE;
 }
 
@@ -497,5 +497,31 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 
 	return(sockobj);
 }
+
+JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *name, SOCKET sock)
+{
+	JSObject* obj;
+
+	obj = JS_DefineObject(cx, parent, name, &js_socket_class, NULL, 0);
+
+	if(obj==NULL)
+		return(NULL);
+
+	if(!JS_DefineProperties(cx, obj, js_socket_properties))
+		return(NULL);
+
+	if (!JS_DefineFunctions(cx, obj, js_socket_functions)) 
+		return(NULL);
+
+	if(!JS_SetPrivate(cx, obj, (char*)(sock<<1))) {
+		dbprintf(TRUE, sock, "JS_SetPrivate failed");
+		return(NULL);
+	}
+
+	dbprintf(FALSE, sock, "socket object created");
+
+	return(obj);
+}
+
 
 #endif	/* JAVSCRIPT */
