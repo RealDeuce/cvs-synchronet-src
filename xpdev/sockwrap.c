@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.22 2004/11/03 07:29:12 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.24 2005/01/01 00:52:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,8 @@
 int sendfilesocket(int sock, int file, long *offset, long count)
 {
 /* sendfile() on Linux may or may not work with non-blocking sockets ToDo */
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) && 0
+#warning FreeBSD sendfile may cause problems!
 	off_t	total=0;
 	off_t	wr=0;
 	int		i;
@@ -252,7 +253,8 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				,"%04d !ERROR %d binding %s socket%s", s, ERROR_VALUE, prot, port_str);
 		if(i<retries) {
 			if(lprintf!=NULL)
-				lprintf(LOG_WARNING,"%04d Will retry in %u seconds", s, wait_secs);
+				lprintf(LOG_WARNING,"%04d Will retry in %u seconds (%u of %u)"
+					,s, wait_secs, i+1, retries);
 			SLEEP(wait_secs*1000);
 		}
 	}
