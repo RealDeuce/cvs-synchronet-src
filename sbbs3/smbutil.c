@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.27 2002/04/13 08:40:34 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.28 2002/04/17 21:56:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -841,7 +841,7 @@ void maint(void)
 			idx[m].attr|=MSG_DELETE; } }
 	printf("\r100%% (%lu flagged for deletion)\n",f);
 
-	if(l-flagged>smb.status.max_msgs) {
+	if(smb.status.max_msgs && l-flagged>smb.status.max_msgs) {
 		printf("Flagging excess messages for deletion...\n");
 		for(m=n=0,f=flagged;l-flagged>smb.status.max_msgs && m<l;m++) {
 			if(idx[m].attr&(MSG_PERMANENT|MSG_DELETE))
