@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.87 2004/10/27 21:21:50 rswindell Exp $ */
+/* $Id: userdat.c,v 1.86 2004/10/17 06:46:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1875,9 +1875,6 @@ BOOL DLLCALL logoutuserdat(scfg_t* cfg, user_t* user, time_t now, time_t logonti
 
 	if(user==NULL)
 		return(FALSE);
-
-	if(now==0)
-		now=time(NULL);
 
 	tused=(now-logontime)/60;
 	user->tlast=(ushort)(tused > USHRT_MAX ? USHRT_MAX : tused);

@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.62 2004/11/04 21:34:59 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.58 2004/09/11 09:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -266,16 +266,15 @@ BOOL iniRemoveValue(str_list_t* list, const char* section, const char* key)
 {
 	char	val[INI_MAX_VALUE_LEN];
 	size_t	i;
-	char*	p;
 	char*	vp=NULL;
 
 	i=get_value(*list, section, key, val);
 
-    p=key_name((*list)[i], &vp);
+    key_name((*list)[i], &vp);
 	if(vp==NULL)
 		return(FALSE);
 
-	strcat(p,"=");
+	*vp=0;	/* Terminate string at beginning of value */
 	return(TRUE);
 }
 
@@ -507,7 +506,6 @@ static str_list_t splitList(char* list, const char* sep)
 
 	token=strtok(list,sep);
 	while(token!=NULL) {
-		SKIP_WHITESPACE(token);
 		truncsp(token);
 		if(strListAppend(&lp,token,items++)==NULL)
 			break;
@@ -526,9 +524,6 @@ str_list_t iniReadStringList(FILE* fp, const char* section, const char* key
 
 	if((value=read_value(fp,section,key,buf))==NULL || *value==0 /* blank */)
 		value=(char*)deflt;
-
-	if(value==NULL)
-		return(NULL);
 
 	SAFECOPY(list,value);
 
@@ -859,39 +854,6 @@ ulong iniGetIpAddress(str_list_t* list, const char* section, const char* key, ul
 
 #endif	/* !NO_SOCKET_SUPPORT */
 
-char* iniFileName(char* dest, size_t maxlen, const char* indir, const char* infname)
-{
-	char	dir[MAX_PATH+1];
-	char	fname[MAX_PATH+1];
-	char	ext[MAX_PATH+1];
-	char*	p;
-
-	SAFECOPY(dir,indir);
-	backslash(dir);
-	SAFECOPY(fname,infname);
-	ext[0]=0;
-	if((p=getfext(fname))!=NULL) {
-		SAFECOPY(ext,p);
-		*p=0;
-	}
-
-#if !defined(NO_SOCKET_SUPPORT)
-	{
-		char hostname[128];
-
-		if(gethostname(hostname,sizeof(hostname))==0) {
-			safe_snprintf(dest,maxlen,"%s%s.%s%s",dir,fname,hostname,ext);
-			if(fexistcase(dest))
-				return(dest);
-		}
-	}
-#endif
-	
-	safe_snprintf(dest,maxlen,"%s%s%s",dir,fname,ext);
-	fexistcase(dest);
-	return(dest);
-}
-
 double iniReadFloat(FILE* fp, const char* section, const char* key, double deflt)
 {
 	char	buf[INI_MAX_VALUE_LEN];
@@ -920,10 +882,12 @@ double iniGetFloat(str_list_t* list, const char* section, const char* key, doubl
 
 static BOOL parseBool(const char* value)
 {
-	if(!stricmp(value,"TRUE") || !stricmp(value,"YES"))
+	if(!stricmp(value,"TRUE"))
 		return(TRUE);
+	if(!stricmp(value,"FALSE"))
+		return(FALSE);
 
-	return(INT_TO_BOOL(strtol(value,NULL,0)));
+	return(strtol(value,NULL,0));
 }
 
 BOOL iniReadBool(FILE* fp, const char* section, const char* key, BOOL deflt)
