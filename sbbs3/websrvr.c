@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.110 2003/06/02 18:45:36 deuce Exp $ */
+/* $Id: websrvr.c,v 1.111 2003/06/02 22:31:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -767,7 +767,7 @@ static BOOL send_headers(http_session_t *session, const char *status)
 		}
 	}
 
-	safecat(headers,newline,MAX_HEADERS_SIZE);
+	safecat(headers,"",MAX_HEADERS_SIZE);
 	send_file = (sockprint(session->socket,headers) && send_file);
 	free(headers);
 	return(send_file);
@@ -2386,7 +2386,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.110 $", "%*s %s", revision);
+	sscanf("$Revision: 1.111 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
