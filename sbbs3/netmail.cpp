@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.19 2003/03/30 00:23:01 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.20 2003/03/30 00:39:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,9 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 			if(x<cfg.total_prots)	/* This should be always */
 				protocol(cmdstr(cfg.prot[x]->ulcmd,str2,nulstr,NULL),true); 
 		}
-		fexistcase(str2);
+		sprintf(tmp,"%s%s",cfg.temp_dir,title);
+		if(!fexistcase(str2) && fexistcase(tmp))
+			mv(tmp,str2,0);
 		l=flength(str2);
 		if(l>0)
 			bprintf(text[FileNBytesReceived],title,ultoac(l,tmp));
