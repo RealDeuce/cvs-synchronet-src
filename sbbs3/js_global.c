@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.53 2003/03/21 21:13:48 rswindell Exp $ */
+/* $Id: js_global.c,v 1.54 2003/03/21 22:56:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -442,8 +442,8 @@ js_lfexpand(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	int32		len=79;
-	ulong		i,k,l;
+	int32		l,len=79;
+	ulong		i,k;
 	int			col=1;
 	uchar*		inbuf;
 	char*		outbuf;
@@ -464,14 +464,17 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	outbuf[0]=0;
 	for(i=l=0;inbuf[i];) {
-		if(inbuf[i]=='\r' || inbuf[i]==FF)
+		if(inbuf[i]=='\r' || inbuf[i]==FF) {
+			strncat(outbuf,linebuf,l);
+			l=0;
 			col=1;
+		}
 		else if(inbuf[i]=='\t')
 			col+=8;
 		else if(inbuf[i]>=' ')
 			col++;
 		linebuf[l]=inbuf[i++];
-		if(col<len) {
+		if(col<len && l<len) {
 			l++;
 			continue;
 		}
