@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.19 2002/11/07 08:01:37 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.20 2002/11/07 09:31:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,11 +104,9 @@ bool sbbs_t::answer()
 
 	if(!(sys_status&SS_RLOGIN)) {
 		/* Disable Telnet Terminal Echo */
-		sprintf(str,"%c%c%c",TELNET_IAC,TELNET_WILL,TELNET_ECHO);
-		putcom(str,3);
+		send_telnet_cmd(TELNET_WILL,TELNET_ECHO);
 		/* Will suppress Go Ahead */
-		sprintf(str,"%c%c%c",TELNET_IAC,TELNET_WILL,TELNET_SUP_GA);
-		putcom(str,3);
+		send_telnet_cmd(TELNET_WILL,TELNET_SUP_GA);
 	}
 
 	/* Detect terminal type */

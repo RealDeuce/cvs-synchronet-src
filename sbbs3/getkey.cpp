@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.18 2002/08/16 21:59:37 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.19 2002/11/07 09:31:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "telnet.h"	// TELNET_IAC/NOP
+#include "telnet.h"	// TELNET_GA
 
 /****************************************************************************/
 /* Waits for remote or local user to hit a key. Inactivity timer is checked */
@@ -47,7 +47,6 @@
 char sbbs_t::getkey(long mode)
 {
 	char	ch,coldkey,c=0,spin=sbbs_random(5);
-	char	telnet_cmd[16];
 	time_t	last_telnet_cmd=0;
 
 	if(!online || !input_thread_running) {
@@ -270,8 +269,7 @@ char sbbs_t::getkey(long mode)
 		if(now!=last_telnet_cmd && now-timeout>=60 && !((now-timeout)%60)) {
 			// Let's make sure the socket is up
 			// Sending will trigger a socket d/c detection
-			sprintf(telnet_cmd,"%c%c",TELNET_IAC,TELNET_GA);
-			putcom(telnet_cmd,2);
+			send_telnet_cmd(TELNET_GA,0);
 			last_telnet_cmd=now;
 		}
 			

@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.11 2002/08/09 00:07:24 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.12 2002/11/07 09:31:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,8 +223,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	telnet_mode&=~TELNET_MODE_GATE;
 
 	/* Disable Telnet Terminal Echo */
-	sprintf(str,"%c%c%c",TELNET_IAC,TELNET_WILL,TELNET_ECHO);
-	putcom(str,3);
+	send_telnet_cmd(TELNET_WILL,TELNET_ECHO);
 
 	close_socket(remote_socket);
 
