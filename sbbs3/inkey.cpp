@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.6 2002/01/29 23:03:37 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.7 2002/01/30 01:10:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,7 +112,23 @@ char sbbs_t::inkey(long mode)
 			if(cfg.hotkey[i]->key==ch)
 				break;
 		if(i<cfg.total_hotkeys) {
+			if(hotkey_inside>1)	/* only allow so much recursion */
+				return(0);
+			if(mode&K_SPIN)
+				bputs("\b ");
+			if(!(sys_status&SS_SPLITP)) {
+				SAVELINE;
+				attr(LIGHTGRAY);
+				CRLF; 
+			}
+			hotkey_inside++;
 			external(cfg.hotkey[i]->cmd,0);
+			hotkey_inside--;
+			if(!(sys_status&SS_SPLITP)) {
+				CRLF;
+				RESTORELINE; 
+			}
+			lncntr=0;
 			return(0);
 		}
 		if(ch==CTRL_O) {	/* Ctrl-O toggles pause temporarily */
