@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.10 2001/10/02 20:10:57 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.11 2001/11/04 00:49:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -745,7 +745,7 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 /****************************************************************************/
 void sbbs_t::editfile(char *str)
 {
-	char *buf,str2[128],mode=0;   /* EX_CC */
+	char *buf,str2[128],mode=0;   /* EX_SH */
     int file;
 	long length,maxlines,lines,l;
 

@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.11 2001/08/01 15:56:00 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.12 2001/11/04 00:49:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1444,7 +1444,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
 	remove(str);
 
-	mode=0; 	/* EX_CC */
+	mode=0; 	/* EX_SH */
 	if(cfg.xtrn[xtrnnum]->misc&IO_INTS)
 		mode|=(EX_OUTR|EX_INR|EX_OUTL);
 	if(cfg.xtrn[xtrnnum]->misc&WWIVCOLOR)
