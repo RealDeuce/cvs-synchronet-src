@@ -2,7 +2,7 @@
 
 # Make 'include file' defining dependencies for Synchronet SBBS.DLL
 
-# $Id: depends.mak,v 1.4 2001/03/09 22:00:18 rswindell Exp $
+# $Id: depends.mak,v 1.5 2001/10/02 22:02:19 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, and OFILE must be pre-defined
 
@@ -34,6 +34,7 @@ $(LIBODIR)$(SLASH)getkey.$(OFILE):    	$(HEADERS)
 $(LIBODIR)$(SLASH)getmsg.$(OFILE):    	$(HEADERS)
 $(LIBODIR)$(SLASH)getnode.$(OFILE):		$(HEADERS)
 $(LIBODIR)$(SLASH)getstr.$(OFILE):    	$(HEADERS)
+$(LIBODIR)$(SLASH)ident.$(OFILE):    	$(HEADERS) ident.h
 $(LIBODIR)$(SLASH)inkey.$(OFILE):    	$(HEADERS)
 $(LIBODIR)$(SLASH)listfile.$(OFILE):	$(HEADERS)
 $(LIBODIR)$(SLASH)load_cfg.$(OFILE):	$(HEADERS)
@@ -43,7 +44,7 @@ $(LIBODIR)$(SLASH)logon.$(OFILE):    	$(HEADERS) cmdshell.h
 $(LIBODIR)$(SLASH)logout.$(OFILE):		$(HEADERS)
 $(LIBODIR)$(SLASH)lzh.$(OFILE):			$(HEADERS)
 $(LIBODIR)$(SLASH)mail.$(OFILE):	    $(HEADERS)
-$(LIBODIR)$(SLASH)main.$(OFILE):		$(HEADERS) cmdshell.h
+$(LIBODIR)$(SLASH)main.$(OFILE):		$(HEADERS) cmdshell.h ident.h
 $(LIBODIR)$(SLASH)misc.$(OFILE):		$(HEADERS) ars_defs.h crc32.h
 $(LIBODIR)$(SLASH)msgtoqwk.$(OFILE):	$(HEADERS) qwk.h
 $(LIBODIR)$(SLASH)netmail.$(OFILE):		$(HEADERS) qwk.h
