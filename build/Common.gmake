@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.17 2004/09/13 06:16:28 deuce Exp $
+# $Id: Common.gmake,v 1.24 2004/09/20 02:57:02 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -133,6 +133,8 @@ ifdef BUILD_DEPENDS
  CXX			:=	$(SRC_ROOT)/build/mkdep -a
  LD				:=	echo
  COMPILE_MSG	:=  Depending
+ AR				:=	echo
+ RANLIB			:=	echo
 else
  ifdef DONT_CLOBBER_CC
   CC			?=	gcc
@@ -143,6 +145,8 @@ else
  CXX			?=	g++
  LD				?=	ld
  COMPILE_MSG	:= Compiling
+ AR				?=	ar
+ RANLIB			?=	ranlib
 endif
 
 ifdef DEBUG
@@ -223,7 +227,7 @@ endif
 # PThread-specific flags
 ifeq ($(os),linux)    # Linux
  ifndef THREADS_ACTUALLY_WORK
-  MT_CFLAGS    += -D_THREAD_SUID_BROKEN
+  CFLAGS    += -D_THREAD_SUID_BROKEN
  endif
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
@@ -238,14 +242,16 @@ else
   XP_SEM    :=    1
  else
   ifeq ($(os),netbsd)    # NetBSD
-   MT_CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES
+   CFLAGS    +=	-D__unix__ 
+   MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
    MT_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
    XP_SEM    :=    1
   else
    ifeq ($(os),qnx)    # QNX
    else
     ifeq ($(os),darwin)    # Darwin/Mac OS X
-     MT_CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES -D__DARWIN__
+     CFLAGS    += -D__unix__ 
+     MT_CFLAGS    += -DUSE_XP_SEMAPHORES -D__DARWIN__
      MT_LDFLAGS    += -lpthread
      XP_SEM    := 1
     else
@@ -293,22 +299,22 @@ endif
 -include objects.mk		# defines $(OBJS)
 
 # Implicit C Compile Rule
-$(OBJODIR)/%.o : %.c $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
 
 # Implicit C++ Compile Rule
-$(OBJODIR)/%.o : %.cpp $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ -c $<
 
 # Implicit MT C Compile Rule
-$(MTOBJODIR)/%.o : %.c $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
 # Implicit MT C++ Compile Rule
-$(MTOBJODIR)/%.o : %.cpp $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
@@ -330,23 +336,26 @@ FORCE:
 -include $(LIBODIR)/*.d
 -include $(EXEODIR)/*.d
 
+$(XPDEV_LIB): xpdev
 xpdev:
 	$(MAKE) -C $(XPDEV_SRC) lib
 
+$(XPDEV-MT_LIB): xpdev-mt
 xpdev-mt:
 	$(MAKE) -C $(XPDEV_SRC) mtlib
 
+$(SMBLIB): smblib
 smblib:
 	$(MAKE) -C $(SMBLIB_SRC) lib
 
-smblib-mt:
-	$(MAKE) -C $(SMBLIB_SRC) mtlib
-
+$(CIOLIB-MT): ciolib-mt
 ciolib-mt:
 	$(MAKE) -C $(CIOLIB_SRC) mtlib
 
+$(UIFCLIB): uifc
 uifc:
 	$(MAKE) -C $(UIFC_SRC) lib
 
+$(UIFCLIB-MT): uifc-mt
 uifc-mt:
 	$(MAKE) -C $(UIFC_SRC) mtlib
