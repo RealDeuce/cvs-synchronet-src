@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.22 2000/11/06 23:59:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.23 2000/11/07 11:22:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,9 +298,9 @@ static void truncsp(char *str)
 {
 	uint c;
 
-c=strlen(str);
-while(c && (uchar)str[c-1]<=' ') c--;
-str[c]=0;
+	c=strlen(str);
+	while(c && (uchar)str[c-1]<=' ') c--;
+	str[c]=0;
 }
 
 
