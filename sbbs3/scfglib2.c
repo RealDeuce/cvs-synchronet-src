@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.29 2003/01/17 20:52:40 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.30 2003/01/17 21:07:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 /****************************************************************************/
 BOOL read_file_cfg(scfg_t* cfg, char* error)
 {
-	char	str[256],fname[13],c,cmd[LEN_CMD+1];
+	char	str[MAX_PATH+1],fname[13],c,cmd[LEN_CMD+1];
 	short	i,j,n;
 	long	offset=0,t;
 	FILE	*instream;
@@ -420,7 +420,7 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 /****************************************************************************/
 BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 {
-	char	str[256],fname[13],c;
+	char	str[MAX_PATH+1],fname[13],c;
 	short	i,j,n;
 	long	offset=0;
 	FILE	*instream;
@@ -656,7 +656,7 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 /****************************************************************************/
 BOOL read_chat_cfg(scfg_t* cfg, char* error)
 {
-	char	str[256],fname[13];
+	char	str[MAX_PATH+1],fname[13];
 	short	i,j,n;
 	long	offset=0;
 	FILE	*instream;
@@ -831,19 +831,6 @@ char *readline(long *offset, char *outstr, int maxlen, FILE *instream)
 	sprintf(outstr,"%.*s",maxlen,str);
 	truncsp(outstr);
 	(*offset)+=maxlen;
-	return(outstr);
-}
-
-#undef readline_alloc
-
-char *readline_alloc(long *offset, char *outstr, int maxline, FILE *instream)
-{
-	char str[257];
-
-	readline(offset,str,maxline,instream);
-	if((outstr=(char *)MALLOC(strlen(str)+1))==NULL)
-		return(NULL);
-	strcpy(outstr,str);
 	return(outstr);
 }
 
