@@ -68,14 +68,12 @@ static int show = 1;
 static int blink = 1;
 BYTE CursRow0=0;
 BYTE CursCol0=0;
-#ifdef DISABLED
 typedef struct TextLine {
     u_short	*data;
     u_char	max_length;	/* Not used, but here for future use */
     u_char	changed:1;
 } TextLine;
 TextLine *lines = NULL;
-#endif
 
 /* Indices into the video parameter table. We will use that array to
    initialize the registers on startup and when the video mode changes. */
@@ -86,7 +84,7 @@ TextLine *lines = NULL;
 #define MiscOutput_Ofs	9
 
 /* X Variables */
-Display *dpy;
+Display *dpy=NULL;
 Window win;
 XFontStruct *font;
 XImage *xi = 0;
@@ -135,8 +133,6 @@ vmode_t vmodelist[] = {
 #define NUMMODES	(sizeof(vmodelist) / sizeof(vmode_t))
 
 static	fd_set	fdset;		/* File Descriptors to select on */
-
-#define FD_ISZERO(p)	((p)->fds_bits[0] == 0)
 
 /* Keyboard stuff */
 WORD	keybuf[0x25];
@@ -346,14 +342,12 @@ mouse_t		mouse_status;
 
 void tty_pause()
 {
-#ifdef DISABLED
     sigset_t set;
 
     sigprocmask(0, 0, &set);
     sigdelset(&set, SIGIO);
     sigdelset(&set, SIGALRM);
     sigsuspend(&set);
-#endif
 }
 
 volatile int	poll_cnt = 0;
@@ -401,7 +395,7 @@ video_update_text()
 {
     static int or = -1;
     static int oc = -1;
-
+	static int os = -1;
 
     static char buf[256];
     int r, c;
@@ -410,79 +404,72 @@ video_update_text()
 
 	wakeup_poll();	/* Wake up anyone waiting on kbd poll */
 
-	show ^= 1;
+/*	show ^= 1; */
 
 	setgc(attr);
 
 	for (r = 0; r < (DpyRows+1); ++r) {
 	    int cc = 0;
 
-#ifdef DISABLED
 	    if (!lines[r].changed) {
-		if ((r == or || r == CursRow0) && (or != CursRow0 || oc !=CursCol0))
-		    lines[r].changed = 1;
-		else {
-		    for (c = 0; c < DpyCols; ++c) {
-			if (lines[r].data[c] != vmem[r * DpyCols + c]) {
-			    lines[r].changed = 1;
-			    break;
+			if ((r == or || r == CursRow0) && (or != CursRow0 || oc !=CursCol0))
+				lines[r].changed=1;
+			else {
+			    for (c = 0; c < DpyCols; ++c) {
+					if (lines[r].data[c] != vmem[r * DpyCols + c]) {
+					    lines[r].changed = 1;
+					    break;
+					}
+					if (blink && lines[r].data[c] & 0x8000 && show != os) {
+					    lines[r].changed = 1;
+					    break;
+					}
+			    }
 			}
-			if (blink && lines[r].data[c] & 0x8000) {
-			    lines[r].changed = 1;
-			    break;
-			}
-		    }
-		}
 	    }
-#endif
 
-#ifdef DISABLED
 	    if (!lines[r].changed)
-		continue;
-#endif
+			continue;
 
-	    reset_poll();
-#ifdef DISABLED
-	    lines[r].changed = 0;
-	    memcpy(lines[r].data,
-		   &vmem[r * DpyCols], sizeof(u_short) * DpyCols);
-#endif
+		reset_poll();
+		lines[r].changed = 0;
+		memcpy(lines[r].data,
+			&vmem[r * DpyCols], sizeof(u_short) * DpyCols);
 
 	    for (c = 0; c < DpyCols; ++c) {
-		int cv = vmem[r * DpyCols + c];
-		if ((cv & 0xff00) != attr) {
-		    if (cc < c)
-			XDrawImageString(dpy, win, gc,
-					 2 + cc * FW,
-					 2 + (r + 1) * FH,
-					 buf + cc, c - cc);
-		    cc = c;
-		    attr = cv  & 0xff00;
-		    setgc(attr);
-		}
-		buf[c] = (cv & 0xff) ? cv & 0xff : ' ';
+			int cv = vmem[r * DpyCols + c];
+			if ((cv & 0xff00) != attr) {
+				if (cc < c)
+					XDrawImageString(dpy, win, gc,
+						2 + cc * FW,
+						2 + (r + 1) * FH,
+						buf + cc, c - cc);
+					cc = c;
+					attr = cv  & 0xff00;
+					setgc(attr);
+			}
+			buf[c] = (cv & 0xff) ? cv & 0xff : ' ';
 	    }
 	    if (cc < c) {
-		XDrawImageString(dpy, win, gc,
-				 2 + cc * FW,
-				 2 + (r + 1) * FH,
-				 buf + cc, c - cc);
+			XDrawImageString(dpy, win, gc,
+				2 + cc * FW,
+				2 + (r + 1) * FH,
+				buf + cc, c - cc);
 	    }
 	}
-	or =CursRow0;
-	oc =CursCol0;
+
 
 	if (CursStart <= CursEnd && CursEnd <= FH &&
-	    show &&CursRow0 < (DpyRows+1) &&CursCol0 < DpyCols) {
+	    (show != os) && CursRow0 < (DpyRows+1) &&CursCol0 < DpyCols) {
 
 	    attr = vmem[CursRow0 * DpyCols +CursCol0] & 0xff00;
 	    v.foreground = pixels[(attr >> 8) & 0x0f] ^
-		pixels[(attr >> 12) & (blink ? 0x07 : 0x0f)];
+			pixels[(attr >> 12) & (blink ? 0x07 : 0x0f)];
 	    if (v.foreground) {
-		v.function = GXxor;
+			v.function = GXxor;
 	    } else {
-		v.foreground = pixels[7];
-		v.function = GXcopy;
+			v.foreground = pixels[7];
+			v.function = GXcopy;
 	    }
 	    XChangeGC(dpy, cgc, GCForeground | GCFunction, &v);
 	    XFillRectangle(dpy, win, cgc,
@@ -491,20 +478,36 @@ video_update_text()
 			   FW, CursEnd + 1 - CursStart);
 	}
 
+	or =CursRow0;
+	oc =CursCol0;
+	os =show;
+
 	XFlush(dpy);
 }
 
 void
 video_update(void *unused)
 {
+    sigset_t sigset;
 	static int icnt = 3;
 
-    	if (--icnt == 0) {
-	    icnt = 3;
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGIO);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_BLOCK, &sigset, 0);
 
+    	if (--icnt == 0) {
+	    icnt = 6;
+	show ^= 1;
+
+	}
 	    /* quick and dirty */
 		video_update_text();
-	}
+
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGIO);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_UNBLOCK, &sigset, 0);
 }
 
 /*
@@ -516,7 +519,6 @@ sigalrm(int sig)
     video_update(NULL);
 }
 
-#ifdef DISABLED
 /* Get memory for the text line buffer. */
 void
 get_lines()
@@ -550,7 +552,6 @@ get_lines()
 	}
     }
 }
-#endif
 
 static void
 Failure(void *arg)
@@ -635,11 +636,6 @@ video_event(XEvent *ev)
 				    : (be->y > mouse_status.range.h)
 				    ? mouse_status.range.h : be->y;
 
-#ifdef DISABLED
-		if ((K1_STATUS & (K1_ALT|K1_CTRL)) == (K1_ALT|K1_CTRL)) {
-		    quit(0);
-		}
-#endif
 		break;
 	    }
         case NoExpose:
@@ -647,10 +643,8 @@ video_event(XEvent *ev)
         case GraphicsExpose:
         case Expose: {
 		int r;
-#ifdef DISABLED
 		for (r = 0; r < (DpyRows+1); ++r)
 		    lines[r].changed = 1;
-#endif
 		break;
 	    }
 	case KeyRelease: {
@@ -958,60 +952,59 @@ video_event(XEvent *ev)
 void
 video_async_event(int sig)
 {
-    	int int9 = 0;
+    sigset_t sigset;
 
-#ifdef DISABLED
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGIO);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_BLOCK, &sigset, 0);
+
 	for (;;) {
-#endif
                 int x;
                 fd_set fdset;
                 XEvent ev;  
                 static struct timeval tv;
- 
+				tv.tv_sec=0;
+				tv.tv_usec=0;
                 /*
                  * Handle any events just sitting around...
                  */
                 XFlush(dpy);
                 while (QLength(dpy) > 0) {
                         XNextEvent(dpy, &ev);
-                        int9 |= video_event(&ev);
+                        video_event(&ev);
                 }
 
                 FD_ZERO(&fdset);
                 FD_SET(xfd, &fdset);
 
-                x = select(FD_SETSIZE, &fdset, 0, 0, &tv);
+                x = select(xfd+1, &fdset, 0, 0, &tv);
 
-                switch (x) {  
+                switch (x) {
                 case -1:
                         /*
                          * Errno might be wrong, so we just select again.
                          * This could cause a problem is something really
                          * was wrong with select....
                          */
+
                         perror("select");
+						sigprocmask(SIG_UNBLOCK, &sigset, 0);
                         return;
                 case 0:
 			XFlush(dpy);
-			if (int9)
-#ifdef DISABLED
-			    hardint(0x01);
-#else
-;
-#endif
                         return;
                 default:
                         if (FD_ISSET(xfd, &fdset)) {
                                 do {
                                         XNextEvent(dpy, &ev);
-                                        int9 |= video_event(&ev);
+                                        video_event(&ev);
                                 } while (QLength(dpy));
                         }
                         break;
                 }
-#ifdef DISABLED
         }
-#endif
+		sigprocmask(SIG_UNBLOCK, &sigset, 0);
 }
 
 /* Resize the window, using information from 'vga_status[]'. This function is
@@ -1182,9 +1175,7 @@ init_mode(int mode)
     /* Resize window if necessary. */
     resize_window();
 
-#ifdef DISABLED
 	get_lines();
-#endif
 	if (mode & 0x80)
 	    return;
 	/* Initialize video memory with black background, white foreground */
@@ -1338,12 +1329,21 @@ kbd_init()
 }
 
 int
+mouse_init(void)
+{
+	return(0);
+}
+
+int
 console_init()
 {
     int fd;
     int i;    
     sigset_t sigset;
     
+	if(dpy!=NULL)
+		return(0);
+
     sigemptyset(&sigset);
     sigaddset(&sigset, SIGIO);
     sigaddset(&sigset, SIGALRM);
@@ -1353,10 +1353,8 @@ console_init()
 		return(-1);
     if(video_init())
 		return(-1);
-#ifdef DISABLED
     if(mouse_init())
 		return(-1);
-#endif
     if(timer_init())
 		return(-1);
 
@@ -1411,30 +1409,30 @@ KbdEmpty()
 	return(K_NEXT == K_FREE);
 }
 
-static int nextchar = 0;
+int x_nextchar = 0;
 
 int
 tty_read(int flag)
 {
-    int r;
+	int r;
 
-    if ((r = nextchar) != 0) {
-	nextchar = 0;
-	return(r & 0xff);
-    }
-
-    if (KbdEmpty()) {
-	if (flag & TTYF_BLOCK) {
-	    while (KbdEmpty())
-		tty_pause();
-	} else {
-	    return(-1);
+	if ((r = x_nextchar) != 0) {
+		x_nextchar = 0;
+		return(r & 0xff);
 	}
+
+	if (KbdEmpty()) {
+		if (flag & TTYF_BLOCK) {
+			while (KbdEmpty())
+			tty_pause();
+		} else {
+			return(-1);
+		}
     }
 
     r = KbdRead();
     if ((r & 0xff) == 0)
-	nextchar = r >> 8;
+		x_nextchar = r >> 8;
     r &= 0xff;
     return(r & 0xff);
 }
@@ -1444,8 +1442,8 @@ tty_peek(int flag)
 {
 	int c;
 
-    	if (c == nextchar)
-	    return(nextchar & 0xff);
+    	if (c == x_nextchar)
+	    return(x_nextchar & 0xff);
 
 	if (KbdEmpty()) {
 		if (flag & TTYF_POLL) {
@@ -1465,9 +1463,7 @@ tty_peek(int flag)
 int
 tty_kbhit(void)
 {
-	video_async_event(0);
-
-	if(!nextchar && KbdEmpty())
-		return(0);
-	return(1);
+	if(x_nextchar || !KbdEmpty())
+		return(1);
+	return(0);
 }
