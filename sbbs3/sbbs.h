@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.241 2004/12/07 04:39:29 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.242 2004/12/07 08:51:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -987,8 +987,7 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
 													,user_t* user, subscan_t* subscan);
 	DLLEXPORT BOOL		DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg
-													,JSObject* subobj, uint subnum
-													,uint usrgrpnum, uint usrsubnum);
+													,JSObject* subobj, uint subnum);
 
 	/* js_xtrn_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
