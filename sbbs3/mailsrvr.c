@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.176 2002/07/21 21:08:16 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.177 2002/07/25 05:53:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2012,7 +2012,7 @@ static void smtp_thread(void* arg)
 				lprintf("%04d !SMTP REFUSED MAIL from blacklisted server"
 					,socket);
 				sprintf(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
-				spamlog(&scfg, "SMTP", "MAIL REFUSED", str, host_name, host_ip, NULL);
+				spamlog(&scfg, "SMTP", "MAIL REFUSED", str, host_name, host_ip, rcpt_addr);
 				sockprintf(socket
 					,"550 Mail from %s refused due to listing at %s"
 					,host_ip, dnsbl);
@@ -2780,7 +2780,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.176 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.177 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
