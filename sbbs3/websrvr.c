@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.285 2005/03/14 09:18:55 deuce Exp $ */
+/* $Id: websrvr.c,v 1.286 2005/03/15 16:59:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -848,6 +848,8 @@ static BOOL send_headers(http_session_t *session, const char *status)
 	char	header[MAX_REQUEST_LINE+1];
 	list_node_t	*node;
 
+	if(session->socket==INVALID_SOCKET)
+		return(FALSE);
 	lprintf(LOG_DEBUG,"%04d Request resolved to: %s"
 		,session->socket,session->req.physical_path);
 	if(session->http_ver <= HTTP_0_9) {
@@ -993,6 +995,8 @@ static void send_error(http_session_t * session, const char* message)
 	char	sbuf[1024];
 	BOOL	sent_ssjs=FALSE;
 
+	if(session->socket==INVALID_SOCKET)
+		return;
 	session->req.if_modified_since=0;
 	lprintf(LOG_INFO,"%04d !ERROR: %s",session->socket,message);
 	session->req.keep_alive=FALSE;
@@ -1793,7 +1797,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 		 */
 		while((len=sockreadline(session,req_line,sizeof(req_line)-1))==0);
 		if(len<0)
-			req_line[0]=0;
+			return(FALSE);
 		if(req_line[0])
 			lprintf(LOG_DEBUG,"%04d Request: %s",session->socket,req_line);
 	}
@@ -3049,7 +3053,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.285 $", "%*s %s", revision);
+	sscanf("$Revision: 1.286 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
