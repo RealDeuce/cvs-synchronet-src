@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.26 2003/08/22 10:50:15 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.27 2003/10/21 22:02:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			if(msg.hdr.auxattr&MSG_FILEATTACH) {  /* Attached file */
 				smb_getmsgidx(&smb,&msg);
 				strcpy(str,msg.subj);					/* filenames in title */
-				strupr(str);
+//				strupr(str);
 				tp=str;
 				while(online) {
 					p=strchr(tp,SP);
