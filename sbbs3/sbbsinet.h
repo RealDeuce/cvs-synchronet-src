@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.9 2000/11/08 11:25:09 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.10 2000/11/15 01:27:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,7 @@
 #include <netinet/in.h>	/* IPPROTO_IP */
 #include <sys/socket.h>	/* socket/bind/etc. */
 #include <sys/ioctl.h>	/* FIONBIO */
+#include <sys/time.h>	/* struct timeval */
 #include <arpa/inet.h>	/* inet_ntoa */
 #include <unistd.h>		/* close */
 #include <errno.h>		/* errno */
