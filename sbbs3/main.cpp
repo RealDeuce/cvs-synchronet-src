@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.189 2002/10/13 11:15:49 rswindell Exp $ */
+/* $Id: main.cpp,v 1.190 2002/10/16 09:43:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,18 +273,28 @@ static JSClass js_method_class = {
 
 /* Convert from Synchronet-specific jsMethodSpec to JSAPI's JSFunctionSpec */
 
-int DLLCALL js_MethodsToFunctions(jsMethodSpec meth[], JSFunctionSpec func[])
+JSBool
+DLLCALL js_DescribeObject(JSContext* cx, JSObject* obj, const char* str)
 {
-	int			i;
+	JSString* js_str = JS_NewStringCopyZ(cx, str);
 
-	/* Convert from jsMethodSpec to JSFunctionSpec */
-	for(i=0;meth[i].name!=NULL;i++) {
-		func[i].name=meth[i].name;
-		func[i].call=meth[i].call;
-		func[i].nargs=meth[i].nargs;
-	}
+	if(js_str==NULL)
+		return(JS_FALSE);
 
-	return(i);
+	return(JS_DefineProperty(cx,obj,"_description"
+		,STRING_TO_JSVAL(js_str),NULL,NULL,JSPROP_READONLY));
+}
+
+JSBool
+DLLCALL js_DescribeConstructor(JSContext* cx, JSObject* obj, const char* str)
+{
+	JSString* js_str = JS_NewStringCopyZ(cx, str);
+
+	if(js_str==NULL)
+		return(JS_FALSE);
+
+	return(JS_DefineProperty(cx,obj,"_constructor"
+		,STRING_TO_JSVAL(js_str),NULL,NULL,JSPROP_READONLY));
 }
 
 #ifdef _DEBUG
