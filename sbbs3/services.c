@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.16 2001/12/01 02:38:37 rswindell Exp $ */
+/* $Id: services.c,v 1.17 2001/12/05 16:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -907,7 +907,7 @@ static BOOL read_services_cfg(void)
 		*tp=0;
 		sprintf(service[services].protocol,"%.*s",sizeof(service[0].protocol),p);
 		p=tp+1;
-		NEXT_FIELD(p);
+		while(*p && *p<=' ') p++;
 		service[services].port=atoi(p);
 		NEXT_FIELD(p);
 		service[services].max_clients=strtol(p,NULL,10);
