@@ -25,11 +25,9 @@ const struct vid_mode vid_modes[VID_MODES]={
 	,{C80X50,80,50,1}
 };
 
-static struct cio_mouse_event	cio_last_button_press;
-static struct cio_mouse_event	last_mouse_click;
-
 static int lastch=0;
 static int domouse=0;
+static DWORD last_state=0;
 static int xpos=1;
 static int ypos=1;
 
@@ -97,11 +95,32 @@ int win32_kbhit(void)
 			return(1);
 		if(domouse) {
 			if(input.EventType==MOUSE_EVENT) {
-				if(!input.Event.MouseEvent.dwEventFlags
-					&& (!input.Event.MouseEvent.dwButtonState
-						|| input.Event.MouseEvent.dwButtonState==FROM_LEFT_1ST_BUTTON_PRESSED
-						|| input.Event.MouseEvent.dwButtonState==RIGHTMOST_BUTTON_PRESSED))
-					return(1);
+				if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
+					ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+				}
+				if(!input.Event.MouseEvent.dwEventFlags) {
+					switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
+						case FROM_LEFT_1ST_BUTTON_PRESSED:
+							if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
+								ciomouse_gotevent(CIOLIB_BUTTON_1_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							else
+								ciomouse_gotevent(CIOLIB_BUTTON_1_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							break;
+						case FROM_LEFT_2ND_BUTTON_PRESSED:
+							if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED)
+								ciomouse_gotevent(CIOLIB_BUTTON_2_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							else
+								ciomouse_gotevent(CIOLIB_BUTTON_2_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							break;
+						case RIGHTMOST_BUTTON_PRESSED:
+							if(input.Event.MouseEvent.dwButtonState & RIGHTMOST_BUTTON_PRESSED)
+								ciomouse_gotevent(CIOLIB_BUTTON_3_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							else
+								ciomouse_gotevent(CIOLIB_BUTTON_3_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+							break;
+					}
+					last_state=input.Event.MouseEvent.dwButtonState;
+				}
 			}
 		}
 		if(ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
@@ -109,6 +128,8 @@ int win32_kbhit(void)
 			continue;
 		}
 	}
+	if(mouse_pending())
+		return(1);
 	return(0);
 }
 
@@ -125,6 +146,8 @@ int win32_getch(void)
 			lastch>>=8;
 			return(ch);
 		}
+		if(mouse_pending())
+			lastch=CIO_KEY_MOUSE;
 		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 			|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
 			continue;
@@ -155,41 +178,37 @@ int win32_getch(void)
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {
-					if(input.Event.MouseEvent.dwEventFlags!=0)
-						continue;
-					if(input.Event.MouseEvent.dwButtonState==0) {
-						if(cio_last_button_press.button
-								&& cio_last_button_press.x==input.Event.MouseEvent.dwMousePosition.X
-								&& cio_last_button_press.y==input.Event.MouseEvent.dwMousePosition.Y) {
-							memcpy(&last_mouse_click,&cio_last_button_press,sizeof(last_mouse_click));
-							memset(&cio_last_button_press,0,sizeof(cio_last_button_press));
-							lastch=CIO_KEY_MOUSE;
-							break;
+					if(input.EventType==MOUSE_EVENT) {
+						if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
+							ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
 						}
-						else {
-							memset(&cio_last_button_press,0,sizeof(cio_last_button_press));
-						}
-					}
-					else {
-						memset(&cio_last_button_press,0,sizeof(cio_last_button_press));
-						switch(input.Event.MouseEvent.dwButtonState) {
-							case FROM_LEFT_1ST_BUTTON_PRESSED:
-								cio_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
-								cio_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
-								cio_last_button_press.button=1;
-								break;
-							case RIGHTMOST_BUTTON_PRESSED:
-								cio_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
-								cio_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
-								cio_last_button_press.button=2;
-								break;
+						if(!input.Event.MouseEvent.dwEventFlags) {
+							switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
+								case FROM_LEFT_1ST_BUTTON_PRESSED:
+									if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
+										ciomouse_gotevent(CIOLIB_BUTTON_1_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									else
+										ciomouse_gotevent(CIOLIB_BUTTON_1_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									break;
+								case FROM_LEFT_2ND_BUTTON_PRESSED:
+									if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED)
+										ciomouse_gotevent(CIOLIB_BUTTON_2_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									else
+										ciomouse_gotevent(CIOLIB_BUTTON_2_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									break;
+								case RIGHTMOST_BUTTON_PRESSED:
+									if(input.Event.MouseEvent.dwButtonState & RIGHTMOST_BUTTON_PRESSED)
+										ciomouse_gotevent(CIOLIB_BUTTON_3_PRESS,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									else
+										ciomouse_gotevent(CIOLIB_BUTTON_3_RELEASE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
+									break;
+							}
+							last_state=input.Event.MouseEvent.dwButtonState;
 						}
 					}
 				}
 		}
 	}
-
-	return(0);
 }
 
 int win32_getche(void)
@@ -216,15 +235,7 @@ int win32_initciolib(long inmode)
 	if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode))
 		return(0);
 	cio_api.mouse=1;
-	memset(&cio_last_button_press,0,sizeof(cio_last_button_press));
-	memset(&last_mouse_click,0,sizeof(last_mouse_click));
 	return(1);
-}
-
-int win32_getmouse(struct cio_mouse_event *mevent)
-{
-	memcpy(mevent,&last_mouse_click,sizeof(last_mouse_click));
-	return(0);
 }
 
 int win32_hidemouse(void)
