@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.78 2001/11/13 03:09:23 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.79 2001/11/15 14:32:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,10 +178,11 @@ public:
 
 #ifdef JAVASCRIPT
 
+	JSRuntime*	js_runtime;
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	long		js_execfile(char *fname);
-	bool		js_initcx(void);
+	bool		js_init(void);
 
 #endif
 
