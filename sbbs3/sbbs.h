@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.23 2000/11/16 00:29:30 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.24 2000/11/28 14:29:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -600,7 +600,7 @@ public:
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);
 
 	/* un_qwk.cpp */
-	void	unpack_qwk(char *packet,uint hubnum);
+	bool	unpack_qwk(char *packet,uint hubnum);
 
 	/* pack_rep.cpp */
 	bool	pack_rep(uint hubnum);
