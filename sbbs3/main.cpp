@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.169 2002/07/31 06:47:30 rswindell Exp $ */
+/* $Id: main.cpp,v 1.170 2002/07/31 08:03:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3520,17 +3520,19 @@ void DLLCALL bbs_thread(void* arg)
 				scfg_reloaded=true;
 				pthread_mutex_unlock(&event_mutex);
 			}
-			sprintf(str,"%stelnet.rec",scfg.ctrl_dir);
-			t=fdate(str);
-			if(t!=-1 && t>initialized) {
-				lprintf("0000 Recycle semaphore file (%s) detected",str);
-				initialized=t;
-				break;
-			}
-			if(startup->recycle_now==TRUE) {
-				lprintf("0000 Recycle semaphore signaled");
-				startup->recycle_now=FALSE;
-				break;
+			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
+				sprintf(str,"%stelnet.rec",scfg.ctrl_dir);
+				t=fdate(str);
+				if(t!=-1 && t>initialized) {
+					lprintf("0000 Recycle semaphore file (%s) detected",str);
+					initialized=t;
+					break;
+				}
+				if(startup->recycle_now==TRUE) {
+					lprintf("0000 Recycle semaphore signaled");
+					startup->recycle_now=FALSE;
+					break;
+				}
 			}
 		}
 

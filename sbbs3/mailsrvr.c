@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.181 2002/07/31 06:47:30 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.182 2002/07/31 08:03:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2785,7 +2785,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.181 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.182 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3040,19 +3040,20 @@ void DLLCALL mail_server(void* arg)
 
 		while (server_socket!=INVALID_SOCKET) {
 
-			sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
-			t=fdate(path);
-			if(!active_clients && t!=-1 && t>initialized) {
-				lprintf("0000 Recycle semaphore file (%s) detected",path);
-				initialized=t;
-				break;
+			if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
+				sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
+				t=fdate(path);
+				if(!active_clients && t!=-1 && t>initialized) {
+					lprintf("0000 Recycle semaphore file (%s) detected",path);
+					initialized=t;
+					break;
+				}
+				if(!active_clients && startup->recycle_now==TRUE) {
+					lprintf("0000 Recycle semaphore signaled");
+					startup->recycle_now=FALSE;
+					break;
+				}
 			}
-			if(!active_clients && startup->recycle_now==TRUE) {
-				lprintf("0000 Recycle semaphore signaled");
-				startup->recycle_now=FALSE;
-				break;
-			}
-
 			/* now wait for connection */
 
 			FD_ZERO(&socket_set);

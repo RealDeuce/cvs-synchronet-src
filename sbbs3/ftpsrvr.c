@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.177 2002/07/31 06:47:30 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.178 2002/07/31 08:03:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4264,7 +4264,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.177 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.178 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4486,19 +4486,20 @@ void DLLCALL ftp_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET) {
 
-			sprintf(path,"%sftpsrvr.rec",scfg.ctrl_dir);
-			t=fdate(path);
-			if(!active_clients && t!=-1 && t>initialized) {
-				lprintf("0000 Recycle semaphore file (%s) detected", path);
-				initialized=t;
-				break;
+			if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
+				sprintf(path,"%sftpsrvr.rec",scfg.ctrl_dir);
+				t=fdate(path);
+				if(!active_clients && t!=-1 && t>initialized) {
+					lprintf("0000 Recycle semaphore file (%s) detected", path);
+					initialized=t;
+					break;
+				}
+				if(!active_clients && startup->recycle_now==TRUE) {
+					lprintf("0000 Recycle semaphore signaled");
+					startup->recycle_now=FALSE;
+					break;
+				}
 			}
-			if(!active_clients && startup->recycle_now==TRUE) {
-				lprintf("0000 Recycle semaphore signaled");
-				startup->recycle_now=FALSE;
-				break;
-			}
-
 			/* now wait for connection */
 
 			tv.tv_sec=5;
