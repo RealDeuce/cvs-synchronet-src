@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.91 2002/02/06 00:39:51 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.92 2002/02/07 19:36:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -404,6 +404,8 @@ public:
 	void	subinfo(uint subnum);
 	void	dirinfo(uint dirnum);
 	bool	trashcan(char *insearch, char *name);
+	void	time_bank(void);
+	void	change_user(void);
 
 	/* writemsg.cpp */
 	void	automsg(void);
