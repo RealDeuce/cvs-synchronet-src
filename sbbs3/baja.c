@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.5 2000/10/30 02:21:10 rswindell Exp $ */
+/* $Id: baja.c,v 1.6 2000/11/01 05:02:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2818,6 +2818,10 @@ void compile(char *src)
 		if(!stricmp(p,"PAGE_GURU")) {
 			fprintf(out,"%c",CS_PAGE_GURU);
 			continue; }
+		if(!stricmp(p,"SPY")) {
+			fprintf(out,"%c",CS_SPY);
+			continue; }
+
 
 		if(!stricmp(p,"PRIVATE_CHAT")) {
 			fprintf(out,"%c",CS_PRIVATE_CHAT);

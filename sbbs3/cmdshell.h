@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id: cmdshell.h,v 1.1 2000/10/10 11:25:41 rswindell Exp $ */
+/* $Id: cmdshell.h,v 1.2 2000/11/01 05:02:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -311,11 +311,14 @@ enum {
 	,CS_INC_MAIN_CMDS
 	,CS_INC_FILE_CMDS
 	,CS_PRINTFILE_STR
-	,CS_PAGE_GURU				//0xFE
+	,CS_PAGE_GURU				
+	,CS_SPY						//0xFF
 	
 	};
 
-	/* Variable instructions (sub-op-code) */
+/* Variable instructions (sub-op-code) */
+
+/* Preceeded by CS_VAR_INSTRUCTION */
 
 enum {
 
@@ -454,12 +457,14 @@ enum {
 	,COMPARE_FIRST_CHAR				// Compare first char of str var to static char
 	};
 
-									// More string arg functions
-enum {
+/* Preceeded by CS_STR_FUNCTION */
+									
+enum {								// More string arg functions
 	 CS_LOGIN						// Login/password prompt
 	,CS_LOAD_TEXT					// Load alternative TEXT.DAT
 	};
 
+/* Preceeded by CS_ONE_MORE_BYTE */
 enum {								// More single byte instructions
 	 CS_ONLINE						// Online execution only
 	,CS_OFFLINE 					// Offline execution allowed
@@ -469,10 +474,12 @@ enum {								// More single byte instructions
 	,CS_EXIT						// Exit current module immediately
 	};
 
+/* Preceeded by CS_TWO_MORE_BYTES */
 enum {								// More two byte instructions
 	 CS_USER_EVENT					// External user event
 	};
 
+/* Preceeded by CS_FIO_FUNCTION */
 enum {
 	 FIO_OPEN						// Open file (static filename)
 	,FIO_CLOSE						// Close file
