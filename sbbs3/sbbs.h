@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.121 2002/07/26 08:40:46 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.122 2002/07/27 00:47:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -567,7 +567,6 @@ public:
 	char	sbbsfilename[128],sbbsfiledesc[128]; /* env vars */
 	bool	upload(uint dirnum);
     char	upload_lastdesc[LEN_FDESC+1];
-	void	update_uldate(file_t* f);
 	bool	bulkupload(uint dirnum);
 
 	/* download.cpp */
@@ -771,6 +770,7 @@ extern "C" {
 
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
+	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
 
 	/* str_util.c */
 	DLLEXPORT void		DLLCALL truncsp(char *str);		/* Truncates white spaces off end of str */
