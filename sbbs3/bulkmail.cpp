@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.20 2004/09/02 21:53:46 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.19 2004/03/31 11:20:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,7 +130,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 			if(user.misc&(DELETED|INACTIVE))
 				continue;
 			if(chk_ar(ar,&user)) {
-				if((x=bulkmailhdr(&smb, &msg, i))!=SMB_SUCCESS) {
+				if((x=bulkmailhdr(&smb, &msg, i))!=0) {
 					errormsg(WHERE,ERR_WRITE,smb.file,x);
 					break;
 				}
@@ -143,7 +143,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 			if(!getstr(str,LEN_ALIAS,K_UPRLWR))
 				break;
 			if((i=finduser(str))!=0) {
-				if((x=bulkmailhdr(&smb, &msg, i))!=SMB_SUCCESS) {
+				if((x=bulkmailhdr(&smb, &msg, i))!=0) {
 					errormsg(WHERE,ERR_WRITE,smb.file,x);
 					break;
 				}
@@ -151,7 +151,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 			}
 		}
 
-	if((i=smb_open_da(&smb))==SMB_SUCCESS) {
+	if((i=smb_open_da(&smb))==0) {
 		if(!msgs)
 			smb_freemsg_dfields(&smb,&msg,SMB_ALL_REFS);
 		else if(msgs>1)
@@ -162,7 +162,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	smb_close(&smb);
 	smb_freemsgmem(&msg);
 
-	if(i!=SMB_SUCCESS) {
+	if(i) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(false);
 	}
@@ -187,7 +187,7 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 	if(getuserdat(&cfg, &user)!=0)
 		return(0);
 
-	if((i=smb_copymsgmem(NULL,&newmsg,msg))!=SMB_SUCCESS)
+	if((i=smb_copymsgmem(NULL,&newmsg,msg))!=0)
 		return(i);
 
 	SAFECOPY(str,user.alias);
@@ -206,7 +206,7 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 
 	j=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK);
 	smb_freemsgmem(&newmsg);
-	if(j!=SMB_SUCCESS)
+	if(j)
 		return(j);
 
 	lncntr=0;
