@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.bor,v 1.15 2001/11/08 21:51:13 rswindell Exp $
+# $Id: Makefile.bor,v 1.16 2001/12/29 02:39:58 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -73,7 +73,7 @@ $(EXEODIR):
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): sbbscon.c $(OBJS) $(LIBODIR)\ver.$(OFILE) $(LIBODIR)\ftpsrvr.$(OFILE) \
-	$(LIBODIR)\mailsrvr.$(OFILE) $(LIBODIR)\mxlookup.$(OFILE)
+	$(LIBODIR)\mailsrvr.$(OFILE) $(LIBODIR)\mxlookup.$(OFILE) $(LIBODIR)\mime.$(OFILE)
 	$(CC) $(CFLAGS) -WM -e$(SBBSMONO) $** $(LIBS)
 
 # SBBS DLL Link Rule
@@ -83,7 +83,7 @@ $(SBBS): $(OBJS) $(LIBODIR)\ver.$(OFILE)
 		import32.lib cw32mt.lib ws2_32.lib
 
 # Mail Server DLL Link Rule
-$(MAILSRVR): mailsrvr.c mxlookup.c crc32.c $(SBBSLIB)
+$(MAILSRVR): mailsrvr.c mxlookup.c mime.c crc32.c $(SBBSLIB)
     @echo Compiling $** ...
 	$(CC) $(CFLAGS) -WD -WM -lGi -n$(LIBODIR) -DMAILSRVR_EXPORTS -DSMBDLL $** $(LIBS)
 
