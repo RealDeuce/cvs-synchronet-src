@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.88 2004/12/01 03:06:40 rswindell Exp $ */
+/* $Id: userdat.c,v 1.89 2004/12/29 04:38:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,9 +329,9 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	getrec(userdat,U_QWK,8,str);
 	if(str[0]<' ') { 			   /* v1c, so set defaults */
 		if(user->rest&FLAG('Q'))
-			user->qwk=(QWK_RETCTLA);
+			user->qwk=QWK_DEFAULT|QWK_RETCTLA;
 		else
-			user->qwk=(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL); 
+			user->qwk=QWK_DEFAULT; 
 	}
 	else
 		user->qwk=ahtoul(str);
