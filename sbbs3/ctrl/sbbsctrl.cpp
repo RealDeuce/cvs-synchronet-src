@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: sbbsctrl.cpp,v 1.15 2004/10/14 03:29:37 rswindell Exp $ */
+/* $Id: sbbsctrl.cpp,v 1.16 2004/10/14 09:30:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,7 @@ WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmd, int)
 		Application->CreateForm(__classid(TMainForm), &MainForm);
          Application->CreateForm(__classid(TTelnetForm), &TelnetForm);
          Application->CreateForm(__classid(TFtpForm), &FtpForm);
+         Application->CreateForm(__classid(TWebForm), &WebForm);
          Application->CreateForm(__classid(TMailForm), &MailForm);
          Application->CreateForm(__classid(TNodeForm), &NodeForm);
          Application->CreateForm(__classid(TStatsForm), &StatsForm);
@@ -85,7 +86,6 @@ WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmd, int)
          Application->CreateForm(__classid(TUserListForm), &UserListForm);
          Application->CreateForm(__classid(TEventsForm), &EventsForm);
          Application->CreateForm(__classid(TServicesForm), &ServicesForm);
-         Application->CreateForm(__classid(TWebForm), &WebForm);
          if(cmd[0])
             SAFECOPY(MainForm->ini_file,cmd);
         else
