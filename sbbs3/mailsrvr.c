@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.19 2000/10/26 15:06:40 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.20 2000/11/04 02:25:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,6 +223,8 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 			}
 			if(ERROR_VALUE==ECONNRESET) 
 				lprintf("%04d Connection reset by peer on send",sock);
+			else if(ERROR_VALUE==ECONNABORTED) 
+				lprintf("%04d Connection aborted by peer on send",sock);
 			else
 				lprintf("!ERROR %d sending on socket %d",ERROR_VALUE,sock);
 			return(0);
@@ -249,6 +251,8 @@ static void recverror(SOCKET socket, int rd)
 	else if(rd==SOCKET_ERROR) {
 		if(ERROR_VALUE==ECONNRESET) 
 			lprintf("%04d Connection reset by peer on receive",socket);
+		else if(ERROR_VALUE==ECONNABORTED) 
+			lprintf("%04d Connection aborted by peer on receive",socket);
 		else
 			lprintf("Error %d on socket %d", ERROR_VALUE, socket);
 	} else
