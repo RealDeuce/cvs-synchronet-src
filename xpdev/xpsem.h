@@ -2,7 +2,7 @@
 #define _XPSEM_H_
 
 /*
- * $Id: xpsem.h,v 1.6 2005/01/13 21:58:33 deuce Exp $
+ * $Id: xpsem.h,v 1.4 2004/03/24 01:24:28 deuce Exp $
  *
  * semaphore.h: POSIX 1003.1b semaphores
 */
@@ -70,14 +70,13 @@ int	 xp_sem_wait (xp_sem_t *);
 int	 xp_sem_trywait (xp_sem_t *);
 int	 xp_sem_post (xp_sem_t *);
 int	 xp_sem_getvalue (xp_sem_t *, int *);
-int	 xp_sem_setvalue (xp_sem_t *, int);
 int  xp_sem_timedwait (xp_sem_t *sem, const struct timespec *abs_timeout);
 #if defined(__cplusplus)
 }
 #endif
 
 /*
-* $Id: xpsem.h,v 1.6 2005/01/13 21:58:33 deuce Exp $
+* $Id: xpsem.h,v 1.4 2004/03/24 01:24:28 deuce Exp $
 */
 
 /* Begin thread_private.h kluge */
@@ -105,7 +104,7 @@ extern void  _thread_init (void);
 	(_threads_initialized != 0)
 
 #define _SEM_CHECK_VALIDITY(sem)		\
-	if (sem==NULL || (*(sem))->magic != SEM_MAGIC) {	\
+	if ((*(sem))->magic != SEM_MAGIC) {	\
 		errno = EINVAL;			\
 		retval = -1;			\
 		goto RETURN;			\

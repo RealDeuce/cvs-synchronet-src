@@ -48,22 +48,14 @@ CC	:=	gcc
 #
 # Get OS name
 OS      :=      $(shell uname)
-os	:=	$(shell echo $(OS) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
 LD	:=	gcc
-
-ifdef DEBUG
- CFLAGS	+=	-g
- BUILDTYPE	:=	debug
-else
- BUILDTYPE	:=	release
-endif
 #
 #------------------------------------------------------------------------------
 #
 # Compiler command-line flags.
 #
-CFLAGS	+=	-O2 -L. -I../xpdev
+CFLAGS	+=	-O2 -g -L. -I../xpdev
 ifeq ($(OS),Darwin)
  CFLAGS		+=	-D__unix__
  LDFLAGS	+=	$(CFLAGS) -dynamiclib -single_module
@@ -76,7 +68,7 @@ endif
 #
 # Link flags.
 #
-LDFLAGS	+=	-L../xpdev/$(LD).$(os).lib.$(BUILDTYPE)
+#LDFLAGS	:=
 #
 #------------------------------------------------------------------------------
 #
@@ -183,7 +175,7 @@ ex_music: ex_music.c ${LIBDIR}libODoors${SHLIB}
 	$(CC) $(CFLAGS) ex_music.c -o ex_music -lODoors
 
 ex_ski: ex_ski.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(LDFLAGS) ex_ski.c -o ex_ski -lODoors -lxpdev
+	$(CC) $(CFLAGS) ex_ski.c -o ex_ski -lODoors
 
 ex_vote: ex_vote.c ${LIBDIR}libODoors${SHLIB}
 	$(CC) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o ex_vote -lODoors -DMULTINODE_AWARE
