@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: SpyFormUnit.cpp,v 1.8 2000/11/02 11:31:50 rswindell Exp $ */
+/* $Id: SpyFormUnit.cpp,v 1.9 2001/01/10 02:29:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ __fastcall TSpyForm::TSpyForm(TComponent* Owner)
 {
     Width=MainForm->SpyTerminalWidth;
     Height=MainForm->SpyTerminalHeight;
-    KeyboardActive->Checked=MainForm->SpyTerminalKeyboardActive;
     Terminal = new TEmulVT(this);
     Terminal->Parent=this;
     Terminal->Align=alClient;
@@ -120,6 +119,8 @@ void __fastcall TSpyForm::FormShow(TObject *Sender)
     Terminal->Clear();
     Terminal->WriteStr("*** Synchronet Local Spy ***\r\n\r\n");
     Terminal->WriteStr("ANSI Terminal Emulation:"+CopyRight+"\r\n\r\n");
+
+    KeyboardActive->Checked=!MainForm->SpyTerminalKeyboardActive;
     KeyboardActiveClick(Sender);
 }
 //---------------------------------------------------------------------------
