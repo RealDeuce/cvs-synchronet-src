@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.13 2001/04/10 01:27:00 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.14 2001/06/26 02:44:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -779,6 +779,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 							*lp=0; }
 					return(0);
 				case CHARVAL_TO_INT:
+				case COPY_FIRST_CHAR:	// duplicate functionality - doh!
 					lp=getintvar(csi,*(long *)csi->ip);
 					csi->ip+=4;
 					pp=getstrvar(csi,*(long *)csi->ip);
@@ -934,14 +935,6 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 						sprintf(tmp,"%c",csi->cmd);
 						*pp=copystrvar(csi,*pp,tmp);
 					}
-					return(0);
-				case COPY_FIRST_CHAR:
-					lp=getintvar(csi,*(long *)csi->ip);
-					csi->ip+=4;
-					pp=getstrvar(csi,*(long *)csi->ip);
-					csi->ip+=4;
-					if(lp!=NULL && pp!=NULL && *pp!=NULL)
-						*lp=**pp;
 					return(0);
 				case COMPARE_FIRST_CHAR:
 					pp=getstrvar(csi,*(long *)csi->ip);
