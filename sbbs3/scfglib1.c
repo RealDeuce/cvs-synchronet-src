@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.38 2002/10/15 00:44:42 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.39 2002/11/18 03:31:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ BOOL read_node_cfg(scfg_t* cfg, char* error)
 	strcpy(fname,"node.cnf");
 	sprintf(str,"%s%s",cfg->node_dir,fname);
 	if((instream=fnopen(NULL,str,O_RDONLY))==NULL) {
-		sprintf(error,"%d (%s) opening %s",errno,strerror(errno),str);
+		sprintf(error,"%d (%s) opening %s",errno,truncsp(strerror(errno)),str);
 		return(FALSE); 
 	}
 
@@ -188,7 +188,7 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	strcpy(fname,"main.cnf");
 	sprintf(str,"%s%s",cfg->ctrl_dir,fname);
 	if((instream=fnopen(NULL,str,O_RDONLY))==NULL) {
-		sprintf(error,"%d (%s) opening %s",errno,strerror(errno),str);
+		sprintf(error,"%d (%s) opening %s",errno,truncsp(strerror(errno)),str);
 		return(FALSE); 
 	}
 
@@ -410,7 +410,7 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 	strcpy(fname,"msgs.cnf");
 	sprintf(str,"%s%s",cfg->ctrl_dir,fname);
 	if((instream=fnopen(NULL,str,O_RDONLY))==NULL) {
-		sprintf(error,"%d (%s) opening %s",errno,strerror(errno),str);
+		sprintf(error,"%d (%s) opening %s",errno,truncsp(strerror(errno)),str);
 		return(FALSE);
 	}
 
