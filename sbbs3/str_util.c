@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.21 2003/05/21 23:19:27 rswindell Exp $ */
+/* $Id: str_util.c,v 1.22 2003/06/14 10:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,13 +64,16 @@ char* DLLCALL strip_ctrl(char *str)
 	char tmp[1024];
 	int i,j;
 
-	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++)
+	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++) {
 		if(str[i]==CTRL_A && str[i+1]!=0)
 			i++;
 		else if((uchar)str[i]>=SP)
 			tmp[j++]=str[i];
-	tmp[j]=0;
-	strcpy(str,tmp);
+	}
+	if(i!=j) {
+		tmp[j]=0;
+		strcpy(str,tmp);
+	}
 	return(str);
 }
 
