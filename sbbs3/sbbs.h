@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.16 2000/10/31 04:14:51 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.17 2000/11/02 01:13:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,6 +126,8 @@ public:
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(void);		   // receive character
+
+	void	spymsg(char *msg);		// send message to active spies
 
 	void	putcom(char *str, int len=0);  // Send string
 	void	hangup(void);		   // Hangup modem
