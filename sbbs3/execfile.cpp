@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.3 2001/03/09 22:01:19 rswindell Exp $ */
+/* $Id: execfile.cpp,v 1.4 2001/04/10 01:11:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,7 @@ int sbbs_t::exec_file(csi_t *csi)
 						else outchar(SP);
 						sprintf(str,text[DirLstFmt],i+1
 							,cfg.dir[usrdir[j][i]]->lname,nulstr
-							,getfiles(usrdir[j][i]));
+							,getfiles(&cfg,usrdir[j][i]));
 						if(i<9) outchar(SP);
 						if(i<99) outchar(SP);
 						bputs(str); } }
@@ -211,7 +211,7 @@ int sbbs_t::exec_file(csi_t *csi)
 				else outchar(SP);
 				sprintf(str,text[DirLstFmt],i+1
 					,cfg.dir[usrdir[curlib][i]]->lname,nulstr
-					,getfiles(usrdir[curlib][i]));
+					,getfiles(&cfg,usrdir[curlib][i]));
 				if(i<9) outchar(SP);
 				if(i<99) outchar(SP);
 				bputs(str); }
@@ -420,7 +420,7 @@ int sbbs_t::exec_file(csi_t *csi)
 		case CS_FILE_LIST:	  /* List files in current dir */
 			if(!usrlibs) return(0);
 			csi->logic=LOGIC_FALSE;
-			if(!getfiles(usrdir[curlib][curdir[curlib]])) {
+			if(!getfiles(&cfg,usrdir[curlib][curdir[curlib]])) {
 				bputs(text[EmptyDir]);
 				return(0); }
 			padfname(csi->str,str);
