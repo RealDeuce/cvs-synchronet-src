@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.85 2003/05/14 05:16:56 deuce Exp $
+# $Id: GNUmakefile,v 1.86 2003/05/14 19:45:55 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -147,6 +147,11 @@ ifdef USE_CURSES
   UIFC_LFLAGS += -lcurses
  endif
  UIFC_OBJS +=	$(EXEODIR)/uifcc.o
+endif
+
+#The following is needed for nspr support on Linux
+ifeq ($(os),linux)
+ LFLAGS	+=	-ldl
 endif
 
 include targets.mk		# defines all targets
