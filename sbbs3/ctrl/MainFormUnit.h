@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.18 2001/07/13 03:45:35 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.19 2001/07/18 03:37:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,12 +269,11 @@ __published:	// IDE-managed Components
     void __fastcall BBSLoginMenuItemClick(TObject *Sender);
     void __fastcall ViewLogClick(TObject *Sender);
     void __fastcall UserListExecute(TObject *Sender);
-    void __fastcall HelpIndexMenuItemClick(TObject *Sender);
+    void __fastcall WebPageMenuItemClick(TObject *Sender);
     void __fastcall TrayIconRestore(TObject *Sender);
     void __fastcall PropertiesExecute(TObject *Sender);
     void __fastcall CloseTrayMenuItemClick(TObject *Sender);
     void __fastcall RestoreTrayMenuItemClick(TObject *Sender);
-    void __fastcall HelpSysopMenuItemClick(TObject *Sender);
     void __fastcall ViewEventsExecute(TObject *Sender);
     void __fastcall DataMenuItemClick(TObject *Sender);
     void __fastcall BBSConfigWizardMenuItemClick(TObject *Sender);
