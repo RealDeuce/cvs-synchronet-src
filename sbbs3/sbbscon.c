@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.160 2004/03/14 22:33:32 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.158 2004/03/08 19:22:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,7 +124,8 @@ gid_t				old_gid;
 BOOL				is_daemon=FALSE;
 char				daemon_type[2];
 BOOL				std_facilities=FALSE;
-FILE *				pidf;
+FILE*				pidfile;
+
 #endif
 
 static const char* prompt;
@@ -859,19 +860,16 @@ daemon(nochdir, noclose)
 #endif /* NEEDS_DAEMON */
 
 static void handle_sigs(void)  {
-	int			sig;
-	sigset_t	sigs;
+	int		sig;
+	sigset_t			sigs;
 	char		str[1024];
 
 	thread_up(NULL,TRUE,TRUE);
 
 	if (is_daemon) {
-		/* Write the standard .pid file if running as a daemon */
-		/* Must be here so signals are sent to the correct thread */
-
-		if(pidf!=NULL) {
-			fprintf(pidf,"%d",getpid());
-			fclose(pidf);
+		if(pidfile!=NULL) {
+			fprintf(pidfile,"%d",getpid());
+			fclose(pidfile);
 		}
 	}
 
@@ -1471,9 +1469,12 @@ int main(int argc, char** argv)
 			is_daemon=FALSE;
 		}
 
-		/* Open here to use startup permissions to create the file */
-		pidf=fopen(SBBS_PID_FILE,"w");
+		/* Write the standard .pid file if running as a daemon */
+		/* Must be here so signals are sent to the correct thread */
+
+		pidfile=fopen(SBBS_PID_FILE,"w");
 	}
+
 	old_uid = getuid();
 	if((pw_entry=getpwnam(new_uid_name))!=0)
 	{
