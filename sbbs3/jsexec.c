@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.42 2003/09/16 21:56:51 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.43 2003/09/19 08:27:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,7 @@ FILE*		statfp;
 char		revision[16];
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
+BOOL		loop=FALSE;
 BOOL		terminated=FALSE;
 BOOL		terminate_immediately=FALSE;
 
@@ -89,6 +90,7 @@ void usage(FILE* fp)
 		"\t-n              send status messages to %s instead of stdout\n"
 		"\t-q              send console messages to %s instead of stderr\n"
 		"\t-x              terminate immediately on local abort signal\n"
+		"\t-l              loop until intentionally terminated\n"
 		"\t-p              wait for keypress (pause) on exit\n"
 		"\t-!              wait for keypress (pause) on error\n"
 		,JAVASCRIPT_MAX_BYTES
@@ -661,7 +663,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.42 $", "%*s %s", revision);
+	sscanf("$Revision: 1.43 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -695,6 +697,9 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'x':
 					terminate_immediately=TRUE;
+					break;
+				case 'l':
+					loop=TRUE;
 					break;
 				case 'p':
 					pause_on_exit=TRUE;
@@ -751,12 +756,6 @@ int main(int argc, char **argv, char** environ)
 	if(!winsock_startup())
 		bail(2);
 
-	if(!js_init(environ)) {
-		fprintf(errfp,"!JavaScript initialization failure\n");
-		bail(1);
-	}
-	fprintf(statfp,"\n");
-
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
@@ -766,13 +765,23 @@ int main(int argc, char **argv, char** environ)
 	signal(SIGTERM,break_handler);
 #endif
 
-	result=js_exec(module,&argv[argn]);
+	do {
 
-	fprintf(statfp,"\n");
-	fprintf(statfp,"JavaScript: Destroying context\n");
-	JS_DestroyContext(js_cx);
-	fprintf(statfp,"JavaScript: Destroying runtime\n");
-	JS_DestroyRuntime(js_runtime);	
+		if(!js_init(environ)) {
+			fprintf(errfp,"!JavaScript initialization failure\n");
+			bail(1);
+		}
+		fprintf(statfp,"\n");
+
+		result=js_exec(module,&argv[argn]);
+
+		fprintf(statfp,"\n");
+		fprintf(statfp,"JavaScript: Destroying context\n");
+		JS_DestroyContext(js_cx);
+		fprintf(statfp,"JavaScript: Destroying runtime\n");
+		JS_DestroyRuntime(js_runtime);	
+
+	} while(loop && !terminated);
 
 	bail(result);
 
