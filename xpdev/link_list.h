@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.14 2004/11/09 23:53:53 rswindell Exp $ */
+/* $Id: link_list.h,v 1.15 2004/11/11 06:14:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,10 +94,10 @@ long			listAttach(link_list_t*);
 long			listDetach(link_list_t*);
 
 #if defined(LINK_LIST_THREADSAFE)
-BOOL			listSemPost(const link_list_t*);
-BOOL			listSemWait(const link_list_t*);
-BOOL			listSemTryWait(const link_list_t*);
-BOOL			listSemTryWaitBlock(const link_list_t*, unsigned long timeout);
+BOOL			listSemPost(link_list_t*);
+BOOL			listSemWait(link_list_t*);
+BOOL			listSemTryWait(link_list_t*);
+BOOL			listSemTryWaitBlock(link_list_t*, unsigned long timeout);
 #endif
 
 /* Lock/unlock mutex-protected linked lists (no-op for unprotected lists) */
