@@ -1,2 +1,0 @@
-XPDEV_LIBS	+=	-lm
-XPDEV-MT_LIBS	+=	-lm
