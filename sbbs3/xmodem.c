@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.9 2005/01/13 04:47:52 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.10 2005/01/13 11:29:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,7 @@ int xmodem_get_block(xmodem_t* xm, uchar* block, BOOL hdrblock)
 /*****************/
 /* Sends a block */
 /*****************/
-void xmodem_put_block(xmodem_t* xm, uchar* block, uint block_size, ulong block_num)
+void xmodem_put_block(xmodem_t* xm, uchar* block, unsigned block_size, unsigned block_num)
 {
 	uchar	ch,chksum;
     uint	i;
@@ -238,7 +238,8 @@ void xmodem_put_block(xmodem_t* xm, uchar* block, uint block_size, ulong block_n
 /************************************************************/
 int xmodem_get_ack(xmodem_t* xm, unsigned tries, unsigned block_num)
 {
-	int i,errors,can=0;
+	int i,can=0;
+	unsigned errors;
 
 	for(errors=0;errors<tries;errors++) {
 
@@ -283,7 +284,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.9 $", "%*s %s", buf);
+	sscanf("$Revision: 1.10 $", "%*s %s", buf);
 
 	return(buf);
 }
