@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.108 2002/02/25 00:15:42 rswindell Exp $ */
+/* $Id: main.cpp,v 1.109 2002/02/25 03:15:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,16 +103,16 @@ static void update_clients()
 		startup->clients(node_threads_running);
 }
 
-void client_on(SOCKET sock, client_t* client)
+void client_on(SOCKET sock, client_t* client, BOOL update)
 {
 	if(startup!=NULL && startup->client_on!=NULL)
-		startup->client_on(TRUE,sock,client);
+		startup->client_on(TRUE,sock,client,update);
 }
 
 static void client_off(SOCKET sock)
 {
 	if(startup!=NULL && startup->client_on!=NULL)
-		startup->client_on(FALSE,sock,NULL);
+		startup->client_on(FALSE,sock,NULL,FALSE);
 }
 
 static void thread_up()
@@ -3531,7 +3531,7 @@ void DLLCALL bbs_thread(void* arg)
 		client.port=ntohs(client_addr.sin_port);
 		client.protocol=rlogin ? "RLogin":"Telnet";
 		client.user="<unknown>";
-		client_on(client_socket,&client);
+		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
 			sbbs->getnodedat(i,&node,1);

@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.18 2002/02/05 23:17:52 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.19 2002/02/25 03:15:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-extern "C" void client_on(SOCKET sock, client_t* client);
+extern "C" void client_on(SOCKET sock, client_t* client, BOOL update);
 
 /****************************************************************************/
 /* Called once upon each user logging on the board							*/
@@ -65,7 +65,7 @@ bool sbbs_t::logon()
 		return(false);
 
 	client.user=useron.alias;
-	client_on(client_socket,&client);
+	client_on(client_socket,&client,TRUE /* update */);
 
 #ifdef JAVASCRIPT
 	if(js_cx!=NULL) {
