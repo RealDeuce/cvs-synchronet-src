@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.48 2003/09/29 09:28:22 deuce Exp $ */
+/* $Id: jsexec.c,v 1.49 2003/09/29 11:27:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,10 +655,13 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.48 $", "%*s %s", revision);
+	sscanf("$Revision: 1.49 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
+
+	if(!winsock_startup())
+		bail(2);
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
@@ -752,9 +755,6 @@ int main(int argc, char **argv, char** environ)
 
 	if(!(scfg.sys_misc&SM_LOCAL_TZ))
 		putenv("TZ=UTC0");
-
-	if(!winsock_startup())
-		bail(2);
 
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
