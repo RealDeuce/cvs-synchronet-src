@@ -2,7 +2,7 @@
 
 /* Macros to convert integer "endianness" */
 
-/* $Id: xpendian.h,v 1.1 2003/11/04 21:26:02 rswindell Exp $ */
+/* $Id: xpendian.h,v 1.2 2003/11/04 21:32:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #ifndef _ENDIAN_H
+#define _ENDIAN_H
 
 /************************/
 /* byte-swapping macros */
