@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.7 2002/05/03 00:49:45 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.8 2002/07/24 10:03:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,7 @@
 	#include <sys/stat.h>		/* S_IREAD */
 	#include <fcntl.h>			/* O_BINARY */
 	#include <windows.h>		/* OF_SHARE_ */
+	#include <share.h>			/* SH_DENY */
 
 	#define sopen(f,o,s)		_sopen(f,o,s,S_IREAD|S_IWRITE)
 	#define close(f)			_close(f)
