@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.73 2004/09/10 09:17:43 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.74 2004/09/11 02:40:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,7 +174,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 			fprintf(err_fp,"\n\7realloc(%ld) failure\n",msgtxtlen+i+1);
 			exit(1);
 		}
-		strcpy(msgtxt+msgtxtlen,buf);
+		strncpy(msgtxt+msgtxtlen,buf,i);
 		msgtxtlen+=i;
 	}
 
@@ -1379,7 +1379,7 @@ int main(int argc, char **argv)
 	setvbuf(stdout,0,_IONBF,0);
 	err_fp=stderr;
 
-	sscanf("$Revision: 1.73 $", "%*s %s", revision);
+	sscanf("$Revision: 1.74 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
