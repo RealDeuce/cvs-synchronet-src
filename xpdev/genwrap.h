@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.10 2002/05/03 00:49:45 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.11 2002/07/21 07:26:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,6 +122,8 @@ extern "C" {
 		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#endif
 #endif
+
+DLLEXPORT char	DLLCALL	lastchar(const char* str);
 
 /****************************/
 /* Common Utility Functions */

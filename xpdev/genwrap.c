@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.12 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.13 2002/07/21 07:26:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,20 @@
 #endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
+
+/****************************************************************************/
+/* Return last character of string											*/
+/****************************************************************************/
+char DLLCALL lastchar(const char* str)
+{
+	size_t	len;
+
+	len = strlen(str);
+
+	if(len)
+		return(str[len-1]);
+	return(0);
+}
 
 /****************************************************************************/
 /* Convert ASCIIZ string to upper case										*/
