@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.32 2003/05/15 22:58:00 deuce Exp $ */
+/* $Id: umonitor.c,v 1.33 2003/05/15 23:49:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,21 +359,9 @@ int chat(int nodenum, node_t *node, bbs_startup_t *bbs_startup) {
 	togglechat(nodenum,node,TRUE);
 
 	while(in != -1) {
-		outpos=lseek(out,0,SEEK_CUR);
-		inpos=lseek(in,0,SEEK_CUR);
-		close(in);
-		close(out);
-		if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-			,S_IREAD|S_IWRITE))==-1) {
-			break;
-		}
-		lseek(out,outpos,SEEK_SET);
-		if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-			,S_IREAD|S_IWRITE))==-1) {
-			close(out);
-			break;
-	    }
-		lseek(in,inpos,SEEK_SET);
+		utime(outpath,NULL);
+		utime(inpath,NULL);
+		
 		if(getnodedat(&cfg,nodenum,node,NULL)) {
 			uifc.msg("Loop error reading node data!");
 			break;
@@ -406,9 +394,13 @@ int chat(int nodenum, node_t *node, bbs_startup_t *bbs_startup) {
 					write(in,&ch,1);
 				}
 		}
-		if((ch=wgetch(swin))!=ERR) {
+		if((ch=wgetch(swin))) {
 			switch(ch)  {
 				case 0:
+				case ERR:
+					ch=0;
+					write(out,&ch,1);
+					lseek(out,-1,SEEK_CUR);
 					break;
 					
 				case ESC:
@@ -531,7 +523,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.32 $", "%*s %s", revision);
+	sscanf("$Revision: 1.33 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
