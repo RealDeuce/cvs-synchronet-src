@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.24 2003/05/04 10:51:19 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.25 2003/05/06 02:02:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,7 +250,7 @@ char sbbs_t::getkey(long mode)
 			}
 			else
 				bputs("\7\7");
-			while(!inkey(0) && online && now-timeout>=cfg.sec_warn) {
+			while(!inkey(100) && online && now-timeout>=cfg.sec_warn) {
 				now=time(NULL);
 				if(now-timeout>=cfg.sec_hangup) {
 					if(online==ON_REMOTE) {
@@ -262,7 +262,6 @@ char sbbs_t::getkey(long mode)
 					hangup();
 					return(0); 
 				}
-				mswait(100); 
 			}
 			if(sys_status&SS_USERON && cfg.sec_warn!=cfg.sec_hangup) {
 				bputs("\r\1n\1>");
