@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.20 2003/01/10 06:40:23 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.21 2003/02/12 03:11:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -739,7 +739,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 					&& sub_op(subnum)))
 					&& smb.curmsg<smb.msgs-1)
 					smb.curmsg++;
-				if(smb.curmsg>=smb.msgs-1)
+				if(smb.curmsg>=smb.msgs)
 					done=1;
 				break;
 			case 'E':   /* edit last post */
