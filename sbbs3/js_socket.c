@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.34 2002/06/24 11:05:36 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.35 2002/06/25 09:50:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -369,7 +369,8 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = STRING_TO_JSVAL(str);
 
-	dbprintf(FALSE, p, "received %u bytes",len);
+	dbprintf(FALSE, p, "received %u bytes, lasterror=%d"
+		,len,ERROR_VALUE);
 		
 	return(JS_TRUE);
 }
@@ -437,7 +438,8 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = STRING_TO_JSVAL(str);
 
-	dbprintf(FALSE, p, "received %u bytes",strlen(buf));
+	dbprintf(FALSE, p, "received %u bytes (recvline) lasterror=%d"
+		,strlen(buf),ERROR_VALUE);
 		
 	return(JS_TRUE);
 }
