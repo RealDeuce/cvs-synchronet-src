@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.47 2004/10/27 22:00:28 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.48 2005/01/19 23:39:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,7 +223,7 @@ void DLLCALL unix_beep(int freq, int dur)
 	speaker_fd = open("/dev/speaker", O_WRONLY|O_APPEND);
 	if(speaker_fd != -1)  {
 		tone.frequency=freq;
-		tone.duration=dur;
+		tone.duration=dur/10;
 		ioctl(speaker_fd,SPKRTONE,&tone);
 		close(speaker_fd);
 		return;
