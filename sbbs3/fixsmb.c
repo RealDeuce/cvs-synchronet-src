@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.10 2002/04/22 09:09:17 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.11 2002/04/23 08:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
 	smb.file[0]=0;
 	for(i=1;i<argc;i++)
-		if(argv[i][0]=='/')
+		if(argv[i][0]=='-')
 			switch(toupper(argv[i][1])) {
 				case 'M':
 					mode|=MAIL;

@@ -2,7 +2,7 @@
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
-/* $Id: qwknodes.c,v 1.9 2002/04/12 09:43:50 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.10 2002/04/23 08:08:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -225,15 +225,17 @@ int lprintf(char *fmat, ...)
 	char sbuf[256];
 	int chcount;
 
-va_start(argptr,fmat);
-chcount=vsprintf(sbuf,fmat,argptr);
-va_end(argptr);
-lputs(sbuf);
-return(chcount);
+	va_start(argptr,fmat);
+	chcount=vsnprintf(sbuf,sizeof(sbuf),fmat,argptr);
+	if(chcount<0)
+		sbuf[sizeof(sbuf)-1]=0;
+	va_end(argptr);
+	lputs(sbuf);
+	return(chcount);
 }
 void bail(int code)
 {
-exit(code);
+	exit(code);
 }
 
 

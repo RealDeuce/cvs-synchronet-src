@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.160 2002/04/15 19:24:44 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.161 2002/04/23 08:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,8 @@ static int lprintf(char *fmt, ...)
 #endif
 
     va_start(argptr,fmt);
-    vsprintf(sbuf,fmt,argptr);
+    if(vsnprintf(sbuf,sizeof(sbuf),fmt,argptr)<0)
+		sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     result=startup->lputs(sbuf);
 
@@ -302,7 +303,9 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	struct timeval tv;
 
     va_start(argptr,fmt);
-    len=vsprintf(sbuf,fmt,argptr);
+    len=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	if(len<0)
+		sbuf[sizeof(sbuf)-1]=0;
 	if(startup!=NULL && startup->options&FTP_OPT_DEBUG_TX)
 		lprintf("%04d TX: %s", sock, sbuf);
 	strcat(sbuf,"\r\n");

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.142 2002/04/13 19:34:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.143 2002/04/23 08:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,8 @@ int lprintf(char *fmt, ...)
         return(0);
 
     va_start(argptr,fmt);
-    vsprintf(sbuf,fmt,argptr);
+    if(vsnprintf(sbuf,sizeof(sbuf),fmt,argptr)<0)
+		sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     return(startup->lputs(sbuf));
 }
@@ -166,7 +167,8 @@ int eprintf(char *fmt, ...)
         return(0);
 
     va_start(argptr,fmt);
-    vsprintf(sbuf,fmt,argptr);
+    if(vsnprintf(sbuf,sizeof(sbuf),fmt,argptr)<0)
+		sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     return(startup->event_log(sbuf));
 }
