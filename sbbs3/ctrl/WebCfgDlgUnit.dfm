@@ -3,7 +3,7 @@ object WebCfgDlg: TWebCfgDlg
   Top = 403
   BorderStyle = bsDialog
   Caption = 'Web Server Configuration'
-  ClientHeight = 301
+  ClientHeight = 302
   ClientWidth = 352
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -12,10 +12,12 @@ object WebCfgDlg: TWebCfgDlg
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
+  ShowHint = True
   OnShow = FormShow
   DesignSize = (
     352
-    301)
+    302)
   PixelsPerInch = 120
   TextHeight = 16
   object PageControl: TPageControl
@@ -32,7 +34,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 9
         Top = 106
         Width = 96
-        Height = 25
+        Height = 24
         AutoSize = False
         Caption = 'Max Clients'
       end
@@ -40,7 +42,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 9
         Top = 138
         Width = 96
-        Height = 25
+        Height = 24
         AutoSize = False
         Caption = 'Max Inactivity'
       end
@@ -48,7 +50,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 9
         Top = 74
         Width = 96
-        Height = 25
+        Height = 24
         AutoSize = False
         Caption = 'Listening Port'
       end
@@ -56,7 +58,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 9
         Top = 42
         Width = 96
-        Height = 25
+        Height = 24
         AutoSize = False
         Caption = 'Interface (IP)'
       end
@@ -146,7 +148,7 @@ object WebCfgDlg: TWebCfgDlg
       end
       object ServerSideJsExtLabel: TLabel
         Left = 9
-        Top = 108
+        Top = 140
         Width = 176
         Height = 25
         AutoSize = False
@@ -154,11 +156,20 @@ object WebCfgDlg: TWebCfgDlg
       end
       object EmbeddedJsExtLabel: TLabel
         Left = 9
-        Top = 76
+        Top = 108
         Width = 176
         Height = 25
         AutoSize = False
         Caption = 'Embedded JS File Extension'
+        Enabled = False
+      end
+      object IndexLabel: TLabel
+        Left = 9
+        Top = 76
+        Width = 96
+        Height = 25
+        AutoSize = False
+        Caption = 'Index Files'
       end
       object HtmlRootEdit: TEdit
         Left = 105
@@ -182,27 +193,32 @@ object WebCfgDlg: TWebCfgDlg
       end
       object ServerSideJsExtEdit: TEdit
         Left = 192
-        Top = 108
+        Top = 140
         Width = 105
         Height = 24
-        Hint = 'File extension that denotes server-side JavaScript files (e.g. ".ssjs")'
+        Hint = 
+          'File extension that denotes server-side JavaScript files (e.g. "' +
+          '.ssjs")'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 2
       end
       object EmbeddedJsExtEdit: TEdit
         Left = 192
-        Top = 76
+        Top = 108
         Width = 105
         Height = 24
-        Hint = 'File extension that denotes embedded JavaScript files (e.g. ".bbs")'
+        Hint = 
+          'File extension that denotes embedded JavaScript files (e.g. ".bb' +
+          's")'
+        Enabled = False
         ParentShowHint = False
         ShowHint = True
         TabOrder = 3
       end
       object VirtualHostsCheckBox: TCheckBox
         Left = 9
-        Top = 140
+        Top = 172
         Width = 104
         Height = 24
         Hint = 'Support virtual host directories off the HTML root directory'
@@ -211,14 +227,24 @@ object WebCfgDlg: TWebCfgDlg
         ShowHint = True
         TabOrder = 4
       end
+      object IndexFileEdit: TEdit
+        Left = 104
+        Top = 76
+        Width = 193
+        Height = 24
+        Hint = 
+          'List of filenames that will be automatically sent to client (e.g' +
+          '. index.html)'
+        TabOrder = 5
+      end
     end
     object LogTabSheet: TTabSheet
       Caption = 'Log'
       ImageIndex = 1
       object LogBaseLabel: TLabel
-        Left = 8
+        Left = 9
         Top = 108
-        Width = 97
+        Width = 96
         Height = 25
         AutoSize = False
         Caption = 'Base Filename'
@@ -247,9 +273,9 @@ object WebCfgDlg: TWebCfgDlg
       end
       object AccessLogCheckBox: TCheckBox
         Left = 9
-        Top = 72
+        Top = 73
         Width = 192
-        Height = 24
+        Height = 23
         Hint = 'Create HTTP access log files'
         Caption = 'Create Access Log Files'
         ParentShowHint = False
