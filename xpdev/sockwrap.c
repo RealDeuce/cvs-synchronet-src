@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.7 2002/08/15 06:54:44 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.8 2003/03/12 22:34:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,7 @@
 #include <stdio.h>		/* SEEK_SET */
 #include <string.h>
 
+#include "genwrap.h"	/* SLEEP */
 #include "gen_defs.h"	/* BOOL */
 #include "sockwrap.h"	/* sendsocket */
 #include "filewrap.h"	/* filelength */
@@ -51,19 +52,23 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 	long	len;
 	int		rd;
 	int		wr;
-
-	len=filelength(file);
-	if((buf=malloc(len))==NULL) {
-		errno=ENOMEM;
-		return(-1);
-	}
+	int		total;
 
 	if(offset!=NULL)
 		if(lseek(file,*offset,SEEK_SET)<0)
 			return(-1);
 
-	if(count<1 || count>len)
+	len=filelength(file);
+
+	if(count<1 || count>len) {
 		count=len;
+		count-=tell(file);		/* don't try to read beyond EOF */
+	}
+
+	if((buf=malloc(count))==NULL) {
+		errno=ENOMEM;
+		return(-1);
+	}
 
 	rd=read(file,buf,count);
 	if(rd!=count) {
@@ -71,13 +76,27 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 		return(-1);
 	}
 
-	wr=sendsocket(sock,buf,count);
+	for(total=wr=0;total<count;total+=wr) {
+		wr=sendsocket(sock,buf+total,count-total);
+		if(wr>0)
+			continue;
+		if(wr==SOCKET_ERROR && ERROR_VALUE==EWOULDBLOCK) {
+			wr=0;
+			SLEEP(1);
+			continue;
+		}
+		break;
+	}
+
 	free(buf);
 
 	if(offset!=NULL)
-		(*offset)+=wr;
+		(*offset)+=total;
 
-	return(wr);
+	if(wr<1)
+		return(wr);
+
+	return(total);
 }
 
 int recvfilesocket(int sock, int file, long *offset, long count)
