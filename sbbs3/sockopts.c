@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.cfg */
 
-/* $Id: sockopts.c,v 1.7 2002/06/14 10:36:50 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.8 2002/06/14 10:49:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,7 @@ typedef struct {
 } sockopt_name;
 
 static const sockopt_name option_names[] = {
+	{ "TYPE",			SO_TYPE			},
 	{ "DEBUG",			SO_DEBUG		},
 	{ "LINGER",			SO_LINGER		},
 	{ "SNDBUF",			SO_SNDBUF		},
