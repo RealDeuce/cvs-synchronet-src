@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.10 2002/04/26 06:55:46 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.11 2002/08/05 10:07:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -483,7 +483,7 @@ export the current message group into.
 						,cfg.sub[j]->tagline
 						,cfg.sub[j]->origline
 						,cfg.sub[j]->echomail_sem
-						,""
+						,cfg.sub[j]->newsgroup
 						,faddrtoa(&cfg.sub[j]->faddr,tmp)
 						);
 					fprintf(stream,"%lu\r\n%lu\r\n%u\r\n%u\r\n%s\r\n"
@@ -656,7 +656,7 @@ import into the current message group.
 						sprintf(tmpsub.echomail_sem,"%.*s",LEN_DIR,str);
 						if(!fgets(str,128,stream)) break;
 						truncsp(str);
-						//sprintf(tmpsub.echopath,"%.*s",LEN_DIR,str);
+						SAFECOPY(tmpsub.newsgroup,str);
 						if(!fgets(str,128,stream)) break;
 						truncsp(str);
 						tmpsub.faddr=atofaddr(str);
