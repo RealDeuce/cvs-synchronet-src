@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.97 2001/09/05 18:08:55 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.98 2001/09/05 18:14:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4004,7 +4004,7 @@ static void ctrl_thread(void* arg)
 
 	/* Update User Statistics */
 	if(user.number) 
-		logoffuserdat(&scfg, &user, time(NULL), logintime);
+		logoutuserdat(&scfg, &user, time(NULL), logintime);
 
 	if(user.number)
 		lprintf("%04d %s logged off.",sock,user.alias);

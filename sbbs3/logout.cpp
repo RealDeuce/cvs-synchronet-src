@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.11 2001/09/05 18:09:53 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.12 2001/09/05 18:14:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ void sbbs_t::logout()
 			lkbrd(0); }
 	#endif
 		sys_status&=~SS_SYSALERT;
-		if(cfg.sys_logout[0])		/* execute system logoff event */
+		if(cfg.sys_logout[0])		/* execute system logout event */
 			external(cmdstr(cfg.sys_logout,nulstr,nulstr,NULL),EX_OUTL|EX_OFFLINE);
 		}
 
@@ -152,7 +152,7 @@ void sbbs_t::logout()
 	putuserrec(&cfg,useron.number,U_TEXTRA,5,ultoa(useron.textra,str,10));
 	putuserrec(&cfg,useron.number,U_NS_TIME,8,ultoa(last_ns_time,str,16));
 
-	logoffuserdat(&cfg, &useron, now, logontime);
+	logoutuserdat(&cfg, &useron, now, logontime);
 
 	getusrsubs();
 	getusrdirs();

@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.15 2001/09/05 17:51:16 rswindell Exp $ */
+/* $Id: userdat.c,v 1.16 2001/09/05 18:14:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1286,7 +1286,7 @@ void DLLCALL subtract_cdt(scfg_t* cfg, user_t* user, long amt)
 		user->cdt=adjustuserrec(cfg, user->number,U_CDT,10,-amt);
 }
 
-BOOL DLLCALL logoffuserdat(scfg_t* cfg, user_t* user, time_t now, time_t logontime)
+BOOL DLLCALL logoutuserdat(scfg_t* cfg, user_t* user, time_t now, time_t logontime)
 {
 	char str[128];
 	struct tm* tm, tm_now;
