@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.25 2003/05/06 02:02:59 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.26 2003/05/07 06:06:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -203,8 +203,8 @@ char sbbs_t::getkey(long mode)
 					outchar(toupper(ch));
 				else
 					outchar(ch);
-				while((coldkey=inkey(mode))==0 && online && !(sys_status&SS_ABORT))
-					YIELD();
+				while((coldkey=inkey(mode,1000))==0 && online && !(sys_status&SS_ABORT))
+					;
 				bputs("\b \b");
 				if(coldkey==BS || coldkey==DEL)
 					continue;
@@ -250,7 +250,7 @@ char sbbs_t::getkey(long mode)
 			}
 			else
 				bputs("\7\7");
-			while(!inkey(100) && online && now-timeout>=cfg.sec_warn) {
+			while(!inkey(K_NONE,100) && online && now-timeout>=cfg.sec_warn) {
 				now=time(NULL);
 				if(now-timeout>=cfg.sec_hangup) {
 					if(online==ON_REMOTE) {
