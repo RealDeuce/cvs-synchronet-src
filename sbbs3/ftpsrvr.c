@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.235 2003/05/08 00:16:14 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.236 2003/05/09 03:31:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1161,6 +1161,7 @@ int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 	return(rd);
 }
 
+#if 0	/* now exported from in xtrn.cpp */
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
@@ -1287,7 +1288,7 @@ static char* cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *c
 
     return(cmd);
 }
-
+#endif
 
 void DLLCALL ftp_terminate(void)
 {
@@ -1771,12 +1772,12 @@ static void receive_thread(void* arg)
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
 					if(fexistcase(tmp))
 						remove(tmp);
-					system(cmdstr(xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd));
+					system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
 						if(fexistcase(tmp))
 							remove(tmp);
-						system(cmdstr(xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd)); 
+						system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd)); 
 						fexistcase(tmp);	/* fixes filename case */
 					}
 					if((file=nopen(tmp,O_RDONLY))!=-1) {
@@ -4415,7 +4416,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.235 $", "%*s %s", revision);
+	sscanf("$Revision: 1.236 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
