@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.5 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.6 2000/12/04 01:30:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,7 @@ bool sbbs_t::answer()
 
 	rlogin_name[0]=0;
 	if(sys_status&SS_RLOGIN) {
-		mswait(100);	/* Give input_thread time to start */
+		mswait(1000);	/* Give input_thread time to start */
 		if(incom()==0) {
 			for(i=0;i<LEN_ALIAS;i++) {
 				in=incom();
