@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.16 2002/10/15 00:44:42 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.17 2002/12/04 05:32:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,7 +288,8 @@ typedef struct {						/* External Editors */
 
 typedef struct {						/* Generic Timed Event */
 	char	code[LEN_CODE+1],			/* Internal code */
-			days,						/* Days to run event */
+			days,						/* week days to run event */
+			mday,						/* day of month (if non-zero) to run event */
 			dir[LEN_DIR+1], 			/* Start-up directory */
 			cmd[LEN_CMD+1]; 			/* Command line */
 	ushort	node,						/* Node to execute event */

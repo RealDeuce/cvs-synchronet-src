@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.25 2002/11/18 03:36:18 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.26 2002/12/04 05:32:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -596,8 +596,10 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 		get_int(cfg->event[i]->misc,instream);
 		get_str(cfg->event[i]->dir,instream);
 		get_int(cfg->event[i]->freq,instream);
+		get_int(cfg->event[i]->mday,instream);
 
-		for(j=0;j<7;j++)
+		get_int(c,instream);
+		for(j=0;j<6;j++)
 			get_int(n,instream);
 		}
 	cfg->total_events=i;
