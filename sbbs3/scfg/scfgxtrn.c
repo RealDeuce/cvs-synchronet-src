@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.13 2002/04/26 01:13:13 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.14 2002/05/03 01:26:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -484,7 +484,6 @@ execute precisely on time, set this option to Yes.
 If this event program is a native 32-bit executable,
 set this option to Yes.
 */
-				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Native (32-bit)",opt);
 				if(!k && !(cfg.event[i]->misc&EX_NATIVE)) {
