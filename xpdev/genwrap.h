@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.32 2003/04/29 05:38:41 deuce Exp $ */
+/* $Id: genwrap.h,v 1.33 2003/04/29 06:04:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 #if defined(__unix__)
 	#include <unistd.h>		/* usleep */
 	#include <sys/time.h>	/* struct timeval */
+	#include <sched.h>		/* sched_yield */
 #endif
 
 #if defined(__QNX__)
