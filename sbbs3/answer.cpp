@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.43 2004/10/21 08:44:30 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.36 2004/06/04 09:04:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,7 +42,8 @@ bool sbbs_t::answer()
 {
 	char	str[MAX_PATH+1],str2[MAX_PATH+1],c;
 	char 	tmp[MAX_PATH+1];
-	char 	path[MAX_PATH+1];
+	char 	tmp2[MAX_PATH+1];
+	char	buf[64];
 	int		i,l,in;
 	struct tm tm;
 	struct in_addr addr;
@@ -107,59 +108,18 @@ bool sbbs_t::answer()
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
-				useron.misc&=~(ANSI|COLOR|RIP|WIP);
-				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
-				if(!findstr(client.addr,path)) {
+#if 1
+				if(!trashcan(client.addr,"rlogin")) {
+					lprintf(LOG_INFO,"%04d !CLIENT IP NOT LISTED in rlogin.can",client_socket);
 					SAFECOPY(tmp
 						,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
-					for(i=0;i<3;i++) {
-						if(stricmp(tmp,useron.pass)) {
-							rioctl(IOFI);       /* flush input buffer */
-							bputs(text[InvalidLogon]);
-							if(cfg.sys_misc&SM_ECHO_PW)
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
-									,0,useron.alias,tmp);
-							else
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
-									,0,useron.alias);
-								logline("+!",str);
-							bputs(text[PasswordPrompt]);
-							console|=CON_R_ECHOX;
-							if(!(cfg.sys_misc&SM_ECHO_PW))
-								console|=CON_L_ECHOX;
-							getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
-							console&=~(CON_R_ECHOX|CON_L_ECHOX);
-						}
-						else {
-							if(REALSYSOP) {
-								rioctl(IOFI);       /* flush input buffer */
-								if(!chksyspass())
-									bputs(text[InvalidLogon]);
-								else {
-									i=0;
-									break;
-								}
-							}
-							else
-								break;
-						}
-					}
-					if(i) {
-						if(stricmp(tmp,useron.pass)) {
-							bputs(text[InvalidLogon]);
-							if(cfg.sys_misc&SM_ECHO_PW)
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
-									,0,useron.alias,tmp);
-							else
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
-									,0,useron.alias);
-								logline("+!",str);
-						}
-						lprintf(LOG_INFO,"%04d !CLIENT IP NOT LISTED in rlogin.can",client_socket);
+					if(stricmp(tmp,useron.pass)) {
 						useron.number=0;
-						hangup();
 					}
+					else
+						lprintf(LOG_INFO,"%04d RLogin password auth",client_socket);
 				}
+#endif
 			}
 			else
 				lprintf(LOG_DEBUG,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
@@ -172,11 +132,15 @@ bool sbbs_t::answer()
 
 	if(!(telnet_mode&TELNET_MODE_OFF)) {
 		/* Disable Telnet Terminal Echo */
-		request_telnet_opt(TELNET_WILL,TELNET_ECHO);
+		send_telnet_cmd(TELNET_WILL,TELNET_ECHO);
 		/* Will suppress Go Ahead */
-		request_telnet_opt(TELNET_WILL,TELNET_SUP_GA);
+		send_telnet_cmd(TELNET_WILL,TELNET_SUP_GA);
 		/* Retrieve terminal type from telnet client --RS */
-		request_telnet_opt(TELNET_DO,TELNET_TERM_TYPE);
+		send_telnet_cmd(TELNET_DO,TELNET_TERM_TYPE);
+		sprintf(buf,"%c%c%c%c%c%c",
+			TELNET_IAC,TELNET_SB,TELNET_TERM_TYPE,TELNET_TERM_SEND,
+			TELNET_IAC,TELNET_SE);
+		putcom(buf,6);
 	}
 
 	/* Detect terminal type */
@@ -198,7 +162,6 @@ bool sbbs_t::answer()
 			);
 	i=l=0;
 	tos=1;
-	lncntr=0;
 	strcpy(str,VERSION_NOTICE);
 	strcat(str,"  ");
 	strcat(str,COPYRIGHT_NOTICE);
@@ -298,11 +261,11 @@ bool sbbs_t::answer()
 		/* Display ANSWER screen */
 		sprintf(str,"%sanswer",cfg.text_dir);
 		sprintf(tmp,"%s.%s",str,autoterm&WIP ? "wip":"rip");
-		sprintf(path,"%s.html",str);
+		sprintf(tmp2,"%s.html",str);
 		sprintf(str2,"%s.ans",str);
 		if(autoterm&(RIP|WIP) && fexist(tmp))
 			strcat(str,autoterm&WIP ? ".wip":".rip");
-		else if(autoterm&HTML && fexist(path))
+		else if(autoterm&HTML && fexist(tmp2))
 			strcat(str,".html");
 		else if(autoterm&ANSI && fexist(str2))
 			strcat(str,".ans");
