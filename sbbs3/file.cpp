@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.8 2001/10/02 20:10:56 rswindell Exp $ */
+/* $Id: file.cpp,v 1.9 2001/11/03 17:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,9 +213,11 @@ char * sbbs_t::getfilespec(char *str)
 {
 	bputs(text[FileSpecStarDotStar]);
 	if(!getstr(str,12,K_UPPER))
-		strcpy(str,"*.*");
+		strcpy(str,ALLFILES);
+#ifndef __unix__
 	else if(!strchr(str,'.') && strlen(str)<=8)
 		strcat(str,".*");
+#endif
 	if(sys_status&SS_ABORT)
 		return(0);
 	return(str);
