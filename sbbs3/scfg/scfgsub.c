@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.16 2003/05/22 19:50:47 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.17 2003/10/24 22:17:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 void sub_cfg(uint grpnum)
 {
 	static int dflt,tog_dflt,opt_dflt,net_dflt,adv_dflt,bar;
-	char str[81],str2[81],str3[11],done=0,code[9],*p;
+	char str[81],str2[81],done=0,code[9],*p;
 	int j,m,n,ptridx,q,s;
 	uint i,subnum[MAX_OPTS+1];
 	static sub_t savsub;
