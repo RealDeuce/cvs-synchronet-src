@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.68 2001/10/02 20:10:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.69 2001/10/03 17:38:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2013,6 +2013,9 @@ static void sendmail_thread(void* arg)
 		total_msgs=smb.status.total_msgs;
 		smb_rewind(smb.sid_fp);
 		for(offset=0;offset<total_msgs;offset++) {
+
+			if(server_socket==INVALID_SOCKET)	/* server stopped */
+				break;
 
 			if(active_sendmail!=0) {
 				active_sendmail=0;
