@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.52 2003/11/02 00:19:59 deuce Exp $ */
+/* $Id: genwrap.h,v 1.53 2003/11/03 03:17:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,6 +125,8 @@ extern "C" {
 	#define PLATFORM_DESC	"OpenBSD"
 #elif defined(__NetBSD__)
 	#define PLATFORM_DESC	"NetBSD"
+#elif defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
+	#define PLATFORM_DESC	"Mac OS X"
 #elif defined(BSD)
 	#define PLATFORM_DESC	"BSD"
 #elif defined(__solaris__)
@@ -135,8 +137,6 @@ extern "C" {
 	#define PLATFORM_DESC	"GNU/Hurd"
 #elif defined(__QNX__)
 	#define PLATFORM_DESC	"QNX"
-#elif defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
-	#define PLATFORM_DESC	"Mac OS X"
 #elif defined(__unix__)
 	#define PLATFORM_DESC	"Unix"
 #else
