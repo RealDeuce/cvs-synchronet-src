@@ -1,13 +1,13 @@
 object StatsLogForm: TStatsLogForm
-  Left = 376
-  Top = 302
+  Left = 348
+  Top = 194
   Width = 783
   Height = 540
   Caption = 'BBS Statistics Log'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -13
+  Font.Height = -10
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   Icon.Data = {
@@ -36,19 +36,18 @@ object StatsLogForm: TStatsLogForm
     00018000000180000001FC00001FFC00001FFE00001FFC00000FF800000FF800
     001FF800003FFC180C7FFE380EFFFFF80FFFFFF80FFFFFF80FFFFFFFFFFF}
   OldCreateOrder = False
-  Position = poScreenCenter
   OnShow = FormShow
-  PixelsPerInch = 120
-  TextHeight = 16
+  PixelsPerInch = 96
+  TextHeight = 13
   object Log: TMemo
     Left = 0
     Top = 0
     Width = 775
-    Height = 507
+    Height = 513
     Align = alClient
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
-    Font.Height = -15
+    Font.Height = -11
     Font.Name = 'Courier New'
     Font.Style = []
     ParentFont = False
