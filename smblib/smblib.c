@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.62 2003/05/23 10:46:48 rswindell Exp $ */
+/* $Id: smblib.c,v 1.63 2003/05/23 10:58:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1265,7 +1265,7 @@ int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 		close(file);
 		FREE(buf);
 		sprintf(smb->last_error
-			,"%d (%s) reading %u bytes"
+			,"%d (%s) reading %ld bytes"
 			,errno,STRERROR(errno),length);
 		return(SMB_ERR_READ);
 	}
