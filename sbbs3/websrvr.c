@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.107 2003/05/17 04:51:58 deuce Exp $ */
+/* $Id: websrvr.c,v 1.108 2003/05/17 04:53:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1455,9 +1455,11 @@ static BOOL check_request(http_session_t * session)
 	last_slash=str+strlen(root_dir)-1;
 	/* Loop while there's more /s in path*/
 	p=last_slash;
+
+	/* This is bad... fix it.  ToDo */
 	while(((last_slash=strchr(p+1,'/'))!=NULL) || ((last_slash=strchr(p+1,'\\'))!=NULL)) {
-		/* Terminate the path after the slash */
 		p=last_slash;
+		/* Terminate the path after the slash */
 		*(last_slash+1)=0;
 		strcat(str,"access.ars");
 		if(!stat(str,&sb)) {
@@ -2333,7 +2335,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.107 $", "%*s %s", revision);
+	sscanf("$Revision: 1.108 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
