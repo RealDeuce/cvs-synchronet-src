@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.19 2003/04/08 02:39:18 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.20 2003/04/08 02:41:31 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -268,12 +268,10 @@ static void sopen_test_thread(void* arg)
 
 	if((fd=sopen(LOCK_FNAME,O_RDWR,SH_DENYNO))!=-1)
 		printf("!FAILURE: allowed to reopen with SH_DENYNO\n");
-	else if((fd=sopen(LOCK_FNAME,O_RDWR,SH_DENYRD))!=-1)
-		printf("!FAILURE: allowed to reopen with SH_DENYRD\n");
 	else if((fd=sopen(LOCK_FNAME,O_RDWR,SH_DENYWR))!=-1)
 		printf("!FAILURE: allowed to reopen with SH_DENYWR\n");
-	else if((fd=sopen(LOCK_FNAME,O_RDWR,SH_DENYNO))!=-1)
-		printf("!FAILURE: allowed to reopen with SH_DENYNO\n");
+	else if((fd=sopen(LOCK_FNAME,O_RDWR,SH_DENYRW))!=-1)
+		printf("!FAILURE: allowed to reopen with SH_DENYRW\n");
 	else
 		printf("SUCCESS: reopen disallowed\n");
 
