@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.9 2004/08/02 02:43:59 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.8 2004/07/31 08:59:03 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -7,7 +7,6 @@
 
 #include "ciolib.h"
 #include "curs_cio.h"
-#include "keys.h"
 
 static unsigned char curs_nextgetch=0;
 const int curs_tabs[10]={9,17,25,33,41,49,57,65,73,80};
@@ -643,12 +642,6 @@ int curs_initciolib(long inmode)
 		}
 	}
 	mode = inmode;
-	#ifdef NCURSES_VERSION_MAJOR
-		if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
-			cio_api.mouse=1;
-		else
-			mousemask(0,NULL);
-	#endif
 	return(1);
 }
 
@@ -931,11 +924,6 @@ int curs_getch(void)
 					ch=0;
 					break;
 
-				case KEY_MOUSE:			/* Mouse stuff */
-					ch=CIO_KEY_MOUSE>>8;
-					curs_nextgetch=CIO_KEY_MOUSE&0xff;
-					break;
-
 				default:
 					curs_nextgetch=0xff;
 					ch=0;
@@ -960,49 +948,4 @@ int curs_getche(void)
 
 void curs_textmode(int mode)
 {
-}
-
-int curs_hidemouse(void)
-{
-	#ifdef NCURSES_VERSION_MAJOR
-		mousemask(0,NULL);
-		return(0);
-	#else
-		return(-1);
-	#endif
-}
-
-int curs_showmouse(void)
-{
-	#ifdef NCURSES_VERSION_MAJOR
-		if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
-			return(0);
-	#endif
-	return(-1);
-}
-
-/* cio_get_mouse() */
-int curs_getmouse(struct cio_mouse_event *mevent)
-{
-	#ifdef NCURSES_VERSION_MAJOR
-		MEVENT	mevnt;
-
-		if(getmouse(&mevnt)==OK) {
-			mevent->x=mevnt.x;
-			mevent->y=mevnt.y;
-			switch(mevnt.bstate) {
-				case BUTTON1_CLICKED:
-					mevent->button=1;
-					break;
-				case BUTTON3_CLICKED:
-					mevent->button=2;
-					break;
-			}
-		}
-		else
-			return(-1);
-		return(0);
-	#else
-		return(-1);
-	#endif
 }
