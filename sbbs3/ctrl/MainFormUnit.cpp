@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.36 2001/10/04 23:37:06 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.37 2001/10/05 23:01:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,7 +331,7 @@ static int mail_lputs(char *str)
             }
         }
         if(LogStream==NULL)
-            LogStream=fopen(LogFileName.c_str(),"a");
+            LogStream=fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
 			Line=Now().FormatString("hh:mm:ss")+"  ";
@@ -441,7 +441,7 @@ static int ftp_lputs(char *str)
             }
         }
         if(LogStream==NULL)
-            LogStream=fopen(LogFileName.c_str(),"a");
+            LogStream=fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
             Line=Now().FormatString("hh:mm:ss")+"  ";
