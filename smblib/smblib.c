@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.68 2003/08/20 09:54:58 rswindell Exp $ */
+/* $Id: smblib.c,v 1.69 2003/08/20 10:40:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1338,6 +1338,11 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 			,"illegal message header length (%lu > %u)"
 			,hdrlen,SMB_MAX_HDR_LEN);
 		return(SMB_ERR_HDR_LEN);
+	}
+
+	if(smb->shd_fp==NULL) {
+		sprintf(smb->last_error,"msgbase not open");
+		return(SMB_ERR_NOT_OPEN);
 	}
 
 	if(!smb->locked && smb_locksmbhdr(smb))
