@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.123 2002/07/31 06:47:30 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.124 2002/08/05 23:20:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,10 +71,6 @@
 #elif defined(__unix__)		/* Unix-variant */
 
 	#include <unistd.h>		/* close */
-
-	#ifdef __FreeBSD__		/* FreeBSD-specific */
-		#include <sys/param.h>	/* PATH_MAX */
-	#endif
 
 #endif
 
