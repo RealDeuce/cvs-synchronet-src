@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.19 2002/11/13 03:18:23 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.20 2002/11/18 03:35:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,6 +132,12 @@ extern "C" {
 		#define stricmp(x,y)		strcasecmp(x,y)
 		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#endif
+#endif
+
+#if defined(__unix__)
+	#define STRERROR(x)		strerror(x)
+#else
+	#define STRERROR(x)		truncsp(strerror(x))
 #endif
 
 /****************************/
