@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.16 2002/06/16 07:08:41 rswindell Exp $ */
+/* $Id: uifc.c,v 1.17 2002/12/04 05:30:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1784,10 +1784,10 @@ void help()
 		if(hbuf[j]==LF) {
 			while(i%(76*2)) i++;
 			i+=2; }
-		else if(hbuf[j]==2) {		 /* Ctrl-b toggles inverse */
+		else if(hbuf[j]==2 || hbuf[j]=='~') { /* Ctrl-b toggles inverse */
 			inverse=!inverse;
 			i-=2; }
-		else if(hbuf[j]==1) {		 /* Ctrl-a toggles high intensity */
+		else if(hbuf[j]==1 || hbuf[j]=='`') { /* Ctrl-a toggles high intensity */
 			high=!high;
 			i-=2; }
 		else if(hbuf[j]!=CR) {
