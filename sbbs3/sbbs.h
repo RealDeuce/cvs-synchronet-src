@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.180 2003/05/09 03:30:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.181 2003/05/09 21:53:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,7 +338,7 @@ public:
 
     /* ansi_term.cpp */
 	char *	ansi(int atr);			/* Returns ansi escape sequence for atr */
-    void	ansi_getxy(int* x, int* y);
+    bool	ansi_getxy(int* x, int* y);
 	void	ansi_getlines(void);
 
 			/* Command Shell Methods */
