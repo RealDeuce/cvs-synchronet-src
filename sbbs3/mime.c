@@ -2,7 +2,7 @@
 
 /* Synchronet MIME functions */
 
-/* $Id: mime.c,v 1.3 2002/02/21 01:35:00 rswindell Exp $ */
+/* $Id: mime.c,v 1.4 2002/11/14 04:33:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,7 +122,10 @@ BOOL base64out(SOCKET socket, char * pathfile)
         else
             strcat(line,out);
         if(i==18) {
-            sockprintf(socket,line);
+            if(!sockprintf(socket,line)) {
+				fclose(fp);
+				return(FALSE);
+			}
             i=-1;
         }
         if(bytesread!=3 || feof(fp))
@@ -130,10 +133,10 @@ BOOL base64out(SOCKET socket, char * pathfile)
         i++;
         memset(in,0,3);
     }
+	fclose(fp);
     if(i!=-1)   /* already printed the last line */
         sockprintf(socket,line);
     sockprintf(socket,"");
-	fclose(fp);
 	return(TRUE);
 }
 
@@ -170,7 +173,7 @@ BOOL mimeattach(SOCKET socket, char * boundary, char * pathfile)
 
 void endmime(SOCKET socket, char * boundary)
 {
-    char bndline[41];
+    char bndline[128];
 
     strcpy(bndline,"--");
     strcat(bndline,boundary);
