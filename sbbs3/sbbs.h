@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.243 2004/12/09 08:07:13 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.244 2004/12/30 09:24:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -923,8 +923,11 @@ extern "C" {
 		DWORD*		clients;
 	} js_server_props_t;
 
-	#define JSTYPE_ARRAY JSTYPE_LIMIT
-	#define JSTYPE_ALIAS JSTYPE_LIMIT+1
+	enum {
+		 JSTYPE_ARRAY=JSTYPE_LIMIT
+		,JSTYPE_ALIAS
+		,JSTYPE_UNDEF
+	};
 
 	#ifdef _DEBUG	/* String compiled into debug build only, for JS documentation generation */
 		#define	JSDOCSTR(s)	s

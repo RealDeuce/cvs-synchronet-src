@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.365 2004/12/30 02:57:43 rswindell Exp $ */
+/* $Id: main.cpp,v 1.366 2004/12/30 09:24:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,7 +355,9 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
-	"array",		// JSTYPE_LIMIT
+	"array",
+	"alias",
+	"undefined"
 };
 
 JSBool
