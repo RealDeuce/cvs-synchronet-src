@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.19 2002/02/18 19:33:38 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.20 2002/03/08 02:41:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,7 +191,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strcmp(sp,"FIDOADDR")) {
 		if(cfg.total_faddrs)
-			return(faddrtoa(cfg.faddr[0]));
+			return(faddrtoa(&cfg.faddr[0],str));
 		return(nulstr);
 	}
 
@@ -835,9 +835,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 			sprintf(str,"%s #%s",current_msg->to,current_msg->to_ext);
 		else if(current_msg->to_net.type!=NET_NONE)
 			sprintf(str,"%s (%s)",current_msg->to
-				,current_msg->to_net.type==NET_FIDO
-					? faddrtoa(*(faddr_t *)current_msg->to_net.addr) 
-					: (char*)current_msg->to_net.addr);
+				,net_addr(&current_msg->to_net));
 		else
 			strcpy(str,current_msg->to);
 		return(str);
@@ -849,13 +847,8 @@ char* sbbs_t::atcode(char* sp, char* str)
 			return(nulstr);
 		return(current_msg->to_ext);
 	}
-	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL) {
-		if(current_msg->to_net.type!=NET_NONE)
-			sprintf(str,"%s",current_msg->to_net.type==NET_FIDO
-				? faddrtoa(*(faddr_t *)current_msg->to_net.addr) 
-				: (char*)current_msg->to_net.addr);
-		return(str);
-	}
+	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL)
+		return(net_addr(&current_msg->to_net));
 	if(!strcmp(sp,"MSG_FROM") && current_msg!=NULL) {
 		if(current_msg->from==NULL)
 			return(nulstr);
@@ -865,9 +858,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 			sprintf(str,"%s #%s",current_msg->from,current_msg->from_ext);
 		else if(current_msg->from_net.type!=NET_NONE)
 			sprintf(str,"%s (%s)",current_msg->from
-				,current_msg->from_net.type==NET_FIDO
-					? faddrtoa(*(faddr_t *)current_msg->from_net.addr) 
-					: (char*)current_msg->from_net.addr);
+				,net_addr(&current_msg->from_net));
 		else
 			strcpy(str,current_msg->from);
 		return(str);
@@ -888,10 +879,8 @@ char* sbbs_t::atcode(char* sp, char* str)
 	if(!strcmp(sp,"MSG_FROM_NET") && current_msg!=NULL) {
 		if(current_msg->from_net.type!=NET_NONE
 			&& (!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP))
-			sprintf(str,"%s",current_msg->from_net.type==NET_FIDO
-				? faddrtoa(*(faddr_t *)current_msg->from_net.addr) 
-				: (char*)current_msg->from_net.addr);
-		return(str);
+			return(net_addr(&current_msg->from_net));
+		return(nulstr);
 	}
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
 		return(current_msg->subj==NULL ? nulstr : current_msg->subj);

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.14 2002/03/07 20:21:53 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.15 2002/03/08 02:41:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,19 +323,19 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	JS_DefineProperty(cx, hdrobj, "to_net_type",INT_TO_JSVAL(msg.to_net.type)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, hdrobj, "to_net_addr"
-		,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.to_net.addr))
+		,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,net_addr(&msg.to_net)))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	JS_DefineProperty(cx, hdrobj, "from_net_type",INT_TO_JSVAL(msg.from_net.type)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, hdrobj, "from_net_addr"
-		,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.from_net.addr))
+		,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,net_addr(&msg.from_net)))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	JS_DefineProperty(cx, hdrobj, "replyto_net_type",INT_TO_JSVAL(msg.replyto_net.type)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, hdrobj, "replyto_net_addr"
-		,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.replyto_net.addr))
+		,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,net_addr(&msg.replyto_net)))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	JS_DefineProperty(cx, hdrobj, "forwarded",INT_TO_JSVAL(msg.forwarded)

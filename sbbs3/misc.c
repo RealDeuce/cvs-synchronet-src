@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.17 2002/01/25 00:57:18 rswindell Exp $ */
+/* $Id: misc.c,v 1.18 2002/03/08 02:41:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,16 +373,25 @@ char* DLLCALL zonestr(short zone)
 /****************************************************************************/
 /* Returns an ASCII string for FidoNet address 'addr'                       */
 /****************************************************************************/
-char *faddrtoa(faddr_t addr)
+char *faddrtoa(faddr_t* addr, char* str)
 {
-    static char str[25];
     char point[25];
 
-	sprintf(str,"%u:%u/%u",addr.zone,addr.net,addr.node);
-	if(addr.point) {
-		sprintf(point,".%u",addr.point);
+	if(addr==NULL)
+		return("0:0/0");
+	sprintf(str,"%u:%u/%u",addr->zone,addr->net,addr->node);
+	if(addr->point) {
+		sprintf(point,".%u",addr->point);
 		strcat(str,point); }
 	return(str);
+}
+
+char* net_addr(net_t* net)
+{
+	static char faddr[64];
+	if(net->type==NET_FIDO)
+		return(faddrtoa((faddr_t*)net->addr,faddr));
+	return(net->addr);
 }
 
 /****************************************************************************/
