@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.3 2000/11/14 02:16:57 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.4 2001/04/15 16:47:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,9 +46,23 @@
 /***************************************************/
 /* Seven bit table for EXASCII to ASCII conversion */
 /***************************************************/
-const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
+static const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
 			"###||||++||++++++--|-+||++--|-+----++++++++##[]#"
 			"abrpEout*ono%0ENE+><rj%=o..+n2* ";
+
+/****************************************************************************/
+/* Convert string from IBM extended ASCII to just ASCII						*/
+/****************************************************************************/
+char* DLLCALL ascii_str(uchar* str)
+{
+	size_t i;
+
+	for(i=0;str[i];i++)
+		if(str[i]&0x80)
+			str[i]=sbtbl[str[i]^0x80];  /* seven bit table */
+
+	return((char*)str);
+}
 
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
