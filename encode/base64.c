@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.14 2003/04/04 04:48:03 rswindell Exp $ */
+/* $Id: base64.c,v 1.15 2003/04/14 22:58:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,3 +161,18 @@ int b64_encode(char *target, size_t tlen, const char *source, size_t slen)  {
 	}
 	return(outp-target);
 }
+
+#ifdef BASE64_TEST
+int main(int argc, char**argv)
+{
+	int i;
+	char buf[512];
+
+	for(i=1;i<argc;i++) {
+		b64_decode(buf,sizeof(buf),argv[i],0);
+		printf("%s\n",buf);
+	}
+
+	return 0;
+}
+#endif
