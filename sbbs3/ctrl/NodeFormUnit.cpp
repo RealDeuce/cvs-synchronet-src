@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.17 2002/04/01 18:26:38 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.18 2002/11/13 08:00:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,9 +163,8 @@ void __fastcall TNodeForm::TimerTick(TObject *Sender)
 	    lseek(nodedab, n*sizeof(node_t), SEEK_SET);
         if(eof(nodedab))
         	break;
-    	i=locking(nodedab, LK_LOCK, sizeof(node_t));
-        if(i!=0) {
-        	ListBox->Items->Add("Error "+AnsiString(i)+" locking record for"
+        if(locking(nodedab, LK_LOCK, sizeof(node_t))!=0) {
+        	ListBox->Items->Add("Error "+AnsiString(errno)+" locking record for"
 	            " node "+AnsiString(n+1));
             break; /* was continue */
         }
