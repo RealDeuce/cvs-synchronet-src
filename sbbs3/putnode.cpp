@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.15 2003/04/09 01:16:32 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.16 2003/05/16 07:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 int sbbs_t::putnodedat(uint number, node_t* node)
 {
 	char	str[256],firston[25];
+	char	path[MAX_PATH+1];
 	int		wr=0;
 	int		wrerr=0;
 	int		attempts;
@@ -79,10 +80,10 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 			node->misc&=~NODE_EXT; 
 	}
 
+	sprintf(path,"%snode.dab",cfg.ctrl_dir);
 	if(nodefile==-1) {
-		sprintf(str,"%snode.dab",cfg.ctrl_dir);
-		if((nodefile=nopen(str,O_CREAT|O_RDWR|O_DENYNONE))==-1) {
-			errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_RDWR|O_DENYNONE);
+		if((nodefile=nopen(path,O_CREAT|O_RDWR|O_DENYNONE))==-1) {
+			errormsg(WHERE,ERR_OPEN,path,O_CREAT|O_RDWR|O_DENYNONE);
 			return(errno); 
 		}
 	}
@@ -108,6 +109,8 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 		errormsg(WHERE,ERR_WRITE,"nodefile",number+1);
 		return(errno);
 	}
+
+	utime(path,NULL);	/* Update mod time for NFS/smbfs compatibility */
 
 	return(0);
 }

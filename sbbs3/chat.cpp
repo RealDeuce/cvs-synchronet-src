@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.37 2003/05/16 02:59:57 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.38 2003/05/16 07:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -720,6 +720,7 @@ void sbbs_t::privchat(bool local)
 			,*local_sep=text[SysopChatSeparator]
 			;
 	char 	tmp[512];
+	char	outpath[MAX_PATH+1];
 	uchar	ch;
 	int 	in,out,i,n,echo=1,x,y,activity,remote_activity;
     int		local_y=1,remote_y=1;
@@ -811,9 +812,9 @@ void sbbs_t::privchat(bool local)
 			bputs(text[WelcomeToPrivateChat]);
 	}
 
-	sprintf(str,"%schat.dab",cfg.node_dir);
-	if((out=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,S_IREAD|S_IWRITE))==-1) {
-		errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE|O_CREAT);
+	sprintf(outpath,"%schat.dab",cfg.node_dir);
+	if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,S_IREAD|S_IWRITE))==-1) {
+		errormsg(WHERE,ERR_OPEN,outpath,O_RDWR|O_DENYNONE|O_CREAT);
 		return; 
 	}
 
@@ -995,7 +996,9 @@ void sbbs_t::privchat(bool local)
 				lseek(out,-1L,SEEK_CUR);
 				ch=0;
 				write(out,&ch,1);
-				lseek(out,-1L,SEEK_CUR); }
+				lseek(out,-1L,SEEK_CUR); 
+			}
+			utime(outpath,NULL);	/* update mod time for NFS/smbfs nodes */
 			if(tell(out)>=PCHAT_LEN)
 				lseek(out,0L,SEEK_SET);
 		}
