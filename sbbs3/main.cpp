@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.34 2001/06/22 02:33:01 rswindell Exp $ */
+/* $Id: main.cpp,v 1.35 2001/06/23 00:49:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -455,7 +455,7 @@ int close_socket(SOCKET sock)
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
-	if(/* result==0 && */ startup!=NULL && startup->socket_open!=NULL) 
+	if(result==0 && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(FALSE);
 	if(result!=0 && ERROR_VALUE!=ENOTSOCK)
 		lprintf("!ERROR %d closing socket %d",ERROR_VALUE,sock);

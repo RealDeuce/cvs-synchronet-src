@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.79 2001/06/22 03:35:38 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.80 2001/06/23 00:49:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,7 +255,7 @@ static int ftp_close_socket(SOCKET* sock, int line)
 	shutdown(*sock,SHUT_RDWR);	/* required on Unix */
 
 	result=closesocket(*sock);
-	if(/* result==0 && */ startup!=NULL && startup->socket_open!=NULL) 
+	if(result==0 && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(FALSE);
 
 	sockets--;
