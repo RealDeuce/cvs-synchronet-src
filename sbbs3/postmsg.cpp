@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.50 2004/03/31 11:21:34 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.51 2004/05/13 21:59:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		if(cfg.sub[subnum]->misc&SUB_QNET)
 			i=25;
 		if(cfg.sub[subnum]->misc&SUB_FIDO)
-			i=35;
+			i=FIDO_NAME_LEN-1;
 		if(cfg.sub[subnum]->misc&(SUB_PNET|SUB_INET))
 			i=60;
 		getstr(touser,i,K_UPRLWR|K_LINE|K_EDIT|K_AUTODEL);

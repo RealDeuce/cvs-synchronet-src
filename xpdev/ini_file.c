@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.19 2004/03/25 20:28:49 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.24 2004/05/28 01:45:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -39,6 +39,7 @@
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
 #include "sockwrap.h"	/* inet_addr */
+#include "filewrap.h"	/* chsize */
 #include "ini_file.h"
 
 #define INI_MAX_LINE_LEN	256		/* Maximum length of entire line, includes '\0' */
@@ -131,54 +132,38 @@ char* iniGetString(FILE* fp, const char* section, const char* key, const char* d
 	return(value);
 }
 
-char** iniGetStringList(FILE* fp, const char* section, const char* key
+str_list_t iniGetStringList(FILE* fp, const char* section, const char* key
 						 ,const char* sep, const char* deflt)
 {
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
-	char**	lp;
-	char**	np;
 	char*	token;
 	char	list[INI_MAX_VALUE_LEN];
 	ulong	items=0;
+	str_list_t	lp;
 
 	if((value=get_value(fp,section,key,buf))==NULL || *value==0 /* blank */)
 		value=(char*)deflt;
 
 	SAFECOPY(list,value);
 
-	if((lp=malloc(sizeof(char*)))==NULL)
+	if((lp=strListInit())==NULL)
 		return(NULL);
 
 	token=strtok(list,sep);
 	while(token!=NULL) {
 		truncsp(token);
-		if((np=realloc(lp,sizeof(char*)*(items+2)))==NULL)
+		if(strListAdd(&lp,token,items++)==NULL)
 			break;
-		lp=np;
-		if((lp[items]=malloc(strlen(token)+1))==NULL)
-			break;
-		strcpy(lp[items++],token);
 		token=strtok(NULL,sep);
 	}
-
-	lp[items]=NULL;	/* terminate list */
-
 	return(lp);
 }
 
-void* iniFreeStringList(char** list)
+void* iniFreeStringList(str_list_t list)
 {
-	ulong	i;
-
-	if(list==NULL)
-		return(NULL);
-
-	for(i=0;list[i]!=NULL;i++)
-		free(list[i]);
-
-	free(list);
-	return(NULL);
+	strListFree(&list);
+	return(list);
 }
 
 void* iniFreeNamedStringList(named_string_t** list)
@@ -200,19 +185,16 @@ void* iniFreeNamedStringList(named_string_t** list)
 	return(NULL);
 }
 
-char** iniGetSectionList(FILE* fp, const char* prefix)
+str_list_t iniGetSectionList(FILE* fp, const char* prefix)
 {
 	char*	p;
 	char*	tp;
-	char**	lp;
-	char**	np;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
+	str_list_t	lp;
 
-	if((lp=malloc(sizeof(char*)))==NULL)
+	if((lp=strListInit())==NULL)
 		return(NULL);
-
-	*lp=NULL;
 
 	if(fp==NULL)
 		return(lp);
@@ -234,32 +216,23 @@ char** iniGetSectionList(FILE* fp, const char* prefix)
 		if(prefix!=NULL)
 			if(strnicmp(p,prefix,strlen(prefix))!=0)
 				continue;
-		if((np=realloc(lp,sizeof(char*)*(items+2)))==NULL)
+		if(strListAdd(&lp,p,items++)==NULL)
 			break;
-		lp=np;
-		if((lp[items]=malloc(strlen(p)+1))==NULL)
-			break;
-		strcpy(lp[items++],p);
 	}
-
-	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
 
-char** iniGetKeyList(FILE* fp, const char* section)
+str_list_t iniGetKeyList(FILE* fp, const char* section)
 {
 	char*	p;
 	char*	tp;
-	char**	lp;
-	char**	np;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
+	str_list_t	lp;
 
-	if((lp=malloc(sizeof(char*)))==NULL)
+	if((lp=strListInit())==NULL)
 		return(NULL);
-
-	*lp=NULL;
 
 	if(fp==NULL)
 		return(lp);
@@ -283,15 +256,9 @@ char** iniGetKeyList(FILE* fp, const char* section)
 			continue;
 		*tp=0;
 		truncsp(p);
-		if((np=realloc(lp,sizeof(char*)*(items+2)))==NULL)
+		if(strListAdd(&lp,p,items++)==NULL)
 			break;
-		lp=np;
-		if((lp[items]=malloc(strlen(p)+1))==NULL)
-			break;
-		strcpy(lp[items++],p);
 	}
-
-	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
@@ -466,4 +433,28 @@ ulong iniGetBitField(FILE* fp, const char* section, const char* key,
 	}
 
 	return(v);
+}
+
+str_list_t iniReadFile(FILE* fp)
+{
+	size_t		i;
+	str_list_t	list;
+	
+	rewind(fp);
+
+	list = strListReadFile(fp, NULL, INI_MAX_VALUE_LEN);
+	if(list!=NULL) {
+		/* truncate the white-space off end of strings */
+		for(i=0; list[i]!=NULL; i++)
+			truncsp(list[i]);
+	}
+
+	return(list);
+}
+
+BOOL iniWriteFile(FILE* fp, const str_list_t list)
+{
+	rewind(fp);
+	chsize(fileno(fp),0);	/* truncate */
+	return(strListWriteFile(fp,list,"\n") == strListCount(list));
 }
