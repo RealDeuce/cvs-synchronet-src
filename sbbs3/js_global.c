@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.135 2004/12/05 20:20:23 deuce Exp $ */
+/* $Id: js_global.c,v 1.136 2004/12/06 05:51:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1072,7 +1072,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			free(tmpbuf);
 			return(JS_FALSE);
 		}
-		j=sprintf(outbuf,"<span style=\"%s\">",htmlansi[7],htmlansi[7]);
+		j=sprintf(outbuf,"<span style=\"%s\">",htmlansi[7]);
 		clear_screen=j;
 		for(i=0;tmpbuf[i];i++) {
 			if(j>(obsize/2))		/* Completely arbitrary here... must be carefull with this eventually ToDo */
