@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2004/09/12 23:42:47 deuce Exp $
+# $Id: GNUmakefile,v 1.4 2004/09/12 23:54:00 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -25,11 +25,10 @@ ifndef NO_X
 			$(OBJODIR)$(DIRSEP)x_cio$(OFILE)
 endif
 
-mtlib:	$(CIOLIB-MT)
+mtlib:	$(LIBODIR) $(CIOLIB-MT)
 
 # CIOLIB Library Link Rule
-$(CIOLIB-MT): $(OBJS)
+$(CIOLIB-MT): $(MTOBJODIR) $(OBJS)
 	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $^
+	$(QUIET)ar rc $@ $(OBJS)
 	$(QUIET)ranlib $@
-
