@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.84 2003/02/07 02:15:26 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.85 2003/02/07 22:05:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2833,7 +2833,7 @@ void putfmsg(FILE *stream,uchar HUGE16 *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	if(area.name==NULL)	{ /* NetMail, so add FSP-1010 Via kludge line */
 		t=time(NULL);
 		tm=gmtime(&t);
-		fprintf(stream,"\1Via: %s @%04u%02u%02u.%02u%02u%02u.UTC "
+		fprintf(stream,"\1Via %s @%04u%02u%02u.%02u%02u%02u.UTC "
 			"SBBSecho %s-%s r%s\r"
 			,faddrtoa(&addr,NULL)
 			,tm->tm_year+1900
@@ -4036,7 +4036,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.84 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.85 $" + 11, "%s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
