@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.18 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.19 2002/07/17 23:13:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -210,7 +210,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 		if(domsg && !(sys_status&SS_ABORT)) {
 
-			msg.subnum=INVALID_SUB;
 			show_msg(&msg
 				,msg.from_ext && msg.idx.from==1 && !msg.from_net.type
 					? 0:P_NOATCODES);
