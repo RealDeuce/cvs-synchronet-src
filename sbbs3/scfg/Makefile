@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.7 2003/01/14 01:08:14 rswindell Exp $
+# $Id: Makefile,v 1.8 2003/01/17 22:33:00 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -18,7 +18,7 @@ EXEFILE	=	.exe
 ODIR	=	bcc.win32	# Executable output directory
 XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
-CFLAGS	=	-M -I..;$(UIFC);$(XPDEV) -g1
+CFLAGS	=	-M -I..;$(UIFC);$(XPDEV)
 DELETE	=	echo y | del 
 
 .path.c = .;..;$(UIFC);$(XPDEV)
@@ -54,11 +54,11 @@ OBJS = $(OBJS) $(ODIR)\uifc.$(OFILE)
 $(ODIR):
 	@if not exist $(ODIR) mkdir $(ODIR)
 
-makehelp.exe: makehelp.c
-	$(CC) $?
+$(MAKEHELP): makehelp.c
+	@$(CC) -q -n$(ODIR) $?
 
-$(SCFGHELP): $(OBJS) makehelp.exe
-	makehelp $(ODIR)
+$(SCFGHELP): $(OBJS) $(MAKEHELP)
+	@$(MAKEHELP) $(ODIR)
 
 # Monolithic SCFG executable Build Rule
 $(SCFG): $(OBJS) 

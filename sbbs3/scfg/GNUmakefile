@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.13 2003/01/17 21:20:39 rswindell Exp $
+# $Id: GNUmakefile,v 1.14 2003/01/17 22:33:00 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -106,11 +106,11 @@ $(ODIR)/%.o : %.cpp
 $(ODIR):
 	mkdir $(ODIR)
 
-makehelp: makehelp.c
-	$(CC) makehelp.c -o makehelp
+$(MAKEHELP): makehelp.c
+	$(CC) makehelp.c -o $(MAKEHELP)
 
-$(SCFGHELP): $(OBJS) makehelp
-	./makehelp $(ODIR)
+$(SCFGHELP): $(OBJS) $(MAKEHELP)
+	$(MAKEHELP) $(ODIR)
 
 # Monolithic Synchronet executable Build Rule
 $(SCFG): $(OBJS)
