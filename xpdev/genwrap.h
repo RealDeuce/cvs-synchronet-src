@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.68 2004/11/17 11:02:28 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.69 2004/11/17 11:11:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,10 +82,6 @@ extern "C" {
 #elif defined(_MSC_VER)
 
 	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"MSC %u", _MSC_VER);
-
-#elif defined(__GNUC__) && defined(__VERSION__)
-
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"GCC %s", __VERSION__);
 
 #elif defined(__GNUC__) && defined(__GNUC_PATCHLEVEL__)
 

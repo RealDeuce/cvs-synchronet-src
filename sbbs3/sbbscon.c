@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.186 2004/11/16 04:51:56 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.187 2004/11/18 09:12:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 #endif
 
 /* Synchronet-specific headers */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"		/* load_cfg() */
 #include "sbbs_ini.h"	/* sbbs_read_ini() */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
