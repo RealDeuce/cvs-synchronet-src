@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.74 2002/11/02 04:04:07 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.75 2002/11/09 22:36:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -379,9 +379,12 @@ int write_flofile(char *attachment, faddr_t dest)
 	else ch='f';
 	if(dest.zone==scfg.faddr[0].zone)		/* Default zone, use default outbound */
 		strcpy(outbound,cfg.outbound);
-	else								/* Inter-zone outbound is OUTBOUND.XXX */
-		sprintf(outbound,"%.*s.%03x/"
+	else {								/* Inter-zone outbound is OUTBOUND.XXX */
+		sprintf(outbound,"%.*s.%03x"
 			,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
+		MKDIR(outbound);
+		backslash(outbound);
+	}
 	if(dest.point) {					/* Point destination is OUTBOUND\*.PNT */
 		sprintf(str,"%04x%04x.pnt"
 			,dest.net,dest.node);
@@ -1676,9 +1679,12 @@ void pack_bundle(char *infile,faddr_t dest)
 			dest=cfg.nodecfg[node].route;
 		if(dest.zone==scfg.faddr[0].zone)	/* Default zone, use default outbound */
 			strcpy(outbound,cfg.outbound);
-		else							/* Inter-zone outbound is OUTBOUND.XXX */
-			sprintf(outbound,"%.*s.%03x/"
+		else {							/* Inter-zone outbound is OUTBOUND.XXX */
+			sprintf(outbound,"%.*s.%03x"
 				,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
+			MKDIR(outbound);
+			backslash(outbound);
+		}
 		if(dest.point) {				/* Point destination is OUTBOUND\*.PNT */
 			sprintf(str,"%04x%04x.pnt"
 				,dest.net,dest.node);
@@ -3951,7 +3957,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.74 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.75 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
@@ -4863,9 +4869,12 @@ int main(int argc, char **argv)
 				else ch='o';
 				if(addr.zone==scfg.faddr[0].zone) /* Default zone, use default outbound */
 					strcpy(outbound,cfg.outbound);
-				else						 /* Inter-zone outbound is OUTBOUND.XXX */
-					sprintf(outbound,"%.*s.%03x/"
+				else {						 /* Inter-zone outbound is OUTBOUND.XXX */
+					sprintf(outbound,"%.*s.%03x"
 						,(int)strlen(cfg.outbound)-1,cfg.outbound,addr.zone);
+					MKDIR(outbound);
+					backslash(outbound);
+				}
 				if(addr.point) {			/* Point destination is OUTBOUND.PNT */
 					sprintf(str,"%04x%04x.pnt"
 						,addr.net,addr.node);
