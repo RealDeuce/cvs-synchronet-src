@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.119 2003/08/28 03:51:46 rswindell Exp $
+# $Id: GNUmakefile,v 1.120 2003/08/28 07:17:27 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -92,7 +92,12 @@ EXEODIR :=	$(CCPRE).$(os).exe.$(BUILD)
 
 DELETE	=	rm -f
 
-CFLAGS	+=	-DJAVASCRIPT -I../../include/mozilla/js -I$(XPDEV) -I$(UIFC)
+CFLAGS  +=  -I$(XPDEV) -I$(UIFC) -DJAVASCRIPT
+ifdef JSINCLUDE
+ CFLAGS += -I$(JSINCLUDE)
+else
+ CFLAGS += -I../../include/mozilla/js
+endif
 
 ifdef BSD	# BSD
  # Math libraries needed and uses pthread
