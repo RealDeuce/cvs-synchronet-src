@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.54 2005/01/19 06:42:31 deuce Exp $ */
+/* $Id: uifc.h,v 1.55 2005/02/03 04:12:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,8 +185,8 @@
 #define WIN_REDRAW	(1<<21) /* Force redraw on dynamic window */
 #define WIN_NODRAW	(1<<22) /* Force not to redraw on dynamic window */
 #define WIN_EXTKEYS	(1<<23) /* Return on any keypress... if it's not handled internally
-							 * Return value is -2 - keyvalue
-							 */
+							 * Return value is -2 - keyvalue */
+#define WIN_NOBRDR	(1<<24)	/* Do not draw a border around the window */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
