@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.13 2003/05/18 04:22:04 rswindell Exp $
+# $Id: objects.mk,v 1.14 2003/07/03 06:03:29 rswindell Exp $
 
 # LIBODIR, SLASH, and OFILE must be pre-defined
 
@@ -111,4 +111,5 @@ OBJS	=	$(LIBODIR)$(SLASH)ansiterm.$(OFILE)\
 			$(LIBODIR)$(SLASH)filewrap.$(OFILE)\
 			$(LIBODIR)$(SLASH)threadwrap.$(OFILE)\
 			$(LIBODIR)$(SLASH)semwrap.$(OFILE)\
-			$(LIBODIR)$(SLASH)sockwrap.$(OFILE)
+			$(LIBODIR)$(SLASH)sockwrap.$(OFILE)\
+			$(LIBODIR)$(SLASH)ver.$(OFILE)
