@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.96 2004/12/31 02:39:19 rswindell Exp $ */
+/* $Id: js_system.c,v 1.93 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,7 +391,7 @@ static jsSyncPropertySpec js_system_properties[] = {
 
 	/* filenames */
 	{	"devnull",					SYS_PROP_DEVNULL		,SYSOBJ_FLAGS,	311  },
-	{	"temp_path",				SYS_PROP_TEMP_PATH		,SYSOBJ_FLAGS,	312	 },
+	{	"temp_path",				SYS_PROP_TEMP_PATH		,SYSOBJ_FLAGS,	311	 },
 
 	/* clock access */
 	{	"clock_ticks",				SYS_PROP_CLOCK			,SYSOBJ_FLAGS,	311  },
@@ -488,7 +488,6 @@ static char* sys_prop_desc[] = {
 	,"operating system version information"
 	,"time/date system was brought online (in time_t format)"
 
-	,"array of FidoNet Technology Network (FTN) addresses associated with this system"
 	,NULL
 };
 #endif
@@ -1602,7 +1601,6 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	JSObject*	statsobj;
 	JSObject*	nodeobj;
 	JSObject*	node_list;
-	JSObject*	fido_addr_list;
 	JSString*	js_str;
 
 	sysobj = JS_DefineObject(cx, parent, "system", &js_system_class, NULL
@@ -1730,20 +1728,6 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
 		return(NULL);
 
-	/* fido_addr_list property */
-
-	if((fido_addr_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
-		return(NULL);
-
-	if(!JS_DefineProperty(cx, sysobj, "fido_addr_list", OBJECT_TO_JSVAL(fido_addr_list)
-		, NULL, NULL, JSPROP_ENUMERATE))
-		return(NULL);
-
-	for(i=0;i<cfg->total_faddrs;i++) {
-		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,smb_faddrtoa(&cfg->faddr[i],str)));
-		JS_SetElement(cx, fido_addr_list, i, &val);
-	}
-
 	statsobj = JS_DefineObject(cx, sysobj, "stats", &js_sysstats_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
@@ -1785,10 +1769,8 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 			return(NULL);
 
 #ifdef _DEBUG
-		if(i==0) {
-			js_DescribeSyncObject(cx,nodeobj,"BBS node listing",310);
-			js_CreateArrayOfStrings(cx, nodeobj, "_property_desc_list", node_prop_desc, JSPROP_READONLY);
-		}
+		js_DescribeSyncObject(cx,nodeobj,"BBS node listing",310);
+		js_CreateArrayOfStrings(cx, nodeobj, "_property_desc_list", node_prop_desc, JSPROP_READONLY);
 #endif
 
 		val=OBJECT_TO_JSVAL(nodeobj);
