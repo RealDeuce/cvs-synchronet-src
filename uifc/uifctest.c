@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uifctest.c,v 1.2 2004/06/01 04:42:03 deuce Exp $ */
+/* $Id: uifctest.c,v 1.1 2004/06/01 04:07:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ int main(int argc, char** argv)  {
 	char	ini_file[MAX_PATH+1];
 	FILE*				fp;
 
-	sscanf("$Revision: 1.2 $", "%*s %s", revision);
+	sscanf("$Revision: 1.1 $", "%*s %s", revision);
 
     printf("\nSynchronet UIFC Test Suite Copyright 2004 "
         "Rob Swindell\n");
@@ -167,7 +167,7 @@ int main(int argc, char** argv)  {
 			/* String input */
 			strcpy(longtitle,"This is a test if string input... enter/edit this field");
 			uifc.input(WIN_MID,0,0,"Input",longtitle,sizeof(longtitle),K_EDIT);
-			uifc.showbuf(WIN_MID, 0, 0, uifc.scrn_width-4, uifc.scrn_len-4, "Result:", longtitle, NULL, NULL);
+			uifc.showbuf(WIN_MID, 0, 0, 0, 0, "Result:", longtitle, NULL, NULL);
 		}
 	}
 }
