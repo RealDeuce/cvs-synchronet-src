@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.37 2003/04/30 03:26:23 deuce Exp $ */
+/* $Id: genwrap.h,v 1.38 2003/04/30 23:41:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,16 +162,35 @@ extern "C" {
 
 #if defined(_WIN32)
 
+	#define YIELD()			Sleep(0)
 	#define SLEEP(x)		Sleep(x)
 	#define BEEP(freq,dur)	Beep(freq,dur)
 
 #elif defined(__OS2__)
 
+	#define YIELD()			DosSleep(1)			/* Must Sleep for at least 1ms to Yield on OS/2 */
 	#define SLEEP(x)		DosSleep(x)
 	#define BEEP(freq,dur)	DosBeep(freq,dur)
 
 #elif defined(__unix__)
 
+	#if defined(_THREAD_SAFE)
+		#if defined(__FreeBSD__)
+			#define YIELD()         pthread_yield()
+		#elif defined(_PTH_PTHREAD_H_)
+			#define YIELD()         pth_yield(NULL)
+		#elif defined(_POSIX_PRIORITY_SCHEDULING)
+			#define YIELD()         sched_yield()
+		#else
+			#define YIELD()
+		#endif
+	#else
+		#if defined(_POSIX_PRIORITY_SCHEDULING)
+			#define	YIELD()			sched_yield()
+		#else
+			#define YIELD()
+		#endif
+	#endif
 
 	#if defined(_PTH_PTHREAD_H_)
 		#define SLEEP(x)  ({ int y=x; struct timeval tv; \
@@ -227,24 +246,6 @@ DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 
 #if defined(__cplusplus)
 }
-#endif
-
-#ifdef _THREAD_SAFE
-	#if defined(__FreeBSD__)
-		#define YIELD()         pthread_yield()
-	#elif defined(_PTH_PTHREAD_H_)
-		#define YIELD()         pth_yield(NULL)
-	#elif defined(_POSIX_PRIORITY_SCHEDULING)
-		#define YIELD()         sched_yield()
-	#else
-		#define YIELD()
-	#endif
-#else
-	#if defined(_POSIX_PRIORITY_SCHEDULING)
-		#define	YIELD()			sched_yield()
-	#else
-		#define YIELD()
-	#endif
 #endif
 
 #endif	/* Don't add anything after this line */
