@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.71 2002/03/05 13:32:50 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.72 2002/03/07 01:37:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,11 +171,6 @@ typedef HANDLE (WINAPI *OPENVXDHANDLE)(HANDLE);
 
 OPENVXDHANDLE GetAddressOfOpenVxDHandle(void)
 {
-	HINSTANCE hK32;
-
-	if ((hK32 = LoadLibrary("KERNEL32")) == NULL)
-		return NULL;
-
 	return((OPENVXDHANDLE)GetProcAddress(hK32, "OpenVxDHandle"));
 }
 
