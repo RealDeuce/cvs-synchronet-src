@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.18 2003/02/07 22:53:20 deuce Exp $
+# $Id: GNUmakefile,v 1.19 2003/02/08 07:15:35 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -21,7 +21,7 @@ ifndef DEBUG
 endif
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
-USE_FLTK =	1	# Use Windowed version
+#USE_FLTK =	1	# Use Windowed version
 USE_CURSES	=	1	# Curses version of UIFC
 CC		=	gcc
 CCPP		=	gcc
@@ -61,9 +61,6 @@ ifdef USE_FLTK
  LFLAGS +=	-L../../../lib/fltk/$(os) -L/usr/X11R6/lib -lfltk -lX11
  CFLAGS +=	-I../../../include/fltk -I/usr/X11R6/include -DUSE_FLTK
 endif
-
-# Math library needed
-LFLAGS	+=	$(LFLAGS) -lm
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb -O0 -D_DEBUG 
