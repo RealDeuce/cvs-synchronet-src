@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.220 2004/05/11 22:27:33 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.222 2004/08/04 08:28:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -995,6 +995,7 @@ int		strsame(char *str1, char *str2);	/* Compares number of same chars */
 int		nopen(const char* str, int access);
 FILE *	fnopen(int* file, const char* str, int access);
 BOOL	ftouch(const char* fname);
+BOOL	fmutex(const char* fname, const char* text);
 
 /* load_cfg.c */
 BOOL 	md(char *path);
