@@ -12,10 +12,10 @@ $(WRAPTEST): $(OBJODIR)/wraptest.o $(DEPS)
 
 $(XPDEV_LIB_BUILD): $(OBJODIR) $(OBJS)
 	@echo Creating $@
-	$(QUIET)$(AR) rc $@ $(OBJS)
-	$(QUIET)$(RANLIB) $@
+	$(QUIET)ar rc $@ $(OBJS)
+	$(QUIET)ranlib $@
 
 $(XPDEV-MT_LIB_BUILD): $(MTOBJODIR) $(MTOBJS)
 	@echo Creating $@
-	$(QUIET)$(AR) rc $@ $(MTOBJS)
-	$(QUIET)$(RANLIB) $@
+	$(QUIET)ar rc $@ $(MTOBJS)
+	$(QUIET)ranlib $@
