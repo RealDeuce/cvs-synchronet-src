@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.173 2003/04/23 08:32:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.174 2003/05/01 10:16:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -652,7 +652,7 @@ public:
 	
 	/* qwk.cpp */
 	bool	qwklogon;
-	ulong	qwkmail_time;
+	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	int		qwk_route(char *inaddr, char *fulladdr);
 	void	update_qwkroute(char *via);
