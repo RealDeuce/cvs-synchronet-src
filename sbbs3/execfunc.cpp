@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.24 2002/02/07 19:36:17 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.25 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,7 +237,7 @@ int sbbs_t::exec_function(csi_t *csi)
 		case CS_SYSTEM_LOG:                 /* System log */
 			if(!chksyspass())
 				return(0);
-			tm=gmtime(&now);
+			tm=localtime(&now);
 			if(tm==NULL)
 				return(0);
 			sprintf(str,"%slogs/%2.2d%2.2d%2.2d.log", cfg.data_dir
@@ -248,7 +248,7 @@ int sbbs_t::exec_function(csi_t *csi)
 			if(!chksyspass())
 				return(0);
 			now-=(ulong)60L*24L*60L;
-			tm=gmtime(&now);
+			tm=localtime(&now);
 			if(tm==NULL)
 				return(0);
 			sprintf(str,"%slogs/%2.2d%2.2d%2.2d.log",cfg.data_dir

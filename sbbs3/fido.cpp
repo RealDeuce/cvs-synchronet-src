@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.12 2002/03/08 02:41:18 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.13 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,7 +169,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 	}
 
 	now=time(NULL);
-	tm=gmtime(&now);
+	tm=localtime(&now);
 	if(tm!=NULL)
 		sprintf(hdr.time,"%02u %3.3s %02u  %02u:%02u:%02u"
 			,tm->tm_mday,mon[tm->tm_mon],TM_YEAR(tm->tm_year)

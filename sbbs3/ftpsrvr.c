@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.140 2002/03/11 16:17:50 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.141 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3064,7 +3064,7 @@ static void ctrl_thread(void* arg)
 				}
 				if(!strnicmp(cmd,"MDTM ",5)) {
 					t=fdate(fname);
-					tm_p=gmtime(&t);
+					tm_p=gmtime(&t);	/* specifically use GMT/UTC representation */
 					if(tm_p==NULL)
 						memset(&tm,0,sizeof(tm));
 					else
@@ -3829,7 +3829,7 @@ static void ctrl_thread(void* arg)
 				sockprintf(sock,"213 %lu",flength(fname));
 			else if(getdate && success) {
 				t=fdate(fname);
-				tm_p=gmtime(&t);
+				tm_p=gmtime(&t);	/* specifically use GMT/UTC representation */
 				if(tm_p==NULL)
 					memset(&tm,0,sizeof(tm));
 				else

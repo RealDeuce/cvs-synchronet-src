@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.10 2002/03/09 00:23:03 rswindell Exp $ */
+/* $Id: date_str.c,v 1.11 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,7 +95,7 @@ char* DLLCALL unixtodstr(scfg_t* cfg, time_t unix_time, char *str)
 	if(!unix_time)
 		strcpy(str,"00/00/00");
 	else {
-		tm=gmtime(&unix_time);
+		tm=localtime(&unix_time);
 		if(tm==NULL) {
 			strcpy(str,"00/00/00");
 			return(str);

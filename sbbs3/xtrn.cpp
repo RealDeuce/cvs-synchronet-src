@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.74 2002/03/07 02:16:20 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.75 2002/03/13 18:17:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,7 +284,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	strcpy(realcmdline, fullcmdline);	// for errormsg if failed to execute
 
 	now=time(NULL);
-	tm_p=gmtime(&now);
+	tm_p=localtime(&now);
 
 	if((retval=WaitForSingleObject(exec_mutex,5000))!=WAIT_OBJECT_0) {
 		errormsg(WHERE, ERR_TIMEOUT, "exec_mutex", retval);

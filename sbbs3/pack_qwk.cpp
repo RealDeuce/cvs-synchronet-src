@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.25 2002/03/06 14:01:34 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.26 2002/03/13 18:17:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			return(false); }
 
 		now=time(NULL);
-		tm=gmtime(&now);
+		tm=localtime(&now);
 		if(tm==NULL)
 			return(false);
 

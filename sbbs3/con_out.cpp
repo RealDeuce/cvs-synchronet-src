@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.15 2002/03/13 12:30:10 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.16 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -328,7 +328,7 @@ void sbbs_t::ctrl_a(char x)
 			break;
 		case 'T':   /* Time */
 			now=time(NULL);
-			tm=gmtime(&now);
+			tm=localtime(&now);
 			if(tm!=NULL)
 				bprintf("%02d:%02d %s"
 					,tm->tm_hour==0 ? 12

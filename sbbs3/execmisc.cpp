@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.20 2002/02/15 13:23:39 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.21 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -516,7 +516,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp=getintvar(csi,*(long *)csi->ip);
 					csi->ip+=4;
 					if(pp && lp) {
-						tm_p=gmtime(lp);
+						tm_p=localtime(lp);
 						if(tm_p) {
 							strftime(buf,128,str,tm_p);
 							*pp=copystrvar(csi,*pp,buf); } }

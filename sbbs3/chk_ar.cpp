@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.7 2001/12/27 16:28:42 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.8 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -379,7 +379,7 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				break;
 			case AR_TIME:
 				now=time(NULL);
-				tm=gmtime(&now);
+				tm=localtime(&now);
 				if(tm==NULL || (tm->tm_hour*60)+tm->tm_min<(int)i)
 					result=_not;
 				else

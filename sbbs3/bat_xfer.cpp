@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.12 2002/02/21 19:11:17 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.13 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -454,7 +454,7 @@ void sbbs_t::start_batch_download()
 	t=now;
 	if(cur_cps) 
 		t+=(totalsize/(ulong)cur_cps);
-	tm=gmtime(&t);
+	tm=localtime(&t);
 	if(tm==NULL)
 		return;
 	thisnode.aux=(tm->tm_hour*60)+tm->tm_min;

@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.20 2002/02/19 13:42:00 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.21 2002/03/13 18:17:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,7 +121,7 @@ void sbbs_t::useredit(int usernumber)
 				,user.comment);
 		else
 			CRLF;
-		tm=gmtime(&user.laston);
+		tm=localtime(&user.laston);
 		if(tm==NULL)
 			return;
 		bprintf(text[UserDates]

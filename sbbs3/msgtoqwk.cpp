@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.7 2002/03/08 02:41:18 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.8 2002/03/13 18:17:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -290,7 +290,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		size++;
 		fputc(SP,qwk_fp); }
 
-	tm_p=gmtime((time_t *)&msg->hdr.when_written.time);
+	tm_p=localtime((time_t *)&msg->hdr.when_written.time);
 	if(tm_p)
 		tm=*tm_p;
 	else

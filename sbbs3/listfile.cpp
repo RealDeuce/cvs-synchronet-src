@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.19 2002/02/08 17:15:13 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.20 2002/03/13 18:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1281,7 +1281,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 						getnodedat(cfg.node_num,&thisnode,1);
 						action=NODE_DLNG;
 						t=now+f.timetodl;
-						tm=gmtime(&t);
+						tm=localtime(&t);
 						if(tm==NULL)
 							break;
 						thisnode.aux=(tm->tm_hour*60)+tm->tm_min;
