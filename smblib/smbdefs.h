@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.59 2004/10/13 23:50:48 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.58 2004/09/23 19:04:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,7 +148,6 @@
 #define SMB_ERR_TIMEOUT		-205		/* File operation timed-out */
 #define SMB_ERR_FILE_LEN	-206		/* File length invalid */
 #define SMB_ERR_DELETE		-207		/* File deletion error */
-#define SMB_ERR_UNLOCK		-208		/* File unlock error */
 #define SMB_ERR_MEM			-300		/* Memory allocation error */
 
 #define SMB_DUPE_MSG		1			/* Duplicate message detected by smb_addcrc() */
