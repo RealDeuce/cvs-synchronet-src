@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.91 2003/03/29 10:38:45 deuce Exp $ */
+/* $Id: websrvr.c,v 1.92 2003/03/29 11:50:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1164,8 +1164,7 @@ static BOOL parse_headers(http_session_t * session)
 					if(p==NULL)
 						break;
 					while(*p && *p<' ') p++;
-					b64_decode(p,strlen(p),p,strlen(p));
-					SAFECOPY(session->req.auth,p);
+					b64_decode(session->req.auth,sizeof(session->req.auth),p,strlen(p));
 					break;
 				case HEAD_LENGTH:
 					if(session->req.dynamic==IS_CGI)
@@ -2343,7 +2342,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.92 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
