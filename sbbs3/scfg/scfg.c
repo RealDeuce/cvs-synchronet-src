@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.63 2004/09/17 08:04:34 rswindell Exp $ */
+/* $Id: scfg.c,v 1.60 2004/08/31 09:34:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,7 @@ int main(int argc, char **argv)
 	int 	i,j,main_dflt=0,chat_dflt=0;
 	char 	str[MAX_PATH+1];
  	char	exepath[MAX_PATH+1];
+	BOOL	gui_mode=FALSE;
 	BOOL    door_mode=FALSE;
 
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2004 "
@@ -141,6 +142,12 @@ int main(int argc, char **argv)
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
+				case 'G':
+					gui_mode=TRUE;
+					break;
+				case 'T':
+					gui_mode=FALSE;
+					break;
 				case 'I':
 					uifc.mode|=UIFC_IBM;
 					break;
@@ -158,6 +165,10 @@ int main(int argc, char **argv)
                         "-u  =  update all message base status headers\r\n"
                         "-h  =  don't update message base status headers\r\n"
                         "-d  =  run in standard input/output/door mode\r\n"
+#ifdef USE_FLTK
+						"-g  =  use graphical user interface\r\n"
+						"-t  =  use text/terminal user interface (disable GUI)\r\n"
+#endif
                         "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
 #ifdef USE_UIFC32
@@ -187,9 +198,32 @@ FULLPATH(cfg.ctrl_dir,".",sizeof(cfg.ctrl_dir));
 backslashcolon(cfg.ctrl_dir);
 
 uifc.size=sizeof(uifc);
+#if defined(USE_FLTK)
+if(!door_mode && gui_mode==TRUE
+#if defined(__unix__)
+	&& (getenv("DISPLAY")!=NULL)
+#endif
+	)
+    i=uifcinifltk(&uifc);  /* dialog */
+else
+#endif
+#if defined(USE_DIALOG)
+if(!door_mode)
+    i=uifcinid(&uifc);  /* dialog */
+else
+#elif defined(USE_UIFC32)
 if(!door_mode)
     i=uifcini32(&uifc);  /* curses/conio */
 else
+#elif defined(USE_CURSES)
+if(!door_mode)
+    i=uifcinic(&uifc);  /* curses */
+else
+#elif !defined(__unix__) && !defined(_MSC_VER) && !defined(USE_UIFC32)
+if(!door_mode)
+    i=uifcini(&uifc);   /* conio */
+else
+#endif
     i=uifcinix(&uifc);  /* stdio */
 if(i!=0) {
     printf("uifc library init returned error %d\n",i);
@@ -919,7 +953,7 @@ indicate a Baja shell file named MYBBS.BIN in your EXEC directory.
 				break; } } }
 }
 
-int whichlogic(void)
+int whichlogic()
 {
 	int i;
 
@@ -951,7 +985,7 @@ if(uifc.savdepth && uifc.savnum)
 return(i);
 }
 
-int whichcond(void)
+int whichcond()
 {
 	int i;
 
@@ -1851,9 +1885,6 @@ int code_ok(char *str)
 	return(1);
 }
 
-#ifdef __BORLANDC__
-	#pragma argsused
-#endif
 int lprintf(int level, char *fmt, ...)
 {
 	va_list argptr;

@@ -1,5 +1,5 @@
 # smblib/targets.mk
+default: lib mtlib
 
-SMBLIB_BUILD	=	$(LIBODIR)$(DIRSEP)$(LIBPREFIX)smb$(LIBFILE)
-
-lib: $(OBJODIR) $(LIBODIR) $(SMBLIB_BUILD)
+lib:	$(LIBODIR) $(SMBLIB)
+mtlib:	$(LIBODIR) $(SMBLIB-MT)
