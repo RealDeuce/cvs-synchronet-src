@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.8 2004/05/20 09:53:38 rswindell Exp $ */
+/* $Id: str_list.c,v 1.9 2004/05/20 19:27:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,15 +188,21 @@ void strListSortAlphaCaseReverse(str_list_t list)
 	qsort(list,strListCount(list),sizeof(char*),strListCompareAlphaCaseReverse);
 }
 
-void strListFree(str_list_t* list)
+void strListFreeStrings(str_list_t list)
 {
 	size_t i;
 
+	if(list!=NULL) {
+		for(i=0;list[i]!=NULL;i++)
+			free(list[i]);
+		list[0]=NULL;	/* terminate */
+	}
+}
+
+void strListFree(str_list_t* list)
+{
 	if(*list!=NULL) {
-
-		for(i=0;(*list)[i]!=NULL;i++)
-			free((*list)[i]);
-
+		strListFreeStrings(*list);
 		free(*list);
 	}
 }
