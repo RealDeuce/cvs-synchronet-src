@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.350 2004/11/18 09:12:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.357 2005/01/13 03:14:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,6 @@ static int		mailproc_count;
 struct mailproc {
 	char		cmdline[INI_MAX_VALUE_LEN];
 	str_list_t	to;
-	BOOL		match;
 	BOOL		passthru;
 	BOOL		native;
 } *mailproc_list;
@@ -638,10 +637,11 @@ static void pop3_thread(void* arg)
 	int			rd;
 	BOOL		activity=FALSE;
 	BOOL		apop=FALSE;
-	ulong		l;
+	long		l;
 	ulong		lines;
 	ulong		lines_sent;
-	ulong		msgs,bytes,msgnum;
+	long		msgs,msgnum;
+	ulong		bytes;
 	SOCKET		socket;
 	HOSTENT*	host;
 	smb_t		smb;
@@ -1844,6 +1844,7 @@ static void smtp_thread(void* arg)
 	smtp_t		smtp=*(smtp_t*)arg;
 	SOCKADDR_IN server_addr;
 	IN_ADDR		dnsbl_result;
+	BOOL*		mailproc_match;
 	enum {
 			 SMTP_STATE_INITIAL
 			,SMTP_STATE_HELO
@@ -1885,6 +1886,15 @@ static void smtp_thread(void* arg)
 		thread_down();
 		return;
 	} 
+
+	if((mailproc_match=alloca(sizeof(BOOL)*mailproc_count))==NULL) {
+		lprintf(LOG_ERR,"%04d !SMTP ERROR allocating memory for mailproc_match", socket);
+		sockprintf(socket,sys_error);
+		mail_close_socket(socket);
+		thread_down();
+		return;
+	} 
+	memset(mailproc_match,FALSE,sizeof(BOOL)*mailproc_count);
 
 	memset(&smb,0,sizeof(smb));
 	memset(&msg,0,sizeof(msg));
@@ -2122,7 +2132,7 @@ static void smtp_thread(void* arg)
 					for(i=0;i<mailproc_count;i++) {
 
 						/* This processor is for specific recipients only and did not match */
-						if(strListCount(mailproc_list[i].to) && !mailproc_list[i].match)
+						if(strListCount(mailproc_list[i].to) && !mailproc_match[i])
 							continue;
 
 						mailcmdstr(mailproc_list[i].cmdline
@@ -2224,7 +2234,6 @@ static void smtp_thread(void* arg)
 								,socket, startup->dnsbl_tag);
 						}
 						smb_hfield_str(&msg, SUBJECT, p);
-						msg.idx.subj=smb_subject_crc(p);
 						continue;
 					}
 					if(!strnicmp(buf, "FROM:", 5)
@@ -2317,11 +2326,8 @@ static void smtp_thread(void* arg)
 				smb_hfield_str(&msg, SENDER, sender);
 				smb_hfield(&msg, SENDERNETTYPE, sizeof(nettype), &nettype);
 				smb_hfield_str(&msg, SENDERNETADDR, sender_addr);
-				if(msg.idx.subj==0) {
-					p="";
-					smb_hfield(&msg, SUBJECT, 0, p);
-					msg.idx.subj=smb_subject_crc(p);
-				}
+				if(msg.subj==NULL)
+					smb_hfield(&msg, SUBJECT, 0, NULL);
 
 				length=filelength(fileno(msgtxt))-ftell(msgtxt);
 
@@ -3005,17 +3011,22 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 
+			memset(mailproc_match,FALSE,sizeof(BOOL)*mailproc_count);
 			for(i=0;i<mailproc_count;i++) {
-				mailproc_list[i].match=FALSE;
-				for(j=0;mailproc_list[i].to[j]!=NULL;j++) {
-					if(stricmp(p,mailproc_list[i].to[j])==0)
-						mailproc_list[i].match=TRUE;
+				if(mailproc_list[i].to!=NULL) {
+					for(j=0;mailproc_list[i].to[j]!=NULL;j++) {
+						if(stricmp(p,mailproc_list[i].to[j])==0) {
+							mailproc_match[i]=TRUE;
+							if(!mailproc_list[i].passthru)
+								break;
+						}
+					}
+					if(mailproc_list[i].to[j]!=NULL)
+						break;
 				}
-				if(mailproc_list[i].match)
-					break;
 			}
 			/* destined for an external mail processor */
-			if(i<mailproc_count && !mailproc_list[i].passthru) {
+			if(i<mailproc_count) {
 				fprintf(rcptlst,"[%u]\n",rcpt_count++);
 				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 #if 0	/* should we fall-through to the sysop account? */
@@ -3338,6 +3349,7 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	smb_hfield_str(&newmsg, SMB_COMMENT, err);
 	smb_hfield_str(&newmsg, SMB_COMMENT, "\r\nOriginal message text follows:\r\n");
 
+	smb_init_idx(smb,&newmsg);
 	if((i=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK))!=SMB_SUCCESS)
 		lprintf(LOG_ERR,"0000 !BOUNCE ERROR %d (%s) adding message header"
 			,i,smb->last_error);
@@ -3893,7 +3905,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.350 $", "%*s %s", revision);
+	sscanf("$Revision: 1.357 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
