@@ -1,7 +1,7 @@
-/* $Id: x_cio.h,v 1.10 2004/07/05 08:22:36 deuce Exp $ */
+/* $Id: x_cio.h,v 1.2 2004/07/26 22:06:01 rswindell Exp $ */
 
 #ifdef __unix__
-#include "ciowrap.h"
+#include "ciolib.h"
 
 #ifdef __cplusplus
 extern "C" {

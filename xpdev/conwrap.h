@@ -2,13 +2,13 @@
 
 /* Cross-platform local console I/O wrapppers */
 
-/* $Id: conwrap.h,v 1.3 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: conwrap.h,v 1.4 2004/07/20 23:19:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*

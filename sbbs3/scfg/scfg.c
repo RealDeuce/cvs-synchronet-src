@@ -2,13 +2,13 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.57 2004/05/30 06:56:05 deuce Exp $ */
+/* $Id: scfg.c,v 1.59 2004/07/20 01:13:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	BOOL	gui_mode=FALSE;
 	BOOL    door_mode=FALSE;
 
-    printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2003 "
+    printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2004 "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION);
 
 	cfg.size=sizeof(cfg);
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 #endif
                         "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
-#ifdef USE_CURSES
+#ifdef USE_UIFC32
                         "-e# =  set escape delay to #msec\r\n"
 						"-i  =  force IBM charset\r\n"
 #endif
