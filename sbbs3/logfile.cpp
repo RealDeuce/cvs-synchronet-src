@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.11 2001/11/02 01:12:53 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.12 2002/01/15 21:39:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,9 +67,10 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	return(TRUE);
 }
 
-extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* reason, char* host, char* ip_addr)
+extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* reason, char* host, char* ip_addr, char* to)
 {
 	char	hdr[512];
+	char	to_user[128];
 	char	tstr[64];
 	char	fname[MAX_PATH+1];
 	int		file;
@@ -80,11 +81,17 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* reason, char* hos
 	if((file=sopen(fname,O_CREAT|O_WRONLY|O_BINARY|O_APPEND,SH_DENYWR))==-1)
 		return(FALSE);
 
-	sprintf(hdr,"SUSPECTED %s SPAM REJECTED on %.24s\r\nFrom: %s [%s]\r\nReason: "
+	if(to==NULL)
+		to_user[0]=0;
+	else
+		sprintf(to_user,"To: %s",to);
+		
+	sprintf(hdr,"SUSPECTED %s SPAM REJECTED on %.24s\r\nFrom: %s [%s] %s\r\nReason: "
 		,prot
 		,timestr(cfg,&now,tstr)
 		,host
 		,ip_addr
+		,to
 		);
 	write(file,hdr,strlen(hdr));
 	write(file,reason,strlen(reason));
