@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.7 2002/04/12 09:42:02 rswindell Exp $
+# $Id: GNUmakefile,v 1.8 2002/04/12 09:57:19 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -69,10 +69,10 @@ LIBS	+=	../mozilla/js/src/Linux_All_OPT.OBJ/libjs.a
 endif
 endif
 
-include targets.mak		# defines all targets
-include objects.mak		# defines $(OBJS)
-include headers.mak		# defines $(HEADERS)
-include sbbsdefs.mak	# defines $(SBBSDEFS)
+include targets.mk		# defines all targets
+include objects.mk		# defines $(OBJS)
+include headers.mk		# defines $(HEADERS)
+include sbbsdefs.mk		# defines $(SBBSDEFS)
 
 SBBSLIB	=	$(LIBODIR)/sbbs.a
 
@@ -177,4 +177,4 @@ $(SMBUTIL): $(EXEODIR)/smbutil.o $(SMBLIB) $(EXEODIR)/conwrap.o \
 	@echo Linking $@
 	@$(CC) $^ -o $@
 
-include depends.mak
+include depends.mk
