@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.10 2004/09/09 06:31:38 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.9 2004/08/02 02:43:59 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -606,11 +606,6 @@ void curs_gotoxy(int x, int y)
 	refresh();
 }
 
-void call_endwin(void)
-{
-	endwin();
-}
-
 int curs_initciolib(long inmode)
 {
 	short	fg, bg, pair=0;
@@ -639,7 +634,7 @@ int curs_initciolib(long inmode)
 	keypad(stdscr, TRUE);
 	scrollok(stdscr,FALSE);
 	raw();
-	atexit(call_endwin);
+	atexit(endwin);
 
 	/* Set up color pairs */
 	for(bg=0;bg<8;bg++)  {
