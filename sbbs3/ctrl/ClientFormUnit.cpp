@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.cpp,v 1.8 2003/07/13 09:33:12 rswindell Exp $ */
+/* $Id: ClientFormUnit.cpp,v 1.9 2003/07/25 08:26:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -129,7 +129,7 @@ void __fastcall TClientForm::FilterIpMenuItemClick(TObject *Sender)
     		break;
     	if(res==IDYES)
 			filter_ip(&MainForm->cfg,prot.c_str(),"abuse",hostname.c_str()
-				,ip_addr.c_str(),username.c_str());
+				,ip_addr.c_str(),username.c_str(),NULL);
         if(ListView->Selected == NULL)
         	break;
         ListItem=ListView->GetNextItem(ListItem,sdAll,State);
