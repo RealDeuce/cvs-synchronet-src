@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.59 2003/04/01 04:07:28 rswindell Exp $ */
+/* $Id: js_global.c,v 1.60 2003/04/01 09:36:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -241,7 +241,7 @@ js_crc16(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
-	*rval = INT_TO_JSVAL(crc16(str));
+	*rval = INT_TO_JSVAL(crc16(str,0));
 	return(JS_TRUE);
 }
 

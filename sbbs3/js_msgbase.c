@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.69 2003/03/24 22:03:04 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.70 2003/04/01 09:36:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,7 +163,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	if(!(p->smb.status.attr&SMB_EMAIL)) {
 		SAFECOPY(to,cp);
 		strlwr(to);
-		msg->idx.to=crc16(to);
+		msg->idx.to=crc16(to,0);
 	}
 
 	if(JS_GetProperty(cx, hdr, "from", &val) && val!=JSVAL_VOID) {
@@ -175,7 +175,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	if(!(p->smb.status.attr&SMB_EMAIL)) {
 		SAFECOPY(from,cp);
 		strlwr(from);
-		msg->idx.from=crc16(from);
+		msg->idx.from=crc16(from,0);
 	}
 
 	/* Optional Header Fields */
