@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.6 2000/10/30 11:11:10 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.7 2000/10/30 12:02:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,8 +212,8 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
     if(p) *p=0;
     strcpy(fname,str);
 
-    p=strrchr(fname,'\\');
-    if(!p) p=strrchr(fname,'/');
+    p=strrchr(fname,'/');
+    if(!p) p=strrchr(fname,'\\');
     if(!p) p=strchr(fname,':');
     if(!p) p=fname;
     else   p++;
