@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.29 2003/05/15 20:56:56 rswindell Exp $
+# $Id: Makefile,v 1.30 2003/05/18 05:15:16 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -89,7 +89,9 @@ $(SBBSMONO): $(OBJS) \
 	$(LIBODIR)\websrvr.obj \
 	$(LIBODIR)\mailsrvr.obj $(LIBODIR)\mxlookup.obj $(LIBODIR)\mime.obj $(LIBODIR)\base64.obj \
 	$(LIBODIR)\services.obj
-	@$(CC) $(CFLAGS) -WM -e$(SBBSMONO) $** $(LIBS)
+	@$(CC) $(CFLAGS) -WM -e$(SBBSMONO) $(LIBS) @&&|
+	$**
+|
 
 # SBBS DLL Link Rule
 $(SBBS): $(OBJS) $(LIBODIR)\ver.obj
