@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.53 2003/01/13 09:31:20 rswindell Exp $ */
+/* $Id: userdat.c,v 1.54 2003/01/15 20:38:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1744,12 +1744,14 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 	char	str[MAX_PATH+1];
 	char	tmp[128];
 	int		c;
+	int		i;
 	int		err;
 	int		file;
 	int		unum=1;
 	int		last;
 	long	misc;
 	FILE*	stream;
+	stats_t	stats;
 
 	sprintf(str,"%suser/name.dat",cfg->data_dir);
 	if(fexist(str)) {
@@ -1810,6 +1812,22 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 	remove(str);
 	sprintf(str,"%suser/%04u.sig",cfg->data_dir,user->number); /* delete signature */
 	remove(str);
+
+	/* Update daily statistics database (for system and node) */
+
+	for(i=0;i<2;i++) {
+		sprintf(str,"%sdsts.dab",i ? cfg->ctrl_dir : cfg->node_dir);
+		if((file=nopen(str,O_RDWR))==-1) {
+			return(errno); 
+		}
+		memset(&stats,0,sizeof(stats));
+		lseek(file,4L,SEEK_SET);   /* Skip timestamp */
+		read(file,&stats,sizeof(stats));  
+		stats.nusers++;
+		lseek(file,4L,SEEK_SET);
+		write(file,&stats,sizeof(stats));
+		close(file); 
+	}
 
 	return(0);
 }
