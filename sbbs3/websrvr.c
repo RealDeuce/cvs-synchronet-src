@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.53 2002/11/26 06:50:02 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.54 2002/11/30 22:57:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1687,6 +1687,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob)
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	JSObject*	server;
+	JSString*	js_str;
 	jsval		val;
 	BOOL		success=FALSE;
 
@@ -1717,11 +1718,15 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob)
 			break;
 
 		sprintf(ver,"%s %s",server_name,revision);
-		val = STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx, ver));
+		if((js_str=JS_NewStringCopyZ(js_cx, ver))==NULL)
+			break;
+		val = STRING_TO_JSVAL(js_str);
 		if(!JS_SetProperty(js_cx, server, "version", &val))
 			break;
 
-		val = STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx, web_ver()));
+		if((js_str=JS_NewStringCopyZ(js_cx, web_ver()))==NULL)
+			break;
+		val = STRING_TO_JSVAL(js_str);
 		if(!JS_SetProperty(js_cx, server, "version_detail", &val))
 			break;
 
@@ -2018,7 +2023,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.53 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.54 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
