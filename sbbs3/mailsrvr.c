@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.275 2003/08/30 06:33:27 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.276 2003/08/30 07:13:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -475,7 +475,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 		if(msg->from_net.type==NET_INTERNET && msg->from_net.addr!=NULL)
 			SAFECOPY(fromaddr,(char*)msg->from_net.addr);
 		else if(msg->from_net.type==NET_QWK && msg->from_net.addr!=NULL)
-			sprintf(fromaddr,"\"%s@%s\"@%s"
+			sprintf(fromaddr,"%s!%s@%s"
 				,msg->from,(char*)msg->from_net.addr,scfg.sys_inetaddr);
 		else 
 			usermailaddr(&scfg,fromaddr,msg->from);
@@ -2600,7 +2600,9 @@ static void smtp_thread(void* arg)
 
 			usernum=0;	/* unknown user at this point */
 
-			tp=strrchr(p,'@');	/* Double-@? Routed QWKnet mail? */
+			tp=strrchr(p,'@');		/* Double-@? Routed QWKnet mail? */
+			if(tp==NULL)
+				tp=strrchr(p,'!');	/* Or user!node@host format */
 			if(tp!=NULL) {
 				*tp=0;
 				SAFECOPY(rcpt_addr,p);
@@ -3300,7 +3302,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.275 $", "%*s %s", revision);
+	sscanf("$Revision: 1.276 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
