@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.2 2000/10/29 04:48:50 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.3 2000/10/30 12:02:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,7 @@ BOOL SMBCALL fexist(char *filespec)
 /****************************************************************************/
 long filelength(int fd)
 {
-	stat st;
+	STAT st;
 
 	if(fstat(fd, &st)!=0)
 		return(-1L);
@@ -150,21 +150,21 @@ long filelength(int fd)
 }
 
 /* Sets a lock on a portion of a file */
-int lock(int fd, int pos, int len)
+int lock(int fd, long pos, int len)
 {
 	return 0;
 }
 
 /* Removes a lock from a file record */
-int unlock(int fd, int pos, int len)
+int unlock(int fd, long pos, int len)
 {
 	return 0;
 }
 
 /* Opens a file in specified sharing (file-locking) mode */
-int sopen(char *fn, int access, int share, int perm)
+int sopen(char *fn, int access, int share)
 {
-	return 0;
+	return(open(fn,access,S_IREAD|S_IWRITE));
 }
 
 #elif defined _MSC_VER || defined __MINGW32__
