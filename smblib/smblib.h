@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.3 2000/10/23 20:51:50 rswindell Exp $ */
+/* $Id: smblib.h,v 1.4 2000/10/23 23:14:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,23 +40,6 @@
 
 #include "lzh.h"
 
-#if defined __WATCOMC__ || defined __TURBOC__ || defined _MSC_VER
-	#include <io.h>
-	#include <share.h>
-#endif
-
-#if defined __WATCOMC__ || defined __TURBOC__
-	#include <mem.h>
-#else
-	#include <memory.h>
-#endif
-
-#ifdef __WATCOMC__
-	#include <dos.h>
-#elif defined __TURBOC__
-	#include <dir.h>
-#endif
-
 #ifdef EXPORT32
 	#undef EXPORT32
 #endif
@@ -81,16 +64,6 @@
 	#define SMBCALL
 	#define EXPORT32
 #endif
-
-#include <malloc.h>
-#include <time.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include "smbdefs.h"
 
