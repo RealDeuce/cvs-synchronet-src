@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.43 2004/12/07 08:51:58 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.44 2004/12/15 20:59:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,7 +86,7 @@ static char* msg_area_prop_desc[] = {
 	,"user has operator access to this message area"
 	,"user's posts are moderated"
 	,"user's current new message scan pointer (highest-read message number)"
-	,"user's message scan configuration (bitfield) see <tt>SUB_SCAN_*</tt> in <tt>sbbsdefs.js</tt> for valid bits"
+	,"user's message scan configuration (bitfield) see <tt>SCAN_CFG_*</tt> in <tt>sbbsdefs.js</tt> for valid bits"
 	,"user's last-read message number"
 	,NULL
 };
