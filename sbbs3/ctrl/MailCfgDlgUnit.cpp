@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.8 2002/04/17 07:13:11 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.9 2002/04/26 11:01:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,6 +118,8 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     	&MAIL_OPT_RELAY_TX;
     UserNumberCheckBox->Checked=MainForm->mail_startup.options
     	&MAIL_OPT_ALLOW_RX_BY_NUMBER;
+    AllowRelayCheckBox->Checked=MainForm->mail_startup.options
+    	&MAIL_OPT_ALLOW_RELAY;
     RBLCheckBox->Checked=MainForm->mail_startup.options
     	&MAIL_OPT_USE_RBL;
     DULCheckBox->Checked=MainForm->mail_startup.options
@@ -205,6 +207,10 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_RX_BY_NUMBER;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_ALLOW_RX_BY_NUMBER;
+	if(AllowRelayCheckBox->Checked==true)
+    	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_RELAY;
+    else
+	    MainForm->mail_startup.options&=~MAIL_OPT_ALLOW_RELAY;
 	if(RBLCheckBox->Checked==true)
     	MainForm->mail_startup.options|=MAIL_OPT_USE_RBL;
     else
