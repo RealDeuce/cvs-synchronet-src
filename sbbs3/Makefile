@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.44 2004/05/18 05:01:55 rswindell Exp $
+# $Id: Makefile,v 1.45 2004/07/20 09:11:19 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -146,7 +146,7 @@ $(NODE): node.c
 	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
 SMBLIB = $(LIBODIR)\smblib.obj $(LIBODIR)\genwrap.obj $(LIBODIR)\filewrap.obj \
-	 $(LIBODIR)\crc16.obj
+	 $(LIBODIR)\crc16.obj $(LIBODIR)\smbdump.obj
 
 # FIXSMB Utility
 $(FIXSMB): fixsmb.c $(SMBLIB) $(LIBODIR)\str_util.obj $(LIBODIR)\dirwrap.obj

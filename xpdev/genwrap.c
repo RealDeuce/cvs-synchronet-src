@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.37 2003/11/03 03:17:49 deuce Exp $ */
+/* $Id: genwrap.c,v 1.38 2004/07/20 01:44:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@
 /****************************************************************************/
 /* Used to replace snprintf()  guarantees to terminate.			  			*/
 /****************************************************************************/
-int DLLCALL safe_snprintf(char *dst, size_t size, char *fmt, ...)
+int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 {
 	va_list argptr;
 	int     numchars;
