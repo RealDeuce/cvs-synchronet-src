@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.24 2003/04/23 19:57:27 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.25 2003/04/23 20:34:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,9 +70,10 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	for(count=0;count<LOOP_NODEDAB;count++) {
 		if(count)
 			mswait(100);
-		if(lock(nodefile,(long)number*sizeof(node_t),sizeof(node_t))!=0
-			&& lockit)
+		if(lock(nodefile,(long)number*sizeof(node_t),sizeof(node_t))!=0) {
+			unlock(nodefile,(long)number*sizeof(node_t),sizeof(node_t));
 			continue; 
+		}
 		lseek(nodefile,(long)number*sizeof(node_t),SEEK_SET);
 		rd=read(nodefile,node,sizeof(node_t));
 		if(!lockit || rd!=sizeof(node_t))
@@ -85,14 +86,14 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 		nodefile=-1;
 	}
 
-	if(count>(LOOP_NODEDAB/2) && count!=LOOP_NODEDAB) {
+	if(count==LOOP_NODEDAB) {
+		errormsg(WHERE,rd==sizeof(node_t) ? ERR_LOCK : ERR_READ,"node.dab",number+1);
+		return(-2);
+	}
+	if(count>(LOOP_NODEDAB/2)) {
 		sprintf(str,"NODE.DAB (node %d) COLLISION - Count: %d"
 			,number+1, count);
 		logline("!!",str); 
-	}
-	else if(count==LOOP_NODEDAB) {
-		errormsg(WHERE,rd==sizeof(node_t) ? ERR_LOCK : ERR_READ,"node.dab",number+1);
-		return(-2);
 	}
 
 	return(0);
@@ -277,14 +278,15 @@ int sbbs_t::getnodeext(uint number, char *ext)
 	close(node_ext);
 	node_ext=-1;
 
-	if(count>(LOOP_NODEDAB/2) && count!=LOOP_NODEDAB) {
+
+	if(count==LOOP_NODEDAB) {
+		errormsg(WHERE,ERR_READ,"node.exb",number+1);
+		return(-2);
+	}
+	if(count>(LOOP_NODEDAB/2)) {
 		sprintf(str,"NODE.EXB (node %d) COLLISION - Count: %d"
 			,number+1, count);
 		logline("!!",str); 
-	}
-	else if(count==LOOP_NODEDAB) {
-		errormsg(WHERE,ERR_READ,"node.exb",number+1);
-		return(-2);
 	}
 
 	return(0);
