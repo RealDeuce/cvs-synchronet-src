@@ -538,7 +538,7 @@ int main(int argc, char** argv)  {
 	long value=0;
 	node_t node;
 
-	sscanf("$Revision: 1.9 $", "%*s %s", revision);
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -635,7 +635,7 @@ int main(int argc, char** argv)  {
 		uifc.helpbuf=	"`Synchronet Monitor:`\n"
 						"\nToDo: Add help.";
 						
-		j=uifc.list(WIN_ORG|WIN_MID|WIN_ESC|WIN_DYN,0,0,70,&main_dflt,&main_bar
+		j=uifc.list(WIN_ORG|WIN_MID|WIN_ESC|WIN_ACT|WIN_DYN,0,0,70,&main_dflt,&main_bar
 			,str,mopt);
 		if(j==-2)
 			continue;
