@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.19 2002/01/23 03:20:39 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.20 2002/02/06 00:40:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,11 @@ int sbbs_t::xtrn_sec()
 	int		xsec;
 	uint	i,j,k,*usrxtrn,usrxtrns,*usrxsec,usrxsecs;
 	long	l;
+
+	if(useron.rest&FLAG('X')) {
+		bputs(text[R_ExternalPrograms]);
+		return(1);
+	}
 
 	if(!cfg.total_xtrns || !cfg.total_xtrnsecs) {
 		bputs(text[NoXtrnPrograms]);
