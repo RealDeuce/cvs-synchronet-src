@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.13 2002/07/11 10:53:46 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.14 2002/07/11 10:59:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,8 +144,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	if(msg->hdr.attr)
 		show_msgattr(msg->hdr.attr);
 
-	if(msg->to[0])
-		bprintf(text[MsgTo],msg->to);
+	bprintf(text[MsgTo],msg->to);
 	if(msg->to_ext)
 		bprintf(text[MsgToExt],msg->to_ext);
 	if(msg->to_net.addr)
