@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.81 2003/12/08 05:59:32 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.87 2003/12/08 23:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,11 +49,6 @@
 /* Definitions */
 /***************/
 #define DEFAULT_CVSROOT		":pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs"
-#define DIST_LIST_URL1		"http://www.synchro.net/sbbsdist.lst"
-#define DIST_LIST_URL2		"http://rob.synchro.net/sbbsdist.lst"
-#define DIST_LIST_URL3		"http://cvs.synchro.net/sbbsdist.lst"
-#define DIST_LIST_URL4		"http://bbs.synchro.net/sbbsdist.lst"
-#define DIST_LIST_URL5		"http://freebsd.synchro.net/sbbsdist.lst"
 #define DEFAULT_DISTFILE	"sbbs_src.tgz"
 #define DEFAULT_LIBFILE		"lib-%s.tgz"	/* MUST HAVE ONE %s for system type (os-machine or just os) */
 #define DEFAULT_SYSTYPE		"unix"			/* If no other system type available, use this one */
@@ -67,6 +62,15 @@
 #else
 #define MAKE				"gmake"
 #endif
+
+char *distlists[]={
+	 "http://www.synchro.net/sbbsdist.lst"
+	,"http://rob.synchro.net/sbbsdist.lst"
+	,"http://cvs.synchro.net/sbbsdist.lst"
+	,"http://bbs.synchro.net/sbbsdist.lst"
+	,"http://freebsd.synchro.net/sbbsdist.lst"
+	,NULL	/* terminator */
+};
 
 /*******************/
 /* DistList Format */
@@ -139,6 +143,37 @@ dist_t **get_distlist(void);
 int choose_dist(char **opts);
 int choose_server(char **opts);
 
+int filereadline(int sock, char *buf, size_t length, char *error)
+{
+	char    ch;
+	int             i;
+
+	for(i=0;1;) {
+		if(read(sock, &ch,1)!=1)  {
+			if(error != NULL)
+				strcpy(error,"Error Reading File");
+			return(-1);
+		}
+
+		if(ch=='\n')
+			break;
+
+		if(i<length)
+			buf[i++]=ch;
+	}
+
+	/* Terminate at length if longer */
+	if(i>length)
+		i=length;
+
+	if(i>0 && buf[i-1]=='\r')
+		buf[--i]=0;
+	else
+		buf[i]=0;
+
+	return(i);
+}
+
 void bail(int code)
 {
     if(code) {
@@ -186,7 +221,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.81 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -579,9 +614,9 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 						}
 					}
 				}
-				printf("Downloading %s     ",url);
+				printf("Downloading %s           ",url);
 				offset=0;
-				while((ret1=read(remote,buf,sizeof(buf)))>=0)  {
+				while((ret1=read(remote,buf,sizeof(buf)))>0)  {
 					ret2=write(fout,buf,ret1);
 					if(ret2!=ret1)  {
 						printf("\n!ERROR %d writing to %s\n",errno,dstfname);
@@ -590,7 +625,10 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 						exit(EXIT_FAILURE);
 					}
 					offset+=ret2;
-					printf("\b\b\b\b%3lu%%",(long)(((float)offset/(float)flen)*100.0));
+					if(flen)
+						printf("\b\b\b\b\b\b\b\b\b\b%3lu%%      ",(long)(((float)offset/(float)flen)*100.0));
+					else
+						printf("\b\b\b\b\b\b\b\b\b\b%10lu",offset);
 					fflush(stdout);
 				}
 				printf("\n");
@@ -658,12 +696,10 @@ get_distlist(void)
 	int		list=-1;
 	char	sep[2]={'\t',0};
 	char	str[1024];
-	char	error1[128];
-	char	error2[128];
-	char	error3[128];
-	char	error4[128];
-	char	error5[128];
+	char	errors[sizeof(distlists)/sizeof(char*)][128];
+	int     (*readline) (int sock, char *buf, size_t length, char *error)=NULL;
 
+	memset(errors,0,sizeof(errors));
 	if((dist=(dist_t **)MALLOC(sizeof(void *)*MAX_DISTRIBUTIONS))==NULL)
 		allocfail(sizeof(void *)*MAX_DISTRIBUTIONS);
 	for(i=0;i<MAX_DISTRIBUTIONS;i++)
@@ -698,31 +734,31 @@ get_distlist(void)
 
 	if(http_distlist) {
 		uifc.pop("Getting distributions");
-		if((list=http_get_fd(DIST_LIST_URL1,NULL,error1))<0
-				&& (list=http_get_fd(DIST_LIST_URL2,NULL,error2))<0
-				&& (list=http_get_fd(DIST_LIST_URL3,NULL,error3))<0
-				&& (list=http_get_fd(DIST_LIST_URL4,NULL,error4))<0
-				&& (list=http_get_fd(DIST_LIST_URL5,NULL,error5))<0
-				&& r==0)  {
-			uifc.pop(NULL);
-			uifc.bail();
-			printf("Cannot get distribution list!\n"
-				"%s\n- %s\n"
-				"%s\n- %s\n"
-				"%s\n- %s\n"
-				"%s\n- %s\n"
-				"%s\n- %s\n"
-				,DIST_LIST_URL1,error1
-				,DIST_LIST_URL2,error2
-				,DIST_LIST_URL3,error3
-				,DIST_LIST_URL4,error4
-				,DIST_LIST_URL5,error5
-				);
-			exit(EXIT_FAILURE);
+		for(i=0;distlists[i]!=NULL;i++)  {
+			if((list=http_get_fd(distlists[i],NULL,errors[i]))>=0)  {
+				readline=sockreadline;
+				break;
+			}
 		}
 	}
+	if(list<0)  {
+		if(http_distlist)
+			uifc.pop(NULL);
+		uifc.pop("Loading distlist");
+		if((list=open("./sbbsdist.lst",O_RDONLY))<0)
+			list=open("../sbbsdist.lst",O_RDONLY);
+		if(list>=0)
+			readline=filereadline;
+	}
+	if(list<0)  {
+		uifc.bail();
+		printf("Cannot get distribution list!\n");
+		for(i=0;distlists[i]!=NULL;i++)
+			printf("%s\n- %s\n",distlists[i],errors[i]);
+		exit(EXIT_FAILURE);
+	}
 
-	while(list>=0 && (sockreadline(list,in_line,sizeof(in_line),NULL)>=0))  {
+	while(readline != NULL && list>=0 && (readline(list,in_line,sizeof(in_line),NULL)>=0))  {
 		i=strlen(in_line);
 		while(i>0 && in_line[i]<=' ')
 			in_line[i--]=0;
@@ -818,6 +854,8 @@ get_distlist(void)
 	}
 	memset(dist[r],0,sizeof(dist_t));
 	uifc.pop(NULL);
+	if(list>=0)
+		close(list);
 	if(r<1)
 		return(NULL);
 	return(dist);
