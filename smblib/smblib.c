@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.50 2002/12/10 07:07:01 rswindell Exp $ */
+/* $Id: smblib.c,v 1.51 2002/12/28 12:09:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -875,16 +875,12 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 }
 
 /****************************************************************************/
-/* Frees memory allocated for 'msg'                                         */
+/* Frees memory allocated for variable-length header fields in 'msg'        */
 /****************************************************************************/
-void SMBCALL smb_freemsgmem(smbmsg_t* msg)
+void SMBCALL smb_freemsghdrmem(smbmsg_t* msg)
 {
 	ushort	i;
 
-	if(msg->dfield) {
-		FREE(msg->dfield);
-		msg->dfield=NULL;
-	}
 	for(i=0;i<msg->total_hfields;i++)
 		if(msg->hfield_dat[i]) {
 			FREE(msg->hfield_dat[i]);
@@ -899,6 +895,19 @@ void SMBCALL smb_freemsgmem(smbmsg_t* msg)
 		FREE(msg->hfield_dat);
 		msg->hfield_dat=NULL;
 	}
+}
+
+/****************************************************************************/
+/* Frees memory allocated for 'msg'                                         */
+/****************************************************************************/
+void SMBCALL smb_freemsgmem(smbmsg_t* msg)
+{
+	if(msg->dfield) {
+		FREE(msg->dfield);
+		msg->dfield=NULL;
+	}
+	msg->hdr.total_dfields=0;
+	smb_freemsghdrmem(msg);
 }
 
 /****************************************************************************/
