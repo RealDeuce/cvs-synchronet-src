@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.27 2003/10/28 00:21:36 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.28 2003/12/06 11:03:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -245,6 +245,10 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 	smb_hfield(&msg,SENDERNETADDR,strlen(sys_inetaddr),sys_inetaddr);
 	*/
 
+	/* Security logging */
+	smb_hfield_str(&msg,SENDERIPADDR,client.addr);
+	smb_hfield_str(&msg,SENDERHOSTNAME,client.host);
+
 	smb_hfield_str(&msg,SUBJECT,title);
 	strcpy(str,title);
 	msg.idx.subj=subject_crc(str);
@@ -430,6 +434,10 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
 	msg.idx.from=useron.number;
+
+	/* Security logging */
+	smb_hfield_str(&msg,SENDERIPADDR,client.addr);
+	smb_hfield_str(&msg,SENDERHOSTNAME,client.host);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 	msg.idx.subj=subject_crc(title);

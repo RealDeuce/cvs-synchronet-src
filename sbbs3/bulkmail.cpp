@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.15 2003/09/25 08:13:35 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.16 2003/12/06 11:03:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,10 @@ bool sbbs_t::bulkmail(uchar *ar)
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
 	msg.idx.from=useron.number;
+
+	/* Security logging */
+	smb_hfield_str(&msg,SENDERIPADDR,client.addr);
+	smb_hfield_str(&msg,SENDERHOSTNAME,client.host);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 	msg.idx.subj=subject_crc(title);

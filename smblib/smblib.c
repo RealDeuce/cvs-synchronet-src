@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.78 2003/12/04 06:53:46 rswindell Exp $ */
+/* $Id: smblib.c,v 1.79 2003/12/06 11:03:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2188,6 +2188,8 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case SENDERNETADDR:		return("SenderNetAddr");
 		case SENDEREXT:			return("SenderExt");
 		case SENDERORG:			return("SenderOrg");
+		case SENDERIPADDR:		return("SenderIpAddr");
+		case SENDERHOSTNAME:	return("SenderHostName");
 
 		case REPLYTO:			return("ReplyTo");
 		case REPLYTOAGENT:		return("ReplyToAgent");
