@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.13 2001/06/13 21:50:42 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.14 2001/06/20 01:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -434,7 +434,7 @@ long * sbbs_t::getintvar(csi_t *bin, long name)
 			return(&bin->socket_error);
 
 		case 0xA0023A2E:
-			return((long *)&cfg.startup->options);
+			return((long *)&startup->options);
 
 		case 0x16E2585F:
 			sysvar_l[sysvar_li]=client_socket;
@@ -1245,7 +1245,7 @@ int sbbs_t::exec(csi_t *csi)
 			case CS_TWO_MORE_BYTES:
 				switch(*(csi->ip++)) {
 					case CS_USER_EVENT:
-						user_event(*(csi->ip++));
+						user_event((user_event_t)*(csi->ip++));
 						return(0);
 					}
 				errormsg(WHERE,ERR_CHK,"shell instruction",*(csi->ip-1));
