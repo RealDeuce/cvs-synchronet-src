@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.52 2002/01/21 02:56:39 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.53 2002/01/24 12:11:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -468,6 +468,21 @@ static int ftp_lputs(char *str)
         ReleaseMutex(mutex);
         return(0);
     }
+
+#if defined(_DEBUG)
+    if(IsBadReadPtr(FtpForm,sizeof(void*))) {
+        DebugBreak();
+        return(0);
+    }
+    if(IsBadReadPtr(FtpForm->Log,sizeof(void*))) {
+        DebugBreak();
+        return(0);
+    }
+    if(IsBadReadPtr(FtpForm->Log->Lines,sizeof(void*))) {
+        DebugBreak();
+        return(0);
+    }
+#endif
 
     while(FtpForm->Log->Text.Length()>=MAX_LOGLEN)
         FtpForm->Log->Lines->Delete(0);
