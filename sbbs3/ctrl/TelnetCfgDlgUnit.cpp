@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.5 2001/05/16 00:31:14 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.6 2001/07/11 03:35:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,6 +221,8 @@ void __fastcall TTelnetCfgDlg::RLoginEnabledCheckBoxClick(TObject *Sender)
     RLoginInterfaceEdit->Enabled = RLoginEnabledCheckBox->Checked;
     RLoginIPallowButton->Enabled = RLoginEnabledCheckBox->Checked;
     RLogin2ndNameCheckBox->Enabled = RLoginEnabledCheckBox->Checked;
+    RLoginPortLabel->Enabled = RLoginEnabledCheckBox->Checked;
+    RLoginInterfaceLabel->Enabled = RLoginEnabledCheckBox->Checked;
 }
 //---------------------------------------------------------------------------
 
