@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.12 2002/01/28 15:52:07 rswindell Exp $ */
+/* $Id: uifc.h,v 1.13 2002/01/28 20:44:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +69,7 @@
 
 #if defined(__unix__) && !defined(stricmp)
     #define stricmp strcasecmp
+	#define strnicmp strncasecmp
 #endif
 
 /****************************************************************************/
