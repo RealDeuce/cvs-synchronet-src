@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.141 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.142 2002/04/13 19:34:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,11 +34,6 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-
-#include <limits.h>		/* INT_MAX */
-#if defined(__unix__)
-	#include <signal.h>	/* do we need bsd/signal on Linux? */
-#endif
 
 #include "sbbs.h"
 #include "ident.h"
