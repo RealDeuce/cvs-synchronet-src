@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.97 2002/10/25 01:20:49 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.98 2002/11/07 07:28:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,9 +55,9 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
-#include <syslog.h>
 #include <stdarg.h>
 #include <stdlib.h>  /* Is this included from somewhere else? */
+#include <sys/syslog.h>
 
 #endif
 
