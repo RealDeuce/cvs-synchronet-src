@@ -2399,8 +2399,8 @@ object MainForm: TMainForm
         ImageIndex = 27
         object TelnetEditRLoginList: TMenuItem
           Caption = 'Allowed RLogin List'
-          Hint = 'rlogin.cfg'
-          OnClick = CtrlMenuItemEditClick
+          Hint = 'RLOGIN.CAN'
+          OnClick = TextMenuItemEditClick
         end
       end
     end
@@ -2495,7 +2495,7 @@ object MainForm: TMainForm
         end
         object ExternalMailProc: TMenuItem
           Caption = 'External Mail Processing'
-          Hint = 'mailproc.ini'
+          Hint = 'MAILPROC.CFG'
           OnClick = CtrlMenuItemEditClick
         end
       end
@@ -2589,11 +2589,10 @@ object MainForm: TMainForm
         Caption = '-'
       end
       object WebEditMenuItem: TMenuItem
-        AutoHotkeys = maManual
         Caption = 'Edit'
         object WebEditMimeTypesMenuItem: TMenuItem
           Caption = 'MIME Types'
-          Hint = 'mime_types.ini'
+          Hint = 'mime_types.cfg'
           OnClick = CtrlMenuItemEditClick
         end
       end
@@ -2616,7 +2615,6 @@ object MainForm: TMainForm
         Caption = '-'
       end
       object ServicesEditMenuItem: TMenuItem
-        AutoHotkeys = maManual
         Caption = 'Edit'
         object ServicesEditIniMenuOption: TMenuItem
           Caption = 'services.ini'
@@ -2666,7 +2664,6 @@ object MainForm: TMainForm
         AutoCheck = True
       end
       object ViewToolbarMenuItem: TMenuItem
-        AutoCheck = True
         Caption = 'Tool&bar'
         OnClick = ViewToolbarMenuItemClick
       end
