@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.7 2001/04/30 00:46:05 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.8 2001/05/17 03:09:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #ifndef _SCFGLIB_H
 #define _SCFGLIB_H
+
+#include "scfgdefs.h"	/* scfg_t */
 
 /* #define SAVE_MEMORY /* This makes it difficult to free */
 
