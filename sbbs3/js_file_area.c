@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.11 2002/02/07 16:57:43 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.12 2002/02/07 19:38:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,11 @@ enum {	/* file_area Object Properties */
 	 PROP_MIN_DSPACE
 	,PROP_MIN_LEECH_PCT
 	,PROP_MIN_LEECH_SEC
+
+	/* directory numbers */
+	,PROP_USER_DIR
+	,PROP_SYSOP_DIR
+	,PROP_UPLOAD_DIR
 };
 
 static JSClass js_file_area_class = {
