@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.139 2002/04/12 06:19:37 rswindell Exp $ */
+/* $Id: main.cpp,v 1.140 2002/04/13 00:57:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2147,14 +2147,17 @@ int sbbs_t::nopen(char *str, int access)
 		access|=O_BINARY;
     while(((file=sopen(str,access,share))==-1)
         && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
-        if(count)
-            mswait(100);
+	    mswait(100);
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
-        sprintf(logstr,"NOPEN COLLISION - File: %s Count: %d"
+        sprintf(logstr,"NOPEN COLLISION - File: \"%s\" Count: %d"
             ,str,count);
         logline("!!",logstr); }
-    if(file==-1 && (errno==EACCES || errno==EAGAIN))
-        bputs("\7\r\nNOPEN: ACCESS DENIED\r\n\7");
+    if(file==-1 && (errno==EACCES || errno==EAGAIN)) {
+        sprintf(logstr,"NOPEN ACCESS DENIED - File: \"%s\" errno: %d"
+			,str,errno);
+		logline("!!",logstr);
+		bputs("\7\r\nNOPEN: ACCESS DENIED\r\n\7");
+	}
     return(file);
 }
 
