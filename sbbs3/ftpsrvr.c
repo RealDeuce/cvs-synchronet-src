@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.222 2003/03/11 19:31:16 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.223 2003/03/11 22:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1455,7 +1455,7 @@ static void send_thread(void* arg)
 #ifdef _DEBUG
 		socket_debug[xfer.ctrl_sock]&=~SOCKET_DEBUG_SEND;
 #endif
-		if(wr!=rd) {
+		if(wr<1) {
 			if(wr==SOCKET_ERROR) {
 				if(ERROR_VALUE==EWOULDBLOCK) {
 					/*lprintf("%04d DATA send would block, retrying",xfer.ctrl_sock);*/
@@ -1483,13 +1483,11 @@ static void send_thread(void* arg)
 				error=TRUE;
 				break;
 			}
-			lprintf("%04d !DATA ERROR sent %d instead of %d on socket %d"
-				,xfer.ctrl_sock,wr,rd,*xfer.data_sock);
-#if 0 /* Removed Mar-11-2003, this is apparently normal in Linux */
-			sockprintf(xfer.ctrl_sock,"451 Short DATA transfer");
+			lprintf("%04d !DATA SEND ERROR %d (%d) on socket %d"
+				,xfer.ctrl_sock, wr, ERROR_VALUE, *xfer.data_sock);
+			sockprintf(xfer.ctrl_sock,"451 DATA send error");
 			error=TRUE;
 			break;
-#endif
 		}
 		total+=wr;
 		*xfer.lastactive=time(NULL);
@@ -4439,7 +4437,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.222 $", "%*s %s", revision);
+	sscanf("$Revision: 1.223 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
