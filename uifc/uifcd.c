@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.27 2002/04/26 01:22:02 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.28 2002/04/26 01:29:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,6 +316,21 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
     return(ret);
 }
 
+/****************************************************************************/
+/* Convert ASCIIZ string to upper case										*/
+/****************************************************************************/
+#if defined(__unix__)
+static char* strupr(char* str)
+{
+	char*	p=str;
+
+	while(*p) {
+		*p=toupper(*p);
+		p++;
+	}
+	return(str);
+}
+#endif
 
 /*************************************************************************/
 /* This function is a windowed input string input routine.               */
