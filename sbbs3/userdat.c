@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.17 2001/09/06 02:28:49 rswindell Exp $ */
+/* $Id: userdat.c,v 1.18 2001/09/27 19:43:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1340,4 +1340,24 @@ void DLLCALL resetdailyuserdat(scfg_t* cfg, user_t* user)
 	/* extra time today */
 	user->textra=0;
 	putuserrec(cfg,user->number,U_TEXTRA,5,"0");	
+}
+
+/****************************************************************************/
+/****************************************************************************/
+char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name)
+{
+	int i;
+
+	if(strchr(name,'.') && strchr(name,' '))
+		sprintf(addr,"\"%s\"@",name);
+	else {
+		sprintf(addr,"%s@",name);
+		/* convert "first last@" to "first.last@" */
+		for(i=0;addr[i];i++)
+			if(addr[i]==' ' || addr[i]&0x80)
+				addr[i]='.';
+		strlwr(addr);
+	}
+	strcat(addr,cfg->sys_inetaddr);
+	return(addr);
 }
