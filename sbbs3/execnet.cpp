@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.13 2002/11/09 09:44:31 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.14 2002/11/09 09:58:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -551,7 +551,7 @@ SOCKET sbbs_t::ftp_data_sock(csi_t* csi, SOCKET ctrl_sock, SOCKADDR_IN* addr)
 		return(INVALID_SOCKET);
 	}
 
-	memset(addr,0,sizeof(addr));
+	memset(addr,0,sizeof(SOCKADDR_IN));
 	addr->sin_addr.s_addr = htonl(startup->telnet_interface);
 	addr->sin_family = AF_INET;
 
