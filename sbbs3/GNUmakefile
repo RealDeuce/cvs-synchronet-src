@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.19 2002/05/08 22:43:54 rswindell Exp $
+# $Id: GNUmakefile,v 1.20 2002/05/17 21:00:10 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -61,7 +61,7 @@ LFLAGS	:=	-lm -pthread
 else			# Linux / Other UNIX
 # Math and pthread libraries needed
 ifdef bcc
-LFLAGS	:=	libm.a libpthread.a
+LFLAGS	:=	libpthread.so
 else
 LFLAGS	:=	-lm -lpthread
 endif
