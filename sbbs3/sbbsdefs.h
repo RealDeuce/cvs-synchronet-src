@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.62 2002/04/12 06:18:24 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.63 2002/04/22 09:32:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -720,6 +720,12 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_BIN		(1<<11)		/* Binary mode (no Unix LF to CRLF)			*/
 #define EX_NATIVE	(1<<14)		/* Native 32-bit application (XTRN_NATIVE)	*/
 #define EX_CHKTIME	(1<<16)		/* Check time left (XTRN_CHKTIME)			*/
+
+#if defined(__unix)
+#define EX_WILDCARD	EX_SH		/* Expand wildcards using 'sh' on Unix		*/
+#else
+#define EX_WILDCARD	0
+#endif
 								
 #define OS2_POPEN	(1<<0)		/* Leave COM port open						*/
 								
