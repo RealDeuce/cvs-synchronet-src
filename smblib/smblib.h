@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.14 2002/04/25 22:44:15 rswindell Exp $ */
+/* $Id: smblib.h,v 1.15 2002/05/02 08:01:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,7 @@ extern "C" {
 #endif
 
 SMBEXPORT int 	SMBCALL smb_ver(void);
-SMBEXPORT char *	SMBCALL smb_lib_ver(void);
+SMBEXPORT char*	SMBCALL smb_lib_ver(void);
 SMBEXPORT int 	SMBCALL smb_open(smb_t* smb);
 SMBEXPORT void	SMBCALL smb_close(smb_t* smb);
 SMBEXPORT int 	SMBCALL smb_open_da(smb_t* smb);
