@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.10 2001/09/27 19:44:29 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.11 2001/09/27 20:24:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -136,8 +136,9 @@ int sbbs_t::atcodes(char *instr)
 			bputs(faddrtoa(cfg.faddr[0]));
 	}
 
-	else if(!strcmp(sp,"MAILADDR")) 
-		bputs(usermailaddr(&cfg, str, useron.zipcode));
+	else if(!strcmp(sp,"EMAILADDR")) 
+		bputs(usermailaddr(&cfg, str
+			,cfg.inetmail_misc&NMAIL_ALIAS ? useron.alias : useron.name));
 
 	else if(!strcmp(sp,"QWKID"))
 		bputs(cfg.sys_id);
