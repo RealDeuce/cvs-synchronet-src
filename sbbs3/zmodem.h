@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.15 2005/01/26 11:10:53 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.16 2005/01/26 11:44:31 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -208,8 +208,6 @@ typedef struct {
 	int want_fcs_16;
 	int escape_all_control_characters;						/* guess */
 	int escape_8th_bit;
-
-	int use_variable_headers;								/* use variable length headers */
 
 	/*
 	 * file management options.
