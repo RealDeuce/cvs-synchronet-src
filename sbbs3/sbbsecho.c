@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.163 2004/12/29 10:16:24 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.162 2004/11/19 05:29:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2315,14 +2315,23 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	destaddr.point=fmsghdr.destpoint;
 
 	smb_hfield_str(&msg,SENDER,fmsghdr.from);
+	strlwr(fmsghdr.from);
+	if(subnum==INVALID_SUB)
+		msg.idx.from=0;
+	else
+		msg.idx.from=crc16(fmsghdr.from,0);
+
 	smb_hfield_str(&msg,RECIPIENT,fmsghdr.to);
+	strlwr(fmsghdr.to);
+	msg.idx.to=crc16(fmsghdr.to,0);
 
 	if(user) {
 		sprintf(str,"%u",user);
 		smb_hfield_str(&msg,RECIPIENTEXT,str);
-	}
+		msg.idx.to=user; }
 
 	smb_hfield_str(&msg,SUBJECT,fmsghdr.subj);
+	msg.idx.subj=smb_subject_crc(fmsghdr.subj);
 
 	if(fbuf==NULL) {
 		printf("ERROR allocating fbuf\n");
@@ -3946,7 +3955,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.163 $", "%*s %s", revision);
+	sscanf("$Revision: 1.162 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

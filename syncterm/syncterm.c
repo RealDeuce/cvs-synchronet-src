@@ -6,7 +6,7 @@
 #include <dirwrap.h>
 
 #include "bbslist.h"
-#include "conn.h"
+#include "rlogin.h"
 #include "uifcinit.h"
 
 #ifdef _WINSOCKAPI_
@@ -40,7 +40,6 @@ int main(int argc, char **argv)
 {
 	struct bbslist *bbs;
 	struct	text_info txtinfo;
-	char	str[MAX_PATH];
 	char	drive[MAX_PATH];
 	char	path[MAX_PATH];
 	char	fname[MAX_PATH];
@@ -59,7 +58,7 @@ int main(int argc, char **argv)
 	FULLPATH(path,drive,sizeof(path));
 	atexit(uifcbail);
 	while((bbs=show_bbslist(BBSLIST_SELECT,path))!=NULL) {
-		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->conn_type)) {
+		if(!rlogin_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->dumb)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			str_list_t	inifile;
@@ -94,30 +93,10 @@ int main(int argc, char **argv)
 				strListFreeStrings(inifile);
 			}
 			uifcbail();
-			switch(bbs->screen_mode) {
-				case SCREEN_MODE_80X25:
-					textmode(C80);
-					break;
-				case SCREEN_MODE_80X28:
-					textmode(C80X28);
-					break;
-				case SCREEN_MODE_80X43:
-					textmode(C80X43);
-					break;
-				case SCREEN_MODE_80X50:
-					textmode(C80X50);
-					break;
-				case SCREEN_MODE_80X60:
-					textmode(C80X60);
-					break;
-			}
-			sprintf(str,"SyncTERM - %s",bbs->name);
-			settitle(str);
 			if(drawwin())
 				return(1);
 			doterm();
-			textmode(txtinfo.currmode);
-			settitle("SyncTERM");
+			rlogin_close();
 		}
 	}
 	uifcbail();
