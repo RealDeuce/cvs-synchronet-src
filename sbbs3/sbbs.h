@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.192 2003/07/08 00:24:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.193 2003/07/08 03:42:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -475,6 +475,7 @@ public:
 	size_t	getstr_offset;
 	size_t	getstr(char *str, size_t length, long mode);
 	long	getnum(ulong max);
+	void	insert_indicator(void);
 
 	/* getkey.cpp */
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
