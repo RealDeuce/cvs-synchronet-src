@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.17 2001/10/02 21:35:18 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.18 2001/10/16 23:36:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -404,7 +404,8 @@ void sbbs_t::newuser()
 	useron.number=i;
 	putuserdat(&cfg,&useron);
 	putusername(&cfg,useron.number,useron.alias);
-	logline(nulstr,"Wrote user data");
+	sprintf(str,"Created user record #%u: %s",useron.number,useron.alias);
+	logline(nulstr,str);
 	if(cfg.new_sif[0]) {
 		sprintf(str,"%suser/%4.4u.dat",cfg.data_dir,useron.number);
 		create_sif_dat(cfg.new_sif,str); }
