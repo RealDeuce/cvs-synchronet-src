@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.26 2002/08/22 19:49:53 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.27 2002/09/10 23:47:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -564,11 +564,12 @@ ulong sbbs_t::logonstats()
     char str[256];
     int dsts,csts;
     uint i;
-    time_t update_t;
+    time_t update_t=0;
     stats_t stats;
     node_t node;
 	struct tm * tm, update_tm;
 
+	memset(&stats,0,sizeof(stats));
 	sprintf(str,"%sdsts.dab",cfg.ctrl_dir);
 	if((dsts=nopen(str,O_RDWR))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
