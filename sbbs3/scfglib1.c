@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.50 2003/05/09 02:58:53 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.51 2003/09/09 11:16:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,7 +107,9 @@ BOOL read_node_cfg(scfg_t* cfg, char* error)
 	get_str(cfg->text_dir,instream); 				/* ctrl directory */
 	get_str(cfg->text_dir,instream); 				/* text directory */
 	get_str(cfg->temp_dir,instream); 				/* temp directory */
+#if 0 /* removed Sep-9-2003, always use nodex/temp (rrs) */
 	if(!cfg->temp_dir[0])
+#endif
 		strcpy(cfg->temp_dir,"temp");
 
 	for(i=0;i<10;i++)  						/* WFC 0-9 DOS commands */
