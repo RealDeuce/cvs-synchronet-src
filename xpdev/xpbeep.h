@@ -1,3 +1,5 @@
+/* $Id: xpbeep.h,v 1.9 2005/01/27 22:12:52 rswindell Exp $ */
+
 #ifndef _XPBEEP_H_
 #define _XPBEEP_H_
 

@@ -1,3 +1,5 @@
+/* $Id: xpbeep.c,v 1.21 2005/01/27 22:12:52 rswindell Exp $ */
+
 /* standard headers */
 #include <math.h>
 
