@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.1 2000/10/23 09:44:44 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.2 2000/10/23 19:44:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,10 @@
 
 #include <winsock.h>	/* socket/bind/etc. */
 
+#undef  EINTR
+#define EINTR		WSAEINTR
 #define ENOTSOCK	WSAENOTSOCK
+#define EWOULDBLOCK	WSAEWOULDBLOCK
 #define ECONNRESET	WSAECONNRESET
 
 #elif defined(__unix__)	/* Unix-variant */
@@ -55,6 +58,8 @@
 #include <sys/ioctl.h>	/* FIONBIO */
 #include <unistd.h>		/* close */
 
+#define HOSTENT			struct hostent
+#define SOCKADDR_IN		struct sockaddr_in
 #define SOCKET			int
 #define SOCKET_ERROR	-1
 #define INVALID_SOCKET  (SOCKET)(~0)

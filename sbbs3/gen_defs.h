@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.1 2000/10/10 11:24:42 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.2 2000/10/23 19:44:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,15 @@
 #define ESC 	0x1b				/* Escape					^[	*/
 #define SP		0x20				/* Space						*/
 
-									/* Unsigned type short-hands	*/
+#ifndef MAX_PATH
+	#ifdef MAXPATHLEN
+		#define MAX_PATH MAXPATHLEN	/* clib.h */
+	#else
+		#define MAX_PATH 127		/* MS-DOS max */
+	#endif
+#endif
+
+/* Unsigned type short-hands	*/
 #define uchar	unsigned char
 #define ushort  unsigned short
 #define uint    unsigned int
