@@ -2,7 +2,7 @@
 
 /* Synchronet WinNT VDD FOSSIL constant/type definitions */
 
-/* $Id: vdd_func.h,v 1.1 2000/10/10 11:24:43 rswindell Exp $ */
+/* $Id: vdd_func.h,v 1.2 2001/07/18 20:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@ enum {
 	,VDD_OUTBUF_FULL
 	,VDD_OUTBUF_SIZE
 	,VDD_ONLINE
+	,VDD_YIELD
 };
 
 typedef struct {
