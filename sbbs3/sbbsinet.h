@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.4 2000/10/24 08:23:44 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.5 2000/10/24 09:04:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,9 +47,11 @@
 
 #elif defined __unix__	/* Unix-variant */
 
+#include <netdb.h>		/* gethostbyname */
 #include <netinet/in.h>	/* IPPROTO_IP */
 #include <sys/socket.h>	/* socket/bind/etc. */
 #include <sys/ioctl.h>	/* FIONBIO */
+#include <arpa/inet.h>	/* inet_ntoa */
 #include <unistd.h>		/* close */
 #include <errno.h>		/* errno */
 
