@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.13 2002/01/16 11:54:42 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.14 2002/01/22 01:49:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,7 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* reason, char* hos
 	if(to==NULL)
 		to_user[0]=0;
 	else
-		sprintf(to_user,"To: %s",to);
+		sprintf(to_user,"to: %s",to);
 		
 	sprintf(hdr,"SUSPECTED %s SPAM REJECTED on %.24s\r\nFrom: %s [%s] %s\r\nReason: "
 		,prot
