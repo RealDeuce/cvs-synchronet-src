@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.60 2002/08/29 01:22:34 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.61 2002/08/29 01:48:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3551,7 +3551,8 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 ******************************************************************************/
 void export_echomail(char *sub_code,faddr_t addr)
 {
-	char str[1025],tear,cr;
+	char	str[1025],tear,cr;
+	char	compiler[32];
 	char*	buf=NULL;
 	uchar*	fmsgbuf=NULL;
 	ulong	fmsgbuflen;
@@ -3568,6 +3569,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 	areasbbs_t fakearea;
 	addrlist_t msg_seen,msg_path;
     clock_t start_tick=0,export_ticks=0;
+
+	DESCRIBE_COMPILER(compiler);
 
 	memset(&msg_seen,0,sizeof(addrlist_t));
 	memset(&msg_path,0,sizeof(addrlist_t));
@@ -3761,8 +3764,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 				if(msg.ftn_pid!=NULL)	/* use original PID */
 					f+=sprintf(fmsgbuf+f,"\1PID: %.256s\r", msg.ftn_pid);
 				else					/* generate PID */
-					f+=sprintf(fmsgbuf+f,"\1PID: SBBSecho v%s-%s r%s %s\r"
-						,SBBSECHO_VER,PLATFORM_DESC,revision,__DATE__);
+					f+=sprintf(fmsgbuf+f,"\1PID: SBBSecho v%s-%s r%s %s %s\r"
+						,SBBSECHO_VER,PLATFORM_DESC,revision,__DATE__,compiler);
 
 				/* Unknown kludge lines are added here */
 				for(l=0;l<msg.total_hfields && f<fmsgbuflen;l++)
@@ -3938,7 +3941,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.60 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.61 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
