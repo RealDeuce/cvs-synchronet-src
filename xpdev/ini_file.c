@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.30 2004/05/30 07:14:08 deuce Exp $ */
+/* $Id: ini_file.c,v 1.35 2004/06/16 02:11:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,9 +42,12 @@
 #include "filewrap.h"	/* chsize */
 #include "ini_file.h"
 
-#define INI_MAX_LINE_LEN	256		/* Maximum length of entire line, includes '\0' */
+/* Maximum length of entire line, includes '\0' */
+#define INI_MAX_LINE_LEN	(INI_MAX_VALUE_LEN*2)
 
 #define NEW_SECTION	((char*)~0)
+
+static ini_style_t default_style;
 
 /****************************************************************************/
 /* Truncates white-space chars off end of 'str'								*/
@@ -83,6 +86,9 @@ static BOOL find_section(FILE* fp, const char* section)
 
 	rewind(fp);
 
+	if(section==ROOT_SECTION)
+		return(TRUE);
+
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
@@ -99,6 +105,9 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char*	p;
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
+
+	if(section==ROOT_SECTION)
+		return(0);
 
 	for(i=0; list[i]!=NULL; i++) {
 		SAFECOPY(str,list[i]);
@@ -183,13 +192,19 @@ static size_t find_value_index(str_list_t list, const char* section, const char*
 	return(i);
 }
 
-size_t iniAddSection(str_list_t* list, const char* section)
+size_t iniAddSection(str_list_t* list, const char* section
+					,ini_style_t* style)
 {
 	char	str[INI_MAX_LINE_LEN];
 	size_t	i;
 
+	if(section==ROOT_SECTION)
+		return(0);
+
 	i=find_section_index(*list, section);
 	if((*list)[i]==NULL) {
+		if(style->section_separator!=NULL)
+			strListAppend(list, style->section_separator, i++);
 		sprintf(str,"[%s]",section);
 		strListAppend(list, str, i);
 	}
@@ -204,7 +219,10 @@ char* iniSetString(str_list_t* list, const char* section, const char* key, const
 	char	curval[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	iniAddSection(list, section);
+	if(style==NULL)
+		style=&default_style;
+
+	iniAddSection(list, section, style);
 
 	if(key==NULL)
 		return(NULL);
@@ -279,6 +297,8 @@ char* iniSetBitField(str_list_t* list, const char* section, const char* key
 	char	str[INI_MAX_VALUE_LEN];
 	int		i;
 
+	if(style==NULL)
+		style=&default_style;
 	if(style->bit_separator==NULL)
 		style->bit_separator="|";
 	str[0]=0;
@@ -459,7 +479,7 @@ iniGetNamedStringList(FILE* fp, const char* section)
 	named_string_t** lp;
 	named_string_t** np;
 
-	if((lp=malloc(sizeof(named_string_t*)))==NULL)
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
 		return(NULL);
 
 	*lp=NULL;
@@ -479,15 +499,15 @@ iniGetNamedStringList(FILE* fp, const char* section)
 			continue;
 		if(name==NEW_SECTION)
 			break;
-		if((np=realloc(lp,sizeof(named_string_t*)*(items+2)))==NULL)
+		if((np=(named_string_t**)realloc(lp,sizeof(named_string_t*)*(items+2)))==NULL)
 			break;
 		lp=np;
-		if((lp[items]=malloc(sizeof(named_string_t)))==NULL)
+		if((lp[items]=(named_string_t*)malloc(sizeof(named_string_t)))==NULL)
 			break;
-		if((lp[items]->name=malloc(strlen(name)+1))==NULL)
+		if((lp[items]->name=(char*)malloc(strlen(name)+1))==NULL)
 			break;
 		strcpy(lp[items]->name,name);
-		if((lp[items]->value=malloc(strlen(value)+1))==NULL)
+		if((lp[items]->value=(char*)malloc(strlen(value)+1))==NULL)
 			break;
 		strcpy(lp[items]->value,value);
 		items++;
@@ -626,7 +646,14 @@ str_list_t iniReadFile(FILE* fp)
 
 BOOL iniWriteFile(FILE* fp, const str_list_t list)
 {
+	size_t		count;
+
 	rewind(fp);
-	chsize(fileno(fp),0);	/* truncate */
-	return(strListWriteFile(fp,list,"\n") == strListCount(list));
+
+	if(chsize(fileno(fp),0)!=0)	/* truncate */
+		return(FALSE);
+
+	count = strListWriteFile(fp,list,"\n");
+
+	return(count == strListCount(list));
 }
