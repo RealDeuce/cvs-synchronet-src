@@ -67,8 +67,6 @@
 #include <sys/ioctl.h>
 #include <signal.h>
 #include <termios.h>
-#include <errno.h>
-#include <unistd.h>
 #endif
 #include "ODCore.h"
 #include "ODGen.h"
@@ -1771,12 +1769,11 @@ no_fossil:
    if(pPortInfo->Method == kComMethodStdIO ||
       pPortInfo->Method == kComMethodUnspecified)
    {
-		if (isatty(STDIN_FILENO))  {
-			tcgetattr(STDIN_FILENO,&tio_default);
+		if (isatty(fileno(stdin)))  {
+			tcgetattr(fileno(stdin),&tio_default);
 			tio_raw = tio_default;
 			cfmakeraw(&tio_raw);
-			tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
-			setvbuf(stdout, NULL, _IONBF, 0);
+			tcsetattr(fileno(stdin),TCSANOW,&tio_raw);
 		}
 
       /* Set port state as open. */
@@ -1961,7 +1958,7 @@ tODResult ODComClose(tPortHandle hPort)
 
 #ifdef INCLUDE_STDIO_COM
 	  case kComMethodStdIO:
-		 tcsetattr(STDIN_FILENO,TCSANOW,&tio_default);
+		 tcsetattr(fileno(stdin),TCSANOW,&tio_default);
 	     break;
 #endif
 
@@ -2782,30 +2779,27 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 		{
 			fd_set	socket_set;
 			struct	timeval tv;
-			int		select_ret=-1;
-			int		recv_ret;
+			int		select_ret, recv_ret;
 
-			while(select_ret==-1) {
-				FD_ZERO(&socket_set);
-				FD_SET(STDIN_FILENO,&socket_set);
+			FD_ZERO(&socket_set);
+			FD_SET(0,&socket_set);
 
-				tv.tv_sec=0;
-				tv.tv_usec=0;
+			tv.tv_sec=0;
+			tv.tv_usec=0;
 
-				select_ret = select(STDIN_FILENO+1, &socket_set, NULL, NULL, bWait ? NULL : &tv);
-				if (select_ret == -1) {
-					if(errno==EINTR)
-						continue;
-					return (kODRCGeneralFailure);
-				}
-				if (select_ret == 0)
-					return (kODRCNothingWaiting);
-			}
+			select_ret = select(1, &socket_set, NULL, NULL, bWait ? NULL : &tv);
+			if (select_ret == -1)
+				return (kODRCGeneralFailure);
+			if (select_ret == 0)
+				return (kODRCNothingWaiting);
 
-			recv_ret = fread(pbtNext, 1, 1, stdin);
+			recv_ret = read(0, pbtNext, 1);
 			if(recv_ret != -1)
 				break;
 			return (kODRCGeneralFailure);
+
+			if (recv_ret == 0)
+				 return (kODRCNothingWaiting);
 
 			break;
 		}
@@ -2964,28 +2958,9 @@ keep_going:
 #ifdef INCLUDE_STDIO_COM
 	  case kComMethodStdIO:
 	    {
-		fd_set  fdset;
-		struct  timeval tv;
-		int             retval=-1;
-
-		while(retval==-1) {
-			FD_ZERO(&fdset);
-			FD_SET(STDOUT_FILENO,&fdset);
-
-			tv.tv_sec=1;
-			tv.tv_usec=0;
-
-			retval=select(STDOUT_FILENO+1,NULL,&fdset,NULL,&tv);
-			if(retval!=1) {
-				if(retval==-1 && errno==EINTR)
-					continue;
-				return(kODRCGeneralFailure);
-			}
-		}
-
-	    if(fwrite(&btToSend,1,1,stdout)!=1)
-		   return(kODRCGeneralFailure);
-		break;
+		    if((write(1,&btToSend,1,0))!=1)
+			   return(kODRCGeneralFailure);
+			break;
 		}
 #endif
 
@@ -3448,32 +3423,8 @@ try_again:
 #ifdef INCLUDE_STDIO_COM
       case kComMethodStdIO:
 	    {
-			int pos=0;
-			fd_set  fdset;
-			struct  timeval tv;
-			int     retval;
-
-			while(pos<nSize) {
-				FD_ZERO(&fdset);
-				FD_SET(STDOUT_FILENO,&fdset);
-
-				tv.tv_sec=1;
-				tv.tv_usec=0;
-
-				retval=select(STDOUT_FILENO+1,NULL,&fdset,NULL,&tv);
-				if(retval!=1) {
-					if(retval==-1 && errno==EINTR)
-						continue;
-					return(kODRCGeneralFailure);
-				}
-
-				retval=fwrite(pbtBuffer+pos,1,nSize-pos,stdout);
-				if(retval!=nSize-pos) {
-					od_sleep(1);
-				}
-
-				pos+=retval;
-			}
+			if(write(1,pbtBuffer,nSize)!=nSize)
+				return (kODRCGeneralFailure);
 		    break;
 		}
 #endif
@@ -3637,7 +3588,7 @@ tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event)
 					if (recv_ret != 1)
 						break;
 				}
-			}
+			} 
 			else
 			{
 				VERIFY_CALL(FALSE);

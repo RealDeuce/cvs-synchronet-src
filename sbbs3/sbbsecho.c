@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.120 2003/12/19 19:26:08 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.117 2003/12/16 05:38:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3681,7 +3681,6 @@ void export_echomail(char *sub_code,faddr_t addr)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 	memset(&pkt_faddr,0,sizeof(faddr_t));
-	memset(&hdr,0,sizeof(hdr));
 	start_tick=0;
 
 	printf("\nScanning for Outbound EchoMail...\n");
@@ -3753,14 +3752,12 @@ void export_echomail(char *sub_code,faddr_t addr)
 			for(m=exp=0;m<posts;m++) {
 				printf("\r%8s %5lu of %-5lu  "
 					,scfg.sub[i]->code,m+1,posts);
-				memset(&msg,0,sizeof(msg));
 				msg.idx=post[m];
 				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=0) {
 					printf("ERROR %d locking %s msghdr\n",k,smb[cur_smb].file);
 					logprintf("ERROR %d line %d locking %s msghdr\n"
 						,k,__LINE__,smb[cur_smb].file);
-					continue; 
-				}
+					continue; }
 				k=smb_getmsghdr(&smb[cur_smb],&msg);
 				if(k || msg.hdr.number!=post[m].number) {
 					smb_unlockmsghdr(&smb[cur_smb],&msg);
@@ -4068,13 +4065,11 @@ int main(int argc, char **argv)
 	for(i=0;i<MAX_OPEN_SMBS;i++)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(config_t));
-	memset(&hdr,0,sizeof(hdr));
-	memset(&pkt_faddr,0,sizeof(pkt_faddr));
 	memset(&msg_seen,0,sizeof(addrlist_t));
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.120 $", "%*s %s", revision);
+	sscanf("$Revision: 1.117 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4574,7 +4569,7 @@ int main(int argc, char **argv)
 
 				/* Read fixed-length header fields */
 				if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fidomsg)!=sizeof(pkdmsg))
-					continue;
+					grunged=TRUE;
 				
 				if(pkdmsg.type==2) { /* Recognized type, copy fields */
 					hdr.orignode = pkdmsg.orignode;
