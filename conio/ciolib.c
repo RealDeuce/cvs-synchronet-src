@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.33 2005/01/23 22:21:47 deuce Exp $ */
+/* $Id: ciolib.c,v 1.34 2005/02/10 05:19:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -746,7 +746,7 @@ void ciolib_textcolor(int colour)
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr&=240;
-	attr|=colour;
+	attr|=(colour*0x0f);
 	ciolib_textattr(attr);
 }
 
