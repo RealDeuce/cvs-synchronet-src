@@ -187,10 +187,9 @@ int http_get_fd(char *URL, size_t *len, char *error)
 		return(-1);
 	}
 	if(atoi(header+9)!=200)  {
-		if(error != NULL)  {
+		if(error != NULL)
 			strncpy(error, header, 128);
-			error[127]=0;
-		}
+		error[127]=0;
 		close(s);
 		return(-1);
 	}
@@ -199,8 +198,8 @@ int http_get_fd(char *URL, size_t *len, char *error)
 			close(s);
 			return(-1);
 		}
-		if(len != NULL && strncasecmp(header,"content-length:",15)==0)  {
-			*len=atol(header+15);
+		if(len != NULL && !strncasecmp(header,"content-length: ",16))  {
+			*len=atoi(header+16);
 		}
 	}
 	return(s);

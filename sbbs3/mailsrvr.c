@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.310 2003/12/13 00:43:41 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.309 2003/12/07 09:33:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,6 @@ static char* badrsp_err	=	"%s replied with:\r\n\"%s\"\r\n"
 							"instead of the expected reply:\r\n\"%s ...\"";
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
-#define DNSBL_THROTTLE_VALUE	5000	/* Milliseconds */
 
 #define STATUS_WFC	"Listening"
 
@@ -1887,8 +1886,6 @@ static void smtp_thread(void* arg)
 		truncsp(buf);
 		if(spy!=NULL)
 			fprintf(spy,"%s\n",buf);
-		if(relay_user.number==0 && dnsbl_result.s_addr && startup->options&MAIL_OPT_DNSBL_THROTTLE)
-			mswait(DNSBL_THROTTLE_VALUE);
 		if(state>=SMTP_STATE_DATA_HEADER) {
 			if(!strcmp(buf,".")) {
 
@@ -3627,7 +3624,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.310 $", "%*s %s", revision);
+	sscanf("$Revision: 1.309 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
