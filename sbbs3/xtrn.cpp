@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.173 2004/12/12 09:25:08 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.174 2005/02/20 20:51:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1236,6 +1236,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 
+	if(startup_dir==NULL)
+		startup_dir=nulstr;
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
