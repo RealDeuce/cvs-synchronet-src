@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.4 2005/01/11 10:36:15 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.5 2005/01/12 12:15:48 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -228,6 +228,7 @@ typedef struct {
 
 	long current_file_size;
 	time_t transfer_start;
+	time_t last_status;
 
 	int receive_32_bit_data;
 	int raw_trace;
