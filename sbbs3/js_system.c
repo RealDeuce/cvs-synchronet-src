@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.92 2004/08/16 10:29:49 rswindell Exp $ */
+/* $Id: js_system.c,v 1.93 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -871,7 +871,7 @@ js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		zone=(short)val;
 	}
 
-	if((js_str = JS_NewStringCopyZ(cx, zonestr(zone)))==NULL)
+	if((js_str = JS_NewStringCopyZ(cx, smb_zonestr(zone,NULL)))==NULL)
 		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(js_str);
