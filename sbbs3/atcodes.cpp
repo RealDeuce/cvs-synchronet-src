@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.27 2002/08/05 10:10:37 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.28 2002/11/07 07:16:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,6 +190,9 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strcmp(sp,"INETADDR"))
 		return(cfg.sys_inetaddr);
+
+	if(!strcmp(sp,"HOSTNAME"))
+		return(startup->host_name);
 
 	if(!strcmp(sp,"FIDOADDR")) {
 		if(cfg.total_faddrs)
