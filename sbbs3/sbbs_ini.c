@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.73 2004/08/03 08:58:28 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.72 2004/07/02 02:15:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,10 +125,8 @@ void sbbs_read_ini(
 	char		value[INI_MAX_VALUE_LEN];
 	global_startup_t global_buf;
 
-	if(global==NULL) {
-		memset(&global_buf,0,sizeof(global_buf));
+	if(global==NULL)
 		global=&global_buf;
-	}
 
 	read_ini_globals(fp, global);
 
