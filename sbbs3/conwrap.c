@@ -3,14 +3,11 @@
     Casey Martin 2000
 */
 
-/* $Id: conwrap.c,v 1.1 2000/11/02 13:19:44 rswindell Exp $ */
+/* $Id: conwrap.c,v 1.2 2000/11/02 13:21:24 rswindell Exp $ */
 
 /* @format.tab-size 4, @format.use-tabs true */
 
-#ifndef __unix__
-    // This *should* work for most unices, as termios is pretty standard
-	#error This file is only to be used in a UNIX build
-#endif
+#ifdef __unix__
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -112,5 +109,4 @@ int getch(void)
     return c;
 }
 
-
-
+#endif // __unix__
