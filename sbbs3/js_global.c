@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.22 2002/05/29 02:26:21 rswindell Exp $ */
+/* $Id: js_global.c,v 1.23 2002/06/23 09:51:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -277,21 +277,38 @@ js_ascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static char* dupestr(char* str)
+{
+	char* p;
+
+	p = (char*)malloc(strlen(str)+1);
+
+	if(p == NULL)
+		return(NULL);
+
+	return(strcpy(p,str));
+}
+
 static JSBool
 js_ascii_str(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
+	char*		str;
 	JSString*	js_str;
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	if((p=JS_GetStringBytes(js_str))==NULL) 
+	if((str=JS_GetStringBytes(js_str))==NULL) 
+		return(JS_FALSE);
+
+	if((p=dupestr(str))==NULL)
 		return(JS_FALSE);
 
 	ascii_str(p);
 
 	js_str = JS_NewStringCopyZ(cx, p);
+	free(p);
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
@@ -301,17 +318,22 @@ static JSBool
 js_strip_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
+	char*		str;
 	JSString*	js_str;
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	if((p=JS_GetStringBytes(js_str))==NULL) 
+	if((str=JS_GetStringBytes(js_str))==NULL) 
+		return(JS_FALSE);
+
+	if((p=dupestr(str))==NULL)
 		return(JS_FALSE);
 
 	strip_ctrl(p);
 
 	js_str = JS_NewStringCopyZ(cx, p);
+	free(p);
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
@@ -320,17 +342,22 @@ static JSBool
 js_strip_exascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
+	char*		str;
 	JSString*	js_str;
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	if((p=JS_GetStringBytes(js_str))==NULL) 
+	if((str=JS_GetStringBytes(js_str))==NULL) 
+		return(JS_FALSE);
+
+	if((p=dupestr(str))==NULL)
 		return(JS_FALSE);
 
 	strip_exascii(p);
 
 	js_str = JS_NewStringCopyZ(cx, p);
+	free(p);
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
@@ -339,17 +366,22 @@ static JSBool
 js_truncsp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
+	char*		str;
 	JSString*	js_str;
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	if((p=JS_GetStringBytes(js_str))==NULL) 
+	if((str=JS_GetStringBytes(js_str))==NULL) 
+		return(JS_FALSE);
+
+	if((p=dupestr(str))==NULL)
 		return(JS_FALSE);
 
 	truncsp(p);
 
 	js_str = JS_NewStringCopyZ(cx, p);
+	free(p);
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
