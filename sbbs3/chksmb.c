@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.10 2002/04/02 18:49:00 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.11 2002/04/12 09:23:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,13 +37,16 @@
 
 /* ANSI */
 #include <stdio.h>	
+#include <stdlib.h>		/* exit */
 #include <string.h>		/* strrchr */
 #include <time.h>		/* ctime */
 
 /* SMB-specific */
-#include "smbwrap.h"
 #include "smblib.h"
+#include "genwrap.h"
 #include "conwrap.h"	/* getch */
+#include "dirwrap.h"	/* fexist */
+#include "filewrap.h"	/* filelength */
 
 /****************************************************************************/
 /* Returns in 'string' a character representation of the number in l with   */
