@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.107 2004/12/20 20:59:16 deuce Exp $ */
+/* $Id: uifc32.c,v 1.110 2005/01/24 01:35:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,7 +112,13 @@ static void reset_dynamic(void) {
 
 void uifc_mouse_enable(void)
 {
-	ciomouse_setevents(1<<CIOLIB_BUTTON_1_CLICK|1<<CIOLIB_BUTTON_3_CLICK);
+	ciomouse_setevents(0);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
+	ciomouse_addevent(CIOLIB_BUTTON_1_CLICK);
+	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
+	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
 	showmouse();
 }
 
@@ -283,6 +289,91 @@ int uifcini32(uifcapi_t* uifcapi)
     return(0);
 }
 
+void docopy(void)
+{
+	int	key;
+	struct mouse_event mevent;
+	unsigned char *screen;
+	unsigned char *sbuffer;
+	int sbufsize=0;
+	int x,y,startx,starty,endx,endy,lines;
+	int outpos;
+	char *copybuf;
+
+	sbufsize=api->scrn_width*2*(api->scrn_len+1);
+	screen=(unsigned char*)malloc(sbufsize);
+	sbuffer=(unsigned char*)malloc(sbufsize);
+	gettext(1,1,api->scrn_width,api->scrn_len+1,screen);
+	while(1) {
+		key=getch();
+		if(key==0 || key==0xff)
+			key|=getch()<<8;
+		switch(key) {
+			case CIO_KEY_MOUSE:
+				getmouse(&mevent);
+				if(mevent.startx<mevent.endx) {
+					startx=mevent.startx;
+					endx=mevent.endx;
+				}
+				else {
+					startx=mevent.endx;
+					endx=mevent.startx;
+				}
+				if(mevent.starty<mevent.endy) {
+					starty=mevent.starty;
+					endy=mevent.endy;
+				}
+				else {
+					starty=mevent.endy;
+					endy=mevent.starty;
+				}
+				switch(mevent.event) {
+					case CIOLIB_BUTTON_1_DRAG_MOVE:
+						memcpy(sbuffer,screen,sbufsize);
+						for(y=starty-1;y<endy;y++) {
+							for(x=startx-1;x<endx;x++) {
+								int pos=y*api->scrn_width+x;
+								if((sbuffer[pos*2+1]&0x70)!=0x10)
+									sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x10;
+								else
+									sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x60;
+								if(((sbuffer[pos*2+1]&0x70)>>4) == (sbuffer[pos*2+1]&0x0F)) {
+									sbuffer[pos*2+1]|=0x08;
+								}
+							}
+						}
+						puttext(1,1,api->scrn_width,api->scrn_len+1,sbuffer);
+						break;
+					case CIOLIB_BUTTON_1_DRAG_END:
+						lines=abs(mevent.endy-mevent.starty)+1;
+						copybuf=malloc((endy-starty+1)*(endx-startx+1)+1+lines*2);
+						outpos=0;
+						for(y=starty-1;y<endy;y++) {
+							for(x=startx-1;x<endx;x++) {
+								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2];
+							}
+							copybuf[outpos++]='\r';
+							copybuf[outpos++]='\n';
+						}
+						copybuf[outpos]=0;
+						copytext(copybuf, strlen(copybuf));
+						puttext(1,1,api->scrn_width,api->scrn_len+1,screen);
+						free(copybuf);
+						free(screen);
+						free(sbuffer);
+						return;
+				}
+				break;
+			default:
+				puttext(1,1,api->scrn_width,api->scrn_len+1,screen);
+				ungetch(key);
+				free(screen);
+				free(sbuffer);
+				return;
+		}
+	}
+}
+
 static int uifc_getmouse(struct mouse_event *mevent)
 {
 	mevent->startx=0;
@@ -292,6 +383,10 @@ static int uifc_getmouse(struct mouse_event *mevent)
 		getmouse(mevent);
 		if(mevent->event==CIOLIB_BUTTON_3_CLICK)
 			return(ESC);
+		if(mevent->event==CIOLIB_BUTTON_1_DRAG_START) {
+			docopy();
+			return(0);
+		}
 		if(mevent->starty==api->buttony) {
 			if(mevent->startx>=api->exitstart
 					&& mevent->startx<=api->exitend
@@ -800,22 +895,24 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						return(*cur);
 					}
 					/* Clicked Scroll Up */
-					if(mevnt.startx==s_left+left+1
+					else if(mevnt.startx==s_left+left+1
 							&& mevnt.starty==s_top+top+3
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 						i=CIO_KEY_PPAGE;
 					}
 					/* Clicked Scroll Down */
-					if(mevnt.startx==s_left+left+1
+					else if(mevnt.startx==s_left+left+1
 							&& mevnt.starty==(s_top+top+height)-2
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 						i=CIO_KEY_NPAGE;
 					}
 					/* Clicked Outside of Window */
-					if(mevnt.startx<s_left+left
+					else if((mevnt.startx<s_left+left
 							|| mevnt.startx>s_left+left+width-1
 							|| mevnt.starty<s_top+top
 							|| mevnt.starty>s_top+top+height-1)
+							&& (mevnt.event==CIOLIB_BUTTON_1_CLICK
+							|| mevnt.event==CIOLIB_BUTTON_3_CLICK))
 						i=ESC;
 				}
 			}
@@ -832,27 +929,33 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					i=CIO_KEY_DC;	/* delete */
 					break;
 				case CTRL_B:
-					i=CIO_KEY_HOME;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_HOME;
 					break;
 				case CTRL_E:
-					i=CIO_KEY_END;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_END;
 					break;
 				case CTRL_U:
-					i=CIO_KEY_PPAGE;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_PPAGE;
 					break;
 				case CTRL_D:
-					i=CIO_KEY_NPAGE;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_NPAGE;
 					break;
 				case CTRL_Z:
-					i=CIO_KEY_F(1);	/* help */
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_F(1);	/* help */
 					break;
 				case CTRL_C:
-					i=CIO_KEY_F(5);	/* copy */
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_F(5);	/* copy */
 					break;
 				case CTRL_V:
-					i=CIO_KEY_F(6);	/* paste */
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_F(6);	/* paste */
 					break;
-
 			}
 			if(i>255) {
 				s=0;
@@ -1525,6 +1628,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	BOOL	gotdecimal=FALSE;
 	int	soffset=0;
 	struct mouse_event	mevnt;
+	unsigned char	*pastebuf=NULL;
+	unsigned char	*pb=NULL;
 
 	if((str=(uchar *)malloc(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
@@ -1567,6 +1672,17 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					if(i>j)
 						i=j;
 				}
+				if(mevnt.startx>=left
+						&& mevnt.startx<=left+width
+						&& (mevnt.event==CIOLIB_BUTTON_2_CLICK
+						|| mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
+					i=mevnt.startx-left+soffset;
+					if(i>j)
+						i=j;
+					pastebuf=getcliptext();
+					pb=pastebuf;
+					f=0;
+				}
 			}
 		}
 
@@ -1597,11 +1713,20 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		if(i>j) j=i;
 		str[j]=0;
 		getstrupd(left, top, width, str, i, &soffset);
-		if(f || (ch=inkey())!=0)
+		if(f || pb!=NULL || (ch=inkey())!=0)
 		{
-			if(f)
+			if(f) {
 				ch=f;
-			f=0;
+				f=0;
+			}
+			else if(pb!=NULL) {
+				ch=*(pb++);
+				if(!*pb) {
+					free(pastebuf);
+					pastebuf=NULL;
+					pb=NULL;
+				}
+			}
 			if(ch==CIO_KEY_MOUSE) {
 				if((ch=uifc_getmouse(&mevnt))==0) {
 					if(mevnt.startx>=left
@@ -1610,6 +1735,16 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						i=mevnt.startx-left+soffset;
 						if(i>j)
 							i=j;
+					}
+					if(mevnt.startx>=left
+							&& mevnt.startx<=left+width
+							&& (mevnt.event==CIOLIB_BUTTON_2_CLICK
+							|| mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
+						i=mevnt.startx-left+soffset;
+						if(i>j)
+							i=j;
+						pastebuf=getcliptext();
+						pb=pastebuf;
 					}
 				}
 			}
@@ -1689,6 +1824,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					{
 						cursor=_NOCURSOR;
 						_setcursortype(cursor);
+						if(pastebuf!=NULL)
+							free(pastebuf);
 						return(-1);
 					}
 				case CR:
@@ -1768,6 +1905,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	strcpy(outstr,str);
 	cursor=_NOCURSOR;
 	_setcursortype(cursor);
+	if(pastebuf!=NULL)
+		free(pastebuf);
 	return(j);
 }
 
@@ -2191,7 +2330,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 							continue;
 						}
 						/* Clicked Scroll Down */
-						if(mevnt.startx>=left+pad
+						else if(mevnt.startx>=left+pad
 								&& mevnt.startx<=left+pad+width
 								&& mevnt.starty<=top+pad+height-2
 								&& mevnt.starty>=top+pad+height-(height/2+1)-2

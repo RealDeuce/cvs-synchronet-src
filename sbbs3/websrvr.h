@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.31 2004/12/02 09:21:20 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.32 2005/01/22 19:48:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,7 +142,7 @@ static ini_bitdesc_t web_options[] = {
 };
 #endif
 
-#define WEB_DEFAULT_ROOT_DIR		"../html"
+#define WEB_DEFAULT_ROOT_DIR		"../web/html"
 #define WEB_DEFAULT_ERROR_DIR		"error"
 #define WEB_DEFAULT_CGI_DIR			"cgi-bin"
 
