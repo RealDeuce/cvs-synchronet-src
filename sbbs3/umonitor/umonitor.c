@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.58 2004/08/10 03:49:03 deuce Exp $ */
+/* $Id: umonitor.c,v 1.56 2004/08/04 06:31:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@
 #include <unistd.h>
 
 #include "ciolib.h"
-#include "keys.h"
 #define __COLORS		/* Disable the colour macros in sbbsdefs.h ToDo */
 #include "sbbs.h"
 #include "genwrap.h"
@@ -186,7 +185,9 @@ int dospy(int nodenum, bbs_startup_t *bbs_startup)  {
     	snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup->temp_dir, nodenum);
 	else
 		snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup->ctrl_dir, nodenum);
+	endwin();
 	i=spyon(str);
+	refresh();
 	switch(i) {
 		case SPY_NOSOCKET:
 			uifc.msg("Could not create socket");
@@ -523,12 +524,20 @@ int do_cmd(char *cmd)
 	struct text_info ti;
 	char *p;
 
+#if 0
+	endwin();
+#else
 	gettextinfo(&ti);
 	p=malloc(ti.screenheight*ti.screenwidth*2);
 	gettext(1,1,ti.screenwidth,ti.screenheight,p);
+#endif
 	i=system(cmd);
+#if 0
+	refresh();
+#else
 	puttext(1,1,ti.screenwidth,ti.screenheight,p);
 	free(p);
+#endif
 	return(i);
 }
 
@@ -793,7 +802,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.58 $", "%*s %s", revision);
+	sscanf("$Revision: 1.56 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -853,14 +862,14 @@ int main(int argc, char** argv)  {
 
 	uifc.esc_delay=500;
 
-	boxch.ls=186; 
-	boxch.rs=186;
-	boxch.ts=205;
-	boxch.bs=205;
-	boxch.tl=201;
-	boxch.tr=187;
-	boxch.bl=200;
-	boxch.br=188;
+	boxch.ls=ACS_VLINE; 
+	boxch.rs=ACS_VLINE;
+	boxch.ts=ACS_HLINE;
+	boxch.bs=ACS_HLINE;
+	boxch.tl=ACS_ULCORNER;
+	boxch.tr=ACS_URCORNER;
+	boxch.bl=ACS_LLCORNER;
+	boxch.br=ACS_LRCORNER;
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
             )
@@ -1038,27 +1047,27 @@ int main(int argc, char** argv)  {
 		if(main_dflt==0)
 			continue;
 
-		if(j==-2-CIO_KEY_DC) {	/* Clear errors */
+		if(j==-2-KEY_DC) {	/* Clear errors */
 			clearerrors(&cfg, main_dflt,&node);
 			continue;
 		}
 
-		if(j==-2-CIO_KEY_F(10)) {	/* Chat */
+		if(j==-2-KEY_F(10)) {	/* Chat */
 			if(getnodedat(&cfg,main_dflt,&node,NULL)) {
 				uifc.msg("Error reading node data!");
 				continue;
 			}
 			if((node.status==NODE_INUSE) && node.useron)
-				chat(&cfg,main_dflt,&node,&boxch,NULL);
+				chat(&cfg,main_dflt,&node,&boxch,uifc.timedisplay);
 			continue;
 		}
 
-		if(j==-2-CIO_KEY_F(11)) {	/* Send message */
+		if(j==-2-KEY_F(11)) {	/* Send message */
 			sendmessage(&cfg, main_dflt,&node);
 			continue;
 		}
 		
-		if(j==-2-CIO_KEY_F(12)) {	/* Spy */
+		if(j==-2-KEY_F(12)) {	/* Spy */
 			dospy(main_dflt,&bbs_startup);
 			continue;
 		}
@@ -1160,7 +1169,7 @@ int main(int argc, char** argv)  {
 						break;
 	
 					case 6:
-						chat(&cfg,main_dflt,&node,&boxch,NULL);
+						chat(&cfg,main_dflt,&node,&boxch,uifc.timedisplay);
 						break;
 					
 					case -1:
