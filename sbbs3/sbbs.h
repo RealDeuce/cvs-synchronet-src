@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.5 2000/10/21 04:49:56 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.6 2000/10/23 09:07:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -744,7 +744,8 @@ extern "C" {
 	char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
 	uint	hptoi(char *str);
 #ifndef __BORLANDC__
-	int		random(int n);	/* return random number between 0 and n-1 */
+	int		sbbs_random(int n);	/* return random number between 0 and n-1 */
+#define random(x) sbbs_random(x)
 #endif
 
 #ifndef _WIN32

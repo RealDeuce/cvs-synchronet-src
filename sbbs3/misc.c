@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.3 2000/10/18 06:58:59 rswindell Exp $ */
+/* $Id: misc.c,v 1.4 2000/10/23 09:07:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -388,8 +388,9 @@ ulong ahtoul(char *str)
 		val=(l&0xf)+(l>>6&1)*9+val*16;
 	return(val);
 }
+
 #ifndef __BORLANDC__
-int random(int n)
+int sbbs_random(int n)
 {
 	float f;
 
