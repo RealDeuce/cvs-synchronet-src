@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.6 2000/11/07 03:35:40 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.7 2000/11/07 04:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,6 +170,9 @@ BOOL read_node_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 	get_str(cfg->temp_dir,instream); 				/* temp directory */
 	if(!cfg->temp_dir[0])
 		strcpy(cfg->temp_dir,"temp");
+
+	strlwr(cfg->text_dir);	/* temporary Unix-compatibility hack */
+	strlwr(cfg->temp_dir);	/* temporary Unix-compatibility hack */
 
 	#ifndef SCFG
 	prep_path(cfg->ctrl_dir, cfg->text_dir);
