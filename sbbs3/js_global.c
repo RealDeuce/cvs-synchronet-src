@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.109 2003/12/04 06:51:13 rswindell Exp $ */
+/* $Id: js_global.c,v 1.110 2004/01/15 08:49:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2454,14 +2454,28 @@ static jsConstIntSpec js_global_const_ints[] = {
 	{"ENOTEMPTY"	,ENOTEMPTY		},
 
 	/* Socket errors */
-	{"EINTR"		,EINTR			},
-	{"ENOTSOCK"		,ENOTSOCK		},
-	{"EMSGSIZE"		,EMSGSIZE		},
-	{"EWOULDBLOCK"	,EWOULDBLOCK	},
-	{"ECONNRESET"	,ECONNRESET		},
-	{"ESHUTDOWN"	,ESHUTDOWN		},
-	{"ECONNABORTED"	,ECONNABORTED	},
-	{"EINPROGRESS"	,EINPROGRESS	},
+	{"EINTR"			,EINTR			},
+	{"ENOTSOCK"			,ENOTSOCK		},
+	{"EMSGSIZE"			,EMSGSIZE		},
+	{"EWOULDBLOCK"		,EWOULDBLOCK	},
+	{"EPROTOTYPE"		,EPROTOTYPE		},
+	{"ENOPROTOOPT"		,ENOPROTOOPT	},
+	{"EPROTONOSUPPORT"	,EPROTONOSUPPORT},
+	{"ESOCKTNOSUPPORT"	,ESOCKTNOSUPPORT},
+	{"EOPNOTSUPP"		,EOPNOTSUPP		},
+	{"EPFNOSUPPORT"		,EPFNOSUPPORT	},
+	{"EAFNOSUPPORT"		,EAFNOSUPPORT	},
+	{"EADDRINUSE"		,EADDRINUSE		},
+	{"EADDRNOTAVAIL"	,EADDRNOTAVAIL	},
+	{"ECONNABORTED"		,ECONNABORTED	},
+	{"ECONNRESET"		,ECONNRESET		},
+	{"ENOBUFS"			,ENOBUFS		},
+	{"EISCONN"			,EISCONN		},
+	{"ENOTCONN"			,ENOTCONN		},
+	{"ESHUTDOWN"		,ESHUTDOWN		},
+	{"ETIMEDOUT"		,ETIMEDOUT		},
+	{"ECONNREFUSED"		,ECONNREFUSED	},
+	{"EINPROGRESS"		,EINPROGRESS	},
 
 	/* Terminator (Governor Arnold) */
 	{0}
