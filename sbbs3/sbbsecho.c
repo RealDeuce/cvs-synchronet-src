@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.62 2002/09/02 05:55:37 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.63 2002/09/18 22:26:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3553,7 +3553,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 	char*	buf=NULL;
 	uchar*	fmsgbuf=NULL;
 	ulong	fmsgbuflen;
-	short	tzone;
+	int		tzone;
 	int		g,i,j,k=0,file;
 	ulong	f,l,m,exp,ptr,msgs,lastmsg,posts,exported=0;
 	float	export_time;
@@ -3728,7 +3728,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 				tear=0;
 				f=0;
 
-				tzone=msg.hdr.when_written.zone;
+				tzone=smb_tzutc(msg.hdr.when_written.zone);
 				f+=sprintf(fmsgbuf+f,"\1TZUTC: %02d%02u\r"		/* TZUTC (FSP-1001) */
 					,tzone/60,tzone<0 ? (-tzone)%60 : tzone%60);
 
@@ -3938,7 +3938,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.62 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.63 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
