@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.105 2004/09/08 03:32:10 rswindell Exp $ */
+/* $Id: smblib.c,v 1.106 2004/09/09 00:07:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1452,15 +1452,16 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		return(SMB_ERR_HDR_LEN);
 	}
 
+	if((i=smb_getstatus(smb))!=SMB_SUCCESS) {
+		smb_unlocksmbhdr(smb);
+		return(i);
+	}
+	msg->idx.number=msg->hdr.number=smb->status.last_msg+1;
+
 	if(!(msg->flags&MSG_FLAG_HASHED) /* not already hashed */
 		&& (i=smb_hashmsg(smb,msg,NULL,FALSE))!=SMB_SUCCESS) {
 		smb_unlocksmbhdr(smb);
 		return(i);	/* Duplicate message? */
-	}
-
-	if((i=smb_getstatus(smb))!=SMB_SUCCESS) {
-		smb_unlocksmbhdr(smb);
-		return(i);
 	}
 
 	if(storage!=SMB_HYPERALLOC && (i=smb_open_ha(smb))!=SMB_SUCCESS) {
@@ -1482,7 +1483,6 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		return(l); 
 	}
 
-	msg->idx.number=msg->hdr.number=smb->status.last_msg+1;
 	msg->idx.offset=smb->status.header_offset+l;
 	msg->idx.time=msg->hdr.when_imported.time;
 	msg->idx.attr=msg->hdr.attr;
