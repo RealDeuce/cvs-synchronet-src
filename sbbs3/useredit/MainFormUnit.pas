@@ -1,6 +1,6 @@
 { Synchronet User Editor (Delphi 5 for Win32 project) }
 
-{ $Id: MainFormUnit.pas,v 1.8 2003/01/04 10:27:21 rswindell Exp $ }
+{ $Id: MainFormUnit.pas,v 1.9 2003/02/20 00:11:25 rswindell Exp $ }
 
 {****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1000,7 +1000,11 @@ begin
     { Over-ride Locale settings here }
     DateSeparator:='/';
 
-    if(ShortDateFormat = 'M/d/yyyy') then
+    if (ShortDateFormat = 'M/d/yy')
+	or (ShortDateFormat = 'M/d/yyyy')
+	or (ShortDateFormat = 'MM/dd/yy')
+	or (ShortDateFormat = 'MM/dd/yyyy')
+	then
         ShortDateFormat:='mm/dd/yy'     { American }
     else
         ShortDateFormat:='dd/mm/yy';    { European }
