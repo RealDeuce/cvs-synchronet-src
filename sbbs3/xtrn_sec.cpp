@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.26 2002/11/09 01:11:02 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.27 2002/11/09 01:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -277,8 +277,8 @@ time_t juliantounix(ulong j)
 static void lfexpand(char *str, ulong misc)
 {
 	char *p;
-	char len=0;
 	char newstr[1024];
+	size_t len=0;
 
 	if(misc&XTRN_NATIVE)
 		return;
