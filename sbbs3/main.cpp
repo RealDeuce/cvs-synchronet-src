@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.378 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.375 2005/02/18 08:54:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,10 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
+
+#ifdef JAVASCRIPT
+#include <jsnum.h>	/* JSDOUBLE_IS_NaN() */
+#endif
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -92,8 +96,8 @@ static	char *	text[TOTAL_TEXT];
 static	WORD	first_node;
 static	WORD	last_node;
 static	bool	terminate_server=false;
-static	str_list_t recycle_semfiles;
-static	str_list_t shutdown_semfiles;
+static	link_list_t recycle_semfiles;
+static	link_list_t shutdown_semfiles;
 
 extern "C" {
 
@@ -277,6 +281,20 @@ DLLEXPORT int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
+
+JSBool
+jsval_isNaN(JSContext *cx, jsval v)
+{
+    jsdouble d;
+
+    if(JSVAL_IS_DOUBLE(v)) {
+	    if (!JS_ValueToNumber(cx, v, &d))
+			return JS_FALSE;
+		if(JSDOUBLE_IS_NaN(d))
+			return JS_TRUE;
+	}
+	return JS_FALSE;
+}
 
 JSBool	
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, char* str[],uintN flags)
@@ -4075,13 +4093,13 @@ void DLLCALL bbs_thread(void* arg)
 #endif // _WIN32 && _DEBUG && _MSC_VER
 
 	/* Setup recycle/shutdown semaphore file lists */
-	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
-	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
+	semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","telnet");
+	semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized) {
-		semfile_list_check(&initialized,recycle_semfiles);
-		semfile_list_check(&initialized,shutdown_semfiles);
+		semfile_list_check(&initialized,&recycle_semfiles);
+		semfile_list_check(&initialized,&shutdown_semfiles);
 	}
 
 #ifdef __unix__	//	unix-domain spy sockets
@@ -4151,7 +4169,7 @@ void DLLCALL bbs_thread(void* arg)
 			if(rerun)
 				break;
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
-				if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
+				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
 						,telnet_socket,p);
 					break;
@@ -4166,7 +4184,7 @@ void DLLCALL bbs_thread(void* arg)
 					break;
 				}
 			}
-			if(((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL
+			if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
 					&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
 						,telnet_socket,p))
 				|| (startup->shutdown_now==TRUE

@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.83 2005/04/05 08:42:53 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.81 2005/02/18 08:54:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -100,7 +100,6 @@ void usage(FILE* fp)
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
 		"\t-L<mask>       set log level mask (default=0x%x)\n"
 		"\t-E<level>      set error log level threshold (default=%d)\n"
-		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
 		"\t-e<filename>   send error messages to file in addition to stderr\n"
 		"\t-o<filename>   send console messages to file instead of stdout\n"
@@ -138,7 +137,7 @@ int lprintf(int level, char *fmt, ...)
     va_end(argptr);
 #if defined(__unix__)
 	if(daemonize) {
-		syslog(level,"%s",sbuf);
+		syslog(level,sbuf);
 		return(ret);
 	}
 #endif
@@ -746,7 +745,6 @@ int main(int argc, char **argv, char** environ)
 	int		argn;
 	long	result;
 	BOOL	loop=FALSE;
-	BOOL	nonbuffered_con=FALSE;
 
 	confp=stdout;
 	errfp=stderr;
@@ -764,7 +762,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.83 $", "%*s %s", revision);
+	sscanf("$Revision: 1.81 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -778,9 +776,6 @@ int main(int argc, char **argv, char** environ)
 			switch(argv[argn][1]) {
 				case 'a':
 					omode="a";
-					break;
-				case 'f':
-					nonbuffered_con=TRUE;
 					break;
 				case 'm':
 					if(*p==0) p=argv[++argn];
@@ -915,9 +910,6 @@ int main(int argc, char **argv, char** environ)
 
 	/* Don't cache error log */
 	setvbuf(errfp,NULL,_IONBF,0);
-
-	if(nonbuffered_con)
-		setvbuf(confp,NULL,_IONBF,0);
 
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)

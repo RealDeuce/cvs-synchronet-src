@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.115 2005/02/26 07:03:19 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.114 2005/02/18 07:35:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -541,7 +541,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_BOOLEAN(argv[n]))
 			by_offset=JSVAL_TO_BOOLEAN(argv[n]);
-		else if(JSVAL_IS_NUM(argv[n])) {
+		else if(JSVAL_IS_NUM(cx,argv[n])) {
 			if(by_offset)							/* Get by offset */
 				JS_ValueToInt32(cx,argv[n],(int32*)&msg.offset);
 			else									/* Get by number */
@@ -636,7 +636,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 
 	/* Now parse message offset/id and get message */
 	for(n=0;n<argc;n++) {
-		if(JSVAL_IS_NUM(argv[n])) {
+		if(JSVAL_IS_NUM(cx,argv[n])) {
 			if(by_offset)							/* Get by offset */
 				JS_ValueToInt32(cx,argv[n],(int32*)&msg.offset);
 			else									/* Get by number */
@@ -1004,7 +1004,7 @@ js_put_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_BOOLEAN(argv[n]))
 			by_offset=JSVAL_TO_BOOLEAN(argv[n]);
-		else if(JSVAL_IS_NUM(argv[n])) {
+		else if(JSVAL_IS_NUM(cx,argv[n])) {
 			if(by_offset)							/* Get by offset */
 				JS_ValueToInt32(cx,argv[n],(int32*)&msg.offset);
 			else									/* Get by number */
@@ -1084,7 +1084,7 @@ js_remove_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_BOOLEAN(argv[n]))
 			by_offset=JSVAL_TO_BOOLEAN(argv[n]);
-		else if(JSVAL_IS_NUM(argv[n])) {
+		else if(JSVAL_IS_NUM(cx,argv[n])) {
 			if(by_offset)							/* Get by offset */
 				JS_ValueToInt32(cx,argv[n],(int32*)&msg.offset);
 			else									/* Get by number */
@@ -1220,7 +1220,7 @@ js_get_msg_body(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_BOOLEAN(argv[n]))
 			by_offset=JSVAL_TO_BOOLEAN(argv[n]);
-		else if(JSVAL_IS_NUM(argv[n])) {
+		else if(JSVAL_IS_NUM(cx,argv[n])) {
 			if(by_offset)							/* Get by offset */
 				JS_ValueToInt32(cx,argv[n],(int32*)&msg.offset);
 			else									/* Get by number */
@@ -1291,7 +1291,7 @@ js_get_msg_tail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_BOOLEAN(argv[n]))
 			by_offset=JSVAL_TO_BOOLEAN(argv[n]);
-		else if(JSVAL_IS_NUM(argv[n])) {
+		else if(JSVAL_IS_NUM(cx,argv[n])) {
 			if(by_offset)							/* Get by offset */
 				JS_ValueToInt32(cx,argv[n],(int32*)&msg.offset);
 			else									/* Get by number */

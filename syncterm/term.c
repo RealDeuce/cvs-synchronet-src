@@ -25,7 +25,6 @@ void mousedrag(unsigned char *scrollback)
 	int pos, startpos,endpos, lines;
 	int outpos;
 	char *copybuf;
-	int lastchar;
 
 	sbufsize=term.width*2*term.height;
 	screen=(unsigned char*)malloc(sbufsize);
@@ -40,10 +39,10 @@ void mousedrag(unsigned char *scrollback)
 				getmouse(&mevent);
 				startpos=((mevent.starty-1)*term.width)+(mevent.startx-1);
 				endpos=((mevent.endy-1)*term.width)+(mevent.endx-1);
-				if(startpos>=term.width*term.height)
-					startpos=term.width*term.height-1;
-				if(endpos>=term.width*term.height)
-					endpos=term.width*term.height-1;
+				if(startpos>=term.width*2*term.height)
+					startpos=term.width*2*term.height-1;
+				if(endpos>=term.width*2*term.height)
+					endpos=term.width*2*term.height-1;
 				if(endpos<startpos) {
 					pos=endpos;
 					endpos=startpos;
@@ -67,16 +66,11 @@ void mousedrag(unsigned char *scrollback)
 						lines=abs(mevent.endy-mevent.starty)+1;
 						copybuf=malloc(endpos-startpos+4+lines*2);
 						outpos=0;
-						lastchar=0;
 						for(pos=startpos;pos<=endpos;pos++) {
 							copybuf[outpos++]=screen[pos*2];
-							if(screen[pos*2]!=' ' && screen[pos*2])
-								lastchar=outpos;
 							if((pos+1)%term.width==0) {
-								outpos=lastchar;
 								copybuf[outpos++]='\r';
 								copybuf[outpos++]='\n';
-								lastchar=outpos;
 							}
 						}
 						copybuf[outpos]=0;

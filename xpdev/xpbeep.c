@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.22 2005/03/07 23:35:14 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.21 2005/01/27 22:12:52 rswindell Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -195,8 +195,6 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 	int	i;
 	unsigned char	wave[S_RATE*15/2+1];
 
-	if(freq<17)
-		freq=17;
 	samples=S_RATE*duration/1000;
 	if(samples<=S_RATE/freq*2)
 		samples=S_RATE/freq*2;

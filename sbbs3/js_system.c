@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.98 2005/02/20 02:42:46 rswindell Exp $ */
+/* $Id: js_system.c,v 1.97 2005/02/18 02:35:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,10 +180,10 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 
 		case SYS_PROP_NEW_PASS:
-			p=cfg->new_pass;
+			p=cfg->new_magic;
 			break;
 		case SYS_PROP_NEW_MAGIC:
-			p=cfg->new_magic;
+			p=cfg->new_pass;
 			break;
 		case SYS_PROP_NEW_LEVEL:
 			*vp = INT_TO_JSVAL(cfg->new_level);

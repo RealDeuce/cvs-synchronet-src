@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.290 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.289 2005/02/18 08:54:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,8 +96,8 @@ static DWORD	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
-static str_list_t recycle_semfiles;
-static str_list_t shutdown_semfiles;
+static link_list_t recycle_semfiles;
+static link_list_t shutdown_semfiles;
 
 #ifdef _DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
@@ -4458,7 +4458,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.290 $", "%*s %s", revision);
+	sscanf("$Revision: 1.289 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4686,14 +4686,14 @@ void DLLCALL ftp_server(void* arg)
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
-		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
-		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","ftp");
+		semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","ftp");
+		semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","ftp");
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
 			initialized=time(NULL);
-			semfile_list_check(&initialized,recycle_semfiles);
-			semfile_list_check(&initialized,shutdown_semfiles);
+			semfile_list_check(&initialized,&recycle_semfiles);
+			semfile_list_check(&initialized,&shutdown_semfiles);
 		}
 
 
@@ -4705,7 +4705,7 @@ void DLLCALL ftp_server(void* arg)
 
 			if(active_clients==0) {
 				if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
-					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
+					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 						break;
 					}
@@ -4719,7 +4719,7 @@ void DLLCALL ftp_server(void* arg)
 						break;
 					}
 				}
-				if(((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL
+				if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
 						&& lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p))
 					|| (startup->shutdown_now==TRUE
 						&& lprintf(LOG_INFO,"0000 Shutdown semaphore signaled"))) {
