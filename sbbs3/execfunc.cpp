@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.4 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.5 2000/11/06 23:06:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -368,6 +368,15 @@ int sbbs_t::exec_function(csi_t *csi)
 						RingBufWrite(node_inbuf[i-1],(uchar*)ansi_seq,ansi_len);
 						ansi_len=0;
 					}
+					continue;
+				}
+				if(ch==16) {		/* Ctrl-P Private node-node comm */
+					nodesync(); 	/* read any waiting messages */
+					nodemsg();		/* send a message */
+					continue; 
+				}
+				if(ch==21) {	/* Ctrl-U Users online */
+					whos_online(true); 	/* list users */
 					continue;
 				}
 				if(node_inbuf[i-1]!=NULL) 
