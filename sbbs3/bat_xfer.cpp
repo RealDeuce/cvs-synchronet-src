@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.22 2003/06/12 09:07:40 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.23 2003/07/26 11:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -662,13 +662,8 @@ void sbbs_t::batch_download(int xfrprot)
 		strcpy(f.name,batdn_name[i]);
 		f.datoffset=batdn_offset[i];
 		f.size=batdn_size[i];
-	/*											   Removed 05/18/95
-		if(cfg.dir[f.dir]->misc&DIR_TFREE && cur_cps)  Looks like it gave back double
-			starttime+=f.size/(ulong)cur_cps;
-	*/
 		f.altpath=batdn_alt[i];
-		if(xfrprot==-1 || (cfg.prot[xfrprot]->misc&PROT_DSZLOG && checkprotlog(&f))
-			|| !(cfg.prot[xfrprot]->misc&PROT_DSZLOG)) {
+		if(xfrprot==-1 || checkprotresult(cfg.prot[xfrprot],0,&f)) {
 			if(cfg.dir[f.dir]->misc&DIR_TFREE && cur_cps)
 				starttime+=f.size/(ulong)cur_cps;
 			downloadfile(&f);

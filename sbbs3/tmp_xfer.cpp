@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.29 2003/07/26 03:59:25 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.30 2003/07/26 11:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,18 +180,12 @@ void sbbs_t::temp_xfer()
 					end=time(NULL);
 					if(cfg.dir[temp_dirnum]->misc&DIR_TFREE)
 						starttime+=end-start;
-					if(cfg.prot[i]->misc&PROT_DSZLOG) {
-						if(checkprotlog(&f))
-							downloadfile(&f);
-						else
-							notdownloaded(f.size,start,end); }
-					else {
-						if(!error)
-							downloadfile(&f);
-						else {
-							bprintf(text[FileNotSent],f.name);
-							notdownloaded(f.size,start,end); } }
-					autohangup(); }
+					if(checkprotresult(cfg.prot[i],error,&f))
+						downloadfile(&f);
+					else
+						notdownloaded(f.size,start,end);
+					autohangup(); 
+				}
 				removefiledat(&cfg,&f);
 				break;
 			case 'E':

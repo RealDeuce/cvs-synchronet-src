@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.22 2002/11/01 02:32:03 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.23 2003/07/26 11:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,29 +269,33 @@ void sbbs_t::readmail(uint usernumber, int which)
 										break;
 								if(i<cfg.total_prots) {
 									error=protocol(cmdstr(cfg.prot[i]->dlcmd,str2,nulstr,NULL),false);
-									if((cfg.prot[i]->misc&PROT_DSZLOG
-										&& checkprotlog(&fd))
-										|| (!(cfg.prot[i]->misc&PROT_DSZLOG) && !error)) {
-											if(which==MAIL_YOUR)
-												remove(str2);
-											logon_dlb+=length;	/* Update stats */
-											logon_dls++;
-											useron.dls=(ushort)adjustuserrec(&cfg,useron.number
-												,U_DLS,5,1);
-											useron.dlb=adjustuserrec(&cfg,useron.number
-												,U_DLB,10,length);
-											bprintf(text[FileNBytesSent]
-												,fd.name,ultoac(length,tmp));
-											sprintf(str3
-												,"%s downloaded attached file: %s"
-												,useron.alias
-												,fd.name);
-											logline("D-",str3); }
-									autohangup(); } } } }
-						if(!p)
-							break;
-						tp=p+1;
-						while(*tp==SP) tp++; }
+									if(checkprotresult(cfg.prot[i],error,&fd)) {
+										if(which==MAIL_YOUR)
+											remove(str2);
+										logon_dlb+=length;	/* Update stats */
+										logon_dls++;
+										useron.dls=(ushort)adjustuserrec(&cfg,useron.number
+											,U_DLS,5,1);
+										useron.dlb=adjustuserrec(&cfg,useron.number
+											,U_DLB,10,length);
+										bprintf(text[FileNBytesSent]
+											,fd.name,ultoac(length,tmp));
+										sprintf(str3
+											,"%s downloaded attached file: %s"
+											,useron.alias
+											,fd.name);
+										logline("D-",str3); 
+									}
+									autohangup(); 
+								} 
+							} 
+						} 
+					}
+					if(!p)
+						break;
+					tp=p+1;
+					while(*tp==SP) tp++; 
+				}
 				sprintf(str,"%sfile/%04u.in",cfg.data_dir,usernumber);
 				rmdir(str); }
 			if(which==MAIL_YOUR && !(msg.hdr.attr&MSG_READ)) {
