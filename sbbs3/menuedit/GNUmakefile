@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2004/07/29 21:08:38 deuce Exp $
+# $Id: GNUmakefile,v 1.2 2004/07/23 06:10:55 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -23,3 +23,7 @@ include ${UIFC_SRC}Common.gmake
 $(MENUEDIT): $(OBJS)
 	@echo Linking $@
 	${QUIET}$(CC) $(LDFLAGS) $(OBJS) -o $@
+
+clean:
+	@echo Deleting $(EXEODIR)
+	$(QUIET)$(DELETE) $(EXEODIR)\*
