@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.81 2003/04/30 23:48:05 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.82 2003/05/07 20:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -742,7 +742,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	start=time(NULL);
 	for(i=0;i<len;) {
 
-		if(!socket_check(p->sock,&rd)) {
+		if(!socket_check(p->sock,&rd,1000)) {
 			p->last_error=ERROR_VALUE;
 			break;		/* disconnected */
 		}
@@ -754,7 +754,6 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				*rval = JSVAL_NULL;
 				return(JS_TRUE);	/* time-out */
 			}
-			YIELD();
 			continue;	/* no data */
 		}
 
@@ -1068,10 +1067,10 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(!p->is_connected && !p->external)
 				*vp = JSVAL_FALSE;
 			else
-				*vp = BOOLEAN_TO_JSVAL(socket_check(p->sock,NULL));
+				*vp = BOOLEAN_TO_JSVAL(socket_check(p->sock,NULL,0));
 			break;
 		case SOCK_PROP_DATA_WAITING:
-			socket_check(p->sock,&rd);
+			socket_check(p->sock,&rd,0);
 			*vp = BOOLEAN_TO_JSVAL(rd);
 			break;
 		case SOCK_PROP_NREAD:
