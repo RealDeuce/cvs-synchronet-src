@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.21 2004/09/01 20:50:30 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.18 2004/08/30 06:51:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,9 +132,6 @@ enum {
 #define TRUE	1
 #define FALSE	0
 #endif
-#ifndef INT_TO_BOOL
-#define INT_TO_BOOL(x)	((x)?TRUE:FALSE)
-#endif
 #ifndef HANDLE
 #define HANDLE	void*
 #endif
@@ -179,13 +176,6 @@ typedef struct {
 	char*	name;
 	BOOL	value;
 } named_bool_t;
-
-/************************/
-/* Handy Integer Macros */
-/************************/
-
-/* Data Block Length Alignment Macro (returns required padding length for proper alignment) */
-#define PAD_LENGTH_FOR_ALIGNMENT(len,blk)	(((len)%(blk))==0 ? 0 : (blk)-((len)%(blk)))
 
 /***********************/
 /* Handy String Macros */
@@ -262,17 +252,8 @@ typedef struct {
 /********************************/
 /* Handy Pointer-freeing Macros */
 /********************************/
-#define FREE_AND_NULL(x)			if(x!=NULL) { FREE(x); x=NULL; }
-#define FREE_LIST_ITEMS(list,i)		if(list!=NULL) {				\
-										for(i=0;list[i]!=NULL;i++)	\
-											FREE_AND_NULL(list[i]);	\
-									}
-#define FREE_LIST(list,i)			FREE_LIST_ITEMS(list,i) FREE_AND_NULL(list)
-
-/********************************/
-/* Other Pointer-List Macros	*/
-/********************************/
-#define COUNT_LIST_ITEMS(list,i)	{ i=0; if(list!=NULL) while(list[i]!=NULL) i++; }
-
+#define FREE_AND_NULL(x)		if(x!=NULL) { FREE(x); x=NULL; }
+#define FREE_LIST_ITEMS(list,i)	for(i=0;list && list[i];i++) { FREE_AND_NULL(list[i]); }
+#define FREE_LIST(list,i)		FREE_LIST_ITEMS(list,i) FREE_AND_NULL(list)
 
 #endif /* Don't add anything after this #endif statement */

@@ -8,7 +8,7 @@
 # usage: make [msc=1]													#
 #########################################################################
 
-# $Id: Makefile,v 1.6 2004/09/02 00:35:04 rswindell Exp $
+# $Id: Makefile,v 1.5 2002/05/10 00:49:44 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -24,7 +24,7 @@ DELETE	=	echo y | del
 !ifdef msc	# Microsoft Visual C++
 CC		=	cl
 LD		=	link
-LIBODIR	=	msvc.Win32
+ODIR	=	msvc.Win32
 OUTPUT	=	-Fo
 LOUTPUT	=	-Fe
 CFLAGS  =	-nologo -MTd
@@ -37,12 +37,12 @@ CFLAGS	=	$(CFLAGS) -Yd
 
 CC		=	bcc32
 LD		=	ilink32
-LIBODIR	=	bcc.Win32		# Output directory
+ODIR	=	bcc.Win32		# Output directory
 OUTPUT	=	-o
 LOUTPUT	=	$(OUTPUT)
-CFLAGS	=	-n$(LIBODIR) -WM -q 
+CFLAGS	=	-n$(ODIR) -WM -q 
 LFLAGS	=	$(CFLAGS)
-CFLAGS  =	$(CFLAGS) -M -WD -WM -X-
+CLFAGS  =	$(CFLAGS) -M -WD -WM -X-
 !ifdef DEBUG
 CFLAGS	=	$(CFLAGS) -v
 !endif
@@ -55,9 +55,9 @@ CFLAGS	=	$(CFLAGS) -Od -D_DEBUG
 
 # Debug or release build?
 !ifdef DEBUG
-LIBODIR	=	$(LIBODIR).debug
+ODIR	=	$(ODIR).debug
 !else
-LIBODIR	=	$(LIBODIR).release
+ODIR	=	$(ODIR).release
 !endif
 
 !include objects.mk		# defines $(OBJS)
@@ -68,10 +68,10 @@ LIBODIR	=	$(LIBODIR).release
 	@$(CC) $(CFLAGS) -c $< $(OUTPUT)$@
 
 # Create output directories if they don't exist
-$(LIBODIR):
-	@if not exist $(LIBODIR) mkdir $(LIBODIR)
+$(ODIR):
+	@if not exist $(ODIR) mkdir $(ODIR)
 
 # Executable Build Rule
-$(WRAPTEST): $(LIBODIR)\wraptest.obj $(OBJS)
+$(WRAPTEST): $(ODIR)\wraptest.obj $(OBJS)
 	@echo Linking $@
 	@$(CC) $(LFLAGS) $** $(LOUTPUT)$@
