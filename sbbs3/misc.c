@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.16 2002/01/16 11:49:04 rswindell Exp $ */
+/* $Id: misc.c,v 1.17 2002/01/25 00:57:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,23 @@
 
 #include "sbbs.h"
 #include "crc32.h"
+
+/****************************************************************************/
+/* Return the filename portion of a full pathname							*/
+/****************************************************************************/
+char* DLLCALL getfname(char* path)
+{
+	char *fname;
+
+	fname=strrchr(path,'/');
+	if(fname==NULL) 
+		fname=strrchr(path,'\\');
+	if(fname!=NULL) 
+		fname++;
+	else 
+		fname=path;
+	return(fname);
+}
 
 /****************************************************************************/
 /* Network open function. Opens all files DENYALL and retries LOOP_NOPEN    */
