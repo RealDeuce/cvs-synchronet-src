@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.38 2003/03/18 09:07:30 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.39 2003/04/04 11:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -114,6 +114,7 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_USE_TCP_DNS			,"USE_TCP_DNS"			},
 	{ MAIL_OPT_NO_SENDMAIL			,"NO_SENDMAIL"			},
 	{ MAIL_OPT_ALLOW_RELAY			,"ALLOW_RELAY"			},
+	{ MAIL_OPT_SMTP_AUTH_VIA_IP		,"SMTP_AUTH_VIA_IP"		},
 	{ MAIL_OPT_DNSBL_REFUSE			,"DNSBL_REFUSE"			},
 	{ MAIL_OPT_DNSBL_IGNORE			,"DNSBL_IGNORE"			},
 	{ MAIL_OPT_DNSBL_BADUSER		,"DNSBL_BADUSER"		},
