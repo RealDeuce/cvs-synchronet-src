@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.7 2001/03/02 23:53:19 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.8 2001/03/09 21:59:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -679,6 +679,7 @@ void sbbs_t::skipto(csi_t *csi, uchar inst)
 						case FORMAT_STR_VAR:	/* SPRINTF */
 							csi->ip+=4; /* Skip destination variable */
 						case VAR_PRINTF:
+						case VAR_PRINTF_LOCAL:
 							while(*(csi->ip++));	/* Skip string */
 							j=*(csi->ip++); /* Skip number of arguments */
 							for(i=0;i<j;i++)
