@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.254 2005/02/08 01:27:56 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.255 2005/02/08 03:26:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1016,6 +1016,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	if(session->subscan!=NULL)
 		getmsgptrs(&scfg,session->user.number,session->subscan);
 
+	session->logon_time=time(NULL);
 	if(session->user.number==0)
 		SAFECOPY(session->username,unknown);
 	else {
@@ -1024,12 +1025,12 @@ void http_logon(http_session_t * session, user_t *usr)
 		putuserrec(&scfg,session->user.number,U_MODEM,LEN_MODEM,"HTTP");
 		putuserrec(&scfg,session->user.number,U_COMP,LEN_COMP,session->host_name);
 		putuserrec(&scfg,session->user.number,U_NOTE,LEN_NOTE,session->host_ip);
+		putuserrec(&scfg,session->user.number,U_LOGONTIME,0,session->logon_time);
 	}
 	session->client.user=session->username;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
 
 	session->last_user_num=session->user.number;
-	session->logon_time=time(NULL);
 }
 
 void http_logoff(http_session_t * session)
@@ -2864,7 +2865,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.254 $", "%*s %s", revision);
+	sscanf("$Revision: 1.255 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
