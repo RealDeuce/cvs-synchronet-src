@@ -2,7 +2,7 @@
 
 /* Program to add a user to a Synchronet user database */
 
-/* $Id: makeuser.c,v 1.2 2003/02/09 08:18:27 rswindell Exp $ */
+/* $Id: makeuser.c,v 1.3 2003/02/20 07:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,7 @@ int lprintf(char *fmat, ...)
 }
 
 
-char *usage="\nusage: makeuser name [-param value] [...]\n"
+char *usage="\nusage: makeuser [ctrl_dir] name [-param value] [...]\n"
 	"\nparams:\n"
 	"\t-P\tPassword\n"
 	"\t-R\tReal name\n"
@@ -70,6 +70,9 @@ char *usage="\nusage: makeuser name [-param value] [...]\n"
 	"\t-L\tLocation (city, state)\n"
 	"\t-Z\tZip/Postal code\n"
 	"\t-S\tSecurity level\n"
+	"\t-F#\tFlag set #\n"
+	"\t-FE\tExemption flags\n"
+	"\t-FR\tRestriction flags\n"
 	"\t-E\tExpiration days\n"
 	"\t-C\tComment\n"
 	"\nNOTE: multi-word user name and param values must be enclosed in \"quotes\"\n"
@@ -84,10 +87,11 @@ int main(int argc, char **argv)
 	char	error[512];
 	char	revision[16];
 	int		i;
+	int		first_arg=1;
 	time_t	now;
 	user_t	user;
 
-	sscanf("$Revision: 1.2 $", "%*s %s", revision);
+	sscanf("$Revision: 1.3 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nMAKEUSER v%s-%s - Adds User to Synchronet User Database\n"
 		,revision
@@ -99,7 +103,10 @@ int main(int argc, char **argv)
 		return(1); 
 	}
 
-	p=getenv("SBBSCTRL");
+	if(strcspn(argv[first_arg],"/\\")!=strlen(argv[first_arg]))
+		p=argv[first_arg++];
+	else
+		p=getenv("SBBSCTRL");
 	if(p==NULL) {
 		printf("\nSBBSCTRL environment variable not set.\n");
 		printf("\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
@@ -165,7 +172,7 @@ int main(int argc, char **argv)
 	if(scfg.new_expire)
 		user.expire=now+((long)scfg.new_expire*24L*60L*60L); 
 
-	for(i=1;i<argc;i++) {
+	for(i=first_arg;i<argc;i++) {
 		if(argv[i][0]=='-') {
 			switch(toupper(argv[i++][1])) {
 			case 'A':
@@ -182,6 +189,31 @@ int main(int argc, char **argv)
 				break;
 			case 'E':
 				user.expire=now+((long)atoi(argv[i])*24L*60L*60L); 
+				break;
+			case 'F':
+				switch(toupper(argv[i-1][2])) {
+					case '1':
+						user.flags1=aftol(argv[i]);
+						break;
+					case '2':
+						user.flags2=aftol(argv[i]);
+						break;
+					case '3':
+						user.flags3=aftol(argv[i]);
+						break;
+					case '4':
+						user.flags4=aftol(argv[i]);
+						break;
+					case 'E':
+						user.exempt=aftol(argv[i]);
+						break;
+					case 'R':
+						user.rest=aftol(argv[i]);
+						break;
+					default:
+						printf("%s",usage);
+						return(1);
+				}
 				break;
 			case 'G':
 				user.sex=toupper(argv[i][0]);
@@ -220,6 +252,11 @@ int main(int argc, char **argv)
 	if(user.alias[0]==0) {
 		printf("%s",usage);
 		return(1);
+	}
+
+	if((i=matchuser(&scfg,user.alias,FALSE))!=0) {
+		printf("!User (%s #%d) already exists\n",user.alias,i);
+		return(2);
 	}
 
 	if(user.handle[0]==0)
