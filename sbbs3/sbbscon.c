@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.120 2003/04/27 07:08:18 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.121 2003/05/09 06:30:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1023,10 +1023,10 @@ int main(int argc, char** argv)
 
 	/* read/default any sbbscon-specific .ini keys here */
 #if defined(__unix__)
-	SAFECOPY(new_uid_name,iniReadString(fp,"UNIX","User",""));
-	SAFECOPY(new_gid_name,iniReadString(fp,"UNIX","Group",""));
-	is_daemon=iniReadBool(fp,"UNIX","Daemonize",FALSE);
-	SAFECOPY(daemon_type,iniReadString(fp,"UNIX","LogFacility","U"));
+	SAFECOPY(new_uid_name,iniGetString(fp,"UNIX","User",""));
+	SAFECOPY(new_gid_name,iniGetString(fp,"UNIX","Group",""));
+	is_daemon=iniGetBool(fp,"UNIX","Daemonize",FALSE);
+	SAFECOPY(daemon_type,iniGetString(fp,"UNIX","LogFacility","U"));
 #endif			
 	/* close .ini file here */
 	if(fp!=NULL)
