@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.69 2004/11/17 11:11:29 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.65 2004/09/13 00:27:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,36 +76,31 @@ extern "C" {
 /* Compiler Description */
 #if defined(__BORLANDC__)
 
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF2(str,"BCC %X.%02X" \
+	#define DESCRIBE_COMPILER(str) sprintf(str,"BCC %X.%02X" \
 		,__BORLANDC__>>8,__BORLANDC__&0xff);	
 
 #elif defined(_MSC_VER)
 
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"MSC %u", _MSC_VER);
+	#define DESCRIBE_COMPILER(str) sprintf(str,"MSC %u", _MSC_VER);
 
-#elif defined(__GNUC__) && defined(__GNUC_PATCHLEVEL__)
+#elif defined(__GNUC__)
 
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF3(str,"GCC %u.%u.%u" \
-		,__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__);
-
-#elif defined(__GNUC__) && defined(__GNUC_MINOR__)
-
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF2(str,"GCC %u.%u" \
+	#define DESCRIBE_COMPILER(str) sprintf(str,"GCC %u.%02u" \
 		,__GNUC__,__GNUC_MINOR__);
 
 #elif defined(__WATCOMC__)
 
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"WATC %d" \
+	#define DESCRIBE_COMPILER(str) sprintf(str,"WATC %d" \
 		,__WATCOMC__);
 
 #elif defined(__DMC__)	/* Digital Mars C/C++ */
 
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"DMC %X.%02X" \
+	#define DESCRIBE_COMPILER(str) sprintf(str,"DMC %X.%02X" \
 		,__DMC__>>8,__DMC__&0xff);	
 
 #else /* Unknown compiler */
 
-	#define DESCRIBE_COMPILER(str) SAFECOPY(str,"UNKNOWN COMPILER");
+	#define DESCRIBE_COMPILER(str) strcpy(str,"UNKNOWN COMPILER");
 
 #endif
 
@@ -178,8 +173,6 @@ extern "C" {
 
 /* Truncate white-space chars off end of string */
 DLLEXPORT char*		DLLCALL truncsp(char* str);
-/* Truncate white-space chars off end of every \n-terminated line in string */
-DLLEXPORT char*		DLLCALL truncsp_lines(char* str);
 /* Truncate new-line chars off end of string */
 DLLEXPORT char*		DLLCALL truncnl(char* str);
 

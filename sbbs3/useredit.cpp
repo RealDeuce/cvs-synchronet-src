@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.33 2004/11/03 07:10:25 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.32 2004/10/21 08:13:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -905,12 +905,9 @@ void sbbs_t::maindflts(user_t* user)
 				break;
 			case 'S':
 				user->misc^=SPIN;
-				if(!(user->misc&SPIN)) {
+				if(!(user->misc&SPIN))
 					if(!yesno("Spinning cursor on pause prompts"))
 						user->misc|=NOPAUSESPIN;
-					else
-						user->misc&=~NOPAUSESPIN;
-				}
 				putuserrec(&cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
 				break;
 			case 'F':
