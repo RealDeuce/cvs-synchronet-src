@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.58 2004/10/27 09:04:05 rswindell Exp $ */
+/* $Id: smblib.h,v 1.59 2004/10/27 21:15:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,7 @@
 #define GETMSGTXT_NO_BODY	(1<<1)		/* Do not retrieve message body		*/
 #define GETMSGTXT_BODY_ONLY	0
 #define GETMSGTXT_TAIL_ONLY (GETMSGTXT_TAILS|GETMSGTXT_NO_BODY)
+#define GETMSGTXT_ALL		GETMSGTXT_TAILS
 
 #define SMB_IS_OPEN(smb)	((smb)->shd_fp!=NULL)
 
