@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.6 2003/03/06 22:37:19 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.7 2003/04/15 00:17:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,6 +234,7 @@ typedef struct {
 	nodecfg_t  *nodecfg;			/* Each node configuration */
 	echolist_t *listcfg;			/* Each echolist configuration */
 	areasbbs_t *area;				/* Each area configuration */
+	BOOL		check_path;			/* Enable circular path detection */
 	} config_t;
 
 #ifdef __WATCOMC__
