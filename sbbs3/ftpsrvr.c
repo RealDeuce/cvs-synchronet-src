@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.215 2003/02/25 22:59:29 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.216 2003/02/25 23:28:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2018,9 +2018,17 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 	xfer->desc=desc;
 	SAFECOPY(xfer->filename,filename);
 	if(receiving)
-		_beginthread(receive_thread,0,(void*)xfer);
+		result=_beginthread(receive_thread,0,(void*)xfer);
 	else
-		_beginthread(send_thread,0,(void*)xfer);
+		result=_beginthread(send_thread,0,(void*)xfer);
+
+	if(result==-1) {
+		lprintf("%04d !ERROR %d creating transfer thread",ctrl_sock,errno);
+		sockprintf(ctrl_sock,"425 Error %d creating transfer thread",errno);
+		if(tmpfile)
+			remove(filename);
+		*inprogress=FALSE;
+	}
 }
 
 /* convert "user name" to "user.name" or "mr. user" to "mr._user" */
@@ -4407,7 +4415,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.215 $", "%*s %s", revision);
+	sscanf("$Revision: 1.216 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
