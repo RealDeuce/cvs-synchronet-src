@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.1 2000/10/10 11:26:23 rswindell Exp $ */
+/* $Id: date_str.c,v 1.2 2000/10/21 02:58:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,14 +64,14 @@ time_t dstrtounix(scfg_t* cfg, char *str)
 /****************************************************************************/
 /* Converts unix time format (long - time_t) into a char str MM/DD/YY		*/
 /****************************************************************************/
-char * unixtodstr(scfg_t* cfg, time_t unix, char *str)
+char * unixtodstr(scfg_t* cfg, time_t unix_time, char *str)
 {
 	struct tm* tm;
 
-	if(!unix)
+	if(!unix_time)
 		strcpy(str,"00/00/00");
 	else {
-		tm=gmtime(&unix);
+		tm=gmtime(&unix_time);
 		if(tm==NULL) {
 			strcpy(str,"00/00/00");
 			return(str);

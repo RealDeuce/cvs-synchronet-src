@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.1 2000/10/10 11:24:37 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.2 2000/10/21 02:58:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -819,7 +819,8 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 	char	str[258],path[258],dirpath[256],done=0,ch,fname[13],ext[513];
 	uchar HUGE16 *ixbbuf,*usrxfrbuf=NULL,*p;
 	int		file;
-    uint	i,j,found=0;
+	int		found=0;
+    uint	i,j;
 	long	usrxfrlen;
     long	m,l;
 	long	usrcdt;

@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.1 2000/10/10 11:25:27 rswindell Exp $ */
+/* $Id: smblib.c,v 1.2 2000/10/21 02:58:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,11 +42,18 @@
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
+#ifdef _WIN32
+#include <windows.h>		/* OF_SHARE_ */
+#endif
+
+#ifndef SH_DENYNO
+#define SH_DENYNO		   OF_SHARE_DENY_NONE
+#define SH_DENYRW		   OF_SHARE_EXCLUSIVE
+#endif
+
 #ifdef _MSC_VER	  /* Microsoft C */
 #define sopen(f,o,s,p)	   _sopen(f,o,s,p)
 #define close(f)		   _close(f)
-#define SH_DENYNO		   _SH_DENYNO
-#define SH_DENYRW		   _SH_DENYRW
 
 #include <sys/locking.h>
 
@@ -78,7 +85,7 @@ int unlock(int file, long offset, int size)
 	return(i);
 }
 
-#endif /* _MSC_VER */
+#endif
 
 
 int SMBCALL smb_ver(void)

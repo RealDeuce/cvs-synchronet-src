@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.1 2000/10/10 11:26:22 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.2 2000/10/21 02:58:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@
 
 #define RINGBUF_USE_STD_RTL
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__GNUC__)
 #define RINGBUFCALL	_cdecl
 #else
 #define RINGBUFCALL

@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.2 2000/10/17 20:23:40 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.3 2000/10/21 02:58:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,14 +146,17 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen, bool&
 // given ring 3 event handle. The ring 0 handle can be used by VxDs to
 // synchronize with the Win32 app.
 //
-HANDLE (WINAPI *GetAddressOfOpenVxDHandle(void))(HANDLE)
+
+typedef HANDLE (WINAPI *OPENVXDHANDLE)(HANDLE);
+
+OPENVXDHANDLE GetAddressOfOpenVxDHandle(void)
 {
 	HINSTANCE hK32;
 
 	if ((hK32 = LoadLibrary("KERNEL32")) == NULL)
 		return NULL;
 
-	return (HANDLE(WINAPI *)(HANDLE))GetProcAddress(hK32, "OpenVxDHandle");
+	return((OPENVXDHANDLE)GetProcAddress(hK32, "OpenVxDHandle"));
 }
 
 /****************************************************************************/
@@ -194,7 +197,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	DWORD	loop_since_io=0;
 	struct	tm * tm_p;
 	sbbsexec_start_t start;
-	HANDLE (WINAPI *OpenVxDHandle)(HANDLE);
+	OPENVXDHANDLE OpenVxDHandle;
 
 	if(cmdline[0]=='*') {   /* Baja module */
 		strcpy(str,cmdline+1);
