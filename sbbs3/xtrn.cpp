@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.145 2003/08/30 01:22:14 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.146 2003/09/03 00:26:55 runderwo Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1421,9 +1421,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		/* Touch the disclaimer file. */
 		strcat(str, "/disclaimer");
-		if ((i = open(str, O_WRONLY|O_CREAT)) != -1) {
-			close(i);
-		}
+		ftouch(str);
 
 		/* Set up the command for dosemu to execute with 'unix -e'. */
 
