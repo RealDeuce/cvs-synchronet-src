@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.28 2003/03/19 02:50:04 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.29 2003/05/01 10:18:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -352,7 +352,7 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 
 		/* Mark as READ and DELETE */
 		for(l=0;l<msgs;l++) {
-			if(mail[l].time>qwkmail_time)
+			if(mail[l].number>qwkmail_last)
 				continue;
 			msg.idx.offset=0;
 			if(!loadmsg(&msg,mail[l].number))
