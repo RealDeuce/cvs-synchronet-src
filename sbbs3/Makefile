@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.17 2003/01/02 01:21:44 rswindell Exp $
+# $Id: Makefile,v 1.18 2003/01/06 00:55:13 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -58,7 +58,6 @@ LIBS	=	..\mozilla\js\src\Debug\js32omf.lib
 # Cross platform/compiler definitions
 !include targets.mk		# defines all targets
 !include objects.mk		# defines $(OBJS)
-!include headers.mk		# defines $(HEADERS)
 !include sbbsdefs.mk	# defines $(SBBSDEFS)
 
 SBBSLIB	=	$(LIBODIR)\sbbs.lib
