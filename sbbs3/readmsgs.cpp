@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.16 2002/11/01 02:32:38 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.17 2002/12/14 01:15:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -304,6 +304,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 {
 	char	str[256],str2[256],reread=0,mismatches=0
 			,done=0,domsg=1,HUGE16 *buf,*p;
+	char	find_buf[128];
 	char	tmp[128];
 	int		i;
 	uint 	usub,ugrp,reads=0;
@@ -689,6 +690,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				break;
 			case 'F':   /* find text in messages */
 				domsg=0;
+				mode&=~SCAN_FIND;	/* turn off find mode */
 				bprintf(text[StartWithN],smb.curmsg+2);
 				if((i=getnum(smb.msgs))<0)
 					break;
@@ -697,9 +699,16 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				else
 					i=smb.curmsg+1;
 				bputs(text[SearchStringPrompt]);
-				if(!getstr(str,40,K_LINE|K_UPPER))
+				if(!getstr(find_buf,40,K_LINE|K_UPPER))
 					break;
-				searchposts(subnum,post,(long)i,smb.msgs,str);
+				if(yesno(text[DisplaySubjectsOnlyQ]))
+					searchposts(subnum,post,(long)i,smb.msgs,find_buf);
+				else {
+					smb.curmsg=i;
+					find=find_buf;
+					mode|=SCAN_FIND;
+					domsg=1;
+				}
 				break;
 			case 'I':   /* Sub-board information */
 				domsg=0;
