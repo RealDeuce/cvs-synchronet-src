@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.20 2002/06/28 22:58:44 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.21 2002/06/28 23:41:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -497,8 +497,11 @@ typedef struct {				// Message
 				*replyto_ext,	// Reply-to extension */
 				*id,			// RFC822 Message-ID
 				*reply_id,		// RFC822 Reply-ID
-				*ftn_id,		// FTN Message-ID
-				*ftn_reply_id,	// FTN Reply-ID
+				*ftn_pid,		// FTN PID
+				*ftn_area,		// FTN AREA
+				*ftn_flags,		// FTN FLAGS
+				*ftn_msgid,		// FTN MSGID
+				*ftn_reply,		// FTN REPLY
 				*subj;			// Subject
 	ushort		to_agent,		// Type of agent message is to
 				from_agent, 	// Type of agent message is from
