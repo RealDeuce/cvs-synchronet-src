@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.111 2001/10/20 14:49:11 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.112 2001/11/10 03:25:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -469,7 +469,8 @@ static JSClass js_ftp_class = {
         JS_EnumerateStub,JS_ResolveStub,JS_ConvertStub,JS_FinalizeStub 
 }; 
 
-JSContext* js_initcx(SOCKET sock, JSObject** glob, JSObject** ftp)
+static JSContext* 
+js_initcx(SOCKET sock, JSObject** glob, JSObject** ftp)
 {
 	char		ver[256];
 	JSContext*	js_cx;
