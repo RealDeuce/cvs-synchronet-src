@@ -8,13 +8,14 @@
 # usage: gmake [os=target_os]											#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2002/04/06 10:55:21 rswindell Exp $
+# $Id: GNUmakefile,v 1.4 2002/04/13 09:04:49 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
 CC		=	gcc
 SLASH	=	/
 OFILE	=	o
+CFLAGS	=	-Wall
 
 ifndef $(os)
 os		=	$(shell uname)
