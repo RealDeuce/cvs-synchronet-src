@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.279 2003/09/04 10:15:55 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.280 2003/09/04 19:44:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1483,7 +1483,7 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result)
 		ip[15]=0;
 		if(!inet_aton(ip,&check_addr))
 			break;
-		if(startup->options&DNSBL_DEBUG)
+		if(startup->options&MAIL_OPT_DNSBL_DEBUG)
 			lprintf("%04d DEBUG checking %s (%s)",socket,host_name,ip);
 		if((dnsbl_result->s_addr=dns_blacklisted(socket,check_addr,host_name,dnsbl)))
 				lprintf("%04d !SMTP BLACKLISTED SERVER on %s: %s [%s] = %s"
@@ -3361,7 +3361,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.279 $", "%*s %s", revision);
+	sscanf("$Revision: 1.280 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
