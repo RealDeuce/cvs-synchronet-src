@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding exported function prototypes */
 
-/* $Id: base64.h,v 1.5 2003/04/01 21:36:05 rswindell Exp $ */
+/* $Id: base64.h,v 1.6 2003/04/02 00:49:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
