@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.45 2004/05/30 07:16:23 deuce Exp $ */
+/* $Id: uifc.h,v 1.46 2004/05/30 10:32:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,6 +303,14 @@ typedef struct {
 /****************************************************************************/
     char    helpdatfile[MAX_PATH+1];
     char    helpixbfile[MAX_PATH+1];
+/****************************************************************************/
+/* Help and exit button locations for current/last window					*/
+/****************************************************************************/
+	int		buttony;
+	int		exitstart;
+	int		exitend;
+	int		helpstart;
+	int		helpend;
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
