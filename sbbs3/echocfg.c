@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.2 2002/06/16 07:07:25 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.3 2002/06/20 21:17:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,7 +106,7 @@ char *wcfaddrtoa(faddr_t* addr)
 int main(int argc, char **argv)
 {
 	char str[256],*p;
-	int i,j,k,x,file,dflt,nodeop=0;
+	int i,j,k,x,dflt,nodeop=0;
 	FILE *stream;
 	echolist_t savlistcfg;
 	nodecfg_t savnodecfg;
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 		sprintf(opt[i++],"Toggle Options...");
 		sprintf(opt[i++],"Archive Programs...");
 		sprintf(opt[i++],"Additional Echo Lists...");
-		opt[i][0]=NULL;
+		opt[i][0]=0;
 		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT|WIN_ESC,0,0,52,&dflt,0
 		,cfg.cfgfile,opt)) {
 
@@ -506,7 +506,7 @@ int main(int argc, char **argv)
 					sprintf(opt[i++],"%-30.30s %s","Log File"
 						,cfg.logfile[0] ? cfg.logfile
 						: "SCFG->data/sbbsecho.log");
-					opt[i][0]=NULL;
+					opt[i][0]=0;
 					j=uifc.list(WIN_MID|WIN_ACT,0,0,60,&j,0
 						,"Paths and Filenames",opt);
 					if(j==-1)
@@ -601,7 +601,7 @@ int main(int argc, char **argv)
 						,cfg.log&LOG_AREA_TOTALS ? "Yes":"No");
 					sprintf(opt[i++],"%-35.35s%-3.3s","Over-All Totals"
 						,cfg.log&LOG_TOTALS ? "Yes":"No");
-					opt[i][0]=NULL;
+					opt[i][0]=0;
 					j=uifc.list(0,0,0,43,&j,0,"Log Options",opt);
 					if(j==-1)
 						break;
@@ -695,7 +695,7 @@ int main(int argc, char **argv)
 						"in the AREAS.BBS List",misc&ELIST_ONLY?"No":"Yes");
 					sprintf(opt[i++],"%-50.50s%-3.3s","Kill/Ignore Empty NetMail "
 						"Messages",misc&KILL_EMPTY_MAIL ? "Yes":"No");
-					opt[i][0]=NULL;
+					opt[i][0]=0;
 					j=uifc.list(0,0,0,60,&j,0,"Toggle Options",opt);
 					if(j==-1)
 						break;
