@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.44 2003/05/06 02:03:17 rswindell Exp $ */
+/* $Id: str.cpp,v 1.45 2003/05/10 00:49:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -943,7 +943,7 @@ bool sbbs_t::spy(uint i /* node_num */)
 				}
 				ansi_len=0;
 			}
-			if(ch=='R') { /* through-away cursor position report */
+			if(ch=='R') { /* throw-away cursor position report */
 				ansi_len=0;
 				continue;
 			}
@@ -954,18 +954,13 @@ bool sbbs_t::spy(uint i /* node_num */)
 			}
 			continue;
 		}
-		if(ch==CTRL_P) {		/* Private node-node comm */
+		if(ch<' ') {
 			lncntr=0;						/* defeat pause */
 			spy_socket[i-1]=INVALID_SOCKET;	/* disable spy output */
-			nodesync(); 					/* read waiting messages */
-			nodemsg();						/* send a message */
+			ch=handle_ctrlkey(ch,K_NONE);
 			spy_socket[i-1]=client_socket;	/* enable spy output */
-			continue; 
-		}
-		if(ch==CTRL_U) {		/* Users online */
-			lncntr=0;			/* defeat pause */
-			whos_online(true); 	/* list users */
-			continue;
+			if(ch==0)
+				continue;
 		}
 		if(node_inbuf[i-1]!=NULL) 
 			RingBufWrite(node_inbuf[i-1],(uchar*)&ch,1);
