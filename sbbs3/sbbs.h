@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.182 2003/05/14 01:42:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.183 2003/05/14 20:26:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,8 +102,9 @@
 /***********************/
 /* Synchronet-specific */
 /***********************/
-#ifdef SBBS	/* Only SBBS is multi-threaded */
+#ifdef SBBS	
 	#include "threadwrap.h"	/* must be before dirwrap.h for OpenBSD FULLPATH */
+	#include "text.h"
 #endif
 #include "genwrap.h"
 #include "dirwrap.h"
@@ -115,7 +116,6 @@
 #include "scfglib.h"
 #include "userdat.h"
 #include "riodefs.h"
-#include "text.h"
 #include "cmdshell.h"
 #include "ringbuf.h"    /* RingBuf definition */
 #include "client.h"		/* client_t definition */
