@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.31 2003/08/22 01:28:27 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.32 2003/08/22 10:50:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -375,7 +375,7 @@ int sbbs_t::exec_function(csi_t *csi)
 				if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
 					break;
 			if(i<cfg.total_prots) {
-				if(protocol(i,cmdstr(cfg.prot[i]->dlcmd,csi->str,csi->str,str),false)==0)
+				if(protocol(cfg.prot[i],XFER_DOWNLOAD,csi->str,csi->str,false)==0)
 					csi->logic=LOGIC_TRUE;
 				autohangup(); 
 			}
@@ -403,7 +403,7 @@ int sbbs_t::exec_function(csi_t *csi)
 				if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
 					break;
 			if(i<cfg.total_prots) {
-				if(protocol(i,cmdstr(cfg.prot[i]->ulcmd,csi->str,csi->str,str),true)==0)
+				if(protocol(cfg.prot[i],XFER_UPLOAD,csi->str,csi->str,true)==0)
 					csi->logic=LOGIC_TRUE;
 				autohangup(); 
 			}

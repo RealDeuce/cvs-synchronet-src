@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.30 2003/08/22 01:28:27 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.31 2003/08/22 10:50:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -966,9 +966,8 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 							break;
 					csi->logic=LOGIC_FALSE;
 					if(i<cfg.total_prots)
-						if(protocol(i,cmdstr(j==SEND_FILE_VIA
-							? cfg.prot[i]->dlcmd : cfg.prot[i]->ulcmd,str,str,buf)
-							,true)==0)
+						if(protocol(cfg.prot[i],j==SEND_FILE_VIA ? XFER_DOWNLOAD : XFER_UPLOAD
+							,str,str,true)==0)
 							csi->logic=LOGIC_TRUE;
 					return(0);
 				case SEND_FILE_VIA_VAR:
@@ -984,9 +983,9 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					if(!pp || !(*pp))
 						return(0);
 					if(i<cfg.total_prots)
-						if(protocol(i,cmdstr(j==SEND_FILE_VIA_VAR
-							? cfg.prot[i]->dlcmd : cfg.prot[i]->ulcmd,*pp,*pp,buf)
-							,true)==0)
+						if(protocol(cfg.prot[i]
+							,j==SEND_FILE_VIA_VAR ? XFER_DOWNLOAD : XFER_UPLOAD
+							,*pp,*pp,true)==0)
 							csi->logic=LOGIC_TRUE;
 					return(0);
 

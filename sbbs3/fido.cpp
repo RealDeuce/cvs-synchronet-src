@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.26 2003/08/22 01:28:27 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.27 2003/08/22 10:50:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 					&& chk_ar(cfg.prot[x]->ar,&useron))
 					break;
 			if(x<cfg.total_prots)	/* This should be always */
-				protocol(x,cmdstr(cfg.prot[x]->ulcmd,subj,nulstr,NULL),true); 
+				protocol(cfg.prot[x],XFER_UPLOAD,subj,nulstr,true); 
 		}
 		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(subj) && fexistcase(tmp))

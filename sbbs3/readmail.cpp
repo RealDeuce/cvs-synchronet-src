@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.25 2003/08/22 01:28:28 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.26 2003/08/22 10:50:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -268,7 +268,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 										&& chk_ar(cfg.prot[i]->ar,&useron))
 										break;
 								if(i<cfg.total_prots) {
-									error=protocol(i,cmdstr(cfg.prot[i]->dlcmd,str2,nulstr,NULL),false);
+									error=protocol(cfg.prot[i],XFER_DOWNLOAD,str2,nulstr,false);
 									if(checkprotresult(cfg.prot[i],error,&fd)) {
 										if(which==MAIL_YOUR)
 											remove(str2);

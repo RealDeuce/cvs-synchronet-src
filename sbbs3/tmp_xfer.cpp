@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.32 2003/08/22 01:28:28 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.33 2003/08/22 10:50:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,7 +176,7 @@ void sbbs_t::temp_xfer()
 
 					putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 					start=time(NULL);
-					error=protocol(i,cmdstr(cfg.prot[i]->dlcmd,str,nulstr,NULL),false);
+					error=protocol(cfg.prot[i],XFER_DOWNLOAD,str,nulstr,false);
 					end=time(NULL);
 					if(cfg.dir[temp_dirnum]->misc&DIR_TFREE)
 						starttime+=end-start;
