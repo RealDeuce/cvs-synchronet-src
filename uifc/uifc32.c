@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.67 2004/06/03 05:22:39 deuce Exp $ */
+/* $Id: uifc32.c,v 1.69 2004/07/02 20:19:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,17 +41,16 @@
 	#ifdef __QNX__
 		#include <strings.h>
 	#endif
-	#include "ciowrap.h"
     #define mswait(x) delay(x)
-    #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
 	#include <conio.h>
 	#include <windows.h>
-	#include "keys.h"
 	#define mswait(x) Sleep(x)
 #endif
 
+#include "ciowrap.h"
+#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 							/* Bottom line elements */
@@ -960,7 +959,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							(*bar)=(*cur);
 						y=top+3+((mevnt.y)-(s_top+top+2));
 
-						if(!opts || (mode&WIN_XTR && (*cur)==opts-1))
+						if(!opts)
 							continue;
 
 						if(mode&WIN_ACT) {
@@ -992,6 +991,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							free(sav[api->savnum].buf);
 							api->savdepth--;
 						}
+						if(mode&WIN_XTR && (*cur)==opts-1)
+							return(MSK_INS|*cur);
 						return(*cur);
 					}
 					/* Clicked Scroll Up */
@@ -1479,7 +1480,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				else
 					switch(i) {
 						case CR:
-							if(!opts || (mode&WIN_XTR && (*cur)==opts-1))
+							if(!opts)
 								break;
 							if(mode&WIN_ACT) {
 								gettext(s_left+left,s_top+top,s_left
@@ -1500,6 +1501,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								FREE(sav[api->savnum].buf);
 								api->savdepth--; 
 							}
+							if(mode&WIN_XTR && (*cur)==opts-1)
+								return(MSK_INS|*cur);
 							return(*cur);
 						case 3:
 						case ESC:
