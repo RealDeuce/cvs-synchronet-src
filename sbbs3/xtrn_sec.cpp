@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.13 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.14 2001/11/29 03:59:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1416,6 +1416,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	thisnode.aux=xtrnnum+1;
 	thisnode.action=NODE_XTRN;
 	putnodedat(cfg.node_num,&thisnode);
+	putuserrec(&cfg,useron.number,U_CURXTRN,8,cfg.xtrn[xtrnnum]->code);
 
 	if(cfg.xtrn[xtrnnum]->misc&REALNAME)
 		strcpy(name,useron.name);
