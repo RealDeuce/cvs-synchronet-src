@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.33 2002/04/13 09:43:44 rswindell Exp $ */
+/* $Id: str.cpp,v 1.34 2002/04/25 22:14:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,55 @@ char* DLLCALL remove_ctrl_a(char *instr, char *outstr)
 		p=instr;
 	strcpy(p,str);
 	return(p);
+}
+
+char* DLLCALL strip_ctrl(char *str)
+{
+	char tmp[1024];
+	int i,j;
+
+	for(i=j=0;str[i] && j<sizeof(tmp)-1;i++)
+		if(str[i]==CTRL_A && str[i+1]!=0)
+			i++;
+		else if((uchar)str[i]>=SP)
+			tmp[j++]=str[i];
+	tmp[j]=0;
+	strcpy(str,tmp);
+	return(str);
+}
+
+char* DLLCALL strip_exascii(char *str)
+{
+	char tmp[1024];
+	int i,j;
+
+	for(i=j=0;str[i] && j<sizeof(tmp)-1;i++)
+		if(!(str[i]&0x80))
+			tmp[j++]=str[i];
+	tmp[j]=0;
+	strcpy(str,tmp);
+	return(str);
+}
+
+char* DLLCALL prep_file_desc(char *str)
+{
+	char tmp[1024];
+	int i,j;
+
+	for(i=j=0;str[i];i++)
+		if(str[i]==CTRL_A && str[i+1]!=0)
+			i++;
+		else if(j && str[i]<=SP && tmp[j-1]==SP)
+			continue;
+		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
+			continue;
+		else if((uchar)str[i]>=SP)
+			tmp[j++]=str[i];
+		else if(str[i]==TAB || (str[i]==CR && str[i+1]==LF))
+			tmp[j++]=SP;
+	tmp[j]=0;
+	strcpy(str,tmp);
+	return(str);
 }
 
 /****************************************************************************/
