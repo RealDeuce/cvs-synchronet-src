@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.13 2002/04/26 00:29:50 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.14 2002/12/30 05:28:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,8 +34,6 @@
  ****************************************************************************/
 
 #include "scfg.h"
-
-char *daystr(char days);
 
 void qhub_edit(int num);
 void phub_edit(int num);
@@ -1471,12 +1469,19 @@ char *daystr(char days)
 	static char str[256];
 	int i;
 
-str[0]=0;
-for(i=0;i<7;i++) {
-	if(days&(1<<i))
-		strcat(str,wday[i]);
-	else
-		strcat(str,"   ");
-	strcat(str," "); }
-return(str);
+	days&=0x7f;
+
+	if(days==0)		return("None");
+
+	if(days==0x7f)	return("All");
+
+	str[0]=0;
+	for(i=0;i<7;i++) {
+		if(days&(1<<i))
+			strcat(str,wday[i]);
+		else
+			strcat(str,"   ");
+		strcat(str," "); 
+	}
+	return(str);
 }
