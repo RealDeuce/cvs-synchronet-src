@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.112 2003/07/18 06:45:24 deuce Exp $
+# $Id: GNUmakefile,v 1.113 2003/07/18 06:47:32 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -516,23 +516,23 @@ $(MSG2ANS): $(LIBODIR)/msg2ans.o
 
 # "Single servers"
 $(SBBSWEB): $(SBBSCON)
-	@echo Copying $@ for no good reason
+	@echo Copying $(SBBSCON) to $@ for no good reason
 	$(QUIET)cp $(SBBSCON) $@
 
 $(SBBSFTP): $(SBBSCON)
-	@echo Copying $@ for no good reason
+	@echo Copying $(SBBSCON) to $@ for no good reason
 	$(QUIET)cp $(SBBSCON) $@
 
 $(SBBSMAIL): $(SBBSCON)
-	@echo Copying $@ for no good reason
+	@echo Copying $(SBBSCON) to $@ for no good reason
 	$(QUIET)cp $(SBBSCON) $@
 
 $(SBBSSRVC): $(SBBSCON)
-	@echo Copying $@ for no good reason
+	@echo Copying $(SBBSCON) to $@ for no good reason
 	$(QUIET)cp $(SBBSCON) $@
 
 $(SBBS_BBS): $(SBBSCON)
-	@echo Copying $@ for no good reason
+	@echo Copying $(SBBSCON) to $@ for no good reason
 	$(QUIET)cp $(SBBSCON) $@
 
 
