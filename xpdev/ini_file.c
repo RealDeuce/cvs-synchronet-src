@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.57 2004/09/09 07:43:42 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.58 2004/09/11 09:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,8 +53,6 @@
 #define INI_NEW_SECTION			((char*)~0)
 
 static ini_style_t default_style;
-
-#include "truncsp.c"	/* truncsp() and truncnl() */
 
 static char* section_name(char* p)
 {
