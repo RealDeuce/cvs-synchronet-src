@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.156 2004/01/22 00:13:59 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.159 2004/02/10 23:31:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -572,28 +572,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
     	startup_info.wShowWindow=SW_HIDE;
 	}
 	if(native && !(mode&EX_OFFLINE)) {
-		/* temporary */
-		FILE* fp;
-		sprintf(fname,"%sDOOR32.SYS",cfg.node_dir);
-		fp=fopen(fname,"wb");
-		fprintf(fp,"%d\r\n%d\r\n38400\r\n%s%c\r\n%d\r\n%s\r\n%s\r\n%d\r\n%d\r\n"
-			"%d\r\n%d\r\n"
-			,mode&EX_OUTR ? 0 /* Local */ : 2 /* Telnet */
-			,mode&EX_OUTR ? INVALID_SOCKET : client_socket_dup
-			,VERSION_NOTICE,REVISION
-			,useron.number
-			,useron.name
-			,useron.alias
-			,useron.level
-			,timeleft/60
-			,useron.misc&ANSI ? 1 : 0
-			,cfg.node_num);
-		fclose(fp);
 
-		/* not temporary */
 		if(!(mode&EX_INR) && input_thread_running) {
 			pthread_mutex_lock(&input_thread_mutex);
 			input_thread_mutex_locked=true;
+		}
+
+		if(!(mode&EX_OUTR)) {	 /* Native Socket I/O program */
+			/* Enable the Nagle algorithm */
+			BOOL nodelay=FALSE;
+			setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 		}
 	}
 
@@ -962,8 +950,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
 
 		if(native) {
+			
+			/* Re-enable blocking (incase disabled by xtrn program) */
 			ulong l=0;
 			ioctlsocket(client_socket, FIONBIO, &l);
+
+			/* Re-set socket options */
+			if(set_socket_options(&cfg, client_socket, str))
+				lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
+
 			if(input_thread_mutex_locked && input_thread_running) {
 				pthread_mutex_unlock(&input_thread_mutex);
 				input_thread_mutex_locked=false;
@@ -1725,6 +1720,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			close(in_pipe[1]);
 		close(out_pipe[0]);
 	}
+	else {
+		/* Enable the Nagle algorithm */
+		int nodelay=FALSE;
+		setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
+	}
 
 	while(waitpid(pid, &i, WNOHANG)==0)  {
 		FD_ZERO(&ibits);
@@ -1750,9 +1750,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		if(i)
 			lprintf(LOG_NOTICE,"%.*s",i,buf);
 	}
-	
 
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
+
+		/* Re-enable blocking (incase disabled by xtrn program) */
+		ulong l=0;
+		ioctlsocket(client_socket, FIONBIO, &l);
+
+		/* Re-set socket options */
+		if(set_socket_options(&cfg, client_socket, str))
+			lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 		curatr=~0;			// Can't guarantee current attributes
 		attr(LIGHTGRAY);	// Force to "normal"
