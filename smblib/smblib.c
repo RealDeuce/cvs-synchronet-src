@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.25 2002/04/10 22:18:43 rswindell Exp $ */
+/* $Id: smblib.c,v 1.26 2002/04/11 10:07:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -845,7 +845,7 @@ int SMBCALL smb_unlockmsghdr(smb_t* smb, smbmsg_t* msg)
 /****************************************************************************/
 /* Adds a header field to the 'msg' structure (in memory only)              */
 /****************************************************************************/
-int SMBCALL smb_hfield(smbmsg_t* msg, ushort type, ushort length, void* data)
+int SMBCALL smb_hfield(smbmsg_t* msg, ushort type, size_t length, void* data)
 {
 	void* vp,**vpp;
 	int i;
