@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.26 2004/09/24 20:01:55 deuce Exp $
+# $Id: Common.gmake,v 1.27 2004/09/24 20:32:07 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -209,7 +209,7 @@ OUTPUT		:=	-o
 LOUTPUT		:=	-o
 
 ifeq ($(os),openbsd)
- SOFILE	:=	$(SOFILE)$(VERSION)
+ SOFILE	:=	$(SOFILE).$(VERSION)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
