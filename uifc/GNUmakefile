@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.10 2004/09/20 02:57:25 deuce Exp $
+# $Id: GNUmakefile,v 1.5 2004/09/13 00:05:17 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -17,20 +17,16 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
 
-CFLAGS += -DWRAPPER_IMPORTS -I$(XPDEV_SRC) $(CIOLIB-MT_CFLAGS)
+CFLAGS += -I$(XPDEV_SRC) $(CIOLIB-MT_CFLAGS)
 
 # UIFC Library Link Rule
-$(UIFCLIB_BUILD): $(OBJS)
+$(UIFCLIB): $(OBJODIR) $(OBJS)
 	@echo Creating $@ ...
-	$(QUIET)$(AR) rc $@ $(OBJS)
-	$(QUIET)$(RANLIB) $@
+	$(QUIET)ar rc $@ $(OBJS)
+	$(QUIET)ranlib $@
 
 # MT-UIFC Library Link Rule
-$(UIFCLIB-MT_BUILD): $(MT_OBJS)
+$(UIFCLIB-MT): $(MTOBJODIR) $(MT_OBJS)
 	@echo Creating $@ ...
-	$(QUIET)$(AR) rc $@ $(MT_OBJS)
-	$(QUIET)$(RANLIB) $@
-
-$(UIFCTEST): $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE)
-	@echo Creating $@ ...
-	$(QUIET)$(CC) $(MT_LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(LDFLAGS) -o $@ $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)ar rc $@ $(MT_OBJS)
+	$(QUIET)ranlib $@

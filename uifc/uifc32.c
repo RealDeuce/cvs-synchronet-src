@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.93 2004/09/20 03:58:19 deuce Exp $ */
+/* $Id: uifc32.c,v 1.92 2004/09/11 02:05:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,8 +240,8 @@ int uifcini32(uifcapi_t* uifcapi)
     }
     api->scrn_len--; /* account for status line */
 
-    if(txtinfo.screenwidth<40) {
-        cprintf("\7UIFC: Screen width (%u) must be at least 40 characters\r\n"
+    if(txtinfo.screenwidth<80) {
+        cprintf("\7UIFC: Screen width (%u) must be at least 80 characters\r\n"
             ,txtinfo.screenwidth);
         return(-3);
     }
