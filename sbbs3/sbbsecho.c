@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.75 2002/11/09 22:36:25 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.76 2002/11/10 07:38:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,6 +81,7 @@ faddr_t		sys_faddr;
 config_t	cfg;
 scfg_t		scfg;
 char		revision[16];
+char		compiler[32];
 
 BOOL pause_on_exit=FALSE;
 
@@ -2648,6 +2649,12 @@ int fmsgtosmsg(uchar HUGE16 *fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	if(taillen)
 		smb_dfield(&msg,TEXT_TAIL,taillen+2);
 
+	if(smb_get_hfield(&msg,FIDOTID,NULL)==NULL) { /* generate TID */
+		sprintf(str,"SBBSecho %s-%s r%s %s %s"
+			,SBBSECHO_VER,PLATFORM_DESC,revision,__DATE__,compiler);
+		smb_hfield(&msg,FIDOTID,(ushort)strlen(str),str);
+	}
+
 	i=smb_addmsghdr(smbfile,&msg,storage);
 	smb_freemsgmem(&msg);
 	if(i) {
@@ -3564,7 +3571,6 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 void export_echomail(char *sub_code,faddr_t addr)
 {
 	char	str[1025],tear,cr;
-	char	compiler[32];
 	char*	buf=NULL;
 	char*	minus;
 	uchar*	fmsgbuf=NULL;
@@ -3582,8 +3588,6 @@ void export_echomail(char *sub_code,faddr_t addr)
 	areasbbs_t fakearea;
 	addrlist_t msg_seen,msg_path;
     clock_t start_tick=0,export_ticks=0;
-
-	DESCRIBE_COMPILER(compiler);
 
 	memset(&msg_seen,0,sizeof(addrlist_t));
 	memset(&msg_path,0,sizeof(addrlist_t));
@@ -3957,7 +3961,9 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.75 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.76 $" + 11, "%s", revision);
+
+	DESCRIBE_COMPILER(compiler);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
