@@ -12,7 +12,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.29 2001/12/01 02:28:48 rswindell Exp $
+# $Id: Makefile.gnu,v 1.30 2001/12/01 02:37:49 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -128,6 +128,9 @@ $(LIBODIR)/mailsrvr.o: mailsrvr.c mailsrvr.h
 
 $(LIBODIR)/mxlookup.o: mxlookup.c
 	$(CC) $(CFLAGS) -c -DMAILSRVR_EXPORTS $< -o $@		
+
+$(LIBODIR)/services.o: services.c services.h
+	$(CC) $(CFLAGS) -c -DSERVICES_EXPORTS $< -o $@
 
 # Baja Utility
 $(BAJA): baja.c ars.c smbwrap.c crc32.c
