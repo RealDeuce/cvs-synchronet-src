@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.13 2002/01/11 01:11:22 rswindell Exp $ */
+/* $Id: download.cpp,v 1.14 2002/01/21 15:10:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,9 +307,12 @@ bool sbbs_t::checkprotlog(file_t* f)
 	fclose(stream);
 	bprintf(text[FileNotSent],f->name);
 	if(f->dir<cfg.total_dirs)
-		sprintf(str,"%s attempted to download %s (%s) from %s %s",f->name
+		sprintf(str,"%s attempted to download %s (%s) from %s %s"
 			,useron.alias
-			,ultoac(f->size,tmp),cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
+			,f->name
+			,ultoac(f->size,tmp)
+			,cfg.lib[cfg.dir[f->dir]->lib]->sname
+			,cfg.dir[f->dir]->sname);
 	else
 		sprintf(str,"%s attempted to download QWK packet",useron.alias);
 	logline("D!",str);
