@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.17 2003/12/17 09:48:12 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.16 2003/12/04 06:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ int sbbs_t::delmail(uint usernumber, int which)
 		return(i); }
 	smb_rewind(smb.sid_fp);
 	for(l=0;l<smb.status.total_msgs;) {
-		if(smb_fread(&smb,&msg.idx,sizeof(idxrec_t),smb.sid_fp)!=sizeof(idxrec_t))
+		if(!smb_fread(&smb,&msg.idx,sizeof(idxrec_t),smb.sid_fp))
 			break;
 		if(which==MAIL_ALL && !(msg.idx.attr&MSG_PERMANENT)
 			&& smb.status.max_age && now>msg.idx.time
