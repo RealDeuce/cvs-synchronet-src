@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.154 2004/09/08 22:01:16 deuce Exp $
+# $Id: GNUmakefile,v 1.155 2004/09/08 22:07:14 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -87,7 +87,8 @@ SBBSLIB	=	-lsbbs
 $(SBBSLIB) : $(SBBS)
 	$(QUIET)touch -- '$(SBBSLIB)'
 
-LD_RUN_PATH	:=	.;./$(LIBODIR);$(JSLIBDIR);$(NSPRDIR)
+PWD	:=	$(shell pwd)
+LD_RUN_PATH	:=	.;$(PWD)/$(LIBODIR);$(PWD)/$(JSLIBDIR);$(PWD)/$(NSPRDIR)
 export LD_RUN_PATH
 
 CON_OBJS	= $(LIBODIR)/sbbscon.o $(LIBODIR)/conwrap.o \
