@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.102 2005/02/18 10:05:41 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.103 2005/03/10 09:59:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -513,6 +513,13 @@ void sbbs_read_ini(
 			=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
 		web->max_cgi_inactivity
 			=iniReadShortInt(fp,section,"MaxCgiInactivity",120);	/* seconds */
+
+		SAFECOPY(web->answer_sound
+			,iniReadString(fp,section,"AnswerSound",nulstr,value));
+		SAFECOPY(web->hangup_sound
+			,iniReadString(fp,section,"HangupSound",nulstr,value));
+		SAFECOPY(web->hack_sound
+			,iniReadString(fp,section,"HackAttemptSound",nulstr,value));
 
 		web->log_mask
 			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
@@ -1083,6 +1090,13 @@ BOOL sbbs_write_ini(
 		if(!iniSetShortInt(lp,section,"MaxInactivity",web->max_inactivity,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"MaxCgiInactivity",web->max_cgi_inactivity,&style))
+			break;
+
+		if(!iniSetString(lp,section,"AnswerSound",web->answer_sound,&style))
+			break;
+		if(!iniSetString(lp,section,"HangupSound",web->hangup_sound,&style))
+			break;
+		if(!iniSetString(lp,section,"HackAttemptSound",web->hack_sound,&style))
 			break;
 
 		if(!iniSetBitField(lp,section,strOptions,web_options,web->options,&style))
