@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.14 2004/03/03 22:35:07 deuce Exp $ */
+/* $Id: uedit.c,v 1.15 2004/03/03 22:37:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,15 +37,17 @@
 
 #include "sbbs.h"
 #include "conwrap.h"	/* this has to go BEFORE curses.h so getkey() can be macroed around */
-#include <curses.h>
 #include <sys/types.h>
 #include <time.h>
-#include <sys/time.h>
 #ifdef __QNX__
 #include <string.h>
 #endif
 #include <stdio.h>
+#ifdef __unix__
 #include <unistd.h>
+#include <curses.h>
+#include <sys/time.h>
+#endif
 #include "genwrap.h"
 #include "uifc.h"
 #include "sbbsdefs.h"
@@ -1612,7 +1614,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.14 $", "%*s %s", revision);
+	sscanf("$Revision: 1.15 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
