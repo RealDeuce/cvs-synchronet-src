@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.1 2002/04/06 00:40:31 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.2 2002/04/06 01:36:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,18 +80,18 @@ extern "C" {
 #ifdef __unix__
 
 	#define ALLFILES "*"	/* matches all files in a directory */
-	#define MKDIR(dir)		_mkdir(dir)
-	#define RMDIR(dir)		_rmdir(dir)
-	#define FULLPATH(a,r,l)	_fullpath(a,r,l)
 	#include <glob.h>		/* POSIX.2 directory pattern matching function */
+	#define MKDIR(dir)		mkdir(dir,0777)
+	#define RMDIR(dir)		rmdir(dir)
+	#define FULLPATH(a,r,l)	realpath(r,a)
 
 #else	
 
 	#define ALLFILES "*.*"	/* matches all files in a directory */
-	#define MKDIR(dir)		mkdir(dir,0777)
-	#define RMDIR(dir)		rmdir(dir)
-	#define FULLPATH(a,r,l)	realpath(r,a)
-	
+	#define MKDIR(dir)		_mkdir(dir)
+	#define RMDIR(dir)		_rmdir(dir)
+	#define FULLPATH(a,r,l)	_fullpath(a,r,l)
+
 	/* glob-compatible findfirst/findnext wrapper */
 
 	typedef struct 
