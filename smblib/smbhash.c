@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.5 2004/09/16 08:58:18 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.9 2004/12/29 04:30:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,6 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 
 		rewind(smb->hash_fp);
 		while(!feof(smb->hash_fp)) {
-			memset(&hash,0,sizeof(hash));
 			if(smb_fread(smb,&hash,sizeof(hash),smb->hash_fp)!=sizeof(hash))
 				break;
 
@@ -78,6 +77,8 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 
 				if(compare[c]->source!=hash.source)
 					continue;	/* wrong source */
+				if(compare[c]->length!=hash.length)
+					continue;	/* wrong source length */
 				if(compare[c]->flags&SMB_HASH_MARKED)
 					continue;	/* already marked */
 				if((compare[c]->flags&SMB_HASH_PROC_MASK)!=(hash.flags&SMB_HASH_PROC_MASK))
@@ -142,30 +143,27 @@ int SMBCALL smb_addhashes(smb_t* smb, hash_t** hashes, BOOL skip_marked)
 			continue;	
 	
 		/* can't think of any reason to strip SMB_HASH_MARKED flag right now */
-		if(smb_fwrite(smb,hashes[h],sizeof(hash_t),smb->hash_fp)!=sizeof(hash_t))
-			return(SMB_ERR_WRITE);
+		if(smb_fwrite(smb,hashes[h],sizeof(hash_t),smb->hash_fp)!=sizeof(hash_t)) {
+			retval=SMB_ERR_WRITE;
+			break;
+		}
 	}
 
 	smb_close_hash(smb);
 
-	return(SMB_SUCCESS);
+	return(retval);
 }
 
-static char* strip_chars(uchar* str, uchar* set)
+static char* strip_chars(uchar* dst, const uchar* src, uchar* set)
 {
-	char*	src;
-	char*	dst;
-	char*	tmp;
-
-	if((tmp=strdup(str))==NULL)
-		return(NULL);
-	for(src=tmp,dst=str;*src;src++) {
+	while(*src) {
 		if(strchr(set,*src)==NULL)
 			*(dst++)=*src;
+		src++;
 	}
 	*dst=0;
-	
-	return(str);
+
+	return(dst);
 }
 
 /* Allocates and calculates hashes of data (based on flags)					*/
@@ -178,8 +176,10 @@ hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 	if((hash=(hash_t*)malloc(sizeof(hash_t)))==NULL)
 		return(NULL);
 
+	memset(hash,0,sizeof(hash_t));
 	hash->number=msgnum;
 	hash->time=t;
+	hash->length=length;
 	hash->source=source;
 	hash->flags=flags;
 	if(flags&SMB_HASH_CRC16)
@@ -204,10 +204,10 @@ hash_t* SMBCALL smb_hashstr(ulong msgnum, ulong t, unsigned source, unsigned fla
 	if(flags&SMB_HASH_PROC_MASK) {	/* string pre-processing */
 		if((p=strdup(str))==NULL)
 			return(NULL);
+		if(flags&SMB_HASH_STRIP_WSP)
+			strip_chars(p,str," \t\r\n");
 		if(flags&SMB_HASH_LOWERCASE)
 			strlwr(p);
-		if(flags&SMB_HASH_STRIP_WSP)
-			strip_chars(p," \t\r\n");
 	}
 	
 	hash=smb_hash(msgnum, t, source, flags, p, strlen(p));
@@ -298,7 +298,6 @@ int SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
 
 	hashes[1]=NULL;	/* terminate list */
 
-	memset(&found,0,sizeof(found));
 	if((retval=smb_findhash(smb, hashes, &found, 1<<source, FALSE))==SMB_SUCCESS) {
 		if(found.number==0)
 			retval=SMB_FAILURE;	/* use better error value here? */
