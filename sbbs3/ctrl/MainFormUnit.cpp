@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.28 2001/07/21 01:46:22 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.29 2001/07/29 18:42:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1313,8 +1313,10 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     }
     if(CtrlDirectory.UpperCase().AnsiPos("MAIN.CNF"))
 		CtrlDirectory.SetLength(CtrlDirectory.Length()-8);
+    memset(&cfg,0,sizeof(cfg));
     strcpy(cfg.ctrl_dir,CtrlDirectory.c_str());
     cfg.size=sizeof(cfg);
+    cfg.node_num=bbs_startup.first_node;
 	if(!load_cfg(&cfg, NULL, TRUE)) {
     	Application->MessageBox("Failed to load configuration files.","ERROR"
 	        ,MB_OK|MB_ICONEXCLAMATION);
@@ -1396,6 +1398,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     ClientForm->Timer->Interval=ClientDisplayInterval*1000;
     ClientForm->Timer->Enabled=true;
 
+    StatsTimer->Interval=cfg.node_stat_check*1000;
 	StatsTimer->Enabled=true;
     Initialized=true;
 
@@ -1740,6 +1743,13 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
     AnsiString Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[4]->Text=Str;
+#if 0
+    THeapStatus hp=GetHeapStatus();
+    sprintf(str,"Mem Used: %lu bytes",hp.TotalAllocated);
+    Str=AnsiString(str);
+    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
+		MainForm->StatusBar->Panels->Items[5]->Text=Str;
+#endif
     if(TrayIcon->Visible) {
         /* Animate TrayIcon when in use */
         AnsiString NumClients;
