@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.275 2005/03/08 16:45:51 deuce Exp $ */
+/* $Id: websrvr.c,v 1.276 2005/03/08 17:02:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2462,9 +2462,9 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		reply=JSVAL_TO_OBJECT(val);
 		JS_GetProperty(cx, reply, "fast", &val);
 		if(JSVAL_IS_BOOLEAN(val) && JSVAL_TO_BOOLEAN(val)) {
+			session->req.keep_alive=FALSE;
 			if(!ssjs_send_headers(session))
 				return(JS_FALSE);
-			session->req.keep_alive=FALSE;
 		}
 	}
 
@@ -3051,7 +3051,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.275 $", "%*s %s", revision);
+	sscanf("$Revision: 1.276 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
