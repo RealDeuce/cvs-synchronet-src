@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.29 2004/09/09 21:26:49 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.28 2004/09/08 03:44:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -753,7 +753,7 @@ void msg_opts()
 		sprintf(opt[i++],"%-33.33s%s"
 			,"BBS ID for QWK Packets",cfg.sys_id);
 		sprintf(opt[i++],"%-33.33s%s"
-			,"Local Time Zone",smb_zonestr(cfg.sys_timezone,NULL));
+			,"Local Time Zone",zonestr(cfg.sys_timezone));
 		sprintf(opt[i++],"%-33.33s%u seconds"
 			,"Maximum Retry Time",cfg.smb_retry_time);
 		if(cfg.max_qwkmsgs)
