@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.23 2000/11/04 06:40:11 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.24 2000/11/06 10:01:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -296,9 +296,12 @@ char* _fullpath(char* absPath, const char* relPath, size_t maxLength)
 	}
 
     getcwd(curdir, PATH_MAX);
-    chdir(relPath);
-    getcwd(absPath, maxLength);
-    chdir(curdir);
+    if(chdir(relPath)!=0) /* error, invalid dir */
+		strcpy(absPath,relPath);
+	else {
+		getcwd(absPath, maxLength);
+		chdir(curdir);
+	}
 	free(curdir);
 
     return absPath;
