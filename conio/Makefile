@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.9 2004/09/20 07:26:43 rswindell Exp $
+# $Id: Makefile,v 1.6 2004/09/15 07:40:06 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -17,11 +17,11 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 !include ..\build\Common.bmake	# defines clean and output directory rules
 
-CFLAGS = -w-par -w-csu -DWRAPPER_IMPORTS $(CFLAGS) $(XPDEV-MT_CFLAGS) $(MT_CFLAGS) -I$(CIOLIB_SRC)
+CFLAGS = -DWRAPPER_IMPORTS $(CFLAGS) $(XPDEV-MT_CFLAGS) $(MT_CFLAGS) -I$(CIOLIB_SRC)
 OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)win32cio$(OFILE)
 
 # SBBS DLL Link Rule
-$(CIOLIB-MT_BUILD): $(OBJS)
+$(CIOLIB-MT): $(OBJS)
 	@echo Creating $< ...
 	-$(QUIET)$(DELETE) $@
 	&$(QUIET)tlib $@ +$**

@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.10 2004/09/16 05:42:25 rswindell Exp $ */
+/* $Id: link_list.h,v 1.9 2004/07/21 02:37:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,10 +53,9 @@ extern "C" {
 
 /* Valid link_list_t.flags bits */
 #define LINK_LIST_MALLOC		(1<<0)	/* List/node allocated with malloc() */
-#define LINK_LIST_ALWAYS_FREE	(1<<1)	/* ALWAYS free node data when removing */
-#define LINK_LIST_NEVER_FREE	(1<<2)	/* NEVER free node data when removing */
-#define LINK_LIST_MUTEX			(1<<3)	/* Mutex protected linked-list */
-#define LINK_LIST_NODE_LOCKED	(1<<4)	/* Node is locked */
+#define LINK_LIST_ALWAYS_FREE	(1<<1)	/* Always free node data when removing */
+#define LINK_LIST_MUTEX			(1<<2)	/* Mutex protected linked-list */
+#define LINK_LIST_NODE_LOCKED	(1<<3)	/* Node is locked */
 
 typedef struct list_node {
 	void*				data;		/* pointer to some kind of data */

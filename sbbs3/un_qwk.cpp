@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.27 2004/09/21 06:37:13 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.26 2004/09/02 22:01:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,9 +307,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		closedir(dir);
 
 	t=time(NULL)-start;
-	if(msgs) {
-		if(t<1)
-			t=1;
+	if(t) {
 		eprintf(LOG_INFO,"Finished Importing QWK Network Packet from %s: "
 			"(%lu msgs) in %lu seconds (%lu msgs/sec)"
 			,cfg.qhub[hubnum]->id, msgs, t, msgs/t);
