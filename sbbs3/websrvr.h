@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.24 2004/10/27 06:24:13 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.25 2004/10/27 06:34:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ static ini_bitdesc_t web_options[] = {
 	{ BBS_OPT_MUTE					,"MUTE"					},
 
 	/* terminator */										
-	{ -1							,NULL					}
+	{ 0								,NULL					}
 };
 
 #define WEB_DEFAULT_ROOT_DIR		"../html"

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.37 2004/10/27 06:23:16 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.38 2004/10/27 06:34:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,7 +130,7 @@ static ini_bitdesc_t ftp_options[] = {
 	{ FTP_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ FTP_OPT_MUTE					,"MUTE"					},
 	/* terminator */										
-	{ -1							,NULL					}
+	{ 0 							,NULL					}
 };
 
 #ifdef DLLEXPORT

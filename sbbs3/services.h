@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.28 2004/10/27 06:21:10 rswindell Exp $ */
+/* $Id: services.h,v 1.29 2004/10/27 06:34:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,7 +109,7 @@ static ini_bitdesc_t service_options[] = {
 	{ SERVICE_OPT_NATIVE			,"NATIVE"				},
 	{ SERVICE_OPT_FULL_ACCEPT		,"FULL_ACCEPT"			},
 	/* terminator */				
-	{ -1							,NULL					}
+	{ 0 							,NULL					}
 };
 
 #ifdef __cplusplus

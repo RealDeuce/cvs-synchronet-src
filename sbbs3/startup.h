@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.52 2004/10/27 06:22:38 rswindell Exp $ */
+/* $Id: startup.h,v 1.53 2004/10/27 06:34:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,7 @@ static ini_bitdesc_t bbs_options[] = {
 	{ BBS_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ BBS_OPT_MUTE					,"MUTE"					},
 	/* terminator */										
-	{ -1							,NULL					}
+	{ 0								,NULL					}
 };
 
 static ini_bitdesc_t log_mask_bits[] = {
@@ -192,7 +192,7 @@ static ini_bitdesc_t log_mask_bits[] = {
 	{ (1<<LOG_INFO)					,"INFO"					},
 	{ (1<<LOG_DEBUG)				,"DEBUG"				},
 	/* the Gubinator */				
-	{ -1							,NULL					}
+	{ 0								,NULL					}
 };
 
 #ifdef __cplusplus

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.52 2004/10/27 06:23:42 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.53 2004/10/27 06:34:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,7 +171,7 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
 	/* terminator */
-	{ -1							,NULL					}
+	{ 0 							,NULL					}
 };
 
 #ifdef DLLEXPORT
