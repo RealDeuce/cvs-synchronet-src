@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.28 2002/07/03 08:36:46 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.29 2002/07/15 20:47:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,6 @@
 
 #include "sbbs.h"
 #include "qwk.h"
-#include "post.h"
 
 /****************************************************************************/
 /* Creates QWK packet, returning 1 if successful, 0 if not. 				*/
@@ -276,7 +275,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				bprintf("\b\b\b\b\b\b\b\b\b\b\b\b%4lu of %-4lu"
 					,l+1,mailmsgs);
 
-				msg.idx.offset=mail[l].offset;
+				memset(&msg,0,sizeof(msg));
+				msg.idx=mail[l];
 				if(!loadmsg(&msg,mail[l].number))
 					continue;
 
@@ -384,7 +384,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					subscan[usrsub[i][j]].ptr=post[l].number;	/* set ptr */
 					subscan[usrsub[i][j]].last=post[l].number; /* set last read */
 
-					msg.idx.offset=post[l].offset;
+					memset(&msg,0,sizeof(msg));
+					msg.idx=post[l];
 					if(!loadmsg(&msg,post[l].number))
 						continue;
 
