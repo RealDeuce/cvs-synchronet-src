@@ -8,7 +8,7 @@
 # usage: gmake															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.1 2002/04/06 01:51:51 rswindell Exp $
+# $Id: GNUmakefile,v 1.2 2002/04/06 02:04:13 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -47,7 +47,7 @@ endif
 
 include objects.mk		# defines $(OBJS)
 
-all: $(ODIR) $(ODIR)/wraptest.exe
+all: $(ODIR) $(ODIR)/wraptest
 
 # Implicit C Compile Rule
 $(ODIR)/%.o : %.c
@@ -59,7 +59,7 @@ $(ODIR):
 	mkdir $(ODIR)
 
 # Executable Build Rule
-$(ODIR)/wraptest: $(ODIR)\wraptest.o $(OBJS)
+$(ODIR)/wraptest: $(ODIR)/wraptest.o $(OBJS)
 	@echo Linking $@
 	@$(CC) $(LFLAGS) $^ -o $@
 
