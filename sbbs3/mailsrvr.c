@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.174 2002/07/21 05:27:19 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.175 2002/07/21 20:04:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,6 @@ int dns_getmx(char* name, char* mx, char* mx2
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 
 #define MAX_RECIPIENTS			100		/* 0xffff = abs max */
-
-#define LINES_PER_YIELD			100		/* Yield every this many lines of text */
 
 #define STATUS_WFC	"Listening"
 
@@ -529,7 +527,9 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, char* fromad
 			break;
 		p=tp+1;
 		lines++;
-		if(!(lines%LINES_PER_YIELD))	/* release time-slices every x lines */
+		/* release time-slices every x lines */
+		if(startup->lines_per_yield
+			&& !(lines%startup->lines_per_yield))	
 			mswait(1);
 	}
     if(msg->hdr.auxattr&MSG_FILEATTACH) { 
@@ -1720,7 +1720,9 @@ static void smtp_thread(void* arg)
 				if(msgtxt!=NULL) 
 					fprintf(msgtxt, "%s\r\n", p);
 				lines++;
-				if(!(lines%LINES_PER_YIELD))		/* release time-slices every x lines */
+				/* release time-slices every x lines */
+				if(startup->lines_per_yield &&
+					!(lines%startup->lines_per_yield))	
 					mswait(1);
 				continue;
 			}
@@ -2780,7 +2782,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.174 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.175 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
