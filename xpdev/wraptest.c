@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.32 2003/04/11 05:54:38 deuce Exp $ */
+/* $Id: wraptest.c,v 1.33 2003/04/11 07:22:47 deuce Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -46,6 +46,7 @@ int main()
 	DIRENT*	dirent;
 	thread_data_t thread_data;
 	int	fd;
+	int	fd2;
 
 	/* Show platform details */
 	DESCRIBE_COMPILER(compiler);
@@ -115,6 +116,21 @@ int main()
 		printf("!FAILURE file locking\n");
 	else
 		printf("SUCCESS!  Record locking\n");
+	if((fd2=sopen(LOCK_FNAME,O_RDWR,SH_DENYRW))!=-1) {
+		printf("SUCCESS!  Cannot reopen SH_DENYRW while lock is held\n");
+		close(fd2);
+	}
+	else  {
+		printf("!FAILURE can reopen SH_DENYRW while lock is held\n");
+	}
+	if(unlock(fd,LOCK_OFFSET,LOCK_LEN))
+		printf("!FAILURE unlock() non-functional\n");
+	if(lock(fd,LOCK_OFFSET+LOCK_LEN+1,LOCK_LEN))
+		printf("SUCCESS! Cannot re-lock after non-overlapping unlock()\n");
+	else
+		printf("!FAILURE can re-lock after non-overlappping unlock()\n");
+	if(lock(fd,LOCK_OFFSET,LOCK_LEN))
+		printf("!FAILURE cannot re-lock unlocked area\n");
 	close(fd);
 
 	/* getch test */

@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.9 2002/08/24 23:29:54 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.10 2003/04/11 07:22:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,8 +78,17 @@
 	#define O_DENYNONE  (1<<31)	/* req'd for Baja/nopen compatibility */
 
 	#define SH_DENYNO	2          // no locks
+#ifdef F_SANEWRLCKNO
+	#define SH_DENYRW	F_SANEWRLCKNO	   // exclusive lock
+#else
 	#define SH_DENYRW	F_WRLCK	   // exclusive lock
+#endif
+
+#ifdef F_SANERDLCKNO
+	#define SH_DENYWR   F_SANERDLCKNO    // shareable lock
+#else
 	#define SH_DENYWR   F_RDLCK    // shareable lock
+#endif
 	
 	#define chsize(fd,size)		ftruncate(fd,size)
 	#define tell(fd)			lseek(fd,0,SEEK_CUR)
