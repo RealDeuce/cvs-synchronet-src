@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.154 2002/04/12 06:19:02 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.155 2002/04/12 08:35:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2940,7 +2940,7 @@ static void ctrl_thread(void* arg)
 					sprintf(path,"%s%s",root_dir(local_dir),p);
 				else {
 					sprintf(fname,"%s%s",local_dir,p);
-					_fullpath(path,fname,sizeof(path));
+					FULLPATH(path,fname,sizeof(path));
 				}
 
 				if(!direxist(path)) {

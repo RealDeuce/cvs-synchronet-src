@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.21 2002/02/27 03:22:16 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.22 2002/04/12 08:35:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,7 +269,7 @@ BOOL md(char *inpath)
 	dir=opendir(path);
 	if(dir==NULL) {
 		lprintf("Creating directory: %s",path);
-		if(_mkdir(path)) {
+		if(MKDIR(path)) {
 			lprintf("!Error %d: Fix configuration or make directory by "
 				"hand.",errno);
 			return(FALSE); 
@@ -444,7 +444,7 @@ char* DLLCALL prep_dir(char* base, char* path)
 
 	backslashcolon(str);
 	strcat(str,".");                // Change C: to C:. and C:\SBBS\ to C:\SBBS\.
-	_fullpath(abspath,str,LEN_DIR+1);	// Change C:\SBBS\NODE1\..\EXEC to C:\SBBS\EXEC
+	FULLPATH(abspath,str,LEN_DIR+1);	// Change C:\SBBS\NODE1\..\EXEC to C:\SBBS\EXEC
 	backslash(abspath);
 
 	sprintf(path,"%.*s",LEN_DIR,abspath);
