@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.105 2002/04/12 06:18:44 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.106 2002/04/25 02:21:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -871,7 +871,24 @@ extern "C" {
 #endif
 
 /* misc.c */
+int		nopen(char *str, int access);
 FILE *	fnopen(int *file, char *str, int access);
+int		bstrlen(char *str);
+void	backslashcolon(char *str);
+void	backslash(char *str);
+ulong	ahtoul(char *str);	/* Converts ASCII hex to ulong */
+char *	ultoac(ulong l,char *str);
+void	truncsp(char *str);		/* Truncates white spaces off end of str */
+char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
+uint	hptoi(char *str);
+ulong	crc32(char *buf, ulong len);
+void	ucrc16(uchar ch, ushort *rcrc);
+int 	lprintf(char *fmt, ...);	/* telnet log */
+int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
+int		strsame(char *str1, char *str2);	/* Compares number of same chars */
+
+/* load_cfg.c */
+BOOL 	md(char *path);
 
 #ifdef SBBS /* These aren't exported */
 
@@ -881,27 +898,8 @@ FILE *	fnopen(int *file, char *str, int access);
 	BOOL	socket_check(SOCKET sock, BOOL *rd);
 	u_long	resolve_ip(char *addr);
 
-
-	/* misc.c */
-	int		nopen(char *str, int access);
-	int		bstrlen(char *str);
-	char *	ultoac(ulong l,char *str);
-	void	truncsp(char *str);		/* Truncates white spaces off end of str */
-	void	backslash(char *str);
-	void	backslashcolon(char *str);
-	ulong	crc32(char *buf, ulong len);
-	void	ucrc16(uchar ch, ushort *rcrc);
-	int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
-	int		strsame(char *str1, char *str2);	/* Compares number of same chars */
-	ulong	ahtoul(char *str);	/* Converts ASCII hex to ulong */
-	char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
-	uint	hptoi(char *str);
-
 	char *	readtext(long *line, FILE *stream);
-	BOOL 	md(char *path);
-
 	int 	eprintf(char *fmt, ...);	/* event log */
-	int 	lprintf(char *fmt, ...);	/* telnet log */
 	int 	lputs(char *);				/* telnet log */
 
 	/* qwk.cpp */
