@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.21 2004/05/30 07:16:23 deuce Exp $ */
+/* $Id: uifcx.c,v 1.22 2004/07/20 01:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
     int lines;
 
     for(opts=0;opts<MAX_OPTS;opts++)
-    	if(option[opts][0]==0)
+    	if(option[opts]==NULL || option[opts][0]==0)
     		break;
 
     if((*cur)>=opts)
