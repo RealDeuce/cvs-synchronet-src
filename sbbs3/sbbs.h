@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.229 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.234 2004/10/27 21:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,6 +116,7 @@
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "sockwrap.h"
+#include "link_list.h"
 
 #include "smblib.h"
 #include "ars_defs.h"
@@ -451,7 +452,6 @@ public:
 	void	show_msg(smbmsg_t* msg, long mode);
 	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
 	void	quotemsg(smbmsg_t* msg, int tails);
-	void	putmsg_fp(FILE *fp, long length, long mode);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum,char *dest, char *title, long mode
 				,uint subnum);
@@ -877,6 +877,16 @@ extern "C" {
 	/* xtrn.cpp */
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
+
+	/* semfile.c */
+	DLLEXPORT BOOL		DLLCALL semfile_signal(const char* fname, const char* text);
+	DLLEXPORT BOOL		DLLCALL semfile_check(time_t* t, const char* fname);
+	DLLEXPORT char*		DLLCALL semfile_list_check(time_t* t, link_list_t* filelist);
+	DLLEXPORT void		DLLCALL semfile_list_init(link_list_t* filelist, const char* parent, 
+												   const char* action, const char* service);
+	DLLEXPORT void		DLLCALL semfile_list_add(link_list_t* filelist, const char* fname);
+	DLLEXPORT void		DLLCALL semfile_list_free(link_list_t* filelist);
+
 
 #ifdef JAVASCRIPT
 

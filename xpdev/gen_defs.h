@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.23 2004/10/14 23:08:56 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.25 2004/11/03 03:24:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,6 +197,7 @@ typedef struct {
 #define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg), TERMINATE(dst)
 #define SAFEPRINTF2(dst,fmt,a1,a2)		snprintf(dst,sizeof(dst),fmt,a1,a2), TERMINATE(dst)
 #define SAFEPRINTF3(dst,fmt,a1,a2,a3)	snprintf(dst,sizeof(dst),fmt,a1,a2,a3), TERMINATE(dst)
+#define SAFEPRINTF4(dst,fmt,a1,a2,a3,a4) snprintf(dst,sizeof(dst),fmt,a1,a2,a3,a4), TERMINATE(dst)
 
 /* Replace every occurance of c1 in str with c2, using p as a temporary char pointer */
 #define REPLACE_CHARS(str,c1,c2,p)	for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
@@ -277,6 +278,22 @@ typedef struct {
 /* Other Pointer-List Macros	*/
 /********************************/
 #define COUNT_LIST_ITEMS(list,i)	{ i=0; if(list!=NULL) while(list[i]!=NULL) i++; }
+
+#if defined(__unix__)
+	#include <syslog.h>
+#else
+	/*
+	 * log priorities (copied from BSD syslog.h)
+	 */
+	#define LOG_EMERG       0       /* system is unusable */
+	#define LOG_ALERT       1       /* action must be taken immediately */
+	#define LOG_CRIT        2       /* critical conditions */
+	#define LOG_ERR         3       /* error conditions */
+	#define LOG_WARNING     4       /* warning conditions */
+	#define LOG_NOTICE      5       /* normal but significant condition */
+	#define LOG_INFO        6       /* informational */
+	#define LOG_DEBUG       7       /* debug-level messages */
+#endif
 
 
 #endif /* Don't add anything after this #endif statement */
