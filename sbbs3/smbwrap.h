@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.2 2000/10/29 04:48:50 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.3 2000/10/30 12:01:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,14 @@
 	#define SH_DENYNO		0
 	#define SH_DENYRW		0
 
+#endif
+
+#ifndef BOOL
+	#define BOOL	int
+#endif
+#ifndef TRUE
+	#define TRUE	1
+	#define FALSE	0
 #endif
 
 /**************/
