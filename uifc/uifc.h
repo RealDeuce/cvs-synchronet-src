@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.35 2003/05/21 00:44:29 rswindell Exp $ */
+/* $Id: uifc.h,v 1.36 2003/05/21 03:39:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -375,6 +375,7 @@ int uifcini(uifcapi_t*);	/* Original implementation based on conio		*/
 int uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
 int uifcinic(uifcapi_t*);	/* Unix curses implementation (by Deuce)		*/
 int uifcinid(uifcapi_t*);	/* Unix libdialog implementation (by Deuce)		*/
+int uifcini32(uifcapi_t*);	/* conio/curses implementation					*/
 #ifdef __cplusplus
 extern "C"
 #endif
