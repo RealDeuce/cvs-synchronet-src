@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.60 2001/08/28 14:46:34 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.61 2001/09/07 13:29:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -597,6 +597,7 @@ static void pop3_thread(void* arg)
 	do {
 		memset(&smb,0,sizeof(smb));
 		memset(&msg,0,sizeof(msg));
+		memset(&user,0,sizeof(user));
 
 		sprintf(smb.file,"%smail",scfg.data_dir);
 		if((i=smb_open(&smb))!=0) {
@@ -980,7 +981,7 @@ static void pop3_thread(void* arg)
 			sockprintf(socket,"-ERR UNSUPPORTED COMMAND: %s",buf);
 		}
 		if(user.number)
-			putuserrec(&scfg,user.number,U_LASTON,8,ultoa(time(NULL),str,16));
+			logoutuserdat(&scfg,&user,time(NULL),client.time);
 
 	} while(0);
 
@@ -1104,7 +1105,8 @@ static void smtp_thread(void* arg)
 		return;
 	} 
 
-	memset(&msg,0,sizeof(smbmsg_t));
+	memset(&msg,0,sizeof(msg));
+	memset(&user,0,sizeof(user));
 
 	strcpy(host_ip,inet_ntoa(smtp.client_addr.sin_addr));
 
