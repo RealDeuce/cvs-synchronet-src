@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.9 2004/11/18 07:35:30 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.10 2004/11/18 22:07:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,7 +237,6 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			fflush(smb->sdt_fp);
 		}
 
-		msg->hdr.version=smb_ver();
 		if(msg->hdr.when_imported.time==0) {
 			msg->hdr.when_imported.time=time(NULL);
 			msg->hdr.when_imported.zone=0;	/* how do we detect system TZ? */
