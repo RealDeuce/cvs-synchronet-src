@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.30 2001/07/08 03:48:43 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.31 2001/08/01 03:57:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -592,8 +592,6 @@ typedef enum {						/* Values for xtrn_t.event			*/
 							/* Online status (online)					*/
 #define ON_LOCAL	1	 	/* Online locally							*/
 #define ON_REMOTE   2  		/* Online remotely							*/
-#define ON_XFER		3		/* Online remotely - transferring file		*/
-#define ON_WFC		4		/* Online waiting for a call				*/
 
 							/* Various SYSTEM parameters for sys_status	*/
 #define SS_UNUSED	(1L<<0)	/* Unused          							*/
