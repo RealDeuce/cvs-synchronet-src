@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.96 2001/08/29 16:09:24 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.97 2001/09/05 18:08:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4003,12 +4003,8 @@ static void ctrl_thread(void* arg)
 	}
 
 	/* Update User Statistics */
-	if(user.number) {
-		user.tlast=(ushort)(time(NULL)-logintime);
-		putuserrec(&scfg,user.number,U_LASTON,8,ultoa(time(NULL),str,16));
-		putuserrec(&scfg,user.number,U_TLAST,5,ultoa(user.tlast,str,10));
-		adjustuserrec(&scfg,user.number,U_TIMEON,5,user.tlast);
-	}
+	if(user.number) 
+		logoffuserdat(&scfg, &user, time(NULL), logintime);
 
 	if(user.number)
 		lprintf("%04d %s logged off.",sock,user.alias);
