@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.h,v 1.7 2002/04/26 11:01:32 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.h,v 1.8 2002/07/13 10:21:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,10 +67,7 @@ __published:
     TLabel *MaxInactivityLabel;
     TEdit *MaxInactivityEdit;
     TTabSheet *SMTPTabSheet;
-    TLabel *SpamFilterLabel;
-    TCheckBox *RBLCheckBox;
-    TCheckBox *RSSCheckBox;
-    TCheckBox *DULCheckBox;
+	TLabel *BlacklistedMailLabel;
     TLabel *TelnetPortLabel;
     TEdit *SMTPPortEdit;
     TCheckBox *UserNumberCheckBox;
@@ -109,6 +106,10 @@ __published:
     TLabel *DefaultUserLabel;
     TEdit *DefaultUserEdit;
 	TCheckBox *AllowRelayCheckBox;
+	TRadioButton *BLMailFlagRadioButton;
+	TRadioButton *BLMailIgnoreRadioButton;
+	TRadioButton *BLMailRefuseRadioButton;
+	TEdit *BLMailFlagEdit;
     void __fastcall InboundSoundButtonClick(TObject *Sender);
     void __fastcall OutboundSoundButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
@@ -117,6 +118,7 @@ __published:
 	void __fastcall DNSRadioButtonClick(TObject *Sender);
 	void __fastcall POP3EnabledCheckBoxClick(TObject *Sender);
     void __fastcall SendMailCheckBoxClick(TObject *Sender);
+	void __fastcall BLMailFlagRadioButtonClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TMailCfgDlg(TComponent* AOwner);
