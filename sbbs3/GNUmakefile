@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.48 2003/02/08 02:38:45 rswindell Exp $
+# $Id: GNUmakefile,v 1.49 2003/02/08 02:40:34 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -117,6 +117,13 @@ vpath %.cpp $(UIFC)
 
 # Implicit C Compile Rule for utils
 $(EXEODIR)/%.o : %.c
+   ifndef bcc
+	@echo Compiling $<
+   endif
+	@$(CC) $(CFLAGS) -o $@ -c $<
+
+# Implicit C++ Compile Rule for utils
+$(EXEODIR)/%.o : %.cpp
    ifndef bcc
 	@echo Compiling $<
    endif
