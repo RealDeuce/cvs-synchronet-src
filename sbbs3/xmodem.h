@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.6 2005/01/13 04:47:52 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.2 2003/09/17 03:09:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,34 +42,22 @@
 #include <sockwrap.h>	/* SOCKET */
 #include "crc16.h"
 
-#define CPMEOF		CTRL_Z	/* CP/M End of file (^Z)					*/
-
 typedef struct {
 
-	void*		cbdata;
-	long*		mode;
-	unsigned	block_size;
-	unsigned	ack_timeout;
-	unsigned	byte_timeout;
-	unsigned	send_timeout;
-	unsigned	max_errors;
-	int			(*lputs)(void*, int level, const char* str);
-	int			(*send_byte)(void*, uchar ch, unsigned timeout);
-	int			(*recv_byte)(void*, unsigned timeout);
+	SOCKET	sock;											/* socket descriptor */
+	long	mode;
+	FILE*	statfp;
+	FILE*	errfp;
 
 } xmodem_t;
 
 
-void		xmodem_init(xmodem_t*, void* cbdata, long* mode
-						,int (*lputs)(void*, int level, const char* str)
-						,int (*send_byte)(void*, uchar ch, unsigned timeout)
-						,int (*recv_byte)(void*, unsigned timeout));
 char*		xmodem_ver(char *buf);
 const char* xmodem_source(void);
-void		xmodem_cancel(xmodem_t*);
-int			xmodem_get_ack(xmodem_t*, unsigned tries, unsigned block_num);
-void		xmodem_put_nak(xmodem_t*);
-int			xmodem_get_block(xmodem_t*, uchar* block, BOOL hdrblock);
-void		xmodem_put_block(xmodem_t*, uchar* block, unsigned block_size, unsigned block_num);
+void		xmodem_cancel(xmodem_t* xm);
+int			xmodem_get_ack(xmodem_t* xm, int tries);
+void		xmodem_put_nak(xmodem_t* xm);
+int			xmodem_get_block(xmodem_t* xm, uchar* block, uint block_size, BOOL hdrblock);
+void		xmodem_put_block(xmodem_t* xm, uchar* block, uint block_size, ulong block_num);
 
 #endif	/* Don't add anything after this line */
