@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.9 2002/11/07 02:47:05 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.10 2003/05/01 00:09:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -361,7 +361,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			break;
 
 		case VDD_YIELD:
-			Sleep(1);
+			Sleep(0);
 			yields++;
 			break;
 
