@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.8 2001/06/12 01:23:32 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.9 2001/07/25 02:46:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,9 +99,9 @@ void sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 void sbbs_t::nodesync()
 {
 	char	str[256],today[32];
-	int		atr=curatr; /* was lclatr(-1) 01/29/96 */
+	int		atr=curatr;
 
-	if(nodesync_inside) 
+	if(nodesync_inside || !online) 
 		return;
 	nodesync_inside=1;
 
