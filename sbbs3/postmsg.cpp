@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.32 2003/05/09 03:32:11 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.33 2003/05/09 07:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -397,6 +397,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 extern "C" void DLLCALL signal_sub_sem(scfg_t* cfg, uint subnum)
 {
+	char str[MAX_PATH+1];
 	int file;
 
 	if(subnum==INVALID_SUB || subnum>=cfg->total_subs)	/* e-mail? */
@@ -404,11 +405,11 @@ extern "C" void DLLCALL signal_sub_sem(scfg_t* cfg, uint subnum)
 
 	/* signal semaphore files */
 	if(cfg->sub[subnum]->misc&SUB_FIDO && cfg->echomail_sem[0])		
-		if((file=nopen(cmdstr(cfg,NULL,cfg->echomail_sem,nulstr,nulstr,NULL)
+		if((file=nopen(cmdstr(cfg,NULL,cfg->echomail_sem,nulstr,nulstr,str)
 			,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
 			close(file);
 	if(cfg->sub[subnum]->post_sem[0]) 
-		if((file=nopen(cmdstr(cfg,NULL,cfg->sub[subnum]->post_sem,nulstr,nulstr,NULL)
+		if((file=nopen(cmdstr(cfg,NULL,cfg->sub[subnum]->post_sem,nulstr,nulstr,str)
 			,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
 			close(file);
 }
