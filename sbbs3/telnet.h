@@ -2,13 +2,13 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.8 2004/04/08 05:37:06 rswindell Exp $ */
+/* $Id: telnet.h,v 1.10 2004/10/14 23:56:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,13 +38,15 @@
 #ifndef _TELNET_H
 #define _TELNET_H
 
+#include "gen_defs.h"	/* uchar */
+
 /* commands */
 
-#define TELNET_IAC		255	/* Interpret as command */
-#define TELNET_DONT		254 /* Don't do option */
-#define TELNET_DO   	253 /* Do option */
-#define TELNET_WONT 	252 /* Won't do option */
-#define TELNET_WILL 	251 /* Will do option */
+#define TELNET_IAC		255	/* 0xff - Interpret as command */
+#define TELNET_DONT		254 /* 0xfe - Don't do option */
+#define TELNET_DO   	253 /* 0xfd - Do option */
+#define TELNET_WONT 	252 /* 0xfc - Won't do option */
+#define TELNET_WILL 	251 /* 0xfb - Will do option */
 
 #define TELNET_SB       250	/* sub-negotiation */
 #define TELNET_GA		249	/* Go ahead */
@@ -62,7 +64,7 @@
 /* options */
 
 enum {
- 	 TELNET_BINARY
+ 	 TELNET_BINARY_TX
 	,TELNET_ECHO
 	,TELNET_RECONN
 	,TELNET_SUP_GA		/* suppress go ahead */
@@ -114,8 +116,6 @@ enum {
 
 /* bits for telnet_mode */   
    
-#define TELNET_MODE_BIN_RX	(1<<0)   
-#define TELNET_MODE_ECHO	(1<<1)   
 #define TELNET_MODE_GATE	(1<<2)	/* Pass-through telnet commands/responses */
 #define TELNET_MODE_OFF		(1<<3)	/* This is not a Telnet connection */
 
@@ -148,6 +148,8 @@ extern "C" {
 
 DLLEXPORT const char* DLLCALL telnet_cmd_desc(uchar cmd);   
 DLLEXPORT const char* DLLCALL telnet_opt_desc(uchar opt);
+DLLEXPORT const uchar DLLCALL telnet_opt_ack(uchar cmd);
+DLLEXPORT const uchar DLLCALL telnet_opt_nak(uchar cmd);
 
 #ifdef __cplusplus
 }
