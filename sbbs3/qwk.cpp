@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.27 2002/11/07 08:01:38 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.28 2003/03/19 02:50:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -954,7 +954,6 @@ void sbbs_t::qwkcfgline(char *buf,uint subnum)
 
 	else if(!strncmp(str,"FREQ ",5)) {                  /* file request */
 		padfname(str+5,f.name);
-		strupr(f.name);
 		for(x=y=0;x<usrlibs;x++) {
 			for(y=0;y<usrdirs[x];y++)
 				if(findfile(&cfg,usrdir[x][y],f.name))

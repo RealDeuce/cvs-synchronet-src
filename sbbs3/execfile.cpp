@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.7 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: execfile.cpp,v 1.8 2003/03/19 02:50:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,7 +338,6 @@ int sbbs_t::exec_file(csi_t *csi)
 			if(!csi->str[0])
 				return(0);
 			padfname(csi->str,f.name);
-			strupr(f.name);
 			for(x=y=0;x<usrlibs;x++) {
 				for(y=0;y<usrdirs[x];y++)
 					if(findfile(&cfg,usrdir[x][y],f.name))
