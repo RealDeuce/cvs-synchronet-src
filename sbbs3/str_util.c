@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.24 2003/07/09 02:36:08 rswindell Exp $ */
+/* $Id: str_util.c,v 1.25 2003/07/09 04:42:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -192,28 +192,6 @@ BOOL DLLCALL trashcan(scfg_t* cfg, char* insearchof, char* name)
 
 	sprintf(fname,"%s%s.can",cfg->text_dir,name);
 	return(findstr(insearchof,fname));
-}
-
-/****************************************************************************/
-/* Add an IP address (with comment) to the IP filter/trashcan file			*/
-/****************************************************************************/
-BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* ip_addr, char* username)
-{
-	char	filename[MAX_PATH+1];
-	char	tstr[64];
-    FILE*	fp;
-    time_t	now=time(NULL);
-
-	sprintf(filename,"%sip.can",cfg->text_dir);
-
-    if((fp=fopen(filename,"a"))==NULL)
-    	return(FALSE);
-
-    fprintf(fp,"\n;%s %s by %s on %s\n%s\n"
-    	,prot,reason,username,timestr(cfg,&now,tstr),ip_addr);
-
-    fclose(fp);
-	return(TRUE);
 }
 
 /****************************************************************************/
