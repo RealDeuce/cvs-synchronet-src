@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.18 2003/10/18 10:28:01 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.21 2004/09/26 20:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,6 +39,8 @@
 #define _WEBSRVR_H_
 
 #include "client.h"				/* client_t */
+#include "startup.h"			/* BBS_OPT_* */
+#include "semwrap.h"			/* sem_t */
 
 typedef struct {
 	DWORD	size;				/* sizeof(web_startup_t) */
@@ -75,6 +77,7 @@ typedef struct {
     char	error_dir[128];			/* relative to root_dir */
     char	cgi_temp_dir[128];
     char**	index_file_name;		/* Index filenames */
+	char	logfile_base[128];	/* Logfile base name (date is appended) */
 
 	/* Misc */
     char	host_name[128];
@@ -92,6 +95,7 @@ typedef struct {
 #define WEB_DEFAULT_ROOT_DIR		"../html"
 #define WEB_DEFAULT_ERROR_DIR		"error"
 #define WEB_DEFAULT_CGI_DIR			"cgi-bin"
+#define WEB_DEFAULT_LOGFILE			"../data/httpd-"
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
