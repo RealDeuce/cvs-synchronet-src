@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.18 2003/01/31 02:16:49 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.19 2003/02/01 02:58:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -154,9 +154,9 @@ void sbbs_t::logout()
 	getusrsubs();
 	getusrdirs();
 	if(usrgrps>0)
-		putuserrec(&cfg,useron.number,U_CURSUB,8,cfg.sub[usrsub[curgrp][cursub[curgrp]]]->code);
+		putuserrec(&cfg,useron.number,U_CURSUB,0,cfg.sub[usrsub[curgrp][cursub[curgrp]]]->code);
 	if(usrlibs>0)
-		putuserrec(&cfg,useron.number,U_CURDIR,8,cfg.dir[usrdir[curlib][curdir[curlib]]]->code);
+		putuserrec(&cfg,useron.number,U_CURDIR,0,cfg.dir[usrdir[curlib][curdir[curlib]]]->code);
 	hhmmtostr(&cfg,&tm,str);
 	strcat(str,"  ");
 	if(sys_status&SS_USERON)
