@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.17 2001/11/09 02:15:25 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.18 2001/11/09 09:30:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1537,9 +1537,13 @@ int main(int argc, char **argv)
 						case 'I':
 						case 'E':
 						case 'N':
-							if(cmd[1]!=0 && cmd[1]!='-')
-								fp=fopen(cmd+1,"r");
-							else
+							if(cmd[1]!=0) {
+								if((fp=fopen(cmd+1,"r"))==NULL) {
+									printf("\n\7!Error %d opening %s\n"
+										,errno,cmd+1);
+									exit(1);
+								}
+							} else
 								fp=stdin;
 							i=smb_locksmbhdr(&smb);
 							if(i) {
