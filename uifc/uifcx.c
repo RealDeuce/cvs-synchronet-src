@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.17 2002/06/16 07:08:27 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.18 2003/02/19 22:07:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,7 +125,7 @@ static int getstr(char* str, int maxlen)
 #endif
         if(ch=='\r' || ch=='\n')	/* enter */
         	break;
-        if(ch=='\b') {				/* backspace */
+        if(ch=='\b' || ch==DEL) {	/* backspace */
         	if(len) len--;
             continue;
     	}
