@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.358 2005/01/15 22:30:37 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.359 2005/01/25 04:50:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2859,6 +2859,13 @@ static void smtp_thread(void* arg)
 				p+=strlen(NO_FORWARD);
 			}
 
+			if(*p==0) {
+				lprintf(LOG_WARNING,"%04d !SMTP NO RECIPIENT SPECIFIED"
+					,socket);
+				sockprintf(socket, "500 No recipient specified");
+				continue;
+			}
+
 			rcpt_name[0]=0;
 			SAFECOPY(rcpt_addr,p);
 
@@ -3909,7 +3916,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.358 $", "%*s %s", revision);
+	sscanf("$Revision: 1.359 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
