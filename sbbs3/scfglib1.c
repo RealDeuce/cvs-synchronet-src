@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.28 2002/03/07 16:23:09 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.29 2002/03/21 19:51:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -656,7 +656,9 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 	for(j=0;j<32;j++)
 		get_int(n,instream);
 
+	/************/
 	/* Internet */
+	/************/
 
 	get_str(cfg->sys_inetaddr,instream); /* Internet address */
 	get_str(cfg->inetmail_sem,instream);
