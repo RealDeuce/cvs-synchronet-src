@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.57 2003/02/06 01:10:04 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.58 2003/02/06 01:10:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,7 @@ struct server_ent_t {
 	char	addr[256];
 };
 
-typdef struct {
+typedef struct {
 	char					version[78];
 	char					tag[20];
 	struct server_ent_t		**servers;
