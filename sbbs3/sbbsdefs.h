@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.73 2002/08/26 21:50:48 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.74 2002/10/13 09:42:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,13 +82,8 @@
 
 #define MAX_NODES		250
 
-#ifdef __FLAT__
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_SYSMAIL   50000 /* Maximum number of total emails in system */
-#else
-#define MAX_FILES	   1000 /* Maximum number of files per dir			*/
-#define MAX_SYSMAIL    5000 /* Maximum number of total emails in system */
-#endif
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
 
 
@@ -821,14 +816,6 @@ extern "C" {
 extern long crc32tbl[];
 #ifdef __cplusplus
 }
-#endif
-
-#ifdef __FLAT__
-#define TEXTWINDOW		window(1,1,80,node_scrnlen-1)
-#define STATUSLINE		window(1,node_scrnlen,80,node_scrnlen)
-#else
-#define TEXTWINDOW
-#define STATUSLINE
 #endif
 
 #define ucrc32(ch,crc)	(crc32tbl[(crc^ch)&0xff]^(crc>>8))
