@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.214 2003/02/19 20:38:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.215 2003/02/25 22:59:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1336,6 +1336,7 @@ static void send_thread(void* arg)
 	char		fname[MAX_PATH+1];
 	char		str[128];
 	char		tmp[128];
+	char		username[128];
 	int			i;
 	int			rd;
 	int			wr;
@@ -1354,6 +1355,8 @@ static void send_thread(void* arg)
 	time_t		start;
 	time_t		last_report;
 	user_t		uploader;
+	SOCKADDR_IN	addr;
+	socklen_t	addr_len;
 	fd_set		socket_set;
 	struct timeval tv;
 
@@ -1535,11 +1538,17 @@ static void send_thread(void* arg)
 						ultoac(mod,tmp);
 					}
 					if(!(scfg.dir[f.dir]->misc&DIR_QUIET)) {
+						addr_len = sizeof(addr);
+						if(uploader.level>=SYSOP_LEVEL
+							&& getpeername(xfer.ctrl_sock,(struct sockaddr *)&addr,&addr_len)==0)
+							sprintf(username,"%s [%s]",xfer.user->alias,inet_ntoa(addr.sin_addr));
+						else
+							SAFECOPY(username,xfer.user->alias);
 						/* Inform uploader of downloaded file */
 						sprintf(str,text[DownloadUserMsg]
 							,getfname(xfer.filename)
 							,xfer.filepos ? "partially FTP-" : "FTP-"
-							,xfer.user->alias,tmp); 
+							,username,tmp); 
 						putsmsg(&scfg,uploader.number,str); 
 					}
 				}
@@ -4398,7 +4407,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.214 $", "%*s %s", revision);
+	sscanf("$Revision: 1.215 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
