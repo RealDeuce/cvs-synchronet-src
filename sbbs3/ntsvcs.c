@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.15 2003/10/16 09:59:14 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.16 2003/10/21 22:49:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -670,6 +670,7 @@ int main(int argc, char** argv)
 {
 	char*	ctrl_dir;
 	char*	arg;
+	char*	p;
 	char	str[MAX_PATH+1];
 	char	ini_file[MAX_PATH+1];
 	char	host_name[128]="";
@@ -816,7 +817,8 @@ int main(int argc, char** argv)
 		printf("%-20s %s\n",ntsvc_list[i]->name,ntsvc_list[i]->display_name);
 
 	SAFECOPY(str,getfname(argv[0]));
-	*getfext(str)=0;
+	if((p=getfext(str))!=NULL)
+		*p=0;
 
 	printf("\nUsage: %s [command] [service]\n", str);
 
