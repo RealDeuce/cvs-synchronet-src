@@ -2,7 +2,7 @@
 
 /* Synchronet file contents display routines */
 
-/* $Id: viewfile.cpp,v 1.3 2001/11/04 00:50:02 rswindell Exp $ */
+/* $Id: viewfile.cpp,v 1.4 2001/11/04 01:47:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,6 +132,6 @@ void sbbs_t::viewfilecontents(file_t* f)
 		bprintf(text[NonviewableFile],tmp+9);
 	else
 		if((i=external(cmdstr(cmd,str,str,NULL)
-			,EX_OUTL|EX_OUTR|EX_INR|EX_SH))!=0)
+			,EX_OUTL|EX_OUTR|EX_INR))!=0)
 			errormsg(WHERE,ERR_EXEC,cmdstr(cmd,str,str,NULL),i);
 }
