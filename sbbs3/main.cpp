@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.193 2002/10/30 10:52:55 rswindell Exp $ */
+/* $Id: main.cpp,v 1.194 2002/11/02 04:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -728,7 +728,7 @@ bool sbbs_t::js_init()
 
 		js_DescribeObject(js_cx,server,"Server-specifc properties");
 
-		sprintf(ver,"%s v%s%c",TELNET_SERVER,VERSION,REVISION);
+		sprintf(ver,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
 		val = STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx, ver));
 		if(!JS_SetProperty(js_cx, server, "version", &val))
 			break;

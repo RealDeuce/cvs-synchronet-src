@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.21 2002/11/02 00:40:21 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.22 2002/11/02 04:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@ static char* program_id()
 	char compiler[64];
 
 	DESCRIBE_COMPILER(compiler);
-	sprintf(str,"%.10s v%s%c-%s%s%s %s %s\r"
+	sprintf(str,"%.10s %s%c-%s%s%s %s %s\r"
 		,VERSION_NOTICE,VERSION,REVISION,PLATFORM_DESC
 		,beta_version
 #ifdef _DEBUG

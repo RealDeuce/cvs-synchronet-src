@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.73 2002/11/01 09:43:17 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.74 2002/11/02 04:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3773,7 +3773,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 				if(msg.ftn_tid!=NULL)	/* use original TID */
 					f+=sprintf(fmsgbuf+f,"\1TID: %.256s\r", msg.ftn_tid);
 				else					/* generate TID */
-					f+=sprintf(fmsgbuf+f,"\1TID: SBBSecho v%s-%s r%s %s %s\r"
+					f+=sprintf(fmsgbuf+f,"\1TID: SBBSecho %s-%s r%s %s %s\r"
 						,SBBSECHO_VER,PLATFORM_DESC,revision,__DATE__,compiler);
 
 				/* Unknown kludge lines are added here */
@@ -3820,7 +3820,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 				if(!(scfg.sub[i]->misc&SUB_NOTAG)) {
 					if(!tear) {  /* No previous tear line */
-						sprintf(str,"--- SBBSecho v%s-%s\r"
+						sprintf(str,"--- SBBSecho %s-%s\r"
 							,SBBSECHO_VER,PLATFORM_DESC);
 						strcat((char *)fmsgbuf,str); }
 
@@ -3951,7 +3951,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.73 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.74 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
