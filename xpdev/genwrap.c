@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.16 2002/08/24 23:29:03 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.17 2002/10/29 08:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@
 	/* KIOCSOUND */
 	#if defined(__FreeBSD__)
 		#include <sys/kbio.h>
-	#else
+	#elif defined(__linux__)
 		#include <sys/kd.h>	
 	#endif
 #endif	/* __unix__ */
@@ -120,6 +120,7 @@ void DLLCALL unix_beep(int freq, int dur)
 {
 	static int console_fd=-1;
 
+#if !defined(__OpenBSD__)
 	if(console_fd == -1) 
   		console_fd = open("/dev/console", O_NOCTTY);
 	
@@ -128,6 +129,7 @@ void DLLCALL unix_beep(int freq, int dur)
 		SLEEP(dur);
 		ioctl(console_fd, KIOCSOUND, 0);	/* turn off tone */
 	}
+#endif
 }
 #endif
 
