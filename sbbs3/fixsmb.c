@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.26 2004/09/08 03:32:36 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.24 2004/09/02 03:57:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,14 +40,9 @@
 #include <string.h>	/* strnicmp */
 #include <ctype.h>	/* toupper */
 
-#include "smblib.h"
-#include "genwrap.h"	/* PLATFORM_DESC */
-#include "str_list.h"	/* strList API */
-#include "crc16.h"
+#include "sbbs.h"
 
-smb_t	smb;
-BOOL	renumber=FALSE;
-char*	usage="usage: fixsmb [-renumber] <smb_file> [[smb_file] [...]]\n";
+smb_t smb;
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -93,27 +88,45 @@ void sort_index(smb_t* smb)
 void unlock_msgbase(void)
 {
 	int i;
-	if(smb_islocked(&smb) && (i=smb_unlock(&smb))!=0)
+	if((i=smb_unlock(&smb))!=0)
 		printf("smb_unlock returned %d: %s\n",i,smb.last_error);
 }
 
-int fixsmb(char* sub)
+char *usage="usage: fixsmb [-renumber] <smb_file>\n";
+
+int main(int argc, char **argv)
 {
 	char*		p;
 	char*		text;
 	char		str[MAX_PATH+1],c;
+	char		revision[16];
 	int 		i,w;
 	ulong		l,length,size,n;
+	BOOL		renumber=FALSE;
 	smbmsg_t	msg;
+
+	sscanf("$Revision: 1.24 $", "%*s %s", revision);
+
+	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
+		,PLATFORM_DESC,revision,smb_lib_ver());
 
 	memset(&smb,0,sizeof(smb));
 
-	SAFECOPY(smb.file,sub);
+	smb.file[0]=0;
+	for(i=1;i<argc;i++) {
+		if(!stricmp(argv[i],"-renumber"))
+			renumber=TRUE;
+		else
+			SAFECOPY(smb.file,argv[i]);
+	}
 
 	if((p=getfext(smb.file))!=NULL && stricmp(p,".shd")==0)
 		*p=0;	/* Chop off .shd extension, if supplied on command-line */
 
-	printf("Opening %s\n",smb.file);
+	if(!smb.file[0]) {
+		printf(usage);
+		exit(1); 
+	}
 
 	if((i=smb_open(&smb))!=0) {
 		printf("smb_open returned %d: %s\n",i,smb.last_error);
@@ -124,6 +137,8 @@ int fixsmb(char* sub)
 		printf("smb_lock returned %d: %s\n",i,smb.last_error);
 		exit(1);
 	}
+
+	atexit(unlock_msgbase);
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
@@ -216,7 +231,7 @@ int fixsmb(char* sub)
 			msg.idx.number=msg.hdr.number;
 			msg.idx.attr=msg.hdr.attr;
 			msg.idx.time=msg.hdr.when_imported.time;
-			msg.idx.subj=smb_subject_crc(msg.subj);
+			msg.idx.subj=subject_crc(msg.subj);
 			if(smb.status.attr&SMB_EMAIL) {
 				if(msg.to_ext)
 					msg.idx.to=atoi(msg.to_ext);
@@ -274,41 +289,6 @@ int fixsmb(char* sub)
 	smb_unlocksmbhdr(&smb);
 	printf("Closing message base.\n");
 	smb_close(&smb);
-	unlock_msgbase();
 	printf("Done.\n");
-	return(0);
-}
-
-int main(int argc, char **argv)
-{
-	char		revision[16];
-	int 		i;
-	str_list_t	list;
-
-	sscanf("$Revision: 1.26 $", "%*s %s", revision);
-
-	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
-		,PLATFORM_DESC,revision,smb_lib_ver());
-
-	list=strListInit();
-
-	for(i=1;i<argc;i++) {
-		if(argv[i][0]=='-') {
-			if(!stricmp(argv[i],"-renumber"))
-				renumber=TRUE;
-		} else
-			strListPush(&list,argv[i]);
-	}
-
-	if(!strListCount(list)) {
-		printf(usage);
-		exit(1); 
-	}
-
-	atexit(unlock_msgbase);
-
-	for(i=0;list[i]!=NULL;i++)
-		fixsmb(list[i]);
-
 	return(0);
 }
