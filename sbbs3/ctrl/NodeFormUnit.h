@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.h,v 1.7 2001/09/16 23:53:36 rswindell Exp $ */
+/* $Id: NodeFormUnit.h,v 1.8 2002/03/16 00:21:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,8 +98,8 @@ private:	// User declarations
 public:		// User declarations
      __fastcall TNodeForm(TComponent* Owner);
      TMainForm* MainForm;
-    int __fastcall getnodedat(int node_num, node_t* node, bool lockit);
-    int __fastcall putnodedat(int node_num, node_t* node);
+    int __fastcall getnodedat(int node_num, node_t* node, int* file);
+    int __fastcall putnodedat(int node_num, node_t* node, int file);
 
 };
 //---------------------------------------------------------------------------
