@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.14 2003/05/14 01:54:00 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.15 2003/05/14 06:45:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,8 @@ void sort_index(smb_t* smb)
 			break;
 		}
 
-	qsort(idx,l,sizeof(idxrec_t),compare_index);
+	qsort(idx,l,sizeof(idxrec_t)
+		,(int(*)(const void*, const void*))compare_index);
 
 	rewind(smb->sid_fp);
 	chsize(fileno(smb->sid_fp),0L);			/* Truncate the index */
@@ -95,7 +96,7 @@ int main(int argc, char **argv)
 	smb_t		smb;
 	smbmsg_t	msg;
 
-	sscanf("$Revision: 1.14 $", "%*s %s", revision);
+	sscanf("$Revision: 1.15 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.00-%s (rev %s) - Rebuild Synchronet Message Base Index\n\n"
 		,PLATFORM_DESC,revision);
