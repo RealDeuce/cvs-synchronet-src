@@ -1,6 +1,6 @@
 /* md5.h - header file for md5.c */
 
-/* $Id: md5.h,v 1.2 2003/04/01 21:36:05 rswindell Exp $ */
+/* $Id: md5.h,v 1.3 2004/08/30 07:17:31 rswindell Exp $ */
 
 /* RSA Data Security, Inc., MD5 Message-Digest Algorithm */
 
@@ -31,6 +31,8 @@ documentation and/or software.
 
 #ifndef H__MD5
 #define H__MD5
+
+#include <stddef.h>		/* size_t */
 
 #define MD5_DIGEST_SIZE		16
 
