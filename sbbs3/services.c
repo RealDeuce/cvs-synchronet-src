@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.46 2002/03/24 10:46:19 rswindell Exp $ */
+/* $Id: services.c,v 1.47 2002/03/25 05:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -521,7 +521,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateFileClass(js_cx, js_glob)==NULL)
 			break;
 
-		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime)==NULL) 
+		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name)==NULL) 
 			break;
 		
 		/* server object */
@@ -1076,6 +1076,9 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
+
+		if(startup->host_name[0]==0)
+			sprintf(startup->host_name,"%.*s",sizeof(startup->host_name),scfg.sys_inetaddr);
 
 		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
 			if(PUTENV("TZ=UTC0"))

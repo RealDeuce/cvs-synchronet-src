@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.134 2002/03/24 10:46:18 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.135 2002/03/25 05:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2762,6 +2762,9 @@ void DLLCALL mail_server(void* arg)
 			cleanup(1);
 			return;
 		}
+
+		if(startup->host_name[0]==0)
+			sprintf(startup->host_name,"%.*s",sizeof(startup->host_name),scfg.sys_inetaddr);
 
 		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&MAIL_OPT_LOCAL_TIMEZONE)) {
 			if(PUTENV("TZ=UTC0"))

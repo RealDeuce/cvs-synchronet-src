@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.133 2002/03/24 10:46:19 rswindell Exp $ */
+/* $Id: main.cpp,v 1.134 2002/03/25 05:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -517,7 +517,7 @@ bool sbbs_t::js_init()
 			break;
 
 		/* System Object */
-		if(js_CreateSystemObject(js_cx, js_glob, &cfg, uptime)==NULL)
+		if(js_CreateSystemObject(js_cx, js_glob, &cfg, uptime, startup->host_name)==NULL)
 			break;
 
 		/* Client Object */
@@ -3141,6 +3141,9 @@ void DLLCALL bbs_thread(void* arg)
 		return;
 	}
 	scfg_reloaded=true;
+
+	if(startup->host_name[0]==0)
+		sprintf(startup->host_name,"%.*s",sizeof(startup->host_name),scfg.sys_inetaddr);
 
 	if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
 		if(PUTENV("TZ=UTC0"))

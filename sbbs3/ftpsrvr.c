@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.150 2002/03/24 10:46:18 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.151 2002/03/25 05:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -511,7 +511,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 			break;
 
 		lprintf("%04d JavaScript: Initializing System object",sock);
-		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime)==NULL) 
+		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name)==NULL) 
 			break;
 
 		if((*ftp=JS_DefineObject(js_cx, js_glob, "ftp", &js_ftp_class
@@ -4401,6 +4401,9 @@ void DLLCALL ftp_server(void* arg)
 			cleanup(1,__LINE__);
 			return;
 		}
+
+		if(startup->host_name[0]==0)
+			sprintf(startup->host_name,"%.*s",sizeof(startup->host_name),scfg.sys_inetaddr);
 
 		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&FTP_OPT_LOCAL_TIMEZONE)) { 
 			if(PUTENV("TZ=UTC0"))

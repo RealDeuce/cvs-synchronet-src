@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.103 2002/03/11 18:28:13 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.104 2002/03/25 05:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -832,7 +832,7 @@ extern "C" {
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
-													,scfg_t* cfg, time_t uptime);
+													,scfg_t* cfg, time_t uptime, char* host_name);
 
 	/* js_client.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
