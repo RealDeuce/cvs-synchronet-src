@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.19 2004/09/01 09:44:08 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.21 2004/09/01 20:50:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,6 +180,13 @@ typedef struct {
 	BOOL	value;
 } named_bool_t;
 
+/************************/
+/* Handy Integer Macros */
+/************************/
+
+/* Data Block Length Alignment Macro (returns required padding length for proper alignment) */
+#define PAD_LENGTH_FOR_ALIGNMENT(len,blk)	(((len)%(blk))==0 ? 0 : (blk)-((len)%(blk)))
+
 /***********************/
 /* Handy String Macros */
 /***********************/
@@ -256,13 +263,16 @@ typedef struct {
 /* Handy Pointer-freeing Macros */
 /********************************/
 #define FREE_AND_NULL(x)			if(x!=NULL) { FREE(x); x=NULL; }
-#define FREE_LIST_ITEMS(list,i)		for(i=0;list!=NULL && list[i]!=NULL;i++) \
-										{ FREE_AND_NULL(list[i]); }
+#define FREE_LIST_ITEMS(list,i)		if(list!=NULL) {				\
+										for(i=0;list[i]!=NULL;i++)	\
+											FREE_AND_NULL(list[i]);	\
+									}
 #define FREE_LIST(list,i)			FREE_LIST_ITEMS(list,i) FREE_AND_NULL(list)
 
 /********************************/
 /* Other Pointer-List Macros	*/
 /********************************/
-#define COUNT_LIST_ITEMS(list,i)	for(i=0;list!=NULL && list[i]!=NULL;i++);
+#define COUNT_LIST_ITEMS(list,i)	{ i=0; if(list!=NULL) while(list[i]!=NULL) i++; }
+
 
 #endif /* Don't add anything after this #endif statement */
