@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.21 2003/02/10 01:24:53 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.22 2003/02/10 08:59:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -266,11 +266,11 @@ char sbbs_t::getkey(long mode)
 			RESTORELINE; 
 		}
 
-		if(!(startup->options&BBS_OPT_NO_TELNET_NOP)
+		if(!(startup->options&BBS_OPT_NO_TELNET_GA)
 			&& now!=last_telnet_cmd && now-timeout>=60 && !((now-timeout)%60)) {
 			// Let's make sure the socket is up
 			// Sending will trigger a socket d/c detection
-			send_telnet_cmd(TELNET_NOP,0);
+			send_telnet_cmd(TELNET_GA,0);
 			last_telnet_cmd=now;
 		}
 			
