@@ -2,13 +2,13 @@
 
 /* DOS's kbhit and getch functions for Unix - Casey Martin 2000 */
 
-/* $Id: conwrap.c,v 1.9 2002/10/29 08:57:28 rswindell Exp $ */
+/* $Id: conwrap.c,v 1.10 2004/07/20 23:17:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
