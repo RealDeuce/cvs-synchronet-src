@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.43 2004/07/30 01:22:17 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.41 2004/07/03 00:16:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,9 +38,7 @@
 #include <stdlib.h>		/* strtol */
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
-#if !defined(NO_SOCKET_SUPPORT)
-	#include "sockwrap.h"	/* inet_addr */
-#endif
+#include "sockwrap.h"	/* inet_addr */
 #include "filewrap.h"	/* chsize */
 #include "ini_file.h"
 
@@ -365,7 +363,6 @@ char* iniSetFloat(str_list_t* list, const char* section, const char* key, double
 	return iniSetString(list, section, key, str, style);
 }
 
-#if !defined(NO_SOCKET_SUPPORT)
 char* iniSetIpAddress(str_list_t* list, const char* section, const char* key, ulong value
 					,ini_style_t* style)
 {
@@ -373,7 +370,6 @@ char* iniSetIpAddress(str_list_t* list, const char* section, const char* key, ul
 	in_addr.s_addr=value;
 	return iniSetString(list, section, key, inet_ntoa(in_addr), style);
 }
-#endif
 
 char* iniSetBool(str_list_t* list, const char* section, const char* key, BOOL value
 					,ini_style_t* style)
@@ -629,7 +625,6 @@ ushort iniGetShortInt(FILE* fp, const char* section, const char* key, ushort def
 	return((ushort)iniGetInteger(fp, section, key, deflt));
 }
 
-#if !defined(NO_SOCKET_SUPPORT)
 ulong iniGetIpAddress(FILE* fp, const char* section, const char* key, ulong deflt)
 {
 	char	buf[INI_MAX_VALUE_LEN];
@@ -646,7 +641,6 @@ ulong iniGetIpAddress(FILE* fp, const char* section, const char* key, ulong defl
 
 	return(ntohl(inet_addr(value)));
 }
-#endif
 
 double iniGetFloat(FILE* fp, const char* section, const char* key, double deflt)
 {
@@ -728,9 +722,9 @@ str_list_t iniReadFile(FILE* fp)
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
 	if(list!=NULL) {
-		/* truncate new-line chars off end of strings */
+		/* truncate the white-space off end of strings */
 		for(i=0; list[i]!=NULL; i++)
-			truncnl(list[i]);
+			truncsp(list[i]);
 	}
 
 	return(list);
