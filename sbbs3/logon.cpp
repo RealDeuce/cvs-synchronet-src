@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.35 2003/05/12 21:43:47 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.36 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,7 +323,7 @@ bool sbbs_t::logon()
 					getstr(useron.name,LEN_NAME,K_UPRLWR|(cfg.uq&UQ_NOEXASC));
 					if(cfg.uq&UQ_ALIASES && cfg.uq&UQ_REALNAME) {
 						if(trashcan(useron.name,"name") || !useron.name[0]
-							|| !strchr(useron.name,SP)
+							|| !strchr(useron.name,' ')
 							|| strchr(useron.name,0xff)
 							|| (cfg.uq&UQ_DUPREAL
 								&& userdatdupe(useron.number,U_NAME,LEN_NAME
