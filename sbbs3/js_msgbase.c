@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.104 2004/12/03 07:33:46 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.105 2004/12/03 16:49:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1718,9 +1718,9 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td><tt>when_written_zone</tt><td>Time zone"
 	"<tr><td><tt>when_imported_time</tt><td>Date/time message was imported"
 	"<tr><td><tt>when_imported_zone</tt><td>Time zone"
-	"<tr><td><tt>thread_back</tt><td>Replying to this message number"
-	"<tr><td><tt>thread_next</tt><td>Number of next message in this thread"
-	"<tr><td><tt>thread_first</tt><td>Number of first reply to this message"
+	"<tr><td><tt>thread_back</tt><td>Message number that this message is a reply to"
+	"<tr><td><tt>thread_next</tt><td>Message number of the next reply to the original message in this thread"
+	"<tr><td><tt>thread_first</tt><td>Message number of the first reply to this message"
 	"<tr><td><tt>field_list[].type</tt><td>Other SMB header fields (type)"
 	"<tr><td><tt>field_list[].data</tt><td>Other SMB header fields (data)"
 	"</table>"
