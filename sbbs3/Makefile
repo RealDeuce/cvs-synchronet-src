@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.15 2002/11/05 07:44:04 rswindell Exp $
+# $Id: Makefile,v 1.16 2002/12/31 02:08:36 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -208,3 +208,18 @@ $(FILELIST): filelist.c \
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
+# MAKEUSER
+$(MAKEUSER): makeuser.c \
+	$(LIBODIR)\ars.obj \
+	$(LIBODIR)\nopen.obj \
+	$(LIBODIR)\str_util.obj \
+	$(LIBODIR)\date_str.obj \
+	dat_rec.c \
+	userdat.c \
+	genwrap.c \
+	dirwrap.c \
+	$(LIBODIR)\load_cfg.obj \
+	$(LIBODIR)\scfglib1.obj \
+	$(LIBODIR)\scfglib2.obj
+	@echo Creating $@
+	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 

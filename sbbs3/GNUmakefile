@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.41 2002/11/26 06:56:48 rswindell Exp $
+# $Id: GNUmakefile,v 1.42 2002/12/31 02:08:36 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -333,6 +333,25 @@ $(FILELIST): \
 	$(EXEODIR)/genwrap.o
 	@echo Linking $@
 	@$(CC) -o $@ $^
+
+# MAKEUSER
+$(MAKEUSER): \
+	$(EXEODIR)/makeuser.o \
+	$(EXEODIR)/ars.o \
+	$(EXEODIR)/date_str.o \
+	$(EXEODIR)/load_cfg.o \
+	$(EXEODIR)/scfglib1.o \
+	$(EXEODIR)/scfglib2.o \
+	$(EXEODIR)/nopen.o \
+	$(EXEODIR)/str_util.o \
+	$(EXEODIR)/dat_rec.o \
+	$(EXEODIR)/userdat.o \
+	$(EXEODIR)/filewrap.o \
+	$(EXEODIR)/dirwrap.o \
+	$(EXEODIR)/genwrap.o
+	@echo Linking $@
+	@$(CC) -o $@ $^
+
 
 # Auto-dependency files
 -include $(LIBODIR)/*.d
