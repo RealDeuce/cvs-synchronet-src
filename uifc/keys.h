@@ -1,4 +1,4 @@
-/* $Id: keys.h,v 1.1 2004/08/02 02:43:59 deuce Exp $ */
+/* $Id: keys.h,v 1.8 2004/07/05 07:53:00 deuce Exp $ */
 
 #define CIO_KEY_HOME      0x47 << 8
 #define CIO_KEY_UP        72   << 8
@@ -12,4 +12,4 @@
 #define CIO_KEY_PPAGE     0x49 << 8
 #define CIO_KEY_NPAGE     0x51 << 8
 
-#define CIO_KEY_MOUSE    0x02ff
+#define CIO_KEY_MOUSE    0xff02

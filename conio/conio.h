@@ -1,15 +1,15 @@
-/* $Id: ciolib.h,v 1.1 2004/07/26 22:06:01 rswindell Exp $ */
+/* $Id: conio.h,v 1.4 2004/07/17 01:44:19 deuce Exp $ */
 
-#ifndef _CIOLIB_H_
-#define _CIOLIB_H_
+#ifndef _CIOWRAP_H_
+#define _CIOWRAP_H_
 
 enum {
-	 CIOLIB_AUTO_MODE
-	,CIOLIB_CURSES_MODE
-	,CIOLIB_CURSES_IBM_MODE
-	,CIOLIB_ANSI_MODE
-	,CIOLIB_X_MODE
-	,CIOLIB_CONIO_MODE
+	 CIOWRAP_AUTO_MODE
+	,CIOWRAP_CURSES_MODE
+	,CIOWRAP_CURSES_IBM_MODE
+	,CIOWRAP_ANSI_MODE
+	,CIOWRAP_X_MODE
+	,CIOWRAP_CONIO_MODE
 };
 
 #ifndef __unix__
@@ -126,45 +126,45 @@ extern int directvideo;
 #ifdef __cplusplus
 extern "C" {
 #endif
-int initciolib(int mode);
+int initciowrap(int mode);
 #ifdef __cplusplus
 }
 #endif
 
-#ifndef CIOLIB_NO_MACROS
-	#define cscanf					ciolib_cscanf
-	#define cprintf					ciolib_cprintf
+#ifndef CIOWRAP_NO_MACROS
+	#define cscanf					ciowrap_cscanf
+	#define cprintf					ciowrap_cprintf
 
-	#define movetext(a,b,c,d,e,f)	ciolib_movetext(a,b,c,d,e,f)
-	#define cgets(a)				ciolib_cgets(a)
-	#define kbhit()					ciolib_kbhit()
-	#define getch()					ciolib_getch()
-	#define getchr()				ciolib_getche()
-	#define ungetch(a)				ciolib_ungetch(a)
-	#define gettextinfo(a)			ciolib_gettextinfo(a)
-	#define wherex()				ciolib_wherex()
-	#define wherey()				ciolib_wherey()
-	#define	wscroll()				ciolib_wscroll()
-	#define gotoxy(a,b)				ciolib_gotoxy(a,b)
-	#define clreol()				ciolib_clreol()
-	#define clrscr()				ciolib_clrscr()
-	#define cputs(a)				ciolib_cputs(a)
-	#define textbackground(a)		ciolib_textbackground(a)
-	#define textcolor(a)			ciolib_textcolor(a)
-	#define highvideo()				ciolib_highvideo()
-	#define lowvideo()				ciolib_lowvideo()
-	#define normvideo()				ciolib_normvideo()
-	#define puttext(a,b,c,d,e)		ciolib_puttext(a,b,c,d,e)
-	#define gettext(a,b,c,d,e)		ciolib_gettext(a,b,c,d,e)
-	#define textattr(a)				ciolib_textattr(a)
-	#define delay(a)				ciolib_delay(a)
-	#define putch(a)				ciolib_putch(a)
-	#define _setcursortype(a)		ciolib_setcursortype(a)
-	#define textmode(a)				ciolib_textmode(a)
-	#define window(a,b,c,d)			ciolib_window(a,b,c,d)
-	#define delline()				ciolib_delline()
-	#define insline					ciolib_insline()
-	#define getpass(a)				ciolib_getpass(a);
+	#define movetext(a,b,c,d,e,f)	ciowrap_movetext(a,b,c,d,e,f)
+	#define cgets(a)				ciowrap_cgets(a)
+	#define kbhit()					ciowrap_kbhit()
+	#define getch()					ciowrap_getch()
+	#define getchr()				ciowrap_getche()
+	#define ungetch(a)				ciowrap_ungetch(a)
+	#define gettextinfo(a)			ciowrap_gettextinfo(a)
+	#define wherex()				ciowrap_wherex()
+	#define wherey()				ciowrap_wherey()
+	#define	wscroll()				ciowrap_wscroll()
+	#define gotoxy(a,b)				ciowrap_gotoxy(a,b)
+	#define clreol()				ciowrap_clreol()
+	#define clrscr()				ciowrap_clrscr()
+	#define cputs(a)				ciowrap_cputs(a)
+	#define textbackground(a)		ciowrap_textbackground(a)
+	#define textcolor(a)			ciowrap_textcolor(a)
+	#define highvideo()				ciowrap_highvideo()
+	#define lowvideo()				ciowrap_lowvideo()
+	#define normvideo()				ciowrap_normvideo()
+	#define puttext(a,b,c,d,e)		ciowrap_puttext(a,b,c,d,e)
+	#define gettext(a,b,c,d,e)		ciowrap_gettext(a,b,c,d,e)
+	#define textattr(a)				ciowrap_textattr(a)
+	#define delay(a)				ciowrap_delay(a)
+	#define putch(a)				ciowrap_putch(a)
+	#define _setcursortype(a)		ciowrap_setcursortype(a)
+	#define textmode(a)				ciowrap_textmode(a)
+	#define window(a,b,c,d)			ciowrap_window(a,b,c,d)
+	#define delline()				ciowrap_delline()
+	#define insline					ciowrap_insline()
+	#define getpass(a)				ciowrap_getpass(a);
 #endif
 
 #endif	/* Do not add anything after this line */
