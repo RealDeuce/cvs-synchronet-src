@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.12 2001/09/24 11:54:51 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.13 2001/10/02 14:58:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,8 +141,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 			return(false); }
 		p="CONTROLTYPE = ";
-		fprintf(stream,"DOOR = %s\r\nVERSION = %s\r\n"
-			"SYSTEM = %s v%s\r\n"
+		fprintf(stream,"DOOR = %.10s\r\nVERSION = %s\r\n"
+			"SYSTEM = %s\r\n"
 			"CONTROLNAME = SBBS\r\n"
 			"%sADD\r\n"
 			"%sDROP\r\n"
@@ -161,10 +161,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			"%sVIA\r\n"
 			"%sCONTROL\r\n"
 			"MIXEDCASE = YES\r\n"
-			,"Synchronet"
+			,VERSION_NOTICE
 			,VERSION
-			,"Synchronet"
-			,VERSION
+			,VERSION_NOTICE
 			,p,p,p,p
 			,p,p,p,p
 			,p,p,p,p
@@ -316,6 +315,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				msgs=getlastmsg(usrsub[i][j],&lastmsg,0);
 				if(!msgs || lastmsg<=sub_ptr[usrsub[i][j]]) { /* no msgs */
 					if(sub_ptr[usrsub[i][j]]>lastmsg)	{ /* corrupted ptr */
+						outchar('*');
 						sub_ptr[usrsub[i][j]]=lastmsg; /* so fix automatically */
 						sub_last[usrsub[i][j]]=lastmsg; }
 					bprintf(text[NScanStatusFmt]
