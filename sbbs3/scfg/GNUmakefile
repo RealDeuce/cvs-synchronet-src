@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.28 2003/04/30 03:23:16 deuce Exp $
+# $Id: GNUmakefile,v 1.29 2003/05/12 22:44:10 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -32,7 +32,6 @@ XPDEV	=	../../xpdev
 
 ifndef os
  os		=	$(shell uname)
- $(warning OS not specified on command line, setting to '$(os)'.)
 endif
 os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
 # remove '/' from "os/2"
