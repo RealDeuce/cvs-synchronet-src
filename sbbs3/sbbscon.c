@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.55 2002/03/22 03:20:51 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.56 2002/03/22 03:29:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -545,12 +545,12 @@ daemon(nochdir, noclose)
 	if (!nochdir)
 		(void)chdir("/");
 
-	if (!noclose && (fd = _open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
+	if (!noclose && (fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
 		(void)dup2(fd, STDIN_FILENO);
 		(void)dup2(fd, STDOUT_FILENO);
 		(void)dup2(fd, STDERR_FILENO);
 		if (fd > 2)
-			(void)_close(fd);
+			(void)close(fd);
 	}
 	return (0);
 }
