@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.21 2002/08/08 11:11:19 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.22 2002/08/08 11:14:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1041,10 +1041,12 @@ void http_session_thread(void* arg)
 	char			host_ip[64];
 	char*			host_name;
 	HOSTENT*		host;
+	SOCKET			socket;
 	http_session_t	session=*(http_session_t*)arg;
 
 	free(arg);	/* now we don't need to worry about freeing the session */
 
+	socket=session.socket;
 	lprintf("%04d Session thread started", session.socket);
 
 	thread_up(FALSE /* setuid */);
@@ -1101,7 +1103,7 @@ void http_session_thread(void* arg)
 
 	thread_down();
 	lprintf("%04d Session thread terminated (%u clients, %u threads remain)"
-		,session.socket, active_clients, thread_count);
+		,socket, active_clients, thread_count);
 }
 
 void DLLCALL web_terminate(void)
@@ -1144,7 +1146,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.21 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.22 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
