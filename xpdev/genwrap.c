@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.2 2002/04/06 01:37:40 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.3 2002/04/06 01:55:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 /* Convert ASCIIZ string to upper case										*/
 /****************************************************************************/
 #ifdef __unix__
-char* SMBCALL strupr(char* str)
+char* DLLCALL strupr(char* str)
 {
 	char*	p=str;
 
@@ -56,7 +56,7 @@ char* SMBCALL strupr(char* str)
 /****************************************************************************/
 /* Convert ASCIIZ string to lower case										*/
 /****************************************************************************/
-char* SMBCALL strlwr(char* str)
+char* DLLCALL strlwr(char* str)
 {
 	char*	p=str;
 
