@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.76 2002/08/30 22:54:04 rswindell Exp $ */
+/* $Id: services.c,v 1.77 2002/09/06 02:20:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -330,7 +330,7 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>2)
-		inc_logons=JSVAL_TO_BOOLEAN(argv[2]);
+		JS_ValueToInt32(cx,argv[2],&inc_logons);
 
 	if(client->client!=NULL) {
 		SAFECOPY(user.note,client->client->addr);
@@ -1155,7 +1155,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.76 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.77 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

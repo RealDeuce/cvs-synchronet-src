@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.32 2002/08/16 23:40:01 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.33 2002/09/06 02:20:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,7 +82,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 	}
 
 	if(argc>1)
-		p->smb.retry_time=JSVAL_TO_INT(argv[0]);
+		JS_ValueToInt32(cx,argv[1],(int32*)&(p->smb.retry_time));
 	else
 		p->smb.retry_time=scfg->smb_retry_time;
 
