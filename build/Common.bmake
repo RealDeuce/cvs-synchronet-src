@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.30 2004/09/16 10:20:31 rswindell Exp $
+# $Id: Common.bmake,v 1.38 2004/09/23 18:12:04 rswindell Exp $
 #
 #############################################################################
 #																			#
@@ -82,9 +82,9 @@
 !endif
 
 !ifndef DEBUG
- !ifndef RELEASE
+! ifndef RELEASE
   DEBUG	=	1
- !endif
+! endif
 !endif
 
 # VERBOSE/QUIET
@@ -187,6 +187,7 @@ UIFC_SRC	=	$(SRC_ROOT)$(DIRSEP)uifc
 .cpp{$(MTOBJODIR)}$(OFILE):
 	$(QUIET)$(CC) $(CFLAGS) $(CXXFLAGS) -n$(MTOBJODIR) $(MT_CFLAGS) -c $< $(OUTPUT)$@
 
+$(XPDEV_LIB): xpdev
 xpdev:
 	$(COMSPEC) <<|
 	set VERSION=$(VERSION)
@@ -198,6 +199,7 @@ xpdev:
 	exit
 |
 
+$(XPDEV-MT_LIB): xpdev-mt
 xpdev-mt:
 	$(COMSPEC) <<|
 	set VERSION=$(VERSION)
@@ -209,6 +211,7 @@ xpdev-mt:
 	exit
 |
 
+$(SMBLIB): smblib
 smblib:
 	$(COMSPEC) <<|
 	set VERSION=$(VERSION)
@@ -220,6 +223,7 @@ smblib:
 	exit
 |
 
+$(CIOLIB-MT): ciolib-mt
 ciolib-mt:
 	$(COMSPEC) <<|
 	set VERSION=$(VERSION)
@@ -231,6 +235,7 @@ ciolib-mt:
 	exit
 |
 
+$(UIFCLIB): uifc
 uifc:
 	$(COMSPEC) <<|
 	set VERSION=$(VERSION)
@@ -242,6 +247,7 @@ uifc:
 	exit
 |
 
+$(UIFCLIB-MT): uifc-mt
 uifc-mt:
 	$(COMSPEC) <<|
 	set VERSION=$(VERSION)

@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.80 2004/09/16 06:14:39 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.82 2004/09/17 11:34:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -461,6 +461,8 @@ void listmsgs(ulong start, ulong count)
 
 	if(!start)
 		start=1;
+	if(!count)
+		count=~0;
 	fseek(smb.sid_fp,(start-1L)*sizeof(idxrec_t),SEEK_SET);
 	while(l<count) {
 		if(!fread(&msg.idx,1,sizeof(idxrec_t),smb.sid_fp))
@@ -555,6 +557,8 @@ void viewmsgs(ulong start, ulong count)
 
 	if(!start)
 		start=1;
+	if(!count)
+		count=~0;
 	fseek(smb.sid_fp,(start-1L)*sizeof(idxrec_t),SEEK_SET);
 	while(l<count) {
 		if(!fread(&msg.idx,1,sizeof(idxrec_t),smb.sid_fp))
@@ -1451,7 +1455,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.80 $", "%*s %s", revision);
+	sscanf("$Revision: 1.82 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1578,7 +1582,8 @@ int main(int argc, char **argv)
 						smb_close(&smb);
 						continue; 
 					}
-					smb.status.max_msgs=count;
+					smb.status.max_msgs=strtoul(cmd+1,NULL,0);
+					smb.status.max_crcs=count;
 					if((i=smb_create(&smb))!=0) {
 						smb_close(&smb);
 						printf("!Error %d (%s) creating %s\n",i,smb.last_error,smb.file);
