@@ -2273,78 +2273,73 @@ object MainForm: TMainForm
         ImageIndex = 19
         object BBSEditIPFilter: TMenuItem
           Caption = 'IP Address Filter'
-          Hint = 'ip.can'
+          Hint = 'IP.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditIPFilterSilent: TMenuItem
           Caption = 'IP Address Filter (silent)'
-          Hint = 'ip-silent.can'
+          Hint = 'IP-SILENT.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditIPFilterMsg: TMenuItem
           Caption = 'IP Address Filter Message'
-          Hint = 'badip.msg'
+          Hint = 'BADIP.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditHostFilter: TMenuItem
           Caption = 'Host Name Filter'
-          Hint = 'host.can'
+          Hint = 'HOST.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditHostFilterMsg: TMenuItem
           Caption = 'Host Name Filter Message'
-          Hint = 'badhost.msg'
+          Hint = 'BADHOST.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditNameFilter: TMenuItem
           Caption = 'User Name Filter'
-          Hint = 'name.can'
+          Hint = 'NAME.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditNameFilterBadMsg: TMenuItem
           Caption = 'User Name Filter Message'
-          Hint = 'badname.msg'
+          Hint = 'BADNAME.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditEmailFilterMenuItem: TMenuItem
           Caption = 'E-mail Address Filter'
-          Hint = 'email.can'
+          Hint = 'EMAIL.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditBadEmailMessageMenuItem: TMenuItem
           Caption = 'E-mail Address Filter Message'
-          Hint = 'bademail.msg'
+          Hint = 'BADEMAIL.MSG'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditSubjectFilterMenuItem: TMenuItem
           Caption = 'E-mail Subject Filter'
-          Hint = 'subject.can'
+          Hint = 'SUBJECT.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditFilenameFilter: TMenuItem
           Caption = 'File Name Filter'
-          Hint = 'file.can'
+          Hint = 'FILE.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditFileFilterBadMsg: TMenuItem
           Caption = 'File Name Filter Message'
-          Hint = 'badfile.msg'
+          Hint = 'BADFILE.MSG'
           OnClick = TextMenuItemEditClick
         end
         object PhoneNumberPHONECAN1: TMenuItem
           Caption = 'Phone Number Filter'
-          Hint = 'phone.can'
+          Hint = 'PHONE.CAN'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditPhoneFilterBadMsg: TMenuItem
           Caption = 'Phone Number Filter Message'
-          Hint = 'badphone.msg'
+          Hint = 'BADPHONE.MSG'
           OnClick = TextMenuItemEditClick
-        end
-        object BBSEditTwitList: TMenuItem
-          Caption = 'Twit List'
-          Hint = 'twitlist.cfg'
-          OnClick = CtrlMenuItemEditClick
         end
       end
       object N10: TMenuItem

@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.19 2004/12/30 08:11:40 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.18 2004/09/08 22:26:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,7 +256,6 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
     DNSAddressEdit->Text=MainForm->mail_startup.dns_server;
     MaxMailUpDown->Position=MainForm->mail_startup.max_clients;
     MaxFtpUpDown->Position=MainForm->ftp_startup.max_clients;
-    MaxWebUpDown->Position=MainForm->web_startup.max_clients;
     NodesUpDown->Position=scfg.sys_nodes;
 
     for(i=0;i<sizeof(tz_str)/sizeof(tz_str[0]);i++) {
@@ -307,10 +306,9 @@ void __fastcall TConfigWizard::NextButtonClick(TObject *Sender)
             MainForm->bbs_startup.last_node=NodesUpDown->Position;
         MainForm->ftp_startup.max_clients=MaxFtpUpDown->Position;
         MainForm->mail_startup.max_clients=MaxMailUpDown->Position;
-        MainForm->web_startup.max_clients=MaxWebUpDown->Position;
         strcpy(MainForm->mail_startup.dns_server,DNSAddressEdit->Text.c_str());
 
-        MainForm->SaveIniSettings(Sender);
+        MainForm->SaveSettings(Sender);
 
         // Write CNF files
         strcpy(scfg.sys_name,SystemNameEdit->Text.c_str());
@@ -354,7 +352,7 @@ void __fastcall TConfigWizard::NextButtonClick(TObject *Sender)
         }
 
         scfg.new_install=FALSE;
-        if(!save_cfg(&scfg,0)) {
+        if(!save_cfg(&scfg,5)) {
         	Application->MessageBox("Error saving configuration"
             	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
         } else
