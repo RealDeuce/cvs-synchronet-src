@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.8 2003/07/08 05:00:38 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.9 2003/07/08 22:02:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -472,7 +472,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.8 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	p=getenv("SBBSCTRL");
 	if(p==NULL) {
@@ -485,7 +485,7 @@ int main(int argc, char **argv, char** environ)
 	scfg.size=sizeof(scfg);
 	SAFECOPY(scfg.ctrl_dir,p);
 
-	for(argn=1;argn<argc;argn++) {
+	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
 			switch(argv[argn][1]) {
 				case 'm':
