@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.38 2004/12/31 02:39:19 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.37 2004/12/18 00:15:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #ifdef _DEBUG
 
 static char* lib_prop_desc[] = {
-	 "index into lib_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
+	 "index into lib_list array (or -1 if not in array)"
 	,"unique number for this library"
 	,"library name"
 	,"library description"
@@ -53,11 +53,11 @@ static char* lib_prop_desc[] = {
 
 static char* dir_prop_desc[] = {
 
-	 "index into dir_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
+	 "index into dir_list array (or -1 if not in array)"
 	,"unique number for this directory"
-	,"library index <i>(introduced in v3.12)</i>"
+	,"library index"
 	,"library number"
-	,"library name <i>(introduced in v3.12)</i>"
+	,"library name"
 	,"directory internal code"
 	,"directory name"
 	,"directory description"
