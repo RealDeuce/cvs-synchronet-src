@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.5 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: threadwrap.h,v 1.6 2002/04/26 23:49:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +75,7 @@ extern "C" {
 
 #else
 
-	#warning "Need semaphore wrappers."
+	#error "Need semaphore wrappers."
 
 #endif
 
