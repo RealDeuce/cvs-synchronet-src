@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: sbbsctrl.cpp,v 1.10 2001/11/10 04:26:02 rswindell Exp $ */
+/* $Id: sbbsctrl.cpp,v 1.11 2001/11/16 19:59:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,13 +39,10 @@
 USERES("sbbsctrl.res");
 USEFORM("MainFormUnit.cpp", MainForm);
 USEFORM("CtrlPathDialogUnit.cpp", CtrlPathDialog);
-USEFORM("TelnetCfgDlgUnit.cpp", TelnetCfgDlg);
 USELIB("sbbs.lib");
 USELIB("mailsrvr.lib");
 USELIB("ftpsrvr.lib");
 USELIB("services.lib");
-USEFORM("MailCfgDlgUnit.cpp", MailCfgDlg);
-USEFORM("FtpCfgDlgUnit.cpp", FtpCfgDlg);
 USEFORM("TextFileEditUnit.cpp", TextFileEditForm);
 USEFORM("TelnetFormUnit.cpp", TelnetForm);
 USEFORM("FtpFormUnit.cpp", FtpForm);
@@ -65,6 +62,10 @@ USEFORM("PropertiesDlgUnit.cpp", PropertiesDlg);
 USEFORM("EventsFormUnit.cpp", EventsForm);
 USEFORM("ConfigWizardUnit.cpp", ConfigWizardForm);
 USEFORM("ServicesFormUnit.cpp", ServicesForm);
+USEFORM("TelnetCfgDlgUnit.cpp", TelnetCfgDlg);
+USEFORM("MailCfgDlgUnit.cpp", MailCfgDlg);
+USEFORM("FtpCfgDlgUnit.cpp", FtpCfgDlg);
+USEFORM("ServicesCfgDlgUnit.cpp", ServicesCfgDlg);
 //---------------------------------------------------------------------------
 #include "MainFormUnit.h"
 #include "SpyFormUnit.h"
