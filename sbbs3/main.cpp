@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.53 2001/08/27 19:06:52 rswindell Exp $ */
+/* $Id: main.cpp,v 1.54 2001/08/29 16:06:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2970,6 +2970,14 @@ void DLLCALL bbs_thread(void* arg)
 	thread_up();
 
 	status("Initializing");
+
+	/* Defeat the lameo hex0rs - the name and copyright must remain intact */
+	sprintf(str,"%.10s",VERSION_NOTICE);
+	if(crc32(COPYRIGHT_NOTICE,0)!=COPYRIGHT_CRC || crc32(str,0)!=SYNCHRONET_CRC) {
+		lprintf("!Corrupted library file");
+		cleanup(1);
+		return;
+	}
 
 #ifdef __unix__		/* Ignore "Broken Pipe" signal */
 	signal(SIGPIPE,SIG_IGN);
