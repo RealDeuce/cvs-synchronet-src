@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.5 2002/04/17 07:13:11 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.6 2002/04/26 03:58:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,18 +123,6 @@ char* tz_str[]={
     ,"Wellington"
 };
 
-/****************************************************************************/
-/* Truncates white-space chars off end of 'str'								*/
-/****************************************************************************/
-void truncsp(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=SP) c--;
-	str[c]=0;
-}
-
 //---------------------------------------------------------------------------
 __fastcall TConfigWizard::TConfigWizard(TComponent* Owner)
     : TForm(Owner)
@@ -151,6 +139,7 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
     SAFECOPY(scfg.ctrl_dir,MainForm->CtrlDirectory.c_str());
     scfg.size=sizeof(scfg);
     char error[256];
+	error[0]=0;
     if(!load_cfg(&scfg,NULL,FALSE,error)) {
         Application->MessageBox(error,"ERROR Loadin Configuration"
         	,MB_OK|MB_ICONEXCLAMATION);
