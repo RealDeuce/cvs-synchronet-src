@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.93 2003/10/04 09:13:02 deuce Exp $ */
+/* $Id: js_global.c,v 1.94 2003/10/06 06:09:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1189,6 +1189,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					case '+':
 						if(attr_sp<(int)sizeof(attr_stack))
 							attr_stack[attr_sp++]=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | fg;
+						break;
 					case '-':
 						if(attr_sp>0)
 						{
