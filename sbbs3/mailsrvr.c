@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.155 2002/05/03 01:50:18 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.156 2002/05/04 07:30:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2163,7 +2163,7 @@ static void smtp_thread(void* arg)
 		}
 		sockprintf(socket,"500 Syntax error");
 		lprintf("%04d !SMTP UNSUPPORTED COMMAND: '%s'", socket, buf);
-		if(++badcmds>10) {
+		if(++badcmds>9) {
 			lprintf("%04d !TOO MANY INVALID COMMANDS (%u)",socket,badcmds);
 			break;
 		}
