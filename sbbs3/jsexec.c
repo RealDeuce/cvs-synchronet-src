@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.18 2003/07/09 01:11:36 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.19 2003/07/09 04:31:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = JSVAL_VOID;
 
-	JS_ValueToInt32(cx,argv[0],&len);
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
@@ -148,7 +149,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = JSVAL_VOID;
 
-	JS_ValueToInt32(cx,argv[0],&len);
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 	if((buf=malloc(len+1))==NULL)
 		return(JS_TRUE);
 
@@ -530,7 +532,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.18 $", "%*s %s", revision);
+	sscanf("$Revision: 1.19 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
