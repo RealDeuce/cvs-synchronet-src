@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.138 2004/12/28 03:59:47 rswindell Exp $ */
+/* $Id: js_global.c,v 1.129 2004/11/18 21:25:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	return(JS_TRUE);
 }
 
-#define GLOBOBJ_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_SHARED
+#define GLOBOBJ_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY
 
 static struct JSPropertySpec js_global_properties[] = {
 /*		 name,		tinyid,				flags */
@@ -137,7 +137,7 @@ static JSBool js_BranchCallback(JSContext *cx, JSScript* script)
 	if(bg->parent_cx!=NULL && !JS_IsRunning(bg->parent_cx)) 	/* die when parent dies */
 		return(JS_FALSE);
 
-	return js_CommonBranchCallback(cx,&bg->branch);
+	return js_GenericBranchCallback(cx,&bg->branch);
 }
 
 static JSBool
@@ -191,7 +191,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	    if((bg->cx = JS_NewContext(bg->runtime, JAVASCRIPT_CONTEXT_STACK))==NULL)
 			return(JS_FALSE);
 
-		if((bg->obj=js_CreateCommonObjects(bg->cx
+		if((bg->obj=js_CreateGlobalObjects(bg->cx
 				,cfg			/* common config */
 				,NULL			/* node-specific config */
 				,NULL			/* additional global methods */
@@ -201,7 +201,6 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				,&bg->branch	/* js */
 				,NULL			/* client */
 				,INVALID_SOCKET	/* client_socket */
-				,NULL			/* server props */
 				))==NULL) 
 			return(JS_FALSE);
 
@@ -1073,7 +1072,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			free(tmpbuf);
 			return(JS_FALSE);
 		}
-		j=sprintf(outbuf,"<span style=\"%s\">",htmlansi[7]);
+		j=sprintf(outbuf,"<DIV STYLE=\"%s\"><SPAN STYLE=\"%s\">",htmlansi[7],htmlansi[7]);
 		clear_screen=j;
 		for(i=0;tmpbuf[i];i++) {
 			if(j>(obsize/2))		/* Completely arbitrary here... must be carefull with this eventually ToDo */
@@ -1183,7 +1182,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						lastcolor=0;
 						l=ansi_param[0]>0?ansi_param[0]:1;
 						if(wrappos==0 && wrapvpos==currrow)  {
-							/* j+=sprintf(outbuf+j,"<!-- \r\nC after A l=%d hpos=%d -->",l,hpos); */
+							j+=sprintf(outbuf+j,"<!-- \r\nC after A l=%d hpos=%d -->",l,hpos);
 							l=l-hpos;
 							wrapvpos=-2;	/* Prevent additional move right */
 						}
@@ -1534,7 +1533,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 			}
 		}
-		strcpy(outbuf+j,"</span>");
+		strcpy(outbuf+j,"</SPAN></DIV>");
 
 		js_str = JS_NewStringCopyZ(cx, outbuf);
 		free(outbuf);
@@ -1706,7 +1705,7 @@ js_b64_decode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_TRUE);
 	}
 
-	js_str = JS_NewStringCopyN(cx, outbuf, res);
+	js_str = JS_NewStringCopyZ(cx, outbuf);
 	free(outbuf);
 	if(js_str==NULL)
 		return(JS_FALSE);
@@ -2754,7 +2753,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 	return(glob);
 }
 
-JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
+JSObject* DLLCALL js_CreateGlobalObjects(JSContext* js_cx
 										,scfg_t* cfg				/* common */
 										,scfg_t* node_cfg			/* node-specific */
 										,jsSyncMethodSpec* methods	/* global */
@@ -2764,7 +2763,6 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,js_branch_t* branch		/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
-										,js_server_props_t* props	/* server */
 										)
 {
 	JSObject*	js_glob;
@@ -2788,11 +2786,6 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 	/* Client Object */
 	if(client!=NULL 
 		&& js_CreateClientObject(js_cx, js_glob, "client", client, client_socket)==NULL)
-		return(NULL);
-
-	/* Server */
-	if(props!=NULL
-		&& js_CreateServerObject(js_cx, js_glob, props)==NULL)
 		return(NULL);
 
 	/* Socket Class */
