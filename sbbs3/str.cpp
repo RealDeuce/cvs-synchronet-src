@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.18 2001/06/26 02:45:15 rswindell Exp $ */
+/* $Id: str.cpp,v 1.19 2001/07/10 16:21:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -745,6 +745,7 @@ extern "C" BOOL DLLCALL trashcan(scfg_t* cfg, char* insearch, char* name)
 	char	str[128];
 	char	search[81];
 	int		c;
+	int		i;
 	BOOL	found;
 	FILE*	stream;
 
@@ -786,9 +787,17 @@ extern "C" BOOL DLLCALL trashcan(scfg_t* cfg, char* insearch, char* name)
 					found=!found; 
 			}
 
-			else if(p[c]=='^') {
+			else if(p[c]=='^' || p[c]=='*') {
 				p[c]=0;
 				if(!strncmp(p,search,c))
+					found=!found; 
+			}
+
+			else if(p[0]=='*') {
+				i=strlen(search);
+				if(i<c)
+					continue;
+				if(!strncmp(p+1,search+(i-c),c))
 					found=!found; 
 			}
 
