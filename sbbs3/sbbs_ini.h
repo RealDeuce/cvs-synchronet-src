@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.h,v 1.3 2003/01/18 00:30:35 rswindell Exp $ */
+/* $Id: sbbs_ini.h,v 1.4 2003/09/16 21:53:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,14 @@
 #include "services.h"	/* services_startup_t */
 #include "websrvr.h"	/* services_startup_t */
 #include "ini_file.h"
+
+static const char* strJavaScriptMaxBytes		="JavaScriptMaxBytes";
+static const char* strJavaScriptContextStack	="JavaScriptContextStack";
+static const char* strJavaScriptBranchLimit		="JavaScriptBranchLimit";
+static const char* strJavaScriptGcInterval		="JavaScriptGcInterval";
+static const char* strJavaScriptYieldInterval	="JavaScriptYieldInterval";
+static const char* strSemFileCheckFrequency		="SemFileCheckFrequency";
+
 
 #if defined(__cplusplus)
 extern "C" {
