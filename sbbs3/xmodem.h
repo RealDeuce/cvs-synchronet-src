@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.4 2005/01/12 03:59:30 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.5 2005/01/12 22:31:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,11 +46,10 @@ typedef struct {
 
 	SOCKET		sock;	/* socket descriptor */
 	long*		mode;
-	FILE*		statfp;
-	FILE*		errfp;
 	unsigned	block_size;
 	unsigned	ack_timeout;
 	unsigned	byte_timeout;
+	int			(*lprintf)(int level, char *fmt, ...);
 
 } xmodem_t;
 
