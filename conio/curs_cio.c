@@ -1,11 +1,9 @@
-/* $Id: curs_cio.c,v 1.8 2004/07/31 08:59:03 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.1 2004/07/05 21:27:40 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-#include "ciolib.h"
+#include "conio.h"
 #include "curs_cio.h"
 
 static unsigned char curs_nextgetch=0;
@@ -54,7 +52,7 @@ short curses_color(short color)
 	return(0);
 }
 
-int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
+int curs_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
 	int x,y;
 	int fillpos=0;
@@ -63,9 +61,7 @@ int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
 	unsigned char orig_attr;
 	int oldx, oldy;
 	struct text_info	ti;
-	unsigned char *fill;
 
-	fill=fillbuf;
 	gettextinfo(&ti);
 
 	if(		   sx < 1
@@ -100,7 +96,7 @@ int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
 	return(1);
 }
 
-int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
+int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
 	int x,y;
 	int fillpos=0;
@@ -111,9 +107,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 	unsigned char thischar;
 	int	ext_char;
 	struct text_info	ti;
-	unsigned char *fill;
 
-	fill=fillbuf;
 	gettextinfo(&ti);
 
 	if(		   sx < 1
@@ -139,7 +133,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 				thischar=attr&255-'A'+1;
 			}
 			else if(attr&A_ALTCHARSET) {
-				if(!(mode==CIOLIB_MODE_CURSES_IBM)){
+				if(!(mode&UIFC_IBM)){
 					ext_char=A_ALTCHARSET|(attr&255);
 					/* likely ones */
 					if (ext_char == ACS_CKBOARD)
@@ -365,7 +359,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 	return(1);
 }
 
-void curs_textattr(int attr)
+void curs_textattr(unsigned char attr)
 {
 	chtype   attrs=A_NORMAL;
 	int	colour;
@@ -432,7 +426,7 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	int		ret;
 	chtype	cha;
 
-	if(!(mode==CIOLIB_MODE_CURSES_IBM))
+	if(!(mode&UIFC_IBM))
 	{
 		switch(ch)
 		{
@@ -605,25 +599,15 @@ void curs_gotoxy(int x, int y)
 	refresh();
 }
 
-int curs_initciolib(long inmode)
+void curs_initciowrap(long inmode)
 {
 	short	fg, bg, pair=0;
 
 #ifdef XCURSES
-	char	*argv[2]={"ciolib",NULL};
+	char	*argv[2]={"Syhcnronet",NULL};
 
 	Xinitscr(1,argv);
 #else
-	char *term;
-	SCREEN *tst;
-
-	term=getenv("TERM");
-	if(term==NULL)
-		return(0);
-	tst=newterm(term,stdout,stdin);
-	if(tst==NULL)
-		return(0);
-	endwin();
 	initscr();
 #endif
 	start_color();
@@ -633,7 +617,6 @@ int curs_initciolib(long inmode)
 	keypad(stdscr, TRUE);
 	scrollok(stdscr,FALSE);
 	raw();
-	atexit(endwin);
 
 	/* Set up color pairs */
 	for(bg=0;bg<8;bg++)  {
@@ -642,7 +625,6 @@ int curs_initciolib(long inmode)
 		}
 	}
 	mode = inmode;
-	return(1);
 }
 
 void curs_gettextinfo(struct text_info *info)
@@ -675,7 +657,7 @@ void curs_setcursortype(int type) {
 	refresh();
 }
 
-int curs_putch(int c)
+int curs_putch(unsigned char c)
 {
 	struct text_info ti;
 	int		ret;
@@ -696,7 +678,7 @@ int curs_putch(int c)
 			}
 			break;
 		case 0x07:
-			beep();
+			cio_api.beep();
 			break;
 		case 0x08:
 			gotoxy(wherex()-1,wherey());
@@ -758,7 +740,7 @@ int curs_getch(void)
 		while((ch=getch())==ERR) {
 			delay(1);
 		}
-		if(ch > 255) {
+		if(ch & KEY_CODE_YES) {
 			switch(ch) {
 				case KEY_DOWN:            /* Down-arrow */
 					curs_nextgetch=0x50;
