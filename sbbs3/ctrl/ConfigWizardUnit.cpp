@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.12 2003/01/10 07:56:46 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.13 2003/01/13 09:38:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,8 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
     char str[512];
     int i;
     int status;
+
+   	Application->BringToFront();
 
     memset(&scfg,0,sizeof(scfg));
     SAFECOPY(scfg.ctrl_dir,MainForm->CtrlDirectory.c_str());
