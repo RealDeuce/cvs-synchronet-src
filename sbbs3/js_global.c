@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.127 2004/11/17 21:04:45 rswindell Exp $ */
+/* $Id: js_global.c,v 1.128 2004/11/18 21:11:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2706,6 +2706,7 @@ static jsConstIntSpec js_global_const_ints[] = {
 	{"LOG_ALERT"		,LOG_ALERT		},
 	{"LOG_CRIT"			,LOG_CRIT		},
 	{"LOG_ERR"			,LOG_ERR		},
+	{"LOG_ERROR"		,LOG_ERR		},
 	{"LOG_WARNING"		,LOG_WARNING	},
 	{"LOG_NOTICE"		,LOG_NOTICE		},
 	{"LOG_INFO"			,LOG_INFO		},
