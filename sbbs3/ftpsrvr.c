@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.100 2001/09/07 15:59:00 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.101 2001/09/16 23:57:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1397,7 +1397,7 @@ static void send_thread(void* arg)
 			break;
 		}
 		total+=wr;
-		*xfer.lastactive=time(NULL);	/* exception here */
+		*xfer.lastactive=time(NULL);
 		mswait(1);
 	}
 
@@ -4016,7 +4016,8 @@ static void ctrl_thread(void* arg)
 
 	if(transfer_inprogress==TRUE) {
 		lprintf("%04d Waiting for transfer to complete...",sock);
-		while(data_sock!=INVALID_SOCKET && transfer_inprogress==TRUE) {
+		while(/* data_sock!=INVALID_SOCKET && removed SEP-16-2001 */
+			transfer_inprogress==TRUE) {
 			mswait(500);
 			if(gettimeleft(&scfg,&user,logintime)<1) {
 				lprintf("%04d Out of time, disconnecting",sock);
