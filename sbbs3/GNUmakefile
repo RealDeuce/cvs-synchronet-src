@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.35 2002/09/18 02:08:37 rswindell Exp $
+# $Id: GNUmakefile,v 1.36 2002/09/18 02:15:59 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -126,7 +126,7 @@ $(LIBODIR)/%.o : %.cpp
 ifndef bcc
 	@echo Compiling $<
 endif
-	@$(CC) $(CFLAGS) $(SBBSDEFS) -o $@ -c $<
+	@$(CCPP) $(CFLAGS) $(SBBSDEFS) -o $@ -c $<
 
 # Create output directories
 $(LIBODIR):
