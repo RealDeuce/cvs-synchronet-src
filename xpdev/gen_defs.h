@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.26 2004/11/19 00:52:04 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.27 2004/11/19 03:41:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,6 @@
 #define LF		'\n'				/* Line feed				^J	*/
 #define CR		'\r'				/* Carriage return			^M	*/
 
-#if !CTRL_A
 enum {
 	 CTRL_A=1
 	,CTRL_B
@@ -103,7 +102,6 @@ enum {
 	,CTRL_Y
 	,CTRL_Z
 };
-#endif
 
 /* Unsigned type short-hands	*/
 #ifndef uchar
