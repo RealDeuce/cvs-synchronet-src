@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.3 2003/07/03 01:59:26 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.4 2003/07/03 05:42:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#ifndef JAVASCRIPT
 #define JAVASCRIPT
+#endif
 
 #include "sbbs.h"
 
@@ -46,8 +48,8 @@ ulong		js_loop=0;
 scfg_t		scfg;
 ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_context_stack=JAVASCRIPT_CONTEXT_STACK;
-FILE*		confp=stdout;
-FILE*		errfp=stderr;
+FILE*		confp;
+FILE*		errfp;
 char		revision[16];
 BOOL		pause_on_exit=FALSE;
 
@@ -67,8 +69,8 @@ void usage(FILE* fp)
 
 	fprintf(fp,"\nusage: jsexec [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
-		"\t-m <bytes>      set maximum heap size (default: %lu bytes)\n"
-		"\t-s <bytes>      set context stack size (default: %lu bytes)\n"
+		"\t-m <bytes>      set maximum heap size (default: %u bytes)\n"
+		"\t-s <bytes>      set context stack size (default: %u bytes)\n"
 		"\t-t <filename>   send console output to stdout and filename\n"
 		"\t-q              send console output to %s (quiet mode)\n"
 		"\t-e              send error messages to console instead of stderr\n"
@@ -327,7 +329,7 @@ static BOOL js_init(void)
 		return(FALSE);
 
 	fprintf(errfp,"JavaScript: Initializing context (stack: %lu bytes)\n"
-		,JAVASCRIPT_CONTEXT_STACK);
+		,js_context_stack);
 
     if((js_cx = JS_NewContext(js_runtime, js_context_stack))==NULL)
 		return(FALSE);
@@ -445,7 +447,10 @@ int main(int argc, char **argv)
 	char*	p;
 	int		argn;
 
-	sscanf("$Revision: 1.3 $", "%*s %s", revision);
+	confp=stdout;
+	errfp=stderr;
+
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
 	p=getenv("SBBSCTRL");
 	if(p==NULL) {
