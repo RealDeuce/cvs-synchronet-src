@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.32 2004/10/13 21:19:42 deuce Exp $ */
+/* $Id: win32cio.c,v 1.33 2004/10/13 22:06:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,15 +41,6 @@
 #define VID_MODES	7
 
 const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
-
-const int	altkeys[26]={
-	 30,48,46,32
-	,18,33,34,35
-	,23,36,37,38
-	,50,49,24,25
-	,16,19,31,20
-	,22,47,17,45
-	,21,44};
 
 struct vid_mode {
 	int	mode;
@@ -180,10 +171,6 @@ int win32_keyboardio(int isgetch)
 #endif
 
 				if(input.Event.KeyEvent.dwControlKeyState & (LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED)) {
-					if(isalpha(input.Event.KeyEvent.uChar.AsciiChar)) {
-						lastch=altkeys[toupper(input.Event.KeyEvent.uChar.AsciiChar)-'A']<<8;
-						break;
-					}
 					if(input.Event.KeyEvent.wVirtualScanCode >= CIO_KEY_F(1)
 							&& input.Event.KeyEvent.wVirtualScanCode <= CIO_KEY_F(10)) {
 						/* Magic number to convert from Fx to ALT-Fx */
@@ -196,6 +183,8 @@ int win32_keyboardio(int isgetch)
 						lastch=input.Event.KeyEvent.wVirtualScanCode+6;
 						break;
 					}
+
+					lastch=input.Event.KeyEvent.wVirtualScanCode<<8;
 				}
 
 				if(input.Event.KeyEvent.uChar.AsciiChar)
