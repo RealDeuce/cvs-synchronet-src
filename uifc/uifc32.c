@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.80 2004/07/22 22:00:41 deuce Exp $ */
+/* $Id: uifc32.c,v 1.81 2004/07/26 21:35:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -963,7 +963,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			i=inkey();
 			if(i==BS)
 				i=ESC;
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 			if(i==CIO_KEY_MOUSE) {
 #else
 			if(0) {
@@ -1767,7 +1767,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		}
 #endif
 		f=inkey();
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 		if(f==CIO_KEY_MOUSE) {
 #else
 		if(0) {
@@ -1812,7 +1812,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				ch=f;
 			else {
 				ch=inkey();
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 				if(ch==CIO_KEY_MOUSE) {
 #else
 				if(0) {
@@ -2380,7 +2380,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
 			if(kbwait()) {
 				j=inkey();
-#ifdef KEY_MOUSE
+#ifdef CIO_KEY_MOUSE
 				if(j==CIO_KEY_MOUSE) {
 #else
 				if(0) {
