@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.16 2000/12/02 05:20:16 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.17 2000/12/02 05:22:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -727,6 +727,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	char	fname[128];
 	char*	p;
     bool	native=false;			// DOS program by default
+	int		i;
 		
 	if(cmdline[0]=='*') {   /* Baja module */
 		sprintf(str,"%.*s",sizeof(str)-1,cmdline+1);
