@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.71 2002/11/01 00:05:25 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.72 2002/11/01 08:50:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3742,8 +3742,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
 
 				f+=sprintf(fmsgbuf+f,"\1MSGID: %.256s\r"
-					,msg.ftn_msgid!=NULL ? msg.ftn_msgid
-						: ftn_msgid(scfg.sub[i],&msg));
+					,ftn_msgid(scfg.sub[i],&msg));
 
 				if(msg.ftn_reply!=NULL)			/* use original REPLYID */
 					f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
@@ -3757,8 +3756,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 						smb_getmsghdr(&smb[cur_smb],&orig_msg);
 						smb_unlockmsghdr(&smb[cur_smb],&orig_msg);
 						f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r"
-							,orig_msg.ftn_msgid!=NULL ? orig_msg.ftn_msgid 
-									: ftn_msgid(scfg.sub[i],&orig_msg));	
+							,ftn_msgid(scfg.sub[i],&orig_msg));	
 					}
 				}
 				if(msg.ftn_pid!=NULL)	/* use original PID */
@@ -3942,7 +3940,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.71 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.72 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
