@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.3 2002/01/17 02:25:11 rswindell Exp $ */
+/* $Id: scfg.h,v 1.4 2002/01/24 19:47:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
  ****************************************************************************/
 
 #include "uifc.h"
-#include <dos.h>
 #include <dir.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +44,8 @@
 /**********/
 /* Macros */
 /**********/
+
+#define SETHELP(where)  uifc.sethelp(where)
 
 /*************/
 /* Constants */
@@ -60,14 +61,11 @@
 /* Global Variables */
 /********************/
 extern scfg_t cfg;
-extern long freedosmem;
+extern uifcapi_t uifc;
 extern char item;
 extern char **opt;
 extern char tmp[256];
 extern char *nulstr;
-extern char **mdm_type;
-extern char **mdm_file;
-extern int	mdm_types;
 extern char *invalid_code,*num_flags;
 extern int	backup_level;
 
