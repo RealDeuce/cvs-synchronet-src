@@ -1,5 +1,5 @@
 /*
- * $Id: xpsem.c,v 1.5 2003/05/08 18:14:39 deuce Exp $
+ * $Id: xpsem.c,v 1.6 2003/05/08 18:17:49 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -256,6 +256,7 @@ xp_sem_timedwait(xp_sem_t *sem, const struct timespec *abs_timeout)
 		if(retval)  {
 			errno=retval;
 			retval=-1;
+			break;
 		}
 	}
 	if(retval==0)
