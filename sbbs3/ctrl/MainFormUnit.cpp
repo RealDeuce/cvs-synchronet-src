@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.137 2004/10/21 03:29:23 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.140 2004/11/08 09:32:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,7 @@
 #include "TelnetCfgDlgUnit.h"
 #include "MailCfgDlgUnit.h"
 #include "FtpCfgDlgUnit.h"
+#include "WebCfgDlgUnit.h"
 #include "ServicesCfgDlgUnit.h"
 #include "AboutBoxFormUnit.h"
 #include "CodeInputFormUnit.h"
@@ -1346,9 +1347,9 @@ void __fastcall TMainForm::WebConfigureExecute(TObject *Sender)
     if(inside) return;
     inside=true;
 
-	Application->CreateForm(__classid(TFtpCfgDlg), &FtpCfgDlg);
-	FtpCfgDlg->ShowModal();
-    delete FtpCfgDlg;
+	Application->CreateForm(__classid(TWebCfgDlg), &WebCfgDlg);
+	WebCfgDlg->ShowModal();
+    delete WebCfgDlg;
 
     inside=false;
 }
@@ -2753,7 +2754,7 @@ void __fastcall TMainForm::CtrlMenuItemEditClick(TObject *Sender)
 {
 	char filename[MAX_PATH+1];
 
-    sprintf(filename,"%s%s"
+    iniFileName(filename,sizeof(filename)
     	,MainForm->cfg.ctrl_dir
         ,((TMenuItem*)Sender)->Hint.c_str());
     EditFile(filename,((TMenuItem*)Sender)->Caption);
@@ -2974,6 +2975,7 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->SemFreqUpDown->Position=global.sem_chk_freq;
     PropertiesDlg->TrayIconCheckBox->Checked=MinimizeToSysTray;
     PropertiesDlg->UndockableCheckBox->Checked=UndockableForms;
+    PropertiesDlg->FileAssociationsCheckBox->Checked=UseFileAssociations;
     PropertiesDlg->PasswordEdit->Text=Password;
     PropertiesDlg->JS_MaxBytesEdit->Text=IntToStr(global.js.max_bytes);
     PropertiesDlg->JS_ContextStackEdit->Text=IntToStr(global.js.cx_stack);
@@ -2997,6 +2999,7 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         global.sem_chk_freq=PropertiesDlg->SemFreqUpDown->Position;
         MinimizeToSysTray=PropertiesDlg->TrayIconCheckBox->Checked;
         UndockableForms=PropertiesDlg->UndockableCheckBox->Checked;
+        UseFileAssociations=PropertiesDlg->FileAssociationsCheckBox->Checked;
         global.js.max_bytes
         	=PropertiesDlg->JS_MaxBytesEdit->Text.ToIntDef(JAVASCRIPT_MAX_BYTES);
         global.js.cx_stack
