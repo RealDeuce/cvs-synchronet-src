@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.7 2001/07/17 03:24:39 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.8 2001/10/24 04:34:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -452,7 +452,7 @@ js_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	i--;
 
 	if(i<0 || i>=TOTAL_TEXT)
-		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, "-Invalid Text Index-"));
+		*rval = *rval = JSVAL_NULL;
 	else
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sbbs->text[i]));
 
