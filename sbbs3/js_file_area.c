@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.8 2001/12/20 13:05:44 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.9 2001/12/20 13:19:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,8 +137,48 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if(!JS_SetProperty(cx, dirobj, "description", &val))
 				return(NULL);
 
+			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->dir[d]->path));
+			if(!JS_SetProperty(cx, dirobj, "path", &val))
+				return(NULL);
+
+			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->dir[d]->exts));
+			if(!JS_SetProperty(cx, dirobj, "extensions", &val))
+				return(NULL);
+
+			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->dir[d]->upload_sem));
+			if(!JS_SetProperty(cx, dirobj, "upload_sem", &val))
+				return(NULL);
+
+			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->dir[d]->data_dir));
+			if(!JS_SetProperty(cx, dirobj, "data_dir", &val))
+				return(NULL);
+
 			val=INT_TO_JSVAL(cfg->dir[d]->misc);
 			if(!JS_SetProperty(cx, dirobj, "settings", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->dir[d]->seqdev);
+			if(!JS_SetProperty(cx, dirobj, "seqdev", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->dir[d]->sort);
+			if(!JS_SetProperty(cx, dirobj, "sort", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->dir[d]->maxfiles);
+			if(!JS_SetProperty(cx, dirobj, "max_files", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->dir[d]->maxage);
+			if(!JS_SetProperty(cx, dirobj, "max_age", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->dir[d]->up_pct);
+			if(!JS_SetProperty(cx, dirobj, "upload_credit_pct", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->dir[d]->dn_pct);
+			if(!JS_SetProperty(cx, dirobj, "download_credit_pct", &val))
 				return(NULL);
 
 			sprintf(vpath,"/%s/%s/%s"
