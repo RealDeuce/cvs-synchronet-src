@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.5 2000/11/29 05:43:25 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.6 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -405,6 +405,7 @@ void sbbs_t::qwk_sec()
 {
 	char	str[256],tmp2[256],ch,bi=0
 			,*AttemptedToDownloadQWKpacket="Attempted to download QWK packet";
+	char 	tmp[512];
 	int 	s;
 	uint	i,j,k;
 	ulong	msgcnt;
@@ -809,6 +810,7 @@ void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 void sbbs_t::qwkcfgline(char *buf,uint subnum)
 {
 	char	str[128];
+	char 	tmp[512];
 	uint 	x,y;
 	long	l;
 	ulong	qwk=useron.qwk;

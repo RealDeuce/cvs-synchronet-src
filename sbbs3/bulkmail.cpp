@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.3 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.4 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@ void sbbs_t::bulkmail(uchar *ar)
 {
 	char	str[256],str2[256],msgpath[256],title[LEN_TITLE+1]
 			,buf[SDT_BLOCK_LEN],found=0;
+	char 	tmp[512];
 	ushort	xlat=XLAT_NONE,msgattr=0;
 	int 	i,j,x,file;
 	long	msgs=0;
@@ -191,9 +192,10 @@ void sbbs_t::bulkmail(uchar *ar)
 int sbbs_t::bulkmailhdr(uint usernum, smbmsg_t *msg, ushort msgattr, ulong offset
     , ulong length, char *title)
 {
-    char str[256];
-    int i,j;
-    node_t node;
+    char	str[256];
+	char 	tmp[512];
+    int		i,j;
+    node_t	node;
 
 	memset(msg,0,sizeof(smbmsg_t));
 	memcpy(msg->hdr.id,"SHD\x1a",4);

@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.8 2000/12/02 05:18:59 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.9 2000/12/11 23:21:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,7 +247,8 @@ time_t juliantounix(ulong j)
 void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 					,ulong misc)
 {
-	char str[1024],tmp2[128],c,*p;
+	char	str[1024],tmp2[128],c,*p;
+	char 	tmp[512];
 	int		i,file;
 	ushort	w;
 	long	l;
@@ -1133,11 +1134,12 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 /****************************************************************************/
 void sbbs_t::moduserdat(uint xtrnnum)
 {
-	char str[256],path[256],c,startup[128];
-	uint i;
-	long mod;
-    int file;
-    FILE *stream;
+	char	str[256],path[256],c,startup[128];
+	char 	tmp[512];
+	uint	i;
+	long	mod;
+    int		file;
+    FILE *	stream;
 
 	sprintf(startup,"%s/",cfg.xtrn[xtrnnum]->path);
 	if(cfg.xtrn[xtrnnum]->type==XTRN_RBBS) {

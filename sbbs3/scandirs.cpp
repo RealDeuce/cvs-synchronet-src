@@ -2,7 +2,7 @@
 
 /* Synchronet file database scanning routines */
 
-/* $Id: scandirs.cpp,v 1.1 2000/10/10 11:24:44 rswindell Exp $ */
+/* $Id: scandirs.cpp,v 1.2 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,9 +42,10 @@
 /****************************************************************************/
 void sbbs_t::scandirs(long mode)
 {
-	char ch,str[256];
-	int s;
-	uint i,k;
+	char	ch,str[256];
+	char 	tmp[512];
+	int		s;
+	uint	i,k;
 
 	if(!usrlibs) return;
 	mnemonics(text[DirLibOrAll]);
@@ -108,9 +109,10 @@ void sbbs_t::scandirs(long mode)
 /****************************************************************************/
 void sbbs_t::scanalldirs(long mode)
 {
-	char str[256];
-	int s;
-	uint i,j,k,d;
+	char	str[256];
+	char 	tmp[512];
+	int		s;
+	uint	i,j,k,d;
 
 	if(!usrlibs) return;
 	k=0;

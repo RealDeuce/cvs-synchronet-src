@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.9 2000/11/29 05:43:25 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.10 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@ extern "C" void client_on(SOCKET sock, client_t* client);
 bool sbbs_t::logon()
 {
 	char	str[256],c;
+	char 	tmp[512];
 	int 	file;
 	uint	i,j,mailw;
 	ulong	totallogons;

@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.3 2000/12/11 23:02:38 rswindell Exp $ */
+/* $Id: text_sec.cpp,v 1.4 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@ int sbbs_t::text_sec()
 {
 	char	str[256],usemenu
 			,*file[MAX_TXTFILES],addpath[83],addstr[83],*buf,ch;
+	char 	tmp[512];
 	long	i,j,usrsec[MAX_TXTSECS],usrsecs,cursec;
     long    l,length;
     FILE    *stream;

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.7 2000/11/29 05:43:26 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 {
 	char	str[256],fname[128];
+	char 	tmp[512];
 	uchar	block[128];
 	int 	k,file;
 	uint	i,j,n,lastsub=INVALID_SUB;

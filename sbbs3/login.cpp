@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.1 2000/10/10 11:24:38 rswindell Exp $ */
+/* $Id: login.cpp,v 1.2 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,8 @@
 
 int sbbs_t::login(char *str, char *pw)
 {
-	long useron_misc=useron.misc;
+	char 	tmp[512];
+	long	useron_misc=useron.misc;
 
 	useron.number=0;
 	if(cfg.node_dollars_per_call && noyes(text[AreYouSureQ]))

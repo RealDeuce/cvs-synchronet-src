@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.5 2000/11/07 21:50:28 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.6 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -788,6 +788,7 @@ void sbbs_t::skipto(csi_t *csi, uchar inst)
 int sbbs_t::exec(csi_t *csi)
 {
 	char	str[256],*path;
+	char 	tmp[512];
 	uchar	buf[1025],ch;
 	int 	i,j,file;
 	long	l;

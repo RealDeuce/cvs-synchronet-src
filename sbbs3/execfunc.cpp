@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.10 2000/11/08 23:31:41 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.11 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@ extern RingBuf* node_inbuf[];
 int sbbs_t::exec_function(csi_t *csi)
 {
 	char	str[256],tmp2[128],ch;
+	char 	tmp[512];
 	uchar*	p;
 	char	ansi_seq[32];
 	int		ansi_len;

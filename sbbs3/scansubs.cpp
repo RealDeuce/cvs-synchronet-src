@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.3 2000/11/16 00:31:28 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.4 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,8 +42,9 @@
 /****************************************************************************/
 void sbbs_t::scansubs(long mode)
 {
-	char ch,str[256];
-	uint i=0,found=0;
+	char	ch,str[256];
+	char 	tmp[512];
+	uint	i=0,found=0;
 
 	mnemonics(text[SubGroupOrAll]);
 	ch=(char)getkeys("SGA\r",0);
@@ -108,8 +109,9 @@ void sbbs_t::scansubs(long mode)
 /****************************************************************************/
 void sbbs_t::scanallsubs(long mode)
 {
-	char str[256];
-	uint i,j,found=0;
+	char	str[256];
+	char 	tmp[512];
+	uint	i,j,found=0;
 
 	if(/* action==NODE_MAIN && */ mode&(SCAN_FIND|SCAN_TOYOU)) {
 		i=yesno(text[DisplayTitlesOnlyQ]);

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.7 2000/11/29 05:43:26 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 {
 	char	str[256],fname[128]
 			,*AttemptedToUploadREPpacket="Attempted to upload REP packet";
+	char 	tmp[512];
 	char	block[128];
 	int 	file;
 	uint	i,j,k,lastsub=INVALID_SUB;

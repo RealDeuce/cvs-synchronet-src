@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.5 2000/11/14 02:16:57 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.6 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -330,8 +330,9 @@ int sbbs_t::whos_online(bool listself)
 /****************************************************************************/
 void sbbs_t::printnodedat(uint number, node_t* node)
 {
-    uint i;
-    char hour,mer[3];
+    uint	i;
+    char	hour,mer[3];
+	char 	tmp[512];
 
 	attr(cfg.color[clr_nodenum]);
 	bprintf("%3d  ",number);

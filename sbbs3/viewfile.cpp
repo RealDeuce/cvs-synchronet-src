@@ -2,7 +2,7 @@
 
 /* Synchronet file contents display routines */
 
-/* $Id: viewfile.cpp,v 1.1 2000/10/10 11:25:44 rswindell Exp $ */
+/* $Id: viewfile.cpp,v 1.2 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,8 @@
 /****************************************************************************/
 int sbbs_t::viewfile(file_t* f, int ext)
 {
-	char ch,str[256];
+	char	ch,str[256];
+	char 	tmp[512];
 
 	curdirnum=f->dir;	/* for ARS */
 	while(online) {
@@ -82,8 +83,9 @@ int sbbs_t::viewfile(file_t* f, int ext)
 /*****************************************************************************/
 void sbbs_t::viewfiles(uint dirnum, char *fspec)
 {
-    char viewcmd[256];
-    int i;
+    char	viewcmd[256];
+	char 	tmp[512];
+    int		i;
 
 	curdirnum=dirnum;	/* for ARS */
 	sprintf(viewcmd,"%s%s",cfg.dir[dirnum]->path,fspec);
@@ -108,8 +110,9 @@ void sbbs_t::viewfiles(uint dirnum, char *fspec)
 /****************************************************************************/
 void sbbs_t::viewfilecontents(file_t* f)
 {
-	char str[128],cmd[128];
-	int i;
+	char	str[128],cmd[128];
+	char 	tmp[512];
+	int		i;
 
 	if(f->size<=0L) {
 		bputs(text[FileNotThere]);

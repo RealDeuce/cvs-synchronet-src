@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.1 2000/10/10 11:26:28 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.2 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,7 @@
 char sbbs_t::inkey(long mode)
 {
 	char	str[512];
+	char 	tmp[512];
 	uchar	ch=0;
 	uint	i,j;
 

@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.7 2000/11/29 06:25:34 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,13 +43,14 @@
 /*****************************************************************************/
 void sbbs_t::temp_xfer()
 {
-    char str[256],tmp2[256],done=0,ch;
-    uint i,dirnum=cfg.total_dirs,j,files;
-    ulong bytes;
-	ulong space;
-    time_t start,end,t;
-    file_t f;
-	glob_t g;
+    char	str[256],tmp2[256],done=0,ch;
+	char 	tmp[512];
+    uint	i,dirnum=cfg.total_dirs,j,files;
+    ulong	bytes;
+	ulong	space;
+    time_t	start,end,t;
+    file_t	f;
+	glob_t	g;
 	struct	tm * tm;
 
 	if(!usrlibs)

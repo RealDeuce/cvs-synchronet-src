@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.6 2000/12/04 01:30:31 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.7 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,7 @@
 bool sbbs_t::answer()
 {
 	char	str[256],str2[256],c;
+	char 	tmp[512];
 	int		i,l,in;
 	struct tm * tm;
 	struct in_addr addr;

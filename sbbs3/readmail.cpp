@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.4 2000/11/04 12:03:51 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.5 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 {
 	char	str[256],str2[256],str3[256],done=0,domsg=1
 			,*p,*tp,*sp,ch;
+	char 	tmp[512];
 	int		i,j;
 	int		mismatches=0,act;
 	ulong 	msgs,curmsg;

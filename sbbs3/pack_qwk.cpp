@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.7 2000/11/29 06:25:34 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 {
 	char	str[256],tmp2[256],ch,*p;
+	char 	tmp[512];
 	char*	fname;
 	int 	file,mode;
 	uint	i,j,k,conf;

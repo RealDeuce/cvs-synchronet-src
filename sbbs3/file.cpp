@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.4 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: file.cpp,v 1.5 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,8 +73,9 @@ void sbbs_t::getextdesc(uint dirnum, ulong datoffset, char *ext)
 /****************************************************************************/
 void sbbs_t::fileinfo(file_t* f)
 {
-	char fname[13],ext[513];
-	uint i,j;
+	char	fname[13],ext[513];
+	char 	tmp[512];
+	uint	i,j;
 
 	for(i=0;i<usrlibs;i++)
 		if(usrlib[i]==cfg.dir[f->dir]->lib)

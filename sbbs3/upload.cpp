@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.6 2000/11/07 21:50:28 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.7 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,6 +252,7 @@ void sbbs_t::upload(uint dirnum)
 {
 	char	str[256],src[256]={""},descbeg[25]={""},descend[25]={""},path[256]
 				,fname[13],keys[256],ch,*p;
+	char 	tmp[512];
     time_t	start,end;
     uint	i,j,k,destuser[MAX_USERXFER],destusers=0;
 	int		file;

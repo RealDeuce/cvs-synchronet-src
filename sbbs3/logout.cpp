@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.6 2000/11/29 05:43:25 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.7 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 void sbbs_t::logout()
 {
 	char	str[256];
+	char 	tmp[512];
 	int 	i,j;
 	ushort	ttoday;
 	node_t	node;

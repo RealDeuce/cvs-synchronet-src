@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.4 2000/11/14 01:50:17 rswindell Exp $ */
+/* $Id: data.cpp,v 1.5 2000/12/11 23:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,6 +173,7 @@ uint sbbs_t::gettotalfiles(uint dirnum)
 void sbbs_t::gettimeleft(void)
 {
     char    str[128];
+	char 	tmp[512];
     int     i;
     time_t  eventtime=0;
 	time_t	thisevent;
