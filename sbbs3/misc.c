@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.10 2001/05/21 23:03:11 rswindell Exp $ */
+/* $Id: misc.c,v 1.11 2001/06/15 03:39:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ int bstrlen(char *str)
 	int i=0;
 
 	while(*str) {
-		if(*str==1) /* ctrl-a */
+		if(*str==CTRL_A)
 			str++;
 		else
 			i++;
@@ -124,7 +124,7 @@ void strip_ctrl(char *str)
 
 	k=strlen(str);
 	for(i=j=0;i<k;i++)
-		if(str[i]==1)  /* Ctrl-a */
+		if(str[i]==CTRL_A)
 			i++;
 		else if(j && str[i]<=SP && tmp[j-1]==SP)
 			continue;
@@ -178,9 +178,6 @@ void truncsp(char *str)
 {
 	uint c;
 
-#if 0  /* no longer terminates at first tab OCT-09-2000 rswindell */
-	str[strcspn(str,"\t")]=0;
-#endif
 	c=strlen(str);
 	while(c && (uchar)str[c-1]<=SP) c--;
 	str[c]=0;

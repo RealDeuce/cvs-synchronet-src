@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.3 2001/04/15 16:47:26 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.4 2001/06/15 03:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		if((uchar)ch==0xE3)					/* funky char */
 			ch='*';
 
-		if(ch==1) {  /* ctrl-a */
+		if(ch==CTRL_A) {
 			ch=buf[++l];
 			if(!ch)
 				break;
