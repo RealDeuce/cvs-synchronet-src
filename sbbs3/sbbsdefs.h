@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.72 2002/08/16 23:45:05 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.73 2002/08/26 21:50:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,6 +264,7 @@
 #define SUB_HYPER		(1L<<27)	/* Hyper allocation */
 #define SUB_EDIT		(1L<<28)	/* Users can edit message text after posting */
 #define SUB_EDITLAST	(1L<<29)	/* Users can edit last message only */
+#define SUB_NOUSERSIG	(1L<<30)	/* Suppress user signatures */
 #define SUB_HDRMOD		(1L<<31)	/* Modified sub-board header info (SCFG) */
 
                                     /* Bit values for dir[x].misc */
