@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.3 2003/03/28 18:21:39 deuce Exp $ */
+/* $Id: base64.c,v 1.4 2003/03/28 18:45:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,7 @@ char * b64_encode(char *target, const char *source, size_t tlen)  {
 	
 	read=source;
 	if(source==target)  {
-		tmpbuf=malloc(tlen);
+		tmpbuf=(char *)malloc(tlen);
 		if(tmpbuf==NULL)
 			return(NULL);
 		write=tmpbuf;
