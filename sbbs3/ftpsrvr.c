@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.181 2002/08/09 10:19:34 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.182 2002/08/13 07:55:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2348,7 +2348,7 @@ static void ctrl_thread(void* arg)
 	client.user="<unknown>";
 	client_on(sock,&client,FALSE /* update */);
 
-	sockprintf(sock,"220-%s (%s)",scfg.sys_name, scfg.sys_inetaddr);
+	sockprintf(sock,"220-%s (%s)",scfg.sys_name, startup->host_name);
 	sockprintf(sock," Synchronet FTP Server %s/%s Ready"
 		,revision,PLATFORM_DESC);
 	sprintf(str,"%sftplogin.txt",scfg.text_dir);
@@ -4267,7 +4267,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.181 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.182 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
