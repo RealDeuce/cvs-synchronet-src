@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.60 2003/05/17 03:05:09 rswindell Exp $ */
+/* $Id: smblib.c,v 1.61 2003/05/22 19:50:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1250,7 +1250,7 @@ int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 		sprintf(smb->last_error,"invalid file length: %ld", length);
 		return(SMB_ERR_FILE_LEN); 
 	}
-	if((buf=(ulong*)MALLOC(smb->status.max_crcs*4))==NULL) {
+	if((buf=(ulong*)MALLOC(length))==NULL) {
 		close(file);
 		sprintf(smb->last_error
 			,"malloc failure of %ld bytes"
