@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.12 2000/10/30 08:55:50 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.13 2000/10/30 09:47:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,7 @@ extern "C" {
 	#define mswait(x)			usleep(x*1000)
 	#define _mkdir(dir)			mkdir(dir,0777)
 	#define _rmdir(dir)			rmdir(dir)
+	#define tell(fd)			lseek(fd,0,SEEK_CUR)
 
 	DLLEXPORT void	DLLCALL sbbs_beep(int freq, int dur);
 	DLLEXPORT char*	DLLCALL strupr(char* str);
