@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.121 2004/02/10 21:40:07 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.123 2004/03/01 09:39:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1360,7 +1360,7 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 	p=(char *)inbuf;
 
 	while(*p==1) {				/* Skip kludge lines 11/05/95 */
-		FIND_CHAR(p,'\n');
+		FIND_CHAR(p,'\r');
 		if(*p)
 			p++; }				/* Skip CR */
 
@@ -2013,7 +2013,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 	}
 
 	fseek(smb[cur_smb].sid_fp,0L,SEEK_SET);
-	for(l=0;l<total && !feof(smb[cur_smb].sid_fp); l++) {
+	for(l=0;l<total && !feof(smb[cur_smb].sid_fp); ) {
 		if(smb_fread(&smb[cur_smb], &idx,sizeof(idx),smb[cur_smb].sid_fp) != sizeof(idx))
 			break;
 
@@ -2026,7 +2026,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if(idx.attr&MSG_MODERATED && !(idx.attr&MSG_VALIDATED))
 			break;
 
-		(*post)[l]=idx;
+		(*post)[l++]=idx;
 	}
 	smb_unlocksmbhdr(&smb[cur_smb]);
 	if(!l)
@@ -4080,7 +4080,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.121 $", "%*s %s", revision);
+	sscanf("$Revision: 1.123 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

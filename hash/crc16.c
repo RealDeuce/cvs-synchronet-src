@@ -2,7 +2,7 @@
 
 /* CCITT 16-bit CRC table and calculation function */
 
-/* $Id: crc16.c,v 1.1 2003/04/01 09:20:28 rswindell Exp $ */
+/* $Id: crc16.c,v 1.3 2004/02/27 02:30:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@ unsigned short crc16(char* data, unsigned long len)
 	unsigned short crc = 0;
 	unsigned long l;
 
-	if(len==0)
+	if(len==0 && data!=NULL)
 		len=strlen(data);
 	for(l=0;l<len;l++)
 		crc = ucrc16(data[l],crc);
