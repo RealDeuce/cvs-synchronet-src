@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.9 2001/04/11 03:38:50 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.10 2001/08/01 23:22:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -834,7 +834,9 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 	struct	tm * tm;
 
 	sprintf(str,"%sxfer.ixt",cfg.data_dir);
-	if(mode==FI_USERXFER && flength(str)>0L) {
+	if(mode==FI_USERXFER) {
+		if(flength(str)<1L)
+			return(0);
 		if((file=nopen(str,O_RDONLY))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 			return(0); }
