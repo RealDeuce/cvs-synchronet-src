@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.6 2001/08/02 04:14:13 rswindell Exp $ */
+/* $Id: js_user.c,v 1.7 2001/08/03 16:14:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,10 +283,13 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			val=user.freecdt;
 			break;
 		case USER_PROP_XEDIT:
-			val=user.xedit;
+			if(user.xedit>0 && user.xedit<=p->cfg->total_xedits)
+				s=p->cfg->xedit[user.xedit-1]->code;
+			else
+				s=""; /* internal editor */
 			break;
 		case USER_PROP_SHELL:
-			val=user.shell;
+			s=p->cfg->shell[user.shell]->code;
 			break;
 		case USER_PROP_QWK:
 			val=user.qwk;
