@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.5 2002/08/05 23:19:19 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.6 2002/08/24 22:27:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,8 @@
 #if defined(_WIN32)
 	#define WIN32_LEAN_AND_MEAN	/* Don't bring in excess baggage */
 	#include <windows.h>
+#elif defined(__OS2__)
+	#include <os2.h>
 #endif
 
 #include <sys/types.h>
