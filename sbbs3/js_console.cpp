@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.57 2004/12/17 04:42:55 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.56 2004/11/09 02:46:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -832,8 +832,8 @@ js_uselect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uintN		i;
 	int32		num=0;
-	char*		title=NULL;
-	char*		item=NULL;
+	char*		title="";
+	char*		item="";
 	char*		ar_str;
 	uchar*		ar=NULL;
 	sbbs_t*		sbbs;
