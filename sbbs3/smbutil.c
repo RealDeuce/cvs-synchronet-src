@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.55 2003/10/28 01:26:56 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.56 2003/11/20 08:58:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1227,7 +1227,7 @@ void packmsgs(ulong packable)
 	}
 
 	if((i=smb_open(&smb))!=0) {
-		fprintf(stderr,"\n\7!Error %d reopening %s\n",i,smb.file);
+		fprintf(stderr,"\n\7!Error %d (%s) reopening %s\n",i,smb.last_error,smb.file);
 		return; 
 	}
 
@@ -1406,7 +1406,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.55 $", "%*s %s", revision);
+	sscanf("$Revision: 1.56 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
