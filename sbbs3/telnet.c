@@ -2,7 +2,7 @@
 
 /* Synchronet telnet command/option functions */
 
-/* $Id: telnet.c,v 1.2 2001/09/19 00:05:32 rswindell Exp $ */
+/* $Id: telnet.c,v 1.3 2004/04/08 05:37:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,17 +79,17 @@ char* telnet_option_descriptions[]={
 	,"Remote Controlled Trans and Echo"     
 	,"Output Line Width"                   
 	,"Output Page Size"                     
-	,"Output Carriage-Return Disposition"   
+	,"Output Carriage-Return Disposition"   /* 10 */
 	,"Output Horizontal Tab Stops"          
 	,"Output Horizontal Tab Disposition"    
 	,"Output Formfeed Disposition"          
-	,"Output Vertical Tabstops"             
+	,"Output Vertical Tab Stops"             
 	,"Output Vertical Tab Disposition"      
 	,"Output Linefeed Disposition"          
 	,"Extended ASCII"                       
 	,"Logout"                               
-	,"Byte Macro"
-	,"Data Entry Terminal"
+	,"Byte Macro"							
+	,"Data Entry Terminal"					/* 20 */
 	,"SUPDUP"
 	,"SUPDUP Output"
 	,"Send Location"
@@ -98,8 +98,8 @@ char* telnet_option_descriptions[]={
 	,"TACACS User Identification"
 	,"Output Marking"
 	,"Terminal Location Number"
-	,"Telnet 3270 Regime"
-	,"X.3 PAD"
+	,"Telnet 3270 Regime"					
+	,"X.3 PAD"								/* 30 */
 	,"Negotiate About Window Size"
 	,"Terminal Speed"
 	,"Remote Flow Control"
@@ -108,8 +108,8 @@ char* telnet_option_descriptions[]={
 	,"Environment Option"
 	,"Authentication Option"
 	,"Encryption Option"
-	,"New Environment Option"
-	,"TN3270E"
+	,"New Environment Option"				
+	,"TN3270E"								/* 40 */
 };
 
 const char* DLLCALL telnet_opt_desc(uchar opt)
