@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.22 2003/09/26 07:36:00 rswindell Exp $ */
+/* $Id: services.h,v 1.23 2003/10/09 01:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,6 +80,7 @@ typedef struct {
 	/* Misc */
     char	host_name[128];
 	BOOL	recycle_now;
+	sem_t	recycle_sem;
 
 } services_startup_t;
 

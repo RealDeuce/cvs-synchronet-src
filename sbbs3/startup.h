@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.42 2003/09/26 07:36:00 rswindell Exp $ */
+/* $Id: startup.h,v 1.43 2003/10/09 01:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,6 +96,7 @@ typedef struct {
 	char	xtrn_term_dumb[32];		/* external dumb terminal type (e.g. "dumb") */
 	char	host_name[128];
 	BOOL	recycle_now;
+	sem_t	recycle_sem;
 
 } bbs_startup_t;
 

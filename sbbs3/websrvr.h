@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.13 2003/09/26 07:36:00 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.14 2003/10/09 01:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,8 @@ typedef struct {
 	/* Misc */
     char	host_name[128];
 	BOOL	recycle_now;
+	sem_t	recycle_sem;
+
 } web_startup_t;
 
 #define WEB_OPT_DEBUG_RX			(1<<0)	/* Log all received requests		*/
