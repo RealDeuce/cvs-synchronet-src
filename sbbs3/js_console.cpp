@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.35 2003/03/06 10:19:42 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.36 2003/03/06 10:24:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -295,7 +295,7 @@ js_getkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_handle_ctrlkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=0;
+	int32		mode=0;
 	sbbs_t*		sbbs;
     JSString*	js_str;
 
