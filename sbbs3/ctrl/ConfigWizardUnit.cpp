@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.8 2002/12/12 03:14:13 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.9 2003/01/02 11:33:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,6 +157,7 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
         sprintf(str,"%s /c ipconfig /all > %sipconfig.txt"
             ,getenv("COMSPEC"),scfg.ctrl_dir);
         WinExec(str,SW_HIDE);   /* there's got to be a better way! */
+        Sleep(1500);	/* give ipconfig time to run */
         sprintf(str,"%sipconfig.txt",scfg.ctrl_dir);
         FILE*   fp=fopen(str,"r");
         char*   p;
