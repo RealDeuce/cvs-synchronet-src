@@ -2,7 +2,7 @@
 
 /* 32-bit CRC table  */
 
-/* $Id: crc32.c,v 1.1 2000/11/11 01:19:25 rswindell Exp $ */
+/* $Id: crc32.c,v 1.2 2002/04/26 00:15:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,9 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#include <string.h>	/* strlen */
+#include "crc32.h"
 
 long crc32tbl[]={	/* CRC polynomial 0xedb88320 */
 0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -69,6 +72,22 @@ long crc32tbl[]={	/* CRC polynomial 0xedb88320 */
 0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
+
+/****************************************************************************/
+/* Returns CRC-32 of sequence of bytes (binary or ASCIIZ)					*/
+/* Pass len of 0 to auto-determine ASCIIZ string length						*/
+/* or non-zero for arbitrary binary data									*/
+/****************************************************************************/
+unsigned long crc32(char *buf, unsigned long len)
+{
+	unsigned long l,crc=0xffffffff;
+
+	if(len==0) 
+		len=strlen(buf);
+	for(l=0;l<len;l++)
+		crc=ucrc32(buf[l],crc);
+	return(~crc);
+}
 
 
 

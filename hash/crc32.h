@@ -2,7 +2,7 @@
 
 /* 32-bit CRC table and calculation macro */
 
-/* $Id: crc32.h,v 1.2 2000/11/11 01:19:25 rswindell Exp $ */
+/* $Id: crc32.h,v 1.3 2002/04/26 00:15:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,13 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#ifndef _CRC32_H_
+#define _CRC32_H_
+
 extern long crc32tbl[];
 
 #define ucrc32(ch,crc) (crc32tbl[(crc^ch)&0xff]^(crc>>8))
 
+unsigned long crc32(char *buf, unsigned long len);
 
+#endif
