@@ -1,20 +1,21 @@
-/* $Id: ansi_cio.h,v 1.4 2004/07/26 23:08:02 rswindell Exp $ */
+/* $Id: ansi_cio.h,v 1.1 2004/07/07 07:29:12 deuce Exp $ */
 
-#include "ciolib.h"
+#ifdef __unix__
+#include "conio.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-int ansi_puttext(int sx, int sy, int ex, int ey, void *fill);
-int ansi_gettext(int sx, int sy, int ex, int ey, void *fill);
-void ansi_textattr(int);
+int ansi_puttext(int sx, int sy, int ex, int ey, unsigned char *fill);
+int ansi_gettext(int sx, int sy, int ex, int ey, unsigned char *fill);
+void ansi_textattr(unsigned char attr);
 int ansi_kbhit(void);
 void ansi_delay(long msec);
 int ansi_wherey(void);
 int ansi_wherex(void);
-int ansi_putch(int ch);
+int ansi_putch(unsigned char ch);
 void ansi_gotoxy(int x, int y);
-int ansi_initciolib(long inmode);
+void ansi_initciowrap(long inmode);
 void ansi_gettextinfo(struct text_info *info);
 void ansi_setcursortype(int type);
 int ansi_getch(void);
@@ -25,3 +26,4 @@ void ansi_textmode(int mode);
 }
 #endif
 
+#endif
