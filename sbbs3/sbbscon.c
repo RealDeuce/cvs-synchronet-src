@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.65 2002/04/23 07:02:55 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.66 2002/04/23 07:12:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -617,6 +617,7 @@ int main(int argc, char** argv)
 {
 	int		i;
 	char	ch;
+	char*	p;
 	char*	arg;
 	char*	ctrl_dir;
 	BOOL	quit=FALSE;
