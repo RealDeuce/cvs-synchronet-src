@@ -291,7 +291,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name xpdev_mt
+    Project_Dep_Name xpdev
     End Project Dependency
 }}}
 
