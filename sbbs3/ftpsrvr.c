@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.259 2003/10/26 22:56:49 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.260 2003/11/05 11:14:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4372,12 +4372,14 @@ static void ctrl_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d Done waiting for transfer to complete",sock);
 	}
 
-	/* Update User Statistics */
-	if(user.number) 
+	if(user.number) {
+		/* Update User Statistics */
 		logoutuserdat(&scfg, &user, time(NULL), logintime);
-
-	if(user.number)
+		/* Remove QWK-pack semaphore file (if left behind) */
+		sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
+		remove(str);
 		lprintf(LOG_INFO,"%04d %s logged off",sock,user.alias);
+	}
 
 #ifdef _WIN32
 	if(startup->hangup_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
@@ -4458,7 +4460,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.259 $", "%*s %s", revision);
+	sscanf("$Revision: 1.260 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
