@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.5 2000/10/31 14:36:11 cmartin Exp $ */
+/* $Id: smbwrap.c,v 1.6 2000/11/02 12:27:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,11 +49,9 @@
 #include <sys/types.h>	/* _dev_t */
 #include <sys/stat.h>	/* struct stat */
 
-
 /* SMB-specific */
 #include "smblib.h"		/* SMBCALL */
 #include "smbwrap.h"	/* Verify prototypes */
-#include "gen_defs.h"   /* SH_DENYNO */
 
 #ifdef _WIN32
 #define stat(f,s)	_stat(f,s)
