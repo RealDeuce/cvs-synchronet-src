@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.331 2004/08/23 23:34:46 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.332 2004/09/02 03:43:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3462,7 +3462,9 @@ static void sendmail_thread(void* arg)
 				break;
 			if(msg.idx.attr&MSG_DELETE)	/* Marked for deletion */
 				continue;
-			if(msg.idx.to)	/* Local */
+			if(msg.idx.to)			/* Local */
+				continue;
+			if(msg.idx.number==0)	/* Invalid message number */
 				continue;
 			msg.offset=offset;
 
@@ -3846,7 +3848,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.331 $", "%*s %s", revision);
+	sscanf("$Revision: 1.332 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
