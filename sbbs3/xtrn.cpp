@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.152 2003/10/24 21:48:45 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.153 2003/11/02 23:08:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,8 @@
 	#include <util.h>
 #elif defined(__linux__)
 	#include <pty.h>
+#elif defined(__DARWIN__)
+	#include <util.h>
 #elif defined(__QNX__)
 #if 0
 	#include <unix.h>
