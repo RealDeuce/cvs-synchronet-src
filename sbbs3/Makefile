@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.40 2003/09/09 02:31:42 rswindell Exp $
+# $Id: Makefile,v 1.41 2003/09/16 04:03:24 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -108,7 +108,7 @@ $(SBBS): $(OBJS)
 		import32.lib cw32mt.lib ws2_32.lib
 
 # Mail Server DLL Link Rule
-$(MAILSRVR): mailsrvr.c mxlookup.c mime.c base64.c md5.c crc32.c $(SBBSLIB)
+$(MAILSRVR): mailsrvr.c mxlookup.c mime.c base64.c md5.c crc32.c ini_file.c $(SBBSLIB)
     @echo Creating $@
 	$(QUIET)$(CC) $(CFLAGS) -WD -WM -lGi -n$(LIBODIR) \
 		-DMAILSRVR_EXPORTS -DSMB_IMPORTS -DWRAPPER_IMPORTS $** $(LIBS)

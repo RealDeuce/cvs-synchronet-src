@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.128 2003/09/09 02:31:42 rswindell Exp $
+# $Id: GNUmakefile,v 1.129 2003/09/16 04:03:23 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -272,7 +272,7 @@ CON_OBJS	= $(LIBODIR)/sbbscon.o $(LIBODIR)/conwrap.o \
 CON_LDFLAGS	= -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 FTP_OBJS	= $(LIBODIR)/ftpsrvr.o
 MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o \
- 		  $(LIBODIR)/mime.o $(LIBODIR)/base64.o
+ 		  $(LIBODIR)/mime.o $(LIBODIR)/base64.o $(LIBODIR)/ini_file.o
 WEB_OBJS	= $(LIBODIR)/websrvr.o $(LIBODIR)/sockwrap.o $(LIBODIR)/base64.o
 SERVICE_OBJS	= $(LIBODIR)/services.o $(LIBODIR)/ini_file.o
 
