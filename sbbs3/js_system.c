@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.54 2003/02/13 04:13:27 rswindell Exp $ */
+/* $Id: js_system.c,v 1.55 2003/02/20 03:02:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1124,6 +1124,7 @@ static jsMethodSpec js_system_functions[] = {
 	{"put_telegram",	js_put_telegram,	2,	JSTYPE_VOID,	JSDOCSTR("number user, string message")
 	,JSDOCSTR("send a user a short text message, delivered immediately or during next logon")
 	},		
+	{"newuser",			js_new_user,		1,	JSTYPE_ALIAS },
 	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias")
 	,JSDOCSTR("Create a new user record, returns a <b>User</b> object")
 	},
