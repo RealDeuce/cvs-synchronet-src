@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.266 2005/02/16 01:19:23 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.267 2005/02/16 02:32:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -752,6 +752,9 @@ static void close_request(http_session_t * session)
 	}
 	if(session->subscan!=NULL)
 		putmsgptrs(&scfg, session->user.number, session->subscan);
+
+	if(session->req.fp!=NULL)
+		fclose(session->req.fp);
 
 	if(session->req.cleanup_file!=NULL) {
 		if(!(startup->options&WEB_OPT_DEBUG_SSJS))
@@ -2750,8 +2753,10 @@ static BOOL exec_ssjs(http_session_t* session)  {
 
 	if(js_script!=NULL) 
 		JS_DestroyScript(session->js_cx, js_script);
-	if(session->req.fp!=NULL)
+	if(session->req.fp!=NULL) {
 		fclose(session->req.fp);
+		session->req.fp=NULL;
+	}
 
 	SAFECOPY(session->req.physical_path, path);
 	session->req.dynamic=IS_SSJS;
@@ -2999,7 +3004,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.266 $", "%*s %s", revision);
+	sscanf("$Revision: 1.267 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
