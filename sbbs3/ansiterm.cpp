@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.3 2002/02/24 15:09:27 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.4 2002/05/04 07:31:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,11 +103,10 @@ void sbbs_t::ansi_getlines()
 		&& online==ON_REMOTE) {                 /* Remote */
 		SYNC;
 		putcom("\x1b[s\x1b[99B\x1b[6n\x1b[u");
-		while(online && !rioctl(RXBC) /* && !lkbrd(1) */)
-			checkline();
+		while(online && !rioctl(RXBC))
+			mswait(1);
 		inkey(0); }
 }
-
 
 void sbbs_t::ansi_getxy(int* x, int* y)
 {
