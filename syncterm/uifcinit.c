@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include <ciolib.h>
+#include <conio.h>
 #include <uifc.h>
 
 #include "uifcinit.h"
