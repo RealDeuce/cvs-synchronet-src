@@ -1,5 +1,5 @@
 #include <genwrap.h>
-#include <ciolib.h>
+#include <conio.h>
 #include <keys.h>
 
 #include "term.h"
@@ -534,7 +534,7 @@ void doterm(void)
 							case 0:
 								break;
 							case 7:			/* Beep */
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								#ifdef __unix__
 									putch(7);
@@ -543,18 +543,18 @@ void doterm(void)
 								#endif
 								break;
 							case 12:		/* ^L - Clear screen */
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								clearscreen(term.attr);
 								gotoxy(1,1);
 								break;
 							case 27:		/* ESC */
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								term.sequence=1;
 								break;
 							case '\t':
-								cputs(prn);
+								cprintf(prn);
 								prn[0]=0;
 								for(k=0;k<11;k++) {
 									if(tabs[k]>wherex()) {
@@ -568,7 +568,7 @@ void doterm(void)
 						}
 					}
 				}
-				cputs(prn);
+				cprintf(prn);
 				prn[0]=0;
 				break;
 		}
