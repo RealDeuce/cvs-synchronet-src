@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.158 2004/03/08 19:22:30 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.157 2003/12/07 08:41:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1524,26 +1524,6 @@ int main(int argc, char** argv)
     signal(SIGPIPE, SIG_IGN);       /* Ignore "Broken Pipe" signal (Also used for broken socket etc.) */
     signal(SIGALRM, SIG_IGN);       /* Ignore "Alarm" signal */
 	_beginthread((void(*)(void*))handle_sigs,0,NULL);
-	if(new_uid_name[0]!=0) {        /*  check the user arg, if we have uid 0 */
-		/* Can't recycle servers (re-bind ports) as non-root user */
-		/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
-#if !defined(DONT_BLAME_SYNCHRONET)
- 		if(bbs_startup.telnet_port < IPPORT_RESERVED
-			|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
-				&& bbs_startup.rlogin_port < IPPORT_RESERVED))
-			bbs_startup.options|=BBS_OPT_NO_RECYCLE;
-		if(ftp_startup.port < IPPORT_RESERVED)
-			ftp_startup.options|=FTP_OPT_NO_RECYCLE;
-		if(web_startup.port < IPPORT_RESERVED)
-			web_startup.options|=BBS_OPT_NO_RECYCLE;
-		if((mail_startup.options & MAIL_OPT_ALLOW_POP3
-			&& mail_startup.pop3_port < IPPORT_RESERVED)
-			|| mail_startup.smtp_port < IPPORT_RESERVED)
-			mail_startup.options|=MAIL_OPT_NO_RECYCLE;
-		/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
-		services_startup.options|=BBS_OPT_NO_RECYCLE;
-	}
-#endif
 #endif
 
 	if(run_bbs)
@@ -1604,6 +1584,24 @@ int main(int argc, char** argv)
 			sprintf(str,"Successfully changed user_id to %s", new_uid_name);
 			bbs_lputs(NULL,LOG_INFO,str);
 
+			/* Can't recycle servers (re-bind ports) as non-root user */
+			/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
+#if !defined(DONT_BLAME_SYNCHRONET)
+ 			if(bbs_startup.telnet_port < IPPORT_RESERVED
+				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
+					&& bbs_startup.rlogin_port < IPPORT_RESERVED))
+				bbs_startup.options|=BBS_OPT_NO_RECYCLE;
+			if(ftp_startup.port < IPPORT_RESERVED)
+				ftp_startup.options|=FTP_OPT_NO_RECYCLE;
+			if(web_startup.port < IPPORT_RESERVED)
+				web_startup.options|=BBS_OPT_NO_RECYCLE;
+			if((mail_startup.options & MAIL_OPT_ALLOW_POP3
+				&& mail_startup.pop3_port < IPPORT_RESERVED)
+				|| mail_startup.smtp_port < IPPORT_RESERVED)
+				mail_startup.options|=MAIL_OPT_NO_RECYCLE;
+			/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
+			services_startup.options|=BBS_OPT_NO_RECYCLE;
+#endif
 		}
 	}
 
