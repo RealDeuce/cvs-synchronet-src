@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.9 2001/09/27 19:43:22 rswindell Exp $ */
+/* $Id: userdat.h,v 1.10 2001/11/15 23:40:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ DLLEXPORT int	DLLCALL putuserdat(scfg_t* cfg, user_t* user);	/* Put userdat stru
 DLLEXPORT void	DLLCALL getrec(char *instr,int start,int length,char *outstr); /* Retrieve a record from a string */
 DLLEXPORT void	DLLCALL putrec(char *outstr,int start,int length,char *instr); /* Place a record into a string */
 DLLEXPORT uint	DLLCALL matchuser(scfg_t* cfg, char *str); /* Checks for a username match */
+DLLEXPORT char* DLLCALL alias(scfg_t* cfg, SOCKET socket, char* name, char* buf);
 DLLEXPORT int	DLLCALL putusername(scfg_t* cfg, int number, char * name);
 DLLEXPORT uint	DLLCALL lastuser(scfg_t* cfg);
 DLLEXPORT char	DLLCALL getage(scfg_t* cfg, char *birthdate);

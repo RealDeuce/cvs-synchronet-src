@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.22 2001/11/11 20:35:39 rswindell Exp $ */
+/* $Id: userdat.c,v 1.23 2001/11/15 23:40:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1374,4 +1374,52 @@ char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name)
 	}
 	strcat(addr,cfg->sys_inetaddr);
 	return(addr);
+}
+
+char* DLLCALL alias(scfg_t* cfg, SOCKET socket, char* name, char* buf)
+{
+	int		file;
+	char*	p;
+	char*	np;
+	char*	tp;
+	char	fname[MAX_PATH+1];
+	FILE*	fp;
+
+	p=name;
+
+	if(!stricmp(p,"SYSOP") || !stricmp(p,cfg->sys_id) 
+		|| !stricmp(p,"POSTMASTER") || !stricmp(p,cfg->sys_op)) {
+		strcpy(buf,"1");
+		return(buf);
+	}
+
+	sprintf(fname,"%salias.cfg",cfg->ctrl_dir);
+	if((file=sopen(fname,O_RDONLY|O_BINARY,SH_DENYNO))==-1)
+		return(name);
+
+	if((fp=fdopen(file,"rb"))==NULL) {
+		close(file);
+		return(name);
+	}
+
+	while(!feof(fp)) {
+		if(!fgets(buf,80,fp))
+			break;
+		np=buf;
+		while(*np && *np<=' ') np++;
+		if(*np==';')
+			continue;
+		tp=np;
+		while(*tp && *tp>' ') tp++;
+		if(*tp) *tp=0;
+		if(!stricmp(np,name)) {
+			np=tp+1;
+			while(*np && *np<=' ') np++;
+			p=np;
+			truncsp(p);
+			break;
+		}
+	}
+	fclose(fp);
+	return(p);
 }
