@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.33 2003/07/25 11:21:07 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.34 2003/10/19 07:15:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,7 +128,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 		html_index_file="";
 
 #ifdef _DEBUG
-	js_DescribeObject(cx,areaobj,"File Transfer Areas");
+	js_DescribeSyncObject(cx,areaobj,"File Transfer Areas",310);
 #endif
 
 	/* lib_list[] */
@@ -187,7 +187,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			return(NULL);
 
 #ifdef _DEBUG
-		js_DescribeObject(cx,libobj,"File Transfer Libraries");
+		js_DescribeSyncObject(cx,libobj,"File Transfer Libraries",310);
 #endif
 
 		/* dir_list[] */
@@ -375,7 +375,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 #ifdef _DEBUG
 			js_CreateArrayOfStrings(cx, dirobj, "_property_desc_list", dir_prop_desc, JSPROP_READONLY);
-			js_DescribeObject(cx,dirobj,"File Transfer Directories");
+			js_DescribeSyncObject(cx,dirobj,"File Transfer Directories",310);
 #endif
 		}
 
@@ -385,7 +385,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	}
 
 #ifdef _DEBUG
-	js_DescribeObject(cx,alldirs,"Associative array of all directories (use internal code as index)");
+	js_DescribeSyncObject(cx,alldirs,"Associative array of all directories (use internal code as index)",311);
 	JS_DefineProperty(cx,alldirs,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
 #endif
 
