@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.h,v 1.5 2004/09/10 08:36:46 rswindell Exp $ */
+/* $Id: semwrap.h,v 1.8 2004/09/21 06:43:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@ extern "C" {
 		#define 	sem_wait(x)			xp_sem_wait(x)
 		#define 	sem_trywait(x)		xp_sem_trywait(x)
 		#define 	sem_post(x)			xp_sem_post(x)
-		#define 	sem_getvalue(x)		xp_sem_getvalue(x)
+		#define 	sem_getvalue(x,y)		xp_sem_getvalue(x,y)
 		#define		sem_timedwait(x,y)	xp_sem_timedwait(x,y)
 		#define		sem_t				xp_sem_t
 	#else
@@ -77,7 +77,10 @@ extern "C" {
 	#define sem_trywait(psem)			(WaitForSingleObject(*(psem),0)==WAIT_OBJECT_0?0:(errno=EAGAIN,-1))
 	#define sem_post(psem)				ReleaseSemaphore(*(psem),1,NULL)
 	#define sem_destroy(psem)			CloseHandle(*(psem))
+
 	/* No Win32 implementation for sem_getvalue() */
+	/* How about this? */
+	#define sem_getvalue(psem,val)			ReleaseSemaphore(*(psem),0,(LPLONG)val)
 
 	/* NOT POSIX */
 	#define sem_trywait_block(psem,t)	(WaitForSingleObject(*(psem),t)==WAIT_OBJECT_0?0:(errno=EAGAIN,-1))
