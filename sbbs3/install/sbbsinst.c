@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.77 2003/03/26 04:05:07 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.78 2003/03/26 22:50:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -129,6 +129,7 @@ char revision[16];
 int  backup_level=5;
 BOOL keep_makefile=FALSE;
 BOOL ftp_distlist=TRUE;
+BOOL ftp_verbose=FALSE;
 
 /*************/
 /* Constants */
@@ -191,7 +192,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.77 $", "%*s %s", revision);
+	sscanf("$Revision: 1.78 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -220,6 +221,9 @@ int main(int argc, char **argv)
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
 				case 'F':
+					ftp_verbose=TRUE;
+					break;
+				case 'N':
 					ftp_distlist=FALSE;
 					break;
 				case 'I':
@@ -233,7 +237,8 @@ int main(int argc, char **argv)
                 default:
                     printf("\nusage: %s [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
-						"-f  =  do not FTP distribution list\n"
+						"-n  =  do not FTP-download distribution list\n"
+						"-f  =  run in FTP-verbose (debug) mode\n"
                         "-d  =  run in standard input/output/door mode\n"
                         "-c  =  force color mode\n"
 #ifdef USE_CURSES
@@ -560,16 +565,16 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 					exit(EXIT_FAILURE);
 				}
 				sprintf(url,"%s%s",server->addr,fname);
-				if((remote=ftpGetURL(url,ftp_user,ftp_pass,&ret1))==NULL)  {
+				if((remote=ftpGetURL(url,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL)  {
 					/* retry without machine type in name */
 					SAFECOPY(str,fname);
 					sprintf(fname,dist->files[i],params.name.sysname);
 					sprintf(url,"%s%s",server->addr,fname);
 					if(stricmp(str,fname)==0	/* no change in name? */
-						|| (remote=ftpGetURL(url,ftp_user,ftp_pass,&ret1))==NULL)  {
+						|| (remote=ftpGetURL(url,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL)  {
 						/* retry using default system-type for system name */
 						sprintf(fname,dist->files[i],DEFAULT_SYSTYPE);
-						if((remote=ftpGetURL(url,ftp_user,ftp_pass,&ret1))==NULL)  {
+						if((remote=ftpGetURL(url,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL)  {
 							printf("Cannot get distribution file %s!\n",fname);
 							printf("%s\n- %s\n",url,ftpErrString(ret1));
 							close(fout);
@@ -699,11 +704,11 @@ get_distlist(void)
 
 	if(ftp_distlist) {
 		uifc.pop("Getting distributions");
-		if((list=ftpGetURL(DIST_LIST_URL1,ftp_user,ftp_pass,&ret1))==NULL
-				&& (list=ftpGetURL(DIST_LIST_URL2,ftp_user,ftp_pass,&ret2))==NULL
-				&& (list=ftpGetURL(DIST_LIST_URL3,ftp_user,ftp_pass,&ret3))==NULL
-				&& (list=ftpGetURL(DIST_LIST_URL4,ftp_user,ftp_pass,&ret4))==NULL
-				&& (list=ftpGetURL(DIST_LIST_URL5,ftp_user,ftp_pass,&ret5))==NULL
+		if((list=ftpGetURL(DIST_LIST_URL1,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL2,ftp_user,ftp_pass,ftp_verbose,&ret2))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL3,ftp_user,ftp_pass,ftp_verbose,&ret3))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL4,ftp_user,ftp_pass,ftp_verbose,&ret4))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL5,ftp_user,ftp_pass,ftp_verbose,&ret5))==NULL
 				&& r==0)  {
 			uifc.pop(NULL);
 			uifc.bail();
