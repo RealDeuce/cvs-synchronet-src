@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: AboutBoxFormUnit.cpp,v 1.4 2000/11/01 21:44:20 rswindell Exp $ */
+/* $Id: AboutBoxFormUnit.cpp,v 1.5 2001/07/18 03:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,15 @@ void __fastcall TAboutBoxForm::FormShow(TObject *Sender)
 #else
     Memo->Lines->Add("Synchronet Local Spy ANSI Terminal Emulation"+CopyRight);
 #endif
+}
+//---------------------------------------------------------------------------
 
+
+
+void __fastcall TAboutBoxForm::WebPageLabelClick(TObject *Sender)
+{
+    ShellExecute(Handle, "open", ((TLabel*)Sender)->Hint.c_str(),
+        NULL,NULL,SW_SHOWDEFAULT);
 }
 //---------------------------------------------------------------------------
 
