@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.296 2003/10/16 10:00:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.297 2003/10/20 22:22:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1820,9 +1820,13 @@ static void smtp_thread(void* arg)
 						SKIP_WHITESPACE(p);
 						if(*p==';' || *p==0)	/* comment or blank line */
 							continue;
-						lprintf(LOG_DEBUG,"%04d SMTP executing external process: %s", socket, p);
-						system(mailcmdstr(p, msgtxt_fname, rcptlst_fname, proc_err_fname
-											,host_name, host_ip, relay_user.number, str));
+						mailcmdstr(p, msgtxt_fname, rcptlst_fname, proc_err_fname
+											,host_name, host_ip, relay_user.number, str);
+						lprintf(LOG_DEBUG,"%04d SMTP executing external process: %s", socket, str);
+						i=system(str);
+						if(i!=0)
+							lprintf(LOG_WARNING,"%04d SMTP external process (%s) returned %d (errno: %d)"
+								,str, i, errno);
 						if(flength(proc_err_fname)>0)
 							break;
 						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
@@ -3382,7 +3386,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.296 $", "%*s %s", revision);
+	sscanf("$Revision: 1.297 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
