@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.9 2001/07/11 02:28:54 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.10 2001/07/18 03:34:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,9 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#ifndef _FTPSRVR_H_
+#define _FTPSRVR_H_
 
 #include "client.h"				/* client_t */
 
@@ -133,3 +136,5 @@ DLLEXPORT char*	DLLCALL ftp_ver(void);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* Don't add anything after this line */

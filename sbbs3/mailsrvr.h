@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.7 2000/11/30 01:56:06 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.8 2001/07/18 03:34:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,9 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#ifndef _MAILSRVR_H_
+#define _MAILSRVR_H_
 
 #include "client.h"				/* client_t */
 
@@ -137,3 +140,5 @@ DLLEXPORT char*	DLLCALL mail_ver(void);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* Don't add anything after this line */
