@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.1 2000/10/10 11:24:43 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.2 2000/10/23 20:23:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,7 +255,7 @@ mail_t* loadmail(smb_t* smb, long* msgs, uint usernumber
 	return(mail);
 }
 
-extern "C" __declspec(dllexport) void freemail(mail_t* mail)
+extern "C" void freemail(mail_t* mail)
 {
 	FREE(mail);
 }
