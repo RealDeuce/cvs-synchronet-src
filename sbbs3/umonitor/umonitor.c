@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.38 2003/05/16 09:30:28 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.39 2003/05/16 21:53:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,7 +271,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.38 $", "%*s %s", revision);
+	sscanf("$Revision: 1.39 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -469,7 +469,7 @@ int main(int argc, char** argv)  {
 				uifc.msg("Error reading node data!");
 				continue;
 			}
-			if((node.status&NODE_INUSE) && node.useron)
+			if((node.status==NODE_INUSE) && node.useron)
 				chat(&cfg,main_dflt+1,&node,&boxch,uifc.timedisplay);
 			continue;
 		}
@@ -553,10 +553,11 @@ int main(int argc, char** argv)  {
 			strcpy(opt[i++],"Spy on node");
 			strcpy(opt[i++],"Node toggles");
 			strcpy(opt[i++],"Clear Errors");
-			getnodedat(&cfg,j+1,&node,NULL);
-			if((node.status&NODE_INUSE) && node.useron) {
-				strcpy(opt[i++],"Send message to user");
-				strcpy(opt[i++],"Chat with user");
+			if(!getnodedat(&cfg,j+1,&node,NULL)) {
+				if((node.status==NODE_INUSE) && node.useron) {
+					strcpy(opt[i++],"Send message to user");
+					strcpy(opt[i++],"Chat with user");
+				}
 			}
 			opt[i][0]=0;
 			i=0;
