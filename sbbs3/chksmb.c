@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.31 2004/10/27 21:18:30 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.32 2004/11/02 02:15:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -535,11 +535,9 @@ int main(int argc, char **argv)
 		smb_freemsgmem(&msg); 
 	}
 
-	if(number)
-		FREE(number);
+	FREE_AND_NULL(number);
 
 	fprintf(stderr,"\r%79s\r100%%\n","");
-
 
 	if(chkalloc && !(smb.status.attr&SMB_HYPERALLOC)) {
 
@@ -557,8 +555,8 @@ int main(int argc, char **argv)
 				deldatblocks++; 
 		}
 
-		fclose(smb.sha_fp);
-		fclose(smb.sda_fp);
+		smb_close_ha(&smb);
+		smb_close_da(&smb);
 
 		fprintf(stderr,"\r%79s\r100%%\n",""); 
 	}
@@ -640,8 +638,8 @@ int main(int argc, char **argv)
 		}
 		fprintf(stderr,"\r%79s\r100%%\n",""); 
 	}
-	FREE(number);
-	FREE(offset);
+	FREE_AND_NULL(number);
+	FREE_AND_NULL(offset);
 
 	}	/* if(total) */
 
