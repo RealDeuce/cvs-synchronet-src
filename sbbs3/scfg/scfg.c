@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.18 2002/02/28 21:27:35 rswindell Exp $ */
+/* $Id: scfg.c,v 1.19 2002/03/13 19:02:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,16 +70,6 @@ void allocfail(uint size)
 {
     printf("\7Error allocating %u bytes of memory.\r\n",size);
     bail(1);
-}
-
-time_t checktime(void)
-{
-	struct tm tm;
-
-memset(&tm,0,sizeof(tm));
-tm.tm_year=94;
-tm.tm_mday=1;
-return(mktime(&tm)^0x2D24BD00L);
 }
 
 int main(int argc, char **argv)
@@ -183,14 +173,6 @@ if(i!=0) {
     printf("uifc library init returned error %d\n",i);
     exit(1);
 }
-
-if(putenv("TZ=UTC0"))
-    printf("putenv() failed!\n");
-tzset();
-
-if((l=checktime())!=0) {   /* Check binary time */
-    printf("Time problem (%08lx)\n",l);
-    exit(1); }
 
 if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
 	allocfail(sizeof(char *)*(MAX_OPTS+1));
