@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.202 2002/11/09 10:58:14 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.203 2002/11/09 11:01:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1508,7 +1508,7 @@ static void smtp_thread(void* arg)
 						sockprintf(socket, "452 Insufficient system storage");
 						continue; 
 					}
-					SAFECOPY(telegram_buf,str);
+					strcpy(telegram_buf,str);	/* can't use SAFECOPY here */
 					if(fread(telegram_buf+strlen(str),1,length,msgtxt)!=length) {
 						lprintf("%04d !SMTP ERROR reading %lu bytes from telegram file"
 							,socket,length);
@@ -2866,7 +2866,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.202 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.203 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
