@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.7 2003/04/26 17:44:34 deuce Exp $ */
+/* $Id: ringbuf.c,v 1.8 2003/04/29 04:01:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,9 +186,7 @@ DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, BYTE* src,  DWORD cnt )
 	pthread_mutex_unlock(&rb->mutex);
 #endif
 
-#if defined(_PTH_H_) /* Cooperative multitasking! */
-	pth_yield(NULL);
-#endif
+	YIELD();
 
 	return(cnt);
 }
@@ -198,9 +196,7 @@ DWORD RINGBUFCALL RingBufRead( RingBuf* rb, BYTE* dst,  DWORD cnt )
 {
 	DWORD max, first, remain, len;
 
-#if defined(_PTH_H_) /* Cooperative multitasking! */
-	pth_yield(NULL);
-#endif
+	YIELD();
 
 	len = RingBufFull( rb );
 	if( len == 0 )
@@ -252,9 +248,7 @@ DWORD RINGBUFCALL RingBufPeek( RingBuf* rb, BYTE* dst,  DWORD cnt)
 {
 	DWORD max, first, remain, len;
 
-#if defined(_PTH_H_) /* Cooperative multitasking! */
-	pth_yield(NULL);
-#endif
+	YIELD();
 
 	len = RingBufFull( rb );
 	if( len == 0 )

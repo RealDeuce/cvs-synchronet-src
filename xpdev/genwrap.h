@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.28 2003/04/29 03:48:00 deuce Exp $ */
+/* $Id: genwrap.h,v 1.29 2003/04/29 04:01:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,11 +176,11 @@ extern "C" {
 
 #ifndef SLEEP
 	#ifndef SBBS
-	#define	pthread_yield()
+	#define	YIELD()
 	#endif
 	#define SLEEP(x)		({	int y=x; struct timeval tv; \
 								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
-								pthread_yield(); \
+								YIELD(); \
 								select(0,NULL,NULL,NULL,&tv); })
 #endif
 	#define BEEP(freq,dur)	unix_beep(freq,dur)
