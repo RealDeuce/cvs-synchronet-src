@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.14 2001/07/25 02:59:09 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.15 2001/09/08 20:19:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 
 #if defined(JAVASCRIPT) || defined(__unix__)
-	#define BETA	" Alpha"
+	#define BETA	" Beta"
 #else
 	#define BETA	" Beta"     /* Space if non-beta, " beta" otherwise */
 #endif
