@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.7 2001/06/29 14:29:44 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.8 2001/06/29 16:23:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-extern const char* beta_version;
+extern "C" const char* beta_version;
 
 /****************************************************************************/
 /* Returns 0 if invalid @ code. Returns length of @ code if valid.          */
