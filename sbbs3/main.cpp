@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.167 2002/07/25 02:33:49 rswindell Exp $ */
+/* $Id: main.cpp,v 1.168 2002/07/31 06:27:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3668,7 +3668,7 @@ void DLLCALL bbs_thread(void* arg)
 		identity=NULL;
 		if(startup->options&BBS_OPT_GET_IDENT) {
 			sbbs->bprintf("Resolving identity...");
-			identify(&client_addr, 23, str, sizeof(str)-1);
+			identify(&client_addr, startup->telnet_port, str, sizeof(str)-1);
 			identity=strrchr(str,':');
 			if(identity!=NULL) {
 				identity++;	/* skip colon */
