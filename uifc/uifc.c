@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.20 2003/05/21 00:44:29 rswindell Exp $ */
+/* $Id: uifc.c,v 1.21 2003/05/25 22:58:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,7 @@ static int uinput(int imode, int left, int top, char *prompt, char *str
 static void umsg(char *str);
 static void upop(char *str);
 static void sethelp(int line, char* file);
+static void timedisplay(void);
 
 #ifdef __FLAT__
 int inkey(int mode)
