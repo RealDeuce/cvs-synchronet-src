@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.5 2004/08/02 02:43:59 deuce Exp $ */
+/* $Id: ciolib.h,v 1.6 2004/08/09 23:51:31 rswindell Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
@@ -12,9 +12,11 @@ enum {
 	,CIOLIB_MODE_CONIO
 };
 
-#ifndef __unix__		/* presumably, Win32 */
-#include <conio.h>
-#include <io.h>			/* isatty */
+#if defined(__BORLANDC__)	/* presumably, Win32 */
+
+	#include <conio.h>
+	#include <io.h>			/* isatty */
+
 #else
 
 #ifndef BOOL
