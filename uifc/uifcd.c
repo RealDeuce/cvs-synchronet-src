@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.6 2002/01/28 00:24:12 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.7 2002/01/28 21:02:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,9 +49,9 @@ static void help();
 static void uifcbail(void);
 static int uscrn(char *str);
 static int ulist(int mode, char left, int top, char width, int *dflt, int *bar
-	,char *title, char **option);
+					,char *title, char **option);
 static int uinput(int imode, char left, char top, char *prompt, char *str
-	,char len ,int kmode);
+					,char len ,int kmode);
 static void umsg(char *str);
 static void upop(char *str);
 static void sethelp(int line, char* file);
@@ -298,7 +298,11 @@ int ulist(int mode, char left, int top, char width, int *cur, int *bar
 int uinput(int mode, char left, char top, char *prompt, char *outstr,
 	char max, int kmode)
 {
+	char str[256];
+	sprintf(str,"%.*s",sizeof(str)-1,outstr);
     dialog_inputbox((char *)NULL, prompt, 9, max+4, outstr);
+	if(strcmp(str,outstr))
+		api.changes=TRUE;
     return strlen(outstr);
 }
 
