@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.112 2002/06/18 07:46:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.113 2002/06/22 08:54:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -302,9 +302,11 @@ public:
 	uint	cursubnum;		/* For ARS */
 	uint	curdirnum;		/* For ARS */
 	ulong 	timeleft;		/* Number of seconds user has left online */
-	char	sbbsnode[MAX_PATH+1];	/* Environment var to contain node dir path */
 	char	sbbsnnum[MAX_PATH+1];	/* Environment var to contain node num */
+	char	sbbsnode[MAX_PATH+1];	/* Environment var to contain node dir path */
 	char	sbbsctrl[MAX_PATH+1];	/* Environment var to contain ctrl dir path */
+	char	sbbsdata[MAX_PATH+1];	/* Environment var to contain data dir path */
+	char	sbbsexec[MAX_PATH+1];	/* Environment var to contain exec dir path */
 	char	env_day[32];			/* Environment var for day of month */
 	char	env_weekday[32];		/* Environment var for name of weekday */
 	char	env_month[32];			/* Environment var for month number (1-based) */
