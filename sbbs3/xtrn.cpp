@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.119 2003/02/16 13:19:41 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.120 2003/02/27 03:10:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1166,7 +1166,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 
 		fclose(doscmdrc);
 		SAFECOPY(str,cmdline);
-		sprintf(cmdline,"/usr/bin/doscmd -F %s",str);
+		sprintf(cmdline,"%s -F %s",startup->dosemu_path,str);
 #endif
 	}
 
@@ -1222,7 +1222,10 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		sigprocmask(SIG_UNBLOCK,&sigs,NULL);
 		if(!(mode&EX_BIN))  {
 			static char	term_env[256];
-			sprintf(term_env,"TERM=%s",startup->xtrn_term);
+			if(useron.misc&ANSI)
+				sprintf(term_env,"TERM=%s",startup->xtrn_term_ansi);
+			else
+				sprintf(term_env,"TERM=%s",startup->xtrn_term_dumb);
 			putenv(term_env);
 		}
 #ifdef __FreeBSD__
