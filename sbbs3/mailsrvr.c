@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.4 2000/10/11 23:47:44 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.5 2000/10/12 10:53:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1847,6 +1847,8 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	newmsg.total_hfields=0;
 	newmsg.idx.to=newmsg.idx.from;
 	newmsg.idx.from=0;
+	newmsg.hdr.delivery_attempts=0;
+
 	smb_hfield(&newmsg, RECIPIENT, (ushort)strlen(newmsg.from), newmsg.from);
 	if(newmsg.idx.to) {
 		sprintf(str,"%u",newmsg.idx.to);
