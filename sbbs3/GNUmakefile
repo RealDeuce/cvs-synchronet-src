@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.118 2003/07/23 10:37:24 rswindell Exp $
+# $Id: GNUmakefile,v 1.119 2003/08/28 03:51:46 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -138,6 +138,10 @@ ifdef DEBUG
  CFLAGS  +=	-D_DEBUG
 else
  CFLAGS	+= -O3
+endif
+
+ifdef PREFIX
+ CFLAGS += -DPREFIX=$(PREFIX)
 endif
 
 ifndef JSLIBDIR
