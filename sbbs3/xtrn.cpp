@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.98 2002/11/16 11:35:06 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.99 2002/11/18 08:09:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -705,9 +705,11 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 				rd=0;
 				len=sizeof(buf);
 				avail=RingBufFree(&outbuf)/2;	// leave room for wwiv/telnet expansion
+#if 0
 				if(avail==0)
 					lprintf("Node %d !output buffer full (%u bytes)"
 						,cfg.node_num,RingBufFull(&outbuf));
+#endif
 				if(len>avail)
             		len=avail;
 
@@ -782,14 +784,16 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
         		/* Read from VXD */
 				rd=0;
 				len=sizeof(buf);
-				avail=RingBufFree(&outbuf);
+				avail=RingBufFree(&outbuf)/2;	// leave room for wwiv/telnet expansion
+#if 0
 				if(avail==0) 
 					lprintf("Node %d !output buffer full (%u bytes)"
 						,cfg.node_num,RingBufFull(&outbuf));
+#endif
 
 				if(len>avail)
             		len=avail;
-				if(avail>=RingBufFull(&outbuf)) {
+				if(len) {
 					if(!DeviceIoControl(
 						vxd,					// handle to device of interest
 						SBBSEXEC_IOCTL_READ,	// control code of operation to perform
@@ -1171,8 +1175,10 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 
 			avail=RingBufFree(&outbuf)/2;	// Leave room for wwiv/telnet expansion
 			if(avail==0) {
+#if 0
 				lprintf("Node %d !output buffer full (%u bytes)"
 						,cfg.node_num,RingBufFull(&outbuf));
+#endif
 				mswait(1);
 				continue;
 			}
