@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.104 2003/05/07 20:44:30 rswindell Exp $ */
+/* $Id: services.c,v 1.105 2003/05/14 23:10:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1068,6 +1068,8 @@ static void native_service_thread(void* arg)
 		lprintf("%04d !%s CLIENT BLOCKED in host.can: %s"
 			,socket, service->protocol, host_name);
 		close_socket(socket);
+		if(service->clients)
+			service->clients--;
 		thread_down();
 		return;
 	}
@@ -1234,7 +1236,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.104 $", "%*s %s", revision);
+	sscanf("$Revision: 1.105 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
