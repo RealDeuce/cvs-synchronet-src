@@ -11,14 +11,14 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.25 2002/06/18 09:39:29 rswindell Exp $
+# $Id: GNUmakefile,v 1.26 2002/07/17 23:18:25 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
 ifdef bcc
 CC		=	bc++ -q
 LD		=	ilink -q
-CFLAGS 	=	-D__unix__ -w-csu -w-pch -w-ccc -w-rch -w-par -O2
+CFLAGS 	=	-D__unix__ -w-csu -w-pch -w-ccc -w-rch -w-par -w-aus -O2
 else
 CC		=	gcc
 LD		=	ld
