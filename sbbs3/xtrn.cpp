@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.178 2005/03/26 16:11:06 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.175 2005/03/26 08:52:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1080,8 +1080,6 @@ static int setenv(const char *name, const char *value, int overwrite)
 			errno=ENOMEM;
 			return(-1);
 		}
-		/* Note, on some platforms, this can be free()d... */
-		sprintf(envstr,"%s=%s",name,value);
 		putenv(envstr);
 	}
 	return(0);
@@ -1286,8 +1284,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		setenv("SBBSCTRL",cfg.ctrl_dir,1);
 		setenv("SBBSDATA",cfg.data_dir,1);
 		setenv("SBBSEXEC",cfg.exec_dir,1);
-		sprintf(str,"%u",cfg.node_num);
-		if(setenv("SBBSNNUM",str,1))
+		sprintf(sbbsnnum,"%u",cfg.node_num);
+		if(setenv("SBBSNNUM",sbbsnnum,1))
         	errormsg(WHERE,ERR_WRITE,"environment",0);
 
 	} else {
