@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.9 2005/01/15 13:20:31 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.12 2005/02/01 10:13:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,7 @@ typedef struct {
 
 	void*		cbdata;
 	long*		mode;
+	BOOL		cancelled;
 	unsigned	block_size;
 	unsigned	ack_timeout;
 	unsigned	byte_timeout;
@@ -53,28 +54,36 @@ typedef struct {
 	unsigned	recv_timeout;
 	unsigned	max_errors;
 	unsigned	g_delay;
-	time_t		progress_interval;
+	unsigned	total_files;
+	unsigned	total_bytes;
+	unsigned	sent_files;
+	unsigned	sent_bytes;
 	int			(*lputs)(void*, int level, const char* str);
-	void		(*progress)(void*, unsigned block_num, ulong fsize, time_t t);
+	void		(*progress)(void*, unsigned block_num, ulong offset, ulong fsize, time_t t);
 	int			(*send_byte)(void*, uchar ch, unsigned timeout);
 	int			(*recv_byte)(void*, unsigned timeout);
+	BOOL		(*is_connected)(void*);
 
 } xmodem_t;
 
 
 void		xmodem_init(xmodem_t*, void* cbdata, long* mode
 						,int	(*lputs)(void*, int level, const char* str)
-						,void	(*progress)(void* unused, unsigned block_num, ulong fsize, time_t t)
+						,void	(*progress)(void* unused, unsigned block_num, ulong offset, ulong fsize, time_t t)
 						,int	(*send_byte)(void*, uchar ch, unsigned timeout)
-						,int	(*recv_byte)(void*, unsigned timeout));
+						,int	(*recv_byte)(void*, unsigned timeout)
+						,BOOL	(*is_connected)(void*)
+						);
 char*		xmodem_ver(char *buf);
 const char* xmodem_source(void);
 void		xmodem_cancel(xmodem_t*);
 BOOL		xmodem_get_ack(xmodem_t*, unsigned tries, unsigned block_num);
 BOOL		xmodem_get_mode(xmodem_t*);
 BOOL		xmodem_put_eot(xmodem_t*);
-void		xmodem_put_nak(xmodem_t*);
-int			xmodem_get_block(xmodem_t*, uchar* block, BOOL hdrblock);
+void		xmodem_put_ack(xmodem_t*);
+void		xmodem_put_nak(xmodem_t*, unsigned block_num);
+int			xmodem_get_block(xmodem_t*, uchar* block, unsigned block_num);
 void		xmodem_put_block(xmodem_t*, uchar* block, unsigned block_size, unsigned block_num);
+BOOL		xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, ulong* sent);
 
 #endif	/* Don't add anything after this line */
