@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.4 2002/05/04 07:31:10 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.5 2002/05/04 07:34:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -115,7 +115,7 @@ void sbbs_t::ansi_getxy(int* x, int* y)
     *x=0;
     *y=0;
 
-	rputs("\x1b[6n");	/* Request cusor position */
+	putcom("\x1b[6n");	/* Request cusor position */
 
     time_t start=time(NULL);
     sys_status&=~SS_ABORT;
@@ -152,5 +152,6 @@ void sbbs_t::ansi_getxy(int* x, int* y)
         	lprintf("Node %d !TIMEOUT in ansi_getxy", cfg.node_num);
             break;
         }
+		mswait(1);
     }
 }
