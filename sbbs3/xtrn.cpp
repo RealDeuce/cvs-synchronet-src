@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.107 2003/01/02 04:30:19 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.108 2003/01/02 06:56:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -253,7 +253,6 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
     bool	was_online=true;
 	bool	rio_abortable_save;
 	bool	use_pipes=false;	// NT-compatible console redirection
-	bool	input_thread_mutex_locked=false;
 	uint	i;
     time_t	hungup=0;
 	HANDLE	vxd=INVALID_HANDLE_VALUE;
@@ -556,10 +555,8 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		fclose(fp);
 
 		/* not temporary */
-		if(!(mode&EX_INR)) {
+		if(!(mode&EX_INR))
 			pthread_mutex_lock(&input_thread_mutex);
-			input_thread_mutex_locked=true;
-		}
 	}
 
     if(!CreateProcess(
@@ -575,8 +572,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		&process_info  	// pointer to PROCESS_INFORMATION
 		)) {
 		XTRN_CLEANUP;
-		if(input_thread_mutex_locked)
-			pthread_mutex_unlock(&input_thread_mutex);
+		pthread_mutex_unlock(&input_thread_mutex);
 		SetLastError(last_error);	/* Restore LastError */
         errormsg(WHERE, ERR_EXEC, realcmdline, mode);
         return(GetLastError());
@@ -924,8 +920,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		if(native) {
 			ulong l=0;
 			ioctlsocket(client_socket, FIONBIO, &l);
-			if(input_thread_mutex_locked)
-				pthread_mutex_unlock(&input_thread_mutex);
+			pthread_mutex_unlock(&input_thread_mutex);
 		}
 
 		curatr=~0;			// Can't guarantee current attributes
