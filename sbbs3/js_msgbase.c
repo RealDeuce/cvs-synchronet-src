@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.23 2002/06/27 06:37:37 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.24 2002/06/28 22:59:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,6 +252,22 @@ static BOOL parse_header_object(JSContext* cx, JSObject* hdr, uint subnum, smbms
 		smb_hfield(msg, RFC822REPLYID, (ushort)strlen(cp), cp);
 	}
 
+	if(JS_GetProperty(cx, hdr, "ftn_id", &val) && val!=JSVAL_VOID) {
+		if((js_str=JS_ValueToString(cx,val))==NULL)
+			return(FALSE);
+		if((cp=JS_GetStringBytes(js_str))==NULL)
+			return(FALSE);
+		smb_hfield(msg, FIDOMSGID, (ushort)strlen(cp), cp);
+	}
+
+	if(JS_GetProperty(cx, hdr, "ftn_reply_id", &val) && val!=JSVAL_VOID) {
+		if((js_str=JS_ValueToString(cx,val))==NULL)
+			return(FALSE);
+		if((cp=JS_GetStringBytes(js_str))==NULL)
+			return(FALSE);
+		smb_hfield(msg, FIDOREPLYID, (ushort)strlen(cp), cp);
+	}
+
 	if(JS_GetProperty(cx, hdr, "date", &val) && val!=JSVAL_VOID) {
 		if((js_str=JS_ValueToString(cx,val))==NULL)
 			return(FALSE);
@@ -439,6 +455,16 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	}
 	JS_DefineProperty(cx, hdrobj, "id", STRING_TO_JSVAL(JS_NewStringCopyZ(cx,val))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+
+	/* FidoNet Message-ID */
+	if(msg.ftn_id!=NULL)
+		JS_DefineProperty(cx, hdrobj, "ftn_id", STRING_TO_JSVAL(JS_NewStringCopyZ(cx,val))
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+
+	/* FidoNet Reply-ID */
+	if(msg.ftn_reply_id!=NULL)
+		JS_DefineProperty(cx, hdrobj, "ftn_reply_id", STRING_TO_JSVAL(JS_NewStringCopyZ(cx,val))
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	smb_freemsgmem(&msg);
 
