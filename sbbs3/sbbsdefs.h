@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.11 2000/11/06 11:07:00 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.12 2000/11/09 04:29:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -599,7 +599,7 @@ enum {								/* Values for xtrn_t.event			*/
 #define SS_SYSPAGE	(1L<<12) /* Paging sysop							*/
 #define SS_SYSALERT (1L<<13) /* Notify sysop when users hangs up		*/
 #define SS_GURUCHAT (1L<<14) /* Guru chat in progress					*/
-#define SS_NODEDAB	(1L<<15) /* node.dab operations are okay			*/
+#define SS_UNUSED2	(1L<<15) /* not used in v3 (used to be SS_NODEDAB)	*/
 #define SS_EVENT	(1L<<16) /* Time shortened due to upcoming event	*/
 #define SS_PAUSEON	(1L<<17) /* Pause on, overriding user default		*/
 #define SS_PAUSEOFF (1L<<18) /* Pause off, overriding user default		*/
