@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.14 2000/11/07 21:42:48 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.15 2001/06/27 17:01:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,12 +94,28 @@ char* SMBCALL strlwr(char* str)
 /****************************************************************************/
 long SMBCALL flength(char *filename)
 {
+#ifdef __BORLANDC__	/* stat() doesn't work right */
+
+	long	handle;
+	struct _finddata_t f;
+
+	if((handle=_findfirst(filename,&f))==-1)
+		return(-1);
+
+ 	_findclose(handle);
+
+	return(f.size);
+
+#else 
+
 	STAT st;
 
 	if(stat(filename, &st)!=0)
 		return(-1L);
 
 	return(st.st_size);
+
+#endif
 }
 
 /****************************************************************************/
