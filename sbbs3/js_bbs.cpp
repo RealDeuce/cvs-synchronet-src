@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.40 2002/09/05 09:22:50 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.41 2002/09/05 10:14:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2475,10 +2475,10 @@ static jsMethodSpec js_bbs_functions[] = {
 	{"hangup",			js_hangup,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("hangup immediately")
 	},
-	{"nodesync",		js_nodesync,		0,	JSTYPE_VOID,	""
-	,JSDOCSTR("synchronize node with system")
-	},
 	{"node_sync",		js_nodesync,		0,	JSTYPE_ALIAS },
+	{"nodesync",		js_nodesync,		0,	JSTYPE_VOID,	""
+	,JSDOCSTR("synchronize node with system (AKA node_sync)")
+	},
 	{"auto_msg",		js_automsg,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("edit/create auto-message")
 	},		
