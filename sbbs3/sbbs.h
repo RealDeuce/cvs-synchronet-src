@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.100 2002/03/08 02:31:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.101 2002/03/08 17:22:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,6 +810,8 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	/* time_t to ctime()-like string */
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
+	/* RFC822 date header to when_t */
+	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 
 
 	/* logfile.cpp */
