@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: AboutBoxFormUnit.cpp,v 1.7 2001/11/10 04:26:20 rswindell Exp $ */
+/* $Id: AboutBoxFormUnit.cpp,v 1.8 2002/02/28 03:00:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -114,14 +114,16 @@ void __fastcall TAboutBoxForm::FormShow(TObject *Sender)
         + " (c) 1998 Netscape Communications Corp.");
 }
 //---------------------------------------------------------------------------
-
-
-
 void __fastcall TAboutBoxForm::WebPageLabelClick(TObject *Sender)
 {
     ShellExecute(Handle, "open", ((TLabel*)Sender)->Hint.c_str(),
         NULL,NULL,SW_SHOWDEFAULT);
 }
 //---------------------------------------------------------------------------
-
+void __fastcall TAboutBoxForm::LogoClick(TObject *Sender)
+{
+    ShellExecute(Handle, "open", "http://www.synchro.net",
+        NULL,NULL,SW_SHOWDEFAULT);
+}
+//---------------------------------------------------------------------------
 

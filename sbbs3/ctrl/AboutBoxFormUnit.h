@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: AboutBoxFormUnit.h,v 1.3 2001/08/03 21:09:58 rswindell Exp $ */
+/* $Id: AboutBoxFormUnit.h,v 1.4 2002/02/28 03:00:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,7 @@ __published:	// IDE-managed Components
     TStaticText *WebSiteLabel;
 	void __fastcall FormShow(TObject *Sender);
     void __fastcall WebPageLabelClick(TObject *Sender);
+	void __fastcall LogoClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TAboutBoxForm(TComponent* Owner);
