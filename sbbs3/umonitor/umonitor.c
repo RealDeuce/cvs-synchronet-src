@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.18 2003/05/13 04:33:54 deuce Exp $ */
+/* $Id: umonitor.c,v 1.19 2003/05/13 05:20:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ int spyon(char *sockname)  {
 	struct sockaddr_un spy_name;
 	socklen_t	spy_len;
 	char		key;
-	char		buf[1];
+	char		buf;
 	int		i;
 	struct	termios	tio;
 	struct	termios	old_tio;
@@ -125,6 +125,7 @@ int spyon(char *sockname)  {
 	int		retval=0;
 	char	ANSIbuf[32];
 	int		parsing=0;
+	int		telnet_strip=0;
 
 	/* ToDo Test for it actually being a socket! */
 	/* Well, it will fail to connect won't it?   */
@@ -222,7 +223,20 @@ int spyon(char *sockname)  {
 		}
 		if(spy_sock != INVALID_SOCKET && FD_ISSET(spy_sock,&rd))  {
 			if((i=read(spy_sock,&buf,1))==1)  {
-				write(STDOUT_FILENO,buf,1);
+				if(telnet_strip) {
+					telnet_strip++;
+					if(buf=='\xff' && telnet_strip==2) {
+						telnet_strip=0;
+						write(STDOUT_FILENO,&buf,1);
+					}
+					if(telnet_strip==3)
+						telnet_strip=0;
+				}
+				else
+					if(buf=='\xff')
+						telnet_strip=1;
+					else
+						write(STDOUT_FILENO,&buf,1);
 			}
 			else if(i<0) {
 				close(spy_sock);
@@ -617,7 +631,7 @@ int main(int argc, char** argv)  {
 	char	*buf;
 	int		buffile;
 
-	sscanf("$Revision: 1.18 $", "%*s %s", revision);
+	sscanf("$Revision: 1.19 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
