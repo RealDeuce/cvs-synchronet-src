@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.311 2004/02/22 02:47:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.312 2004/03/19 09:56:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -236,6 +236,7 @@ static void status(char* str)
 int sockprintf(SOCKET sock, char *fmt, ...)
 {
 	int		len;
+	int		maxlen;
 	int		result;
 	va_list argptr;
 	char	sbuf[1024];
@@ -243,13 +244,17 @@ int sockprintf(SOCKET sock, char *fmt, ...)
 	struct timeval tv;
 
     va_start(argptr,fmt);
-    len=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-	if(startup->options&MAIL_OPT_DEBUG_TX)
-		lprintf(LOG_DEBUG,"%04d TX: %s", sock, sbuf);
-	strcat(sbuf,"\r\n");
-	len+=2;
+    len=vsnprintf(sbuf,maxlen=sizeof(sbuf)-2,fmt,argptr);
     va_end(argptr);
+
+	if(len<0)		/* format error? */
+		return(0);
+	if(len>maxlen)	/* output truncated */
+		len=maxlen;
+	if(startup->options&MAIL_OPT_DEBUG_TX)
+		lprintf(LOG_DEBUG,"%04d TX: %.*s", sock, len, sbuf);
+	memcpy(sbuf+len,"\r\n",2);
+	len+=2;
 
 	if(sock==INVALID_SOCKET) {
 		lprintf(LOG_WARNING,"!INVALID SOCKET in call to sockprintf");
@@ -3627,7 +3632,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.311 $", "%*s %s", revision);
+	sscanf("$Revision: 1.312 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
