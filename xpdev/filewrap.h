@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.15 2003/05/02 21:04:32 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.16 2003/07/26 01:40:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,13 @@
 
 	#include <share.h>			/* SH_DENY */
 
+#endif
+
+/* Standard file descriptors.  */
+#ifndef STDIN_FILENO
+#define STDIN_FILENO    0       /* Standard input */
+#define STDOUT_FILENO   1       /* Standard output */
+#define STDERR_FILENO   2       /* Standard error output */
 #endif
 
 #ifndef O_DENYNONE
