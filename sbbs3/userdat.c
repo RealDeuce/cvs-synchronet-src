@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.52 2002/11/15 02:08:04 rswindell Exp $ */
+/* $Id: userdat.c,v 1.53 2003/01/13 09:31:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -624,16 +624,18 @@ int DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* fp)
 		return(errno); 
 	}
 
-	number--;	/* make zero based */
-	for(count=0;count<LOOP_NODEDAB;count++) {
-		if(count)
-			mswait(100);
-		lseek(file,(long)number*sizeof(node_t),SEEK_SET);
-		if(fp!=NULL
-			&& lock(file,(long)number*sizeof(node_t),sizeof(node_t))==-1) 
-			continue; 
-		if(read(file,node,sizeof(node_t))==sizeof(node_t))
-			break;
+	if(filelength(file)>=(long)(number*sizeof(node_t))) {
+		number--;	/* make zero based */
+		for(count=0;count<LOOP_NODEDAB;count++) {
+			if(count)
+				mswait(100);
+			lseek(file,(long)number*sizeof(node_t),SEEK_SET);
+			if(fp!=NULL
+				&& lock(file,(long)number*sizeof(node_t),sizeof(node_t))==-1) 
+				continue; 
+			if(read(file,node,sizeof(node_t))==sizeof(node_t))
+				break;
+		}
 	}
 
 	if(fp==NULL)
