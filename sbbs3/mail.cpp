@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.9 2002/01/11 01:11:22 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.10 2002/01/20 00:46:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 /***************************/
 /* Delete file attachments */
 /***************************/
-extern "C" void delfattach(scfg_t* cfg, smbmsg_t* msg)
+extern "C" void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 {
     char str[MAX_PATH+1];
 	char str2[MAX_PATH+1];
