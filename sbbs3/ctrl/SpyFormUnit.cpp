@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: SpyFormUnit.cpp,v 1.10 2003/05/04 10:39:03 rswindell Exp $ */
+/* $Id: SpyFormUnit.cpp,v 1.11 2003/05/10 03:00:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,7 @@ __fastcall TSpyForm::TSpyForm(TComponent* Owner)
     Terminal->Align=alClient;
     Terminal->OnKeyPress=FormKeyPress;
     Terminal->OnMouseUp=FormMouseUp;
+    Terminal->AutoWrap=true;
     ActiveControl=Terminal;
 }
 //---------------------------------------------------------------------------
