@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.22 2003/05/14 22:59:51 deuce Exp $ */
+/* $Id: umonitor.c,v 1.23 2003/05/15 02:13:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -295,6 +295,7 @@ char *nodedat(char *str, int number, node_t node)
 {
     char hour,mer[3];
 	char buf[1024];
+	user_t	user;
 
 	sprintf(str,"Node %2d: ",number);
 	switch(node.status) {
@@ -333,7 +334,12 @@ char *nodedat(char *str, int number, node_t node)
 			break;
 		case NODE_QUIET:
 		case NODE_INUSE:
-			sprintf(buf,"User #%d",node.useron);
+			user.number=node.useron;
+			getuserdat(&cfg,&user);
+			if(user.alias[0])
+				sprintf(buf,"%s",user.alias);
+			else
+				sprintf(buf,"%s",user.name);
 			strcat(str,buf);
 			strcat(str," ");
 			switch(node.action) {
@@ -365,8 +371,8 @@ char *nodedat(char *str, int number, node_t node)
 					if(!node.aux)
 						strcat(str,"at external program menu");
 					else
-						sprintf(buf,"running external program #%d",node.aux);
-						strcat(str,buf);
+						sprintf(buf,"running external program \"%s\"",cfg.xtrn[node.aux-1]->name);
+					strcat(str,buf);
 					break;
 				case NODE_DFLT:
 					strcat(str,"changing defaults");
@@ -599,7 +605,7 @@ int main(int argc, char** argv)  {
 	BOOL				run_services;
 	services_startup_t	services_startup;
 
-	sscanf("$Revision: 1.22 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -698,6 +704,11 @@ int main(int argc, char** argv)  {
 	/* Read .cfg files here */
 	cfg.size=sizeof(cfg);
 	if(!read_main_cfg(&cfg, str)) {
+		printf("ERROR! %s\n",str);
+		exit(1);
+	}
+
+	if(!read_xtrn_cfg(&cfg, str)) {
 		printf("ERROR! %s\n",str);
 		exit(1);
 	}
