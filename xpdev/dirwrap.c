@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.41 2004/07/22 23:26:16 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.40 2004/07/20 23:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,8 +176,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 		return(GLOB_NOMATCH);
 
 	do {
-		if((flags&GLOB_PERIOD || ff.name[0]!='.') &&
-			(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR)) {
+		if(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR) {
 			if((new_pathv=realloc(glob->gl_pathv
 				,(glob->gl_pathc+1)*sizeof(char*)))==NULL) {
 				globfree(glob);
@@ -233,8 +232,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 
 	ff_handle=_findfirst((char*)pattern,&ff);
 	while(ff_handle!=-1) {
-		if((flags&GLOB_PERIOD || ff.name[0]!='.') &&
-			(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR)) {
+		if(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR) {
 			if((new_pathv=(char**)realloc(glob->gl_pathv
 				,(glob->gl_pathc+1)*sizeof(char*)))==NULL) {
 				globfree(glob);
