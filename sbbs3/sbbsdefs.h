@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.124 2005/01/01 22:51:15 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.126 2005/02/09 05:15:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,7 @@
 #include "gen_defs.h"	/* uchar, ushort, uint, ulong, etc. */
 #include "nodedefs.h"	/* node_t */
 #include "fidodefs.h"	/* fmsghdr_t, fpkthdr_t, FIDO_*, etc. */
+#include "xpbeep.h"		/* BEEP() */
 
 /*************/
 /* Constants */
@@ -830,7 +831,6 @@ enum {							/* Values of mode for userlist function     */
 #define TM_YEAR(yy)		((yy)%100)
 #define sbbs_beep(f,d)	BEEP(f,d)
 #define mswait(x)		SLEEP(x)
-#define sbbs_random(x)	xp_random(x)
 
 /**************************************/
 /* Text Attribute (color) Definitions */

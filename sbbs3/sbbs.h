@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.245 2005/01/05 01:43:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.250 2005/02/26 06:54:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,8 @@
 	#define JS_THREADSAFE	/* Required! */
 	#include <jsapi.h>
 	#include <jsprf.h>		/* JS-safe sprintf functions */
+	#include <jsnum.h>		/* JSDOUBLE_IS_NaN() */
+
 #endif
 
 /***********************/
@@ -113,7 +115,9 @@
 #endif
 
 /* xpdev */
-#define LINK_LIST_THREADSAFE
+#ifndef LINK_LIST_THREADSAFE
+ #define LINK_LIST_THREADSAFE
+#endif
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
@@ -776,6 +780,10 @@ public:
 extern "C" {
 #endif
 
+	/* main.cpp */
+	DLLEXPORT int		DLLCALL sbbs_random(int);
+	DLLEXPORT void		DLLCALL sbbs_srand(void);
+
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
@@ -943,6 +951,8 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
+
+	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(*JSVAL_TO_DOUBLE(v))))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
