@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.22 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.23 2002/04/22 09:08:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1653,7 +1653,7 @@ bool sbbs_t::guruexp(char **ptrptr, char *line)
 	while((**ptrptr)!=')' && (**ptrptr)) {
 		if((**ptrptr)=='[') {
 			(*ptrptr)++;
-			sprintf(str,"%.128s",*ptrptr);
+			SAFECOPY(str,*ptrptr);
 			while(**ptrptr && (**ptrptr)!=']')
 				(*ptrptr)++;
 			(*ptrptr)++;
