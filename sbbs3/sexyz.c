@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.11 2005/01/11 12:07:18 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.12 2005/01/12 03:59:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,7 +202,7 @@ void send_telnet_cmd(SOCKET sock, uchar cmd, uchar opt)
 /****************************************************************************/
 /* Receive a byte from remote												*/
 /****************************************************************************/
-uint recv_byte(SOCKET sock, int timeout, long mode)
+uint recv_byte(SOCKET sock, unsigned timeout, long mode)
 {
 	int			i;
 	long		t;
@@ -213,13 +213,13 @@ uint recv_byte(SOCKET sock, int timeout, long mode)
 	static uchar	telnet_cmd;
 	static int		telnet_cmdlen;
 
-	end=time(NULL)+timeout;
+	end=msclock()+(timeout*MSCLOCKS_PER_SEC);
 	while(1) {
 
 		FD_ZERO(&socket_set);
 		FD_SET(sock,&socket_set);
-		if((t=end-time(NULL))<0) t=0;
-		tv.tv_sec=t;
+		if((t=end-msclock())<0) t=0;
+		tv.tv_sec=t/MSCLOCKS_PER_SEC;
 		tv.tv_usec=0;
 
 		if(select(sock+1,&socket_set,NULL,NULL,&tv)<1) {
@@ -288,7 +288,7 @@ uint recv_byte(SOCKET sock, int timeout, long mode)
 /*************************/
 /* Send a byte to remote */
 /*************************/
-int send_byte(SOCKET sock, uchar ch, int timeout, long mode)
+int send_byte(SOCKET sock, uchar ch, unsigned timeout, long mode)
 {
 	uchar		buf[2] = { TELNET_IAC, TELNET_IAC };
 	int			len=1;
@@ -1112,7 +1112,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.11 $", "%*s %s", revision);
+	sscanf("$Revision: 1.12 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1128,6 +1128,9 @@ int main(int argc, char **argv)
 		fprintf(statfp,"\n",statfp);
 	}
 #endif
+
+	xm.byte_timeout=3;	/* seconds */
+	xm.ack_timeout=10;	/* seconds */
 
 	for(i=1;i<argc;i++) {
 

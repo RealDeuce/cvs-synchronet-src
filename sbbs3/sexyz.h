@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Program */
 
-/* $Id: sexyz.h,v 1.3 2005/01/11 10:36:15 rswindell Exp $ */
+/* $Id: sexyz.h,v 1.4 2005/01/12 03:59:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@
 
 #define NOINP 0x0100     	/* input buffer empty (incom only) */
 
-uint	recv_byte(SOCKET sock, int timeout, long mode);
-int		send_byte(SOCKET sock, uchar ch, int timeout, long mode);
+uint	recv_byte(SOCKET sock, unsigned timeout, long mode);
+int		send_byte(SOCKET sock, uchar ch, unsigned timeout, long mode);
 char*	chr(uchar ch);
 void	bail(int code);
