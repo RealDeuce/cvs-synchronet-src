@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.31 2005/01/22 19:40:34 deuce Exp $ */
+/* $Id: ciolib.c,v 1.32 2005/01/23 00:12:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -477,8 +477,8 @@ void ciolib_gettextinfo(struct text_info *info)
                                			 BW40, BW80, C40, C80, or C4350 */
 		info->screenheight=cio_textinfo.screenheight;   /* text screen's height */
 		info->screenwidth=cio_textinfo.screenwidth;    /* text screen's width */
-		info->curx=cio_textinfo.curx;           /* x-coordinate in current window */
-		info->cury=cio_textinfo.cury;           /* y-coordinate in current window */
+		info->curx=cio_textinfo.curx-cio_textinfo.winleft+1;           /* x-coordinate in current window */
+		info->cury=cio_textinfo.cury-cio_textinfo.wintop+1;           /* y-coordinate in current window */
 	}
 }
 
