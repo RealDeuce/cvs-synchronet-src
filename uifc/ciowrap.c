@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.3 2003/08/29 11:42:28 rswindell Exp $ */
+/* $Id: ciowrap.c,v 1.4 2003/11/01 08:17:41 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -77,7 +77,7 @@ int puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	return(1);
 }
 
-int gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
+int cio_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
 	int x,y;
 	int fillpos=0;
