@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.6 2000/10/30 09:34:33 rswindell Exp $ */
+/* $Id: str.cpp,v 1.7 2000/10/30 12:09:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -885,15 +885,19 @@ void sbbs_t::errormsg(int line, char *source, char action, char *object
 		sprintf(tmp,"\r\n     errno: %d",errno);
 		strcat(str,tmp); 
 	}
+#if defined(__MSDOS__) || defined(_WIN32)
 	if(_doserrno && _doserrno!=(ulong)errno) {
 		sprintf(tmp,"\r\n  doserrno: %d",_doserrno);
 		strcat(str,tmp); 
 	}
+	errno=_doserrno=0;
+#endif
+#if defined(_WIN32)
 	if(GetLastError()!=0) {
 		sprintf(tmp,"\r\n  winerrno: %d (0x%X)",GetLastError(), GetLastError());
 		strcat(str,tmp);
 	}
-	errno=_doserrno=0;
+#endif
 	errorlog(str);
 	errormsg_inside=false;
 }
