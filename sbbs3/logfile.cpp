@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.24 2002/07/13 10:11:45 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.25 2002/11/13 03:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,20 +138,19 @@ bool sbbs_t::syslog(char* code, char *entry)
 	char	str[128];
 	char	tmp[64];
 	int		file;
-	struct tm * tm;
+	struct tm tm;
 
 	now=time(NULL);
-	tm=localtime(&now);
-	if(tm==NULL)
+	if(localtime_r(&now,&tm)==NULL)
 		return(false);
-	sprintf(fname,"%slogs/%2.2d%2.2d%2.2d.log",cfg.data_dir,tm->tm_mon+1,tm->tm_mday
-		,TM_YEAR(tm->tm_year));
+	sprintf(fname,"%slogs/%2.2d%2.2d%2.2d.log",cfg.data_dir,tm.tm_mon+1,tm.tm_mday
+		,TM_YEAR(tm.tm_year));
 	if((file=nopen(fname,O_WRONLY|O_APPEND|O_CREAT))==-1) {
 		lprintf("!ERRROR %d opening/creating %s",errno,fname); 
 		return(false);
 	}
 
-	sprintf(str,"%-2.2s %s  %s\r\n\r\n",code, hhmmtostr(&cfg,tm,tmp), entry);
+	sprintf(str,"%-2.2s %s  %s\r\n\r\n",code, hhmmtostr(&cfg,&tm,tmp), entry);
 	write(file,str,strlen(str));
 	close(file);
 

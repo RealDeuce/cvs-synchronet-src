@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.10 2002/07/25 03:00:26 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.11 2002/11/13 03:07:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 	bool	result,_not,_or,equal;
 	uint	i,n,artype,age;
 	ulong	l;
-	struct tm * tm;
+	struct tm tm;
 
 	result = true;
 
@@ -203,9 +203,9 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				break;
 			case AR_DAY:
 				now=time(NULL);
-				tm=localtime(&now);
-				if(tm==NULL || (equal && tm->tm_wday!=(int)n) 
-					|| (!equal && tm->tm_wday<(int)n))
+				localtime_r(&now,&tm);
+				if((equal && tm.tm_wday!=(int)n) 
+					|| (!equal && tm.tm_wday<(int)n))
 					result=_not;
 				else
 					result=!_not;
@@ -382,8 +382,8 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				break;
 			case AR_TIME:
 				now=time(NULL);
-				tm=localtime(&now);
-				if(tm==NULL || (tm->tm_hour*60)+tm->tm_min<(int)i)
+				localtime_r(&now,&tm);
+				if((tm.tm_hour*60)+tm.tm_min<(int)i)
 					result=_not;
 				else
 					result=!_not;

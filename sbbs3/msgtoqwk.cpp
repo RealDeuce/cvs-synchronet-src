@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.18 2002/11/10 01:45:56 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.19 2002/11/13 03:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	long	l,size=0,offset;
 	int 	i;
 	struct	tm	tm;
-	struct	tm* tm_p;
 	smbmsg_t	orig_msg;
 
 	offset=ftell(qwk_fp);
@@ -331,10 +330,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		size++;
 		fputc(SP,qwk_fp); }
 
-	tm_p=localtime((time_t *)&msg->hdr.when_written.time);
-	if(tm_p)
-		tm=*tm_p;
-	else
+	if(localtime_r((time_t *)&msg->hdr.when_written.time,&tm)==NULL)
 		memset(&tm,0,sizeof(tm));
 
 	sprintf(tmp,"%02u-%02u-%02u%02u:%02u"

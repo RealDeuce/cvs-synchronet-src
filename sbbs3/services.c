@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.84 2002/11/07 06:53:24 rswindell Exp $ */
+/* $Id: services.c,v 1.85 2002/11/13 03:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1198,7 +1198,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.84 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.85 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1220,6 +1220,7 @@ void DLLCALL services_thread(void* arg)
 	char			error[256];
 	char			host_ip[32];
 	char			compiler[32];
+	char			str[128];
 	char			cmd[128];
 	SOCKADDR_IN		addr;
 	SOCKADDR_IN		client_addr;
@@ -1294,7 +1295,7 @@ void DLLCALL services_thread(void* arg)
 
 		t=time(NULL);
 		lprintf("Initializing on %.24s with options: %lx"
-			,ctime(&t),startup->options);
+			,ctime_r(&t,str,sizeof(str)),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.35 2002/11/02 03:38:08 rswindell Exp $ */
+/* $Id: js_global.c,v 1.36 2002/11/13 03:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -692,7 +692,7 @@ js_strftime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char		str[128];
 	char*		fmt;
 	time_t		t=time(NULL);
-	struct tm*	tm_p;
+	struct tm	tm;
 
 	if(!JSVAL_IS_STRING(argv[0])) {
 		JS_ReportError(cx,nostringarg);
@@ -704,9 +704,9 @@ js_strftime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[1],(int32*)&t);
 
 	strcpy(str,"-Invalid time-");
-	tm_p=localtime(&t);
-	if(tm_p)
-		strftime(str,sizeof(str),fmt,tm_p);
+	if(localtime_r(&t,&tm)==NULL)
+		memset(&tm,0,sizeof(tm));
+	strftime(str,sizeof(str),fmt,&tm);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 	return(JS_TRUE);

@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.29 2002/11/07 08:01:37 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.30 2002/11/13 03:07:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1381,15 +1381,10 @@ void sbbs_t::guruchat(char *line, char *gurubuf, int gurunum)
 	int		file;
 	uint 	c,i,j,k;
 	long 	len;
-	struct	tm *tm_p;
 	struct	tm tm;
 
 	now=time(NULL);
-	tm_p=localtime(&now);
-	if(tm_p)
-		tm=*tm_p;
-	else
-		memset(&tm,0,sizeof(tm));
+	localtime_r(&now,&tm);
 
 	for(i=0;i<100;i++) {
 		if((answer[i]=(char *)MALLOC(513))==NULL) {

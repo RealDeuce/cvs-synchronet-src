@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.19 2002/08/16 23:40:01 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.20 2002/11/13 03:07:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 	long	length,l;
 	faddr_t addr;
 	fmsghdr_t hdr;
-	struct tm * tm;
+	struct tm tm;
 
 	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
@@ -170,11 +170,10 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 	}
 
 	now=time(NULL);
-	tm=localtime(&now);
-	if(tm!=NULL)
+	if(localtime_r(&now,&tm)!=NULL)
 		sprintf(hdr.time,"%02u %3.3s %02u  %02u:%02u:%02u"
-			,tm->tm_mday,mon[tm->tm_mon],TM_YEAR(tm->tm_year)
-			,tm->tm_hour,tm->tm_min,tm->tm_sec);
+			,tm.tm_mday,mon[tm.tm_mon],TM_YEAR(tm.tm_year)
+			,tm.tm_hour,tm.tm_min,tm.tm_sec);
 
 	hdr.destzone	=addr.zone;
 	hdr.destnet 	=addr.net;

@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.23 2002/11/07 08:01:38 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.24 2002/11/13 03:08:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ void sbbs_t::temp_xfer()
     time_t	start,end,t;
     file_t	f;
 	glob_t	g;
-	struct	tm * tm;
+	struct	tm tm;
 
 	if(!usrlibs)
 		return;
@@ -170,10 +170,9 @@ void sbbs_t::temp_xfer()
 					t=now;
 					if(cur_cps) 
 						t+=(f.size/(ulong)cur_cps);
-					tm=localtime(&t);
-					if(tm==NULL)
+					if(localtime_r(&t,&tm)==NULL)
 						break;
-					thisnode.aux=(tm->tm_hour*60)+tm->tm_min;
+					thisnode.aux=(tm.tm_hour*60)+tm.tm_min;
 
 					putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 					start=time(NULL);

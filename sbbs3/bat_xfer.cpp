@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.15 2002/11/07 08:01:37 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.16 2002/11/13 03:07:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -347,7 +347,7 @@ void sbbs_t::start_batch_download()
     uint	i,xfrprot;
     ulong	totalcdt,totalsize,totaltime;
     time_t	start,end,t;
-	struct	tm * tm;
+	struct	tm tm;
 
 	if(useron.rest&FLAG('D')) {     /* Download restriction */
 		bputs(text[R_Download]);
@@ -454,10 +454,8 @@ void sbbs_t::start_batch_download()
 	t=now;
 	if(cur_cps) 
 		t+=(totalsize/(ulong)cur_cps);
-	tm=localtime(&t);
-	if(tm==NULL)
-		return;
-	thisnode.aux=(tm->tm_hour*60)+tm->tm_min;
+	localtime_r(&t,&tm);
+	thisnode.aux=(tm.tm_hour*60)+tm.tm_min;
 	thisnode.action=action;
 	putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 	start=time(NULL);

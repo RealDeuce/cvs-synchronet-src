@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.24 2002/07/27 00:48:36 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.25 2002/11/13 03:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -858,7 +858,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 	long	usrcdt;
     time_t	start,end,t;
     file_t	f;
-	struct	tm * tm;
+	struct	tm tm;
 
 	sprintf(str,"%sxfer.ixt",cfg.data_dir);
 	if(mode==FI_USERXFER) {
@@ -1281,10 +1281,8 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 						getnodedat(cfg.node_num,&thisnode,1);
 						action=NODE_DLNG;
 						t=now+f.timetodl;
-						tm=localtime(&t);
-						if(tm==NULL)
-							break;
-						thisnode.aux=(tm->tm_hour*60)+tm->tm_min;
+						localtime_r(&t,&tm);
+						thisnode.aux=(tm.tm_hour*60)+tm.tm_min;
 						putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 						start=time(NULL);
 						error=protocol(cmdstr(cfg.prot[i]->dlcmd,path,nulstr,NULL),false);

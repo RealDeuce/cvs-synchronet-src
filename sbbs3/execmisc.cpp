@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.26 2002/10/29 09:08:13 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.27 2002/11/13 03:07:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 	void	*vp;
 	va_list arglist[64];
 	struct	dirent *de;
-    struct  tm *tm_p;
+    struct  tm tm;
 
 	switch(*(csi->ip++)) {
 		case CS_VAR_INSTRUCTION:
@@ -518,10 +518,11 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp=getintvar(csi,*(long *)csi->ip);
 					csi->ip+=4;
 					if(pp && lp) {
-						tm_p=localtime((time_t *)lp);
-						if(tm_p) {
-							strftime(buf,128,str,tm_p);
-							*pp=copystrvar(csi,*pp,buf); } }
+						if(localtime_r((time_t *)lp,&tm)!=NULL) {
+							strftime(buf,128,str,&tm);
+							*pp=copystrvar(csi,*pp,buf); 
+						} 
+					}
 					return(0);
 				case TIME_STR:
 					pp=getstrvar(csi,*(long *)csi->ip);
