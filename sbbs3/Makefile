@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.12 2002/08/10 22:50:36 rswindell Exp $
+# $Id: Makefile,v 1.13 2002/08/16 23:43:15 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -142,7 +142,7 @@ $(CHKSMB): chksmb.c $(SMBLIB) $(XPDEV)dirwrap.c
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
 # SMB Utility
-$(SMBUTIL): smbutil.c smbtxt.c crc32.c lzh.c $(SMBLIB) $(XPDEV)dirwrap.c
+$(SMBUTIL): smbutil.c smbtxt.c crc32.c lzh.c date_str.c str_util.c $(SMBLIB) $(XPDEV)dirwrap.c
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
