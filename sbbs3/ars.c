@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.1 2000/10/10 11:23:49 rswindell Exp $ */
+/* $Id: ars.c,v 1.2 2000/10/29 04:47:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,9 @@
 
 /* Converts ASCII ARS string into binary ARS buffer */
 
+#ifdef __BORLANDC__	/* Eliminate warning when buildling Baja */
+#pragma argsused
+#endif
 uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 {
 	static uchar nular[2]={0};
