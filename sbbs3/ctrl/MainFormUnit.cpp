@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.128 2004/08/03 06:56:33 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.127 2004/07/03 00:20:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1574,13 +1574,12 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         }
         sbbs_read_ini(fp
             ,&global
-            ,&SysAutoStart   		,&bbs_startup
-            ,&FtpAutoStart 			,&ftp_startup
-            ,&WebAutoStart 			,&web_startup
-            ,&MailAutoStart 	    	,&mail_startup
-            ,&ServicesAutoStart     	,&services_startup
+            ,(BOOL*)&SysAutoStart   		,&bbs_startup
+            ,(BOOL*)&FtpAutoStart 			,&ftp_startup
+            ,(BOOL*)&WebAutoStart 			,&web_startup
+            ,(BOOL*)&MailAutoStart 	    	,&mail_startup
+            ,(BOOL*)&ServicesAutoStart     	,&services_startup
             );
-       	StatusBar->Panels->Items[4]->Text="Imported " + AnsiString(ini_file);
         fclose(fp);
 
     } else {
