@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.32 2003/08/22 10:28:28 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.33 2003/10/24 22:09:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,26 +63,10 @@ char lib[LEN_GSNAME+1];
 #define SYNC_LIST	(1L<<13)
 #define KEEP_SPACE	(1L<<14)
 
-int lputs(char* str)
-{
-    char tmp[512];
-    int i,j,k;
-
-	j=strlen(str);
-	for(i=k=0;i<j;i++)      /* remove CRs */
-		if(str[i]==CR && str[i+1]==LF)
-			continue;
-		else
-			tmp[k++]=str[i];
-	tmp[k]=0;
-	return(fputs(tmp,stdout));
-}
-
 /****************************************************************************/
-/* Performs printf() through local assembly routines                        */
-/* Called from everywhere                                                   */
+/* This is needed by load_cfg.c												*/
 /****************************************************************************/
-int lprintf(char *fmat, ...)
+int lprintf(int level, char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[512];
@@ -91,7 +75,8 @@ int lprintf(char *fmat, ...)
 	va_start(argptr,fmat);
 	chcount=vsprintf(sbuf,fmat,argptr);
 	va_end(argptr);
-	lputs(sbuf);
+	truncsp(sbuf);
+	printf("%s\n",sbuf);
 	return(chcount);
 }
 
@@ -684,7 +669,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.32 $", "%*s %s", revision);
+	sscanf("$Revision: 1.33 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"

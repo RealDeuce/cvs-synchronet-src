@@ -2,7 +2,7 @@
 
 /* Program to add a user to a Synchronet user database */
 
-/* $Id: makeuser.c,v 1.3 2003/02/20 07:13:05 rswindell Exp $ */
+/* $Id: makeuser.c,v 1.4 2003/10/24 22:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,10 +40,9 @@
 scfg_t scfg;
 
 /****************************************************************************/
-/* Performs printf() through local assembly routines                        */
-/* Called from everywhere                                                   */
+/* This is needed by load_cfg.c												*/
 /****************************************************************************/
-int lprintf(char *fmat, ...)
+int lprintf(int level, char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[512];
@@ -52,10 +51,10 @@ int lprintf(char *fmat, ...)
 	va_start(argptr,fmat);
 	chcount=vsprintf(sbuf,fmat,argptr);
 	va_end(argptr);
-	printf("%s",sbuf);
+	truncsp(sbuf);
+	printf("%s\n",sbuf);
 	return(chcount);
 }
-
 
 char *usage="\nusage: makeuser [ctrl_dir] name [-param value] [...]\n"
 	"\nparams:\n"
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
 	time_t	now;
 	user_t	user;
 
-	sscanf("$Revision: 1.3 $", "%*s %s", revision);
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nMAKEUSER v%s-%s - Adds User to Synchronet User Database\n"
 		,revision

@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.8 2003/07/11 07:58:47 rswindell Exp $ */
+/* $Id: filelist.c,v 1.9 2003/10/24 22:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,26 +47,9 @@ scfg_t scfg;
 
 char *crlf="\r\n";
 
-int lputs(char* str)
-{
-    char tmp[256];
-    int i,j,k;
-
-	j=strlen(str);
-	for(i=k=0;i<j;i++)      /* remove CRs */
-		if(str[i]==CR && str[i+1]==LF)
-			continue;
-		else
-			tmp[k++]=str[i];
-	tmp[k]=0;
-	return(fputs(tmp,stdout));
-}
-
 /****************************************************************************/
-/* Performs printf() through local assembly routines                        */
-/* Called from everywhere                                                   */
 /****************************************************************************/
-int lprintf(char *fmat, ...)
+int lprintf(int level, char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[256];
@@ -75,7 +58,8 @@ int lprintf(char *fmat, ...)
 	va_start(argptr,fmat);
 	chcount=vsprintf(sbuf,fmat,argptr);
 	va_end(argptr);
-	lputs(sbuf);
+	truncsp(sbuf);
+	printf("%s\n",sbuf);
 	return(chcount);
 }
 
@@ -126,7 +110,7 @@ int main(int argc, char **argv)
 	time_t	uld,dld;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.8 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"

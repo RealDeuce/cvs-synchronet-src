@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.112 2003/10/24 22:02:02 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.113 2003/10/24 22:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,25 +141,6 @@ unsigned _rotr (
 }
 #endif
 
-/******************************************************************************
- Displays characters locally
-******************************************************************************/
-static int lputs(int level, char *str)
-{
-    char tmp[256];
-    int i,j,k;
-
-
-	j=strlen(str);
-	for(i=k=0;i<j;i++)      /* remove CRs */
-		if(str[i]==CR && str[i+1]==LF)
-			continue;
-		else
-			tmp[k++]=str[i];
-	tmp[k]=0;
-	return(fputs(tmp,stdout));
-}
-
 /****************************************************************************/
 /* This is needed by load_cfg.c												*/
 /****************************************************************************/
@@ -173,7 +154,8 @@ int lprintf(int level, char *fmat, ...)
 	chcount=vsnprintf(sbuf,sizeof(sbuf),fmat,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
 	va_end(argptr);
-	lputs(level, sbuf);
+	truncsp(sbuf);
+	printf("%s\n",sbuf);
 	return(chcount);
 }
 
@@ -4085,7 +4067,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.112 $", "%*s %s", revision);
+	sscanf("$Revision: 1.113 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
