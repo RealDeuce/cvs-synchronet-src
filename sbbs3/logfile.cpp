@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.4 2001/04/11 03:39:13 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.5 2001/06/26 02:43:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,7 @@ void sbbs_t::logline(char *code, char *str)
 /****************************************************************************/
 /* Writes a comma then 'ch' to log, tracking column.						*/
 /****************************************************************************/
-void sbbs_t::logch(char ch, char comma)
+void sbbs_t::logch(char ch, bool comma)
 {
 
 	if(logfile_fp==NULL || (online==ON_LOCAL)) return;

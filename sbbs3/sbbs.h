@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.56 2001/06/23 00:44:59 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.57 2001/06/26 02:43:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -609,7 +609,7 @@ public:
 	/* logio.cpp */
 	void	logentry(char *code,char *entry);
 	void	log(char *str);				/* Writes 'str' to node log */
-	void	logch(char ch, char comma);	/* Writes 'ch' to node log */
+	void	logch(char ch, bool comma);	/* Writes 'ch' to node log */
 	void	logline(char *code,char *str); /* Writes 'str' on it's own line in log */
 	void	logofflist(void);              /* List of users logon activity */
 	void	errorlog(char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
