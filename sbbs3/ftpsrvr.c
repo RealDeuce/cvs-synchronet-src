@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.112 2001/11/10 03:25:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.113 2001/11/11 21:41:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4450,7 +4450,7 @@ void DLLCALL ftp_server(void* arg)
     	,sizeof(server_addr)))!=0) {
 		lprintf("%04d !ERROR %d (%d) binding socket to port %u"
 			,server_socket, result, ERROR_VALUE,startup->port);
-		lprintf("!Another service may be using this port");
+		lprintf("%04d %s", server_socket, BIND_FAILURE_HELP);
 		cleanup(1);
 		return;
 	}

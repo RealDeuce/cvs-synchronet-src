@@ -2,7 +2,7 @@
 
 /* Synchronet Services Server */
 
-/* $Id: services.c,v 1.4 2001/11/11 20:20:37 rswindell Exp $ */
+/* $Id: services.c,v 1.5 2001/11/11 21:41:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -892,8 +892,7 @@ void DLLCALL services_thread(void* arg)
 		if(bind(socket, (struct sockaddr *) &addr, sizeof(addr))!=0) {
 			lprintf("%04d !ERROR %d binding %s socket to port %u"
 				,socket, ERROR_VALUE, service[i].protocol, service[i].port);
-			lprintf("%04d !Another application or service may be using this port"
-				,socket);
+			lprintf("%04d %s",socket,BIND_FAILURE_HELP);
 			close_socket(socket);
 			continue;
 		}
