@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.18 2004/11/10 04:50:56 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.20 2004/12/02 09:03:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,9 +196,17 @@ static char* prop_desc[] = {
 #endif
 
 DLLEXPORT JSBool DLLCALL
-js_GenericBranchCallback(JSContext *cx, js_branch_t* branch)
+js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 {
 	branch->counter++;
+
+	/* Terminated? */
+	if(branch->auto_terminate &&
+		(branch->terminated!=NULL && *branch->terminated)) {
+		JS_ReportError(cx,"Terminated");
+		branch->counter=0;
+		return(JS_FALSE);
+	}
 
 	/* Infinite loop? */
 	if(branch->limit && branch->counter > branch->limit) {
@@ -206,15 +214,14 @@ js_GenericBranchCallback(JSContext *cx, js_branch_t* branch)
 		branch->counter=0;
 		return(JS_FALSE);
 	}
+
 	/* Give up timeslices every once in a while */
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
 		YIELD();
 
+	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
 		JS_MaybeGC(cx), branch->gc_attempts++;
-
-	if(branch->terminated!=NULL && *branch->terminated)
-		return(JS_FALSE);
 
     return(JS_TRUE);
 }
