@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.218 2004/11/18 00:07:42 deuce Exp $ */
+/* $Id: websrvr.c,v 1.219 2004/11/18 01:02:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2841,7 +2841,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.218 $", "%*s %s", revision);
+	sscanf("$Revision: 1.219 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2888,15 +2888,13 @@ void http_logging_thread(void* arg)
 			break;
 
 		pthread_mutex_lock(&log_mutex);
-		ld=listRemoveNode(&log_list, FIRST_NODE);
+		ld=listShiftNode(&log_list);
 		pthread_mutex_unlock(&log_mutex);
 		if(ld==NULL) {
 			lprintf(LOG_ERR,"%04d http logging thread received NULL linked list log entry"
 				,server_socket);
 			continue;
 		}
-		if(ld==NULL)
-			continue;
 		SAFECOPY(newfilename,base);
 		strftime(strchr(newfilename,0),15,"%Y-%m-%d.log",&ld->completed);
 		if(strcmp(newfilename,filename)) {
