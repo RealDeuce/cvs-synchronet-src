@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.90 2003/04/18 04:54:15 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.91 2003/05/07 05:39:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -654,6 +654,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
 
 								/* Bits in 'mode' for getkey and getstr     */
+#define K_NONE		0			/* Use as a place holder for no mode flags	*/
 #define K_UPPER 	(1L<<0) 	/* Converts all letters to upper case		*/
 #define K_UPRLWR	(1L<<1) 	/* Upper/Lower case automatically			*/
 #define K_NUMBER	(1L<<2) 	/* Allow numbers only						*/
