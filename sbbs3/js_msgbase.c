@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.59 2003/02/28 05:04:11 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.60 2003/03/01 07:21:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -370,7 +370,7 @@ BOOL get_msg_by_id(scfg_t* scfg, smb_t* smb, char* id, smbmsg_t* msg)
 	int			ret;
 
 	for(n=0;n<smb->status.last_msg;n++) {
-		memset(&msg,0,sizeof(smbmsg_t));
+		memset(msg,0,sizeof(smbmsg_t));
 		msg->offset=n;
 		if(smb_getmsgidx(smb, msg)!=0)
 			break;
