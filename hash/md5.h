@@ -1,6 +1,6 @@
 /* md5.h - header file for md5.c */
 
-/* $Id: md5.h,v 1.4 2004/09/23 18:07:48 rswindell Exp $ */
+/* $Id: md5.h,v 1.3 2004/08/30 07:17:31 rswindell Exp $ */
 
 /* RSA Data Security, Inc., MD5 Message-Digest Algorithm */
 
@@ -50,39 +50,15 @@ typedef struct
   BYTE	buffer[64];
 } MD5;
 
-#if defined(DLLEXPORT)
-	#undef DLLEXPORT
-#endif
-#if defined(DLLCALL)
-	#undef DLLCALL
-#endif
-
-#if defined(_WIN32) && (defined(MD5_IMPORTS) || defined(MD5_EXPORTS))
-	#if defined(MD5_IMPORTS)
-		#define DLLEXPORT	__declspec(dllimport)
-	#else
-		#define DLLEXPORT	__declspec(dllexport)
-	#endif
-	#if defined(__BORLANDC__)
-		#define DLLCALL __stdcall
-	#else
-		#define DLLCALL
-	#endif
-#else	/* !_WIN32 || !_DLL*/
-	#define DLLEXPORT
-	#define DLLCALL
-#endif
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-DLLEXPORT void	DLLCALL MD5_open(MD5* ctx);
-DLLEXPORT void	DLLCALL MD5_digest(MD5* ctx, const void* buf, size_t len);
-DLLEXPORT void	DLLCALL MD5_close(MD5* ctx, BYTE digest[MD5_DIGEST_SIZE]);
-DLLEXPORT BYTE*	DLLCALL MD5_calc(BYTE digest[MD5_DIGEST_SIZE], const void* buf, size_t len);
-DLLEXPORT BYTE*	DLLCALL MD5_hex(BYTE* dest, const BYTE digest[MD5_DIGEST_SIZE]);
+void MD5_open(MD5* ctx);
+void MD5_digest(MD5* ctx, const void* buf, size_t len);
+void MD5_close(MD5* ctx, BYTE digest[MD5_DIGEST_SIZE]);
+BYTE* MD5_calc(BYTE digest[MD5_DIGEST_SIZE], const void* buf, size_t len);
+BYTE* MD5_hex(BYTE* dest, const BYTE digest[MD5_DIGEST_SIZE]);
 
 #ifdef __cplusplus
 }
