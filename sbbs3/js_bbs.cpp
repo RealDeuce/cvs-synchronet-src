@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.67 2004/09/08 03:41:22 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.66 2004/08/28 03:16:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -441,7 +441,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->current_msg==NULL || sbbs->current_msg->to_net.type==NET_NONE)
 				p=nulstr;
 			else
-				p=smb_netaddr(&sbbs->current_msg->to_net);
+				p=net_addr(&sbbs->current_msg->to_net);
 			break;
 		case BBS_PROP_MSG_TO_AGENT:
 			if(sbbs->current_msg!=NULL)
@@ -463,7 +463,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->current_msg==NULL || sbbs->current_msg->from_net.type==NET_NONE)
 				p=nulstr;
 			else
-				p=smb_netaddr(&sbbs->current_msg->from_net);
+				p=net_addr(&sbbs->current_msg->from_net);
 			break;
 		case BBS_PROP_MSG_FROM_AGENT:
 			if(sbbs->current_msg!=NULL)
@@ -485,7 +485,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->current_msg==NULL || sbbs->current_msg->replyto_net.type==NET_NONE)
 				p=nulstr;
 			else
-				p=smb_netaddr(&sbbs->current_msg->replyto_net);
+				p=net_addr(&sbbs->current_msg->replyto_net);
 			break;
 		case BBS_PROP_MSG_REPLYTO_AGENT:
 			if(sbbs->current_msg!=NULL)
