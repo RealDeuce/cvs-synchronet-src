@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.27 2004/09/08 03:41:23 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.28 2004/10/27 09:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -809,7 +809,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				if(msg.from_net.addr==NULL)
 					strcpy(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO)
-					sprintf(str,"%s @%s",msg.from
+					sprintf(str,"%s@%s",msg.from
 						,smb_faddrtoa((faddr_t *)msg.from_net.addr,tmp));
 				else if(msg.from_net.type==NET_INTERNET)
 					strcpy(str,(char *)msg.from_net.addr);
