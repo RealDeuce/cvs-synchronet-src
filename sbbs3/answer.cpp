@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.43 2004/10/21 08:44:30 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.44 2004/12/07 08:53:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,7 @@ bool sbbs_t::answer()
 									,0,useron.alias);
 								logline("+!",str);
 						}
-						lprintf(LOG_INFO,"%04d !CLIENT IP NOT LISTED in rlogin.can",client_socket);
+						lprintf(LOG_WARNING,"%04d !CLIENT IP NOT LISTED in %s",client_socket,path);
 						useron.number=0;
 						hangup();
 					}
