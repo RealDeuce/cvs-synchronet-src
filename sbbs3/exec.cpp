@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.16 2001/06/23 00:50:59 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.17 2001/06/27 02:30:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1411,7 +1411,7 @@ int sbbs_t::exec(csi_t *csi)
 							break;
 						sprintf(useron.alias,"%.*s",LEN_ALIAS,csi->str);
 						putuserrec(&cfg,useron.number,U_ALIAS,LEN_ALIAS,useron.alias);
-						putusername(useron.number,useron.alias);
+						putusername(&cfg,useron.number,useron.alias);
 						csi->logic=LOGIC_TRUE;
 						break;
 					case USER_STRING_REALNAME:

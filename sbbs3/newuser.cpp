@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.12 2001/03/09 23:20:42 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.13 2001/06/27 02:30:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,7 +398,7 @@ void sbbs_t::newuser()
 
 	useron.number=i;
 	putuserdat(&cfg,&useron);
-	putusername(useron.number,useron.alias);
+	putusername(&cfg,useron.number,useron.alias);
 	logline(nulstr,"Wrote user data");
 	if(cfg.new_sif[0]) {
 		sprintf(str,"%suser/%4.4u.dat",cfg.data_dir,useron.number);
@@ -428,7 +428,7 @@ void sbbs_t::newuser()
 				putuserrec(&cfg,useron.number,U_COMMENT,60,"Didn't leave feedback");
 				putuserrec(&cfg,useron.number,U_MISC,8
 					,ultoa(useron.misc|DELETED,tmp,16));
-				putusername(useron.number,nulstr);
+				putusername(&cfg,useron.number,nulstr);
 				return; } } }
 
 	sprintf(str,"%sfile/%04u.IN",cfg.data_dir,useron.number);  /* delete any files */
