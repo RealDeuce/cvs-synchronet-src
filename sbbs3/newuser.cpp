@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.29 2002/07/11 09:51:21 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.30 2002/08/10 08:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -482,6 +482,10 @@ void sbbs_t::newuser()
 	remove(str);
 	sprintf(str,"%suser/%04u.sig",cfg.data_dir,useron.number); /* delete signature */
 	remove(str);
+
+#ifdef JAVASCRIPT
+	js_create_user_objects();
+#endif
 
 	if(cfg.newuser_mod[0])
 		exec_bin(cfg.newuser_mod,&main_csi);

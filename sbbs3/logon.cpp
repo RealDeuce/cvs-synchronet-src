@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.24 2002/06/28 00:24:42 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.25 2002/08/10 08:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,19 +68,7 @@ bool sbbs_t::logon()
 	client_on(client_socket,&client,TRUE /* update */);
 
 #ifdef JAVASCRIPT
-	if(js_cx!=NULL) {
-		/* user object */
-		if(js_CreateUserObject(js_cx, js_glob, &cfg, "user", useron.number)==NULL) 
-			lprintf("!JavaScript ERROR creating user object");
-
-		/* file_area object */
-		if(js_CreateFileAreaObject(js_cx, js_glob, &cfg, &useron, "")==NULL) 
-			lprintf("!JavaScript ERROR creating file_area object");
-
-		/* msg_area object */
-		if(js_CreateMsgAreaObject(js_cx, js_glob, &cfg, &useron, subscan)==NULL) 
-			lprintf("!JavaScript ERROR creating msg_area object");
-	}
+	js_create_user_objects();
 #endif
 
 	if(useron.rest&FLAG('Q'))

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.173 2002/08/08 02:58:56 rswindell Exp $ */
+/* $Id: main.cpp,v 1.174 2002/08/10 08:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -554,6 +554,24 @@ bool sbbs_t::js_init()
 	}
 
 	return(true);
+}
+
+void sbbs_t::js_create_user_objects(void)
+{
+	if(js_cx==NULL)
+		return;
+
+	/* user object */
+	if(js_CreateUserObject(js_cx, js_glob, &cfg, "user", useron.number)==NULL) 
+		lprintf("!JavaScript ERROR creating user object");
+
+	/* file_area object */
+	if(js_CreateFileAreaObject(js_cx, js_glob, &cfg, &useron, "")==NULL) 
+		lprintf("!JavaScript ERROR creating file_area object");
+
+	/* msg_area object */
+	if(js_CreateMsgAreaObject(js_cx, js_glob, &cfg, &useron, subscan)==NULL) 
+		lprintf("!JavaScript ERROR creating msg_area object");
 }
 
 #endif	/* JAVASCRIPT */
