@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.7 2004/05/21 02:31:33 rswindell Exp $ */
+/* $Id: link_list.c,v 1.8 2004/05/21 02:52:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
