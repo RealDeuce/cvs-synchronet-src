@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.2 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: login.cpp,v 1.3 2001/06/23 00:50:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,7 @@ int sbbs_t::login(char *str, char *pw)
 			useron.number=0;
 			useron.misc=useron_misc;
 			return(LOGIC_FALSE); }
-		if(REALSYSOP && !chksyspass(0)) {
+		if(REALSYSOP && !chksyspass()) {
 			bputs(text[InvalidLogon]);
 			useron.number=0;
 			useron.misc=useron_misc;
