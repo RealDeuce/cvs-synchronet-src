@@ -1,6 +1,6 @@
 /* uifcx.c */
 
-/* $Id: uifcd.c,v 1.1 2002/01/25 12:46:23 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.2 2002/01/25 12:48:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,19 +159,29 @@ int ulist(int mode, char left, int top, char width, int *cur, int *bar
     if(width<strlen(title)+4) width=strlen(title)+4;
 
     do {
-        dialog_clear_norefresh();
         i=*cur;
         if(i<0) i=0;
-        ret=dialog_menu(title, "SCFG Menu", 22, width, 15, cnt, it, str, &i, 0);
+	if(strcmp(option[0],"Yes")==0 && strcmp(option[1],"No")==0 && cnt==2)  {
+	    ret=dialog_yesno("Yes/No",title,5,width);
+	    if(ret) ret=1; else ret=0;
+	}
+	else if(strcmp(option[0],"No")==0 && strcmp(option[1],"Yes")==0 && cnt==2)  {
+	    ret=dialog_noyes("Yes/No",title,5,width);
+	    if(ret) ret=0; else ret=1;
+	}
+	else  {
+            dialog_clear_norefresh();
+            ret=dialog_menu(title, "SCFG Menu", 22, width, 15, cnt, it, str, &i, 0);
 
-        if(ret==1) ret = -1;
-        if(ret==0)  {
-	    ret = str[0];
-	    ret -= 49;
-	    if(ret==-16) ret = -2;
-	    if(ret==15) ret = -3;
-	    if(ret>10) ret -= 7;
-        }
+            if(ret==1) ret = -1;
+            if(ret==0)  {
+	        ret = str[0];
+	        ret -= 49;
+	        if(ret==-16) ret = -2;
+	        if(ret==15) ret = -3;
+	        if(ret>10) ret -= 7;
+            }
+	}
         if(ret==-2)  {
             dialog_clear_norefresh();
 	    if(freecnt-4>0)  {
