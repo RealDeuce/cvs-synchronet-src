@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.102 2004/10/20 11:23:56 deuce Exp $ */
+/* $Id: uifc32.c,v 1.107 2004/12/20 20:59:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -749,8 +749,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		i=0;
 		if(kbwait()) {
 			i=inkey();
-			if(i==BS)
-				i=ESC;
 			if(i==CIO_KEY_MOUSE) {
 				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
@@ -820,6 +818,41 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							|| mevnt.starty>s_top+top+height-1)
 						i=ESC;
 				}
+			}
+			/* For compatibility with terminals lacking special keys */
+			switch(i) {
+				case '\b':
+					i=ESC;
+					break;
+				case '+':
+					i=CIO_KEY_IC;	/* insert */
+					break;
+				case '-':
+				case DEL:
+					i=CIO_KEY_DC;	/* delete */
+					break;
+				case CTRL_B:
+					i=CIO_KEY_HOME;
+					break;
+				case CTRL_E:
+					i=CIO_KEY_END;
+					break;
+				case CTRL_U:
+					i=CIO_KEY_PPAGE;
+					break;
+				case CTRL_D:
+					i=CIO_KEY_NPAGE;
+					break;
+				case CTRL_Z:
+					i=CIO_KEY_F(1);	/* help */
+					break;
+				case CTRL_C:
+					i=CIO_KEY_F(5);	/* copy */
+					break;
+				case CTRL_V:
+					i=CIO_KEY_F(6);	/* paste */
+					break;
+
 			}
 			if(i>255) {
 				s=0;
@@ -1541,6 +1574,10 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				|| (f >= 0xff && f != CIO_KEY_DC) 
 				|| (f == '\t' && mode&K_TABEXIT) 
 				|| (f == '%' && mode&K_SCANNING)
+				|| f==CTRL_B
+				|| f==CTRL_E
+				|| f==CTRL_V
+				|| f==CTRL_Z
 				|| f==0)
 		{
 			getstrupd(left, top, width, str, i, &soffset);
@@ -1580,6 +1617,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				*lastkey=ch;
 			switch(ch)
 			{
+				case CTRL_Z:
 				case CIO_KEY_F(1):	/* F1 Help */
 					api->showhelp();
 					continue;
@@ -1595,18 +1633,21 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						i++;
 					}
 					continue;
+				case CTRL_B:
 				case CIO_KEY_HOME:	/* home */
 					if(i)
 					{
 						i=0;
 					}
 					continue;
+				case CTRL_E:
 				case CIO_KEY_END:	/* end */
 					if(i<j)
 					{
 						i=j;
 					}
 					continue;
+				case CTRL_V:
 				case CIO_KEY_IC:	/* insert */
 					ins=!ins;
 					if(ins)
@@ -1643,7 +1684,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						j--;
 					}
 					continue;
-				case 3:
+				case CTRL_C:
 				case ESC:
 					{
 						cursor=_NOCURSOR;
@@ -1663,16 +1704,18 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				case CIO_KEY_F(2):
 				case CIO_KEY_UP:
 				case CIO_KEY_DOWN:
-					if(mode&K_DEUCEEXIT)
+					if(mode&K_DEUCEEXIT) {
 						ch=CR;
-					break;
-				case 24:   /* ctrl-x  */
+						break;
+					}
+					continue;
+				case CTRL_X:
 					if(j)
 					{
 						i=j=0;
 					}
 					continue;
-				case 25:   /* ctrl-y */
+				case CTRL_Y:
 					if(i<j)
 					{
 						j=i;
@@ -1944,6 +1987,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	char inverse=0,high=0;
 	char *textbuf;
     char *p;
+	char *oldp=NULL;
 	int i,j,k,len;
 	int	 lines;
 	int pad=1;
@@ -2070,17 +2114,17 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	}
 	len=strlen(hbuf);
 
-	lines=1;		/* The first one is free */
+	lines=0;
 	k=0;
 	for(j=0;j<len;j++) {
 		k++;
-		if(hbuf[j]==LF)
-			lines++;
-		if(k>72) {
+		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n'))) {
 			k=0;
 			lines++;
 		}
 	}
+	if(k)
+		lines++;
 	if(lines < height-2-pad-pad)
 		lines=height-2-pad-pad;
 
@@ -2122,7 +2166,16 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	}
 	else {
 		while(i==0) {
-			puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
+			if(p!=oldp) {
+				if(p > textbuf+(lines-(height-2-pad-pad))*(width-4)*2)
+					p=textbuf+(lines-(height-2-pad-pad))*(width-4)*2;
+				if(p<textbuf)
+					p=textbuf;
+				if(p!=oldp) {
+					puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
+					oldp=p;
+				}
+			}
 			if(kbwait()) {
 				j=inkey();
 				if(j==CIO_KEY_MOUSE) {
@@ -2135,8 +2188,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty<=top+pad+(height/2)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 							p = p-((width-4)*2*(height-5));
-							if(p<textbuf)
-								p=textbuf;
 							continue;
 						}
 						/* Clicked Scroll Down */
@@ -2146,10 +2197,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty>=top+pad+height-(height/2+1)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 							p=p+(width-4)*2*(height-5);
-							if(p > textbuf+(lines-height+1)*(width-4)*2)
-								p=textbuf+(lines-height+1)*(width-4)*2;
-							if(p<textbuf)
-								p=textbuf;
 							continue;
 						}
 						i=1;
@@ -2163,36 +2210,22 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 
 					case CIO_KEY_UP:	/* up arrow */
 						p = p-((width-4)*2);
-						if(p<textbuf)
-							p=textbuf;
 						break;
 					
 					case CIO_KEY_PPAGE:	/* PgUp */
 						p = p-((width-4)*2*(height-5));
-						if(p<textbuf)
-							p=textbuf;
 						break;
 
 					case CIO_KEY_NPAGE:	/* PgDn */
 						p=p+(width-4)*2*(height-5);
-						if(p > textbuf+(lines-height+1)*(width-4)*2)
-							p=textbuf+(lines-height+1)*(width-4)*2;
-						if(p<textbuf)
-							p=textbuf;
 						break;
 
 					case CIO_KEY_END:	/* end */
 						p=textbuf+(lines-height+1)*(width-4)*2;
-						if(p<textbuf)
-							p=textbuf;
 						break;
 
 					case CIO_KEY_DOWN:	/* dn arrow */
 						p = p+((width-4)*2);
-						if(p > textbuf+(lines-height+1)*(width-4)*2)
-							p=textbuf+(lines-height+1)*(width-4)*2;
-						if(p<textbuf)
-							p=textbuf;
 						break;
 
 					default:
