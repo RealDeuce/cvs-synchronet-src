@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.13 2001/06/05 02:39:54 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.14 2001/07/25 02:59:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,10 +152,10 @@ void sbbs_t::ver()
 	CRLF;
 
 #ifdef JAVASCRIPT
-
-	center((char *)JS_GetImplementationVersion());
-	CRLF;
-
+	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
+		center((char *)JS_GetImplementationVersion());
+		CRLF;
+	}
 #endif
 
 	center(socklib_version(str));
