@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.14 2002/10/31 03:23:05 rswindell Exp $
+# $Id: Makefile,v 1.15 2002/11/05 07:44:04 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -28,6 +28,10 @@ XPDEV	=	..\xpdev\		# Path to Cross-platform wrappers
 CFLAGS	=	-M -I$(XPDEV) -I$(UIFC)
 LFLAGS  =	-m -s -c -Tpd -Gi -I$(LIBODIR)
 DELETE	=	echo y | del 
+
+# Enable auto-dependency checking
+.autodepend
+.cacheautodepend	
 
 # Optional compile flags (disable banner, warnings and such)
 CFLAGS	=	$(CFLAGS) -q -d -H -X- -w-csu -w-pch -w-ccc -w-rch -w-par
@@ -77,7 +81,10 @@ $(EXEODIR):
 	@if not exist $(EXEODIR) mkdir $(EXEODIR)
 
 # Monolithic Synchronet executable Build Rule
-$(SBBSMONO): sbbscon.c sbbs_ini.c $(XPDEV)ini_file.c $(OBJS) \
+$(SBBSMONO): $(OBJS) \
+	$(LIBODIR)\sbbscon.$(OFILE) \
+	$(LIBODIR)\sbbs_ini.$(OFILE) \
+	$(LIBODIR)\ini_file.$(OFILE) \
 	$(LIBODIR)\ver.$(OFILE) \
 	$(LIBODIR)\ftpsrvr.$(OFILE) \
 	$(LIBODIR)\websrvr.$(OFILE) \
@@ -201,5 +208,3 @@ $(FILELIST): filelist.c \
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
-
-!include depends.mk		# defines dependencies
