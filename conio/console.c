@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.35 2005/01/27 03:54:28 deuce Exp $ */
+/* $Id: console.c,v 1.36 2005/01/27 04:14:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -449,7 +449,6 @@ video_update_text()
 					setgc(vmem[r * DpyCols + c]  & 0xff00);
 					x11.XCopyPlane(dpy,pfnt,win,gc,0,FH*(vmem[r * DpyCols + c]&0xff),FW,FH,c*FW+2,r*FH+2,1);
 					lines[r].changed = 2;
-					lines[r].exposed[c]=0;
 				}
 			}
 	    }
@@ -469,7 +468,6 @@ video_update_text()
 		}
 		lines[r].changed = 0;
 		memset(lines[r].exposed,0,CONSOLE_MAX_COLS * sizeof(u_char));
-		x11.XFlush(dpy);
 	}
 
 	if (CursStart <= CursEnd && CursEnd <= FH &&
@@ -594,7 +592,7 @@ void expose_chars(int x, int y, int width, int height)
 	sy/=FH;
 	ey/=FH;
 	if(ey>DpyRows)
-		ex=DpyRows;
+		ey=DpyRows;
 
 	for(r=sy;r<=ey;r++) {
 		for(c=sx;c<=ex;c++) {
@@ -1184,6 +1182,12 @@ resize_window()
     x11.XFlush(dpy);
 
     x11.XFree(sh);
+
+	if(lines != NULL) {
+		for (r = 0; r < (CONSOLE_MAX_ROWS+1); ++r) {
+			lines[r].changed = 1;
+		}
+	}
 
     return;
 }
