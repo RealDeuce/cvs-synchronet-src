@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.21 2004/04/17 19:24:00 deuce Exp $
+# $Id: GNUmakefile,v 1.22 2004/08/10 03:49:03 deuce Exp $
 
 #USE_CURSES	:=	1	#Use old curses UIFC implementation
 USE_UIFC32	:=	1	# Use new uifc32 implementation
@@ -21,6 +21,8 @@ XPDEV	=	../../xpdev/
 SBBS_SRC	=   ../
 
 NEED_UIFC	:=	1
+NEED_CTERM	:=	1
+
 include $(XPDEV)Common.gmake
 include $(SBBS_SRC)Common.gmake
 include $(UIFC)Common.gmake

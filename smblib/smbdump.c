@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.1 2004/07/20 09:11:19 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.2 2004/08/28 03:16:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,8 +113,8 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 	fprintf(fp,"%-20.20s %08lXh\n"	,"netattr"			,msg->hdr.netattr);
 
 	/* optional fixed fields */
-	if(msg->hdr.thread_orig)
-		fprintf(fp,"%-20.20s %ld\n"	,"thread_orig"		,msg->hdr.thread_orig);
+	if(msg->hdr.thread_back)
+		fprintf(fp,"%-20.20s %ld\n"	,"thread_back"		,msg->hdr.thread_back);
 	if(msg->hdr.thread_next)
 		fprintf(fp,"%-20.20s %ld\n"	,"thread_next"		,msg->hdr.thread_next);
 	if(msg->hdr.thread_first)
