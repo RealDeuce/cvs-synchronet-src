@@ -1,6 +1,6 @@
 /* scfgnode.c */
 
-/* $Id: scfgnode.c,v 1.2 2002/01/16 03:12:31 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.3 2002/01/16 18:18:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,6 +250,8 @@ If you want to abort the creation of this new node, hit  ESC .
 		free_node_cfg(&cfg);
 		savnode=0; }
 	strcpy(cfg.node_dir,cfg.node_path[i]);
+	prep_dir(cfg.ctrl_dir, cfg.node_dir);
+
 	upop("Reading NODE.CNF...");
 	read_node_cfg(&cfg,&txt);
 	upop(0);
