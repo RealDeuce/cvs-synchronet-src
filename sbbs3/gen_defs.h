@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.3 2000/10/23 20:42:30 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.4 2000/10/23 23:12:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,13 +60,17 @@
 #endif
 
 /* Unsigned type short-hands	*/
+#ifndef uchar
 #define uchar	unsigned char
+#endif
 #ifdef __GLIBC__
 	#include <sys/types.h>
 #else
+	#ifndef ushort
 	#define ushort  unsigned short
 	#define uint    unsigned int
 	#define ulong   unsigned long
+	#endif
 #endif
 
 /* Windows Types */
@@ -88,6 +92,31 @@
 #endif
 #ifndef HANDLE
 #define HANDLE	void*
+#endif
+
+/* Open flags */
+#ifdef _WIN32
+
+#ifndef O_DENYNONE
+#define O_DENYNONE	OF_SHARE_DENY_NONE
+#define O_DENYALL	OF_SHARE_EXCLUSIVE
+#endif
+
+#elif defined(__unix__)
+
+#define O_DENYNONE	0
+#define O_DENYALL	0
+#define O_BINARY	0
+#define SH_DENYNO	0
+#define SH_DENYRW	0
+#define SH_DENYWR	0
+
+#endif
+
+#ifdef _MSC_VER			/* Visual C++ */
+
+#define S_IWRITE	_S_IWRITE
+
 #endif
 
 /****************************************************************************/
