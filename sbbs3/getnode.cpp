@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.7 2001/05/21 23:03:11 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.8 2001/06/12 01:23:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,10 @@ void sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	char	str[MAX_PATH];
 	int		count;
 
-	if(!number || number>cfg.sys_nodes) {
+	if(!number)
+		return;
+
+	if(number>cfg.sys_nodes) {
 		errormsg(WHERE,ERR_CHK,"node number",number);
 		return; 
 	}
