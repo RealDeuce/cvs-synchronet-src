@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.295 2003/10/16 03:22:30 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.296 2003/10/16 10:00:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -649,7 +649,7 @@ static void pop3_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_ip,"ip")) {
-		lprintf(LOG_WARNING,"%04d !POP3 BLOCKED CLIENT IP ADDRESS: %s"
+		lprintf(LOG_NOTICE,"%04d !POP3 BLOCKED CLIENT IP ADDRESS: %s"
 			,socket, host_ip);
 		sockprintf(socket,"-ERR Access denied.");
 		mail_close_socket(socket);
@@ -658,7 +658,7 @@ static void pop3_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
-		lprintf(LOG_WARNING,"%04d !POP3 BLOCKED CLIENT HOSTNAME: %s"
+		lprintf(LOG_NOTICE,"%04d !POP3 BLOCKED CLIENT HOSTNAME: %s"
 			,socket, host_name);
 		sockprintf(socket,"-ERR Access denied.");
 		mail_close_socket(socket);
@@ -1248,7 +1248,7 @@ static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_i
 	if(!trashcan(&scfg,addr,"email"))
 		return(TRUE);
 
-	lprintf(LOG_WARNING,"%04d !SMTP BLOCKED SOURCE: %s"
+	lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SOURCE: %s"
 		,socket, addr);
 	sprintf(tmp,"Blocked source e-mail address: %s", addr);
 	spamlog(&scfg, "SMTP", "REFUSED", tmp, host_name, host_ip, to, from);
@@ -1630,7 +1630,7 @@ static void smtp_thread(void* arg)
 	sprintf(spam_block,"%sspamblock.cfg",scfg.ctrl_dir);
 
 	if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
-		lprintf(LOG_WARNING,"%04d !SMTP BLOCKED SERVER IP ADDRESS: %s"
+		lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER IP ADDRESS: %s"
 			,socket, host_ip);
 		sockprintf(socket,"550 Access denied.");
 		mail_close_socket(socket);
@@ -1639,7 +1639,7 @@ static void smtp_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
-		lprintf(LOG_WARNING,"%04d !SMTP BLOCKED SERVER HOSTNAME: %s"
+		lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER HOSTNAME: %s"
 			,socket, host_name);
 		sockprintf(socket,"550 Access denied.");
 		mail_close_socket(socket);
@@ -2539,7 +2539,7 @@ static void smtp_thread(void* arg)
 
 			/* Check for blocked recipients */
 			if(trashcan(&scfg,rcpt_addr,"email")) {
-				lprintf(LOG_WARNING,"%04d !SMTP BLOCKED RECIPIENT (%s) from: %s"
+				lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED RECIPIENT (%s) from: %s"
 					,socket, rcpt_addr, reverse_path);
 				spamlog(&scfg, "SMTP", "REFUSED", "Blocked recipient e-mail address"
 					,host_name, host_ip, rcpt_addr, reverse_path);
@@ -3382,7 +3382,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.295 $", "%*s %s", revision);
+	sscanf("$Revision: 1.296 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
