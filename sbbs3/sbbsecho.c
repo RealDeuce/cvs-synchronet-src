@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.140 2004/08/19 01:06:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.137 2004/06/15 05:31:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1832,7 +1832,6 @@ BOOL unpack_bundle(void)
 		}
 		if(gi<g.gl_pathc) {
 			SAFECOPY(fname,g.gl_pathv[gi]);
-			logprintf("Unpacking bundle: %s",fname);
 			if(unpack(fname)) {	/* failure */
 				if(fdate(fname)+(48L*60L*60L)>time(NULL)) {
 					SAFECOPY(str,fname);
@@ -1846,12 +1845,9 @@ BOOL unpack_bundle(void)
 							,__LINE__,fname,str); 
 				} 
 			}
-			else {
-				logprintf("Deleting bundle: %s", fname);
-				if(delfile(fname))	/* successful, so delete bundle */
-					logprintf("ERROR line %d removing %s %s",__LINE__,fname
-						,strerror(errno));
-			}
+			else if(delfile(fname))	/* successful, so delete bundle */
+				logprintf("ERROR line %d removing %s %s",__LINE__,fname
+					,strerror(errno));
 			gi++;
 			return(TRUE); 
 		} 
@@ -2213,6 +2209,8 @@ static short fmsgzone(char* p)
 	return(val);
 }
 
+#if 1		/* Old way */
+
 char* getfmsg(FILE *stream, ulong *outlen)
 {
 	uchar* fbuf;
@@ -2223,31 +2221,68 @@ char* getfmsg(FILE *stream, ulong *outlen)
 	start=ftell(stream);						/* Beginning of Message */
 	while(1) {
 		ch=fgetc(stream);						/* Look for Terminating NULL */
-		if(ch==0 || ch==EOF)					/* Found end of message */
+		if(!ch || ch==EOF)						/* Found end of message */
 			break;
-		length++;	 							/* Increment the Length */
-	}
+		length++; } 							/* Increment the Length */
 
 	if((fbuf=(char *)malloc(length+1))==NULL) {
 		printf("Unable to allocate %lu bytes for message.\n",length+1);
 		logprintf("ERROR line %d allocating %lu bytes of memory",__LINE__,length+1);
-		bail(1); 
-	}
+		bail(1); }
 
 	fseek(stream,start,SEEK_SET);
 	for(l=0;l<length;l++)
 		fbuf[l]=fgetc(stream);
-	if(ch==0)
-		fgetc(stream);		/* Read NULL */
-
-	while(length && fbuf[length-1]<=' ')	/* truncate white-space */
-		length--;
 	fbuf[length]=0;
-
+	if(!ch)
+		fgetc(stream);		/* Read NULL */
 	if(outlen)
 		*outlen=length;
 	return(fbuf);
 }
+
+#else
+
+#define FBUF_BLOCK 4096
+
+char *getfmsg(FILE *stream)
+{
+	uchar *fbuf,*p;
+	ulong l,n,length,start;
+
+	length=0L;
+	start=ftell(stream);						/* Beginning of Message */
+	if((fbuf=malloc(FBUF_BLOCK))==NULL)
+		return(fbuf);
+	while(!feof(stream)) {
+		l=fread(fbuf+length,1,FBUF_BLOCK,stream);
+		if(l<1)
+			break;
+		*(fbuf+length+l)=0;
+		n=strlen(fbuf+length);
+		if(n<l) {
+			length+=(n+1);
+			break; }
+		printf(",");
+		length+=l;
+		if(l<FBUF_BLOCK)
+			break;
+		printf("<");
+		if((p=REALLOC(fbuf,length+FBUF_BLOCK+1))==NULL) {
+			free(fbuf);
+			printf("!");
+			fseek(stream,-l,SEEK_CUR);
+			return(NULL); }
+		fbuf=p;
+		printf(">");
+		}
+	printf(".");
+
+	fseek(stream,start+length,SEEK_SET);
+	return(fbuf);
+}
+
+#endif
 
 #define MAX_TAILLEN 1024
 
@@ -3571,7 +3606,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 			sp=strrchr(tp,'/');              /* sp is slash pointer */
 			if(!sp) sp=strrchr(tp,'\\');
 			if(sp) tp=sp+1;
-			sprintf(str,"%s%s",secure ? cfg.secure : cfg.inbound,tp);
+			sprintf(str,"%s%s",scfg.fidofile_dir,tp);
 			sprintf(tmp,"%sfile/%04u.in",scfg.data_dir,usernumber);
 			MKDIR(tmp);
 			backslash(tmp);
@@ -4023,7 +4058,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.140 $", "%*s %s", revision);
+	sscanf("$Revision: 1.137 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
