@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.3 2002/08/08 10:52:26 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.4 2002/08/10 22:51:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,7 @@ typedef struct {
     char    ctrl_dir[128];
     char	root_dir[128];
     char	error_dir[128];
+    char	cgi_temp_dir[128];
     char	reserved_path7[128];
     char	reserved_path6[128];
     char	reserved_path5[128];
