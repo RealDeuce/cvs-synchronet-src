@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.197 2004/10/29 06:53:54 deuce Exp $ */
+/* $Id: websrvr.c,v 1.198 2004/10/29 06:56:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1353,15 +1353,19 @@ static void js_parse_post(http_session_t * session)
 	lp=session->req.post_data;
 
 	while(key_len=strcspn(lp,"="))  {
-		lp[key_len]=0;
 		key=lp;
 		lp+=key_len;
-		lp++;
+		if(*lp) {
+			*lp=0;
+			lp++;
+		}
 		value_len=strcspn(lp,"&");
 		value=lp;
-		lp[value_len]=0;
 		lp+=value_len;
-		lp++;
+		if(*lp) {
+			*lp=0;
+			lp++;
+		}
 		unescape(value);
 		unescape(key);
 		if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
@@ -1510,15 +1514,19 @@ static void js_parse_query(http_session_t * session, char *p)  {
 	lp=p;
 
 	while(key_len=strcspn(lp,"="))  {
-		lp[key_len]=0;
 		key=lp;
 		lp+=key_len;
-		lp++;
+		if(*lp) {
+			*lp=0;
+			lp++;
+		}
 		value_len=strcspn(lp,"&");
 		value=lp;
-		lp[value_len]=0;
 		lp+=value_len;
-		lp++;
+		if(*lp) {
+			*lp=0;
+			lp++;
+		}
 		unescape(value);
 		unescape(key);
 		if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
@@ -2794,7 +2802,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.197 $", "%*s %s", revision);
+	sscanf("$Revision: 1.198 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
