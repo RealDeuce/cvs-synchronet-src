@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.8 2001/04/16 23:57:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.9 2001/04/19 23:17:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2879,6 +2879,10 @@ void DLLCALL bbs_thread(void* arg)
 		fprintf(stderr, "Invalid startup structure!\n");
 		return;
 	}
+
+	/* Setup intelligent defaults */
+	if(startup->telnet_port==0)		startup->telnet_port=IPPORT_TELNET;
+	if(startup->rlogin_port==0)		startup->rlogin_port=513;
 
 	thread_up();
 
