@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.9 2001/05/21 23:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -651,20 +651,23 @@ int sbbs_t::searchup(char *search,int usernum)
 		count=0;
 		while(count<LOOP_NODEDAB
 			&& lock(file,(long)((long)(i-1)*U_LEN),U_LEN)==-1) {
-			if(count>10)
-				mswait(55);
-			count++; }
+			if(count)
+				mswait(100);
+			count++; 
+		}
 
 		if(count>=LOOP_NODEDAB) {
 			close(file);
 			errormsg(WHERE,ERR_LOCK,"user.dat",i);
-			return(usernum); }
+			return(usernum); 
+		}
 
 		if(read(file,userdat,U_LEN)!=U_LEN) {
 			unlock(file,(long)((long)(i-1)*U_LEN),U_LEN);
 			close(file);
 			errormsg(WHERE,ERR_READ,"user.dat",U_LEN);
-			return(usernum); }
+			return(usernum); 
+		}
 
 		unlock(file,(long)((long)(i-1)*U_LEN),U_LEN);
 		userdat[U_LEN]=0;
@@ -672,8 +675,10 @@ int sbbs_t::searchup(char *search,int usernum)
 		if(strstr(userdat,search)) {
 			outchar(BEL);
 			close(file);
-			return(i); }
-		i++; }
+			return(i); 
+		}
+		i++; 
+	}
 	close(file);
 	return(usernum);
 }
@@ -701,28 +706,33 @@ int sbbs_t::searchdn(char *search,int usernum)
 		count=0;
 		while(count<LOOP_NODEDAB
 			&& lock(file,(long)((long)(i-1)*U_LEN),U_LEN)==-1) {
-			if(count>10)
-				mswait(55);
-			count++; }
+			if(count)
+				mswait(100);
+			count++; 
+		}
 
 		if(count>=LOOP_NODEDAB) {
 			close(file);
 			errormsg(WHERE,ERR_LOCK,"user.dat",i);
-			return(usernum); }
+			return(usernum); 
+		}
 
 		if(read(file,userdat,U_LEN)==-1) {
 			unlock(file,(long)((long)(i-1)*U_LEN),U_LEN);
 			close(file);
 			errormsg(WHERE,ERR_READ,"USER.DAT",U_LEN);
-			return(usernum); }
+			return(usernum); 
+		}
 		unlock(file,(long)((long)(i-1)*U_LEN),U_LEN);
 		userdat[U_LEN]=0;
 		strupr(userdat);
 		if(strstr(userdat,search)) {
 			outchar(BEL);
 			close(file);
-			return(i); }
-		i--; }
+			return(i); 
+		}
+		i--; 
+	}
 	close(file);
 	return(usernum);
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.70 2001/05/03 23:15:53 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.71 2001/05/21 23:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -948,8 +948,8 @@ static int nopen(char *str, int access)
     else share=SH_DENYRW;
     while(((file=sopen(str,O_BINARY|access,share))==-1)
         && errno==EACCES && count++<LOOP_NOPEN)
-        if(count>10)
-            mswait(55);
+        if(count)
+            mswait(100);
     return(file);
 }
 

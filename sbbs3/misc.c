@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.9 2000/11/14 01:58:37 rswindell Exp $ */
+/* $Id: misc.c,v 1.10 2001/05/21 23:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,8 +54,8 @@ int nopen(char *str, int access)
     else share=SH_DENYRW;
     while(((file=sopen(str,O_BINARY|access,share))==-1)
         && errno==EACCES && count++<LOOP_NOPEN)
-        if(count>10)
-            mswait(55);
+        if(count)
+            mswait(100);
     return(file);
 }
 /****************************************************************************/
