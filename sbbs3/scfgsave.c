@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.26 2003/02/01 03:04:18 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.27 2003/02/07 10:00:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -948,8 +948,8 @@ BOOL DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level)
 
 	put_int(cfg->total_pages,stream);
 	for(i=0;i<cfg->total_pages;i++) {
-		put_int(cfg->page[i]->cmd,stream);
-		put_int(cfg->page[i]->arstr,stream);
+		put_str(cfg->page[i]->cmd,stream);
+		put_str(cfg->page[i]->arstr,stream);
 		put_int(cfg->page[i]->misc,stream);
 		n=0;
 		for(j=0;j<8;j++)
@@ -1045,7 +1045,7 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_int(cfg->event[i]->time,stream);
 		put_int(cfg->event[i]->node,stream);
 		put_int(cfg->event[i]->misc,stream);
-		put_int(cfg->event[i]->dir,stream);
+		put_str(cfg->event[i]->dir,stream);
 		put_int(cfg->event[i]->freq,stream);
 		put_int(cfg->event[i]->mdays,stream);
 		n=0;
