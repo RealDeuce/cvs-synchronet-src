@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.12 2002/08/27 07:53:15 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.13 2002/11/09 09:44:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,7 +307,7 @@ int sbbs_t::exec_net(csi_t* csi)
 				return(0);
 			
 			if(atoi(rsp)==331) { /* Password needed */
-				sprintf(str,"PASS %s\r\n",*pp2);
+				sprintf(str,"PASS %s",*pp2);
 				if(!ftp_cmd(csi,*lp,str,rsp))
 					return(0);
 			}
