@@ -1,29 +1,31 @@
 #include <fcntl.h>
 #include <stdarg.h>
+#include <stdlib.h>	/* malloc */
 
 #include <genwrap.h>
 #include <threadwrap.h>
 
 #ifdef __unix__
-#include <termios.h>
+	#include <termios.h>
+	struct termios tio_default;				/* Initial term settings */
 #endif
 
-#include "conio.h"
+#include "ciolib.h"
 #include "ansi_cio.h"
 WORD	ansi_curr_attr=0x07<<8;
 
 int ansi_rows=24;
 int ansi_cols=80;
-int ansi_nextchar;
+unsigned int ansi_nextchar;
 int ansi_got_row=0;
 int ansi_got_col=0;
 int ansi_esc_delay=25;
+int puttext_no_move=0;
 
 const int 	ansi_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
 static WORD		ansi_inch;
 static char		ansi_raw_inch;
-struct termios tio_default;				/* Initial term settings */
 WORD	*vmem;
 int		ansi_row=0;
 int		ansi_col=0;
@@ -125,7 +127,16 @@ void ansi_sendch(char ch)
 
 	if(!ch)
 		ch=' ';
-	if(ansi_row<ansi_rows-1 || ansi_col<ansi_cols-1) {
+	if(ansi_row<ansi_rows-1 || (ansi_row==ansi_rows-1 && ansi_col<ansi_cols-1)) {
+		ansi_col++;
+		if(ansi_col>=ansi_cols) {
+			ansi_col=0;
+			ansi_row++;
+			if(ansi_row>=ansi_rows) {
+				ansi_col=ansi_cols-1;
+				ansi_row=ansi_rows-1;
+			}
+		}
 		fwrite(&ch,1,1,stdout);
 		if(ch<' ')
 			force_move=1;
@@ -136,16 +147,19 @@ void ansi_sendstr(char *str,int len)
 {
 	if(len==-1)
 		len=strlen(str);
-	fwrite(str,len,1,stdout);
+	if(len) {
+		fwrite(str,len,1,stdout);
+	}
 }
 
-int ansi_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
+int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 {
 	int x,y;
 	unsigned char *out;
 	WORD	sch;
 	struct text_info	ti;
 	int		attrib;
+	unsigned char *fill = (unsigned char*)buf;
 
 	gettextinfo(&ti);
 
@@ -164,8 +178,6 @@ int ansi_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 
 	out=fill;
 	attrib=ti.attribute;
-	if((ey-sy+1)*(ex-sx+1)>32)
-		force_move=1;
 	for(y=sy-1;y<ey;y++) {
 		for(x=sx-1;x<ex;x++) {
 			sch=*(out++);
@@ -183,31 +195,23 @@ int ansi_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 				attrib=sch>>8;
 			}
 			ansi_sendch(sch&0xff);
-			ansi_col++;
-			if(ansi_col>=ansi_cols) {
-				ansi_col=0;
-				ansi_row++;
-				if(ansi_row>=ansi_rows) {
-					ansi_col=ansi_cols-1;
-					ansi_row=ansi_rows-1;
-				}
-			}
 		}
 	}
 
-	if((ey-sy+1)*(ex-sx+1)>32)
-		force_move=1;
-	gotoxy(ti.curx,ti.cury);
+	if(!puttext_no_move)
+		gotoxy(ti.curx,ti.cury);
 	if(attrib!=ti.attribute)
 		textattr(ti.attribute);
+	return(1);
 }
 
-int ansi_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
+int ansi_gettext(int sx, int sy, int ex, int ey, void* buf)
 {
 	int x,y;
 	unsigned char *out;
 	WORD	sch;
 	struct text_info	ti;
+	unsigned char *fill = (unsigned char*)buf;
 
 	gettextinfo(&ti);
 
@@ -232,9 +236,10 @@ int ansi_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 			*(out++)=sch >> 8;
 		}
 	}
+	return(1);
 }
 
-void ansi_textattr(unsigned char attr)
+void ansi_textattr(int attr)
 {
 	char str[16];
 	int fg,ofg;
@@ -243,10 +248,14 @@ void ansi_textattr(unsigned char attr)
 	int br,obr;
 	int oa;
 
-	bl=attr>>7;
+	str[0]=0;
+	if(ansi_curr_attr==attr<<8)
+		return;
+
+	bl=attr&0x80;
 	bg=(attr>>4)&0x7;
 	fg=attr&0x07;
-	br=(attr>>3)&0x01;
+	br=attr&0x04;
 
 	oa=ansi_curr_attr>>8;
 	obl=oa>>7;
@@ -255,9 +264,43 @@ void ansi_textattr(unsigned char attr)
 	obr=(oa>>3)&0x01;
 
 	ansi_curr_attr=attr<<8;
-	ansi_sendstr(str,sprintf(str,"%c[%d;%d;3%d;4%dm",27,bl?0:5,br?1:2,ansi_colours[fg],ansi_colours[bg]));
+
+	strcpy(str,"\033[");
+	if(obl!=bl) {
+		if(!bl) {
+			strcat(str,"0;");
+			ofg=7;
+			obg=0;
+			obr=0;
+		}
+		else
+			strcat(str,"5;");
+	}
+	if(br!=obr) {
+		if(br)
+			strcat(str,"1;");
+		else
+#if 0
+			strcat(str,"2;");
+#else
+		{
+			strcat(str,"0;");
+			ofg=7;
+			obg=0;
+		}
+#endif
+	}
+	if(fg!=ofg)
+		sprintf(str+strlen(str),"3%d;",ansi_colours[fg]);
+	if(bg!=obg)
+		sprintf(str+strlen(str),"4%d;",ansi_colours[bg]);
+	str[strlen(str)-1]='m';
+	ansi_sendstr(str,-1);
 }
 
+#if defined(__BORLANDC__)
+        #pragma argsused
+#endif
 static void ansi_keyparse(void *par)
 {
 	int		gotesc=0;
@@ -334,13 +377,18 @@ static void ansi_keyparse(void *par)
 	}
 }
 
+#if defined(__BORLANDC__)
+        #pragma argsused
+#endif
 static void ansi_keythread(void *params)
 {
 	_beginthread(ansi_keyparse,1024,NULL);
 
 	for(;;) {
-		if(!ansi_raw_inch)
-			ansi_raw_inch=fgetc(stdin);
+		if(!ansi_raw_inch) {
+			if(read(fileno(stdin),&ansi_raw_inch,1)!=1)
+				ansi_raw_inch=0;
+		}
 		else
 			SLEEP(1);
 	}
@@ -370,7 +418,7 @@ int ansi_wherex(void)
  * The special characters return, linefeed, bell, and backspace are handled
  * properly, as is line wrap and scrolling. The cursor position is updated. 
  */
-int ansi_putch(unsigned char ch)
+int ansi_putch(int ch)
 {
 	struct text_info ti;
 	WORD sch;
@@ -381,6 +429,7 @@ int ansi_putch(unsigned char ch)
 	buf[1]=ansi_curr_attr>>8;
 
 	gettextinfo(&ti);
+	puttext_no_move=1;
 
 	switch(ch) {
 		case '\r':
@@ -429,13 +478,14 @@ int ansi_putch(unsigned char ch)
 					puttext(ansi_col+1,ansi_row+1,ansi_col+1,ansi_row+1,buf);
 				}
 				else {
-					gotoxy(ti.curx+1,ti.cury);
 					puttext(ansi_col+1,ansi_row+1,ansi_col+1,ansi_row+1,buf);
+					gotoxy(ti.curx+1,ti.cury);
 				}
 			}
 			break;
 	}
 
+	puttext_no_move=0;
 	return(ch);
 }
 
@@ -449,13 +499,12 @@ void ansi_gotoxy(int x, int y)
 		|| y < 1
 		|| y > ansi_rows)
 		return;
-
 	if(force_move) {
 		force_move=0;
-		sprintf(str,"%c[%d;%dH",27,y,x);
+		sprintf(str,"\033[%d;%dH",y,x);
 	}
 	else {
-		if(x==1 && ansi_col != 0) {
+		if(x==1 && ansi_col != 0 && ansi_row<ansi_row-1) {
 			ansi_sendch('\r');
 			force_move=0;
 			ansi_col=0;
@@ -469,13 +518,13 @@ void ansi_gotoxy(int x, int y)
 					if(y==ansi_row)
 						strcpy(str,"\033[A");
 					else
-						sprintf(str,"%c[%dA",27,ansi_row+1-y);
+						sprintf(str,"\033[%dA",ansi_row+1-y);
 				}
 				else {
 					if(y==ansi_row+2)
 						strcpy(str,"\033[B");
 					else
-						sprintf(str,"%c[%dB",27,y-ansi_row-1);
+						sprintf(str,"\033[%dB",y-ansi_row-1);
 				}
 			}
 		}
@@ -485,17 +534,17 @@ void ansi_gotoxy(int x, int y)
 					if(x==ansi_col)
 						strcpy(str,"\033[D");
 					else
-						sprintf(str,"%c[%dD",27,ansi_col+1-x);
+						sprintf(str,"\033[%dD",ansi_col+1-x);
 				}
 				else {
 					if(x==ansi_col+2)
 						strcpy(str,"\033[C");
 					else
-						sprintf(str,"%c[%dC",27,x-ansi_col-1);
+						sprintf(str,"\033[%dC",x-ansi_col-1);
 				}
 			}
 			else {
-				sprintf(str,"%c[%d;%dH",27,y,x);
+				sprintf(str,"\033[%d;%dH",y,x);
 			}
 		}
 	}
@@ -554,6 +603,9 @@ int ansi_beep(void)
 	return(0);
 }
 
+#if defined(__BORLANDC__)
+        #pragma argsused
+#endif
 void ansi_textmode(int mode)
 {
 }
@@ -565,13 +617,17 @@ void ansi_fixterm(void)
 }
 #endif
 
-void ansi_initciowrap(long inmode)
+#if defined(__BORLANDC__)
+        #pragma argsused
+#endif
+int ansi_initciolib(long inmode)
 {
 	int i;
-	char *init="\033[2J\033[1;1H\033[0m";
+	char *init="\033[0m\033[2J\033[1;1H";
+
 #ifdef _WIN32
-	_setmode(fileno(stdout),_O_BINARY);
-	_setmode(fileno(stdin),_O_BINARY);
+	setmode(fileno(stdout),_O_BINARY);
+	setmode(fileno(stdin),_O_BINARY);
 	setvbuf(stdout, NULL, _IONBF, 0);
 #else
 	struct termios tio_raw;
@@ -590,4 +646,5 @@ void ansi_initciowrap(long inmode)
 	for(i=0;i<ansi_rows*ansi_cols;i++)
 		vmem[i]=0x0720;
 	_beginthread(ansi_keythread,1024,NULL);
+	return(1);
 }
