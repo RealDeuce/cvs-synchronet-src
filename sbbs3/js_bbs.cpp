@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.9 2001/11/14 01:31:58 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.10 2001/12/01 02:00:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,7 +184,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
 	char*		p=NULL;
-	long		val=0;
+	int32		val=0;
     jsint       tiny;
 	JSString*	js_str;
 	sbbs_t*		sbbs;
