@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.18 2003/10/18 10:28:01 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.19 2004/09/24 08:11:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ typedef struct {
     char	error_dir[128];			/* relative to root_dir */
     char	cgi_temp_dir[128];
     char**	index_file_name;		/* Index filenames */
+	char	logfile_base[128];	/* Logfile base name (date is appended) */
 
 	/* Misc */
     char	host_name[128];
@@ -92,6 +93,7 @@ typedef struct {
 #define WEB_DEFAULT_ROOT_DIR		"../html"
 #define WEB_DEFAULT_ERROR_DIR		"error"
 #define WEB_DEFAULT_CGI_DIR			"cgi-bin"
+#define WEB_DEFAULT_LOGFILE			"../data/httpd-"
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
