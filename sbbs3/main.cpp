@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.162 2002/07/08 18:59:50 rswindell Exp $ */
+/* $Id: main.cpp,v 1.163 2002/07/08 22:56:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -768,6 +768,11 @@ void input_thread(void *arg)
 			else
 				lprintf("Node %d !ERROR %d input->select socket %d"
                 	,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
+			break;
+		}
+
+		if(sbbs->client_socket==INVALID_SOCKET) {
+			pthread_mutex_unlock(&sbbs->input_thread_mutex);
 			break;
 		}
 
