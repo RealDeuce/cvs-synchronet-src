@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.23 2003/01/05 12:12:55 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.24 2003/04/26 21:46:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,7 +130,7 @@ int sbbs_t::bprintf(char *fmt, ...)
 	va_list argptr;
 	char sbuf[4096];
 
-	if(!strchr(fmt,'%'))
+	if(strchr(fmt,'%')==NULL)
 		return(bputs(fmt));
 	va_start(argptr,fmt);
 	vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);

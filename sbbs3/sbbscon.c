@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.118 2003/04/26 17:44:34 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.119 2003/04/26 21:46:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,9 @@
 #include <string.h>
 #include <signal.h>
 #include <ctype.h>
+#ifdef __QNX__
+#include <locale.h>
+#endif
 
 /* Synchronet-specific headers */
 #include "conwrap.h"	/* kbhit/getch */
@@ -854,6 +857,9 @@ int main(int argc, char** argv)
 	sigset_t			sigs;
 #endif
 
+#ifdef __QNX__
+	setlocale( LC_ALL, "C-TRADITIONAL" );
+#endif
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
