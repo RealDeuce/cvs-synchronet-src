@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.16 2002/04/25 08:02:20 rswindell Exp $
+# $Id: GNUmakefile,v 1.17 2002/04/26 00:14:04 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -187,7 +187,8 @@ $(SBBSECHO): \
 	$(EXEODIR)/load_cfg.o \
 	$(EXEODIR)/scfglib1.o \
 	$(EXEODIR)/scfglib2.o \
-	$(EXEODIR)/misc.o \
+	$(EXEODIR)/nopen.o \
+	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/userdat.o \
 	$(EXEODIR)/rechocfg.o \
 	$(EXEODIR)/conwrap.o \

@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.4 2002/04/25 07:58:42 rswindell Exp $
+# $Id: Makefile,v 1.5 2002/04/26 00:14:04 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -135,7 +135,8 @@ $(SMBUTIL): smbutil.c smbtxt.c crc32.c lzh.c $(SMBLIB) $(XPDEV)dirwrap.c
 # SBBSecho (FidoNet Packet Tosser)
 $(SBBSECHO): sbbsecho.c rechocfg.c smbtxt.c crc32.c lzh.c $(SMBLIB) \
 	$(LIBODIR)\ars.obj \
-	$(LIBODIR)\misc.obj \
+	$(LIBODIR)\nopen.obj \
+	$(LIBODIR)\str_util.obj \
 	$(LIBODIR)\date_str.obj \
 	userdat.c \
 	genwrap.c \

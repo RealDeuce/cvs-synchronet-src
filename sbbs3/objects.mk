@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.1 2002/04/12 09:56:43 rswindell Exp $
+# $Id: objects.mk,v 1.2 2002/04/26 00:14:04 rswindell Exp $
 
 # LIBODIR, SLASH, and OFILE must be pre-defined
 
@@ -57,10 +57,10 @@ OBJS	=	$(LIBODIR)$(SLASH)ansiterm.$(OFILE)\
 			$(LIBODIR)$(SLASH)lzh.$(OFILE)\
 			$(LIBODIR)$(SLASH)mail.$(OFILE)\
 			$(LIBODIR)$(SLASH)main.$(OFILE)\
-			$(LIBODIR)$(SLASH)misc.$(OFILE)\
 			$(LIBODIR)$(SLASH)msgtoqwk.$(OFILE)\
 			$(LIBODIR)$(SLASH)netmail.$(OFILE)\
 			$(LIBODIR)$(SLASH)newuser.$(OFILE)\
+			$(LIBODIR)$(SLASH)nopen.$(OFILE)\
 			$(LIBODIR)$(SLASH)pack_qwk.$(OFILE)\
 			$(LIBODIR)$(SLASH)pack_rep.$(OFILE)\
 			$(LIBODIR)$(SLASH)postmsg.$(OFILE)\
@@ -81,6 +81,7 @@ OBJS	=	$(LIBODIR)$(SLASH)ansiterm.$(OFILE)\
 			$(LIBODIR)$(SLASH)smbtxt.$(OFILE)\
 			$(LIBODIR)$(SLASH)sortdir.$(OFILE)\
 			$(LIBODIR)$(SLASH)str.$(OFILE)\
+			$(LIBODIR)$(SLASH)str_util.$(OFILE)\
 			$(LIBODIR)$(SLASH)telgate.$(OFILE)\
 			$(LIBODIR)$(SLASH)telnet.$(OFILE)\
 			$(LIBODIR)$(SLASH)text_sec.$(OFILE)\
