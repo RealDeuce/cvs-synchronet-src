@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.9 2001/06/29 16:25:33 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.10 2001/07/03 02:23:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,8 +40,6 @@
 
 #include "scfgdefs.h"	/* scfg_t */
 
-/* #define SAVE_MEMORY /* This makes it difficult to free */
-
 #define get_int(var,stream) { if(!fread(&var,1,sizeof(var),stream)) \
 								memset(&var,0,sizeof(var)); \
 							  offset+=sizeof(var); }
@@ -56,10 +54,8 @@ extern const uchar* nular;
 
 #ifdef SCFG
 #define FREE_AR(x)		/* static */
-#define FREE_ALLOC(x)	/* static */
 #else
 #define FREE_AR(x)		if(x!=NULL && x!=nular)	{ FREE(x); }		/* allocated with arstr() */	
-#define FREE_ALLOC(x)	if(x!=NULL && x!=scfgnulstr) { FREE(x); }	/* allocated with get_alloc() */
 #endif
 
 typedef struct {
