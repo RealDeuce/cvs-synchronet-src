@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.200 2003/08/20 10:34:53 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.201 2003/08/22 01:28:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -590,7 +590,7 @@ public:
 	/* download.cpp */
 	void	downloadfile(file_t* f);
 	void	notdownloaded(ulong size, time_t start, time_t end);
-	int		protocol(char *cmdline, bool cd);
+	int		protocol(uint prot, char *cmdline, bool cd);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.103 2003/08/18 21:43:11 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.104 2003/08/22 01:28:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,11 +198,12 @@ typedef struct {
 
 						
 									/* Bit values for level_misc[x] 	*/
-#define LEVEL_EXPTOLVL (1<<0)		/* Expire to level_expireto[x]		*/
-#define LEVEL_EXPTOVAL (1<<1)		/* Expire to val[level_expireto[x]] */
+#define LEVEL_EXPTOLVL	(1<<0)		/* Expire to level_expireto[x]		*/
+#define LEVEL_EXPTOVAL	(1<<1)		/* Expire to val[level_expireto[x]] */
 
 									/* Bit values for prot[x].misc */
-#define PROT_DSZLOG (1<<0)          /* Supports DSZ Log */
+#define PROT_DSZLOG		(1<<0)      /* Supports DSZ Log */
+#define PROT_NATIVE		(1<<1)		/* Native (32-bit) executable */
 
 									/* Bit values in netmail_misc */
 

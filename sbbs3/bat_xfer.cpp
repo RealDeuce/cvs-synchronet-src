@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.24 2003/07/26 21:40:22 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.25 2003/08/22 01:28:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,7 @@ void sbbs_t::batchmenu()
 					sprintf(str,"%sBATCHDN.LST",cfg.node_dir);
 					sprintf(tmp2,"%sBATCHUP.LST",cfg.node_dir);
 					start=time(NULL);
-					protocol(cmdstr(cfg.prot[xfrprot]->bicmd,str,tmp2,NULL),true);
+					protocol(xfrprot,cmdstr(cfg.prot[xfrprot]->bicmd,str,tmp2,NULL),true);
 					end=time(NULL);
 					for(i=0;i<batdn_total;i++)
 						if(cfg.dir[batdn_dir[i]]->seqdev) {
@@ -310,7 +310,7 @@ void sbbs_t::batchmenu()
 					if(online==ON_REMOTE) {
 						delfiles(cfg.temp_dir,ALLFILES);
 						start=time(NULL);
-						protocol(cmdstr(cfg.prot[xfrprot]->batulcmd,str,nulstr,NULL),true);
+						protocol(xfrprot,cmdstr(cfg.prot[xfrprot]->batulcmd,str,nulstr,NULL),true);
 						end=time(NULL);
 						if(!(cfg.dir[xfrdir]->misc&DIR_ULTIME))
 							starttime+=end-start; 
@@ -461,7 +461,7 @@ BOOL sbbs_t::start_batch_download()
 		putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 	}
 	start=time(NULL);
-	error=protocol(cmdstr(cfg.prot[xfrprot]->batdlcmd,str,list,NULL),false);
+	error=protocol(xfrprot,cmdstr(cfg.prot[xfrprot]->batdlcmd,str,list,NULL),false);
 	end=time(NULL);
 	if(cfg.prot[xfrprot]->misc&PROT_DSZLOG || !error)
 		batch_download(xfrprot);

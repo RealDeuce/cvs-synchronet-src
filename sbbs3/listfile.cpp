@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.34 2003/07/26 21:40:22 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.35 2003/08/22 01:28:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1291,7 +1291,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 						thisnode.aux=(tm.tm_hour*60)+tm.tm_min;
 						putnodedat(cfg.node_num,&thisnode); /* calculate ETA */
 						start=time(NULL);
-						error=protocol(cmdstr(cfg.prot[i]->dlcmd,path,nulstr,NULL),false);
+						error=protocol(i,cmdstr(cfg.prot[i]->dlcmd,path,nulstr,NULL),false);
 						end=time(NULL);
 						if(cfg.dir[f.dir]->misc&DIR_TFREE)
 							starttime+=end-start;

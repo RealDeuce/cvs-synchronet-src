@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.29 2003/04/01 09:26:49 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.30 2003/08/22 01:28:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -966,7 +966,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 							break;
 					csi->logic=LOGIC_FALSE;
 					if(i<cfg.total_prots)
-						if(protocol(cmdstr(j==SEND_FILE_VIA
+						if(protocol(i,cmdstr(j==SEND_FILE_VIA
 							? cfg.prot[i]->dlcmd : cfg.prot[i]->ulcmd,str,str,buf)
 							,true)==0)
 							csi->logic=LOGIC_TRUE;
@@ -984,7 +984,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					if(!pp || !(*pp))
 						return(0);
 					if(i<cfg.total_prots)
-						if(protocol(cmdstr(j==SEND_FILE_VIA_VAR
+						if(protocol(i,cmdstr(j==SEND_FILE_VIA_VAR
 							? cfg.prot[i]->dlcmd : cfg.prot[i]->ulcmd,*pp,*pp,buf)
 							,true)==0)
 							csi->logic=LOGIC_TRUE;
