@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.97 2002/11/16 09:11:45 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.98 2002/11/16 11:35:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -900,7 +900,8 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 			pthread_mutex_unlock(&input_thread_mutex);
 		}
 
-		curatr=0;	// Can't guarantee current attributes
+		curatr=~0;			// Can't guarantee current attributes
+		attr(LIGHTGRAY);	// Force to "normal"
 
 		rio_abortable=rio_abortable_save;	// Restore abortable state
 
