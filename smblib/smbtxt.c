@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.13 2004/09/13 01:37:38 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.14 2004/12/17 11:23:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,19 +61,21 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 	}
 	*buf=0;
 
-    for(i=0;i<(uint)msg->total_hfields;i++) {			/* comment headers are part of text */
-		if(msg->hfield[i].type!=SMB_COMMENT && msg->hfield[i].type!=SMTPSYSMSG)
-			continue;
-		str=(char*)msg->hfield_dat[i];
-		length=strlen(str)+2;	/* +2 for crlf */
-		if((p=(char*)realloc(buf,l+length+1))==NULL) {
-			sprintf(smb->last_error
-				,"realloc failure of %ld bytes for comment buffer"
-				,l+length+1);
-			return(buf);
+	if(!(mode&GETMSGTXT_NO_HFIELDS)) {
+		for(i=0;i<(uint)msg->total_hfields;i++) {			/* comment headers are part of text */
+			if(msg->hfield[i].type!=SMB_COMMENT && msg->hfield[i].type!=SMTPSYSMSG)
+				continue;
+			str=(char*)msg->hfield_dat[i];
+			length=strlen(str)+2;	/* +2 for crlf */
+			if((p=(char*)realloc(buf,l+length+1))==NULL) {
+				sprintf(smb->last_error
+					,"realloc failure of %ld bytes for comment buffer"
+					,l+length+1);
+				return(buf);
+			}
+			buf=p;
+			l+=sprintf(buf+l,"%s\r\n",str);
 		}
-		buf=p;
-		l+=sprintf(buf+l,"%s\r\n",str);
 	}
 
 	for(i=0;i<(uint)msg->hdr.total_dfields;i++) {

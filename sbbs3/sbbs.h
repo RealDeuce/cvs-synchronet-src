@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.239 2004/11/18 21:25:31 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.243 2004/12/09 08:07:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -947,7 +947,7 @@ extern "C" {
 
 	/* js_global.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods);
-	DLLEXPORT JSObject*	DLLCALL js_CreateGlobalObjects(JSContext* cx
+	DLLEXPORT JSObject*	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
 													,jsSyncMethodSpec* methods	/* global */
@@ -957,11 +957,12 @@ extern "C" {
 													,js_branch_t* js_branch		/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
+													,js_server_props_t* props	/* server */
 													);
 
 	/* js_internal.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
-	DLLEXPORT JSBool	DLLCALL js_GenericBranchCallback(JSContext *cx, js_branch_t*);
+	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext *cx, js_branch_t*);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
