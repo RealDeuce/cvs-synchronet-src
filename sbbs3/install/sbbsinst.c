@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.10 2003/01/22 05:36:26 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.11 2003/01/22 05:43:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -381,7 +381,7 @@ endif
 
 	fputs("all: binaries baja externals\n\n",makefile);
 	fputs("externals:	sbj sbl\n\n",makefile);
-	fputs("fbinaries:	sbbs3 scfg\n\n",makefile);
+	fputs("binaries:	sbbs3 scfg\n\n",makefile);
 
 	fputs("sbbs3:	",makefile);
 	if(params.cvs)
