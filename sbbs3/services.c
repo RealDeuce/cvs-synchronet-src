@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.140 2003/09/19 08:02:40 rswindell Exp $ */
+/* $Id: services.c,v 1.141 2003/09/20 01:42:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1444,9 +1444,9 @@ static service_t* read_services_cfg(service_t* service, char* services_cfg, DWOR
 		serv->js_yield_interval=startup->js_yield_interval;
 
 		tp=p; 
-		FIND_WHITESPACE(p);
+		FIND_WHITESPACE(tp);
 		*tp=0;
-		sprintf(serv->protocol,"%.*s",(int)sizeof(service[0].protocol)-1,p);
+		SAFECOPY(serv->protocol,p);
 		p=tp+1;
 		SKIP_WHITESPACE(p);
 		serv->port=atoi(p);
@@ -1456,7 +1456,7 @@ static service_t* read_services_cfg(service_t* service, char* services_cfg, DWOR
 		serv->options=strtol(p,NULL,16);
 		NEXT_FIELD(p);
 
-		sprintf(serv->cmd,"%.*s",(int)sizeof(service[0].cmd)-1,p);
+		SAFECOPY(serv->cmd,p);
 		truncsp(serv->cmd);
 
 		(*services)++;
@@ -1557,7 +1557,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.140 $", "%*s %s", revision);
+	sscanf("$Revision: 1.141 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
