@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.45 2004/08/04 04:06:19 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.46 2004/08/09 06:40:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,7 +156,7 @@ static char* key_name(char* p, char** vp)
 static char* get_value(FILE* fp, const char* section, const char* key, char* value)
 {
 	char*	p;
-	char*	vp;
+	char*	vp=NULL;
 	char	str[INI_MAX_LINE_LEN];
 
 	if(fp==NULL)
@@ -174,6 +174,8 @@ static char* get_value(FILE* fp, const char* section, const char* key, char* val
 			break;
 		if(stricmp(p,key)!=0)
 			continue;
+		if(vp==NULL)
+			break;
 		/* key found */
 		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,vp);
 		return(value);
@@ -294,6 +296,8 @@ char* iniSetString(str_list_t* list, const char* section, const char* key, const
 		style->key_prefix="";
 	if(style->value_separator==NULL)
 		style->value_separator="=";
+	if(value==NULL)
+		value="";
 	sprintf(str, "%s%-*s%s%s", style->key_prefix, style->key_len, key, style->value_separator, value);
 	i=find_value_index(*list, section, key, curval);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
