@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.82 2001/11/27 22:25:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.83 2001/12/01 23:47:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -516,7 +516,7 @@ bool sbbs_t::js_init()
 			break;
 
 		/* MsgBase Class */
-		if(js_CreateMsgBaseClass(js_cx, js_glob, &cfg)==NULL)
+		if(js_CreateMsgBaseClass(js_cx, js_glob, &scfg)==NULL)
 			break;
 
 		/* File Class */
@@ -2607,7 +2607,7 @@ void node_thread(void* arg)
 #ifdef JAVASCRIPT
 		if(sbbs->js_cx!=NULL) {
 			/* User class */
-			if(js_CreateUserClass(sbbs->js_cx, sbbs->js_glob, &sbbs->cfg)==NULL) 
+			if(js_CreateUserClass(sbbs->js_cx, sbbs->js_glob, &scfg)==NULL) 
 				lprintf("!JavaScript ERROR creating user class");
 
 			/* user object */
