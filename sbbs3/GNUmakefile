@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.28 2002/07/20 10:59:15 rswindell Exp $
+# $Id: GNUmakefile,v 1.29 2002/07/21 06:07:36 rob Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -201,7 +201,7 @@ $(FIXSMB): $(EXEODIR)/fixsmb.o $(SMBLIB) $(EXEODIR)/genwrap.o
 	@$(CC) -o $@ $^
 
 # CHKSMB Utility
-$(CHKSMB): $(EXEODIR)/chksmb.o $(SMBLIB) $(EXEODIR)/conwrap.o $(EXEODIR)/dirwrap.o
+$(CHKSMB): $(EXEODIR)/chksmb.o $(SMBLIB) $(EXEODIR)/conwrap.o $(EXEODIR)/dirwrap.o $(EXEODIR)/genwrap.o
 	@echo Linking $@
 	@$(CC) -o $@ $^
 
