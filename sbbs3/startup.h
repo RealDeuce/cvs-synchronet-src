@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.49 2004/08/04 04:55:59 rswindell Exp $ */
+/* $Id: startup.h,v 1.48 2004/08/04 04:54:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ typedef struct {
 #define BBS_OPT_NO_QWK_EVENTS		(1<<7)	/* Don't run QWK-related events		*/
 #define BBS_OPT_NO_TELNET_GA		(1<<8)	/* Don't send periodic Telnet GAs	*/
 #define BBS_OPT_NO_EVENTS			(1<<9)	/* Don't run event thread			*/
-#define BBS_OPT_NO_SPY_SOCKETS		(1<<10)	/* Don't create spy sockets			*/
+#define BBS_OPT_NO_SPY_SOCKETS		(1<<10	/* Don't create spy sockets			*/
 #define BBS_OPT_NO_HOST_LOOKUP		(1<<11)
 #define BBS_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define BBS_OPT_GET_IDENT			(1<<28)	/* Get Identity (RFC 1413)			*/
