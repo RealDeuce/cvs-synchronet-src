@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.21 2002/11/13 03:07:59 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.22 2002/12/05 08:40:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,7 @@ bool sbbs_t::answer()
 	rioctl(IOFI);		/* flush input buffer */
 	putcom( "\r\n"		/* locate cursor at column 1 */
 			"\x1b[s"	/* save cursor position (necessary for HyperTerm auto-ANSI) */
-    		"\x1b[99B"	/* locate cursor as far down as possible */
+    		"\x1b[99B_"	/* locate cursor as far down as possible */
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
