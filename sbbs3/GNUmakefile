@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.11 2002/04/12 10:14:17 rswindell Exp $
+# $Id: GNUmakefile,v 1.12 2002/04/12 10:17:44 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -150,7 +150,8 @@ $(LIBODIR)/services.o: services.c services.h
 	@$(CC) $(CFLAGS) -c -DSERVICES_EXPORTS $< -o $@
 
 # Baja Utility
-$(BAJA): $(EXEODIR)/baja.o $(EXEODIR)/ars.o $(EXEODIR)/filewrap.o $(EXEODIR)/crc32.o
+$(BAJA): $(EXEODIR)/baja.o $(EXEODIR)/ars.o $(EXEODIR)/crc32.o \
+	$(EXEODIR)/genwrap.o $(EXEODIR)/filewrap.o
 	@echo Linking $@
 	@$(CC) $^ -o $@
 
