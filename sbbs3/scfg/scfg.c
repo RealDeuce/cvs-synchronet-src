@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.22 2002/03/19 02:46:46 rswindell Exp $ */
+/* $Id: scfg.c,v 1.23 2002/04/05 07:25:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,14 +187,18 @@ for(i=0;i<14;i++)
 	if((mopt[i]=(char *)MALLOC(64))==NULL)
 		allocfail(64);
 
-sprintf(str,"%.*s",sizeof(str)-1,argv[0]);
-p=strrchr(str,'/');
-if(p==NULL)
-    p=strrchr(str,'\\');
-if(p!=NULL)
-    *p=0;
-else
-    strcpy(str,"../exec");
+if((p=getenv("SBBSEXEC"))!=NULL)
+	SAFECOPY(str,p);
+else {
+	SAFECOPY(str,argv[0]);
+	p=strrchr(str,'/');
+	if(p==NULL)
+	    p=strrchr(str,'\\');
+	if(p!=NULL)
+		*p=0;
+	else 
+	   	sprintf(str,"%s../exec",cfg.ctrl_dir);
+}
 sprintf(uifc.helpdatfile,"%s/scfghelp.dat",str);
 sprintf(uifc.helpixbfile,"%s/scfghelp.ixb",str);
 
