@@ -1,9 +1,5 @@
-/* $Id: ciowrap.h,v 1.9 2004/05/03 22:48:26 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.8 2004/04/02 07:24:28 deuce Exp $ */
 
-#ifndef __unix__
-#include "conio.h"
-#define initciowrap(x)
-#else
 #include "curs_fix.h"
 
 #define MONO	1
@@ -80,6 +76,4 @@ void textbackground(int colour);
 void textcolor(int colour);
 #ifdef __cplusplus
 }
-#endif
-
 #endif

@@ -51,7 +51,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#if defined(__TURBOC__) && !defined(_WIN32)
+#ifdef __TURBOC__
 #include <locking.h>
 #endif
 
