@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.12 2004/03/15 23:15:14 rswindell Exp $
+# $Id: Makefile,v 1.11 2003/07/25 00:20:15 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -17,7 +17,7 @@ LD		=	ilink32
 SLASH	=	\\
 OFILE	=	obj
 EXEFILE	=	.exe
-EXEODIR	=	bcc.win32	# Executable output directory
+ODIR	=	bcc.win32	# Executable output directory
 XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
 LIB	=	..\..\..\lib
@@ -40,44 +40,43 @@ CFLAGS	=	$(CFLAGS) -q -d -H -X- -w-csu -w-pch -w-ccc -w-rch -w-par -w-pro -w-800
 !ifdef DEBUG
 CFLAGS	=	$(CFLAGS) -v -Od -D_DEBUG 
 LFLAGS	=	$(LFLAGS) -v
-EXEODIR	=	$(EXEODIR).debug
+ODIR	=	$(ODIR).debug
 !else
-EXEODIR	=	$(EXEODIR).release
+ODIR	=	$(ODIR).release
 !endif
-LIBODIR = 	$(EXEODIR)
 
 # Cross platform/compiler definitions
 !include targets.mk	# defines all targets
 !include objects.mk	# defines $(OBJS)
 
 !ifdef USE_UIFC32
-OBJS = $(OBJS) $(EXEODIR)\uifc32.$(OFILE)
+OBJS = $(OBJS) $(ODIR)\uifc32.$(OFILE)
 CFLAGS  =   $(CFLAGS) -DUSE_UIFC32
 !else
-OBJS = $(OBJS) $(EXEODIR)\uifc.$(OFILE)
+OBJS = $(OBJS) $(ODIR)\uifc.$(OFILE)
 !endif
 
 !ifdef USE_FLTK
 CFLAGS 	= $(CFLAGS) -DUSE_FLTK -I$(INCLUDE)\fltk
-OBJS 	= $(OBJS) $(EXEODIR)\uifcfltk.$(OFILE) $(LIB)/fltk/win32/fltk.lib
+OBJS 	= $(OBJS) $(ODIR)\uifcfltk.$(OFILE) $(LIB)/fltk/win32/fltk.lib
 !endif
 
 # Implicit C Compile Rule for SCFG
 .c.$(OFILE):
-	@$(CC) $(CFLAGS) -n$(EXEODIR) -c $<
+	@$(CC) $(CFLAGS) -n$(ODIR) -c $<
 
 .cpp.$(OFILE):
-	@$(CC) $(CFLAGS) -n$(EXEODIR) -c $<
+	@$(CC) $(CFLAGS) -n$(ODIR) -c $<
 
 # Create output directories if they don't exist
-$(EXEODIR):
-	@if not exist $(EXEODIR) mkdir $(EXEODIR)
+$(ODIR):
+	@if not exist $(ODIR) mkdir $(ODIR)
 
 $(MAKEHELP): makehelp.c
-	@$(CC) -q -n$(EXEODIR) $?
+	@$(CC) -q -n$(ODIR) $?
 
 $(SCFGHELP): $(OBJS) $(MAKEHELP)
-	@$(MAKEHELP) $(EXEODIR)
+	@$(MAKEHELP) $(ODIR)
 
 # Monolithic SCFG executable Build Rule
 $(SCFG): $(OBJS)

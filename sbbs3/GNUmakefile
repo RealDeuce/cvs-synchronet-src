@@ -11,7 +11,18 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.141 2004/03/19 02:47:27 deuce Exp $
+# $Id: GNUmakefile,v 1.136 2003/12/10 11:38:22 rswindell Exp $
+
+# Macros
+ifndef DEBUG
+ ifndef RELEASE
+  DEBUG	:=	1
+ endif
+endif
+
+ifndef VERBOSE
+ QUIET	=	@
+endif
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -20,16 +31,60 @@ ifndef NO_CURSES
  USE_UIFC32      =       1       # Curses version of UIFC
 endif
 
-UIFC_SRC =	../uifc/
-XPDEV	 =	../xpdev/
-SBBS_SRC =	./
+ifdef DEBUG
+ BUILD	=	debug
+else
+ BUILD	=	release
+endif
 
-NEED_JAVASCRIPT	:= 1
-NEED_THREADS	:= 1
+ifdef bcc
+ CC		=	bc++ -q
+ CCPRE	:=	bcc
+ CXX	=	bc++ -q
+ LD		=	ilink -q
+ CFLAGS +=	-mm -md -D__unix__ -w-csu -w-pch -w-ccc -w-rch -w-par -w-aus
+else
+ CFLAGS	+=	-MMD -Wall
+ CCPRE	?=	gcc
+ ifdef BUILD_DEPENDS
+  CC	=	../build/mkdep -a
+  CXX	=	../build/mkdep -a
+  LD	=	echo
+  COMPILE_MSG	:= Depending
+ else
+  CC	?=	gcc
+  CXX	?=	g++
+  LD	?=	ld
+  COMPILE_MSG	:= Compiling
+ endif
+endif
+SLASH	=	/
+OFILE	=	o
 
-include $(XPDEV)/Common.gmake
-include $(SBBS_SRC)/Common.gmake
-include $(UIFC_SRC)/Common.gmake
+UIFC	=	../uifc/
+XPDEV	=	../xpdev/
+LIBPREFIX =	lib
+
+ifndef os
+ os		:=	$(shell uname)
+endif
+ifeq ($(shell uname -m),ppc)
+ os		:=	$(os)-ppc
+endif
+# this line wont work with solaris unless awk in path is actually gawk 
+os      :=	$(shell echo $(os) | tr "[ A-Z]" "[\-a-z]")
+# remove '/' from "os/2"
+os      :=  $(shell echo $(os) | tr -d "/")
+
+ifeq ($(os),openbsd)
+LIBFILE =	.so.0.0
+else
+ ifeq ($(os),darwin)
+  LIBFILE =	.dylib
+ else
+  LIBFILE	=	.so
+ endif
+endif
 
 ifeq ($(os),freebsd)
  BSD	=	1
@@ -39,25 +94,70 @@ else
  endif
 endif
 
-CFLAGS  +=  -I$(XPDEV)
-CFLAGS	+=  $(UIFC_CFLAGS)
+LIBODIR :=	$(CCPRE).$(os).lib.$(BUILD)
+EXEODIR :=	$(CCPRE).$(os).exe.$(BUILD)
 
-ifndef bcc
- LDFLAGS	+=	-lm -lutil
+DELETE	=	rm -f
+
+CFLAGS  +=  -I$(XPDEV) -I$(UIFC) -DJAVASCRIPT -D_THREAD_SAFE -D_REENTRANT
+ifdef JSINCLUDE
+ CFLAGS += -I$(JSINCLUDE)
+else
+ CFLAGS += -I../../include/mozilla/js
+endif
+
+ifdef BSD	# BSD
+ # Math libraries needed and uses pthread
+ LFLAGS	:=	-lm -lutil
+ CFLAGS +=	-pthread 
+else			# Linux / Other UNIX
+ # Math and pthread libraries needed
+ ifdef bcc
+  LFLAGS	:=	libpthread.so
+ else
+  LFLAGS	:=	-lm -lpthread -lutil
+ endif
+endif
+
+ifeq ($(os),linux)    # Linux
+ ifndef THREADS_ACTUALLY_WORK
+  CFLAGS	+= -D_THREAD_SUID_BROKEN
+ endif
 endif
 
 ifeq ($(os),sunos)    # Solaris
- LDFLAGS += -lsocket -lnsl -lrt
+ CFLAGS	:= -D__solaris__ -DNEEDS_DAEMON -D_POSIX_PTHREAD_SEMANTICS -DNEEDS_FORKPTY
+ LFLAGS := -lm -lpthread -lsocket -lnsl -lrt
 endif
 
 ifeq ($(os),netbsd)
- LDFLAGS += -L/usr/pkg/lib
- UTIL_LDFLAGS	+=	-lpth -L/usr/pkg/lib
+ CFLAGS += -D__unix__ -I/usr/pkg/include -DNEEDS_FORKPTY
+ LFLAGS := -lm -lpthread -L/usr/pkg/lib -L/usr/pkg/pthreads/lib
+ UTIL_LFLAGS	+=	-lpth -L/usr/pkg/lib
+endif
+
+ifeq ($(os),darwin)
+ CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
+ LFLAGS :=  -lm -lpthread
 endif
 
 # So far, only QNX has sem_timedwait()
 ifeq ($(os),qnx)
- LDFLAGS += -lsocket
+ LFLAGS := -lm -lsocket
+else
+ CFLAGS	+=	-DUSE_XP_SEMAPHORES
+ USE_XP_SEMAPHORES	:=	1
+endif
+
+ifdef DEBUG
+ ifdef bcc
+  CFLAGS	+=	-y -v -Od
+ else
+  CFLAGS	+=	-ggdb
+ endif
+ CFLAGS  +=	-D_DEBUG
+else
+ CFLAGS	+= -O3
 endif
 
 ifdef PREFIX
@@ -68,8 +168,61 @@ ifdef USE_DOSEMU
  CFLAGS += -DUSE_DOSEMU
 endif
 
+ifndef JSLIBDIR
+ JSLIBDIR := ../../lib/mozilla/js/$(os).$(BUILD)
+endif
+ifndef JSLIB
+ JSLIB	:=	js
+endif
+ifndef NSPRDIR
+ NSPRDIR := ../../lib/mozilla/nspr/$(os).$(BUILD)
+endif
+
 ifdef DONT_BLAME_SYNCHRONET
- CFLAGS += -DDONT_BLAME_SYNCHRONET
+ LFLAGS += -DDONT_BLAME_SYNCHRONET
+endif
+
+LFLAGS += -L$(JSLIBDIR) -l$(JSLIB)
+
+# The following are needed for echocfg (uses UIFC)
+UIFC_OBJS =	$(LIBODIR)/uifcx.o
+ifdef USE_FLTK
+ CFLAGS +=	-DUSE_FLTK -I../../include/fltk
+ UIFC_LFLAGS += -L../../lib/fltk/$(os) -L/usr/X11R6/lib -lm -lfltk -lX11
+ UIFC_OBJS+=	$(LIBODIR)/uifcfltk.o
+endif
+ifdef USE_CURSES
+ CFLAGS +=	-DUSE_CURSES
+ ifeq ($(os),qnx)
+  UIFC_LFLAGS += -lncurses
+ else
+  UIFC_LFLAGS += -lcurses
+ endif
+ UIFC_OBJS +=	$(LIBODIR)/uifcc.o
+endif
+
+ifdef USE_UIFC32
+ CFLAGS +=	-DUSE_UIFC32
+ ifeq ($(os),qnx)
+  UIFC_LFLAGS += -lncurses
+ else
+  UIFC_LFLAGS += -lcurses
+ endif
+ UIFC_OBJS +=	$(LIBODIR)/uifc32.o
+ UIFC_OBJS +=	$(LIBODIR)/ciowrap.o
+endif
+
+#The following is needed for nspr support on Linux
+ifeq ($(os),linux)
+ LFLAGS	+=	-ldl
+endif
+
+include targets.mk		# defines all targets
+include objects.mk		# defines $(OBJS)
+include sbbsdefs.mk		# defines $(SBBSDEFS)
+
+ifeq ($(USE_XP_SEMAPHORES),1)
+ OBJS	+=	$(LIBODIR)$(SLASH)xpsem.$(OFILE)
 endif
 
 #SBBSLIB	=	$(LIBODIR)$(SLASH)libsbbs.so
@@ -77,22 +230,53 @@ SBBSLIB	=	-lsbbs
 
 #dummy rule
 $(SBBSLIB) : $(SBBS)
-	$(QUIET)touch -- '$(SBBSLIB)'
 
+vpath %.c $(XPDEV) $(UIFC)
+vpath %.cpp $(UIFC)
+
+LFLAGS		+=	-L./$(LIBODIR) -L$(NSPRDIR)
 ifneq ($(os),darwin)
-SBBSLDFLAGS	:=	$(LDFLAGS) -rpath-link ./$(LIBODIR) -rpath ./ 
-#LDFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
-LDFLAGS		+=	-Xlinker -rpath
-LDFLAGS		+=	-Xlinker .
+SBBSLDFLAGS	:=	$(LFLAGS) -rpath-link ./$(LIBODIR) -rpath ./ 
+#LFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
+LFLAGS		+=	-Xlinker -rpath
+LFLAGS		+=	-Xlinker .
 ifneq ($(os),openbsd)
-LDFLAGS		+=	-Xlinker -rpath-link
-LDFLAGS		+=	-Xlinker ./$(LIBODIR)
-LDFLAGS		+=	-Xlinker -rpath-link
-LDFLAGS		+=	-Xlinker $(JSLIBDIR)
-LDFLAGS		+=	-Xlinker -rpath-link
-LDFLAGS		+=	-Xlinker $(NSPRDIR)
+LFLAGS		+=	-Xlinker -rpath-link
+LFLAGS		+=	-Xlinker ./$(LIBODIR)
+LFLAGS		+=	-Xlinker -rpath-link
+LFLAGS		+=	-Xlinker $(JSLIBDIR)
+LFLAGS		+=	-Xlinker -rpath-link
+LFLAGS		+=	-Xlinker $(NSPRDIR)
+else
+LFLAGS		+=	-l$(JSLIB) -lnspr4
 endif
 endif
+ifeq ($(os),freebsd)
+LFLAGS		+=	-pthread
+endif
+ifeq ($(os),openbsd)
+LFLAGS		+=	-pthread
+endif
+
+# Implicit C Compile Rule for SBBS
+$(LIBODIR)/%.o : %.c $(BUILD_DEPENDS)
+   ifndef bcc
+	@echo $(COMPILE_MSG) $<
+   endif
+	$(QUIET)$(CC) $(CFLAGS) $(SBBSDEFS) -o $@ -c $<
+
+# Implicit C++ Compile Rule for SBBS
+$(LIBODIR)/%.o : %.cpp $(BUILD_DEPENDS)
+   ifndef bcc
+	@echo $(COMPILE_MSG) $<
+   endif
+	$(QUIET)$(CXX) $(CFLAGS) $(SBBSDEFS) -o $@ -c $<
+
+$(LIBODIR):
+	mkdir $(LIBODIR)
+
+$(EXEODIR):
+	mkdir $(EXEODIR)
 
 CON_OBJS	= $(LIBODIR)/sbbscon.o $(LIBODIR)/conwrap.o \
 		  $(LIBODIR)/sbbs_ini.o
@@ -125,49 +309,49 @@ FORCE$(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
 
 $(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $^
+	$(QUIET)$(CXX) -o $@ $(LFLAGS) $^
 
 # Synchronet BBS library Link Rule
 FORCE$(SBBS): $(OBJS) $(LIBS)
 
 $(SBBS): $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $^ $(SHLIBOPTS)
+	$(QUIET)$(MKSHPPLIB) $(LFLAGS) -o $@ $^ $(SHLIBOPTS)
 
 # FTP Server Link Rule
 FORCE$(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 
 $(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@ 
+	$(QUIET)$(MKSHLIB) $(LFLAGS) $^ $(SHLIBOPTS) -o $@ 
 
 # Mail Server Link Rule
 FORCE$(MAILSRVR): $(MAIL_OBJS) $(LIBODIR)$(SLASH)$(SBBSLIB)
 
 $(MAILSRVR): $(MAIL_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@
+	$(QUIET)$(MKSHLIB) $(LFLAGS) $^ $(SHLIBOPTS) -o $@
 
 # Mail Server Link Rule
 FORCE$(WEBSRVR): $(WEB_OBJS) $(SBBSLIB)
 
 $(WEBSRVR): $(WEB_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@
+	$(QUIET)$(MKSHLIB) $(LFLAGS) $^ $(SHLIBOPTS) -o $@
 
 # Services Link Rule
 FORCE$(SERVICES): $(WEB_OBJS) $(SBBSLIB)
 
 $(SERVICES): $(SERVICE_OBJS) $(SBBSLIB)
 	@echo Linking $@
-	$(QUIET)$(MKSHLIB) $(LDFLAGS) $^ $(SHLIBOPTS) -o $@
+	$(QUIET)$(MKSHLIB) $(LFLAGS) $^ $(SHLIBOPTS) -o $@
 
 # Synchronet Console Build Rule
 FORCE$(SBBSCON): $(CON_OBJS) $(SBBSLIB) $(FTP_OBJS) $(MAIL_OBJS) $(WEB_OBJS) $(SERVICE_OBJS)
 
 $(SBBSCON): $(CON_OBJS) $(SBBSLIB) $(FTPSRVR) $(WEBSRVR) $(MAILSRVR) $(SERVICES)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CFLAGS) $(LDFLAGS) $(CON_LDFLAGS) -o $@ $(CON_OBJS) $(SBBSLIB)
+	$(QUIET)$(CC) $(CFLAGS) $(LFLAGS) $(CON_LDFLAGS) -o $@ $(CON_OBJS) $(SBBSLIB)
 
 # Specifc Compile Rules
 $(LIBODIR)/ftpsrvr.o: ftpsrvr.c ftpsrvr.h $(BUILD_DEPENDS)
@@ -210,7 +394,7 @@ FORCE$(BAJA): $(BAJA_OBJS)
 
 $(BAJA): $(BAJA_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # Node Utility
 NODE_OBJS = \
@@ -221,7 +405,7 @@ FORCE$(NODE): $(NODE_OBJS)
 
 $(NODE): $(NODE_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ 
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^ 
 
 # FIXSMB Utility
 FIXSMB_OBJS = \
@@ -234,7 +418,7 @@ FORCE$(FIXSMB): $(FIXSMB_OBJS)
 	
 $(FIXSMB): $(FIXSMB_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # CHKSMB Utility
 CHKSMB_OBJS = \
@@ -247,7 +431,7 @@ FORCE$(CHKSMB): $(CHKSMB_OBJS)
 
 $(CHKSMB): $(CHKSMB_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # SMB Utility
 SMBUTIL_OBJS = \
@@ -265,7 +449,7 @@ FORCE$(SMBUTIL): $(SMBUTIL_OBJS)
 	
 $(SMBUTIL): $(SMBUTIL_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # SBBSecho (FidoNet Packet Tosser)
 SBBSECHO_OBJS = \
@@ -292,14 +476,13 @@ FORCE$(SBBSECHO): $(SBBSECHO_OBJS)
 
 $(SBBSECHO): $(SBBSECHO_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # SBBSecho Configuration Program
 ECHOCFG_OBJS = \
 	$(LIBODIR)/echocfg.o \
 	$(LIBODIR)/rechocfg.o \
 	$(UIFC_OBJS) \
-	$(LIBODIR)/uifcx.o \
 	$(LIBODIR)/nopen.o \
 	$(LIBODIR)/crc16.o \
 	$(LIBODIR)/str_util.o \
@@ -311,7 +494,7 @@ FORCE$(ECHOCFG): $(ECHOCFG_OBJS)
 
 $(ECHOCFG): $(ECHOCFG_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(UIFC_LDFLAGS)
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^ $(UIFC_LFLAGS)
 
 # ADDFILES
 ADDFILES_OBJS = \
@@ -334,7 +517,7 @@ FORCE$(ADDFILES): $(ADDFILES_OBJS)
 
 $(ADDFILES): $(ADDFILES_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # FILELIST
 FILELIST_OBJS = \
@@ -356,7 +539,7 @@ FORCE$(FILELIST): $(FILELIST_OBJS)
 
 $(FILELIST): $(FILELIST_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # MAKEUSER
 MAKEUSER_OBJS = \
@@ -378,7 +561,7 @@ FORCE$(MAKEUSER): $(MAKEUSER_OBJS)
 
 $(MAKEUSER): $(MAKEUSER_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # JSEXEC
 JSEXEC_OBJS = \
@@ -389,20 +572,30 @@ FORCE$(JSEXEC): $(JSEXEC_OBJS)
 
 $(JSEXEC): $(JSEXEC_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CXX) $(UTIL_LDFLAGS) -o $@ $^ $(LDFLAGS)
+	$(QUIET)$(CXX) $(UTIL_LFLAGS) -o $@ $^ $(LFLAGS)
 	
 # ANS2ASC
 FORCE$(ANS2ASC): $(LIBODIR)/ans2asc.o
 
 $(ANS2ASC): $(LIBODIR)/ans2asc.o
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
 # ASC2ANS
 FORCE$(ASC2ANS): $(LIBODIR)/asc2ans.o
 
 $(ASC2ANS): $(LIBODIR)/asc2ans.o
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^
+	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
+
+depend:
+	$(QUIET)$(DELETE) $(LIBODIR)/.depend
+	$(QUIET)$(DELETE) $(EXEODIR)/.depend
+	$(MAKE) BUILD_DEPENDS=FORCE
 
 FORCE:
+
+-include $(LIBODIR)/.depend
+-include $(EXEODIR)/.depend
+-include $(LIBODIR)/*.d
+-include $(EXEODIR)/*.d
