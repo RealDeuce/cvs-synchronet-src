@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.51 2004/10/20 23:09:10 rswindell Exp $ */
+/* $Id: startup.h,v 1.49 2004/08/04 04:55:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 
 #include "client.h"
 #include "ringbuf.h"
-#include "semwrap.h"	/* sem_t */
+#include "threadwrap.h"	/* sem_t */
 #include "ini_file.h"	/* INI_MAX_VALUE_LEN */
 
 typedef struct {
@@ -97,7 +97,6 @@ typedef struct {
     int 	(*event_lputs)(int, char*);		/* Event log - put string			*/
 	void	(*status)(void*, char*);
     void	(*started)(void*);
-	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
     void	(*clients)(void*, int active);
     void	(*thread_up)(void*, BOOL up, BOOL setuid);
