@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.5 2002/01/20 16:05:31 rswindell Exp $ */
+/* $Id: scfg.c,v 1.6 2002/01/21 03:57:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,7 @@ char tmp[256];
 char **mdm_type;
 char **mdm_file;
 int  mdm_types;
-int  backup_level=3;
+int  backup_level=5;
 
 read_cfg_text_t txt={
 	"\7\r\nError opening %s for read.\r\n",
