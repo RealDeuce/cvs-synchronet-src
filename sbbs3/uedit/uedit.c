@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.37 2004/09/28 05:37:57 deuce Exp $ */
+/* $Id: uedit.c,v 1.35 2004/09/21 05:00:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "ciolib.h"
-#define __COLORS	1
 #include "sbbs.h"
 #include <sys/types.h>
 #include <time.h>
@@ -49,7 +47,6 @@
 #include <sys/time.h>
 #include <signal.h>
 #endif
-
 #include "genwrap.h"
 #include "uifc.h"
 #include "sbbsdefs.h"
@@ -1628,7 +1625,7 @@ int edit_user(scfg_t *cfg, int usernum)
 		if (user.misc & INACTIVE)
 			strcpy(opt[i++],"Activate");
 		else
-		strcpy(opt[i++],"Deactivate");
+			strcpy(opt[i++],"Deactivate");
 		strcpy(opt[i++],"Personal");
 		strcpy(opt[i++],"Security");
 		strcpy(opt[i++],"Statistics");
@@ -1740,6 +1737,7 @@ int getuser(scfg_t *cfg, user_t *user, char* str)
 {
 	int i,j,last;
 	ushort un;
+	/* char* str ; */
 	struct user_list **opt;
 	int done=0;
 
@@ -1748,6 +1746,7 @@ int getuser(scfg_t *cfg, user_t *user, char* str)
 	for(i=0;i<(MAX_OPTS+1);i++)
 		opt[i]=NULL;
 
+	/* strcpy(str, username); */
 	/* User List */
 	done=0;
 	while(!done) {
@@ -1909,7 +1908,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.35 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -2073,13 +2072,8 @@ int main(int argc, char** argv)  {
 	strcpy(mopt[2],"User List");
 	mopt[3][0]=0;
 
-	uifc.helpbuf=	"`User Editor\n"
-					"`-----------\n\n"
-					"`New User  : `Add a new user.  This will created a default user using\n"
-					"            some default entries that you can then edit.\n"
-					"`Find User : `Find a user using full or partial search name\n"
-					"`User List : `Display the complete User List.  Users can be edited from\n"
-					"            this list by highlighting a user and pressing Enter";
+	uifc.helpbuf=	"`User Editor:`\n"
+					"\nToDo: Add Help";
 
 	while(1) {
 		j=uifc.list(WIN_L2R|WIN_ESC|WIN_ACT|WIN_DYN|WIN_ORG|WIN_EXTKEYS,0,5,0,&main_dflt,&main_bar
@@ -2090,17 +2084,17 @@ int main(int argc, char** argv)  {
 
 		if(j==-8) {	/* CTRL-F */
 			/* Find User */
-			finduser(&cfg,&user);
+			continue;
 		}
 
 		if(j <= -2)
 			continue;
 
 		if(j==-1) {
-			uifc.helpbuf=	"`Exit Synchronet User Editor\n"
-							"`---------------------------\n\n"
-							"If you want to exit the Synchronet user editor,\n"
-							"select `Yes`. Otherwise, select `No` or hit ~ ESC ~.";
+			uifc.helpbuf=	"`Exit Synchronet User Editor:`\n"
+							"\n"
+							"\nIf you want to exit the Synchronet user editor,"
+							"\nselect `Yes`. Otherwise, select `No` or hit ~ ESC ~.";
 			if(confirm("Exit Synchronet User Editor")==1)
 				bail(0);
 			continue;
@@ -2140,6 +2134,5 @@ int main(int argc, char** argv)  {
 		}
 	}
 }
-
 
 
