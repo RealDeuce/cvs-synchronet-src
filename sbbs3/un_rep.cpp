@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.25 2003/01/30 23:25:11 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.26 2003/02/15 08:10:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,9 +346,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 				truncsp(str);
 
 				if(findstr(str,fname)) {
-					sprintf(str,"Filtering post from twit (%s) on %s %s"
+					sprintf(tmp,"Filtering post from twit (%s) on %s %s"
 						,str,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
-					logline("P!",str);
+					logline("P!",tmp);
 					continue; 
 				}
 			}
