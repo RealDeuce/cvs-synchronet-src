@@ -12,7 +12,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.25 2001/12/01 01:30:12 rswindell Exp $
+# $Id: Makefile.gnu,v 1.26 2001/12/01 01:32:54 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -57,7 +57,7 @@ ifeq ($(os),freebsd)	# FreeBSD
 LIBS	=	-pthread
 CFLAGS	:=	-pthread
 else			        # Linux / Other UNIX
-CFLAGS	:=	-DJAVASCRIPT
+CFLAGS	:=	-DJAVASCRIPT -I../mozilla/js/src
 LIBS	=	$(LIBDIR)/libpthread.a
 endif
 
