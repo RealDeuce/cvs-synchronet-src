@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.7 2003/02/07 23:48:15 deuce Exp $ */
+/* $Id: uifcfltk.cpp,v 1.8 2003/02/07 23:50:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -406,7 +406,7 @@ int UIFC_Button::handle(int event)  {
 			return(1);
 		}
 		if(key==FL_End)  {
-			i=parent()->children*()-3;
+			i=parent()->children()-3;
 			Fl::focus(parent()->child(i));
 			parent()->child(i)->handle(FL_FOCUS);
 			return(1);
@@ -783,7 +783,7 @@ int uifcinifltk(uifcapi_t* uifcapi)
     api->scrn_len=24;
 	api->mode |= UIFC_MOUSE;
 
-//	Fl::scheme("plastic");
+	Fl::scheme("plastic");
 	Fl::add_handler(handle_escape);
 	Fl::visible_focus(TRUE);
 	Fl::visual(FL_DOUBLE|FL_INDEX);
