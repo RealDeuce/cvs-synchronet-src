@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.114 2002/07/03 08:25:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.115 2002/07/07 21:11:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -796,7 +796,7 @@ extern "C" {
 	DLLEXPORT void		DLLCALL free_cfg(scfg_t* cfg);
 	DLLEXPORT void		DLLCALL free_text(char* text[]);
 
-	/* save_cfg.c */
+	/* scfgsave.c */
 	DLLEXPORT BOOL		DLLCALL save_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_node_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_main_cfg(scfg_t* cfg, int backup_level);
@@ -804,6 +804,7 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_file_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
+	DLLEXPORT void		DLLCALL backup(char *org, int backup_level, BOOL ren);
 
 	/* scfglib1.c */
 	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir);
