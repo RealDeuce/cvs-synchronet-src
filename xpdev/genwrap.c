@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.42 2004/09/16 08:59:32 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.43 2004/10/14 00:03:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -422,11 +422,12 @@ clock_t DLLCALL msclock(void)
 /****************************************************************************/
 char* DLLCALL truncsp(char* str)
 {
-	unsigned c;
+	size_t i,len;
 
-	c=strlen(str);
-	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n')) c--;
-	str[c]=0;
+	i=len=strlen(str);
+	while(i && (str[i-1]==' ' || str[i-1]=='\t' || str[i-1]=='\r' || str[i-1]=='\n')) i--;
+	if(i!=len)
+		str[i]=0;	/* truncate */
 
 	return(str);
 }
@@ -436,11 +437,12 @@ char* DLLCALL truncsp(char* str)
 /****************************************************************************/
 char* DLLCALL truncnl(char* str)
 {
-	unsigned c;
+	size_t i,len;
 
-	c=strlen(str);
-	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
-	str[c]=0;
+	i=len=strlen(str);
+	while(i && (str[i-1]=='\r' || str[i-1]=='\n')) i--;
+	if(i!=len)
+		str[i]=0;	/* truncate */
 
 	return(str);
 }
