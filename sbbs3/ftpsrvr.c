@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.189 2002/11/05 02:54:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.190 2002/11/07 02:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2871,6 +2871,13 @@ static void ctrl_thread(void* arg)
 				sprintf(path,"%s%s",local_dir, *p ? p : "*");
 				lprintf("%04d %s listing: %s", sock, user.alias, path);
 				sockprintf(sock, "150 Directory of %s%s", local_dir, p);
+
+				now=time(NULL);
+				tm_p=localtime(&now);
+				if(tm_p==NULL) 
+					memset(&cur_tm,0,sizeof(cur_tm));
+				else
+					cur_tm=*tm_p;
 			
 				glob(path,0,NULL,&g);
 				for(i=0;i<(int)g.gl_pathc;i++) {
@@ -4299,7 +4306,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.189 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.190 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
