@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.44 2003/10/19 07:15:58 rswindell Exp $ */
+/* $Id: js_user.c,v 1.45 2003/10/20 22:01:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -886,16 +886,20 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	if(!js_DefineSyncProperties(cx, obj, js_user_properties))
 		return(JS_FALSE);
 
-	if(!js_DefineSyncMethods(cx, obj, js_user_functions, FALSE))
-		return(JS_FALSE);
-
 	if((p=(private_t*)malloc(sizeof(private_t)))==NULL)
 		return(JS_FALSE);
 
 	p->cfg = scfg;
 	p->usernumber = user.number;
 
-	JS_SetPrivate(cx, obj, p);
+	JS_SetPrivate(cx, obj, p);	/* Must do this before calling js_DefineSyncMethods() */
+
+	if(!js_DefineSyncMethods(cx, obj, js_user_functions, FALSE)) {
+		JS_SetPrivate(cx, obj, NULL);
+		free(p);
+		return(JS_FALSE);
+	}
+
 	JS_SetPrivate(cx, statsobj, p);
 	JS_SetPrivate(cx, securityobj, p);
 
