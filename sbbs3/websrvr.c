@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.180 2004/10/16 02:35:44 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.181 2004/10/16 05:48:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1569,6 +1569,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 	if(request_line == NULL) {
 		if(sockreadline(session,req_line,sizeof(req_line)-1)<0)
 			req_line[0]=0;
+		lprintf(LOG_DEBUG,"%04d Request: %s",session->socket,request_line);
 	}
 	else {
 		lprintf(LOG_DEBUG,"%04d Handling Internal Redirect to: %s",session->socket,request_line);
@@ -2704,7 +2705,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.180 $", "%*s %s", revision);
+	sscanf("$Revision: 1.181 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
