@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.246 2003/07/04 10:14:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.247 2003/07/11 01:18:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1566,6 +1566,9 @@ static void send_thread(void* arg)
 				}
 			}
 			/* Need to update datedled in index */
+
+			if(!xfer.tmpfile && !xfer.delfile && !(scfg.dir[f.dir]->misc&DIR_NOSTAT))
+				download_stats(total);
 		}	
 
 		if(xfer.credits) {
@@ -1574,8 +1577,6 @@ static void send_thread(void* arg)
 			if(xfer.dir>=0 && !is_download_free(&scfg,xfer.dir,xfer.user))
 				subtract_cdt(&scfg, xfer.user, xfer.credits);
 		}
-		if(!xfer.tmpfile && !xfer.delfile)
-			download_stats(total);
 	}
 
 	fclose(fp);
@@ -1853,7 +1854,8 @@ static void receive_thread(void* arg)
 					xfer.user->cdt=adjustuserrec(&scfg,xfer.user->number,U_CDT,10
 						,(ulong)(f.cdt*(scfg.dir[f.dir]->up_pct/100.0))); 
 			}
-			upload_stats(total);
+			if(!(scfg.dir[f.dir]->misc&DIR_NOSTAT))
+				upload_stats(total);
 		}
 		/* Send ACK */
 		sockprintf(xfer.ctrl_sock,"226 Upload complete (%lu cps).",cps);
@@ -4454,7 +4456,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.246 $", "%*s %s", revision);
+	sscanf("$Revision: 1.247 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.21 2003/06/12 09:07:40 rswindell Exp $ */
+/* $Id: download.cpp,v 1.22 2003/07/11 01:18:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,8 +54,10 @@ void sbbs_t::downloadfile(file_t* f)
 	getfiledat(&cfg,f); /* Get current data - right after download */
 	if((length=f->size)<0L)
 		length=0L;
-	logon_dlb+=length;  /* Update 'this call' stats */
-	logon_dls++;
+	if(!(cfg.dir[f->dir]->misc&DIR_NOSTAT)) {
+		logon_dlb+=length;  /* Update 'this call' stats */
+		logon_dls++;
+	}
 	bprintf(text[FileNBytesSent],f->name,ultoac(length,tmp));
 	sprintf(str,"%s downloaded %s from %s %s"
 		,useron.alias

@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.33 2003/06/06 23:27:18 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.34 2003/07/11 01:18:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,8 +186,10 @@ bool sbbs_t::uploadfile(file_t *f)
 		} 
 	}
 
-	logon_ulb+=length;  /* Update 'this call' stats */
-	logon_uls++;
+	if(!(cfg.dir[f->dir]->misc&DIR_NOSTAT)) {
+		logon_ulb+=length;  /* Update 'this call' stats */
+		logon_uls++;
+	}
 	if(cfg.dir[f->dir]->misc&DIR_AONLY)  /* Forced anonymous */
 		f->misc|=FM_ANON;
 	f->cdt=length;
