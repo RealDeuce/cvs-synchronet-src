@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.2 2004/05/14 09:24:49 rswindell Exp $ */
+/* $Id: link_list.c,v 1.3 2004/05/14 09:27:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,8 +39,10 @@
 #include <string.h>		/* memset */
 #include "link_list.h"
 
-link_list_t* listInit(link_list_t* list, unsigned long flags)
+link_list_t* listInit(link_list_t* list)
 {
+	unsigned long flags=0;
+
 	if(flags&LINK_LIST_MALLOC || list==NULL) {
 		if((list=(link_list_t*)malloc(sizeof(link_list_t)))==NULL)
 			return(NULL);
