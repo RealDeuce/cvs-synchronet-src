@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.64 2002/04/13 08:40:34 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.65 2002/04/23 07:02:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,7 +123,8 @@ static const char* usage  = "usage: %s [[setting] [...]]\n"
 							"\n"
 							"\tms<port>   set SMTP server port\n"
 							"\tmp<port>   set POP3 server port\n"
-							"\tmr<port>   set SMTP relay port (and enable SMTP relay)\n"
+							"\tmr<addr>   set SMTP relay server (and enable SMTP relay)\n"
+							"\tmd<addr>   set DNS server address for MX-record lookups\n"
 							"\tmo<value>  set Mail server options value (advanced)\n"
 							"\tm-         disable Mail server (entirely)\n"
 							"\tmp-        disable POP3 server\n"
@@ -892,9 +893,17 @@ int main(int argc, char** argv)
 								return(0);
 						}
 						break;
-					case 'R': /* Relay */
-						mail_startup.relay_port=atoi(arg);
+					case 'R':	/* Relay */
 						mail_startup.options|=MAIL_OPT_RELAY_TX;
+						p=strchr(arg,':');	/* port specified */
+						if(p!=NULL) {
+							*p=0;
+							mail_startup.relay_port=atoi(p+1);
+						}
+						SAFECOPY(mail_startup.relay_server,arg);
+						break;
+					case 'D':	/* DNS Server */
+						SAFECOPY(mail_startup.dns_server,arg);
 						break;
 					default:
 						printf(usage,argv[0]);
