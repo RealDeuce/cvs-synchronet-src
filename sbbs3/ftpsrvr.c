@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.103 2001/09/19 00:06:19 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.104 2001/09/19 22:11:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4020,20 +4020,22 @@ static void ctrl_thread(void* arg)
 	if(transfer_inprogress==TRUE) {
 		lprintf("%04d Waiting for transfer to complete...",sock);
 		while(/* data_sock!=INVALID_SOCKET && removed SEP-16-2001 */
-			transfer_inprogress==TRUE) {
+			transfer_inprogress==TRUE && server_socket!=INVALID_SOCKET) {
 			mswait(500);
-			if(gettimeleft(&scfg,&user,logintime)<1) {
-				lprintf("%04d Out of time, disconnecting",sock);
-				sockprintf(sock,"421 Sorry, you've run out of time.");
-				ftp_close_socket(&data_sock,__LINE__);
-				transfer_aborted=TRUE;
-			}
-			if((time(NULL)-lastactive)>startup->max_inactivity) {
-				lprintf("%04d Disconnecting due to to inactivity.",sock);
-				sockprintf(sock,"421 Disconnecting due to inactivity (%u seconds)."
-					,startup->max_inactivity);
-				ftp_close_socket(&data_sock,__LINE__);
-				transfer_aborted=TRUE;
+			if(!transfer_aborted) {
+				if(gettimeleft(&scfg,&user,logintime)<1) {
+					lprintf("%04d Out of time, disconnecting",sock);
+					sockprintf(sock,"421 Sorry, you've run out of time.");
+					ftp_close_socket(&data_sock,__LINE__);
+					transfer_aborted=TRUE;
+				}
+				if((time(NULL)-lastactive)>startup->max_inactivity) {
+					lprintf("%04d Disconnecting due to to inactivity.",sock);
+					sockprintf(sock,"421 Disconnecting due to inactivity (%u seconds)."
+						,startup->max_inactivity);
+					ftp_close_socket(&data_sock,__LINE__);
+					transfer_aborted=TRUE;
+				}
 			}
 		}
 		lprintf("%04d Done waiting for transfer to complete",sock);
