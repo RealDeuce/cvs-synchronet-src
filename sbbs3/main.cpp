@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.277 2003/05/12 22:26:40 deuce Exp $ */
+/* $Id: main.cpp,v 1.278 2003/05/13 00:12:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2080,7 +2080,7 @@ bool sbbs_t::init()
 #endif
 		);
 	if(comspec==NULL) {
-		errormsg(WHERE, ERR_CHK, "shell/comspec", 0);
+		errormsg(WHERE, ERR_CHK, "SHELL or COMSPEC environment variable", 0);
 		return(false);
 	}
 
