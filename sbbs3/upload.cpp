@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.8 2000/12/31 03:41:55 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.9 2001/04/11 03:38:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,7 +172,7 @@ bool sbbs_t::uploadfile(file_t *f)
 		return(0);
 
 	if(f->misc&FM_EXTDESC)
-		putextdesc(f->dir,f->datoffset,ext);
+		putextdesc(&cfg,f->dir,f->datoffset,ext);
 
 	sprintf(str,"Uploaded %s to %s %s",f->name,cfg.lib[cfg.dir[f->dir]->lib]->sname
 		,cfg.dir[f->dir]->sname);
