@@ -2,7 +2,7 @@
 
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.4 2003/10/09 20:31:23 deuce Exp $ */
+/* $Id: fidodefs.h,v 1.5 2003/10/10 00:16:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,8 +73,7 @@
 #endif
 
 #if defined(PRAGMA_PACK)
-#pragma pack(push)		/* Disk image structures must be packed */
-#pragma pack(1)
+	#pragma pack(push,1)			/* Disk image structures must be packed */
 #endif
 
 typedef struct _PACK {				/* Fidonet Packet Header				*/

@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.40 2003/10/09 17:27:05 deuce Exp $ */
+/* $Id: smbdefs.h,v 1.41 2003/10/10 00:16:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,8 +427,7 @@ enum {
 #endif
 
 #if defined(PRAGMA_PACK)
-#pragma pack(push,1)		/* Disk image structures must be packed */
-#pragma pack(1)
+	#pragma pack(push,1)	/* Disk image structures must be packed */
 #endif
 
 typedef struct _PACK {		/* Time with time-zone */
