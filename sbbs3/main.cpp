@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.12 2001/04/26 02:54:38 rswindell Exp $ */
+/* $Id: main.cpp,v 1.13 2001/04/30 00:45:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -840,7 +840,9 @@ void event_thread(void* arg)
 
 	thread_up();
 
+#ifdef JAVASCRIPT
 	sbbs->js_initcx();	/* This must be done in the context of the event thread */
+#endif
 
 	while(1) {
 
@@ -2495,17 +2497,20 @@ void node_thread(void* arg)
 	update_clients();
 	thread_up();
 
+#ifdef JAVASCRIPT
 	sbbs->js_initcx();	/* This must be done in the context of the node thread */
+#endif
 
 	if(sbbs->answer()) {
 
+#ifdef JAVASCRIPT
 		JS_BeginRequest(sbbs->js_cx);	/* Required for multi-thread support */
 
 		if(js_CreateUserObject(&sbbs->cfg, sbbs->js_cx, sbbs->js_glob, "user", &sbbs->useron)==NULL) {
 			lprintf("!JavaScript ERROR creating user object");
 		}
 		JS_EndRequest(sbbs->js_cx);	/* Required for multi-thread support */
-
+#endif
 
 		if(sbbs->qwklogon) {
 			sbbs->getsmsg(sbbs->useron.number);
