@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.11 2001/11/05 04:13:05 rswindell Exp $ */
+/* $Id: smblib.c,v 1.12 2001/11/13 17:06:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -531,6 +531,20 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 	}
 	msg->idx=idx;
 	msg->offset=l;
+	return(0);
+}
+
+/****************************************************************************/
+/* Reads the first index record in the open message base 					*/
+/****************************************************************************/
+int SMBCALL smb_getfirstidx(smb_t* smb, idxrec_t *idx)
+{
+	clearerr(smb->sid_fp);
+	fseek(smb->sid_fp,0,SEEK_SET);
+	if(!fread(idx,sizeof(idxrec_t),1,smb->sid_fp)) {
+		sprintf(smb->last_error,"reading index");
+		return(-2);
+	}
 	return(0);
 }
 
