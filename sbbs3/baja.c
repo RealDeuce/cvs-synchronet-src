@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.18 2001/06/22 15:33:33 rswindell Exp $ */
+/* $Id: baja.c,v 1.19 2001/07/30 18:10:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3367,7 +3367,7 @@ void compile(char *src)
 }
 
 char *banner=	"\n"
-				"BAJA v2.30 - Synchronet Shell/Module Compiler - "
+				"BAJA v2.31 - Synchronet Shell/Module Compiler - "
 				"Copyright 2001 Rob Swindell\n";
 
 char *usage=	"\n"
