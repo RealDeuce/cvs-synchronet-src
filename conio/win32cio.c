@@ -4,7 +4,7 @@
 #include "keys.h"
 #include "win32cio.h"
 
-#define VID_MODES	6
+#define VID_MODES	7
 
 const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
@@ -22,6 +22,7 @@ const struct vid_mode vid_modes[VID_MODES]={
 	,{C80,80,25,1}
 	,{MONO,80,25,1}
 	,{C4350,80,50,1}
+	,{C80X50,80,50,1}
 };
 
 static struct cio_mouse_event	cio_last_button_press;
@@ -33,7 +34,7 @@ static int xpos=1;
 static int ypos=1;
 
 static int currattr=7;
-static int modeidx=1;
+static int modeidx=3;
 
 WORD DOStoWinAttr(int newattr)
 {
@@ -251,12 +252,13 @@ void win32_textmode(int mode)
 	}
 	sz.X=vid_modes[modeidx].xsize;
 	sz.Y=vid_modes[modeidx].ysize;
-	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
 	rc.Left=0;
 	rc.Right=vid_modes[modeidx].xsize-1;
 	rc.Top=0;
 	rc.Bottom=vid_modes[modeidx].ysize-1;
+	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
 	SetConsoleWindowInfo(GetStdHandle(STD_OUTPUT_HANDLE),TRUE,&rc);
+	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
 }
 
 int win32_gettext(int left, int top, int right, int bottom, void* buf)
@@ -308,7 +310,8 @@ void win32_gotoxy(int x, int y)
 	ypos=y;
 	cp.X=x-1;
 	cp.Y=y-1;
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),cp);
+	if(!dont_move_cursor)
+		SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),cp);
 }
 
 void win32_highvideo(void)
