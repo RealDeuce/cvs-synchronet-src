@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.15 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.16 2003/04/08 01:41:55 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -125,7 +125,7 @@ int main()
 	}
 	if(dir!=NULL)
 		closedir(dir);
-	printf("\nFree disk space: %lu bytes\n",getfreediskspace(path));
+	printf("\nFree disk space: %lu kbytes\n",getfreediskspace(path,1024));
 
 	/* Thread (and inter-process communication) test */
 	printf("\nSemaphore test\n");
