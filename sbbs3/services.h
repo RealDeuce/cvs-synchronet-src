@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.2 2001/11/27 18:36:08 rswindell Exp $ */
+/* $Id: services.h,v 1.3 2002/02/24 18:32:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,15 +46,15 @@
 
 typedef struct {
 
-	DWORD	size;				// sizeof(bbs_struct_t)
+	DWORD	size;				/* sizeof(bbs_struct_t) */
     DWORD   interface_addr;
-    DWORD	options;			// See BBS_OPT definitions
+    DWORD	options;			/* See BBS_OPT definitions */
     DWORD	js_max_bytes;
-    DWORD	reserved_dword4;
+    DWORD	user_id;			/* Unix uid to use for threads */
     DWORD	reserved_dword3;
     DWORD	reserved_dword2;
     DWORD	reserved_dword1;
-	int 	(*lputs)(char*);		// Log - put string
+	int 	(*lputs)(char*);		/* Log - put string */
 	void	(*status)(char*);
     void	(*started)(void);
     void	(*terminated)(int code);

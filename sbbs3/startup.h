@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.17 2002/02/23 04:42:15 rswindell Exp $ */
+/* $Id: startup.h,v 1.18 2002/02/24 18:32:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@ typedef struct {
     RingBuf** node_spybuf;		// Spy output buffer (each node)
     RingBuf** node_inbuf;		// User input buffer (each node)
     sem_t**	node_spysem;		// Spy output semaphore (each node)
-    DWORD	reserved_dword1;
+    DWORD	user_id;			// Unix uid to use for threads
     int 	(*event_log)(char*);	// Event log - put string
 	int 	(*lputs)(char*);		// Log - put string
 	void	(*status)(char*);
