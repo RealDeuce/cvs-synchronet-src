@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.59 2003/11/20 09:00:54 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.60 2003/11/26 11:48:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -592,6 +592,10 @@ long js_exec(const char *fname, char** args)
 	JS_DefineProperty(js_cx, js_glob, "argc", INT_TO_JSVAL(argc)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
+	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
+		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
+		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
 	if(fp==stdin) 	 /* Using stdin for script source */
@@ -687,7 +691,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.59 $", "%*s %s", revision);
+	sscanf("$Revision: 1.60 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
