@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.59 2004/10/27 21:15:35 rswindell Exp $ */
+/* $Id: smblib.h,v 1.61 2004/12/29 10:13:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,11 +80,12 @@
 
 #define SMB_ALL_REFS		0			/* Free all references to data		*/
 
-#define GETMSGTXT_TAILS 	(1<<0)		/* Get message tail(s)				*/
-#define GETMSGTXT_NO_BODY	(1<<1)		/* Do not retrieve message body		*/
-#define GETMSGTXT_BODY_ONLY	0
-#define GETMSGTXT_TAIL_ONLY (GETMSGTXT_TAILS|GETMSGTXT_NO_BODY)
-#define GETMSGTXT_ALL		GETMSGTXT_TAILS
+#define GETMSGTXT_TAILS 		(1<<0)	/* Get message tail(s)				*/
+#define GETMSGTXT_NO_BODY		(1<<1)	/* Don't retrieve message body		*/
+#define GETMSGTXT_NO_HFIELDS	(1<<2)	/* Don't include text header fields	*/
+#define GETMSGTXT_BODY_ONLY		GETMSGTXT_NO_HFIELDS
+#define GETMSGTXT_TAIL_ONLY		(GETMSGTXT_TAILS|GETMSGTXT_NO_BODY|GETMSGTXT_NO_HFIELDS)
+#define GETMSGTXT_ALL			GETMSGTXT_TAILS
 
 #define SMB_IS_OPEN(smb)	((smb)->shd_fp!=NULL)
 
@@ -180,7 +181,9 @@ SMBEXPORT hash_t*	SMBCALL	smb_hashstr(ulong msgnum, ulong time, unsigned source
 
 SMBEXPORT hash_t**	SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* text);
 SMBEXPORT int		SMBCALL smb_addhashes(smb_t* smb, hash_t** hash_list, BOOL skip_marked);
+SMBEXPORT ushort	SMBCALL smb_name_crc(const char* name);
 SMBEXPORT ushort	SMBCALL smb_subject_crc(const char *subj);
+SMBEXPORT int		SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg);
 
 /* Fast look-up functions (using hashes) */
 SMBEXPORT int 		SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
