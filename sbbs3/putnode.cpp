@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.12 2002/06/18 08:11:21 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.13 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,39 +107,6 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 		errno=wrerr;
 		errormsg(WHERE,ERR_WRITE,"nodefile",number+1);
 		return(errno);
-	}
-
-	return(0);
-}
-
-/****************************************************************************/
-/* Creates a short message for node 'num' than contains 'strin'             */
-/****************************************************************************/
-int sbbs_t::putnmsg(int num, char *strin)
-{
-    char str[256];
-    int file,i;
-    node_t node;
-
-	sprintf(str,"%smsgs/n%3.3u.msg",cfg.data_dir,num);
-	if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
-		errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT);
-		return(errno); 
-	}
-	lseek(file,0L,SEEK_END);	// Instead of opening with O_APPEND
-	i=strlen(strin);
-	if(write(file,strin,i)!=i) {
-		close(file);
-		errormsg(WHERE,ERR_WRITE,str,i);
-		return(errno); 
-	}
-	close(file);
-	getnodedat(num,&node,0);
-	if((node.status==NODE_INUSE || node.status==NODE_QUIET)
-		&& !(node.misc&NODE_NMSG)) {
-		getnodedat(num,&node,1);
-		node.misc|=NODE_NMSG;
-		putnodedat(num,&node); 
 	}
 
 	return(0);

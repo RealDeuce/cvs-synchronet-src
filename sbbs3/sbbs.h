@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.131 2002/08/22 10:49:13 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.132 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -508,7 +508,6 @@ public:
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);
 	int		putnodeext(uint number, char * str);
-	int		putnmsg(int num, char *strin);
 
 	/* logonoff.cpp */
 	bool	answer();

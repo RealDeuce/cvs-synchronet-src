@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.25 2002/08/10 08:16:07 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.26 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -524,7 +524,7 @@ bool sbbs_t::logon()
 					,cfg.node_num
 					,thisnode.misc&NODE_ANON ? text[UNKNOWN_USER] : useron.alias
 					,connection);
-				putnmsg(i,str); 
+				putnmsg(&cfg,i,str); 
 			} 
 		}
 

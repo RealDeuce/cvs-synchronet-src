@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.13 2002/07/15 20:46:06 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.14 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,7 @@ void sbbs_t::telluser(smbmsg_t* msg)
 			sprintf(str
 				,text[UserReadYourMailNodeMsg]
 				,cfg.node_num,useron.alias);
-			putnmsg(n,str);
+			putnmsg(&cfg,n,str);
 			break; } }
 	if(n>cfg.sys_nodes) {
 		now=time(NULL);

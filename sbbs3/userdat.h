@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.19 2002/07/27 02:14:20 rswindell Exp $ */
+/* $Id: userdat.h,v 1.20 2002/08/22 19:49:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,8 @@ DLLEXPORT void	DLLCALL packchatpass(char *pass, node_t* node);
 DLLEXPORT char* DLLCALL unpackchatpass(char *pass, node_t* node);
 
 DLLEXPORT int	DLLCALL putsmsg(scfg_t* cfg, int usernumber, char *strin);
+DLLEXPORT int	DLLCALL putnmsg(scfg_t* cfg, int num, char *strin);
+
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen, char *dat
 							,BOOL del);
 

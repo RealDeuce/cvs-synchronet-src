@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.31 2002/08/16 23:40:02 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.32 2002/08/22 19:49:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -964,7 +964,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 		if(node.useron==usernumber && !(node.misc&NODE_POFF)
 			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)) {
 			sprintf(str,text[EmailNodeMsg],cfg.node_num,useron.alias);
-			putnmsg(i,str);
+			putnmsg(&cfg,i,str);
 			break; } }
 	if(i>cfg.sys_nodes) {	/* User wasn't online, so leave short msg */
 		sprintf(str,text[UserSentYouMail],useron.alias);

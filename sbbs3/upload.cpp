@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.23 2002/07/27 00:47:37 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.24 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -477,7 +477,7 @@ bool sbbs_t::upload(uint dirnum)
 				if(node.useron==destuser[j] && !(node.misc&NODE_POFF)
 					&& (node.status==NODE_INUSE || node.status==NODE_QUIET)) {
 					sprintf(str,text[UserToUserXferNodeMsg],cfg.node_num,useron.alias);
-					putnmsg(i,str);
+					putnmsg(&cfg,i,str);
 					break; } }
 			if(i>cfg.sys_nodes) {   /* User not online */
 				sprintf(str,text[UserSentYouFile],useron.alias);

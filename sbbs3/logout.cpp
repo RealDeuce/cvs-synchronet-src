@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.15 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.16 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,7 +82,7 @@ void sbbs_t::logout()
 					sprintf(str,text[NodeLoggedOff],cfg.node_num
 						,thisnode.misc&NODE_ANON
 						? text[UNKNOWN_USER] : useron.alias);
-					putnmsg(i,str); } }
+					putnmsg(&cfg,i,str); } }
 
 	if(!online) {		/* NOT re-login */
 

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.33 2002/07/17 23:24:51 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.34 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1968,7 +1968,7 @@ js_put_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	if((msg=JS_GetStringBytes(js_msg))==NULL) 
 		return(JS_FALSE);
 
-	sbbs->putnmsg(node,msg);
+	putnmsg(&sbbs->cfg,node,msg);
 
 	*rval = JSVAL_VOID;
 	return(JS_TRUE);

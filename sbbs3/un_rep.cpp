@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.21 2002/08/06 02:51:58 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.22 2002/08/22 19:49:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,7 +235,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 					|| node.status==NODE_QUIET)) {
 					sprintf(str,text[EmailNodeMsg]
 						,cfg.node_num,tmp);
-					putnmsg(k,str);
+					putnmsg(&cfg,k,str);
 					break; } }
 			if(k>cfg.sys_nodes) {
 				sprintf(str,text[UserSentYouMail],tmp);
