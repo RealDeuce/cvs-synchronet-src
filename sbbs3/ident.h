@@ -2,7 +2,7 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.h,v 1.2 2002/02/02 04:01:09 rswindell Exp $ */
+/* $Id: ident.h,v 1.3 2003/03/19 06:26:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,8 @@
 extern "C" {   
 #endif   
 
-char* identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf, size_t maxlen);
+char* identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf
+			   ,size_t maxlen, int timeout);
 
 #ifdef __cplusplus
 }
