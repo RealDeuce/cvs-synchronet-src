@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.7 2003/02/11 07:51:54 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.8 2003/03/06 22:37:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -738,6 +738,8 @@ int main(int argc, char **argv)
 						"From Outgoing Messages",misc&STRIP_LF ? "Yes":"No");
 					sprintf(opt[i++],"%-50.50s%-3.3s","Kill/Ignore Empty NetMail "
 						"Messages",misc&KILL_EMPTY_MAIL ? "Yes":"No");
+					sprintf(opt[i++],"%-50.50s%s","Bundle Attachments"
+						,misc&TRUNC_BUNDLES ? "Truncate" : "Kill");
 					opt[i][0]=0;
 					j=uifc.list(0,0,0,60,&j,0,"Toggle Options",opt);
 					if(j==-1)
@@ -772,6 +774,9 @@ int main(int argc, char **argv)
 							break;
 						case 8:
 							misc^=KILL_EMPTY_MAIL;
+							break;
+						case 9:
+							misc^=TRUNC_BUNDLES;
 							break;
 					} 
 				}
@@ -1100,6 +1105,8 @@ int main(int argc, char **argv)
 					fprintf(stream,"ELIST_ONLY\n");
 				if(misc&STRIP_LF)
 					fprintf(stream,"STRIP_LF\n");
+				if(misc&TRUNC_BUNDLES)
+					fprintf(stream,"TRUNC_BUNDLES\n");
 
 				if(cfg.areafile[0])
 					fprintf(stream,"AREAFILE %s\n",cfg.areafile);
