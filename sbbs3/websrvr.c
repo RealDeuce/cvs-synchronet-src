@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.261 2005/02/14 22:12:37 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.262 2005/02/15 03:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -754,7 +754,8 @@ static void close_request(http_session_t * session)
 		putmsgptrs(&scfg, session->user.number, session->subscan);
 
 	if(session->req.cleanup_file!=NULL) {
-		unlink(session->req.cleanup_file);
+		if(!(startup->options&WEB_OPT_DEBUG_SSJS))
+			remove(session->req.cleanup_file);
 		free(session->req.cleanup_file);
 	}
 
@@ -2875,7 +2876,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.261 $", "%*s %s", revision);
+	sscanf("$Revision: 1.262 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
