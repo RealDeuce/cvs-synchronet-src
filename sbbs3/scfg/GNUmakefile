@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.24 2003/03/04 10:55:49 rswindell Exp $
+# $Id: GNUmakefile,v 1.25 2003/04/26 17:44:35 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -49,13 +49,19 @@ CFLAGS	+=	-Wall -I$(UIFC) -I$(XPDEV) -I../  -D_THREAD_SAFE
 
 LFLAGS	:=	-L/usr/local/lib
 
+ifeq ($(os),qnx)
+CURSESLIB :=	-lncurses
+else
+CURSESLIB :=	-lcurses
+endif
+
 ifdef USE_DIALOG
- LFLAGS	+=	-L../../libdialog -ldialog -lcurses
+ LFLAGS	+=	-L../../libdialog -ldialog $(CURSESLIB)
  CFLAGS	+=	-I../../libdialog -DUSE_DIALOG
 endif
 
 ifdef USE_CURSES
- LFLAGS	+=	-lcurses
+ LFLAGS	+=	$(CURSESLIB)
  CFLAGS	+=	-DUSE_CURSES
 endif
 
