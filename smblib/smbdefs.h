@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.41 2003/10/10 00:16:22 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.42 2003/11/05 02:20:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -517,16 +517,16 @@ typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 
     } fidoaddr_t;
 
+#if defined(PRAGMA_PACK)
+#pragma pack(pop)		/* original packing */
+#endif
+
 typedef struct _PACK {		/* Network (type and address) */
 
     ushort  type;
 	void	*addr;
 
 	} net_t;
-
-#if defined(PRAGMA_PACK)
-#pragma pack(pop)		/* original packing */
-#endif
 
 typedef struct {				/* Message */
 
