@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.24 2002/03/25 05:41:48 rswindell Exp $ */
+/* $Id: startup.h,v 1.25 2002/04/12 06:17:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 
 #include "client.h"
 #include "ringbuf.h"
-#include "sbbswrap.h"
+#include "threadwrap.h"	/* sem_t */
 
 typedef struct {
 
