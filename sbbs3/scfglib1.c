@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.8 2000/11/07 05:04:33 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.9 2000/11/10 18:56:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +58,7 @@ void prep_path(char* base, char* path)
 	for(p=str;*p;p++)
 		if(*p=='\\') 
 			*p='/';
+	strlwr(str);	/* temporary hack */
 #endif
 
 	backslashcolon(str);
