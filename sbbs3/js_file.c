@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.16 2002/03/20 22:53:22 rswindell Exp $ */
+/* $Id: js_file.c,v 1.17 2002/04/02 09:23:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,10 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	if(fgets(buf,len,p->fp)!=NULL) {
-		truncsp(buf);
+		len=strlen(buf);
+		while(len>0 && (buf[len-1]=='\r' || buf[len-1]=='\n'))
+			len--;
+		buf[len]=0;
 		if(p->etx) {
 			cp=strchr(buf,p->etx);
 			if(cp) *cp=0; 
