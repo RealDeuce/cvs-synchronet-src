@@ -6,12 +6,12 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.63 2004/10/19 01:16:52 rswindell Exp $
+# $Id: Makefile,v 1.65 2004/11/17 02:20:41 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
 
-UTIL_LDFLAGS	=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
+UTIL_LDFLAGS	=	-q $(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
 CFLAGS	=	$(CFLAGS) -w-csu -w-par -w-aus
 MKSHLIB	=	$(CC) -WD
 
@@ -22,6 +22,12 @@ CFLAGS = $(CFLAGS) -DJAVASCRIPT
 !else
 	CFLAGS = $(CFLAGS) -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)js
 !endif
+!ifdef NSPRINCLUDE
+	CFLAGS = $(CFLAGS) -I$(NSPRINCLUDE)
+!else
+	CFLAGS = $(CFLAGS) -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)nspr
+!endif
+
 !ifndef JSLIBDIR
 	JSLIBDIR = $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)win32.$(BUILDPATH)
 !endif
