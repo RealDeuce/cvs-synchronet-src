@@ -1,12 +1,12 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.25 2004/09/25 21:20:26 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.24 2004/09/08 03:44:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
