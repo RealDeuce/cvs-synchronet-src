@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.30 2003/04/29 04:08:33 deuce Exp $ */
+/* $Id: genwrap.h,v 1.31 2003/04/29 04:38:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,7 +176,7 @@ extern "C" {
 
 #ifndef SLEEP
 	#ifndef YIELD
-	#define	YIELD()
+	#define	YIELD()			sched_yield()
 	#endif
 	#define SLEEP(x)		({	int y=x; struct timeval tv; \
 								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
