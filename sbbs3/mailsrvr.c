@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.272 2003/08/12 06:27:08 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.273 2003/08/20 09:36:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2091,7 +2091,7 @@ static void smtp_thread(void* arg)
 					rcpt_count++;
 				}
 				if(rcpt_count<1) {
-					smb_freemsgdat(&smb,msg.hdr.offset,length,0);
+					smb_freemsg_dfields(&smb,&msg,SMB_ALL_REFS);
 					sockprintf(socket, "452 Insufficient system storage");
 				}
 				else {
@@ -2831,12 +2831,6 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		|| (msg->idx.from==0 && msg->from_net.type==NET_NONE)
 		|| (msg->reverse_path!=NULL && *msg->reverse_path==0)) {
 		lprintf("0000 !Deleted undeliverable message from %s", msg->from);
-#if 0	/* this is actually wrong... whoever deletes the index will free the data fields */
-		i=smb_freemsgdat(smb,msg->hdr.offset,smb_getmsgdatlen(msg),1);
-		if(i!=SMB_SUCCESS)
-			lprintf("0000 !ERROR %d (%s) freeing data blocks for undeliverable message"
-				,i,smb->last_error);
-#endif
 		return(TRUE);
 	}
 	
@@ -3297,7 +3291,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.272 $", "%*s %s", revision);
+	sscanf("$Revision: 1.273 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
