@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.21 2003/02/08 18:04:14 deuce Exp $
+# $Id: GNUmakefile,v 1.22 2003/02/09 07:16:39 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -24,7 +24,7 @@ endif
 #USE_FLTK =	1	# Use Windowed version
 USE_CURSES	=	1	# Curses version of UIFC
 CC		=	gcc
-CCPP		=	gcc
+CCPP		=	g++
 SLASH	=	/
 OFILE	=	o
 UIFC	=	../../uifc
@@ -115,7 +115,7 @@ $(SCFG): $(OBJS)
 	@$(MAKE) --no-print-directory -C ../../libdialog
    endif
 	@echo Linking $@
-	@$(CC) -o $@ $(OBJS) $(LFLAGS)
+	@$(CCPP) -o $@ $(OBJS) $(LFLAGS)
 
 # Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
 -include ./*.d
