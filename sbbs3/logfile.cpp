@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.26 2002/12/06 01:17:09 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.27 2002/12/14 03:05:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -289,8 +289,16 @@ void sbbs_t::errormsg(int line, char *source, char action, char *object
 			actstr="UNKNOWN"; 
 			break;
 	}
-	sprintf(str,"Node %d !ERROR %d in %s line %d %s \"%s\" access=%ld"
-		,cfg.node_num, errno, src, line, actstr, object, access);
+	sprintf(str,"Node %d !ERROR %d "
+#ifdef _WIN32
+		"(WinError %d) "
+#endif
+		"in %s line %d %s \"%s\" access=%ld"
+		,cfg.node_num, errno
+#ifdef _WIN32
+		,GetLastError()
+#endif
+		,src, line, actstr, object, access);
 	if(online==ON_LOCAL)
 		eprintf("%s",str);
 	else {
@@ -333,7 +341,7 @@ void sbbs_t::errormsg(int line, char *source, char action, char *object
 #endif
 #if defined(_WIN32)
 	if(GetLastError()!=0) {
-		sprintf(tmp,"\r\n  winerrno: %d (0x%X)",GetLastError(), GetLastError());
+		sprintf(tmp,"\r\n  WinError: %d (0x%X)",GetLastError(), GetLastError());
 		strcat(str,tmp);
 	}
 #endif
