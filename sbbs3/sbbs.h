@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.199 2003/07/26 21:40:22 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.200 2003/08/20 10:34:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -461,9 +461,8 @@ public:
 	void	readmail(uint usernumber, int sent);
 
 	/* bulkmail.cpp */
-	void	bulkmail(uchar *ar);
-	int		bulkmailhdr(uint usernum, smbmsg_t* msg, ushort msgattr, ulong offset
-				,ulong length, char *title);
+	bool	bulkmail(uchar *ar);
+	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
 	int		bputs(char *str);				/* BBS puts function */
