@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.20 2000/11/03 22:44:37 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.21 2000/11/04 01:32:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,11 +338,18 @@ ulong DLLCALL getfreediskspace(char* path)
 			&size,		// receives the number of bytes on disk
 			NULL))		// receives the free bytes on disk
 			return(0);
-
+#ifdef _ANONYMOUS_STRUCT
+		if(avail.HighPart)
+#else
 		if(avail.u.HighPart)
+#endif
 			return(~0);	/* 4GB max */
 
+#ifdef _ANONYMOUS_STRUCT
+		return(avail.LowPart);
+#else
 		return(avail.u.LowPart);
+#endif
 	}
 
 	/* Windows 95 (old way), limited to 2GB */
