@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.1 2000/10/10 11:25:15 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.2 2000/10/30 12:50:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,13 +394,13 @@ BOOL read_file_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 			cfg->dir[i]->sname=cfg->dir[i]->lname; }
 	#endif
 
-		if(!strcmpi(cfg->dir[i]->sname,"SYSOP"))			/* Sysop upload directory */
+		if(!stricmp(cfg->dir[i]->sname,"SYSOP"))			/* Sysop upload directory */
 			cfg->sysop_dir=i;
-		else if(!strcmpi(cfg->dir[i]->sname,"USER"))		/* User to User xfer dir */
+		else if(!stricmp(cfg->dir[i]->sname,"USER"))		/* User to User xfer dir */
 			cfg->user_dir=i;
-		else if(!strcmpi(cfg->dir[i]->sname,"UPLOADS"))  /* Upload directory */
+		else if(!stricmp(cfg->dir[i]->sname,"UPLOADS"))  /* Upload directory */
 			cfg->upload_dir=i;
-		else if(!strcmpi(cfg->dir[i]->sname,"OFFLINE"))	/* Offline files dir */
+		else if(!stricmp(cfg->dir[i]->sname,"OFFLINE"))	/* Offline files dir */
 			cfg->lib[cfg->dir[i]->lib]->offline_dir=i;
 
 		get_str(cfg->dir[i]->code,instream);
