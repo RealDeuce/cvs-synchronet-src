@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.1 2000/10/10 11:26:27 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.2 2000/10/29 04:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,12 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <stdlib.h>	/* atoi */
+#include <string.h>	/* strnicmp */
+#include <ctype.h>	/* toupper */
+
 #include "smblib.h"
+#include "smbwrap.h"
 
 smb_t smb;
 
