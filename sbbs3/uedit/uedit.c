@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.33 2004/09/21 04:55:49 deuce Exp $ */
+/* $Id: uedit.c,v 1.34 2004/09/21 04:57:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1899,15 +1899,16 @@ int main(int argc, char** argv)  {
 	int		last, newlast;
 	user_t	user;
 	int		edtuser=0;
+	int		ciolib_mode=CIOLIB_MODE_AUTO;
+
 	/******************/
 	/* Ini file stuff */
 	/******************/
 	char	ini_file[MAX_PATH+1];
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
-	int		ciolib_mode=CIOLIB_MODE_AUTO;
 
-	sscanf("$Revision: 1.33 $", "%*s %s", revision);
+	sscanf("$Revision: 1.34 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -2017,7 +2018,6 @@ int main(int argc, char** argv)  {
 						"       W = Win32 native mode\r\n"
 #endif
 						"       A = ANSI mode\r\n"
-						"       D = standard input/output/door mode\r\n"
                         "-l# =  set screen lines to #\n"
 						,argv[0]
                         );
