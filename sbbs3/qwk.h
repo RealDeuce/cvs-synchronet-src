@@ -2,7 +2,7 @@
 
 /* Synchronet QWK-related structures, constants, and prototypes */ 
 
-/* $Id: qwk.h,v 1.3 2002/08/06 02:42:55 rswindell Exp $ */
+/* $Id: qwk.h,v 1.4 2002/11/10 01:44:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,12 +39,13 @@
 #define QWK_BLOCK_LEN	128
 
 /* QWK mode bits */
-#define TAGLINE 	(1<<5)	/* Place tagline at end of qwk message */
-#define TO_QNET 	(1<<6)	/* Sending to hub */
-#define REP 		(1<<7)	/* It's a REP packet */
-#define VIA 		(1<<8)	/* Include VIA */
-#define TZ			(1<<9)	/* Include TZ */
-#define MSGID		(1<<10)	/* Include MSGID and REPLY */
+#define QM_TAGLINE 	(1<<5)	/* Place tagline at end of qwk message */
+#define QM_TO_QNET 	(1<<6)	/* Sending to hub */
+#define QM_REP 		(1<<7)	/* It's a REP packet */
+#define QM_VIA 		(1<<8)	/* Include VIA */
+#define QM_TZ		(1<<9)	/* Include TZ */
+#define QM_MSGID	(1<<10)	/* Include MSGID and REPLY */
+#define QM_REPLYTO	(1<<11)	/* Include REPLYTO */
 
 float	ltomsbin(long val);
 bool	route_circ(char *via, char *id);
