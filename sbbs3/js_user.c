@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.52 2004/02/14 07:16:47 rswindell Exp $ */
+/* $Id: js_user.c,v 1.53 2004/11/10 04:44:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -981,7 +981,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		,"Instance of <i>User</i> class, representing current user online"
 		,310);
 	js_DescribeSyncConstructor(cx,userobj
-		,"To create a new user object: <tt>var u = new User(number)</tt>");
+		,"To create a new user object: <tt>var u = new User(<i>number</i>)</tt>");
 	js_CreateArrayOfStrings(cx, userobj
 		,"_property_desc_list", user_prop_desc, JSPROP_READONLY);
 #endif
