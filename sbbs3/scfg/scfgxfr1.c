@@ -1,6 +1,6 @@
 /* scfgxfr1.c */
 
-/* $Id: scfgxfr1.c,v 1.8 2002/03/15 13:44:27 rswindell Exp $ */
+/* $Id: scfgxfr1.c,v 1.9 2002/03/15 13:47:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1042,7 +1042,11 @@ multiple CD-ROMs or hard disks.
 						if((cfg.altpath[i]=(char *)MALLOC(LEN_DIR+1))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,LEN_DIR+1);
 							continue; }
-						memcpy(cfg.altpath[i],cfg.altpath[i+1],LEN_DIR+1); }
+						if(i>=cfg.altpaths)
+							j=i-1;
+						else
+							j=i+1;
+						memcpy(cfg.altpath[i],cfg.altpath[j],LEN_DIR+1); }
 					cfg.altpaths++;
 					uifc.changes=1;
 					continue; }
