@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.12 2002/02/06 00:40:17 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.13 2002/03/17 01:32:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,7 @@ void sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 		if(read(nodefile,node,sizeof(node_t))==sizeof(node_t))
 			break;
 	}
-	if(!lockit) {
+	if(!lockit && cfg.node_misc&NM_CLOSENODEDAB) {
 		close(nodefile);
 		nodefile=-1;
 	}
