@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.243 2003/06/13 23:15:21 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.244 2003/06/14 00:02:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2784,7 +2784,21 @@ static void ctrl_thread(void* arg)
 		if(!strnicmp(cmd,"SITE EXEC ",10) && sysop) {
 			p=cmd+10;
 			while(*p && *p<=' ') p++;
-			sockprintf(sock,"211 system(%s) returned %d",p,system(p));
+#ifdef __unix__
+			fp=popen(p,"r");
+			if(fp==NULL)
+				sockprintf(sock,"500 Error %d opening pipe to: %s",errno,p);
+			else {
+				while(!feof(fp)) {
+					if(fgets(str,sizeof(str),fp)==NULL)
+						break;
+					sockprintf(sock,"200-%s",str);
+				}
+				sockprintf(sock,"200 %s returned %d",p,pclose(fp));
+			}
+#else
+			sockprintf(sock,"200 system(%s) returned %d",p,system(p));
+#endif
 			continue;
 		}
 
@@ -4418,7 +4432,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.243 $", "%*s %s", revision);
+	sscanf("$Revision: 1.244 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
