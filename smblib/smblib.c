@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.83 2004/07/22 09:37:20 rswindell Exp $ */
+/* $Id: smblib.c,v 1.84 2004/07/28 10:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1739,7 +1739,7 @@ long SMBCALL smb_allocdat(smb_t* smb, ulong length, ushort refs)
 	j=0;	/* j is consecutive unused block counter */
 	fflush(smb->sda_fp);
 	rewind(smb->sda_fp);
-	while(!feof(smb->sda_fp) && offset>=0) {
+	while(!feof(smb->sda_fp) && (long)offset>=0) {
 		if(smb_fread(smb,&i,sizeof(i),smb->sda_fp)!=sizeof(i))
 			break;
 		offset+=SDT_BLOCK_LEN;
