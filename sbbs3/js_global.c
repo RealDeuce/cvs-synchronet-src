@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.23 2002/06/23 09:51:14 rswindell Exp $ */
+/* $Id: js_global.c,v 1.24 2002/08/02 01:31:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,29 +83,48 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSBool		ok;
     jsval		result;
 	scfg_t*		cfg;
+	JSObject*	js_argv;
+
+	*rval=JSVAL_VOID;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    for (i=0;i<argc;i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
-			return(JS_FALSE);
-		if((filename=JS_GetStringBytes(str))==NULL)
-			return(JS_FALSE);
-		errno = 0;
-		if(!strchr(filename,BACKSLASH))
-			sprintf(path,"%s%s",cfg->exec_dir,filename);
-		else
-			strcpy(path,filename);
-		if((script=JS_CompileFile(cx, obj, path))==NULL)
-			return(JS_FALSE);
-		ok = JS_ExecuteScript(cx, obj, script, &result);
-		JS_DestroyScript(cx, script);
-		if (!ok)
-			return(JS_FALSE);
-    }
+	if(argc<1)
+		return(JS_TRUE);
 
-	*rval=JSVAL_VOID;
+	if(argc>1) {
+
+		if((js_argv=JS_NewArrayObject(cx, 0, NULL)) == NULL)
+			return(JS_FALSE);
+
+		for(i=1; i<argc; i++)
+			JS_SetElement(cx, js_argv, i-1, &argv[i]);
+
+		JS_DefineProperty(cx, obj, "argv", OBJECT_TO_JSVAL(js_argv)
+			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+		JS_DefineProperty(cx, obj, "argc", INT_TO_JSVAL(argc-1)
+			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+	}
+
+	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+		return(JS_FALSE);
+	if((filename=JS_GetStringBytes(str))==NULL)
+		return(JS_FALSE);
+
+	errno = 0;
+	if(!strchr(filename,BACKSLASH))
+		sprintf(path,"%s%s",cfg->exec_dir,filename);
+	else
+		strcpy(path,filename);
+	if((script=JS_CompileFile(cx, obj, path))==NULL)
+		return(JS_FALSE);
+
+	ok = JS_ExecuteScript(cx, obj, script, &result);
+	JS_DestroyScript(cx, script);
+	if (!ok)
+		return(JS_FALSE);
+
     return(JS_TRUE);
 }
 
