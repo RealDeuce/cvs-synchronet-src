@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.5 2000/10/24 09:04:21 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.6 2000/10/25 21:49:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,9 +41,14 @@
 /***************/
 /* OS-specific */
 /***************/
-#if defined _WIN32	|| defined __OS2__	/* WinSock */
+#if defined _WIN32	|| defined __OS2__	/* Use WinSock */
 
 #include <winsock.h>	/* socket/bind/etc. */
+
+/* Let's agree on a standard WinSock symbol here, people */
+#ifndef _WINSOCKAPI_
+#define _WINSOCKAPI_	
+#endif
 
 #elif defined __unix__	/* Unix-variant */
 
@@ -64,8 +69,11 @@
 
 #undef  EINTR
 #define EINTR			WSAEINTR
+#undef  ENOTSOCK
 #define ENOTSOCK		WSAENOTSOCK
+#undef  EWOULDBLOCK
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#undef  ECONNRESET
 #define ECONNRESET		WSAECONNRESET
 
 #define s_addr			S_un.S_addr
