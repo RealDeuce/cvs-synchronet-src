@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.29 2003/04/08 05:57:06 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.30 2003/04/08 23:55:53 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -91,10 +91,14 @@ int main()
 		return(errno);
 	}
 	write(fd,"lock testing\n",LOCK_LEN);
-	if(lock(fd,LOCK_OFFSET,LOCK_LEN))
-		printf("!FAILURE lock() non-functional (or file already locked)\n");
-	else
+	if(lock(fd,LOCK_OFFSET,LOCK_LEN)==0)
 		printf("lock() succeeds\n");
+	else
+		printf("!FAILURE lock() non-functional (or file already locked)\n");
+	if(lock(fd,LOCK_OFFSET,LOCK_LEN)==0)
+		printf("Subsequent lock succeeded\n");
+	else
+		perror("!Subsequent lock of "LOCK_FNAME);
 	if(_beginthread(
 		  lock_test_thread	/* entry point */
 		 ,0  				/* stack size (0=auto) */
