@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.247 2003/07/11 01:18:14 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.248 2003/07/11 05:57:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2180,8 +2180,10 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 		fname=p+1;
 	}
 
-	if(filename==NULL /* directory */ && *fname /* filename specified */)
+	if(filename==NULL /* directory */ && *fname /* filename specified */) {
+		fclose(fp);
 		return(FALSE);
+	}
 
 	while(!feof(fp)) {
 		if(!fgets(line,sizeof(line),fp))
@@ -4456,7 +4458,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.247 $", "%*s %s", revision);
+	sscanf("$Revision: 1.248 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
