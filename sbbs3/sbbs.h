@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.243 2004/12/09 08:07:13 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.235 2004/11/10 04:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,6 @@
 		#define XP_PC
 		#define XP_WIN
 	#endif
-	#define JS_THREADSAFE	/* Required! */
 	#include <jsapi.h>
 	#include <jsprf.h>		/* JS-safe sprintf functions */
 #endif
@@ -113,7 +112,6 @@
 #endif
 
 /* xpdev */
-#define LINK_LIST_THREADSAFE
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
@@ -789,9 +787,9 @@ extern "C" {
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, char* msgbuf);
-	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
-	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgbuf);
+	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t* cfg, uint subnum);
+	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
@@ -947,9 +945,8 @@ extern "C" {
 
 	/* js_global.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods);
-	DLLEXPORT JSObject*	DLLCALL js_CreateCommonObjects(JSContext* cx
+	DLLEXPORT JSObject*	DLLCALL js_CreateGlobalObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
-													,scfg_t* node_cfg			/* node-specific */
 													,jsSyncMethodSpec* methods	/* global */
 													,time_t uptime				/* system */
 													,char* host_name			/* system */
@@ -957,12 +954,11 @@ extern "C" {
 													,js_branch_t* js_branch		/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
-													,js_server_props_t* props	/* server */
 													);
 
 	/* js_internal.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
-	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext *cx, js_branch_t*);
+	DLLEXPORT JSBool	DLLCALL js_GenericBranchCallback(JSContext *cx, js_branch_t*);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -1008,7 +1004,6 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateQueueClass(JSContext* cx, JSObject* parent);
 	DLLEXPORT JSObject* DLLCALL js_CreateQueueObject(JSContext* cx, JSObject* parent
 													,char *name, msg_queue_t* q);
-	BOOL js_enqueue_value(JSContext *cx, msg_queue_t* q, jsval val, char* name);
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
