@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.13 2001/10/30 18:22:33 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.14 2001/10/30 18:32:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +79,14 @@
 #endif
 
 #include "smblib.h"	/* SMBEXPORT/SMBCALL */
+
+#ifndef BOOL
+#define BOOL	int
+#endif
+#ifndef TRUE
+#define TRUE	1
+#define FALSE	0
+#endif
 
 /**************/
 /* Prototypes */
