@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.21 2003/01/23 03:58:33 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.22 2003/01/23 04:12:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -516,7 +516,7 @@ fprintf(makefile,"\t 	chown -R $(SBBSCHOWN) $(SBBSDIR)");
 
 void install_sbbs(void)  {
 	uifc.bail();
-	system("gmake -f " MAKEFILE " all");
+	system("gmake -f " MAKEFILE " install");
 	unlink(MAKEFILE);
 }
 /* End of SBBSINST.C */
