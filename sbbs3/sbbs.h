@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.43 2001/05/03 23:30:12 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.44 2001/05/04 02:30:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -787,8 +787,8 @@ extern "C" {
 	/* fileobj.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(scfg_t* cfg, JSContext* cx, JSObject* parent
 													,user_t* user, char* html_index_file);
-	/* termobj.cpp */
-	JSObject* js_CreateTerminalObject(JSContext* cx, JSObject* parent);
+	/* conobj.cpp */
+	JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent);
 
 #endif
 
