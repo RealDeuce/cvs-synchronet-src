@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.12 2003/03/29 10:38:45 deuce Exp $ */
+/* $Id: base64.c,v 1.13 2003/03/29 10:41:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 static const char * base64alphabet = 
  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-int b64_decode(char *target, size_t tlen, const char *source size_t slen)
+int b64_decode(char *target, size_t tlen, const char *source, size_t slen)
 {
 	const char	*inp;
 	char	*outp;
