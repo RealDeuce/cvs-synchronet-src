@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.5 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: text_sec.cpp,v 1.6 2002/04/18 02:01:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,9 +79,9 @@ int sbbs_t::text_sec()
 			break;
 		cursec--;
 		while(online) {
-			sprintf(str,"%smenu/text%u.*",cfg.text_dir,cursec+1);
+			sprintf(str,"%smenu/text%lu.*",cfg.text_dir,cursec+1);
 			if(fexist(str)) {
-				sprintf(str,"text%u",cursec+1);
+				sprintf(str,"text%lu",cursec+1);
 				menu(str);
 				usemenu=1; }
 			else {

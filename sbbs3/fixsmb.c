@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.8 2002/04/12 10:00:41 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.9 2002/04/18 02:01:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 	n=1;	/* messsage number */
 	for(l=smb.status.header_offset;l<length;l+=size) {
 		size=SHD_BLOCK_LEN;
-		printf("\r%2u%%  ",(long)(100.0/((float)length/l)));
+		printf("\r%2lu%%  ",(long)(100.0/((float)length/l)));
 		msg.idx.offset=l;
 		if((i=smb_lockmsghdr(&smb,&msg))!=0) {
 			printf("\n(%06lX) smb_lockmsghdr returned %d\n",l,i);

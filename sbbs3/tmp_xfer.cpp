@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.19 2002/03/13 18:17:17 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.20 2002/04/18 02:01:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -436,7 +436,7 @@ ulong sbbs_t::create_filelist(char *name, long mode)
 		if(j<usrdirs[i])
 			break; }
 	if(k>1) {
-		sprintf(str,"\r\n%d Files Listed.\r\n",k);
+		sprintf(str,"\r\n%ld Files Listed.\r\n",k);
 		write(file,str,strlen(str)); }
 	close(file);
 	if(k)
