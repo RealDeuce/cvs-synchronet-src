@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.31 2003/02/01 03:04:18 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.32 2003/12/07 10:46:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,6 +248,7 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 		for(j=0;j<8;j++)
 			get_int(n,instream);
 	}
+	cfg->total_prots=i;
 
 	/************************/
 	/* Alternate File Paths */
