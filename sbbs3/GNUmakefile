@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.163 2004/09/16 19:02:02 deuce Exp $
+# $Id: GNUmakefile,v 1.167 2004/12/12 09:25:08 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -28,11 +28,6 @@ endif
 
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lsocket -lnsl -lrt
-endif
-
-ifeq ($(os),netbsd)
- LDFLAGS += -L/usr/pkg/lib
- UTIL_LDFLAGS	+=	-lpth -L/usr/pkg/lib
 endif
 
 # So far, only QNX has sem_timedwait()
@@ -59,6 +54,12 @@ ifdef JSINCLUDE
 else
  CFLAGS += -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)js
 endif
+ifdef NSPRINCLUDE
+ CFLAGS += -I$(NSPRINCLUDE)
+else
+ # Use local NSPR first...
+ CFLAGS += -I/usr/local/include -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)nspr
+endif
 ifndef JSLIBDIR
  JSLIBDIR := $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)$(machine).$(BUILD)
 endif
@@ -73,7 +74,7 @@ JS_LDFLAGS += -L$(JSLIBDIR) -l$(JSLIB)
 ifeq ($(os),linux)
  JS_LDFLAGS	+=	-ldl
 endif
-JS_LDFLAGS	+=	-L$(NSPRDIR) -lnspr4
+JS_LDFLAGS	+=	-L/usr/local/lib -L$(NSPRDIR) -lnspr4
 
 CFLAGS	+=	$(JS_CFLAGS)
 LDFLAGS	+=	$(JS_LDFLAGS)
