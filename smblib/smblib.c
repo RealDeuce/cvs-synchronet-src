@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.4 2000/10/25 23:32:12 rswindell Exp $ */
+/* $Id: smblib.c,v 1.5 2000/10/27 12:32:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,11 +74,12 @@
 
 #ifdef _WIN32
 #include <windows.h>		/* OF_SHARE_ */
-#endif
 
 #ifndef SH_DENYNO
 #define SH_DENYNO		   OF_SHARE_DENY_NONE
 #define SH_DENYRW		   OF_SHARE_EXCLUSIVE
+#endif
+
 #endif
 
 #if defined _MSC_VER || defined __MINGW32__
