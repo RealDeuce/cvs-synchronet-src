@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.16 2003/08/29 00:38:11 rswindell Exp $
+# $Id: GNUmakefile,v 1.17 2003/12/06 04:59:55 rswindell Exp $
 
 #USE_CURSES	:=	1	#Use old curses UIFC implementation
 USE_UIFC32	:=	1	# Use new uifc32 implementation
@@ -33,21 +33,21 @@ endif
 ifdef bcc
  CC		=	bc++ -q
  CCPRE	:=	bcc
- CCPP	=	bc++ -q
+ CXX	=	bc++ -q
  LD		=	ilink -q
  CFLAGS +=	-mm -md -D__unix__ -w-csu -w-pch -w-ccc -w-rch -w-par -w-aus
 else
  CFLAGS	+=	-MMD -Wall
- CCPRE	:=	gcc
+ CCPRE	?=	gcc
  ifdef BUILD_DEPENDS
-  CC		=	../../build/mkdep -a
-  CCPP	=	../../build/mkdep -a
-  LD		=	echo
+  CC	=	../../build/mkdep -a
+  CXX	=	../../build/mkdep -a
+  LD	=	echo
   COMPILE_MSG	:= Depending
  else
-  CC		=	gcc
-  CCPP	=	g++
-  LD		=	ld
+  CC	?=	gcc
+  CXX	?=	g++
+  LD	?=	ld
   COMPILE_MSG	:= Compiling
  endif
 endif
