@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.3 2004/05/11 19:28:30 rswindell Exp $ */
+/* $Id: str_list.h,v 1.4 2004/05/17 20:58:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,11 @@ str_list_t	strListAddAt(str_list_t* list, char* str, size_t index);
 
 /* Count the number of strings in the list and returns the count */
 size_t		strListCount(str_list_t list);
+
+void		strListSortAlpha(str_list_t list);
+void		strListSortAlphaReverse(str_list_t list);
+void		strListSortAlphaCase(str_list_t list);
+void		strListSortAlphaCaseReverse(str_list_t list);
 
 #if defined(__cplusplus)
 }
