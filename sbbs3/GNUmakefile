@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.126 2003/09/05 20:44:40 rswindell Exp $
+# $Id: GNUmakefile,v 1.127 2003/09/06 20:45:48 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -26,8 +26,9 @@ endif
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
+#USE_CURSES =	1	# Use *nix curses version
 ifndef NO_CURSES
- USE_CURSES      =       1       # Curses version of UIFC
+ USE_UIFC32      =       1       # Curses version of UIFC
 endif
 
 ifdef DEBUG
@@ -189,6 +190,17 @@ ifdef USE_CURSES
   UIFC_LFLAGS += -lcurses
  endif
  UIFC_OBJS +=	$(LIBODIR)/uifcc.o
+endif
+
+ifdef USE_UIFC32
+ CFLAGS +=	-DUSE_UIFC32
+ ifeq ($(os),qnx)
+  UIFC_LFLAGS += -lncurses
+ else
+  UIFC_LFLAGS += -lcurses
+ endif
+ UIFC_OBJS +=	$(LIBODIR)/uifc32.o
+ UIFC_OBJS +=	$(LIBODIR)/ciowrap.o
 endif
 
 #The following is needed for nspr support on Linux
