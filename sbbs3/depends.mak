@@ -2,7 +2,7 @@
 
 # Make 'include file' defining dependencies for Synchronet SBBS.DLL
 
-# $Id: depends.mak,v 1.3 2000/10/29 05:04:20 rswindell Exp $
+# $Id: depends.mak,v 1.4 2001/03/09 22:00:18 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, and OFILE must be pre-defined
 
@@ -25,6 +25,7 @@ $(LIBODIR)$(SLASH)exec.$(OFILE):		$(HEADERS) cmdshell.h
 $(LIBODIR)$(SLASH)execfile.$(OFILE):	$(HEADERS) cmdshell.h
 $(LIBODIR)$(SLASH)execfunc.$(OFILE):	$(HEADERS) cmdshell.h
 $(LIBODIR)$(SLASH)execmisc.$(OFILE):	$(HEADERS) cmdshell.h
+$(LIBODIR)$(SLASH)execnet.$(OFILE):	$(HEADERS) cmdshell.h
 $(LIBODIR)$(SLASH)execmsg.$(OFILE):		$(HEADERS) cmdshell.h
 $(LIBODIR)$(SLASH)fido.$(OFILE):		$(HEADERS)
 $(LIBODIR)$(SLASH)file.$(OFILE):      	$(HEADERS)
