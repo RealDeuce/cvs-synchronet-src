@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.113 2002/06/22 08:54:51 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.114 2002/07/03 08:25:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -654,6 +654,7 @@ public:
 	void	qwk_success(ulong msgcnt, char bi, char prepack);
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
+	int		set_qwk_flag(ulong flag);
 
 	/* pack_qwk.cpp */
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);

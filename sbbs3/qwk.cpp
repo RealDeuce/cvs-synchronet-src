@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.19 2002/06/14 20:16:37 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.20 2002/07/03 08:25:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -964,4 +964,19 @@ void sbbs_t::qwkcfgline(char *buf,uint subnum)
 		putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,tmp,16));
 }
 
+
+int sbbs_t::set_qwk_flag(ulong flag)
+{
+	int i;
+	char str[32];
+
+	if((i=getuserrec(&cfg,useron.number,U_QWK,8,str))!=0)
+		return(i);
+	useron.qwk=ahtoul(str);
+	useron.qwk|=flag;
+	if((i=putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,str,16)))!=0)
+		return(i);
+
+	return(0);
+}
 
