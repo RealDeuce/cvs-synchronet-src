@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.102 2003/05/10 18:42:28 deuce Exp $ */
+/* $Id: websrvr.c,v 1.103 2003/05/17 03:09:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1389,6 +1389,8 @@ static BOOL check_request(http_session_t * session)
 		send_error(session,"404 Not Found");
 		return(FALSE);
 	}
+	if(startup->options&WEB_OPT_DEBUG_TX)
+		lprintf("Path is: %s",path);
 	if(isdir(path)) {
 		last_ch=*lastchar(path);
 		if(last_ch!='/' && last_ch!='\\')  {
@@ -1403,6 +1405,8 @@ static BOOL check_request(http_session_t * session)
 		for(i=0; startup->index_file_name!=NULL && startup->index_file_name[i]!=NULL ;i++)  {
 			*last_slash=0;
 			strcat(path,startup->index_file_name[i]);
+			if(startup->options&WEB_OPT_DEBUG_TX)
+				lprintf("Checking for %s",path);
 			if(!stat(path,&sb))
 				break;
 		}
@@ -2318,7 +2322,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.102 $", "%*s %s", revision);
+	sscanf("$Revision: 1.103 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
