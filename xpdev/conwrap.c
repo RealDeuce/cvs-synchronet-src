@@ -3,13 +3,14 @@
     Casey Martin 2000
 */
 
-/* $Id: conwrap.c,v 1.2 2002/04/06 09:12:51 rswindell Exp $ */
+/* $Id: conwrap.c,v 1.3 2002/04/13 08:41:44 rswindell Exp $ */
 
 /* @format.tab-size 4, @format.use-tabs true */
 
 #if defined(__unix__)
 
 #include <stdlib.h>
+#include <string.h>	/* memcpy */
 #include <unistd.h>
 #include <termios.h>
 
