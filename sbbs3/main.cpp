@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.62 2001/09/27 17:56:55 rswindell Exp $ */
+/* $Id: main.cpp,v 1.63 2001/09/27 19:06:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2522,7 +2522,6 @@ void node_thread(void* arg)
 	user_t			user;
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
-    node_threads_running++;
 	update_clients();
 	thread_up();
 
@@ -3536,6 +3535,7 @@ void DLLCALL bbs_thread(void* arg)
 			new_node->sys_status|=SS_RLOGIN;
 		}
 
+	    node_threads_running++;
 		new_node->input_thread=(HANDLE)_beginthread(input_thread,0, new_node);
 		_beginthread(output_thread, 0, new_node);
 		_beginthread(node_thread, 0, new_node);
