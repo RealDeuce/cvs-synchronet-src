@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.9 2002/03/08 02:47:08 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.10 2002/03/15 19:26:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,7 +226,7 @@ outgoing network packets and must be accurate.
 							strcpy(cfg.qhub[i]->id,str);
 							strcpy(cfg.qhub[i]->pack,"%!pkzip %f %s");
 							strcpy(cfg.qhub[i]->unpack,"%!pkunzip -o %f %g %s");
-							strcpy(cfg.qhub[i]->call,"%!qnet");
+							strcpy(cfg.qhub[i]->call,"*qnet-ftp VERT vert.synchro.net YOURPASS");
 							cfg.qhub[i]->node=1;
 							cfg.qhub[i]->days=0xff; /* all days */
 							cfg.total_qhubs++;
