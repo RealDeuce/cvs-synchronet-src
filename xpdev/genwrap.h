@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.16 2002/10/29 08:46:55 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.17 2002/11/13 02:36:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,6 +159,19 @@ extern "C" {
 	#error "Unsupported Target: Need some macros and/or function prototypes here."
 
 #endif
+
+/* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
+
+#if !defined(__unix__)	
+
+	#include <time.h>		/* time_t, etc. */
+
+	DLLEXPORT struct tm*    DLLCALL		gmtime_r(time_t* t, struct tm* tm);
+	DLLEXPORT struct tm*    DLLCALL		localtime_r(time_t* t, struct tm* tm);
+	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf, int buflen);
+	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf, int buflen);
+#endif
+
 
 DLLEXPORT int		DLLCALL	xp_random(int);
 DLLEXPORT char*		DLLCALL os_version(char *str);
