@@ -24,6 +24,7 @@ static struct text_info cio_textinfo;
 static int lastmode=3;
 int _wscroll=1;
 int directvideo=0;
+int dont_move_cursor=0;
 static int initialized=0;
 
 int ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
@@ -177,7 +178,7 @@ int try_conio_init(int mode)
 		cio_api.getmouse=win32_getmouse;
 		cio_api.showmouse=win32_showmouse;
 		cio_api.hidemouse=win32_hidemouse;
-		cio_api.settitle=NULL;
+		cio_api.settitle=win32_settitle;
 		return(1);
 	}
 	fprintf(stderr,"CONIO init failed\n");
@@ -435,7 +436,8 @@ void ciolib_wscroll(void)
 	ciolib_gotoxy(1,ti.winbottom-ti.winleft+1);
 	os=_wscroll;
 	_wscroll=0;
-	ciolib_cprintf("%*s",ti.winright-ti.winleft+1,"");
+	/* ciolib_cprintf("%*s",ti.winright-ti.winleft+1,""); */
+	ciolib_clreol();
 	_wscroll=os;
 	ciolib_gotoxy(ti.curx,ti.cury);
 }
@@ -527,17 +529,24 @@ void ciolib_window(int sx, int sy, int ex, int ey)
 
 void ciolib_clreol(void)
 {
-	int os;
-	struct text_info	ti;
+	unsigned char *buf;
+	int i;
+	int width,height;
+	struct text_info ti;
 
 	CIOLIB_INIT();
 	
 	ciolib_gettextinfo(&ti);
-	os=_wscroll;
-	_wscroll=0;
-	ciolib_cprintf("%*s",ti.winright-ti.curx+1,"");
-	_wscroll=os;
-	ciolib_gotoxy(ti.curx,ti.cury);
+
+	width=ti.winright-ti.curx+1;
+	height=1;
+	buf=(unsigned char *)malloc(width*height*2);
+	for(i=0;i<width*height*2;) {
+		buf[i++]=' ';
+		buf[i++]=ti.attribute;
+	}
+	ciolib_puttext(ti.curx+ti.winleft-1,ti.cury+ti.wintop-1,ti.winright,ti.cury+ti.wintop-1,buf);
+	free(buf);
 }
 
 void ciolib_clrscr(void)
@@ -628,9 +637,12 @@ int ciolib_cputs(char *str)
 {
 	int		pos;
 	int		ret=0;
+	int		olddmc;
 
 	CIOLIB_INIT();
-	
+
+	olddmc=dont_move_cursor;	
+	dont_move_cursor=1;
 	for(pos=0;str[pos];pos++)
 	{
 		ret=str[pos];
@@ -638,6 +650,8 @@ int ciolib_cputs(char *str)
 			ciolib_putch('\r');
 		ciolib_putch(str[pos]);
 	}
+	dont_move_cursor=olddmc;
+	ciolib_gotoxy(ciolib_wherex(),ciolib_wherey());
 	return(ret);
 }
 
