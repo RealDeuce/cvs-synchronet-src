@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.15 2003/05/02 03:49:00 deuce Exp $
+# $Id: GNUmakefile,v 1.16 2003/06/11 02:00:35 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -58,8 +58,8 @@ else
   XP_SEM :=	1
  else
   ifeq ($(os),netbsd)	# NetBSD
-   CFLAGS	+= -D__unix__ -DUSE_XP_SEMAPHORES -I/usr/pkg/include
-   LFLAGS	:=	-lpth -lpthread -L/usr/pkg/lib
+   CFLAGS	+= -D__unix__ -DUSE_XP_SEMAPHORES -I/usr/pkg/include -I/usr/pkg/pthreads/include
+   LFLAGS	:=	-L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
    XP_SEM :=	1
   else
    ifeq ($(os),qnx)	# QNX
