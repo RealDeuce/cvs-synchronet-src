@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: sysobj.c,v 1.5 2001/05/03 23:14:35 rswindell Exp $ */
+/* $Id: sysobj.c,v 1.6 2001/05/14 23:16:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,8 @@ enum {
 
 	,SYS_PROP_LASTUSERON
 	,SYS_PROP_FREEDISKSPACE
+
+	,SYS_PROP_PLATFORM
 };
 
 static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -116,6 +118,10 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case SYS_PROP_FREEDISKSPACE:
 			*vp = INT_TO_JSVAL(getfreediskspace(cfg->temp_dir));
 			break;
+
+		case SYS_PROP_PLATFORM:
+			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, PLATFORM_DESC));
+			break;
 	}
 
 	return(TRUE);
@@ -159,6 +165,7 @@ static struct JSPropertySpec js_system_properties[] = {
 	{	"lastnode",	SYS_PROP_LASTNODE,	SYSOBJ_FLAGS,		NULL,	NULL },
 	{	"pwdays",	SYS_PROP_PWDAYS,	SYSOBJ_FLAGS,		NULL,	NULL },
 	{	"deldays",	SYS_PROP_DELDAYS,	SYSOBJ_FLAGS,		NULL,	NULL },
+	{	"platform",	SYS_PROP_PLATFORM,	SYSOBJ_FLAGS,		NULL,	NULL },
 	{	"freediskspace", SYS_PROP_FREEDISKSPACE,	SYSOBJ_FLAGS,	NULL,	NULL },
 	{0}
 };
