@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.130 2004/11/23 00:21:51 rswindell Exp $ */
+/* $Id: js_global.c,v 1.131 2004/11/27 06:38:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1705,7 +1705,7 @@ js_b64_decode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_TRUE);
 	}
 
-	js_str = JS_NewStringCopyZ(cx, outbuf);
+	js_str = JS_NewStringCopyN(cx, outbuf, res);
 	free(outbuf);
 	if(js_str==NULL)
 		return(JS_FALSE);
