@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.17 2003/07/26 06:44:39 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.18 2003/09/03 03:59:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -546,6 +546,8 @@ command: DIR /ON /AD /B > DIRS.RAW
 							truncsp(str); 
 						} 
 					}
+
+					prep_code(tmpdir.code_suffix);
 
 					for(j=0;j<cfg.total_dirs;j++) {
 						if(cfg.dir[j]->lib!=i)

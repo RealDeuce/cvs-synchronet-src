@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.14 2003/05/22 11:45:51 rswindell Exp $ */
+/* $Id: scfg.h,v 1.15 2003/09/03 03:59:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,6 +109,9 @@ int export_mdm(char *fname);
 int code_ok(char *str);
 int  bits(long l);
 void getar(char *desc, char *ar);
+
+/* Prepare a string to be used as an internal code */
+char* prep_code(char *str);
 
 /* scfgnet.h */
 faddr_t atofaddr(char *str);

@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.19 2003/07/13 11:09:03 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.20 2003/09/03 03:59:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,20 +34,6 @@
  ****************************************************************************/
 
 #include "scfg.h"
-
-char* DLLCALL strip_slash(char *str)
-{
-	char tmp[1024];
-	int i,j;
-
-	for(i=j=0;str[i];i++)
-		if(str[i]!='/' && str[i]!='\\')
-			tmp[j++]=str[i];
-	tmp[j]=0;
-	strcpy(str,tmp);
-	return(str);
-}
-
 
 char *utos(char *str)
 {
@@ -566,7 +552,7 @@ import into the current message group.
                     break; }
 				uifc.pop("Importing Areas...");
 				while(!feof(stream)) {
-					if(!fgets(str,128,stream)) break;
+					if(!fgets(str,sizeof(str),stream)) break;
 					truncsp(str);
 					if(!str[0])
 						continue;
@@ -703,8 +689,7 @@ import into the current message group.
 							if(!fgets(str,128,stream)) break;
 							truncsp(str); } }
 
-					truncsp(tmpsub.code_suffix);
-                    strip_slash(tmpsub.code_suffix);
+                    prep_code(tmpsub.code_suffix);
 					truncsp(tmpsub.sname);
 					truncsp(tmpsub.lname);
 					truncsp(tmpsub.qwkname);

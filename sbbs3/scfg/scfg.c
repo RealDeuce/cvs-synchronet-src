@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.50 2003/06/07 07:16:55 rswindell Exp $ */
+/* $Id: scfg.c,v 1.51 2003/09/03 03:59:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1983,6 +1983,21 @@ void errormsg(int line, char *source,  char action, char *object, ulong access)
 #if !defined(__unix__)
     puttext(1,1,80,uifc.scrn_len,scrn_buf);
 #endif    
+}
+
+/* Prepare a string to be used as an internal code */
+char* prep_code(char *str)
+{
+	char tmp[1024];
+	int i,j;
+
+	for(i=j=0;str[i];i++)
+		if(str[i]>' ' && str[i]!='*' && str[i]!='?'
+			&& strchr(ILLEGAL_FILENAME_CHARS,str[i])==NULL)
+			tmp[j++]=str[i];
+	tmp[j]=0;
+	strcpy(str,tmp);
+	return(str);
 }
 
 /* End of SCFG.C */
