@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.182 2004/11/02 23:11:32 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.183 2004/11/02 23:12:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -916,7 +916,7 @@ static void handle_sigs(void)
 	pthread_sigmask(SIG_BLOCK,&sigs,NULL);
 	while(1)  {
 		if((i=sigwait(&sigs,&sig))!=0) {   /* wait here until signaled */
-			lprintf(LOG_ERR,"     !sigwait FAILURE (%d), i);
+			lprintf(LOG_ERR,"     !sigwait FAILURE (%d)", i);
 			continue;
 		}
 		lprintf(LOG_NOTICE,"     Got signal (%d)", sig);
