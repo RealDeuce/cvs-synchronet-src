@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.24 2003/01/30 23:13:00 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.25 2003/01/30 23:25:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 	FILE*	rep;
 	DIR*	dir;
 	DIRENT*	dirent;
+	BOOL	twit_list;
+
+	sprintf(fname,"%stwitlist.cfg",cfg.ctrl_dir);
+	twit_list=fexist(fname);
 
 	if(repfile!=NULL)
 		strcpy(str,repfile);
@@ -336,15 +340,17 @@ bool sbbs_t::unpack_rep(char* repfile)
 															/* to user name */
 
 			/* TWIT FILTER */
-			sprintf(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-			sprintf(str,"%25.25s",block+46);  /* From user */
-			truncsp(str);
+			if(twit_list) {
+				sprintf(fname,"%stwitlist.cfg",cfg.ctrl_dir);
+				sprintf(str,"%25.25s",block+46);  /* From user */
+				truncsp(str);
 
-			if(findstr(str,fname)) {
-				sprintf(str,"Filtering post from twit (%s) on %s %s"
-					,str,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
-				logline("P!",str);
-				continue; 
+				if(findstr(str,fname)) {
+					sprintf(str,"Filtering post from twit (%s) on %s %s"
+						,str,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
+					logline("P!",str);
+					continue; 
+				}
 			}
 
 			if(n!=lastsub) {
