@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.35 2001/09/17 00:06:45 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.36 2001/10/02 17:12:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,19 +48,17 @@
 
 #ifdef JAVASCRIPT
 	#define VERSION 	"3.10"  /* Version: Major.minor  */
-	#define REVISION	'E'
+	#define REVISION	'e'
 #else
 	#define VERSION 	"3.00"  /* Version: Major.minor  */
-	#define REVISION	'G'
+	#define REVISION	'g'
 #endif
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
-								"  Version " VERSION "  "
+								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2001 Rob Swindell"
 #define COPYRIGHT_CRC		0x84A7C601
-#define QWK_HEADER			"Produced by Synchronet BBS  Version 3  "\
-								COPYRIGHT_NOTICE
 
 #define Y2K_2DIGIT_WINDOW	70
 
