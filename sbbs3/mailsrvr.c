@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.267 2003/07/13 08:52:16 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.268 2003/07/21 21:51:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -745,7 +745,7 @@ static void pop3_thread(void* arg)
 		srand(time(NULL));	/* seed random number generator */
 		rand();	/* throw-away first result */
 		sprintf(challenge,"<%x%x%lx%lx@%s>"
-			,rand(),socket,time(NULL),clock(),startup->host_name);
+			,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 
 		sockprintf(socket,"+OK Synchronet POP3 Server %s-%s Ready %s"
 			,revision,PLATFORM_DESC,challenge);
@@ -2233,7 +2233,7 @@ static void smtp_thread(void* arg)
 		}
 		if(!stricmp(buf,"AUTH CRAM-MD5")) {
 			sprintf(challenge,"<%x%x%lx%lx@%s>"
-				,rand(),socket,time(NULL),clock(),startup->host_name);
+				,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 #if 0
 			lprintf("%04d SMTP CRAM-MD5 challenge: %s"
 				,socket,challenge);
@@ -3290,7 +3290,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.267 $", "%*s %s", revision);
+	sscanf("$Revision: 1.268 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
