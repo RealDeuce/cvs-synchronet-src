@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.8 2001/11/04 00:46:38 rswindell Exp $ */
+/* $Id: email.cpp,v 1.9 2001/11/05 04:11:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,9 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 	while(!feof(instream)) {
 		memset(buf,0,x);
 		j=fread(buf,1,x,instream);
-		if((j!=x || feof(instream)) && buf[j-1]==LF && buf[j-2]==CR)
+		if(j<1)
+			break;
+		if(j>1 && (j!=x || feof(instream)) && buf[j-1]==LF && buf[j-2]==CR)
 			buf[j-1]=buf[j-2]=0;
 		if(cfg.mail_maxcrcs) {
 			for(i=0;i<j;i++)

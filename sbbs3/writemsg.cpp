@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.17 2001/11/04 22:04:27 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.18 2001/11/05 04:11:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1062,7 +1062,9 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 	while(!feof(instream)) {
 		memset(buf,0,x);
 		j=fread(buf,1,x,instream);
-		if((j!=x || feof(instream)) && buf[j-1]==LF && buf[j-2]==CR)
+		if(j<1)
+			break;
+		if(j>1 && (j!=x || feof(instream)) && buf[j-1]==LF && buf[j-2]==CR)
 			buf[j-1]=buf[j-2]=0;	/* Convert to NULL */
 		fwrite(buf,j,1,smb.sdt_fp);
 		x=SDT_BLOCK_LEN; }
