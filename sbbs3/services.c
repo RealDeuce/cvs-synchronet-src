@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.26 2002/02/20 13:51:24 rswindell Exp $ */
+/* $Id: services.c,v 1.27 2002/02/21 01:23:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -712,8 +712,6 @@ static void js_service_thread(void* arg)
 //		lprintf("%04d %s JS_DestroyScript",socket,service->protocol);
 		JS_DestroyScript(js_cx, js_script);
 	}
-	close_socket(socket);
-
 //	lprintf("%04d %s JS_DestroyContext",socket,service->protocol);
 	JS_DestroyContext(js_cx);	/* Free Context */
 
@@ -741,6 +739,7 @@ static void js_service_thread(void* arg)
 	active_clients--;
 	update_clients();
 	client_off(socket);
+	close_socket(socket);
 
 	thread_down();
 }
