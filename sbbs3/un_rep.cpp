@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.5 2000/11/04 12:03:51 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.6 2000/11/28 14:49:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ex=EX_OUTL|EX_OUTR;
 	if(!online)
 		ex|=EX_OFFLINE;
-	i=external(cmdstr(cfg.fextr[k]->cmd,str,"*.*",NULL),ex);
+	i=external(cmdstr(cfg.fextr[k]->cmd,str,"*",NULL),ex);
 	if(i) {
 		bputs(text[QWKExtractionFailed]);
 		logline("U!",AttemptedToUploadREPpacket);

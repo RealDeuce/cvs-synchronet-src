@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.7 2000/11/08 23:31:41 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.8 2000/11/28 14:49:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,7 +195,7 @@ bool sbbs_t::logon()
 	starttime=logontime;
 	last_ns_time=ns_time=useron.ns_time;
 	// ns_time-=(useron.tlast*60); /* file newscan time == last logon time */
-	delfiles(cfg.temp_dir,"*.*");
+	delfiles(cfg.temp_dir,"*");
 	sprintf(str,"%smsgs/n%3.3u.msg",cfg.data_dir,cfg.node_num);
 	remove(str);            /* remove any pending node messages */
 	sprintf(str,"%smsgs/n%3.3u.ixb",cfg.data_dir,cfg.node_num);

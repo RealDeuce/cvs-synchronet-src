@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.4 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.5 2000/11/28 14:49:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,7 @@ void sbbs_t::logout()
 	if(!flength(str))		/* remove any 0 byte message files */
 		remove(str);
 
-	delfiles(cfg.temp_dir,"*.*");
+	delfiles(cfg.temp_dir,"*");
 	putmsgptrs();
 	if(!REALSYSOP)
 		logofflist();
