@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.21 2004/08/30 07:35:31 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.22 2004/08/30 07:39:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	BOOL		renumber=FALSE;
 	smbmsg_t	msg;
 
-	sscanf("$Revision: 1.21 $", "%*s %s", revision);
+	sscanf("$Revision: 1.22 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
 		if(msg.hdr.attr&MSG_DELETE)
 			text=NULL;
 		else
-			text=smb_getmsgtxt(&smb,&msg,0);
+			text=smb_getmsgtxt(&smb,&msg,GETMSGTXT_BODY_ONLY);
 		i=smb_hashmsg(&smb,&msg,text);
 		if(i!=SMB_SUCCESS && i!=SMB_DUPE_MSG)
 			printf("!ERROR %d hashing message\n", i);
