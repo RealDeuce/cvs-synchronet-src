@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.30 2004/10/15 05:13:35 deuce Exp $ */
+/* $Id: ciolib.c,v 1.31 2005/01/22 19:40:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,7 +188,7 @@ int try_ansi_init(int mode)
 int try_conio_init(int mode)
 {
 	/* This should test for something or other */
-	if(win32_initciolib(C80)) {
+	if(win32_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_CONIO;
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
