@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.43 2001/09/16 21:35:46 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.44 2001/09/24 11:40:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,6 +239,9 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	struct	tm * tm_p;
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
+
+	if(online==ON_LOCAL)
+		eprintf("Executing external: %s",cmdline);
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
