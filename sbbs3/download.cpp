@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.8 2001/03/02 23:58:31 rswindell Exp $ */
+/* $Id: download.cpp,v 1.9 2001/11/02 21:29:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,7 +191,12 @@ int sbbs_t::protocol(char *cmdline, int cd)
 	sprintf(msg,"Transferring %s",cmdline);
 	spymsg(msg);
 	sys_status|=SS_FILEXFER;
-	i=external(cmdline,EX_OUTL,p);
+	i=external(cmdline
+		,EX_OUTL
+#ifdef __unix__		/* file xfer progs use stdio on Unix */
+		|EX_INR|EX_OUTR
+#endif
+		,p);
 	sys_status&=~SS_FILEXFER;
 	if(online==ON_REMOTE)
 		rioctl(IOFB);
