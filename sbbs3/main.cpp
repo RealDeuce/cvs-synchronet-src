@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.334 2004/10/12 03:43:42 rswindell Exp $ */
+/* $Id: main.cpp,v 1.331 2004/08/30 07:38:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1548,20 +1548,10 @@ void event_thread(void* arg)
 			}
 			for(i=0;i<sbbs->cfg.total_events;i++) {
 				sbbs->cfg.event[i]->last=0;
-				if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
-					eprintf(LOG_WARNING,"Initializing last run time for event: %s (to 0x%08lx)"
-						,sbbs->cfg.event[i]->code
-						,sbbs->cfg.event[i]->last);
+				if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
 					write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
-				} else {
-					if(read(file,&sbbs->cfg.event[i]->last,sizeof(time_t))!=sizeof(time_t))
-						sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
-					else
-						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
-								,sbbs->cfg.event[i]->code
-								,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
-								,sbbs->cfg.event[i]->last);
-				}
+				else
+					read(file,&sbbs->cfg.event[i]->last,sizeof(time_t)); 
 				/* Event always runs after initialization? */
 				if(sbbs->cfg.event[i]->misc&EVENT_INIT)
 					sbbs->cfg.event[i]->last=-1;
@@ -1963,10 +1953,6 @@ void event_thread(void* arg)
 						|| sbbs->cfg.event[i]->node>last_node) {
 						eprintf(LOG_INFO,"Waiting for node %d to run timed event: %s"
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
-						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
-							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
-							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
 						while(!sbbs->terminated) {
@@ -3740,10 +3726,6 @@ void DLLCALL bbs_thread(void* arg)
         return;
     }
 
-#ifdef __BORLANDC__
-	#pragma warn -8008	/* Disable "Condition always false" warning */
-	#pragma warn -8066	/* Disable "Unreachable code" warning */
-#endif
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
 		lprintf(LOG_ERR,"!COMPILER ERROR: sizeof(node_t)=%d instead of %d"
 			,sizeof(node_t),SIZEOF_NODE_T);
