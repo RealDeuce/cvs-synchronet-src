@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.13 2001/10/30 18:39:26 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.14 2001/11/08 21:51:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -976,7 +976,7 @@ void packmsgs(ulong packable)
 			return; }
 
 		if(packable && (m*SDT_BLOCK_LEN)+(n*SHD_BLOCK_LEN)<packable*1024L) {
-			printf("\rLess than %luk compressable bytes.\n\n",packable);
+			printf("\rLess than %luk compressible bytes.\n\n",packable);
 			smb_close_ha(&smb);
 			smb_close_da(&smb);
 			smb_unlocksmbhdr(&smb);
@@ -1029,7 +1029,7 @@ void packmsgs(ulong packable)
 			return; }
 
 		if(packable && (n*SDT_BLOCK_LEN)+(m*SHD_BLOCK_LEN)<packable*1024L) {
-			printf("\rLess than %luk compressable bytes.\n\n",packable);
+			printf("\rLess than %luk compressible bytes.\n\n",packable);
 			smb_unlocksmbhdr(&smb);
 			return; }
 
@@ -1388,7 +1388,7 @@ int main(int argc, char **argv)
 		return(-1);
 	}
 
-	for(x=1;x<argc;x++) {
+	for(x=1;x<argc && x>0;x++) {
 		if(
 #ifndef __unix__
 			argv[x][0]=='/' ||		/* for backwards compatibilty */
