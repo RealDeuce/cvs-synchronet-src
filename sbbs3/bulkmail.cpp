@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.23 2004/10/21 08:43:33 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.24 2004/10/27 09:12:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,7 +177,7 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 {
     char		str[256];
     int			i,j;
-	ushort		nettype;
+	ushort		nettype=NET_UNKNOWN;
     node_t		node;
 	user_t		user;
 	smbmsg_t	newmsg;
@@ -194,9 +194,8 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 
 	if(cfg.sys_misc&SM_FWDTONET && user.misc&NETMAIL && user.netmail[0]) {
 		bprintf(text[UserNetMail],user.netmail);
-		nettype=NET_INTERNET;
-		smb_hfield(&newmsg,RECIPIENTNETTYPE,sizeof(nettype),&nettype);
-		smb_hfield_str(&newmsg,RECIPIENTNETADDR,user.netmail);
+		smb_hfield_netaddr(&newmsg,RECIPIENTNETADDR,user.netmail,&nettype);
+		smb_hfield_bin(&newmsg,RECIPIENTNETTYPE,nettype);
 	} else {
 		sprintf(str,"%u",usernum);
 		smb_hfield_str(&newmsg,RECIPIENTEXT,str);
