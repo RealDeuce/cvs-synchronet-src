@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.98 2003/07/11 08:22:53 deuce Exp $
+# $Id: GNUmakefile,v 1.99 2003/07/11 08:36:46 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -495,10 +495,14 @@ $(JSEXEC): $(JSEXEC_OBJS) $(LIBS)
 	@$(CCPP) -o $@ $(LFLAGS) $^
 	
 # ANS2MSG
-FORCE$(ANS2MSG): $(ANS2MSG).o
+$(ANS2MSG): $(LIBODIR)/ans2msg.o
+	@echo Linking $@
+	@$(CC) -o $@ $^
 
-# MSG2NAS
-FORCE$(MSG2ANS): $(MSG2ANS).o
+# MSG2ANS
+$(MSG2ANS): $(LIBODIR)/msg2ans.o
+	@echo Linking $@
+	@$(CC) -o $@ $^
 
 # Single servers
 FTPCON_OBJS	= $(LIBODIR)/sbbsftp.o $(LIBODIR)/conwrap.o \
