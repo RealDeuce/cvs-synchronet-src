@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.64 2003/04/23 19:57:27 rswindell Exp $ */
+/* $Id: userdat.c,v 1.65 2003/04/29 07:07:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+#undef YIELD
+#define YIELD()				/* Kill YIELD in mswait() for nopen() */
 
 /* convenient space-saving global variables */
 char* crlf="\r\n";

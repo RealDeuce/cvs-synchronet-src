@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.36 2003/04/29 04:29:57 deuce Exp $ */
+/* $Id: startup.h,v 1.37 2003/04/29 07:07:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,10 +45,6 @@
 #include "client.h"
 #include "ringbuf.h"
 #include "threadwrap.h"	/* sem_t */
-#if defined(SBBS) /* Ugly hack around the use of startup.h including threadwrap.h */
-	/* Leave the warning here as incentive to fix it correctly! */
-	#define YIELD()
-#endif
 
 typedef struct {
 
