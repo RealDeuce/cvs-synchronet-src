@@ -2,7 +2,7 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.7 2002/08/16 21:59:37 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.8 2003/05/14 20:25:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 					bputs("\b \b");
 				break;
 			case CTRL_I:	/* Ctrl-I/TAB */
-				if(!(i%TABSIZE)) {
+				if(!(i%EDIT_TABSIZE)) {
 					if(ins) {
 						if(l<maxlen)
 							l++;
@@ -225,7 +225,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 					str1[i++]=SP;
 					if(!(mode&K_NOECHO))
 						outchar(SP); }
-				while(i<maxlen && i%TABSIZE) {
+				while(i<maxlen && i%EDIT_TABSIZE) {
 					if(ins) {
 						if(l<maxlen)
 							l++;
