@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.16 2001/04/11 03:38:17 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.17 2001/04/15 16:48:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -578,7 +578,7 @@ enum {								/* Values for xtrn_t.event			*/
 #define ON_XFER		3		/* Online remotely - transferring file		*/
 #define ON_WFC		4		/* Online waiting for a call				*/
 
-							/* Varios SYSTEM parameters for sys_status	*/
+							/* Various SYSTEM parameters for sys_status	*/
 #define SS_UNUSED	(1L<<0)	/* Unused          							*/
 #define SS_INITIAL  (1L<<1)	/* The bbs data has been initialized.       */
 #define SS_TMPSYSOP (1L<<2)	/* Temporary Sysop Status					*/
