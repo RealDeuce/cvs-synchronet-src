@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.82 2004/10/21 03:26:39 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.78 2004/09/24 08:11:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,14 +46,13 @@ static const char*	strInterface="Interface";
 static const char*	strHostName="HostName";
 static const char*	strLogMask="LogMask";
 
-#define DEFAULT_LOG_MASK		0xff	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO|DEBUG */
+#define DEFAULT_LOG_MASK		0x1f	/* EMERG|ALERT|CRIT|ERR|WARNING */
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
     char host_name[128];
-    char path[MAX_PATH+1];
-
+    
     if(pHostName==NULL) {
 #if defined(_WINSOCKAPI_)
         WSADATA WSAData;
@@ -65,15 +64,13 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 #endif
         pHostName=host_name;
     }
-	SAFECOPY(path,ctrl_dir);
-	backslash(path);
-	sprintf(ini_file,"%s.ini",path,pHostName);
+	sprintf(ini_file,"%s%c%s.ini",ctrl_dir,PATH_DELIM,pHostName);
 #if defined(__unix__) && defined(PREFIX)
 	if(!fexistcase(ini_file))
 		sprintf(ini_file,PREFIX"/etc/sbbs.ini");
 #endif
 	if(!fexistcase(ini_file))
-		sprintf(ini_file,"%ssbbs.ini",path);
+		sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,PATH_DELIM);
 }
 
 static void read_ini_globals(FILE* fp, global_startup_t* global)
@@ -438,7 +435,7 @@ void sbbs_read_ini(
 		SAFECOPY(web->cgi_dir
 			,iniReadString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
 		SAFECOPY(web->logfile_base
-			,iniReadString(fp,section,"HttpLogFile",nulstr,value));
+			,iniReadString(fp,section,"LogFile",WEB_DEFAULT_LOGFILE,value));
 
 		iniFreeStringList(web->index_file_name);
 		web->index_file_name
@@ -463,7 +460,7 @@ void sbbs_read_ini(
 			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		web->options
 			=iniReadBitField(fp,section,strOptions,web_options
-				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
+				,BBS_OPT_NO_HOST_LOOKUP);
 	}
 }
 
