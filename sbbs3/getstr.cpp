@@ -2,7 +2,7 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.10 2003/07/02 11:06:33 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.11 2003/07/08 02:09:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
     uchar	ch;
 	uchar	atr;
 
-	console&=~(CON_UPARROW|CON_LEFTARROW|CON_BACKSPACE);
+	console&=~(CON_UPARROW|CON_DOWNARROW|CON_LEFTARROW|CON_BACKSPACE);
 	sys_status&=~SS_ABORT;
 	if(mode&K_LINE && useron.misc&ANSI && !(mode&K_NOECHO)) {
 		attr(cfg.color[clr_inputline]);
