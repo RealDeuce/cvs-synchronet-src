@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.93 2004/08/17 21:27:06 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.92 2004/07/19 07:08:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1284,7 +1284,7 @@ js_get_msg_tail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 static JSBool
 js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		body="";
+	char*		body=NULL;
 	uintN		n;
     jsuint      i;
     jsuint      rcpt_list_length;
@@ -1332,7 +1332,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-	if(hdr==NULL)
+	if(hdr==NULL || body==NULL)
 		return(JS_TRUE);
 
 	if(rcpt_list!=NULL) {
@@ -1344,8 +1344,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(parse_header_object(cx, p, hdr, &msg, rcpt_list==NULL)) {
 
-		if(body[0])
-			truncsp(body);
+		truncsp(body);
 		if(savemsg(scfg, &(p->smb), &msg, body)==0)
 			*rval = JSVAL_TRUE;
 
@@ -1607,7 +1606,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("mark message as deleted")
 	,311
 	},
-	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,string body_text] [,array rcpt_list]")
+	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header, string body_text [,array rcpt_list]")
 	,JSDOCSTR("create a new message in message base, the <i>header</i> object may contain the following properties:<br>"
 	"<table>"
 	"<tr><td><tt>subject</tt><td>Message subject <i>(required)</i>"
