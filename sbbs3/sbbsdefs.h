@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.21 2001/06/13 11:59:55 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.22 2001/06/14 23:47:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@
 	#define REVISION	'A'
 #else
 	#define VERSION 	"3.00"  /* Version: Major.minor  */
-	#define REVISION	'E'
+	#define REVISION	'F'
 #endif
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
@@ -1018,7 +1018,7 @@ typedef struct {                        /* Message sub board info */
 			*tagline,
 #endif
 			code[9];					/* Eight character code */
-#ifndef SBBS
+#if 0 /* ndef SBBS */
 	char	echopath[LEN_DIR+1];		/* EchoMail path */
 #endif
 	ushort	grp,						/* Which group this sub belongs to */
