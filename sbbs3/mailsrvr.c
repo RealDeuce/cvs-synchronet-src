@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.7 2000/10/18 10:22:52 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.8 2000/10/21 04:36:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -578,6 +578,8 @@ static void pop3_thread(void* arg)
 
 	sprintf(str,"POP3: %s", host_ip);
 	status(str);
+
+	mail=NULL;
 
 	do {
 		memset(&smb,0,sizeof(smb));
