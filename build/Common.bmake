@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.18 2004/09/13 02:39:28 deuce Exp $
+# $Id: Common.bmake,v 1.19 2004/09/13 02:55:37 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -94,6 +94,8 @@
 #																			#
 #############################################################################
 
+.autodepend
+.cacheautodepend
 
 # Macros
 # Set VERSION
