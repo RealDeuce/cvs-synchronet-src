@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.269 2004/10/14 09:08:16 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.267 2004/06/05 02:50:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -95,7 +95,7 @@ static DWORD	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
-#ifdef _DEBUG
+#if 0 //def _DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
 
 	#define	SOCKET_DEBUG_CTRL		(1<<0)	// 0x01
@@ -4123,8 +4123,7 @@ static void ctrl_thread(void* arg)
 					sockprintf(sock,"553 Insufficient access.");
 					continue;
 				}
-				if(*p=='-'
-					|| strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
+				if(strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
 					|| trashcan(&scfg,p,"file")) {
 					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
 						,sock,user.alias,p);
@@ -4464,7 +4463,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.269 $", "%*s %s", revision);
+	sscanf("$Revision: 1.267 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4650,7 +4649,7 @@ void DLLCALL ftp_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"%04d FTP Server socket opened",server_socket);
+		lprintf(LOG_DEBUG,"%04d FTP socket opened",server_socket);
 
 		/*****************************/
 		/* Listen for incoming calls */
@@ -4783,10 +4782,6 @@ void DLLCALL ftp_server(void* arg)
 			served++;
 		}
 
-#ifdef _DEBUG
-		lprintf(LOG_DEBUG,"0000 server_socket: %d",server_socket);
-		lprintf(LOG_DEBUG,"0000 terminate_server: %d",terminate_server);
-#endif
 		if(active_clients) {
 			lprintf(LOG_DEBUG,"0000 Waiting for %d active clients to disconnect...", active_clients);
 			start=time(NULL);
