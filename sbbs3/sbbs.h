@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.98 2002/03/07 01:36:52 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.99 2002/03/07 01:42:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,9 +59,14 @@
 	#endif
 
 	typedef DWORD(WINAPI * GetLongPathName_t)(LPCTSTR,LPTSTR,DWORD); 
-
-	extern HINSTANCE hK32;
-	extern GetLongPathName_t Win98GetLongPathName;
+#if defined(__cplusplus)
+	extern "C" {
+#endif
+		extern HINSTANCE hK32;
+		extern GetLongPathName_t Win98GetLongPathName;
+#if defined(__cplusplus)
+	}
+#endif
 
 #elif defined(__unix__)		/* Unix-variant */
 
