@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.16 2003/09/21 21:38:48 rswindell Exp $
+# $Id: targets.mk,v 1.17 2004/03/11 06:26:00 deuce Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -42,7 +42,3 @@ dlls:	$(LIBODIR) \
 		$(SBBS) $(FTPSRVR) $(MAILSRVR) $(SERVICES)
 
 mono:	$(LIBODIR) $(EXEODIR) $(SBBSMONO)
-
-clean:
-	@$(DELETE) $(LIBODIR)$(SLASH)*
-	@$(DELETE) $(EXEODIR)$(SLASH)*
