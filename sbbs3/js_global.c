@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.56 2003/03/22 00:36:59 rswindell Exp $ */
+/* $Id: js_global.c,v 1.57 2003/03/27 23:11:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,7 +112,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	errno = 0;
 	if(strcspn(filename,"/\\")==strlen(filename)) {
 		sprintf(path,"%s%s",cfg->mods_dir,filename);
-		if(cfg->mods_dir[0]==0 || !fexist(path))
+		if(cfg->mods_dir[0]==0 || !fexistcase(path))
 			sprintf(path,"%s%s",cfg->exec_dir,filename);
 	} else
 		strcpy(path,filename);
@@ -706,7 +706,8 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	ulong		i,j;
 	uchar*		inbuf;
 	uchar*		outbuf;
-	JSBool		exascii=JS_FALSE;
+	JSBool		exascii=JS_TRUE;
+	JSBool		wsp=JS_TRUE;
 	JSString*	js_str;
 
 	if((inbuf=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
@@ -714,6 +715,9 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 
 	if(argc>1 && JSVAL_IS_BOOLEAN(argv[1]))
 		exascii=JSVAL_TO_BOOLEAN(argv[1]);
+
+	if(argc>2 && JSVAL_IS_BOOLEAN(argv[2]))
+		wsp=JSVAL_TO_BOOLEAN(argv[2]);
 
 	if((outbuf=(char*)malloc((strlen(inbuf)*10)+1))==NULL)
 		return(JS_FALSE);
@@ -723,7 +727,10 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			case TAB:
 			case LF:
 			case CR:
-				j+=sprintf(outbuf+j,"&#%u;",inbuf[i]);
+				if(wsp)
+					j+=sprintf(outbuf+j,"&#%u;",inbuf[i]);
+				else
+					outbuf[j++]=inbuf[i];
 				break;
 			case '"':
 				j+=sprintf(outbuf+j,"&quot;");
@@ -1234,8 +1241,9 @@ static jsMethodSpec js_global_functions[] = {
 	{"format",			js_format,			1,	JSTYPE_STRING,	JSDOCSTR("string format [,args]")
 	,JSDOCSTR("return a formatted string (ala sprintf)")
 	},
-	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("string text [,bool ex_ascii]")
-	,JSDOCSTR("return an HTML-encoded text buffer (using standard HTML character entities), optionally escaping IBM extended-ASCII characters")
+	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("string text [,bool ex_ascii] [,bool white_space]")
+	,JSDOCSTR("return an HTML-encoded text buffer (using standard HTML character entities), "
+	"escaping IBM extended-ASCII and white-space characters by default")
 	},
 	{"html_decode",		js_html_decode,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("return a decoded HTML-encoded text buffer")
