@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.152 2002/06/18 08:12:04 rswindell Exp $ */
+/* $Id: main.cpp,v 1.153 2002/06/18 08:20:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3599,7 +3599,8 @@ void DLLCALL bbs_thread(void* arg)
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
-			node.status=-1;	/* paranoia: make sure node.status!=NODE_WFC by default */
+			/* paranoia: make sure node.status!=NODE_WFC by default */
+			node.status=NODE_INVALID_STATUS;	
 			if(sbbs->getnodedat(i,&node,1)!=0)
 				continue;
 			if(node.status==NODE_WFC) {
