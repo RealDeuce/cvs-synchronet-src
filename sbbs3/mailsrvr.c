@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.119 2002/03/01 12:26:27 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.120 2002/03/08 14:06:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2998,7 +2998,7 @@ void DLLCALL mail_server(void* arg)
 				if (client_socket == INVALID_SOCKET)
 				{
 					if(ERROR_VALUE == ENOTSOCK)
-            			lprintf("%04d SMTP socket closed while listening",server_socket);
+            			lprintf("0000 SMTP socket closed while listening");
 					else
 						lprintf("%04d !ERROR %d accept failed", server_socket, ERROR_VALUE);
 					break;
