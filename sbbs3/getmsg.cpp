@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.25 2004/09/02 01:34:31 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.23 2003/11/25 22:24:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -500,3 +500,35 @@ ulong sbbs_t::getlastmsg(uint subnum, ulong *ptr, time_t *t)
 	return(total);
 }
 
+/****************************************************************************/
+/* Retrieve a message by RFC822 message-ID									*/
+/****************************************************************************/
+BOOL DLLCALL get_msg_by_id(scfg_t* scfg, smb_t* smb, char* id, smbmsg_t* msg)
+{
+	ulong		n;
+	int			ret;
+
+	for(n=0;n<smb->status.last_msg;n++) {
+		memset(msg,0,sizeof(smbmsg_t));
+		msg->offset=n;
+		if(smb_getmsgidx(smb, msg)!=0)
+			break;
+
+		if(smb_lockmsghdr(smb,msg)!=0)
+			continue;
+
+		ret=smb_getmsghdr(smb,msg);
+
+		smb_unlockmsghdr(smb,msg); 
+
+		if(ret!=SMB_SUCCESS)
+			continue;
+
+		if(strcmp(get_msgid(scfg,smb->subnum,msg),id)==0)
+			return(TRUE);
+
+		smb_freemsgmem(msg);
+	}
+
+	return(FALSE);
+}
