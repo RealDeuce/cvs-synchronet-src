@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.29 2003/05/13 07:49:35 deuce Exp $ */
+/* $Id: uifc.h,v 1.30 2003/05/16 02:20:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,6 +355,12 @@ typedef struct {
 /* Shows a scrollable text buffer - optionally parsing "help markup codes"	*/
 /****************************************************************************/
 	void (*showbuf)(char *buf, char *title, BOOL markup);
+
+/****************************************************************************/
+/* Updates time in upper left corner of screen with current time in ASCII/  */
+/* Unix format																*/
+/****************************************************************************/
+	void (*timedisplay)(void);
 
 #endif
 } uifcapi_t;

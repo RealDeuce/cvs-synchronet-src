@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.35 2003/05/16 01:58:56 deuce Exp $ */
+/* $Id: umonitor.c,v 1.36 2003/05/16 02:20:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,7 +270,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.36 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -412,7 +412,7 @@ int main(int argc, char** argv)  {
 			if((j=getnodedat(&cfg,i,&node,NULL)))
 				sprintf(mopt[i-1],"Error reading node data (%d)!",j);
 			else
-				nodestatus(&cfg,&node,mopt[i-1],72);
+				sprintf(mopt[i-1],"%3d: %s",i,nodestatus(&cfg,&node,str,71));
 		}
 		mopt[i-1][0]=0;
 
@@ -467,7 +467,7 @@ int main(int argc, char** argv)  {
 				continue;
 			}
 			if((node.status&NODE_INUSE) && node.useron)
-				chat(&cfg,main_dflt+1,&node,&boxch);
+				chat(&cfg,main_dflt+1,&node,&boxch,uifc.timedisplay);
 			continue;
 		}
 
@@ -577,7 +577,7 @@ int main(int argc, char** argv)  {
 					break;
 
 				case 4:
-					chat(&cfg,main_dflt+1,&node,&boxch);
+					chat(&cfg,main_dflt+1,&node,&boxch,uifc.timedisplay);
 					break;
 				
 				case -1:

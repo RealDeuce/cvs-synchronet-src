@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.h,v 1.1 2003/05/16 01:02:09 deuce Exp $ */
+/* $Id: chat.h,v 1.2 2003/05/16 02:20:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,4 +41,5 @@ typedef struct {
 	chtype ls, rs, ts, bs, tl, tr, bl, br;
 } box_t;
 
-int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch);
+int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallback)(void));
+
