@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.126 2003/08/28 11:16:07 rswindell Exp $ */
+/* $Id: services.c,v 1.127 2003/08/29 00:35:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -613,7 +613,7 @@ static JSBool js_server_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case SERVER_PROP_CLIENTS:
-			JS_ValueToInt32(cx,*vp,&active_clients);
+			JS_ValueToInt32(cx,*vp,(int32*)&active_clients);
 			update_clients();
 			break;
 	}
@@ -1523,7 +1523,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.126 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
