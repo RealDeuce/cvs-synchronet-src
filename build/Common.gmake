@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.23 2004/09/16 19:02:01 deuce Exp $
+# $Id: Common.gmake,v 1.24 2004/09/20 02:57:02 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -133,6 +133,8 @@ ifdef BUILD_DEPENDS
  CXX			:=	$(SRC_ROOT)/build/mkdep -a
  LD				:=	echo
  COMPILE_MSG	:=  Depending
+ AR				:=	echo
+ RANLIB			:=	echo
 else
  ifdef DONT_CLOBBER_CC
   CC			?=	gcc
@@ -143,6 +145,8 @@ else
  CXX			?=	g++
  LD				?=	ld
  COMPILE_MSG	:= Compiling
+ AR				?=	ar
+ RANLIB			?=	ranlib
 endif
 
 ifdef DEBUG
