@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.49 2003/02/08 02:40:34 rswindell Exp $
+# $Id: GNUmakefile,v 1.50 2003/02/08 02:44:01 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -105,6 +105,9 @@ ifdef JSLIB
 else
  LIBS	+=	../../lib/mozilla/js/$(os).$(BUILD)/libjs.a
 endif
+
+# The following are needed for echocfg
+CFLAGS += -DUSE_CURSES -DUSE_FLTK -I../../include/fltk
 
 include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
@@ -273,7 +276,7 @@ $(ECHOCFG): \
 	$(EXEODIR)/genwrap.o \
 	../../lib/fltk/$(os)/libfltk.a
 	@echo Linking $@
-	@$(CC) -DUSE_CURSES -DUSE_FLTK -I../../include/fltk -o $@ $^
+	@$(CC) -o $@ $^
 
 # ADDFILES
 $(ADDFILES): \
