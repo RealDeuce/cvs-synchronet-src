@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.h,v 1.1 2000/10/10 11:26:49 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.h,v 1.2 2000/10/31 04:19:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@ __published:
 	TOpenDialog *OpenDialog;
     TPageControl *PageControl;
     TTabSheet *GeneralTabSheet;
-    TTabSheet *LogTabSheet;
+    TTabSheet *TelnetTabSheet;
     TTabSheet *SoundTabSheet;
     TLabel *AnswerSoundLabel;
     TEdit *AnswerSoundEdit;
@@ -66,25 +66,35 @@ __published:
     TButton *HangupSoundButton;
     TCheckBox *CmdLogCheckBox;
     TCheckBox *AutoStartCheckBox;
-    TLabel *InterfaceLabel;
-    TEdit *NetworkInterfaceEdit;
-    TLabel *TelnetPortLabel;
-    TEdit *TelnetPortEdit;
-    TCheckBox *KeepAliveCheckBox;
     TLabel *FirstNodeLabel;
     TEdit *FirstNodeEdit;
     TCheckBox *XtrnMinCheckBox;
     TLabel *LastNodeLabel;
     TEdit *LastNodeEdit;
-    TCheckBox *AutoLogonCheckBox;
     TCheckBox *HostnameCheckBox;
     TButton *OKBtn;
     TButton *CancelBtn;
     TButton *ApplyBtn;
+    TLabel *InterfaceLabel;
+    TEdit *TelnetInterfaceEdit;
+    TLabel *TelnetPortLabel;
+    TEdit *TelnetPortEdit;
+    TCheckBox *KeepAliveCheckBox;
+    TCheckBox *AutoLogonCheckBox;
+    TTabSheet *RLoginTabSheet;
+    TLabel *Label1;
+    TEdit *RLoginPortEdit;
+    TLabel *Label2;
+    TEdit *RLoginInterfaceEdit;
+    TCheckBox *RLoginEnabledCheckBox;
+    TButton *RLoginIPallowButton;
+    TCheckBox *RLogin2ndNameCheckBox;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
 	void __fastcall HangupSoundButtonClick(TObject *Sender);
+    void __fastcall RLoginEnabledCheckBoxClick(TObject *Sender);
+    void __fastcall RLoginIPallowButtonClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TTelnetCfgDlg(TComponent* AOwner);
