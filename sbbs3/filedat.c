@@ -2,7 +2,7 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.7 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: filedat.c,v 1.8 2001/04/11 03:37:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -637,3 +637,33 @@ BOOL DLLCALL rmuserxfers(scfg_t* cfg, int fromuser, int destuser, char *fname)
 	return(TRUE);
 }
 
+void DLLCALL getextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext)
+{
+	char str[256];
+	int file;
+
+	memset(ext,0,513);
+	sprintf(str,"%s%s.exb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
+	if((file=nopen(str,O_RDONLY))==-1)
+		return;
+	lseek(file,(datoffset/F_LEN)*512L,SEEK_SET);
+	read(file,ext,512);
+	close(file);
+}
+
+void DLLCALL putextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext)
+{
+	char str[256],nulbuf[512];
+	int file;
+
+	memset(nulbuf,0,sizeof(nulbuf));
+	sprintf(str,"%s%s.exb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
+	if((file=nopen(str,O_WRONLY|O_CREAT))==-1)
+		return;
+	lseek(file,0L,SEEK_END);
+	while(filelength(file)<(long)(datoffset/F_LEN)*512L)
+		write(file,nulbuf,512);
+	lseek(file,(datoffset/F_LEN)*512L,SEEK_SET);
+	write(file,ext,512);
+	close(file);
+}
