@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.9 2002/04/26 01:56:28 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.10 2002/04/26 06:55:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -437,6 +437,7 @@ export the current message group into.
 					sprintf(str,"Open Failure: %d (%s)"
 						,errno,strerror(errno));
 					uifc.msg(str);
+					uifc.changes=q;
 					break; 
 				}
 				uifc.pop("Exporting Areas...");
