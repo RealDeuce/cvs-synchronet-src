@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.58 2002/02/12 23:48:00 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.59 2002/02/13 00:49:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1331,6 +1331,14 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 	if(Registry->ValueExists("ClientFormHeight"))
     	ClientForm->Height=Registry->ReadInteger("ClientFormHeight");
 
+    for(int i=0;i<ClientForm->ListView->Columns->Count;i++) {
+        char str[128];
+        sprintf(str,"ClientListColumn%dWidth",i);
+        if(Registry->ValueExists(str))
+            ClientForm->ListView->Columns->Items[i]->Width
+                =Registry->ReadInteger(str);
+    }
+
     if(Registry->ValueExists("ToolbarVisible"))
     	Toolbar->Visible=Registry->ReadBool("ToolbarVisible");
 
@@ -1687,6 +1695,13 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     Registry->WriteInteger("ClientFormHeight",ClientForm->Height);
     Registry->WriteInteger("ClientFormWidth",ClientForm->Width);
 
+    for(int i=0;i<ClientForm->ListView->Columns->Count;i++) {
+        char str[128];
+        sprintf(str,"ClientListColumn%dWidth",i);
+        Registry->WriteInteger(str
+            ,ClientForm->ListView->Columns->Items[i]->Width);
+    }
+    
     Registry->WriteInteger("TelnetFormTop",TelnetForm->Top);
     Registry->WriteInteger("TelnetFormLeft",TelnetForm->Left);
     Registry->WriteInteger("TelnetFormHeight",TelnetForm->Height);
