@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.198 2002/11/01 08:50:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.199 2002/11/05 02:54:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -643,6 +643,12 @@ static void pop3_thread(void* arg)
 #endif
 
 	SAFECOPY(host_ip,inet_ntoa(pop3.client_addr.sin_addr));
+
+	if(trashcan(&scfg,host_ip,"ip-silent")) {
+		mail_close_socket(socket);
+		thread_down();
+		return;
+	}
 
 	if(startup->options&MAIL_OPT_DEBUG_POP3)
 		lprintf("%04d POP3 connection accepted from: %s port %u"
@@ -1330,6 +1336,12 @@ static void smtp_thread(void* arg)
 	memset(&user,0,sizeof(user));
 
 	SAFECOPY(host_ip,inet_ntoa(smtp.client_addr.sin_addr));
+
+	if(trashcan(&scfg,host_ip,"ip-silent")) {
+		mail_close_socket(socket);
+		thread_down();
+		return;
+	}
 
 	lprintf("%04d SMTP connection accepted from: %s port %u"
 		, socket, host_ip, ntohs(smtp.client_addr.sin_port));
@@ -2854,7 +2866,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.198 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.199 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

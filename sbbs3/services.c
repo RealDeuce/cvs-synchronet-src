@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.81 2002/10/29 09:21:09 rswindell Exp $ */
+/* $Id: services.c,v 1.82 2002/11/05 02:54:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1158,7 +1158,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.81 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.82 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1563,7 +1563,13 @@ void DLLCALL services_thread(void* arg)
 					if(startup->socket_open!=NULL)
 						startup->socket_open(TRUE);	/* Callback, increments socket counter */
 				}
-				strcpy(host_ip,inet_ntoa(client_addr.sin_addr));
+				SAFECOPY(host_ip,inet_ntoa(client_addr.sin_addr));
+
+				if(trashcan(&scfg,host_ip,"ip-silent")) {
+					FREE_AND_NULL(udp_buf);
+					close_socket(client_socket);
+					continue;
+				}
 
 				lprintf("%04d %s connection accepted from: %s port %u"
 					,client_socket

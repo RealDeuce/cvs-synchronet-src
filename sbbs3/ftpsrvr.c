@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.188 2002/10/25 10:04:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.189 2002/11/05 02:54:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2292,6 +2292,12 @@ static void ctrl_thread(void* arg)
 
 	SAFECOPY(host_ip,inet_ntoa(ftp.client_addr.sin_addr));
 
+	if(trashcan(&scfg,host_ip,"ip-silent")) {
+		ftp_close_socket(&sock,__LINE__);
+		thread_down();
+		return;
+	}
+
 	lprintf ("%04d CTRL connection accepted from: %s port %u"
 		,sock, host_ip, ntohs(ftp.client_addr.sin_port));
 
@@ -4293,7 +4299,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.188 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.189 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.194 2002/11/02 04:04:07 rswindell Exp $ */
+/* $Id: main.cpp,v 1.195 2002/11/05 02:54:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3780,6 +3780,11 @@ void DLLCALL bbs_thread(void* arg)
 
 		strcpy(host_ip,inet_ntoa(client_addr.sin_addr));
 
+		if(trashcan(&scfg,host_ip,"ip-silent")) {
+			close_socket(client_socket);
+			continue;
+		}
+
 		lprintf("%04d %s connection accepted from: %s port %u"
 			,client_socket
 			,rlogin ? "RLogin" : "Telnet", host_ip, ntohs(client_addr.sin_port));
@@ -3802,7 +3807,7 @@ void DLLCALL bbs_thread(void* arg)
 		}
 
 		if(rlogin) {
-			if(!sbbs->trashcan(host_ip,"rlogin")) {
+			if(!trashcan(&scfg,host_ip,"rlogin")) {
 				close_socket(client_socket);
 				lprintf("%04d !CLIENT IP NOT LISTED in rlogin.can",client_socket);
 				sprintf(logstr, "Invalid RLogin from: %s",host_ip);
