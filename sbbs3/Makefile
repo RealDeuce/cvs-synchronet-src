@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.42 2003/09/19 01:47:17 rswindell Exp $
+# $Id: Makefile,v 1.43 2003/12/10 11:38:22 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -136,7 +136,7 @@ $(SBBSCON): sbbscon.c $(SBBSLIB)
 	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $**
 
 # Baja Utility
-$(BAJA): baja.c ars.c crc32.c
+$(BAJA): baja.c ars.c crc32.c $(LIBODIR)\genwrap.obj $(LIBODIR)\dirwrap.obj
 	@echo Creating $@
 	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 

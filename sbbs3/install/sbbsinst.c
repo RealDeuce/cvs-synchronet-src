@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.84 2003/12/08 22:29:50 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.87 2003/12/08 23:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.84 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -614,9 +614,9 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 						}
 					}
 				}
-				printf("Downloading %s     ",url);
+				printf("Downloading %s           ",url);
 				offset=0;
-				while((ret1=read(remote,buf,sizeof(buf)))>=0)  {
+				while((ret1=read(remote,buf,sizeof(buf)))>0)  {
 					ret2=write(fout,buf,ret1);
 					if(ret2!=ret1)  {
 						printf("\n!ERROR %d writing to %s\n",errno,dstfname);
@@ -625,7 +625,10 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 						exit(EXIT_FAILURE);
 					}
 					offset+=ret2;
-					printf("\b\b\b\b%3lu%%",(long)(((float)offset/(float)flen)*100.0));
+					if(flen)
+						printf("\b\b\b\b\b\b\b\b\b\b%3lu%%      ",(long)(((float)offset/(float)flen)*100.0));
+					else
+						printf("\b\b\b\b\b\b\b\b\b\b%10lu",offset);
 					fflush(stdout);
 				}
 				printf("\n");
