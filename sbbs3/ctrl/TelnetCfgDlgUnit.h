@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.h,v 1.4 2001/07/11 03:35:03 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.h,v 1.5 2001/07/25 03:05:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,6 +90,7 @@ __published:
     TButton *RLoginIPallowButton;
     TCheckBox *RLogin2ndNameCheckBox;
         TCheckBox *QWKEventsCheckBox;
+    TCheckBox *JavaScriptCheckBox;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
