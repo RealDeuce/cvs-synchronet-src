@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.70 2004/09/10 08:49:40 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.71 2004/09/10 09:05:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,7 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 smb_t smb;
 ulong mode=0L;
 ushort tzone=0;
-FILE* err_fp=stderr;
+FILE* err_fp;
 
 /************************/
 /* Program usage/syntax */
@@ -1375,8 +1375,9 @@ int main(int argc, char **argv)
 	struct	tm* tm;
 
 	setvbuf(stdout,0,_IONBF,0);
+	err_fp=stderr;
 
-	sscanf("$Revision: 1.70 $", "%*s %s", revision);
+	sscanf("$Revision: 1.71 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
