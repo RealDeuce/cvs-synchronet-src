@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.22 2004/10/21 04:37:42 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.24 2004/12/04 16:45:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,6 +71,7 @@ typedef struct {
 	char*					display_name;
 	char*					description;
 	void*					startup;
+	DWORD*					options;
 	BOOL*					recycle_now;
 	DWORD*					log_mask;
 	void					(*thread)(void* arg);
@@ -90,6 +91,7 @@ sbbs_ntsvc_t bbs ={
 	"Provides support for Telnet and RLogin clients and executes timed events. " \
 		"This service provides the critical functions of your Synchronet BBS.",
 	&bbs_startup,
+	&bbs_startup.options,
 	&bbs_startup.recycle_now,
 	&bbs_startup.log_mask,
 	bbs_thread,
@@ -101,6 +103,7 @@ sbbs_ntsvc_t bbs ={
 /* This is not (currently) a separate service, use this for logging only */
 sbbs_ntsvc_t event ={	
 	NTSVC_NAME_EVENT,
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -117,6 +120,7 @@ sbbs_ntsvc_t ftp = {
 	"Synchronet FTP Server",
 	"Provides support for FTP clients (including web browsers) for file transfers.",
 	&ftp_startup,
+	&ftp_startup.options,
 	&ftp_startup.recycle_now,
 	&ftp_startup.log_mask,
 	ftp_server,
@@ -130,6 +134,7 @@ sbbs_ntsvc_t web = {
 	"Synchronet Web Server",
 	"Provides support for Web (HTML/HTTP) clients (browsers).",
 	&web_startup,
+	&web_startup.options,
 	&web_startup.recycle_now,
 	&web_startup.log_mask,
 	web_server,
@@ -144,6 +149,7 @@ sbbs_ntsvc_t mail = {
 	"Sends and receives Internet e-mail (using SMTP) and allows users to remotely " \
 		"access their e-mail using an Internet mail client (using POP3).",
 	&mail_startup,
+	&mail_startup.options,
 	&mail_startup.recycle_now,
 	&mail_startup.log_mask,
 	mail_server,
@@ -159,6 +165,7 @@ sbbs_ntsvc_t services = {
 		"Stock services include Finger, Gopher, NNTP, and IRC. Edit your ctrl/services.ini " \
 		"file for configuration of individual Synchronet Services.",
 	&services_startup,
+	&services_startup.options,
 	&services_startup.recycle_now,
 	&services_startup.log_mask,
 	services_thread,
@@ -188,6 +195,12 @@ static void svc_ctrl_handler(sbbs_ntsvc_t* svc, DWORD dwCtrlCode)
 		case SERVICE_CONTROL_RECYCLE:
 			*svc->recycle_now=TRUE;
 			break;
+		case SERVICE_CONTROL_MUTE:
+			*svc->options|=BBS_OPT_MUTE;
+			break;
+		case SERVICE_CONTROL_UNMUTE:
+			*svc->options&=~BBS_OPT_MUTE;
+			break;
 		case SERVICE_CONTROL_STOP:
 		case SERVICE_CONTROL_SHUTDOWN:
 			svc->terminate();
@@ -201,7 +214,17 @@ static void svc_ctrl_handler(sbbs_ntsvc_t* svc, DWORD dwCtrlCode)
 /* Service-specific control handler stub functions */
 static void WINAPI bbs_ctrl_handler(DWORD dwCtrlCode)
 {
-	svc_ctrl_handler(&bbs, dwCtrlCode);
+	switch(dwCtrlCode) {
+		case SERVICE_CONTROL_SYSOP_AVAILABLE:
+			bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		case SERVICE_CONTROL_SYSOP_UNAVAILABLE:
+			bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		default:
+			svc_ctrl_handler(&bbs, dwCtrlCode);
+			break;
+	}
 }
 
 static void WINAPI ftp_ctrl_handler(DWORD dwCtrlCode)
@@ -232,7 +255,7 @@ static WORD event_type(int level)
 		case LOG_NOTICE:
 		case LOG_INFO:
 		case LOG_DEBUG:
-			return(EVENTLOG_INFORMATION_TYPE);
+			return(EVENTLOG_INFORMATION_TYPE);	/* same as EVENT_LOG_SUCCESS */
 	}
 /*
 	LOG_EMERG
@@ -507,6 +530,74 @@ static void describe_service(HANDLE hSCMlib, SC_HANDLE hService, char* descripti
 		changeServiceConfig2(hService, SERVICE_CONFIG_DESCRIPTION, &service_desc);
 }
 
+static BOOL register_event_source(char* name, char* path)
+{
+	char	keyname[256];
+	HKEY	hKey;
+	DWORD	type;
+	DWORD	disp;
+	LONG	retval;
+	char*	value;
+
+	sprintf(keyname,"system\\CurrentControlSet\\services\\eventlog\\application\\%s",name);
+
+	retval=RegCreateKeyEx(
+		HKEY_LOCAL_MACHINE,			// handle to an open key
+		keyname,			// address of subkey name
+		0,				// reserved
+		"",				// address of class string
+		0,				// special options flag
+		KEY_ALL_ACCESS, // desired security access
+		NULL,           // address of key security structure
+		&hKey,			// address of buffer for opened handle
+		&disp			// address of disposition value buffer
+		);
+
+	if(retval!=ERROR_SUCCESS) {
+		fprintf(stderr,"!Error %d creating/opening registry key (HKLM\\%s)\n"
+			,retval,keyname);
+		return(FALSE);
+	}
+
+	value="EventMessageFile";
+	retval=RegSetValueEx(
+		hKey,			// handle to key to set value for
+		value,			// name of the value to set
+		0,				// reserved
+		REG_SZ,			// flag for value type
+		path,			// address of value data
+		strlen(path)	// size of value data
+		);
+
+	if(retval!=ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		fprintf(stderr,"!Error %d setting registry key value (%s)\n"
+			,retval,value);
+		return(FALSE);
+	}
+
+	value="TypesSupported";
+	type=EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
+	retval=RegSetValueEx(
+		hKey,			// handle to key to set value for
+		value,			// name of the value to set
+		0,				// reserved
+		REG_DWORD,		// flag for value type
+		(BYTE*)&type,	// address of value data
+		sizeof(type)	// size of value data
+		);
+
+	RegCloseKey(hKey);
+
+	if(retval!=ERROR_SUCCESS) {
+		fprintf(stderr,"!Error %d setting registry key value (%s)\n"
+			,retval,value);
+		return(FALSE);
+	}
+
+	return(TRUE);
+}
+
 /****************************************************************************/
 /* Utility function to create a service with description (on Win2K+)		*/
 /****************************************************************************/
@@ -540,6 +631,8 @@ static SC_HANDLE create_service(HANDLE hSCMlib, SC_HANDLE hSCManager
 		describe_service(hSCMlib, hService,description);
 		CloseServiceHandle(hService);
 		printf("Successful\n");
+
+		register_event_source(name,path);
 	}
 
 	return(hService);
@@ -702,9 +795,9 @@ static void set_service_start_type(SC_HANDLE hSCManager, char* name
 }
 
 /****************************************************************************/
-/* Disable one or all services												*/
+/* Enable (set to auto-start) or disable one or all services				*/
 /****************************************************************************/
-static int disable(const char* svc_name)
+static int enable(const char* svc_name, BOOL enabled)
 {
 	int			i;
     SC_HANDLE   hSCManager;
@@ -725,38 +818,7 @@ static int disable(const char* svc_name)
 			set_service_start_type(hSCManager
 				,ntsvc_list[i]->name
 				,ntsvc_list[i]->display_name
-				,SERVICE_DISABLED);
-
-	CloseServiceHandle(hSCManager);
-
-	return(0);
-}
-
-/****************************************************************************/
-/* Enable (set to auto-start) one or all services							*/
-/****************************************************************************/
-static int enable(const char* svc_name)
-{
-	int			i;
-    SC_HANDLE   hSCManager;
-
-    hSCManager = OpenSCManager(
-                        NULL,                   // machine (NULL == local)
-                        NULL,                   // database (NULL == default)
-                        SC_MANAGER_ALL_ACCESS   // access required
-                        );
-    if(hSCManager==NULL) {
-		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
-		return(-1);
-	}
-
-	for(i=0;ntsvc_list[i]!=NULL;i++)
-		if(svc_name==NULL	/* All? */
-			|| !stricmp(ntsvc_list[i]->name, svc_name))
-			set_service_start_type(hSCManager
-				,ntsvc_list[i]->name
-				,ntsvc_list[i]->display_name
-				,SERVICE_AUTO_START);
+				,enabled ? SERVICE_AUTO_START : SERVICE_DISABLED);
 
 	CloseServiceHandle(hSCManager);
 
@@ -891,10 +953,10 @@ int main(int argc, char** argv)
 			return uninstall(argv[i+1]);
 
 		if(!stricmp(arg,"disable"))
-			return disable(argv[i+1]);
+			return enable(argv[i+1], FALSE);
 
 		if(!stricmp(arg,"enable"))
-			return enable(argv[i+1]);
+			return enable(argv[i+1], TRUE);
 	}
 
 	printf("Available Services:\n\n");
