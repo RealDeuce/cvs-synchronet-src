@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.1 2004/09/11 08:05:38 deuce Exp $
+# $Id: Common.bmake,v 1.2 2004/09/11 08:31:33 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -122,7 +122,7 @@ DELETE	=	echo y | del
 !ifdef msc	# Microsoft Visual C++
 CC		=	cl
 LD		=	link
-CCPRE	=	msvc.Win32
+CCPRE	=	msvc.win32
 OUTPUT	=	-Fo
 LOUTPUT	=	-Fe
 CFLAGS  =	-nologo -MTd
@@ -160,7 +160,7 @@ BUILDPATH	=	release
 
 LIBODIR :=	$(CCPRE).win32.lib.$(BUILDPATH)
 OBJODIR :=	$(CCPRE).win32.obj.$(BUILDPATH)$(OBJPATH_SUFFIX)
-EXEODIR :=	$(CCPRE).win32.$(machine).exe.$(BUILDPATH)
+EXEODIR :=	$(CCPRE).win32.exe.$(BUILDPATH)
 
 !include targets.mk
 !include $(SRC_ROOT)/build/rules.mk
