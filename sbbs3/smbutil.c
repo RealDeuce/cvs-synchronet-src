@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.80 2004/09/16 06:14:39 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.81 2004/09/17 11:23:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -461,6 +461,8 @@ void listmsgs(ulong start, ulong count)
 
 	if(!start)
 		start=1;
+	if(!count)
+		count=~0;
 	fseek(smb.sid_fp,(start-1L)*sizeof(idxrec_t),SEEK_SET);
 	while(l<count) {
 		if(!fread(&msg.idx,1,sizeof(idxrec_t),smb.sid_fp))
@@ -555,6 +557,8 @@ void viewmsgs(ulong start, ulong count)
 
 	if(!start)
 		start=1;
+	if(!count)
+		count=~0;
 	fseek(smb.sid_fp,(start-1L)*sizeof(idxrec_t),SEEK_SET);
 	while(l<count) {
 		if(!fread(&msg.idx,1,sizeof(idxrec_t),smb.sid_fp))
@@ -1451,7 +1455,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.80 $", "%*s %s", revision);
+	sscanf("$Revision: 1.81 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
