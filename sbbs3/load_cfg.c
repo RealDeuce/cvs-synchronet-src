@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.35 2003/01/17 20:52:40 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.36 2003/01/31 02:18:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ void prep_cfg(scfg_t* cfg)
 {
 	int i;
 
-#ifdef __unix__
+#if 0 /* def __unix__ */
 	strlwr(cfg->text_dir);	/* temporary Unix-compatibility hack */
 	strlwr(cfg->temp_dir);	/* temporary Unix-compatibility hack */
 	strlwr(cfg->data_dir);	/* temporary Unix-compatibility hack */
@@ -141,7 +141,9 @@ void prep_cfg(scfg_t* cfg)
 
 	/* Fix-up paths */
 	prep_dir(cfg->ctrl_dir, cfg->data_dir, sizeof(cfg->data_dir));
+	prep_dir(cfg->ctrl_dir, cfg->logs_dir, sizeof(cfg->logs_dir));
 	prep_dir(cfg->ctrl_dir, cfg->exec_dir, sizeof(cfg->exec_dir));
+	prep_dir(cfg->ctrl_dir, cfg->mods_dir, sizeof(cfg->mods_dir));
 	prep_dir(cfg->ctrl_dir, cfg->text_dir, sizeof(cfg->text_dir));
 
 	prep_dir(cfg->ctrl_dir, cfg->netmail_dir, sizeof(cfg->netmail_dir));
@@ -152,7 +154,7 @@ void prep_cfg(scfg_t* cfg)
 	prep_path(cfg->echomail_sem);
 	prep_path(cfg->inetmail_sem);
 
-#ifdef __unix__
+#if 0 /* def __unix__ */
 	/* temporary hack for Unix compatibility */
 	strlwr(cfg->logon_mod);
 	strlwr(cfg->logoff_mod);
