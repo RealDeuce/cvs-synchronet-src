@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.13 2004/09/20 07:26:24 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.14 2004/09/20 07:39:33 rswindell Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
@@ -218,6 +218,9 @@ void ciolib_delline(void);
 void ciolib_insline(void);
 char *ciolib_getpass(const char *prompt);
 void settitle(const char *title);
+int ciolib_showmouse(void);
+int ciolib_hidemouse(void);
+void ciolib_settitle(const char *title);
 #ifdef __cplusplus
 }
 #endif
