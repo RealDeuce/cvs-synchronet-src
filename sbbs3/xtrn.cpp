@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.8 2000/10/30 12:26:04 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.9 2000/11/03 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,6 +278,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		if(tm_p!=NULL) {
 			fprintf(fp, "DAY=%u\n", tm_p->tm_mday);
 			fprintf(fp, "WEEKDAY=%s\n",wday[tm_p->tm_wday]);
+			fprintf(fp, "MONTHNAME=%s\n",mon[tm_p->tm_mon]);
 			fprintf(fp, "MONTH=%u\n",tm_p->tm_mon+1);
 			fprintf(fp, "YEAR=%u\n",1900+tm_p->tm_year);
 		}
