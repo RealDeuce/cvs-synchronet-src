@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.110 2003/07/17 03:20:50 deuce Exp $
+# $Id: GNUmakefile,v 1.111 2003/07/17 03:32:40 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -238,7 +238,7 @@ FORCE$(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
 
 $(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(CCPP) -o $@ $(LFLAGS) $^
+	$(QUIET)$(CCPP) -o $@ $(LFLAGS) $(JSLIB) $^
 
 # Synchronet BBS library Link Rule
 FORCE$(SBBS): $(OBJS) $(LIBS)
