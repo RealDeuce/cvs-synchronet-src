@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.136 2003/05/07 11:17:15 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.137 2003/05/07 18:28:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1335,9 +1335,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			FD_ZERO(&ibits);
 			FD_SET(out_pipe[0],&ibits);
 			timeout.tv_sec=0;
-			timeout.tv_usec=0;
+			timeout.tv_usec=1000;
 			if(!select(out_pipe[0]+1,&ibits,NULL,NULL,&timeout))  {
-				YIELD();
 				continue;
 			}
 
