@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.51 2002/01/18 17:09:21 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.52 2002/01/21 02:56:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2278,7 +2278,6 @@ void __fastcall TMainForm::UserTruncateMenuItemClick(TObject *Sender)
         if(!del_lastuser(&cfg))
             break;
         deleted++;
-        Sleep(1);
     }
     Screen->Cursor=crDefault;
     char str[128];
