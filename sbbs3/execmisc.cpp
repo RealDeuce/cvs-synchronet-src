@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.5 2000/10/25 23:31:11 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.6 2000/10/26 11:01:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1311,14 +1311,8 @@ int sbbs_t::exec_misc(csi_t *csi, char *path)
 					if(pp && *pp && lp) {
 						if(*(csi->ip-9)==GET_FILE_ATTRIB)
 							*lp=getfattr(*pp);
-						else {
-	#ifdef __BORLANDC__
-							*lp=_chmod(*pp,1,(int)*lp); 
-	#else // Microsoft
-							*lp=_chmod(*pp,(int)*lp); 
-	#endif
-						}
-
+						else 
+							*lp=CHMOD(*pp,(int)*lp); 
 					}
 					return(0);
 				case MAKE_DIR:
