@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.5 2004/05/17 20:58:06 rswindell Exp $ */
+/* $Id: str_list.c,v 1.6 2004/05/19 07:53:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@ str_list_t strListAlloc()
 	return(list);
 }
 
-size_t strListCount(str_list_t list)
+size_t strListCount(const str_list_t list)
 {
 	size_t i;
 
@@ -62,7 +62,7 @@ size_t strListCount(str_list_t list)
 	return(i);
 }
 
-str_list_t strListAddAt(str_list_t* list, char* str, size_t count)
+str_list_t strListAddAt(str_list_t* list, const char* str, size_t count)
 {
 	str_list_t lp;
 
@@ -80,9 +80,40 @@ str_list_t strListAddAt(str_list_t* list, char* str, size_t count)
 }
 
 
-str_list_t strListAdd(str_list_t* list, char* str)
+str_list_t strListAdd(str_list_t* list, const char* str)
 {
 	return strListAddAt(list,str,strListCount(*list));
+}
+
+str_list_t strListSplit(str_list_t* list, char* str, const char* delimit)
+{
+	char*	token;
+
+	if(list==NULL) {
+		if((*list = strListAlloc())==NULL)
+			return(NULL);
+	}
+
+	for(token = strtok(str, delimit); token!=NULL; token=strtok(NULL, delimit))
+		strListAdd(list, token);
+
+	return(*list);
+}
+
+str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delimit)
+{
+	char*	buf;
+
+	if((buf=malloc(strlen(str)+1))==NULL)
+		return(NULL);
+
+	strcpy(buf,str);
+
+	*list = strListSplit(list,buf,delimit);
+
+	free(buf);
+
+	return(*list);
 }
 
 static int strListCompareAlpha(const void *arg1, const void *arg2)
