@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.9 2003/05/14 05:02:38 deuce Exp $
+# $Id: GNUmakefile,v 1.10 2003/05/14 22:59:51 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -86,8 +86,15 @@ OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/sbbs_ini.o \
 			$(LIBODIR)/ini_file.o \
 			$(LIBODIR)/scfglib1.o \
+			$(LIBODIR)/scfglib2.o \
 			$(LIBODIR)/nopen.o \
+			$(LIBODIR)/userdat.o \
 			$(LIBODIR)/ars.o \
+			$(LIBODIR)/dat_rec.o \
+			$(LIBODIR)/str_util.o \
+			$(LIBODIR)/crc16.o \
+			$(LIBODIR)/load_cfg.o \
+			$(LIBODIR)/date_str.o \
 			$(LIBODIR)/umonitor.o
 
 all: $(LIBODIR) $(BUILD_DEPENDS)$(EXEODIR)/umonitor
