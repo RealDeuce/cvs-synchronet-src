@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.129 2004/03/27 05:26:08 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.130 2004/03/29 05:57:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3422,7 +3422,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 			logprintf("ERROR %u line %d creating %s",errno,__LINE__,path);
 			return(-1);
 		}
-		write(file,&hdr,sizeof(hdr));
+		write(file,hdr,sizeof(fmsghdr_t));
 		write(file,fmsgbuf,l+1); /* Write the '\0' terminator too */
 		close(file);
 		printf("%s", path);
@@ -4077,7 +4077,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.129 $", "%*s %s", revision);
+	sscanf("$Revision: 1.130 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
