@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.55 2002/12/06 07:18:33 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.56 2002/12/20 01:08:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@
 
 #include "sbbs.h"
 #include "sockwrap.h"		/* sendfilesocket() */
-#include "threadwrap.h"		/* _beginthread() */
 #include "websrvr.h"
 
 static const char*	server_name="Synchronet Web Server";
@@ -2023,7 +2022,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.55 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.56 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
