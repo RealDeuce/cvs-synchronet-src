@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.2 2000/11/04 12:03:51 rswindell Exp $ */
+/* $Id: text_sec.cpp,v 1.3 2000/12/11 23:02:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,6 @@ int sbbs_t::text_sec()
     long    l,length;
     FILE    *stream;
 
-	// ch=getage(useron.birth); Removed 05/19/96
 	for(i=j=0;i<cfg.total_txtsecs;i++) {
 		if(!chk_ar(cfg.txtsec[i]->ar,&useron))
 			continue;
@@ -187,10 +186,9 @@ int sbbs_t::text_sec()
 				sprintf(str,"%stext/%s.ixt"
 					,cfg.data_dir,cfg.txtsec[usrsec[cursec]]->code);
 				j=i-1;
-				if((stream=fnopen((int *)&i,str,O_RDONLY))==NULL) {
+				if((stream=fnopen(NULL,str,O_RDONLY))==NULL) {
 					errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 					return(0); }
-				// length=filelength(i); Removed 05/19/96
 				for(i=0;i<j;i++) {  /* skip two lines for each entry */
 					fgets(tmp,81,stream);
 					fgets(tmp,81,stream); }
