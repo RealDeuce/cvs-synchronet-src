@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.13 2002/06/25 10:44:35 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.14 2002/07/09 00:51:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <malloc.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
