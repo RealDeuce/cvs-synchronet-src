@@ -9,7 +9,7 @@
 # Win32: make -f Makefile.gnu os=win32									#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.15 2000/11/04 09:02:38 rswindell Exp $
+# $Id: Makefile.gnu,v 1.16 2000/11/04 09:08:10 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -43,7 +43,7 @@ CFLAGS	:=
 LFLAGS  :=	
 DELETE	=	rm -f -v
 OUTLIB	=	-o
-LIBS	=	$(LIBDIR)/libc.a
+LIBS	=	$(LIBDIR)/libc.a $(LIBDIR)/libpthread.a
 
 endif
 
