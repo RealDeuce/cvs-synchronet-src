@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.14 2004/09/20 07:39:33 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.15 2004/09/21 08:30:16 rswindell Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
@@ -208,9 +208,9 @@ void ciolib_lowvideo(void);
 void ciolib_normvideo(void);
 int ciolib_puttext(int a,int b,int c,int d,unsigned char *e);
 int ciolib_gettext(int a,int b,int c,int d,unsigned char *e);
-void ciolib_textattr(unsigned char a);
+void ciolib_textattr(int a);
 void ciolib_delay(long a);
-int ciolib_putch(unsigned char a);
+int ciolib_putch(int a);
 void ciolib_setcursortype(int a);
 void ciolib_textmode(int mode);
 void ciolib_window(int sx, int sy, int ex, int ey);
