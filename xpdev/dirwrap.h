@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.24 2003/07/24 10:57:21 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.25 2003/07/30 02:36:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,6 +207,7 @@ DLLEXPORT BOOL		DLLCALL fexist(const char *filespec);
 DLLEXPORT BOOL		DLLCALL fexistcase(char *filespec);	/* fixes upr/lwr case fname */
 DLLEXPORT long		DLLCALL flength(const char *filename);
 DLLEXPORT time_t	DLLCALL fdate(const char *filename);
+DLLEXPORT int		DLLCALL setfdate(const char* filename, time_t t);
 DLLEXPORT BOOL		DLLCALL	isdir(const char *filename);
 DLLEXPORT char*		DLLCALL getfname(const char* path);
 DLLEXPORT int		DLLCALL getfattr(const char* filename);
