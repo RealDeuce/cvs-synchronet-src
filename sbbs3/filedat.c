@@ -2,7 +2,7 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.20 2003/08/22 10:07:32 rswindell Exp $ */
+/* $Id: filedat.c,v 1.21 2003/08/25 10:29:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -662,9 +662,12 @@ char* DLLCALL getfilepath(scfg_t* cfg, file_t* f, char* path)
 	char	fname[MAX_PATH+1];
 
 	unpadfname(f->name,fname);
-	sprintf(path,"%s%s",f->altpath>0 && f->altpath<=cfg->altpaths 
-		? cfg->altpath[f->altpath-1] : cfg->dir[f->dir]->path
-		,fname);
+	if(f->dir>=cfg->total_dirs)
+		sprintf(path,"%s%s",cfg->temp_dir);
+	else
+		sprintf(path,"%s%s",f->altpath>0 && f->altpath<=cfg->altpaths 
+			? cfg->altpath[f->altpath-1] : cfg->dir[f->dir]->path
+			,fname);
 
 	return(path);
 }
