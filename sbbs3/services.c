@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.33 2002/03/01 02:36:57 rswindell Exp $ */
+/* $Id: services.c,v 1.34 2002/03/06 21:51:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     for(i=0;i<argc && strlen(str)<(sizeof(str)/2);i++) {
 		if((js_str=JS_ValueToString(cx, argv[i]))==NULL)
 		    return(JS_FALSE);
-		strcat(str,JS_GetStringBytes(js_str));
+		strncat(str,JS_GetStringBytes(js_str),sizeof(str)/2);
 		strcat(str," ");
 	}
 
