@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.98 2003/05/08 02:38:33 deuce Exp $ */
+/* $Id: websrvr.c,v 1.99 2003/05/08 02:58:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,13 +378,62 @@ static int sockprint(SOCKET sock, const char *str)
 	int len;
 	int	result;
 	int written=0;
+	fd_set	socket_set;
+	struct timeval tv;
 
 	if(sock==INVALID_SOCKET)
 		return(0);
 	if(startup->options&WEB_OPT_DEBUG_TX)
 		lprintf("%04d TX: %s", sock, str);
 	len=strlen(str);
+
+	/* Check socket for writability (using select) */
+	tv.tv_sec=60;
+	tv.tv_usec=0;
+
+	FD_ZERO(&socket_set);
+	FD_SET(sock,&socket_set);
+
+	if((result=select(sock+1,NULL,&socket_set,NULL,&tv))<1) {
+		if(result==0)
+			lprintf("%04d !TIMEOUT selecting socket for send"
+				,sock);
+		else
+			lprintf("%04d !ERROR %d selecting socket for send"
+				,sock, ERROR_VALUE);
+		return(0);
+	}
+
 	while((result=sendsocket(sock,str+written,len-written))>0)  {
+		if(result==SOCKET_ERROR) {
+			if(ERROR_VALUE==EWOULDBLOCK) {
+				/* Check socket for writability (using select) */
+				tv.tv_sec=60;
+				tv.tv_usec=0;
+
+				FD_ZERO(&socket_set);
+				FD_SET(sock,&socket_set);
+
+				if((result=select(sock+1,NULL,&socket_set,NULL,&tv))<1) {
+					if(result==0)
+						lprintf("%04d !TIMEOUT selecting socket for send"
+							,sock);
+					else
+						lprintf("%04d !ERROR %d selecting socket for send"
+							,sock, ERROR_VALUE);
+					return(0);
+				}
+				continue;
+			}
+			if(ERROR_VALUE==ECONNRESET) 
+				lprintf("%04d Connection reset by peer on send",sock);
+			else if(ERROR_VALUE==ECONNABORTED) 
+				lprintf("%04d Connection aborted by peer on send",sock);
+			else
+				lprintf("%04d !ERROR %d sending on socket",sock,ERROR_VALUE);
+			return(0);
+		}
+		lprintf("%04d !ERROR: short send on socket: %d instead of %d",sock,result,len);
 		written+=result;
 	}
 	if(written != len) {
@@ -413,11 +462,8 @@ static int sockprintvalue(SOCKET sock, const char *head, const char *value, BOOL
 static int sockprintf(SOCKET sock, char *fmt, ...)
 {
 	int		len;
-	int		result;
 	va_list argptr;
 	char	sbuf[1024];
-	fd_set	socket_set;
-	struct timeval tv;
 
     va_start(argptr,fmt);
     len=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
@@ -433,41 +479,7 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 		return(0);
 	}
 
-	/* Check socket for writability (using select) */
-	tv.tv_sec=60;
-	tv.tv_usec=0;
-
-	FD_ZERO(&socket_set);
-	FD_SET(sock,&socket_set);
-
-	if((result=select(sock+1,NULL,&socket_set,NULL,&tv))<1) {
-		if(result==0)
-			lprintf("%04d !TIMEOUT selecting socket for send"
-				,sock);
-		else
-			lprintf("%04d !ERROR %d selecting socket for send"
-				,sock, ERROR_VALUE);
-		return(0);
-	}
-
-	while((result=sendsocket(sock,sbuf,len))!=len) {
-		if(result==SOCKET_ERROR) {
-			if(ERROR_VALUE==EWOULDBLOCK) {
-				/* Do a select() instead of an arbitrary YIELD() */
-				if(select(sock+1,NULL,&socket_set,NULL,&tv)>=0)
-					continue;
-			}
-			if(ERROR_VALUE==ECONNRESET) 
-				lprintf("%04d Connection reset by peer on send",sock);
-			else if(ERROR_VALUE==ECONNABORTED) 
-				lprintf("%04d Connection aborted by peer on send",sock);
-			else
-				lprintf("%04d !ERROR %d sending on socket",sock,ERROR_VALUE);
-			return(0);
-		}
-		lprintf("%04d !ERROR: short send on socket: %d instead of %d",sock,result,len);
-	}
-	return(len);
+	return(sockprint(sock,sbuf));
 }
 
 static int getmonth(char *mon)
@@ -2343,7 +2355,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.98 $", "%*s %s", revision);
+	sscanf("$Revision: 1.99 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
