@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.2 2000/10/21 00:27:01 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.3 2000/10/21 01:10:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,14 +60,6 @@
 
 #ifndef __FLAT__
 #define __FLAT__	/* 32-bit "flat" memory model */
-#endif
-
-#ifdef _MSC_VER	/* Visual C++ */
-
-#define O_DENYNONE	_SH_DENYNO
-#define O_DENYALL	_SH_DENYRW
-#define S_IWRITE	_S_IWRITE
-
 #endif
 
 /************/
