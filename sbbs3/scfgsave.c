@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.29 2003/04/15 09:12:40 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.30 2003/04/24 10:00:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,7 @@ static BOOL fcopy(char* src, char* dest)
 		if(ch==EOF)
 			break;
 		fputc(ch,out);
-		if(((count++)%(10*1024))==0)
+		if(((count++)%(32*1024))==0)
 			SLEEP(1);
 	}
 
