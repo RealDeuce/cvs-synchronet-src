@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.24 2003/07/17 00:17:15 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.25 2003/07/17 01:40:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -541,13 +541,14 @@ long js_exec(const char *fname, char** args)
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
 	if(fname==NULL)	{ /* Use stdin for script source */
+		fprintf(statfp,"Reading script from stdin\n");
 		js_buflen=0;
 		while(!feof(stdin)) {
 			if(!fgets(line,sizeof(line),stdin))
 				break;
 
 			if((js_buf=realloc(js_buf,js_buflen+strlen(line)))==NULL) {
-				fprintf(errfp,"!Error allocating %lu bytes of memory\n"
+				fprintf(errfp,"!Error allocating %u bytes of memory\n"
 					,js_buflen+strlen(line));
 				return(-1);
 			}
@@ -606,7 +607,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.24 $", "%*s %s", revision);
+	sscanf("$Revision: 1.25 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
