@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.18 2003/06/19 10:02:07 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.19 2003/06/20 05:23:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,8 +270,12 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 {
 	char	str[256];
+	char	tmp[13];
 
-	sprintf(str,"%sQUOTES.TXT",cfg.node_dir);
+	strcpy(tmp,"QUOTES.TXT");
+	if(cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
+		strlwr(tmp);
+	sprintf(str,"%s%s",cfg.node_dir,tmp);
 	remove(str);
 	msgtotxt(msg,str,0,tails);
 }
