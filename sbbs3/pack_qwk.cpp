@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.10 2001/09/17 00:25:22 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.11 2001/09/19 00:36:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -432,12 +432,16 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		lprintf(str);
 
 	if((*msgcnt)+mailmsgs && time(NULL)-start) {
-		bprintf("\r\n\r\n\1n\1hPacked %lu messages in %lu seconds "
+		bprintf("\r\n\r\n\1n\1hPacked %lu messages (%lu bytes) in %lu seconds "
 			"(%lu messages/second)."
-			,(*msgcnt)+mailmsgs,time(NULL)-start
+			,(*msgcnt)+mailmsgs
+			,ftell(qwk)
+			,time(NULL)-start
 			,((*msgcnt)+mailmsgs)/(time(NULL)-start));
-		sprintf(str,"Packed %lu messages in %lu seconds (%lu msgs/sec)"
-			,(*msgcnt)+mailmsgs,time(NULL)-start
+		sprintf(str,"Packed %lu messages (%lu bytes) in %lu seconds (%lu msgs/sec)"
+			,(*msgcnt)+mailmsgs
+			,ftell(qwk)
+			,time(NULL)-start
 			,((*msgcnt)+mailmsgs)/(time(NULL)-start));
 		if(online==ON_LOCAL) /* event */
 			eprintf(str);
