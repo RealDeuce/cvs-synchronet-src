@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.38 2005/01/24 10:46:48 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.39 2005/01/28 03:13:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -639,8 +639,8 @@ void ansi_gettextinfo(struct text_info *info)
 	info->currmode=3;
 	info->screenheight=ansi_rows;
 	info->screenwidth=ansi_cols;
-	info->curx=wherex();
-	info->cury=wherey();
+	info->curx=ansi_wherex();
+	info->cury=ansi_wherey();
 	info->attribute=ansi_curr_attr>>8;
 }
 
