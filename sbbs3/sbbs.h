@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.206 2003/09/19 09:24:49 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.207 2003/09/20 07:08:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -980,7 +980,7 @@ BOOL 	md(char *path);
 
 	/* ver.cpp */
 	char*	socklib_version(char* str);
-
+	
 	/* sortdir.cpp */
 	int		fnamecmp_a(char **str1, char **str2);	 /* for use with resort() */
 	int		fnamecmp_d(char **str1, char **str2);
@@ -999,6 +999,12 @@ extern char lastuseron[LEN_ALIAS+1];  /* Name of user last online */
 #ifdef __cplusplus
 }
 #endif
+
+extern
+#ifdef __cplusplus
+ "C"
+#endif
+	const char* beta_version;
 
 /* Global data */
 

@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.19 2003/01/05 12:12:55 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.20 2003/09/20 07:08:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-extern "C" const char* beta_version = " beta"; /* Space if non-beta, " beta" otherwise */
+extern "C" const char* beta_version = " alpha"; /* Space if non-beta, " beta" otherwise */
 
 #if defined(_WINSOCKAPI_)
 	extern WSADATA WSAData;
