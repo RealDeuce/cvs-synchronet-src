@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.9 2002/01/25 00:57:52 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.10 2002/01/29 22:59:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1006,6 +1006,15 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_str(cfg->natvpgm[i]->name,stream);
 	for(i=0;i<cfg->total_natvpgms;i++)
 		put_int(cfg->natvpgm[i]->misc,stream);
+
+	put_int(cfg->total_hotkeys,stream);
+	for(i=0;i<cfg->total_hotkeys;i++) {
+		put_int(cfg->hotkey[i]->key,stream);
+		put_str(cfg->hotkey[i]->cmd,stream);
+		n=0;
+		for(j=0;j<8;j++)
+			put_int(n,stream);
+		}
 
 	fclose(stream);
 
