@@ -4,7 +4,7 @@
 #include "mouse.h"
 
 static pthread_mutex_t in_mutex;
-static int in_mutex_initialized=0;
+static pthread_mutex_t out_mutex;
 sem_t in_sem;
 
 struct in_mouse_event {
@@ -26,6 +26,17 @@ struct out_mouse_event {
 	void *nextevent;
 };
 
+struct curr_event {
+	int	event;		/* Current event (if successfull)
+				 * ie: If you're already clicked, and not moved, a double-click
+				 * is the "Current Event" */
+	int	sx;		/* Current event start x */
+	int	sy;		/* Current event start y */
+	clock_t	ts;		/* msclock() time this event will finish
+				 * ie: When double-click is current, release+timeout or
+				 * press+timeout */
+}
+
 struct mouse_state {
 	int	buttonstate;		/* Current state of all buttons */
 	int	knownbuttonstatemask;	/* Mask of buttons that have done something since */
@@ -39,6 +50,7 @@ struct mouse_state {
 	int	click_drift;	/* Allowed "drift" during a click event */
 	struct in_mouse_event	*events_in;	/* Pointer to recevied events stack */
 	struct out_mouse_event	*events_out;	/* Pointer to output events stack */
+	struct curr_event	pending[3];	/* Per-button pending events */
 };
 
 struct mouse_state state;
@@ -55,6 +67,7 @@ void init_mouse(void)
 	state.events_in=(struct in_mouse_event *)NULL;
 	state.events_out=(struct out_mouse_event *)NULL;
 	pthread_mutex_init(&in_mutex,NULL);
+	pthread_mutex_init(&out_mutex,NULL);
 	sem_init(&in_sem,0,0);
 }
 
@@ -102,7 +115,31 @@ static void ciomouse_gotevent(int event, int x, int y)
 	sem_post(&in_sem);
 }
 
-static void coilib_mouse_thread(void *data)
+static void add_outevent(int event, int bstate, int kbsm, sx, sy, ex, ey)
+{
+	struct out_mouse_event *ome;
+	struct out_mouse_event **lastevent;
+
+	ome=(struct out_mouse_event *)malloc(sizeof(out_mouse_ecent));
+
+	ome->event=event;
+	ome->bstate=bstate;
+	ome->kbsm=kbsm;
+	ome->startx=sx;
+	ome->starty=sy;
+	ome->endx=ex;
+	ome->endy=ey;
+	ome->nextevent=(struct out_mouse_event *)NULL;
+
+	pthread_mutex_lock(&out_mutex);
+
+	for(lastevent=&state.events_out;*lastevent != NULL;lastevent=&(lastevent->nextevent));
+	*lastevent=ome;
+
+	pthread_mutex_unlock(&in_mutex);
+}
+
+static void ciolib_mouse_thread(void *data)
 {
 	int	use_timeout=0;
 	struct timespec timeout;
@@ -124,7 +161,7 @@ static void coilib_mouse_thread(void *data)
 				break;
 
 			case CIOLIB_BUTTON_1_PRESS:
-				/* No current event should affect a press event */
+				/* Currently processing a B1 event? */
 				break;
 
 			case CIOLIB_BUTTON_1_RELEASE:
@@ -132,7 +169,6 @@ static void coilib_mouse_thread(void *data)
 				break;
 
 			case CIOLIB_BUTTON_2_PRESS:
-				/* No current event should affect a press event */
 				break;
 
 			case CIOLIB_BUTTON_2_RELEASE:
@@ -140,7 +176,6 @@ static void coilib_mouse_thread(void *data)
 				break;
 
 			case CIOLIB_BUTTON_3_PRESS:
-				/* No current event should affect a press event */
 				break;
 
 			case CIOLIB_BUTTON_3_RELEASE:
