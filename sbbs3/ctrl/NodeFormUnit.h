@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.h,v 1.6 2001/06/22 03:23:38 rswindell Exp $ */
+/* $Id: NodeFormUnit.h,v 1.7 2001/09/16 23:53:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,12 +94,13 @@ __published:	// IDE-managed Components
     void __fastcall UserMsgButtonClick(TObject *Sender);
     void __fastcall RefreshMenuItemClick(TObject *Sender);
 private:	// User declarations
-    int __fastcall getnodedat(int node_num, node_t* node, bool lockit);
-    int __fastcall putnodedat(int node_num, node_t* node);
 
 public:		// User declarations
      __fastcall TNodeForm(TComponent* Owner);
      TMainForm* MainForm;
+    int __fastcall getnodedat(int node_num, node_t* node, bool lockit);
+    int __fastcall putnodedat(int node_num, node_t* node);
+
 };
 //---------------------------------------------------------------------------
 extern PACKAGE TNodeForm *NodeForm;
