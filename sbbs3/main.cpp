@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.271 2003/05/11 07:12:25 deuce Exp $ */
+/* $Id: main.cpp,v 1.272 2003/05/11 07:21:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1015,11 +1015,10 @@ void input_thread(void *arg)
 		if(FD_ISSET(sbbs->client_socket,&socket_set))
 			sock=sbbs->client_socket;
 #ifdef __unix__
-		if(uspy_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)
-			continue;
-
-		else if(FD_ISSET(uspy_socket[sbbs->cfg.node_num-1],&socket_set))
+		else if(uspy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET
+				&& FD_ISSET(uspy_socket[sbbs->cfg.node_num-1],&socket_set))  {
 			sock=uspy_socket[sbbs->cfg.node_num-1];
+		}
 #endif
 		else
 			continue;
@@ -4155,7 +4154,7 @@ void DLLCALL bbs_thread(void* arg)
 		if(uspy_listen_socket[i]!=INVALID_SOCKET) {
 			close_socket(uspy_listen_socket[i]);
 			uspy_listen_socket[i]=INVALID_SOCKET;
-			snprintf(str,sizeof(uspy_addr.sun_path),"%slocalspy%d.sock", startup->temp_dir, i);
+			snprintf(str,sizeof(uspy_addr.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
 			if(fexist(str))
 				unlink(str);
 		}
