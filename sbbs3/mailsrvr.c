@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.350 2004/11/18 09:12:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.349 2004/11/17 01:52:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,6 @@
 #include <errno.h>			/* errno */
 
 /* Synchronet-specific headers */
-#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "mailsrvr.h"
 #include "mime.h"
@@ -3893,7 +3892,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.350 $", "%*s %s", revision);
+	sscanf("$Revision: 1.349 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
