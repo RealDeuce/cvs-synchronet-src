@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.12 2004/09/20 02:44:38 deuce Exp $ */
+/* $Id: ciolib.h,v 1.11 2004/09/10 23:24:49 deuce Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
@@ -56,13 +56,8 @@ enum {
 #define BW80		2
 #define	C80			3
 #define MONO		7
+#define C4350		64
 #define C80X50		64
-#define C4350		C80X50
-#define C80X14		128
-#define C80X21		129
-#define	C80X28		130
-#define C80X43		131
-#define C80X60		132
 
 #define COLOR_MODE	C80
 
