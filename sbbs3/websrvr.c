@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.274 2005/03/08 16:29:31 deuce Exp $ */
+/* $Id: websrvr.c,v 1.275 2005/03/08 16:45:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2789,6 +2789,13 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 	} while(0);
 
+	SAFECOPY(session->req.physical_path, path);
+	if(session->req.fp!=NULL) {
+		fclose(session->req.fp);
+		session->req.fp=NULL;
+	}
+
+
 	/* Read http_reply object */
 	if(!session->req.sent_headers) {
 		retval=ssjs_send_headers(session);
@@ -2798,12 +2805,6 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 
 	if(js_script!=NULL) 
 		JS_DestroyScript(session->js_cx, js_script);
-	if(session->req.fp!=NULL) {
-		fclose(session->req.fp);
-		session->req.fp=NULL;
-	}
-
-	SAFECOPY(session->req.physical_path, path);
 	session->req.dynamic=IS_SSJS;
 	
 	return(retval);
@@ -3050,7 +3051,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.274 $", "%*s %s", revision);
+	sscanf("$Revision: 1.275 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
