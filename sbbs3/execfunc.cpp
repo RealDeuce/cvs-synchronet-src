@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.17 2001/08/01 15:57:21 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.18 2001/08/29 16:51:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ int sbbs_t::exec_function(csi_t *csi)
 				CRLF; }
 			return(0);
 		case CS_PAGE_SYSOP:
-			csi->logic=sysop_page();
+			csi->logic=!sysop_page();
 			return(0);
 		case CS_PAGE_GURU:
 #if 0 /* old way */
@@ -310,7 +310,7 @@ int sbbs_t::exec_function(csi_t *csi)
 			FREE(p);
 			csi->logic=LOGIC_TRUE;
 #else
-			csi->logic=guru_page();
+			csi->logic=!guru_page();
 #endif
 			return(0);
 		case CS_SPY:
