@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.17 2002/12/04 05:30:38 rswindell Exp $ */
+/* $Id: uifc.c,v 1.18 2003/05/19 19:46:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,6 +191,7 @@ int uifcini(uifcapi_t* uifcapi)
             ,txtinfo.screenwidth);
         return(-3);
     }
+	api->scrn_width=txtinfo.screenwidth;
 
 #ifndef __FLAT__
 

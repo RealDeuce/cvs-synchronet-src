@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.14 2003/03/01 20:07:39 deuce Exp $ */
+/* $Id: uifcfltk.cpp,v 1.15 2003/05/19 19:46:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -799,6 +799,7 @@ int uifcinifltk(uifcapi_t* uifcapi)
     api->sethelp=sethelp;
 
     api->scrn_len=24;
+	api->scrn_width=80;
 	api->mode |= UIFC_MOUSE;
 
 //	Fl::scheme("plastic");

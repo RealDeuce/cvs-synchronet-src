@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.32 2003/05/18 06:49:52 deuce Exp $ */
+/* $Id: uifc.h,v 1.33 2003/05/19 19:46:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,7 +181,7 @@
 
 #define SCRN_TOP	3
 #define SCRN_LEFT	5
-#define SCRN_RIGHT 	(scrn_width-6)
+#define SCRN_RIGHT 	(api->scrn_width-6)
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_UPPER 	(1L<<0) 	/* Converts all letters to upper case		*/
@@ -280,6 +280,10 @@ typedef struct {
 /* Screen length															*/
 /****************************************************************************/
     uint    scrn_len;
+/****************************************************************************/
+/* Screen Width 															*/
+/****************************************************************************/
+    uint    scrn_width;
 /****************************************************************************/
 /* ESC key delay for curses													*/
 /****************************************************************************/
