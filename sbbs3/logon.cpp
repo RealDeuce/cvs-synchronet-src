@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.31 2003/01/04 13:06:30 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.32 2003/04/18 04:56:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,8 +70,7 @@ bool sbbs_t::logon()
 
 	if(useron.rest&FLAG('Q'))
 		qwklogon=1;
-	if(SYSOP && ((online==ON_REMOTE && !(cfg.sys_misc&SM_R_SYSOP))
-		|| (online==ON_LOCAL && !(cfg.sys_misc&SM_L_SYSOP))))
+	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP))
 		return(false);
 	if(cur_rate<cfg.node_minbps && !(useron.exempt&FLAG('M'))) {
 		bprintf(text[MinimumModemSpeed],cfg.node_minbps);

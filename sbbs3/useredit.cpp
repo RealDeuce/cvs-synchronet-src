@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.27 2003/02/15 08:16:29 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.28 2003/04/18 04:56:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,11 +62,13 @@ void sbbs_t::useredit(int usernumber)
 
 	if(online==ON_REMOTE && console&(CON_R_ECHO|CON_R_INPUT) && !chksyspass())
 		return;
+#if 0	/* no local logins in v3 */
 	if(online==ON_LOCAL) {
 		if(!(cfg.sys_misc&SM_L_SYSOP))
 			return;
 		if(cfg.node_misc&NM_SYSPW && !chksyspass())
 			return; }
+#endif
 	if(usernumber)
 		user.number=usernumber;
 	else
