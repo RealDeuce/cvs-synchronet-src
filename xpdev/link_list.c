@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.14 2004/09/16 04:58:36 rswindell Exp $ */
+/* $Id: link_list.c,v 1.15 2004/09/16 05:05:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,8 +356,9 @@ static list_node_t* list_add_node(link_list_t* list, list_node_t* node, list_nod
 	if(after==list->last)					/* append to list */
 		list->last = node;
 	if(after==FIRST_NODE) {					/* insert at beginning of list */
-		if(list->first!=NULL)
-			list->first->prev = node;
+		node->next = list->first;
+		if(node->next!=NULL)
+			node->next->prev = node;
 		list->first = node;
 	} else {
 		if(after->next!=NULL) {
