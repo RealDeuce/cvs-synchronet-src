@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.35 2004/09/21 05:00:29 deuce Exp $ */
+/* $Id: uedit.c,v 1.36 2004/09/21 05:26:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "ciolib.h"
+#define __COLORS	1
 #include "sbbs.h"
 #include <sys/types.h>
 #include <time.h>
@@ -47,6 +49,7 @@
 #include <sys/time.h>
 #include <signal.h>
 #endif
+
 #include "genwrap.h"
 #include "uifc.h"
 #include "sbbsdefs.h"
@@ -1908,7 +1911,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.36 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
