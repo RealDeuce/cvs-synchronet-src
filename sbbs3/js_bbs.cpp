@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.46 2002/10/25 00:35:14 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.47 2002/10/29 11:55:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -515,7 +515,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case BBS_PROP_MSG_EXPIRATION:
 			if(sbbs->current_msg!=NULL)
-				val=sbbs->current_msg->expiration.time;
+				val=sbbs->current_msg->expiration;
 			break;
 		case BBS_PROP_MSG_FORWARDED:
 			if(sbbs->current_msg!=NULL)
