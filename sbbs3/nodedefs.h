@@ -2,7 +2,7 @@
 
 /* Synchronet node information structure and constant definitions */
 
-/* $Id: nodedefs.h,v 1.11 2002/06/18 08:19:49 rswindell Exp $ */
+/* $Id: nodedefs.h,v 1.12 2003/10/09 17:27:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,7 +106,7 @@ enum {                              /* Node Action */
     };
 
 #if defined(_WIN32) || defined(__BORLANDC__)	/* necessary for compatibility with SBBS v2 */
-#pragma pack(push)
+#pragma pack(push,1)
 #pragma pack(1)
 #endif
 

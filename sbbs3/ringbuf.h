@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.7 2003/05/08 06:39:05 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.8 2003/10/09 17:27:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,4 +119,4 @@ void	RINGBUFCALL RingBufReInit( RingBuf* rb );
 }
 #endif
 
-#endif	// Don't add anything afterthis endif
+#endif	/* Don't add anything afterthis endif */
