@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.71 2003/09/16 03:48:11 rswindell Exp $ */
+/* $Id: smblib.c,v 1.72 2003/09/16 04:23:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>		/* isdigit */
 #include <sys/types.h>
 #include <sys/stat.h>	/* must come after sys/types.h */
 
