@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.74 2004/08/23 23:34:46 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.72 2004/07/02 02:15:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,28 +78,28 @@ static void read_ini_globals(FILE* fp, global_startup_t* global)
 	const char* section = "Global";
 	char		value[INI_MAX_VALUE_LEN];
 
-	if(*iniReadString(fp,section,"CtrlDirectory",nulstr,value)) {
+	if(*iniGetString(fp,section,"CtrlDirectory",nulstr,value)) {
 	    SAFECOPY(global->ctrl_dir,value);
 		backslash(global->ctrl_dir);
     }
 
-	if(*iniReadString(fp,section,"TempDirectory",nulstr,value)) {
+	if(*iniGetString(fp,section,"TempDirectory",nulstr,value)) {
 	    SAFECOPY(global->temp_dir,value);
 		backslash(global->temp_dir);
     }
 
-	if(*iniReadString(fp,section,strHostName,nulstr,value))
+	if(*iniGetString(fp,section,strHostName,nulstr,value))
         SAFECOPY(global->host_name,value);
 
-	global->sem_chk_freq=iniReadShortInt(fp,section,strSemFileCheckFrequency,0);
-	global->interface_addr=iniReadIpAddress(fp,section,strInterface,INADDR_ANY);
-	global->log_mask=iniReadBitField(fp,section,strLogMask,log_mask_bits,DEFAULT_LOG_MASK);
+	global->sem_chk_freq=iniGetShortInt(fp,section,strSemFileCheckFrequency,0);
+	global->interface_addr=iniGetIpAddress(fp,section,strInterface,INADDR_ANY);
+	global->log_mask=iniGetBitField(fp,section,strLogMask,log_mask_bits,DEFAULT_LOG_MASK);
 
-	global->js.max_bytes		= iniReadInteger(fp,section,strJavaScriptMaxBytes		,JAVASCRIPT_MAX_BYTES);
-	global->js.cx_stack			= iniReadInteger(fp,section,strJavaScriptContextStack	,JAVASCRIPT_CONTEXT_STACK);
-	global->js.branch_limit		= iniReadInteger(fp,section,strJavaScriptBranchLimit		,JAVASCRIPT_BRANCH_LIMIT);
-	global->js.gc_interval		= iniReadInteger(fp,section,strJavaScriptGcInterval		,JAVASCRIPT_GC_INTERVAL);
-	global->js.yield_interval	= iniReadInteger(fp,section,strJavaScriptYieldInterval	,JAVASCRIPT_YIELD_INTERVAL);
+	global->js.max_bytes		= iniGetInteger(fp,section,strJavaScriptMaxBytes		,JAVASCRIPT_MAX_BYTES);
+	global->js.cx_stack			= iniGetInteger(fp,section,strJavaScriptContextStack	,JAVASCRIPT_CONTEXT_STACK);
+	global->js.branch_limit		= iniGetInteger(fp,section,strJavaScriptBranchLimit		,JAVASCRIPT_BRANCH_LIMIT);
+	global->js.gc_interval		= iniGetInteger(fp,section,strJavaScriptGcInterval		,JAVASCRIPT_GC_INTERVAL);
+	global->js.yield_interval	= iniGetInteger(fp,section,strJavaScriptYieldInterval	,JAVASCRIPT_YIELD_INTERVAL);
 }
 
 
@@ -125,10 +125,8 @@ void sbbs_read_ini(
 	char		value[INI_MAX_VALUE_LEN];
 	global_startup_t global_buf;
 
-	if(global==NULL) {
-		memset(&global_buf,0,sizeof(global_buf));
+	if(global==NULL)
 		global=&global_buf;
-	}
 
 	read_ini_globals(fp, global);
 
@@ -149,48 +147,48 @@ void sbbs_read_ini(
 		section = "BBS";
 
 		if(run_bbs!=NULL)
-			*run_bbs=iniReadBool(fp,section,"AutoStart",TRUE);
+			*run_bbs=iniGetBool(fp,section,"AutoStart",TRUE);
 
 		bbs->telnet_interface
-			=iniReadIpAddress(fp,section,"TelnetInterface",global->interface_addr);
+			=iniGetIpAddress(fp,section,"TelnetInterface",global->interface_addr);
 		bbs->telnet_port
-			=iniReadShortInt(fp,section,"TelnetPort",IPPORT_TELNET);
+			=iniGetShortInt(fp,section,"TelnetPort",IPPORT_TELNET);
 
 		bbs->rlogin_interface
-			=iniReadIpAddress(fp,section,"RLoginInterface",global->interface_addr);
+			=iniGetIpAddress(fp,section,"RLoginInterface",global->interface_addr);
 		bbs->rlogin_port
-			=iniReadShortInt(fp,section,"RLoginPort",513);
+			=iniGetShortInt(fp,section,"RLoginPort",513);
 
 		bbs->first_node
-			=iniReadShortInt(fp,section,"FirstNode",1);
+			=iniGetShortInt(fp,section,"FirstNode",1);
 		bbs->last_node
-			=iniReadShortInt(fp,section,"LastNode",4);
+			=iniGetShortInt(fp,section,"LastNode",4);
 
 		bbs->outbuf_highwater_mark
-			=iniReadShortInt(fp,section,"OutbufHighwaterMark",1024);
+			=iniGetShortInt(fp,section,"OutbufHighwaterMark",1024);
 		bbs->outbuf_drain_timeout
-			=iniReadShortInt(fp,section,"OutbufDrainTimeout",10);
+			=iniGetShortInt(fp,section,"OutbufDrainTimeout",10);
 
 		bbs->sem_chk_freq
-			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniGetShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		bbs->xtrn_polls_before_yield
-			=iniReadInteger(fp,section,"ExternalYield",10);
+			=iniGetInteger(fp,section,"ExternalYield",10);
 
 		/* JavaScript operating parameters */
 		bbs->js_max_bytes
-			=iniReadInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
+			=iniGetInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
 		bbs->js_cx_stack
-			=iniReadInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
+			=iniGetInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
 		bbs->js_branch_limit
-			=iniReadInteger(fp,section,strJavaScriptBranchLimit	,global->js.branch_limit);
+			=iniGetInteger(fp,section,strJavaScriptBranchLimit	,global->js.branch_limit);
 		bbs->js_gc_interval
-			=iniReadInteger(fp,section,strJavaScriptGcInterval	,global->js.gc_interval);
+			=iniGetInteger(fp,section,strJavaScriptGcInterval	,global->js.gc_interval);
 		bbs->js_yield_interval
-			=iniReadInteger(fp,section,strJavaScriptYieldInterval,global->js.yield_interval);
+			=iniGetInteger(fp,section,strJavaScriptYieldInterval,global->js.yield_interval);
 
 		SAFECOPY(bbs->host_name
-			,iniReadString(fp,section,strHostName,global->host_name,value));
+			,iniGetString(fp,section,strHostName,global->host_name,value));
 
 		/* Set default terminal type to "stock" termcap closest to "ansi-bbs" */
 	#if defined(__FreeBSD__)
@@ -200,9 +198,9 @@ void sbbs_read_ini(
 	#endif
 
 		SAFECOPY(bbs->xtrn_term_ansi
-			,iniReadString(fp,section,"ExternalTermANSI",default_term_ansi,value));
+			,iniGetString(fp,section,"ExternalTermANSI",default_term_ansi,value));
 		SAFECOPY(bbs->xtrn_term_dumb
-			,iniReadString(fp,section,"ExternalTermDumb","dumb",value));
+			,iniGetString(fp,section,"ExternalTermDumb","dumb",value));
 
 	#if defined(__FreeBSD__)
 		default_dosemu_path="/usr/bin/doscmd";
@@ -211,17 +209,17 @@ void sbbs_read_ini(
 	#endif
 
 		SAFECOPY(bbs->dosemu_path
-			,iniReadString(fp,section,"DOSemuPath",default_dosemu_path,value));
+			,iniGetString(fp,section,"DOSemuPath",default_dosemu_path,value));
 
 		SAFECOPY(bbs->answer_sound
-			,iniReadString(fp,section,"AnswerSound",nulstr,value));
+			,iniGetString(fp,section,"AnswerSound",nulstr,value));
 		SAFECOPY(bbs->hangup_sound
-			,iniReadString(fp,section,"HangupSound",nulstr,value));
+			,iniGetString(fp,section,"HangupSound",nulstr,value));
 
 		bbs->log_mask
-			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniGetBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		bbs->options
-			=iniReadBitField(fp,section,strOptions,bbs_options
+			=iniGetBitField(fp,section,strOptions,bbs_options
 				,BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE);
 	}
 
@@ -231,48 +229,48 @@ void sbbs_read_ini(
 		section = "FTP";
 
 		if(run_ftp!=NULL)
-			*run_ftp=iniReadBool(fp,section,"AutoStart",TRUE);
+			*run_ftp=iniGetBool(fp,section,"AutoStart",TRUE);
 
 		ftp->interface_addr
-			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
+			=iniGetIpAddress(fp,section,strInterface,global->interface_addr);
 		ftp->port
-			=iniReadShortInt(fp,section,"Port",IPPORT_FTP);
+			=iniGetShortInt(fp,section,"Port",IPPORT_FTP);
 		ftp->max_clients
-			=iniReadShortInt(fp,section,"MaxClients",10);
+			=iniGetShortInt(fp,section,"MaxClients",10);
 		ftp->max_inactivity
-			=iniReadShortInt(fp,section,"MaxInactivity",300);	/* seconds */
+			=iniGetShortInt(fp,section,"MaxInactivity",300);	/* seconds */
 		ftp->qwk_timeout
-			=iniReadShortInt(fp,section,"QwkTimeout",600);		/* seconds */
+			=iniGetShortInt(fp,section,"QwkTimeout",600);		/* seconds */
 		ftp->sem_chk_freq
-			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniGetShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		/* JavaScript Operating Parameters */
 		ftp->js_max_bytes
-			=iniReadInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
+			=iniGetInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
 		ftp->js_cx_stack
-			=iniReadInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
+			=iniGetInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
 
 		SAFECOPY(ftp->host_name
-			,iniReadString(fp,section,strHostName,global->host_name,value));
+			,iniGetString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(ftp->index_file_name
-			,iniReadString(fp,section,"IndexFileName","00index",value));
+			,iniGetString(fp,section,"IndexFileName","00index",value));
 		SAFECOPY(ftp->html_index_file
-			,iniReadString(fp,section,"HtmlIndexFile","00index.html",value));
+			,iniGetString(fp,section,"HtmlIndexFile","00index.html",value));
 		SAFECOPY(ftp->html_index_script
-			,iniReadString(fp,section,"HtmlIndexScript","ftp-html.js",value));
+			,iniGetString(fp,section,"HtmlIndexScript","ftp-html.js",value));
 
 		SAFECOPY(ftp->answer_sound
-			,iniReadString(fp,section,"AnswerSound",nulstr,value));
+			,iniGetString(fp,section,"AnswerSound",nulstr,value));
 		SAFECOPY(ftp->hangup_sound
-			,iniReadString(fp,section,"HangupSound",nulstr,value));
+			,iniGetString(fp,section,"HangupSound",nulstr,value));
 		SAFECOPY(ftp->hack_sound
-			,iniReadString(fp,section,"HackAttemptSound",nulstr,value));
+			,iniGetString(fp,section,"HackAttemptSound",nulstr,value));
 
 		ftp->log_mask
-			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniGetBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		ftp->options
-			=iniReadBitField(fp,section,strOptions,ftp_options
+			=iniGetBitField(fp,section,strOptions,ftp_options
 				,FTP_OPT_INDEX_FILE|FTP_OPT_HTML_INDEX_FILE|FTP_OPT_ALLOW_QWK);
 	}
 
@@ -282,74 +280,74 @@ void sbbs_read_ini(
 		section = "Mail";
 
 		if(run_mail!=NULL)
-			*run_mail=iniReadBool(fp,section,"AutoStart",TRUE);
+			*run_mail=iniGetBool(fp,section,"AutoStart",TRUE);
 
 		mail->interface_addr
-			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
+			=iniGetIpAddress(fp,section,strInterface,global->interface_addr);
 		mail->smtp_port
-			=iniReadShortInt(fp,section,"SMTPPort",IPPORT_SMTP);
+			=iniGetShortInt(fp,section,"SMTPPort",IPPORT_SMTP);
 		mail->pop3_port
-			=iniReadShortInt(fp,section,"POP3Port",IPPORT_POP3);
+			=iniGetShortInt(fp,section,"POP3Port",IPPORT_POP3);
 		mail->relay_port
-			=iniReadShortInt(fp,section,"RelayPort",IPPORT_SMTP);
+			=iniGetShortInt(fp,section,"RelayPort",IPPORT_SMTP);
 		mail->max_clients
-			=iniReadShortInt(fp,section,"MaxClients",10);
+			=iniGetShortInt(fp,section,"MaxClients",10);
 		mail->max_inactivity
-			=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
+			=iniGetShortInt(fp,section,"MaxInactivity",120);		/* seconds */
 		mail->max_delivery_attempts
-			=iniReadShortInt(fp,section,"MaxDeliveryAttempts",50);
+			=iniGetShortInt(fp,section,"MaxDeliveryAttempts",50);
 		mail->rescan_frequency
-			=iniReadShortInt(fp,section,"RescanFrequency",3600);	/* 60 minutes */
+			=iniGetShortInt(fp,section,"RescanFrequency",3600);	/* 60 minutes */
 		mail->sem_chk_freq
-			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniGetShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 		mail->lines_per_yield
-			=iniReadShortInt(fp,section,"LinesPerYield",10);
+			=iniGetShortInt(fp,section,"LinesPerYield",10);
 		mail->max_recipients
-			=iniReadShortInt(fp,section,"MaxRecipients",100);
+			=iniGetShortInt(fp,section,"MaxRecipients",100);
 		mail->max_msg_size
-			=iniReadInteger(fp,section,"MaxMsgSize",DEFAULT_MAX_MSG_SIZE);
+			=iniGetInteger(fp,section,"MaxMsgSize",DEFAULT_MAX_MSG_SIZE);
 
 		SAFECOPY(mail->host_name
-			,iniReadString(fp,section,strHostName,global->host_name,value));
+			,iniGetString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(mail->relay_server
-			,iniReadString(fp,section,"RelayServer",mail->relay_server,value));
+			,iniGetString(fp,section,"RelayServer",mail->relay_server,value));
 		SAFECOPY(mail->relay_user
-			,iniReadString(fp,section,"RelayUsername",mail->relay_user,value));
+			,iniGetString(fp,section,"RelayUsername",mail->relay_user,value));
 		SAFECOPY(mail->relay_pass
-			,iniReadString(fp,section,"RelayPassword",mail->relay_pass,value));
+			,iniGetString(fp,section,"RelayPassword",mail->relay_pass,value));
 
 		SAFECOPY(mail->dns_server
-			,iniReadString(fp,section,"DNSServer",mail->dns_server,value));
+			,iniGetString(fp,section,"DNSServer",mail->dns_server,value));
 
 		SAFECOPY(mail->default_user
-			,iniReadString(fp,section,"DefaultUser",nulstr,value));
+			,iniGetString(fp,section,"DefaultUser",nulstr,value));
 
 		SAFECOPY(mail->dnsbl_hdr
-			,iniReadString(fp,section,"DNSBlacklistHeader","X-DNSBL",value));
+			,iniGetString(fp,section,"DNSBlacklistHeader","X-DNSBL",value));
 		SAFECOPY(mail->dnsbl_tag
-			,iniReadString(fp,section,"DNSBlacklistSubject","SPAM",value));
+			,iniGetString(fp,section,"DNSBlacklistSubject","SPAM",value));
 
 		SAFECOPY(mail->pop3_sound
-			,iniReadString(fp,section,"POP3Sound",nulstr,value));
+			,iniGetString(fp,section,"POP3Sound",nulstr,value));
 		SAFECOPY(mail->inbound_sound
-			,iniReadString(fp,section,"InboundSound",nulstr,value));
+			,iniGetString(fp,section,"InboundSound",nulstr,value));
 		SAFECOPY(mail->outbound_sound
-			,iniReadString(fp,section,"OutboundSound",nulstr,value));
+			,iniGetString(fp,section,"OutboundSound",nulstr,value));
 
 		SAFECOPY(mail->proc_cfg_file
-			,iniReadString(fp,section,"ProcessConfigFile","mailproc.cfg",value));
+			,iniGetString(fp,section,"ProcessConfigFile","mailproc.cfg",value));
 
 		/* JavaScript Operating Parameters */
 		mail->js_max_bytes
-			=iniReadInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
+			=iniGetInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
 		mail->js_cx_stack
-			=iniReadInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
+			=iniGetInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
 
 		mail->log_mask
-			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniGetBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		mail->options
-			=iniReadBitField(fp,section,strOptions,mail_options
+			=iniGetBitField(fp,section,strOptions,mail_options
 				,MAIL_OPT_ALLOW_POP3);
 	}
 
@@ -359,44 +357,44 @@ void sbbs_read_ini(
 		section = "Services";
 
 		if(run_services!=NULL)
-			*run_services=iniReadBool(fp,section,"AutoStart",TRUE);
+			*run_services=iniGetBool(fp,section,"AutoStart",TRUE);
 
 		services->interface_addr
-			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
+			=iniGetIpAddress(fp,section,strInterface,global->interface_addr);
 
 		services->sem_chk_freq
-			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniGetShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		/* Configurable JavaScript default parameters */
 		services->js_max_bytes
-			=iniReadInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
+			=iniGetInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
 		services->js_cx_stack
-			=iniReadInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
+			=iniGetInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
 		services->js_branch_limit
-			=iniReadInteger(fp,section,strJavaScriptBranchLimit	,global->js.branch_limit);
+			=iniGetInteger(fp,section,strJavaScriptBranchLimit	,global->js.branch_limit);
 		services->js_gc_interval
-			=iniReadInteger(fp,section,strJavaScriptGcInterval	,global->js.gc_interval);
+			=iniGetInteger(fp,section,strJavaScriptGcInterval	,global->js.gc_interval);
 		services->js_yield_interval
-			=iniReadInteger(fp,section,strJavaScriptYieldInterval,global->js.yield_interval);
+			=iniGetInteger(fp,section,strJavaScriptYieldInterval,global->js.yield_interval);
 
 		SAFECOPY(services->host_name
-			,iniReadString(fp,section,strHostName,global->host_name,value));
+			,iniGetString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(services->ini_file
-			,iniReadString(fp,section,"iniFile","services.ini",value));
+			,iniGetString(fp,section,"iniFile","services.ini",value));
 
 		SAFECOPY(services->cfg_file
-			,iniReadString(fp,section,"ConfigFile","services.cfg",value));
+			,iniGetString(fp,section,"ConfigFile","services.cfg",value));
 
 		SAFECOPY(services->answer_sound
-			,iniReadString(fp,section,"AnswerSound",nulstr,value));
+			,iniGetString(fp,section,"AnswerSound",nulstr,value));
 		SAFECOPY(services->hangup_sound
-			,iniReadString(fp,section,"HangupSound",nulstr,value));
+			,iniGetString(fp,section,"HangupSound",nulstr,value));
 
 		services->log_mask
-			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniGetBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		services->options
-			=iniReadBitField(fp,section,strOptions,service_options
+			=iniGetBitField(fp,section,strOptions,service_options
 				,BBS_OPT_NO_HOST_LOOKUP);
 	}
 
@@ -406,54 +404,54 @@ void sbbs_read_ini(
 		section = "Web";
 
 		if(run_web!=NULL)
-			*run_web=iniReadBool(fp,section,"AutoStart",FALSE);
+			*run_web=iniGetBool(fp,section,"AutoStart",FALSE);
 
 		web->interface_addr
-			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
+			=iniGetIpAddress(fp,section,strInterface,global->interface_addr);
 		web->port
-			=iniReadShortInt(fp,section,"Port",IPPORT_HTTP);
+			=iniGetShortInt(fp,section,"Port",IPPORT_HTTP);
 		web->sem_chk_freq
-			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniGetShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		/* JavaScript Operating Parameters */
 		web->js_max_bytes
-			=iniReadInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
+			=iniGetInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
 		web->js_cx_stack
-			=iniReadInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
+			=iniGetInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
 
 		SAFECOPY(web->host_name
-			,iniReadString(fp,section,strHostName,global->host_name,value));
+			,iniGetString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(web->root_dir
-			,iniReadString(fp,section,"RootDirectory",WEB_DEFAULT_ROOT_DIR,value));
+			,iniGetString(fp,section,"RootDirectory",WEB_DEFAULT_ROOT_DIR,value));
 		SAFECOPY(web->error_dir
-			,iniReadString(fp,section,"ErrorDirectory",WEB_DEFAULT_ERROR_DIR,value));
+			,iniGetString(fp,section,"ErrorDirectory",WEB_DEFAULT_ERROR_DIR,value));
 		SAFECOPY(web->cgi_dir
-			,iniReadString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
+			,iniGetString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
 
 		iniFreeStringList(web->index_file_name);
 		web->index_file_name
-			=iniReadStringList(fp,section,"IndexFileNames", "," ,"index.html,index.ssjs");
+			=iniGetStringList(fp,section,"IndexFileNames", "," ,"index.html,index.ssjs");
 		iniFreeStringList(web->cgi_ext);
 		web->cgi_ext
-			=iniReadStringList(fp,section,"CGIExtensions", "," ,".cgi");
+			=iniGetStringList(fp,section,"CGIExtensions", "," ,".cgi");
 		SAFECOPY(web->ssjs_ext
-			,iniReadString(fp,section,"JavaScriptExtension",".ssjs",value));
+			,iniGetString(fp,section,"JavaScriptExtension",".ssjs",value));
 
 		web->max_inactivity
-			=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
+			=iniGetShortInt(fp,section,"MaxInactivity",120);		/* seconds */
 		web->max_cgi_inactivity
-			=iniReadShortInt(fp,section,"MaxCgiInactivity",120);	/* seconds */
+			=iniGetShortInt(fp,section,"MaxCgiInactivity",120);	/* seconds */
 
 
 		default_cgi_temp = _PATH_TMP;
 		SAFECOPY(web->cgi_temp_dir
-			,iniReadString(fp,section,"CGITempDirectory",default_cgi_temp,value));
+			,iniGetString(fp,section,"CGITempDirectory",default_cgi_temp,value));
 
 		web->log_mask
-			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniGetBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		web->options
-			=iniReadBitField(fp,section,strOptions,web_options
+			=iniGetBitField(fp,section,strOptions,web_options
 				,BBS_OPT_NO_HOST_LOOKUP);
 	}
 }
