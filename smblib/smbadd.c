@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.2 2004/09/15 05:05:57 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.7 2004/09/17 11:10:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,20 +40,9 @@
 #include "genwrap.h"
 #include "crc32.h"
 
-static char* hash_source_string(smbmsg_t* msg, int source)
-{
-	switch(source) {
-		case RFC822MSGID:
-			return(msg->id);
-		case FIDOMSGID:
-			return(msg->ftn_msgid);
-	}
-	return("hash");
-}
-
 /****************************************************************************/
 /****************************************************************************/
-int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
+int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
 					   ,ushort xlat, const uchar* body, const uchar* tail)
 {
 	uchar*		lzhbuf=NULL;
@@ -93,13 +82,13 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 
 		msg->hdr.number=smb->status.last_msg+1;
 
-		hashes=smb_msghashes(msg,body,dupechk);
+		hashes=smb_msghashes(msg,body);
 
-		if(smb_findhash(smb, hashes, &found, /* update? */FALSE)==SMB_SUCCESS) {
+		if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"duplicate %s (%s) found in message #%lu"
-				,smb_hashsource(found.source)
-				,hash_source_string(msg,found.source)
+				,"duplicate %s: %s found in message #%lu"
+				,smb_hashsourcetype(found.source)
+				,smb_hashsource(msg,found.source)
 				,found.number);
 			retval=SMB_DUPE_MSG;
 			break;
@@ -115,7 +104,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 				bodylen--;
 
 			/* Calculate CRC-32 of message text (before encoding, if any) */
-			if(smb->status.max_crcs && dupechk) {
+			if(smb->status.max_crcs && dupechk_hashes&SMB_HASH_SOURCE_BODY) {
 				for(l=0;l<bodylen;l++)
 					crc=ucrc32(body[l],crc); 
 				crc=~crc;
@@ -182,7 +171,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 				if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
 						,"%d (%s) writing body xlat string"
-						,ferror(smb->sdt_fp),STRERROR(ferror(smb->sdt_fp)));
+						,get_errno(),STRERROR(get_errno()));
 					retval=SMB_ERR_WRITE;
 					break;
 				}
@@ -192,7 +181,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 			if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
 					,"%d (%s) writing body xlat terminator"
-					,ferror(smb->sdt_fp),STRERROR(ferror(smb->sdt_fp)));
+					,get_errno(),STRERROR(get_errno()));
 				retval=SMB_ERR_WRITE;
 				break;
 			}
@@ -201,7 +190,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 			if(smb_fwrite(smb,body,bodylen,smb->sdt_fp)!=bodylen) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
 					,"%d (%s) writing body (%ld bytes)"
-					,ferror(smb->sdt_fp),STRERROR(ferror(smb->sdt_fp))
+					,get_errno(),STRERROR(get_errno())
 					,bodylen);
 				retval=SMB_ERR_WRITE;
 				break;
@@ -216,7 +205,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 			if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
 					,"%d (%s) writing tail xlat terminator"
-					,ferror(smb->sdt_fp),STRERROR(ferror(smb->sdt_fp)));
+					,get_errno(),STRERROR(get_errno()));
 				retval=SMB_ERR_WRITE;
 				break;
 			}
@@ -224,7 +213,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 			if(smb_fwrite(smb,tail,taillen-sizeof(xlat),smb->sdt_fp)!=taillen-sizeof(xlat)) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
 					,"%d (%s) writing tail (%ld bytes)"
-					,ferror(smb->sdt_fp),STRERROR(ferror(smb->sdt_fp))
+					,get_errno(),STRERROR(get_errno())
 					,taillen-sizeof(xlat));
 				retval=SMB_ERR_WRITE;
 				break;
@@ -238,7 +227,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 		if(l%SDT_BLOCK_LEN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%d (%s) writing data padding"
-				,ferror(smb->sdt_fp),STRERROR(ferror(smb->sdt_fp)));
+				,get_errno(),STRERROR(get_errno()));
 			retval=SMB_ERR_WRITE;
 			break;
 		}
@@ -257,9 +246,15 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 			msg->hdr.when_written = msg->hdr.when_imported;
 		msg->idx.time=msg->hdr.when_imported.time;
 
-		/* Look-up thread_back if Reply-ID was specified */
+		/* Look-up thread_back if RFC822 Reply-ID was specified */
 		if(msg->hdr.thread_back==0 && msg->reply_id!=NULL) {
 			if(smb_getmsgidx_by_msgid(smb,&remsg,msg->reply_id)==SMB_SUCCESS)
+				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
+		}
+
+		/* Look-up thread_back if FTN REPLY was specified */
+		if(msg->hdr.thread_back==0 && msg->ftn_reply!=NULL) {
+			if(smb_getmsghdr_by_ftnid(smb,&remsg,msg->ftn_reply)==SMB_SUCCESS)
 				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
 		}
 

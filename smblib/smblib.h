@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.53 2004/09/11 09:27:44 rswindell Exp $ */
+/* $Id: smblib.h,v 1.56 2004/09/23 19:04:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,6 @@
 #define SMB_IS_OPEN(smb)	((smb)->shd_fp!=NULL)
 
 /* Legacy API functions */
-#include "filewrap.h"		/* SH_DENYRW */
 #define smb_incmsg(smb,msg)	smb_incmsg_dfields(smb,msg,1)
 #define smb_incdat			smb_incmsgdat
 #define smb_open_da(smb)	smb_open_fp(smb,&(smb)->sda_fp,SH_DENYRW)
@@ -147,7 +146,7 @@ SMBEXPORT int		SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newms
 SMBEXPORT BOOL		SMBCALL smb_valid_hdr_offset(smb_t* smb, ulong offset);
 
 /* smbadd.c */
-SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
+SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
 						,ushort xlat, const uchar* body, const uchar* tail);
 
 /* smballoc.c */
@@ -166,14 +165,15 @@ SMBEXPORT int 		SMBCALL smb_freemsghdr(smb_t* smb, ulong offset, ulong length);
 SMBEXPORT void		SMBCALL smb_freemsgtxt(char* buf);
 
 /* smbhash.c */
-SMBEXPORT int		SMBCALL smb_findhash(smb_t* smb, hash_t** compare_list, hash_t* found, BOOL mark);
+SMBEXPORT int		SMBCALL smb_findhash(smb_t* smb, hash_t** compare_list, hash_t* found
+										 ,long source_mask, BOOL mark);
 SMBEXPORT int		SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL update);
 SMBEXPORT hash_t*	SMBCALL	smb_hash(ulong msgnum, ulong time, unsigned source
 								,unsigned flags, const void* data, size_t length);
 SMBEXPORT hash_t*	SMBCALL	smb_hashstr(ulong msgnum, ulong time, unsigned source
 								,unsigned flags, const char* str);
 
-SMBEXPORT hash_t**	SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* text, BOOL dupechk);
+SMBEXPORT hash_t**	SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* text);
 SMBEXPORT int		SMBCALL smb_addhashes(smb_t* smb, hash_t** hash_list, BOOL skip_marked);
 SMBEXPORT ushort	SMBCALL smb_subject_crc(const char *subj);
 
@@ -191,13 +191,13 @@ SMBEXPORT int 		SMBCALL smb_getmsghdr_by_hash(smb_t* smb, smbmsg_t* msg, unsigne
 
 /* Fast Message-ID based look-up macros (using hashes) */
 #define smb_getmsgidx_by_msgid(smb, msg, id) \
-		smb_getmsgidx_by_hashstr(smb, msg, RFC822MSGID, SMB_HASH_MASK, id)
+		smb_getmsgidx_by_hashstr(smb, msg, SMB_HASH_SOURCE_MSG_ID, SMB_HASH_MASK, id)
 #define smb_getmsgidx_by_ftnid(smb, msg, id) \
-		smb_getmsgidx_by_hashstr(smb, msg, FIDOMSGID, SMB_HASH_MASK, id)
+		smb_getmsgidx_by_hashstr(smb, msg, SMB_HASH_SOURCE_FTN_ID, SMB_HASH_MASK, id)
 #define smb_getmsghdr_by_msgid(smb, msg, id) \
-		smb_getmsghdr_by_hashstr(smb, msg, RFC822MSGID, SMB_HASH_MASK, id)
+		smb_getmsghdr_by_hashstr(smb, msg, SMB_HASH_SOURCE_MSG_ID, SMB_HASH_MASK, id)
 #define smb_getmsghdr_by_ftnid(smb, msg, id) \
-		smb_getmsghdr_by_hashstr(smb, msg, FIDOMSGID, SMB_HASH_MASK, id)
+		smb_getmsghdr_by_hashstr(smb, msg, SMB_HASH_SOURCE_FTN_ID, SMB_HASH_MASK, id)
 
 /* smbstr.c */
 SMBEXPORT char*		SMBCALL smb_hfieldtype(ushort type);
@@ -206,7 +206,8 @@ SMBEXPORT char*		SMBCALL smb_dfieldtype(ushort type);
 SMBEXPORT char*		SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* outstr);
 SMBEXPORT char*		SMBCALL smb_netaddr(net_t* net);
 SMBEXPORT char*		SMBCALL smb_zonestr(short zone, char* outstr);
-SMBEXPORT char*		SMBCALL smb_hashsource(uchar type);
+SMBEXPORT char*		SMBCALL smb_hashsource(smbmsg_t* msg, int source);
+SMBEXPORT char*		SMBCALL smb_hashsourcetype(uchar type);
 
 /* smbdump.c */
 SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
