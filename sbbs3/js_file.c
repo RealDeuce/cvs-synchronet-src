@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.58 2003/06/06 22:09:57 rswindell Exp $ */
+/* $Id: js_file.c,v 1.59 2003/06/25 02:05:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1186,7 +1186,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(p->fp)	/* open? */
 				*vp = JSVAL_TRUE;
 			else
-				*vp = BOOLEAN_TO_JSVAL(fexist(p->name));
+				*vp = BOOLEAN_TO_JSVAL(fexistcase(p->name));
 			break;
 		case FILE_PROP_DATE:
 			JS_NewNumberValue(cx,fdate(p->name),vp);
