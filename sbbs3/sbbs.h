@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.132 2002/08/22 19:49:53 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.133 2002/08/27 06:29:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -899,6 +899,7 @@ BOOL 	md(char *path);
 	/* main.c */
 	int 	lprintf(char *fmt, ...);	/* telnet log */
 	SOCKET	open_socket(int type);
+	SOCKET	accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
 
