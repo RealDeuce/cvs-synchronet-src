@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.14 2001/03/02 23:53:29 rswindell Exp $ */
+/* $Id: baja.c,v 1.15 2001/03/09 21:57:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1576,10 +1576,13 @@ void compile(char *src)
 			writecrc(src,arg);
 			continue; }
 
-		if(!stricmp(p,"PRINTF")) {
+		if(!stricmp(p,"PRINTF") || !stricmp(p,"LPRINTF") || !stricmp(p,"PRINTF_LOCAL")) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
-			fputc(VAR_PRINTF,out);
+			if(!stricmp(p,"PRINTF"))
+				fputc(VAR_PRINTF,out);
+			else
+				fputc(VAR_PRINTF_LOCAL,out);
 			p=strrchr(arg,'"');
 			if(!p)
 				break;
@@ -3256,6 +3259,9 @@ void compile(char *src)
 			continue; }
 		if(!stricmp(p,"FILE_PUT")) {
 			fprintf(out,"%c",CS_FILE_PUT);
+			continue; }
+		if(!stricmp(p,"FILE_RECEIVE")) {
+			fprintf(out,"%c",CS_FILE_RECEIVE);
 			continue; }
 		if(!stricmp(p,"FILE_FIND_OLD")) {
 			fprintf(out,"%c",CS_FILE_FIND_OLD);
