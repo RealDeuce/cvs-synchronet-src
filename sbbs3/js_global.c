@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.119 2004/10/15 09:20:38 rswindell Exp $ */
+/* $Id: js_global.c,v 1.118 2004/09/17 23:29:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -589,19 +589,6 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(js_str);
-	return(JS_TRUE);
-}
-
-static JSBool
-js_netaddr_type(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*	str;
-
-	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
-		return(JS_FALSE);
-
-	*rval = INT_TO_JSVAL(smb_netaddr_type(str));
-
 	return(JS_TRUE);
 }
 
@@ -2472,12 +2459,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("resolve hostname of specified IP address (AKA gethostbyaddr)")
 	,311
 	},
-	{"netaddr_type",	js_netaddr_type,	1,	JSTYPE_NUMBER,	JSDOCSTR("string email_address")
-	,JSDOCSTR("returns the proper message <i>net_type<i> for the specified <i>email_address</i>, "
-		"(e.g. <tt>NET_INTERNET</tt> for Internet e-mail or <tt>NET_NONE</tt> for local e-mail)")
-	,312
-	},
-
 	{0}
 };
 
