@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.4 2003/03/10 11:55:20 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.5 2003/03/21 02:50:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,7 +240,8 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 				return(NULL);
 
 			/* Add as property (associative array element) */
-			if(!JS_SetProperty(cx, allprog, cfg->xtrn[d]->code, &val))
+			if(!JS_DefineProperty(cx, allprog, cfg->xtrn[d]->code, val
+				,NULL,NULL,JSPROP_READONLY))
 				return(NULL);
 
 #ifdef _DEBUG

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.26 2003/03/10 05:06:53 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.27 2003/03/21 02:50:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,8 +312,10 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 				return(NULL);
 
 			/* Add as property (associative array element) */
-			if(!JS_SetProperty(cx, allsubs, cfg->sub[d]->code, &val))
+			if(!JS_DefineProperty(cx, allsubs, cfg->sub[d]->code, val
+				,NULL,NULL,JSPROP_READONLY))
 				return(NULL);
+
 
 #ifdef _DEBUG
 			js_DescribeObject(cx,subobj,"Message Sub-boards");
