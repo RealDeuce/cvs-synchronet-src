@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.83 2004/07/26 23:41:56 deuce Exp $ */
+/* $Id: uifc32.c,v 1.84 2004/07/27 09:10:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -290,7 +290,7 @@ int uifcini32(uifcapi_t* uifcapi)
 #endif
 #ifdef __unix__
 	#ifdef NCURSES_VERSION_MAJOR
-		if(cio_api.mode==CIOLIB_CURSES_MODE) {
+		if(cio_api.mode==CIOLIB_MODE_CURSES) {
 			ESCDELAY=api->esc_delay;
 			if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
 				api->mode|=UIFC_MOUSE;
@@ -432,7 +432,7 @@ static void hidemouse(void)
 			mouse_set(0);
 		#endif
 		#ifdef NCURSES_VERSION_MAJOR
-			if(cio_api.mode==CIOLIB_CURSES_MODE)
+			if(cio_api.mode==CIOLIB_MODE_CURSES)
 				mousemask(0,NULL);
 		#endif
 	}
@@ -445,7 +445,7 @@ static void showmouse(void)
 			mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED);
 		#endif
 		#ifdef NCURSES_VERSION_MAJOR
-			if(cio_api.mode==CIOLIB_CURSES_MODE)
+			if(cio_api.mode==CIOLIB_MODE_CURSES)
 				mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL);
 		#endif
 	}
@@ -517,7 +517,7 @@ void uifcbail(void)
 	hidemouse();
 	clrscr();
 #ifdef __unix__
-	if(cio_api.mode==CIOLIB_CURSES_MODE) {
+	if(cio_api.mode==CIOLIB_MODE_CURSES) {
 		nl();
 		nocbreak();
 		noraw();
