@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.57 2004/09/15 20:24:37 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.58 2004/09/23 19:04:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,8 +38,16 @@
 #ifndef _SMBDEFS_H
 #define _SMBDEFS_H
 
+/* ANSI headers */
 #include <stdio.h>
+#include <time.h>
+
+/* XPDEV headers */
+#include "genwrap.h"	/* truncsp() and get_errno() */
 #include "dirwrap.h"	/* MAX_PATH */
+#include "filewrap.h"	/* SH_DENYRW */
+
+/* SMBLIB Headers */
 #include "md5.h"		/* MD5_DIGEST_SIZE */
 
 /**********/
