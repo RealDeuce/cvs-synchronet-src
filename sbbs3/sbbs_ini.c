@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.25 2003/01/17 23:54:56 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.26 2003/01/17 23:57:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -364,7 +364,7 @@ void sbbs_read_ini(
 	SAFECOPY(web->index_file_name
 		,iniReadString(fp,section,"IndexFileName","index.html"));
 	SAFECOPY(web->js_ext
-		,iniReadString(fp,section,"JavaScriptExtension",".js"));
+		,iniReadString(fp,section,"JavaScriptExtension",".ssjs"));
 
 	web->max_inactivity
 		=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
@@ -376,7 +376,7 @@ void sbbs_read_ini(
 	default_cgi_temp = "/tmp";
 #else
 	if((default_cgi_temp = getenv("TEMP")) == NULL)
-		default_cgi_temp = "";
+		default_cgi_temp = nulstr;
 #endif
 	SAFECOPY(web->cgi_temp_dir
 		,iniReadString(fp,section,"CGITempDirectory",default_cgi_temp));
