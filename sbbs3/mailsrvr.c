@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.355 2005/01/07 02:32:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.360 2005/02/09 05:15:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1894,7 +1894,7 @@ static void smtp_thread(void* arg)
 		thread_down();
 		return;
 	} 
-	memset(mailproc_match,0,sizeof(BOOL)*mailproc_count);
+	memset(mailproc_match,FALSE,sizeof(BOOL)*mailproc_count);
 
 	memset(&smb,0,sizeof(smb));
 	memset(&msg,0,sizeof(msg));
@@ -2135,6 +2135,9 @@ static void smtp_thread(void* arg)
 						if(strListCount(mailproc_list[i].to) && !mailproc_match[i])
 							continue;
 
+						if(!mailproc_list[i].passthru)
+							msg_handled=TRUE;
+
 						mailcmdstr(mailproc_list[i].cmdline
 							,msgtxt_fname, rcptlst_fname, proc_err_fname
 							,host_name, host_ip, relay_user.number
@@ -2173,14 +2176,15 @@ static void smtp_thread(void* arg)
 						fclose(proc_err);
 						msg_handled=TRUE;
 					}
-					remove(proc_err_fname);	/* Remove error file here */
-					if(!msg_handled
-						&& (!fexist(msgtxt_fname) || !fexist(rcptlst_fname))) {
+					else if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname)) {
 						lprintf(LOG_WARNING,"%04d SMTP External process removed %s file"
 							,socket, fexist(msgtxt_fname)==FALSE ? "message text" : "recipient list");
 						sockprintf(socket,ok_rsp);
 						msg_handled=TRUE;
 					}
+					else if(msg_handled)
+						sockprintf(socket,ok_rsp);
+					remove(proc_err_fname);	/* Remove error file here */
 				}
 
 				/* Re-open files */
@@ -2855,6 +2859,13 @@ static void smtp_thread(void* arg)
 				p+=strlen(NO_FORWARD);
 			}
 
+			if(*p==0) {
+				lprintf(LOG_WARNING,"%04d !SMTP NO RECIPIENT SPECIFIED"
+					,socket);
+				sockprintf(socket, "500 No recipient specified");
+				continue;
+			}
+
 			rcpt_name[0]=0;
 			SAFECOPY(rcpt_addr,p);
 
@@ -3011,17 +3022,22 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 
+			memset(mailproc_match,FALSE,sizeof(BOOL)*mailproc_count);
 			for(i=0;i<mailproc_count;i++) {
-				mailproc_match[i]=FALSE;
 				if(mailproc_list[i].to!=NULL) {
 					for(j=0;mailproc_list[i].to[j]!=NULL;j++) {
-						if(stricmp(p,mailproc_list[i].to[j])==0)
+						if(stricmp(p,mailproc_list[i].to[j])==0) {
 							mailproc_match[i]=TRUE;
+							if(!mailproc_list[i].passthru)
+								break;
+						}
 					}
+					if(mailproc_list[i].to[j]!=NULL)
+						break;
 				}
 			}
 			/* destined for an external mail processor */
-			if(i<mailproc_count && !mailproc_list[i].passthru) {
+			if(i<mailproc_count) {
 				fprintf(rcptlst,"[%u]\n",rcpt_count++);
 				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 #if 0	/* should we fall-through to the sysop account? */
@@ -3900,7 +3916,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.355 $", "%*s %s", revision);
+	sscanf("$Revision: 1.360 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4008,7 +4024,7 @@ void DLLCALL mail_server(void* arg)
 
 		lprintf(LOG_INFO,"SMBLIB %s (format %x.%02x)",smb_lib_ver(),smb_ver()>>8,smb_ver()&0xff);
 
-		srand(time(NULL));
+		sbbs_srand();
 
 		if(!winsock_startup()) {
 			cleanup(1);
