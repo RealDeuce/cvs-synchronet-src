@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 #include <genwrap.h>
 #include <ciolib.h>
 #include <keys.h>
