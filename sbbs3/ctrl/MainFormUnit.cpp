@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.38 2001/10/05 23:21:51 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.39 2001/10/09 01:45:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1927,8 +1927,9 @@ void __fastcall TMainForm::FileOpenMenuItemClick(TObject *Sender)
 
 void __fastcall TMainForm::BBSLoginMenuItemClick(TObject *Sender)
 {
-    if(!strnicmp(LoginCommand.c_str(),"start ",6))
-        WinExec(LoginCommand.c_str(),SW_SHOWMINNOACTIVE);
+    if(!strnicmp(LoginCommand.c_str(),"start ",6)) /* Doesn't work on NT */
+        ShellExecute(Handle, "open", LoginCommand.c_str()+6,
+            NULL,NULL,SW_SHOWDEFAULT);
     else if(!strnicmp(LoginCommand.c_str(),"telnet:",7))
         ShellExecute(Handle, "open", LoginCommand.c_str(),
             NULL,NULL,SW_SHOWDEFAULT);
