@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.118 2002/03/01 02:37:41 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.119 2002/03/01 12:26:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1677,7 +1677,7 @@ static void smtp_thread(void* arg)
 					if(tp) *tp=0;
 					sprintf(rcpt_name,"%.*s",sizeof(rcpt_name)-1,p);
 				}
-				smb_hfield(&msg, RFC822TO, (ushort)strlen(buf), buf);
+				smb_hfield(&msg, RFC822TO, (ushort)strlen(p), p);
 				continue;
 			}
 			if(!strnicmp(buf, "REPLY-TO:",9)) {
