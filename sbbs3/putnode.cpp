@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.13 2002/08/22 19:49:53 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.14 2002/09/17 06:59:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,7 +142,8 @@ int sbbs_t::putnodeext(uint number, char *ext)
 	node_ext=-1;
 
 	if(count>(LOOP_NODEDAB/2) && count!=LOOP_NODEDAB) {
-		sprintf(str,"NODE.EXB COLLISION - Count: %d",count);
+		sprintf(str,"NODE.EXB (node %d) COLLISION - Count: %d"
+			,number+1, count);
 		logline("!!",str); 
 	}
 	if(count==LOOP_NODEDAB) {
