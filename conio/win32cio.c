@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.41 2004/10/14 07:06:43 deuce Exp $ */
+/* $Id: win32cio.c,v 1.42 2004/10/19 21:58:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -506,6 +506,7 @@ void win32_setcursortype(int type)
 	switch(type) {
 		case _NOCURSOR:
 			ci.bVisible=FALSE;
+			ci.dwSize=1;
 			break;
 		
 		case _SOLIDCURSOR:
