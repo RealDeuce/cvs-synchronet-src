@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.6 2005/01/14 19:25:55 deuce Exp $ */
+/* $Id: xpevent.c,v 1.2 2005/01/14 00:19:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,13 @@
 #include <stdio.h>		/* NULL */
 #include "xpevent.h"
 
+#define _EVENT_CHECK_VALIDITY(event)		\
+	if (event==NULL || (event->magic != EVENT_MAGIC)) {	\
+		errno = EINVAL;			\
+		retval = FALSE;			\
+		goto RETURN;			\
+	}
+
 xpevent_t
 CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 {
@@ -46,7 +53,7 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 	event = (xpevent_t)malloc(sizeof(struct xpevent));
 	if (event == NULL) {
 		errno = ENOSPC;
-		return(NULL);
+		goto RETURN;
 	}
 
 	/*
@@ -54,15 +61,17 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 	 */
 	if (pthread_mutex_init(&event->lock, NULL) != 0) {
 		free(event);
+		event=NULL;
 		errno = ENOSPC;
-		return(NULL);
+		goto RETURN;
 	}
 
 	if (pthread_cond_init(&event->gtzero, NULL) != 0) {
 		pthread_mutex_destroy(&event->lock);
 		free(event);
+		event=NULL;
 		errno = ENOSPC;
-		return(NULL);
+		goto RETURN;
 	}
 
 	event->mreset=bManualReset;
@@ -70,7 +79,8 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 	event->nwaiters = 0;
 	event->magic=EVENT_MAGIC;
 
-	return(event);
+  RETURN:
+	return event;
 }
 
 BOOL
@@ -102,6 +112,8 @@ SetEvent(xpevent_t event)
 BOOL
 ResetEvent(xpevent_t event)
 {
+	BOOL	retval=FALSE;
+
 	if (event==NULL || (event->magic != EVENT_MAGIC)) {
 		errno = EINVAL;
 		return(FALSE);
@@ -144,7 +156,7 @@ CloseEvent(xpevent_t event)
 }
 
 DWORD
-WaitForEvent(xpevent_t event, DWORD ms)
+WaitEvent(xpevent_t event, DWORD ms)
 {
 	DWORD	retval=WAIT_FAILED;
 	struct timespec abstime;
@@ -152,7 +164,8 @@ WaitForEvent(xpevent_t event, DWORD ms)
 
 	if (event==NULL || (event->magic != EVENT_MAGIC)) {
 		errno = EINVAL;
-		return(WAIT_FAILED);
+		retval = WAIT_FAILED;
+		goto RETURN;
 	}
 
 	if(ms && ms!=INFINITE) {
@@ -195,11 +208,14 @@ WaitForEvent(xpevent_t event, DWORD ms)
 
 	if(retval==0) {
 		retval=WAIT_OBJECT_0;
-		if(!event->mreset)
+		if(!(&event->mreset))
 			event->value=FALSE;
 	}
 
 	pthread_mutex_unlock(&event->lock);
 
+  RETURN:
+
+	pthread_testcancel();
 	return retval;
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.97 2005/02/18 02:35:33 rswindell Exp $ */
+/* $Id: js_system.c,v 1.96 2004/12/31 02:39:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -472,7 +472,7 @@ static char* sys_prop_desc[] = {
 	,"private host name that uniquely identifies this system on the local network"
 
 	/* Manually created (non-tabled) properties */
-	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inet_addr</i>)"
+	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inetaddr</i>)"
 	,"Synchronet version number (e.g. '3.10')"
 	,"Synchronet revision letter (e.g. 'k')"
 	,"Synchronet alpha/beta designation (e.g. ' beta')"
