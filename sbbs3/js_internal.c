@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.21 2004/12/30 09:51:52 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.18 2004/11/10 04:50:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -196,17 +196,9 @@ static char* prop_desc[] = {
 #endif
 
 DLLEXPORT JSBool DLLCALL
-js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
+js_GenericBranchCallback(JSContext *cx, js_branch_t* branch)
 {
 	branch->counter++;
-
-	/* Terminated? */
-	if(branch->auto_terminate &&
-		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportError(cx,"Terminated");
-		branch->counter=0;
-		return(JS_FALSE);
-	}
 
 	/* Infinite loop? */
 	if(branch->limit && branch->counter > branch->limit) {
@@ -214,14 +206,15 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 		branch->counter=0;
 		return(JS_FALSE);
 	}
-
 	/* Give up timeslices every once in a while */
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
 		YIELD();
 
-	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
 		JS_MaybeGC(cx), branch->gc_attempts++;
+
+	if(branch->terminated!=NULL && *branch->terminated)
+		return(JS_FALSE);
 
     return(JS_TRUE);
 }
@@ -320,7 +313,7 @@ static JSClass js_internal_class = {
 };
 
 static jsSyncMethodSpec js_functions[] = {
-	{"eval",            js_eval,            0,	JSTYPE_UNDEF,	JSDOCSTR("string script")
+	{"eval",            js_eval,            0,	JSTYPE_STRING,	JSDOCSTR("string script")
 	,JSDOCSTR("evaluate a JavaScript string in its own (secure) context, returning the result")
 	,311
 	},		
