@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.112 2002/02/27 18:32:11 rswindell Exp $ */
+/* $Id: main.cpp,v 1.113 2002/02/27 18:43:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3433,7 +3433,7 @@ void DLLCALL bbs_thread(void* arg)
             	lputs("BBS socket closed");
 				break;
 			}
-			lprintf("!ERROR %d: ACCEPT FAILED", ERROR_VALUE);
+			lprintf("!ERROR %d accepting connection", ERROR_VALUE);
 			continue;
 		}
 		char host_ip[32];
