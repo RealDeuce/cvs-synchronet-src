@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.14 2002/07/22 06:14:20 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.15 2002/08/12 10:07:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,6 +119,7 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	int32		val=0;
     jsint       tiny;
 	sbbs_t*		sbbs;
+	JSString*	str;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -160,6 +161,11 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case CON_PROP_TELNET_MODE:
 			sbbs->telnet_mode=val;
 			break;
+		case CON_PROP_QUESTION:
+			if((str=JS_ValueToString(cx, *vp))==NULL)
+				break;
+			SAFECOPY(sbbs->question,JS_GetStringBytes(str));
+			break;
 		default:
 			return(JS_TRUE);
 	}
@@ -183,7 +189,7 @@ static struct JSPropertySpec js_console_properties[] = {
 	{	"rio_abortable"		,CON_PROP_ABORTABLE		,CON_PROP_FLAGS	,NULL,NULL},
 	{	"telnet_mode"		,CON_PROP_TELNET_MODE	,CON_PROP_FLAGS	,NULL,NULL},
 	{	"wordwrap"			,CON_PROP_WORDWRAP		,JSPROP_ENUMERATE|JSPROP_READONLY ,NULL,NULL},
-	{	"question"			,CON_PROP_WORDWRAP		,JSPROP_ENUMERATE|JSPROP_READONLY ,NULL,NULL},
+	{	"question"			,CON_PROP_QUESTION		,CON_PROP_FLAGS ,NULL,NULL},
 	{0}
 };
 
