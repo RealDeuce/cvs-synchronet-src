@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.8 2000/10/26 15:06:41 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.9 2000/10/29 01:15:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,12 @@
 #include <ctype.h>		/* toupper */
 #include <sys/kd.h>		/* KIOCSOUND */
 #include <sys/ioctl.h>	/* ioctl */
+#include <glob.h>       /* glob() wildcard matching */
+#include <string.h>     /* strlen() */
+
+#ifdef __GLIBC__		/* actually, BSD, but will work for now */
+#include <sys/vfs.h>    /* statfs() */
+#endif
 
 #endif
 
@@ -88,6 +94,34 @@ BOOL DLLCALL fexist(char *filespec)
 		return(FALSE);
 
 	return(TRUE);
+
+#elif defined(__unix__)	/* portion by cmartin */
+
+	glob_t *aglob;
+    int c;
+    int l;
+
+    // start the search
+    glob(filespec, GLOB_MARK | GLOB_NOSORT, NULL, aglob);
+
+    if (!aglob->gl_pathc) {
+	    // no results
+    	globfree(aglob);
+    	return FALSE;
+    }
+
+    // make sure it's not a directory
+	c = aglob->gl_pathc;
+    while (c--) {
+    	l = strlen(aglob->gl_pathv[c]);
+    	if (aglob->gl_pathv[c][l] != '/') {
+        	globfree(aglob);
+            return TRUE;
+        }
+    }
+        
+    globfree(aglob);
+    return FALSE;
 
 #else
 
@@ -316,8 +350,20 @@ ulong DLLCALL getfreediskspace(char* path)
 		return(0);
 
 	return(NumberOfFreeClusters*SectorsPerCluster*BytesPerSector);
+
+#elif defined(__GLIBC__)
+
+	struct statfs fs;
+
+    if (statfs(path, &fs) < 0)
+    	return 0;
+
+    return fs.f_bsize * fs.f_bavail;
+    
 #else
+
 	#warning OS-specific code needed here
 	return(0);
+
 #endif
 }
