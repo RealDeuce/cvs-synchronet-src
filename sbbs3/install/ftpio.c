@@ -19,7 +19,7 @@
  *
  * Severly mangled for use in the Synchronet installer
  *
- * $Id: ftpio.c,v 1.3 2003/01/26 22:22:17 deuce Exp $
+ * $Id: ftpio.c,v 1.4 2003/02/07 07:43:22 deuce Exp $
  *
  */
 
@@ -170,6 +170,31 @@ ftpErrString(int error)
       if (ftpErrList[k].num == error)
 	return(ftpErrList[k].string);
     return("Unknown error");
+}
+
+off_t
+ftpGetSize(ftp_FILE *fp, char *name)
+{
+	int i;
+	char p[BUFSIZ], *cp, *ep;
+	FTP_t ftp = fcookie(fp);
+	off_t size;
+
+    ftpPassive(fp,TRUE);
+	sprintf(p, "SIZE %s\r\n", name);
+	if (ftp->is_verbose)
+		fprintf(stderr, "Sending %s", p);
+	if (writes(ftp->fd_ctrl, p))
+		return (off_t)-1;
+	i = get_a_number(ftp, &cp);
+	if (check_code(ftp, i, 213))
+		return (off_t)-1;
+
+	errno = 0;				/* to check for ERANGE */
+	size = (off_t)strtoq(cp, &ep, 10);
+	if (*ep != '\0' || errno == ERANGE)
+		return (off_t)-1;
+	return size;
 }
 
 ftp_FILE *
