@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $id$
+# $Id: objects.mak,v 1.2 2000/10/26 11:42:22 rswindell Exp $
 
 # ODIR, SLASH, and OFILE must be pre-defined
 
