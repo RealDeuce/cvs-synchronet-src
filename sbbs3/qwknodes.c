@@ -2,7 +2,7 @@
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
-/* $Id: qwknodes.c,v 1.7 2002/03/13 18:17:17 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.8 2002/03/28 03:59:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,8 +139,8 @@ int nopen(char *str, int access)
 if(access==O_RDONLY) share=SH_DENYWR;
 	else share=SH_DENYRW;
 while(((file=sopen(str,O_BINARY|access,share,S_IWRITE))==-1)
-	&& errno==EACCES && count++<LOOP_NOPEN);
-if(file==-1 && errno==EACCES)
+	&& (errno==EACCES errno==EAGAIN) && count++<LOOP_NOPEN);
+if(file==-1 && (errno==EACCES || errno==EAGAIN))
 	lputs("\7\r\nNOPEN: ACCESS DENIED\r\n\7");
 return(file);
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.23 2002/03/19 22:48:25 rswindell Exp $ */
+/* $Id: misc.c,v 1.24 2002/03/28 03:59:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ int nopen(char *str, int access)
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
     while(((file=sopen(str,access,share))==-1)
-        && errno==EACCES && count++<LOOP_NOPEN)
+        && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
         if(count)
             mswait(100);
     return(file);
