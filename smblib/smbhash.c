@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.10 2004/12/29 10:13:08 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.11 2005/01/14 02:46:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,12 +228,10 @@ hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body)
 	hash_t*		hash;
 	time_t		t=time(NULL);
 
-#define SMB_MAX_HASH_COUNT 4
-
-	if((hashes=(hash_t**)malloc(sizeof(hash_t*)*SMB_MAX_HASH_COUNT))==NULL)
+	if((hashes=(hash_t**)malloc(sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1)))==NULL)
 		return(NULL);
 
-	memset(hashes, 0, sizeof(hash_t*)*SMB_MAX_HASH_COUNT);
+	memset(hashes, 0, sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1));
 
 	if(msg->id!=NULL && 
 		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_MSG_ID, flags, msg->id))!=NULL)
