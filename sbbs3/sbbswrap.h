@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.6 2000/10/25 23:28:33 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.7 2000/10/26 02:50:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,6 +95,33 @@ extern "C" {
 /*********************/
 /* Compiler-specific */
 /*********************/
+
+/* Compiler Description */
+#if defined(__BORLANDC__)
+
+	#define COMPILER_DESC(str) sprintf(str,"BCC %X.%02X" \
+		,__BORLANDC__>>8,__BORLANDC__&0xff);	
+
+#elif defined(_MSC_VER)
+
+	#define COMPILER_DESC(str) sprintf(str,"MSC %u", _MSC_VER);
+
+#elif defined(__GNUC__) && defined(__GLIBC__)
+
+	#define COMPILER_DESC(str) sprintf(str,"GCC %u.%02u (GLIBC %u.%u)" \
+		,__GNUC__,__GNUC_MINOR__,__GLIBC__,__GLIBC_MINOR__);
+
+#elif defined(__GNUC__)
+
+	#define COMPILER_DESC(str) sprintf(str,"GCC %u.%02u" \
+		,__GNUC__,__GNUC_MINOR__);
+
+#else /* Unknown compiler */
+
+	#define COMPILER_DESC(str) strcpy(str,"UNKNOWN COMPILER");
+
+#endif
+
 
 #ifdef _MSC_VER
 	#define snprintf			_snprintf
