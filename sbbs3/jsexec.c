@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.7 2003/07/08 00:24:57 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.8 2003/07/08 05:00:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,9 +71,9 @@ void usage(FILE* fp)
 		"\navailable opts:\n\n"
 		"\t-m <bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s <bytes>      set context stack size (default=%u bytes)\n"
-		"\t-b <limit>      set branch limit (default=%lu, 0=unlimited)\n"
-		"\t-y <freq>       set yield frequency (default=%lu, 0=never)\n"
-		"\t-g <freq>       set garbage collection frequency (default=%lu, 0=never)\n"
+		"\t-b <limit>      set branch limit (default=%u, 0=unlimited)\n"
+		"\t-y <freq>       set yield frequency (default=%u, 0=never)\n"
+		"\t-g <freq>       set garbage collection frequency (default=%u, 0=never)\n"
 		"\t-t <filename>   send console output to stdout and filename\n"
 		"\t-q              send console output to %s (quiet mode)\n"
 		"\t-e              send error messages to console instead of stderr\n"
@@ -472,7 +472,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.7 $", "%*s %s", revision);
+	sscanf("$Revision: 1.8 $", "%*s %s", revision);
 
 	p=getenv("SBBSCTRL");
 	if(p==NULL) {
