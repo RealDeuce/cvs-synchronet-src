@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.28 2003/03/27 23:33:48 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.29 2003/07/26 03:59:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,7 +323,7 @@ void sbbs_t::extract(uint dirnum)
 	strcpy(str,f.name);
 	truncsp(str);
 	for(i=0;i<cfg.total_fextrs;i++)
-		if(!strcmp(str+9,cfg.fextr[i]->ext) && chk_ar(cfg.fextr[i]->ar,&useron)) {
+		if(!stricmp(str+9,cfg.fextr[i]->ext) && chk_ar(cfg.fextr[i]->ar,&useron)) {
 			strcpy(excmd,cfg.fextr[i]->cmd);
 			break; }
 	if(i==cfg.total_fextrs) {

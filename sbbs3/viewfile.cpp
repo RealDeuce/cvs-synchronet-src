@@ -2,7 +2,7 @@
 
 /* Synchronet file contents display routines */
 
-/* $Id: viewfile.cpp,v 1.4 2001/11/04 01:47:36 rswindell Exp $ */
+/* $Id: viewfile.cpp,v 1.5 2003/07/26 03:59:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,7 +95,7 @@ void sbbs_t::viewfiles(uint dirnum, char *fspec)
 	padfname(fspec,tmp);
 	truncsp(tmp);
 	for(i=0;i<cfg.total_fviews;i++)
-		if(!strcmp(tmp+9,cfg.fview[i]->ext) && chk_ar(cfg.fview[i]->ar,&useron)) {
+		if(!stricmp(tmp+9,cfg.fview[i]->ext) && chk_ar(cfg.fview[i]->ar,&useron)) {
 			strcpy(viewcmd,cfg.fview[i]->cmd);
 			break; }
 	if(i==cfg.total_fviews) {
