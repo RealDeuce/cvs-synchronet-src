@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.9 2001/10/17 19:20:45 rswindell Exp $ */
+/* $Id: js_file.c,v 1.10 2001/11/27 18:38:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -325,7 +325,8 @@ js_readall(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		js_readln(cx, obj, 0, NULL, &line); 
 		if(line==JSVAL_NULL)
 			break;
-        JS_SetElement(cx, array, len++, &line);
+        if(!JS_SetElement(cx, array, len++, &line))
+			break;
 	}
     *rval = OBJECT_TO_JSVAL(array);
 
