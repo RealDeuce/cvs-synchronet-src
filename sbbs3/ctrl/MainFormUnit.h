@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.52 2003/05/15 02:46:02 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.53 2003/05/16 01:47:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -290,7 +290,6 @@ __published:	// IDE-managed Components
 	void __fastcall FtpStartExecute(TObject *Sender);
 	void __fastcall FtpStopExecute(TObject *Sender);
 	void __fastcall FtpConfigureExecute(TObject *Sender);
-	void __fastcall CloseTimerTimer(TObject *Sender);
 	void __fastcall BBSConfigureMenuItemClick(TObject *Sender);
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormShow(TObject *Sender);
