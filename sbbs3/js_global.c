@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.62 2003/04/05 02:27:40 rswindell Exp $ */
+/* $Id: js_global.c,v 1.63 2003/04/23 01:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1034,6 +1034,22 @@ js_truncstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool
+js_getfname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		str;
+	JSString*	js_str;
+
+	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
+		return(JS_FALSE);
+
+	js_str = JS_NewStringCopyZ(cx, getfname(str));
+	if(js_str==NULL)
+		return(JS_FALSE);
+
+	*rval = STRING_TO_JSVAL(js_str);
+	return(JS_TRUE);
+}
 
 static JSBool
 js_fexist(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1297,8 +1313,11 @@ static jsMethodSpec js_global_functions[] = {
 	{"truncstr",		js_truncstr,		2,	JSTYPE_STRING,	JSDOCSTR("string text, charset")
 	,JSDOCSTR("truncate string at first char in <i>charset</i>")
 	},		
-	{"lfexpand",		js_lfexpand,		2,	JSTYPE_STRING,	JSDOCSTR("string text")
+	{"lfexpand",		js_lfexpand,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF)")
+	},		
+	{"getfilename",		js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
+	,JSDOCSTR("returns filename portion of passed path string")
 	},		
 	{"file_exists",		js_fexist,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
 	,JSDOCSTR("verify file existence")
