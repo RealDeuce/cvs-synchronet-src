@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.217 2002/12/31 03:09:19 rswindell Exp $ */
+/* $Id: main.cpp,v 1.218 2003/01/02 09:42:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1858,6 +1858,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	event_thread_running = false;
     input_thread_running = false;
     output_thread_running = false;
+	input_thread_mutex_locked = false;
 
 	if(client_info==NULL)
 		memset(&client,0,sizeof(client));

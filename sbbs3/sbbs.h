@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.157 2002/12/20 01:10:39 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.158 2003/01/02 09:42:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,6 +161,7 @@ public:
 	sem_t	output_sem;
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
+	bool	input_thread_mutex_locked;	// by someone other than the input_thread
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(void);		   // receive character
