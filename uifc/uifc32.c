@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.81 2004/07/26 21:35:02 deuce Exp $ */
+/* $Id: uifc32.c,v 1.82 2004/07/26 22:35:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@
 	#define mswait(x) Sleep(x)
 #endif
 
-#include "conio.h"
+#include "ciolib.h"
 #include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
