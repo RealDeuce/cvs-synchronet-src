@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.119 2003/04/26 21:46:30 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.120 2003/04/27 07:08:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -859,6 +859,9 @@ int main(int argc, char** argv)
 
 #ifdef __QNX__
 	setlocale( LC_ALL, "C-TRADITIONAL" );
+#endif
+#ifdef __unix__
+	umask(077);
 #endif
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
