@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.35 2004/12/29 10:17:45 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.33 2004/12/28 04:32:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,21 +70,23 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
-		msg.hdr.attr|=MSG_PRIVATE;
+		msg.idx.attr|=MSG_PRIVATE;
 	if(subnum!=INVALID_SUB && cfg.sub[subnum]->misc&SUB_AONLY)
-		msg.hdr.attr|=MSG_ANONYMOUS;
+		msg.idx.attr|=MSG_ANONYMOUS;
 	if(subnum==INVALID_SUB && cfg.sys_misc&SM_DELREADM)
-		msg.hdr.attr|=MSG_KILLREAD;
+		msg.idx.attr|=MSG_KILLREAD;
 	if((fromhub || useron.rest&FLAG('Q')) &&
 		(hdrblk[0]=='*' || hdrblk[0]=='-' || hdrblk[0]=='`'))
-		msg.hdr.attr|=MSG_READ;
+		msg.idx.attr|=MSG_READ;
 
 	if(subnum!=INVALID_SUB && !fromhub && cfg.sub[subnum]->mod_ar[0]
 		&& chk_ar(cfg.sub[subnum]->mod_ar,&useron))
-		msg.hdr.attr|=MSG_MODERATED;
+		msg.idx.attr|=MSG_MODERATED;
 	if(subnum!=INVALID_SUB && !fromhub && cfg.sub[subnum]->misc&SUB_SYSPERM
 		&& sub_op(subnum))
-		msg.hdr.attr|=MSG_PERMANENT;
+		msg.idx.attr|=MSG_PERMANENT;
+
+	msg.hdr.attr=msg.idx.attr;
 
 	memset(&tm,0,sizeof(tm));
 	tm.tm_mon = ((hdrblk[8]&0xf)*10)+(hdrblk[9]&0xf);
@@ -114,6 +116,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		/* duplicate message-IDs must be allowed in mail database */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
 
+		msg.idx.to=touser;
+
 		username(&cfg,touser,str);
 		smb_hfield_str(&msg,RECIPIENT,str);
 		sprintf(str,"%u",touser);
@@ -130,6 +134,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		sprintf(str,"%25.25s",(char *)hdrblk+21);     /* To user */
 		truncsp(str);
 		smb_hfield_str(&msg,RECIPIENT,str);
+		strlwr(str);
+		msg.idx.to=crc16(str,0); 
 		if(cfg.sub[subnum]->misc&SUB_LZH)
 			xlat=XLAT_LZH;
 	}
@@ -137,6 +143,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	sprintf(str,"%25.25s",hdrblk+71);   /* Subject */
 	truncsp(str);
 	smb_hfield_str(&msg,SUBJECT,str);
+	msg.idx.subj=smb_subject_crc(str);
 
 	/********************************/
 	/* Convert the QWK message text */
@@ -292,6 +299,15 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 			strcpy(str,useron.alias);
 	}
 	smb_hfield_str(&msg,SENDER,str);
+	if((uint)subnum==INVALID_SUB) {
+		if(useron.rest&FLAG('Q') || fromhub)
+			msg.idx.from=0;
+		else
+			msg.idx.from=useron.number; 
+	} else {
+		strlwr(str);
+		msg.idx.from=crc16(str,0); 
+	}
 
 	if(!strnicmp(header+skip,"@MSGID:",7)) {
 		if(!fromhub)
@@ -360,7 +376,7 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	if((i=smb_addmsg(&smb,&msg,storage,dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
 		success=true;
 	else if(i==SMB_DUPE_MSG) {
-		bprintf("\r\n!%s\r\n",smb.last_error);
+		bprintf("\r\n%s\r\n",smb.last_error);
 		if(!fromhub) {
 			if(subnum==INVALID_SUB) {
 				sprintf(str,"%s duplicate e-mail attempt (%s)",useron.alias,smb.last_error);
