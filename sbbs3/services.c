@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.58 2002/06/14 10:32:55 rswindell Exp $ */
+/* $Id: services.c,v 1.59 2002/06/19 07:26:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -557,6 +557,9 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	/* Give up timeslices every once in a while */
 	if(!(client->js_loop%JAVASCRIPT_YIELD_FREQUENCY))
 		mswait(1);
+
+	if(!(client->js_loop%JAVASCRIPT_GC_FREQUENCY))
+		JS_MaybeGC(cx);
 
     return(JS_TRUE);
 }

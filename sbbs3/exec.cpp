@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.26 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.27 2002/06/19 07:26:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -549,6 +549,9 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	/* Give up timeslices every once in a while */
 	if(!(sbbs->js_loop%JAVASCRIPT_YIELD_FREQUENCY))
 		mswait(1);
+
+	if(!(sbbs->js_loop%JAVASCRIPT_GC_FREQUENCY))
+		JS_MaybeGC(cx);
 
     return(JS_TRUE);
 }
