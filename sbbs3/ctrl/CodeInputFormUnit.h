@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: CodeInputFormUnit.h,v 1.2 2002/01/17 23:27:35 rswindell Exp $ */
+/* $Id: CodeInputFormUnit.h,v 1.3 2002/02/20 01:07:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,7 @@ __published:
 	TBevel *Bevel1;
 	TLabel *Label;
     TComboBox *ComboBox;
+	TEdit *Edit;
 	void __fastcall FormShow(TObject *Sender);
 private:
 public:
