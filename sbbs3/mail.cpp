@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.10 2002/01/20 00:46:59 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.11 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +58,7 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 		return(0);
 	if(!usernumber) 
 		return(l/sizeof(idxrec_t)); 	/* Total system e-mail */
+	smb.subnum=INVALID_SUB;
 	if(smb_open(&smb)!=0) 
 		return(0); 
 	while(!smb_feof(smb.sid_fp)) {
@@ -297,6 +298,7 @@ void sbbs_t::delallmail(uint usernumber)
 		return; }
 	sprintf(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=INVALID_SUB;
 	if((i=smb_open(&smb))!=0) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);

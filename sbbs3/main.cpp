@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.99 2002/02/09 13:17:50 rswindell Exp $ */
+/* $Id: main.cpp,v 1.100 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2748,6 +2748,7 @@ void node_thread(void* arg)
 		lprintf("Purging deleted/expired e-mail");
 		sprintf(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
 		sbbs->smb.retry_time=sbbs->cfg.smb_retry_time;
+		sbbs->smb.subnum=INVALID_SUB;
 		if((i=smb_open(&sbbs->smb))!=0)
 			sbbs->errormsg(WHERE,ERR_OPEN,sbbs->smb.file,i,sbbs->smb.last_error);
 		else {

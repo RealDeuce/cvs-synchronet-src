@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.16 2002/02/05 21:57:23 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.17 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,6 +85,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 
 	sprintf(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=INVALID_SUB;
 	if((i=smb_open(&smb))!=0) {
 		fclose(rep);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
@@ -141,6 +142,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 		sprintf(smb.file,"%s%s"
 			,cfg.sub[j]->data_dir,cfg.sub[j]->code);
 		smb.retry_time=cfg.smb_retry_time;
+		smb.subnum=j;
 		if((k=smb_open(&smb))!=0) {
 			errormsg(WHERE,ERR_OPEN,smb.file,k,smb.last_error);
 			continue; }
@@ -240,6 +242,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	if(packedmail) {						/* Delete NetMail */
 		sprintf(smb.file,"%smail",cfg.data_dir);
 		smb.retry_time=cfg.smb_retry_time;
+		smb.subnum=INVALID_SUB;
 		if((i=smb_open(&smb))!=0) {
 			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 			return(true); }

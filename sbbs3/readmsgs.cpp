@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.8 2002/02/05 21:57:23 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.9 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,6 +298,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 		return(0); }
 	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
@@ -472,6 +473,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 			if(!reads && mode)
 				CRLF;
 
+			msg.subnum=subnum;
 			show_msg(&msg
 				,msg.from_ext && !strcmp(msg.from_ext,"1") && !msg.from_net.type
 					? 0:P_NOATCODES);
@@ -951,6 +953,7 @@ int sbbs_t::searchsub(uint subnum, char *search)
 	total=getposts(&cfg,subnum);
 	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
@@ -1081,6 +1084,7 @@ int sbbs_t::searchsub_toyou(uint subnum)
 	total=getposts(&cfg,subnum);
 	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.10 2001/11/09 17:04:46 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.11 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -624,6 +624,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			return; }
 		sprintf(smb.file,"%smail", cfg.data_dir);
 		smb.retry_time=cfg.smb_retry_time;
+		smb.subnum=INVALID_SUB;
 		if((i=smb_open(&smb))!=0) {
 			smb_stack(&smb,SMB_STACK_POP);
 			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);

@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.24 2002/01/17 23:56:40 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.25 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1140,6 +1140,7 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 
 	sprintf(smb.file,"%s%s",cfg.sub[newsub]->data_dir,cfg.sub[newsub]->code);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=newsub;
 	if((i=smb_open(&smb))!=0) {
 		FREE(buf);
 		smb_stack(&smb,SMB_STACK_POP);

@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.12 2002/02/06 00:40:58 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.13 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,6 +70,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 		return; }
 	sprintf(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=INVALID_SUB;
 	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
@@ -209,6 +210,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 		if(domsg && !(sys_status&SS_ABORT)) {
 
+			msg.subnum=INVALID_SUB;
 			show_msg(&msg
 				,msg.from_ext && msg.idx.from==1 && !msg.from_net.type
 					? 0:P_NOATCODES);

@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.6 2001/11/09 17:04:46 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.7 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ void sbbs_t::bulkmail(uchar *ar)
 		return; }
 	sprintf(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
+	smb.subnum=INVALID_SUB;
 	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);

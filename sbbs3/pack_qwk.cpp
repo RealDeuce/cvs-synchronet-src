@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.22 2002/02/05 21:57:23 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.23 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +226,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	if(useron.qwk&(QWK_EMAIL|QWK_ALLMAIL) /* && !prepack */) {
 		sprintf(smb.file,"%smail",cfg.data_dir);
 		smb.retry_time=cfg.smb_retry_time;
+		smb.subnum=INVALID_SUB;
 		if((i=smb_open(&smb))!=0) {
 			fclose(qwk);
 			if(personal)
@@ -328,6 +329,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				sprintf(smb.file,"%s%s"
 					,cfg.sub[usrsub[i][j]]->data_dir,cfg.sub[usrsub[i][j]]->code);
 				smb.retry_time=cfg.smb_retry_time;
+				smb.subnum=usrsub[i][j];
 				if((k=smb_open(&smb))!=0) {
 					errormsg(WHERE,ERR_OPEN,smb.file,k,smb.last_error);
 					continue; }

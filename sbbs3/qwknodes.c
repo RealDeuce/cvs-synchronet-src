@@ -2,7 +2,7 @@
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
-/* $Id: qwknodes.c,v 1.4 2001/06/15 03:40:40 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.5 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -431,6 +431,7 @@ for(i=0;i<total_subs;i++) {
 		,LEN_GSNAME,grp[sub[i]->grp]->sname,sub[i]->lname);
 	sprintf(smb.file,"%s%s",sub[i]->data_dir,sub[i]->code);
 	smb.retry_time=30;
+	smb.sunum=i;
 	if((j=smb_open(&smb))!=0) {
 		printf("smb_open returned %d\n",j);
 		continue; }

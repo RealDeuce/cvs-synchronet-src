@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.14 2002/02/05 21:57:23 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.15 2002/02/11 16:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,6 +174,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				smb_close(&smb);
 				lastsub=INVALID_SUB; }
 
+			smb.subnum=INVALID_SUB;
 			if((k=smb_open(&smb))!=0) {
 				errormsg(WHERE,ERR_OPEN,smb.file,k,smb.last_error);
 				continue; }
@@ -351,6 +352,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				lastsub=INVALID_SUB;
 				sprintf(smb.file,"%s%s",cfg.sub[n]->data_dir,cfg.sub[n]->code);
 				smb.retry_time=cfg.smb_retry_time;
+				smb.subnum=n;
 				if((j=smb_open(&smb))!=0) {
 					errormsg(WHERE,ERR_OPEN,smb.file,j,smb.last_error);
 					continue; }
