@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.260 2003/06/13 23:22:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.261 2003/07/09 02:38:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2457,6 +2457,18 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 
+			/* Check for SPAM bait recipient */
+			if(trashcan(&scfg,rcpt_addr,"spambait")) {
+				sprintf(str,"SPAM BAIT (%s) taken", rcpt_addr);
+				lprintf("%04d !SMTP %s by: %s"
+					,socket, str, reverse_path);
+				spamlog(&scfg, "SMTP", "REFUSED and FILTERED", str
+					,host_name, host_ip, rcpt_addr, reverse_path);
+				filter_ip(&scfg, "SMTP", str, host_ip, reverse_path);
+				sockprintf(socket, "550 Unknown User:%s", buf+8);
+				continue;
+			}
+
 			/* Check for blocked recipients */
 			if(trashcan(&scfg,rcpt_addr,"email")) {
 				lprintf("%04d !SMTP BLOCKED RECIPIENT (%s) from: %s"
@@ -3272,7 +3284,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.260 $", "%*s %s", revision);
+	sscanf("$Revision: 1.261 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
