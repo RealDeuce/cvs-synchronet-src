@@ -1,4 +1,4 @@
-/* $Id: mouse.h,v 1.6 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: mouse.h,v 1.8 2004/09/30 06:36:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,10 +101,13 @@ extern "C" {
 void ciomouse_gotevent(int event, int x, int y);
 int mouse_pending(void);
 int ciolib_getmouse(struct mouse_event *mevent);
+int ciolib_ungetmouse(struct mouse_event *mevent);
 void ciolib_mouse_thread(void *data);
 int ciomouse_setevents(int events);
 int ciomouse_addevents(int events);
 int ciomouse_delevents(int events);
+int ciomouse_addevent(int event);
+int ciomouse_delevent(int event);
 #ifdef __cplusplus
 }
 #endif

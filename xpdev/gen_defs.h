@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.21 2004/09/01 20:50:30 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.24 2004/10/15 23:23:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,6 +197,7 @@ typedef struct {
 #define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg), TERMINATE(dst)
 #define SAFEPRINTF2(dst,fmt,a1,a2)		snprintf(dst,sizeof(dst),fmt,a1,a2), TERMINATE(dst)
 #define SAFEPRINTF3(dst,fmt,a1,a2,a3)	snprintf(dst,sizeof(dst),fmt,a1,a2,a3), TERMINATE(dst)
+#define SAFEPRINTF4(dst,fmt,a1,a2,a3,a4) snprintf(dst,sizeof(dst),fmt,a1,a2,a3,a4), TERMINATE(dst)
 
 /* Replace every occurance of c1 in str with c2, using p as a temporary char pointer */
 #define REPLACE_CHARS(str,c1,c2,p)	for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
@@ -216,6 +217,10 @@ typedef struct {
 #define FIND_DIGIT(p)				while(*(p) && !isdigit(*(p)))			(p)++;
 #define SKIP_HEXDIGIT(p)			while(*(p) && isxdigit(*(p)))			(p)++;
 #define FIND_HEXDIGIT(p)			while(*(p) && !isxdigit(*(p)))			(p)++;
+
+/* Variable/buffer initialization (with zeros) */
+#define ZERO_VAR(var)				memset(&(var),0,sizeof(var))
+#define ZERO_ARRAY(array)			memset(array,0,sizeof(array))
 
 /****************************************************************************/
 /* MALLOC/FREE Macros for various compilers and environments				*/
