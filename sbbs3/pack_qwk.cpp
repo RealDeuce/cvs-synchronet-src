@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.26 2002/03/13 18:17:17 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.27 2002/04/22 09:33:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -588,7 +588,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	/*******************/
 	sprintf(tmp2,"%s%s",cfg.temp_dir,ALLFILES);
 	i=external(cmdstr(temp_cmd(),packet,tmp2,NULL)
-		,ex|EX_SH);	/* Needs sh for wildcard expansion */
+		,ex|EX_WILDCARD);
 	if(!fexist(packet)) {
 		bputs(text[QWKCompressionFailed]);
 		if(i)
