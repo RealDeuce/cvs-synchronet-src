@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.90 2004/08/11 00:48:32 deuce Exp $ */
+/* $Id: uifc32.c,v 1.92 2004/09/11 02:05:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,6 +110,18 @@ static void reset_dynamic(void) {
 /* Returns 0 on success.													*/
 /****************************************************************************/
 
+void uifc_mouse_enable(void)
+{
+	ciomouse_setevents(1<<CIOLIB_BUTTON_1_CLICK|1<<CIOLIB_BUTTON_3_CLICK);
+	showmouse();
+}
+
+void uifc_mouse_disable(void)
+{
+	ciomouse_setevents(0);
+	hidemouse();
+}
+
 int kbwait(void) {
 	int timeout=0;
 	while(timeout++<50) {
@@ -165,16 +177,6 @@ int uifcini32(uifcapi_t* uifcapi)
 		ESCDELAY=api->esc_delay;
 #endif
 
-#ifdef PDCURSES
-/*	
- * "ALL  DESCRIPTIONS  ARE  GUESSES.  I DON'T KNOW ANYONE WHO KNOWS EXACTLY WHAT THESE FUNCTIONS DO!"
- *
- * 	if(mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED)==0)
- *		api->mode|=UIFC_MOUSE;
- *	else
- *		mouse_set(0);
- */
-#endif
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
 #ifdef C80X14
@@ -296,24 +298,24 @@ int uifcini32(uifcapi_t* uifcapi)
     return(0);
 }
 
-static int uifc_getmouse(struct cio_mouse_event *mevent)
+static int uifc_getmouse(struct mouse_event *mevent)
 {
-	mevent->x=0;
-	mevent->y=0;
-	mevent->button=0;
+	mevent->startx=0;
+	mevent->starty=0;
+	mevent->event=0;
 	if(api->mode&UIFC_MOUSE) {
 		getmouse(mevent);
-		if(mevent->button==2)
+		if(mevent->event==CIOLIB_BUTTON_3_CLICK)
 			return(ESC);
-		if(mevent->y==api->buttony) {
-			if(mevent->x>=api->exitstart
-					&& mevent->x<=api->exitend
-					&& mevent->button==1) {
+		if(mevent->starty==api->buttony) {
+			if(mevent->startx>=api->exitstart
+					&& mevent->startx<=api->exitend
+					&& mevent->event==CIOLIB_BUTTON_1_CLICK) {
 				return(ESC);
 			}
-			if(mevent->x>=api->helpstart
-					&& mevent->x<=api->helpend
-					&& mevent->button==1) {
+			if(mevent->startx>=api->helpstart
+					&& mevent->startx<=api->helpend
+					&& mevent->event==CIOLIB_BUTTON_1_CLICK) {
 				return(CIO_KEY_F(1));
 			}
 		}
@@ -326,7 +328,7 @@ void uifcbail(void)
 {
 	_setcursortype(_NORMALCURSOR);
 	textattr(LIGHTGRAY);
-	hidemouse();
+	uifc_mouse_disable();
 	clrscr();
 #ifdef __unix__
 	if(cio_api.mode==CIOLIB_MODE_CURSES) {
@@ -421,7 +423,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	uint s_right=SCRN_RIGHT;
 	uint s_bottom=api->scrn_len-3;
 	uint title_len;
-	struct cio_mouse_event mevnt;
+	struct mouse_event mevnt;
 	char	*title;
 	int	a,b,c,longopt;
 
@@ -431,7 +433,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		return(-1);
 	}
 	strcpy(title,initial_title);
-	hidemouse();
+	uifc_mouse_disable();
 
 	title_len=strlen(title);
 
@@ -573,11 +575,11 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			*(ptr++)=']';
 			*(ptr++)=hclr|(bclr<<4);
 			i=6;
-			api->buttony=s_top+top-1;
-			api->exitstart=s_left+left;
-			api->exitend=s_left+left+2;
-			api->helpstart=s_left+left+3;
-			api->helpend=s_left+left+5;
+			api->buttony=s_top+top;
+			api->exitstart=s_left+left+1;
+			api->exitend=s_left+left+3;
+			api->helpstart=s_left+left+4;
+			api->helpend=s_left+left+6;
 		}
 		else
 			i=0;
@@ -762,7 +764,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	if(mode&WIN_IMM)
 		return(-2);
 
-	showmouse();
+	uifc_mouse_enable();
 
 	while(1) {
 	#if 0					/* debug */
@@ -779,22 +781,22 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			if(i==CIO_KEY_MOUSE) {
 				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
-					if(mevnt.x>=s_left+left+2
-							&& mevnt.x<=s_left+left+width
-							&& mevnt.y>=s_top+top+2
-							&& mevnt.y<=(s_top+top+height)-3
-							&& mevnt.button==1) {
+					if(mevnt.startx>=s_left+left+3
+							&& mevnt.startx<=s_left+left+width+1
+							&& mevnt.starty>=s_top+top+3
+							&& mevnt.starty<=(s_top+top+height)-2
+							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 
-						(*cur)=(mevnt.y)-(s_top+top+2);
+						(*cur)=(mevnt.starty)-(s_top+top+3);
 						if(bar)
 							(*bar)=(*cur);
-						y=top+3+((mevnt.y)-(s_top+top+2));
+						y=top+3+((mevnt.starty)-(s_top+top+3));
 
 						if(!opts)
 							continue;
 
 						if(mode&WIN_ACT) {
-							hidemouse();
+							uifc_mouse_disable();
 							if((win=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
@@ -811,14 +813,14 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							puttext(s_left+left,s_top+top,s_left
 								+left+width-1,s_top+top+height-1,win);
 							free(win);
-							showmouse();
+							uifc_mouse_enable();
 						}
 						else if(mode&WIN_SAV) {
-							hidemouse();
+							uifc_mouse_disable();
 							puttext(sav[api->savnum].left,sav[api->savnum].top
 								,sav[api->savnum].right,sav[api->savnum].bot
 								,sav[api->savnum].buf);
-							showmouse();
+							uifc_mouse_enable();
 							free(sav[api->savnum].buf);
 							api->savdepth--;
 						}
@@ -827,9 +829,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						return(*cur);
 					}
 					/* Clicked Scroll Up */
-					if(mevnt.x==s_left+left
-							&& mevnt.y==s_top+top+2
-							&& mevnt.button==1) {
+					if(mevnt.startx==s_left+left+1
+							&& mevnt.starty==s_top+top+3
+							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 						if(!opts)
 							continue;
 						*cur -= (height-5);
@@ -857,9 +859,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						continue;
 					}
 					/* Clicked Scroll Down */
-					if(mevnt.x==s_left+left
-							&& mevnt.y==(s_top+top+height)-3
-							&& mevnt.button==1) {
+					if(mevnt.startx==s_left+left+1
+							&& mevnt.starty==(s_top+top+height)-2
+							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 						if(!opts)
 							continue;
 						*cur += (height-5);
@@ -1427,11 +1429,11 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 		in_win[11]=lclr|(bclr<<4);
 		in_win[12]=']';
 		in_win[13]=hclr|(bclr<<4);
-		api->buttony=SCRN_TOP+top-1;
-		api->exitstart=SCRN_LEFT+left;
-		api->exitend=SCRN_LEFT+left+2;
-		api->helpstart=SCRN_LEFT+left+3;
-		api->helpend=SCRN_LEFT+left+5;
+		api->buttony=SCRN_TOP+top;
+		api->exitstart=SCRN_LEFT+left+1;
+		api->exitend=SCRN_LEFT+left+3;
+		api->helpstart=SCRN_LEFT+left+4;
+		api->helpend=SCRN_LEFT+left+6;
 	}
 
 	in_win[i++]='»';
@@ -1544,7 +1546,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
 	int	soffset=0;
-	struct cio_mouse_event	mevnt;
+	struct mouse_event	mevnt;
 
 	if((str=(uchar *)malloc(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
@@ -1580,10 +1582,10 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		f=inkey();
 		if(f==CIO_KEY_MOUSE) {
 			if((f=uifc_getmouse(&mevnt))==0) {
-				if(mevnt.x>=left-1
-						&& mevnt.x<=left+width-1
-						&& mevnt.button==1) {
-					i=mevnt.x-left+soffset+1;
+				if(mevnt.startx>=left
+						&& mevnt.startx<=left+width
+						&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
+					i=mevnt.startx-left+soffset;
 					if(i>j)
 						i=j;
 				}
@@ -1620,10 +1622,10 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			f=0;
 			if(ch==CIO_KEY_MOUSE) {
 				if((ch=uifc_getmouse(&mevnt))==0) {
-					if(mevnt.x>=left-1
-							&& mevnt.x<=left+width-1
-							&& mevnt.button==1) {
-						i=mevnt.x-left+soffset+1;
+					if(mevnt.startx>=left
+							&& mevnt.startx<=left+width
+							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
+						i=mevnt.startx-left+soffset;
 						if(i>j)
 							i=j;
 					}
@@ -2002,7 +2004,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	int pad=1;
 	int	is_redraw=0;
 	uint title_len=0;
-	struct cio_mouse_event	mevnt;
+	struct mouse_event	mevnt;
 
 	_setcursortype(_NOCURSOR);
 	
@@ -2182,22 +2184,22 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 					/* Ignores return value to avoid hitting help/exit hotspots */
 					if(uifc_getmouse(&mevnt)>=0) {
 						/* Clicked Scroll Up */
-						if(mevnt.x>=left+pad-1
-								&& mevnt.x<=left+pad+width-4
-								&& mevnt.y>=top+pad
-								&& mevnt.y<=top+pad+(height/2)-3
-								&& mevnt.button==1) {
+						if(mevnt.startx>=left+pad
+								&& mevnt.startx<=left+pad+width-3
+								&& mevnt.starty>=top+pad+1
+								&& mevnt.starty<=top+pad+(height/2)-2
+								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 							p = p-((width-4)*2*(height-5));
 							if(p<textbuf)
 								p=textbuf;
 							continue;
 						}
 						/* Clicked Scroll Down */
-						if(mevnt.x>=left+pad-1
-								&& mevnt.x<=left+pad+width-1
-								&& mevnt.y<=top+pad+height-3
-								&& mevnt.y>=top+pad+height-(height/2+1)-3
-								&& mevnt.button==1) {
+						if(mevnt.startx>=left+pad
+								&& mevnt.startx<=left+pad+width
+								&& mevnt.starty<=top+pad+height-2
+								&& mevnt.starty>=top+pad+height-(height/2+1)-2
+								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 							p=p+(width-4)*2*(height-5);
 							if(p > textbuf+(lines-height+1)*(width-4)*2)
 								p=textbuf+(lines-height+1)*(width-4)*2;
