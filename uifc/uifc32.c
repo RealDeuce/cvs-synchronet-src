@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.78 2004/07/09 03:25:06 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.73 2004/07/03 23:04:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -44,11 +44,12 @@
     #define mswait(x) delay(x)
 #elif defined(_WIN32)
 	#include <share.h>
+	#include <conio.h>
 	#include <windows.h>
 	#define mswait(x) Sleep(x)
 #endif
 
-#include "conio.h"
+#include "ciowrap.h"
 #include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
@@ -207,7 +208,7 @@ int inkey()
 							&& uifc_last_button_press.y==input.Event.MouseEvent.dwMousePosition.Y) {
 						memcpy(&last_mouse_click,&uifc_last_button_press,sizeof(last_mouse_click));
 						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
-						return(CIO_KEY_MOUSE);
+						return(KEY_MOUSE);
 					}
 					else {
 						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
@@ -243,6 +244,69 @@ int inkey()
 	c=getch();
 	if(!c)
 		c=(getch()<<8);
+
+	switch(c) {
+		case CIO_KEY_HOME:
+			c=KEY_HOME;
+			break;
+		case CIO_KEY_UP:
+			c=KEY_UP;
+			break;
+		case CIO_KEY_END:
+			c=KEY_END;
+			break;
+		case CIO_KEY_DOWN:
+			c=KEY_DOWN;
+			break;
+		case CIO_KEY_F(1):
+			c=KEY_F(1);
+			break;
+		case CIO_KEY_F(2):
+			c=KEY_F(2);
+			break;
+		case CIO_KEY_F(3):
+			c=KEY_F(3);
+			break;
+		case CIO_KEY_F(4):
+			c=KEY_F(4);
+			break;
+		case CIO_KEY_F(5):
+			c=KEY_F(5);
+			break;
+		case CIO_KEY_F(6):
+			c=KEY_F(6);
+			break;
+		case CIO_KEY_F(7):
+			c=KEY_F(7);
+			break;
+		case CIO_KEY_F(8):
+			c=KEY_F(8);
+			break;
+		case CIO_KEY_F(9):
+			c=KEY_F(9);
+			break;
+		case CIO_KEY_F(10):
+			c=KEY_F(10);
+			break;
+		case CIO_KEY_IC:
+			c=KEY_IC;
+			break;
+		case CIO_KEY_DC:
+			c=KEY_DC;
+			break;
+		case CIO_KEY_LEFT:
+			c=KEY_LEFT;
+			break;
+		case CIO_KEY_RIGHT:
+			c=KEY_RIGHT;
+			break;
+		case CIO_KEY_PPAGE:
+			c=KEY_PPAGE;
+			break;
+		case CIO_KEY_NPAGE:
+			c=KEY_NPAGE;
+			break;
+	}
 	return(c);
 }
 
@@ -289,6 +353,7 @@ int uifcini32(uifcapi_t* uifcapi)
  */
 #endif
 #ifdef __unix__
+	initciowrap(api->mode);
 	#ifdef NCURSES_VERSION_MAJOR
 		if(cio_api.mode==CURSES_MODE) {
 			ESCDELAY=api->esc_delay;
@@ -299,47 +364,36 @@ int uifcini32(uifcapi_t* uifcapi)
 		}
 	#endif
 	
-#endif
+#else
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
-#ifdef C80X14
             case 14:
                 textmode(C80X14);
                 break;
-#endif
-#ifdef C80X21
             case 21:
                 textmode(C80X21);
                 break;
-#endif
             case 25:
                 textmode(C80);
                 break;
-#ifdef C80X28
             case 28:
                 textmode(C80X28);
                 break;
-#endif
-#ifdef C80X43
             case 43:
                 textmode(C80X43);
                 break;
-#endif
-#ifdef C80X50
             case 50:
                 textmode(C80X50);
                 break;
-#endif
-#ifdef C80X60
             case 60:
                 textmode(C80X60);
                 break;
-#endif
             default:
                 textmode(C4350);
                 break;
         }
     }
+#endif
 
     clrscr();
 
@@ -502,7 +556,7 @@ static int uifc_getmouse(struct uifc_mouse_event *mevent)
 			if(mevent->x>=api->helpstart
 					&& mevent->x<=api->helpend
 					&& mevent->button==1) {
-				return(CIO_KEY_F(1));
+				return(KEY_F(1));
 			}
 		}
 		return(0);
@@ -961,10 +1015,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		i=0;
 		if(kbwait()) {
 			i=inkey();
-			if(i==BS)
+			if(i==KEY_BACKSPACE || i==BS)
 				i=ESC;
 #ifdef KEY_MOUSE
-			if(i==CIO_KEY_MOUSE) {
+			if(i==KEY_MOUSE) {
 #else
 			if(0) {
 #endif
@@ -1083,7 +1137,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				s=0;
 				switch(i) {
 					/* ToDo extended keys */
-					case CIO_KEY_HOME:	/* home */
+					case KEY_HOME:	/* home */
 						if(!opts)
 							break;
 						if(opts+4>height) {
@@ -1122,7 +1176,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						puttext(s_left+3+left,s_top+y
 							,s_left+left+width-2,s_top+y,line);
 						break;
-					case CIO_KEY_UP:	/* up arrow */
+					case KEY_UP:	/* up arrow */
 						if(!opts)
 							break;
 						if(!(*cur) && opts+4>height) {
@@ -1187,7 +1241,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								,s_left+left+width-2,s_top+y,line);
 						}
 						break;
-					case CIO_KEY_PPAGE:	/* PgUp */
+					case KEY_PPAGE:	/* PgUp */
 						if(!opts)
 							break;
 						*cur -= (height-5);
@@ -1213,7 +1267,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 									: lclr|(bclr<<4)
 								,"%-*.*s",width-4,width-4,option[i]);
 						break;
-					case CIO_KEY_NPAGE:	/* PgDn */
+					case KEY_NPAGE:	/* PgDn */
 						if(!opts)
 							break;
 						*cur += (height-5);
@@ -1239,7 +1293,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 									: lclr|(bclr<<4)
 								,"%-*.*s",width-4,width-4,option[i]);
 						break;
-					case CIO_KEY_END:	/* end */
+					case KEY_END:	/* end */
 						if(!opts)
 							break;
 						if(opts+4>height) {	/* Scroll mode */
@@ -1276,7 +1330,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						puttext(s_left+3+left,s_top+y
 							,s_left+left+width-2,s_top+y,line);
 						break;
-					case CIO_KEY_DOWN:	/* dn arrow */
+					case KEY_DOWN:	/* dn arrow */
 						if(!opts)
 							break;
 						if((*cur)==opts-1 && opts+4>height) { /* like home */
@@ -1351,18 +1405,18 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								,line);
 						}
 						break;
-					case CIO_KEY_F(1):	/* F1 */
+					case KEY_F(1):	/* F1 */
 						api->showhelp();
 						break;
-					case CIO_KEY_F(5):	/* F5 */
+					case KEY_F(5):	/* F5 */
 						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur)==opts-1))
 							return((*cur)|MSK_GET);
 						break;
-					case CIO_KEY_F(6):	/* F6 */
+					case KEY_F(6):	/* F6 */
 						if(mode&WIN_PUT && !(mode&WIN_XTR && (*cur)==opts-1))
 							return((*cur)|MSK_PUT);
 						break;
-					case CIO_KEY_IC:	/* insert */
+					case KEY_IC:	/* insert */
 						if(mode&WIN_INS) {
 							if(mode&WIN_INSACT) {
 								gettext(s_left+left,s_top+top,s_left
@@ -1383,7 +1437,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							return((*cur)|MSK_INS); 
 						}
 						break;
-					case CIO_KEY_DC:	/* delete */
+					case KEY_DC:	/* delete */
 						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't delete */
 							break;							/* extra line */
 						if(mode&WIN_DEL) {
@@ -1402,9 +1456,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					default:
-						if(mode&WIN_EXTKEYS)
-							return(-2-i);
-						break;
+						return(-2-i);
 				} 
 			}
 			else {
@@ -1588,7 +1640,7 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	if(mode&WIN_T2B)
 		top=(api->scrn_len-height+1)/2-2;
 	if(mode&WIN_L2R)
-		left=(SCRN_RIGHT-SCRN_LEFT-width+1)/2;
+		left=(SCRN_RIGHT-SCRN_LEFT-width+2)/2;
 	if(left<=-(SCRN_LEFT))
 		left=-(SCRN_LEFT)+1;
 	if(top<0)
@@ -1768,7 +1820,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 #endif
 		f=inkey();
 #ifdef KEY_MOUSE
-		if(f==CIO_KEY_MOUSE) {
+		if(f==KEY_MOUSE) {
 #else
 		if(0) {
 #endif
@@ -1784,7 +1836,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		}
 
 		if(f == CR 
-				|| (f >= 0xff && f != CIO_KEY_DC) 
+				|| (f >= 0xff && f != KEY_DC) 
 				|| (f == '\t' && mode&K_TABEXIT) 
 				|| (f == '%' && mode&K_SCANNING)
 				|| f==0)
@@ -1813,7 +1865,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			else {
 				ch=inkey();
 #ifdef KEY_MOUSE
-				if(ch==CIO_KEY_MOUSE) {
+				if(ch==KEY_MOUSE) {
 #else
 				if(0) {
 #endif
@@ -1833,34 +1885,34 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			f=0;
 			switch(ch)
 			{
-				case CIO_KEY_F(1):	/* F1 Help */
+				case KEY_F(1):	/* F1 Help */
 					api->showhelp();
 					continue;
-				case CIO_KEY_LEFT:	/* left arrow */
+				case KEY_LEFT:	/* left arrow */
 					if(i)
 					{
 						i--;
 					}
 					continue;
-				case CIO_KEY_RIGHT:	/* right arrow */
+				case KEY_RIGHT:	/* right arrow */
 					if(i<j)
 					{
 						i++;
 					}
 					continue;
-				case CIO_KEY_HOME:	/* home */
+				case KEY_HOME:	/* home */
 					if(i)
 					{
 						i=0;
 					}
 					continue;
-				case CIO_KEY_END:	/* end */
+				case KEY_END:	/* end */
 					if(i<j)
 					{
 						i=j;
 					}
 					continue;
-				case CIO_KEY_IC:	/* insert */
+				case KEY_IC:	/* insert */
 					ins=!ins;
 					if(ins)
 						cursor=_SOLIDCURSOR;
@@ -1869,6 +1921,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					_setcursortype(cursor);
 					continue;
 				case BS:
+				case KEY_BACKSPACE:
 					if(i)
 					{
 						if(i==j)
@@ -1886,7 +1939,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						}
 						continue;
 					}
-				case CIO_KEY_DC:	/* delete */
+				case KEY_DC:	/* delete */
 					if(i<j)
 					{
 						if(str[i]=='.')
@@ -1913,9 +1966,9 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					if(mode&K_SCANNING)
 						ch=CR;
 					break;
-				case CIO_KEY_F(2):
-				case CIO_KEY_UP:
-				case CIO_KEY_DOWN:
+				case KEY_F(2):
+				case KEY_UP:
+				case KEY_DOWN:
 					if(mode&K_DEUCEEXIT)
 						ch=CR;
 					break;
@@ -2381,7 +2434,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			if(kbwait()) {
 				j=inkey();
 #ifdef KEY_MOUSE
-				if(j==CIO_KEY_MOUSE) {
+				if(j==KEY_MOUSE) {
 #else
 				if(0) {
 #endif
@@ -2416,23 +2469,23 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 					continue;
 				}
 				switch(j) {
-					case CIO_KEY_HOME:	/* home */
+					case KEY_HOME:	/* home */
 						p=textbuf;
 						break;
 
-					case CIO_KEY_UP:	/* up arrow */
+					case KEY_UP:	/* up arrow */
 						p = p-((width-4)*2);
 						if(p<textbuf)
 							p=textbuf;
 						break;
 					
-					case CIO_KEY_PPAGE:	/* PgUp */
+					case KEY_PPAGE:	/* PgUp */
 						p = p-((width-4)*2*(height-5));
 						if(p<textbuf)
 							p=textbuf;
 						break;
 
-					case CIO_KEY_NPAGE:	/* PgDn */
+					case KEY_NPAGE:	/* PgDn */
 						p=p+(width-4)*2*(height-5);
 						if(p > textbuf+(lines-height+1)*(width-4)*2)
 							p=textbuf+(lines-height+1)*(width-4)*2;
@@ -2440,13 +2493,13 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 							p=textbuf;
 						break;
 
-					case CIO_KEY_END:	/* end */
+					case KEY_END:	/* end */
 						p=textbuf+(lines-height+1)*(width-4)*2;
 						if(p<textbuf)
 							p=textbuf;
 						break;
 
-					case CIO_KEY_DOWN:	/* dn arrow */
+					case KEY_DOWN:	/* dn arrow */
 						p = p+((width-4)*2);
 						if(p > textbuf+(lines-height+1)*(width-4)*2)
 							p=textbuf+(lines-height+1)*(width-4)*2;
