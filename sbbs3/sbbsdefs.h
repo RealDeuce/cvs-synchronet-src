@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.117 2004/07/19 07:07:51 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.116 2004/05/28 23:43:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,7 +82,6 @@ typedef struct {
 	BOOL*	terminated;
 } js_branch_t;
 
-#define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
 
 #ifndef __FLAT__
 #define __FLAT__	/* 32-bit "flat" memory model */
