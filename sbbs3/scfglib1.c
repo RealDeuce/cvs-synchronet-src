@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.35 2002/07/27 06:48:46 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.36 2002/08/01 21:33:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,6 +389,9 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 			get_int(n,instream);
 	}
 	cfg->total_shells=i;
+
+	if(cfg->new_shell>=cfg->total_shells)
+		cfg->new_shell=0;
 
 	fclose(instream);
 	return(TRUE);
