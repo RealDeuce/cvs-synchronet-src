@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.29 2004/09/02 01:34:31 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.30 2004/09/02 02:08:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -455,10 +455,10 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 					smb_hfield_str(&msg,FIDOREPLYID,remsg.ftn_msgid);
 
 				smb_updatethread(&smb,&remsg,smb.status.last_msg+1);
+				smb_freemsgmem(&remsg);
 			}
 
 			smb_unlockmsghdr(&smb,&remsg);
-			smb_freemsgmem(&remsg);
 		}
 	}
 
