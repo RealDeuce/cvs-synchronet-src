@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.129 2003/07/12 09:34:40 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.130 2003/07/13 07:54:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1555,7 +1555,6 @@ int main(int argc, char** argv)
 				case 'q':
 					quit=TRUE;
 					break;
-#ifndef NO_TELNET_SERVER
 				case 'w':	/* who's online */
 					printf("\nNodes in use:\n");
 				case 'n':	/* nodelist */
@@ -1593,11 +1592,9 @@ int main(int argc, char** argv)
 					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
 					break;
-#endif
 				default:
 					printf("\nSynchronet Console Version %s%c Help\n\n",VERSION,REVISION);
 					printf("q   = quit\n");
-#ifndef NO_TELNET_SERVER
 					printf("n   = node list\n");
 					printf("w   = who's online\n");
 					printf("l   = lock node (toggle)\n");
@@ -1606,7 +1603,6 @@ int main(int argc, char** argv)
 #if 0	/* to do */	
 					printf("c#  = chat with node #\n");
 					printf("s#  = spy on node #\n");
-#endif
 #endif
 					break;
 			}
