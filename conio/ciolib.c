@@ -1,36 +1,3 @@
-/* $Id: ciolib.c,v 1.29 2004/09/30 04:44:19 deuce Exp $ */
-
-/****************************************************************************
- * @format.tab-size 4		(Plain Text/Source Code File Header)			*
- * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
- *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
- *																			*
- * This library is free software; you can redistribute it and/or			*
- * modify it under the terms of the GNU Lesser General Public License		*
- * as published by the Free Software Foundation; either version 2			*
- * of the License, or (at your option) any later version.					*
- * See the GNU Lesser General Public License for more details: lgpl.txt or	*
- * http://www.fsf.org/copyleft/lesser.html									*
- *																			*
- * Anonymous FTP access to the most recent released source is available at	*
- * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
- *																			*
- * Anonymous CVS access to the development source and modification history	*
- * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
- *     (just hit return, no password is necessary)							*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
- *																			*
- * For Synchronet coding style and modification guidelines, see				*
- * http://www.synchro.net/source.html										*
- *																			*
- * You are encouraged to submit any modifications (preferably in Unix diff	*
- * format) via e-mail to mods@synchro.net									*
- *																			*
- * Note: If this box doesn't appear square, then you need to fix your tabs.	*
- ****************************************************************************/
-
 #include <stdarg.h>
 #include <stdlib.h>	/* malloc */
 #include <stdio.h>
@@ -85,9 +52,9 @@ void ciolib_lowvideo(void);
 void ciolib_normvideo(void);
 int ciolib_puttext(int a,int b,int c,int d,unsigned char *e);
 int ciolib_gettext(int a,int b,int c,int d,unsigned char *e);
-void ciolib_textattr(int a);
+void ciolib_textattr(unsigned char a);
 void ciolib_delay(long a);
-int ciolib_putch(int a);
+int ciolib_putch(unsigned char a);
 void ciolib_setcursortype(int a);
 void ciolib_textmode(int mode);
 void ciolib_window(int sx, int sy, int ex, int ey);
@@ -123,6 +90,7 @@ int try_x_init(int mode)
 		cio_api.settitle=x_settitle;
 		return(1);
 	}
+	fprintf(stderr,"X init failed\n");
 	return(0);
 }
  #endif
@@ -150,6 +118,7 @@ int try_curses_init(int mode)
 		cio_api.settitle=NULL;
 		return(1);
 	}
+	fprintf(stderr,"Curses init failed\n");
 	return(0);
 }
 #endif
@@ -178,6 +147,7 @@ int try_ansi_init(int mode)
 		cio_api.settitle=NULL;
 		return(1);
 	}
+	fprintf(stderr,"ANSI init failed\n");
 	return(0);
 }
 
@@ -188,7 +158,7 @@ int try_ansi_init(int mode)
 int try_conio_init(int mode)
 {
 	/* This should test for something or other */
-	if(win32_initciolib(C80)) {
+	if(win32_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_CONIO;
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
@@ -209,6 +179,7 @@ int try_conio_init(int mode)
 		cio_api.settitle=win32_settitle;
 		return(1);
 	}
+	fprintf(stderr,"CONIO init failed\n");
 	return(0);
 }
 #endif
@@ -248,7 +219,7 @@ int initciolib(int mode)
 			break;
 	}
 	if(cio_api.mode==CIOLIB_MODE_AUTO) {
-		fprintf(stderr,"CIOLIB initialization failed!\n");
+		fprintf(stderr,"CIOLIB initialization failed!");
 		return(-1);
 	}
 
@@ -341,6 +312,7 @@ char *ciolib_cgets(char *str)
 {
 	int	maxlen;
 	int len=0;
+	int chars;
 	int ch;
 
 	CIOLIB_INIT();
@@ -376,39 +348,6 @@ char *ciolib_cgets(char *str)
 	return(&str[2]);
 }
 
-#ifdef _MSC_VER	/* Use lame vsscanf() implementation */
-/* This is a way to do _vsscanf without using fancy stack tricks or using the
- * "_input" method provided by Microsoft, which is no longer exported as of .NET.
- * The function has a limit of 25 arguments (or less if you run out of stack space),
- *  but how many arguments do you need?
- */
-/* From "krabsheva" - http://www.codeguru.com/Cpp/Cpp/string/comments.php/c5631/?thread=1051 */
-int vsscanf( const char *buffer, const char *format, va_list arg_ptr )
-{
-	int i, ret;
-	void *arg_arr[25];
-
-	// Do exception handling in case we go too far //
-	__try
-	{
-		for ( i = 0; i < 25; i++ )
-			arg_arr[i] = va_arg( arg_ptr, void * );
-	}
-	__except( EXCEPTION_EXECUTE_HANDLER )
-	{
-	}
-
-	/* This is lame, but the extra arguments won't be used by sscanf */
-	ret = sscanf( buffer, format, arg_arr[0], arg_arr[1], arg_arr[2], arg_arr[3],
-		arg_arr[4], arg_arr[5], arg_arr[6], arg_arr[7], arg_arr[8], arg_arr[9],
-		arg_arr[10], arg_arr[11], arg_arr[12], arg_arr[13], arg_arr[14],
-		arg_arr[15], arg_arr[16], arg_arr[17], arg_arr[18], arg_arr[19],
-		arg_arr[20], arg_arr[21], arg_arr[22], arg_arr[23], arg_arr[24] );
-
-	return ret;
-}
-#endif
-
 int ciolib_cscanf (char *format , ...)
 {
 	char str[255];
@@ -428,6 +367,7 @@ char *ciolib_getpass(const char *prompt)
 {
 	static char pass[9];
 	int len=0;
+	int chars;
 	int ch;
 
 	CIOLIB_INIT();
@@ -484,6 +424,7 @@ void ciolib_gettextinfo(struct text_info *info)
 
 void ciolib_wscroll(void)
 {
+	char *buf;
 	int os;
 	struct text_info ti;
 
@@ -662,6 +603,7 @@ void ciolib_insline(void)
 int ciolib_cprintf(char *fmat, ...)
 {
     va_list argptr;
+	int		pos;
 	int		ret;
 #ifdef _WIN32			/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
 	char	str[16384];
@@ -670,7 +612,7 @@ int ciolib_cprintf(char *fmat, ...)
 #endif
 
 	CIOLIB_INIT();
-
+	
     va_start(argptr,fmat);
 #ifdef _WIN32
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
@@ -700,7 +642,7 @@ int ciolib_cputs(char *str)
 
 	CIOLIB_INIT();
 
-	olddmc=dont_move_cursor;
+	olddmc=dont_move_cursor;	
 	dont_move_cursor=1;
 	for(pos=0;str[pos];pos++)
 	{
@@ -785,7 +727,7 @@ int ciolib_gettext(int a,int b,int c,int d,unsigned char *e)
 	return(cio_api.gettext(a,b,c,d,e));
 }
 
-void ciolib_textattr(int a)
+void ciolib_textattr(unsigned char a)
 {
 	CIOLIB_INIT();
 	
@@ -799,12 +741,11 @@ void ciolib_delay(long a)
 	cio_api.delay(a);
 }
 
-int ciolib_putch(int a)
+int ciolib_putch(unsigned char a)
 {
-	unsigned char a1=a;
 	CIOLIB_INIT();
 
-	return(cio_api.putch(a1));
+	return(cio_api.putch(a));
 }
 
 void ciolib_setcursortype(int a)
