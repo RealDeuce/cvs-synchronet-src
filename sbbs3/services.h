@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.16 2003/06/07 02:47:29 rswindell Exp $ */
+/* $Id: services.h,v 1.17 2003/07/07 21:44:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,8 @@ typedef struct {
 
 /* Option bit definitions	*/
 #define SERVICE_OPT_UDP			(1<<0)	/* UDP Socket */
-#define SERVICE_OPT_STATIC		(1<<1)	/* Static server (accepts client connectsions) */
+#define SERVICE_OPT_STATIC		(1<<1)	/* Static service (accepts client connectsions) */
+#define SERVICE_OPT_STATIC_LOOP (1<<2)	/* Loop static service until terminated */
 
 #ifdef __cplusplus
 extern "C" {

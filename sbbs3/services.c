@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.109 2003/07/04 10:07:05 rswindell Exp $ */
+/* $Id: services.c,v 1.110 2003/07/07 21:44:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -956,7 +956,11 @@ static void js_static_service_thread(void* arg)
 		lprintf("%04d !JavaScript FAILED to compile script (%s)",service->socket,spath);
 	else  {
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
-		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+
+		do {
+			JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+		} while(!service->terminated && service->options&SERVICE_OPT_STATIC_LOOP);
+
 		JS_DestroyScript(js_cx, js_script);
 	}
 	JS_DestroyContext(js_cx);	/* Free Context */
@@ -1254,7 +1258,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.109 $", "%*s %s", revision);
+	sscanf("$Revision: 1.110 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
