@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.274 2003/08/20 09:58:15 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.275 2003/08/30 06:33:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2599,6 +2599,15 @@ static void smtp_thread(void* arg)
 			}
 
 			usernum=0;	/* unknown user at this point */
+
+			tp=strrchr(p,'@');	/* Double-@? Routed QWKnet mail? */
+			if(tp!=NULL) {
+				*tp=0;
+				SAFECOPY(rcpt_addr,p);
+				p=tp+1;
+				no_forward=TRUE;
+			}
+
 			if(startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER 
 				&& isdigit(*p)) {
 				usernum=atoi(p);			/* RX by user number */
@@ -3291,7 +3300,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.274 $", "%*s %s", revision);
+	sscanf("$Revision: 1.275 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
