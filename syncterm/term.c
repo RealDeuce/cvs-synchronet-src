@@ -76,7 +76,6 @@ void mousedrag(unsigned char *scrollback)
 								outpos=lastchar;
 								copybuf[outpos++]='\r';
 								copybuf[outpos++]='\n';
-								lastchar=outpos;
 							}
 						}
 						copybuf[outpos]=0;
