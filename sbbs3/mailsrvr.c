@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.193 2002/10/13 11:14:52 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.194 2002/10/15 00:47:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2181,13 +2181,13 @@ static void smtp_thread(void* arg)
 					for(tp=rcpt_name;*tp;tp++)	
 						if(*tp=='.') *tp=' ';
 
-					if(!stricmp(rcpt_name,scfg.sys_op))
+					if(!stricmp(p,scfg.sys_op) || !stricmp(rcpt_name,scfg.sys_op))
 						usernum=1;			/* RX by "sysop.alias" */
 
-					if(!usernum)			/* RX by "real name" */
+					if(!usernum && scfg.msg_misc&MM_REALNAME)	/* RX by "real name" */
 						usernum=userdatdupe(&scfg, 0, U_NAME, LEN_NAME, p, FALSE);
 
-					if(!usernum)			/* RX by "real.name" */
+					if(!usernum && scfg.msg_misc&MM_REALNAME)	/* RX by "real.name" */
 						usernum=userdatdupe(&scfg, 0, U_NAME, LEN_NAME, rcpt_name, FALSE);
 				}
 			}
@@ -2842,7 +2842,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.193 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.194 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

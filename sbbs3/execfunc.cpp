@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.25 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.26 2002/10/15 00:47:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,7 +181,8 @@ int sbbs_t::exec_function(csi_t *csi)
 			if(strchr(csi->str,'@')) {
 				i=1;
 				netmail(csi->str,nulstr,0); }
-			else if((i=finduser(csi->str))!=0)
+			else if((i=finduser(csi->str))!=0 
+				|| (cfg.msg_misc&MM_REALNAME && (i=userdatdupe(0,U_NAME,LEN_NAME,csi->str,false))!=0))
 				email(i,nulstr,nulstr,WM_EMAIL);
 			csi->logic=!i;
 			return(0);
@@ -212,7 +213,8 @@ int sbbs_t::exec_function(csi_t *csi)
 			if(strchr(csi->str,'@')) {
 				i=1;
 				netmail(csi->str,nulstr,WM_FILE); }
-			else if((i=finduser(csi->str))!=0)
+			else if((i=finduser(csi->str))!=0
+				|| (cfg.msg_misc&MM_REALNAME && (i=userdatdupe(0,U_NAME,LEN_NAME,csi->str,false))!=0))
 				email(i,nulstr,nulstr,WM_EMAIL|WM_FILE);
 			csi->logic=!i;
 			return(0);
