@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.237 2003/05/14 20:38:40 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.238 2003/06/06 22:09:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1821,9 +1821,7 @@ static void receive_thread(void* arg)
 				putextdesc(&scfg,f.dir,f.datoffset,ext);
 
 			if(scfg.dir[f.dir]->upload_sem[0])
-				if((file=sopen(scfg.dir[f.dir]->upload_sem,O_WRONLY|O_CREAT|O_TRUNC
-					,SH_DENYNO,S_IREAD|S_IWRITE))!=-1)
-					close(file);
+				ftouch(scfg.dir[f.dir]->upload_sem);
 			/**************************/
 			/* Update Uploader's Info */
 			/**************************/
@@ -4417,7 +4415,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.237 $", "%*s %s", revision);
+	sscanf("$Revision: 1.238 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

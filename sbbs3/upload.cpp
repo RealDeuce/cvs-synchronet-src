@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.31 2003/04/08 11:04:54 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.32 2003/06/06 22:09:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,9 +195,7 @@ bool sbbs_t::uploadfile(file_t *f)
 		,f->name,cfg.lib[cfg.dir[f->dir]->lib]->sname
 		,cfg.dir[f->dir]->sname);
 	if(cfg.dir[f->dir]->upload_sem[0])
-		if((file=nopen(cmdstr(cfg.dir[f->dir]->upload_sem,nulstr,nulstr,NULL)
-			,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
-			close(file);
+		ftouch(cmdstr(cfg.dir[f->dir]->upload_sem,nulstr,nulstr,NULL));
 	logline("U+",str);
 	/**************************/
 	/* Update Uploader's Info */

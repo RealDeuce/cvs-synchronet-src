@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.21 2003/05/01 10:39:12 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.22 2003/06/06 22:09:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,9 +265,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 		autohangup();
 
 	if(cfg.inetmail_sem[0]) 	 /* update semaphore file */
-		if((file=nopen(cmdstr(cfg.inetmail_sem,nulstr,nulstr,NULL)
-			,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
-			close(file);
+		ftouch(cmdstr(cfg.inetmail_sem,nulstr,nulstr,NULL));
 	if(!(useron.exempt&FLAG('S')))
 		subtract_cdt(&cfg,&useron,cfg.inetmail_cost);
 
