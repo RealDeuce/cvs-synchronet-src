@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.152 2004/09/08 10:07:12 deuce Exp $
+# $Id: GNUmakefile,v 1.153 2004/09/08 21:34:30 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -270,7 +270,6 @@ SMBUTIL_OBJS = \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/genwrap.o \
-	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/str_util.o
 FORCE$(SMBUTIL): $(SMBUTIL_OBJS)
 	
@@ -292,8 +291,10 @@ SBBSECHO_OBJS = \
 	$(LIBODIR)/userdat.o \
 	$(LIBODIR)/rechocfg.o \
 	$(LIBODIR)/conwrap.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(LIBODIR)/msg_id.o \
 	$(SMB_OBJS)
 
 FORCE$(SBBSECHO): $(SBBSECHO_OBJS)
@@ -334,6 +335,7 @@ ADDFILES_OBJS = \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/userdat.o \
 	$(LIBODIR)/filedat.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
 
@@ -355,6 +357,7 @@ FILELIST_OBJS = \
 	$(LIBODIR)/str_util.o \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/filedat.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
 
@@ -376,6 +379,7 @@ MAKEUSER_OBJS = \
 	$(LIBODIR)/str_util.o \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/userdat.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
 
