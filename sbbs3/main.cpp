@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.328 2004/08/03 07:27:18 rswindell Exp $ */
+/* $Id: main.cpp,v 1.329 2004/08/04 04:54:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4014,7 +4014,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef __unix__	//	unix-domain spy sockets
-	for(i=first_node;i<=last_node;i++)  {
+	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
 	    if((uspy_listen_socket[i-1]=socket(PF_UNIX,SOCK_STREAM,0))==INVALID_SOCKET)
 	        lprintf(LOG_ERR,"Node %d !ERROR %d creating local spy socket"
 	            , i, errno);
