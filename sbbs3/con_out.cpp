@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.26 2003/08/28 00:25:15 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.27 2003/08/28 01:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -413,7 +413,7 @@ void sbbs_t::ctrl_a(char x)
 			console&=~CON_ECHO_OFF;
 			break;
 		case '+':	/* push current attribte */
-			if(attr_sp<sizeof(attr_stack))
+			if(attr_sp<(int)sizeof(attr_stack))
 				attr_stack[attr_sp++]=curatr;
 			break;
 		case '-':	/* pop current attribute OR optimized "normal" */
