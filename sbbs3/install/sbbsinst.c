@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.13 2003/01/23 02:07:14 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.14 2003/01/23 02:08:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,9 +390,7 @@ endif
 		sprintf(cflags,"CFLAGS=%s",params.cflags);
 		putenv(cflags);
 	}
-	fprintf(makefile,"SBBSDIR := ");
-	fputs(params.install_path);
-	fprintf(makefile,"\n");
+	fprintf(makefile,"SBBSDIR := %s\n",params.install_path);
 
 /* Not supported
 ifdef JSLIB
@@ -410,7 +408,7 @@ endif
 	fprintf(makefile," $(SBBSDIR)/src/mozilla $(SBBSDIR)/lib/mozilla/js/%s.%s\n",platform,build);
 	fprintf(makefile,"\n");	
 	fprintf(makefile,"	gmake -C $(SBBSDIR)/src/sbbs3 $(MKFLAGS)\n");
-	fputs(makefile,"     MKFLAGS	+=	BAJAPATH=../src/sbbs3/%s.%s.exe.%s/baja\n\n",ccpre,platform,build);
+	fprintf(makefile,"     MKFLAGS	+=	BAJAPATH=../src/sbbs3/%s.%s.exe.%s/baja\n\n",ccpre,platform,build);
 
 	fprintf(makefile,"scfg:");
 	if(params.cvs)
