@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbsctrl.c,v 1.1 2000/11/04 00:23:15 rswindell Exp $ */
+/* $Id: sbbsctrl.c,v 1.2 2000/11/04 09:00:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@ bbs_startup_t	bbs_startup;
 /************************************************/
 /* Truncates white-space chars off end of 'str' */
 /************************************************/
-void truncsp(char *str)
+static void truncsp(char *str)
 {
 	uint c;
 

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.28 2000/11/04 05:59:09 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.29 2000/11/04 09:00:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,7 +284,7 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 /************************************************/
 /* Truncates white-space chars off end of 'str' */
 /************************************************/
-void truncsp(char *str)
+static void truncsp(char *str)
 {
 	uint c;
 
