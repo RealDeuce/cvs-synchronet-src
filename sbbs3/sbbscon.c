@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.21 2001/11/01 18:19:52 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.22 2001/11/09 18:27:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,6 @@
 /* Synchronet-specific headers */
 #include "conwrap.h"	/* kbhit/getch */
 #include "sbbs.h"
-#include "bbs_thrd.h"	/* bbs_thread */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
 #include "mailsrvr.h"	/* mail_startup_t, mail_server */
 

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.72 2001/11/05 11:05:52 rswindell Exp $ */
+/* $Id: main.cpp,v 1.73 2001/11/09 18:27:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,6 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
-#include "bbs_thrd.h"
 
 //---------------------------------------------------------------------------
 
