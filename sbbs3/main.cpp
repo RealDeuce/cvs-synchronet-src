@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.207 2002/12/04 05:32:03 rswindell Exp $ */
+/* $Id: main.cpp,v 1.208 2002/12/06 07:18:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3776,6 +3776,9 @@ void DLLCALL bbs_thread(void* arg)
 				lprintf("!ERROR %d selecting sockets",ERROR_VALUE);
 			break;
 		}
+
+		if(telnet_socket==INVALID_SOCKET)	/* terminated */
+			break;
 
 		client_addr_len = sizeof(client_addr);
 
