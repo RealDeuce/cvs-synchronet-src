@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.63 2003/03/29 04:53:38 deuce Exp $
+# $Id: GNUmakefile,v 1.64 2003/03/29 05:19:42 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -180,7 +180,7 @@ CON_OBJS	= $(EXEODIR)/sbbscon.o $(EXEODIR)/conwrap.o \
 		  $(EXEODIR)/ini_file.o $(EXEODIR)/sbbs_ini.o
 FTP_OBJS	= $(LIBODIR)/ftpsrvr.o
 MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o \
- 		  $(LIBODIR)/mime.o
+ 		  $(LIBODIR)/mime.o $(LIBODIR)/base64.o
 WEB_OBJS	= $(LIBODIR)/websrvr.o $(LIBODIR)/sockwrap.o $(LIBODIR)/base64.o
 SERVICE_OBJS= $(LIBODIR)/services.o
 
