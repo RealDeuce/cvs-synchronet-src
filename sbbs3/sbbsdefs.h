@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.108 2003/09/19 00:29:17 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.109 2003/09/26 22:55:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,10 +220,11 @@ typedef struct {
 #define NMAIL_FILE		(1<<5)		/* Allow file attachments */
 #define NMAIL_DIRECT	(1<<6)		/* Default netmail to direct */
 
-									/* Bit values for sub_cfg and sav_sub_cfg	*/
-#define SUB_CFG_NSCAN	0x0005		/* bits 0 and 2								*/
-#define SUB_CFG_SSCAN	0x0002		/* bit 1									*/
-#define SUB_CFG_YSCAN	0x0100		/* bit 9 (bits 9-15 default to OFF)			*/
+									/* Bit values for subscan_t.cfg and sav_cfg	*/
+#define SUB_CFG_NSCAN	0x0005		/* Auto-scan for new messages				*/
+#define SUB_CFG_SSCAN	0x0002		/* Auto-scan for unread messages to you		*/
+#define SUB_CFG_YSCAN	0x0100		/* Auto-scan for new messages to you only	*/
+									/* (bits 8-15 default to off)				*/
 
 									/* Bit values for sub[x].misc */
 #define SUB_QNET		(1L<<3) 	/* Sub-board is netted via QWK network */
