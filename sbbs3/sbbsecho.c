@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.78 2002/11/26 06:58:29 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.79 2003/01/30 23:24:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,6 +76,7 @@ int secure,cur_smb=0;
 FILE *fidologfile=NULL;
 two_two_t two_two;
 two_plus_t two_plus;
+BOOL twit_list;
 
 faddr_t		sys_faddr;
 config_t	cfg;
@@ -1676,8 +1677,12 @@ void pack_bundle(char *infile,faddr_t dest)
 	sprintf(day,"%-.2s",ctime(&now));
 	strupr(day);
 	if(misc&FLO_MAILER) {
-		if(node<cfg.nodecfgs && cfg.nodecfg[node].route.zone)
+		if(node<cfg.nodecfgs && cfg.nodecfg[node].route.zone) {
 			dest=cfg.nodecfg[node].route;
+			if(cfg.log&LOG_ROUTING)
+				logprintf("Routing %s to %s",infile,faddrtoa(&dest,NULL));
+		}
+
 		if(dest.zone==scfg.faddr[0].zone)	/* Default zone, use default outbound */
 			strcpy(outbound,cfg.outbound);
 		else {							/* Inter-zone outbound is OUTBOUND.XXX */
@@ -2278,6 +2283,15 @@ int fmsgtosmsg(uchar HUGE16 *fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	faddr_t faddr,origaddr,destaddr;
 	smbmsg_t	msg;
 	smb_t	*smbfile;
+	char	fname[MAX_PATH+1];
+
+	if(twit_list) {
+		sprintf(fname,"%stwitlist.cfg",scfg.ctrl_dir);
+		if(findstr(fmsghdr.from,fname)) {
+			printf("Filtering message from twit: %s",fmsghdr.from);
+			return(0);
+		}
+	}
 
 	memset(&msg,0,sizeof(smbmsg_t));
 	msg.hdr.version=smb_ver();
@@ -3955,7 +3969,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.78 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.79 $" + 11, "%s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4103,6 +4117,9 @@ int main(int argc, char **argv)
 		printf("!Failed to load configuration files\n");
 		bail(1);
 	}
+
+	sprintf(str,"%stwitlist.cfg",scfg.ctrl_dir);
+	twit_list=fexist(str);
 
 	if(scfg.total_faddrs<1) {
 		sys_faddr.zone=sys_faddr.net=sys_faddr.node=1;
