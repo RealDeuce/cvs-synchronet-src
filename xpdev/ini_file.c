@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.39 2004/07/02 00:26:52 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.40 2004/07/03 00:09:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -262,11 +262,13 @@ BOOL iniRemoveValue(str_list_t* list, const char* section, const char* key)
 {
 	char	val[INI_MAX_VALUE_LEN];
 	size_t	i;
+    char*   p;
 	char*	vp;
 
 	i=find_value_index(*list, section, key, val);
 
-	if(key_name((*list)[i], &vp)==NULL)
+    p=key_name((*list)[i], &vp);
+	if(p===NULL || p==INI_NEW_SECTION)
 		return(FALSE);
 
 	*vp=0;	/* Terminate string at beginning of value */
