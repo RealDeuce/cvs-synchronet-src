@@ -3,7 +3,6 @@
 #include <vcl.h>
 #pragma hdrstop
 
-#include "MainFormUnit.h"
 #include "TextFileEditUnit.h"
 #include "ServicesCfgDlgUnit.h"
 #include <stdio.h>			// sprintf()
@@ -22,14 +21,18 @@ void __fastcall TServicesCfgDlg::ServicesCfgButtonClick(TObject *Sender)
 {
 	char filename[MAX_PATH+1];
 
-    iniFileName(filename,sizeof(filename),MainForm->cfg.ctrl_dir,"services.ini");
-    MainForm->EditFile(filename,"Services Configuration");
+    sprintf(filename,"%s%s",MainForm->cfg.ctrl_dir,((TButton*)Sender)->Caption);
+	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
+	TextFileEditForm->Filename=AnsiString(filename);
+    TextFileEditForm->Caption="Services Configuration";
+	TextFileEditForm->ShowModal();
+    delete TextFileEditForm;
 }
 //---------------------------------------------------------------------------
 void __fastcall TServicesCfgDlg::FormShow(TObject *Sender)
 {
     char str[128];
-    
+
     if(MainForm->services_startup.interface_addr==0)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
