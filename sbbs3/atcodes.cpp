@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.41 2004/07/01 07:28:53 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.40 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		return(str);
 	}
 
-	if(!strcmp(sp,"VER_NOTICE"))
+	if(!strcmp(sp,"VER_NOTICE")) 
 		return(VERSION_NOTICE);
 
 	if(!strcmp(sp,"OS_VER"))
@@ -163,7 +163,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		return(str);
 	}
 
-	if(!strcmp(sp,"SOCKET_LIB"))
+	if(!strcmp(sp,"SOCKET_LIB")) 
 		return(socklib_version(str,SOCKLIB_DESC));
 
 	if(!strcmp(sp,"MSG_LIB")) {
@@ -210,7 +210,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		return(nulstr);
 	}
 
-	if(!strcmp(sp,"EMAILADDR"))
+	if(!strcmp(sp,"EMAILADDR")) 
 		return(usermailaddr(&cfg, str
 			,cfg.inetmail_misc&NMAIL_ALIAS ? useron.alias : useron.name));
 
@@ -221,27 +221,23 @@ char* sbbs_t::atcode(char* sp, char* str)
 		now=time(NULL);
 		memset(&tm,0,sizeof(tm));
 		localtime_r(&now,&tm);
-		if(cfg.sys_misc&SM_MILITARY)
-			sprintf(str,"%02d:%02d"
-		        	,tm.tm_hour,tm.tm_min);
-		else
-			sprintf(str,"%02d:%02d %s"
-				,tm.tm_hour==0 ? 12
-				: tm.tm_hour>12 ? tm.tm_hour-12
-				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+		sprintf(str,"%02d:%02d %s"
+			,tm.tm_hour==0 ? 12
+			: tm.tm_hour>12 ? tm.tm_hour-12
+			: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am"); 
 		return(str);
 	}
 
 	if(!strcmp(sp,"DATE") || !strcmp(sp,"SYSDATE")) {
 		now=time(NULL);
-		return(unixtodstr(&cfg,now,str));
+		return(unixtodstr(&cfg,now,str)); 
 	}
 
 	if(!strcmp(sp,"TMSG")) {
 		l=0;
 		for(i=0;i<cfg.total_subs;i++)
 			l+=getposts(&cfg,i); 		/* l=total posts */
-		sprintf(str,"%lu",l);
+		sprintf(str,"%lu",l); 
 		return(str);
 	}
 
@@ -254,13 +250,13 @@ char* sbbs_t::atcode(char* sp, char* str)
 		l=0;
 		for(i=0;i<cfg.total_dirs;i++)
 			l+=getfiles(&cfg,i);
-		sprintf(str,"%lu",l);
+		sprintf(str,"%lu",l); 
 		return(str);
 	}
 
 	if(!strcmp(sp,"TCALLS") || !strcmp(sp,"NUMCALLS")) {
 		getstats(&cfg,0,&stats);
-		sprintf(str,"%lu",stats.logons);
+		sprintf(str,"%lu",stats.logons); 
 		return(str);
 	}
 
@@ -312,8 +308,8 @@ char* sbbs_t::atcode(char* sp, char* str)
 		i=atoi(sp+4);
 		if(i && i<=cfg.sys_nodes) {
 			getnodedat(i,&node,0);
-			printnodedat(i,&node);
-		}
+			printnodedat(i,&node); 
+		} 
 		return(nulstr);
 	}
 
@@ -331,7 +327,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		strcpy(str,useron.alias);
 		tp=strchr(str,' ');
 		if(tp) *tp=0;
-		return(str);
+		return(str); 
 	}
 
 	if(!strcmp(sp,"USERNUM")) {
@@ -354,8 +350,8 @@ char* sbbs_t::atcode(char* sp, char* str)
 		char* p=strchr(str,',');
 		if(p) {
 			*p=0;
-			return(str);
-		}
+			return(str); 
+		} 
 		return(nulstr);
 	}
 
@@ -365,14 +361,14 @@ char* sbbs_t::atcode(char* sp, char* str)
 			p++;
 			if(*p==' ')
 				p++;
-			return(p);
-		}
+			return(p); 
+		} 
 		return(nulstr);
 	}
 
 	if(!strcmp(sp,"CPU"))
 		return(useron.comp);
-
+		
 	if(!strcmp(sp,"HOST"))
 		return(client_name);
 
@@ -402,18 +398,18 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strcmp(sp,"TIMEON") || !strcmp(sp,"TIMEUSED")) {
 		now=time(NULL);
-		sprintf(str,"%lu",(ulong)(now-logontime)/60L);
+		sprintf(str,"%lu",(ulong)(now-logontime)/60L); 
 		return(str);
 	}
 
 	if(!strcmp(sp,"TUSED")) {              /* Synchronet only */
 		now=time(NULL);
-		return(sectostr(now-logontime,str)+1);
+		return(sectostr(now-logontime,str)+1); 
 	}
 
 	if(!strcmp(sp,"TLEFT")) {              /* Synchronet only */
 		gettimeleft();
-		return(sectostr(timeleft,str)+1);
+		return(sectostr(timeleft,str)+1); 
 	}
 
 	if(!strcmp(sp,"TPERD"))                /* Synchronet only */
@@ -429,11 +425,11 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strcmp(sp,"MINLEFT") || !strcmp(sp,"LEFT") || !strcmp(sp,"TIMELEFT")) {
 		gettimeleft();
-		sprintf(str,"%lu",timeleft/60);
+		sprintf(str,"%lu",timeleft/60); 
 		return(str);
 	}
 
-	if(!strcmp(sp,"LASTON"))
+	if(!strcmp(sp,"LASTON")) 
 		return(timestr(&useron.laston));
 
 	if(!strcmp(sp,"LASTDATEON"))
@@ -445,7 +441,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		sprintf(str,"%02d:%02d %s"
 			,tm.tm_hour==0 ? 12
 			: tm.tm_hour>12 ? tm.tm_hour-12
-			: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+			: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am"); 
 		return(str);
 	}
 
@@ -460,12 +456,12 @@ char* sbbs_t::atcode(char* sp, char* str)
 	}
 
 	if(!strcmp(sp,"FREESPACE")) {
-		sprintf(str,"%lu",getfreediskspace(cfg.temp_dir,0));
+		sprintf(str,"%lu",getfreediskspace(cfg.temp_dir,0)); 
 		return(str);
 	}
 
 	if(!strcmp(sp,"FREESPACEK")) {
-		sprintf(str,"%lu",getfreediskspace(cfg.temp_dir,1024));
+		sprintf(str,"%lu",getfreediskspace(cfg.temp_dir,1024)); 
 		return(str);
 	}
 
@@ -557,7 +553,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		l=useron.expire-now;
 		if(l<0)
 			l=0;
-		sprintf(str,"%lu",l/(1440L*60L));
+		sprintf(str,"%lu",l/(1440L*60L)); 
 		return(str);
 	}
 
@@ -625,16 +621,16 @@ char* sbbs_t::atcode(char* sp, char* str)
 		return(nulstr);
 	}
 
-	if(!strcmp(sp,"UP"))
+	if(!strcmp(sp,"UP")) 
 		return("\x1b[A");
 
-	if(!strcmp(sp,"DOWN"))
+	if(!strcmp(sp,"DOWN")) 
 		return("\x1b[B");
 
-	if(!strcmp(sp,"RIGHT"))
+	if(!strcmp(sp,"RIGHT")) 
 		return("\x1b[C");
 
-	if(!strcmp(sp,"LEFT"))
+	if(!strcmp(sp,"LEFT")) 
 		return("\x1b[D");
 
 	if(!strncmp(sp,"UP:",3)) {
@@ -689,7 +685,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	if(!strcmp(sp,"GN")) {
 		if(SMB_IS_OPEN(&smb))
 			ugrp=getusrgrp(smb.subnum);
-		else
+		else 
 			ugrp=usrgrps ? curgrp+1 : 0;
 		sprintf(str,"%u",ugrp);
 		return(str);
@@ -698,7 +694,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	if(!strcmp(sp,"GL")) {
 		if(SMB_IS_OPEN(&smb))
 			ugrp=getusrgrp(smb.subnum);
-		else
+		else 
 			ugrp=usrgrps ? curgrp+1 : 0;
 		sprintf(str,"%-4u",ugrp);
 		return(str);
@@ -707,7 +703,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	if(!strcmp(sp,"GR")) {
 		if(SMB_IS_OPEN(&smb))
 			ugrp=getusrgrp(smb.subnum);
-		else
+		else 
 			ugrp=usrgrps ? curgrp+1 : 0;
 		sprintf(str,"%4u",ugrp);
 		return(str);
@@ -808,7 +804,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		else if(noaccess_str==text[NoAccessDay])
 			sprintf(str,noaccess_str,wday[noaccess_val]);
 		else
-			sprintf(str,noaccess_str,noaccess_val);
+			sprintf(str,noaccess_str,noaccess_val); 
 		return(str);
 	}
 
@@ -816,28 +812,28 @@ char* sbbs_t::atcode(char* sp, char* str)
 		tp=strrchr(useron.alias,' ');
 		if(tp) tp++;
 		else tp=useron.alias;
-		return(tp);
+		return(tp); 
 	}
 
 	if(!strcmp(sp,"REAL")) {
 		strcpy(str,useron.name);
 		tp=strchr(str,' ');
 		if(tp) *tp=0;
-		return(str);
+		return(str); 
 	}
 
 	if(!strcmp(sp,"FIRSTREAL")) {
 		strcpy(str,useron.name);
 		tp=strchr(str,' ');
 		if(tp) *tp=0;
-		return(str);
+		return(str); 
 	}
 
 	if(!strcmp(sp,"LASTREAL")) {
 		tp=strrchr(useron.name,' ');
 		if(tp) tp++;
 		else tp=useron.name;
-		return(tp);
+		return(tp); 
 	}
 
 	if(!strcmp(sp,"MAILW")) {
@@ -873,29 +869,29 @@ char* sbbs_t::atcode(char* sp, char* str)
 	if(!strncmp(sp,"STATS.",6)) {
 		getstats(&cfg,0,&stats);
 		sp+=6;
-		if(!strcmp(sp,"LOGONS"))
+		if(!strcmp(sp,"LOGONS")) 
 			sprintf(str,"%lu",stats.logons);
-		else if(!strcmp(sp,"LTODAY"))
+		else if(!strcmp(sp,"LTODAY")) 
 			sprintf(str,"%lu",stats.ltoday);
-		else if(!strcmp(sp,"TIMEON"))
+		else if(!strcmp(sp,"TIMEON")) 
 			sprintf(str,"%lu",stats.timeon);
-		else if(!strcmp(sp,"TTODAY"))
+		else if(!strcmp(sp,"TTODAY")) 
 			sprintf(str,"%lu",stats.ttoday);
-		else if(!strcmp(sp,"ULS"))
+		else if(!strcmp(sp,"ULS")) 
 			sprintf(str,"%lu",stats.uls);
-		else if(!strcmp(sp,"ULB"))
+		else if(!strcmp(sp,"ULB")) 
 			sprintf(str,"%lu",stats.ulb);
-		else if(!strcmp(sp,"DLS"))
+		else if(!strcmp(sp,"DLS")) 
 			sprintf(str,"%lu",stats.dls);
-		else if(!strcmp(sp,"DLB"))
+		else if(!strcmp(sp,"DLB")) 
 			sprintf(str,"%lu",stats.dlb);
-		else if(!strcmp(sp,"PTODAY"))
+		else if(!strcmp(sp,"PTODAY")) 
 			sprintf(str,"%lu",stats.ptoday);
-		else if(!strcmp(sp,"ETODAY"))
+		else if(!strcmp(sp,"ETODAY")) 
 			sprintf(str,"%lu",stats.etoday);
-		else if(!strcmp(sp,"FTODAY"))
+		else if(!strcmp(sp,"FTODAY")) 
 			sprintf(str,"%lu",stats.ftoday);
-		else if(!strcmp(sp,"NUSERS"))
+		else if(!strcmp(sp,"NUSERS")) 
 			sprintf(str,"%u",stats.nusers);
 		return(str);
 	}
@@ -942,7 +938,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		if(current_msg->hdr.attr&MSG_ANONYMOUS && !SYSOP)
 			return(text[Anonymous]);
 		return(current_msg->from);
-	}
+	}		
 	if(!strcmp(sp,"MSG_FROM_EXT") && current_msg!=NULL) {
 		if(!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)
 			if(current_msg->from_ext!=NULL)
