@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.10 2001/08/08 00:42:16 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.11 2001/08/29 17:23:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,9 +66,11 @@ char sbbs_t::getkey(long mode)
 				bputs("\b \b");
 			return(0); }
 
+#if 0	// moved to inkey() on AUG-29-2001
 		if(sys_status&SS_SYSPAGE) {
 			sbbs_beep(sbbs_random(800),100);
 		}
+#endif
 
 		if(mode&K_SPIN)
 			switch(spin) {
