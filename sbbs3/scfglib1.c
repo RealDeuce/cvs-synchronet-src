@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.41 2002/12/07 00:55:37 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.42 2003/01/03 11:12:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -784,14 +784,16 @@ void make_data_dirs(scfg_t* cfg)
 	int		i;
 
 	for(i=0;i<cfg->total_subs;i++) {
-		if(cfg->sub[i]->data_dir[0]) {
+		if(cfg->sub[i]->data_dir[0]
+			&& (!i || stricmp(cfg->sub[i]->data_dir,cfg->sub[i-1]->data_dir))) {
 			backslash(cfg->sub[i]->data_dir);
 			md(cfg->sub[i]->data_dir);
 		}
 	}
 
 	for(i=0;i<cfg->total_dirs;i++) {
-		if(cfg->dir[i]->data_dir[0]) {
+		if(cfg->dir[i]->data_dir[0]
+			&& (!i || stricmp(cfg->dir[i]->data_dir,cfg->dir[i-1]->data_dir))) {
 			backslash(cfg->dir[i]->data_dir);
 			md(cfg->dir[i]->data_dir);
 		}
