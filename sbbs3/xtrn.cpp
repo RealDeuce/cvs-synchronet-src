@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.60 2001/11/17 16:38:09 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.61 2001/11/17 16:39:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -946,7 +946,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 
 			if(rd>avail)
 				rd=avail;
-			if(rd>sizeof(buf)
+			if(rd>sizeof(buf))
 				rd=sizeof(buf);
 
 			if((rd=read(out_pipe[0],buf,rd))<1) {
