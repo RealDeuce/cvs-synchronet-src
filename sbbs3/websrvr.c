@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.246 2004/12/17 07:10:51 deuce Exp $ */
+/* $Id: websrvr.c,v 1.247 2004/12/18 00:40:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1004,8 +1004,6 @@ static void send_error(http_session_t * session, const char* message)
 
 void http_logon(http_session_t * session, user_t *usr)
 {
-	int	i;
-
 	if(usr==NULL)
 		getuserdat(&scfg, &session->user);
 	else
@@ -2851,7 +2849,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.246 $", "%*s %s", revision);
+	sscanf("$Revision: 1.247 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
