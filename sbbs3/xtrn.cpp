@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.148 2003/09/03 01:36:49 runderwo Exp $ */
+/* $Id: xtrn.cpp,v 1.149 2003/09/03 14:12:46 runderwo Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1409,7 +1409,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* Attempt to keep dosemu from prompting for a disclaimer. */
 
 		sprintf(str, "%s/.dosemu", cfg.ctrl_dir);
-		if (!isdir(str) {
+		if (!isdir(str)) {
 			mkdir(str, 0755);
 		}
 
