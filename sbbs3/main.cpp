@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.199 2002/11/07 09:31:30 rswindell Exp $ */
+/* $Id: main.cpp,v 1.200 2002/11/07 11:44:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,7 +790,6 @@ static BOOL winsock_startup(void)
 static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
   									BYTE* outbuf, int& outlen)
 {
-	char	str[32];
 	BYTE*   first_iac=NULL;
 	BYTE*	first_cr=NULL;
 	int 	i;
