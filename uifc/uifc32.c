@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.100 2004/09/21 02:58:52 deuce Exp $ */
+/* $Id: uifc32.c,v 1.92 2004/09/11 02:05:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ int kbwait(void) {
 	return(FALSE);
 }
 
-int inkey(void)
+int inkey()
 {
 	int c;
 
@@ -146,6 +146,9 @@ int uifcini32(uifcapi_t* uifcapi)
 {
 	int 	i;
 	struct	text_info txtinfo;
+#ifdef _WIN32
+	DWORD	conmode;
+#endif
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
         return(-1);
@@ -218,14 +221,16 @@ int uifcini32(uifcapi_t* uifcapi)
     clrscr();
 
     gettextinfo(&txtinfo);
+#ifdef _WIN32
     /* unsupported mode? */
     if(txtinfo.screenheight<MIN_LINES
 /*        || txtinfo.screenheight>MAX_LINES */
-        || txtinfo.screenwidth<40) {
+        || txtinfo.screenwidth<80) {
         textmode(C80);  /* set mode to 80x25*/
         gettextinfo(&txtinfo);
     }
 
+#endif
 
     api->scrn_len=txtinfo.screenheight;
     if(api->scrn_len<MIN_LINES) {
@@ -235,8 +240,8 @@ int uifcini32(uifcapi_t* uifcapi)
     }
     api->scrn_len--; /* account for status line */
 
-    if(txtinfo.screenwidth<40) {
-        cprintf("\7UIFC: Screen width (%u) must be at least 40 characters\r\n"
+    if(txtinfo.screenwidth<80) {
+        cprintf("\7UIFC: Screen width (%u) must be at least 80 characters\r\n"
             ,txtinfo.screenwidth);
         return(-3);
     }
@@ -244,18 +249,16 @@ int uifcini32(uifcapi_t* uifcapi)
 
     if(!(api->mode&UIFC_COLOR)
         && (api->mode&UIFC_MONO
-            || txtinfo.currmode==MONO || txtinfo.currmode==BW40 || txtinfo.currmode==BW80
-            || txtinfo.currmode==MONO14 || txtinfo.currmode==BW40X14 || txtinfo.currmode==BW80X14
-            || txtinfo.currmode==MONO21 || txtinfo.currmode==BW40X21 || txtinfo.currmode==BW80X21
-            || txtinfo.currmode==MONO28 || txtinfo.currmode==BW40X28 || txtinfo.currmode==BW80X28
-            || txtinfo.currmode==MONO43 || txtinfo.currmode==BW40X43 || txtinfo.currmode==BW80X43
-            || txtinfo.currmode==MONO50 || txtinfo.currmode==BW40X50 || txtinfo.currmode==BW80X50
-            || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60))
-	{
+            || txtinfo.currmode==MONO || txtinfo.currmode==BW80)) {
         bclr=BLACK;
         hclr=WHITE;
         lclr=LIGHTGRAY;
         cclr=LIGHTGRAY;
+#ifdef __unix__
+		if(txtinfo.currmode==MONO)
+			lbclr=WHITE|(BLACK<<4);		/* no color on curses means no inverse either */
+		else
+#endif
 			lbclr=BLACK|(LIGHTGRAY<<4);	/* lightbar color */
     } else {
         bclr=BLUE;
@@ -327,6 +330,18 @@ void uifcbail(void)
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
 	clrscr();
+#ifdef __unix__
+	if(cio_api.mode==CIOLIB_MODE_CURSES) {
+		nl();
+		nocbreak();
+		noraw();
+		refresh();
+		endwin();
+#ifdef XCURSES
+		XCursesExit();
+#endif
+	}
+#endif
 	FREE(blk_scrn);
 	FREE(tmp_buffer);
 	FREE(tmp_buffer2);
@@ -549,7 +564,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			*(ptr++)='[';
 			*(ptr++)=hclr|(bclr<<4);
 			/* *(ptr++)='þ'; */
-			*(ptr++)=0xfe;
+			*(ptr++)='X';
 			*(ptr++)=lclr|(bclr<<4);
 			*(ptr++)=']';
 			*(ptr++)=hclr|(bclr<<4);
@@ -767,7 +782,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
 					if(mevnt.startx>=s_left+left+3
-							&& mevnt.startx<=s_left+left+width-2
+							&& mevnt.startx<=s_left+left+width+1
 							&& mevnt.starty>=s_top+top+3
 							&& mevnt.starty<=(s_top+top+height)-2
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
@@ -817,20 +832,62 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					if(mevnt.startx==s_left+left+1
 							&& mevnt.starty==s_top+top+3
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-						i=CIO_KEY_PPAGE;
+						if(!opts)
+							continue;
+						*cur -= (height-5);
+						if(*cur<0)
+							*cur = 0;
+						if(bar)
+							*bar=0;
+						y=s_top+top;
+						gotoxy(s_left+left+1,s_top+top+3);
+						textattr(lclr|(bclr<<4));
+						if(*cur && opts>height-3)  /* Scroll mode */
+							putch(30);	   /* put the up arrow */
+						else
+							putch(' ');    /* delete the up arrow */
+						gotoxy(s_left+left+1,s_top+top+height-2);
+						if(opts > height-3 && *cur + height - 4 < opts)
+							putch(31);	   /* put the down arrow */
+						else
+							putch(' ');    /* delete the down arrow */
+						for(i=*cur,j=0;i<=*cur-5+height;i++,j++)
+							uprintf(s_left+left+3,s_top+top+3+j
+								,i==*cur ? lbclr
+									: lclr|(bclr<<4)
+								,"%-*.*s",width-4,width-4,option[i]);
+						continue;
 					}
 					/* Clicked Scroll Down */
 					if(mevnt.startx==s_left+left+1
 							&& mevnt.starty==(s_top+top+height)-2
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-						i=CIO_KEY_NPAGE;
+						if(!opts)
+							continue;
+						*cur += (height-5);
+						if(*cur>opts-1)
+							*cur = opts-1;
+						if(bar)
+							*bar = height-5;
+						y=height-5+s_top+top;
+						gotoxy(s_left+left+1,s_top+top+3);
+						textattr(lclr|(bclr<<4));
+						if(*cur>height-5)  /* Scroll mode */
+							putch(30);	   /* put the up arrow */
+						else
+							putch(' ');    /* delete the up arrow */
+						gotoxy(s_left+left+1,s_top+top+height-2);
+						if(*cur < opts-1)
+							putch(31);	   /* put the down arrow */
+						else
+							putch(' ');    /* delete the down arrow */
+						for(i=*cur+5-height,j=0;i<=*cur;i++,j++)
+							uprintf(s_left+left+3,s_top+top+3+j
+								,i==*cur ? lbclr
+									: lclr|(bclr<<4)
+								,"%-*.*s",width-4,width-4,option[i]);
+						continue;
 					}
-					/* Clicked Outside of Window */
-					if(mevnt.startx<s_left+left
-							|| mevnt.startx>s_left+left+width-1
-							|| mevnt.starty<s_top+top
-							|| mevnt.starty>s_top+top+height-1)
-						i=ESC;
 				}
 			}
 			if(i>255) {
@@ -1302,8 +1359,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							return(-1);
 						default:
-							if(mode&WIN_EXTKEYS)
-								return(-2-i);
+							return(-2-i);
 				}
 			}
 		}
@@ -1321,7 +1377,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 /*************************************************************************/
 /* This function is a windowed input string input routine.               */
 /*************************************************************************/
-int uinput(int mode, int left, int top, char *inprompt, char *str,
+int uinput(int mode, int left, int top, char *prompt, char *str,
 	int max, int kmode)
 {
 	unsigned char save_buf[2048],in_win[2048]
@@ -1330,11 +1386,9 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 	int height=3;
 	int i,plen,slen,j;
 	int	iwidth;
-	char *prompt;
 
 	reset_dynamic();
-	plen=strlen(inprompt);
-	prompt=strdup(inprompt);
+	plen=strlen(prompt);
 	if(!plen)
 		slen=4;
 	else
@@ -1354,16 +1408,6 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 		gettext(SCRN_LEFT+left,SCRN_TOP+top,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+height,save_buf);
 	iwidth=width-plen-slen;
-	while(iwidth<1 && plen>4) {
-		plen=strlen(prompt);
-		prompt[plen-1]=0;
-		prompt[plen-2]='.';
-		prompt[plen-3]='.';
-		prompt[plen-4]='.';
-		plen--;
-		iwidth=width-plen-slen;
-	}
-
 	i=0;
 	in_win[i++]='É';
 	in_win[i++]=hclr|(bclr<<4);
@@ -1375,7 +1419,7 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 		in_win[2]='[';
 		in_win[3]=hclr|(bclr<<4);
 		/* in_win[4]='þ'; */
-		in_win[4]=0xfe;
+		in_win[4]='X';
 		in_win[5]=lclr|(bclr<<4);
 		in_win[6]=']';
 		in_win[7]=hclr|(bclr<<4);
@@ -1453,7 +1497,6 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 	if(mode&WIN_SAV)
 		puttext(SCRN_LEFT+left,SCRN_TOP+top,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+height,save_buf);
-	free(prompt);
 	return(i);
 }
 
@@ -2021,7 +2064,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			tmp_buffer2[2]='[';
 			tmp_buffer2[3]=hclr|(bclr<<4);
 			/* tmp_buffer2[4]='þ'; */
-			tmp_buffer2[4]=0xfe;
+			tmp_buffer2[4]='X';
 			tmp_buffer2[5]=lclr|(bclr<<4);
 			tmp_buffer2[6]=']';
 			tmp_buffer2[7]=hclr|(bclr<<4);
