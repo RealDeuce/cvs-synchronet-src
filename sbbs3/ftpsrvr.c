@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.102 2001/09/18 20:34:16 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.103 2001/09/19 00:06:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2275,7 +2275,7 @@ static void ctrl_thread(void* arg)
 		cmd=buf;
 		while(((BYTE)*cmd)==TELNET_IAC) {
 			cmd++;
-			lprintf("%04d RX: Telnet cmd %d",sock,(BYTE)*cmd);
+			lprintf("%04d RX: Telnet cmd: %s",sock,telnet_cmd_desc(*cmd));
 			cmd++;
 		}
 		while(*cmd && *cmd<' ') {
