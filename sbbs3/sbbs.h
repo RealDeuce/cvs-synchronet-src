@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.137 2002/09/04 04:18:34 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.138 2002/09/04 09:17:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -835,8 +835,10 @@ extern "C" {
 		JSType			type;		/* return type */
 		const char*		args;		/* arguments */
 		const char*		desc;		/* description */
-		const char**	alias;		/* aliases */
+		const char*		alias;		/* a.k.a. */
 	} jsMethodSpec;
+
+	#define JSTYPE_ARRAY JSTYPE_LIMIT
 
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL js_MethodsToFunctions(jsMethodSpec meth[], JSFunctionSpec func[]);
