@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.31 2004/12/02 09:21:20 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.28 2004/11/03 03:58:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,9 +53,6 @@ typedef struct {
     DWORD	options;
     DWORD	js_max_bytes;
 	DWORD	js_cx_stack;
-	DWORD	js_branch_limit;
-	DWORD	js_yield_interval;
-	DWORD	js_gc_interval;
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
@@ -83,14 +80,11 @@ typedef struct {
     char	cgi_temp_dir[128];
     char**	index_file_name;		/* Index filenames */
 	char	logfile_base[128];		/* Logfile base name (date is appended) */
-	char	answer_sound[128];
-	char	hangup_sound[128];
-    char	hack_sound[128];
 
 	/* Misc */
     char	host_name[128];
 	BOOL	recycle_now;
-	BOOL	shutdown_now;
+	sem_t	recycle_sem;
 	DWORD	log_mask;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
