@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.34 2004/05/08 00:43:33 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.33 2003/10/24 22:09:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ int lprintf(int level, char *fmat, ...)
 	return(chcount);
 }
 
-void prep_desc(uchar *str)
+void prep_desc(char *str)
 {
 	char tmp[1024];
 	int i,j;
@@ -92,7 +92,7 @@ void prep_desc(uchar *str)
 			continue;
 		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
 			continue;
-		else if(str[i]>=SP)
+		else if((uchar)str[i]>=SP)
 			tmp[j++]=str[i];
 		else if(str[i]==TAB || (str[i]==CR && str[i+1]==LF))
 			tmp[j++]=SP;
@@ -669,7 +669,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.34 $", "%*s %s", revision);
+	sscanf("$Revision: 1.33 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
