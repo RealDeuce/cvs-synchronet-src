@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.1 2002/04/06 00:40:31 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.2 2002/04/06 09:14:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,7 @@
 /**********************************/
 /* Socket Implementation-specific */
 /**********************************/
-#ifdef _WINSOCKAPI_
+#if defined(_WINSOCKAPI_)
 
 #undef  EINTR
 #define EINTR			(WSAEINTR-WSABASEERR)

@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.2 2002/04/06 01:37:20 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.3 2002/04/06 09:14:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,20 +41,20 @@
 #include <stdio.h>		/* sprintf */
 #include "gen_defs.h"	/* ulong */
 
-#ifdef DLLEXPORT
-#undef DLLEXPORT
+#if defined(DLLEXPORT)
+	#undef DLLEXPORT
 #endif
-#ifdef DLLCALL
-#undef DLLCALL
+#if defined(DLLCALL)
+	#undef DLLCALL
 #endif
 
-#ifdef _WIN32
-	#ifdef WRAPPER_DLL
+#if defined(_WIN32)
+	#if defined(WRAPPER_DLL)
 		#define DLLEXPORT	__declspec(dllexport)
 	#else
 		#define DLLEXPORT	__declspec(dllimport)
 	#endif
-	#ifdef __BORLANDC__
+	#if defined(__BORLANDC__)
 		#define DLLCALL __stdcall
 	#else
 		#define DLLCALL
@@ -64,7 +64,7 @@
 	#define DLLCALL
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -167,11 +167,11 @@ extern "C" {
 
 #endif
 
-#ifdef __BORLANDC__
+#if defined(__BORLANDC__)
 	#define xp_random			random
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 
