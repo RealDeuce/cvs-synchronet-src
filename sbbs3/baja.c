@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.10 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: baja.c,v 1.11 2000/11/07 02:51:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -445,7 +445,6 @@ void compile(char *src)
 	long l,savline;
 	FILE *in;
 
-	strupr(src);
 	if((in=fopen(src,"rb"))==NULL) {
 		printf("error opening %s for read\n",src);
 		exit(1); }
