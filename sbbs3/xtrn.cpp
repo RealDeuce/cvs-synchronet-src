@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.99 2002/11/18 08:09:54 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.100 2002/11/18 23:57:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -995,18 +995,14 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
  	if(native) { // Native (32-bit) external
 
 		// Current environment passed to child process
-		sprintf(dszlog,"DSZLOG=%sPROTOCOL.LOG",cfg.node_dir);
-		sprintf(sbbsnode,"SBBSNODE=%s",cfg.node_dir);
-		sprintf(sbbsctrl,"SBBSCTRL=%s",cfg.ctrl_dir);
-		sprintf(sbbsdata,"SBBSDATA=%s",cfg.data_dir);
-		sprintf(sbbsexec,"SBBSEXEC=%s",cfg.exec_dir);
-		sprintf(sbbsnnum,"SBBSNNUM=%d",cfg.node_num);
-		putenv(dszlog); 		/* Makes the DSZ LOG active */
-		putenv(sbbsnode);
-		putenv(sbbsctrl);
-		putenv(sbbsdata);
-		putenv(sbbsexec);
-		if(putenv(sbbsnnum))
+		sprintf(dszlog,"%sPROTOCOL.LOG",cfg.node_dir);
+		setenv("DSZLOG",dszlog,1); 		/* Makes the DSZ LOG active */
+		setenv("SBBSNODE",cfg.node_dir,1);
+		setenv("SBBSCTRL",cfg.ctrl_dir,1);
+		setenv("SBBSDATA",cfg.data_dir,1);
+		setenv("SBBSEXEC",cfg.exec_dir,1);
+		sprintf(sbbsnnum,"%u",cfg.node_num);
+		if(setenv("SBBSNNUM",sbbsnnum,1))
         	errormsg(WHERE,ERR_WRITE,"environment",0);
 
 	} else {
