@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id: cmdshell.h,v 1.5 2001/06/21 01:31:57 rswindell Exp $ */
+/* $Id: cmdshell.h,v 1.6 2001/09/19 00:33:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -463,6 +463,7 @@ enum {
 	,COPY_CHAR						// Copy cmdkey to int var or str var
 	,SHIFT_TO_FIRST_CHAR			// Shift str var to first occurance of static char
 	,SHIFT_TO_LAST_CHAR				// Shift str var to last occurance of static char
+	,MATCHUSER						// Set int var to user number of user name (str var)
 	};
 
 /* Preceeded by CS_STR_FUNCTION */

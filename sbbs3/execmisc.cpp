@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.14 2001/06/26 02:44:09 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.15 2001/09/19 00:33:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -985,6 +985,19 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 							 ? cfg.prot[i]->dlcmd : cfg.prot[i]->ulcmd,*pp,*pp,buf)
 							,EX_OUTL)==0)
 							csi->logic=LOGIC_TRUE;
+					return(0);
+
+				case MATCHUSER:
+					lp=getintvar(csi,*(long *)csi->ip);
+					csi->ip+=4;
+					pp=getstrvar(csi,*(long *)csi->ip);
+					csi->ip+=4;
+					if(lp) {
+						if(pp && *pp)
+							*lp=matchuser(&cfg, *pp);
+						else
+							*lp=0; 
+					}
 					return(0);
 
 				default:
