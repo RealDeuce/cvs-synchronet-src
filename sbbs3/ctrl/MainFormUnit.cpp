@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.13 2000/11/15 04:17:20 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.14 2000/11/17 04:33:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1667,7 +1667,7 @@ void __fastcall TMainForm::ViewClientsExecute(TObject *Sender)
 //---------------------------------------------------------------------------
 
 
-void __fastcall TMainForm::UserEditorExecute(TObject *Sender)
+void __fastcall TMainForm::UserEditExecute(TObject *Sender)
 {
     char str[256];
 
@@ -1709,11 +1709,6 @@ void __fastcall TMainForm::BBSLoginMenuItemClick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TMainForm::UserListMenuItemClick(TObject *Sender)
-{
-    UserListForm->Show();    
-}
-//---------------------------------------------------------------------------
 
 void __fastcall TMainForm::ViewLogClick(TObject *Sender)
 {
@@ -1760,4 +1755,10 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
+
+void __fastcall TMainForm::UserListExecute(TObject *Sender)
+{
+    UserListForm->Show();
+}
+//---------------------------------------------------------------------------
 
