@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.6 2004/07/26 23:56:35 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.7 2004/07/27 09:11:03 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -139,7 +139,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 				thischar=attr&255-'A'+1;
 			}
 			else if(attr&A_ALTCHARSET) {
-				if(!(mode==CIOLIB_CURSES_IBM_MODE)){
+				if(!(mode==CIOLIB_MODE_CURSES_IBM)){
 					ext_char=A_ALTCHARSET|(attr&255);
 					/* likely ones */
 					if (ext_char == ACS_CKBOARD)
@@ -432,7 +432,7 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	int		ret;
 	chtype	cha;
 
-	if(!(mode==CIOLIB_CURSES_IBM_MODE))
+	if(!(mode==CIOLIB_MODE_CURSES_IBM))
 	{
 		switch(ch)
 		{
