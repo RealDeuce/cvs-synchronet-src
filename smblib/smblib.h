@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.16 2002/07/12 07:03:45 rswindell Exp $ */
+/* $Id: smblib.h,v 1.17 2002/07/21 23:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,11 +53,11 @@
 	#else
 		#define SMBCALL
 	#endif
-	#ifdef SMBDLL	/* SMBLIB contained in DLL */
-		#ifdef SMB_EXPORTS
-			#define SMBEXPORT __declspec( dllexport )
-		#else
+	#if defined(SMB_IMPORTS) || defined(SMB_EXPORTS)
+		#if defined(SMB_IMPORTS)
 			#define SMBEXPORT __declspec( dllimport )
+		#else
+			#define SMBEXPORT __declspec( dllexport )
 		#endif
 	#else	/* self-contained executable */
 		#define SMBEXPORT
