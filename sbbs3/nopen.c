@@ -2,13 +2,13 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.9 2003/04/30 20:32:43 rswindell Exp $ */
+/* $Id: nopen.c,v 1.10 2003/05/01 10:35:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -54,7 +54,7 @@ int nopen(char *str, int access)
     else share=SH_DENYRW;
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
-    while(((file=sopen(str,access,share))==-1)
+    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
         && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
         if(count)
             mswait(100);
