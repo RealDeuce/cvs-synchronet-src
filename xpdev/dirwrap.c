@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.18 2002/08/24 21:58:01 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.19 2002/09/13 01:26:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -541,6 +541,34 @@ int DLLCALL getfattr(const char* filename)
 
 	return(st.st_mode);
 #endif
+}
+
+/****************************************************************************/
+/* Deletes all files in dir 'path' that match file spec 'spec'              */
+/****************************************************************************/
+ulong DLLCALL delfiles(char *inpath, char *spec)
+{
+	char	path[MAX_PATH+1];
+	char	lastch;
+    uint	i,files=0;
+	glob_t	g;
+
+	lastch=*lastchar(inpath);
+	if(lastch!='/' && lastch!='\\')
+		sprintf(path,"%s%c",inpath,BACKSLASH);
+	else
+		strcpy(path,inpath);
+	strcat(path,spec);
+	glob(path,0,NULL,&g);
+	for(i=0;i<g.gl_pathc;i++) {
+		if(isdir(g.gl_pathv[i]))
+			continue;
+		CHMOD(g.gl_pathv[i],S_IWRITE);	// Incase it's been marked RDONLY
+		if(remove(g.gl_pathv[i])==0)
+			files++;
+	}
+	globfree(&g);
+	return(files);
 }
 
 /****************************************************************************/
