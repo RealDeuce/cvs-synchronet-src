@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.27 2000/11/07 11:41:05 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.28 2000/11/15 02:59:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@
 #include <ctype.h>		/* toupper */
 #include <sys/kd.h>		/* KIOCSOUND */
 #include <sys/ioctl.h>	/* ioctl */
-#include <pthread.h>	/* POSIX threads */
 
 #ifdef __GLIBC__		/* actually, BSD, but will work for now */
 #include <sys/vfs.h>    /* statfs() */
