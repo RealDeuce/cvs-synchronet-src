@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.13 2001/10/02 19:41:16 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.14 2001/10/02 20:08:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,8 +65,10 @@ bool sbbs_t::answer()
 	sprintf(str,"%s  %s [%s]", connection, client_name, cid);
 	logline("@+:",str);
 
-	if(client_ident[0])
-		logline("@*",client_ident);
+	if(client_ident[0]) {
+		sprintf(str,"Identity: %s",client_ident);
+		logline("@*",str);
+	}
 
 	online=ON_REMOTE;
 
