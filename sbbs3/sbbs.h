@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.79 2001/11/15 14:32:29 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.80 2001/11/27 18:35:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,7 @@
 	#include <jsapi.h>
 	#include <jsprf.h>		/* JS-safe sprintf functions */
 
-	#define	JAVASCRIPT_RUNTIME_MEMORY	(1*1024*1024)
+	#define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 	#define JAVASCRIPT_CONTEXT_STACK	(16*1024)
 #endif
 
