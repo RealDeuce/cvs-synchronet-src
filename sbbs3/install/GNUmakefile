@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.11 2003/12/08 22:24:16 deuce Exp $
+# $Id: GNUmakefile,v 1.10 2003/12/08 05:39:51 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 USE_CURSES	=	1	# Curses version of UIFC
@@ -32,11 +32,6 @@ endif
 os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
 # remove '/' from "os/2"
 os      :=  $(shell echo $(os) | tr -d "/")
-
-ifeq ($(os),netbsd)
- CFLAGS	+=	-D__unix__ -I/usr/pkg/include -DUSE_XP_SEMAPHORES
- LDFLAGS +=	-L/usr/pkg/lib
-endif
 
 ODIR	:=	gcc.$(os)
 
