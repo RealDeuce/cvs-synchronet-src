@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.154 2002/05/03 00:37:26 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.155 2002/05/03 01:50:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +226,9 @@ SOCKET mail_open_socket(int type)
 int mail_close_socket(SOCKET sock)
 {
 	int		result;
+
+	if(sock==INVALID_SOCKET)
+		return(-1);
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
