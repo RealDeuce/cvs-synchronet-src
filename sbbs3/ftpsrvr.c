@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.286 2005/02/08 03:27:17 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.287 2005/02/09 05:15:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4458,7 +4458,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.286 $", "%*s %s", revision);
+	sscanf("$Revision: 1.287 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4569,8 +4569,7 @@ void DLLCALL ftp_server(void* arg)
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
-		srand(time(NULL));	/* Seed random number generator */
-		sbbs_random(10);	/* Throw away first number */
+		sbbs_srand();	/* Seed random number generator */
 
 		if(!winsock_startup()) {
 			cleanup(1,__LINE__);

@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.247 2005/01/28 04:11:13 deuce Exp $ */
+/* $Id: sbbs.h,v 1.248 2005/02/09 05:15:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -777,6 +777,10 @@ public:
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+	/* main.cpp */
+	DLLEXPORT int		DLLCALL sbbs_random(int);
+	DLLEXPORT void		DLLCALL sbbs_srand(void);
 
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);

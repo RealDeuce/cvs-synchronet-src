@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.256 2005/02/08 20:32:01 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.257 2005/02/09 05:15:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2693,8 +2693,7 @@ void http_session_thread(void* arg)
 	thread_up(TRUE /* setuid */);
 	session.finished=FALSE;
 
-	srand(time(NULL));	/* Seed random number generator */
-	sbbs_random(10);	/* Throw away first number */
+	sbbs_srand();	/* Seed random number generator */
 
 	if(startup->options&BBS_OPT_NO_HOST_LOOKUP)
 		host=NULL;
@@ -2867,7 +2866,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.256 $", "%*s %s", revision);
+	sscanf("$Revision: 1.257 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
