@@ -543,7 +543,7 @@ int main(int argc, char** argv)  {
 	char	*buf;
 	int		buffile;
 
-	sscanf("$Revision: 1.12 $", "%*s %s", revision);
+	sscanf("$Revision: 1.13 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -638,7 +638,8 @@ int main(int argc, char** argv)  {
 		mopt[i-1][0]=0;
 
 		uifc.helpbuf=	"`Synchronet Monitor:`\n"
-						"\nToDo: Add help.";
+						"\nCTRL-E displays the error log"
+						"\nToDo: Add more help.";
 						
 		j=uifc.list(WIN_ORG|WIN_MID|WIN_ESC|WIN_ACT|WIN_DYN,0,0,70,&main_dflt,&main_bar
 			,title,mopt);
