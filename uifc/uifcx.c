@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.21 2004/05/30 07:16:23 deuce Exp $ */
+/* $Id: uifcx.c,v 1.20 2003/05/21 00:44:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,7 @@ static void truncsp(char *str)
 	uint c;
 
 	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
+	while(c && (uchar)str[c-1]<=SP) c--;
 	str[c]=0;
 }
 
