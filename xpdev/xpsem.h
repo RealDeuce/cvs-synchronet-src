@@ -2,7 +2,7 @@
 #define _XPSEM_H_
 
 /*
- * $Id: xpsem.h,v 1.1 2003/05/02 03:49:00 deuce Exp $
+ * $Id: xpsem.h,v 1.2 2003/06/07 02:49:34 deuce Exp $
  *
  * semaphore.h: POSIX 1003.1b semaphores
 */
@@ -72,7 +72,7 @@ __END_DECLS
 #endif /* KERNEL */
 
 /*
-* $Id: xpsem.h,v 1.1 2003/05/02 03:49:00 deuce Exp $
+* $Id: xpsem.h,v 1.2 2003/06/07 02:49:34 deuce Exp $
 */
 
 /* Begin thread_private.h kluge */
@@ -110,13 +110,6 @@ struct pthread_rwlockattr {
         int             pshared;
 	};
 
-struct pthread_rwlock {
-        pthread_mutex_t lock;   /* monitor lock */
-	int             state;  /* 0 = idle  >0 = # of readers  -1 = writer */
-	pthread_cond_t  read_signal;
-	pthread_cond_t  write_signal;
-	int             blocked_writers;
-	};
 /* End thread_private.h kluge */
 
 #endif /* _XPSEM_H_ */
