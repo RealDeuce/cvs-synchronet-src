@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.55 2003/02/05 04:14:39 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.56 2003/02/05 04:20:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -677,7 +677,7 @@ get_distlist(void)
 				r++;
 				break;
 			case 'f':
-				SAFECOPY(file[f++],in_line+2);
+				strcpy(file[f++],in_line+2);
 				break;
 			case 't':
 				SAFECOPY(dist[r-1]->tag,in_line+2);
