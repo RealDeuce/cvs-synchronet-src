@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.10 2003/01/02 06:55:05 rswindell Exp $ */
+/* $Id: threadwrap.h,v 1.11 2003/01/02 19:35:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ extern "C" {
 	/* No Win32 implementation for sem_getvalue() */
 
 	/* POSIX mutexes */
-#if 1	/* Implemented as Win32 Critical Sections */
+#if 0	/* Implemented as Win32 Critical Sections */
 	typedef CRITICAL_SECTION pthread_mutex_t;
 	#define pthread_mutex_init(pmtx,v)	InitializeCriticalSection(pmtx)
 	#define pthread_mutex_lock(pmtx)	EnterCriticalSection(pmtx)
