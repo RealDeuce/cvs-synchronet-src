@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.14 2003/04/29 23:25:48 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.15 2003/05/02 21:04:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,8 @@
 
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
 
+#include <sys/stat.h>	/* S_IREAD and S_IWRITE (for use with sopen) */
+
 #if defined(__unix__)
 	#include <unistd.h>	/* read, write, close, ftruncate, lseek, etc. */
 #endif
@@ -54,7 +56,6 @@
 
 #if defined(_WIN32)
 
-	#include <sys/stat.h>		/* S_IREAD */
 	#include <fcntl.h>			/* O_BINARY */
 	#include <windows.h>		/* OF_SHARE_ */
 	#include <share.h>			/* SH_DENY */
