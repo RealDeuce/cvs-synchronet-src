@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.261 2003/11/26 12:28:10 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.262 2004/01/20 06:49:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -585,7 +585,7 @@ BOOL js_add_file(JSContext* js_cx, JSObject* array,
 	if(!JS_SetProperty(js_cx, file, "credits", &val))
 		return(FALSE);
 
-	val=INT_TO_JSVAL(time);
+	JS_NewNumberValue(js_cx,time,&val);
 	if(!JS_SetProperty(js_cx, file, "time", &val))
 		return(FALSE);
 
@@ -4463,7 +4463,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.261 $", "%*s %s", revision);
+	sscanf("$Revision: 1.262 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
