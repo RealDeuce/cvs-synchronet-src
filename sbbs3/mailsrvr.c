@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.62 2001/09/07 14:57:18 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.63 2001/09/17 01:46:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -636,8 +636,8 @@ static void pop3_thread(void* arg)
 			break;
 		}
 		if((i=getuserdat(&scfg, &user))!=0) {
-			lprintf("%04d !POP3 ERROR %d getting data on user #%u (%s)"
-				,socket, i, user.number, username);
+			lprintf("%04d !POP3 ERROR %d getting data on user (%s)"
+				,socket, i, username);
 			sockprintf(socket, "-ERR");
 			break;
 		}
