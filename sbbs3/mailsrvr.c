@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.315 2004/03/26 02:53:15 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.316 2004/04/01 11:59:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2247,6 +2247,19 @@ static void smtp_thread(void* arg)
 				/* Do external JavaScript processing here? */
 
 				if(subnum!=INVALID_SUB) {	/* Message Base */
+					if(relay_user.number==0)
+						memset(&relay_user,0,sizeof(relay_user));
+
+					if(!chk_ar(&scfg,scfg.grp[scfg.sub[subnum]->grp]->ar, &relay_user)
+						|| !chk_ar(&scfg,scfg.sub[subnum]->ar, &relay_user)
+						|| !chk_ar(&scfg,scfg.sub[subnum]->post_ar, &relay_user)) {
+						lprintf(LOG_WARNING,"%04d !SMTP %s has insufficient access to post on %s"
+							,socket, sender_addr, scfg.sub[subnum]->sname);
+						sockprintf(socket,"550 Insufficient access");
+						subnum=INVALID_SUB;
+						continue;
+					}
+
 					if(rcpt_name[0]==0)
 						strcpy(rcpt_name,"All");
 					smb_hfield_str(&msg, RECIPIENT, rcpt_name);
@@ -3640,7 +3653,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.315 $", "%*s %s", revision);
+	sscanf("$Revision: 1.316 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
