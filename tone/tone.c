@@ -2,7 +2,7 @@
 
 /* Tone Generation Utility (using PC speaker, not sound card) */
 
-/* $Id: tone.c,v 1.3 2003/10/03 02:54:33 rswindell Exp $ */
+/* $Id: tone.c,v 1.4 2003/10/03 03:10:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,11 +68,13 @@ void play(char *freq, char *dur)
 	if(dur==NULL)
 		dur="0";
 
+	if(freq==NULL)
+		freq="0";
+
 	d=atoi(dur);
 	if(isdigit(*freq))
 		f=atoi(freq);
-  
-	else
+  	else
 		switch(toupper(*freq)) {
 			case 'O':               /* default octave */
 				if(isdigit(*dur))
@@ -187,7 +189,7 @@ int main(int argc, char **argv)
 	int		i,j;
 	FILE*	stream;
 
-	sscanf("$Revision: 1.3 $", "%*s %s", revision);
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
 	printf("\nTone Generation Utility  %s  Copyright 2003 Rob Swindell\n\n", revision);
 
