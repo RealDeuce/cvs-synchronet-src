@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.11 2003/07/08 22:34:44 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.12 2003/07/08 22:44:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -475,7 +475,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.11 $", "%*s %s", revision);
+	sscanf("$Revision: 1.12 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -511,6 +511,7 @@ int main(int argc, char **argv, char** environ)
 					SAFECOPY(scfg.ctrl_dir,argv[++argn]);
 					break;
 				default:
+					fprintf(errfp,"\n!Unsupported option: %s\n",argv[argn]);
 					usage(errfp);
 					bail(1);
 			}
@@ -530,6 +531,7 @@ int main(int argc, char **argv, char** environ)
 	}	
 
 	if(module==NULL) {
+		fprintf(errfp,"\n!Module name not specified\n");
 		usage(errfp);
 		bail(1); 
 	}
