@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.9 2002/07/27 02:13:06 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.10 2002/07/27 06:29:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -615,7 +615,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.9 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.10 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -635,6 +635,8 @@ int main(int argc, char **argv)
 		exit(1); 
 	}
 
+	memset(&scfg,0,sizeof(scfg));
+	scfg.size=sizeof(scfg);
 	SAFECOPY(scfg.ctrl_dir,p);
 	printf("Reading configuration files from %s\n",scfg.ctrl_dir);
 	if(!load_cfg(&scfg,NULL,TRUE,error)) {
