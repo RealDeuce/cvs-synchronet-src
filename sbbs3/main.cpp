@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.331 2004/08/30 07:38:03 rswindell Exp $ */
+/* $Id: main.cpp,v 1.333 2004/10/12 03:36:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1953,6 +1953,10 @@ void event_thread(void* arg)
 						|| sbbs->cfg.event[i]->node>last_node) {
 						eprintf(LOG_INFO,"Waiting for node %d to run timed event: %s"
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
+						eprintf(LOG_DEBUG,"%s event last run: %s (0x%lx)"
+							,sbbs->cfg.event[i]->code
+							,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
+							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
 						while(!sbbs->terminated) {
@@ -3726,6 +3730,10 @@ void DLLCALL bbs_thread(void* arg)
         return;
     }
 
+#ifdef __BORLANDC__
+	#pragma warn -8008	/* Disable "Condition always false" warning */
+	#pragma warn -8066	/* Disable "Unreachable code" warning */
+#endif
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
 		lprintf(LOG_ERR,"!COMPILER ERROR: sizeof(node_t)=%d instead of %d"
 			,sizeof(node_t),SIZEOF_NODE_T);
