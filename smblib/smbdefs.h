@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.35 2003/02/07 00:38:05 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.36 2003/04/18 04:53:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,6 +191,8 @@
 #define SYD 				0x1258		// Sydney				(+10:00)
 #define NOU 				0x1294		// Noumea				(+11:00)
 #define WEL 				0x12D0		// Wellington			(+12:00)
+
+#define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
 
 										/* Valid hfield_t.types */
 #define SENDER				0x00
