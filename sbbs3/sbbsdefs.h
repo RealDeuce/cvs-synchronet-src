@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.125 2005/01/20 06:22:40 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.124 2005/01/01 22:51:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,6 @@
 #include "gen_defs.h"	/* uchar, ushort, uint, ulong, etc. */
 #include "nodedefs.h"	/* node_t */
 #include "fidodefs.h"	/* fmsghdr_t, fpkthdr_t, FIDO_*, etc. */
-#include "xpbeep.h"		/* BEEP() */
 
 /*************/
 /* Constants */
