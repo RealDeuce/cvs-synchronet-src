@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.139 2003/05/09 03:30:50 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.140 2003/05/09 03:41:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1588,7 +1588,8 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 /* Returns command line generated from instr with %c replacments            */
 /* This is the C-exported version											*/
 /****************************************************************************/
-extern "C" char* cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* fpath
+extern "C" 
+char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* fpath
 						,const char* fspec, char* cmd)
 {
 	char	str[256];
