@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.39 2002/09/06 01:19:36 rswindell Exp $ */
+/* $Id: str.cpp,v 1.40 2002/11/05 03:01:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -717,15 +717,17 @@ void sbbs_t::dirinfo(uint dirnum)
 /****************************************************************************/
 bool sbbs_t::trashcan(char *insearchof, char *name)
 {
-	char str[256];
+	char str[MAX_PATH+1];
 	bool result;
 
 	result=::trashcan(&cfg, insearchof, name)
 		? true:false; // This is a dumb bool conversion to make BC++ happy
 	if(result) {
 		sprintf(str,"%sbad%s.msg",cfg.text_dir,name);
-		if(fexist(str))
+		if(fexistcase(str)) {
 			printfile(str,0);
+			mswait(500); // give time for tx buffer to clear before disconnect
+		}
 	}
 	return(result);
 }
