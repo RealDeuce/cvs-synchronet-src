@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.32 2002/02/25 13:09:51 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.33 2002/03/18 23:53:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,7 +137,7 @@ extern "C" {
 	#define sem_wait(psem)				WaitForSingleObject(*(psem),INFINITE)
 	#define sem_post(psem)				SetEvent(*(psem))
 	#define sem_destroy(psem)			CloseHandle(*(psem))
-	int		sem_getvalue(sem_t*, int* val);
+	DLLEXPORT int DLLCALL sem_getvalue(sem_t*, int* val);
 
 	/* POSIX mutexes */
 	typedef HANDLE pthread_mutex_t;
