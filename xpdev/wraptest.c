@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.41 2003/07/24 09:28:32 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.42 2003/10/01 23:45:40 deuce Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -49,6 +49,7 @@ int main()
 	int	fd;
 	int	fd2;
 	int	canrelock=0;
+	clock_t	ticks;
 
 	/* Show platform details */
 	DESCRIBE_COMPILER(compiler);
@@ -171,8 +172,9 @@ int main()
 	t=time(NULL);
 	printf("sleeping... ");
 	fflush(stdout);
+	ticks=msclock();
 	SLEEP(5000);
-	printf("slept %ld seconds\n",time(NULL)-t);
+	printf("slept %ld seconds (%ld according to msclock)\n",time(NULL)-t,(msclock()-ticks)/MSCLOCKS_PER_SEC);
 
 	/* Thread SLEEP test */
 	printf("\nThread SLEEP(5 second) test\n");

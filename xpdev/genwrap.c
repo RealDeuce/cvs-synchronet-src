@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.32 2003/09/03 22:21:30 deuce Exp $ */
+/* $Id: genwrap.c,v 1.33 2003/10/01 23:45:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,3 +334,18 @@ char* DLLCALL asctime_r(const struct tm *tm, char *buf)
 }
 
 #endif	/* !defined(__unix__) */
+
+/********************************************/
+/* Hi-res real-time clock implementation.	*/
+/********************************************/
+#ifdef __unix__
+clock_t DLLCALL msclock(void)
+{
+	long long int usecs;
+	struct timeval tv;
+	if(gettimeofday(&tv,NULL)==1)
+		return(-1);
+	usecs=tv.tv_sec*1000000+tv.tv_usec;
+	return((clock_t)(usecs/(1000000/MSCLOCKS_PER_SEC)));
+}
+#endif

@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.49 2003/07/24 11:44:57 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.50 2003/10/01 23:45:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 
 #if defined(__unix__)
 	#include <sched.h>		/* sched_yield */
+	#include <time.h>	/* clock_t */
 	#include <sys/time.h>	/* struct timeval */
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
@@ -268,6 +269,13 @@ DLLEXPORT int		DLLCALL	xp_random(int);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, char *fmt, ...);
+
+#if defined(_WIN32)
+#define		msclock()	clock()
+#else
+#define		MSCLOCKS_PER_SEC	1000
+clock_t		msclock(void);
+#endif
 #if defined(__cplusplus)
 }
 #endif
