@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.48 2002/01/17 23:49:26 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.49 2002/01/18 15:20:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -735,7 +735,8 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
 {
     UpTimer->Enabled=false; /* Stop updating the status bar */
 
-    TrayIcon->Visible=false; /* in case we're minimized to the tray */
+    if(TrayIcon->Visible)           /* minimized to tray? */
+        TrayIcon->Visible=false;    /* restore to avoid crash */
 
     if(Initialized) /* Don't overwrite registry settings with defaults */
         SaveSettings(Sender);
