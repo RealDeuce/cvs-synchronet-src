@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.37 2004/07/01 20:23:58 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.38 2004/07/02 00:00:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,6 +218,41 @@ static size_t find_value_index(str_list_t list, const char* section, const char*
 	}
 
 	return(i);
+}
+
+BOOL iniKeyExists(str_list_t* list, const char* section, const char* key)
+{
+	char	val[INI_MAX_VALUE_LEN];
+	size_t	i;
+
+	i=find_value_index(*list, section, key, val);
+
+	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR)
+		return(FALSE);
+
+	return(TRUE);
+}
+
+BOOL iniValueExists(str_list_t* list, const char* section, const char* key)
+{
+	char	val[INI_MAX_VALUE_LEN];
+
+	find_value_index(*list, section, key, val);
+
+	return(val[0]!=0);
+}
+
+BOOL iniRemoveKey(str_list_t* list, const char* section, const char* key)
+{
+	char	val[INI_MAX_VALUE_LEN];
+	size_t	i;
+
+	i=find_value_index(*list, section, key, val);
+
+	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR)
+		return(FALSE);
+
+	return(strListDelete(list,i));
 }
 
 size_t iniAddSection(str_list_t* list, const char* section
