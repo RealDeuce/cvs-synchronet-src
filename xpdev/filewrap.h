@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.16 2003/07/26 01:40:58 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.17 2003/08/14 12:10:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,7 @@
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
 
 #include <sys/stat.h>	/* S_IREAD and S_IWRITE (for use with sopen) */
+#include <stdio.h>
 
 #if defined(__unix__)
 	#include <unistd.h>	/* read, write, close, ftruncate, lseek, etc. */
@@ -128,6 +129,10 @@ extern "C" {
 #if !defined(__BORLANDC__) && defined(__unix__)
 	DLLEXPORT int	DLLCALL sopen(const char* fn, int access, int share, ...);
 	DLLEXPORT long	DLLCALL filelength(int fd);
+#endif
+
+#if defined(__unix__)
+	DLLEXPORT FILE * DLLCALL _fsopen(char *pszFilename, char *pszMode, int shmode);
 #endif
 
 DLLEXPORT time_t	DLLCALL filetime(int fd);
