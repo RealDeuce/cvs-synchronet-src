@@ -2,7 +2,7 @@
 
 /* Synchronet message-related command shell/module routines */
 
-/* $Id: execmsg.cpp,v 1.2 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: execmsg.cpp,v 1.3 2001/03/09 22:02:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-int sbbs_t::execmsg(csi_t *csi)
+int sbbs_t::exec_msg(csi_t *csi)
 {
 	char	str[256],ch;
 	ulong	i,j;
