@@ -1,6 +1,6 @@
 { Synchronet User Editor (Delphi 5 for Win32 project) }
 
-{ $Id: MainFormUnit.pas,v 1.1 2000/10/10 11:27:19 rswindell Exp $ }
+{ $Id: MainFormUnit.pas,v 1.2 2000/10/27 21:33:03 rswindell Exp $ }
 
 {****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1133,7 +1133,7 @@ var Str: AnsiString;
 begin
     SearchStr:=AnsiUpperCase(FindEdit.Text);
     usernumber:=0;
-    { Open NAME.DAT write user name }
+    { Open USER.DAT to search for string }
     Str:=data_dir+'USER/USER.DAT';
     if not FileExists(Str) then Exit;
     f:=TFileStream.Create(Str,fmOpenRead or fmShareDenyNone);
