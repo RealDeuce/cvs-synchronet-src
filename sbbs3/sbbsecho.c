@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.83 2003/02/07 00:28:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.84 2003/02/07 02:15:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -413,6 +413,29 @@ int write_flofile(char *attachment, faddr_t dest)
 	return(0);
 }
 
+/* Writes text buffer to file, expanding sole LFs to CRLFs */
+size_t fwrite_crlf(char* buf, size_t len, FILE* fp)
+{
+	char	ch,last_ch=0;
+	size_t	i;
+	size_t	wr=0;	/* total chars written (may be > len) */
+
+	for(i=0;i<len;i++) {
+		ch=*buf++;
+		if(ch=='\n' && last_ch!='\r') {
+			if(fputc('\r',fp)==EOF)
+				return(wr);
+			wr++;
+		}
+		if(fputc(ch,fp)==EOF)
+			return(wr);
+		wr++;
+		last_ch=ch;
+	}
+
+	return(wr);
+}
+
 /******************************************************************************
  This function will create a netmail message (.MSG format).
  If file is non-zero, will set file attachment bit (for bundles).
@@ -508,7 +531,7 @@ int create_netmail(char *to,char *subject,char *body,faddr_t dest,int file)
 			sprintf(str,"\1FMPT %hu\r",hdr.origpoint);
 			fwrite(str,strlen(str),1,fstream); }
 		if(!file || (!(attr&ATTR_DIRECT) && file))
-			fwrite(body,strlen(body)+1,1,fstream);	/* Write additional NULL */
+			fwrite_crlf(body,strlen(body)+1,fstream);	/* Write additional NULL */
 		else
 			fwrite("\0",1,1,fstream);               /* Write NULL */
 		fclose(fstream);
@@ -4013,7 +4036,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.83 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.84 $" + 11, "%s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
