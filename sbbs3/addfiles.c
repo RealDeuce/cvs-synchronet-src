@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.31 2003/08/22 10:07:32 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.32 2003/08/22 10:28:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -629,7 +629,7 @@ void synclist(char *inpath, int dirnum)
 			continue; 
 		}
 		removefiledat(&scfg,&f);
-		if(remove(getfilepath(&scfg,&f,str))
+		if(remove(getfilepath(&scfg,&f,str)))
 			printf("Error removing %s\n",str);
 		removed++;
 		printf("Removed from database\n"); 
@@ -684,7 +684,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.31 $", "%*s %s", revision);
+	sscanf("$Revision: 1.32 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
