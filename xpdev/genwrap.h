@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.11 2002/07/21 07:26:44 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.12 2002/07/21 07:41:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,7 +123,7 @@ extern "C" {
 	#endif
 #endif
 
-DLLEXPORT char	DLLCALL	lastchar(const char* str);
+DLLEXPORT const char*	DLLCALL	lastchar(const char* str);
 
 /****************************/
 /* Common Utility Functions */

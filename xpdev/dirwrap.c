@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.11 2002/07/21 07:29:17 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.12 2002/07/21 07:41:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -364,7 +364,7 @@ BOOL DLLCALL fexist(const char *filespec)
     // make sure it's not a directory
 	c = g.gl_pathc;
     while (c--) {
-    	if (lastchar(g.gl_pathv[c]) != '/') {
+    	if (*lastchar(g.gl_pathv[c]) != '/') {
         	globfree(&g);
             return TRUE;
         }
