@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.17 2002/01/24 12:14:04 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.18 2002/02/05 23:17:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@ bool sbbs_t::logon()
 			lprintf("!JavaScript ERROR creating file_area object");
 
 		/* msg_area object */
-		if(js_CreateMsgAreaObject(js_cx, js_glob, &cfg, &useron)==NULL) 
+		if(js_CreateMsgAreaObject(js_cx, js_glob, &cfg, &useron, subscan)==NULL) 
 			lprintf("!JavaScript ERROR creating msg_area object");
 	}
 #endif
