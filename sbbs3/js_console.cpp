@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.57 2004/12/17 04:42:55 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.58 2004/12/31 02:39:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1255,7 +1255,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},		
 	{"uselect",			js_uselect,			0, JSTYPE_NUMBER,	JSDOCSTR("[number, string title, string item, string ars]")
 	,JSDOCSTR("user selection menu, call for each item, then with no args to display select menu")
-	,310
+	,312
 	},		
 	{"saveline",		js_saveline,		0, JSTYPE_VOID,		""
 	,JSDOCSTR("save last output line")
