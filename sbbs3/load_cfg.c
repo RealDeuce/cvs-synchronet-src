@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.41 2003/03/12 05:17:51 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.42 2003/04/03 04:50:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -233,13 +233,17 @@ void prep_cfg(scfg_t* cfg)
 	for(i=0;i<cfg->total_xtrnsecs;i++)
 		strlwr(cfg->xtrnsec[i]->code);
 
-	for(i=0;i<cfg->total_xtrns;i++) {
+	for(i=0;i<cfg->total_xtrns;i++) 
+	{
+		strlwr(cfg->xtrn[i]->code);
 		prep_dir(cfg->ctrl_dir, cfg->xtrn[i]->path, sizeof(cfg->xtrn[i]->path));
 	}
 	for(i=0;i<cfg->total_events;i++) {
 		strlwr(cfg->event[i]->code); 	/* data filenames are all lowercase */
 		prep_dir(cfg->ctrl_dir, cfg->event[i]->dir, sizeof(cfg->event[i]->dir));
 	}
+	for(i=0;i<cfg->total_xedits;i++) 
+		strlwr(cfg->xedit[i]->code);
 
 	cfg->prepped=TRUE;	/* data prepared for run-time, DO NOT SAVE TO DISK! */
 }
