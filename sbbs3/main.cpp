@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.226 2003/01/31 02:16:50 rswindell Exp $ */
+/* $Id: main.cpp,v 1.227 2003/02/04 01:14:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3803,7 +3803,7 @@ void DLLCALL bbs_thread(void* arg)
 		}
 
 		if(client_socket == INVALID_SOCKET)	{
-			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR) {
+			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
             	lputs("BBS socket closed");
 				break;
 			}

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.204 2003/02/01 08:24:22 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.205 2003/02/04 01:14:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4361,7 +4361,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.204 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.205 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4624,7 +4624,7 @@ void DLLCALL ftp_server(void* arg)
 
 			if(client_socket == INVALID_SOCKET)
 			{
-				if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR) 
+				if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) 
             		lprintf("0000 FTP socket closed while listening");
 				else
 					lprintf("0000 !ERROR %d accepting connection", ERROR_VALUE);

@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.92 2003/01/31 02:16:50 rswindell Exp $ */
+/* $Id: services.c,v 1.93 2003/02/04 01:14:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1217,7 +1217,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.92 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.93 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1614,7 +1614,7 @@ void DLLCALL services_thread(void* arg)
 					/* TCP */
 					if((client_socket=accept(service[i].socket
 						,(struct sockaddr *)&client_addr, &client_addr_len))==INVALID_SOCKET) {
-						if(ERROR_VALUE == ENOTSOCK)
+						if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINVAL)
             				lprintf("%04d %s socket closed while listening"
 								,service[i].socket, service[i].protocol);
 						else

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.226 2003/01/23 09:49:43 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.227 2003/02/04 01:14:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3115,7 +3115,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.226 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.227 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3427,7 +3427,7 @@ void DLLCALL mail_server(void* arg)
 
 				if(client_socket == INVALID_SOCKET)
 				{
-					if(ERROR_VALUE == ENOTSOCK)
+					if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINVAL)
             			lprintf("0000 SMTP socket closed while listening");
 					else
 						lprintf("%04d !ERROR %d accept failed", server_socket, ERROR_VALUE);
@@ -3477,7 +3477,7 @@ void DLLCALL mail_server(void* arg)
 
 				if(client_socket == INVALID_SOCKET)
 				{
-					if(ERROR_VALUE == ENOTSOCK)
+					if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINVAL)
             			lprintf("%04d POP3 socket closed while listening",pop3_socket);
 					else
 						lprintf("%04d !ERROR %d accept failed", pop3_socket, ERROR_VALUE);
