@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.9 2002/04/12 10:01:12 rswindell Exp $
+# $Id: GNUmakefile,v 1.10 2002/04/12 10:12:48 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -162,17 +162,17 @@ $(NODE): $(EXEODIR)/node.o $(EXEODIR)/genwrap.o $(EXEODIR)/filewrap.o
 SMBLIB = $(EXEODIR)/smblib.o $(EXEODIR)/filewrap.o
 
 # FIXSMB Utility
-$(FIXSMB): $(EXEODIR)/fixsmb.o $(SMBLIB)
+$(FIXSMB): $(EXEODIR)/fixsmb.o $(SMBLIB) $(EXEODIR)/genwrap.o
 	@echo Linking $@
 	@$(CC) $^ -o $@
 
 # CHKSMB Utility
-$(CHKSMB): $(EXEODIR)/chksmb.o $(EXEODIR)/conwrap.o $(SMBLIB)
+$(CHKSMB): $(EXEODIR)/chksmb.o $(SMBLIB) $(EXEODIR)/conwrap.o $(EXEODIR)/dirwrap.o
 	@echo Linking $@
 	@$(CC) $^ -o $@
 
 # SMB Utility
-$(SMBUTIL): $(EXEODIR)/smbutil.o $(SMBLIB) $(EXEODIR)/conwrap.o \
+$(SMBUTIL): $(EXEODIR)/smbutil.o $(SMBLIB) $(EXEODIR)/conwrap.o $(EXEODIR)/dirwrap.o \
 	$(EXEODIR)/smbtxt.o $(EXEODIR)/crc32.o $(EXEODIR)/lzh.o 
 	@echo Linking $@
 	@$(CC) $^ -o $@
