@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.177 2003/05/06 10:54:11 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.178 2003/05/09 00:01:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -837,7 +837,7 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
 
 	/* sockopt.c */
-	DLLEXPORT int		DLLCALL sockopt(char* str);
+	DLLEXPORT int		DLLCALL sockopt(char* str, int* level);
 	DLLEXPORT int		DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, char* error);
 
 #ifdef JAVASCRIPT
