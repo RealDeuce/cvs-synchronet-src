@@ -2,13 +2,13 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.8 2003/10/09 17:27:05 deuce Exp $ */
+/* $Id: ringbuf.h,v 1.11 2005/01/15 04:46:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,6 +45,9 @@
 
 #ifdef RINGBUF_SEM
 	#include "semwrap.h"	/* sem_t */
+#endif
+#ifdef RINGBUF_EVENT
+	#include "eventwrap.h"	/* xpevent_t */
 #endif
 #ifdef RINGBUF_MUTEX
 	#include "threadwrap.h"	/* pthread_mutex_t */
@@ -85,6 +88,9 @@ typedef struct {
 	sem_t	sem;			/* semaphore used to signal data waiting */
 	sem_t	highwater_sem;	/* semaphore used to signal highwater mark reached */
 	DWORD	highwater_mark;
+#endif
+#ifdef RINGBUF_EVENT
+	xpevent_t empty_event;
 #endif
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_t mutex;	/* mutex used to protect ring buffer pointers */
