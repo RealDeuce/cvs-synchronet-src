@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.17 2001/06/24 12:28:07 rswindell Exp $ */
+/* $Id: str.cpp,v 1.18 2001/06/26 02:45:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -805,7 +805,8 @@ bool sbbs_t::trashcan(char *insearch, char *name)
 	char str[256];
 	bool result;
 
-	result=::trashcan(&cfg, insearch, name);
+	result=::trashcan(&cfg, insearch, name)
+		? true:false; // This is a dumb bool conversion to make BC++ happy
 	if(result) {
 		sprintf(str,"%sbad%s.msg",cfg.text_dir,name);
 		if(fexist(str))
