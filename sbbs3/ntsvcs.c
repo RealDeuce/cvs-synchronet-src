@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.11 2003/10/11 11:27:15 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.12 2003/10/15 04:23:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -659,7 +659,7 @@ int main(int argc, char** argv)
     bbs_startup.size=sizeof(bbs_startup);
 	bbs_startup.cbdata=&bbs;
 	bbs_startup.lputs=svc_lputs;
-	bbs_startup.event_log=event_lputs;
+	bbs_startup.event_lputs=event_lputs;
     bbs_startup.started=svc_started;
     bbs_startup.terminated=svc_terminated;
 	bbs_startup.clients=svc_clients;
