@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.3 2000/10/29 04:54:33 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.4 2000/10/30 02:21:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,7 @@ char *ultoac(ulong l, char *string)
 	char str[256];
 	signed char i,j,k;
 
-	ultoa(l,str,10);
+	sprintf(str,"%lu",l);
 	i=strlen(str)-1;
 	j=i/3+1+i;
 	string[j--]=0;
