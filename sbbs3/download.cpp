@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.5 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: download.cpp,v 1.6 2000/11/27 22:09:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +133,9 @@ void sbbs_t::downloadfile(file_t* f)
 			sprintf(str,"%s%s",f->altpath>0 && f->altpath<=cfg.altpaths ?
 				cfg.altpath[f->altpath-1] : cfg.dir[f->dir]->path,unpadfname(f->name,tmp));
 			remove(str);
-			removefiledat(&cfg,f); } }
+			removefiledat(&cfg,f); 
+		} 
+	}
 }
 
 /****************************************************************************/
