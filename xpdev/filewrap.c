@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.28 2004/04/05 19:25:09 deuce Exp $ */
+/* $Id: filewrap.c,v 1.27 2004/03/23 02:22:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,16 +275,16 @@ FILE *_fsopen(char *pszFilename, char *pszMode, int shmode)
 			Mode=O_RDONLY;
 			break;
 		case 2:
-			Mode=O_WRONLY|O_CREAT|O_TRUNC;
+			Mode=O_WRONLY|O_CREAT;
 			break;
 		case 4:
 			Mode=O_APPEND|O_WRONLY|O_CREAT;
 			break;
 		case 9:
-			Mode=O_RDWR|O_CREAT;
+			Mode=O_RDWR;
 			break;
 		case 10:
-			Mode=O_RDWR|O_CREAT|O_TRUNC;
+			Mode=O_RDWR|O_CREAT;
 			break;
 		case 12:
 			Mode=O_RDWR|O_APPEND|O_CREAT;

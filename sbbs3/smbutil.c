@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.59 2004/04/04 15:54:39 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.58 2003/12/04 06:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define SMBUTIL_VER "2.33"
+#define SMBUTIL_VER "2.32"
 char	revision[16];
 char	compiler[32];
 
@@ -76,8 +76,6 @@ char	compiler[32];
 /* gets is dangerous */
 #define gets(str)  fgets((str), sizeof(str), stdin)
 
-#define CHSIZE_FP(fp,size)	if(chsize(fileno(fp),size)) printf("chsize failed!\n");
-
 /********************/
 /* Global variables */
 /********************/
@@ -102,7 +100,6 @@ char *usage=
 "       n[f] = import netmail from text file f (or use stdin)\n"
 "       s    = display msg base status\n"
 "       c    = change msg base status\n"
-"       d    = delete all msgs\n"
 "       m    = maintain msg base - delete old msgs and msgs over max\n"
 "       p[k] = pack msg base (k specifies minimum packable Kbytes)\n"
 "opts:\n"
@@ -824,7 +821,8 @@ void maint(void)
 
 	printf("Re-writing index...\n");
 	rewind(smb.sid_fp);
-	CHSIZE_FP(smb.sid_fp,0);
+	if(chsize(fileno(smb.sid_fp),0L))
+		printf("chsize failed!\n");
 	for(m=n=0;m<l;m++) {
 		if(idx[m].attr&MSG_DELETE)
 			continue;
@@ -892,16 +890,16 @@ void packmsgs(ulong packable)
 	if(!smb.status.total_msgs) {
 		printf("Empty\n");
 		rewind(smb.shd_fp);
-		CHSIZE_FP(smb.shd_fp,smb.status.header_offset);
+		chsize(fileno(smb.shd_fp),smb.status.header_offset);
 		rewind(smb.sdt_fp);
-		CHSIZE_FP(smb.sdt_fp,0);
+		chsize(fileno(smb.sdt_fp),0L);
 		rewind(smb.sid_fp);
-		CHSIZE_FP(smb.sid_fp,0);
+		chsize(fileno(smb.sid_fp),0L);
 		if(!(smb.status.attr&SMB_HYPERALLOC)) {
 			rewind(smb.sha_fp);
-			CHSIZE_FP(smb.sha_fp,0);
+			chsize(fileno(smb.sha_fp),0L);
 			rewind(smb.sda_fp);
-			CHSIZE_FP(smb.sda_fp,0);
+			chsize(fileno(smb.sda_fp),0L);
 			smb_close_ha(&smb);
 			smb_close_da(&smb); 
 		}
@@ -962,9 +960,9 @@ void packmsgs(ulong packable)
 
 	if(!(smb.status.attr&SMB_HYPERALLOC)) {
 		rewind(smb.sha_fp);
-		CHSIZE_FP(smb.sha_fp,0);		/* Reset both allocation tables */
+		chsize(fileno(smb.sha_fp),0L);		/* Reset both allocation tables */
 		rewind(smb.sda_fp);
-		CHSIZE_FP(smb.sda_fp,0); 
+		chsize(fileno(smb.sda_fp),0L); 
 	}
 
 	if(smb.status.attr&SMB_HYPERALLOC && !(mode&NOANALYSIS)) {
@@ -1244,54 +1242,6 @@ void packmsgs(ulong packable)
 	printf("\nDone.\n\n");
 }
 
-void delmsgs(void)
-{
-	int i;
-
-	printf("Deleting %s\n",smb.file);
-
-	i=smb_locksmbhdr(&smb);
-	if(i) {
-		fprintf(stderr,"\n\7!smb_locksmbhdr returned %d: %s\n",i,smb.last_error);
-		return; 
-	}
-	i=smb_getstatus(&smb);
-	if(i) {
-		smb_unlocksmbhdr(&smb);
-		fprintf(stderr,"\n\7!smb_getstatus returned %d: %s\n",i,smb.last_error);
-		return; 
-	}
-	if(!(smb.status.attr&SMB_HYPERALLOC)) {
-		i=smb_open_da(&smb);
-		if(i) {
-			smb_unlocksmbhdr(&smb);
-			fprintf(stderr,"\n\7!smb_open_da returned %d: %s\n",i,smb.last_error);
-			exit(1); 
-		}
-		i=smb_open_ha(&smb);
-		if(i) {
-			smb_unlocksmbhdr(&smb);
-			fprintf(stderr,"\n\7!smb_open_ha returned %d: %s\n",i,smb.last_error);
-			exit(1); 
-		} 
-		/* Reset both allocation tables */
-		CHSIZE_FP(smb.sha_fp,0);
-		CHSIZE_FP(smb.sda_fp,0); 
-		smb_close_ha(&smb);
-		smb_close_da(&smb); 
-	}
-
-	CHSIZE_FP(smb.sid_fp,0);
-	CHSIZE_FP(smb.shd_fp,smb.status.header_offset);
-	CHSIZE_FP(smb.sdt_fp,0);
-
-	/* re-write status header */
-	smb.status.total_msgs=0;
-	if((i=smb_putstatus(&smb))!=0)
-		fprintf(stderr,"\n\7!smb_putstatus returned %d: %s\n",i,smb.last_error);
-	smb_unlocksmbhdr(&smb);
-	printf("\nDone.\n\n");
-}
 
 /****************************************************************************/
 /* Read messages in message base											*/
@@ -1461,7 +1411,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.59 $", "%*s %s", revision);
+	sscanf("$Revision: 1.58 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1616,19 +1566,11 @@ int main(int argc, char **argv)
 							y=strlen(cmd)-1;
 							break;
 						case 'P':
-						case 'D':
 							if((i=smb_lock(&smb))!=0) {
 								fprintf(stderr,"\n\7!smb_lock returned %d: %s\n",i,smb.last_error);
 								return(i);
 							}
-							switch(toupper(cmd[y])) {
-								case 'P':
-									packmsgs(atol(cmd+y+1));
-									break;
-								case 'D':
-									delmsgs();
-									break;
-							}
+							packmsgs(atol(cmd+y+1));
 							smb_unlock(&smb);
 							y=strlen(cmd)-1;
 							break;
