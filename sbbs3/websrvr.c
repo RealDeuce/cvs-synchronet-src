@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.97 2003/05/07 20:29:41 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.98 2003/05/08 02:38:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -453,8 +453,9 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	while((result=sendsocket(sock,sbuf,len))!=len) {
 		if(result==SOCKET_ERROR) {
 			if(ERROR_VALUE==EWOULDBLOCK) {
-				YIELD();
-				continue;
+				/* Do a select() instead of an arbitrary YIELD() */
+				if(select(sock+1,NULL,&socket_set,NULL,&tv)>=0)
+					continue;
 			}
 			if(ERROR_VALUE==ECONNRESET) 
 				lprintf("%04d Connection reset by peer on send",sock);
@@ -2342,7 +2343,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.97 $", "%*s %s", revision);
+	sscanf("$Revision: 1.98 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
