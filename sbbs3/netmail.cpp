@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.15 2002/08/16 23:40:01 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.16 2002/08/25 12:00:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,8 +247,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
-	smb_unlocksmbhdr(&smb);
-	i=smb_addmsghdr(&smb,&msg,SMB_SELFPACK);
+	i=smb_addmsghdr(&smb,&msg,SMB_SELFPACK);	// calls smb_unlocksmbhdr() 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
 
@@ -435,8 +434,7 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
-	smb_unlocksmbhdr(&smb);
-	i=smb_addmsghdr(&smb,&msg,SMB_SELFPACK);
+	i=smb_addmsghdr(&smb,&msg,SMB_SELFPACK); // calls smb_unlocksmbhdr() 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
 
