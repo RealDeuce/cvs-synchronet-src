@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.98 2002/02/08 16:50:07 rswindell Exp $ */
+/* $Id: main.cpp,v 1.99 2002/02/09 13:17:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1597,6 +1597,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	node_ext=-1;
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
+	current_msg=NULL;
 
 #ifdef JAVASCRIPT
 	js_runtime=NULL;	/* runtime */
