@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.8 2000/11/02 13:41:27 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.9 2000/11/04 10:09:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,6 +62,10 @@
 	#define O_DENYNONE			SH_DENYNO
 	#endif
 
+	#ifndef _PACK
+	#define _PACK
+	#endif
+
 #elif defined(__unix__)
 
 	#include <fcntl.h>
@@ -77,6 +81,12 @@
 	#define stricmp(x,y)		strcasecmp(x,y)
 	#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#define chsize(fd,size)		ftruncate(fd,size)
+
+	#ifdef __GNUC__ 
+		#define _PACK __attribute__ ((packed));
+	#else
+		#error "Need compiler-specific pack attribute macro here"
+	#endif
 
 #endif
 
