@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.2 2002/07/27 01:04:49 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.3 2002/07/27 01:05:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -736,7 +736,7 @@ int main(int argc, char **argv)
 				sprintf(f.desc,"%s  ",unixtodstr(&scfg,fdate(str),tmp));
 			if(mode&TODAYS_DATE)
 				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time(NULL),tmp));
-			sprintf(tmp,"%.*s",LEN_FDESC-strlen(f.desc),argv[++j]);
+			sprintf(tmp,"%.*s",(int)(LEN_FDESC-strlen(f.desc)),argv[++j]);
 			strcpy(f.desc,tmp);
 			l=flength(str);
 			if(l==-1) {
