@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.77 2001/11/01 03:23:52 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.78 2001/11/02 01:12:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1517,7 +1517,7 @@ static void smtp_thread(void* arg)
 					if(usernum) {
 						sprintf(str,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
 							"\1h%s\1n\r\n"
-							,ctime((const time_t*)&newmsg.hdr.when_imported.time)
+							,timestr(&scfg,(time_t*)&newmsg.hdr.when_imported.time,tmp)
 							,sender,sender_addr);
 						if(!newmsg.idx.to) {	/* Forwarding */
 							strcat(str,"\1mand it was automatically forwaded to: \1h");
