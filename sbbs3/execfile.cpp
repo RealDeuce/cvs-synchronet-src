@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.1 2000/10/10 11:24:14 rswindell Exp $ */
+/* $Id: execfile.cpp,v 1.2 2000/11/04 12:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,9 +53,9 @@ int sbbs_t::execfile(csi_t *csi)
 			while(online) {
 				j=0;
 				if(usrlibs>1) {
-					sprintf(str,"%sMENU/LIBS.*", cfg.text_dir);
+					sprintf(str,"%smenu/libs.*", cfg.text_dir);
 					if(fexist(str))
-						menu("LIBS");
+						menu("libs");
 					else {
 						bputs(text[CfgLibLstHdr]);
 						for(i=0;i<usrlibs && !msgabort();i++) {
@@ -75,9 +75,9 @@ int sbbs_t::execfile(csi_t *csi)
 						j=curlib;
 					else
 						j--; }
-				sprintf(str,"%sMENU/DIRS%u.*", cfg.text_dir, usrlib[j]+1);
+				sprintf(str,"%smenu/dirs%u.*", cfg.text_dir, usrlib[j]+1);
 				if(fexist(str)) {
-					sprintf(str,"DIRS%u",usrlib[j]+1);
+					sprintf(str,"dirs%u",usrlib[j]+1);
 					menu(str); }
 				else {
 					CLS;
@@ -183,9 +183,9 @@ int sbbs_t::execfile(csi_t *csi)
 
 		case CS_FILE_SHOW_LIBRARIES:
 			if(!usrlibs) return(0);
-			sprintf(str,"%sMENU/LIBS.*", cfg.text_dir);
+			sprintf(str,"%smenu/libs.*", cfg.text_dir);
 			if(fexist(str)) {
-				menu("LIBS");
+				menu("libs");
 				return(0); }
 			bputs(text[LibLstHdr]);
 			for(i=0;i<usrlibs && !msgabort();i++) {
@@ -199,9 +199,9 @@ int sbbs_t::execfile(csi_t *csi)
 
 		case CS_FILE_SHOW_DIRECTORIES:
 			if(!usrlibs) return(0);
-			sprintf(str,"%sMENU/DIRS%u.*", cfg.text_dir, usrlib[curlib]+1);
+			sprintf(str,"%smenu/dirs%u.*", cfg.text_dir, usrlib[curlib]+1);
 			if(fexist(str)) {
-				sprintf(str,"DIRS%u",usrlib[curlib]+1);
+				sprintf(str,"dirs%u",usrlib[curlib]+1);
 				menu(str);
 				return(0); }
 			CRLF;

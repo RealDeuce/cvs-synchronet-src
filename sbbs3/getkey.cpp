@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.2 2000/10/24 07:55:55 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.3 2000/11/04 12:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,7 +338,7 @@ bool sbbs_t::yesno(char *str)
 	SYNC;
 	if(useron.misc&WIP) {
 		strip_ctrl(question);
-		menu("YESNO"); }
+		menu("yesno"); }
 	else
 		bprintf(text[YesNoQuestion],str);
 	while(online) {
@@ -372,7 +372,7 @@ bool sbbs_t::noyes(char *str)
 	SYNC;
 	if(useron.misc&WIP) {
 		strip_ctrl(question);
-		menu("NOYES"); }
+		menu("noyes"); }
 	else
 		bprintf(text[NoYesQuestion],str);
 	while(online) {

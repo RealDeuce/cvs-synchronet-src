@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.9 2000/11/02 13:49:24 rswindell Exp $ */
+/* $Id: baja.c,v 1.10 2000/11/04 12:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3170,13 +3170,13 @@ int main(int argc, char **argv)
 
 	strcpy(str,src);
 	if(!strchr(str,'.'))
-		sprintf(src,"%s.SRC",str);
+		sprintf(src,"%s.src",str);
 
 	strcpy(str,src);
 	p=strrchr(str,'.');
 	if(p)
 		*p=0;
-	strcat(str,".BIN");
+	strcat(str,".bin");
 
 	if(outdir[0]) {
 		p=strrchr(str,'\\');

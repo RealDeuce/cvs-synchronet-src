@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.5 2000/11/02 13:19:44 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.6 2000/11/04 12:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,9 +157,8 @@ int main(int argc, char **argv)
 	p=strrchr(smb.file,'.');
 	s=strrchr(smb.file,'\\');
 	if(p>s) *p=0;
-	strupr(smb.file);
 
-	sprintf(str,"%s.SHD",smb.file);
+	sprintf(str,"%s.shd",smb.file);
 	if(!fexist(str)) {
 		printf("\n%s doesn't exist.\n",smb.file);
 		continue; }

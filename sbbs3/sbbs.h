@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.17 2000/11/02 01:13:12 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.18 2000/11/04 12:03:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,8 +182,8 @@ public:
 	/*********************************/
 	/* Color Configuration Variables */
 	/*********************************/
-	char 	*text[TOTAL_TEXT];			/* Text from CTRL\TEXT.DAT */
-	char 	*text_sav[TOTAL_TEXT];		/* Text from CTRL\TEXT.DAT */
+	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
+	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
 	char 	orgcmd[129];	/* Original command to execute bbs */
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
 	char 	debug;			/* Flag to allow debug writes */

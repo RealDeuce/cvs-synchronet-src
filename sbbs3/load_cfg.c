@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.4 2000/10/30 08:49:26 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.5 2000/11/04 12:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[])
 		return(FALSE);
 
 	if(text!=NULL) {
-		strcpy(fname,"TEXT.DAT");
+		strcpy(fname,"text.dat");
 		sprintf(str,"%s%s",cfg->ctrl_dir,fname);
 		if((instream=fopen(str,"rb"/*O_RDONLY*/))==NULL) {
 			lprintf(txt.openerr,str);
@@ -145,7 +145,7 @@ char *readtext(long *line,FILE *stream)
 	p=strrchr(buf,'"');
 	if(!p) {
 		if(line) {
-			lprintf("No quotation marks in line %d of TEXT.DAT",*line);
+			lprintf("No quotation marks in line %d of text.dat",*line);
 			return(NULL); }
 		return(NULL); }
 	if(*(p+1)=='\\')	/* merge multiple lines */
@@ -222,7 +222,7 @@ char *readtext(long *line,FILE *stream)
 		str[j]=buf[i++]; }
 	str[j]=0;
 	if((p=(char *)MALLOC(j+1))==NULL) {
-		lprintf("Error allocating %u bytes of memory from TEXT.DAT",j);
+		lprintf("Error allocating %u bytes of memory from text.dat",j);
 		return(NULL); }
 	strcpy(p,str);
 	return(p);
@@ -238,7 +238,7 @@ BOOL read_attr_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 	long	offset=0;
     FILE    *instream;
 
-	strcpy(fname,"ATTR.CFG");
+	strcpy(fname,"attr.cfg");
 	sprintf(str,"%s%s",cfg->ctrl_dir,fname);
 	if((instream=fopen(str,"rb" /*O_RDONLY*/))==NULL) {	/* was fnopen */
 		lprintf(txt->openerr,str);

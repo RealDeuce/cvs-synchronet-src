@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.1 2000/10/10 11:24:52 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.2 2000/11/04 12:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -314,7 +314,7 @@ ulong sbbs_t::getposts(uint subnum)
 	char str[128];
 	ulong l;
 
-	sprintf(str,"%s%s.SID",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	sprintf(str,"%s%s.sid",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	l=flength(str);
 	if((long)l==-1)
 		return(0);

@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.1 2000/10/10 11:24:48 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.2 2000/11/04 12:03:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ void sbbs_t::scansubs(long mode)
 
 	if(ch=='S') {
 		if(useron.misc&(RIP|WIP) && !(useron.misc&EXPERT)) {
-			menu("MSGSCAN"); }
+			menu("msgscan"); }
 		i=scanposts(usrsub[curgrp][cursub[curgrp]],mode,str);
 		bputs(text[MessageScan]);
 		if(i) bputs(text[MessageScanAborted]);
@@ -87,7 +87,7 @@ void sbbs_t::scansubs(long mode)
 		return; }
 	if(ch=='G') {
 		if(useron.misc&(RIP|WIP) && !(useron.misc&EXPERT)) {
-			menu("MSGSCAN"); }
+			menu("msgscan"); }
 		for(i=0;i<usrsubs[curgrp] && !msgabort();i++)
 			if(((mode&SCAN_NEW &&
 				(sub_cfg[usrsub[curgrp][i]]&SUB_CFG_NSCAN
@@ -139,7 +139,7 @@ void sbbs_t::scanallsubs(long mode)
 			return; } }
 
 	if(useron.misc&(RIP|WIP) && !(useron.misc&EXPERT)) {
-		menu("MSGSCAN"); }
+		menu("msgscan"); }
 	for(i=0;i<usrgrps;i++) {
 		for(j=0;j<usrsubs[i] && !msgabort();j++)
 			if(((mode&SCAN_NEW && sub_cfg[usrsub[i][j]]&SUB_CFG_NSCAN)
