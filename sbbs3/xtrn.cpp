@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.4 2000/10/24 08:23:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.5 2000/10/30 09:34:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -750,10 +750,10 @@ char * sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,cfg.temp_dir);
                     break;
                 case 'H':   /* Port Handle or Hardware Flow Control */
-                    strcat(cmd,itoa(client_socket_dup,str,10));
+                    strcat(cmd,ultoa(client_socket_dup,str,10));
                     break;
                 case 'I':   /* UART IRQ Line */
-                    strcat(cmd,itoa(cfg.com_irq,str,10));
+                    strcat(cmd,ultoa(cfg.com_irq,str,10));
                     break;
                 case 'J':
                     strcat(cmd,cfg.data_dir);
@@ -762,7 +762,7 @@ char * sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,cfg.ctrl_dir);
                     break;
                 case 'L':   /* Lines per message */
-                    strcat(cmd,itoa(cfg.level_linespermsg[useron.level],str,10));
+                    strcat(cmd,ultoa(cfg.level_linespermsg[useron.level],str,10));
                     break;
                 case 'M':   /* Minutes (credits) for user */
                     strcat(cmd,ultoa(useron.min,str,10));
@@ -774,30 +774,30 @@ char * sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,cfg.sys_op);
                     break;
                 case 'P':   /* COM Port */
-                    strcat(cmd,itoa(online==ON_LOCAL ? 0:cfg.com_port,str,10));
+                    strcat(cmd,ultoa(online==ON_LOCAL ? 0:cfg.com_port,str,10));
                     break;
                 case 'Q':   /* QWK ID */
                     strcat(cmd,cfg.sys_id);
                     break;
                 case 'R':   /* Rows */
-                    strcat(cmd,itoa(rows,str,10));
+                    strcat(cmd,ultoa(rows,str,10));
                     break;
                 case 'S':   /* File Spec */
                     strcat(cmd,fspec);
                     break;
                 case 'T':   /* Time left in seconds */
                     gettimeleft();
-                    strcat(cmd,itoa(timeleft,str,10));
+                    strcat(cmd,ultoa(timeleft,str,10));
                     break;
                 case 'U':   /* UART I/O Address (in hex) */
-                    strcat(cmd,itoa(cfg.com_base,str,16));
+                    strcat(cmd,ultoa(cfg.com_base,str,16));
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
                     break;
                 case 'W':   /* Time-slice API type (mswtype) */
 #if 0 //ndef __FLAT__
-                    strcat(cmd,itoa(mswtyp,str,10));
+                    strcat(cmd,ultoa(mswtyp,str,10));
 #endif
                     break;
                 case 'X':
