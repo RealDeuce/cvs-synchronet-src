@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.75 2004/12/09 08:07:13 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.80 2005/02/16 22:36:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,8 +65,12 @@ char		host_name_buf[128];
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
+BOOL		recycled;
 DWORD		log_mask=DEFAULT_LOG_MASK;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
+#if defined(__unix__)
+BOOL		daemonize=FALSE;
+#endif
 
 void banner(FILE* fp)
 {
@@ -85,6 +89,9 @@ void usage(FILE* fp)
 	fprintf(fp,"\nusage: jsexec [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
 		"\t-c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
+#if defined(__unix__)
+		"\t-d             run in background (daemonize)\n"
+#endif
 		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
 		"\t-b<limit>      set branch limit (default=%u, 0=unlimited)\n"
@@ -125,15 +132,56 @@ int lprintf(int level, char *fmt, ...)
 		return(0);
 
     va_start(argptr,fmt);
-    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+    ret=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
+#if defined(__unix__)
+	if(daemonize) {
+		syslog(level,sbuf);
+		return(ret);
+	}
+#endif
 	if(level<=err_level)
-		ret=fprintf(errfp,"%s",sbuf);
+		ret=fprintf(errfp,"%s\n",sbuf);
 	if(level>err_level || (errfp!=stderr && errfp!=confp))
-		ret=fprintf(confp,"%s",sbuf);
+		ret=fprintf(confp,"%s\n",sbuf);
     return(ret);
 }
+
+#if defined(__unix__) && defined(NEEDS_DAEMON)
+/****************************************************************************/
+/* Daemonizes the process                                                   */
+/****************************************************************************/
+int
+daemon(int nochdir, int noclose)
+{
+    int fd;
+
+    switch (fork()) {
+    case -1:
+        return (-1);
+    case 0:
+        break;
+    default:
+        _exit(0);
+    }
+
+    if (setsid() == -1)
+        return (-1);
+
+    if (!nochdir)
+        (void)chdir("/");
+
+    if (!noclose && (fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
+        (void)dup2(fd, STDIN_FILENO);
+        (void)dup2(fd, STDOUT_FILENO);
+        (void)dup2(fd, STDERR_FILENO);
+        if (fd > 2)
+            (void)close(fd);
+    }
+    return (0);
+}
+#endif
 
 #if defined(_WINSOCKAPI_)
 
@@ -151,7 +199,7 @@ static BOOL winsock_startup(void)
 		return(TRUE);
 	}
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d\n", status);
+    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
 	return(FALSE);
 }
 
@@ -167,7 +215,7 @@ void bail(int code)
 
 #if defined(_WINSOCKAPI_)
 	if(WSAInitialized && WSACleanup()!=0) 
-		lprintf(LOG_ERR,"!WSACleanup ERROR %d\n",ERROR_VALUE);
+		lprintf(LOG_ERR,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 
 	if(pause_on_exit || (code && pause_on_error)) {
@@ -195,8 +243,6 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 		lprintf(level,"%s",JS_GetStringBytes(str));
 	}
-	if(argc)
-		lprintf(level,"\n");
 
 	if(str==NULL)
 		*rval = JSVAL_VOID;
@@ -434,7 +480,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	const char*	warning;
 
 	if(report==NULL) {
-		lprintf(LOG_ERR,"!JavaScript: %s\n", message);
+		lprintf(LOG_ERR,"!JavaScript: %s", message);
 		return;
     }
 
@@ -456,7 +502,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	} else
 		warning="";
 
-	lprintf(LOG_ERR,"!JavaScript %s%s%s: %s\n",warning,file,line,message);
+	lprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
 }
 
 static JSBool
@@ -564,12 +610,12 @@ long js_exec(const char *fname, char** args)
 			SAFECOPY(path,fname);
 
 		if(!fexistcase(path)) {
-			lprintf(LOG_ERR,"!Module file (%s) doesn't exist\n",path);
+			lprintf(LOG_ERR,"!Module file (%s) doesn't exist",path);
 			return(-1); 
 		}
 
 		if((fp=fopen(path,"r"))==NULL) {
-			lprintf(LOG_ERR,"!Error %d (%s) opening %s\n",errno,STRERROR(errno),path);
+			lprintf(LOG_ERR,"!Error %d (%s) opening %s",errno,STRERROR(errno),path);
 			return(-1);
 		}
 	}
@@ -612,6 +658,8 @@ long js_exec(const char *fname, char** args)
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
+	branch.terminated=&terminated;
+
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
 	if(fp==stdin) 	 /* Using stdin for script source */
@@ -630,7 +678,7 @@ long js_exec(const char *fname, char** args)
 #endif
 		len=strlen(line);
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
-			lprintf(LOG_ERR,"!Error allocating %u bytes of memory\n"
+			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
 				,js_buflen+len);
 			return(-1);
 		}
@@ -641,7 +689,7 @@ long js_exec(const char *fname, char** args)
 		fclose(fp);
 
 	if((js_script=JS_CompileScript(js_cx, js_glob, js_buf, js_buflen, fname==NULL ? NULL : path, 1))==NULL) {
-		lprintf(LOG_ERR,"!Error compiling script from %s\n",path);
+		lprintf(LOG_ERR,"!Error compiling script from %s",path);
 		return(-1);
 	}
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
@@ -668,6 +716,14 @@ void break_handler(int type)
 	fprintf(statfp,"\n-> Terminated Locally (signal: %d)\n",type);
 	terminated=TRUE;
 }
+
+void recycle_handler(int type)
+{
+	fprintf(statfp,"\n-> Recycled Locally (signal: %d)\n",type);
+	recycled=TRUE;
+	branch.terminated=&recycled;
+}
+
 
 #if defined(_WIN32)
 BOOL WINAPI ControlHandler(DWORD CtrlType)
@@ -704,10 +760,9 @@ int main(int argc, char **argv, char** environ)
 	branch.limit=JAVASCRIPT_BRANCH_LIMIT;
 	branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
-	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.75 $", "%*s %s", revision);
+	sscanf("$Revision: 1.80 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -792,6 +847,11 @@ int main(int argc, char **argv, char** environ)
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
 					break;
+#if defined(__unix__)
+				case 'd':
+					daemonize=TRUE;
+					break;
+#endif
 				default:
 					fprintf(errfp,"\n!Unsupported option: %s\n",argv[argn]);
 				case '?':
@@ -805,16 +865,16 @@ int main(int argc, char **argv, char** environ)
 
 	if(scfg.ctrl_dir[0]==0) {
 		if((p=getenv("SBBSCTRL"))==NULL) {
-			lprintf(LOG_ERR,"\nSBBSCTRL environment variable not set and -c option not specified.\n");
-			lprintf(LOG_ERR,"\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
-			lprintf(LOG_ERR,"\n     or: %s -c /sbbs/ctrl [module]\n",argv[0]);
+			fprintf(errfp,"\nSBBSCTRL environment variable not set and -c option not specified.\n");
+			fprintf(errfp,"\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+			fprintf(errfp,"\n     or: %s -c /sbbs/ctrl [module]\n",argv[0]);
 			bail(1); 
 		}
 		SAFECOPY(scfg.ctrl_dir,p);
 	}	
 
 	if(module==NULL && isatty(fileno(stdin))) {
-		lprintf(LOG_ERR,"\n!Module name not specified\n");
+		fprintf(errfp,"\n!Module name not specified\n");
 		usage(errfp);
 		bail(1); 
 	}
@@ -822,11 +882,11 @@ int main(int argc, char **argv, char** environ)
 	banner(statfp);
 
 	if(chdir(scfg.ctrl_dir)!=0)
-		lprintf(LOG_ERR,"!ERROR changing directory to: %s", scfg.ctrl_dir);
+		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);
 
 	fprintf(statfp,"\nLoading configuration files from %s\n",scfg.ctrl_dir);
 	if(!load_cfg(&scfg,NULL,TRUE,error)) {
-		lprintf(LOG_ERR,"!ERROR loading configuration files: %s\n",error);
+		fprintf(errfp,"!ERROR loading configuration files: %s\n",error);
 		bail(1);
 	}
 	prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
@@ -836,6 +896,16 @@ int main(int argc, char **argv, char** environ)
 
 	if(!(scfg.sys_misc&SM_LOCAL_TZ))
 		putenv("TZ=UTC0");
+
+#if defined(__unix__)
+	if(daemonize) {
+		fprintf(statfp,"\nRunning as daemon\n");
+		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
+			fprintf(statfp,"!ERROR %d running as daemon\n",errno);
+			daemonize=FALSE;
+		}
+	}
+#endif
 
 	/* Don't cache error log */
 	setvbuf(errfp,NULL,_IONBF,0);
@@ -848,15 +918,18 @@ int main(int argc, char **argv, char** environ)
 	signal(SIGINT,break_handler);
 	signal(SIGTERM,break_handler);
 
-	/* Don't die on SIGPIPE or SIGHUP */
+	signal(SIGHUP,recycle_handler);
+
+	/* Don't die on SIGPIPE  */
 	signal(SIGPIPE,SIG_IGN);
-	signal(SIGHUP,SIG_IGN);
 #endif
 
 	do {
 
+		recycled=FALSE;
+
 		if(!js_init(environ)) {
-			lprintf(LOG_ERR,"!JavaScript initialization failure\n");
+			lprintf(LOG_ERR,"!JavaScript initialization failure");
 			bail(1);
 		}
 		fprintf(statfp,"\n");
@@ -869,7 +942,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"JavaScript: Destroying runtime\n");
 		JS_DestroyRuntime(js_runtime);	
 
-	} while(loop && !terminated);
+	} while((recycled || loop) && !terminated);
 
 	bail(result);
 
