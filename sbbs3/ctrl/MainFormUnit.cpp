@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.24 2001/06/24 12:02:47 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.25 2001/07/03 02:19:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1510,7 +1510,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     if(CtrlDirectory.UpperCase().AnsiPos("MAIN.CNF"))
 		CtrlDirectory.SetLength(CtrlDirectory.Length()-8);
     strcpy(cfg.ctrl_dir,CtrlDirectory.c_str());
-	if(!load_cfg(&cfg, NULL)) {
+    cfg.size=sizeof(cfg);
+	if(!load_cfg(&cfg, NULL, TRUE)) {
     	Application->MessageBox("Failed to load configuration files.","ERROR"
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
