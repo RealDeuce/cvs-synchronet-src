@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.128 2002/08/16 23:02:51 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.129 2002/08/21 22:35:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,8 +288,10 @@ public:
 	uint	*curdir;		/* Current directory for each library */
 	uint 	*usrgrp;		/* Real group numbers */
 	uint	usrgrps;		/* Number groups this user has access to */
+	uint	usrgrp_total;	/* Total number of groups */
 	uint 	*usrlib;		/* Real library numbers */
 	uint	usrlibs;		/* Number of libs this user can access */
+	uint	usrlib_total;	/* Total number of libraries */
 	uint 	**usrsub;		/* Real sub numbers */
 	uint	*usrsubs;		/* Num of subs with access for each grp */
 	uint 	**usrdir;		/* Real dir numbers */
