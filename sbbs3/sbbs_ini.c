@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.51 2003/08/18 23:40:09 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.52 2003/08/29 01:34:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -387,6 +387,9 @@ void sbbs_read_ini(
 
 		SAFECOPY(services->host_name
 			,iniGetString(fp,section,"HostName",host_name,value));
+
+		SAFECOPY(services->ini_file
+			,iniGetString(fp,section,"iniFile","services.ini",value));
 
 		SAFECOPY(services->cfg_file
 			,iniGetString(fp,section,"ConfigFile","services.cfg",value));
