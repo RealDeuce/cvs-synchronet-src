@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.8 2000/11/02 12:25:09 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.9 2000/11/02 12:45:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,8 @@
 #ifndef MAX_PATH
 	#ifdef MAXPATHLEN
 		#define MAX_PATH MAXPATHLEN	/* clib.h */
+	#elif defined PATH_MAX
+		#define MAX_PATH PATH_MAX
 	#elif defined _MAX_PATH
 		#define MAX_PATH _MAX_PATH
 	#else
