@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.25 2003/03/21 02:50:41 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.26 2003/03/21 20:52:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,6 +171,10 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 			val=INT_TO_JSVAL(d);
 			if(!JS_SetProperty(cx, dirobj, "number", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->dir[d]->lib);
+			if(!JS_SetProperty(cx, dirobj, "lib_number", &val))
 				return(NULL);
 
 			if((js_str=JS_NewStringCopyZ(cx, cfg->dir[d]->code))==NULL)

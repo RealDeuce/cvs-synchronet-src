@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.27 2003/03/21 02:50:41 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.28 2003/03/21 20:52:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,6 +240,10 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			if(!JS_SetProperty(cx, subobj, "number", &val))
 				return(NULL);
 
+			val=INT_TO_JSVAL(cfg->sub[d]->grp);
+			if(!JS_SetProperty(cx, subobj, "grp_number", &val))
+				return(NULL);
+			
 			if(cfg->sub[d]->newsgroup[0])
 				SAFECOPY(str,cfg->sub[d]->newsgroup);
 			else {

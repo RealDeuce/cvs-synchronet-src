@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.5 2003/03/21 02:50:41 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.6 2003/03/21 20:52:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,6 +223,10 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 			val=INT_TO_JSVAL(d);
 			if(!JS_SetProperty(cx, progobj, "number", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->xtrn[d]->sec);
+			if(!JS_SetProperty(cx, progobj, "sec_number", &val))
 				return(NULL);
 
 			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->run_ar,user))
