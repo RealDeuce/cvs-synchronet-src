@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.10 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: x_cio.c,v 1.13 2005/01/28 03:13:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,8 +213,8 @@ void x_gettextinfo(struct text_info *info)
 	info->currmode=CurrMode;
 	info->screenheight=DpyRows+1;
 	info->screenwidth=DpyCols;
-	info->curx=wherex();
-	info->cury=wherey();
+	info->curx=x_wherex();
+	info->cury=x_wherey();
 	info->attribute=x_curr_attr>>8;
 }
 
@@ -268,4 +268,36 @@ void x_textmode(int mode)
 void x_settitle(const char *title)
 {
 	x_win_title(title);
+}
+
+void x_copytext(const char *text, size_t buflen)
+{
+	pthread_mutex_lock(&copybuf_mutex);
+	if(copybuf!=NULL) {
+		free(copybuf);
+		copybuf=NULL;
+	}
+
+	copybuf=(char *)malloc(buflen+1);
+	if(copybuf!=NULL) {
+		strcpy(copybuf, text);
+		sem_post(&copybuf_set);
+	}
+	pthread_mutex_unlock(&copybuf_mutex);
+	return;
+}
+
+char *x_getcliptext(void)
+{
+	char *ret=NULL;
+
+	sem_post(&pastebuf_request);
+	sem_wait(&pastebuf_set);
+	if(pastebuf!=NULL) {
+		ret=(char *)malloc(strlen(pastebuf)+1);
+		if(ret!=NULL)
+			strcpy(ret,pastebuf);
+	}
+	sem_post(&pastebuf_request);
+	return(ret);
 }
