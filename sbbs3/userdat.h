@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.5 2001/06/27 02:29:34 rswindell Exp $ */
+/* $Id: userdat.h,v 1.6 2001/09/05 17:51:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,6 +89,7 @@ DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t* cfg, uchar* str, user_t* user); /* checks 
 DLLEXPORT int	DLLCALL getuserrec(scfg_t*, int usernumber, int start, int length, char *str);
 DLLEXPORT int	DLLCALL putuserrec(scfg_t*, int usernumber, int start, uint length, char *str);
 DLLEXPORT ulong	DLLCALL adjustuserrec(scfg_t*, int usernumber, int start, int length, long adj);
+DLLEXPORT BOOL	DLLCALL logoffuserdat(scfg_t*, user_t*, time_t now, time_t logontime);
 DLLEXPORT void	DLLCALL subtract_cdt(scfg_t*, user_t*, long amt);
 
 #ifdef __cplusplus
