@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.19 2002/06/20 22:19:45 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.20 2002/09/17 07:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,7 +83,8 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	}
 
 	if(count>(LOOP_NODEDAB/2) && count!=LOOP_NODEDAB) {
-		sprintf(str,"NODE.DAB COLLISION - Count: %d",count);
+		sprintf(str,"NODE.DAB (node %d) COLLISION - Count: %d"
+			,number+1, count);
 		logline("!!",str); 
 	}
 	else if(count==LOOP_NODEDAB) {
@@ -269,7 +270,8 @@ int sbbs_t::getnodeext(uint number, char *ext)
 	node_ext=-1;
 
 	if(count>(LOOP_NODEDAB/2) && count!=LOOP_NODEDAB) {
-		sprintf(str,"NODE.EXB COLLISION - Count: %d",count);
+		sprintf(str,"NODE.EXB (node %d) COLLISION - Count: %d"
+			,number+1, count);
 		logline("!!",str); 
 	}
 	else if(count==LOOP_NODEDAB) {
