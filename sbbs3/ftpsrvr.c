@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.75 2001/06/19 23:51:39 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.76 2001/06/19 23:56:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3777,6 +3777,13 @@ static void cleanup(int code)
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
 		lprintf("0000 !WSACleanup ERROR %d",ERROR_VALUE);
+#endif
+
+#ifdef _WIN32
+	if(socket_mutex!=NULL) {
+		CloseHandle(socket_mutex);
+		socket_mutex=NULL;
+	}
 #endif
 
 #ifdef JAVASCRIPT
