@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.29 2004/10/27 06:34:06 rswindell Exp $ */
+/* $Id: services.h,v 1.30 2004/10/28 21:01:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,12 +80,14 @@ typedef struct {
 
 } services_startup_t;
 
+#if 0
 /* startup options that requires re-initialization/recycle when changed */
 static struct init_field services_init_fields[] = { 
 	 OFFSET_AND_SIZE(services_startup_t,interface_addr)
 	,OFFSET_AND_SIZE(services_startup_t,ctrl_dir)
 	,{ 0,0 }	/* terminator */
 };
+#endif
 
 /* Option bit definitions	*/
 #define SERVICE_OPT_UDP			(1<<0)	/* UDP Socket */
@@ -97,6 +99,7 @@ static struct init_field services_init_fields[] = {
 /* services_startup_t.options bits that require re-init/recycle when changed */
 #define SERVICE_INIT_OPTS	(BBS_OPT_LOCAL_TIMEZONE)
 
+#if defined(STARTUP_INI_BITDESC_TABLES) || defined(SERVICES_INI_BITDESC_TABLE)
 static ini_bitdesc_t service_options[] = {
 
 	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
@@ -111,6 +114,7 @@ static ini_bitdesc_t service_options[] = {
 	/* terminator */				
 	{ 0 							,NULL					}
 };
+#endif
 
 #ifdef __cplusplus
 extern "C" {

@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.86 2004/10/27 11:02:17 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.87 2004/10/28 21:01:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,8 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#define STARTUP_INI_BITDESC_TABLES
 
 #include "dirwrap.h"	/* backslash */
 #include "sbbs_ini.h"
