@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.108 2002/02/20 00:49:04 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.109 2002/02/22 17:53:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -441,8 +441,13 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, char* fromad
 		sockprintf(socket,"Reply-To: %s",msg->replyto_net.addr);
 	else
 		sockprintf(socket,"Reply-To: %s",fromaddr);
-	sockprintf(socket,"Message-ID: <%08lX.%lu@%s>"
-		,msg->hdr.when_written.time,msg->idx.number,scfg.sys_inetaddr);
+	if(msg->id!=NULL)
+		sockprintf(socket,"Message-ID: %s",msg->id);
+	else
+		sockprintf(socket,"Message-ID: <%08lX.%lu@%s>"
+			,msg->hdr.when_written.time,msg->idx.number,scfg.sys_inetaddr);
+	if(msg->reply_id!=NULL)
+		sockprintf(socket,"In-Reply-To: %s",msg->reply_id);
     for(i=0;i<msg->total_hfields;i++) { 
 		if(msg->hfield[i].type==RFC822HEADER)
 			sockprintf(socket,"%s",(char*)msg->hfield_dat[i]);
