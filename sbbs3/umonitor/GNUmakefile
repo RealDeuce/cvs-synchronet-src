@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.15 2003/05/31 06:43:27 deuce Exp $
+# $Id: GNUmakefile,v 1.16 2003/08/29 00:38:11 rswindell Exp $
 
 #USE_CURSES	:=	1	#Use old curses UIFC implementation
 USE_UIFC32	:=	1	# Use new uifc32 implementation
@@ -144,8 +144,8 @@ $(EXEODIR):
 	mkdir $(EXEODIR)
 
 clean:
-	@$(DELETE) $(LIBODIR)$(SLASH)*
-	@$(DELETE) $(EXEODIR)$(SLASH)*
+	@$(DELETE) $(LIBODIR)/*
+	@$(DELETE) $(EXEODIR)/*
 
 depend:
 	@$(DELETE) $(LIBODIR)/.depend
