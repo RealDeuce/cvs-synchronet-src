@@ -1,8 +1,8 @@
-/* endian.h */
+/* xpendian.h */
 
 /* Macros to convert integer "endianness" */
 
-/* $Id: xpendian.h,v 1.2 2003/11/04 21:32:34 rswindell Exp $ */
+/* $Id: xpendian.h,v 1.3 2003/11/05 10:31:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _ENDIAN_H
-#define _ENDIAN_H
+#ifndef _XPENDIAN_H
+#define _XPENDIAN_H
 
 /************************/
 /* byte-swapping macros */
