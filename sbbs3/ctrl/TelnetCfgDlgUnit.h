@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.h,v 1.7 2001/10/04 23:38:29 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.h,v 1.8 2003/02/07 06:44:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ __published:
     TEdit *TelnetInterfaceEdit;
     TLabel *TelnetPortLabel;
     TEdit *TelnetPortEdit;
-    TCheckBox *KeepAliveCheckBox;
+	TCheckBox *TelnetGaCheckBox;
     TCheckBox *AutoLogonCheckBox;
     TTabSheet *RLoginTabSheet;
     TLabel *RLoginPortLabel;
