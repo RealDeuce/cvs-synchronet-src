@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.52 2000/12/14 12:40:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.53 2001/01/10 02:28:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -564,11 +564,9 @@ static void send_thread(void* arg)
 			break;
 		}
 		rd=fread(buf,sizeof(char),sizeof(buf),fp);
-		if(rd<1) {
-			lprintf("%04d !READ ERROR (%d) on %s",xfer.ctrl_sock,errno,xfer.filename);
-			error=TRUE;
+		if(rd<1) /* EOF or READ error */
 			break;
-		}
+
 		wr=send(*xfer.data_sock,buf,rd,0);
 		if(wr!=rd) {
 			if(wr==SOCKET_ERROR) {
