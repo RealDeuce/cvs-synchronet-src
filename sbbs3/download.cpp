@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.28 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: download.cpp,v 1.29 2004/11/06 00:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -209,7 +209,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 		autohang=1;
 	else
 		autohang=yesno(text[HangUpAfterXferQ]);
-	if(sys_status&SS_ABORT) {				/* if ctrl-c */
+	if(sys_status&SS_ABORT || !online) {	/* if ctrl-c or hangup */
 		autohang=0;
 		return(-1); 
 	}
