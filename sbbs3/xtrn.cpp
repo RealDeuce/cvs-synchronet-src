@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.39 2001/07/19 00:32:02 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.40 2001/07/20 02:52:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,7 +334,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
            		i|=SBBSEXEC_MODE_DOS_IN;
 			if(mode&EX_OUTR)
         		i|=SBBSEXEC_MODE_DOS_OUT;
-			sprintf(str," NT %d %d",cfg.node_num,i);
+			sprintf(str," NT %u %u",cfg.node_num,i);
 			strcat(fullcmdline,str);
 
 			sprintf(str,"sbbsexec_hungup%d",cfg.node_num);
@@ -395,6 +395,9 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
            		start.mode|=SBBSEXEC_MODE_DOS_IN;
 			if(mode&EX_OUTR)
         		start.mode|=SBBSEXEC_MODE_DOS_OUT;
+
+			sprintf(str," 95 %u %u",cfg.node_num,start.mode);
+			strcat(fullcmdline,str);
 
 			if(!DeviceIoControl(
 				vxd,					// handle to device of interest
