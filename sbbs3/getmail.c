@@ -2,7 +2,7 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.3 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: getmail.c,v 1.4 2005/01/05 01:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,7 @@ void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 /* of pointers to mail_t (message numbers and attributes)                   */
 /* smb_open(&smb) must be called prior										*/
 /****************************************************************************/
-mail_t* DLLCALL loadmail(smb_t* smb, ulong* msgs, uint usernumber
+mail_t* DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 			   ,int which, long mode)
 {
 	ulong		l=0;
