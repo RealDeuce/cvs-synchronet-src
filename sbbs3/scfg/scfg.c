@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.41 2003/02/16 08:53:03 rswindell Exp $ */
+/* $Id: scfg.c,v 1.42 2003/02/19 20:42:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,8 +246,11 @@ else {
 	else 
 	   	sprintf(str,"%s../exec",cfg.ctrl_dir);
 }
-sprintf(uifc.helpdatfile,"%s/scfghelp.dat",str);
-sprintf(uifc.helpixbfile,"%s/scfghelp.ixb",str);
+FULLPATH(uifc.helpdatfile,str,sizeof(uifc.helpdatfile));
+backslash(uifc.helpdatfile);
+SAFECOPY(uifc.helpixbfile,uifc.helpdatfile);
+strcat(uifc.helpdatfile,"scfghelp.dat");
+strcat(uifc.helpixbfile,"scfghelp.ixb");
 
 sprintf(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
 if(uifc.scrn(str)) {
