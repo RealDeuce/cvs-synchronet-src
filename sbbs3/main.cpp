@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.265 2003/05/09 08:27:05 rswindell Exp $ */
+/* $Id: main.cpp,v 1.266 2003/05/09 10:25:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1059,6 +1059,7 @@ void input_thread(void *arg)
 					spy_insock=spy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
 				}
 #endif
+				break;
 			}
 		}
 
