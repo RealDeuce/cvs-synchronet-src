@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.51 2003/12/16 22:53:16 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.50 2003/12/03 11:56:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -921,12 +921,11 @@ void sbbs_t::editfile(char *str)
 	if((file=nopen(str,O_RDONLY))!=-1) {
 		length=filelength(file);
 		if(length>(long)maxlines*MAX_LINE_LEN) {
+			attr(cfg.color[clr_err]);
+			bprintf("\7\r\nFile size (%lu bytes) is larger than (%lu).\r\n"
+				,length,(ulong)maxlines*MAX_LINE_LEN);
 			close(file);
 			FREE(buf); 
-			attr(cfg.color[clr_err]);
-			bprintf("\7\r\nFile size (%lu bytes) is larger than %lu (maxlines: %lu).\r\n"
-				,length, (ulong)maxlines*MAX_LINE_LEN, maxlines);
-			return;
 		}
 		if(read(file,buf,length)!=length) {
 			close(file);
