@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.7 2003/03/01 20:17:06 deuce Exp $
+# $Id: GNUmakefile,v 1.8 2003/03/07 10:22:52 rswindell Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 USE_CURSES	=	1	# Curses version of UIFC
@@ -27,6 +27,8 @@ ifndef os
  $(warning OS not specified on command line, setting to '$(os)'.)
 endif
 os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
+# remove '/' from "os/2"
+os      :=  $(shell echo $(os) | tr -d "/")
 
 ODIR	:=	gcc.$(os)
 
