@@ -1,6 +1,6 @@
 /* scfgchat.c */
 
-/* $Id: scfgchat.c,v 1.7 2004/05/30 06:56:05 deuce Exp $ */
+/* $Id: scfgchat.c,v 1.6 2004/04/21 22:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -222,7 +222,7 @@ This is the name or description of the chat channel.
 			,K_EDIT)<1)
             continue;
 		sprintf(code,"%.8s",str);
-		p=strchr(code,' ');
+		p=strchr(code,SP);
 		if(p) *p=0;
         strupr(code);
 		SETHELP(WHERE);
@@ -620,7 +620,7 @@ This is the name of the selected Guru.
 			,0)<1)
             continue;
 		sprintf(code,"%.8s",str);
-		p=strchr(code,' ');
+		p=strchr(code,SP);
 		if(p) *p=0;
         strupr(code);
 		SETHELP(WHERE);

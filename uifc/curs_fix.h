@@ -1,16 +1,6 @@
-/* $Id: curs_fix.h,v 1.5 2004/05/30 07:16:23 deuce Exp $ */
+/* $Id: curs_fix.h,v 1.4 2004/03/24 02:47:33 deuce Exp $ */
 
-#ifdef XCURSES
- #include <xcurses.h>
-#endif
-
-#ifdef N_CURSES_LIB
- #include <ncurses.h>
-#endif
-
-#ifdef CURSES_LIB
- #include <curses.h>
-#endif
+#include <curses.h>
 
 #ifndef	ACS_SBSD
 #define ACS_SBSD	ACS_SBSS

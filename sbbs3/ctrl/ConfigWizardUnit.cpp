@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.17 2004/05/28 23:48:07 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.16 2003/04/18 03:30:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -140,7 +140,7 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
    	Application->BringToFront();
 
     memset(&scfg,0,sizeof(scfg));
-    SAFECOPY(scfg.ctrl_dir,MainForm->global.ctrl_dir);
+    SAFECOPY(scfg.ctrl_dir,MainForm->CtrlDirectory.c_str());
     scfg.size=sizeof(scfg);
     char error[256];
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);

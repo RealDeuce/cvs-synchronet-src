@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: StatsLogFormUnit.cpp,v 1.2 2004/05/28 23:48:07 rswindell Exp $ */
+/* $Id: StatsLogFormUnit.cpp,v 1.1 2000/10/10 11:26:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,7 +73,7 @@ void __fastcall TStatsLogForm::FormShow(TObject *Sender)
             dlb,
             dls;
 
-    sprintf(path,"%sCSTS.DAB",MainForm->global.ctrl_dir);
+    sprintf(path,"%sCSTS.DAB",MainForm->CtrlDirectory.c_str());
     if((file=_sopen(path,O_RDONLY|O_BINARY,SH_DENYNO))==-1) {
         sprintf(str,"!Error opening %s",path);
         Log->Lines->Add(AnsiString(str));

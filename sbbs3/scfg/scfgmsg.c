@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.27 2004/05/30 06:56:06 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.26 2004/04/21 23:58:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ char *stou(char *str)
 	int i;
 
 for(i=0;str[i];i++)
-	if(str[i]==' ')
+	if(str[i]==SP)
 		out[i]='_';
 	else
 		out[i]=str[i];
@@ -547,7 +547,7 @@ import into the current message group.
 						continue;
 					if(k) {
 						p=str;
-						while(*p && *p<=' ') p++;
+						while(*p && *p<=SP) p++;
 						if(!*p || *p==';')
 							continue;
 						memset(&tmpsub,0,sizeof(sub_t));
