@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.8 2004/05/28 03:33:43 rswindell Exp $ */
+/* $Id: link_list.h,v 1.4 2004/05/17 20:59:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,49 +41,33 @@
 #include <stddef.h>		/* size_t */
 #include "str_list.h"	/* string list functions and types */
 
-#if defined(LINK_LIST_THREADSAFE)
-	#include "threadwrap.h"
-#endif
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#define FIRST_NODE				NULL	/* Special value to specify first node in list */
-
 /* Valid link_list_t.flags bits */
 #define LINK_LIST_MALLOC		(1<<0)	/* List/node allocated with malloc() */
 #define LINK_LIST_ALWAYS_FREE	(1<<1)	/* Always free node data when removing */
-#define LINK_LIST_MUTEX			(1<<2)	/* Mutex protected linked-list */
-#define LINK_LIST_NODE_LOCKED	(1<<3)	/* Node is locked */
 
 typedef struct list_node {
 	void*				data;		/* pointer to some kind of data */
 	struct list_node*	next;		/* next node in list (or NULL) */
 	struct list_node*	prev;		/* previous node in list (or NULL) */
-	struct link_list*	list;
 	unsigned long		flags;		/* private use flags */
 } list_node_t;
 
-typedef struct link_list {
+typedef struct {
 	list_node_t*		first;		/* first node in list (or NULL) */
 	list_node_t*		last;		/* last node in list (or NULL) */
 	unsigned long		flags;		/* private use flags */
 	long				count;		/* number of nodes in list */
-#if defined(LINK_LIST_THREADSAFE)
-	pthread_mutex_t		mutex;
-#endif
 } link_list_t;
 
 /* Initialization, Allocation, and Freeing of Lists and Nodes */
-link_list_t*	listInit(link_list_t* /* NULL to auto-allocate */, long flags);
-BOOL			listFree(link_list_t*);
-long			listFreeNodes(link_list_t*);
-BOOL			listFreeNodeData(list_node_t* node);
-
-/* Lock/unlock mutex-protoected linked lists */
-void			listLock(const link_list_t*);
-void			listUnlock(const link_list_t*);
+link_list_t*	listInit(link_list_t* /* NULL to auto-allocate */);
+link_list_t*	listFree(link_list_t*);
+void			listFreeNodes(link_list_t*);
+void			listFreeNodeData(list_node_t* node);
 
 /* Return count or index of nodes, or -1 on error */
 long			listCountNodes(const link_list_t*);
@@ -110,16 +94,11 @@ list_node_t*	listNextNode(const list_node_t*);
 list_node_t*	listPrevNode(const list_node_t*);
 void*			listNodeData(const list_node_t*);
 
-/* Primitive node locking */
-void			listLockNode(list_node_t*);
-void			listUnlockNode(list_node_t*);
-BOOL			listNodeIsLocked(const list_node_t*);
-
 /* Add node to list, returns pointer to new node or NULL on error */
 list_node_t*	listAddNode(link_list_t*, void* data, list_node_t* after /* NULL=insert */);
 
-/* Add array of node data to list, returns number of nodes added (or negative on error) */
-long			listAddNodes(link_list_t*, void** data, list_node_t* after /* NULL=insert */);
+/* Add array of node data to list, returns pointer to last new node or NULL on error */
+list_node_t*	listAddNodes(link_list_t*, void** data, list_node_t* after /* NULL=insert */);
 
 /* Add node to list, allocating and copying the data for the node */
 list_node_t*	listAddNodeData(link_list_t*, const void* data, size_t length, list_node_t* after);
@@ -128,24 +107,24 @@ list_node_t*	listAddNodeData(link_list_t*, const void* data, size_t length, list
 list_node_t*	listAddNodeString(link_list_t*, const char* str, list_node_t* after);
 
 /* Add a list of strings to the linked list, allocating and copying each */
-long			listAddStringList(link_list_t*, str_list_t, list_node_t* after);
+list_node_t*	listAddStringList(link_list_t*, str_list_t, list_node_t* after);
 
 /* Add a list of nodes from a source linked list */
-long			listAddNodeList(link_list_t*, const link_list_t* src, list_node_t* after); 
+list_node_t*	listAddNodeList(link_list_t*, const link_list_t* src, list_node_t* after); 
 
 /* Merge a source linked list into the destination linked list */
 /* after merging, the nodes in the source linked list should not be modified or freed */
-long			listMerge(link_list_t* dest, const link_list_t* src, list_node_t* after);
+list_node_t*	listMerge(link_list_t* dest, const link_list_t* src, list_node_t* after);
 
 /* Convenience macros for pushing, popping, and inserting nodes */
 #define	listPushNode(list, data)				listAddNode(list, data, listLastNode(list))
-#define listInsertNode(link, data)				listAddNode(list, data, FIRST_NODE)
+#define listInsertNode(link, data)				listAddNode(list, data, NULL)
 #define listPushNodeData(list, data, length)	listAddNodeData(list, data, length, listLastNode(list))
-#define	listInsertNodeData(list, data, length)	listAddNodeData(list, data, length, FIRST_NODE)
+#define	listInsertNodeData(list, data, length)	listAddNodeData(list, data, length, NULL)
 #define	listPushNodeString(list, str)			listAddNodeString(list, str, listLastNode(list))
-#define listInsertNodeString(list, str)			listAddNodeString(list, str, FIRST_NODE)
+#define listInsertNodeString(list, str)			listAddNodeString(list, str, NULL)
 #define	listPushStringList(list, str_list)		listAddStringList(list, str_list, listLastNode(list))
-#define listInsertStringList(list, str_list)	listAddStringList(list, str_list, FIRST_NODE)
+#define listInsertStringList(list, str_list)	listAddStringList(list, str_list, NULL)
 #define listPopNode(list)						listRemoveNode(list, listLastNode(list))
 
 /* Remove node from list, returning the node's data (if not free'd) */
