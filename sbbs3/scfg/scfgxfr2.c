@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.22 2004/05/14 01:15:43 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.21 2004/04/21 22:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -685,10 +685,7 @@ contents, usually an abreviation of the directory's name.
 			uifc.msg("Invalid Code");
 			uifc.helpbuf=0;
 			continue; }
-		if(cfg.lib[libnum]->parent_path[0])
-			SAFECOPY(path,code);
-		else
-			sprintf(path,"%sdirs/%s",cfg.data_dir,code);
+		sprintf(path,"%sdirs/%s",cfg.data_dir,code);
 		SETHELP(WHERE);
 /*
 Directory File Path:
