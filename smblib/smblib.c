@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.122 2004/11/02 03:57:01 rswindell Exp $ */
+/* $Id: smblib.c,v 1.123 2004/11/18 08:16:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -418,16 +418,18 @@ int SMBCALL smb_putstatus(smb_t* smb)
 /****************************************************************************/
 int SMBCALL smb_unlocksmbhdr(smb_t* smb)
 {
-	if(smb->shd_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
-		return(SMB_ERR_NOT_OPEN);
+	if(smb->locked) {
+		if(smb->shd_fp==NULL) {
+			safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+			return(SMB_ERR_NOT_OPEN);
+		}
+		if(unlock(fileno(smb->shd_fp),0L,sizeof(smbhdr_t)+sizeof(smbstatus_t))!=0) {
+			safe_snprintf(smb->last_error,sizeof(smb->last_error)
+				,"%d '%s' unlocking message base header",get_errno(),STRERROR(get_errno()));
+			return(SMB_ERR_UNLOCK);
+		}
+		smb->locked=FALSE;
 	}
-	if(unlock(fileno(smb->shd_fp),0L,sizeof(smbhdr_t)+sizeof(smbstatus_t))!=0) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%d '%s' unlocking message base header",get_errno(),STRERROR(get_errno()));
-		return(SMB_ERR_UNLOCK);
-	}
-	smb->locked=FALSE;
 	return(SMB_SUCCESS);
 }
 
