@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.5 2005/01/14 00:39:04 rswindell Exp $ */
+/* $Id: xpevent.c,v 1.6 2005/01/14 19:25:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,10 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 BOOL
 SetEvent(xpevent_t event)
 {
-	_EVENT_CHECK_VALIDITY(event)
+	if (event==NULL || (event->magic != EVENT_MAGIC)) {
+		errno = EINVAL;
+		return(FALSE);
+	}
 
 	pthread_mutex_lock(&event->lock);
 
@@ -99,7 +102,10 @@ SetEvent(xpevent_t event)
 BOOL
 ResetEvent(xpevent_t event)
 {
-	_EVENT_CHECK_VALIDITY(event)
+	if (event==NULL || (event->magic != EVENT_MAGIC)) {
+		errno = EINVAL;
+		return(FALSE);
+	}
 
 	pthread_mutex_lock(&event->lock);
 
@@ -113,7 +119,10 @@ ResetEvent(xpevent_t event)
 BOOL
 CloseEvent(xpevent_t event)
 {
-	_EVENT_CHECK_VALIDITY(event)
+	if (event==NULL || (event->magic != EVENT_MAGIC)) {
+		errno = EINVAL;
+		return(FALSE);
+	}
 
 	/* Make sure there are no waiters. */
 	pthread_mutex_lock(&event->lock);
