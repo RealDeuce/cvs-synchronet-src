@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.66 2005/03/27 09:07:55 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.64 2005/01/08 02:31:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -472,9 +472,9 @@ char* iniSetStringList(str_list_t* list, const char* section, const char* key
 char* iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
 {
 	if(read_value(fp,section,key,value)==NULL || *value==0 /* blank */) {
-		if(deflt!=NULL)
-			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
-		return((char*)deflt);
+		if(deflt==NULL)
+			return(NULL);
+		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
 	}
 
 	return(value);
@@ -484,10 +484,10 @@ char* iniGetString(str_list_t* list, const char* section, const char* key, const
 {
 	get_value(*list, section, key, value);
 
-	if(*value==0 /* blank value or missing key */) {
-		if(deflt!=NULL)
-			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
-		return((char*)deflt);
+	if(*value==0 /* blank */) {
+		if(deflt==NULL)
+			return(NULL);
+		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
 	}
 
 	return(value);
@@ -543,7 +543,7 @@ str_list_t iniGetStringList(str_list_t* list, const char* section, const char* k
 
 	get_value(*list, section, key, value);
 
-	if(*value==0 /* blank value or missing key */)
+	if(*value==0 /* blank */)
 		value=(char*)deflt;
 
 	SAFECOPY(buf,value);
@@ -805,7 +805,7 @@ long iniGetInteger(str_list_t* list, const char* section, const char* key, long 
 
 	get_value(*list, section, key, value);
 
-	if(*value==0)	/* blank value or missing key */
+	if(*value==0)		/* blank value */
 		return(deflt);
 
 	return(strtol(value,NULL,0));
@@ -851,7 +851,7 @@ ulong iniGetIpAddress(str_list_t* list, const char* section, const char* key, ul
 
 	get_value(*list, section, key, value);
 
-	if(*value==0)		/* blank value or missing key */
+	if(*value==0)		/* blank value */
 		return(deflt);
 
 	return(parseIpAddress(value));
@@ -892,10 +892,6 @@ char* iniFileName(char* dest, size_t maxlen, const char* indir, const char* infn
 		}
 	}
 #endif
-
-	safe_snprintf(dest,maxlen,"%s%s.%s%s",dir,fname,PLATFORM_DESC,ext);
-	if(fexistcase(dest))	/* path/file.platform.ini */
-		return(dest);
 	
 	safe_snprintf(dest,maxlen,"%s%s%s",dir,fname,ext);
 	fexistcase(dest);	/* path/file.ini */
@@ -922,7 +918,7 @@ double iniGetFloat(str_list_t* list, const char* section, const char* key, doubl
 
 	get_value(*list, section, key, value);
 
-	if(*value==0)		/* blank value or missing key */
+	if(*value==0)		/* blank value */
 		return(deflt);
 
 	return(atof(value));
@@ -956,7 +952,7 @@ BOOL iniGetBool(str_list_t* list, const char* section, const char* key, BOOL def
 
 	get_value(*list, section, key, value);
 
-	if(*value==0)		/* blank value or missing key */
+	if(*value==0)		/* blank value */
 		return(deflt);
 
 	return(parseBool(value));
@@ -1013,7 +1009,7 @@ ulong iniGetBitField(str_list_t* list, const char* section, const char* key,
 
 	get_value(*list, section, key, value);
 
-	if(*value==0)		/* blank value or missing key */
+	if(*value==0)		/* blank value */
 		return(deflt);
 
 	return(parseBitField(value,bitdesc));

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.65 2005/02/18 02:22:41 rswindell Exp $ */
+/* $Id: scfg.c,v 1.64 2004/09/21 04:50:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,9 +176,6 @@ int main(int argc, char **argv)
                     break;
 				case 'Y':
 					auto_save=TRUE;
-					break;
-				case 'T':
-					/* Legacy (time-slice API), ignore */
 					break;
                 default:
 					USAGE:
