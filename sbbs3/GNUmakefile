@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.59 2003/02/09 00:47:47 rswindell Exp $
+# $Id: GNUmakefile,v 1.60 2003/02/11 09:35:27 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -126,6 +126,11 @@ endif
 include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
 include sbbsdefs.mk		# defines $(SBBSDEFS)
+
+ifeq ($(os),gnu)
+ CFLAGS += -D_NEED_SEM -DNEEDS_FORKPTY -D_POSIX_THREADS
+ OBJS	+= $(LIBODIR)$(SLASH)sem.$(OFILE)
+endif
 
 SBBSLIB	=	$(LIBODIR)/sbbs.a
 
