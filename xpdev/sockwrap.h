@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.21 2004/03/23 02:22:09 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.20 2004/01/15 08:46:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,6 @@
 #include <unistd.h>			/* close */
 #if defined(__solaris__)
 	#include <sys/filio.h>  /* FIONBIO */
-	#define INADDR_NONE -1L
 #else
 	#include <sys/ioctl.h>	/* FIONBIO */
 #endif

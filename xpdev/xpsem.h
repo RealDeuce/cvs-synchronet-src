@@ -2,7 +2,7 @@
 #define _XPSEM_H_
 
 /*
- * $Id: xpsem.h,v 1.4 2004/03/24 01:24:28 deuce Exp $
+ * $Id: xpsem.h,v 1.2 2003/06/07 02:49:34 deuce Exp $
  *
  * semaphore.h: POSIX 1003.1b semaphores
 */
@@ -54,29 +54,25 @@ typedef struct xp_sem *xp_sem_t;
 #define SEM_FAILED	((xp_sem_t *)0)
 #define SEM_VALUE_MAX	UINT_MAX
 
-#ifdef __solaris__
-typedef unsigned int	u_int32_t;
-#endif
+#ifndef KERNEL
+#include <sys/cdefs.h>
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-int	 xp_sem_init (xp_sem_t *, int, unsigned int);
-int	 xp_sem_destroy (xp_sem_t *);
-xp_sem_t	*sem_open (const char *, int, ...);
-int	 xp_sem_close (xp_sem_t *);
-int	 xp_sem_unlink (const char *);
-int	 xp_sem_wait (xp_sem_t *);
-int	 xp_sem_trywait (xp_sem_t *);
-int	 xp_sem_post (xp_sem_t *);
-int	 xp_sem_getvalue (xp_sem_t *, int *);
-int  xp_sem_timedwait (xp_sem_t *sem, const struct timespec *abs_timeout);
-#if defined(__cplusplus)
-}
-#endif
+__BEGIN_DECLS
+int	 xp_sem_init __P((xp_sem_t *, int, unsigned int));
+int	 xp_sem_destroy __P((xp_sem_t *));
+xp_sem_t	*sem_open __P((const char *, int, ...));
+int	 xp_sem_close __P((xp_sem_t *));
+int	 xp_sem_unlink __P((const char *));
+int	 xp_sem_wait __P((xp_sem_t *));
+int	 xp_sem_trywait __P((xp_sem_t *));
+int	 xp_sem_post __P((xp_sem_t *));
+int	 xp_sem_getvalue __P((xp_sem_t *, int *));
+int  xp_sem_timedwait __P((xp_sem_t *sem, const struct timespec *abs_timeout));
+__END_DECLS
+#endif /* KERNEL */
 
 /*
-* $Id: xpsem.h,v 1.4 2004/03/24 01:24:28 deuce Exp $
+* $Id: xpsem.h,v 1.2 2003/06/07 02:49:34 deuce Exp $
 */
 
 /* Begin thread_private.h kluge */
@@ -97,7 +93,7 @@ struct xp_sem {
 
 extern pthread_once_t _thread_init_once;
 extern int _threads_initialized;
-extern void  _thread_init (void);
+extern void  _thread_init __P((void));
 #define THREAD_INIT() \
 	(void) pthread_once(&_thread_init_once, _thread_init)
 #define THREAD_SAFE() \
