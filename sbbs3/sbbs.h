@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.35 2001/04/12 00:34:03 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.36 2001/04/12 00:41:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -738,6 +738,9 @@ extern "C" {
 	DLLEXPORT	char *	DLLCALL unpadfname(char *filename, char *str);
 	DLLEXPORT	BOOL	DLLCALL rmuserxfers(scfg_t* cfg, int fromuser, int destuser, char *fname);
 
+	DLLEXPORT	ulong	DLLCALL	getposts(scfg_t* cfg, uint subnum);
+	DLLEXPORT	long	DLLCALL getfiles(scfg_t* cfg, uint dirnum);
+
 	/* str.cpp */
 	DLLEXPORT	BOOL	DLLCALL trashcan(scfg_t* cfg, char *insearch, char *name);
 
@@ -820,9 +823,6 @@ extern "C" {
 	/* chat.cpp */
 	void	packchatpass(char *pass, node_t* node);
 	char *	unpackchatpass(char *pass, node_t* node);
-
-	ulong	getposts(scfg_t* cfg, uint subnum);
-	long	getfiles(scfg_t* cfg, uint dirnum);
 
 #endif /* SBBS */
 
