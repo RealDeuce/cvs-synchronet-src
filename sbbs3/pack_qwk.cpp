@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.41 2003/05/01 10:18:16 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.42 2003/06/12 09:08:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -541,9 +541,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 
 	if(batdn_total) {
 		for(i=0,totalcdt=0;i<batdn_total;i++)
+			if(!is_download_free(&cfg,batdn_dir[i],&useron))
 				totalcdt+=batdn_cdt[i];
-		if(!(useron.exempt&FLAG('D'))
-			&& totalcdt>useron.cdt+useron.freecdt) {
+		if(totalcdt>useron.cdt+useron.freecdt) {
 			bprintf(text[YouOnlyHaveNCredits]
 				,ultoac(useron.cdt+useron.freecdt,tmp)); 
 		}

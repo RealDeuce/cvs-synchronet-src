@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.30 2003/05/09 20:13:29 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.31 2003/06/12 09:08:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1207,7 +1207,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					found=-1;
 					break; }
 				continue; }
-			if(!(cfg.dir[f.dir]->misc&DIR_FREE) && !(useron.exempt&FLAG('D'))
+			if(!is_download_free(&cfg,f.dir,&useron)
 				&& f.cdt>(useron.cdt+useron.freecdt)) {
 				SYNC;
 				bprintf(text[YouOnlyHaveNCredits]
