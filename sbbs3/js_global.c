@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.105 2003/11/01 09:02:05 rswindell Exp $ */
+/* $Id: js_global.c,v 1.106 2003/12/02 02:01:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2007,23 +2007,21 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
         if(!JS_GetElement(cx, inarray, i, &val))
 			break;
 		sock=js_socket(cx,val);
-		FD_SET(sock,&socket_set);
-		if(sock>maxsock)
-			maxsock=sock;
 		index[i]=sock;
+		if(sock!=INVALID_SOCKET) {
+			FD_SET(sock,&socket_set);
+			if(sock>maxsock)
+				maxsock=sock;
+		}
     }
 
 	if(select(maxsock+1,rd_set,wr_set,NULL,&tv)<0)
-	{
 		lprintf(LOG_DEBUG,"Error in socket_select()  %s (%d)",strerror(errno),errno);
-	}
 
-	for(i=0;i<limit;i++)
-	{
-		if(FD_ISSET(index[i],&socket_set))
-		{
+	for(i=0;i<limit;i++) {
+		if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
 			val=INT_TO_JSVAL(i);
-    	    if(!JS_SetElement(cx, rarray, len++, &val))
+   			if(!JS_SetElement(cx, rarray, len++, &val))
 				break;
 		}
 	}
