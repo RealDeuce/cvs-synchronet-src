@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.84 2003/05/12 22:43:49 rswindell Exp $
+# $Id: GNUmakefile,v 1.85 2003/05/14 05:16:56 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -129,7 +129,7 @@ endif
 ifdef JSLIB
  LIBS	+=	$(JSLIB)
 else
- LIBS	+=	../../lib/mozilla/js/$(os).$(BUILD)/libjs.a
+ LIBS	+=	../../lib/mozilla/js/$(os).$(BUILD)/libjs.a ../../lib/mozilla/nspr/$(os).$(BUILD)/libnspr4.a
 endif
 
 # The following are needed for echocfg (uses UIFC)
