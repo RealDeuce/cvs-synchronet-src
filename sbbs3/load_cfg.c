@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.15 2001/07/08 03:47:17 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.16 2001/08/27 18:49:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,8 +183,6 @@ void prep_cfg(scfg_t* cfg)
 		/* default origin line */
 		if(!cfg->sub[i]->origline[0])
 			strcpy(cfg->sub[i]->origline,cfg->origline);
-
-		prep_dir(cfg->ctrl_dir, cfg->sub[i]->echomail_sem);
 	}
 
 	for(i=0;i<cfg->total_dirs;i++) {
