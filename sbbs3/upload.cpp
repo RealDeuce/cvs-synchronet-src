@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.19 2002/02/21 19:10:50 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.20 2002/04/24 08:56:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ bool sbbs_t::uploadfile(file_t *f)
 			attr(LIGHTGRAY);
 			bputs(cfg.ftest[i]->workstr);
 
-			sprintf(sbbsfilename,"SBBSFILENAME=%.12s",unpadfname(f->name,fname));
+			sprintf(sbbsfilename,"SBBSFILENAME=%.64s",unpadfname(f->name,fname));
 			putenv(sbbsfilename);
 			sprintf(sbbsfiledesc,"SBBSFILEDESC=%.*s",LEN_FDESC,f->desc);
 			putenv(sbbsfiledesc);
