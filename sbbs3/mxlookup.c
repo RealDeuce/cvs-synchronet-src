@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.19 2004/05/11 01:00:58 rswindell Exp $ */
+/* $Id: mxlookup.c,v 1.20 2004/05/11 01:12:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,6 +294,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 			result=ERROR_VALUE;
 		else
 			result=-2;
+		mail_close_socket(sock);
 		return(result);
 	}
 
