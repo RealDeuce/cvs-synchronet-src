@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.bor,v 1.16 2001/12/29 02:39:58 rswindell Exp $
+# $Id: Makefile.bor,v 1.17 2002/01/20 12:41:48 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -73,7 +73,8 @@ $(EXEODIR):
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): sbbscon.c $(OBJS) $(LIBODIR)\ver.$(OFILE) $(LIBODIR)\ftpsrvr.$(OFILE) \
-	$(LIBODIR)\mailsrvr.$(OFILE) $(LIBODIR)\mxlookup.$(OFILE) $(LIBODIR)\mime.$(OFILE)
+	$(LIBODIR)\mailsrvr.$(OFILE) $(LIBODIR)\mxlookup.$(OFILE) $(LIBODIR)\mime.$(OFILE) \
+	$(LIBODIR)\services.$(OFILE)
 	$(CC) $(CFLAGS) -WM -e$(SBBSMONO) $** $(LIBS)
 
 # SBBS DLL Link Rule
