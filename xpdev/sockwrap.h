@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.22 2004/11/03 03:24:38 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.25 2004/11/03 06:05:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -155,7 +155,9 @@ extern "C" {
 int		sendfilesocket(int sock, int file, long *offset, long count);
 int		recvfilesocket(int sock, int file, long *offset, long count);
 BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
-int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen, int retries, int wait_secs, int *(lprintf)(int level, char *fmt, ...));
+int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
+				   ,uint retries, uint wait_secs, const char* prot
+				   ,int (*lprintf)(int level, char *fmt, ...));
 
 #ifdef __cplusplus
 }
