@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.12 2004/05/28 01:45:50 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.13 2004/05/28 10:08:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,13 @@ typedef struct {
 	const char*	name;
 } ini_bitdesc_t;
 
+typedef struct {
+	int			key_len;
+	const char* key_prefix;
+	const char* value_separator;
+	const char*	bit_separator;
+} ini_style_t;
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -90,6 +97,24 @@ void*		iniFreeNamedStringList(named_string_t** list);
 str_list_t	iniReadFile(FILE* fp);
 BOOL		iniWriteFile(FILE* fp, const str_list_t list);
 
+/* StringList functions */
+size_t		iniAddSection(str_list_t* list, const char* section);
+char*		iniSetString(str_list_t* list, const char* section, const char* key, const char* value
+					,ini_style_t*);
+char*		iniSetInteger(str_list_t* list, const char* section, const char* key, long value
+					,ini_style_t*);
+char*		iniSetShortInt(str_list_t* list, const char* section, const char* key, ushort value
+					,ini_style_t*);
+char*		iniSetHexInt(str_list_t* list, const char* section, const char* key, ulong value
+					,ini_style_t*);
+char*		iniSetFloat(str_list_t* list, const char* section, const char* key, double value
+					,ini_style_t*);
+char*		iniSetIpAddress(str_list_t* list, const char* section, const char* key, ulong value
+					,ini_style_t*);
+char*		iniSetBool(str_list_t* list, const char* section, const char* key, BOOL value
+					,ini_style_t*);
+char*		iniSetBitField(str_list_t* list, const char* section, const char* key, ulong value
+					,ini_bitdesc_t*, ini_style_t*);
 
 #if defined(__cplusplus)
 }
