@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.17 2003/10/09 16:11:00 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.18 2003/11/02 01:31:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,8 @@
 #include <netdb.h>			/* gethostbyname */
 #include <sys/types.h>		/* For u_int32_t on FreeBSD */
 #include <netinet/in.h>		/* IPPROTO_IP */
+/* define _BSD_SOCKLEN_T_ in order to define socklen_t on darwin */
+#define _BSD_SOCKLEN_T_	int
 #include <sys/socket.h>		/* socket/bind/etc. */
 #include <sys/time.h>		/* struct timeval */
 #include <arpa/inet.h>		/* inet_ntoa */
