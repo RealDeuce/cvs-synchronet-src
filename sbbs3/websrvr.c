@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.83 2003/03/18 09:13:16 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.84 2003/03/20 03:30:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -469,48 +469,6 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 		lprintf("%04d !ERROR: short send on socket: %d instead of %d",sock,result,len);
 	}
 	return(len);
-}
-
-static char *cleanpath(char *target, char *path, size_t size)  {
-	char	*out;
-	char	*p;
-	char	*p2;
-	
-	out=target;
-	*out=0;
-
-	if(*path != '/' && *path != '\\')  {
-		p=getcwd(target,size);
-		if(p==NULL || strlen(p)+strlen(path)>=size)
-			return(NULL);
-		out=strrchr(target,'\0');
-		*(out++)='/';
-		*out=0;
-		out--;
-	}
-	strncat(target,path,size-1);
-	
-	for(;*out;out++)  {
-		while(*out=='/' || *out=='\\')  {
-			if(*(out+1)=='/' || *(out+1)=='\\')
-				memmove(out,out+1,strlen(out));
-			else if(*(out+1)=='.' && (*(out+2)=='/' || *(out+2)=='\\'))
-				memmove(out,out+2,strlen(out)-1);
-			else if(*(out+1)=='.' && *(out+2)=='.' && (*(out+3)=='/' || *(out+3)=='\\'))  {
-				*out=0;
-				p=strrchr(target,'/');
-				p2=strrchr(target,'\\');
-				if(p2>p)
-					p=p2;
-				memmove(p,out+3,strlen(out+3)+1);
-				out=p;
-			}
-			else  {
-				out++;
-			}
-		}
-	}
-	return(target);
 }
 
 static int getmonth(char *mon)
@@ -1453,7 +1411,7 @@ static BOOL check_request(http_session_t * session)
 	} else
 		sprintf(str,"%s%s",root_dir,session->req.physical_path);
 	
-	if(cleanpath(path,str,sizeof(session->req.physical_path))==NULL) {
+	if(FULLPATH(path,str,sizeof(session->req.physical_path))==NULL) {
 		send_error(session,"404 Not Found");
 		return(FALSE);
 	}
@@ -2380,7 +2338,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.83 $", "%*s %s", revision);
+	sscanf("$Revision: 1.84 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
