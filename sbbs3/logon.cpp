@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.20 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.21 2002/03/18 13:35:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -507,9 +507,9 @@ bool sbbs_t::logon()
 	if(mailw) {
 		if(yesno(text[ReadYourMailNowQ]))
 			readmail(useron.number,MAIL_YOUR); }
-	if(useron.misc&ASK_NSCAN && yesno(text[NScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_NSCAN && yesno(text[NScanAllGrpsQ]))
 		scanallsubs(SCAN_NEW);
-	if(useron.misc&ASK_SSCAN && yesno(text[SScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_SSCAN && yesno(text[SScanAllGrpsQ]))
 		scanallsubs(SCAN_TOYOU);
 	return(true);
 }
