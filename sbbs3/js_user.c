@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.49 2003/12/09 10:34:19 rswindell Exp $ */
+/* $Id: js_user.c,v 1.51 2003/12/17 04:10:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -621,9 +621,9 @@ static char* user_prop_desc[] = {
 	,"current external program being run"
 	,"external message editor"
 	,"command shell"
-	,"settings bitfield"
-	,"QWK packet settings bitfield"
-	,"chat settings bitfield"
+	,"settings bitfield - see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
+	,"QWK packet settings bitfield - see <tt>QWK_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
+	,"chat settings bitfield - see <tt>CHAT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
 	,"temporary file type (extension)"
 	,"new file scan date/time (time_t format)"
 	,"file transfer protocol (command key)"
@@ -956,9 +956,10 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 	private_t*	p;
 	jsval		val;
 
-	/* Return existing user object if it's already been created */
-	if(JS_GetProperty(cx,parent,name,&val) && val!=JSVAL_VOID)
-		userobj = JSVAL_TO_OBJECT(val);
+	if(name==NULL)
+	    userobj = JS_NewObject(cx, &js_user_class, NULL, parent);
+	else if(JS_GetProperty(cx,parent,name,&val) && val!=JSVAL_VOID)
+		userobj = JSVAL_TO_OBJECT(val);	/* Return existing user object */
 	else
 		userobj = JS_DefineObject(cx, parent, name, &js_user_class
 								, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
