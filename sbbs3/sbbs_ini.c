@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.97 2005/01/01 01:11:44 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.98 2005/01/05 06:35:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -708,7 +708,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,bbs->bind_retry_count,&style))
 			break;
 		if(bbs->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,bbs->bind_retry_delay,&style))
 			break;
 	}
@@ -784,7 +784,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,ftp->bind_retry_count,&style))
 			break;
 		if(ftp->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,ftp->bind_retry_delay,&style))
 			break;
 	}
@@ -883,7 +883,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,mail->bind_retry_count,&style))
 			break;
 		if(mail->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,mail->bind_retry_delay,&style))
 			break;
 	}
@@ -956,7 +956,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,services->bind_retry_count,&style))
 			break;
 		if(services->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,services->bind_retry_delay,&style))
 			break;
 	}
@@ -1054,7 +1054,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,web->bind_retry_count,&style))
 			break;
 		if(web->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,web->bind_retry_delay,&style))
 			break;
 	}
