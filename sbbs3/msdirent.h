@@ -2,7 +2,7 @@
 
 /* POSIX directory operations using Microsoft _findfirst/next functions. */
 
-/* $Id: msdirent.h,v 1.1 2000/10/10 11:26:20 rswindell Exp $ */
+/* $Id: msdirent.h,v 1.2 2000/10/25 23:28:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,8 +72,6 @@ DIR            *	opendir  (const char *__dirname);
 struct dirent  *	readdir  (DIR *__dir);
 int                 closedir (DIR *__dir);
 void                rewinddir(DIR *__dir);
-
-int					getfattr(char* filename);
 
 #ifdef __cplusplus
 }

@@ -2,7 +2,7 @@
 
 /* POSIX directory operations using Microsoft _findfirst/next functions. */
 
-/* $Id: msdirent.c,v 1.1 2000/10/10 11:26:20 rswindell Exp $ */
+/* $Id: msdirent.c,v 1.2 2000/10/25 23:28:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,16 +87,4 @@ void rewinddir(DIR* dir)
 	_findclose(dir->handle);
 	dir->end=FALSE;
 	dir->handle=_findfirst(dir->filespec,&dir->finddata);
-}
-int getfattr(char* filename)
-{
-	long handle;
-	struct _finddata_t	finddata;
-
-	if((handle=_findfirst(filename,&finddata))==-1) {
-		errno=ENOENT;
-		return(-1);
-	}
-	_findclose(handle);
-	return(finddata.attrib);
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.5 2000/10/25 21:50:51 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.6 2000/10/25 23:28:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,6 +119,7 @@ DLLEXPORT char* ultoa(ulong, char*, int radix);
 DLLEXPORT BOOL		fexist(char *filespec);
 DLLEXPORT long		flength(char *filename);
 DLLEXPORT long		fdate(char *filename);
+DLLEXPORT int		getfattr(char* filename);
 DLLEXPORT ulong		getfreediskspace(char* path);
 
 #ifdef __cplusplus
