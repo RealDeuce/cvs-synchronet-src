@@ -2,7 +2,7 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.5 2004/11/10 20:27:40 rswindell Exp $ */
+/* $Id: msg_queue.c,v 1.6 2004/11/10 23:11:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,9 +146,6 @@ long msgQueueReadLevel(msg_queue_t* q)
 	return listCountNodes(msgQueueReadList(q));
 }
 
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
 static BOOL list_wait(link_list_t* list, long timeout)
 {
 #if defined(LINK_LIST_THREADSAFE)
