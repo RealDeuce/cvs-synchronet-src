@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.31 2003/07/26 21:40:22 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.32 2003/08/21 20:34:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -488,7 +488,7 @@ void sbbs_t::qwk_sec()
 					,"Extended (QWKE) Packet Format"
 					,useron.qwk&QWK_EXT ? text[Yes]:text[No]);
 				bputs(text[UserDefaultsWhich]);
-				ch=(char)getkeys("AEDFIOQTYMNCZV",0);
+				ch=(char)getkeys("AEDFIOQTYMNCXZV",0);
 				if(sys_status&SS_ABORT || !ch || ch=='Q')
 					break;
 				switch(ch) {
