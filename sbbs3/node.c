@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.15 2003/01/18 00:27:42 rswindell Exp $ */
+/* $Id: node.c,v 1.16 2003/01/23 10:39:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,21 +150,6 @@ char* itoa(int val, char* str, int radix)
 	return(str);
 }
 #endif
-
-#if defined(_WIN32)
-
-	#define SLEEP(x)			Sleep(x)
-
-#elif defined(__OS2__)
-
-	#define SLEEP(x)			DosSleep(x)
-
-#elif defined(__unix__)
-
-	#define SLEEP(x)			usleep(x*1000)
-
-#endif
-
 
 /****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
