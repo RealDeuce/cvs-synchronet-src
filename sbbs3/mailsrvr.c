@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.59 2001/08/03 21:10:46 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.60 2001/08/28 14:46:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1144,15 +1144,17 @@ static void smtp_thread(void* arg)
 		return;
 	}
 
-	/*  SPAM Filters (maps.vix.com) */
+	/*  SPAM Filters (mail-abuse.org) */
 	if(startup->options&MAIL_OPT_USE_RBL
 		&& rblchk(smtp.client_addr.sin_addr.s_addr
-			,"rbl.maps.vix.com"
+			,"blackholes.mail-abuse.org"
 			)==TRUE) {
 		lprintf("%04d !SMTP SPAM server filtered (RBL): %s [%s]"
-			,socket, host_name,host_ip);
+			,socket, host_name, host_ip);
+		spamlog(&scfg, "Listed on RBL (http://mail-abuse.org/rbl)"
+			,host_name, host_ip);
 		sockprintf(socket
-			,"571 Mail from %s refused, see http://www.mail-abuse.org/rbl"
+			,"571 Mail from %s refused, see http://mail-abuse.org/rbl"
 			,host_ip);
 		mail_close_socket(socket);
 		thread_down();
@@ -1160,12 +1162,14 @@ static void smtp_thread(void* arg)
 	}
 	if(startup->options&MAIL_OPT_USE_DUL
 		&& rblchk(smtp.client_addr.sin_addr.s_addr
-			,"dul.maps.vix.com"
+			,"dialups.mail-abuse.org"
 			)==TRUE) {
 		lprintf("%04d !SMTP SPAM server filtered (DUL): %s [%s]"
-			,socket, host_name,host_ip);
+			,socket, host_name, host_ip);
+		spamlog(&scfg, "Listed on DUL (http://mail-abuse.org/dul)"
+			,host_name, host_ip);
 		sockprintf(socket
-			,"571 Mail from %s refused, see http://www.mail-abuse.org/dul"
+			,"571 Mail from %s refused, see http://mail-abuse.org/dul"
 			,host_ip);
 		mail_close_socket(socket);
 		thread_down();
@@ -1176,9 +1180,11 @@ static void smtp_thread(void* arg)
 			,"relays.mail-abuse.org"
 			)==TRUE) {
 		lprintf("%04d !SMTP SPAM server filtered (RSS): %s [%s]"
-			,socket, host_name,host_ip);
+			,socket, host_name, host_ip);
+		spamlog(&scfg, "Listed on RSS (http://mail-abuse.org/rss)"
+			,host_name, host_ip);
 		sockprintf(socket
-			,"571 Mail from %s refused, see http://www.mail-abuse.org/rss"
+			,"571 Mail from %s refused, see http://mail-abuse.org/rss"
 			,host_ip);					
 		mail_close_socket(socket);
 		thread_down();
