@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.2 2001/11/13 17:06:52 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.3 2001/11/15 19:02:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,6 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			for(c=0;str[c];c++)
 				if(str[c]==' ')
 					str[c]='_';
-			strlwr(str);
 			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 			if(!JS_SetProperty(cx, subobj, "newsgroup", &val))
 				return(NULL);
