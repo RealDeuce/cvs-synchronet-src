@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.23 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.24 2002/04/13 09:06:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -823,7 +823,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		else if(!strcmp(sp,"FTODAY")) 
 			sprintf(str,"%lu",stats.ftoday);
 		else if(!strcmp(sp,"NUSERS")) 
-			sprintf(str,"%lu",stats.nusers);
+			sprintf(str,"%u",stats.nusers);
 		return(str);
 	}
 
