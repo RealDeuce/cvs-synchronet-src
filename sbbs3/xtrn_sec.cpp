@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.41 2004/07/27 23:48:38 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.42 2004/10/21 08:15:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -915,7 +915,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,-1 								/* Display on/off */
 			,0									/* Printer on/off */
 			,sys_status&SS_SYSPAGE ? -1:0		/* Page Bell on/off */
-			,cfg.node_misc&NM_ANSALARM ? -1:0	/* Caller Alarm on/off */
+			,startup->answer_sound[0] ? -1:0	/* Caller Alarm on/off */
 			,' ' 								/* Sysop next flag */
 			,0									/* Error corrected */
 			,useron.misc&NO_EXASCII ? '7'       /* Graphics mode */
