@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.2 2002/07/21 21:27:25 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.3 2003/03/18 08:29:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,8 @@ extern "C" {
 
 char*		iniReadString	(FILE* fp, const char* section, const char* key, 
 							 const char* deflt);
+char**		iniReadStringList(FILE* fp, const char* section, const char* key
+							,const char* sep, const char* deflt);
 long		iniReadInteger	(FILE* fp, const char* section, const char* key, 
 							 long deflt);
 ushort		iniReadShortInt	(FILE* fp, const char* section, const char* key, 

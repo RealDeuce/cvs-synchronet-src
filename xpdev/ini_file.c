@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.7 2003/01/21 01:41:04 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.8 2003/03/18 08:29:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,42 @@ char* iniReadString(FILE* fp, const char* section, const char* key, const char* 
 
 	return(value);
 }
+
+char** iniReadStringList(FILE* fp, const char* section, const char* key
+						 ,const char* sep, const char* deflt)
+{
+	char*	value;
+	char**	lp;
+	char**	np;
+	char*	token;
+	char	list[MAX_VALUE_LEN];
+	ulong	items=0;
+
+	if((value=get_value(fp,section,key))==NULL || *value==0 /* blank */)
+		value=(char*)deflt;
+
+	SAFECOPY(list,value);
+
+	if((lp=malloc(sizeof(char*)))==NULL)
+		return(NULL);
+
+	token=strtok(list,sep);
+	while(token!=NULL) {
+		truncsp(token);
+		if((np=realloc(lp,sizeof(char*)*(items+2)))==NULL)
+			break;
+		lp=np;
+		if((lp[items]=malloc(strlen(token)+1))==NULL)
+			break;
+		strcpy(lp[items++],token);
+		token=strtok(NULL,sep);
+	}
+
+	lp[items]=NULL;	/* terminate list */
+
+	return(lp);
+}
+
 
 long iniReadInteger(FILE* fp, const char* section, const char* key, long deflt)
 {
