@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.37 2003/01/04 02:30:34 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.38 2003/01/14 21:50:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,12 +148,6 @@ BOOL sbbs_t::newuser()
 		strcpy(useron.tmpext,cfg.fcomp[0]->ext);
 	else
 		strcpy(useron.tmpext,"ZIP");
-	for(i=0;i<cfg.total_xedits;i++)
-		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron))
-			break;
-	if(i<cfg.total_xedits)
-		useron.xedit=i+1;
-
 
 	useron.shell=cfg.new_shell;
 
@@ -345,6 +339,13 @@ BOOL sbbs_t::newuser()
 		pause();
 	CLS;
 	answertime=time(NULL);		/* could take 10 minutes to get this far */
+
+	/* Default editor (moved here, after terminal type setup Jan-2003) */
+	for(i=0;i<cfg.total_xedits;i++)
+		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron))
+			break;
+	if(i<cfg.total_xedits)
+		useron.xedit=i+1;
 
 	if(cfg.total_xedits && cfg.uq&UQ_XEDIT 
 		&& !noyes("Use an external text editor")) {
