@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.140 2004/11/08 09:32:47 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.139 2004/10/27 23:40:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,6 @@
 #include "TelnetCfgDlgUnit.h"
 #include "MailCfgDlgUnit.h"
 #include "FtpCfgDlgUnit.h"
-#include "WebCfgDlgUnit.h"
 #include "ServicesCfgDlgUnit.h"
 #include "AboutBoxFormUnit.h"
 #include "CodeInputFormUnit.h"
@@ -1347,9 +1346,9 @@ void __fastcall TMainForm::WebConfigureExecute(TObject *Sender)
     if(inside) return;
     inside=true;
 
-	Application->CreateForm(__classid(TWebCfgDlg), &WebCfgDlg);
-	WebCfgDlg->ShowModal();
-    delete WebCfgDlg;
+	Application->CreateForm(__classid(TFtpCfgDlg), &FtpCfgDlg);
+	FtpCfgDlg->ShowModal();
+    delete FtpCfgDlg;
 
     inside=false;
 }
