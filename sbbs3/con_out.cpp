@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.19 2002/04/23 08:20:54 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.20 2002/07/08 23:03:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,6 +76,9 @@ int sbbs_t::bputs(char *str)
 	int i;
     ulong l=0;
 
+	if(online==ON_LOCAL) 			/* script running as event */
+		return(eprintf("%s",str));
+
 	while(str[l]) {
 		if(str[l]==CTRL_A	        /* ctrl-a */
 			&& str[l+1]!=0) {		/* valid */
@@ -110,6 +113,9 @@ int sbbs_t::bputs(char *str)
 int sbbs_t::rputs(char *str)
 {
     ulong l=0;
+
+	if(online==ON_LOCAL) 			/* script running as event */
+		return(eprintf("%s",str));
 
 	while(str[l])
 		outchar(str[l++]);
