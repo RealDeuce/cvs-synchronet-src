@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.13 2003/05/08 20:48:50 rswindell Exp $ */
+/* $Id: ringbuf.c,v 1.14 2003/05/08 21:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,13 +135,6 @@ DWORD RINGBUFCALL RingBufFull( RingBuf* rb )
 	else
 		retval = rb->size - (tail - head);
 
-#ifdef RINGBUF_SEM
-	if(retval==0)	/* empty */
-		sem_reset(&rb->sem);
-	if(retval<rb->highwater_mark)
-		sem_reset(&rb->highwater_sem);
-#endif
-
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_unlock(&rb->mutex);
 #endif
@@ -256,7 +249,10 @@ DWORD RINGBUFCALL RingBufRead( RingBuf* rb, BYTE* dst,  DWORD cnt )
 		rb->pTail = rb->pStart;
 
 #ifdef RINGBUF_SEM		/* clear semaphores, if appropriate */
-	RingBufFull( rb );
+	if(len-cnt==0)	/* empty */
+		sem_reset(&rb->sem);
+	if(len-cnt<rb->highwater_mark)
+		sem_reset(&rb->highwater_sem);
 #endif
 
 #ifdef RINGBUF_MUTEX
