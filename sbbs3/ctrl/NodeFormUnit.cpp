@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.4 2000/11/02 01:15:29 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.5 2000/11/12 16:01:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,9 +92,9 @@ char* username(int usernumber,char *strin)
         strcpy(strin,"UNKNOWN USER");
         return(strin);
     }
-    sprintf(str,"%sUSER/NAME.DAT",MainForm->cfg.data_dir);
+    sprintf(str,"%suser/name.dat",MainForm->cfg.data_dir);
     if((file=_sopen(str,O_RDONLY,SH_DENYWR,S_IWRITE))==-1) {
-        return("<ERROR OPENING NAME.DAT>");
+        return("<!ERROR opening name.dat>");
     }
     if(filelength(file)<(long)((long)usernumber*(LEN_ALIAS+2))) {
         close(file);
