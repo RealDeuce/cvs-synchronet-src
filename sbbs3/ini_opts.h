@@ -2,7 +2,7 @@
 
 /* Synchronet initialization file (.ini) bit-field descriptions */
 
-/* $Id: ini_opts.h,v 1.3 2004/08/04 04:54:40 rswindell Exp $ */
+/* $Id: ini_opts.h,v 1.4 2004/10/13 19:58:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,7 @@ static ini_bitdesc_t web_options[] = {
 	{ WEB_OPT_DEBUG_TX				,"DEBUG_TX"				},
 	{ WEB_OPT_VIRTUAL_HOSTS			,"VIRTUAL_HOSTS"		},
 	{ WEB_OPT_NO_CGI				,"NO_CGI"				},
+	{ WEB_OPT_HTTP_LOGGING			,"HTTP_LOGGING"			},
 
 	/* shared bits */
 	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
