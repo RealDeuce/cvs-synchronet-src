@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.19 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.20 2001/11/19 21:22:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -937,6 +937,7 @@ void sbbs_t::automsg()
 	char 	tmp[512];
 	char	automsg[MAX_PATH+1];
     int		file;
+	time_t	now=time(NULL);
 
 	sprintf(automsg,"%smsgs/auto.msg",cfg.data_dir);
 	while(online) {
@@ -974,7 +975,7 @@ void sbbs_t::automsg()
 						sprintf(tmp,"%.80s",text[Anonymous]);
 					else
 						sprintf(tmp,"%s #%d",useron.alias,useron.number);
-					sprintf(str,text[AutoMsgBy],tmp);
+					sprintf(str,text[AutoMsgBy],tmp,timestr(&now));
 					strcat(str,"          ");
 					write(file,str,strlen(str));
 					write(file,buf,strlen(buf));
