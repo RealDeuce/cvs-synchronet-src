@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.48 2002/12/06 01:17:09 rswindell Exp $ */
+/* $Id: js_system.c,v 1.49 2002/12/12 21:21:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1051,7 +1051,7 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	user.shell=cfg->new_shell;
 	user.misc=cfg->new_misc|(AUTOTERM|COLOR);
 	user.prot=cfg->new_prot;
-	user.qwk=(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL);
+	user.qwk=QWK_DEFAULT;
 
 	i=newuserdat(cfg,&user);
 
