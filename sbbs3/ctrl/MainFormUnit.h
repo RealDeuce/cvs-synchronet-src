@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.61 2004/05/28 23:48:07 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.60 2003/10/09 08:35:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -362,19 +362,25 @@ public:		// User declarations
     bool            ServicesAutoStart;
     bool			MailLogFile;
     bool			FtpLogFile;
+    AnsiString		CtrlDirectory;
+    AnsiString		TempDirectory;
+    AnsiString      Hostname;
     AnsiString      LoginCommand;
     AnsiString      ConfigCommand;
     AnsiString		Password;
+    DWORD			js_max_bytes;
+    DWORD			js_cx_stack;
+    DWORD			js_branch_limit;
+    DWORD			js_gc_interval;
+    DWORD			js_yield_interval;
     bool            MinimizeToSysTray;
     bool            UndockableForms;
     scfg_t		    cfg;
-    char		    ini_file[MAX_PATH+1];
     bbs_startup_t 	bbs_startup;
     ftp_startup_t	ftp_startup;
     web_startup_t	web_startup;
     mail_startup_t 	mail_startup;
     services_startup_t  services_startup;
-    global_startup_t	global;
     HANDLE			bbs_log;
     HANDLE			event_log;
     HANDLE			ftp_log;
@@ -382,6 +388,7 @@ public:		// User declarations
     HANDLE			services_log;
     int             NodeDisplayInterval;
     int             ClientDisplayInterval;
+    WORD			SemFileCheckFrequency;
     int             SpyTerminalWidth;
     int             SpyTerminalHeight;
     TFont*          SpyTerminalFont;

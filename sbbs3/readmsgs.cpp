@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.25 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: readmsgs.cpp,v 1.24 2003/12/04 06:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ char *binstr(uchar *buf, ushort length)
 
 	str[0]=0;
 	for(i=0;i<length;i++)
-		if(buf[i] && (buf[i]<' ' || buf[i]>=0x7f)
+		if(buf[i] && (buf[i]<SP || buf[i]>=0x7f)
 			&& buf[i]!='\r' && buf[i]!='\n' && buf[i]!='\t')
 			break;
 	if(i==length)		/* not binary */

@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.25 2004/05/30 06:47:55 deuce Exp $ */
+/* $Id: uedit.c,v 1.23 2004/03/11 06:04:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "conwrap.h"	/* this has to go BEFORE curses.h so getkey() can be macroed around */
 #include <sys/types.h>
 #include <time.h>
 #ifdef __QNX__
@@ -44,12 +45,12 @@
 #include <stdio.h>
 #ifdef __unix__
 #include <unistd.h>
+#include <curses.h>
 #include <sys/time.h>
 #include <signal.h>
 #endif
 #include "genwrap.h"
 #include "uifc.h"
-#include "curs_fix.h"
 #include "sbbsdefs.h"
 #include "genwrap.h"	/* stricmp */
 #include "dirwrap.h"	/* lock/unlock/sopen */
@@ -1727,7 +1728,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.25 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -1759,13 +1760,7 @@ int main(int argc, char** argv)  {
 	}
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
-		NULL,		/* global_startup */
-		NULL, &bbs_startup, 
-		NULL, NULL, /* ftp_startup */
-		NULL, NULL, /* web_startup */ 
-		NULL, NULL, /* mail_startup */
-		NULL, NULL  /* services_startup */
-		);
+		NULL, &bbs_startup, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	/* close .ini file here */
 	if(fp!=NULL)

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.34 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: scfglib2.c,v 1.33 2004/04/07 23:53:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -866,7 +866,7 @@ char *ltoaf(long l,char *str)
 	while(c<26) {
 		if(l&(long)(1L<<c))
 			str[c]='A'+c;
-		else str[c]=' ';
+		else str[c]=SP;
 		c++; 
 	}
 	str[c]=0;
