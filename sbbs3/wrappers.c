@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.38 2002/03/07 01:37:50 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.39 2002/03/07 16:03:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -366,6 +366,7 @@ int sem_getvalue(sem_t* psem, int* val)
 }
 #endif
 
+#ifdef SBBS
 /****************************************************************************/
 /* Return free disk space in bytes (up to a maximum of 4GB)					*/
 /****************************************************************************/
@@ -441,3 +442,4 @@ ulong DLLCALL getfreediskspace(char* path)
 
 #endif
 }
+#endif /* SBBS */
