@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.330 2004/07/02 02:15:11 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.328 2004/06/09 09:15:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2071,25 +2071,23 @@ static void smtp_thread(void* arg)
 					telegram_buf[length+strlen(str)]=0;	/* Need ASCIIZ */
 
 					/* Send telegram to users */
-					sec_list=iniGetSectionList(rcptlst,NULL);	/* Each section is a recipient */
-					for(rcpt_count=0; sec_list!=NULL
-						&& sec_list[rcpt_count]!=NULL 
-						&& rcpt_count<startup->max_recipients; rcpt_count++) {
-
-						section=sec_list[rcpt_count];
-
-						SAFECOPY(rcpt_name,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
-						usernum=iniGetInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
-						SAFECOPY(rcpt_addr,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
-
-						if((i=putsmsg(&scfg,usernum,telegram_buf))==0)
-							lprintf(LOG_INFO,"%04d SMTP Created telegram (%ld/%u bytes) from %s to %s <%s>"
-								,socket, length, strlen(telegram_buf), sender_addr, rcpt_name, rcpt_addr);
-						else
-							lprintf(LOG_ERR,"%04d !SMTP ERROR %d creating telegram from %s to %s <%s>"
-								,socket, i, sender_addr, rcpt_name, rcpt_addr);
+					rewind(rcptlst);
+					rcpt_count=0;
+					while(!feof(rcptlst)  && rcpt_count<startup->max_recipients) {
+						if(fgets(str,sizeof(str),rcptlst)==NULL)
+							break;
+						usernum=atoi(str);
+						if(fgets(rcpt_name,sizeof(rcpt_name),rcptlst)==NULL)
+							break;
+						truncsp(rcpt_name);
+						if(fgets(rcpt_addr,sizeof(rcpt_addr),rcptlst)==NULL)
+							break;
+						truncsp(rcpt_addr);
+						putsmsg(&scfg,usernum,telegram_buf);
+						lprintf(LOG_INFO,"%04d SMTP Created telegram (%ld/%u bytes) from %s to %s <%s>"
+							,socket, length, strlen(telegram_buf), sender_addr, rcpt_name, rcpt_addr);
+						rcpt_count++;
 					}
-					iniFreeStringList(sec_list);
 					free(telegram_buf);
 					sockprintf(socket,ok_rsp);
 					telegram=FALSE;
@@ -3353,14 +3351,8 @@ static void sendmail_thread(void* arg)
 	char		mx2[128];
 	char		err[1024];
 	char		buf[512];
-	char		str[128];
-	char		resp[512];
 	char		toaddr[256];
 	char		fromaddr[256];
-	char		challenge[256];
-	char		secret[64];
-	char		md5_data[384];
-	char		digest[MD5_DIGEST_SIZE];
 	char*		server;
 	char*		msgtxt=NULL;
 	char*		p;
@@ -3632,89 +3624,6 @@ static void sendmail_thread(void* arg)
 				bounce(&smb,&msg,err,buf[0]=='5');
 				continue;
 			}
-
-			/* AUTH */
-			if(startup->options&MAIL_OPT_RELAY_TX 
-				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0) {
-				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-					case MAIL_OPT_RELAY_AUTH_PLAIN:
-						p="PLAIN";
-						break;
-					case MAIL_OPT_RELAY_AUTH_LOGIN:
-						p="LOGIN";
-						break;
-					case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
-						p="CRAM-MD5";
-						break;
-					default:
-						p="<unknown>";
-						break;
-				}
-				sockprintf(sock,"AUTH %s",p);
-				if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
-					SAFEPRINTF3(err,badrsp_err,server,buf,"334 Username/Challenge");
-					bounce(&smb,&msg,err,buf[0]=='5');
-					continue;
-				}
-				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-					case MAIL_OPT_RELAY_AUTH_PLAIN:
-						p=startup->relay_user;
-						break;
-					case MAIL_OPT_RELAY_AUTH_LOGIN:
-						b64_encode(p=resp,sizeof(resp),startup->relay_user,0);
-						break;
-					case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
-						p=buf;
-						FIND_WHITESPACE(p);
-						SKIP_WHITESPACE(p);
-						b64_decode(challenge,sizeof(challenge),p,0);
-
-						/* Calculate response */
-						memset(secret,0,sizeof(secret));
-						SAFECOPY(secret,startup->relay_pass);
-						for(i=0;i<sizeof(secret);i++)
-							md5_data[i]=secret[i]^0x36;	/* ipad */
-						strcpy(md5_data+i,challenge);
-						MD5_calc(digest,md5_data,sizeof(secret)+strlen(challenge));
-						for(i=0;i<sizeof(secret);i++)
-							md5_data[i]=secret[i]^0x5c;	/* opad */
-						memcpy(md5_data+i,digest,sizeof(digest));
-						MD5_calc(digest,md5_data,sizeof(secret)+sizeof(digest));
-						
-						safe_snprintf(buf,sizeof(buf),"%s %s",startup->relay_user,MD5_hex(str,digest));
-						b64_encode(p=resp,sizeof(resp),buf,0);
-						break;
-					default:
-						p="<unknown>";
-						break;
-				}
-				sockprintf(sock,"%s",p);
-				if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=MAIL_OPT_RELAY_AUTH_CRAM_MD5) {
-					if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
-						SAFEPRINTF3(err,badrsp_err,server,buf,"334 Password");
-						bounce(&smb,&msg,err,buf[0]=='5');
-						continue;
-					}
-					switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-						case MAIL_OPT_RELAY_AUTH_PLAIN:
-							p=startup->relay_pass;
-							break;
-						case MAIL_OPT_RELAY_AUTH_LOGIN:
-							b64_encode(p=buf,sizeof(buf),startup->relay_pass,0);
-							break;
-						default:
-							p="<unknown>";
-							break;
-					}
-					sockprintf(sock,"%s",p);
-				}
-				if(!sockgetrsp(sock,"235",buf,sizeof(buf))) {
-					SAFEPRINTF3(err,badrsp_err,server,buf,"235");
-					bounce(&smb,&msg,err,buf[0]=='5');
-					continue;
-				}
-			}
-
 			/* MAIL */
 			if(msg.from_net.type==NET_INTERNET && msg.reverse_path!=NULL)
 				SAFECOPY(fromaddr,msg.reverse_path);
@@ -3846,7 +3755,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.330 $", "%*s %s", revision);
+	sscanf("$Revision: 1.328 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
