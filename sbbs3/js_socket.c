@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.20 2002/03/04 15:34:32 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.21 2002/03/04 21:20:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -508,7 +508,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_NONBLOCKING:
 			p->nonblocking = JSVAL_TO_BOOLEAN(*vp);
-			ioctlsocket(p->sock,FIONBIO,&(p->nonblocking));
+			ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
 			break;
 	}
 
