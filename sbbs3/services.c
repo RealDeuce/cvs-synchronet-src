@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.53 2002/04/25 22:16:31 rswindell Exp $ */
+/* $Id: services.c,v 1.54 2002/04/26 07:11:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1040,6 +1040,7 @@ void DLLCALL services_thread(void* arg)
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
 		lprintf("Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
+		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
 		if(!load_cfg(&scfg, NULL, TRUE, error)) {
 			lprintf("!ERROR %s",error);
 			lprintf("!Failed to load configuration files");

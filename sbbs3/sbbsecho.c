@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.39 2002/04/26 03:57:53 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.40 2002/04/26 07:11:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3971,7 +3971,7 @@ int main(int argc, char **argv)
 
     printf("\nLoading configuration files from %s\n", scfg.ctrl_dir);
 	scfg.size=sizeof(scfg);
-	str[0]=0;
+	SAFECOPY(str,UNKNOWN_LOAD_ERROR);
 	if(!load_cfg(&scfg, NULL, TRUE, str)) {
 		printf("!ERROR %s\n",str);
 		printf("!Failed to load configuration files\n");
