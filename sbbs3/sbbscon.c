@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.170 2004/09/26 20:06:44 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.171 2004/10/13 23:35:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,11 +65,6 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
-#endif
-
-/* Temporary: Do not include web server in 3.1x-Win32 release build */
-#if defined(_MSC_VER)
-	#define NO_WEB_SERVER
 #endif
 
 /* Services doesn't work without JavaScript support */
