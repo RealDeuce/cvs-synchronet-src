@@ -2,7 +2,7 @@
 
 /* Synchronet BBS  Windows NT Service Names */
 
-/* $Id: ntsvcs.h,v 1.1 2003/10/09 01:18:39 rswindell Exp $ */
+/* $Id: ntsvcs.h,v 1.2 2003/10/09 08:33:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,5 +44,7 @@
 #define NTSVC_NAME_WEB		"SynchronetWeb"
 #define NTSVC_NAME_MAIL		"SynchronetMail"
 #define NTSVC_NAME_SERVICES "SynchronetServices"
+
+#define SERVICE_CONTROL_RECYCLE	128	/* User-defined control code */
 
 #endif	/* Don't add anything after this line */
