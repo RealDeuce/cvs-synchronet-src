@@ -1,10 +1,7 @@
-/* $Id: curs_cio.h,v 1.4 2004/07/26 23:08:36 rswindell Exp $ */
+/* $Id: curs_cio.h,v 1.9 2004/07/05 08:22:36 deuce Exp $ */
 
 #ifdef __unix__
-#include "conlib.h"
-#undef getch
-#undef ungetch
-#include "curs_fix.h"
+#include "ciowrap.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +17,7 @@ int curs_wherex(void);
 int _putch(unsigned char ch, BOOL refresh_now);
 int curs_putch(unsigned char ch);
 void curs_gotoxy(int x, int y);
-int curs_initciolib(long inmode);
+void curs_initciowrap(long inmode);
 void curs_gettextinfo(struct text_info *info);
 void curs_setcursortype(int type);
 int curs_getch(void);

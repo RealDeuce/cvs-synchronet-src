@@ -51,7 +51,7 @@
 #include <dirwrap.h>
 #include <genwrap.h>
 #include <filewrap.h>
-#include <conio.h>
+#include <ciowrap.h>
 #endif
 #include <fcntl.h>
 #include <sys/stat.h>
