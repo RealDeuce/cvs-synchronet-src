@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.50 2004/09/08 03:38:29 rswindell Exp $ */
+/* $Id: str.cpp,v 1.49 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -775,7 +775,7 @@ void sbbs_t::subinfo(uint subnum)
 	if(cfg.sub[subnum]->misc&SUB_FIDO)
 		bprintf(text[SubInfoFidoNet]
 			,cfg.sub[subnum]->origline
-			,smb_faddrtoa(&cfg.sub[subnum]->faddr,str));
+			,faddrtoa(&cfg.sub[subnum]->faddr,str));
 	sprintf(str,"%s%s.msg",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	if(fexist(str) && yesno(text[SubInfoViewFileQ]))
 		printfile(str,0);
@@ -837,7 +837,7 @@ void sbbs_t::sys_info()
 	bprintf(text[SiSysName],cfg.sys_name);
 	bprintf(text[SiSysID],cfg.sys_id);	/* QWK ID */
 	for(i=0;i<cfg.total_faddrs;i++)
-		bprintf(text[SiSysFaddr],smb_faddrtoa(&cfg.faddr[i],tmp));
+		bprintf(text[SiSysFaddr],faddrtoa(&cfg.faddr[i],tmp));
 	if(cfg.sys_psname[0])				/* PostLink/PCRelay */
 		bprintf(text[SiSysPsite],cfg.sys_psname,cfg.sys_psnum);
 	bprintf(text[SiSysLocation],cfg.sys_location);
