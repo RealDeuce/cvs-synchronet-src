@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.4 2004/11/10 20:11:05 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.5 2004/11/11 03:46:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ typedef struct
 	} value;
 } queued_value_t;
 
-static link_list_t named_queues;
+link_list_t named_queues;
 
 static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
