@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.38 2003/05/23 20:22:45 deuce Exp $ */
+/* $Id: uifc.h,v 1.39 2003/05/23 20:47:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,6 +197,7 @@
 #define K_ALPHA 	(1L<<10)	/* Only allow alphabetic characters 		*/
 #define K_SCANNING	(1L<<11)	/* UPC Scanner is active... return on '%'	*/
 #define K_TABEXIT	(1L<<12)	/* Return on TAB					    	*/
+#define K_DECIMAL	(1L<<13)	/* Allow floating point numbers only		*/
 
 #define HELPBUF_SIZE 4000
 
