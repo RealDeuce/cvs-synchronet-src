@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.5 2001/07/13 02:57:35 rswindell Exp $ */
+/* $Id: js_system.c,v 1.6 2001/07/17 03:26:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	scfg_t*		cfg;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
-		return JS_FALSE;
+		return(JS_FALSE);
 
     tiny = JSVAL_TO_INT(id);
 
@@ -231,7 +231,7 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	scfg_t*		cfg;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
-		return JS_FALSE;
+		return(JS_FALSE);
 
     tiny = JSVAL_TO_INT(id);
 
@@ -339,7 +339,7 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	ulong		l;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
-		return JS_FALSE;
+		return(JS_FALSE);
 
     tiny = JSVAL_TO_INT(id);
 

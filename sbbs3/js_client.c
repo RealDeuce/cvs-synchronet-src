@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.2 2001/06/22 02:31:38 rswindell Exp $ */
+/* $Id: js_client.c,v 1.3 2001/07/17 03:26:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,7 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	client_t*	client;
 
 	if((client=(client_t*)JS_GetPrivate(cx,obj))==NULL)
-		return JS_FALSE;
+		return(JS_FALSE);
 
     tiny = JSVAL_TO_INT(id);
 
