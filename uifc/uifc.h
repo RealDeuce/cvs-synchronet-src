@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.55 2005/02/03 04:12:53 deuce Exp $ */
+/* $Id: uifc.h,v 1.56 2005/02/04 22:06:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,6 +187,7 @@
 #define WIN_EXTKEYS	(1<<23) /* Return on any keypress... if it's not handled internally
 							 * Return value is -2 - keyvalue */
 #define WIN_NOBRDR	(1<<24)	/* Do not draw a border around the window */
+#define WIN_FIXEDHEIGHT	(1<<25)	/* Use list_height from uifc struct */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -348,6 +349,10 @@ typedef struct {
 	int		exitend;
 	int		helpstart;
 	int		helpend;
+/****************************************************************************/
+/* List height for WIN_FIXEDHEIGHT lists.									*/
+/****************************************************************************/
+	int		list_height;
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
