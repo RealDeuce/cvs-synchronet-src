@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.20 2001/12/13 17:15:22 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.21 2002/02/24 04:07:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1393,6 +1393,7 @@ time_t checktime(void)
 int main(int argc, char **argv)
 {
 	char	cmd[128]="",*p,*s;
+	char	path[MAX_PATH+1];
 	char*	to=NULL;
 	char*	to_number=NULL;
 	char*	to_address=NULL;
@@ -1511,6 +1512,11 @@ int main(int argc, char **argv)
 				if(s==NULL)
 					s=strrchr(smb.file,'\\');
 				if(p>s) *p=0;
+				sprintf(path,"%s.shd",smb.file);
+				if(!fexist(path) && !create) {
+					fprintf(stderr,"\n%s doesn't exist (use -c to create)\n",path);
+					exit(1);
+				}
 				smb.retry_time=30;
 				fprintf(stderr,"Opening %s\r\n",smb.file);
 				if((i=smb_open(&smb))!=0) {
