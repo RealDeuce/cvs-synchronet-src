@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.27 2001/06/12 03:08:08 rswindell Exp $ */
+/* $Id: main.cpp,v 1.28 2001/06/13 11:59:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1207,7 +1207,7 @@ void event_thread(void* arg)
 #endif
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call,nulstr,nulstr,NULL)
-						,EX_OFFLINE);
+						,EX_OFFLINE|EX_BG);
 					// status(STATUS_WFC);
 				}
 			} 
@@ -1249,7 +1249,7 @@ void event_thread(void* arg)
 #endif
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.phub[i]->call,nulstr,nulstr,NULL)
-							,EX_OFFLINE);
+						,EX_OFFLINE|EX_BG);
 					// status(STATUS_WFC);
 				} 
 			}
@@ -1379,9 +1379,12 @@ void event_thread(void* arg)
 					}
 					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf("Running event: %s",strupr(str));
+					int ex_mode = EX_OFFLINE;
+					if(!(sbbs->cfg.event[i]->misc&EVENT_EXCL))
+						ex_mode |= EX_BG;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,nulstr,NULL)
-						,EX_OFFLINE
+						,ex_mode
 						,sbbs->cfg.event[i]->dir);
 					sbbs->cfg.event[i]->last=time(NULL);
 					sprintf(str,"%stime.dab",sbbs->cfg.ctrl_dir);
