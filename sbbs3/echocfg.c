@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.5 2003/02/08 02:25:28 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.6 2003/02/09 04:23:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 	nodecfg_t savnodecfg;
 	arcdef_t savarcdef;
 	BOOL door_mode=FALSE;
-	BOOL gui_mode=TRUE;
+	BOOL gui_mode=FALSE;
 
 	fprintf(stderr,"\nSBBSecho Configuration  Version %s  Copyright 2003 "
 		"Rob Swindell\n\n",SBBSECHO_VER);
@@ -122,6 +122,9 @@ int main(int argc, char **argv)
 	for(i=1;i<argc;i++) {
 		if(argv[i][0]=='-')
 			switch(toupper(argv[i][1])) {
+				case 'G':
+					gui_mode=TRUE;
+					break;
 				case 'T':
 					gui_mode=FALSE;
 					break;
