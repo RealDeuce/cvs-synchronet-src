@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.76 2003/05/23 10:47:11 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.77 2003/05/23 11:45:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -973,6 +973,7 @@ js_remove_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		smb_freemsghdrmem(&msg);	/* prevent duplicate header fields */
 
 		msg.hdr.attr|=MSG_DELETE;
+		msg.idx.attr=msg.hdr.attr;
 
 		if(smb_putmsg(&(p->smb), &msg)!=0)
 			break;
