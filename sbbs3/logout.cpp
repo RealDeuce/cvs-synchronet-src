@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.13 2001/10/02 19:46:44 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.14 2002/01/28 19:32:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,12 +86,15 @@ void sbbs_t::logout()
 
 	if(!online) {		/* NOT re-login */
 
+#if 0	/* too soon, handled in node_thread */
 		getnodedat(cfg.node_num,&thisnode,1);
 		thisnode.status=NODE_WFC;
 		thisnode.misc&=~(NODE_INTR|NODE_MSGW|NODE_NMSG
 			|NODE_UDAT|NODE_POFF|NODE_AOFF|NODE_EXT);
 		putnodedat(cfg.node_num,&thisnode);
-	#if 0	/* beep? */ 
+#endif
+
+#if 0	/* beep? */ 
 		if(sys_status&SS_SYSALERT) {
 			mswait(500);
 			offhook();
@@ -102,7 +105,7 @@ void sbbs_t::logout()
 				nosound();
 				mswait(200); }
 			lkbrd(0); }
-	#endif
+#endif
 		sys_status&=~SS_SYSALERT;
 		if(cfg.sys_logout[0])		/* execute system logout event */
 			external(cmdstr(cfg.sys_logout,nulstr,nulstr,NULL),EX_OUTL|EX_OFFLINE);
