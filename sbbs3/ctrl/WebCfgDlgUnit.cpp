@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: WebCfgDlgUnit.cpp,v 1.3 2005/02/18 09:32:22 rswindell Exp $ */
+/* $Id: WebCfgDlgUnit.cpp,v 1.2 2005/01/02 01:28:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,7 +173,7 @@ void __fastcall TWebCfgDlg::OKBtnClick(TObject *Sender)
     else
 	    MainForm->web_startup.options&=~WEB_OPT_VIRTUAL_HOSTS;
 
-    MainForm->SaveIniSettings(Sender);
+    MainForm->SaveSettings(Sender);
 }
 //---------------------------------------------------------------------------
 void __fastcall TWebCfgDlg::AnswerSoundButtonClick(TObject *Sender)
