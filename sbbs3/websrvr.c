@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.259 2005/02/14 03:40:09 deuce Exp $ */
+/* $Id: websrvr.c,v 1.260 2005/02/14 09:26:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1357,7 +1357,7 @@ static void js_add_queryval(http_session_t * session, char *key, char *value)
 {
 	JSObject*	keyarray;
 	jsval		val;
-	jsint		len;
+	jsuint		len;
 	int			alen;
 
 	/* Return existing object if it's already been created */
@@ -1428,7 +1428,7 @@ static void js_parse_query(http_session_t * session, char *p)  {
 
 	lp=p;
 
-	while(key_len=strcspn(lp,"="))  {
+	while((key_len=strcspn(lp,"="))!=0)  {
 		key=lp;
 		lp+=key_len;
 		if(*lp) {
@@ -1516,8 +1516,8 @@ static BOOL parse_headers(http_session_t * session)
 			session->req.post_len=recvbufsocket(session->socket,session->req.post_data,content_len);
 			if(session->req.post_len != content_len)
 				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,content_len,session->req.post_len);
-			if(session->req.post_len<0)
-				session->req.post_len=0;
+			if(session->req.post_len > content_len)
+				session->req.post_len = content_len;
 			session->req.post_data[session->req.post_len]=0;
 			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
 				js_add_request_prop(session,"post_data",session->req.post_data);
@@ -2872,7 +2872,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.259 $", "%*s %s", revision);
+	sscanf("$Revision: 1.260 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
