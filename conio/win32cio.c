@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.46 2005/01/23 00:13:18 deuce Exp $ */
+/* $Id: win32cio.c,v 1.47 2005/01/23 22:21:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -644,4 +644,48 @@ int win32_putch(int ch)
 void win32_settitle(const char *title)
 {
 	SetConsoleTitle(title);
+}
+
+void win32_copytext(const char *text, size_t buflen)
+{
+	HGLOBAL	clipbuf;
+	LPTSTR	clip;
+
+	if(!OpenClipboard(NULL))
+		return;
+	EmptyClipboard();
+	clipbuf=GlobalAlloc(GMEM_MOVEABLE, buflen+1);
+	if(clipbuf==NULL) {
+		CloseClipboard();
+		return;
+	}
+	clip=GlobalLock(clipbuf);
+	memcpy(clip, text, buflen);
+	clip[buflen]=0;
+	GlobalUnlock(clipbuf);
+	SetClipboardData(CF_OEMTEXT, clipbuf);
+	CloseClipboard();
+}
+
+char *win32_getcliptext(void)
+{
+	HGLOBAL	clipbuf;
+	LPTSTR	clip;
+	char *ret;
+
+	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
+		return(NULL);
+	if(!OpenClipboard(NULL))
+		return(NULL);
+	clipbuf=GetClipboardData(CF_OEMTEXT);
+	if(clipbuf!=NULL) {
+		clip=GlobalLock(clipbuf);
+		ret=(char *)malloc(strlen(clip)+1);
+		if(ret != NULL)
+			strcpy(ret, clip);
+		GlobalUnlock(clipbuf);
+	}
+	CloseClipboard();
+	
+	return(ret);
 }
