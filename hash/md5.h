@@ -1,6 +1,6 @@
 /* md5.h - header file for md5.c */
 
-/* $Id: md5.h,v 1.1 2003/03/26 02:21:18 rswindell Exp $ */
+/* $Id: md5.h,v 1.2 2003/04/01 21:36:05 rswindell Exp $ */
 
 /* RSA Data Security, Inc., MD5 Message-Digest Algorithm */
 
@@ -48,10 +48,18 @@ typedef struct
   BYTE	buffer[64];
 } MD5;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void MD5_open(MD5* ctx);
 void MD5_digest(MD5* ctx, const void* buf, size_t len);
 void MD5_close(MD5* ctx, BYTE digest[MD5_DIGEST_SIZE]);
 BYTE* MD5_calc(BYTE digest[MD5_DIGEST_SIZE], const void* buf, size_t len);
 BYTE* MD5_hex(BYTE* dest, const BYTE digest[MD5_DIGEST_SIZE]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
