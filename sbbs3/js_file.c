@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.73 2004/08/25 00:07:55 rswindell Exp $ */
+/* $Id: js_file.c,v 1.74 2004/11/10 04:44:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1768,7 +1768,7 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 			"</ol>"
 			,310
 			);
-	js_DescribeSyncConstructor(cx,obj,"To create a new File object: <tt>var f = new File(filename)</tt>");
+	js_DescribeSyncConstructor(cx,obj,"To create a new File object: <tt>var f = new File(<i>filename</i>)</tt>");
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", file_prop_desc, JSPROP_READONLY);
 #endif
 
