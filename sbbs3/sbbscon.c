@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.79 2002/07/24 06:08:29 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.80 2002/07/24 06:09:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1095,7 +1095,7 @@ int main(int argc, char** argv)
 						mail_startup.options	|=BBS_OPT_NO_JAVASCRIPT;
 						services_startup.options|=BBS_OPT_NO_JAVASCRIPT;
 						break;
-					case 'I'	/* no .ini file */
+					case 'I':	/* no .ini file */
 						break;
 					default:
 						printf(usage,argv[0]);
