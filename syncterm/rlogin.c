@@ -1,4 +1,3 @@
-#include <genwrap.h>
 #include <sockwrap.h>
 
 #include "uifcinit.h"
@@ -6,20 +5,22 @@
 
 static SOCKET	rlogin_socket=INVALID_SOCKET;
 
+int	rcvtimeo=0;
+
 int rlogin_recv(char *buffer, size_t buflen)
 {
 	int	r;
-	int	avail;
-	int rd;
+	BOOL	rd;
+	BOOL	*rdptr=NULL;
 
-	if(!socket_check(rlogin_socket, NULL, NULL, 0))
+	if(rcvtimeo)
+		rdptr=&rd;
+	if(!socket_check(rlogin_socket, rdptr, NULL, 0))
 		return(-1);
-
-	if(!ioctlsocket(rlogin_socket,FIONREAD,(void *)&avail) && avail)
-		r=recv(rlogin_socket,buffer,avail<buflen?avail:buflen,0);
+	if(rcvtimeo || rd)
+		r=recv(rlogin_socket,buffer,buflen,0);
 	else
-		return(0);
-
+		r=0;
 	if(r==-1 && (errno==EAGAIN || errno==EINTR || errno==0))	/* WTF? */
 		r=0;
 	return(r);
@@ -41,7 +42,6 @@ int rlogin_send(char *buffer, size_t buflen, unsigned int timeout)
 			switch(errno) {
 				case EAGAIN:
 				case ENOBUFS:
-					SLEEP(1);
 					break;
 				default:
 					return(-1);
@@ -60,7 +60,6 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd, int bedumb)
 	char	nil=0;
 	char	*p;
 	unsigned int	neta;
-	int	i;
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -100,6 +99,23 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd, int bedumb)
 		uifcmsg(str,	"`Unable to connect`\n\n"
 						"Cannot connect to the remost system... it is down or unreachable.");
 		return(-1);
+	}
+
+	if(rcvtimeo) {
+		#ifdef _WIN32
+		int	tv=10;
+		#else
+		struct timeval tv;
+
+		tv.tv_sec=0;
+		tv.tv_usec=10000;
+		#endif
+
+		setsockopt(rlogin_socket,SOL_SOCKET,SO_RCVTIMEO,(void *)&tv,sizeof(tv));
+	}
+	else {
+		unsigned long	l=1;
+		ioctlsocket(rlogin_socket, FIONBIO,&l);
 	}
 
 	if(!bedumb) {
