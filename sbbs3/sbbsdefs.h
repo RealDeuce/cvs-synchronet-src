@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.125 2005/01/20 06:22:40 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.122 2004/11/03 03:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,14 +43,13 @@
 #include "gen_defs.h"	/* uchar, ushort, uint, ulong, etc. */
 #include "nodedefs.h"	/* node_t */
 #include "fidodefs.h"	/* fmsghdr_t, fpkthdr_t, FIDO_*, etc. */
-#include "xpbeep.h"		/* BEEP() */
 
 /*************/
 /* Constants */
 /*************/
 
 #define VERSION 	"3.12"  /* Version: Major.minor  */
-#define REVISION	'b'     /* Revision: lowercase letter */
+#define REVISION	'a'     /* Revision: lowercase letter */
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -751,7 +750,6 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_PASSTHRU		(1<<5)	/* Pass-through telnet commands/responses	*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
-#define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
