@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.54 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.55 2004/08/11 19:21:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,6 +77,8 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		sprintf(msgtmp,"%sMSGTMP",cfg.node_dir);	/* QuickBBS editors are dumb */
 	else
 		sprintf(msgtmp,"%sINPUT.MSG",cfg.temp_dir);
+	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
+		strlwr(msgtmp);
 
 	if(mode&WM_QUOTE && !(useron.rest&FLAG('J'))
 		&& ((mode&(WM_EMAIL|WM_NETMAIL) && cfg.sys_misc&SM_QUOTE_EM)
@@ -327,7 +329,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
 			ex_mode|=EX_SH;
 
-		if(!linesquoted && fexist(msgtmp))
+		if(!linesquoted && fexistcase(msgtmp))
 			remove(msgtmp);
 		if(linesquoted) {
 			qlen=flength(msgtmp);
@@ -349,7 +351,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 			rioctl(IOSM|PAUSE|ABORT); 
 		}
 		checkline();
-		if(!fexist(msgtmp) || !online
+		if(!fexistcase(msgtmp) || !online
 			|| (linesquoted && qlen==flength(msgtmp) && qtime==fdate(msgtmp))) {
 			free(buf);
 			return(false); 
@@ -1179,6 +1181,8 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 		sprintf(msgtmp,"%sMSGTMP",cfg.node_dir);	/* QuickBBS editors are dumb */
 	else
 		sprintf(msgtmp,"%sINPUT.MSG",cfg.temp_dir);
+	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
+		strlwr(msgtmp);
 
 	remove(msgtmp);
 	msgtotxt(msg,msgtmp,0,1);
