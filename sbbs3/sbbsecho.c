@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.107 2003/09/19 06:16:02 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.108 2003/09/21 10:25:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4086,7 +4086,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.107 $", "%*s %s", revision);
+	sscanf("$Revision: 1.108 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4606,7 +4606,7 @@ int main(int argc, char **argv)
 					freadstr(fidomsg,hdr.subj,sizeof(hdr.subj));
 				}
 #endif
-
+				hdr.attr&=~FIDO_LOCAL;	/* Strip local bit, obviously not created locally */
 
 				str[0]=0;
 				for(i=0;!grunged && i<sizeof(str);i++)	/* Read in the 'AREA' Field */
