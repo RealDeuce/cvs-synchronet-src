@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.24 2002/01/30 01:10:57 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.25 2002/02/18 12:18:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -468,6 +468,9 @@ void sbbs_t::newuser()
 	remove(str);
 	sprintf(str,"%suser/%04u.msg",cfg.data_dir,useron.number); /* delete ex-comment */
 	remove(str);
+	sprintf(str,"%suser/%04u.sig",cfg.data_dir,useron.number); /* delete signature */
+	remove(str);
+
 	if(cfg.newuser_mod[0])
 		exec_bin(cfg.newuser_mod,&main_csi);
 	user_event(EVENT_NEWUSER);

@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.27 2002/02/14 17:21:13 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.28 2002/02/18 12:18:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -402,6 +402,21 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 
 	if(buf[l])
 		bputs(text[NoMoreLines]);
+
+	/* Signature file */
+	sprintf(str,"%suser/%04u.sig",cfg.data_dir,useron.number);
+	FILE* sig;
+	if(!(mode&WM_EXTDESC) && fexist(str) && (sig=fopen(str,"rb"))!=NULL) {
+		while(!feof(sig)) {
+			if(!fgets(str,sizeof(str)-1,sig))
+				break;
+			fputs(str,stream);
+			l+=strlen(str);	/* byte counter */
+			i++;			/* line counter */
+		}
+		fclose(sig);
+	}
+
 	fclose(stream);
 	LFREE((char *)buf);
 	bprintf(text[SavedNBytes],l,i);
