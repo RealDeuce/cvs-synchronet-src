@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.20 2002/11/01 22:42:12 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.21 2002/11/02 00:40:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-extern const char* beta_version;
+extern "C" const char* beta_version;
 
 static char* program_id()
 {
