@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.40 2000/12/01 21:51:20 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.41 2000/12/01 22:25:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1208,7 +1208,7 @@ static void smtp_thread(void* arg)
 			fprintf(spy,"%s\n",buf);
 		if(state>=SMTP_STATE_DATA_HEADER) {
 			if(!strcmp(buf,".")) {
-				lprintf("%04d SMTP End of message", socket);
+				lprintf("%04d SMTP End of message (%lu bytes)", socket, ftell(msgtxt));
 
 				if(sender[0]==0) {
 					lprintf("%04d !SMTP Mail header missing 'FROM' field", socket);
