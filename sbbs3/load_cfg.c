@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.45 2003/05/09 02:58:53 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.46 2003/05/14 21:34:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "text.h"	/* TOTAL_TEXT */
 
 static void prep_cfg(scfg_t* cfg);
 static void free_attr_cfg(scfg_t* cfg);
