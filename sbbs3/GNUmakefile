@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.32 2002/07/27 02:15:01 rswindell Exp $
+# $Id: GNUmakefile,v 1.33 2002/08/08 05:44:02 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -137,10 +137,12 @@ CON_OBJS	= $(EXEODIR)/sbbscon.o $(EXEODIR)/conwrap.o \
 		  $(EXEODIR)/ini_file.o $(EXEODIR)/sbbs_ini.o
 FTP_OBJS	= $(LIBODIR)/ftpsrvr.o
 MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o \
- 		  $(LIBODIR)/mime.o 
+ 		  $(LIBODIR)/mime.o
+WEB_OBJS	= $(LIBODIR)/websrvr.o $(LIBODIR)/sockwrap.o
 SERVICE_OBJS= $(LIBODIR)/services.o
 
-MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(MAIL_OBJS) $(SERVICE_OBJS)
+MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(WEB_OBJS) \
+			$(MAIL_OBJS) $(SERVICE_OBJS)
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): $(MONO_OBJS) $(OBJS) $(LIBS) $(LIBODIR)/ver.o 
@@ -179,6 +181,10 @@ $(LIBODIR)/mxlookup.o: mxlookup.c
 $(LIBODIR)/mime.o: mime.c
 	@echo Compiling $<
 	@$(CC) $(CFLAGS) -DMAILSRVR_EXPORTS -o $@ -c $<		
+
+$(LIBODIR)/websrvr.o: websrvr.c websrvr.h
+	@echo Compiling $<
+	@$(CC) $(CFLAGS) -DWEBSRVR_EXPORTS -o $@ -c $<
 
 $(LIBODIR)/services.o: services.c services.h
 	@echo Compiling $<
