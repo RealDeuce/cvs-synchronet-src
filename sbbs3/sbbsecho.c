@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.46 2002/07/15 20:53:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.47 2002/07/27 01:07:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1960,12 +1960,6 @@ ulong loadmsgs(post_t HUGE16 **post, ulong ptr)
 	if(!l)
 		LFREE(*post);
 	return(l);
-}
-
-void allocfail(uint size)
-{
-	printf("\7ERROR allocating %u bytes of memory.\n",size);
-	bail(1);
 }
 
 void bail(int code)

@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.3 2002/07/27 01:05:57 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.4 2002/07/27 01:07:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,12 +165,6 @@ char *cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 	cmd[j]=0;
 
 	return(cmd);
-}
-
-void allocfail(uint size)
-{
-	lprintf("\7Error allocating %u bytes of memory.\r\n",size);
-	exit(1);
 }
 
 /****************************************************************************/
