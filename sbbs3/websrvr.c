@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.264 2005/02/15 23:57:00 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.265 2005/02/16 00:01:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2468,6 +2468,39 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
+js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char		str[512];
+    uintN		i=0;
+	int32		level=LOG_INFO;
+    JSString*	js_str;
+	http_session_t* session;
+
+	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+    if(startup==NULL || startup->lputs==NULL)
+        return(JS_FALSE);
+
+	if(JSVAL_IS_NUMBER(argv[i]))
+		JS_ValueToInt32(cx,argv[i++],&level);
+
+	str[0]=0;
+    for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
+		if((js_str=JS_ValueToString(cx, argv[i]))==NULL)
+		    return(JS_FALSE);
+		strncat(str,JS_GetStringBytes(js_str),sizeof(str)/2);
+		strcat(str," ");
+	}
+
+	lprintf(level,"%04d %s",session->socket,str);
+
+	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
+
+    return(JS_TRUE);
+}
+
+static JSBool
 js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -2548,6 +2581,8 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSFunctionSpec js_global_functions[] = {
 	{"write",           js_write,           1},		/* write to HTML file */
 	{"writeln",         js_writeln,         1},		/* write line to HTML file */
+	{"print",			js_writeln,			1},		/* write line to HTML file (alias) */
+	{"log",				js_log,				0},		/* Log a string */
 	{"login",           js_login,           2},		/* log in as a different user */
 	{0}
 };
@@ -2963,7 +2998,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.264 $", "%*s %s", revision);
+	sscanf("$Revision: 1.265 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
