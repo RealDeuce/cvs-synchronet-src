@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.1 2003/01/21 10:10:18 rswindell Exp $
+# $Id: GNUmakefile,v 1.2 2003/01/22 01:23:12 rswindell Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 USE_CURSES	=	1	# Curses version of UIFC
@@ -35,7 +35,7 @@ DELETE	=	rm -f -v
 OUTLIB	=	-o
 
 CFLAGS	+=	-O2
-CFLAGS	+=	-Wall -I$(UIFC) -I$(XPDEV) -I/usr/local/include -I..
+CFLAGS	+=	-Wall -I$(UIFC) -I$(XPDEV) -I..
 
 LFLAGS	:=	-static -L/usr/local/lib
 
