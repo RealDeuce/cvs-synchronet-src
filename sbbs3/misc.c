@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.25 2002/04/02 18:49:00 rswindell Exp $ */
+/* $Id: misc.c,v 1.26 2002/04/12 06:20:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,23 +37,6 @@
 
 #include "sbbs.h"
 #include "crc32.h"
-
-/****************************************************************************/
-/* Return the filename portion of a full pathname							*/
-/****************************************************************************/
-char* DLLCALL getfname(char* path)
-{
-	char *fname;
-
-	fname=strrchr(path,'/');
-	if(fname==NULL) 
-		fname=strrchr(path,'\\');
-	if(fname!=NULL) 
-		fname++;
-	else 
-		fname=path;
-	return(fname);
-}
 
 /****************************************************************************/
 /* Network open function. Opens all files DENYALL and retries LOOP_NOPEN    */
@@ -314,63 +297,6 @@ int strsame(char *str1, char *str2)
 }
 
 #define MV_BUFLEN	4096
-
-/****************************************************************************/
-/* Converts when_t.zone into ASCII format                                   */
-/****************************************************************************/
-char* DLLCALL zonestr(short zone)
-{
-    static char str[32];
-
-	switch((ushort)zone) {
-		case 0:     return("UTC");
-		case AST:   return("AST");
-		case EST:   return("EST");
-		case CST:   return("CST");
-		case MST:   return("MST");
-		case PST:   return("PST");
-		case YST:   return("YST");
-		case HST:   return("HST");
-		case BST:   return("BST");
-		case ADT:   return("ADT");
-		case EDT:   return("EDT");
-		case CDT:   return("CDT");
-		case MDT:   return("MDT");
-		case PDT:   return("PDT");
-		case YDT:   return("YDT");
-		case HDT:   return("HDT");
-		case BDT:   return("BDT");
-		case MID:   return("MID");
-		case VAN:   return("VAN");
-		case EDM:   return("EDM");
-		case WIN:   return("WIN");
-		case BOG:   return("BOG");
-		case CAR:   return("CAR");
-		case RIO:   return("RIO");
-		case FER:   return("FER");
-		case AZO:   return("AZO");
-		case LON:   return("LON");
-		case BER:   return("BER");
-		case ATH:   return("ATH");
-		case MOS:   return("MOS");
-		case DUB:   return("DUB");
-		case KAB:   return("KAB");
-		case KAR:   return("KAR");
-		case BOM:   return("BOM");
-		case KAT:   return("KAT");
-		case DHA:   return("DHA");
-		case BAN:   return("BAN");
-		case HON:   return("HON");
-		case TOK:   return("TOK");
-		case SYD:   return("SYD");
-		case NOU:   return("NOU");
-		case WEL:   return("WEL");
-		}
-
-	sprintf(str,"%02d:%02u",zone/60,zone<0 ? (-zone)%60 : zone%60);
-	return(str);
-}
-
 
 /****************************************************************************/
 /* Returns an ASCII string for FidoNet address 'addr'                       */
