@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.64 2004/09/11 09:24:55 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.65 2004/09/13 00:27:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -181,6 +181,12 @@ DLLEXPORT char*		DLLCALL truncnl(char* str);
 #else
 	#define STRERROR(x)		truncsp(strerror(x))
 #endif
+
+/*********************/
+/* Utility Functions */
+/*********************/
+/* Thunking for multi-threaded specific implementations of "errno" */
+DLLEXPORT int DLLCALL	get_errno(void);
 
 /**********************************/
 /* Common Utility Macro Functions */
