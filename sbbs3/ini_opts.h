@@ -2,7 +2,7 @@
 
 /* Synchronet initialization file (.ini) bit-field descriptions */
 
-/* $Id: ini_opts.h,v 1.3 2004/08/04 04:54:40 rswindell Exp $ */
+/* $Id: ini_opts.h,v 1.2 2004/07/02 02:15:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,6 @@ static ini_bitdesc_t bbs_options[] = {
 	{ BBS_OPT_NO_TELNET_GA			,"NO_TELNET_GA"			},
 	{ BBS_OPT_NO_EVENTS				,"NO_EVENTS"			},
 	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
-	{ BBS_OPT_NO_SPY_SOCKETS		,"NO_SPY_SOCKETS"		},
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
 	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
