@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.5 2000/11/14 02:29:08 rswindell Exp $ */
+/* $Id: date_str.c,v 1.6 2001/10/02 19:44:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,4 +128,17 @@ char* DLLCALL sectostr(uint sec,char *str)
 	return(str);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+char* DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str)
+{
+	if(cfg->sys_misc&SM_MILITARY)
+		sprintf(str,"%02d:%02d "
+	        ,tm->tm_hour,tm->tm_min);
+	else
+		sprintf(str,"%02d:%02d%c"
+	        ,tm->tm_hour>12 ? tm->tm_hour-12 : tm->tm_hour==0 ? 12 : tm->tm_hour
+			,tm->tm_min,tm->tm_hour>=12 ? 'p' : 'a');
+	return(str);
+}
 
