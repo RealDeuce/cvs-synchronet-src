@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.9 2002/01/25 15:50:23 rswindell Exp $ */
+/* $Id: uifc.c,v 1.10 2002/01/29 00:22:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1664,6 +1664,7 @@ void help()
 		,hbuf[HELPBUF_SIZE],str[256];
     char *p;
 	uint i,j,k,len;
+	ushort line;
 	long l;
 	FILE *fp;
 #ifndef __FLAT__
@@ -1757,8 +1758,8 @@ void help()
 				if(!fread(str,12,1,fp))
 					break;
 				str[12]=0;
-				fread(&k,2,1,fp);
-				if(stricmp(str,p) || k!=helpline) {
+				fread(&line,2,1,fp);
+				if(stricmp(str,p) || line!=helpline) {
 					fseek(fp,4,SEEK_CUR);
 					continue; }
 				fread(&l,4,1,fp);

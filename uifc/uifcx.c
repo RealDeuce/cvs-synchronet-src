@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.6 2002/01/25 15:52:54 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.7 2002/01/29 00:22:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,7 +298,7 @@ void help()
 {
 	char hbuf[HELPBUF_SIZE],str[256];
     char *p;
-	uint i,j,k,len;
+	ushort line;
 	long l;
 	FILE *fp;
 
@@ -320,8 +320,8 @@ void help()
                 if(!fread(str,12,1,fp))
                     break;
                 str[12]=0;
-                fread(&k,2,1,fp);
-                if(stricmp(str,p) || k!=helpline) {
+                fread(&line,2,1,fp);
+                if(stricmp(str,p) || line!=helpline) {
                     fseek(fp,4,SEEK_CUR);
                     continue; }
                 fread(&l,4,1,fp);
@@ -337,7 +337,11 @@ void help()
                 else {
                     fseek(fp,l,SEEK_SET);
                     fread(hbuf,HELPBUF_SIZE,1,fp);
-                    fclose(fp); } } } }
+                    fclose(fp); 
+				} 
+			} 
+		} 
+	}
     else
         strcpy(hbuf,api->helpbuf);
 
