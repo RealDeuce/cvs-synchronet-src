@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.84 2004/10/23 00:39:36 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.85 2004/10/27 06:18:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -385,12 +385,6 @@ void sbbs_read_ini(
 
 		SAFECOPY(services->host_name
 			,iniReadString(fp,section,strHostName,global->host_name,value));
-
-		SAFECOPY(services->ini_file
-			,iniReadString(fp,section,"iniFile","services.ini",value));
-
-		SAFECOPY(services->cfg_file
-			,iniReadString(fp,section,"ConfigFile","services.cfg",value));
 
 		SAFECOPY(services->answer_sound
 			,iniReadString(fp,section,"AnswerSound",nulstr,value));
@@ -807,11 +801,6 @@ BOOL sbbs_write_ini(
             || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,services->host_name,&style))
-			break;
-
-		if(!iniSetString(lp,section,"iniFile",services->ini_file,&style))
-			break;
-		if(!iniSetString(lp,section,"ConfigFile",services->cfg_file,&style))
 			break;
 
 		if(!iniSetString(lp,section,"AnswerSound",services->answer_sound,&style))
