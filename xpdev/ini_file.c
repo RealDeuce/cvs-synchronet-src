@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.52 2004/08/11 10:42:46 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.42 2004/07/20 01:12:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,29 @@
 
 static ini_style_t default_style;
 
-#include "truncsp.c"	/* truncsp() and truncnl() */
+/****************************************************************************/
+/* Truncates all white-space chars off end of 'str'							*/
+/****************************************************************************/
+static void truncsp(char *str)
+{
+	uint c;
+
+	c=strlen(str);
+	while(c && (uchar)str[c-1]<=' ') c--;
+	str[c]=0;
+}
+
+/****************************************************************************/
+/* Truncates carriage-return and line-feed chars off end of 'str'			*/
+/****************************************************************************/
+static void truncnl(char *str)
+{
+	uint c;
+
+	c=strlen(str);
+	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
+}
 
 static char* section_name(char* p)
 {
@@ -100,25 +122,15 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	for(i=0; list[i]!=NULL; i++) {
-		SAFECOPY(str,list[i]);
-		if((p=section_name(str))!=NULL && stricmp(p,section)==0)
-			return(i);
-	}
-
-	return(i);
-}
-
-static size_t find_section_values(str_list_t list, const char* section)
-{
-	size_t	i;
-
 	if(section==ROOT_SECTION)
 		return(0);
 
-	i=find_section_index(list,section);
-	if(list[i]!=NULL)
-		i++;
+	for(i=0; list[i]!=NULL; i++) {
+		SAFECOPY(str,list[i]);
+		if((p=section_name(str))!=NULL && stricmp(p,section)==0)
+			return(i+1);
+	}
+
 	return(i);
 }
 
@@ -166,7 +178,7 @@ static char* key_name(char* p, char** vp)
 static char* get_value(FILE* fp, const char* section, const char* key, char* value)
 {
 	char*	p;
-	char*	vp=NULL;
+	char*	vp;
 	char	str[INI_MAX_LINE_LEN];
 
 	if(fp==NULL)
@@ -184,8 +196,6 @@ static char* get_value(FILE* fp, const char* section, const char* key, char* val
 			break;
 		if(stricmp(p,key)!=0)
 			continue;
-		if(vp==NULL)
-			break;
 		/* key found */
 		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,vp);
 		return(value);
@@ -202,7 +212,7 @@ static size_t find_value_index(str_list_t list, const char* section, const char*
 	size_t	i;
 
 	value[0]=0;
-	for(i=find_section_values(list, section); list[i]!=NULL; i++) {
+	for(i=find_section_index(list, section); list[i]!=NULL; i++) {
 		SAFECOPY(str, list[i]);
 		if((p=key_name(str,&vp))==NULL)
 			continue;
@@ -268,40 +278,6 @@ BOOL iniRemoveValue(str_list_t* list, const char* section, const char* key)
 	return(TRUE);
 }
 
-BOOL iniRemoveSection(str_list_t* list, const char* section)
-{
-	size_t	i;
-
-	i=find_section_index(*list,section);
-	if((*list)[i]==NULL)	/* not found */
-		return(FALSE);
-	do {
-		strListDelete(list,i);
-	} while((*list)[i]!=NULL && *(*list)[i]!=INI_OPEN_SECTION_CHAR);
-
-	return(TRUE);
-}
-
-BOOL iniRenameSection(str_list_t* list, const char* section, const char* newname)
-{
-	char	str[INI_MAX_LINE_LEN];
-	size_t	i;
-
-	if(section==ROOT_SECTION)
-		return(FALSE);
-
-	i=find_section_index(*list,newname);
-	if((*list)[i]!=NULL)	/* duplicate */
-		return(FALSE);
-
-	i=find_section_index(*list,section);
-	if((*list)[i]==NULL)	/* not found */
-		return(FALSE);
-
-	SAFEPRINTF(str,"[%s]",newname);
-	return(strListReplace(*list, i, str)!=NULL);
-}
-
 size_t iniAddSection(str_list_t* list, const char* section
 					,ini_style_t* style)
 {
@@ -313,11 +289,9 @@ size_t iniAddSection(str_list_t* list, const char* section
 
 	i=find_section_index(*list, section);
 	if((*list)[i]==NULL) {
-		if(style==NULL)
-			style=&default_style;
 		if(style->section_separator!=NULL)
 			strListAppend(list, style->section_separator, i++);
-		SAFEPRINTF(str,"[%s]",section);
+		sprintf(str,"[%s]",section);
 		strListAppend(list, str, i);
 	}
 
@@ -342,10 +316,7 @@ char* iniSetString(str_list_t* list, const char* section, const char* key, const
 		style->key_prefix="";
 	if(style->value_separator==NULL)
 		style->value_separator="=";
-	if(value==NULL)
-		value="";
-	safe_snprintf(str, sizeof(str), "%s%-*s%s%s"
-		, style->key_prefix, style->key_len, key, style->value_separator, value);
+	sprintf(str, "%s%-*s%s%s", style->key_prefix, style->key_len, key, style->value_separator, value);
 	i=find_value_index(*list, section, key, curval);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
         while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
@@ -363,7 +334,7 @@ char* iniSetInteger(str_list_t* list, const char* section, const char* key, long
 {
 	char	str[INI_MAX_VALUE_LEN];
 
-	SAFEPRINTF(str,"%ld",value);
+	sprintf(str,"%ld",value);
 	return iniSetString(list, section, key, str, style);
 }
 
@@ -372,7 +343,7 @@ char* iniSetShortInt(str_list_t* list, const char* section, const char* key, ush
 {
 	char	str[INI_MAX_VALUE_LEN];
 
-	SAFEPRINTF(str,"%hu",value);
+	sprintf(str,"%hu",value);
 	return iniSetString(list, section, key, str, style);
 }
 
@@ -381,7 +352,7 @@ char* iniSetHexInt(str_list_t* list, const char* section, const char* key, ulong
 {
 	char	str[INI_MAX_VALUE_LEN];
 
-	SAFEPRINTF(str,"0x%lx",value);
+	sprintf(str,"0x%lx",value);
 	return iniSetString(list, section, key, str, style);
 }
 
@@ -390,7 +361,7 @@ char* iniSetFloat(str_list_t* list, const char* section, const char* key, double
 {
 	char	str[INI_MAX_VALUE_LEN];
 
-	SAFEPRINTF(str,"%g",value);
+	sprintf(str,"%g",value);
 	return iniSetString(list, section, key, str, style);
 }
 
@@ -399,7 +370,7 @@ char* iniSetIpAddress(str_list_t* list, const char* section, const char* key, ul
 					,ini_style_t* style)
 {
 	struct in_addr in_addr;
-	in_addr.s_addr=htonl(value);
+	in_addr.s_addr=value;
 	return iniSetString(list, section, key, inet_ntoa(in_addr), style);
 }
 #endif
@@ -757,9 +728,9 @@ str_list_t iniReadFile(FILE* fp)
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
 	if(list!=NULL) {
-		/* truncate new-line chars off end of strings */
+		/* truncate the white-space off end of strings */
 		for(i=0; list[i]!=NULL; i++)
-			truncnl(list[i]);
+			truncsp(list[i]);
 	}
 
 	return(list);

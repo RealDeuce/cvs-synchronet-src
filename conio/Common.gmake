@@ -1,16 +1,15 @@
 # Available Options:
 # NEED_CURSES       = Set flags suitable for building with the curses lib
 # XCURSES			= Use XCurses
-# NEED_CIOLIB		= Set flage suitable for using with ciolib
-# NO_X				= Don't use X version of ciolib
-# NEED_CTERM		= Use CTerm
+# NEED_CIOLIB		= Set flage suitable for using with ciowrap lib
+# NO_X				= Don't use X version of ciowrap
 
 # You really should set this first.
 CONIO_SRC	?=	$(XPDEV)../conio/
 UIFC_SRC	?=	$(XPDEV)../uifc/
 
 CIOLIB_CFLAGS	+=	-I$(CONIO_SRC)
-# ciolib stuff
+# ciowrap stuff
 ifndef NO_X
  X_DIR	?=	/usr/X11R6/
  CIOLIB_CFLAGS	+=	-I${X_DIR}/include
@@ -42,8 +41,6 @@ endif
 CIOLIB_CFLAGS	+=	$(CURSES_CFLAGS)
 CIOLIB_LDFLAGS	+=	$(CURSES_LDFLAGS)
 
-CTERM_OBJS		+=	$(LIBODIR)/cterm.o
-
 ifdef NEED_CIOLIB
  CFLAGS +=	$(CIOLIB_CFLAGS)
  LDFLAGS	+=	$(CIOLIB_LDFLAGS)
@@ -54,14 +51,10 @@ ifdef UIFC_NEED_CIOLIB
  UIFC_LDFLAGS	+=	$(CIOLIB_LDFLAGS)
  UIFC_OBJS		+=	$(CIOLIB_OBJS)
 endif
+
 ifdef NEED_CURSES
  CFLAGS	+=	$(CURSES_CFLAGS)
  LDFLAGS	+=	$(CURSES_LDFLAGS)
-endif
-ifdef NEED_CTERM
- CFLAGS	+=	$(CTERM_CFLAGS)
- LDFLAGS	+=	$(CTERM_LDFLAGS)
- OBJS	+=	$(CTERM_OBJS)
 endif
 
 vpath %.c $(CONIO_SRC)
