@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.13 2003/01/13 09:38:58 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.14 2003/03/02 07:52:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,7 +149,7 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
         return;
     }
 
-    if(MainForm->FirstRun) {
+    if(scfg.new_install) {
         TIME_ZONE_INFORMATION tz;
         memset(&tz,0,sizeof(tz));
         GetTimeZoneInformation(&tz);
@@ -314,13 +314,13 @@ void __fastcall TConfigWizard::NextButtonClick(TObject *Sender)
             scfg.sys_misc&=~SM_USRVDELM;
         }
 
+        scfg.new_install=FALSE;
         if(!save_cfg(&scfg,5)) {
         	Application->MessageBox("Error saving configuration"
             	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
         } else
         	refresh_cfg(&scfg);
 
-        MainForm->FirstRun=false;
         Close();
         return;
     }
