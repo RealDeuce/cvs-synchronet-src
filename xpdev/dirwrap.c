@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.35 2003/09/08 23:01:57 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.36 2003/10/18 07:55:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,24 +119,19 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 	char*	p;
 
 	ext[0]=0;
-	drive[0]=0;	/* no drive letters on Unix */
+	drive[0]=0;			/* no drive letters on Unix */
 
-	strcpy(dir,path);
-	p=strrchr(dir,'/');
-	if(p==NULL)
-		p=strrchr(dir,'\\');
-	if(p==NULL) {
-		p=(char*)path;
-		dir[0]=0;
-	} else {
-		*p=0;	/* truncate dir */
-		p++;
-	}
-	strcpy(fname,p);
-	p=strrchr(fname,'.');
+	strcpy(dir,path);	/* Optional directory path, including trailing slash. */
+	p=getfname(dir);
+	strcpy(fname,p);	/* Base filename (no extension) */
+	if(p==dir)
+		dir[0]=0;		/* no directory specified in path */
+	else
+		*p=0;			/* truncate dir at filename */
+	p=getfext(fname);
 	if(p!=NULL) {
+		strcpy(ext,p);	/* Optional filename extension, including leading period (.) */
 		*p=0;
-		strcpy(ext,p+1);
 	}
 }
 #endif
