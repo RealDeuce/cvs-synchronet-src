@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.19 2003/04/23 08:33:00 rswindell Exp $ */
+/* $Id: str_util.c,v 1.20 2003/05/03 09:28:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,6 +254,25 @@ char* DLLCALL truncstr(char* str, const char* set)
 		*p=0;
 
 	return(p);
+}
+
+/****************************************************************************/
+/* rot13 encoder/decoder - courtesy of Mike Acar							*/
+/****************************************************************************/
+char* DLLCALL rot13(char* str)
+{
+	char ch, cap;
+	char* p;
+  
+	p=str;
+	while((ch=*p)!=0) {
+		cap = ch & 32;
+		ch &= ~cap;
+		ch = ((ch >= 'A') && (ch <= 'Z') ? ((ch - 'A' + 13) % 26 + 'A') : ch) | cap;
+		*(p++)=ch;
+    }
+
+	return(str);
 }
 
 /****************************************************************************/
