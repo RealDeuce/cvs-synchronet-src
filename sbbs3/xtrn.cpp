@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.140 2003/05/09 03:41:19 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.141 2003/05/09 22:27:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -301,8 +301,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	hungup_event=NULL;
 	HANDLE	rdoutpipe;
 	HANDLE	wrinpipe;
-	HANDLE	harray[3];
-	DWORD	hcount;
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
 	DWORD	rd;
@@ -882,7 +880,24 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			}
 #endif
             if((!rd && !wr) || hungup) {
-				loop_since_io++;
+
+				loop_since_io++;	/* number of loop iterations with no I/O */
+
+				/* only check process termination after 300 milliseconds of no I/O */
+				/* to allow for last minute reception of output from DOS programs */
+				if(loop_since_io>=3
+					&& WaitForSingleObject(process_info.hProcess,0)==WAIT_OBJECT_0)
+					break;	/* Process Terminated */
+
+				/* only check node for interrupt flag every 3 seconds of no I/O */
+				if((loop_since_io%30)==0) {	
+					// Check if the node has been interrupted
+					getnodedat(cfg.node_num,&thisnode,0);
+					if(thisnode.misc&NODE_INTR)
+						break;
+				}
+
+				/* only send telnet GA every 30 seconds of no I/O */
 				if((loop_since_io%300)==0) {
 #ifdef _DEBUG
 					sprintf(str,"Node %d xtrn idle\n",cfg.node_num);
@@ -892,18 +907,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					// Sending will trigger a socket d/c detection
 					if(!(startup->options&BBS_OPT_NO_TELNET_GA))
 						send_telnet_cmd(TELNET_GA,0);
-
-					// Check if the node has been interrupted
-					getnodedat(cfg.node_num,&thisnode,0);
-					if(thisnode.misc&NODE_INTR)
-						break;
 				}
-				hcount=0;
-				harray[hcount++]=process_info.hProcess;
-				if(!hungup)
-					harray[hcount++]=inbuf.sem;
-				if(WaitForMultipleObjects(hcount,harray,FALSE,100)==WAIT_OBJECT_0)
-					break;
+				sem_trywait_block(&inbuf.sem,100);
             } else
 				loop_since_io=0;
         }
