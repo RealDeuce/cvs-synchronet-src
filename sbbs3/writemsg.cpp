@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.8 2001/04/15 16:48:21 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.9 2001/06/15 03:34:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,7 +264,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 			if(sys_status&SS_ABORT) {  /* Ctrl-C */
 				LFREE(buf);
 				return(false); }
-			if((c==ESC || c==1) && useron.rest&FLAG('A')) /* ANSI restriction */
+			if((c==ESC || c==CTRL_A) && useron.rest&FLAG('A')) /* ANSI restriction */
 				continue;
 			if(c==BEL && useron.rest&FLAG('B'))   /* Beep restriction */
 				continue;

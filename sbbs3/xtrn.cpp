@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.35 2001/06/14 02:59:03 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.36 2001/06/15 03:34:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,7 @@ BYTE* wwiv_expand(BYTE* buf, ulong buflen, BYTE* outbuf, ulong& newlen
 	ulong 	i,j,k;
 
     for(i=j=0;i<buflen;i++) {
-        if(buf[i]==3) {	/* ctrl-c, WWIV color escape char */
+        if(buf[i]==CTRL_C) {	/* WWIV color escape char */
             ctrl_c=true;
             continue;
         }
