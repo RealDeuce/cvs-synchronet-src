@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.123 2003/08/30 02:42:07 deuce Exp $
+# $Id: GNUmakefile,v 1.124 2003/09/02 01:14:55 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -162,6 +162,10 @@ ifndef JSLIB
 endif
 ifndef NSPRDIR
  NSPRDIR := ../../lib/mozilla/nspr/$(os).$(BUILD)
+endif
+
+ifdef DONT_BLAME_SYNCHRONET
+ LFLAGS += -DDONT_BLAME_SYNCHRONET
 endif
 
 LFLAGS += -L$(JSLIBDIR) -l$(JSLIB)

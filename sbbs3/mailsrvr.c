@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.277 2003/08/30 08:54:44 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.278 2003/09/02 01:14:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2941,9 +2941,9 @@ static void sendmail_thread(void* arg)
 	smb_t		smb;
 	smbmsg_t	msg;
 
-	sendmail_running=TRUE;
-
 	thread_up(TRUE /* setuid */);
+
+	sendmail_running=TRUE;
 
 	lprintf("0000 SendMail thread started");
 
@@ -3303,7 +3303,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.277 $", "%*s %s", revision);
+	sscanf("$Revision: 1.278 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3346,6 +3346,10 @@ void DLLCALL mail_server(void* arg)
 
 	startup=(mail_startup_t*)arg;
 
+#ifdef _THREAD_SUID_BROKEN
+	startup->seteuid(TRUE);
+#endif
+
     if(startup==NULL) {
     	sbbs_beep(100,500);
     	fprintf(stderr, "No startup structure passed!\n");
@@ -3375,6 +3379,7 @@ void DLLCALL mail_server(void* arg)
 	served=0;
 	startup->recycle_now=FALSE;
 	recycle_server=TRUE;
+
 	do {
 
 		thread_up(FALSE /* setuid */);
@@ -3548,10 +3553,6 @@ void DLLCALL mail_server(void* arg)
 		if(!(startup->options&MAIL_OPT_NO_SENDMAIL))
 			_beginthread(sendmail_thread, 0, NULL);
 
-		/* signal caller that we've started up successfully */
-		if(startup->started!=NULL)
-    		startup->started();
-
 		lprintf("%04d Mail Server thread started",server_socket);
 		status(STATUS_WFC);
 
@@ -3562,6 +3563,10 @@ void DLLCALL mail_server(void* arg)
 			if(t!=-1 && t>initialized)
 				initialized=t;
 		}
+
+		/* signal caller that we've started up successfully */
+		if(startup->started!=NULL)
+    		startup->started();
 
 		while(server_socket!=INVALID_SOCKET) {
 

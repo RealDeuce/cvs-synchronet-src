@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.114 2003/07/03 01:16:42 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.115 2003/09/02 01:14:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2264,7 +2264,7 @@ void http_session_thread(void* arg)
 	socket=session.socket;
 	lprintf("%04d Session thread started", session.socket);
 
-	thread_up(FALSE /* setuid */);
+	thread_up(TRUE /* setuid */);
 	session.finished=FALSE;
 
 	if(startup->options&BBS_OPT_NO_HOST_LOOKUP)
@@ -2380,7 +2380,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.114 $", "%*s %s", revision);
+	sscanf("$Revision: 1.115 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2434,6 +2434,10 @@ void DLLCALL web_server(void* arg)
 		fprintf(stderr, "Invalid startup structure!\n");
 		return;
 	}
+
+#ifdef _THREAD_SUID_BROKEN
+	startup->seteuid(TRUE);
+#endif
 
 	/* Setup intelligent defaults */
 	if(startup->port==0)					startup->port=IPPORT_HTTP;
@@ -2582,13 +2586,13 @@ void DLLCALL web_server(void* arg)
 		lprintf("Web Server listening on port %d",startup->port);
 		status("Listening");
 
-		/* signal caller that we've started up successfully */
-		if(startup->started!=NULL)
-    		startup->started();
-
 		lprintf("Web Server thread started");
 
 		sprintf(path,"%swebsrvr.rec",scfg.ctrl_dir);
+
+		/* signal caller that we've started up successfully */
+		if(startup->started!=NULL)
+    		startup->started();
 
 		while(server_socket!=INVALID_SOCKET) {
 

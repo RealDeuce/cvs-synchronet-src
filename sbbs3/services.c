@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.130 2003/08/29 02:58:13 rswindell Exp $ */
+/* $Id: services.c,v 1.131 2003/09/02 01:14:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1528,7 +1528,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.130 $", "%*s %s", revision);
+	sscanf("$Revision: 1.131 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1589,6 +1589,10 @@ void DLLCALL services_thread(void* arg)
 		fprintf(stderr, "Invalid startup structure!\n");
 		return;
 	}
+
+#ifdef _THREAD_SUID_BROKEN
+	startup->seteuid(TRUE);
+#endif
 
 	/* Setup intelligent defaults */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=5;
@@ -1769,10 +1773,6 @@ void DLLCALL services_thread(void* arg)
 				_beginthread(js_static_service_thread, 0, &service[i]);
 		}
 
-		/* signal caller that we've started up successfully */
-		if(startup->started!=NULL)
-    		startup->started();
-
 		status("Listening");
 
 		if(initialized==0) {
@@ -1784,6 +1784,10 @@ void DLLCALL services_thread(void* arg)
 		}
 			
 		terminated=FALSE;
+
+		/* signal caller that we've started up successfully */
+		if(startup->started!=NULL)
+    		startup->started();
 
 		/* Main Server Loop */
 		while(!terminated) {
