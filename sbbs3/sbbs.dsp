@@ -402,10 +402,6 @@ SOURCE=.\scfgsave.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\semfile.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\sockopts.c
 # End Source File
 # Begin Source File
