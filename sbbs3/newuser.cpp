@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.27 2002/03/11 14:35:34 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.28 2002/04/01 00:33:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,7 +389,7 @@ void sbbs_t::newuser()
 
 	i=1;
 	bputs(text[CheckingSlots]);
-	sprintf(str,"%s/user/name.dat",cfg.data_dir);
+	sprintf(str,"%suser/name.dat",cfg.data_dir);
 	if(fexist(str)) {
 		if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
