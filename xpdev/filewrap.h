@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.21 2004/08/31 08:21:16 deuce Exp $ */
+/* $Id: filewrap.h,v 1.20 2004/07/20 23:26:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@
 extern "C" {
 #endif
 
-#if !defined(__BORLANDC__) && !defined(__WATCOMC__)
+#if !defined(__BORLANDC__)
 	DLLEXPORT int	DLLCALL	lock(int fd, long pos, long len);
 	DLLEXPORT int	DLLCALL unlock(int fd, long pos, long len);
 #endif
