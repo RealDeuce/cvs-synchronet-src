@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.343 2004/11/03 05:21:07 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.335 2004/10/14 10:31:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,17 +103,6 @@ static BOOL		terminate_sendmail=FALSE;
 static sem_t	sendmail_wakeup_sem;
 static char		revision[16];
 static time_t	uptime;
-static link_list_t recycle_semfiles;
-static link_list_t shutdown_semfiles;
-static int		mailproc_count;
-
-struct mailproc {
-	char		cmdline[INI_MAX_VALUE_LEN];
-	str_list_t	to;
-	BOOL		match;
-	BOOL		passthru;
-	BOOL		native;
-} *mailproc_list;
 
 typedef struct {
 	SOCKET			socket;
@@ -1065,7 +1054,7 @@ static void pop3_thread(void* arg)
 					continue;
 				}
 
-				if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL))==NULL) {
+				if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS))==NULL) {
 					smb_freemsgmem(&msg);
 					lprintf(LOG_ERR,"%04d !POP3 ERROR (%s) retrieving message %lu text"
 						,socket, smb.last_error, msg.hdr.number);
@@ -1471,12 +1460,11 @@ static JSFunctionSpec js_global_functions[] = {
 
 static BOOL
 js_mailproc(SOCKET sock, client_t* client, user_t* user
-			,char* cmdline
+			,char* fname, char* cmdline
 			,char* msgtxt_fname, char* rcptlst_fname, char* proc_err_fname
 			,char* sender, char* sender_addr, char* reverse_path)
 {
 	char*		p;
-	char		fname[MAX_PATH+1];
 	char		path[MAX_PATH+1];
 	char		arg[MAX_PATH+1];
 	BOOL		success=FALSE;
@@ -1489,16 +1477,6 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 	js_branch_t	js_branch;
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
-
-
-	SAFECOPY(fname,cmdline);
-	truncstr(fname," \t");
-	if(getfext(fname)==NULL) /* No extension specified, assume '.js' */
-		strcat(fname,".js");
-
-	SAFECOPY(path,fname);
-	if(getfname(path)==path) /* No path specified, assume exec_dir */
-		sprintf(path,"%s%s",scfg.exec_dir,fname);
 
 	do {
 
@@ -1601,6 +1579,13 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 		JS_DefineProperty(js_cx, js_glob, "reverse_path"
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,reverse_path))
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+
+		if(getfext(fname)==NULL) /* No extension specified, assume '.js' */
+			strcat(fname,".js");
+
+		SAFECOPY(path,fname);
+		if(getfname(path)==path) /* No path specified, assume exec_dir */
+			sprintf(path,"%s%s",scfg.exec_dir,fname);
 
 		if((js_script=JS_CompileFile(js_cx, js_glob, path))==NULL)
 			break;
@@ -1765,7 +1750,7 @@ static void parse_mail_address(char* p
 
 static void smtp_thread(void* arg)
 {
-	int			i,j;
+	int			i;
 	int			rd;
 	char		str[512];
 	char		tmp[128];
@@ -1826,8 +1811,10 @@ static void smtp_thread(void* arg)
 	FILE*		rcptlst;
 	char		rcptlst_fname[MAX_PATH+1];
 	ushort		rcpt_count=0;
+	FILE*		proc_cfg;
 	FILE*		proc_err;
 	char		proc_err_fname[MAX_PATH+1];
+	char		fname[MAX_PATH+1];
 	char		session_id[MAX_PATH+1];
 	FILE*		spy=NULL;
 	SOCKET		socket;
@@ -2114,36 +2101,42 @@ static void smtp_thread(void* arg)
 
 				/* External Mail Processing here */
 				msg_handled=FALSE;
-				if(mailproc_count) {
+				if(startup->proc_cfg_file[0] 
+					&& (proc_cfg=fopen(startup->proc_cfg_file,"r"))!=NULL) {
 					SAFEPRINTF2(proc_err_fname,"%sSMTP.%s.err", scfg.data_dir, session_id);
 					remove(proc_err_fname);
 
-					for(i=0;i<mailproc_count;i++) {
-
-						/* This processor is for specific recipients only and did not match */
-						if(strListCount(mailproc_list[i].to) && !mailproc_list[i].match)
+					while(!feof(proc_cfg)) {
+						if(!fgets(tmp,sizeof(tmp),proc_cfg))
+							break;
+						truncsp(tmp);
+						p=tmp;
+						SKIP_WHITESPACE(p);
+						if(*p==';' || *p==0)	/* comment or blank line */
 							continue;
-
-						mailcmdstr(mailproc_list[i].cmdline
-							,msgtxt_fname, rcptlst_fname, proc_err_fname
-							,host_name, host_ip, relay_user.number
-							,sender, sender_addr, reverse_path, str);
-						lprintf(LOG_DEBUG,"%04d SMTP Executing external process: %s"
-							,socket, str);
-
-						if(mailproc_list[i].native) {
+						mailcmdstr(p, msgtxt_fname, rcptlst_fname, proc_err_fname
+							,host_name, host_ip, relay_user.number, sender, sender_addr, reverse_path, str);
+						lprintf(LOG_DEBUG,"%04d SMTP Executing external process: %s", socket, str);
+#ifdef JAVASCRIPT
+						if(*p=='?') {
+							/* JavaScript */
+							SAFECOPY(fname,str+1);
+							truncstr(fname," \t");
+							js_mailproc(socket, &client, &relay_user
+								,fname, p ,msgtxt_fname, rcptlst_fname, proc_err_fname
+								,sender, sender_addr, reverse_path);
+						} else									
+#endif
+							/* Native */
 							if((i=system(str))!=0)
 								lprintf(LOG_WARNING,"%04d !SMTP system(%s) returned %d (errno: %d)"
 									,socket, str, i, errno);
-						} else  /* JavaScript */
-							js_mailproc(socket, &client, &relay_user, str /* cmdline */
-								,msgtxt_fname, rcptlst_fname, proc_err_fname
-								,sender, sender_addr, reverse_path);
 						if(flength(proc_err_fname)>0)
 							break;
 						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
 							break;
 					}
+					fclose(proc_cfg);
 					if(flength(proc_err_fname)>0 
 						&& (proc_err=fopen(proc_err_fname,"r"))!=NULL) {
 						while(!feof(proc_err)) {
@@ -2401,7 +2394,13 @@ static void smtp_thread(void* arg)
 				for(rcpt_count=0; sec_list!=NULL
 					&& sec_list[rcpt_count]!=NULL 
 					&& rcpt_count<startup->max_recipients; rcpt_count++) {
-				
+
+					if((i=smb_copymsgmem(&smb,&newmsg,&msg))!=SMB_SUCCESS) {
+						lprintf(LOG_ERR,"%04d !SMTP ERROR %d (%s) copying message"
+							,socket, i, smb.last_error);
+						break;
+					}
+					
 					section=sec_list[rcpt_count];
 
 					SAFECOPY(rcpt_name,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
@@ -2410,18 +2409,6 @@ static void smtp_thread(void* arg)
 					nettype=iniReadShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTNETTYPE),NET_NONE);
 					sprintf(str,"#%u",usernum);
 					SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
-
-					if(nettype==NET_NONE /* Local destination */ && usernum==0) {
-						lprintf(LOG_ERR,"%04d !SMTP can't deliver mail to user #0"
-							,socket);
-						break;
-					}
-
-					if((i=smb_copymsgmem(&smb,&newmsg,&msg))!=SMB_SUCCESS) {
-						lprintf(LOG_ERR,"%04d !SMTP ERROR %d (%s) copying message"
-							,socket, i, smb.last_error);
-						break;
-					}
 
 					snprintf(hdrfield,sizeof(hdrfield),
 						"Received: from %s (%s [%s])\r\n"
@@ -3007,29 +2994,6 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 
-			for(i=0;i<mailproc_count;i++) {
-				mailproc_list[i].match=FALSE;
-				for(j=0;mailproc_list[i].to[j]!=NULL;j++) {
-					if(stricmp(p,mailproc_list[i].to[j])==0)
-						mailproc_list[i].match=TRUE;
-				}
-				if(mailproc_list[i].match)
-					break;
-			}
-			/* destined for an external mail processor */
-			if(i<mailproc_count && !mailproc_list[i].passthru) {
-				fprintf(rcptlst,"[%u]\n",rcpt_count++);
-				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
-#if 0	/* should we fall-through to the sysop account? */
-				fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTEXT),1);
-#endif
-				lprintf(LOG_INFO,"%04d SMTP Routing mail for %s to External Mail Processor: %s"
-					,socket, rcpt_addr, mailproc_list[i].cmdline);
-				sockprintf(socket,ok_rsp);
-				state=SMTP_STATE_RCPT_TO;
-				continue;
-			}
-
 			usernum=0;	/* unknown user at this point */
 
 			if(routed) {
@@ -3148,7 +3112,7 @@ static void smtp_thread(void* arg)
 				&& !no_forward
 				&& scfg.sys_misc&SM_FWDTONET 
 				&& (user.misc&NETMAIL || forward)
-				&& tp!=NULL && smb_netaddr_type(user.netmail)==NET_INTERNET 
+				&& tp && strchr(tp,'.') && !strchr(tp,'/') 
 				&& !strstr(tp,scfg.sys_inetaddr)) {
 				lprintf(LOG_INFO,"%04d SMTP Forwarding to: %s"
 					,socket, user.netmail);
@@ -3314,7 +3278,7 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		sprintf(str,"%u",newmsg.idx.to);
 		smb_hfield_str(&newmsg, RECIPIENTEXT, str);
 	}
-	if((newmsg.from_net.type==NET_QWK || newmsg.from_net.type==NET_INTERNET)
+	if(newmsg.from_net.type!=NET_NONE && newmsg.from_net.type!=NET_FIDO
 		&& newmsg.reverse_path!=NULL) {
 		smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(newmsg.from_net.type), &newmsg.from_net.type);
 		smb_hfield_str(&newmsg, RECIPIENTNETADDR, newmsg.reverse_path);
@@ -3540,7 +3504,7 @@ static void sendmail_thread(void* arg)
 #endif
 
 			lprintf(LOG_DEBUG,"0000 SEND getting message text");
-			if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL))==NULL) {
+			if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS))==NULL) {
 				remove_msg_intransit(&smb,&msg);
 				lprintf(LOG_ERR,"0000 !SEND ERROR (%s) retrieving message text",smb.last_error);
 				continue;
@@ -3849,18 +3813,7 @@ void DLLCALL mail_terminate(void)
 
 static void cleanup(int code)
 {
-	int i;
-
 	free_cfg(&scfg);
-
-	semfile_list_free(&recycle_semfiles);
-	semfile_list_free(&shutdown_semfiles);
-
-	if(mailproc_list!=NULL) {
-		for(i=0;i<mailproc_count;i++)
-			strListFree(&mailproc_list[i].to);
-		FREE_AND_NULL(mailproc_list);
-	}
 
 	if(server_socket!=INVALID_SOCKET) {
 		mail_close_socket(server_socket);
@@ -3895,7 +3848,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.343 $", "%*s %s", revision);
+	sscanf("$Revision: 1.335 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3914,7 +3867,6 @@ const char* DLLCALL mail_ver(void)
 
 void DLLCALL mail_server(void* arg)
 {
-	char*			p;
 	char			path[MAX_PATH+1];
 	char			str[256];
 	char			error[256];
@@ -3934,8 +3886,6 @@ void DLLCALL mail_server(void* arg)
 	pop3_t*			pop3;
 	smtp_t*			smtp;
 	struct timeval	tv;
-	FILE*			fp;
-	str_list_t		sec_list;
 
 	mail_ver();
 
@@ -3968,6 +3918,8 @@ void DLLCALL mail_server(void* arg)
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
 	if(startup->max_recipients==0) 			startup->max_recipients=100;
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
+	if(startup->proc_cfg_file[0]==0)			
+		sprintf(startup->proc_cfg_file,"%smailproc.cfg",scfg.ctrl_dir);
 
 #ifdef JAVASCRIPT
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
@@ -4025,29 +3977,6 @@ void DLLCALL mail_server(void* arg)
 			return;
 		}
 
-		/* Parse the mailproc[.host].ini */
-		mailproc_list=NULL;
-		mailproc_count=0;
-		iniFileName(path,sizeof(path),scfg.ctrl_dir,"mailproc.ini");
-		if((fp=iniOpenFile(path))!=NULL) {
-			lprintf(LOG_DEBUG,"Reading %s",path);
-			sec_list = iniReadSectionList(fp,/* prefix */NULL);
-			if((mailproc_count=strListCount(sec_list))!=0
-				&& (mailproc_list=malloc(mailproc_count*sizeof(struct mailproc)))!=NULL) {
-				for(i=0;i<mailproc_count;i++) {
-					memset(&mailproc_list[i],0,sizeof(struct mailproc));
-					SAFECOPY(mailproc_list[i].cmdline,sec_list[i]);
-					mailproc_list[i].to =
-						iniReadStringList(fp,sec_list[i],"to",",",NULL);
-					mailproc_list[i].passthru =
-						iniReadBool(fp,sec_list[i],"passthru",TRUE);
-					mailproc_list[i].native =
-						iniReadBool(fp,sec_list[i],"native",FALSE);
-				}
-			}
-			iniCloseFile(fp);
-		}
-
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
@@ -4101,7 +4030,7 @@ void DLLCALL mail_server(void* arg)
 
 		if(startup->seteuid!=NULL)
 			startup->seteuid(FALSE);
-		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr),startup->bind_retry_count,startup->bind_retry_delay,lprintf);
+		result = bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr));
 		if(startup->seteuid!=NULL)
 			startup->seteuid(TRUE);
 		if(result != 0) {
@@ -4149,7 +4078,7 @@ void DLLCALL mail_server(void* arg)
 
 			if(startup->seteuid!=NULL)
 				startup->seteuid(FALSE);
-			result = retry_bind(pop3_socket,(struct sockaddr *)&server_addr,sizeof(server_addr),startup->bind_retry_count,startup->bind_retry_delay,lprintf);
+			result = bind(pop3_socket,(struct sockaddr *)&server_addr,sizeof(server_addr));
 			if(startup->seteuid!=NULL)
 				startup->seteuid(TRUE);
 			if(result != 0) {
@@ -4181,15 +4110,12 @@ void DLLCALL mail_server(void* arg)
 		lprintf(LOG_NOTICE,"%04d Mail Server thread started",server_socket);
 		status(STATUS_WFC);
 
-		/* Setup recycle/shutdown semaphore file lists */
-		semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","mail");
-		semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","mail");
-		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
-		semfile_list_add(&recycle_semfiles,path);
-		if(!initialized) {
+		if(initialized==0) {
 			initialized=time(NULL);
-			semfile_list_check(&initialized,&recycle_semfiles);
-			semfile_list_check(&initialized,&shutdown_semfiles);
+			sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
+			t=fdate(path);
+			if(t!=-1 && t>initialized)
+				initialized=t;
 		}
 
 		/* signal caller that we've started up successfully */
@@ -4198,25 +4124,22 @@ void DLLCALL mail_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(active_clients==0 && !(startup->options&MAIL_OPT_NO_RECYCLE)) {
-				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
+			if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
+				sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
+				t=fdate(path);
+				if(!active_clients && t!=-1 && t>initialized) {
+					lprintf(LOG_NOTICE,"0000 Recycle semaphore file (%s) detected",path);
+					initialized=t;
 					break;
 				}
 				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
 					startup->recycle_now=TRUE;
-				if(startup->recycle_now==TRUE) {
+				if(!active_clients && startup->recycle_now==TRUE) {
 					lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;
 					break;
 				}
 			}
-			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
-				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
-				terminate_server=TRUE;
-				break;
-			}
-
 			/* now wait for connection */
 
 			FD_ZERO(&socket_set);
@@ -4241,7 +4164,7 @@ void DLLCALL mail_server(void* arg)
             		lprintf(LOG_NOTICE,"0000 Mail Server sockets closed");
 				else
 					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
-				continue;
+				break;
 			}
 
 			if(server_socket!=INVALID_SOCKET && !terminate_server
@@ -4398,8 +4321,6 @@ void DLLCALL mail_server(void* arg)
 		if(!terminate_server) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
-			if(startup->recycle!=NULL)
-				startup->recycle(startup->cbdata);
 		}
 
 	} while(!terminate_server);
