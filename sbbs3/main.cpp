@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.304 2003/09/27 01:21:50 rswindell Exp $ */
+/* $Id: main.cpp,v 1.305 2003/10/03 09:03:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -762,12 +762,12 @@ bool sbbs_t::js_init()
 
     if((js_cx = JS_NewContext(js_runtime, startup->js_cx_stack))==NULL)
 		return(false);
-
+	
+	memset(&js_branch,0,sizeof(js_branch));
 	js_branch.limit = startup->js_branch_limit;
 	js_branch.gc_interval = startup->js_gc_interval;
 	js_branch.yield_interval = startup->js_yield_interval;
-	js_branch.counter = 0;	/* loop counter */
-	js_branch.terminated = (BOOL*)&terminated;
+	js_branch.terminated = &terminated;
 
 	bool success=false;
 
