@@ -2,7 +2,7 @@
 
 /* Synchronet node information structure and constant definitions */
 
-/* $Id: nodedefs.h,v 1.8 2000/11/06 10:00:34 rswindell Exp $ */
+/* $Id: nodedefs.h,v 1.9 2000/11/09 03:47:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #ifndef _NODEDEFS_H
 #define _NODEDEFS_H
 
-#include "gen_defs.h"
+#include "smbdefs.h"	/* uchar, ushort, ulong and _PACK */
 
 enum {                              /* Node Status */
      NODE_WFC                       /* Waiting for Call */
