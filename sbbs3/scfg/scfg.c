@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.55 2003/12/12 23:24:18 rswindell Exp $ */
+/* $Id: scfg.c,v 1.54 2003/09/08 10:00:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1886,7 +1886,7 @@ int code_ok(char *str)
 	return(1);
 }
 
-int lprintf(int level, char *fmt, ...)
+int lprintf(char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
