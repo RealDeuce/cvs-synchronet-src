@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.40 2004/03/23 04:14:22 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.41 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,7 @@ bool sbbs_t::uploadfile(file_t *f)
 				memset(ext,0,F_EXBSIZE+1);
 				read(file,ext,F_EXBSIZE);
 				for(i=F_EXBSIZE;i;i--)
-					if(ext[i-1]>SP)
+					if(ext[i-1]>' ')
 						break;
 				ext[i]=0;
 				if(!f->desc[0]) {
