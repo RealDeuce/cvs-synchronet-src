@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.166 2004/10/17 06:10:48 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.164 2004/10/14 03:28:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1026,7 +1026,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		rio_abortable=rio_abortable_save;	// Restore abortable state
 
 		/* Got back to Text/NVT mode */
-		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
+		if(telnet_mode&TELNET_MODE_BIN_RX)
+			request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
 	}
 
 //	lprintf("%s returned %d",realcmdline, retval);
@@ -1883,7 +1884,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		rio_abortable=rio_abortable_save;	// Restore abortable state
 
 		/* Got back to Text/NVT mode */
-		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
+		if(telnet_mode&TELNET_MODE_BIN_RX)
+			request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
 	}
 
 	close(err_pipe[0]);
@@ -1970,8 +1972,8 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case 'O':   /* SysOp */
                     strcat(cmd,cfg.sys_op);
                     break;
-                case 'P':   /* Client protocol */
-                    strcat(cmd,client.protocol);
+                case 'P':   /* COM Port */
+                    strcat(cmd,ultoa(online==ON_LOCAL ? 0:cfg.com_port,str,10));
                     break;
                 case 'Q':   /* QWK ID */
                     strcat(cmd,cfg.sys_id);
@@ -2126,7 +2128,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'O':   /* SysOp */
                     strcat(cmd,cfg->sys_op);
                     break;
-                case 'P':   /* Client protocol */
+                case 'P':   /* COM Port */
                     break;
                 case 'Q':   /* QWK ID */
                     strcat(cmd,cfg->sys_id);
