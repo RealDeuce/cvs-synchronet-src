@@ -8,27 +8,22 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.4 2004/09/13 00:04:49 deuce Exp $
+# $Id: Makefile,v 1.4 2004/09/13 06:23:27 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
 
 SRC_ROOT = ..
 # Cross platform/compiler definitions
-include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
+!include ..\build\Common.bmake	# defines clean and output directory rules
 
-CFLAGS += -I$(XPDEV_SRC)
+CFLAGS = $(CFLAGS) $(XPDEV-MT_CFLAGS) $(MT_CFLAGS) -I$(CIOLIB_SRC)
+OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)win32cio$(OFILE)
 
+# SBBS DLL Link Rule
+$(CIOLIB-MT): $(OBJS)
+    @echo Creating $<
+	-$(QUIET)$(DELETE) $@
+	$(QUIET)for %f in ($(OBJS)) do $(QUIET)tlib $@ +%f
 
-# SMBLIB Library Link Rule
-$(SMBLIB): $(OBJODIR) $(OBJS)
-	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $(OBJS)
-	$(QUIET)ranlib $@
-
-# SMBLIB Library Link Rule
-$(SMBLIB-MT): $(MTOBJODIR) $(MTOBJS)
-	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $(MTOBJS)
-	$(QUIET)ranlib $@
 
