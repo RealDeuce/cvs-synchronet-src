@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.63 2002/09/18 22:26:32 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.64 2002/10/12 00:26:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3644,7 +3644,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 			for(m=exp=0;m<posts;m++) {
 				printf("\r%8s %5lu of %-5lu  "
 					,scfg.sub[i]->code,m+1,posts);
-				msg.idx.offset=post[m].offset;
+				msg.idx=post[m];
 				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=0) {
 					printf("ERROR %d locking %s msghdr\n",k,smb[cur_smb].file);
 					logprintf("ERROR %d line %d locking %s msghdr\n"
@@ -3938,7 +3938,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.63 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.64 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
