@@ -42,23 +42,22 @@ void read_list(char *listpath, struct bbslist **list, int *i, int type)
 	str_list_t	bbses;
 
 	if((listfile=fopen(listpath,"r"))!=NULL) {
-		bbses=iniReadSectionList(listfile,NULL);
+		bbses=iniGetSectionList(listfile,NULL);
 		while((bbsname=strListPop(&bbses))!=NULL) {
 			if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL)
 				break;
 			strcpy(list[*i]->name,bbsname);
-			iniReadString(listfile,bbsname,"Address","",list[*i]->addr);
-			list[*i]->port=iniReadShortInt(listfile,bbsname,"Port",513);
-			list[*i]->added=iniReadInteger(listfile,bbsname,"Added",0);
-			list[*i]->connected=iniReadInteger(listfile,bbsname,"LastConnected",0);
-			list[*i]->calls=iniReadInteger(listfile,bbsname,"TotalCalls",0);
-			iniReadString(listfile,bbsname,"UserName","",list[*i]->user);
-			iniReadString(listfile,bbsname,"Password","",list[*i]->password);
-			list[*i]->dumb=iniReadBool(listfile,bbsname,"BeDumb",0);
-			list[*i]->reversed=iniReadBool(listfile,bbsname,"Reversed",0);
+			iniGetString(listfile,bbsname,"Address","",list[*i]->addr);
+			list[*i]->port=iniGetShortInt(listfile,bbsname,"Port",513);
+			list[*i]->added=iniGetInteger(listfile,bbsname,"Added",0);
+			list[*i]->connected=iniGetInteger(listfile,bbsname,"LastConnected",0);
+			list[*i]->calls=iniGetInteger(listfile,bbsname,"TotalCalls",0);
+			iniGetString(listfile,bbsname,"UserName","",list[*i]->user);
+			iniGetString(listfile,bbsname,"Password","",list[*i]->password);
+			list[*i]->dumb=iniGetBool(listfile,bbsname,"BeDumb",0);
+			list[*i]->reversed=iniGetBool(listfile,bbsname,"Reversed",0);
 			list[*i]->type=type;
-			list[*i]->id=*i;
-			(*i)++;
+			list[*i]->id=(*i)++;
 		}
 		fclose(listfile);
 		strListFreeStrings(bbses);
@@ -198,7 +197,7 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	 */
 	iniSetString(&inifile,bbs->name,"Address",bbs->addr,NULL);
 	iniSetShortInt(&inifile,bbs->name,"Port",bbs->port,NULL);
-	iniSetInteger(&inifile,bbs->name,"Added",time(NULL),NULL);
+	iniSetInteger(&inifile,bbs->name,"Added",bbs->added,NULL);
 	iniSetInteger(&inifile,bbs->name,"LastConnected",bbs->connected,NULL);
 	iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
 	iniSetString(&inifile,bbs->name,"UserName",bbs->user,NULL);
@@ -278,7 +277,7 @@ struct bbslist *show_bbslist(int mode, char *path)
 						"~ CTRL-E ~ Switch listing to Edit mode\n"
 						"~ CTRL-D ~ Switch listing to Dial mode\n"
 						"Select a bbs to edit/dial an entry.";
-		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)|WIN_SAV|WIN_MID|WIN_INS|WIN_DEL|WIN_EXTKEYS|WIN_INSACT,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Select BBS":"Edit BBS",(char **)list);
+		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)|WIN_SAV|WIN_MID|WIN_INS|WIN_DEL|WIN_EXTKEYS,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Select BBS":"Edit BBS",(char **)list);
 		if(val==listcount)
 			val=listcount|MSK_INS;
 		if(val<0) {
@@ -368,17 +367,17 @@ struct bbslist *show_bbslist(int mode, char *path)
 							list[listcount-1]->password[0]=0;
 							list[listcount-1]->reversed=0;
 						}
-						add_bbs(listpath,list[listcount-1]);
 						sort_list(list);
 						for(j=0;list[j]->name[0];j++) {
 							if(list[j]->id==listcount-1)
 								opt=j;
 						}
+						add_bbs(listpath,list[listcount-1]);
 					}
 					break;
 				case MSK_DEL:
 					if(!list[opt]->name[0]) {
-						uifc.helpbuf=	"`Calming down`\n\n"
+						uifc.helpbuf=	"`Calming down`\n\n";
 										"~ Some handy tips on calming down ~\n"
 										"Close your eyes, imagine yourself alone on a brilliant white beach...\n"
 										"Picture the palm trees up towards the small town...\n"

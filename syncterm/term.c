@@ -2,7 +2,6 @@
 #include <ciolib.h>
 #include <keys.h>
 
-#include "rlogin.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "menu.h"
@@ -118,7 +117,6 @@ void doterm(void)
 					
 			}
 		}
-		if(!rcvtimeo)
-			SLEEP(1);
+		SLEEP(1);
 	}
 }
