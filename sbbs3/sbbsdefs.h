@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.82 2002/12/12 21:21:04 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.83 2002/12/13 01:51:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,7 +336,8 @@ enum {
 	,clr_chatremote
 	,clr_multichat
 	,clr_external
-	,TOTAL_COLORS };
+	,MIN_COLORS 
+};
 
 enum {								/* Values for xtrn_t.type				*/
 	 XTRN_NONE						/* No data file needed					*/

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.18 2002/12/07 00:55:37 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.19 2002/12/13 01:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -574,7 +574,8 @@ typedef struct
 	ushort	sec_warn;				/* Seconds before inactivity warning */
 	ushort	sec_hangup; 			/* Seconds before inactivity hang-up */
 
-	char 	color[TOTAL_COLORS];	/* Different colors for the BBS */
+	char* 	color;					/* Different colors for the BBS */
+	ulong	total_colors;
 	ulong	ctrlkey_passthru;		/* Bits represent control keys NOT handled by inkey() */
 
 	char 	wfc_cmd[10][LEN_CMD+1];    /* 0-9 WFC DOS commands */
