@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.34 2003/02/13 01:13:31 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.35 2003/04/05 02:23:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,7 +237,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	}
 
 	if(!strcmp(sp,"TUSER")) {
-		sprintf(str,"%u",lastuser(&cfg));
+		sprintf(str,"%u",total_users(&cfg));
 		return(str);
 	}
 
