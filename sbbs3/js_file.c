@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.11 2001/12/01 02:03:42 rswindell Exp $ */
+/* $Id: js_file.c,v 1.12 2002/01/21 03:16:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -274,7 +274,7 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	size_t		size=sizeof(DWORD);
 	private_t*	p;
 
-	*rval = JSVAL_NULL;
+	*rval = JSVAL_TO_INT(-1);
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -287,16 +287,16 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	switch(size) {
 		case sizeof(BYTE):
-			fread(&b,1,size,p->fp);
-			*rval = INT_TO_JSVAL(b);
+			if(fread(&b,1,size,p->fp)==size)
+				*rval = INT_TO_JSVAL(b);
 			break;
 		case sizeof(WORD):
-			fread(&w,1,size,p->fp);
-			*rval = INT_TO_JSVAL(w);
+			if(fread(&w,1,size,p->fp)==size)
+				*rval = INT_TO_JSVAL(w);
 			break;
 		case sizeof(DWORD):
-			fread(&l,1,size,p->fp);
-			*rval = INT_TO_JSVAL(l);
+			if(fread(&l,1,size,p->fp)==size)
+				*rval = INT_TO_JSVAL(l);
 			break;
 	}
 		
