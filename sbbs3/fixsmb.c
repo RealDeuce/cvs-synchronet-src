@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.21 2004/08/30 07:35:31 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.26 2004/09/08 03:32:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,9 +40,14 @@
 #include <string.h>	/* strnicmp */
 #include <ctype.h>	/* toupper */
 
-#include "sbbs.h"
+#include "smblib.h"
+#include "genwrap.h"	/* PLATFORM_DESC */
+#include "str_list.h"	/* strList API */
+#include "crc16.h"
 
-smb_t smb;
+smb_t	smb;
+BOOL	renumber=FALSE;
+char*	usage="usage: fixsmb [-renumber] <smb_file> [[smb_file] [...]]\n";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -77,7 +82,7 @@ void sort_index(smb_t* smb)
 	smb->status.total_msgs=l;
 	for(l=0;l<smb->status.total_msgs;l++)
 		if(fwrite(&idx[l],sizeof(idxrec_t),1,smb->sid_fp)<1) {
-			perror("wrtiing index");
+			perror("writing index");
 			break;
 		}
 
@@ -88,45 +93,27 @@ void sort_index(smb_t* smb)
 void unlock_msgbase(void)
 {
 	int i;
-	if((i=smb_unlock(&smb))!=0)
+	if(smb_islocked(&smb) && (i=smb_unlock(&smb))!=0)
 		printf("smb_unlock returned %d: %s\n",i,smb.last_error);
 }
 
-char *usage="usage: fixsmb [-renumber] <smb_file>\n";
-
-int main(int argc, char **argv)
+int fixsmb(char* sub)
 {
 	char*		p;
 	char*		text;
 	char		str[MAX_PATH+1],c;
-	char		revision[16];
 	int 		i,w;
 	ulong		l,length,size,n;
-	BOOL		renumber=FALSE;
 	smbmsg_t	msg;
-
-	sscanf("$Revision: 1.21 $", "%*s %s", revision);
-
-	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
-		,PLATFORM_DESC,revision,smb_lib_ver());
 
 	memset(&smb,0,sizeof(smb));
 
-	smb.file[0]=0;
-	for(i=1;i<argc;i++) {
-		if(!stricmp(argv[i],"-renumber"))
-			renumber=TRUE;
-		else
-			SAFECOPY(smb.file,argv[i]);
-	}
+	SAFECOPY(smb.file,sub);
 
 	if((p=getfext(smb.file))!=NULL && stricmp(p,".shd")==0)
 		*p=0;	/* Chop off .shd extension, if supplied on command-line */
 
-	if(!smb.file[0]) {
-		printf(usage);
-		exit(1); 
-	}
+	printf("Opening %s\n",smb.file);
 
 	if((i=smb_open(&smb))!=0) {
 		printf("smb_open returned %d: %s\n",i,smb.last_error);
@@ -137,8 +124,6 @@ int main(int argc, char **argv)
 		printf("smb_lock returned %d: %s\n",i,smb.last_error);
 		exit(1);
 	}
-
-	atexit(unlock_msgbase);
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
@@ -196,13 +181,13 @@ int main(int argc, char **argv)
 		printf("\r%2lu%%  ",(long)(100.0/((float)length/l)));
 		msg.idx.offset=l;
 		if((i=smb_lockmsghdr(&smb,&msg))!=0) {
-			printf("\n(%06lX) smb_lockmsghdr returned %d: %s\n",l,i,smb.last_error);
+			printf("\n(%06lX) smb_lockmsghdr returned %d:\n%s\n",l,i,smb.last_error);
 			continue; 
 		}
 		i=smb_getmsghdr(&smb,&msg);
 		smb_unlockmsghdr(&smb,&msg);
 		if(i!=0) {
-			printf("\n(%06lX) smb_getmsghdr returned %d: %s\n",l,i,smb.last_error);
+			printf("\n(%06lX) smb_getmsghdr returned %d:\n%s\n",l,i,smb.last_error);
 			continue; 
 		}
 		size=smb_hdrblocks(smb_getmsghdrlen(&msg))*SHD_BLOCK_LEN;
@@ -212,9 +197,9 @@ int main(int argc, char **argv)
 		if(msg.hdr.attr&MSG_DELETE)
 			text=NULL;
 		else
-			text=smb_getmsgtxt(&smb,&msg,0);
-		i=smb_hashmsg(&smb,&msg,text);
-		if(i!=SMB_SUCCESS && i!=SMB_DUPE_MSG)
+			text=smb_getmsgtxt(&smb,&msg,GETMSGTXT_BODY_ONLY);
+		i=smb_hashmsg(&smb,&msg,text,TRUE /* update */);
+		if(i!=SMB_SUCCESS)
 			printf("!ERROR %d hashing message\n", i);
 		if(text!=NULL)
 			free(text);
@@ -222,6 +207,8 @@ int main(int argc, char **argv)
 		/* Index the header */
 		if(msg.hdr.attr&MSG_DELETE)
 			printf("Not indexing deleted message\n");
+		else if(msg.hdr.number==0)
+			printf("Not indexing invalid message number (0)!\n");
 		else {   
 			msg.offset=n;
 			if(renumber)
@@ -229,7 +216,7 @@ int main(int argc, char **argv)
 			msg.idx.number=msg.hdr.number;
 			msg.idx.attr=msg.hdr.attr;
 			msg.idx.time=msg.hdr.when_imported.time;
-			msg.idx.subj=subject_crc(msg.subj);
+			msg.idx.subj=smb_subject_crc(msg.subj);
 			if(smb.status.attr&SMB_EMAIL) {
 				if(msg.to_ext)
 					msg.idx.to=atoi(msg.to_ext);
@@ -287,6 +274,41 @@ int main(int argc, char **argv)
 	smb_unlocksmbhdr(&smb);
 	printf("Closing message base.\n");
 	smb_close(&smb);
+	unlock_msgbase();
 	printf("Done.\n");
+	return(0);
+}
+
+int main(int argc, char **argv)
+{
+	char		revision[16];
+	int 		i;
+	str_list_t	list;
+
+	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+
+	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
+		,PLATFORM_DESC,revision,smb_lib_ver());
+
+	list=strListInit();
+
+	for(i=1;i<argc;i++) {
+		if(argv[i][0]=='-') {
+			if(!stricmp(argv[i],"-renumber"))
+				renumber=TRUE;
+		} else
+			strListPush(&list,argv[i]);
+	}
+
+	if(!strListCount(list)) {
+		printf(usage);
+		exit(1); 
+	}
+
+	atexit(unlock_msgbase);
+
+	for(i=0;list[i]!=NULL;i++)
+		fixsmb(list[i]);
+
 	return(0);
 }
