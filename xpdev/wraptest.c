@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.38 2003/05/02 20:57:14 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.39 2003/05/02 23:45:36 deuce Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -272,7 +272,7 @@ int main()
 		sem_wait(&thread_data.child_sem);	/* wait for thread to begin */
 		for(i=0;i<10;i++) {
 			printf("<parent>");
-			SLEEP(1000);
+			SLEEP(5000);
 			sem_post(&thread_data.parent_sem);
 			sem_wait(&thread_data.child_sem);
 		}
