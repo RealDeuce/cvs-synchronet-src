@@ -281,7 +281,7 @@ void do_ansi(char *retbuf, int retsize)
 						p2[j++]=' ';
 						p2[j++]=term.attr;
 					}
-					for(k-0;j<i;i++) {
+					for(i=0;j<i;i++) {
 						puttext(term.x+1,term.y+i,term.x+term.width,term.y+i,p2);
 					}
 					free(p2);
@@ -523,7 +523,10 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 	int i,j,k;
 	char	*ret;
 	struct text_info	ti;
+	int	olddmc;
 
+	olddmc=dont_move_cursor;
+	dont_move_cursor=1;
 	if(retbuf!=NULL)
 		retbuf[0]=0;
 	gettextinfo(&ti);
@@ -601,6 +604,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 	textattr(ti.attribute);
 #endif
 
+	dont_move_cursor=olddmc;
+	gotoxy(wherex(),wherey());
 	return(retbuf);
 }
 
