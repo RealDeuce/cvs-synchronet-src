@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.95 2003/04/30 23:50:22 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.96 2003/05/07 19:08:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2343,7 +2343,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.95 $", "%*s %s", revision);
+	sscanf("$Revision: 1.96 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2573,10 +2573,8 @@ void DLLCALL web_server(void* arg)
 			tv.tv_usec=0;
 
 			if((i=select(high_socket_set,&socket_set,NULL,NULL,&tv))<1) {
-				if(i==0) {
-					YIELD();
+				if(i==0)
 					continue;
-				}
 				if(ERROR_VALUE==EINTR)
 					lprintf("Web Server listening interrupted");
 				else if(ERROR_VALUE == ENOTSOCK)
