@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.c,v 1.11 2003/05/08 18:23:12 deuce Exp $ */
+/* $Id: semwrap.c,v 1.12 2004/11/10 23:13:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,4 +59,52 @@ sem_trywait_block(sem_t *sem, unsigned long timeout)
 		errno=EAGAIN;
 	return retval;
 }
+
+#elif defined(_WIN32)
+
+#include <limits.h>		/* INT_MAX */
+
+#if defined(__BORLANDC__)
+	#pragma argsused
 #endif
+int sem_init(sem_t* psem, int pshared, unsigned int value)
+{
+
+	if((*(psem)=CreateSemaphore(NULL,value,INT_MAX,NULL))==NULL)
+		return -1;
+		
+	return 0;
+}
+
+int sem_trywait_block(sem_t* psem, unsigned long timeout)
+{
+	if(WaitForSingleObject(*(psem),timeout)!=WAIT_OBJECT_0) {
+		errno=EAGAIN;
+		return -1;
+	}
+
+	return 0;
+}
+
+int sem_post(sem_t* psem)
+{
+	if(ReleaseSemaphore(*(psem),1,NULL)==TRUE)
+		return 0;
+
+	return -1;
+}
+
+int sem_getvalue(sem_t* psem, int* vp)
+{
+	ReleaseSemaphore(*(psem),0,(LPLONG)vp);
+	return 0;
+}
+
+int sem_destroy(sem_t* psem)
+{
+	if(CloseHandle(*(psem))==TRUE)
+		return 0;
+	return -1;
+}
+
+#endif /* _WIN32 */
