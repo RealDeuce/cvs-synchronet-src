@@ -2,13 +2,13 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.28 2003/03/27 23:33:47 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.29 2003/04/01 09:26:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -732,7 +732,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					if(lp) {
 						if(pp && *pp)
-							*lp=crc16(*pp);
+							*lp=crc16(*pp,0);
 						else
 							*lp=0; }
 					return(0);
@@ -743,7 +743,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					if(lp) {
 						if(pp && *pp)
-							*lp=crc32(*pp,strlen(*pp));
+							*lp=crc32(*pp,0);
 						else
 							*lp=0; }
 					return(0);
