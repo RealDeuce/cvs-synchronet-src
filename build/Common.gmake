@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.36 2005/03/21 19:25:02 deuce Exp $
+# $Id: Common.gmake,v 1.37 2005/03/21 20:22:05 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -168,6 +168,9 @@ endif
 os      :=	$(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
 machine		:=	$(shell if uname -m | egrep -v "(i[3456789]|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
+ifeq ($(machine),sparc64)
+ CFLAGS +=      -D__BIG_ENDIAN__
+endif
 ifeq ($(machine),sun4u)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
