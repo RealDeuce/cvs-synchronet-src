@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.208 2004/11/11 08:33:41 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.209 2004/11/11 18:58:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2633,7 +2633,8 @@ static void respond(http_session_t * session)
 				snt=0;
 			session->req.ld->size=snt;
 		}
-		lprintf(LOG_INFO,"%04d Sent file: %s",session->socket, session->req.physical_path);
+		if(snt>0)
+			lprintf(LOG_INFO,"%04d Sent file: %s",session->socket, session->req.physical_path);
 	}
 	close_request(session);
 }
@@ -2827,7 +2828,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.208 $", "%*s %s", revision);
+	sscanf("$Revision: 1.209 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
