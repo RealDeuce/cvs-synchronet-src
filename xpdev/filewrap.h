@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.5 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.6 2002/04/26 23:45:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,6 +73,7 @@
 
 	#define O_TEXT		0		/* all files in binary mode on Unix */
 	#define O_BINARY	0		/* all files in binary mode on Unix */
+	#undef	O_DENYNONE
 	#define O_DENYNONE  (1<<31)	/* req'd for Baja/nopen compatibility */
 
 	#define SH_DENYNO	2          // no locks
