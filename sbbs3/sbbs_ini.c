@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.78 2004/09/24 08:11:37 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.79 2004/09/28 07:06:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@ static const char*	strInterface="Interface";
 static const char*	strHostName="HostName";
 static const char*	strLogMask="LogMask";
 
-#define DEFAULT_LOG_MASK		0x1f	/* EMERG|ALERT|CRIT|ERR|WARNING */
+#define DEFAULT_LOG_MASK		0x7f	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO */
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
