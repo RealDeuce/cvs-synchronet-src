@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.h,v 1.3 2005/01/14 00:39:04 rswindell Exp $ */
+/* $Id: xpevent.h,v 1.4 2005/01/24 10:46:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,10 @@
 
 #include <pthread.h>
 #include "gen_defs.h"
+
+#if defined(__solaris__)
+#include <xpsem.h>	/* u_int32_t */
+#endif
 
 /* Opaque type definition. */
 struct xpevent;
