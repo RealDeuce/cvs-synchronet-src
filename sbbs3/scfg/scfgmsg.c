@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.8 2002/03/08 02:47:08 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.9 2002/04/26 01:56:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -434,8 +434,11 @@ export the current message group into.
 				else
 					j=O_WRONLY|O_CREAT;
 				if((stream=fnopen(&file,str,j))==NULL) {
-					uifc.msg("Open Failure");
-					break; }
+					sprintf(str,"Open Failure: %d (%s)"
+						,errno,strerror(errno));
+					uifc.msg(str);
+					break; 
+				}
 				uifc.pop("Exporting Areas...");
 				for(j=0;j<cfg.total_subs;j++) {
 					if(cfg.sub[j]->grp!=i)
