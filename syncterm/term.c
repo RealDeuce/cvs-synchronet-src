@@ -693,6 +693,5 @@ void doterm(void)
 					
 			}
 		}
-		SLEEP(1);
 	}
 }
