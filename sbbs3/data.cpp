@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.6 2001/04/10 01:11:23 rswindell Exp $ */
+/* $Id: data.cpp,v 1.7 2001/04/12 03:59:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ uint sbbs_t::finduser(char *instr)
 /****************************************************************************/
 /* Returns the number of files in the directory 'dirnum'                    */
 /****************************************************************************/
-long getfiles(scfg_t* cfg, uint dirnum)
+long DLLCALL getfiles(scfg_t* cfg, uint dirnum)
 {
 	char str[256];
 	long l;
