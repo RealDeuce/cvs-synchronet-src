@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.33 2004/10/13 22:06:56 deuce Exp $ */
+/* $Id: win32cio.c,v 1.34 2004/10/13 22:12:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,21 +170,27 @@ int win32_keyboardio(int isgetch)
 				OutputDebugString(str);
 #endif
 
+				if(input.Event.KeyEvent.wVirtualScanCode==0x38 /* ALT */
+						|| input.Event.KeyEvent.wVirtualScanCode==0x36 /* SHIFT */
+						|| input.Event.KeyEvent.wVirtualScanCode==0x1D /* CTRL */
+					break;
+
 				if(input.Event.KeyEvent.dwControlKeyState & (LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED)) {
 					if(input.Event.KeyEvent.wVirtualScanCode >= CIO_KEY_F(1)
 							&& input.Event.KeyEvent.wVirtualScanCode <= CIO_KEY_F(10)) {
 						/* Magic number to convert from Fx to ALT-Fx */
-						lastch=input.Event.KeyEvent.wVirtualScanCode+45;
+						lastch=(input.Event.KeyEvent.wVirtualScanCode+45)<<8;
 						break;
 					}
 					if(input.Event.KeyEvent.wVirtualScanCode == CIO_KEY_F(11)
 							&& input.Event.KeyEvent.wVirtualScanCode == CIO_KEY_F(12)) {
 						/* Magic number to convert from F(x>10) to ALT-Fx */
-						lastch=input.Event.KeyEvent.wVirtualScanCode+6;
+						lastch=(input.Event.KeyEvent.wVirtualScanCode+6i)<<8;
 						break;
 					}
 
 					lastch=input.Event.KeyEvent.wVirtualScanCode<<8;
+					break;
 				}
 
 				if(input.Event.KeyEvent.uChar.AsciiChar)
