@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.118 2001/11/16 14:26:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.119 2001/11/27 18:36:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3607,9 +3607,9 @@ static void ctrl_thread(void* arg)
 				}
 				if(js_runtime == NULL) {
 					lprintf("%04d JavaScript: Creating runtime: %lu bytes"
-						,sock,JAVASCRIPT_RUNTIME_MEMORY);
+						,sock,startup->js_max_bytes);
 
-					if((js_runtime = JS_NewRuntime(JAVASCRIPT_RUNTIME_MEMORY))==NULL) {
+					if((js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL) {
 						lprintf("%04d !ERROR creating JavaScript runtime",sock);
 						sockprintf(sock,"451 Error creating JavaScript runtime");
 						filepos=0;
@@ -4279,6 +4279,7 @@ void DLLCALL ftp_server(void* arg)
 		startup->options&=~FTP_OPT_NO_JAVASCRIPT;
 	else
 		startup->options|=FTP_OPT_NO_JAVASCRIPT;
+	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 
 	thread_up();
 
