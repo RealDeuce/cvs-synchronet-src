@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.21 2002/02/12 16:44:40 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.22 2002/02/12 17:17:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1707,9 +1707,7 @@ js_bulkupload(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_TRUE);
 	}
 
-	sbbs->bulkupload(i);
-
-	*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+	*rval = BOOLEAN_TO_JSVAL(sbbs->bulkupload(i)==0);
 	return(JS_TRUE);
 }
 
