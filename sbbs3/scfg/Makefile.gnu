@@ -12,10 +12,10 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.5 2002/03/05 17:03:39 rswindell Exp $
+# $Id: Makefile.gnu,v 1.6 2002/03/15 02:49:59 rswindell Exp $
 
 # Macros
-# DEBUG	=	1		# Comment out for release (non-debug) version
+DEBUG	=	1		# Comment out for release (non-debug) version
 USE_DIALOG =	1		# Comment out for stdio (uifcx) version
 CC		=	gcc
 SLASH	=	/
