@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.326 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: main.cpp,v 1.325 2004/04/15 12:01:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4301,7 +4301,7 @@ void DLLCALL bbs_thread(void* arg)
 			identity=strrchr(str,':');
 			if(identity!=NULL) {
 				identity++;	/* skip colon */
-				while(*identity && *identity<=' ') /* point to user name */
+				while(*identity && *identity<=SP) /* point to user name */
 					identity++;
 				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
 			}

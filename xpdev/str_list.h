@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.14 2004/05/28 10:44:55 rswindell Exp $ */
+/* $Id: str_list.h,v 1.12 2004/05/28 03:33:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 extern "C" {
 #endif
 
-#define STR_LIST_LAST_INDEX	(~0)
+#define STR_LIST_APPEND		(~0)
 
 typedef char** str_list_t;
 
@@ -60,29 +60,19 @@ void		strListFreeStrings(str_list_t list);
 
 /* Pass a pointer to a string list, the string to add (append) */
 /* Returns the updated list or NULL on error */
-char*		strListAppend(str_list_t* list, const char* str, size_t index);
+str_list_t	strListAppend(str_list_t* list, const char* str, size_t index);
 
 /* Append a string list onto another string list */
-size_t		strListAppendList(str_list_t* list, const str_list_t append_list);
+str_list_t	strListAppendList(str_list_t* list, const str_list_t append_list);
 
 /* Inserts a string into the list at a specific index */
-char*		strListInsert(str_list_t* list, const char* str, size_t index);
+str_list_t	strListInsert(str_list_t* list, const char* str, size_t index);
 
 /* Insert a string list into another string list */
-size_t	strListInsertList(str_list_t* list, const str_list_t append_list, size_t index);
+str_list_t	strListInsertList(str_list_t* list, const str_list_t append_list, size_t index);
 
 /* Remove a string at a specific index */
-char*		strListRemove(str_list_t* list, size_t index);
-
-/* Remove and free a string at a specific index */
-BOOL		strListDelete(str_list_t* list, size_t index);
-
-/* Replace a string at a specific index */
-char*		strListReplace(const str_list_t list, size_t index, const char* str);
-
-/* Convenience macros for pushing, popping strings (LIFO stack) */
-#define		strListPush(list, str)	strListAppend(list, str, STR_LIST_LAST_INDEX)
-#define		strListPop(list)		strListRemove(list, STR_LIST_LAST_INDEX)
+str_list_t	strListRemove(str_list_t* list, size_t index);
 
 /* Add to an exiting or new string list by splitting specified string (str) */
 /* into multiple strings, separated by one of the delimit characters */
@@ -92,7 +82,7 @@ str_list_t	strListSplit(str_list_t* list, char* str, const char* delimit);
 str_list_t	strListSplitCopy(str_list_t* list, const char* str, const char* delimit);
 
 /* Merge 2 string lists (no copying of string data) */
-size_t		strListMerge(str_list_t* list, str_list_t append_list);
+str_list_t	strListMerge(str_list_t* list, str_list_t append_list);
 
 /* Count the number of strings in the list and returns the count */
 size_t		strListCount(const str_list_t list);
@@ -111,7 +101,7 @@ void		strListSortAlphaCaseReverse(str_list_t list);
 
 /* Read lines from file appending each line to string list */
 /* Pass NULL list to have list allocated for you */
-str_list_t	strListReadFile(FILE* fp, str_list_t* list, size_t max_line_len);
+str_list_t	strListReadFile(FILE* fp, str_list_t* list, size_t max_line_len, BOOL pad);
 
 /* Write to file (fp) each string in the list, optionally separated by separator (e.g. "\n") */
 size_t		strListWriteFile(FILE* fp, const str_list_t list, const char* separator);

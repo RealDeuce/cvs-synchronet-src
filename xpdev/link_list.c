@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.10 2004/05/28 10:07:22 rswindell Exp $ */
+/* $Id: link_list.c,v 1.9 2004/05/28 03:33:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,8 +135,8 @@ void listUnlock(const link_list_t* list)
 
 long listCountNodes(const link_list_t* list)
 {
-	long			count=0;
-	list_node_t*	node;
+	long count=0;
+	list_node_t* node;
 
 	if(list==NULL)
 		return(-1);
@@ -176,7 +176,6 @@ str_list_t listStringList(const link_list_t* list)
 {
 	list_node_t*	node;
 	str_list_t		str_list;
-	size_t			count=0;
 
 	if(list==NULL)
 		return(NULL);
@@ -188,7 +187,7 @@ str_list_t listStringList(const link_list_t* list)
 
 	for(node=list->first; node!=NULL; node=node->next) {
 		if(node->data!=NULL)
-			strListAppend(&str_list, node->data, count++);
+			strListAppend(&str_list, node->data, STR_LIST_APPEND);
 	}
 
 	MUTEX_UNLOCK(list);
@@ -210,8 +209,10 @@ str_list_t listSubStringList(const list_node_t* node, long max)
 	MUTEX_LOCK(list);
 
 	for(count=0; count<max && node!=NULL; node=node->next) {
-		if(node->data!=NULL)
-			strListAppend(&str_list, node->data, count++);
+		if(node->data!=NULL) {
+			strListAppend(&str_list, node->data, STR_LIST_APPEND);
+			count++;
+		}
 	}
 
 	MUTEX_UNLOCK(list);

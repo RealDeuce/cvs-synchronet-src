@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.40 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: atcodes.cpp,v 1.39 2003/11/26 12:28:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,7 @@ int sbbs_t::show_atcode(char *instr)
 	tp=strchr(str+1,'@');
 	if(!tp)                 /* no terminating @ */
 		return(0);
-	sp=strchr(str+1,' ');
+	sp=strchr(str+1,SP);
 	if(sp && sp<tp)         /* space before terminating @ */
 		return(0);
 	len=(tp-str)+1;
@@ -325,7 +325,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strcmp(sp,"FIRST")) {
 		strcpy(str,useron.alias);
-		tp=strchr(str,' ');
+		tp=strchr(str,SP);
 		if(tp) *tp=0;
 		return(str); 
 	}
@@ -359,7 +359,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		char* p=strchr(useron.location,',');
 		if(p) {
 			p++;
-			if(*p==' ')
+			if(*p==SP)
 				p++;
 			return(p); 
 		} 
@@ -809,7 +809,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	}
 
 	if(!strcmp(sp,"LAST")) {
-		tp=strrchr(useron.alias,' ');
+		tp=strrchr(useron.alias,SP);
 		if(tp) tp++;
 		else tp=useron.alias;
 		return(tp); 
@@ -817,20 +817,20 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strcmp(sp,"REAL")) {
 		strcpy(str,useron.name);
-		tp=strchr(str,' ');
+		tp=strchr(str,SP);
 		if(tp) *tp=0;
 		return(str); 
 	}
 
 	if(!strcmp(sp,"FIRSTREAL")) {
 		strcpy(str,useron.name);
-		tp=strchr(str,' ');
+		tp=strchr(str,SP);
 		if(tp) *tp=0;
 		return(str); 
 	}
 
 	if(!strcmp(sp,"LASTREAL")) {
-		tp=strrchr(useron.name,' ');
+		tp=strrchr(useron.name,SP);
 		if(tp) tp++;
 		else tp=useron.name;
 		return(tp); 

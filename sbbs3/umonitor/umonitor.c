@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.55 2004/05/28 23:45:00 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.54 2004/03/14 08:37:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -788,7 +788,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.55 $", "%*s %s", revision);
+	sscanf("$Revision: 1.54 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -820,13 +820,7 @@ int main(int argc, char** argv)  {
 	}
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
-		NULL,		/* global_startup */
-		NULL, &bbs_startup, 
-		NULL, NULL, /* ftp_startup */
-		NULL, NULL, /* web_startup */ 
-		NULL, NULL, /* mail_startup */
-		NULL, NULL  /* services_startup */
-		);
+		NULL, &bbs_startup, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	/* close .ini file here */
 	if(fp!=NULL)

@@ -1,5 +1,5 @@
-ODDIR	:=	../../odoors
-ODLIBS	:=	../../odoors
+ODDIR	:=	/usr/bbs/sbbs/src/src/odoors
+ODLIBS	:=	/usr/bbs/sbbs/doors/libs.freebsd
 
 CC      ?=	gcc
 CFLAGS  +=	-Wall -ansi -DUNIX -g

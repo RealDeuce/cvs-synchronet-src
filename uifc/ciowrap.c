@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.11 2004/06/01 07:40:51 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.7 2004/04/02 07:10:16 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -322,12 +322,10 @@ void textattr(unsigned char attr)
 	{
 		attrs |= A_BLINK;
 	}
+	attrset(attrs);
 	colour = COLOR_PAIR( ((attr&7)|((attr>>1)&56))+1 );
 	#ifdef NCURSES_VERSION_MAJOR
-	attrset(attrs);
 	color_set(colour,NULL);
-	#else
-	attrset(attrs|colour);
 	#endif
 	/* bkgdset(colour); */
 	bkgdset(colour);
@@ -555,7 +553,6 @@ void _putch(unsigned char ch, BOOL refresh_now)
 		addch(A_BOLD|' ');
 	else
 		addch(cha);
-
 	if(refresh_now)
 		refresh();
 }
@@ -604,13 +601,7 @@ void initciowrap(long inmode)
 {
 	short	fg, bg, pair=0;
 
-#ifdef XCURSES
-	char	*argv[2]={"Syhcnronet",NULL};
-
-	Xinitscr(1,argv);
-#else
 	initscr();
-#endif
 	start_color();
 	cbreak();
 	noecho();

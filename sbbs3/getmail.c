@@ -2,7 +2,7 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.3 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: getmail.c,v 1.2 2003/12/04 06:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,7 @@ void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 	strcpy(str,msg->subj);
 	tp=str;
 	while(1) {
-		p=strchr(tp,' ');
+		p=strchr(tp,SP);
 		if(p) *p=0;
 		sp=strrchr(tp,'/');              /* sp is slash pointer */
 		if(!sp) sp=strrchr(tp,'\\');
