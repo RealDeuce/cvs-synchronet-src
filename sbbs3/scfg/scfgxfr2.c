@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.16 2003/07/11 03:05:02 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.17 2003/07/26 06:44:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1477,9 +1477,9 @@ appear in users' new-file scans again.
 /*
 `Include Transfers In System Statistics:`
 
-If this option is set to ~Yes~, then all files uploaded to or downloaded from
-this directory will be included in the system's daily and cumulative
-statistics.
+If this option is set to ~Yes~, then all files uploaded to or downloaded
+from this directory will be included in the system's daily and
+cumulative statistics.
 */
                             n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Include Transfers In System Statistics"
