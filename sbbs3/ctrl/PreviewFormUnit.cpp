@@ -152,12 +152,3 @@ void __fastcall TPreviewForm::FormShow(TObject *Sender)
     fclose(fp);
 }
 //---------------------------------------------------------------------------
-void __fastcall TPreviewForm::FormClose(TObject *Sender,
-      TCloseAction &Action)
-{
-    MainForm->SpyTerminalWidth=Width;
-    MainForm->SpyTerminalHeight=Height;
-
-}
-//---------------------------------------------------------------------------
-
