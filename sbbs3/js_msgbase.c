@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.77 2003/05/23 11:45:29 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.78 2003/09/16 03:48:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,8 +403,12 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			field=JSVAL_TO_OBJECT(val);
 			if(!JS_GetProperty(cx, field, "type", &val))
 				continue;
-			JS_ValueToInt32(cx,val,&i32);
-			type=(ushort)i32;
+			if(JSVAL_IS_STRING(val))
+				type=smb_hfieldtypelookup(JS_GetStringBytes(JS_ValueToString(cx,val)));
+			else {
+				JS_ValueToInt32(cx,val,&i32);
+				type=(ushort)i32;
+			}
 			if(!JS_GetProperty(cx, field, "data", &val))
 				continue;
 			if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
