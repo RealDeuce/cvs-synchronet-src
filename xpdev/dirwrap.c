@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.21 2003/02/13 01:09:29 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.22 2003/02/13 02:43:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -619,7 +619,7 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 			NULL))		// receives the free bytes on disk
 			return(0);
 
-		if(unit)
+		if(unit>1)
 			avail.QuadPart=Int64ShrlMod32(avail.QuadPart,bit_num(unit));
 
 #if defined(_ANONYMOUS_STRUCT)
@@ -647,7 +647,7 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 		))
 		return(0);
 
-	if(unit)
+	if(unit>1)
 		NumberOfFreeClusters/=unit;
 	return(NumberOfFreeClusters*SectorsPerCluster*BytesPerSector);
 
@@ -660,7 +660,7 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
     if (statfs(path, &fs) < 0)
     	return 0;
 
-	if(unit)
+	if(unit>1)
 		fs.f_bavail/=unit;
     return fs.f_bsize * fs.f_bavail;
     
