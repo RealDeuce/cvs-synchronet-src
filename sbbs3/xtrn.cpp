@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.146 2003/09/03 00:26:55 runderwo Exp $ */
+/* $Id: xtrn.cpp,v 1.147 2003/09/03 01:22:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1233,43 +1233,35 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		const char execdrive[] = "H:";
 
 		SAFECOPY(str,startup_dir);
-			if((p=strrchr(str,'/'))!=NULL)  /* kill trailing slash */
-				*p=0;
-			if((p=strrchr(str,'/'))!=NULL)  /* kill the last element of the path */
-				*p=0;
+		if(*(p=lastchar(str))=='/')		/* kill trailing slash */
+			*p=0;
+		if((p=strrchr(str,'/'))!=NULL)  /* kill the last element of the path */
+			*p=0;
 
 		SAFECOPY(xtrndir,str);
 
 		/* construct DOS equivalents for the unix directories */
 
 		SAFECOPY(ctrldir_dos,cfg.ctrl_dir);
-		for (p = ctrldir_dos; *p; p++)
-			if(*p=='/')
-				*p='\\';
+		REPLACE_CHARS(ctrldir_dos,'/','\\',p);
 
 		p=lastchar(ctrldir_dos);
 		if (*p=='\\') *p=0;
 
 		SAFECOPY(datadir_dos,cfg.data_dir);
-		for (p = datadir_dos; *p; p++)
-			if(*p=='/')
-				*p='\\';
+		REPLACE_CHARS(datadir_dos,'/','\\',p);
 
 		p=lastchar(datadir_dos);
 		if (*p=='\\') *p=0;
 
 		SAFECOPY(execdir_dos,cfg.exec_dir);
-		for (p = execdir_dos; *p; p++)
-			if(*p=='/')
-				*p='\\';
+		REPLACE_CHARS(execdir_dos,'/','\\',p);
 
 		p=lastchar(execdir_dos);
 		if (*p=='\\') *p=0;
 
 		SAFECOPY(xtrndir_dos,xtrndir);
-		for (p = xtrndir_dos; *p; p++)
-			if(*p=='/')
-				*p='\\';
+		REPLACE_CHARS(xtrndir_dos,'/','\\',p);
 
 		/* check for existence of a dosemu.conf in the door directory.
 		 * It is a good idea to be able to use separate configs for each
