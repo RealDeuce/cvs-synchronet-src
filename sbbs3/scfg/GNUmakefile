@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.36 2004/03/11 06:26:00 deuce Exp $
+# $Id: GNUmakefile,v 1.37 2004/03/19 02:47:28 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 #USE_FLTK =	1	# Use Windowed version
@@ -22,8 +22,12 @@ endif
 
 UIFC	=	../../uifc/
 XPDEV	=	../../xpdev/
+SBBS_SRC =	../
 NEED_UIFC	:=	1
 include $(XPDEV)Common.gmake
+include $(UIFC)Common.gmake
+include $(SBBS_SRC)Common.gmake
+
 SCFG	:=	$(EXEODIR)$(SLASH)scfg$(EXEFILE)
 
 $(MAKEHELP): makehelp.c

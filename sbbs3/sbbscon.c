@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.159 2004/03/14 20:56:38 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.161 2004/03/24 01:19:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,8 +124,7 @@ gid_t				old_gid;
 BOOL				is_daemon=FALSE;
 char				daemon_type[2];
 BOOL				std_facilities=FALSE;
-FILE*				pidfile;
-
+FILE *				pidf;
 #endif
 
 static const char* prompt;
@@ -823,42 +822,6 @@ void _sighandler_rerun(int sig)
 	services_startup.recycle_now=TRUE;
 }
 
-#ifdef NEEDS_DAEMON
-/****************************************************************************/
-/* Daemonizes the process                                                   */
-/****************************************************************************/
-int
-daemon(nochdir, noclose)
-    int nochdir, noclose;
-{
-    int fd;
-
-    switch (fork()) {
-    case -1:
-        return (-1);
-    case 0:
-        break;
-    default:
-        _exit(0);
-    }
-
-    if (setsid() == -1)
-        return (-1);
-
-    if (!nochdir)
-        (void)chdir("/");
-
-    if (!noclose && (fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
-        (void)dup2(fd, STDIN_FILENO);
-        (void)dup2(fd, STDOUT_FILENO);
-        (void)dup2(fd, STDERR_FILENO);
-        if (fd > 2)
-            (void)close(fd);
-    }
-    return (0);
-}
-#endif /* NEEDS_DAEMON */
-
 static void handle_sigs(void)  {
 	int			sig;
 	sigset_t	sigs;
@@ -870,9 +833,9 @@ static void handle_sigs(void)  {
 		/* Write the standard .pid file if running as a daemon */
 		/* Must be here so signals are sent to the correct thread */
 
-		if(pidfile!=NULL) {
-			fprintf(pidfile,"%d",getpid());
-			fclose(pidfile);
+		if(pidf!=NULL) {
+			fprintf(pidf,"%d",getpid());
+			fclose(pidf);
 		}
 	}
 
@@ -1473,7 +1436,7 @@ int main(int argc, char** argv)
 		}
 
 		/* Open here to use startup permissions to create the file */
-		pidfile=fopen(SBBS_PID_FILE,"w");
+		pidf=fopen(SBBS_PID_FILE,"w");
 	}
 	old_uid = getuid();
 	if((pw_entry=getpwnam(new_uid_name))!=0)

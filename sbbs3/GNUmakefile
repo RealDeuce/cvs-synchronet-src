@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.140 2004/03/11 07:18:53 deuce Exp $
+# $Id: GNUmakefile,v 1.142 2004/03/23 23:55:29 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -20,13 +20,16 @@ ifndef NO_CURSES
  USE_UIFC32      =       1       # Curses version of UIFC
 endif
 
-UIFC	=	../uifc/
-XPDEV	=	../xpdev/
+UIFC_SRC =	../uifc/
+XPDEV	 =	../xpdev/
+SBBS_SRC =	./
 
 NEED_JAVASCRIPT	:= 1
 NEED_THREADS	:= 1
 
 include $(XPDEV)/Common.gmake
+include $(SBBS_SRC)/Common.gmake
+include $(UIFC_SRC)/Common.gmake
 
 ifeq ($(os),freebsd)
  BSD	=	1
@@ -37,9 +40,13 @@ else
 endif
 
 CFLAGS  +=  -I$(XPDEV)
+CFLAGS	+=  $(UIFC_CFLAGS)
 
 ifndef bcc
- LDFLAGS	+=	-lm -lutil
+ LDFLAGS	+=	-lm
+ ifneq ($(os),sunos)
+  LDFLAGS	+=	-lutil
+ endif
 endif
 
 ifeq ($(os),sunos)    # Solaris
@@ -76,6 +83,7 @@ $(SBBSLIB) : $(SBBS)
 	$(QUIET)touch -- '$(SBBSLIB)'
 
 ifneq ($(os),darwin)
+ifneq ($(os),sunos)
 SBBSLDFLAGS	:=	$(LDFLAGS) -rpath-link ./$(LIBODIR) -rpath ./ 
 #LDFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
 LDFLAGS		+=	-Xlinker -rpath
@@ -87,6 +95,7 @@ LDFLAGS		+=	-Xlinker -rpath-link
 LDFLAGS		+=	-Xlinker $(JSLIBDIR)
 LDFLAGS		+=	-Xlinker -rpath-link
 LDFLAGS		+=	-Xlinker $(NSPRDIR)
+endif
 endif
 endif
 
@@ -295,6 +304,7 @@ ECHOCFG_OBJS = \
 	$(LIBODIR)/echocfg.o \
 	$(LIBODIR)/rechocfg.o \
 	$(UIFC_OBJS) \
+	$(LIBODIR)/uifcx.o \
 	$(LIBODIR)/nopen.o \
 	$(LIBODIR)/crc16.o \
 	$(LIBODIR)/str_util.o \
