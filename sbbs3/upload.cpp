@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.26 2003/02/08 19:00:09 deuce Exp $ */
+/* $Id: upload.cpp,v 1.27 2003/02/13 01:13:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -260,10 +260,10 @@ bool sbbs_t::upload(uint dirnum)
 
 
 	/* get free disk space */
-	space=getfreediskspace(path);
-	if(space<(ulong)cfg.min_dspace*1024L) {
+	space=getfreediskspace(path,1024);
+	if(space<(ulong)cfg.min_dspace) {
 		bputs(text[LowDiskSpace]);
-		sprintf(str,"Diskspace is low: %s (%lu bytes)",path,space);
+		sprintf(str,"Diskspace is low: %s (%lu kilobytes)",path,space);
 		errorlog(str);
 		if(!dir_op(dirnum))
 			return(false); 

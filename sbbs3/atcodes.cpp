@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.33 2003/01/14 22:04:43 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.34 2003/02/13 01:13:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -448,7 +448,12 @@ char* sbbs_t::atcode(char* sp, char* str)
 	}
 
 	if(!strcmp(sp,"FREESPACE")) {
-		sprintf(str,"%lu",getfreediskspace(cfg.temp_dir)); 
+		sprintf(str,"%lu",getfreediskspace(cfg.temp_dir,0)); 
+		return(str);
+	}
+
+	if(!strcmp(sp,"FREESPACEK")) {
+		sprintf(str,"%lu",getfreediskspace(cfg.temp_dir,1024)); 
 		return(str);
 	}
 

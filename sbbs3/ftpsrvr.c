@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.207 2003/02/09 08:18:27 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.208 2003/02/13 01:13:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2822,9 +2822,9 @@ static void ctrl_thread(void* arg)
 			else
 				l=0;
 			if(local_fsys)
-				avail=getfreediskspace(local_dir);
+				avail=getfreediskspace(local_dir,0);
 			else
-				avail=getfreediskspace(scfg.data_dir);	/* Change to temp_dir? */
+				avail=getfreediskspace(scfg.data_dir,0);	/* Change to temp_dir? */
 			if(l && l>avail)
 				sockprintf(sock,"504 Only %lu bytes available.",avail);
 			else
@@ -4361,7 +4361,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.207 $", "%*s %s", revision);
+	sscanf("$Revision: 1.208 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

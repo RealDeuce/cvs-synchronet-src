@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.51 2003/02/04 01:08:48 rswindell Exp $ */
+/* $Id: js_system.c,v 1.52 2003/02/13 01:13:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,7 +156,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			p=lastuseron;
 			break;
 		case SYS_PROP_FREEDISKSPACE:
-			val = getfreediskspace(cfg->temp_dir);
+			val = getfreediskspace(cfg->temp_dir,0);
 			if(INT_FITS_IN_JSVAL(val) && !(val&0x80000000))
 				*vp = INT_TO_JSVAL(val);
 			else
