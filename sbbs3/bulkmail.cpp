@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.13 2003/08/20 10:34:53 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.14 2003/08/20 10:45:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@ bool sbbs_t::bulkmail(uchar *ar)
 	char		msgpath[MAX_PATH+1];
 	char*		msgbuf;
 	char 		tmp[512];
-	ushort		xlat=XLAT_NONE;
 	int 		i,j,x;
 	long		msgs=0;
 	long		length;
