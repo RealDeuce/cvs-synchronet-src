@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.11 2003/06/06 21:59:33 rswindell Exp $ */
+/* $Id: nopen.c,v 1.12 2004/08/04 08:28:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,10 +105,21 @@ BOOL ftouch(const char* fname)
 {
 	int file;
 
-	file=nopen(fname,O_WRONLY|O_CREAT);
-	if(file<0)
+	if((file=nopen(fname,O_WRONLY|O_CREAT))<0)
 		return(FALSE);
 	close(file);
 
+	return(TRUE);
+}
+
+BOOL fmutex(const char* fname, const char* text)
+{
+	int file;
+
+	if((file=open(fname,O_CREAT|O_WRONLY|O_EXCL,S_IREAD|S_IWRITE))<0)
+		return(FALSE);
+	if(text!=NULL)
+		write(file,text,strlen(text));
+	close(file);
 	return(TRUE);
 }

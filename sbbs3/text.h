@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.5 2003/07/26 21:40:22 rswindell Exp $ */
+/* $Id: text.h,v 1.6 2004/07/29 23:40:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,7 +587,7 @@ enum {
 	,NodeJoinedPrivateChat
 	,NodeLeftPrivateChat
 	,NoOneHasLoggedOnToday
-	,LastFewCallers
+	,Unused544	/* was LastFewCallers */
 	,LastFewCallersFmt
 	,CallersToday
 	,DoYouMeanThisUserQ
