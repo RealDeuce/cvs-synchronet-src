@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.369 2005/01/18 22:18:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.362 2004/11/23 00:21:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,9 +355,7 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
-	"array",
-	"alias",
-	"undefined"
+	"array",		// JSTYPE_LIMIT
 };
 
 JSBool
@@ -886,11 +884,10 @@ bool sbbs_t::js_init()
 		JS_SetContextPrivate(js_cx, this);	/* Store a pointer to sbbs_t instance */
 
 		/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
+		if((js_glob=js_CreateGlobalObjects(js_cx, &scfg, &cfg, js_global_functions
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
 					,&js_branch									/* js */
 					,&client, client_socket						/* client */
-					,&js_server_props							/* server */
 			))==NULL)
 			break;
 
@@ -906,6 +903,9 @@ bool sbbs_t::js_init()
 
 		/* Console Object */
 		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
+			break;
+
+		if(js_CreateServerObject(js_cx,js_glob,&js_server_props)==NULL)
 			break;
 
 		success=true;
@@ -1057,57 +1057,56 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 						,telnet_cmd_desc(command)
 						,telnet_opt_desc(option));
 
-				if(!(sbbs->telnet_mode&TELNET_MODE_GATE)) {
-					if(command==TELNET_DO || command==TELNET_DONT) {	/* local options */
-						if(sbbs->telnet_local_option[option]!=command) {
-							sbbs->telnet_local_option[option]=command;
-							sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
-						}
-					} else { /* WILL/WONT (remote options) */ 
-						if(sbbs->telnet_remote_option[option]!=command) {	
-						
-							switch(option) {
-								case TELNET_BINARY_TX:
-								case TELNET_ECHO:
-								case TELNET_TERM_TYPE:
-								case TELNET_TERM_SPEED:
-								case TELNET_SUP_GA:
-								case TELNET_NEGOTIATE_WINDOW_SIZE:
-									sbbs->telnet_remote_option[option]=command;
-									sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
-									break;
-								default: /* unsupported remote options */
-									if(command==TELNET_WILL) /* NAK */
-										sbbs->send_telnet_cmd(telnet_opt_nak(command),option);
-									break;
-							}
-						}
-
-						if(command==TELNET_WILL && option==TELNET_TERM_TYPE) {
-							if(startup->options&BBS_OPT_DEBUG_TELNET)
-								lprintf(LOG_DEBUG,"Node %d requesting telnet terminal type"
-									,sbbs->cfg.node_num);
-
-							char	buf[64];
-							sprintf(buf,"%c%c%c%c%c%c"
-								,TELNET_IAC,TELNET_SB
-								,TELNET_TERM_TYPE,TELNET_TERM_SEND
-								,TELNET_IAC,TELNET_SE);
-							sbbs->putcom(buf,6);
-						}
-						else if(command==TELNET_WILL && option==TELNET_TERM_SPEED) {
-							if(startup->options&BBS_OPT_DEBUG_TELNET)
-								lprintf(LOG_DEBUG,"Node %d requesting telnet terminal speed"
-									,sbbs->cfg.node_num);
-
-							char	buf[64];
-							sprintf(buf,"%c%c%c%c%c%c"
-								,TELNET_IAC,TELNET_SB
-								,TELNET_TERM_SPEED,TELNET_TERM_SEND
-								,TELNET_IAC,TELNET_SE);
-							sbbs->putcom(buf,6);
+				if(command==TELNET_DO || command==TELNET_DONT) {	/* local options */
+					if(sbbs->telnet_local_option[option]!=command) {
+						sbbs->telnet_local_option[option]=command;
+						sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
+					}
+				} else { /* WILL/WONT (remote options) */ 
+					if(sbbs->telnet_remote_option[option]!=command) {	
+					
+						switch(option) {
+							case TELNET_BINARY_TX:
+							case TELNET_ECHO:
+							case TELNET_TERM_TYPE:
+							case TELNET_TERM_SPEED:
+							case TELNET_SUP_GA:
+							case TELNET_NEGOTIATE_WINDOW_SIZE:
+								sbbs->telnet_remote_option[option]=command;
+								sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
+								break;
+							default: /* unsupported remote options */
+								if(command==TELNET_WILL) /* NAK */
+									sbbs->send_telnet_cmd(telnet_opt_nak(command),option);
+								break;
 						}
 					}
+
+					if(command==TELNET_WILL && option==TELNET_TERM_TYPE) {
+						if(startup->options&BBS_OPT_DEBUG_TELNET)
+							lprintf(LOG_DEBUG,"Node %d requesting telnet terminal type"
+								,sbbs->cfg.node_num);
+
+						char	buf[64];
+						sprintf(buf,"%c%c%c%c%c%c"
+							,TELNET_IAC,TELNET_SB
+							,TELNET_TERM_TYPE,TELNET_TERM_SEND
+							,TELNET_IAC,TELNET_SE);
+						sbbs->putcom(buf,6);
+					}
+					else if(command==TELNET_WILL && option==TELNET_TERM_SPEED) {
+						if(startup->options&BBS_OPT_DEBUG_TELNET)
+							lprintf(LOG_DEBUG,"Node %d requesting telnet terminal speed"
+								,sbbs->cfg.node_num);
+
+						char	buf[64];
+						sprintf(buf,"%c%c%c%c%c%c"
+							,TELNET_IAC,TELNET_SB
+							,TELNET_TERM_SPEED,TELNET_TERM_SEND
+							,TELNET_IAC,TELNET_SE);
+						sbbs->putcom(buf,6);
+					}
+
 				}
 
                 sbbs->telnet_cmdlen=0;
@@ -1836,7 +1835,6 @@ void event_thread(void* arg)
 					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
 							char newname[MAX_PATH+1];
 							sprintf(newname,"%s.%lx.bad",str,(long)now);
@@ -1847,7 +1845,6 @@ void event_thread(void* arg)
 								sbbs->logline("Q!",logmsg);
 							}
 						}
-						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=0;
 						remove(str);
 					} 
@@ -1919,8 +1916,7 @@ void event_thread(void* arg)
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id); 
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
-						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
-							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
+						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call,nulstr,nulstr,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
 				}
 			} 
@@ -4360,7 +4356,6 @@ void DLLCALL bbs_thread(void* arg)
 					identity++;
 				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
 			}
-			sbbs->putcom(crlf);
 		}
 		/* Initialize client display */
 		client.size=sizeof(client);
