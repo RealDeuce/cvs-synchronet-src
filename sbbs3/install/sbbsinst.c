@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.70 2003/02/09 08:23:25 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.71 2003/02/12 01:27:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=TRUE;
 
-	sscanf("$Revision: 1.70 $", "%*s %s", revision);
+	sscanf("$Revision: 1.71 $", "%*s %s", revision);
 
     printf("\r\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\r\n",revision,PLATFORM_DESC);
@@ -536,7 +536,6 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 				printf(MAKE_ERROR);
 				exit(EXIT_FAILURE);
 			}
-			exit(EXIT_SUCCESS);
 			break;
 		case DIST_SET:
 			for(i=0;dist->files[i][0];i++)  {
@@ -607,7 +606,6 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 				printf(MAKE_ERROR);
 				exit(EXIT_FAILURE);
 			}
-			exit(EXIT_SUCCESS);
 			break;
 		case LOCAL_FILE:
 			for(i=0;dist->files[i][0];i++)  {
@@ -622,9 +620,17 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 				printf(MAKE_ERROR);
 				exit(EXIT_FAILURE);
 			}
-			exit(EXIT_SUCCESS);
 			break;
 	}
+
+	sprintf(cmd,"more %s/docs/sbbscon.txt",params.install_path);
+	exec(cmd);
+	printf("Synchronet has been successfully installed to:\n\t%s\n",params.install_path);
+	printf("Documentation files in:\n\t%s/docs\n",params.install_path);
+	printf("Configuration files in:\n\t%s/ctrl\n",params.install_path);
+	printf("Executable program files in:\n\t%s/exec\n",params.install_path);
+	exit(EXIT_SUCCESS);
+
 }
 
 dist_t **
