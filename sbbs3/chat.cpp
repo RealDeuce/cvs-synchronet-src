@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.25 2002/06/27 23:33:06 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.26 2002/07/24 09:54:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1791,48 +1791,4 @@ void sbbs_t::localguru(char *gurubuf, int gurunum)
 	console=con;				/* restore console state */
 }
 
-/****************************************************************************/
-/* Packs the password 'pass' into 5bit ASCII inside node_t. 32bits in 		*/
-/* node.extaux, and the other 8bits in the upper byte of node.aux			*/
-/****************************************************************************/
-void packchatpass(char *pass, node_t *node)
-{
-	char	bits;
-	int		i,j;
 
-	node->aux&=~0xff00;		/* clear the password */
-	node->extaux=0L;
-	if((j=strlen(pass))==0) /* there isn't a password */
-		return;
-	node->aux|=(int)((pass[0]-64)<<8);  /* 1st char goes in low 5bits of aux */
-	if(j==1)	/* password is only one char, we're done */
-		return;
-	node->aux|=(int)((pass[1]-64)<<13); /* low 3bits of 2nd char go in aux */
-	node->extaux|=(long)((pass[1]-64)>>3); /* high 2bits of 2nd char go extaux */
-	bits=2;
-	for(i=2;i<j;i++) {	/* now process the 3rd char through the last */
-		node->extaux|=(long)((long)(pass[i]-64)<<bits);
-		bits+=5; }
-}
-
-/****************************************************************************/
-/* Unpacks the password 'pass' from the 5bit ASCII inside node_t. 32bits in */
-/* node.extaux, and the other 8bits in the upper byte of node.aux			*/
-/****************************************************************************/
-char *unpackchatpass(char *pass, node_t* node)
-{
-	char 	bits;
-	int 	i;
-
-	pass[0]=(node->aux&0x1f00)>>8;
-	pass[1]=(char)(((node->aux&0xe000)>>13)|((node->extaux&0x3)<<3));
-	bits=2;
-	for(i=2;i<8;i++) {
-		pass[i]=(char)((node->extaux>>bits)&0x1f);
-		bits+=5; }
-	pass[8]=0;
-	for(i=0;i<8;i++)
-		if(pass[i])
-			pass[i]+=64;
-	return(pass);
-}

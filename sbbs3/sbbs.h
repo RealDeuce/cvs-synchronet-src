@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.117 2002/07/15 20:39:18 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.118 2002/07/24 09:54:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -916,10 +916,6 @@ BOOL 	md(char *path);
 	int		fdatecmp_d(uchar **buf1, uchar **buf2);
 
 	BOOL	filematch(char *filename, char *filespec);
-
-	/* chat.cpp */
-	void	packchatpass(char *pass, node_t* node);
-	char *	unpackchatpass(char *pass, node_t* node);
 
 #endif /* SBBS */
 
