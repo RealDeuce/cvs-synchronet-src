@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.141 2004/04/20 08:05:22 deuce Exp $ */
+/* $Id: websrvr.c,v 1.142 2004/04/20 08:10:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1609,20 +1609,12 @@ static BOOL check_request(http_session_t * session)
 		SAFECOPY(str,path);
 	}
 	
-	if(session->req.ars[0]) {
-		if (!(check_ars(session))) {
+	if(session->req.ars[0] && !(check_ars(session))) {
 			/* No authentication provided */
 			sprintf(str,"401 Unauthorized%s%s: Basic realm=\"%s\""
 				,newline,get_header(HEAD_WWWAUTH),scfg.sys_name);
 			send_error(session,str);
 			return(FALSE);
-		}
-	}
-	else {
-		if(session->req.dynamic==IS_SSJS)  {
-			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
-				,NULL /* ftp index file */, NULL /* subscan */))
-				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
 		}
 	}
 	return(TRUE);
@@ -2222,6 +2214,13 @@ static BOOL js_setup(http_session_t* session)
 		return(FALSE);
 	}
 
+	lprintf(LOG_INFO,"     JavaScript: Initializing User Objects");
+	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
+		,NULL /* ftp index file */, NULL /* subscan */)) {
+		send_error(session,"500 Error initializing JavaScript User Objects");
+		return(FALSE);
+	}
+
 	JS_SetContextPrivate(session->js_cx, session);
 
 	return(TRUE);
@@ -2496,7 +2495,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.141 $", "%*s %s", revision);
+	sscanf("$Revision: 1.142 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
