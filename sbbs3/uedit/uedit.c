@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.16 2004/03/03 22:38:49 deuce Exp $ */
+/* $Id: uedit.c,v 1.17 2004/03/03 22:40:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1614,7 +1614,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.16 $", "%*s %s", revision);
+	sscanf("$Revision: 1.17 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -1757,10 +1757,6 @@ int main(int argc, char** argv)  {
 			continue;
 		}
 		
-		if(j==-2-KEY_F(4)) {	/* Find? */
-			continue;
-		}
-
 		if(j <= -2)
 			continue;
 
