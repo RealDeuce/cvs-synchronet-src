@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.10 2002/08/10 08:33:05 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.11 2002/12/07 00:55:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,11 @@ char sbbs_t::inkey(long mode)
 		ch&=0x7f; 
 
 	timeout=time(NULL);
+
+	/* Is this control key flagged as passthru? */
+	if(ch<' ' && cfg.ctrlkey_passthru&(1<<ch))
+		return(ch);	/* do not handle here */
+
 	if(ch==CTRL_C) {  /* Ctrl-C Abort */
 		sys_status|=SS_ABORT;
 		if(mode&K_SPIN) /* back space once if on spinning cursor */
