@@ -2,13 +2,13 @@
 
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.6 2004/04/29 23:31:26 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.7 2004/07/28 10:10:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -66,7 +66,7 @@
 	#define PRAGMA_PACK
 #endif
 
-#if defined(PRAGMA_PACK)
+#if defined(PRAGMA_PACK) || defined(__WATCOMC__)
 	#define _PACK
 #else
 	#define _PACK __attribute__ ((packed))
