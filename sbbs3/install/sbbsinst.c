@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.28 2003/01/25 10:55:07 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.29 2003/01/25 11:20:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -384,7 +384,7 @@ void install_sbbs(struct dist_t *release,struct server_ent_t *server)  {
 	char	cmd[MAX_PATH+1];
 	char	str[1024];
 	char	sbbsdir[9+MAX_PATH];
-	char	jslib[7+MAX_PATH];
+	char	cvstag[7+MAX_PATH];
 
 	if(params.release)
 		putenv("RELEASE=1");
@@ -397,7 +397,7 @@ void install_sbbs(struct dist_t *release,struct server_ent_t *server)  {
 	sprintf(sbbsdir,"SBBSDIR=%s",params.install_path);
 	putenv(sbbsdir);
 	
-	if(params.use_bcc)
+	if(params.usebcc)
 		putenv("bcc=1");
 	
 	if(mkdir(params.install_path,0777)&&errno!=EEXIST)  {
@@ -413,7 +413,9 @@ void install_sbbs(struct dist_t *release,struct server_ent_t *server)  {
 	uifc.bail();
 	switch (release->type)  {
 		case CVS_SERVER:
-			sprintf(cmd,"cvs -d %s co -r %s install",server->addr,release->tag,params.install_path);
+			sprintf(cvstag,"CVSTAG=%s",release->tag);
+			putenv(cvstag);
+			sprintf(cmd,"cvs -d %s co -r %s install",server->addr,release->tag);
 			if(system(cmd))  {
 				printf("Could not checkout install makefile.\n");
 				exit(EXIT_FAILURE);
