@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.2 2001/06/14 03:00:01 rswindell Exp $ */
+/* $Id: js_system.c,v 1.3 2001/06/22 02:32:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -522,7 +522,7 @@ static JSClass js_node_class = {
 
 extern const char* beta_version;
 
-JSObject* DLLCALL js_CreateSystemObject(scfg_t* cfg, JSContext* cx, JSObject* parent)
+JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent, scfg_t* cfg)
 {
 	char		str[256];
 	uint		i;

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.2 2001/06/14 02:59:47 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.3 2001/06/22 02:32:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,8 +58,8 @@ static JSClass js_file_area_class = {
 	,JS_FinalizeStub		/* finalize		*/
 };
 
-JSObject* DLLCALL js_CreateFileAreaObject(scfg_t* cfg, JSContext* cx, JSObject* parent, user_t* user
-										  ,char* html_index_file)
+JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
+										  ,user_t* user, char* html_index_file)
 {
 	char		vpath[MAX_PATH+1];
 	JSObject*	areaobj;
