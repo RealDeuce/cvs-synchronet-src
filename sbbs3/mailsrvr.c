@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.339 2004/10/23 00:41:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.340 2004/10/27 09:07:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3148,7 +3148,7 @@ static void smtp_thread(void* arg)
 				&& !no_forward
 				&& scfg.sys_misc&SM_FWDTONET 
 				&& (user.misc&NETMAIL || forward)
-				&& tp && strchr(tp,'.') && !strchr(tp,'/') 
+				&& tp!=NULL && smb_netaddr_type(user.netmail)==NET_INTERNET 
 				&& !strstr(tp,scfg.sys_inetaddr)) {
 				lprintf(LOG_INFO,"%04d SMTP Forwarding to: %s"
 					,socket, user.netmail);
@@ -3314,7 +3314,7 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		sprintf(str,"%u",newmsg.idx.to);
 		smb_hfield_str(&newmsg, RECIPIENTEXT, str);
 	}
-	if(newmsg.from_net.type!=NET_NONE && newmsg.from_net.type!=NET_FIDO
+	if((newmsg.from_net.type==NET_QWK || newmsg.from_net.type==NET_INTERNET)
 		&& newmsg.reverse_path!=NULL) {
 		smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(newmsg.from_net.type), &newmsg.from_net.type);
 		smb_hfield_str(&newmsg, RECIPIENTNETADDR, newmsg.reverse_path);
@@ -3895,7 +3895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.339 $", "%*s %s", revision);
+	sscanf("$Revision: 1.340 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
