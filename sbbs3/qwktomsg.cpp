@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.3 2000/11/08 00:59:04 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.4 2000/11/14 02:16:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,9 +231,11 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 					body[bodylen++]=CR;
 					body[bodylen++]=LF; }
 				continue; }
-			if(!fromhub && qwkbuf[k]==7 && useron.rest&FLAG('B'))   /* beep res */
+			/* beep restrict */
+			if(!fromhub && qwkbuf[k]==BEL && useron.rest&FLAG('B'))   
 				continue;
-			if(!fromhub && (qwkbuf[k]==1 || qwkbuf[k]==ESC) /* ANSI restriction */
+			/* ANSI restriction */
+			if(!fromhub && (qwkbuf[k]==1 || qwkbuf[k]==ESC)
 				&& useron.rest&FLAG('A'))
 				continue;
 			if(qwkbuf[k]!=1 && lastch!=1)

@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.12 2000/11/09 02:28:11 rswindell Exp $ */
+/* $Id: baja.c,v 1.13 2000/11/14 02:16:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,7 +128,7 @@ uchar cesc(char ch)
 		case 'b':
 			return(BS);
 		case 'a':
-			return(7);
+			return(BEL);
 		case 'f':
 			return(FF);
 		case 'v':
@@ -254,7 +254,7 @@ void writecstr(uchar *p)
 					str[j]=BS;
 					break;
 				case 'a':
-					str[j]=7;	/* BEL */
+					str[j]=BEL;
 					break;
 				case 'f':
 					str[j]=FF;

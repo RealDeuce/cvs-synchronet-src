@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.2 2000/10/24 08:23:44 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.3 2000/11/14 02:16:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,7 +157,7 @@ int sbbs_t::atcodes(char *instr)
 	/* STOP */
 
 	else if(!strcmp(sp,"BELL") || !strcmp(sp,"BEEP"))
-		outchar(7);
+		outchar(BEL);
 
 	// else if(!strcmp(sp,"EVENT"))
 	//	  bputs(sectostr(sys_eventtime,str2));

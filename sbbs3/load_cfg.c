@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.9 2000/11/14 02:05:13 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.10 2000/11/14 02:16:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,7 @@ char *readtext(long *line,FILE *stream)
 					str[j]=BS;
 					break;
 				case 'a':
-					str[j]=7;	/* BEL */
+					str[j]=BEL;
 					break;
 				case 'f':
 					str[j]=FF;

@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.4 2000/11/09 04:29:39 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.5 2000/11/14 02:16:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,7 +151,6 @@ void sbbs_t::nodesync()
 	}
 		
 	if(sys_status&SS_USERON && memcmp(&nodesync_user,&useron,sizeof(user_t))) {
-	//	  lputc(7);
 		getusrdirs();
 		getusrsubs();
 		memcpy(&nodesync_user,&useron,sizeof(nodesync_user)); }
