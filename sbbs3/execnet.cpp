@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.15 2002/11/09 11:54:12 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.16 2002/11/09 11:59:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -793,8 +793,22 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 			close_socket(data_sock);
 			return(false);
 		}
+	}
 
-	} else {	/* Normal (Active) FTP */
+	if((fp=fopen(src,"rb"))==NULL) {
+		close_socket(data_sock);
+		return(false);
+	}
+
+	sprintf(cmd,"STOR %s",dest);
+
+	if(!ftp_cmd(csi,ctrl_sock,cmd,rsp) 
+		|| atoi(rsp)!=150 /* Open data connection */) {
+		close_socket(data_sock);
+		return(false);
+	}
+
+	if(!(csi->ftp_mode&CS_FTP_PASV)) {	/* Normal (Active) FTP */
 
 		/* Setup for select() */
 		tv.tv_sec=TIMEOUT_SOCK_LISTEN;
@@ -824,21 +838,7 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 		data_sock=accept_sock;
 	}
 
-	if((fp=fopen(src,"rb"))==NULL) {
-		close_socket(data_sock);
-		return(false);
-	}
-
-	sprintf(cmd,"STOR %s",dest);
-
-	if(!ftp_cmd(csi,ctrl_sock,cmd,rsp) 
-		|| atoi(rsp)!=150 /* Open data connection */) {
-		close_socket(data_sock);
-		return(false);
-	}
-
 	while(online && !feof(fp)) {
-
 
 		rd=fread(buf,sizeof(char),sizeof(buf),fp);
 		if(rd<1) /* EOF or READ error */
