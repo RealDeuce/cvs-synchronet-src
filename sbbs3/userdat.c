@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.77 2003/07/13 08:52:16 rswindell Exp $ */
+/* $Id: userdat.c,v 1.78 2003/07/25 08:17:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2228,9 +2228,10 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user)
 /* Add an IP address (with comment) to the IP filter/trashcan file			*/
 /* ToDo: Move somewhere more appropriate (filter.c?)						*/
 /****************************************************************************/
-BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host, char* ip_addr, char* username)
+BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
+					   ,char* ip_addr, char* username, char* fname)
 {
-	char	filename[MAX_PATH+1];
+	char	ip_can[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
     time_t	now=time(NULL);
@@ -2238,9 +2239,11 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host, char* 
 	if(ip_addr==NULL)
 		return(FALSE);
 
-	sprintf(filename,"%sip.can",cfg->text_dir);
+	sprintf(ip_can,"%sip.can",cfg->text_dir);
+	if(fname==NULL)
+		fname=ip_can;
 
-    if((fp=fopen(filename,"a"))==NULL)
+    if((fp=fopen(fname,"a"))==NULL)
     	return(FALSE);
 
     fprintf(fp,"\n; %s %s by %s on %s\n"

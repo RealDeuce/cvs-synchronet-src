@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.70 2003/07/23 04:06:11 rswindell Exp $ */
+/* $Id: js_system.c,v 1.71 2003/07/25 08:17:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1012,6 +1012,7 @@ js_filter_ip(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		host=NULL;
 	char*		ip_addr=NULL;
 	char*		from=NULL;
+	char*		fname=NULL;
 	scfg_t*		cfg;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
@@ -1033,8 +1034,10 @@ js_filter_ip(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			ip_addr=p;
 		else if(from==NULL)
 			from=p;
+		else if(fname==NULL)
+			fname=p;
 	}
-	*rval = BOOLEAN_TO_JSVAL(filter_ip(cfg,prot,reason,host,ip_addr,from));
+	*rval = BOOLEAN_TO_JSVAL(filter_ip(cfg,prot,reason,host,ip_addr,from,fname));
 	return(JS_TRUE);
 }
 
