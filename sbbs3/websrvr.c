@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.232 2004/12/03 11:21:30 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.233 2004/12/07 04:32:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1371,11 +1371,19 @@ static void js_add_queryval(http_session_t * session, char *key, char *value)
 static void js_add_header(http_session_t * session, char *key, char *value)  
 {
 	JSString*	js_str;
+	char		*lckey;
 
-	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
+	if((lckey=(char *)malloc(strlen(key)+1))==NULL)
 		return;
-	JS_DefineProperty(session->js_cx, session->js_header, key, STRING_TO_JSVAL(js_str)
+	strcpy(lckey,key);
+	strlwr(lckey);
+	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL) {
+		free(lckey);
+		return;
+	}
+	JS_DefineProperty(session->js_cx, session->js_header, lckey, STRING_TO_JSVAL(js_str)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+	free(lckey);
 }
 
 static void js_parse_query(http_session_t * session, char *p)  {
@@ -2850,7 +2858,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.232 $", "%*s %s", revision);
+	sscanf("$Revision: 1.233 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
