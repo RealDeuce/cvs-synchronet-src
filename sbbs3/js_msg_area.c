@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.33 2003/05/19 20:47:22 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.34 2003/06/12 09:10:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,9 +217,10 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 	for(l=0;l<cfg->total_grps;l++) {
 
+#if 0
 		if(user==NULL && (*cfg->grp[l]->ar)!=AR_NULL)
 			continue;
-
+#endif
 		if(user!=NULL && !chk_ar(cfg,cfg->grp[l]->ar,user))
 			continue;
 
@@ -257,10 +258,10 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 		for(d=0;d<cfg->total_subs;d++) {
 			if(cfg->sub[d]->grp!=l)
 				continue;
-
+#if 0
 			if(user==NULL && (*cfg->sub[d]->ar)!=AR_NULL)
 				continue;
-
+#endif
 			if(user!=NULL && !chk_ar(cfg,cfg->sub[d]->ar,user))
 				continue;
 
