@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.37 2003/09/10 02:26:24 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.38 2003/09/10 06:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -470,8 +470,8 @@ static BOOL js_init(char** environ)
 	if((js_glob=js_CreateGlobalObject(js_cx, &scfg, js_global_functions))==NULL)
 		return(FALSE);
 
-	/* Branch Object */
-	if(js_CreateBranchObject(js_cx, js_glob, &branch)==NULL)
+	/* Internal JS Object */
+	if(js_CreateInternalJsObject(js_cx, js_glob, &branch)==NULL)
 		return(FALSE);
 
 	/* System Object */
@@ -662,7 +662,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);

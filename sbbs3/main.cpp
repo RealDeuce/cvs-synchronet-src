@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.298 2003/09/02 01:14:55 deuce Exp $ */
+/* $Id: main.cpp,v 1.299 2003/09/10 06:03:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -789,8 +789,8 @@ bool sbbs_t::js_init()
 		if(js_CreateSystemObject(js_cx, js_glob, &cfg, uptime, startup->host_name)==NULL)
 			break;
 
-		/* Branch Object */
-		if(js_CreateBranchObject(js_cx, js_glob, &js_branch)==NULL)
+		/* Internal JS Object */
+		if(js_CreateInternalJsObject(js_cx, js_glob, &js_branch)==NULL)
 			break;
 
 		/* Client Object */

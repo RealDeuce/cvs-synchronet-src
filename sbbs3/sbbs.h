@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.204 2003/08/28 00:25:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.205 2003/09/10 06:03:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -897,8 +897,8 @@ extern "C" {
 	/* js_global.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsMethodSpec* methods);
 
-	/* js_branch.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateBranchObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
+	/* js_internal.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
