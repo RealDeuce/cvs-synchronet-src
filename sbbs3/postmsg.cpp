@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.10 2002/02/12 16:40:16 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.11 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,7 +256,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	crc=~crc;
 
 	memset(&msg,0,sizeof(smbmsg_t));
-	memcpy(msg.hdr.id,"SHD\x1a",4);
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msg.idx.attr=msgattr;
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
@@ -445,7 +444,6 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 		} 
 	}
 
-	memcpy(msg->hdr.id,"SHD\x1a",4);
 	msg->hdr.version=smb_ver();
 	msg->hdr.when_imported.time=time(NULL);
 	msg->hdr.when_imported.zone=cfg->sys_timezone;

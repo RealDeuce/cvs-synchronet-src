@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.14 2002/04/02 18:49:00 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.15 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -487,7 +487,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			l++; }
 
 		memset(&msg,0,sizeof(smbmsg_t));
-		memcpy(msg.hdr.id,"SHD\x1a",4);
 		msg.hdr.version=smb_ver();
 		msg.hdr.when_imported.time=time(NULL);
 		msg.hdr.when_imported.zone=cfg.sys_timezone;

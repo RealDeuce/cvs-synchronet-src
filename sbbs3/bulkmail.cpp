@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.7 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.8 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,7 +201,6 @@ int sbbs_t::bulkmailhdr(uint usernum, smbmsg_t *msg, ushort msgattr, ulong offse
     node_t	node;
 
 	memset(msg,0,sizeof(smbmsg_t));
-	memcpy(msg->hdr.id,"SHD\x1a",4);
 	msg->hdr.version=smb_ver();
 	msg->hdr.attr=msg->idx.attr=msgattr;
 	msg->hdr.when_written.time=msg->hdr.when_imported.time=time(NULL);

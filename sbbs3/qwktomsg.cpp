@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.6 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.7 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,6 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	struct	tm tm;
 
 	memset(&msg,0,sizeof(smbmsg_t));		/* Initialize message header */
-	memcpy(msg.hdr.id,"SHD\x1a",4);
 	msg.hdr.version=smb_ver();
 
 	blocks=atol(hdrblk+116);

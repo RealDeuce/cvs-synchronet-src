@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.12 2002/03/14 17:07:26 rswindell Exp $ */
+/* $Id: email.cpp,v 1.13 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,7 +232,6 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 	crc=~crc;
 
 	memset(&msg,0,sizeof(smbmsg_t));
-	memcpy(msg.hdr.id,"SHD\x1a",4);
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msg.idx.attr=msgattr;
 	if(mode&WM_FILE)

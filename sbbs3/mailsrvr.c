@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.136 2002/04/02 08:28:20 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.137 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1842,7 +1842,6 @@ static void smtp_thread(void* arg)
 
 			smb_freemsgmem(&msg);
 			memset(&msg,0,sizeof(smbmsg_t));		/* Initialize message header */
-			memcpy(msg.hdr.id,"SHD\x1a",4);
 			msg.hdr.version=smb_ver();
 			msg.hdr.when_imported.time=time(NULL);
 			msg.hdr.when_imported.zone=scfg.sys_timezone;

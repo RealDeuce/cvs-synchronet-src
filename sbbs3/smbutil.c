@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.23 2002/04/02 18:49:01 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.24 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,6 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	fflush(smb.sdt_fp);
 
 	memset(&msg,0,sizeof(smbmsg_t));
-	memcpy(msg.hdr.id,"SHD\x1a",4);
 	msg.hdr.version=smb_ver();
 	msg.hdr.when_written.time=time(NULL);
 	msg.hdr.when_written.zone=tzone;

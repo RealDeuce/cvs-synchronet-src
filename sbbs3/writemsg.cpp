@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.28 2002/02/18 12:18:25 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.29 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1219,8 +1219,6 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 		smb_close_da(&smb); }
 
 	msg->hdr.offset=offset;
-
-	memcpy(msg->hdr.id,"SHD\x1a",4);
 	msg->hdr.version=smb_ver();
 
 	smb_unlocksmbhdr(&smb);

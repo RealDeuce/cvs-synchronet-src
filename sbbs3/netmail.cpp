@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.12 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.13 2002/04/10 22:23:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -215,7 +215,6 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 	fclose(instream);
 
 	memset(&msg,0,sizeof(smbmsg_t));
-	memcpy(msg.hdr.id,"SHD\x1a",4);
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
@@ -412,7 +411,6 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 	fclose(instream);
 
 	memset(&msg,0,sizeof(smbmsg_t));
-	memcpy(msg.hdr.id,"SHD\x1a",4);
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
