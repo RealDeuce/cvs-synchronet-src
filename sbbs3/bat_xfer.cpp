@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.9 2001/11/04 03:14:16 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.10 2001/11/08 13:36:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,7 +427,7 @@ void sbbs_t::start_batch_download()
 			list_len=0;
 		else
 			list_len=strlen(list)+1;	/* add one for ' ' */
-		if((list=(char*)realloc(list,list_len+strlen(path)))==NULL) {
+		if((list=(char*)realloc(list,list_len+strlen(path)+1	/* add one for '\0'*/))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,"list",list_len+strlen(path));
 			return;
 		}
