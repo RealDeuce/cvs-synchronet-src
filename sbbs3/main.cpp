@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.336 2004/10/14 03:28:21 rswindell Exp $ */
+/* $Id: main.cpp,v 1.331 2004/08/30 07:38:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1048,18 +1048,13 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
             continue;
         }
         if(inbuf[i]==TELNET_IAC || sbbs->telnet_cmdlen) {
-
 			if(sbbs->telnet_cmdlen<sizeof(sbbs->telnet_cmd))
 				sbbs->telnet_cmd[sbbs->telnet_cmdlen++]=inbuf[i];
-
-			uchar command	= sbbs->telnet_cmd[1];
-			uchar option	= sbbs->telnet_cmd[2];
-
-			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
+			if(sbbs->telnet_cmdlen>=2 && sbbs->telnet_cmd[1]==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE 
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 					/* sub-option terminated */
-					if(option==TELNET_TERM_TYPE
+					if(sbbs->telnet_cmd[2]==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
 						sprintf(sbbs->terminal,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal type: %s"
@@ -1075,65 +1070,32 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
             		lprintf(LOG_DEBUG,"Node %d %s telnet cmd: %s"
 	                	,sbbs->cfg.node_num
 						,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-                		,telnet_cmd_desc(option));
+                		,telnet_cmd_desc(sbbs->telnet_cmd[2]));
                 sbbs->telnet_cmdlen=0;
             }
-            else if(sbbs->telnet_cmdlen>=3) {	/* telnet option negotiation */
-
-				uchar request = sbbs->telnet_option_request[option];
-
-				if(command==telnet_opt_ack(request) || command==telnet_opt_nak(request)) {
-					/* response to request */
-					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s telnet response: %s %s"
-							,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,telnet_cmd_desc(command)
-							,telnet_opt_desc(option));
-
-					if(command==TELNET_WILL && option==TELNET_TERM_TYPE) {
-						char	buf[64];
-						sprintf(buf,"%c%c%c%c%c%c"
-							,TELNET_IAC,TELNET_SB
-							,TELNET_TERM_TYPE,TELNET_TERM_SEND
-							,TELNET_IAC,TELNET_SE);
-						sbbs->putcom(buf,6);
-					}
-
-					if(option==TELNET_BINARY_TX) {
-						if(command==TELNET_WILL)
-							sbbs->telnet_mode|=TELNET_MODE_BIN_RX;
-						else if(command==TELNET_WONT)
-							sbbs->telnet_mode&=~TELNET_MODE_BIN_RX;
-					}
-				
-					sbbs->telnet_option_request[option] = 0;
+            else if(sbbs->telnet_cmdlen>=3) {
+				if(sbbs->telnet_cmd[2]==TELNET_BINARY) {
+					if(sbbs->telnet_cmd[1]==TELNET_WILL)
+						sbbs->telnet_mode|=TELNET_MODE_BIN_RX;
+					else if(sbbs->telnet_cmd[1]==TELNET_WONT)
+						sbbs->telnet_mode&=~TELNET_MODE_BIN_RX;
 				}
-				else {	/* not a response */
-					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s telnet cmd: %s %s"
-							,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,telnet_cmd_desc(command)
-							,telnet_opt_desc(option));
-
-					switch(option) {
-						case TELNET_BINARY_TX:
-						case TELNET_ECHO:
-						case TELNET_TERM_TYPE:
-						case TELNET_SUP_GA:
-							break;
-						default:	/* ACK unsupported remote options */
-							if(command==TELNET_WILL || command==TELNET_WONT)
-								sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
-							else if(command==TELNET_DO)	/* NAK unsupported local options */
-								sbbs->send_telnet_cmd(telnet_opt_nak(command),option);
-							break;
+				if(sbbs->telnet_cmd[2]==TELNET_ECHO) {
+					if(sbbs->telnet_cmd[1]==TELNET_DO)
+						sbbs->telnet_mode|=TELNET_MODE_ECHO;
+					else if(sbbs->telnet_cmd[1]==TELNET_DONT) {
+						sbbs->telnet_mode&=~TELNET_MODE_ECHO;
+						if(!(sbbs->telnet_mode&TELNET_MODE_GATE))
+							sbbs->send_telnet_cmd(TELNET_WILL,TELNET_ECHO);
 					}
-				
 				}
+				if(startup->options&BBS_OPT_DEBUG_TELNET)
+					lprintf(LOG_DEBUG,"Node %d %s telnet cmd: %s %s"
+	                    ,sbbs->cfg.node_num
+						,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+						,telnet_cmd_desc(sbbs->telnet_cmd[1])
+						,telnet_opt_desc(sbbs->telnet_cmd[2]));
                 sbbs->telnet_cmdlen=0;
-
             }
 			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commads
 				outbuf[outlen++]=inbuf[i];
@@ -1166,12 +1128,6 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 		sprintf(buf,"%c%c%c",TELNET_IAC,cmd,opt);
 		putcom(buf,3);
 	}
-}
-
-void sbbs_t::request_telnet_opt(uchar cmd, uchar opt)
-{
-	telnet_option_request[opt]=cmd;	/* save request */
-	send_telnet_cmd(cmd,opt);
 }
 
 void input_thread(void *arg)
@@ -1592,20 +1548,15 @@ void event_thread(void* arg)
 			}
 			for(i=0;i<sbbs->cfg.total_events;i++) {
 				sbbs->cfg.event[i]->last=0;
-				if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
-					eprintf(LOG_WARNING,"Initializing last run time for event: %s"
-						,sbbs->cfg.event[i]->code);
+				if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
 					write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
-				} else {
-					if(read(file,&sbbs->cfg.event[i]->last,sizeof(time_t))!=sizeof(time_t))
-						sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
-				}
+				else
+					read(file,&sbbs->cfg.event[i]->last,sizeof(time_t)); 
 				/* Event always runs after initialization? */
 				if(sbbs->cfg.event[i]->misc&EVENT_INIT)
 					sbbs->cfg.event[i]->last=-1;
 			}
-			if(read(file,&lastprepack,sizeof(time_t))!=sizeof(time_t))
-				sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
+			read(file,&lastprepack,sizeof(time_t));
 			close(file);
 
 			// Read QNET.DAB
@@ -1616,14 +1567,10 @@ void event_thread(void* arg)
 			}
 			for(i=0;i<sbbs->cfg.total_qhubs;i++) {
 				sbbs->cfg.qhub[i]->last=0;
-				if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
-					eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
-						,sbbs->cfg.qhub[i]->id);
+				if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
 					write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
-				} else {
-					if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t))!=sizeof(time_t))
-						sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
-				}
+				else
+					read(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t)); 
 			}
 			close(file);
 
@@ -2006,10 +1953,6 @@ void event_thread(void* arg)
 						|| sbbs->cfg.event[i]->node>last_node) {
 						eprintf(LOG_INFO,"Waiting for node %d to run timed event: %s"
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
-						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
-							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
-							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
 						while(!sbbs->terminated) {
@@ -2242,12 +2185,9 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	uselect_total = 0;
 	lbuflen = 0;
 	connection="Telnet";
-
-	memset(telnet_option_request,0,sizeof(telnet_option_request));
     telnet_cmdlen=0;
 	telnet_mode=0;
 	telnet_last_rxch=0;
-
 	sys_status=lncntr=tos=criterrs=keybufbot=keybuftop=lbuflen=slcnt=0L;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
@@ -3786,10 +3726,6 @@ void DLLCALL bbs_thread(void* arg)
         return;
     }
 
-#ifdef __BORLANDC__
-	#pragma warn -8008	/* Disable "Condition always false" warning */
-	#pragma warn -8066	/* Disable "Unreachable code" warning */
-#endif
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
 		lprintf(LOG_ERR,"!COMPILER ERROR: sizeof(node_t)=%d instead of %d"
 			,sizeof(node_t),SIZEOF_NODE_T);
