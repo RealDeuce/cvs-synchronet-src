@@ -12,7 +12,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.4 2002/01/29 19:41:17 rswindell Exp $
+# $Id: Makefile.gnu,v 1.5 2002/03/05 17:03:39 rswindell Exp $
 
 # Macros
 # DEBUG	=	1		# Comment out for release (non-debug) version
@@ -94,6 +94,10 @@ include targets.mak		# defines all targets
 include objects.mak		# defines $(OBJS)
 include headers.mak		# defines $(HEADERS)
 
+ifdef USE_DIALOG		# moved here from objects.mak
+OBJS := $(OBJS)			$(UIFCLIBODIR)$(SLASH)uifcd.$(OFILE)
+endif
+
 SBBSLIB	=	$(LIBODIR)/sbbs.a
 SBBSDEFs =	
 	
@@ -134,14 +138,14 @@ $(UIFCLIBODIR):
 makehelp: makehelp.c
 	$(CC) makehelp.c -o makehelp
 
+$(SCFGHELP): $(OBJS) makehelp
+	./makehelp $(EXEODIR)
+
 # Monolithic Synchronet executable Build Rule
-$(SCFG): makehelp $(OBJS)
+$(SCFG): $(OBJS)
 ifdef USE_DIALOG
 	$(MAKE) -C ../../libdialog
 endif
-	./makehelp
-	mv scfghelp.dat $(EXEODIR)
-	mv scfghelp.ixb $(EXEODIR)
 	$(CC) -o $(SCFG) $(OBJS) $(LIBS)
 
 #indlude depends.mak
