@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.64 2003/03/29 05:19:42 deuce Exp $
+# $Id: GNUmakefile,v 1.65 2003/04/01 09:46:36 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -52,7 +52,6 @@ XPDEV	=	../xpdev/
 
 ifndef os
  os		:=	$(shell uname)
- $(warning OS not specified on command line, setting to '$(os)'.)
 endif
 # this line wont work with solaris unless awk in path is actually gawk 
 os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
