@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.122 2003/10/18 08:18:19 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.123 2003/10/18 08:38:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1276,7 +1276,8 @@ static int is_dynamic_req(http_session_t* session)
 			}
 		}
 		for(i=0; startup->cgi_dir!=NULL && startup->cgi_dir[i]!=NULL; i++)  {
-			FULLPATH(startup->cgi_dir[i],path,sizeof(path));
+			if(FULLPATH(path,startup->cgi_dir[i],sizeof(path))==NULL)
+				continue;
 			if(stricmp(dir,path)==0)  {
 				init_enviro(session);
 				return(IS_CGI);
@@ -2402,7 +2403,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.122 $", "%*s %s", revision);
+	sscanf("$Revision: 1.123 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
