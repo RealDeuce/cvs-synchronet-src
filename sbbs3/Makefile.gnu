@@ -9,7 +9,7 @@
 # Win32: make -f Makefile.gnu os=win32									#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.12 2000/11/02 13:23:44 rswindell Exp $
+# $Id: Makefile.gnu,v 1.13 2000/11/02 13:45:53 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -104,7 +104,7 @@ $(LIBODIR)/mxlookup.o: mxlookup.c
 	$(CC) $(CFLAGS) -c -DMAILSRVR_EXPORTS $< -o $@		
 
 # Baja Utility
-$(BAJA): baja.c ars.c
+$(BAJA): baja.c ars.c smbwrap.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 # FIXSMB Utility
