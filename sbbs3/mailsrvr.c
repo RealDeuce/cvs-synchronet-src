@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.335 2004/10/14 10:31:06 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.334 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2079,8 +2079,8 @@ static void smtp_thread(void* arg)
 						section=sec_list[rcpt_count];
 
 						SAFECOPY(rcpt_name,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
-						usernum=iniReadInteger(rcptlst,section				,smb_hfieldtype(RECIPIENTEXT),0);
-						SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),rcpt_name,value));
+						usernum=iniReadInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
+						SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
 
 						if((i=putsmsg(&scfg,usernum,telegram_buf))==0)
 							lprintf(LOG_INFO,"%04d SMTP Created telegram (%ld/%u bytes) from %s to %s <%s>"
@@ -3848,7 +3848,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.335 $", "%*s %s", revision);
+	sscanf("$Revision: 1.334 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4017,7 +4017,7 @@ void DLLCALL mail_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"%04d SMTP socket opened",server_socket);
+		lprintf(LOG_DEBUG,"%04d SMTP Socket opened",server_socket);
 
 		/*****************************/
 		/* Listen for incoming calls */
@@ -4041,7 +4041,7 @@ void DLLCALL mail_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"%04d SMTP socket bound to port %u"
+		lprintf(LOG_DEBUG,"%04d SMTP Socket bound to port %u"
 			,server_socket, startup->smtp_port);
 
 		result = listen (server_socket, 1);

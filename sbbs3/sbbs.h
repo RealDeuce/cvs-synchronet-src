@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.229 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.225 2004/09/11 09:36:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,20 +103,14 @@
 /***********************/
 /* Synchronet-specific */
 /***********************/
-#ifdef __cplusplus
-	#include "startup.h"
-	#include "threadwrap.h"	/* pthread_mutex_t */
-#endif
 #ifdef SBBS	
+	#include "threadwrap.h"	/* must be before dirwrap.h for OpenBSD FULLPATH */
 	#include "text.h"
 #endif
-
-/* xpdev */
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "sockwrap.h"
-
 #include "smblib.h"
 #include "ars_defs.h"
 #include "scfgdefs.h"
@@ -175,11 +169,8 @@ public:
 	void	putcom(char *str, int len=0);  // Send string
 	void	hangup(void);		   // Hangup modem
 
-	uchar	telnet_local_option[0x100];
-	uchar	telnet_remote_option[0x100];
-	void	send_telnet_cmd(uchar cmd, uchar opt);
-	void	request_telnet_opt(uchar cmd, uchar opt);
 
+	void	send_telnet_cmd(uchar cmd, uchar opt);
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
 	ulong	telnet_mode;

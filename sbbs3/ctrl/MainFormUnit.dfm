@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 388
-  Top = 356
+  Left = 372
+  Top = 353
   Width = 640
   Height = 400
   Caption = 'Synchronet Control Panel'
@@ -63,7 +63,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 196
     Width = 632
-    Height = 121
+    Height = 131
     Align = alClient
     Center = True
     IncrementalDisplay = True
@@ -1888,13 +1888,8 @@ object MainForm: TMainForm
       ParentShowHint = False
       ShowHint = True
     end
-    object ViewWebServerButton: TToolButton
-      Left = 94
-      Top = 0
-      Action = ViewWebServer
-    end
     object ViewStatsButton: TToolButton
-      Left = 117
+      Left = 94
       Top = 0
       Hint = 'View Statistics Window'
       Action = ViewStats
@@ -1902,12 +1897,12 @@ object MainForm: TMainForm
       ShowHint = True
     end
     object ViewClientsButton: TToolButton
-      Left = 140
+      Left = 117
       Top = 0
       Action = ViewClients
     end
     object ToolButton2: TToolButton
-      Left = 163
+      Left = 140
       Top = 0
       Width = 8
       Caption = 'ToolButton2'
@@ -1915,19 +1910,19 @@ object MainForm: TMainForm
       Style = tbsSeparator
     end
     object SoundButton: TToolButton
-      Left = 171
+      Left = 148
       Top = 0
       Action = SoundToggle
       ParentShowHint = False
       ShowHint = True
     end
     object SysopAvailButton: TToolButton
-      Left = 194
+      Left = 171
       Top = 0
       Action = ChatToggle
     end
     object ToolButton1: TToolButton
-      Left = 217
+      Left = 194
       Top = 0
       Width = 8
       Caption = 'ToolButton1'
@@ -1935,17 +1930,17 @@ object MainForm: TMainForm
       Style = tbsSeparator
     end
     object UserListButton: TToolButton
-      Left = 225
+      Left = 202
       Top = 0
       Action = UserList
     end
     object EditUserButton: TToolButton
-      Left = 248
+      Left = 225
       Top = 0
       Action = UserEdit
     end
     object ToolButton3: TToolButton
-      Left = 271
+      Left = 248
       Top = 0
       Width = 8
       Caption = 'ToolButton3'
@@ -1953,7 +1948,7 @@ object MainForm: TMainForm
       Style = tbsSeparator
     end
     object ReloadConfigButton: TToolButton
-      Left = 279
+      Left = 256
       Top = 0
       Action = ReloadConfig
     end
@@ -2004,7 +1999,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 196
     Width = 632
-    Height = 121
+    Height = 131
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
@@ -2013,7 +2008,7 @@ object MainForm: TMainForm
       Left = 289
       Top = 0
       Width = 3
-      Height = 121
+      Height = 131
       Cursor = crHSplit
       MinSize = 1
     end
@@ -2021,7 +2016,7 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 289
-      Height = 121
+      Height = 131
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -2032,7 +2027,7 @@ object MainForm: TMainForm
       Left = 292
       Top = 0
       Width = 340
-      Height = 121
+      Height = 131
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -2042,7 +2037,7 @@ object MainForm: TMainForm
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 317
+    Top = 327
     Width = 632
     Height = 25
     Panels = <
@@ -2604,10 +2599,6 @@ object MainForm: TMainForm
       object ViewFtpServerMenuItem: TMenuItem
         Action = ViewFtpServer
       end
-      object ViewWebServerMenuItem: TMenuItem
-        Action = ViewWebServer
-        Hint = 'View Web Server Window'
-      end
       object ViewEventsMenuItem: TMenuItem
         Action = ViewEvents
       end
@@ -2672,6 +2663,7 @@ object MainForm: TMainForm
     end
     object TelnetRecycle: TAction
       Caption = 'Recycle'
+      Enabled = False
       Hint = 'Recycle Telnet Server'
       ImageIndex = 55
       OnExecute = TelnetRecycleExecute
@@ -2743,10 +2735,6 @@ object MainForm: TMainForm
       Hint = 'View FTP Server Window'
       ImageIndex = 11
       OnExecute = ViewFtpServerExecute
-    end
-    object ViewWebServer: TAction
-      Caption = '&Web Server'
-      OnExecute = ViewWebServerExecute
     end
     object FtpStart: TAction
       Hint = 'Start FTP Server'
@@ -2843,32 +2831,6 @@ object MainForm: TMainForm
       Hint = 'Configure Services'
       ImageIndex = 4
       OnExecute = ServicesConfigureExecute
-    end
-    object WebStart: TAction
-      Caption = 'Start'
-      Hint = 'Start Web Server'
-      ImageIndex = 0
-      OnExecute = WebStartExecute
-    end
-    object WebStop: TAction
-      Caption = 'Stop'
-      Enabled = False
-      Hint = 'Stop Web Server'
-      ImageIndex = 2
-      OnExecute = WebStopExecute
-    end
-    object WebRecycle: TAction
-      Caption = 'Recycle'
-      Enabled = False
-      Hint = 'Recycle Web Server'
-      ImageIndex = 55
-      OnExecute = WebRecycleExecute
-    end
-    object WebConfigure: TAction
-      Caption = 'Configure'
-      Hint = 'Configure Web Server'
-      ImageIndex = 4
-      OnExecute = WebConfigureExecute
     end
   end
   object ImageList: TImageList
