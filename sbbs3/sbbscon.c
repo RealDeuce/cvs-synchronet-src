@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.19 2001/10/31 17:46:19 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.20 2001/10/31 17:58:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,7 +288,7 @@ int main(int argc, char** argv)
 		char*	p;
 		char	str[128];
 
-		if((fp=fopen("/etc/resolve.conf","r"))!=NULL) {
+		if((fp=fopen("/etc/resolv.conf","r"))!=NULL) {
 			while(!feof(fp)) {
 				if(fgets(str,sizeof(str),fp)==NULL)
 					break;
