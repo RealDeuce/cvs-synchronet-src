@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: SpyFormUnit.h,v 1.6 2000/11/02 02:10:38 rswindell Exp $ */
+/* $Id: SpyFormUnit.h,v 1.7 2000/11/02 03:45:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,22 +49,22 @@
 #include <ToolWin.hpp>
 #include <Menus.hpp>
 #include <ActnList.hpp>
+#include <Buttons.hpp>
 //---------------------------------------------------------------------------
 class TSpyForm : public TForm
 {
 __published:	// IDE-managed Components
     TTimer *Timer;
     TImageList *ImageList;
-    TMainMenu *SpyMenu;
-    TMenuItem *SettingsMenuItem;
-    TMenuItem *KeyboardActiveMenuItem;
-    TMenuItem *FontMenuItem;
     TPopupMenu *PopupMenu;
     TMenuItem *KeyboardActivePopupMenuItem;
     TActionList *ActionList;
     TAction *KeyboardActive;
     TAction *ChangeFont;
     TMenuItem *FontPopupMenuItem;
+    TPanel *ToolBar;
+    TSpeedButton *FontButton;
+    TCheckBox *KeyboardActiveCheckBox;
     void __fastcall SpyTimerTick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
     void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
