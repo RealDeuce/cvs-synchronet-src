@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.9 2000/11/15 03:28:05 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.10 2000/11/16 00:28:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,6 +68,7 @@ static void lputs(char *str)
 	pthread_mutex_lock(&mutex);
 	printf("\r%*s\r%s\n",strlen(prompt),"",str);
 	printf(prompt);
+	fflush(stdout);
 	pthread_mutex_unlock(&mutex);
 }
 
