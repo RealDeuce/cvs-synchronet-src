@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.352 2004/11/06 02:13:08 rswindell Exp $ */
+/* $Id: main.cpp,v 1.353 2004/11/06 02:31:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1431,6 +1431,7 @@ void input_thread(void *arg)
 //			mswait(500);	// Throttle sender
 	}
 	sbbs->online=0;
+	sbbs->sys_status|=SS_ABORT;	/* as though Ctrl-C were hit */
 
     sbbs->input_thread_running = false;
 	if(node_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)	// Shutdown locally
