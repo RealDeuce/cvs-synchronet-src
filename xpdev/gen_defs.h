@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.25 2004/11/03 03:24:38 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.24 2004/10/15 23:23:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,22 +278,6 @@ typedef struct {
 /* Other Pointer-List Macros	*/
 /********************************/
 #define COUNT_LIST_ITEMS(list,i)	{ i=0; if(list!=NULL) while(list[i]!=NULL) i++; }
-
-#if defined(__unix__)
-	#include <syslog.h>
-#else
-	/*
-	 * log priorities (copied from BSD syslog.h)
-	 */
-	#define LOG_EMERG       0       /* system is unusable */
-	#define LOG_ALERT       1       /* action must be taken immediately */
-	#define LOG_CRIT        2       /* critical conditions */
-	#define LOG_ERR         3       /* error conditions */
-	#define LOG_WARNING     4       /* warning conditions */
-	#define LOG_NOTICE      5       /* normal but significant condition */
-	#define LOG_INFO        6       /* informational */
-	#define LOG_DEBUG       7       /* debug-level messages */
-#endif
 
 
 #endif /* Don't add anything after this #endif statement */
