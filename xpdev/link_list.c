@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.18 2004/11/09 17:28:57 rswindell Exp $ */
+/* $Id: link_list.c,v 1.19 2004/11/09 17:30:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -439,8 +439,10 @@ static list_node_t* list_add_node(link_list_t* list, list_node_t* node, list_nod
 
 	MUTEX_UNLOCK(list);
 
+#if defined(LINK_LIST_THREADSAFE)
 	if(list->sem!=NULL)
 		listSemPost(list);
+#endif
 
 	return(node);
 }
