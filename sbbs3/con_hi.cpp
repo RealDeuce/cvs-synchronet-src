@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.3 2001/06/23 00:48:24 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.4 2001/07/09 02:36:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,7 +170,7 @@ int sbbs_t::uselect(int add, uint n, char *title, char *item, uchar *ar)
 /****************************************************************************/
 bool sbbs_t::chksyspass()
 {
-	char	str[256],str2[256] /*,x,y,atr */;
+	char	str[256],str2[256];
 	int 	orgcon=console;
 
 	if(online==ON_REMOTE && !(cfg.sys_misc&SM_R_SYSOP))
