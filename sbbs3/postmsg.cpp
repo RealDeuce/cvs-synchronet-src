@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.59 2004/09/08 03:41:23 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.55 2004/08/27 22:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
 		sprintf(top,text[RegardingByToOn],title,touser,remsg->to
 			,timestr((time_t *)&remsg->hdr.when_written.time)
-			,smb_zonestr(remsg->hdr.when_written.zone,NULL)); 
+			,zonestr(remsg->hdr.when_written.zone)); 
 	} else {
 		title[0]=0;
 		touser[0]=0;
@@ -198,7 +198,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	bputs(text[WritingIndx]);
 
-	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=SMB_SUCCESS) {
+	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i,smb.last_error);
 		return(false); 
 	}
@@ -206,7 +206,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
-	if((i=smb_open(&smb))!=SMB_SUCCESS) {
+	if((i=smb_open(&smb))!=0) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
@@ -217,7 +217,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		smb.status.max_msgs=cfg.sub[subnum]->maxmsgs;
 		smb.status.max_age=cfg.sub[subnum]->maxage;
 		smb.status.attr=cfg.sub[subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC : 0;
-		if((i=smb_create(&smb))!=SMB_SUCCESS) {
+		if((i=smb_create(&smb))!=0) {
 			smb_close(&smb);
 			errormsg(WHERE,ERR_CREATE,smb.file,i,smb.last_error);
 			smb_stack(&smb,SMB_STACK_POP);
@@ -225,14 +225,14 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		} 
 	}
 
-	if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
+	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
 	}
 
-	if((i=smb_getstatus(&smb))!=SMB_SUCCESS) {
+	if((i=smb_getstatus(&smb))!=0) {
 		smb_close(&smb);
 		errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
@@ -253,7 +253,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		storage=SMB_HYPERALLOC; 
 	}
 	else {
-		if((i=smb_open_da(&smb))!=SMB_SUCCESS) {
+		if((i=smb_open_da(&smb))!=0) {
 			smb_close(&smb);
 			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 			smb_stack(&smb,SMB_STACK_POP);
@@ -325,16 +325,11 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		smb_hfield_str(&msg,FIDOMSGID,msg_id);
 	}
 	if(remsg) {
-
-		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
-
-		/* Add RFC-822 Reply-ID (generate if necessary) */
-		if(remsg->id!=NULL)
-			smb_hfield_str(&msg,RFC822REPLYID,remsg->id);
-
-		/* Add FidoNet Reply if original message has FidoNet MSGID */
 		if(remsg->ftn_msgid!=NULL)
 			smb_hfield_str(&msg,FIDOREPLYID,remsg->ftn_msgid);
+		if(remsg->id!=NULL)
+			smb_hfield_str(&msg,RFC822REPLYID,remsg->id);
+		msg.hdr.thread_orig=remsg->hdr.number;
 
 		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
 			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
@@ -371,7 +366,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
-	msg.idx.subj=smb_subject_crc(title);
+	msg.idx.subj=subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -380,9 +375,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	smb_stack(&smb,SMB_STACK_POP);
 
 	smb_freemsgmem(&msg);
-	if(i!=SMB_SUCCESS) {
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+	if(i) {
 		smb_freemsgdat(&smb,offset,length,1);
+		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 		return(false); 
 	}
 
@@ -422,11 +417,11 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 {
 	int i;
 
-	if((i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
+	if((i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=0)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
+	if((i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=0)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
+	if((i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=0)
 		return(i);
 	return smb_hfield(msg,SENDERPORT,sizeof(client->port),&client->port);
 }
@@ -435,6 +430,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 {
 	char	pad=0;
 	char	pid[128];
+	char*	reply_id;
 	char	msg_id[256];
 	char*	lzhbuf=NULL;
 	ushort	xlat;
@@ -458,7 +454,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 		else
 			sprintf(smb->file,"%s%s",cfg->sub[smb->subnum]->data_dir,cfg->sub[smb->subnum]->code);
 		smb->retry_time=cfg->smb_retry_time;
-		if((i=smb_open(smb))!=SMB_SUCCESS)
+		if((i=smb_open(smb))!=0)
 			return(i);
 	}
 
@@ -474,16 +470,16 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 			smb->status.max_age=cfg->sub[smb->subnum]->maxage;
 			smb->status.attr=cfg->sub[smb->subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC : 0;
 		}
-		if((i=smb_create(smb))!=SMB_SUCCESS) 
+		if((i=smb_create(smb))!=0) 
 			return(i);
 
 		/* If msgbase doesn't exist, we can't be adding a header to an existing msg */
 		msg->hdr.total_dfields=0;
 	}
-	if((i=smb_locksmbhdr(smb))!=SMB_SUCCESS) 
+	if((i=smb_locksmbhdr(smb))!=0) 
 		return(i);
 
-	if((i=smb_getstatus(smb))!=SMB_SUCCESS) {
+	if((i=smb_getstatus(smb))!=0) {
 		smb_unlocksmbhdr(smb);
 		return(i);
 	}
@@ -534,7 +530,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 			offset=smb_hallocdat(smb);
 			storage=SMB_HYPERALLOC; 
 		} else {
-			if((i=smb_open_da(smb))!=SMB_SUCCESS) {
+			if((i=smb_open_da(smb))!=0) {
 				smb_unlocksmbhdr(smb);
 				FREE_AND_NULL(lzhbuf);
 				return(i);
@@ -624,16 +620,18 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	if(msg->to==NULL)	/* no recipient, don't add header (required for bulkmail) */
 		return(smb_unlocksmbhdr(smb));
 
-	/* Look-up thread_back if Reply-ID was specified */
-	if(msg->hdr.thread_back==0 && msg->reply_id!=NULL) {
-		if(smb_getmsgidx_by_msgid(smb,&remsg,msg->reply_id)==SMB_SUCCESS)
-			msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
+	/* Look-up thread_orig if Reply-ID was specified */
+	if(msg->hdr.thread_orig==0 && msg->reply_id!=NULL) {
+		if(get_msg_by_id(cfg, smb, msg->reply_id, &remsg)==TRUE) {
+			msg->hdr.thread_orig=remsg.hdr.number;	/* needed for thread linkage */
+			smb_freemsgmem(&remsg);
+		}
 	}
 
 	/* Auto-thread linkage */
-	if(msg->hdr.thread_back) {
+	if(msg->hdr.thread_orig) {
 		memset(&remsg,0,sizeof(remsg));
-		remsg.hdr.number=msg->hdr.thread_back;
+		remsg.hdr.number=msg->hdr.thread_orig;
 		if((i=smb_getmsgidx(smb, &remsg))!=SMB_SUCCESS)	/* invalid thread origin */
 			return(i);
 
@@ -646,8 +644,10 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 		}
 
 		/* Add RFC-822 Reply-ID (generate if necessary) */
-		if(msg->reply_id==NULL)
-			smb_hfield_str(msg,RFC822REPLYID,get_msgid(cfg,smb->subnum,&remsg));
+		if(msg->reply_id==NULL) {
+			reply_id=get_msgid(cfg,smb->subnum,&remsg);
+			smb_hfield_str(msg,RFC822REPLYID,reply_id);
+		}
 
 		/* Add FidoNet Reply if original message has FidoNet MSGID */
 		if(msg->ftn_reply==NULL && remsg.ftn_msgid!=NULL)
@@ -661,10 +661,10 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 			return(i); 
 	}
 
-	if((i=smb_addmsghdr(smb,msg,storage))==SMB_SUCCESS) // calls smb_unlocksmbhdr() 
-		signal_sub_sem(cfg,smb->subnum);
-	else
+	if((i=smb_addmsghdr(smb,msg,storage))!=0) // calls smb_unlocksmbhdr() 
 		smb_freemsg_dfields(smb,msg,1);
+
+	signal_sub_sem(cfg,smb->subnum);
 
 	return(i);
 }
