@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.69 2001/04/26 02:55:27 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.70 2001/05/03 23:15:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -392,12 +392,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSClass js_global_class = {
-        "Global",0, 
-        JS_PropertyStub,JS_PropertyStub,JS_PropertyStub,JS_PropertyStub, 
-        JS_EnumerateStub,JS_ResolveStub,JS_ConvertStub,JS_FinalizeStub 
-}; 
-
 static JSFunctionSpec js_global_functions[] = {
 	{"write",           js_write,           1},		/* write to HTML file */
 	{0}
@@ -461,10 +455,7 @@ JSContext* js_initcx(JSObject** glob)
 
 	do {
 
-		if((js_glob = JS_NewObject(js_cx, &js_global_class, NULL, NULL))==NULL) 
-			break;
-
-		if (!JS_InitStandardClasses(js_cx, js_glob)) 
+		if((js_glob=js_CreateGlobalObject(&scfg, js_cx))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
@@ -650,7 +641,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* js_glob,
 		}
 
 		/* curlib */
-		if((lib_obj=JS_NewObject(js_cx, &js_global_class, 0, NULL))==NULL) {
+		if((lib_obj=JS_NewObject(js_cx, &js_file_class, 0, NULL))==NULL) {
 			lprintf("%04d !JavaScript FAILED to create lib_obj",sock);
 			break;
 		}
@@ -662,7 +653,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* js_glob,
 		}
 
 		/* curdir */
-		if((dir_obj=JS_NewObject(js_cx, &js_global_class, 0, NULL))==NULL) {
+		if((dir_obj=JS_NewObject(js_cx, &js_file_class, 0, NULL))==NULL) {
 			lprintf("%04d !JavaScript FAILED to create dir_obj",sock);
 			break;
 		}
