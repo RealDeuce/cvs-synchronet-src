@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.82 2003/09/23 21:49:59 rswindell Exp $ */
+/* $Id: userdat.c,v 1.83 2004/03/24 03:29:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,9 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+#ifndef USHRT_MAX
+	#define USHRT_MAX ((1<<sizeof(unsigned short))-1)
+#endif
 
 /* convenient space-saving global variables */
 char* crlf="\r\n";

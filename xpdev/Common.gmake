@@ -14,7 +14,7 @@ ifndef VERBOSE
 endif
 
 # Compiler-specific options
-CFLAGS	+=	-MMD -Wall
+CFLAGS	+=	-MMD
 CCPRE	?=	gcc
 ifdef BUILD_DEPENDS
  CC	=	$(XPDEV)../build/mkdep -a
@@ -42,10 +42,17 @@ BUILDPATH	?=	$(BUILD)
 ifndef os
  os		=	$(shell uname)
 endif
-os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
+os      :=	$(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
-LIBODIR :=	$(CCPRE).$(os).lib.$(BUILDPATH)
-EXEODIR :=	$(CCPRE).$(os).exe.$(BUILDPATH)
+machine		:=	$(shell if uname -m | egrep -v "(i[3456789]|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
+ifeq ($(machine),)
+ machine	:=	$(os)
+else
+ machine	:=	$(os).$(machine)
+endif
+
+LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
+EXEODIR :=	$(CCPRE).$(machine).exe.$(BUILDPATH)
 LDFLAGS	+=	-L$(LIBODIR)
 
 ifeq ($(os),netbsd)
@@ -54,7 +61,11 @@ else
  ifeq ($(os),openbsd)
   DELETE :=	rm -f
  else
-  DELETE	=	rm -fv
+  ifeq ($(os),sunos)
+   DELETE :=	rm -f
+  else
+   DELETE	=	rm -fv
+  endif
  endif
 endif
 
@@ -73,7 +84,7 @@ LIBPREFIX =	lib
 
 # OS Specific Flags
 ifeq ($(os),sunos)    # Solaris
- CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY
+ CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_SETENV -DNEEDS_CFMAKERAW
 endif
 ifeq ($(os),netbsd)	# NetBSD
  CFLAGS	+=	-D__unix__ -I/usr/pkg/include -I/usr/pkg/pthreads/include -DNEEDS_FORKPTY
@@ -112,8 +123,11 @@ else
      PTHREAD_LDFLAGS    += -lpthread
      XP_SEM    := 1
     else
-     ifeq ($(os),solaris)  # Solaris
+     ifeq ($(os),sunos)  # Solaris
+      XP_SEM :=    1
       PTHREAD_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
+      PTHREAD_CFLAGS    += -DUSE_XP_SEMAPHORES
+      PTHREAD_LDFLAGS    +=    -lpthread
      else            # Linux / Other UNIX
       XP_SEM :=    1
       PTHREAD_CFLAGS    += -DUSE_XP_SEMAPHORES
@@ -123,11 +137,6 @@ else
    endif
   endif
  endif
-endif
-
-ifdef NEED_THREADS
- CFLAGS += $(PTHREAD_CFLAGS)
- LDFLAGS	+= $(PTHREAD_LDFLAGS)
 endif
 
 ifdef DEBUG
@@ -146,11 +155,24 @@ CFLAGS	+=	-I$(XPDEV)
 -include targets.mk
 -include $(XPDEV)rules.mk
 -include objects.mk		# defines $(OBJS)
-ifdef NEED_UIFC
- OBJS	+=	$(UIFC_OBJS)
-endif
 ifdef XP_SEM
- OBJS	+= $(LIBODIR)$(SLASH)xpsem.$(OFILE)
+ PTHREAD_OBJS	+= $(LIBODIR)$(SLASH)xpsem.$(OFILE)
+endif
+
+# Implicit C Compile Rule
+$(LIBODIR)/%.o : %.c $(BUILD_DEPENDS)
+	@echo $(COMPILE_MSG) $<
+	$(QUIET)$(CC) $(CFLAGS) -o $@ -c $<
+
+# Implicit C++ Compile Rule
+$(LIBODIR)/%.o : %.cpp $(BUILD_DEPENDS)
+	@echo $(COMPILE_MSG) $<
+	$(QUIET)$(CXX) $(CFLAGS) -o $@ -c $<
+
+ifdef NEED_THREADS
+ CFLAGS += $(PTHREAD_CFLAGS)
+ LDFLAGS	+= $(PTHREAD_LDFLAGS)
+ OBJS	+= $(PTHREAD_OBJS)
 endif
 
 depend:
