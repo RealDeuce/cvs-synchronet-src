@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.18 2002/11/05 10:57:32 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.19 2002/11/07 11:44:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,6 +85,10 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	if(areaobj==NULL)
 		return(NULL);
 
+#ifdef _DEBUG
+	js_DescribeObject(cx,areaobj,"File Transfer Areas");
+#endif
+
 	/* lib_list[] */
 	if((lib_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 		return(NULL);
@@ -119,6 +123,10 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if(!JS_SetProperty(cx, libobj, "link", &val))
 				return(NULL);
 		}
+
+#ifdef _DEBUG
+		js_DescribeObject(cx,libobj,"File Transfer Libraries");
+#endif
 
 		/* dir_list[] */
 		if((dir_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
@@ -241,6 +249,10 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			val=OBJECT_TO_JSVAL(dirobj);
 			if(!JS_SetElement(cx, dir_list, index, &val))
 				return(NULL);
+
+#ifdef _DEBUG
+			js_DescribeObject(cx,dirobj,"File Transfer Directories");
+#endif
 		}
 
 		if(!JS_GetArrayLength(cx, lib_list, &index))
