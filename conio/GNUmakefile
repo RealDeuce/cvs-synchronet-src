@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.2 2004/09/12 23:42:04 deuce Exp $
+# $Id: GNUmakefile,v 1.3 2004/09/12 23:42:47 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -25,6 +25,7 @@ ifndef NO_X
 			$(OBJODIR)$(DIRSEP)x_cio$(OFILE)
 endif
 
+mtlib:	$(CIOLIB-MT)
 
 # CIOLIB Library Link Rule
 $(CIOLIB-MT): $(OBJS)
