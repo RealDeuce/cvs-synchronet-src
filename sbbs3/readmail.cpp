@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.19 2002/07/17 23:13:31 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.20 2002/07/19 00:12:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,8 +152,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 		logline("E",str);
 	}
 	if(useron.misc&RIP) {
-		strcpy(str,which==MAIL_YOUR ? "MAILREAD" : which==MAIL_ALL ?
-			"ALLMAIL" : "SENTMAIL");
+		strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL ?
+			"allmail" : "sentmail");
 		menu(str); }
 	while(online && !done) {
 		action=act;
@@ -317,8 +317,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 		else domsg=1;
 
 		if(useron.misc&WIP) {
-			strcpy(str,which==MAIL_YOUR ? "MAILREAD" : which==MAIL_ALL ?
-				"ALLMAIL" : "SENTMAIL");
+			strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL ?
+				"allmail" : "sentmail");
 			menu(str); }
 
 		ASYNC;
@@ -663,8 +663,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 				if(curmsg<msgs-1) curmsg++;
 				break;
 			case '?':
-				strcpy(str,which==MAIL_YOUR ? "MAILREAD" : which==MAIL_ALL
-						? "ALLMAIL" : "SENTMAIL");
+				strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL
+						? "allmail" : "sentmail");
 				menu(str);
 				if(SYSOP && which==MAIL_SENT)
 					menu("syssmail");

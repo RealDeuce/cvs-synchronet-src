@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.22 2002/04/13 09:07:21 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.23 2002/07/19 00:12:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,7 +265,7 @@ void sbbs_t::useredit(int usernumber)
 						break;
 					if(c==CR) break;
 					if(c=='?') {
-						sprintf(str,"FLAGS%d",i);
+						sprintf(str,"flags%d",i);
 						menu(str);
 						continue; }
 					if(isdigit(c)) {
