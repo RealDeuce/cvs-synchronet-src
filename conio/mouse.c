@@ -1,12 +1,8 @@
-#include <stdlib.h>
-
 #include <genwrap.h>
 #include <semwrap.h>
 #include <threadwrap.h>
 
 #include "mouse.h"
-
-#define MSEC_CLOCK()	(msclock()*MSCLOCKS_PER_SEC/1000)
 
 enum {
 	 MOUSE_NOSTATE
@@ -59,8 +55,8 @@ struct mouse_state {
 	int	click_timeout;			/* Timeout between press and release events for a click (ms) */
 	int	multi_timeout;			/* Timeout after a click for detection of multi clicks (ms) */
 	int	click_drift;			/* Allowed "drift" during a click event */
-	struct in_mouse_event	*events_in;		/* Pointer to recevied events queue */
-	struct out_mouse_event	*events_out;	/* Pointer to output events queue */
+	struct in_mouse_event	*events_in;		/* Pointer to recevied events stack */
+	struct out_mouse_event	*events_out;	/* Pointer to output events stack */
 };
 
 struct mouse_state state;
@@ -102,7 +98,7 @@ void ciomouse_gotevent(int event, int x, int y)
 	struct in_mouse_event **lastevent;
 
 	ime=(struct in_mouse_event *)malloc(sizeof(struct in_mouse_event));
-	ime->ts=MSEC_CLOCK();
+	ime->ts=msclock();
 	ime->event=event;
 	ime->x=x;
 	ime->y=y;
@@ -158,7 +154,7 @@ void ciolib_mouse_thread(void *data)
 	while(1) {
 		timedout=0;
 		if(timeout_button) {
-			delay=state.timeout[timeout_button-1]-MSEC_CLOCK();
+			delay=state.timeout[timeout_button-1]-msclock();
 			if(delay<=0) {
 				timedout=1;
 			}
@@ -213,9 +209,6 @@ void ciolib_mouse_thread(void *data)
 			but=CIOLIB_BUTTON_NUMBER(state.events_in->event);
 			switch(CIOLIB_BUTTON_BASE(state.events_in->event)) {
 				case CIOLIB_MOUSE_MOVE:
-					if(state.events_in->x==state.button_x[but]
-							&& state.events_in->y==state.button_y[but])
-						break;
 					add_outevent(CIOLIB_MOUSE_MOVE,state.events_in->x,state.events_in->y);
 					for(but=1;but<=3;but++) {
 						switch(state.button_state[but-1]) {
@@ -275,19 +268,19 @@ void ciolib_mouse_thread(void *data)
 							state.button_state[but-1]=MOUSE_SINGLEPRESSED;
 							state.button_x[but-1]=state.events_in->x;
 							state.button_y[but-1]=state.events_in->y;
-							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
+							state.timeout[but-1]=msclock()+(state.click_timeout*MSCLOCKS_PER_SEC)/1000;
 							break;
 						case MOUSE_CLICKED:
 							state.button_state[but-1]=MOUSE_DOUBLEPRESSED;
-							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
+							state.timeout[but-1]=msclock()+(state.click_timeout*MSCLOCKS_PER_SEC)/1000;
 							break;
 						case MOUSE_DOUBLECLICKED:
 							state.button_state[but-1]=MOUSE_TRIPLEPRESSED;
-							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
+							state.timeout[but-1]=msclock()+(state.click_timeout*MSCLOCKS_PER_SEC)/1000;
 							break;
 						case MOUSE_TRIPLECLICKED:
 							state.button_state[but-1]=MOUSE_QUADPRESSED;
-							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
+							state.timeout[but-1]=msclock()+(state.click_timeout*MSCLOCKS_PER_SEC)/1000;
 							break;
 					}
 					break;
@@ -302,15 +295,15 @@ void ciolib_mouse_thread(void *data)
 							break;
 						case MOUSE_SINGLEPRESSED:
 							state.button_state[but-1]=MOUSE_CLICKED;
-							state.timeout[but-1]=MSEC_CLOCK()+state.multi_timeout;
+							state.timeout[but-1]=msclock()+(state.multi_timeout*MSCLOCKS_PER_SEC)/1000;
 							break;
 						case MOUSE_DOUBLEPRESSED:
 							state.button_state[but-1]=MOUSE_DOUBLECLICKED;
-							state.timeout[but-1]=MSEC_CLOCK()+state.multi_timeout;
+							state.timeout[but-1]=msclock()+(state.multi_timeout*MSCLOCKS_PER_SEC)/1000;
 							break;
 						case MOUSE_TRIPLEPRESSED:
 							state.button_state[but-1]=MOUSE_TRIPLECLICKED;
-							state.timeout[but-1]=MSEC_CLOCK()+state.multi_timeout;
+							state.timeout[but-1]=msclock()+(state.multi_timeout*MSCLOCKS_PER_SEC)/1000;
 							break;
 						case MOUSE_QUADPRESSED:
 							state.button_state[but-1]=MOUSE_NOSTATE;
