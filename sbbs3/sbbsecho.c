@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.65 2002/10/13 07:20:33 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.66 2002/10/13 08:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3375,7 +3375,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 		return(4); }
 
 	if(email->shd_fp==NULL) {
-		sprintf(email->file,"%sMAIL",scfg.data_dir);
+		sprintf(email->file,"%smail",scfg.data_dir);
 		email->retry_time=scfg.smb_retry_time;
 		if((i=smb_open(email))!=0) {
 			printf("ERROR %d opening %s\n",i,email->file);
@@ -3939,7 +3939,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.65 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.66 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
