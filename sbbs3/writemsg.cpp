@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.36 2002/12/14 02:57:56 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.37 2003/01/05 05:19:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1124,7 +1124,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 	fclose(instream);
 
 	smb_unlocksmbhdr(&smb);
-	msg->hdr.length=smb_getmsghdrlen(msg);
+	msg->hdr.length=(ushort)smb_getmsghdrlen(msg);
 	if((i=smb_putmsghdr(&smb,msg))!=0)
 		errormsg(WHERE,ERR_WRITE,smb.file,i);
 }
