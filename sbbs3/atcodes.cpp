@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.31 2002/12/19 22:10:00 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.32 2002/12/19 22:14:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,13 +141,13 @@ char* sbbs_t::atcode(char* sp, char* str)
 			up=0;
 		char   days[64]="";
 		if((up/(24*60*60))>=2) {
-	        sprintf(days,"%u days ",up/(24*60*60));
+	        sprintf(days,"%lu days ",(ulong)(up/(24L*60L*60L)));
 			up%=(24*60*60);
 		}
-		sprintf(str,"%s%u:%02u"
+		sprintf(str,"%s%lu:%02lu"
 	        ,days
-			,up/(60*60)
-			,(up/60)%60
+			,(ulong)(up/(60L*60L))
+			,(ulong)((up/60L)%60L)
 			);
 		return(str);
 	}
@@ -384,7 +384,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strcmp(sp,"TIMEON") || !strcmp(sp,"TIMEUSED")) {
 		now=time(NULL);
-		sprintf(str,"%lu",(now-logontime)/60L); 
+		sprintf(str,"%lu",(ulong)(now-logontime)/60L); 
 		return(str);
 	}
 
