@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.11 2001/12/14 17:57:50 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.12 2001/12/20 01:30:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #define _MAILSRVR_H_
 
 #include "client.h"				/* client_t */
+#include "sbbsinet.h"           /* SOCKET */
 
 typedef struct {
 
@@ -140,5 +141,7 @@ DLLEXPORT const	char*	DLLCALL mail_ver(void);
 #ifdef __cplusplus
 }
 #endif
+
+int sockprintf(SOCKET sock, char *fmt, ...);
 
 #endif /* Don't add anything after this line */
