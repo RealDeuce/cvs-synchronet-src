@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.6 2000/11/29 05:43:25 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.7 2000/11/29 06:25:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	/* Compress Packet */
 	/*******************/
 	sprintf(str,"%s%s.rep",cfg.data_dir,cfg.qhub[hubnum]->id);
-	sprintf(tmp2,"%s*",cfg.temp_dir);
+	sprintf(tmp2,"%s%s",cfg.temp_dir,ALLFILES);
 	i=external(cmdstr(cfg.qhub[hubnum]->pack,str,tmp2,NULL),EX_OFFLINE);
 	if(!fexist(str)) {
 		lputs(remove_ctrl_a(text[QWKCompressionFailed],tmp));

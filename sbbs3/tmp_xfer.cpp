@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.6 2000/11/29 05:43:25 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.7 2000/11/29 06:25:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,7 +298,7 @@ void sbbs_t::extract(uint dirnum)
 	bprintf(text[DiskNBytesFree],ultoac(space,tmp));
 
 	if(!intmp) {    /* not extracting FROM temp directory */
-		sprintf(str,"%s*",cfg.temp_dir);
+		sprintf(str,"%s%s",cfg.temp_dir,ALLFILES);
 		if(fexist(str)) {
 			bputs(text[RemovingTempFiles]);
 			dir=opendir(cfg.temp_dir);
