@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.15 2002/01/26 14:50:52 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.16 2002/03/19 22:47:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,6 +65,7 @@
 
 	#include <fcntl.h>
 
+	#define O_TEXT		0		/* all files in binary mode on Unix */
 	#define O_BINARY	0		/* all files in binary mode on Unix */
 	#define O_DENYNONE  (1<<31)	/* req'd for Baja/nopen compatibility */
 
