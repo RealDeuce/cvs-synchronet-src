@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.6 2002/04/06 09:14:09 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.7 2002/04/06 10:51:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,8 +36,9 @@
  ****************************************************************************/
 
 #include <string.h>     /* strlen() */
-#include <stdlib.h>	/* RAND_MAX */
-#include <fcntl.h>	/* O_NOCTTY */
+#include <stdlib.h>		/* RAND_MAX */
+#include <fcntl.h>		/* O_NOCTTY */
+#include <time.h>		/* clock() */
 
 #if defined(__unix__)
 	/* KIOCSOUND */
@@ -45,6 +46,7 @@
 		#include <sys/kbio.h>
 	#else
 		#include <sys/kd.h>	
+	#endif
 #endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
@@ -113,16 +115,20 @@ void DLLCALL unix_beep(int freq, int dur)
 /****************************************************************************/
 /* Return random number between 0 and n-1									*/
 /****************************************************************************/
-#if !defined(__BORLANDC__j)
 int DLLCALL xp_random(int n)
 {
 	float f;
+	static BOOL initialized;
 
+	if(!initialized) {
+		srand(time(NULL));	/* seed random number generator */
+		rand();				/* throw away first result */
+		initialized=TRUE;
+	}
 	if(n<2)
 		return(0);
 	f=(float)rand()/(float)RAND_MAX;
 
 	return((int)(n*f));
 }
-#endif
 
