@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.60 2004/12/10 22:23:44 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.61 2004/12/22 20:50:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -494,11 +494,13 @@ typedef struct _PACK {
 
 	ulong	number;					/* Message number */
 	ulong	time;					/* Local time of fingerprinting */
+	ulong	length;					/* Length (in bytes) of source */
 	uchar	source;					/* SMB_HASH_SOURCE* (in low 5-bits) */
 	uchar	flags;					/* indications of valid hashes and pre-processing */
 	ushort	crc16;					/* CRC-16 of source */
 	ulong	crc32;					/* CRC-32 of source */
 	uchar	md5[MD5_DIGEST_SIZE];	/* MD5 digest of source */
+	uchar	reserved[28];			/* sizeof(hash_t) = 64 */
 
 } hash_t;
 
