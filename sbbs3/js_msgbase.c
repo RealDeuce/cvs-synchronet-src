@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.54 2002/11/30 22:56:44 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.55 2002/12/28 12:23:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -720,6 +720,8 @@ js_put_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	do {
 		if(smb_getmsghdr(&(p->smb), &msg)!=0)
 			break;
+
+		smb_freemsghdrmem(&msg);	/* prevent duplicate header fields */
 
 		if(!parse_header_object(cx, p, hdr, &msg))
 			break;
