@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.175 2004/12/12 22:46:41 rswindell Exp $ */
+/* $Id: services.c,v 1.173 2004/12/02 03:20:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,6 @@ typedef struct {
 	DWORD	max_clients;
 	DWORD	options;
 	int		listen_backlog;
-	DWORD	stack_size;
     DWORD	js_max_bytes;
 	DWORD	js_cx_stack;
 	DWORD	js_branch_limit;
@@ -908,7 +907,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		return(JS_FALSE);
 	}
 
-	return js_CommonBranchCallback(cx,&client->branch);
+	return js_GenericBranchCallback(cx,&client->branch);
 }
 
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
@@ -1448,7 +1447,6 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 		serv.port=iniReadShortInt(fp,sec_list[i],"Port",0);
 		serv.max_clients=iniReadInteger(fp,sec_list[i],"MaxClients",0);
 		serv.listen_backlog=iniReadInteger(fp,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
-		serv.stack_size=iniReadInteger(fp,sec_list[i],"StackSize",0);
 		serv.options=iniReadBitField(fp,sec_list[i],"Options",service_options,0);
 		SAFECOPY(serv.cmd,iniReadString(fp,sec_list[i],"Command","",cmd));
 
@@ -1525,7 +1523,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.175 $", "%*s %s", revision);
+	sscanf("$Revision: 1.173 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1763,9 +1761,9 @@ void DLLCALL services_thread(void* arg)
 
 			/* start thread here */
 			if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
-				_beginthread(native_static_service_thread, service[i].stack_size, &service[i]);
+				_beginthread(native_static_service_thread, 0, &service[i]);
 			else										/* JavaScript */
-				_beginthread(js_static_service_thread, service[i].stack_size, &service[i]);
+				_beginthread(js_static_service_thread, 0, &service[i]);
 		}
 
 		status("Listening");
@@ -2028,9 +2026,9 @@ void DLLCALL services_thread(void* arg)
 				udp_buf = NULL;
 
 				if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
-					_beginthread(native_service_thread, service[i].stack_size, client);
+					_beginthread(native_service_thread, 0, client);
 				else										/* JavaScript */
-					_beginthread(js_service_thread, service[i].stack_size, client);
+					_beginthread(js_service_thread, 0, client);
 				service[i].served++;
 				served++;
 			}
