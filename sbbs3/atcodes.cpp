@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.21 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.22 2002/04/12 06:16:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -129,7 +129,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		return(COPYRIGHT_NOTICE);
 
 	if(!strcmp(sp,"COMPILER")) {
-		COMPILER_DESC(str);
+		DESCRIBE_COMPILER(str);
 		return(str);
 	}
 
