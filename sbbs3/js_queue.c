@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.1 2004/11/10 04:45:18 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.2 2004/11/10 05:09:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,7 +272,7 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 {
 	uintN			argn=0;
 	char*			name=NULL;
-	long			flags=MSG_QUEUE_BIDIR;
+	int32			flags=MSG_QUEUE_BIDIR;
 	msg_queue_t*	q=NULL;
 	list_node_t*	n;
 
