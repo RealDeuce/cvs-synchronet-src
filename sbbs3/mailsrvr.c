@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.122 2002/03/08 17:58:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.123 2002/03/09 02:31:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,7 +412,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, char* fromad
 	else
 		sockprintf(socket,"From: \"%s\" <%s>",msg->from,fromaddr);
 	sockprintf(socket,"Subject: %s",msg->subj);
-	if(strchr(msg->to,'@')!=NULL)
+	if(strchr(msg->to,'@')!=NULL || msg->to_net.addr==NULL)
 		sockprintf(socket,"To: %s",msg->to);	/* Avoid double-@ */
 	else if(msg->to_net.type==NET_INTERNET || msg->to_net.type==NET_QWK) {
 		if(*((char*)msg->to_net.addr)=='<')
@@ -915,9 +915,9 @@ static void pop3_thread(void* arg)
 				}
 
 				sockprintf(socket,"+OK message follows");
-				if(msg.from_net.type==NET_INTERNET)
+				if(msg.from_net.type==NET_INTERNET && msg.from_net.addr!=NULL)
 					strcpy(fromaddr,msg.from_net.addr);
-				else if(msg.from_net.type==NET_QWK)
+				else if(msg.from_net.type==NET_QWK && msg.from_net.addr!=NULL)
 					sprintf(fromaddr,"\"%s@%s\"@%s"
 						,msg.from,(char*)msg.from_net.addr,scfg.sys_inetaddr);
 				else 
@@ -2193,7 +2193,7 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	}
 	smb_hfield(&newmsg, RECIPIENTAGENT, sizeof(ushort), &newmsg.from_agent);
 	smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(newmsg.from_net.type), &newmsg.from_net.type);
-	if(newmsg.from_net.type) 
+	if(newmsg.from_net.type && newmsg.from_net.addr!=NULL) 
 		smb_hfield(&newmsg, RECIPIENTNETADDR, (ushort)strlen(newmsg.from_net.addr)
 			,newmsg.from_net.addr);
 	strcpy(str,"Mail Delivery Subsystem");
@@ -2344,7 +2344,7 @@ static void sendmail_thread(void* arg)
 			}
 			smb_unlockmsghdr(&smb,&msg);
 
-			if(msg.to_net.type!=NET_INTERNET) 
+			if(msg.to_net.type!=NET_INTERNET || msg.to_net.addr==NULL) 
 				continue;
 
 			active_sendmail=1;
@@ -2473,7 +2473,7 @@ static void sendmail_thread(void* arg)
 				continue;
 			}
 			/* MAIL */
-			if(msg.from_net.type==NET_INTERNET)
+			if(msg.from_net.type==NET_INTERNET && msg.from_net.addr!=NULL)
 				strcpy(fromaddr,msg.from_net.addr);
 			else 
 				usermailaddr(&scfg,fromaddr,msg.from);
