@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.71 2003/04/26 17:44:34 deuce Exp $
+# $Id: GNUmakefile,v 1.72 2003/04/30 03:23:16 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -75,7 +75,6 @@ DELETE	=	rm -f
 CFLAGS	+=	-DJAVASCRIPT -I../../include/mozilla/js -I$(XPDEV) -I$(UIFC)
 
 ifdef BSD	# BSD
- CFLAGS	+=	-D_THREAD_SAFE
  # Math libraries needed and uses pthread
  LFLAGS	:=	-lm -pthread -lutil
 else			# Linux / Other UNIX

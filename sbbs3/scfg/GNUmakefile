@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.27 2003/04/28 06:24:54 deuce Exp $
+# $Id: GNUmakefile,v 1.28 2003/04/30 03:23:16 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -45,7 +45,7 @@ DELETE	=	rm -f
 OUTLIB	=	-o
 
 CFLAGS	+=	-MMD
-CFLAGS	+=	-Wall -I$(UIFC) -I$(XPDEV) -I../  -D_THREAD_SAFE
+CFLAGS	+=	-Wall -I$(UIFC) -I$(XPDEV) -I../
 
 LFLAGS	:=	-L/usr/local/lib
 
