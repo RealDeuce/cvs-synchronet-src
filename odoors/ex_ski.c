@@ -26,8 +26,7 @@
 #include <time.h>
 #include <errno.h>
 #include <stdlib.h>
-
-#include "genwrap.h"
+#include <genwrap.h>
 
 
 /* Hard-coded configurable constants - change these values to alter game */
@@ -38,7 +37,7 @@
 #define CHANGE_DIRECTION      10       /* % of ticks course changes direction */
 #define MAX_NAME_SIZE         35       /* Maximum characters in player name */
 #define WAIT_FOR_FILE         10       /* Time to wait for access to file */
-#define SCORE_FILENAME   "skigame.dat" /* Name of high score file */
+#define SCORE_FILENAME   "SKIGAME.DAT" /* Name of high score file */
 
 
 /* High-score file format structure */
