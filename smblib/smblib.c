@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.117 2004/09/16 08:57:54 rswindell Exp $ */
+/* $Id: smblib.c,v 1.115 2004/09/13 00:31:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1366,11 +1366,10 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	}
 	msg->idx.number=msg->hdr.number=smb->status.last_msg+1;
 
-	/* This is *not* a dupe-check */
 	if(!(msg->flags&MSG_FLAG_HASHED) /* not already hashed */
-		&& (i=smb_hashmsg(smb,msg,NULL,/* update? */TRUE))!=SMB_SUCCESS) {
+		&& (i=smb_hashmsg(smb,msg,NULL,FALSE))!=SMB_SUCCESS) {
 		smb_unlocksmbhdr(smb);
-		return(i);	/* error updating hash table */
+		return(i);	/* Duplicate message? */
 	}
 
 	if(storage!=SMB_HYPERALLOC && (i=smb_open_ha(smb))!=SMB_SUCCESS) {
