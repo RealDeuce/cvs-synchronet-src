@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.51 2002/11/15 01:48:13 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.52 2002/11/16 23:35:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1179,7 +1179,10 @@ static BOOL get_req(http_session_t * session)
 	char	req_line[MAX_REQUEST_LINE];
 	char *	p;
 	fd_set	sockset;
-	struct timeval tv={startup->max_inactivity,0};
+	struct timeval tv;
+	
+	tv.tv_sec=startup->max_inactivity;
+	tv.tv_usec=0;
 	
 	FD_ZERO(&sockset);
 	FD_SET(session->socket,&sockset);
@@ -2015,7 +2018,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.51 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.52 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
