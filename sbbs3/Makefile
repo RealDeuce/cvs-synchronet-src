@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.24 2003/04/02 02:03:40 rswindell Exp $
+# $Id: Makefile,v 1.25 2003/04/23 09:44:53 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -173,6 +173,8 @@ $(ECHOCFG): echocfg.c rechocfg.c \
 	$(UIFC)uifc.c \
 	$(UIFC)uifcx.c \
 	$(UIFC)uifcfltk.cpp \
+	$(LIBODIR)\genwrap.obj \
+	$(LIBODIR)\dirwrap.obj \
 	$(LIBODIR)\nopen.obj \
 	$(LIBODIR)\crc16.obj \
 	$(LIBODIR)\str_util.obj \

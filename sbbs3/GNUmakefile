@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.68 2003/04/01 11:04:27 rswindell Exp $
+# $Id: GNUmakefile,v 1.69 2003/04/23 09:44:53 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -299,6 +299,7 @@ $(ECHOCFG): \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/filewrap.o \
 	$(EXEODIR)/genwrap.o
+	$(EXEODIR)/dirwrap.o
 	@echo Linking $@
 	@$(CC) -o $@ $^ $(UIFC_LFLAGS)
 
