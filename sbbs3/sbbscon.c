@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.26 2001/12/01 04:07:40 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.27 2002/02/10 23:02:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,11 +446,11 @@ int main(int argc, char** argv)
 	signal(SIGQUIT, _sighandler_quit);
 	signal(SIGABRT, _sighandler_quit);
 	signal(SIGTERM, _sighandler_quit);
-#endif
 
 	if(!isatty(fileno(stdin)))			/* redirected */
 		select(0,NULL,NULL,NULL,NULL);	/* so wait here until signaled */
 	else								/* interactive */
+#endif
 		while(!quit) {
 			ch=getch();
 			printf("%c\n",ch);
