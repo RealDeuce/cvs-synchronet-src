@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.27 2002/07/13 10:12:36 rswindell Exp $ */
+/* $Id: js_system.c,v 1.28 2002/07/25 06:05:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -583,10 +583,6 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		fname;
 	JSString*	js_str;
 	JSString*	js_fname;
-	scfg_t*		cfg;
-
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_FALSE);
 
 	if((js_fname=JS_ValueToString(cx, argv[0]))==NULL) {
 		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
@@ -608,7 +604,7 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(findstr(cfg,str,fname));	// user args are reversed
+	*rval = BOOLEAN_TO_JSVAL(findstr(str,fname));	// user args are reversed
 	return(JS_TRUE);
 }
 

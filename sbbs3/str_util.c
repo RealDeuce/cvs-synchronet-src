@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.1 2002/04/26 00:13:09 rswindell Exp $ */
+/* $Id: str_util.c,v 1.2 2002/07/25 06:05:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,7 @@ char* DLLCALL prep_file_desc(char *str)
 /****************************************************************************/
 /* Pattern matching string search of 'insearchof' in 'fname'.				*/
 /****************************************************************************/
-BOOL DLLCALL findstr(scfg_t* cfg, char* insearchof, char* fname)
+BOOL DLLCALL findstr(char* insearchof, char* fname)
 {
 	char*	p;
 	char	str[128];
@@ -188,7 +188,7 @@ BOOL DLLCALL trashcan(scfg_t* cfg, char* insearchof, char* name)
 	char fname[MAX_PATH+1];
 
 	sprintf(fname,"%s%s.can",cfg->text_dir,name);
-	return(findstr(cfg,insearchof,fname));
+	return(findstr(insearchof,fname));
 }
 
 /****************************************************************************/
