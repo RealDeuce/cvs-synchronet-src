@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.21 2001/08/02 04:15:36 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.22 2001/09/13 18:33:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,6 +284,8 @@ __published:	// IDE-managed Components
     void __fastcall ViewEventsExecute(TObject *Sender);
     void __fastcall DataMenuItemClick(TObject *Sender);
     void __fastcall BBSConfigWizardMenuItemClick(TObject *Sender);
+    void __fastcall PageControlUnDock(TObject *Sender,
+          TControl *Client, TWinControl *NewTarget, bool &Allow);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
@@ -298,6 +300,7 @@ public:		// User declarations
     AnsiString      LoginCommand;
     AnsiString      ConfigCommand;
     bool            MinimizeToSysTray;
+    bool            UndockableForms;
     scfg_t		    cfg;
     bbs_startup_t 	bbs_startup;
     mail_startup_t 	mail_startup;
