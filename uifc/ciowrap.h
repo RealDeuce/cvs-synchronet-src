@@ -1,3 +1,5 @@
+/* $Id: ciowrap.h,v 1.3 2003/08/29 11:42:28 rswindell Exp $ */
+
 #include "curs_fix.h"
 
 #define MONO	1

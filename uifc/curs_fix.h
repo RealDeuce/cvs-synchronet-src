@@ -1,3 +1,5 @@
+/* $Id: curs_fix.h,v 1.2 2003/08/29 11:42:28 rswindell Exp $ */
+
 #include <curses.h>
 
 #ifndef	ACS_SBSD

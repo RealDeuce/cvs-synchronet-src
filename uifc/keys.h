@@ -1,3 +1,5 @@
+/* $Id: keys.h,v 1.3 2003/08/29 11:42:28 rswindell Exp $ */
+
 #define KEY_HOME      0x47 << 8
 #define KEY_UP        72   << 8
 #define KEY_END       0x4f << 8
