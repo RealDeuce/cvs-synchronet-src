@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.280 2003/05/13 05:31:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.281 2003/05/13 05:45:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1096,11 +1096,10 @@ void input_thread(void *arg)
 		total_pkts++;
 
         // telbuf and wr are modified to reflect telnet escaped data
+		wr=rd;
 #ifdef __unix__
-		if(sock!=sbbs->client_socket)  {
-			wr=rd;
+		if(sock!=sbbs->client_socket)
 			wrbuf=inbuf;
-		}
 		else
 #endif
 		if(sbbs->telnet_mode&TELNET_MODE_OFF)
