@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.25 2003/04/26 17:47:16 deuce Exp $ */
+/* $Id: uifc.h,v 1.26 2003/05/11 17:48:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,6 +171,9 @@
 #define WIN_PUT 	(1<<13) /* Allows F6 to Put a menu item */
 #define WIN_CHE 	(1<<14) /* Stay active after escape if changes */
 #define WIN_XTR 	(1<<15) /* Add extra line at end for inserting at end */
+#ifdef __unix__
+#define WIN_DYN 	(1<<16) /* Dynamic menu - return at least every second */
+#endif
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
