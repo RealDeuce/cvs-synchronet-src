@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.249 2005/01/11 03:48:40 deuce Exp $ */
+/* $Id: websrvr.c,v 1.262 2005/02/15 03:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,7 +100,7 @@
 #undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "sockwrap.h"		/* sendfilesocket() */
-#include "threadwrap.h"		/* pthread_mutex_t */
+#include "threadwrap.h"
 #include "semwrap.h"
 #include "websrvr.h"
 #include "base64.h"
@@ -134,6 +134,7 @@ static SOCKET	server_socket=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
+static char		temp_dir[MAX_PATH+1];
 static char		cgi_dir[MAX_PATH+1];
 static time_t	uptime=0;
 static DWORD	served=0;
@@ -146,7 +147,6 @@ static named_string_t** mime_types;
 
 /* Logging stuff */
 sem_t	log_sem;
-pthread_mutex_t	log_mutex;
 link_list_t	log_list;
 struct log_data {
 	char	*hostname;
@@ -155,6 +155,7 @@ struct log_data {
 	char	*request;
 	char	*referrer;
 	char	*agent;
+	char	*vhost;
 	int		status;
 	unsigned int	size;
 	struct tm completed;
@@ -190,7 +191,7 @@ typedef struct  {
 
 	/* Dynamically (sever-side JS) generated HTML parameters */
 	FILE*	fp;
-
+	char		*cleanup_file;
 } http_request_t;
 
 typedef struct  {
@@ -730,9 +731,7 @@ static void close_request(http_session_t * session)
 	if(session->req.ld!=NULL) {
 		now=time(NULL);
 		localtime_r(&now,&session->req.ld->completed);
-		pthread_mutex_lock(&log_mutex);
 		listPushNode(&log_list,session->req.ld);
-		pthread_mutex_unlock(&log_mutex);
 		sem_post(&log_sem);
 		session->req.ld=NULL;
 	}
@@ -753,6 +752,12 @@ static void close_request(http_session_t * session)
 	}
 	if(session->subscan!=NULL)
 		putmsgptrs(&scfg, session->user.number, session->subscan);
+
+	if(session->req.cleanup_file!=NULL) {
+		if(!(startup->options&WEB_OPT_DEBUG_SSJS))
+			remove(session->req.cleanup_file);
+		free(session->req.cleanup_file);
+	}
 
 	memset(&session->req,0,sizeof(session->req));
 }
@@ -950,7 +955,7 @@ static int sock_sendfile(SOCKET socket,char *path)
 	if((file=open(path,O_RDONLY|O_BINARY))==-1)
 		lprintf(LOG_WARNING,"%04d !ERROR %d opening %s",socket,errno,path);
 	else {
-		if((ret=sendfilesocket(socket, file, &offset, 0)) < 1) {
+		if((ret=sendfilesocket(socket, file, &offset, 0)) < 0) {
 			lprintf(LOG_DEBUG,"%04d !ERROR %d sending %s"
 				, socket, errno, path);
 			ret=0;
@@ -1005,6 +1010,8 @@ static void send_error(http_session_t * session, const char* message)
 
 void http_logon(http_session_t * session, user_t *usr)
 {
+	char	str[128];
+
 	if(usr==NULL)
 		getuserdat(&scfg, &session->user);
 	else
@@ -1018,6 +1025,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	if(session->subscan!=NULL)
 		getmsgptrs(&scfg,session->user.number,session->subscan);
 
+	session->logon_time=time(NULL);
 	if(session->user.number==0)
 		SAFECOPY(session->username,unknown);
 	else {
@@ -1026,12 +1034,12 @@ void http_logon(http_session_t * session, user_t *usr)
 		putuserrec(&scfg,session->user.number,U_MODEM,LEN_MODEM,"HTTP");
 		putuserrec(&scfg,session->user.number,U_COMP,LEN_COMP,session->host_name);
 		putuserrec(&scfg,session->user.number,U_NOTE,LEN_NOTE,session->host_ip);
+		putuserrec(&scfg,session->user.number,U_LOGONTIME,0,ultoa(session->logon_time,str,16));
 	}
 	session->client.user=session->username;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
 
 	session->last_user_num=session->user.number;
-	session->logon_time=time(NULL);
 }
 
 void http_logoff(http_session_t * session)
@@ -1304,7 +1312,7 @@ int recvbufsocket(int sock, char *buf, long count)
 	}
 
 	while(rd<count && socket_check(sock,NULL,NULL,startup->max_inactivity*1000))  {
-		i=recv(sock,buf,count-rd,0);
+		i=recv(sock,buf+rd,count-rd,0);
 		if(i<=0)  {
 			*buf=0;
 			return(0);
@@ -1351,7 +1359,7 @@ static void js_add_queryval(http_session_t * session, char *key, char *value)
 {
 	JSObject*	keyarray;
 	jsval		val;
-	jsint		len;
+	jsuint		len;
 	int			alen;
 
 	/* Return existing object if it's already been created */
@@ -1422,7 +1430,7 @@ static void js_parse_query(http_session_t * session, char *p)  {
 
 	lp=p;
 
-	while(key_len=strcspn(lp,"="))  {
+	while((key_len=strcspn(lp,"="))!=0)  {
 		key=lp;
 		lp+=key_len;
 		if(*lp) {
@@ -1510,8 +1518,8 @@ static BOOL parse_headers(http_session_t * session)
 			session->req.post_len=recvbufsocket(session->socket,session->req.post_data,content_len);
 			if(session->req.post_len != content_len)
 				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,content_len,session->req.post_len);
-			if(session->req.post_len<0)
-				session->req.post_len=0;
+			if(session->req.post_len > content_len)
+				session->req.post_len = content_len;
 			session->req.post_data[session->req.post_len]=0;
 			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
 				js_add_request_prop(session,"post_data",session->req.post_data);
@@ -1568,12 +1576,13 @@ static int is_dynamic_req(http_session_t* session)
 			return(IS_STATIC);
 		}
 
-		sprintf(path,"%s/SBBS_SSJS.%d.html",startup->cgi_temp_dir,session->socket);
+		sprintf(path,"%sSBBS_SSJS.%d.html",temp_dir,session->socket);
 		if((session->req.fp=fopen(path,"wb"))==NULL) {
 			lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
 			send_error(session,error_500);
 			return(IS_STATIC);
 		}
+		session->req.cleanup_file=strdup(path);
 		return(i);
 	}
 
@@ -1753,6 +1762,8 @@ static BOOL get_req(http_session_t * session, char *request_line)
 				get_request_headers(session);
 			if(!get_fullpath(session))
 				return(FALSE);
+			if(session->req.ld!=NULL)
+				session->req.ld->vhost=strdup(session->req.vhost);
 			session->req.dynamic=is_dynamic_req(session);
 			if(session->req.query_str[0])  {
 				switch(session->req.dynamic) {
@@ -2091,9 +2102,11 @@ static BOOL exec_cgi(http_session_t *session)
 	start=time(NULL);
 
 
-	post_offset+=write(in_pipe[1],
+	i=write(in_pipe[1],
 		session->req.post_data+post_offset,
 		session->req.post_len-post_offset);
+	if(i>0)
+		post_offset+=i;
 
 	high_fd=out_pipe[0];
 	if(err_pipe[0]>high_fd)
@@ -2127,7 +2140,8 @@ static BOOL exec_cgi(http_session_t *session)
 					i=write(in_pipe[1],
 						session->req.post_data+post_offset,
 						session->req.post_len-post_offset);
-					post_offset += i;
+					if(i>0)
+						post_offset += i;
 					if(post_offset>=session->req.post_len || done_reading)
 						close(in_pipe[1]);
 					else if(i!=post_offset)
@@ -2209,6 +2223,10 @@ static BOOL exec_cgi(http_session_t *session)
 				if(i>0)
 					start=time(NULL);
 			}
+			if(!done_wait)
+				done_wait = (waitpid(child,&status,WNOHANG)==child);
+			if(!FD_ISSET(err_pipe[0],&read_set) && !FD_ISSET(out_pipe[0],&read_set) && done_wait)
+				done_reading=TRUE;
 		}
 		else  {
 			if((time(NULL)-start) >= startup->max_cgi_inactivity)  {
@@ -2230,6 +2248,8 @@ static BOOL exec_cgi(http_session_t *session)
 			lprintf(LOG_ERR,"%s",buf);
 	}
 
+	if(!done_wait)
+		done_wait = (waitpid(child,&status,WNOHANG)==child);
 	if(!done_wait)  {
 		if(start)
 			lprintf(LOG_NOTICE,"%04d CGI Script %s still alive on client exit",session->socket,cmdline);
@@ -2635,7 +2655,7 @@ static void respond(http_session_t * session)
 			return;
 		}
 		sprintf(session->req.physical_path
-			,"%s/SBBS_SSJS.%d.html",startup->cgi_temp_dir,session->socket);
+			,"%sSBBS_SSJS.%d.html",temp_dir,session->socket);
 	}
 
 	session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
@@ -2644,7 +2664,8 @@ static void respond(http_session_t * session)
 		send_file=FALSE;
 	if(send_file)  {
 		int snt=0;
-		lprintf(LOG_INFO,"%04d Sending file: %s",session->socket, session->req.physical_path);
+		lprintf(LOG_INFO,"%04d Sending file: %s (%u bytes)"
+			,session->socket, session->req.physical_path, flength(session->req.physical_path));
 		snt=sock_sendfile(session->socket,session->req.physical_path);
 		if(session->req.ld!=NULL) {
 			if(snt<0)
@@ -2652,7 +2673,8 @@ static void respond(http_session_t * session)
 			session->req.ld->size=snt;
 		}
 		if(snt>0)
-			lprintf(LOG_INFO,"%04d Sent file: %s",session->socket, session->req.physical_path);
+			lprintf(LOG_INFO,"%04d Sent file: %s (%d bytes)"
+				,session->socket, session->req.physical_path, snt);
 	}
 	close_request(session);
 }
@@ -2681,8 +2703,7 @@ void http_session_thread(void* arg)
 	thread_up(TRUE /* setuid */);
 	session.finished=FALSE;
 
-	srand(time(NULL));	/* Seed random number generator */
-	sbbs_random(10);	/* Throw away first number */
+	sbbs_srand();	/* Seed random number generator */
 
 	if(startup->options&BBS_OPT_NO_HOST_LOOKUP)
 		host=NULL;
@@ -2855,7 +2876,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.249 $", "%*s %s", revision);
+	sscanf("$Revision: 1.262 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2901,15 +2922,18 @@ void http_logging_thread(void* arg)
 		if(terminate_http_logging_thread)
 			break;
 
-		pthread_mutex_lock(&log_mutex);
 		ld=listShiftNode(&log_list);
-		pthread_mutex_unlock(&log_mutex);
 		if(ld==NULL) {
 			lprintf(LOG_ERR,"%04d http logging thread received NULL linked list log entry"
 				,server_socket);
 			continue;
 		}
 		SAFECOPY(newfilename,base);
+		if(startup->options&WEB_OPT_VIRTUAL_HOSTS && ld->vhost!=NULL) {
+			strcat(newfilename,ld->vhost);
+			if(ld->vhost[0])
+				strcat(newfilename,"-");
+		}
 		strftime(strchr(newfilename,0),15,"%Y-%m-%d.log",&ld->completed);
 		if(strcmp(newfilename,filename)) {
 			if(logfile!=NULL)
@@ -2919,35 +2943,37 @@ void http_logging_thread(void* arg)
 			lprintf(LOG_INFO,"%04d http logfile is now: %s",server_socket,filename);
 		}
 		if(logfile!=NULL) {
-			sprintf(sizestr,"%d",ld->size);
-			strftime(timestr,sizeof(timestr),"%d/%b/%Y:%H:%M:%S %z",&ld->completed);
-			while(lock(fileno(logfile),0,1) && !terminate_http_logging_thread) {
-				SLEEP(10);
+			if(ld->status) {
+				sprintf(sizestr,"%d",ld->size);
+				strftime(timestr,sizeof(timestr),"%d/%b/%Y:%H:%M:%S %z",&ld->completed);
+				while(lock(fileno(logfile),0,1) && !terminate_http_logging_thread) {
+					SLEEP(10);
+				}
+				fprintf(logfile,"%s %s %s [%s] \"%s\" %d %s \"%s\" \"%s\"\n"
+						,ld->hostname?(ld->hostname[0]?ld->hostname:"-"):"-"
+						,ld->ident?(ld->ident[0]?ld->ident:"-"):"-"
+						,ld->user?(ld->user[0]?ld->user:"-"):"-"
+						,timestr
+						,ld->request?(ld->request[0]?ld->request:"-"):"-"
+						,ld->status
+						,ld->size?sizestr:"-"
+						,ld->referrer?(ld->referrer[0]?ld->referrer:"-"):"-"
+						,ld->agent?(ld->agent[0]?ld->agent:"-"):"-");
+				fflush(logfile);
+				unlock(fileno(logfile),0,1);
 			}
-			fprintf(logfile,"%s %s %s [%s] \"%s\" %d %s \"%s\" \"%s\"\n"
-					,ld->hostname?(ld->hostname[0]?ld->hostname:"-"):"-"
-					,ld->ident?(ld->ident[0]?ld->ident:"-"):"-"
-					,ld->user?(ld->user[0]?ld->user:"-"):"-"
-					,timestr
-					,ld->request?(ld->request[0]?ld->request:"-"):"-"
-					,ld->status
-					,ld->size?sizestr:"-"
-					,ld->referrer?(ld->referrer[0]?ld->referrer:"-"):"-"
-					,ld->agent?(ld->agent[0]?ld->agent:"-"):"-");
-			fflush(logfile);
-			unlock(fileno(logfile),0,1);
-			FREE_AND_NULL(ld->hostname);
-			FREE_AND_NULL(ld->ident);
-			FREE_AND_NULL(ld->user);
-			FREE_AND_NULL(ld->request);
-			FREE_AND_NULL(ld->referrer);
-			FREE_AND_NULL(ld->agent);
-			FREE_AND_NULL(ld);
 		}
 		else {
 			logfile=fopen(filename,"ab");
 			lprintf(LOG_ERR,"%04d http logfile %s was not open!",server_socket,filename);
 		}
+		FREE_AND_NULL(ld->hostname);
+		FREE_AND_NULL(ld->ident);
+		FREE_AND_NULL(ld->user);
+		FREE_AND_NULL(ld->request);
+		FREE_AND_NULL(ld->referrer);
+		FREE_AND_NULL(ld->agent);
+		FREE_AND_NULL(ld);
 	}
 	if(logfile!=NULL) {
 		fclose(logfile);
@@ -3020,19 +3046,6 @@ void DLLCALL web_server(void* arg)
 	js_server_props.options=&startup->options;
 	js_server_props.interface_addr=&startup->interface_addr;
 
-	/* Copy html directories */
-	SAFECOPY(root_dir,startup->root_dir);
-	SAFECOPY(error_dir,startup->error_dir);
-	SAFECOPY(cgi_dir,startup->cgi_dir);
-
-	/* Change to absolute path */
-	prep_dir(startup->ctrl_dir, root_dir, sizeof(root_dir));
-	prep_dir(root_dir, error_dir, sizeof(error_dir));
-	prep_dir(root_dir, cgi_dir, sizeof(cgi_dir));
-
-	/* Trim off trailing slash/backslash */
-	if(IS_PATH_DELIM(*(p=lastchar(root_dir))))	*p=0;
-
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
@@ -3044,6 +3057,23 @@ void DLLCALL web_server(void* arg)
 		thread_up(FALSE /* setuid */);
 
 		status("Initializing");
+
+		/* Copy html directories */
+		SAFECOPY(root_dir,startup->root_dir);
+		SAFECOPY(error_dir,startup->error_dir);
+		SAFECOPY(temp_dir,startup->temp_dir);
+		SAFECOPY(cgi_dir,startup->cgi_dir);
+
+		/* Change to absolute path */
+		prep_dir(startup->ctrl_dir, root_dir, sizeof(root_dir));
+		prep_dir(startup->ctrl_dir, temp_dir, sizeof(temp_dir));
+		prep_dir(root_dir, error_dir, sizeof(error_dir));
+		prep_dir(root_dir, cgi_dir, sizeof(cgi_dir));
+
+		/* Trim off trailing slash/backslash */
+		if(IS_PATH_DELIM(*(p=lastchar(root_dir))))	*p=0;
+
+		backslash(temp_dir);	/* Add trailing slash/backslash if missing */
 
 		memset(&scfg, 0, sizeof(scfg));
 
@@ -3072,6 +3102,12 @@ void DLLCALL web_server(void* arg)
 
 		lprintf(LOG_DEBUG,"Root HTML directory: %s", root_dir);
 		lprintf(LOG_DEBUG,"Error HTML directory: %s", error_dir);
+		lprintf(LOG_DEBUG,"Temporary file directory: %s", temp_dir);
+		if(!isdir(temp_dir)) {
+			lprintf(LOG_ERR,"!Invalid temp directory: %s", temp_dir);
+			cleanup(1);
+			return;
+		}
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
@@ -3166,7 +3202,6 @@ void DLLCALL web_server(void* arg)
 			/* Start log thread */
 			/********************/
 			sem_init(&log_sem,0,0);
-			pthread_mutex_init(&log_mutex,NULL);
 			_beginthread(http_logging_thread, 0, startup->logfile_base);
 		}
 
