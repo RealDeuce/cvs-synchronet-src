@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.48 2003/06/13 23:45:41 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.49 2003/07/24 11:44:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,6 +92,11 @@ extern "C" {
 	#define DESCRIBE_COMPILER(str) sprintf(str,"WATC %d" \
 		,__WATCOMC__);
 
+#elif defined(__DMC__)	/* Digital Mars C/C++ */
+
+	#define DESCRIBE_COMPILER(str) sprintf(str,"DMC %X.%02X" \
+		,__DMC__>>8,__DMC__&0xff);	
+
 #else /* Unknown compiler */
 
 	#define DESCRIBE_COMPILER(str) strcpy(str,"UNKNOWN COMPILER");
@@ -141,7 +146,7 @@ extern "C" {
 
 #define snprintf	safe_snprintf
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__DMC__)
 	#define vsnprintf		_vsnprintf
 #endif
 
