@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.30 2002/08/09 09:15:46 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.31 2002/08/10 09:56:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -425,14 +425,19 @@ char* DLLCALL prep_dir(char* base, char* path)
 #ifdef __unix__
 	char	*p;
 #endif
-	char	str[LEN_DIR*2];
+	char	str[MAX_PATH+1];
 	char	abspath[MAX_PATH+1];
+	char	ch;
 
 	if(!path[0])
 		return(path);
-	if(path[0]!='\\' && path[0]!='/' && path[1]!=':')           /* Relative to NODE directory */
-		sprintf(str,"%s/%s",base,path);
-	else
+	if(path[0]!='\\' && path[0]!='/' && path[1]!=':') {	/* Relative directory */
+		ch=*lastchar(base);
+		if(ch=='\\' || ch=='/')
+			sprintf(str,"%s%s",base,path);
+		else
+			sprintf(str,"%s%c%s",base,BACKSLASH,path);
+	} else
 		strcpy(str,path);
 
 #ifdef __unix__				/* Change backslashes to forward slashes on Unix */
