@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.8 2001/03/09 21:59:44 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.9 2001/03/14 22:00:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -759,6 +759,7 @@ void sbbs_t::skipto(csi_t *csi, uchar inst)
 							csi->ip+=4;				/* intvar */
 							continue;
 						case CS_SOCKET_READ:
+						case CS_SOCKET_READLINE:
 						case CS_SOCKET_PEEK:
 							csi->ip+=4;				/* socket */
 							csi->ip+=4;				/* buffer */
