@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.82 2003/05/09 06:27:05 rswindell Exp $
+# $Id: GNUmakefile,v 1.83 2003/05/09 06:28:11 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -368,7 +368,7 @@ $(SBBSECHO): $(SBBSECHO_OBJS)
 	@$(CC) -o $@ $^
 
 # SBBSecho Configuration Program
-$(ECHOCFG_OBJS) = \
+ECHOCFG_OBJS = \
 	$(EXEODIR)/echocfg.o \
 	$(EXEODIR)/rechocfg.o \
 	$(UIFC_OBJS) \
