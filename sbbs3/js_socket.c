@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.87 2003/05/09 00:12:45 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.88 2003/05/20 03:15:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -779,7 +779,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = STRING_TO_JSVAL(str);
 	dbprintf(FALSE, p, "received %u bytes (recvline) lasterror=%d"
-		,strlen(buf),ERROR_VALUE);
+		,i,ERROR_VALUE);
 		
 	return(JS_TRUE);
 }
