@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.64 2003/12/07 09:33:22 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.65 2003/12/13 00:43:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,8 +121,9 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_DNSBL_REFUSE			,"DNSBL_REFUSE"			},
 	{ MAIL_OPT_DNSBL_IGNORE			,"DNSBL_IGNORE"			},
 	{ MAIL_OPT_DNSBL_BADUSER		,"DNSBL_BADUSER"		},
-	{ MAIL_OPT_DNSBL_DEBUG			,"DNSBL_DEBUG"			},
 	{ MAIL_OPT_DNSBL_CHKRECVHDRS	,"DNSBL_CHKRECVHDRS"	},
+	{ MAIL_OPT_DNSBL_THROTTLE		,"DNSBL_THROTTLE"		},
+	{ MAIL_OPT_DNSBL_DEBUG			,"DNSBL_DEBUG"			},
 	{ MAIL_OPT_SEND_INTRANSIT		,"SEND_INTRANSIT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ MAIL_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
