@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.15 2002/04/26 00:40:24 rswindell Exp $ */
+/* $Id: uifc.h,v 1.16 2002/04/30 08:06:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,5 +331,6 @@ typedef struct {
 /****************************************************************************/
 int uifcini(uifcapi_t*);	/* Original implementation based on conio		*/
 int uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
+int uifcinic(uifcapi_t*);	/* Unix curses implementation (by Deuce)		*/
 int uifcinid(uifcapi_t*);	/* Unix libdialog implementation (by Deuce)		*/
 /****************************************************************************/
