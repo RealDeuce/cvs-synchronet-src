@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.cpp,v 1.9 2003/07/25 08:26:05 rswindell Exp $ */
+/* $Id: ClientFormUnit.cpp,v 1.10 2003/09/26 07:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 #include "ClientFormUnit.h"
 #include "sbbs.h"		// filter_ip
 
-void socket_open(BOOL open);
+void socket_open(void*, BOOL open);
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -98,7 +98,7 @@ void __fastcall TClientForm::CloseSocketMenuItemClick(TObject *Sender)
 
     while(ListItem!=NULL) {
         if(closesocket(atoi(ListItem->Caption.c_str()))==0)
-            socket_open(FALSE);
+            socket_open(NULL, FALSE);
         ListItem=ListView->GetNextItem(ListItem,sdAll,State);
     }
 }
