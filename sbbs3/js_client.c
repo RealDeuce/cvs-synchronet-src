@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.8 2002/10/16 09:45:41 rswindell Exp $ */
+/* $Id: js_client.c,v 1.9 2002/11/08 01:35:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,8 @@ enum {
 	,"date/time of initial connection (in time_t format)"
 	,"protocol description (e.g. 'Telnet', 'FTP', etc.)"
 	,"user's name/alias (if logged in)"
+	/* this next one must be last */
+	,"instance of <a href=#Socket>Socket class</a> representing client's TCP/IP connection"
 	};
 #endif
 
