@@ -1,5 +1,4 @@
 #include <windows.h>	/* INPUT_RECORD, etc. */
-#include <genwrap.h>
 #include <stdio.h>		/* stdin */
 #include "ciolib.h"
 #include "keys.h"
@@ -8,15 +7,6 @@
 #define VID_MODES	7
 
 const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
-
-const int	altkeys[26]={
-	 30,48,46,32
-	,18,33,34,35
-	,23,36,37,38
-	,50,49,24,25
-	,16,19,31,20
-	,22,47,17,45
-	,21,44};
 
 struct vid_mode {
 	int	mode;
@@ -102,7 +92,7 @@ int win32_kbhit(void)
 			return(1);
 		if(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 			|| !num)
-			return(0);
+			break;
 		if(input.EventType==KEY_EVENT && input.Event.KeyEvent.bKeyDown)
 			return(1);
 		if(domouse) {
@@ -110,7 +100,7 @@ int win32_kbhit(void)
 				if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
 					ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
 				}
-				if(last_state != input.Event.MouseEvent.dwButtonState) {
+				if(!input.Event.MouseEvent.dwEventFlags) {
 					switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
 						case FROM_LEFT_1ST_BUTTON_PRESSED:
 							if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
@@ -135,12 +125,17 @@ int win32_kbhit(void)
 				}
 			}
 		}
-		ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num);
+		if(ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+			&& num) {
+			continue;
+		}
 	}
+	return(0);
 }
 
 int win32_getch(void)
 {
+	char str[128];
 	INPUT_RECORD input;
 	DWORD num=0;
 
@@ -184,12 +179,6 @@ int win32_getch(void)
 				OutputDebugString(str);
 #endif
 
-				if(input.Event.KeyEvent.dwControlKeyState & (LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED)
-						&& isalpha(input.Event.KeyEvent.uChar.AsciiChar)) {
-					lastch=altkeys[toupper(input.Event.KeyEvent.uChar.AsciiChar)-'A']<<8;
-					break;
-				}
-
 				if(input.Event.KeyEvent.uChar.AsciiChar)
 					lastch=input.Event.KeyEvent.uChar.AsciiChar;
 				else
@@ -201,7 +190,7 @@ int win32_getch(void)
 						if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
 							ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
 						}
-						if(last_state != input.Event.MouseEvent.dwButtonState) {
+						if(!input.Event.MouseEvent.dwEventFlags) {
 							switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
 								case FROM_LEFT_1ST_BUTTON_PRESSED:
 									if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
@@ -240,34 +229,19 @@ int win32_getche(void)
 	return(ch);
 }
 
-#ifndef ENABLE_EXTENDED_FLAGS
-#define ENABLE_INSERT_MODE		0x0020
-#define ENABLE_QUICK_EDIT_MODE	0x0040
-#define ENABLE_EXTENDED_FLAGS	0x0080
-#define ENABLE_AUTO_POSITION	0x0100
-#endif
-
 int win32_initciolib(long inmode)
 {
 	DWORD conmode;
 
 	if(!isatty(fileno(stdin)))
 		return(0);
+	win32_textmode(inmode);
 	if(!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
 		return(0);
-	conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
+	conmode&=~ENABLE_PROCESSED_INPUT;
 	conmode|=ENABLE_MOUSE_INPUT;
 	if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode))
 		return(0);
-
-	if(!GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &conmode))
-		return(0);
-	conmode&=~ENABLE_PROCESSED_OUTPUT;
-	conmode&=~ENABLE_WRAP_AT_EOL_OUTPUT;
-	if(!SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), conmode))
-		return(0);
-
-	win32_textmode(inmode);
 	cio_api.mouse=1;
 	return(1);
 }
@@ -289,6 +263,7 @@ void win32_textmode(int mode)
 	int i;
 	COORD	sz;
 	SMALL_RECT	rc;
+	CONSOLE_SCREEN_BUFFER_INFO	sb;
 
 	for(i=0;i<VID_MODES;i++) {
 		if(vid_modes[i].mode==mode)
@@ -459,7 +434,10 @@ int win32_wherey(void)
 int win32_putch(int ch)
 {
 	struct text_info ti;
+	WORD sch;
+	int i;
 	unsigned char buf[2];
+	DWORD wr;
 
 	buf[0]=ch;
 	buf[1]=currattr;
