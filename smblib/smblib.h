@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.55 2004/09/15 20:24:37 rswindell Exp $ */
+/* $Id: smblib.h,v 1.57 2004/10/15 09:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,6 @@
 #define SMB_IS_OPEN(smb)	((smb)->shd_fp!=NULL)
 
 /* Legacy API functions */
-#include "filewrap.h"		/* SH_DENYRW */
 #define smb_incmsg(smb,msg)	smb_incmsg_dfields(smb,msg,1)
 #define smb_incdat			smb_incmsgdat
 #define smb_open_da(smb)	smb_open_fp(smb,&(smb)->sda_fp,SH_DENYRW)
@@ -206,6 +205,7 @@ SMBEXPORT ushort	SMBCALL smb_hfieldtypelookup(const char*);
 SMBEXPORT char*		SMBCALL smb_dfieldtype(ushort type);
 SMBEXPORT char*		SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* outstr);
 SMBEXPORT char*		SMBCALL smb_netaddr(net_t* net);
+SMBEXPORT ushort	SMBCALL smb_netaddr_type(const char* str);
 SMBEXPORT char*		SMBCALL smb_zonestr(short zone, char* outstr);
 SMBEXPORT char*		SMBCALL smb_hashsource(smbmsg_t* msg, int source);
 SMBEXPORT char*		SMBCALL smb_hashsourcetype(uchar type);
