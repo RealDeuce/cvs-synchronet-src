@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.10 2004/06/01 07:29:35 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.11 2004/06/01 07:40:51 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -541,14 +541,10 @@ void _putch(unsigned char ch, BOOL refresh_now)
 	{
 		switch(ch) {
 			case 30:
-
-
-//				cha=ACS_UARROW;
-				cha='^';
+				cha=ACS_UARROW;
 				break;
 			case 31:
-//				cha=ACS_DARROW;
-				cha='V';
+				cha=ACS_DARROW;
 				break;
 			default:
 				cha=ch;
