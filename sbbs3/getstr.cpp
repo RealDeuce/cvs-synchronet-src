@@ -2,7 +2,7 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.12 2003/07/08 03:42:17 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.13 2003/07/08 05:00:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
