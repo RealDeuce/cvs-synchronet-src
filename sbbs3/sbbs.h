@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.176 2003/05/04 11:04:31 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.177 2003/05/06 10:54:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -547,7 +547,7 @@ public:
 	uint	hotkey_inside;
 	uchar	lastnodemsg;	/* Number of node last message was sent to */
 	char	lastnodemsguser[LEN_ALIAS+1];
-	void	guruchat(char *line, char *guru, int gurunum);
+	void	guruchat(char* line, char* guru, int gurunum, char* last_answer);
 	bool	guruexp(char **ptrptr, char *line);
 	void	localguru(char *guru, int gurunum);
 	bool	sysop_page(void);
