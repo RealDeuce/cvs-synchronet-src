@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.54 2004/11/30 21:35:43 rswindell Exp $ */
+/* $Id: js_user.c,v 1.52 2004/02/14 07:16:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,9 +83,7 @@ enum {
 	,USER_PROP_EMAILS    
 	,USER_PROP_FBACKS    
 	,USER_PROP_ETODAY	
-	,USER_PROP_PTODAY
-	,USER_PROP_MAIL_WAITING
-	,USER_PROP_MAIL_PENDING
+	,USER_PROP_PTODAY	
 	,USER_PROP_ULB       
 	,USER_PROP_ULS       
 	,USER_PROP_DLB       
@@ -356,12 +354,6 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case USER_PROP_FREECDTPERDAY:
 			val=p->cfg->level_freecdtperday[user.level];
-			break;
-		case USER_PROP_MAIL_WAITING:
-			val=getmail(p->cfg,user.number,/* sent? */FALSE);
-			break;
-		case USER_PROP_MAIL_PENDING:
-			val=getmail(p->cfg,user.number,/* sent? */TRUE);
 			break;
 
 		default:	
@@ -737,8 +729,6 @@ static jsSyncPropertySpec js_user_stats_properties[] = {
 	{	"bytes_downloaded"	,USER_PROP_DLB        	,USER_PROP_FLAGS,		310 },
 	{	"files_downloaded"	,USER_PROP_DLS        	,USER_PROP_FLAGS,		310 },
 	{	"leech_attempts"	,USER_PROP_LEECH 	 	,USER_PROP_FLAGS,		310 },
-	{	"mail_waiting"		,USER_PROP_MAIL_WAITING	,USER_PROP_FLAGS,		312	},
-	{	"mail_pending"		,USER_PROP_MAIL_PENDING	,USER_PROP_FLAGS,		312	},
 	{0}
 };
 
@@ -991,7 +981,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		,"Instance of <i>User</i> class, representing current user online"
 		,310);
 	js_DescribeSyncConstructor(cx,userobj
-		,"To create a new user object: <tt>var u = new User(<i>number</i>)</tt>");
+		,"To create a new user object: <tt>var u = new User(number)</tt>");
 	js_CreateArrayOfStrings(cx, userobj
 		,"_property_desc_list", user_prop_desc, JSPROP_READONLY);
 #endif

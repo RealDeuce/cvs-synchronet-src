@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: sbbsctrl.cpp,v 1.17 2004/11/08 09:32:47 rswindell Exp $ */
+/* $Id: sbbsctrl.cpp,v 1.16 2004/10/14 09:30:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,6 @@ USEFORM("FtpCfgDlgUnit.cpp", FtpCfgDlg);
 USEFORM("ServicesCfgDlgUnit.cpp", ServicesCfgDlg);
 USEFORM("PreviewFormUnit.cpp", PreviewForm);
 USEFORM("WebFormUnit.cpp", WebForm);
-USEFORM("WebCfgDlgUnit.cpp", WebCfgDlg);
 //---------------------------------------------------------------------------
 #include "MainFormUnit.h"
 #include "SpyFormUnit.h"
