@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.27 2004/03/23 02:22:09 deuce Exp $ */
+/* $Id: filewrap.c,v 1.26 2003/08/14 12:10:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ int DLLCALL lock(int fd, long pos, long len)
 			return(-1);
 	#endif
 
-	#if !defined(F_SANEWRLCKNO) && !defined(__QNX__) && !defined(__solaris__)
+	#if !defined(F_SANEWRLCKNO) && !defined(__QNX__)
 		/* use flock (doesn't work over NFS) */
 		if(flock(fd,LOCK_EX|LOCK_NB)!=0 && errno != EOPNOTSUPP)
 			return(-1);
@@ -135,7 +135,7 @@ int DLLCALL unlock(int fd, long pos, long len)
 		return(-1);
 #endif
 
-#if !defined(F_SANEUNLCK) && !defined(__QNX__) && !defined(__solaris__)
+#if !defined(F_SANEUNLCK) && !defined(__QNX__)
 	/* use flock (doesn't work over NFS) */
 	if(flock(fd,LOCK_UN|LOCK_NB)!=0 && errno != EOPNOTSUPP)
 		return(-1);
@@ -182,7 +182,7 @@ int DLLCALL sopen(const char *fn, int access, int share, ...)
 	}
 #endif
 
-#if !defined(F_SANEWRLCKNO) && !defined(__QNX__) && !defined(__solaris__)
+#ifndef F_SANEWRLCKNO
 	/* use flock (doesn't work over NFS) */
 	if(share==SH_DENYRW)
 		flock_op|=LOCK_EX;

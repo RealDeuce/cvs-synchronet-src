@@ -11,27 +11,20 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.14 2004/03/23 23:55:30 deuce Exp $
+# $Id: GNUmakefile,v 1.12 2004/03/11 06:26:00 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 #USE_CURSES	=	1	# Curses version of UIFC
 #USE_FLTK	=	1	# Windowed version of UIFC
 USE_UIFC32	:=	1	# New 32-bit version of UIFC
-UIFC_SRC	=	../../uifc/
+UIFC	=	../../uifc/
 XPDEV	=	../../xpdev/
 
 NEED_UIFC	:=	1
 include $(XPDEV)/Common.gmake
-include $(UIFC_SRC)/Common.gmake
-
-CFLAGS	+=	-I../
 
 ifdef STATIC
  LDFLAGS	+=	-static
-endif
-
-ifeq ($(os),sunos)
- LDFLAGS	+=	-lsocket -lnsl
 endif
 
 $(SBBSINST): $(OBJS)
