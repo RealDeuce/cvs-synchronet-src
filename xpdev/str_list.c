@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.22 2004/09/01 10:14:16 rswindell Exp $ */
+/* $Id: str_list.c,v 1.23 2005/01/02 00:52:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,10 +272,8 @@ str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delim
 	if(str==NULL)
 		return(NULL);
 
-	if((buf=(char*)malloc(strlen(str)+1))==NULL)
+	if((buf=strdup(str))==NULL)
 		return(NULL);
-
-	strcpy(buf,str);
 
 	*list=strListSplit(list,buf,delimit);
 
@@ -347,7 +345,7 @@ void strListFree(str_list_t* list)
 {
 	if(*list!=NULL) {
 		strListFreeStrings(*list);
-		free(*list);
+		FREE_AND_NULL(*list);
 	}
 }
 
