@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.61 2003/02/15 13:24:36 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.62 2003/03/01 23:53:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,6 +291,7 @@ static void update_clients(void)
 		startup->clients(active_clients);
 }
 
+#if 0	/* These will be used later */
 static void client_on(SOCKET sock, client_t* client, BOOL update)
 {
 	if(startup!=NULL && startup->client_on!=NULL)
@@ -302,6 +303,7 @@ static void client_off(SOCKET sock)
 	if(startup!=NULL && startup->client_on!=NULL)
 		startup->client_on(FALSE,sock,NULL,FALSE);
 }
+#endif
 
 static void thread_up(BOOL setuid)
 {
@@ -2030,7 +2032,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.61 $", "%*s %s", revision);
+	sscanf("$Revision: 1.62 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
