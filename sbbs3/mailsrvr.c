@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.285 2003/09/09 01:50:06 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.286 2003/09/09 07:39:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1837,8 +1837,8 @@ static void smtp_thread(void* arg)
 					continue;
 				}
 
-				fclose(msgtxt);
-				fclose(rcptlst);
+				fclose(msgtxt), msgtxt=NULL;
+				fclose(rcptlst), rcptlst=NULL;
 
 				/* External Mail Processing here */
 				if(startup->proc_cfg_file[0] 
@@ -2821,7 +2821,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			if(msgtxt!=NULL) {
-				fclose(msgtxt);
+				fclose(msgtxt), msgtxt=NULL;
 				if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
 					unlink(msgtxt_fname);
 			}
@@ -3400,7 +3400,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.285 $", "%*s %s", revision);
+	sscanf("$Revision: 1.286 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
