@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.2 2001/10/01 16:52:54 rswindell Exp $ */
+/* $Id: text.h,v 1.3 2001/10/02 14:56:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -219,14 +219,14 @@ enum {
 	,R_Upload
 	,CantUploadHere
 	,FileSpec
-	,Unused176
+	,SystemPassword
 	,NoSysopDir
 	,CantUploadToSysop
 	,DirLstHdr
 	,DirLstFmt
 	,LibLstHdr
 	,LibLstFmt
-	,Unused183
+	,InvalidNetMailAddr
 	,TransferPolicyHdr
 	,Unused185
 	,TpUpload
