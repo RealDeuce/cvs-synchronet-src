@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.62 2003/10/18 10:28:01 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.63 2003/10/21 03:58:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -421,6 +421,12 @@ void sbbs_read_ini(
 
 		SAFECOPY(mail->proc_cfg_file
 			,iniGetString(fp,section,"ProcessConfigFile","mailproc.cfg",value));
+
+		/* JavaScript Operating Parameters */
+		mail->js_max_bytes
+			=iniGetInteger(fp,section,strJavaScriptMaxBytes		,js_max_bytes);
+		mail->js_cx_stack
+			=iniGetInteger(fp,section,strJavaScriptContextStack	,js_cx_stack);
 
 		mail->log_mask
 			=iniGetBitField(fp,section,strLogMask,log_mask_bits,log_mask);
