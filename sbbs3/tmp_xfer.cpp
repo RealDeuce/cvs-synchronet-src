@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.33 2003/08/22 10:50:15 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.34 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,7 +100,7 @@ void sbbs_t::temp_xfer()
 		bputs(text[TempDirPrompt]);
 		strcpy(f.uler,temp_uler);
 		ch=(char)getkeys("ADEFNILQRVX?\r",0);
-		if(ch>SP)
+		if(ch>' ')
 			logch(ch,0);
 		switch(ch) {
 			case 'A':   /* add to temp file */
