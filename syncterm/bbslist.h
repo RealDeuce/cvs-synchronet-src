@@ -13,16 +13,6 @@ enum {
 	,BBSLIST_EDIT
 };
 
-enum {
-	 SCREEN_MODE_CURRENT
-	,SCREEN_MODE_80X25
-	,SCREEN_MODE_80X28
-	,SCREEN_MODE_80X43
-	,SCREEN_MODE_80X50
-	,SCREEN_MODE_80X60
-	,SCREEN_MODE_TERMINATOR
-};
-
 struct bbslist {
 	char			name[LIST_NAME_MAX+1];
 	char			addr[LIST_ADDR_MAX+1];
@@ -33,10 +23,9 @@ struct bbslist {
 	char			user[MAX_USER_LEN+1];
 	char			password[MAX_PASSWD_LEN+1];
 	int				type;
-	int				conn_type;
 	int				id;
+	int				dumb;
 	int				reversed;
-	int				screen_mode;
 };
 
 struct bbslist *show_bbslist(int mode,char *path);
