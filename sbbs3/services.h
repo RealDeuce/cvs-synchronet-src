@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.19 2003/07/25 01:45:00 rswindell Exp $ */
+/* $Id: services.h,v 1.20 2003/09/16 21:51:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,10 @@ typedef struct {
     DWORD   interface_addr;
     DWORD	options;			/* See BBS_OPT definitions */
     DWORD	js_max_bytes;
+	DWORD	js_cx_stack;
+	DWORD	js_branch_limit;
+	DWORD	js_yield_interval;
+	DWORD	js_gc_interval;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
 	int 	(*lputs)(char*);		/* Log - put string */
 	void	(*status)(char*);
