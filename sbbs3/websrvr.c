@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.179 2004/10/16 00:55:59 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.180 2004/10/16 02:35:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2704,7 +2704,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.179 $", "%*s %s", revision);
+	sscanf("$Revision: 1.180 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2732,7 +2732,7 @@ void http_logging_thread(void* arg)
 
 	SAFECOPY(base,arg);
 	if(!base[0])
-		SAFEPRINTF(base,"%slogs/http-",scfg.data_dir);
+		SAFEPRINTF(base,"%slogs/http-",scfg.logs_dir);
 
 	filename[0]=0;
 	newfilename[0]=0;
