@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.17 2002/07/21 23:04:07 rswindell Exp $ */
+/* $Id: smblib.h,v 1.18 2002/08/24 23:30:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,9 +65,6 @@
 #elif defined __unix__
 	#define SMBCALL
 	#define SMBEXPORT
-#elif defined __FLAT__
-	#define SMBCALL
-	#define SMBEXPORT	_export
 #else
 	#define SMBCALL
 	#define SMBEXPORT
