@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.118 2003/12/16 05:45:26 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.120 2003/12/19 19:26:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3681,6 +3681,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 	memset(&pkt_faddr,0,sizeof(faddr_t));
+	memset(&hdr,0,sizeof(hdr));
 	start_tick=0;
 
 	printf("\nScanning for Outbound EchoMail...\n");
@@ -4067,11 +4068,13 @@ int main(int argc, char **argv)
 	for(i=0;i<MAX_OPEN_SMBS;i++)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(config_t));
+	memset(&hdr,0,sizeof(hdr));
+	memset(&pkt_faddr,0,sizeof(pkt_faddr));
 	memset(&msg_seen,0,sizeof(addrlist_t));
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.118 $", "%*s %s", revision);
+	sscanf("$Revision: 1.120 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4571,7 +4574,7 @@ int main(int argc, char **argv)
 
 				/* Read fixed-length header fields */
 				if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fidomsg)!=sizeof(pkdmsg))
-					grunged=TRUE;
+					continue;
 				
 				if(pkdmsg.type==2) { /* Recognized type, copy fields */
 					hdr.orignode = pkdmsg.orignode;
