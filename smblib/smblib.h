@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.33 2003/11/26 23:38:59 rswindell Exp $ */
+/* $Id: smblib.h,v 1.34 2003/12/04 06:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,8 +164,8 @@ SMBEXPORT int 		SMBCALL smb_fgetc(FILE* fp);
 SMBEXPORT int 		SMBCALL smb_fputc(int ch, FILE* fp);
 SMBEXPORT int 		SMBCALL smb_fseek(FILE* fp, long offset, int whence);
 SMBEXPORT long		SMBCALL smb_ftell(FILE* fp);
-SMBEXPORT long		SMBCALL smb_fread(void HUGE16* buf, long bytes, FILE* fp);
-SMBEXPORT long		SMBCALL smb_fwrite(void HUGE16* buf, long bytes, FILE* fp);
+SMBEXPORT size_t	SMBCALL smb_fread(smb_t*, void* buf, size_t bytes, FILE* fp);
+SMBEXPORT size_t	SMBCALL smb_fwrite(smb_t*, void* buf, size_t bytes, FILE* fp);
 SMBEXPORT long		SMBCALL smb_fgetlength(FILE* fp);
 SMBEXPORT int 		SMBCALL smb_fsetlength(FILE* fp, long length);
 SMBEXPORT void		SMBCALL smb_rewind(FILE* fp);

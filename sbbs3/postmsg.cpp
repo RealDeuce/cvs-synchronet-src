@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.44 2003/11/21 10:49:59 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.45 2003/12/04 06:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -557,16 +557,16 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	xlatlen=0;
 	if(lzh) {
 		xlat=XLAT_LZH;
-		smb_fwrite(&xlat,sizeof(xlat),smb->sdt_fp);
+		smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp);
 		xlatlen+=sizeof(xlat);
 	}
 	xlat=XLAT_NONE;
-	smb_fwrite(&xlat,sizeof(xlat),smb->sdt_fp);
+	smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp);
 	xlatlen+=sizeof(xlat);
 
-	smb_fwrite(msgbuf,length-xlatlen,smb->sdt_fp);
+	smb_fwrite(smb,msgbuf,length-xlatlen,smb->sdt_fp);
 	for(l=length;l%SDT_BLOCK_LEN;l++)
-		smb_fwrite(&pad,1,smb->sdt_fp);
+		smb_fwrite(smb,&pad,1,smb->sdt_fp);
 
 	fflush(smb->sdt_fp);
 

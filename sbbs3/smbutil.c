@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.57 2003/12/03 04:26:30 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.58 2003/12/04 06:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,10 +190,10 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 
 	fseek(smb.sdt_fp,offset,SEEK_SET);
 	xlat=XLAT_NONE;
-	smb_fwrite(&xlat,sizeof(xlat),smb.sdt_fp);
-	smb_fwrite(msgtxt,msgtxtlen,smb.sdt_fp);
+	smb_fwrite(&smb,&xlat,sizeof(xlat),smb.sdt_fp);
+	smb_fwrite(&smb,msgtxt,msgtxtlen,smb.sdt_fp);
 	for(l=length;l%SDT_BLOCK_LEN;l++)
-		smb_fwrite(&pad,1,smb.sdt_fp);
+		smb_fwrite(&smb,&pad,sizeof(pad),smb.sdt_fp);
 	fflush(smb.sdt_fp);
 
 	memset(&msg,0,sizeof(smbmsg_t));
@@ -1411,7 +1411,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.57 $", "%*s %s", revision);
+	sscanf("$Revision: 1.58 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

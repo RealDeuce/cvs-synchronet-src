@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.10 2003/11/26 23:37:58 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.11 2003/12/04 06:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,7 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 					,length);
 				return(buf);
 			}
-			smb_fread(lzhbuf,length,smb->sdt_fp);
+			smb_fread(smb,lzhbuf,length,smb->sdt_fp);
 			lzhlen=*(long*)lzhbuf;
 			if((p=(char*)REALLOC(buf,l+lzhlen+3L))==NULL) {
 				sprintf(smb->last_error

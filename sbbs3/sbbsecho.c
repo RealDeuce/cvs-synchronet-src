@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.115 2003/11/05 03:58:07 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.116 2003/12/04 06:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2012,7 +2012,7 @@ ulong loadmsgs(post_t HUGE16 **post, ulong ptr)
 
 	fseek(smb[cur_smb].sid_fp,0L,SEEK_SET);
 	while(!feof(smb[cur_smb].sid_fp)) {
-		if(smb_fread(&idx,sizeof(idx),smb[cur_smb].sid_fp) != sizeof(idx))
+		if(smb_fread(&smb[cur_smb], &idx,sizeof(idx),smb[cur_smb].sid_fp) != sizeof(idx))
 			break;
 
 		if(idx.number==0)	/* invalid message number, ignore */
@@ -4067,7 +4067,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.115 $", "%*s %s", revision);
+	sscanf("$Revision: 1.116 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
