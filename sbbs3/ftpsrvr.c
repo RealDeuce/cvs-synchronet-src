@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.223 2003/03/11 22:15:41 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.224 2003/03/13 01:49:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -974,7 +974,10 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			globfree(&g);
 		}
 
+
 		/* RUN SCRIPT */
+		JS_ClearPendingException(js_cx);
+
 		if((js_script=JS_CompileFile(js_cx, parent, spath))==NULL) {
 			lprintf("%04d !JavaScript FAILED to compile script (%s)",sock,spath);
 			break;
@@ -4437,7 +4440,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.223 $", "%*s %s", revision);
+	sscanf("$Revision: 1.224 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

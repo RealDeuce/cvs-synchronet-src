@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.69 2003/03/12 23:54:34 deuce Exp $ */
+/* $Id: websrvr.c,v 1.70 2003/03/13 01:49:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2004,6 +2004,8 @@ static void respond(http_session_t * session)
 		do {
 
 			/* RUN SCRIPT */
+			JS_ClearPendingException(session->js_cx);
+
 			if((js_script=JS_CompileFile(session->js_cx, session->js_glob
 				,session->req.physical_path))==NULL) {
 				lprintf("%04d !JavaScript FAILED to compile script (%s)"
@@ -2173,7 +2175,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.69 $", "%*s %s", revision);
+	sscanf("$Revision: 1.70 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

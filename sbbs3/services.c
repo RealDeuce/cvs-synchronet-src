@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.95 2003/02/15 13:24:36 rswindell Exp $ */
+/* $Id: services.c,v 1.96 2003/03/13 01:49:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -853,6 +853,8 @@ static void js_service_thread(void* arg)
 	JS_SetProperty(js_cx, js_glob, "datagram", &val);
 	FREE_AND_NULL(service_client.udp_buf);
 
+	JS_ClearPendingException(js_cx);
+
 	js_script=JS_CompileFile(js_cx, js_glob, spath);
 
 	if(js_script==NULL) 
@@ -937,6 +939,8 @@ static void js_static_service_thread(void* arg)
 
 	val = BOOLEAN_TO_JSVAL(JS_FALSE);
 	JS_SetProperty(js_cx, js_glob, "logged_in", &val);
+
+	JS_ClearPendingException(js_cx);
 
 	js_script=JS_CompileFile(js_cx, js_glob, spath);
 
@@ -1231,7 +1235,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.95 $", "%*s %s", revision);
+	sscanf("$Revision: 1.96 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
