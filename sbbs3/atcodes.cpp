@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.26 2002/07/25 03:01:51 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.27 2002/08/05 10:10:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1026,7 +1026,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_CURMSG")) {
-		sprintf(str,"%ld",smb.curmsg);
+		sprintf(str,"%ld",smb.curmsg+1);
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_LAST_MSG")) {
