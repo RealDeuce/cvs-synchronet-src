@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.39 2005/01/28 03:13:38 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.40 2005/03/24 03:34:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,6 +162,18 @@ tODKeySequence aKeySequences[] =
    /* Terminator */
    {"",0}
 };
+
+#ifdef NEEDS_CFMAKERAW
+void
+cfmakeraw(struct termios *t)
+{
+	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_oflag &= ~OPOST;
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+	t->c_cflag &= ~(CSIZE|PARENB);
+	t->c_cflag |= CS8;
+}
+#endif
 
 void ansi_sendch(char ch)
 {
