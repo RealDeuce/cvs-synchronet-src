@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.88 2003/09/30 23:42:20 rswindell Exp $ */
+/* $Id: js_global.c,v 1.89 2003/10/03 20:36:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -752,6 +752,44 @@ static struct {
 	{ 178	,"sup2"		}, /* 253 superscript 2 */
 	{ 9632	,NULL		}, /* 254 drawing symbol (unicode) */
 	{ 160	,"nbsp"		}  /* 255 non-breaking space */
+};
+
+static struct { 
+	int		value;
+	char*	name;
+} lowasctbl[32] = {
+	{ 160	,"nbsp"		}  /* NULL non-breaking space */
+	{ 9786	,NULL	}, /* white smiling face */
+	{ 9787	,NULL	}, /* black smiling face */
+	{ 9829	,"hearts"	}, /* black heart suit */
+	{ 9830	,"diams"	}, /* black diamond suit */
+	{ 9827	,"clubs"	}, /* black club suit */
+	{ 9824	,"spades"	}, /* black spade suit */
+	{ 8226	,"bull"	}, /* bullet */
+	{ 9688	,NULL	}, /* inverse bullet */
+	{ 9702	,NULL	}, /* white bullet */
+	{ 9689	,NULL	}, /* inverse white circle */
+	{ 9794	,NULL	}, /* male sign */
+	{ 9792	,NULL	}, /* female sign */
+	{ 9834	,NULL	}, /* eighth note */
+	{ 9835	,NULL	}, /* beamed eighth notes */
+	{ 9788	,NULL	}, /* white sun with rays */
+	{ 9654	,NULL	}, /* black right-pointing triangle */
+	{ 9664	,NULL	}, /* black left-pointing triangle */
+	{ 8597	,NULL	}, /* up down arrow */
+	{ 8252	,NULL	}, /* double exclamation mark */
+	{ 182	,"para"	}, /* pilcrow sign */
+	{ 167	,"sect"	}, /* section sign */
+	{ 9644	,NULL	}, /* black rectangle */
+	{ 8616	,NULL	}, /* up down arrow with base */
+	{ 8593	,"uarr"	}, /* upwards arrow */
+	{ 8595	,"darr"	}, /* downwards arrow */
+	{ 8594	,"rarr"	}, /* rightwards arrow */
+	{ 8592	,"larr"	}, /* leftwards arrow */
+	{ 8976	,NULL	}, /* reversed not sign */
+	{ 8596	,"harr"	}, /* left right arrow */
+	{ 9650	,NULL	}, /* black up-pointing triangle */
+	{ 9660	,NULL	}  /* black down-pointing triangle */
 };
 
 static JSBool
