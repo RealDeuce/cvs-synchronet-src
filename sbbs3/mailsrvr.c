@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.205 2002/11/10 01:43:35 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.206 2002/11/10 07:43:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -503,7 +503,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 		return(0);
 	if((p=smb_get_hfield(msg,RFC822REPLYTO,NULL))==NULL) {
 		if(msg->replyto_net.type==NET_INTERNET)
-			p=msg->replyto_net.addr);
+			p=msg->replyto_net.addr;
 		else if(msg->replyto!=NULL)
 			p=msg->replyto;
 	}
@@ -2870,7 +2870,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.205 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.206 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
