@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.27 2003/05/15 03:16:15 deuce Exp $ */
+/* $Id: umonitor.c,v 1.28 2003/05/15 06:15:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -425,6 +425,54 @@ void node_toggles(int nodenum)  {
 	}
 }
 
+int chat(int nodenum) {
+	return(-1);
+}
+
+int dospy(int nodenum, bbs_startup_t *bbs_startup)  {
+	char str[80],str2[80];
+	int i;
+
+	if(bbs_startup->temp_dir[0])
+    	snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup->temp_dir, nodenum);
+	else
+		snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup->ctrl_dir, nodenum);
+	endwin();
+	i=spyon(str);
+	refresh();
+	switch(i) {
+		case SPY_NOSOCKET:
+			uifc.msg("Could not create socket");
+			return(-1);
+					
+		case SPY_NOCONNECT:
+			sprintf(str2,"Failed to connect to %s",str);
+			uifc.msg(str2);
+			return(-1);
+
+		case SPY_SELECTFAILED:
+			uifc.msg("select() failed, connection terminated.");
+			return(-1);
+
+		case SPY_SOCKETLOST:
+			uifc.msg("Spy socket lost");
+			return(-1);
+							
+		case SPY_STDINLOST:
+			uifc.msg("STDIN has gone away... you probably can't close this window.  :-)");
+			return(-1);
+							
+		case SPY_CLOSED:
+			break;
+			
+		default:
+			sprintf(str,"Unknown return code %d",i);
+			uifc.msg(str);
+			return(-1);
+	}
+	return(0);
+}
+
 int main(int argc, char** argv)  {
 	char**	opt;
 	char**	mopt;
@@ -454,7 +502,7 @@ int main(int argc, char** argv)  {
 	BOOL				run_services;
 	services_startup_t	services_startup;
 
-	sscanf("$Revision: 1.27 $", "%*s %s", revision);
+	sscanf("$Revision: 1.28 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -629,6 +677,7 @@ int main(int argc, char** argv)  {
 
 		uifc.helpbuf=	"`Synchronet Monitor:`\n"
 						"\nCTRL-E displays the error log"
+						"\nCTRL-S spys on the currently selected node"
 						"\nToDo: Add more help.";
 						
 		j=uifc.list(WIN_ORG|WIN_MID|WIN_ESC|WIN_ACT|WIN_DYN,0,0,70,&main_dflt,&main_bar
@@ -658,6 +707,11 @@ int main(int argc, char** argv)  {
 			}
 			continue;
 		}
+		
+		if(j==-21) {	/* CTRL-S */
+			dospy(main_dflt+1,&bbs_startup);
+		}
+		
 
 		if(j <= -2)
 			continue;
@@ -692,41 +746,7 @@ int main(int argc, char** argv)  {
 							"\nToDo: Add help";
 			switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Node Options",opt))  {
 				case 0:	/* Spy */
-					if(bbs_startup.temp_dir[0])
-		    			snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup.temp_dir, j+1);
-					else
-		    			snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup.temp_dir, j+1);
-					endwin();
-					i=spyon(str);
-					refresh();
-					switch(i) {
-						case SPY_NOSOCKET:
-							uifc.msg("Could not create socket");
-							break;
-							
-						case SPY_NOCONNECT:
-							sprintf(str2,"Failed to connect to %s",str);
-							uifc.msg(str2);
-							break;
-
-						case SPY_SELECTFAILED:
-							uifc.msg("select() failed, connection terminated.");
-
-						case SPY_SOCKETLOST:
-							uifc.msg("Spy socket lost");
-							break;
-							
-						case SPY_STDINLOST:
-							uifc.msg("STDIN has gone away... you probably can't close this window.  :-)");
-							break;
-							
-						case SPY_CLOSED:
-							break;
-							
-						default:
-							sprintf(str,"Unknown return code %d",i);
-							uifc.msg(str);
-					}
+					dospy(j+1,&bbs_startup);
 					break;
 
 				case 1: /* Node Toggles */
