@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.121 2004/10/27 09:04:05 rswindell Exp $ */
+/* $Id: smblib.c,v 1.122 2004/11/02 03:57:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,6 @@ void SMBCALL smb_close(smb_t* smb)
 		smb_unlocksmbhdr(smb);		   /* In case it's been locked */
 		smb_close_fp(&smb->shd_fp); 
 	}
-	smb_close_fp(&smb->sid_fp);
 	smb_close_fp(&smb->sdt_fp);
 	smb_close_fp(&smb->sid_fp);
 	smb_close_fp(&smb->sda_fp);
