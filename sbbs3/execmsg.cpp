@@ -2,7 +2,7 @@
 
 /* Synchronet message-related command shell/module routines */
 
-/* $Id: execmsg.cpp,v 1.4 2001/04/10 01:12:00 rswindell Exp $ */
+/* $Id: execmsg.cpp,v 1.5 2002/02/05 21:57:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,8 +278,8 @@ int sbbs_t::exec_msg(csi_t *csi)
 			return(0);
 		case CS_MSG_PTRS_REINIT:
 			for(i=0;i<cfg.total_subs;i++) {
-				sub_ptr[i]=sav_sub_ptr[i];
-				sub_last[i]=sav_sub_last[i]; 
+				subscan[i].ptr=subscan[i].sav_ptr;
+				subscan[i].last=subscan[i].sav_last; 
 			}
 			bputs(text[MsgPtrsInitialized]);
 			return(0);

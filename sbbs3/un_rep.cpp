@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.13 2002/01/11 01:11:22 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.14 2002/02/05 21:57:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,7 +270,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			/* if posting, add to new-scan config for QWKnet nodes automatically */
 			if(useron.rest&FLAG('Q'))
-				sub_cfg[n]|=SUB_CFG_NSCAN;
+				subscan[n].cfg|=SUB_CFG_NSCAN;
 
 			sprintf(str,"%-25.25s","SBBS");
 			if(!strnicmp((char *)block+21,str,25)) {	/* to SBBS, config stuff */
