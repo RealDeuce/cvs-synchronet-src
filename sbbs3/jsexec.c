@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.31 2003/07/23 04:06:12 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.32 2003/07/30 03:02:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -404,6 +404,10 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 	if((js_env=JS_NewObject(js_cx, NULL, NULL, glob))==NULL)
 		return(FALSE);
 
+	if(!JS_DefineProperty(cx, glob, "env", OBJECT_TO_JSVAL(js_env)
+		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
+		return(FALSE);
+
 	for(i=0;env[i]!=NULL;i++) {
 		SAFECOPY(name,env[i]);
 		truncstr(name,"=");
@@ -416,10 +420,6 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 			return(FALSE);
 	}
-
-	if(!JS_DefineProperty(cx, glob, "env", OBJECT_TO_JSVAL(js_env)
-		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
-		return(FALSE);
 
 	return(TRUE);
 }
@@ -620,7 +620,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.31 $", "%*s %s", revision);
+	sscanf("$Revision: 1.32 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
