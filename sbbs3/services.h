@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.26 2004/09/26 20:06:44 rswindell Exp $ */
+/* $Id: services.h,v 1.25 2003/10/15 09:10:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,7 +43,6 @@
 #endif
 
 #include "client.h"
-#include "semwrap.h"			/* sem_t */
 
 typedef struct {
 
