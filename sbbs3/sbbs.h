@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.65 2001/09/18 20:34:16 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.66 2001/09/28 16:25:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -744,6 +744,7 @@ extern "C" {
 	/* str.cpp */
 	DLLEXPORT char *	DLLCALL ascii_str(uchar* str);
 	DLLEXPORT ushort	DLLCALL crc16(char *str);
+	DLLEXPORT BOOL		DLLCALL findstr(scfg_t* cfg, char *insearch, char *fname);
 	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, char *insearch, char *name);
 	DLLEXPORT int		DLLCALL putsmsg(scfg_t* cfg, int usernumber, char *strin);
 
