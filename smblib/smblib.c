@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.108 2004/09/10 08:25:26 rswindell Exp $ */
+/* $Id: smblib.c,v 1.109 2004/09/10 09:02:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1541,7 +1541,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 
 		msg->hdr.number=smb->status.last_msg+1;
 
-		hashes=smb_msghashes(smb,msg,body);
+		hashes=smb_msghashes(smb,msg,smb->status.max_crcs ? body : NULL);
 
 		if(dupechk && smb_findhash(smb, hashes, &found, /* update? */FALSE)==SMB_SUCCESS) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
