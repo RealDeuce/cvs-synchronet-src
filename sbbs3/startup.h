@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.15 2001/12/13 17:15:22 rswindell Exp $ */
+/* $Id: startup.h,v 1.16 2002/02/22 00:43:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 
 #include "client.h"
 #include "ringbuf.h"
+#include "sbbswrap.h"
 
 typedef struct {
 
@@ -63,7 +64,7 @@ typedef struct {
     DWORD	js_max_bytes;
     RingBuf** node_spybuf;		// Spy output buffer (each node)
     RingBuf** node_inbuf;		// User input buffer (each node)
-    DWORD	reserved_dword2;
+    sem_t*	node_spysem;		// Spy output semaphore (each node)
     DWORD	reserved_dword1;
     int 	(*event_log)(char*);	// Event log - put string
 	int 	(*lputs)(char*);		// Log - put string
