@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.81 2001/12/01 01:04:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.82 2001/12/20 01:26:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -424,7 +424,6 @@ public:
 
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
-	void	delfattach(uint to, char *title);
 	void	telluser(smbmsg_t* msg);
 	void	delallmail(uint usernumber);
 
@@ -723,7 +722,7 @@ extern "C" {
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, ulong* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
-
+	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 	/* postmsg.cpp */
 	DLLEXPORT int		DLLCALL savemsg(scfg_t* cfg, smb_t* smb 
 										,uint subnum, smbmsg_t* msg, char* msgbuf);
