@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.24 2002/06/18 09:38:04 rswindell Exp $
+# $Id: GNUmakefile,v 1.25 2002/06/18 09:39:29 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -45,7 +45,7 @@ LIBODIR	:=	bcc.linux.lib
 EXEODIR	:=	bcc.linux.exe
 else
 # -O doesn't work on FreeBSD (possible conflict with -g)
-CFLAGS	+=	-O
+# CFLAGS	+=	-O
 LIBODIR	:=	gcc.linux.lib
 EXEODIR	:=	gcc.linux.exe
 endif
