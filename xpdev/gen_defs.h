@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.17 2004/07/28 10:13:10 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.18 2004/08/30 06:51:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -249,5 +249,11 @@ typedef struct {
 	#define FREE free
 #endif
 
+/********************************/
+/* Handy Pointer-freeing Macros */
+/********************************/
+#define FREE_AND_NULL(x)		if(x!=NULL) { FREE(x); x=NULL; }
+#define FREE_LIST_ITEMS(list,i)	for(i=0;list && list[i];i++) { FREE_AND_NULL(list[i]); }
+#define FREE_LIST(list,i)		FREE_LIST_ITEMS(list,i) FREE_AND_NULL(list)
 
 #endif /* Don't add anything after this #endif statement */
