@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.111 2003/10/24 00:47:47 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.112 2003/10/24 22:02:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,7 +144,7 @@ unsigned _rotr (
 /******************************************************************************
  Displays characters locally
 ******************************************************************************/
-int lputs(char *str)
+static int lputs(int level, char *str)
 {
     char tmp[256];
     int i,j,k;
@@ -161,10 +161,9 @@ int lputs(char *str)
 }
 
 /****************************************************************************/
-/* Performs printf() through local assembly routines                        */
-/* Called from everywhere                                                   */
+/* This is needed by load_cfg.c												*/
 /****************************************************************************/
-int lprintf(char *fmat, ...)
+int lprintf(int level, char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[256];
@@ -174,7 +173,7 @@ int lprintf(char *fmat, ...)
 	chcount=vsnprintf(sbuf,sizeof(sbuf),fmat,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
 	va_end(argptr);
-	lputs(sbuf);
+	lputs(level, sbuf);
 	return(chcount);
 }
 
@@ -4086,7 +4085,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.111 $", "%*s %s", revision);
+	sscanf("$Revision: 1.112 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
