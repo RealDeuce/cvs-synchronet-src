@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.82 2003/02/06 00:43:48 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.83 2003/02/07 00:28:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2811,7 +2811,7 @@ void putfmsg(FILE *stream,uchar HUGE16 *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 		t=time(NULL);
 		tm=gmtime(&t);
 		fprintf(stream,"\1Via: %s @%04u%02u%02u.%02u%02u%02u.UTC "
-			"SBBSecho %s-%s r%s %s %s\r"
+			"SBBSecho %s-%s r%s\r"
 			,faddrtoa(&addr,NULL)
 			,tm->tm_year+1900
 			,tm->tm_mon+1
@@ -2819,7 +2819,7 @@ void putfmsg(FILE *stream,uchar HUGE16 *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 			,tm->tm_hour
 			,tm->tm_min
 			,tm->tm_sec
-			,SBBSECHO_VER,PLATFORM_DESC,revision,__DATE__,compiler);
+			,SBBSECHO_VER,PLATFORM_DESC,revision);
 	}
 			
 
@@ -4013,7 +4013,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.82 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.83 $" + 11, "%s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
