@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.h,v 1.8 2004/05/28 23:43:31 rswindell Exp $ */
+/* $Id: sbbs_ini.h,v 1.9 2004/07/01 20:29:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 #include "services.h"	/* services_startup_t */
 #include "websrvr.h"	/* services_startup_t */
 #include "ini_file.h"
+#include "scfgdefs.h"   /* scfg_t */
 
 #define strJavaScriptMaxBytes		"JavaScriptMaxBytes"
 #define strJavaScriptContextStack	"JavaScriptContextStack"
@@ -79,6 +80,7 @@ void sbbs_read_ini(
 
 BOOL sbbs_write_ini(
 	 FILE*					fp
+    ,scfg_t*                cfg
 	,global_startup_t*		global
 	,BOOL					run_bbs
 	,bbs_startup_t*			bbs

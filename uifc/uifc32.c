@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.68 2004/06/03 07:00:19 deuce Exp $ */
+/* $Id: uifc32.c,v 1.70 2004/07/02 21:22:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,17 +41,16 @@
 	#ifdef __QNX__
 		#include <strings.h>
 	#endif
-	#include "ciowrap.h"
     #define mswait(x) delay(x)
-    #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
 	#include <conio.h>
 	#include <windows.h>
-	#include "keys.h"
 	#define mswait(x) Sleep(x)
 #endif
 
+#include "ciowrap.h"
+#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 							/* Bottom line elements */
@@ -286,11 +285,12 @@ int uifcini32(uifcapi_t* uifcapi)
 	initciowrap(api->mode);
 	#ifdef NCURSES_VERSION_MAJOR
 		ESCDELAY=api->esc_delay;
-		
+#ifdef DISABLED
 		if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
 			api->mode|=UIFC_MOUSE;
 		else
 			mousemask(0,NULL);
+#endif
 	#endif
 	
 #else
