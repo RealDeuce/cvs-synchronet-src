@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.7 2002/07/27 01:37:20 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.8 2002/07/27 01:46:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,8 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	char listpath[MAX_PATH+1];
 	char filepath[MAX_PATH+1];
 	char curline[256],nextline[256];
-	uchar *p,ext[1024],tmpext[513];
+	char *p;
+	uchar ext[1024],tmpext[513];
 	int i,file;
 	long l;
 	BOOL exist;
@@ -614,7 +615,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.7 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.8 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
