@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.26 2003/04/08 05:46:04 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.27 2003/04/08 05:49:04 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -296,7 +296,7 @@ static void sopen_child_thread(void* arg)
 {
 	int fd;
 
-	printf("sopen_child_thread: %d",arg);
+	printf("sopen_child_thread: %d begin\n",(int)arg);
 	if((fd=sopen(LOCK_FNAME,O_RDWR,SH_DENYWR))!=-1) {
 		if(arg)
 			printf("!FAILURE: was able to reopen in child thread\n");
@@ -306,6 +306,7 @@ static void sopen_child_thread(void* arg)
 		close(fd);
 	} else if(arg==0)
 		perror(LOCK_FNAME);
+	printf("sopen_child_thread: %d end\n",(int)arg);
 }
 
 /* End of wraptest.c */
