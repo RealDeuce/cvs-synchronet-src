@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.11 2001/04/10 01:27:00 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.12 2001/04/23 01:17:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -542,7 +542,13 @@ long sbbs_t::js_execfile(char *fname)
 		return(-1); 
 	}
 
-	if((js_script=JS_CompileFile(js_cx, js_glob, path))==NULL) {
+	JS_BeginRequest(js_cx);	/* Required for multi-thread support */
+
+	js_script=JS_CompileFile(js_cx, js_glob, path);
+
+	JS_EndRequest(js_cx);	/* Required for multi-thread support */
+
+	if(js_script==NULL) {
 		errormsg(WHERE,ERR_EXEC,path,0);
 		return(-1);
 	}
