@@ -1,4 +1,4 @@
 # conio/targets.mk
-default: mtlib
+CIOLIB-MT_BUILD	=	$(LIBODIR)$(DIRSEP)$(LIBPREFIX)ciolib_mt$(LIBFILE)
 
-mtlib:	$(LIBODIR) $(CIOLIB-MT)
+mtlib:	$(MTOBJODIR) $(LIBODIR) $(CIOLIB-MT_BUILD)
