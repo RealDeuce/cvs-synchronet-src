@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.17 2003/06/14 10:11:59 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.18 2003/06/26 06:42:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	smb_t		smb;
 	smbmsg_t	msg;
 
-	sscanf("$Revision: 1.17 $", "%*s %s", revision);
+	sscanf("$Revision: 1.18 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.00-%s (rev %s) - Rebuild Synchronet Message Base Index\n\n"
 		,PLATFORM_DESC,revision);
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
 		smb.status.last_msg=n;
 	else
 		sort_index(&smb);
-	printf("Saving message base status (%u total messages).\n",n);
+	printf("Saving message base status (%lu total messages).\n",n);
 	if((i=smb_putstatus(&smb))!=0)
 		printf("\nsmb_putstatus returned %d: %s\n",i,smb.last_error);
 	smb_unlocksmbhdr(&smb);
