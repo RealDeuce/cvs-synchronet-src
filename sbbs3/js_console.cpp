@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.32 2002/12/31 00:54:20 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.33 2003/01/02 09:43:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -998,10 +998,13 @@ js_lock_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(argc)
 		JS_ValueToBoolean(cx, argv[0], &lock);
 
-	if(lock)
+	if(lock) {
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
-	else
+		sbbs->input_thread_mutex_locked=true;
+	} else if(sbbs->input_thread_mutex_locked) {
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
+		sbbs->input_thread_mutex_locked=false;
+	}
 
 	*rval=JSVAL_VOID;
     return(JS_TRUE);
