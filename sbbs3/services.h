@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.10 2002/03/25 05:41:48 rswindell Exp $ */
+/* $Id: services.h,v 1.11 2002/06/23 11:25:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,6 +80,9 @@ typedef struct {
 	BOOL	recycle_now;
 
 } services_startup_t;
+
+/* Option bit definitions	*/
+#define SERVICE_OPT_UDP		(1<<0)	/* UDP Socket */
 
 #ifdef __cplusplus
 extern "C" {
