@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.6 2004/07/05 00:23:36 deuce Exp $ */
+/* $Id: x_cio.h,v 1.7 2004/07/05 00:36:48 deuce Exp $ */
 
 #ifdef __unix__
 #include "ciowrap.h"
@@ -13,7 +13,7 @@ int x_kbhit(void);
 void x_delay(long msec);
 int x_wherey(void);
 int x_wherex(void);
-void x_putch(unsigned char ch);
+int x_putch(unsigned char ch);
 int x_cprintf(char *fmat, ...);
 int x_cputs(unsigned char *str);
 void x_gotoxy(int x, int y);

@@ -1,4 +1,4 @@
-/* $Id: ciowrap.h,v 1.20 2004/07/05 00:23:36 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.21 2004/07/05 00:36:48 deuce Exp $ */
 
 #ifndef _CIOWRAP_H_
 #define _CIOWRAP_H_
@@ -72,7 +72,7 @@ typedef struct {
 	void	(*delay)		(long);
 	int		(*wherex)		(void);
 	int		(*wherey)		(void);
-	void	(*putch)		(unsigned char);
+	int		(*putch)		(unsigned char);
 	int		(*c_printf)		(char *fmat, ...);
 	int		(*cputs)		(unsigned char *);
 	void	(*gotoxy)		(int,int);

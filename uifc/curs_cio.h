@@ -1,4 +1,4 @@
-/* $Id: curs_cio.h,v 1.5 2004/07/05 00:23:36 deuce Exp $ */
+/* $Id: curs_cio.h,v 1.6 2004/07/05 00:36:48 deuce Exp $ */
 
 #ifdef __unix__
 #include "ciowrap.h"
@@ -14,8 +14,8 @@ int curs_kbhit(void);
 void curs_delay(long msec);
 int curs_wherey(void);
 int curs_wherex(void);
-void _putch(unsigned char ch, BOOL refresh_now);
-void curs_putch(unsigned char ch);
+int _putch(unsigned char ch, BOOL refresh_now);
+int curs_putch(unsigned char ch);
 int curs_cprintf(char *fmat, ...);
 int curs_cputs(unsigned char *str);
 void curs_gotoxy(int x, int y);
