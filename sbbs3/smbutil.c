@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.5 2000/11/02 13:27:23 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.6 2000/11/02 13:36:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,6 +62,9 @@
 #ifdef __WATCOMC__
 	#include <dos.h>
 #endif
+
+/* gets is dangerous */
+#define gets(str)  fgets((str), sizeof(str) - 1, stdin)
 
 /********************/
 /* Global variables */
