@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.30 2002/06/08 08:45:18 rswindell Exp $ */
+/* $Id: smblib.c,v 1.31 2002/06/28 22:58:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -798,6 +798,12 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 				break;
 			case RFC822REPLYID:
 				msg->reply_id=msg->hfield_dat[i];
+				break;
+			case FIDOMSGID:
+				msg->ftn_id=msg->hfield_dat[i];
+				break;
+			case FIDOREPLYID:
+				msg->ftn_reply_id=msg->hfield_dat[i];
 				break;
 		}
 		l+=msg->hfield[i].length; 
