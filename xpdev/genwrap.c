@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.21 2002/11/26 06:45:05 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.22 2003/01/02 20:34:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -219,7 +219,7 @@ char* DLLCALL os_version(char *str)
 			break;
 	}
 
-	sprintf(str,"Windows %sVersion %u.%02u (Build %u) %s"
+	sprintf(str,"Windows %sVersion %u.%u (Build %u) %s"
 			,winflavor
 			,winver.dwMajorVersion, winver.dwMinorVersion
 			,winver.dwBuildNumber,winver.szCSDVersion);
