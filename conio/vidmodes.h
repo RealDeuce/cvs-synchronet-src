@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.8 2005/02/05 02:42:41 rswindell Exp $ */
+/* $Id: */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
