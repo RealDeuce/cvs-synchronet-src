@@ -97,7 +97,7 @@ void spyon(char *sockname)  {
 	pset[1].fd=spy_sock;
 	pset[1].events=POLLIN;
 	while(spy_sock!=INVALID_SOCKET)  {
-		if((poll(pset,2,INFTIM))<0)  {
+		if((poll(pset,2,-1))<0)  {
 			close(spy_sock);
 			spy_sock=INVALID_SOCKET;
 			break;
@@ -532,7 +532,7 @@ int main(int argc, char** argv)  {
 	long value=0;
 	node_t node;
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.7 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
