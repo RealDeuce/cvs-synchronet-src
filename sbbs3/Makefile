@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.41 2003/09/16 04:03:24 rswindell Exp $
+# $Id: Makefile,v 1.42 2003/09/19 01:47:17 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -247,15 +247,15 @@ $(JSEXEC): jsexec.c \
 	$(LIBS) \
 	$(SBBSLIB)
 	@echo Creating $@
-	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $** 
+	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $**
 
-# ANS2MSG
-$(ANS2MSG): ans2msg.c
+# ANS2ASC
+$(ANS2ASC): ans2asc.c
 	@echo Creating $@
 	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
-# MSG2MSG
-$(MSG2ANS): msg2ans.c
+# ASC2ANS
+$(ASC2ANS): asc2ans.c
 	@echo Creating $@
 	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 

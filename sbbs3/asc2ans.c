@@ -1,8 +1,8 @@
-/* msg2ans.c */
+/* asc2ans.c */
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: msg2ans.c,v 1.2 2003/04/02 02:05:10 rswindell Exp $ */
+/* $Id: asc2ans.c,v 1.1 2003/09/19 01:47:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,11 +47,11 @@ int main(int argc, char **argv)
 	FILE*	in;
 	FILE*	out;
 
-	sscanf("$Revision: 1.2 $", "%*s %s", revision);
+	sscanf("$Revision: 1.1 $", "%*s %s", revision);
 
 	if(argc<3) {
-		fprintf(stderr,"\nmsg2ans %s\n",revision);
-		fprintf(stderr,"\nusage: msg2ans infile.msg outfile.ans\n");
+		fprintf(stderr,"\nasc2ans %s\n",revision);
+		fprintf(stderr,"\nusage: %s infile.asc outfile.ans\n",argv[0]);
 		return(0); 
 	}
 

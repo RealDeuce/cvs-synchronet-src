@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.14 2003/07/22 00:23:11 deuce Exp $
+# $Id: targets.mk,v 1.15 2003/09/19 01:47:17 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -24,8 +24,8 @@ ECHOCFG		= $(EXEODIR)$(SLASH)echocfg$(EXEFILE)
 ADDFILES	= $(EXEODIR)$(SLASH)addfiles$(EXEFILE)
 FILELIST	= $(EXEODIR)$(SLASH)filelist$(EXEFILE)
 MAKEUSER	= $(EXEODIR)$(SLASH)makeuser$(EXEFILE)
-ANS2MSG		= $(EXEODIR)$(SLASH)ans2msg$(EXEFILE)
-MSG2ANS		= $(EXEODIR)$(SLASH)msg2ans$(EXEFILE)
+ANS2ASC		= $(EXEODIR)$(SLASH)ans2asc$(EXEFILE)
+ASC2ANS		= $(EXEODIR)$(SLASH)asc2ans$(EXEFILE)
 
 UTILS		= $(BUILD_DEPENDS)$(FIXSMB) $(BUILD_DEPENDS)$(CHKSMB) \
 			  $(BUILD_DEPENDS)$(SMBUTIL) $(BUILD_DEPENDS)$(BAJA) $(BUILD_DEPENDS)$(NODE) \

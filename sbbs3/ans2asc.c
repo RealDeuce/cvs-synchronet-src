@@ -1,8 +1,8 @@
-/* ans2msg.c */
+/* ans2asc.c */
 
-/* Convert ANSI messages to Synchronet .MSG (Ctrl-A code) format */
+/* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2msg.c,v 1.2 2003/04/02 02:05:10 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.1 2003/09/19 01:47:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,11 +46,11 @@ int main(int argc, char **argv)
 	int i,ch,ni;
 	FILE *in,*out;
 
-	sscanf("$Revision: 1.2 $", "%*s %s", revision);
+	sscanf("$Revision: 1.1 $", "%*s %s", revision);
 
 	if(argc<3) {
-		fprintf(stderr,"\nans2msg %s\n",revision);
-		fprintf(stderr,"\nusage: ans2msg infile.ans outfile.msg\n");
+		fprintf(stderr,"\nans2asc %s\n",revision);
+		fprintf(stderr,"\nusage: %s infile.ans outfile.asc\n",argv[0]);
 		return(0); 
 	}
 

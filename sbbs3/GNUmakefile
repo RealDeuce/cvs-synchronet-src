@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.129 2003/09/16 04:03:23 rswindell Exp $
+# $Id: GNUmakefile,v 1.130 2003/09/19 01:47:17 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -554,13 +554,13 @@ $(JSEXEC): $(JSEXEC_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CCPP) $(UTIL_LFLAGS) -o $@ $^ $(LFLAGS)
 	
-# ANS2MSG
-$(ANS2MSG): $(LIBODIR)/ans2msg.o
+# ANS2ASC
+$(ANS2ASC): $(LIBODIR)/ans2asc.o
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
-# MSG2ANS
-$(MSG2ANS): $(LIBODIR)/msg2ans.o
+# ASC2ANS
+$(ASC2ANS): $(LIBODIR)/asc2ans.o
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LFLAGS) -o $@ $^
 
