@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.7 2001/04/12 03:59:11 rswindell Exp $ */
+/* $Id: data.cpp,v 1.8 2001/04/19 22:53:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,18 +152,6 @@ int sbbs_t::getuserxfers(int fromuser, int destuser, char *fname)
 	fclose(stream);
 	return(found);
 }
-
-/****************************************************************************/
-/* Returns the number of files in the database for 'dir'					*/
-/****************************************************************************/
-uint sbbs_t::gettotalfiles(uint dirnum)
-{
-	char str[81];
-
-	sprintf(str,"%s%s.ixb", cfg.dir[dirnum]->data_dir, cfg.dir[dirnum]->code);
-	return((uint)(flength(str)/F_IXBSIZE));
-}
-
 
 /****************************************************************************/
 /* Fills the timeleft variable with the correct value. Hangs up on the      */

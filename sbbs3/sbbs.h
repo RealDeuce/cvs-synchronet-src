@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.38 2001/04/16 23:54:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.39 2001/04/19 22:54:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,7 +346,6 @@ public:
 
 	int		dir_op(uint dirnum);
 	int		getuserxfers(int fromuser, int destuser, char *fname);
-	uint	gettotalfiles(uint dirnum);
 	void	getnodeext(uint number, char * str);
 	void	putnodeext(uint number, char * str);
 	void	getnodedat(uint number, node_t * node, bool lock);
