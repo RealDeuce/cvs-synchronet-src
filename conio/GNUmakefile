@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.1 2004/09/12 12:06:47 deuce Exp $
+# $Id: GNUmakefile,v 1.2 2004/09/12 23:42:04 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -27,7 +27,7 @@ endif
 
 
 # CIOLIB Library Link Rule
-$(CIOLIB): $(OBJS)
+$(CIOLIB-MT): $(OBJS)
 	@echo Creating $@ ...
 	$(QUIET)ar rc $@ $^
 	$(QUIET)ranlib $@

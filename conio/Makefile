@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.1 2004/09/12 12:06:47 deuce Exp $
+# $Id: Makefile,v 1.2 2004/09/12 23:42:04 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -21,11 +21,11 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 !include ..\build\Common.bmake	# defines clean and output directory rules
 
-CFLAGS = $(CFLAGS) -I$(XPDEV_SRC) -I$(CIOLIB_SRC)
+CFLAGS = $(CFLAGS) $(XPDEV-MT_CFLAGS) $(MT_CFLAGS) -I$(CIOLIB_SRC)
 
 # SBBS DLL Link Rule
-$(CIOLIB): $(OBJS)
-    @echo Creating $< ...
+$(CIOLIB-MT): $(OBJS)
+    @echo Creating $<
 	-$(QUIET)$(DELETE) $@
 	$(QUIET)for %f in ($(OBJS)) do $(QUIET)tlib $@ +%f
 
