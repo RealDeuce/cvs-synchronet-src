@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.6 2002/01/28 15:59:54 rswindell Exp $ */
+/* $Id: scfg.h,v 1.7 2002/02/28 21:27:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,11 +63,10 @@ extern uifcapi_t uifc;
 extern char item;
 extern char **opt;
 extern char tmp[256];
+extern char error[256];
 extern char *nulstr;
 extern char *invalid_code,*num_flags;
 extern int	backup_level;
-
-extern read_cfg_text_t txt;
 
 /***********************/
 /* Function Prototypes */
