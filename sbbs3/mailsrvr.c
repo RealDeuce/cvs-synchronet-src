@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.42 2000/12/02 23:31:19 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.43 2000/12/04 01:30:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -624,7 +624,8 @@ static void pop3_thread(void* arg)
 			user.number=matchuser(&scfg,username);
 		}
 		if(!user.number) {
-			lprintf("%04d !POP3 UNKNOWN USER: %s", socket, username);
+			lprintf("%04d !POP3 UNKNOWN USER: %s (password: %s)"
+				, socket, username, password);
 			sockprintf(socket,"-ERR");
 			break;
 		}
