@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.47 2004/06/03 05:00:07 deuce Exp $ */
+/* $Id: uifc.h,v 1.48 2004/06/03 05:28:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,9 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#ifndef _UIFC_H_
+#define _UIFC_H_
 
 #include <time.h>
 #include <fcntl.h>
@@ -404,3 +407,5 @@ extern "C"
 #endif
 int uifcinifltk(uifcapi_t*);	/* FLTK implementation (by Deuce)			*/
 /****************************************************************************/
+
+#endif /* Don't add anything after this line! */
