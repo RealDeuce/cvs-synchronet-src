@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.18 2002/03/09 02:28:39 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.19 2002/03/11 13:31:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -542,6 +542,10 @@ js_get_msg_body(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 
 	if(argc>2)
 		strip_ctrl_a=JSVAL_TO_BOOLEAN(argv[2]);
+
+	if(argc>3)
+		tails=JSVAL_TO_BOOLEAN(argv[3]);
+
 
 	buf = get_msg_text(&(p->smb), &msg, strip_ctrl_a, tails ? GETMSGTXT_TAILS : 0);
 	if(buf==NULL)
