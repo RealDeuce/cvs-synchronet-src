@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.11 2000/11/28 02:43:57 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.12 2000/11/28 02:46:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1384,7 +1384,7 @@ int main(int argc, char **argv)
 	tzset();
 
 	if((t=checktime())!=0) {
-		fprintf(stderr,"Time problem (%ld)\n",t);
+		fprintf(stderr,"!TIME PROBLEM (%ld)\n",t);
 		return(-1);
 	}
 
