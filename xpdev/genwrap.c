@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.28 2003/06/11 02:13:32 deuce Exp $ */
+/* $Id: genwrap.c,v 1.29 2003/08/26 04:11:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -147,7 +147,8 @@ void DLLCALL unix_beep(int freq, int dur)
 #if defined(__solaris__)
 		ioctl(console_fd, KIOCCMD, KBD_CMD_BELL);
 #else
-		ioctl(console_fd, KIOCSOUND, (int) (1193180 / freq));
+		if(freq != 0)	/* Don't divide by zero */
+			ioctl(console_fd, KIOCSOUND, (int) (1193180 / freq));
 #endif /* solaris */
 		SLEEP(dur);
 #if defined(__solaris__)
