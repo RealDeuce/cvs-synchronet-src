@@ -1,9 +1,7 @@
 #ifndef _MENU_H_
 #define _MENU_H_
 
-#include "bbslist.h"
-
-int syncmenu(struct bbslist *);
+int syncmenu(void);
 void viewscroll(void);
 
 #endif
