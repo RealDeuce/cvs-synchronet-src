@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.30 2003/05/17 04:13:09 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.31 2003/07/03 01:11:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -513,7 +513,7 @@ BOOL DLLCALL isdir(const char *filename)
 	SAFECOPY(path,filename);
 
 	p=lastchar(path);
-	if(p!=path && (*p=='/' || *p==BACKSLASH)) {	/* chop off trailing slash */
+	if(p!=path && IS_PATH_DELIM(*p)) {	/* chop off trailing slash */
 #if !defined(__unix__)
 		if(*(p-1)!=':')		/* Don't change C:\ to C: */
 #endif
@@ -564,8 +564,8 @@ ulong DLLCALL delfiles(char *inpath, char *spec)
 	glob_t	g;
 
 	lastch=*lastchar(inpath);
-	if(lastch!='/' && lastch!='\\')
-		sprintf(path,"%s%c",inpath,BACKSLASH);
+	if(!IS_PATH_DELIM(lastch))
+		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
 		strcpy(path,inpath);
 	strcat(path,spec);
@@ -734,7 +734,7 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 #endif
 
 /****************************************************************************/
-/* Adds a trailing slash/backslash on path strings 							*/
+/* Adds a trailing slash/backslash (path delimiter) on path strings 		*/
 /****************************************************************************/
 char* DLLCALL backslash(char* path)
 {
@@ -743,7 +743,7 @@ char* DLLCALL backslash(char* path)
 	p=lastchar(path);
 
 	if(*p!='/' && *p!='\\') {
-		*(++p)=BACKSLASH;
+		*(++p)=PATH_DELIM;
 		*(++p)=0;
 	}
 	return(path);
