@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.7 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.8 2000/11/07 03:14:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1557,7 +1557,7 @@ void sbbs_t::guruchat(char *line, char *gurubuf, int gurunum)
 				bprintf(text[ChatLineFmt],cfg.guru[gurunum]->name
 					,cfg.sys_nodes+1,':',theanswer); }
 			CRLF;
-			sprintf(str,"%sGURU.LOG",cfg.data_dir);
+			sprintf(str,"%sguru.log",cfg.data_dir);
 			if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1)
 				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
 			else {

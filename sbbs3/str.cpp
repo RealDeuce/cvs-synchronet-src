@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.9 2000/11/06 07:28:23 rswindell Exp $ */
+/* $Id: str.cpp,v 1.10 2000/11/07 03:14:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -921,7 +921,7 @@ void sbbs_t::errorlog(char *text)
 	}
 	now=time(NULL);
 	logline("!!",text);
-	sprintf(str,"%sERROR.LOG",cfg.data_dir);
+	sprintf(str,"%serror.log",cfg.data_dir);
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 		sprintf(tmp2,"ERROR opening/creating %s",str);
 		logline("!!",tmp2);
