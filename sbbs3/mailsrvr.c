@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.340 2004/10/27 09:07:45 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.341 2004/10/27 21:16:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1065,7 +1065,7 @@ static void pop3_thread(void* arg)
 					continue;
 				}
 
-				if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS))==NULL) {
+				if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL))==NULL) {
 					smb_freemsgmem(&msg);
 					lprintf(LOG_ERR,"%04d !POP3 ERROR (%s) retrieving message %lu text"
 						,socket, smb.last_error, msg.hdr.number);
@@ -3540,7 +3540,7 @@ static void sendmail_thread(void* arg)
 #endif
 
 			lprintf(LOG_DEBUG,"0000 SEND getting message text");
-			if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS))==NULL) {
+			if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL))==NULL) {
 				remove_msg_intransit(&smb,&msg);
 				lprintf(LOG_ERR,"0000 !SEND ERROR (%s) retrieving message text",smb.last_error);
 				continue;
@@ -3895,7 +3895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.340 $", "%*s %s", revision);
+	sscanf("$Revision: 1.341 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.157 2004/10/21 08:58:25 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.158 2004/10/27 21:16:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3696,7 +3696,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 				SAFECOPY(hdr.subj,msg.subj);
 
-				buf=smb_getmsgtxt(&smb[cur_smb],&msg,GETMSGTXT_TAILS);
+				buf=smb_getmsgtxt(&smb[cur_smb],&msg,GETMSGTXT_ALL);
 				if(!buf) {
 					smb_unlockmsghdr(&smb[cur_smb],&msg);
 					smb_freemsgmem(&msg);
@@ -3952,7 +3952,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.157 $", "%*s %s", revision);
+	sscanf("$Revision: 1.158 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
