@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.2 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: execfile.cpp,v 1.3 2001/03/09 22:01:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-int sbbs_t::execfile(csi_t *csi)
+int sbbs_t::exec_file(csi_t *csi)
 {
 	char	str[256],ch;
 	int		s;
