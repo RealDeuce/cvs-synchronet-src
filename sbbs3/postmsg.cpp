@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.5 2001/11/05 04:07:05 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.6 2001/11/08 21:52:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,7 +346,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	return(true);
 }
 
-extern "C" int savemsg(scfg_t* cfg, smb_t* smb, uint subnum, smbmsg_t* msg, char* msgbuf)
+extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, uint subnum, smbmsg_t* msg, char* msgbuf)
 {
 	char	pad=0;
 	ushort	xlat;
