@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.76 2003/03/26 03:44:53 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.77 2003/03/26 04:05:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.76 $", "%*s %s", revision);
+	sscanf("$Revision: 1.77 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -282,6 +282,11 @@ int main(int argc, char **argv)
 	sprintf(params.sys_desc,"%s-%s",params.name.sysname,params.name.machine);
 
 	distlist=get_distlist();
+
+	if(distlist==NULL) {
+		printf("No installation files or distribution list present!\n");
+		exit(1);
+	}
 
 	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
 		allocfail(sizeof(char *)*(MAX_OPTS+1));
@@ -812,6 +817,8 @@ get_distlist(void)
 	}
 	memset(dist[r],0,sizeof(dist_t));
 	uifc.pop(NULL);
+	if(r<1)
+		return(NULL);
 	return(dist);
 }
 
