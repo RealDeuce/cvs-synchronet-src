@@ -11,7 +11,7 @@
 # Optional build targets: clean
 #########################################################################
 
-# $Id: GNUmakefile,v 1.41 2004/07/06 02:37:03 deuce Exp $
+# $Id: GNUmakefile,v 1.42 2004/09/09 21:27:34 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 #USE_FLTK =	1	# Use Windowed version
@@ -25,10 +25,13 @@ XPDEV	=	../../xpdev/
 SBBS_SRC =	..
 NEED_UIFC	:=	1
 CFLAGS		=	-DSCFG
+SMBLIB_SRC	:=	../../smblib/
+NEED_SMBLIB	:=	1
 
 include $(XPDEV)/Common.gmake
 include $(UIFC_SRC)/Common.gmake
 include $(SBBS_SRC)/Common.gmake
+include $(SMBLIB_SRC)/Common.gmake
 
 ifeq ($(os),netbsd)
  CFLAGS		+=	$(PTHREAD_CFLAGS)
