@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.58 2003/11/11 22:58:31 deuce Exp $ */
+/* $Id: jsexec.c,v 1.59 2003/11/20 09:00:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,6 @@ char		host_name_buf[128];
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
-BOOL		terminate_immediately=FALSE;
 DWORD		log_mask=DEFAULT_LOG_MASK;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
 
@@ -99,7 +98,7 @@ void usage(FILE* fp)
 		"\t-o<filename>   send console messages to file instead of stdout\n"
 		"\t-n             send status messages to %s instead of stderr\n"
 		"\t-q             send console messages to %s instead of stdout\n"
-		"\t-x             terminate immediately on local abort signal\n"
+		"\t-x             disable auto-termination on local abort signal\n"
 		"\t-l             loop until intentionally terminated\n"
 		"\t-p             wait for keypress (pause) on exit\n"
 		"\t-!             wait for keypress (pause) on error\n"
@@ -440,8 +439,10 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	if(branch.gc_interval && (branch.counter%branch.gc_interval)==0)
 		JS_MaybeGC(cx), branch.gc_attempts++;
 
-	if(terminated && terminate_immediately)
+	if(branch.auto_terminate && terminated) {
+		JS_ReportError(cx,"Terminated");
 		return(JS_FALSE);
+	}
 
     return(JS_TRUE);
 }
@@ -684,8 +685,9 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
+	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.58 $", "%*s %s", revision);
+	sscanf("$Revision: 1.59 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -755,7 +757,7 @@ int main(int argc, char **argv, char** environ)
 					statfp=nulfp;
 					break;
 				case 'x':
-					terminate_immediately=TRUE;
+					branch.auto_terminate=FALSE;
 					break;
 				case 'l':
 					loop=TRUE;

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.315 2003/10/26 23:04:29 rswindell Exp $ */
+/* $Id: main.cpp,v 1.316 2003/11/20 09:00:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -843,6 +843,7 @@ bool sbbs_t::js_init()
 	js_branch.gc_interval = startup->js_gc_interval;
 	js_branch.yield_interval = startup->js_yield_interval;
 	js_branch.terminated = &terminated;
+	js_branch.auto_terminate = TRUE;
 
 	bool success=false;
 

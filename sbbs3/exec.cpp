@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.48 2003/10/28 00:21:36 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.49 2003/11/20 09:00:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -535,7 +535,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	sbbs->js_branch.counter++;
 
 	/* Terminated? */
-	if(sbbs->terminated) {
+	if(sbbs->js_branch.auto_terminate && sbbs->terminated) {
 		JS_ReportError(cx,"Terminated");
 		sbbs->js_branch.counter=0;
 		return(JS_FALSE);
