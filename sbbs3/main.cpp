@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.118 2002/03/08 02:41:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.119 2002/03/11 18:32:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -499,6 +499,8 @@ bool sbbs_t::js_init()
 
     if((js_cx = JS_NewContext(js_runtime, JAVASCRIPT_CONTEXT_STACK))==NULL)
 		return(false);
+
+	js_loop = 0;	/* loop counter */
 
 	bool success=false;
 
