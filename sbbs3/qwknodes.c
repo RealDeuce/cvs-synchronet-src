@@ -2,7 +2,7 @@
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
-/* $Id: qwknodes.c,v 1.5 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.6 2002/03/13 12:32:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -192,7 +192,7 @@ void stripctrla(uchar *str)
 	int i,j;
 
 for(i=j=0;str[i];i++) {
-	if(str[i]==CTRL_A)
+	if(str[i]==CTRL_A && str[i+1]!=0)
 		i++;
 	else
 		out[j++]=str[i]; }

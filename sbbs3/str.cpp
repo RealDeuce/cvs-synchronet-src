@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.29 2002/03/08 02:41:18 rswindell Exp $ */
+/* $Id: str.cpp,v 1.30 2002/03/13 12:32:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,8 @@ char* DLLCALL remove_ctrl_a(char *instr, char *outstr)
 	char str[1024],*p;
 	uint i,j;
 
-	for(i=j=0;instr[i];i++) {
-		if(instr[i]==CTRL_A)
+	for(i=j=0;instr[i] && j<sizeof(str)-1;i++) {
+		if(instr[i]==CTRL_A && instr[i+1]!=0)
 			i++;
 		else str[j++]=instr[i]; 
 	}

@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.5 2002/02/18 14:49:00 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.6 2002/03/13 12:32:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,7 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 	if(!(mode&P_SAVEATR))
 		attr(LIGHTGRAY);
 	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
-		if(str[l]==CTRL_A) {
+		if(str[l]==CTRL_A && str[l+1]!=0) {
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
