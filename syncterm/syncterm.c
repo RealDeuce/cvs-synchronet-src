@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <ciolib.h>
+#include <conio.h>
 
 #include "bbslist.h"
 #include "rlogin.h"
