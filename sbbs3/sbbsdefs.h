@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.52 2002/02/14 03:03:55 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.53 2002/02/28 03:00:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,8 +52,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2001 Rob Swindell"
-#define COPYRIGHT_CRC		0x84A7C601
+#define COPYRIGHT_NOTICE	"Copyright 2002 Rob Swindell"
+#define COPYRIGHT_CRC		0xF8C6E3DA
 
 #define Y2K_2DIGIT_WINDOW	70
 
