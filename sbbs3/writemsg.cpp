@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.47 2003/07/08 10:28:43 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.48 2003/08/20 10:02:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -948,7 +948,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	if((i=smb_open_da(&smb))!=0) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return; }
-	if((i=smb_incdat(&smb,msg->hdr.offset,smb_getmsgdatlen(msg),1))!=0) {
+	if((i=smb_incmsg_dfields(&smb,msg,1))!=0) {
 		errormsg(WHERE,ERR_WRITE,smb.file,i);
 		return; }
 	smb_close_da(&smb);
@@ -1090,11 +1090,11 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 	if(!(smb.status.attr&SMB_HYPERALLOC)) {
 		if((i=smb_open_da(&smb))!=0) {
 			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-			return; }
-		for(x=0;x<msg->hdr.total_dfields;x++)
-			if((i=smb_freemsgdat(&smb,msg->hdr.offset+msg->dfield[x].offset
-				,msg->dfield[x].length,1))!=0)
-				errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); }
+			return; 
+		}
+		if((i=smb_freemsg_dfields(&smb,msg,1))!=0)
+			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
+	}
 
 	msg->dfield[0].type=TEXT_BODY;				/* Make one single data field */
 	msg->dfield[0].length=length;
