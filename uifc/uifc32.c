@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.57 2004/06/01 04:42:03 deuce Exp $ */
+/* $Id: uifc32.c,v 1.58 2004/06/01 04:49:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1915,7 +1915,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			/* This broke swedish chars... */
 			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
 #else
-			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max))
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && ch < 256)
 #endif
 			{
 				if(mode&K_UPPER)
