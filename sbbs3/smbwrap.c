@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.13 2000/11/07 11:38:52 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.14 2000/11/07 21:42:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,10 +213,6 @@ int SMBCALL sopen(char *fn, int access, int share)
 {
 	int fd;
 	struct flock alock;
-
-	if (share == SH_DENYNO	/* we're going to be using lock/unlock later */
-		&& access == O_RDONLY)
-		access = O_RDWR;	/* must have write access to set exclusive lock */
 
 	if ((fd = open(fn, access, S_IREAD|S_IWRITE)) < 0)
 		return -1;
