@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.22 2002/09/06 02:10:03 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.23 2002/09/11 02:05:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,24 +59,6 @@ enum {
 	/* Must be last */
 	,CON_PROPERTIES
 };
-
-#ifdef _DEBUG
-static char* con_prop_desc[CON_PROPERTIES+1] = {
-	 "status bits (see CON_* in sbbsdefs.js)"
-	,"current line counter (used for automatic screen pause"
-	,"current display attributes"
-	,"top-of-screen"
-	,"number of terminal rows"
-	,"automatically detected terminal settings"
-	,"word-wrap buffer"
-	,"current yes/no question"
-	,"user inactivity timeout reference"
-	,"low timeleft warning flag"
-	,"output can be aborted with Ctrl-C"
-	,"current telnet mode"
-};
-
-#endif
 
 static JSBool js_console_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
@@ -213,6 +195,23 @@ static struct JSPropertySpec js_console_properties[] = {
 	{	"question"			,CON_PROP_QUESTION		,CON_PROP_FLAGS ,NULL,NULL},
 	{0}
 };
+
+#ifdef _DEBUG
+static char* con_prop_desc[CON_PROPERTIES+1] = {
+	 "status bit field (see CON_* in sbbsdefs.js for bit definitions)"
+	,"current line counter (used for automatic screen pause)"
+	,"current display attributes"
+	,"set to 1 if the terminal cursor is already at the top of the screen"
+	,"number of terminal rows"
+	,"automatically detected terminal settings (see USER_* in sbbsdefs.js for bit definitions)"
+	,"user inactivity timeout reference"
+	,"low timeleft warning flag"
+	,"output can be aborted with Ctrl-C"
+	,"current telnet mode (see TELNET_MODE_* in sbbsdefs.js for valid values)"
+	,"word-wrap buffer (used by getstr)"
+	,"current yes/no question (set by yesno and noyes)"
+};
+#endif
 
 /**************************/
 /* Console Object Methods */
