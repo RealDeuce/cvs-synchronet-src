@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.375 2005/02/18 08:54:05 rswindell Exp $ */
+/* $Id: main.cpp,v 1.376 2005/02/18 13:12:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,12 +283,12 @@ DLLEXPORT int DLLCALL sbbs_random(int n)
 static js_server_props_t js_server_props;
 
 JSBool
-jsval_isNaN(JSContext *cx, jsval v)
+DLLCALL jsval_isNaN(JSContext *cx, jsval v)
 {
     jsdouble d;
 
     if(JSVAL_IS_DOUBLE(v)) {
-	    if (!JS_ValueToNumber(cx, v, &d))
+	    if(!JS_ValueToNumber(cx, v, &d))
 			return JS_FALSE;
 		if(JSDOUBLE_IS_NaN(d))
 			return JS_TRUE;
