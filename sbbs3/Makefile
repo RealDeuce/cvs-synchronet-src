@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.33 2003/07/11 09:49:16 rswindell Exp $
+# $Id: Makefile,v 1.34 2003/07/11 20:32:19 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -56,7 +56,7 @@ CFLAGS	= 	$(CFLAGS) -DJAVASCRIPT -I../../include/mozilla/js
 LIBS	=	..\..\lib\mozilla\js\win32.debug\js32omf.lib
 !endif
 
-mono:
+default: mono utils
 
 # Cross platform/compiler definitions
 !include targets.mk		# defines all targets
