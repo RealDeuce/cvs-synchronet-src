@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.55 2001/06/22 02:31:18 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.56 2001/06/23 00:44:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -530,7 +530,7 @@ public:
 	void	errormsg(int line, char *file, char action, char *object
 				,ulong access, char *extinfo=NULL);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
-	bool	chksyspass(int local);
+	bool	chksyspass(void);
 	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
 	bool	ar_exp(uchar ** ptrptr, user_t * user);
 
@@ -658,7 +658,7 @@ public:
 	bool	qnetmail(char *into, char *subj, long mode);
 
 	/* useredit.cpp */
-	void	useredit(int usernumber, int local);
+	void	useredit(int usernumber);
 	int		searchup(char *search,int usernum);
 	int		searchdn(char *search,int usernum);
 	void	maindflts(user_t* user);
