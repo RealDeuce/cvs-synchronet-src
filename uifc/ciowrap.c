@@ -1,4 +1,4 @@
-/* $Id: ciowrap.c,v 1.6 2004/03/26 07:45:24 deuce Exp $ */
+/* $Id: ciowrap.c,v 1.7 2004/04/02 07:10:16 deuce Exp $ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -329,6 +329,26 @@ void textattr(unsigned char attr)
 	#endif
 	/* bkgdset(colour); */
 	bkgdset(colour);
+}
+
+void textbackground(int colour)
+{
+	unsigned char attr;
+	
+	attr=lastattr;
+	attr&=143;
+	attr|=(colour<<4);
+	textattr(attr);
+}
+
+void textcolor(int colour)
+{
+	unsigned char attr;
+	
+	attr=lastattr;
+	attr&=240;
+	attr|=colour;
+	textattr(attr);
 }
 
 int kbhit(void)
