@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.7 2000/11/02 05:02:26 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.8 2000/11/02 12:25:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,33 +96,6 @@
 #define HANDLE	void*
 #endif
 
-/* Open flags */
-#ifdef _WIN32
-
-#ifndef O_DENYNONE
-#define O_DENYNONE	OF_SHARE_DENY_NONE
-#define O_DENYALL	OF_SHARE_EXCLUSIVE
-#endif
-
-#elif defined(__unix__)
-
-#include <fcntl.h>
-
-#define O_DENYNONE	0
-#define O_DENYALL	0
-#define O_BINARY	0
-#define SH_DENYNO	2          // open() will *not* block
-#define SH_DENYRW	F_WRLCK	   // blocks on read/write
-#define SH_DENYRD   F_RDLCK	   // blocks on read
-#define SH_DENYWR   F_WRLCK    // blocks on write (and read)
-
-#endif
-
-#ifdef _MSC_VER			/* Visual C++ */
-
-#define S_IWRITE	_S_IWRITE
-
-#endif
 
 /****************************************************************************/
 /* MALLOC/FREE Macros for various compilers and environments				*/
