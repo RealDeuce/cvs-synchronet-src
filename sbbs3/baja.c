@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.20 2001/09/19 00:33:56 rswindell Exp $ */
+/* $Id: baja.c,v 1.21 2002/03/06 21:52:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -453,7 +453,7 @@ void compile(char *src)
 	FILE *in;
 
 	if((in=fopen(src,"rb"))==NULL) {
-		printf("error opening %s for read\n",src);
+		printf("error %d opening %s for read\n",errno,src);
 		bail(1); }
 	line=0;
 
@@ -3443,7 +3443,7 @@ int main(int argc, char **argv)
 		sprintf(str,"%s%s",outdir,outfname); }
 
 	if((out=fopen(str,"w+b"))==NULL) {
-		printf("error opening %s for write\n",str);
+		printf("error %d opening %s for write\n",errno,str);
 		bail(1); 
 	}
 

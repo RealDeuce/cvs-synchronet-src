@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.15 2002/02/24 15:09:27 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.16 2002/03/06 21:52:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,7 +145,7 @@ bool sbbs_t::syslog(char* code, char *entry)
 	sprintf(fname,"%slogs/%2.2d%2.2d%2.2d.log",cfg.data_dir,tm->tm_mon+1,tm->tm_mday
 		,TM_YEAR(tm->tm_year));
 	if((file=nopen(fname,O_WRONLY|O_APPEND|O_CREAT))==-1) {
-		lprintf("!ERRROR opening/creating %s",fname); 
+		lprintf("!ERRROR %d opening/creating %s",errno,fname); 
 		return(false);
 	}
 
@@ -350,7 +350,7 @@ void sbbs_t::errorlog(char *text)
 	logline("!!",text);
 	sprintf(str,"%serror.log",cfg.data_dir);
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
-		sprintf(tmp2,"!ERROR opening/creating %s",str);
+		sprintf(tmp2,"!ERROR %d opening/creating %s",errno,str);
 		logline("!!",tmp2);
 		errorlog_inside=0;
 		return; }
