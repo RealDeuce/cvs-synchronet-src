@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.35 2002/03/07 02:01:00 rswindell Exp $ */
+/* $Id: services.c,v 1.36 2002/03/11 16:26:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1267,7 +1267,7 @@ void DLLCALL services_thread(void* arg)
 					break;
 				mswait(500);
 			}
-			lprintf("0000 Finished waiting");
+			lprintf("0000 Done waiting");
 		}
 
 		/* Free Service Data */
