@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.67 2003/05/01 10:20:30 rswindell Exp $ */
+/* $Id: userdat.c,v 1.68 2003/05/07 01:11:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2035,9 +2035,8 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 
 	for(i=0;i<2;i++) {
 		sprintf(str,"%sdsts.dab",i ? cfg->ctrl_dir : cfg->node_dir);
-		if((file=nopen(str,O_RDWR))==-1) {
-			return(errno); 
-		}
+		if((file=nopen(str,O_RDWR))==-1)
+			continue; 
 		memset(&stats,0,sizeof(stats));
 		lseek(file,4L,SEEK_SET);   /* Skip timestamp */
 		read(file,&stats,sizeof(stats));  
