@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.6 2002/04/26 23:39:17 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.7 2002/12/20 00:28:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,5 +79,20 @@ ulong _beginthread(void( *start_address )( void * )
 #error "Need _beginthread implementation for non-POSIX thread library."
 
 #endif
+
+/****************************************************************************/
+/* Thread-safe (reentrant) version of realpath() - required for OpenBSD		*/
+/****************************************************************************/
+char* realpath_r(const char *pathname, char *resolvedname)  
+{
+    static pthread_mutex_t mutex=PTHREAD_MUTEX_INITIALIZER;
+    char *p;
+
+    pthread_mutex_lock(&mutex);
+    p=realpath(pathname,resolvedname);
+    pthread_mutex_unlock(&mutex);
+    return p;
+}
+
 
 #endif	/* __unix__ */
