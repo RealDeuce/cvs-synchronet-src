@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.32 2004/06/03 23:16:42 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.33 2004/06/04 01:13:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,13 +185,16 @@ static size_t find_value_index(str_list_t list, const char* section, const char*
 	return(i);
 }
 
-size_t iniAddSection(str_list_t* list, const char* section)
+size_t iniAddSection(str_list_t* list, const char* section
+					,ini_style_t* style)
 {
 	char	str[INI_MAX_LINE_LEN];
 	size_t	i;
 
 	i=find_section_index(*list, section);
 	if((*list)[i]==NULL) {
+		if(style->section_separator!=NULL)
+			strListAppend(list, style->section_separator, i++);
 		sprintf(str,"[%s]",section);
 		strListAppend(list, str, i);
 	}
@@ -206,12 +209,13 @@ char* iniSetString(str_list_t* list, const char* section, const char* key, const
 	char	curval[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	iniAddSection(list, section);
+	if(style==NULL)
+		style=&default_style;
+
+	iniAddSection(list, section, style);
 
 	if(key==NULL)
 		return(NULL);
-	if(style==NULL)
-		style=&default_style;
 	if(style->key_prefix==NULL)
 		style->key_prefix="";
 	if(style->value_separator==NULL)
@@ -632,8 +636,14 @@ str_list_t iniReadFile(FILE* fp)
 
 BOOL iniWriteFile(FILE* fp, const str_list_t list)
 {
+	size_t		count;
+
 	rewind(fp);
+
 	if(chsize(fileno(fp),0)!=0)	/* truncate */
 		return(FALSE);
-	return(strListWriteFile(fp,list,"\n") == strListCount(list));
+
+	count = strListWriteFile(fp,list,"\n");
+
+	return(count == strListCount(list));
 }
