@@ -2,7 +2,7 @@
 
 /* Synchronet Services Server */
 
-/* $Id: services.c,v 1.9 2001/11/16 00:53:27 rswindell Exp $ */
+/* $Id: services.c,v 1.10 2001/11/16 01:06:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -584,7 +584,9 @@ static void js_service_thread(void* arg)
 	else
 		host_name="<no name>";
 
-	lprintf("%04d %s client name: %s", socket, service->protocol, host_name);
+	if(!(service->options&BBS_OPT_NO_HOST_LOOKUP)
+		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP))
+		lprintf("%04d %s client name: %s", socket, service->protocol, host_name);
 
 	if(trashcan(&scfg,host_name,"host")) {
 		lprintf("%04d !%s CLIENT BLOCKED in host.can: %s"
@@ -754,7 +756,9 @@ static void native_service_thread(void* arg)
 	else
 		host_name="<no name>";
 
-	lprintf("%04d %s client name: %s", socket, service->protocol, host_name);
+	if(!(service->options&BBS_OPT_NO_HOST_LOOKUP)
+		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP))
+		lprintf("%04d %s client name: %s", socket, service->protocol, host_name);
 
 	if(trashcan(&scfg,host_name,"host")) {
 		lprintf("%04d !%s CLIENT BLOCKED in host.can: %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.116 2001/11/16 00:54:38 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.117 2001/11/16 01:06:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2283,7 +2283,8 @@ static void ctrl_thread(void* arg)
 	else
 		host_name="<no name>";
 
-	lprintf("%04d Host name: %s", sock, host_name);
+	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
+		lprintf("%04d Host name: %s", sock, host_name);
 
 	if(trashcan(&scfg,host_ip,"ip")) {
 		lprintf("%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.85 2001/11/16 00:51:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.86 2001/11/16 01:06:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -537,7 +537,8 @@ static void pop3_thread(void* arg)
 	else
 		strcpy(host_name,"<no name>");
 
-	if(startup->options&MAIL_OPT_DEBUG_POP3)
+	if(startup->options&MAIL_OPT_DEBUG_POP3
+		&& !(startup->options&MAIL_OPT_NO_HOST_LOOKUP))
 		lprintf("%04d POP3 client name: %s", socket, host_name);
 
 	if(trashcan(&scfg,host_ip,"ip")) {
@@ -1151,7 +1152,8 @@ static void smtp_thread(void* arg)
 	else
 		strcpy(host_name,"<no name>");
 
-	lprintf("%04d SMTP host name: %s", socket, host_name);
+	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP))
+		lprintf("%04d SMTP host name: %s", socket, host_name);
 
 	strcpy(hello_name,host_name);
 
