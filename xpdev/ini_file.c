@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.38 2004/07/02 00:00:24 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.41 2004/07/03 00:16:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,6 +137,11 @@ static char* key_name(char* p, char** vp)
 	char* equal;
 	char* colon;
 
+    *vp=NULL;
+    
+	if(p==NULL)
+		return(NULL);
+
 	/* Parse value name */
 	SKIP_WHITESPACE(p);
 	if(*p==INI_COMMENT_CHAR)
@@ -253,6 +258,22 @@ BOOL iniRemoveKey(str_list_t* list, const char* section, const char* key)
 		return(FALSE);
 
 	return(strListDelete(list,i));
+}
+
+BOOL iniRemoveValue(str_list_t* list, const char* section, const char* key)
+{
+	char	val[INI_MAX_VALUE_LEN];
+	size_t	i;
+	char*	vp=NULL;
+
+	i=find_value_index(*list, section, key, val);
+
+    key_name((*list)[i], &vp);
+	if(vp==NULL)
+		return(FALSE);
+
+	*vp=0;	/* Terminate string at beginning of value */
+	return(TRUE);
 }
 
 size_t iniAddSection(str_list_t* list, const char* section
