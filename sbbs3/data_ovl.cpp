@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.7 2002/02/05 21:57:23 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.8 2002/02/05 23:16:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,10 @@ extern "C" BOOL DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 	return(TRUE);
 }
 
+void sbbs_t::putmsgptrs()
+{
+	::putmsgptrs(&cfg,useron.number,subscan);
+}
 
 /****************************************************************************/
 /* Writes to DATA\USER\PTRS\xxxx.DAB the msgptr array for the current user	*/
