@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.253 2003/05/09 02:03:08 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.254 2003/05/09 03:38:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1308,7 +1308,7 @@ static void signal_smtp_sem(void)
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
-static char* cmdstr(char* instr, char* msgpath, char* lstpath, char* errpath, char* cmd)
+static char* mailcmdstr(char* instr, char* msgpath, char* lstpath, char* errpath, char* cmd)
 {
 	char	str[256];
     int		i,j,len;
@@ -1775,7 +1775,7 @@ static void smtp_thread(void* arg)
 						if(*p==';' || *p==0)	/* comment or blank line */
 							continue;
 						lprintf("%04d SMTP executing external process: %s", socket, p);
-						system(cmdstr(p, msgtxt_fname, rcptlst_fname, proc_err_fname, str));
+						system(mailcmdstr(p, msgtxt_fname, rcptlst_fname, proc_err_fname, str));
 						if(flength(proc_err_fname)>0)
 							break;
 						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
@@ -3271,7 +3271,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.253 $", "%*s %s", revision);
+	sscanf("$Revision: 1.254 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
