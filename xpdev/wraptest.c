@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.27 2003/04/08 05:49:04 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.28 2003/04/08 05:55:51 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -64,6 +64,7 @@ int main()
 		else
 			SLEEP(1);
 	}
+	SLEEP(5000);	/* wait for all threads to quit */
 
 	/* Exclusive sopen test */
 	printf("\nsopen() test\n");
