@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.58 2001/11/11 21:13:18 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.59 2001/11/17 16:28:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -946,9 +946,18 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 			RingBufWrite(&outbuf, bp, output_len);
 			sem_post(&output_sem);	
 		}
-		if(waitpid(pid, &i, WNOHANG)==0)
-			kill(pid, SIGKILL);	/* terminate child process */
 
+		if(waitpid(pid, &i, WNOHANG)==0)  {		// Child still running? 
+			kill(pid, SIGHUP);					// Tell child user has hung up
+			time_t start=time(NULL);			// Wait up to 10 seconds
+			while(time()-start<10) {			// for child to terminate
+				if(waitpid(pid, &i, WNOHANG)!=0)
+					break;
+				mswait(500);
+			}
+			if(waitpid(pid, &i, WNOHANG)==0)	// Child still running?
+				kill(pid, SIGKILL);				// terminate child process
+		}
 		/* close unneeded descriptors */
 		if(mode&EX_INR)
 			close(in_pipe[1]);
