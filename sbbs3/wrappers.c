@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.18 2000/11/03 05:07:03 cmartin Exp $ */
+/* $Id: wrappers.c,v 1.19 2000/11/03 12:29:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -277,20 +277,6 @@ char* strrev(char* str)
     }
     return str;
 }
-/****************************************************************************/
-/* Convert ASCIIZ string to lower case										*/
-/****************************************************************************/
-char* strlwr(char* str)
-{
-	char* p=str;
-
-	while(*p) {
-		*p=tolower(*p);
-		p++;
-	}
-	return(str);
-}
-
 #endif
 
 /****************************************************************************/
