@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.19 2004/09/08 03:39:15 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.18 2004/08/30 06:52:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,7 @@ void	free_chat_cfg(scfg_t* cfg);
 
 long	aftol(char *str);              /* Converts flag string to long */
 char*	ltoaf(long l, char *str);     /* Converts long to flag string */
+char*	faddrtoa(faddr_t* addr, char* str);   /* FidoNet address to ASCII text conversion */
 uchar	attrstr(char *str);		/* Convert ATTR string into attribute int */
 
 #ifdef __cplusplus

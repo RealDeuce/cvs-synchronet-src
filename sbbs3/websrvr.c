@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.151 2004/09/05 18:11:55 deuce Exp $ */
+/* $Id: websrvr.c,v 1.150 2004/09/02 01:16:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,10 +80,6 @@
  *			delays)
  * 4) Type three with a callback that sends the header and current body, then
  *		converts write() to send directly to remote.
- *
- * Add in support to pass connections through to a different webserver...
- *      probobly in access.ars... with like a simplified mod_rewrite.
- *      This would allow people to run apache and Synchronet as the same site.
  */
 
 #if defined(__unix__)
@@ -2529,7 +2525,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.151 $", "%*s %s", revision);
+	sscanf("$Revision: 1.150 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
