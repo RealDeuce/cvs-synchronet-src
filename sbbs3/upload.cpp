@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.14 2001/10/02 20:10:56 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.15 2001/11/04 00:47:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -470,7 +470,7 @@ void sbbs_t::upload(uint dirnum)
 					break;
 			if(i<cfg.total_prots) {
 				start=time(NULL);
-				protocol(cmdstr(cfg.prot[i]->ulcmd,str,nulstr,NULL),0);
+				protocol(cmdstr(cfg.prot[i]->ulcmd,str,nulstr,NULL),true);
 				end=time(NULL);
 				if(!(cfg.dir[dirnum]->misc&DIR_ULTIME)) /* Don't deduct upload time */
 					starttime+=end-start;
