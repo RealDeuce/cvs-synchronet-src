@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.3 2004/09/11 09:26:23 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.2 2004/08/28 03:16:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <time.h>		/* ctime */
 #include "smblib.h"
+#include <time.h>		/* ctime */
 
 static char *binstr(uchar *buf, ushort length)
 {
