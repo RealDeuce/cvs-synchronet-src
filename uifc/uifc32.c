@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.60 2004/06/01 05:07:10 deuce Exp $ */
+/* $Id: uifc32.c,v 1.61 2004/06/01 07:29:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,12 +43,6 @@
 	#endif
 	#include "ciowrap.h"
     #define mswait(x) delay(x)
-	#if defined(putch) && defined(NO_ECHOCHAR)
-		#undef putch
-	#endif
-	#if !defined(putch)
-    	#define putch(x)	_putch(x,TRUE)
-	#endif
     #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
