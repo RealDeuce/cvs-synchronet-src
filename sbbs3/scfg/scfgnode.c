@@ -1,6 +1,6 @@
 /* scfgnode.c */
 
-/* $Id: scfgnode.c,v 1.23 2004/12/21 01:40:04 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.22 2004/04/21 22:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -216,10 +216,8 @@ Options with a trailing ... will produce a sub-menu of more options.
 			done=0;
 			while(!done) {
 				i=0;
-#if 0	/* no longer used */
 				sprintf(opt[i++],"%-27.27s%s","Low Priority String Input"
 					,cfg.node_misc&NM_LOWPRIO ? "Yes":"No");
-#endif
 				sprintf(opt[i++],"%-27.27s%s","Allow Login by User Number"
 					,cfg.node_misc&NM_NO_NUM ? "No":"Yes");
 				sprintf(opt[i++],"%-27.27s%s","Allow Login by Real Name"
@@ -249,7 +247,6 @@ more states, such as Yes and No.
 					case -1:
 						done=1;
 						break;
-#if 0 /* no longer used */
 					case 0:
 						i=cfg.node_misc&NM_LOWPRIO ? 0:1;
 						strcpy(opt[0],"Yes");
@@ -277,8 +274,7 @@ user, but improving aggregate system performance under multitaskers.
 							cfg.node_misc&=~NM_LOWPRIO;
 							uifc.changes=1; }
                         break;
-#endif
-					case 0:
+					case 1:
 						i=cfg.node_misc&NM_NO_NUM ? 1:0;
 						strcpy(opt[0],"Yes");
 						strcpy(opt[1],"No");
@@ -300,7 +296,7 @@ set this option to Yes.
 							cfg.node_misc|=NM_NO_NUM;
 							uifc.changes=1; }
                         break;
-					case 1:
+					case 2:
 						i=cfg.node_misc&NM_LOGON_R ? 0:1;
 						strcpy(opt[0],"Yes");
 						strcpy(opt[1],"No");
@@ -322,7 +318,7 @@ their alias, set this option to Yes.
 							cfg.node_misc&=~NM_LOGON_R;
 							uifc.changes=1; }
                         break;
-					case 2:
+					case 3:
 						i=cfg.node_misc&NM_LOGON_P ? 0:1;
 						strcpy(opt[0],"Yes");
 						strcpy(opt[1],"No");
@@ -344,7 +340,7 @@ prompt for a password, set this option to Yes.
 							cfg.node_misc&=~NM_LOGON_P;
 							uifc.changes=1; }
                         break;
-					case 3:
+					case 4:
 						i=cfg.node_misc&NM_7BITONLY ? 0:1;
 						strcpy(opt[0],"Yes");
 						strcpy(opt[1],"No");
@@ -367,7 +363,7 @@ to send IBM extended ASCII characters during the login sequence.
 							cfg.node_misc&=~NM_7BITONLY;
 							uifc.changes=1; }
                         break;
-					case 4:
+					case 5:
 						i=cfg.node_misc&NM_NOPAUSESPIN ? 1:0;
 						strcpy(opt[0],"Yes");
 						strcpy(opt[1],"No");
@@ -389,7 +385,7 @@ this option to Yes.
 							cfg.node_misc|=NM_NOPAUSESPIN;
 							uifc.changes=1; }
                         break;
-					case 5:
+					case 6:
 						i=cfg.node_misc&NM_CLOSENODEDAB ? 1:0;
 						strcpy(opt[0],"Yes");
 						strcpy(opt[1],"No");
