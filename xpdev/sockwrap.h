@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.13 2003/03/17 22:58:58 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.14 2003/05/07 20:18:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,7 +125,7 @@ extern "C" {
 
 int		sendfilesocket(int sock, int file, long *offset, long count);
 int		recvfilesocket(int sock, int file, long *offset, long count);
-BOOL	socket_check(SOCKET sock, BOOL* rd_p);
+BOOL	socket_check(SOCKET sock, BOOL* rd_p, DWORD timeout);
 
 #ifdef __cplusplus
 }

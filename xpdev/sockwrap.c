@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.9 2003/03/14 06:20:43 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.10 2003/05/07 20:18:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,7 +172,7 @@ int recvfilesocket(int sock, int file, long *offset, long count)
 
 
 /* Return true if connected, optionally sets *rd_p to true if read data available */
-BOOL socket_check(SOCKET sock, BOOL* rd_p)
+BOOL socket_check(SOCKET sock, BOOL* rd_p, DWORD timeout)
 {
 	char	ch;
 	int		i,rd;
@@ -188,8 +188,9 @@ BOOL socket_check(SOCKET sock, BOOL* rd_p)
 	FD_ZERO(&socket_set);
 	FD_SET(sock,&socket_set);
 
-	tv.tv_sec=0;
-	tv.tv_usec=0;
+	/* Convert timeout from ms to sec/usec */
+	tv.tv_sec=timeout/1000;
+	tv.tv_usec=(timeout%1000)*1000;
 
 	i=select(sock+1,&socket_set,NULL,NULL,&tv);
 	if(i==SOCKET_ERROR)
