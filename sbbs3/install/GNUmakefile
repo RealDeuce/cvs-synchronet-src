@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2003/01/23 02:11:01 rswindell Exp $
+# $Id: GNUmakefile,v 1.4 2003/01/23 11:01:15 rswindell Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 USE_CURSES	=	1	# Curses version of UIFC
@@ -98,6 +98,6 @@ $(SBBSINST): $(OBJS)
 	@$(CC) -o $@ $(OBJS) $(LFLAGS)
 	@strip $@
 
-# Auto-dependency files
+# Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
+-include ./*.d
 -include $(ODIR)/*.d
-
