@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.40 2001/07/13 02:56:22 rswindell Exp $ */
+/* $Id: main.cpp,v 1.41 2001/07/16 22:51:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -866,6 +866,9 @@ void event_thread(void* arg)
 	eprintf("BBS Events thread started");
 
 	sbbs->event_thread_running = true;
+
+	srand(clock());		/* Seed random number generator */
+	sbbs_random(10);	/* Throw away first number */
 
 	thread_up();
 
@@ -2503,6 +2506,9 @@ void node_thread(void* arg)
 	update_clients();
 	thread_up();
 
+	srand(clock());		/* Seed random number generator */
+	sbbs_random(10);	/* Throw away first number */
+
 #ifdef JAVASCRIPT
 	sbbs->js_initcx();	/* This must be done in the context of the node thread */
 #endif
@@ -2951,8 +2957,6 @@ void DLLCALL bbs_thread(void* arg)
 		cleanup(1);
 		return;
 	}
-
-	srand(time(NULL));
 
 	if(!(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
 		if(PUTENV("TZ=UCT0"))
