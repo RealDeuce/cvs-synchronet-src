@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.3 2000/10/31 06:41:03 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.4 2000/11/02 03:42:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,7 +185,7 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
     else
 	    MainForm->bbs_startup.options&=~BBS_OPT_USE_2ND_RLOGIN;
 
-    MainForm->SaveSettings();
+    MainForm->SaveSettings(Sender);
 }
 //---------------------------------------------------------------------------
 
