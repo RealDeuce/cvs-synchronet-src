@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.31 2003/07/03 06:04:12 rswindell Exp $
+# $Id: Makefile,v 1.32 2003/07/08 05:32:20 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -62,6 +62,8 @@ LIBS	=	..\..\lib\mozilla\js\win32.debug\js32omf.lib
 !include sbbsdefs.mk	# defines $(SBBSDEFS)
 
 SBBSLIB	=	$(LIBODIR)\sbbs.lib
+
+$(SBBSLIB):	$(SBBS)
 
 .path.c = .;$(XPDEV)
 .path.cpp = .;$(XPDEV)
@@ -238,7 +240,7 @@ $(MAKEUSER): makeuser.c \
 # JSEXEC
 $(JSEXEC): jsexec.c \
 	$(LIBS) \
-	$(LIBODIR)\sbbs.lib
+	$(SBBSLIB)
 	@echo Creating $@
 	@$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
