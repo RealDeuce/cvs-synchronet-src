@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.64 2003/04/05 04:03:14 rswindell Exp $ */
+/* $Id: js_system.c,v 1.65 2003/04/28 23:22:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1170,6 +1170,14 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool
+js_exec(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	*rval = INT_TO_JSVAL(system(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
+	
+	return(JS_TRUE);
+}
+
 
 static jsMethodSpec js_system_functions[] = {
 	{"username",		js_username,		1,	JSTYPE_STRING,	JSDOCSTR("number")
@@ -1222,12 +1230,15 @@ static jsMethodSpec js_system_functions[] = {
 	,JSDOCSTR("returns any short text messages waiting for the specified user")
 	},		
 	{"put_telegram",	js_put_telegram,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("number user, string message")
-	,JSDOCSTR("send a user a short text message, delivered immediately or during next logon")
+	,JSDOCSTR("sends a user a short text message, delivered immediately or during next logon")
 	},		
 	{"newuser",			js_new_user,		1,	JSTYPE_ALIAS },
 	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias")
-	,JSDOCSTR("Create a new user record, returns a new <a href=#User>User</a> object representing the new user account")
+	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account")
 	},
+	{"exec",			js_exec,			1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
+	,JSDOCSTR("executes a native system/shell command-line, returns 0 on success")
+	},		
 	{0}
 };
 
