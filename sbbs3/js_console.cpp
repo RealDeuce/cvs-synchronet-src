@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.12 2002/05/04 07:47:36 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.13 2002/06/14 20:16:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -267,7 +267,7 @@ js_getstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	if(js_str!=NULL)
-		sprintf(p,"%.*s",maxlen,JS_GetStringBytes(js_str));
+		sprintf(p,"%.*s",(int)maxlen,JS_GetStringBytes(js_str));
 
 	sbbs->getstr(p,maxlen,mode);
 

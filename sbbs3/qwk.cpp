@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.18 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.19 2002/06/14 20:16:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ void sbbs_t::update_qwkroute(char *via)
 				break; }
 			total_nodes++; }
 		sprintf(qwk_node[i],"%.8s",node);
-		sprintf(qwk_path[i],"%.*s",(uint)((p-1)-via),via);
+		sprintf(qwk_path[i],"%.*s",(int)((p-1)-via),via);
 		qwk_time[i]=time(NULL);
 		p=strchr(p,'/'); }
 	}
