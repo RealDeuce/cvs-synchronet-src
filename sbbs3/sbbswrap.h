@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.34 2002/03/21 18:17:54 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.35 2002/03/27 01:46:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,9 @@ extern "C" {
 #endif
 
 /* Target Platform Description */
-#if defined(_WIN32)
+#if defined(_WIN64)
+	#define PLATFORM_DESC	"Win64"
+#elif defined(_WIN32)
 	#define PLATFORM_DESC	"Win32"
 #elif defined(__OS2__)
 	#define PLATFORM_DESC	"OS/2"
