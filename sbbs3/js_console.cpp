@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.8 2001/12/01 02:02:34 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.9 2002/02/02 04:13:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.12 2002/02/02 04:10:09 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.13 2002/02/02 04:13:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

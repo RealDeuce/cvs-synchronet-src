@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.18 2002/01/17 03:13:39 rswindell Exp $ */
+/* $Id: js_system.c,v 1.19 2002/02/02 04:13:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

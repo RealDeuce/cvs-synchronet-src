@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.14 2001/12/01 23:47:48 rswindell Exp $ */
+/* $Id: js_user.c,v 1.15 2002/02/02 04:13:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
