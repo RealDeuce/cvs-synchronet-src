@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.116 2005/02/10 07:42:46 deuce Exp $ */
+/* $Id: uifc32.c,v 1.114 2005/02/05 20:52:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,7 +158,7 @@ int uifcini32(uifcapi_t* uifcapi)
 
     api=uifcapi;
 
-    /* install function handlers */
+    /* install function handlers */            
     api->bail=uifcbail;
     api->scrn=uscrn;
     api->msg=umsg;
@@ -283,10 +283,8 @@ int uifcini32(uifcapi_t* uifcapi)
     cursor=_NOCURSOR;
     _setcursortype(cursor);
 
-	if(cio_api.mouse) {
+	if(cio_api.mouse)
 		api->mode|=UIFC_MOUSE;
-		uifc_mouse_enable();
-	}
 
     return(0);
 }
@@ -412,9 +410,9 @@ void uifcbail(void)
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
 	clrscr();
-	FREE_AND_NULL(blk_scrn);
-	FREE_AND_NULL(tmp_buffer);
-	FREE_AND_NULL(tmp_buffer2);
+	FREE(blk_scrn);
+	FREE(tmp_buffer);
+	FREE(tmp_buffer2);
 }
 
 /****************************************************************************/
@@ -539,6 +537,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		opts++;
 	height=opts+hbrdrsize+2;
 	if(mode&WIN_FIXEDHEIGHT) {
+gotoxy(30,1);
+cprintf("Height is: %d",api->list_height);
 		height=api->list_height;
 	}
 	if(top+height>s_bottom)
@@ -2246,11 +2246,9 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			tmp_buffer2[i]=(hclr|(bclr<<4));
 	    tmp_buffer2[0]='Ú';
 		j=title_len;
-		if(j>width-6) {
+		if(j>width-6)
 			*(title+width-6)=0;
-			j=width-6;
-		}
-		for(i=2;i<(width-j);i+=2)
+		for(i=2;i<((width-6)/2-(j/2))*2;i+=2)
    		      tmp_buffer2[i]='Ä';
 		if(api->mode&UIFC_MOUSE && !mode&WIN_DYN) {
 			tmp_buffer2[2]='[';
@@ -2306,7 +2304,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	    	tmp_buffer2[k]='Ã'; k+=2;
 			for(j=k;j<k+(((width-4)/2-12)*2);j+=2)
 		        tmp_buffer2[j]='Ä';
-		}
+		}	
 		else {
 			for(k=j;k<j+((width-2)*2);k+=2)
 				tmp_buffer2[k]='Ä';
@@ -2346,7 +2344,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	for(j=i;j<len;j++,i+=2) {
 		if(hbuf[j]==LF) {
 			i+=2;
-			while(i%((width-2-pad-pad)*2)) i++; i-=2;
+			while(i%((width-2-pad-pad)*2)) i++; i-=2; 
 		}
 		else if(mode&WIN_HLP && (hbuf[j]==2 || hbuf[j]=='~')) {		 /* Ctrl-b toggles inverse */
 			inverse=!inverse;
@@ -2359,9 +2357,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		else if(hbuf[j]!=CR) {
 			textbuf[i]=hbuf[j];
 			textbuf[i+1]=inverse ? (bclr|(cclr<<4))
-				: high ? (hclr|(bclr<<4)) : (lclr|(bclr<<4));
-			if((i+2)%((width-2-pad-pad)*2)==0 && (hbuf[j+1]==LF) || (hbuf[j+1]==CR && hbuf[j+1]==LF))
-				i-=2;
+				: high ? (hclr|(bclr<<4)) : (lclr|(bclr<<4)); 
 		}
 	}
 	i=0;
@@ -2372,8 +2368,8 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	else {
 		while(i==0) {
 			if(p!=oldp) {
-				if(p > textbuf+(lines-(height-2-pad-pad))*(width-2-pad-pad)*2)
-					p=textbuf+(lines-(height-2-pad-pad))*(width-2-pad-pad)*2;
+				if(p > textbuf+(lines-(height-2-pad-pad))*(width-4)*2)
+					p=textbuf+(lines-(height-2-pad-pad))*(width-4)*2;
 				if(p<textbuf)
 					p=textbuf;
 				if(p!=oldp) {
@@ -2392,7 +2388,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty>=top+pad+1
 								&& mevnt.starty<=top+pad+(height/2)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p = p-((width-2-pad-pad)*2*(height-5));
+							p = p-((width-4)*2*(height-5));
 							continue;
 						}
 						/* Clicked Scroll Down */
@@ -2401,7 +2397,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty<=top+pad+height-2
 								&& mevnt.starty>=top+pad+height-(height/2+1)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p=p+(width-2-pad-pad)*2*(height-5);
+							p=p+(width-4)*2*(height-5);
 							continue;
 						}
 						i=1;
@@ -2414,23 +2410,23 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 						break;
 
 					case CIO_KEY_UP:	/* up arrow */
-						p = p-((width-2-pad-pad)*2);
+						p = p-((width-4)*2);
 						break;
 					
 					case CIO_KEY_PPAGE:	/* PgUp */
-						p = p-((width-2-pad-pad)*2*(height-5));
+						p = p-((width-4)*2*(height-5));
 						break;
 
 					case CIO_KEY_NPAGE:	/* PgDn */
-						p=p+(width-2-pad-pad)*2*(height-5);
+						p=p+(width-4)*2*(height-5);
 						break;
 
 					case CIO_KEY_END:	/* end */
-						p=textbuf+(lines-height+1)*(width-2-pad-pad)*2;
+						p=textbuf+(lines-height+1)*(width-4)*2;
 						break;
 
 					case CIO_KEY_DOWN:	/* dn arrow */
-						p = p+((width-2-pad-pad)*2);
+						p = p+((width-4)*2);
 						break;
 
 					default:

@@ -11,9 +11,6 @@
 #include "conn.h"
 #include "term.h"
 #include "uifcinit.h"
-#include "window.h"
-
-char *inpath=NULL;
 
 #ifdef _WINSOCKAPI_
 
@@ -63,8 +60,7 @@ int main(int argc, char **argv)
 	str_list_t	inifile;
 	FILE *listfile;
 	char	listpath[MAX_PATH+1];
-	char	*home=NULL;
-	char	*inpath=NULL;
+	char	*home;
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
@@ -91,12 +87,6 @@ int main(int argc, char **argv)
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
-				case 'P':
-					if(argv[i][2]==':' && argv[i][3])
-						inpath=argv[i]+3;
-					else
-						goto USAGE;
-					break;
 				case 'I':
 					switch(toupper(argv[i][2])) {
 						case 'A':
@@ -139,12 +129,9 @@ int main(int argc, char **argv)
 		return(1);
 	}
 
-	if(inpath==NULL) {
-		_splitpath(argv[0],drive,path,fname,ext);
-		strcat(drive,path);
-	}
-	else
-		FULLPATH(path,inpath,sizeof(path));
+	_splitpath(argv[0],drive,path,fname,ext);
+	strcat(drive,path);
+	FULLPATH(path,drive,sizeof(path));
 	atexit(uifcbail);
 
 #ifdef __unix__
@@ -152,11 +139,9 @@ int main(int argc, char **argv)
 #endif
 
 	/* User BBS list path */
-	if(inpath==NULL) {
-		home=getenv("HOME");
-		if(home==NULL)
-			home=getenv("USERPROFILE");
-	}
+	home=getenv("HOME");
+	if(home==NULL)
+		home=getenv("USERPROFILE");
 	if(home==NULL)
 		strcpy(listpath,path);
 	else
@@ -330,7 +315,6 @@ int main(int argc, char **argv)
 		"       A = ANSI mode\n"
         "-v# =  set video mode to # (default=auto)\n"
         "-l# =  set screen lines to # (default=auto-detect)\n"
-        "-p:<path> = set path to users BBS list (default=home then userprofile path\n"
 		"\n"
 		"URL format is: (rlogin|telnet)://[user[:password]@]domainname[:port]\n"
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
@@ -338,5 +322,5 @@ int main(int argc, char **argv)
 		"          telnet://nix.synchro.net\n\nPress any key to exit..."
         );
 	getch();
-	return(0);
+    exit(0);
 }

@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.57 2005/02/10 06:21:45 deuce Exp $ */
+/* $Id: uifc.h,v 1.56 2005/02/04 22:06:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,9 +103,6 @@
 	#define MALLOC malloc
 	#define LFREE free
 	#define FREE free
-#endif
-#if !defined(FREE_AND_NULL)
-	#define FREE_AND_NULL(x)			if(x!=NULL) { FREE(x); x=NULL; }
 #endif
 
 #if !defined(MAX_PATH)	/* maximum path length */

@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.23 2005/02/09 08:18:11 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.22 2005/02/01 10:13:38 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1500,10 +1500,7 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 			type = zmodem_rx_header(zm,zm->recv_timeout);
 			if(zm->cancelled)
 				return(FALSE);
-		} while(type == ZACK && is_connected(zm));
-
-		if(!is_connected(zm))
-			return(FALSE);
+		} while(type == ZACK);
 
 #if 0
 		lprintf(zm,LOG_INFO,"type : %d",type);
@@ -1536,9 +1533,6 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		 */
 
 		type = zmodem_send_from(zm, fp, pos, s.st_size, &sent_bytes);
-
-		if(!is_connected(zm))
-			return(FALSE);
 
 		if(sent!=NULL)
 			*sent+=sent_bytes;
@@ -1848,7 +1842,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.23 $", "%*s %s", buf);
+	sscanf("$Revision: 1.22 $", "%*s %s", buf);
 
 	return(buf);
 }

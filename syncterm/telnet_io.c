@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.10 2005/04/06 15:14:14 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.3 2005/02/05 02:42:00 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +11,6 @@
 #include "gen_defs.h"
 #include "bbslist.h"
 #include "conn.h"
-#include "uifcinit.h"
 
 #define TELNET_TERM_MAXLEN	40
 
@@ -54,7 +53,7 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 {
 	BYTE	command;
 	BYTE	option;
-	BYTE*   first_iac;
+	BYTE*   first_iac=NULL;
 	int 	i;
 
 	if(inlen<1) {
@@ -111,34 +110,19 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
             else if(telnet_cmdlen>=3) {	/* telnet option negotiation */
 				if(command==TELNET_DO || command==TELNET_DONT) {	/* local options */
 					if(telnet_local_option[option]!=command) {
-						switch(option) {
-							case TELNET_BINARY_TX:
-							case TELNET_ECHO:
-							case TELNET_TERM_TYPE:
-							case TELNET_SUP_GA:
-							case TELNET_NEGOTIATE_WINDOW_SIZE:
-								telnet_local_option[option]=command;
-								send_telnet_cmd(telnet_opt_ack(command),option);
-								break;
-							default: /* unsupported local options */
-								if(command==TELNET_DO) /* NAK */
-									send_telnet_cmd(telnet_opt_nak(command),option);
-								break;
-						}
+						telnet_local_option[option]=command;
+						send_telnet_cmd(telnet_opt_ack(command),option);
 					}
 
 					if(command==TELNET_DO && option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						BYTE buf[32];
-						buf[0]=TELNET_IAC;
-						buf[1]=TELNET_SB;
-						buf[2]=TELNET_NEGOTIATE_WINDOW_SIZE;
-						buf[3]=(term.width>>8)&0xff;
-						buf[4]=term.width&0xff;
-						buf[5]=(term.height>>8)&0xff;
-						buf[6]=term.height&0xff;
-						buf[7]=TELNET_IAC;
-						buf[8]=TELNET_SE;
-						putcom(buf,9);
+						int len=sprintf(buf,"%c%c%c%c%c%c%c%c%c"
+							,TELNET_IAC,TELNET_SB
+							,TELNET_NEGOTIATE_WINDOW_SIZE
+							,(term.width>>8)&0xff, term.width&0xff
+							,(term.height>>8)&0xff, term.height&0xff
+							,TELNET_IAC,TELNET_SE);
+						putcom(buf,len);
 					}
 
 				} else { /* WILL/WONT (remote options) */ 
@@ -148,6 +132,7 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 							case TELNET_BINARY_TX:
 							case TELNET_ECHO:
 							case TELNET_TERM_TYPE:
+							case TELNET_TERM_SPEED:
 							case TELNET_SUP_GA:
 							case TELNET_NEGOTIATE_WINDOW_SIZE:
 								telnet_remote_option[option]=command;
@@ -307,15 +292,13 @@ int telnet_connect(char *addr, int port, char *ruser, char *passwd)
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(port);
 	
-	memset(telnet_local_option,0,sizeof(telnet_local_option));
-	memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 	if(connect(conn_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];
 
 		telnet_close();
 		sprintf(str,"Cannot connect to %s!",addr);
 		uifcmsg(str,	"`Unable to connect`\n\n"
-						"Cannot connect to the remote system... it is down or unreachable.");
+						"Cannot connect to the remost system... it is down or unreachable.");
 		return(-1);
 	}
 

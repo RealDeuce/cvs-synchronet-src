@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.24 2005/02/18 08:48:06 deuce Exp $ */
+/* $Id: mouse.c,v 1.23 2005/02/02 23:00:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -160,7 +160,7 @@ void ciomouse_gotevent(int event, int x, int y)
 void add_outevent(int event, int x, int y)
 {
 	struct out_mouse_event *ome;
-	int	but;
+	int	but=0;
 
 	if(!(mouse_events & 1<<event))
 		return;
@@ -456,10 +456,12 @@ int ciolib_getmouse(struct mouse_event *mevent)
 
 int ciolib_ungetmouse(struct mouse_event *mevent)
 {
+	int retval=0;
 	struct mouse_event *me;
 
 	if((me=(struct mouse_event *)malloc(sizeof(struct mouse_event)))==NULL)
 		return(-1);
 	memcpy(me,mevent,sizeof(struct mouse_event));
-	return(listAddNode(&state.output,me,FIRST_NODE)==NULL);
+	listAddNode(&state.output,me,FIRST_NODE);
+	return(0);
 }
