@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.8 2004/08/17 22:16:39 deuce Exp $ */
+/* $Id: ciolib.h,v 1.10 2004/08/27 22:51:49 deuce Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
@@ -12,12 +12,11 @@ enum {
 	,CIOLIB_MODE_CONIO
 };
 
-#if defined(__BORLANDC__)	/* presumably, Win32 */
+#if defined(_WIN32)	/* presumably, Win32 */
 
-	#include <conio.h>
 	#include <io.h>			/* isatty */
 
-#else
+#endif
 
 #ifndef BOOL
 #define BOOL    int
@@ -56,6 +55,7 @@ enum {
 #define	C80			3
 #define MONO		7
 #define C4350		64
+#define C80X50		64
 
 #define COLOR_MODE	C80
 
@@ -80,8 +80,6 @@ struct text_info {
 	unsigned char curx;           /* x-coordinate in current window */
 	unsigned char cury;           /* y-coordinate in current window */
 };
-
-#endif
 
 struct cio_mouse_event {
 	int	x;
