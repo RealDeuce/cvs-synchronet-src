@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.14 2000/10/30 11:11:10 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.15 2000/10/30 11:20:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,7 +121,7 @@ extern "C" {
 
 #ifdef __unix__
 
-	#include <semaphores.h>	/* POSIX 1003.1b semaphores */
+	#include <semaphore.h>	/* POSIX 1003.1b semaphores */
 
 #elif defined(_WIN32)	/* semaphores */
 
