@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.90 2004/09/21 05:06:48 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.91 2004/11/20 18:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* XPDEV */
+#include "gen_defs.h"
 
 #define __COLORS
 #include "ciolib.h"
@@ -223,7 +226,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.90 $", "%*s %s", revision);
+	sscanf("$Revision: 1.91 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
