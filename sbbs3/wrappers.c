@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.34 2001/10/02 20:10:57 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.35 2001/10/24 04:22:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,6 +179,9 @@ void DLLCALL globfree(glob_t* glob)
 long DLLCALL fdate(char *filename)
 {
 	STAT st;
+
+	if(access(filename,0)==-1)
+		return(-1L);
 
 	if(stat(filename, &st)!=0)
 		return(-1L);
