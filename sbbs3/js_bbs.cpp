@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.26 2002/02/15 13:37:26 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.27 2002/02/20 00:49:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1001,6 +1001,25 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	return(JS_TRUE);
 }
+
+static JSBool
+js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	sbbs_t*		sbbs;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	char* p = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+
+	if(p==NULL)
+		*rval = JSVAL_NULL;
+	else
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p));
+
+	return(JS_TRUE);
+}
+
 
 static JSBool
 js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2299,6 +2318,7 @@ js_getnstime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 static JSFunctionSpec js_bbs_functions[] = {
+	{"atcode",			js_atcode,			1},		// return @-code variable
 	/* text.dat */
 	{"text",			js_text,			1},		// return text string from text.dat
 	{"replace_text",	js_replace_text,	2},		// replace a text string
