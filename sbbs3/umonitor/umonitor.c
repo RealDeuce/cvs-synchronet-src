@@ -494,9 +494,9 @@ void node_toggles(int nodenum)  {
 				break;
 
 			case 5:	/* Down */
-				if(node.status == NODE_INUSE)
+				if(node.status == NODE_INUSE || node.status==NODE_LOGON)
 					node.misc ^= NODE_DOWN;
-				if(node.status != NODE_INUSE) {
+				else {
 					if(node.status!=NODE_OFFLINE)
 						node.status=NODE_OFFLINE;
 					else
@@ -538,7 +538,7 @@ int main(int argc, char** argv)  {
 	long value=0;
 	node_t node;
 
-	sscanf("$Revision: 1.8 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
