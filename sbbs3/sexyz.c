@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.29 2005/01/19 05:46:54 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.30 2005/01/19 06:51:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -742,7 +742,7 @@ static int send_files(char** fname, uint fnames)
 			} else
 				lprintf(LOG_WARNING,"File Transfer Failure");
 
-			if(xm.total_files-xm->sent_files)
+			if(xm.total_files-xm.sent_files)
 				lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %lu"
 					,((xm.total_bytes-xm.sent_bytes)/cps)/60
 					,((xm.total_bytes-xm.sent_bytes)/cps)%60
@@ -1185,7 +1185,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.29 $", "%*s %s", revision);
+	sscanf("$Revision: 1.30 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
