@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.7 2001/07/18 03:34:44 rswindell Exp $ */
+/* $Id: js_system.c,v 1.8 2001/07/18 14:55:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -542,9 +542,21 @@ js_trashcan(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool
+js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	JSString*	js_str;
+
+	js_str = JS_NewStringCopyZ(cx, zonestr((short)(JSVAL_TO_INT(argv[0]))));
+
+	*rval = STRING_TO_JSVAL(js_str);
+	return(JS_TRUE);
+}
+
 static JSFunctionSpec js_system_functions[] = {
 	{"matchuser",		js_matchuser,		1},		// exact user name matching
 	{"trashcan",		js_trashcan,		2},		// search file for pseudo-regexp
+	{"zonestr",			js_zonestr,			1},		// convert zone int to string
 	{0}
 };
 
