@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.18 2002/08/25 22:28:11 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.19 2002/11/10 01:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -321,6 +321,17 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		p=header+i+4;					/* Skip "@TZ:" */
 		while(*p && *p<=SP) p++;		/* Skip any spaces */
 		msg.hdr.when_written.zone=(short)ahtoul(p); 
+	}
+	if(!strnicmp(header+skip,"@REPLYTO:",9)) {
+		p=strchr(header+skip, '\n');
+		i=skip;
+		if(p) {
+			*p=0;
+			skip+=strlen(header+i)+1; 
+		}
+		p=header+i+9;					/* Skip "@REPLYTO:" */
+		while(*p && *p<=SP) p++;		/* Skip any spaces */
+		smb_hfield(&msg,REPLYTO,strlen(p),p);
 	}
 	free(header);
 
