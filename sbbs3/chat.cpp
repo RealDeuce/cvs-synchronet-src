@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.24 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.25 2002/06/27 23:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -282,7 +282,7 @@ void sbbs_t::multinodechat(int channel)
 						break;
 					case 'C':   /* List of action commands */
 						CRLF;
-						for(i=0;i<cfg.total_chatacts;i++) {
+						for(i=0;channel && i<cfg.total_chatacts;i++) {
 							if(cfg.chatact[i]->actset
 								!=cfg.chan[channel-1]->actset)
 								continue;
@@ -397,7 +397,7 @@ void sbbs_t::multinodechat(int channel)
 						break;
 					j++; }
 				if(pgraph[0]) {
-					if(useron.chat&CHAT_ACTION) {
+					if(channel && useron.chat&CHAT_ACTION) {
 						for(i=0;i<cfg.total_chatacts;i++) {
 							if(cfg.chatact[i]->actset
 								!=cfg.chan[channel-1]->actset)
