@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.31 2002/11/01 02:27:50 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.32 2002/11/01 09:43:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,6 +265,7 @@
 #define FIDOREPLYID 		0xa5
 #define FIDOPID 			0xa6
 #define FIDOFLAGS			0xa7
+#define FIDOTID 			0xa8
 
 #define RFC822HEADER		0xb0
 #define RFC822MSGID 		0xb1
@@ -518,6 +519,7 @@ typedef struct {				// Message
 				*path,			// USENET Path
 				*newsgroups,	// USENET Newsgroups
 				*ftn_pid,		// FTN PID
+				*ftn_tid,		// FTN TID
 				*ftn_area,		// FTN AREA
 				*ftn_flags,		// FTN FLAGS
 				*ftn_msgid,		// FTN MSGID
