@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.109 2002/02/25 03:15:56 rswindell Exp $ */
+/* $Id: main.cpp,v 1.110 2002/02/27 03:34:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3102,7 +3102,8 @@ void DLLCALL bbs_thread(void* arg)
     lprintf("Loading configuration files from %s", scfg.ctrl_dir);
 	scfg.size=sizeof(scfg);
 	scfg.node_num=startup->first_node;
-	if(!load_cfg(&scfg, text, TRUE)) {
+	if(!load_cfg(&scfg, text, TRUE, logstr)) {
+		lprintf("!ERROR %s",logstr);
 		lprintf("!FAILED to load configuration files");
 		cleanup(1);
 		return;
@@ -3364,7 +3365,8 @@ void DLLCALL bbs_thread(void* arg)
 				lprintf("Loading configuration files from %s", scfg.ctrl_dir);
 				scfg.node_num=first_node;
 				pthread_mutex_lock(&event_mutex);
-				if(!load_cfg(&scfg, text, TRUE)) {
+				if(!load_cfg(&scfg, text, TRUE, logstr)) {
+					lprintf("!ERROR %s",logstr);
 					lprintf("!FAILED to load configuration files");
 					break;
 				}

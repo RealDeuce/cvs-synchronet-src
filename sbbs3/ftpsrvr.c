@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.133 2002/02/25 03:15:56 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.134 2002/02/27 03:34:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4270,6 +4270,7 @@ const char* DLLCALL ftp_ver(void)
 
 void DLLCALL ftp_server(void* arg)
 {
+	char			error[256];
 	char			compiler[32];
 	SOCKADDR_IN		server_addr;
 	SOCKADDR_IN		client_addr;
@@ -4379,7 +4380,8 @@ void DLLCALL ftp_server(void* arg)
     	,startup->ctrl_dir);
     lprintf("Loading configuration files from %s", scfg.ctrl_dir);
 	scfg.size=sizeof(scfg);
-	if(!load_cfg(&scfg, NULL, TRUE)) {
+	if(!load_cfg(&scfg, NULL, TRUE, error)) {
+		lprintf("!ERROR %s",error);
 		lprintf("!Failed to load configuration files");
 		cleanup(1);
 		return;
