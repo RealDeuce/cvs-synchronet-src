@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.2 2002/04/06 09:14:09 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.3 2002/04/06 10:51:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #ifndef _FILEWRAP_H
 #define _FILEWRAP_H
+
+#include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
 
 /**********/
 /* Macros */
@@ -81,29 +83,6 @@
 /**************/
 /* Prototypes */
 /**************/
-
-#if defined(DLLEXPORT)
-	#undef DLLEXPORT
-#endif
-#if defined(DLLCALL)
-	#undef DLLCALL
-#endif
-
-#if defined(_WIN32)
-	#if defined(WRAPPER_DLL)
-		#define DLLEXPORT	__declspec(dllexport)
-	#else
-		#define DLLEXPORT	__declspec(dllimport)
-	#endif
-	#if defined(__BORLANDC__)
-		#define DLLCALL __stdcall
-	#else
-		#define DLLCALL
-	#endif
-#else	/* !_WIN32 */
-	#define DLLEXPORT
-	#define DLLCALL
-#endif
 
 #if defined(__cplusplus)
 extern "C" {
