@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.245 2005/01/05 01:43:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.247 2005/01/28 04:11:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,9 @@
 #endif
 
 /* xpdev */
-#define LINK_LIST_THREADSAFE
+#ifndef LINK_LIST_THREADSAFE
+ #define LINK_LIST_THREADSAFE
+#endif
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
