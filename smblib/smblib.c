@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.44 2002/10/30 03:43:08 rswindell Exp $ */
+/* $Id: smblib.c,v 1.45 2002/10/30 10:53:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1215,7 +1215,7 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 			,msg->hdr.length, smb_hdrblocks(msg->hdr.length));
 		return(-8);
 	}
-	msg->hdr.length=hdrlen; /* store the actual header length */
+	msg->hdr.length=(ushort)hdrlen; /* store the actual header length */
 
 	/**********************************/
 	/* Set the message header ID here */
