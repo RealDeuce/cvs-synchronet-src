@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.69 2004/09/10 08:28:41 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.61 2004/08/30 08:32:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,11 +39,6 @@
 char	revision[16];
 char	compiler[32];
 
-const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
-            ,"Jul","Aug","Sep","Oct","Nov","Dec"};
-
-
 #define NOANALYSIS		(1L<<0)
 #define NOCRC			(1L<<1)
 
@@ -65,12 +60,12 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 #include <string.h>		/* strrchr */
 #include <ctype.h>		/* toupper */
 
+#include "sbbs.h"
 #include "genwrap.h"	/* stricmp */
 #include "dirwrap.h"	/* fexist */
 #include "conwrap.h"	/* getch */
 #include "filewrap.h"
 #include "smblib.h"
-#include "crc16.h"
 #include "crc32.h"
 #include "gen_defs.h"	/* MAX_PATH */
 
@@ -105,7 +100,6 @@ char *usage=
 "       i[f] = import msg from text file f (or use stdin)\n"
 "       e[f] = import e-mail from text file f (or use stdin)\n"
 "       n[f] = import netmail from text file f (or use stdin)\n"
-"       h    = dump hash file\n"
 "       s    = display msg base status\n"
 "       c    = change msg base status\n"
 "       d    = delete all msgs\n"
@@ -114,7 +108,7 @@ char *usage=
 "opts:\n"
 "       c    = create message base if it doesn't exist\n"
 "       a    = always pack msg base (disable compression analysis)\n"
-"       i    = ignore dupes (do not store CRCs or search for duplicate hashes)\n"
+"       i    = ignore duplicate messages (do not store CRC)\n"
 "       d    = use default values (no prompt) for to, from, and subject\n"
 "       t<s> = set 'to' user name for imported message\n"
 "       n<s> = set 'to' netmail address for imported message\n"
@@ -129,20 +123,17 @@ char *usage=
 /*****************************************************************************/
 // Expands Unix LF to CRLF
 /*****************************************************************************/
-ulong lf_expand(BYTE* inbuf, BYTE* outbuf)
+ulong lf_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf)
 {
 	ulong	i,j;
 
-	for(i=j=0;inbuf[i];i++) {
+	for(i=j=0;i<inlen;i++) {
 		if(inbuf[i]=='\n' && (!i || inbuf[i-1]!='\r'))
 			outbuf[j++]='\r';
 		outbuf[j++]=inbuf[i];
 	}
-	outbuf[j]=0;
 	return(j);
 }
-
-#include "truncsp.c"
 
 /****************************************************************************/
 /* Adds a new message to the message base									*/
@@ -150,13 +141,16 @@ ulong lf_expand(BYTE* inbuf, BYTE* outbuf)
 void postmsg(char type, char* to, char* to_number, char* to_address, 
 			 char* from, char* from_number, char* subject, FILE* fp)
 {
-	char		str[128];
-	char		buf[1024];
-	char*		msgtxt=NULL;
-	char*		newtxt;
-	long		msgtxtlen;
-	ushort		net;
-	int 		i;
+	char	str[128];
+	char	buf[128];
+	char	pad=0;
+	char*	msgtxt=NULL;
+	char*	newtxt;
+	long	msgtxtlen;
+	ushort	xlat,net;
+	int 	i;
+	long	l,length;
+	ulong	offset,crc;
 	ushort		agent=AGENT_SMBUTIL;
 	smbmsg_t	msg;
 
@@ -166,41 +160,77 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		i=fread(buf,1,sizeof(buf),fp);
 		if(i<1)
 			break;
-		if((msgtxt=(char*)realloc(msgtxt,msgtxtlen+i+1))==NULL) {
-			fprintf(stderr,"\n\7realloc(%ld) failure\n",msgtxtlen+i+1);
+		if((msgtxt=(char*)realloc(msgtxt,msgtxtlen+i))==NULL) {
+			fprintf(stderr,"\n\7malloc(%ld) failure\n",msgtxtlen+i);
 			exit(1);
 		}
-		strcpy(msgtxt+msgtxtlen,buf);
+		memcpy(msgtxt+msgtxtlen,buf,i);
 		msgtxtlen+=i;
 	}
 
-	if(msgtxt!=NULL) {
-		if((newtxt=(char*)malloc((msgtxtlen*2)+1))==NULL) {
-			fprintf(stderr,"\n\7malloc(%ld) failure\n",(msgtxtlen*2)+1);
-			exit(1);
-		}
-
-		/* Expand LFs to CRLFs */
-		msgtxtlen=lf_expand(msgtxt, newtxt);
-		free(msgtxt);
-		msgtxt=newtxt;
+	if((newtxt=(char*)malloc(msgtxtlen*2))==NULL) {
+		fprintf(stderr,"\n\7malloc(%ld) failure\n",msgtxtlen*2);
+		exit(1);
 	}
 
+	/* Expand LFs to CRLFs */
+	msgtxtlen=lf_expand(msgtxt, msgtxtlen, newtxt);
+	free(msgtxt);
+	msgtxt=newtxt;
+
+	/* Allocate space in message base */
+	length=msgtxtlen+sizeof(xlat);	/* for translation string */
+	if(!(smb.status.attr&SMB_HYPERALLOC)) {
+		i=smb_open_da(&smb);
+		if(i) {
+			fprintf(stderr,"\n\7!smb_open_da returned %d: %s\n",i,smb.last_error);
+			exit(1); 
+		}
+		offset=smb_allocdat(&smb,length,1);
+		smb_close_da(&smb); 
+	} else
+		offset=smb_hallocdat(&smb);
+
+	fseek(smb.sdt_fp,offset,SEEK_SET);
+	xlat=XLAT_NONE;
+	smb_fwrite(&smb,&xlat,sizeof(xlat),smb.sdt_fp);
+	smb_fwrite(&smb,msgtxt,msgtxtlen,smb.sdt_fp);
+	for(l=length;l%SDT_BLOCK_LEN;l++)
+		smb_fwrite(&smb,&pad,sizeof(pad),smb.sdt_fp);
+	fflush(smb.sdt_fp);
+
 	memset(&msg,0,sizeof(smbmsg_t));
+	msg.hdr.version=smb_ver();
 	msg.hdr.when_written.time=time(NULL);
 	msg.hdr.when_written.zone=tzone;
 	msg.hdr.when_imported=msg.hdr.when_written;
+
+	if(smb.status.max_crcs && !(mode&NOCRC)) {
+		crc=0xffffffffUL;
+		for(l=0;l<msgtxtlen;l++) 
+			crc=ucrc32(msgtxt[l],crc);
+		crc=~crc;
+		i=smb_addcrc(&smb,crc);
+		if(i) {
+			fprintf(stderr,"\n\7!smb_addcrc returned %d: %s\n",i,smb.last_error);
+			smb_freemsgdat(&smb,offset,length,1);
+			exit(1); 
+		} 
+	}
+
+	msg.hdr.offset=offset;
 
 	if(to==NULL) {
 		printf("To User Name: ");
 		fgets(str,sizeof(str),stdin); 
 	} else
 		SAFECOPY(str,to);
-	truncsp(str);
 
-	if((i=smb_hfield_str(&msg,RECIPIENT,str))!=SMB_SUCCESS) {
-		fprintf(stderr,"\n\7!smb_hfield_str(0x%02X) returned %d: %s\n"
-			,RECIPIENT,i,smb.last_error);
+	truncsp(str);
+	i=smb_hfield_str(&msg,RECIPIENT,str);
+	if(i) {
+		fprintf(stderr,"\n\7!smb_hfield returned %d: %s\n",i,smb.last_error);
+		smb_freemsgdat(&smb,offset,length,1);
 		exit(1); 
 	}
 	if(type=='E' || type=='N')
@@ -212,9 +242,10 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		} else
 			SAFECOPY(str,to_number);
 		truncsp(str);
-		if((i=smb_hfield_str(&msg,RECIPIENTEXT,str))!=SMB_SUCCESS) {
-			fprintf(stderr,"\n\7!smb_hfield_str(0x%02X) returned %d: %s\n"
-				,RECIPIENTEXT,i,smb.last_error);
+		i=smb_hfield_str(&msg,RECIPIENTEXT,str);
+		if(i) {
+			fprintf(stderr,"\n\7!smb_hfield returned %d: %s\n",i,smb.last_error);
+			smb_freemsgdat(&smb,offset,length,1);
 			exit(1); 
 		}
 		msg.idx.to=atoi(str); 
@@ -236,14 +267,16 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 				net=NET_INTERNET;
 			else
 				net=NET_QWK;
-			if((i=smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net))!=SMB_SUCCESS) {
-				fprintf(stderr,"\n\7!smb_hfield(0x%02X) returned %d: %s\n"
-					,RECIPIENTNETTYPE,i,smb.last_error);
+			i=smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net);
+			if(i) {
+				fprintf(stderr,"\n\7!smb_hfield returned %d: %s\n",i,smb.last_error);
+				smb_freemsgdat(&smb,offset,length,1);
 				exit(1); 
 			}
-			if((i=smb_hfield_str(&msg,RECIPIENTNETADDR,str))!=SMB_SUCCESS) {
-				fprintf(stderr,"\n\7!smb_hfield_str(0x%02X) returned %d: %s\n"
-					,RECIPIENTNETADDR,i,smb.last_error);
+			i=smb_hfield_str(&msg,RECIPIENTNETADDR,str);
+			if(i) {
+				fprintf(stderr,"\n\7!smb_hfield returned %d: %s\n",i,smb.last_error);
+				smb_freemsgdat(&smb,offset,length,1);
 				exit(1); 
 			} 
 		} 
@@ -255,9 +288,10 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	} else
 		SAFECOPY(str,from);
 	truncsp(str);
-	if((i=smb_hfield_str(&msg,SENDER,str))!=SMB_SUCCESS) {
-		fprintf(stderr,"\n\7!smb_hfield_str(0x%02X) returned %d: %s\n"
-			,SENDER,i,smb.last_error);
+	i=smb_hfield_str(&msg,SENDER,str);
+	if(i) {
+		fprintf(stderr,"\n\7!smb_hfield returned %d: %s\n",i,smb.last_error);
+		smb_freemsgdat(&smb,offset,length,1);
 		exit(1); 
 	}
 	if(smb.status.attr&SMB_EMAIL) {
@@ -267,9 +301,10 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		} else
 			SAFECOPY(str,from_number);
 		truncsp(str);
-		if((i=smb_hfield_str(&msg,SENDEREXT,str))!=SMB_SUCCESS) {
-			fprintf(stderr,"\n\7!smb_hfield_str(0x%02X) returned %d: %s\n"
-				,SENDEREXT,i,smb.last_error);
+		i=smb_hfield_str(&msg,SENDEREXT,str);
+		if(i) {
+			fprintf(stderr,"\n\7!smb_hfield returned %d: %s\n",i,smb.last_error);
+			smb_freemsgdat(&smb,offset,length,1);
 			exit(1); 
 		}
 		msg.idx.from=atoi(str); 
@@ -277,11 +312,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		strlwr(str);
 		msg.idx.from=crc16(str,0); 
 	}
-	if((i=smb_hfield(&msg, SENDERAGENT, sizeof(agent), &agent))!=SMB_SUCCESS) {
-		fprintf(stderr,"\n\7!smb_hfield(0x%02X) returned %d: %s\n"
-			,SENDERAGENT,i,smb.last_error);
-		exit(1);
-	}
+	smb_hfield(&msg, SENDERAGENT, sizeof(agent), &agent);
 
 	if(subject==NULL) {
 		printf("Subject: ");
@@ -289,12 +320,20 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	} else
 		SAFECOPY(str,subject);
 	truncsp(str);
-	if((i=smb_hfield_str(&msg,SUBJECT,str))!=SMB_SUCCESS) {
-		fprintf(stderr,"\n\7!smb_hfield_str(0x%02X) returned %d: %s\n"
-			,SUBJECT,i,smb.last_error);
+	i=smb_hfield_str(&msg,SUBJECT,str);
+	if(i) {
+		fprintf(stderr,"\n\7!smb_hfield returned %d: %s\n",i,smb.last_error);
+		smb_freemsgdat(&smb,offset,length,1);
 		exit(1); 
 	}
-	msg.idx.subj=smb_subject_crc(str);
+	msg.idx.subj=subject_crc(str);
+
+	i=smb_dfield(&msg,TEXT_BODY,length);
+	if(i) {
+		fprintf(stderr,"\n\7!smb_dfield returned %d: %s\n",i,smb.last_error);
+		smb_freemsgdat(&smb,offset,length,1);
+		exit(1); 
+	}
 
 	sprintf(str,"SMBUTIL %s-%s r%s %s %s"
 		,SMBUTIL_VER
@@ -303,20 +342,18 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		,__DATE__
 		,compiler
 		);
-	if((i=smb_hfield_str(&msg,FIDOPID,str))!=SMB_SUCCESS) {
-		fprintf(stderr,"\n\7!smb_hfield_str(0x%02X) returned %d: %s\n"
-			,FIDOPID,i,smb.last_error);
-		exit(1); 
-	}
+	smb_hfield_str(&msg,FIDOPID,str);
 
-	if((i=smb_addmsg(&smb,&msg,smb.status.attr&SMB_HYPERALLOC
-		,INT_TO_BOOL(mode&NOCRC),XLAT_NONE,msgtxt,NULL))!=SMB_SUCCESS) {
-		fprintf(stderr,"\n\7!smb_addmsg returned %d: %s\n",i,smb.last_error);
+	i=smb_addmsghdr(&smb,&msg,smb.status.attr&SMB_HYPERALLOC);
+
+	if(i) {
+		fprintf(stderr,"\n\7!smb_addmsghdr returned %d: %s\n",i,smb.last_error);
+		smb_freemsgdat(&smb,offset,length,1);
 		exit(1); 
 	}
 	smb_freemsgmem(&msg);
 
-	FREE_AND_NULL(msgtxt);
+	free(msgtxt);
 }
 
 /****************************************************************************/
@@ -541,38 +578,6 @@ void viewmsgs(ulong start, ulong count)
 		smb_freemsgmem(&msg);
 		l++; 
 	}
-}
-
-/****************************************************************************/
-/****************************************************************************/
-void dump_hashes(void)
-{
-	char	tmp[128];
-	int		retval;
-	hash_t	hash;
-
-	if((retval=smb_open_hash(&smb))!=SMB_SUCCESS) {
-		fprintf(stderr,"\n\7!smb_open_hash returned %d: %s\n", retval, smb.last_error);
-		return;
-	}
-
-	while(!smb_feof(smb.hash_fp)) {
-		if(smb_fread(&smb,&hash,sizeof(hash),smb.hash_fp)!=sizeof(hash))
-			break;
-		printf("\n");
-		printf("%-10s: %lu\n",		"Number",	hash.number);
-		printf("%-10s: %s\n",		"Source",	smb_hashsource(hash.source));
-		printf("%-10s: %s\n",		"Time",		my_timestr(&hash.time));
-		printf("%-10s: %x\n",		"Flags",	hash.flags);
-		if(hash.flags&SMB_HASH_CRC16)
-			printf("%-10s: %04x\n",	"CRC-16",	hash.crc16);
-		if(hash.flags&SMB_HASH_CRC32)
-			printf("%-10s: %08lx\n","CRC-32",	hash.crc32);
-		if(hash.flags&SMB_HASH_MD5)
-			printf("%-10s: %s\n",	"MD5",		MD5_hex(tmp,hash.md5));
-	}
-
-	smb_close_hash(&smb);
 }
 
 /****************************************************************************/
@@ -1054,7 +1059,7 @@ void packmsgs(ulong packable)
 		msg.idx.number=msg.hdr.number;
 		msg.idx.attr=msg.hdr.attr;
 		msg.idx.time=msg.hdr.when_imported.time;
-		msg.idx.subj=smb_subject_crc(msg.subj);
+		msg.idx.subj=subject_crc(msg.subj);
 		if(smb.status.attr&SMB_EMAIL) {
 			if(msg.to_ext)
 				msg.idx.to=atoi(msg.to_ext);
@@ -1242,13 +1247,16 @@ void readmsgs(ulong start)
 			printf("Subj : %s\n",msg.subj);
 			printf("To   : %s",msg.to);
 			if(msg.to_net.type)
-				printf(" (%s)",smb_netaddr(&msg.to_net));
+				printf(" (%s)",msg.to_net.type==NET_FIDO
+					? faddrtoa((fidoaddr_t *)msg.to_net.addr,NULL) : (char*)msg.to_net.addr);
 			printf("\nFrom : %s",msg.from);
 			if(msg.from_net.type)
-				printf(" (%s)",smb_netaddr(&msg.from_net));
+				printf(" (%s)",msg.from_net.type==NET_FIDO
+					? faddrtoa((fidoaddr_t *)msg.from_net.addr,NULL)
+						: (char*)msg.from_net.addr);
 			printf("\nDate : %.24s %s"
 				,my_timestr((time_t*)&msg.hdr.when_written.time)
-				,smb_zonestr(msg.hdr.when_written.zone,NULL));
+				,zonestr(msg.hdr.when_written.zone));
 
 			printf("\n\n");
 
@@ -1374,7 +1382,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.69 $", "%*s %s", revision);
+	sscanf("$Revision: 1.61 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1486,7 +1494,10 @@ int main(int argc, char **argv)
 						smb_close(&smb);
 						continue; 
 					}
-					memset(&smb.status,0,sizeof(smb.status));
+					smb.status.max_crcs=0;
+					smb.status.max_age=0;
+					smb.status.max_msgs=1000;
+					smb.status.attr=0;
 					if((i=smb_create(&smb))!=0) {
 						smb_close(&smb);
 						printf("!Error %d (%s) creating %s\n",i,smb.last_error,smb.file);
@@ -1549,9 +1560,6 @@ int main(int argc, char **argv)
 						case 'V':
 							viewmsgs(atol(cmd+1),count);
 							y=strlen(cmd)-1;
-							break;
-						case 'H':
-							dump_hashes();
 							break;
 						case 'M':
 							maint();
