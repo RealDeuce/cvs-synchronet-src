@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.190 2003/07/02 03:17:19 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.191 2003/07/02 10:56:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,8 @@ public:
 	uchar 	curatr; 		/* Current Text Attributes Always */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
 	long 	tos;			/* Top of Screen */
-	long 	rows;			/* Current Rows for User */
+	long 	rows;			/* Current number of Rows for User */
+	long	cols;			/* Current number of Columns for User */
 	long 	autoterm;		/* Autodetected terminal type */
 	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
 	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
