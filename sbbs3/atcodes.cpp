@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.29 2002/11/13 03:07:59 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.30 2002/11/25 06:06:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -209,6 +209,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	if(!strcmp(sp,"TIME") || !strcmp(sp,"SYSTIME")) {
 		now=time(NULL);
 		memset(&tm,0,sizeof(tm));
+		localtime_r(&now,&tm);
 		sprintf(str,"%02d:%02d %s"
 			,tm.tm_hour==0 ? 12
 			: tm.tm_hour>12 ? tm.tm_hour-12
