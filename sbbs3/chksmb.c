@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.15 2002/10/30 03:29:05 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.16 2002/10/30 06:23:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -276,7 +276,7 @@ int main(int argc, char **argv)
 			fprintf(stderr,"%sHeader length mismatch\n",beep);
 			msgerr=1;
 			if(extinfo)
-				printf("MSGERR: Header length (%hu) does not match calculcated length (%lu)\n"
+				printf("MSGERR: Header length (%hu) does not match calculcated length (%u)\n"
 					,msg.hdr.length,smb_getmsghdrlen(&msg));
 			hdrlenerr++; 
 		}
