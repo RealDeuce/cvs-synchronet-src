@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.157 2003/12/07 08:41:29 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.156 2003/11/20 09:11:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1586,7 +1586,7 @@ int main(int argc, char** argv)
 
 			/* Can't recycle servers (re-bind ports) as non-root user */
 			/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
-#if !defined(DONT_BLAME_SYNCHRONET)
+#if !defined(DONT_BLAME_SYNCHRONET) && !defined(_THREAD_SUID_BROKEN)
  			if(bbs_startup.telnet_port < IPPORT_RESERVED
 				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
 					&& bbs_startup.rlogin_port < IPPORT_RESERVED))
