@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.11 2001/09/27 20:24:53 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.12 2001/10/16 23:39:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,21 @@ int sbbs_t::atcodes(char *instr)
 	else if(!strcmp(sp,"COMPILER")) {
 		COMPILER_DESC(str2);
 		bputs(str2);
+	}
+
+	else if(!strcmp(sp,"UPTIME")) {
+		extern time_t uptime;
+		time_t up=time(NULL)-uptime;
+		char   days[64]="";
+		if((up/(24*60*60))>=2) {
+	        sprintf(days,"%u days ",up/(24*60*60));
+			up%=(24*60*60);
+		}
+		bprintf("%s%u:%02u"
+	        ,days
+			,up/(60*60)
+			,(up/60)%60
+			);
 	}
 
 	else if(!strcmp(sp,"SOCKET_LIB")) 
