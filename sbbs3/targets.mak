@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mak,v 1.1 2000/10/30 02:25:46 rswindell Exp $
+# $Id: targets.mak,v 1.2 2000/10/30 12:49:40 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -19,5 +19,5 @@ all: $(LIBODIR) $(EXEODIR) \
 	 $(FIXSMB) $(CHKSMB) $(SMBUTIL) $(BAJA)
 
 clean:
-	$(DELETE) $(LIBODIR)
-	$(DELETE) $(EXEODIR)
+	$(DELETE) $(LIBODIR)$(SLASH)*
+	$(DELETE) $(EXEODIR)$(SLASH)*
