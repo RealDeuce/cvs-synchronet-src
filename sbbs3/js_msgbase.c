@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.30 2002/07/31 11:57:17 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.31 2002/08/08 21:35:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -511,7 +511,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	/* Message-ID */
-	if(msg.id!=NULL)
+	if(msg.id!=NULL && *msg.id!=0)
 		val=msg.id;
 	else {
 		if(p->smb.subnum==INVALID_SUB)
