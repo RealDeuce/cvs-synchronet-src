@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.53 2003/05/16 01:47:24 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.54 2003/06/07 04:21:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,6 +373,7 @@ public:		// User declarations
     services_startup_t  services_startup;
     int             NodeDisplayInterval;
     int             ClientDisplayInterval;
+    WORD			SemFileCheckFrequency;
     int             SpyTerminalWidth;
     int             SpyTerminalHeight;
     TFont*          SpyTerminalFont;
