@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.12 2005/01/17 21:38:59 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.13 2005/01/18 13:00:59 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1179,8 +1179,6 @@ zmodem_send_from(zmodem_t* zm, FILE * fp)
 {
 	int n;
 	long pos;
-	time_t now;
-	time_t last_progress=0;
 	uchar type = ZCRCG;
 	uchar zdata_frame[] = { ZDATA, 0, 0, 0, 0 };
 
@@ -1213,11 +1211,7 @@ zmodem_send_from(zmodem_t* zm, FILE * fp)
 			break;
 		}
 
-		now=time(NULL);
-		if(now-last_progress>=zm->progress_interval || feof(fp)) {
-			zm->progress(zm->cbdata, ftell(fp), zm->current_file_size, now-zm->transfer_start);
-			last_progress=now;
-		}
+		zm->progress(zm->cbdata, ftell(fp), zm->current_file_size, zm->transfer_start);
 
 		/*
 		 * at end of file wait for an ACK
@@ -1606,7 +1600,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.12 $", "%*s %s", buf);
+	sscanf("$Revision: 1.13 $", "%*s %s", buf);
 
 	return(buf);
 }
@@ -1627,7 +1621,6 @@ void zmodem_init(zmodem_t* zm, void* cbdata, long* mode
 	zm->ack_timeout=10;			/* seconds */
 	zm->block_size=1024;
 #endif
-	zm->progress_interval=1;	/* seconds */
 	zm->max_errors=10;
 
 	zm->cbdata=cbdata;

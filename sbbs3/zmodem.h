@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.8 2005/01/15 13:19:32 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.9 2005/01/18 13:00:59 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -254,7 +254,6 @@ typedef struct {
 	unsigned	send_timeout;
 	unsigned	recv_timeout;
 	unsigned	max_errors;
-	time_t		progress_interval;
 
 	/* Callbacks */
 	void*		cbdata;
