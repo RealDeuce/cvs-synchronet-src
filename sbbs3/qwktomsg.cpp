@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.11 2002/08/06 02:56:49 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.12 2002/08/06 09:39:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,9 +121,6 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		strlwr(str);
 		msg.idx.to=crc16(str); }
 
-	memset(qwkbuf,0,sizeof(qwkbuf));
-	fread(qwkbuf,1,QWK_BLOCK_LEN,qwk_fp);
-
 	smb_hfield(&msg,SENDER,strlen(str),str);
 	if((uint)subnum==INVALID_SUB) {
 		if(useron.rest&FLAG('Q') || fromhub)
@@ -167,6 +164,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		errormsg(WHERE,ERR_ALLOC,"QWK msg tail",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
 	}
+
+	memset(qwkbuf,0,sizeof(qwkbuf));
 
 	for(block=1;block<blocks;block++) {
 		if(!fread(qwkbuf,1,QWK_BLOCK_LEN,qwk_fp))
