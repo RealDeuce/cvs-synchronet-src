@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.1 2000/10/24 07:55:55 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.2 2000/10/24 09:16:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,6 +104,27 @@ int sbbs_random(int n)
 	f=(float)rand()/(float)RAND_MAX;
 
 	return((int)(n*f));
+}
+#endif
+
+/****************************************************************************/
+/* There may be a native GNU C Library function to this...					*/
+/****************************************************************************/
+#ifdef __GNUC__
+char* ultoa(ulong val, char* str, int radix)
+{
+	switch(radix) {
+		case 10:
+			sprintf(str,"%lu",val);
+			break;
+		case 16:
+			sprintf(str,"%lx",val);
+			break;
+		default:
+			sprintf(str,"bad radix: %d",radix);
+			break;
+	}
+	return(str);
 }
 #endif
 
