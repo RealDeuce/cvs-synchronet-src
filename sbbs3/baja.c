@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.21 2002/03/06 21:52:44 rswindell Exp $ */
+/* $Id: baja.c,v 1.22 2002/03/07 15:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <errno.h>
 
 /* Synchronet-specific */
 #include "cmdshell.h"
