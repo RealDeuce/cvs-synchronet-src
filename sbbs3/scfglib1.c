@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.27 2002/02/27 03:22:17 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.28 2002/03/07 16:23:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -500,8 +500,12 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_str(cfg->sub[i]->origline,instream);
 		get_str(cfg->sub[i]->echomail_sem,instream);
 
+#if 0
 		fread(str,1,LEN_DIR+1,instream);				/* skip EchoMail path */
 		offset+=LEN_DIR+1;
+#else
+		get_str(cfg->sub[i]->newsgroup,instream);
+#endif
 
 		get_int(cfg->sub[i]->faddr,instream);			/* FidoNet address */
 		get_int(cfg->sub[i]->maxmsgs,instream);
