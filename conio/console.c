@@ -1103,15 +1103,16 @@ init_mode(int mode)
     
     idx = find_vmode(mode & 0x7f);
     if (idx == -1 || vmodelist[idx].type == NOMODE) {
+		fprintf(stderr,"Cannot initialize selected mode\n");
 		return(-1);
 	}
     vmode = vmodelist[idx];
     pidx = vmode.paramindex;
 
     /* Preset VGA registers. */
-    memcpy(VGA_CRTC, (u_int8_t *)&videoparams[pidx][CRTC_Ofs],
+    memcpy(VGA_CRTC, (unsigned char *)&videoparams[pidx][CRTC_Ofs],
 	   sizeof(VGA_CRTC));
-    memcpy(VGA_ATC, (u_int8_t *)&videoparams[pidx][ATC_Ofs],
+    memcpy(VGA_ATC, (unsigned char *)&videoparams[pidx][ATC_Ofs],
 	   sizeof(VGA_ATC));
 
     VideoMode=mode & 0x7f;
@@ -1131,8 +1132,10 @@ init_mode(int mode)
 
     /* Update font. */
     xfont = vmode.fontname;
-    if(load_font())
+    if(load_font()) {
+		fprintf(stderr,"Cannot load ``%s'' font\n",xfont);
 		return(-1);
+	}
 
     /* Resize window if necessary. */
     resize_window();
@@ -1174,6 +1177,7 @@ init_window()
 
 	dpy = XOpenDisplay(NULL);
     if (dpy == NULL) {
+		fprintf(stderr,"Cannot open connection to X server\n");
 		return(-1);
 	}
     xfd = ConnectionNumber(dpy);
@@ -1257,12 +1261,18 @@ console_init()
 	if(dpy!=NULL)
 		return(0);
 
-    if(kbd_init())
+    if(kbd_init()) {
+		fprintf(stderr,"Cannot initialize X keyboard\n");
 		return(-1);
-    if(video_init())
+	}
+    if(video_init()) {
+		fprintf(stderr,"X video init failure\n");
 		return(-1);
-    if(mouse_init())
+	}
+    if(mouse_init()) {
+		fprintf(stderr,"Cannot initialize X mouse\n");
 		return(-1);
+	}
 
 	_beginthread(video_async_event,1<<16,NULL);
 	return(0);
@@ -1369,4 +1379,9 @@ tty_kbhit(void)
 	if(x_nextchar || !KbdEmpty())
 		return(1);
 	return(0);
+}
+
+void x_win_title(const char *title)
+{
+    XStoreName(dpy, win, title);
 }
