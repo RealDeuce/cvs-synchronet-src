@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.277 2004/11/04 03:16:37 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.271 2004/10/16 00:55:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1382,8 +1382,7 @@ static void send_thread(void* arg)
 
 	length=flength(xfer.filename);
 
-	if((fp=fnopen(NULL,xfer.filename,O_RDONLY|O_BINARY))==NULL	/* non-shareable open failed */
-		&& (fp=fopen(xfer.filename,"rb"))==NULL) {				/* shareable open failed */
+	if((fp=fopen(xfer.filename,"rb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !DATA ERROR %d opening %s",xfer.ctrl_sock,errno,xfer.filename);
 		sockprintf(xfer.ctrl_sock,"450 ERROR %d opening %s.",errno,xfer.filename);
 		if(xfer.tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
@@ -4472,7 +4471,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.277 $", "%*s %s", revision);
+	sscanf("$Revision: 1.271 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4672,11 +4671,12 @@ void DLLCALL ftp_server(void* arg)
 
 		if(startup->seteuid!=NULL)
 			startup->seteuid(FALSE);
-		result=retry_bind(server_socket, (struct sockaddr *) &server_addr,sizeof(server_addr)
-			,startup->bind_retry_count,startup->bind_retry_delay,"FTP Server",lprintf);
+		result=bind(server_socket, (struct sockaddr *) &server_addr,sizeof(server_addr));
 		if(startup->seteuid!=NULL)
 			startup->seteuid(TRUE);
 		if(result!=0) {
+			lprintf(LOG_ERR,"%04d !ERROR %d (%d) binding socket to port %u"
+				,server_socket, result, ERROR_VALUE,startup->port);
 			lprintf(LOG_ERR,"%04d %s", server_socket, BIND_FAILURE_HELP);
 			cleanup(1,__LINE__);
 			return;
@@ -4745,7 +4745,7 @@ void DLLCALL ftp_server(void* arg)
             		lprintf(LOG_NOTICE,"0000 FTP Server sockets closed");
 				else
 					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
-				continue;
+				break;
 			}
 
 			if(server_socket==INVALID_SOCKET || terminate_server)	/* terminated */
@@ -4832,8 +4832,6 @@ void DLLCALL ftp_server(void* arg)
 		if(!terminate_server) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
-			if(startup->recycle!=NULL)
-				startup->recycle(startup->cbdata);
 		}
 
 	} while(!terminate_server);
