@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.24 2001/12/01 02:45:38 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.25 2001/12/01 02:47:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,7 @@
 #include "sbbs.h"
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
 #include "mailsrvr.h"	/* mail_startup_t, mail_server */
+#include "services.h"	/* services_startup_t, services_thread */
 
 /* Constants */
 #define SBBSCON_VERSION		"1.10"
