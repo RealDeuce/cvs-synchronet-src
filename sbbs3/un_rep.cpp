@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.22 2002/08/22 19:49:53 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.23 2002/08/30 00:02:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	char	str[MAX_PATH+1],fname[MAX_PATH+1]
 			,*AttemptedToUploadREPpacket="Attempted to upload REP packet";
 	char 	tmp[512];
+	char	inbox[MAX_PATH+1];
 	char	block[QWK_BLOCK_LEN];
 	int 	file;
 	uint	i,j,k,lastsub=INVALID_SUB;
@@ -415,14 +416,16 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 		dir=opendir(cfg.temp_dir);
 		while(dir!=NULL && (dirent=readdir(dir))!=NULL) {				/* Extra files */
-			// Create directory if necessary
-			sprintf(str,"%sqnet/%s.in",cfg.data_dir,useron.alias);
-			MKDIR(str); 
 			// Move files
 			sprintf(str,"%s%s",cfg.temp_dir,dirent->d_name);
 			if(isdir(str))
 				continue;
-			sprintf(fname,"%sqnet/%s.in/%s",cfg.data_dir,useron.alias,dirent->d_name);
+
+			// Create directory if necessary
+			sprintf(inbox,"%sqnet/%s.in",cfg.data_dir,useron.alias);
+			MKDIR(inbox); 
+
+			sprintf(fname,"%s/%s",inbox,dirent->d_name);
 			mv(str,fname,1);
 			sprintf(str,text[ReceivedFileViaQWK],dirent->d_name,useron.alias);
 			putsmsg(&cfg,1,str);
