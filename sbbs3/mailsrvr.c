@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.34 2000/11/15 13:19:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.35 2000/11/16 22:53:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1922,6 +1922,11 @@ static void sendmail_thread(void* arg)
 	memset(&smb,0,sizeof(smb));
 
 	while(server_socket!=INVALID_SOCKET) {
+
+		if(startup->options&MAIL_OPT_NO_SENDMAIL) {
+			mswait(1000);
+			continue;
+		}
 
 		if(active_sendmail!=0) {
 			active_sendmail=0;
