@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.39 2005/01/02 22:20:34 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.40 2005/01/26 20:58:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -536,12 +536,13 @@ bool sbbs_t::removefcdt(file_t* f)
 /****************************************************************************/
 bool sbbs_t::movefile(file_t* f, int newdir)
 {
-	char str[256],path[256],fname[128],ext[1024];
+	char str[MAX_PATH+1],path[MAX_PATH+1],fname[128],ext[1024];
 	int olddir=f->dir;
 
 	if(findfile(&cfg,newdir,f->name)) {
 		bprintf(text[FileAlreadyThere],f->name);
-		return(false); }
+		return(false); 
+	}
 	getextdesc(&cfg,olddir,f->datoffset,ext);
 	if(cfg.dir[olddir]->misc&DIR_MOVENEW)
 		f->dateuled=time(NULL);
@@ -558,8 +559,10 @@ bool sbbs_t::movefile(file_t* f, int newdir)
 	if(!f->altpath) {	/* move actual file */
 		sprintf(str,"%s%s",cfg.dir[olddir]->path,fname);
 		if(fexistcase(str)) {
-			sprintf(path,"%s%s",cfg.dir[f->dir]->path,fname);
-			mv(str,path,0); } }
+			sprintf(path,"%s%s",cfg.dir[f->dir]->path,getfname(str));
+			mv(str,path,0); 
+		} 
+	}
 	if(f->misc&FM_EXTDESC)
 		putextdesc(&cfg,f->dir,f->datoffset,ext);
 	return(true);
