@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.93 2005/02/10 07:44:13 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.94 2005/02/10 08:01:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/utsname.h>
@@ -232,7 +233,8 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.93 $", "%*s %s", revision);
+	sscanf("$Revision: 1.94 $", "%*s %s", revision);
+	umask(077);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
