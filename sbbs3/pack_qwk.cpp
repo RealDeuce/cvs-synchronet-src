@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.33 2002/11/13 03:08:00 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.34 2002/11/15 02:08:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -564,7 +564,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			mv(str,tmp2,1); }
 		sprintf(str,"%sQWK/BLT-*",cfg.text_dir);
 		glob(str,0,NULL,&g);
-		for(i=0;i<g.gl_pathc;i++) { 			/* Copy BLT-*.* files */
+		for(i=0;i<(uint)g.gl_pathc;i++) { 			/* Copy BLT-*.* files */
 			fname=getfname(g.gl_pathv[i]);
 			padfname(fname,str);
 			if(isdigit(str[4]) && isdigit(str[9])) {

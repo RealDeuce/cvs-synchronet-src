@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.24 2002/11/13 03:08:01 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.25 2002/11/15 02:08:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,7 @@ void sbbs_t::temp_xfer()
 				CRLF;
 				sprintf(tmp2,"%s%s",cfg.temp_dir,str);
 				glob(tmp2,0,NULL,&g);
-				for(i=0;i<g.gl_pathc && !msgabort();i++) {
+				for(i=0;i<(uint)g.gl_pathc && !msgabort();i++) {
 					if(isdir(g.gl_pathv[i]))
 						continue;
 					t=fdate(g.gl_pathv[i]);

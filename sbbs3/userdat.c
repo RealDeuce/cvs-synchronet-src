@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.51 2002/11/13 03:08:01 rswindell Exp $ */
+/* $Id: userdat.c,v 1.52 2002/11/15 02:08:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1718,7 +1718,7 @@ char* DLLCALL alias(scfg_t* cfg, char* name, char* buf)
 			while(*np && *np<=' ') np++;
 			truncsp(np);
 			if(*np=='*') 
-				sprintf(buf,"%.*s%s",namelen-cmplen,name,np+1);
+				sprintf(buf,"%.*s%s",(int)(namelen-cmplen),name,np+1);
 			else
 				strcpy(buf,np);
 			p=buf;
