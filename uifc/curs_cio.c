@@ -1,15 +1,15 @@
-/* $Id: curs_cio.c,v 1.3 2004/07/17 01:44:19 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.8 2004/07/05 00:23:36 deuce Exp $ */
+
 #include <sys/time.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-#include "conio.h"
+#include "ciowrap.h"
+#undef getch			/* I'm going to need to use the real getch() in here */
+#undef beep				/* I'm going to need to use the real beep() in here */
 #include "curs_cio.h"
+#include "uifc.h"		/* UIFC_IBM */
 
 static unsigned char curs_nextgetch=0;
-const int curs_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
 static int lastattr=0;
 static long mode;
@@ -62,22 +62,6 @@ int curs_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	unsigned char fill_char;
 	unsigned char orig_attr;
 	int oldx, oldy;
-	struct text_info	ti;
-
-	gettextinfo(&ti);
-
-	if(		   sx < 1
-			|| sy < 1
-			|| ex < 1
-			|| ey < 1
-			|| sx > ti.screenwidth
-			|| sy > ti.screenheight
-			|| sx > ex
-			|| sy > ey
-			|| ex > ti.screenwidth
-			|| ey > ti.screenheight
-			|| fill==NULL)
-		return(0);
 
 	getyx(stdscr,oldy,oldx);
 	orig_attr=lastattr;
@@ -87,12 +71,12 @@ int curs_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 		{
 			fill_char=fill[fillpos++];
 			attr=fill[fillpos++];
-			textattr(attr);
+			curs_textattr(attr);
 			move(y, x);
 			_putch(fill_char,FALSE);
 		}
 	}
-	textattr(orig_attr);
+	curs_textattr(orig_attr);
 	move(oldy, oldx);
 	refresh();
 	return(1);
@@ -108,24 +92,8 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	int oldx, oldy;
 	unsigned char thischar;
 	int	ext_char;
-	struct text_info	ti;
 
-	gettextinfo(&ti);
-
-	if(		   sx < 1
-			|| sy < 1
-			|| ex < 1
-			|| ey < 1
-			|| sx > ti.screenwidth
-			|| sy > ti.screenheight
-			|| sx > ex
-			|| sy > ey
-			|| ex > ti.screenwidth
-			|| ey > ti.screenheight
-			|| fill==NULL)
-		return(0);
-
-	getyx(stdscr,oldy,oldx);
+	getyx(stdscr,oldy,oldx);	
 	for(y=sy-1;y<=ey-1;y++)
 	{
 		for(x=sx-1;x<=ex-1;x++)
@@ -135,7 +103,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 				thischar=attr&255-'A'+1;
 			}
 			else if(attr&A_ALTCHARSET) {
-				if(!(mode==CIOWRAP_CURSES_IBM_MODE)){
+				if(!(mode&UIFC_IBM)){
 					ext_char=A_ALTCHARSET|(attr&255);
 					/* likely ones */
 					if (ext_char == ACS_CKBOARD)
@@ -344,7 +312,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 				thischar=attr;
 			fill[fillpos++]=(unsigned char)(thischar);
 			attrib=0;
-			if (attr & A_BOLD)
+			if (attr & A_BOLD)  
 			{
 				attrib |= 8;
 			}
@@ -389,6 +357,26 @@ void curs_textattr(unsigned char attr)
 	bkgdset(colour);
 }
 
+void curs_textbackground(int colour)
+{
+	unsigned char attr;
+	
+	attr=lastattr;
+	attr&=143;
+	attr|=(colour<<4);
+	curs_textattr(attr);
+}
+
+void curs_textcolor(int colour)
+{
+	unsigned char attr;
+	
+	attr=lastattr;
+	attr&=240;
+	attr|=colour;
+	curs_textattr(attr);
+}
+
 int curs_kbhit(void)
 {
 	struct timeval timeout;
@@ -423,12 +411,11 @@ int curs_wherex(void)
 	return(x+1);
 }
 
-int _putch(unsigned char ch, BOOL refresh_now)
+void _putch(unsigned char ch, BOOL refresh_now)
 {
-	int		ret;
 	chtype	cha;
 
-	if(!(mode==CIOWRAP_CURSES_IBM_MODE))
+	if(!(mode&UIFC_IBM))
 	{
 		switch(ch)
 		{
@@ -577,21 +564,47 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	else
 		cha=ch;
 
-	if(!cha)
-		cha=' ';
-	if(cha == ' ')
-		ret=addch(A_BOLD|' ');
+	if(ch == ' ')
+		addch(A_BOLD|' ');
 	else if (cha<' ') {
  		attron(A_REVERSE);
-		ret=addch(cha+'A'-1);
+		addch(cha+'A'-1);
 		attroff(A_REVERSE);
 	}
 	else
-		ret=addch(cha);
+		addch(cha);
 
 	if(refresh_now)
 		refresh();
+}
 
+int curs_cprintf(char *fmat, ...)
+{
+    va_list argptr;
+	unsigned char	str[MAX_BFLN];
+	int		pos;
+	int		ret;
+
+    va_start(argptr,fmat);
+    ret=vsprintf(str,fmat,argptr);
+    va_end(argptr);
+	if(ret>=0)
+		curs_cputs(str);
+	else
+		ret=EOF;
+    return(ret);
+}
+
+int curs_cputs(unsigned char *str)
+{
+	int		pos;
+	int		ret=0;
+
+	for(pos=0;str[pos];pos++)
+	{
+		ret=str[pos];
+		putch(str[pos]);
+	}
 	return(ret);
 }
 
@@ -601,7 +614,13 @@ void curs_gotoxy(int x, int y)
 	refresh();
 }
 
-int curs_initciowrap(long inmode)
+void curs_clrscr(void)
+{
+    clear();
+	refresh();
+}
+
+void curs_initciowrap(long inmode)
 {
 	short	fg, bg, pair=0;
 
@@ -610,16 +629,6 @@ int curs_initciowrap(long inmode)
 
 	Xinitscr(1,argv);
 #else
-	char *term;
-	SCREEN *tst;
-
-	term=getenv("TERM");
-	if(term==NULL)
-		return(0);
-	tst=newterm(term,stdout,stdin);
-	if(tst==NULL)
-		return(0);
-	endwin();
 	initscr();
 #endif
 	start_color();
@@ -637,7 +646,6 @@ int curs_initciowrap(long inmode)
 		}
 	}
 	mode = inmode;
-	return(1);
 }
 
 void curs_gettextinfo(struct text_info *info)
@@ -647,9 +655,6 @@ void curs_gettextinfo(struct text_info *info)
 		info->currmode=COLOR_MODE;
 	else
 		info->currmode=MONO;
-	info->curx=wherex();
-	info->cury=wherey();
-	info->attribute=lastattr;
 }
 
 void curs_setcursortype(int type) {
@@ -670,74 +675,40 @@ void curs_setcursortype(int type) {
 	refresh();
 }
 
-int curs_putch(unsigned char c)
+void curs_clreol(void)
+{
+	clrtoeol();
+}
+
+void curs_putch(unsigned char c)
 {
 	struct text_info ti;
-	int		ret;
-	int		i;
 
-	ret=c;
 	switch(c) {
 		case '\r':
-			gotoxy(1,wherey());
+			curs_gotoxy(1,curs_wherey());
 			break;
 		case '\n':
-			gettextinfo(&ti);
-			if(wherey()==ti.winbottom-ti.wintop+1) {
-				wscroll();
+			curs_gettextinfo(&ti);
+			if(curs_wherey()==ti.screenheight) {
+				scrollok(stdscr,TRUE);
+				scroll(stdscr);
+				scrollok(stdscr,FALSE);
 			}
 			else {
-				gotoxy(wherex(),wherey()+1);
+				curs_gotoxy(curs_wherex(),curs_wherey()+1);
 			}
 			break;
 		case 0x07:
 			beep();
 			break;
 		case 0x08:
-			gotoxy(wherex()-1,wherey());
+			curs_gotoxy(curs_wherex()-1,curs_wherey());
 			_putch(' ',FALSE);
-			gotoxy(wherex()-1,wherey());
-			break;
-		case '\t':
-			for(i=0;i<10;i++) {
-				if(curs_tabs[i]>wherex()) {
-					while(wherex()<curs_tabs[i]) {
-						putch(' ');
-					}
-					break;
-				}
-			}
-			if(i==10) {
-				putch('\r');
-				putch('\n');
-			}
+			curs_gotoxy(curs_wherex()-1,curs_wherey());
 			break;
 		default:
-			gettextinfo(&ti);
-			if(wherey()==ti.winbottom-ti.wintop+1
-					&& wherex()==ti.winright-ti.winleft+1) {
-				if(_putch(c,TRUE)==ERR)
-					ret=EOF;
-				else {
-					wscroll();
-					gotoxy(ti.winleft,ti.cury);
-				}
-			}
-			else {
-				if(wherex()==ti.winright-ti.winleft+1) {
-					if(_putch(c,TRUE)==ERR)
-						ret=EOF;
-					else
-						gotoxy(ti.winleft,ti.cury+1);
-				}
-				else {
-					if(_putch(c,TRUE)==ERR)
-						ret=EOF;
-					else
-						gotoxy(ti.curx+1,ti.cury);
-				}
-			}
-			break;
+			_putch(c,TRUE);
 	}
 }
 
@@ -751,9 +722,9 @@ int curs_getch(void)
 	}
 	else {
 		while((ch=getch())==ERR) {
-			delay(1);
+			curs_delay(1);
 		}
-		if(ch > 255) {
+		if(ch & KEY_CODE_YES) {
 			switch(ch) {
 				case KEY_DOWN:            /* Down-arrow */
 					curs_nextgetch=0x50;
@@ -937,10 +908,29 @@ int curs_getche(void)
 		return(curs_getch());
 	ch=curs_getch();
 	if(ch)
-		putch(ch);
+		curs_putch(ch);
 	return(ch);
 }
 
-void curs_textmode(int mode)
+void curs_highvideo(void)
 {
+	int attr;
+
+	attr=lastattr;
+	attr |= 8;
+	curs_textattr(attr);
+}
+
+void curs_lowvideo(void)
+{
+	int attr;
+
+	attr=lastattr;
+	attr &= 0xf7;
+	curs_textattr(attr);
+}
+
+void curs_normvideo(void)
+{
+	curs_textattr(0x07);
 }
