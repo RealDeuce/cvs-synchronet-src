@@ -34,13 +34,8 @@ else
   CURSES_LDFLAGS += -lncurses
   CURSES_CFLAGS	+= -DN_CURSES_LIB
  else
-  ifeq ($(os),sunos)
-   CURSES_LDFLAGS += -lncurses
-   CURSES_CFLAGS	+= -DN_CURSES_LIB
-  else
-   CURSES_LDFLAGS += -lcurses
-   CURSES_CFLAGS	+= -DCURSES_LIB
-  endif
+  CURSES_LDFLAGS += -lcurses
+  CURSES_CFLAGS	+= -DCURSES_LIB
  endif
 endif
 
