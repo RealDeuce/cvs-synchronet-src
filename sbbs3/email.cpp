@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.32 2004/09/02 21:53:46 rswindell Exp $ */
+/* $Id: email.cpp,v 1.33 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -277,7 +277,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
-	msg.idx.subj=subject_crc(title);
+	msg.idx.subj=smb_subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
