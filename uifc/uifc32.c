@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.57 2004/06/01 04:42:03 deuce Exp $ */
+/* $Id: uifc32.c,v 1.68 2004/06/03 07:00:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,12 +43,6 @@
 	#endif
 	#include "ciowrap.h"
     #define mswait(x) delay(x)
-	#if defined(putch) && defined(NO_ECHOCHAR)
-		#undef putch
-	#endif
-	#if !defined(putch)
-    	#define putch(x)	_putch(x,TRUE)
-	#endif
     #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
@@ -115,8 +109,8 @@ struct uifc_mouse_event {
 
 /* Mouse support */
 #ifdef _WIN32
-int	uifc_last_button_press=0;
-struct uifc_mouse_event	last_mouse_click;
+static struct uifc_mouse_event	uifc_last_button_press;
+static struct uifc_mouse_event	last_mouse_click;
 #define kbhit()	console_hit()
 int	console_hit(void);
 #endif
@@ -162,8 +156,6 @@ int console_hit(void)
 					|| input.Event.MouseEvent.dwButtonState==FROM_LEFT_1ST_BUTTON_PRESSED
 					|| input.Event.MouseEvent.dwButtonState==RIGHTMOST_BUTTON_PRESSED))
 				return(1);
-			else
-				uifc_last_button_press=0;
 		}
 		if(ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 			&& num) {
@@ -209,30 +201,33 @@ int inkey()
 				return(input.Event.KeyEvent.wVirtualScanCode<<8);
 				break;
 			case MOUSE_EVENT:
-				if(input.Event.MouseEvent.dwEventFlags!=0) {
-					uifc_last_button_press=0;
+				if(input.Event.MouseEvent.dwEventFlags!=0)
 					continue;
-				}
 				if(input.Event.MouseEvent.dwButtonState==0) {
-					if(uifc_last_button_press) {
-						last_mouse_click.x=input.Event.MouseEvent.dwMousePosition.X;
-						last_mouse_click.y=input.Event.MouseEvent.dwMousePosition.Y;
-						last_mouse_click.button=uifc_last_button_press;
-						uifc_last_button_press=0;
+					if(uifc_last_button_press.button
+							&& uifc_last_button_press.x==input.Event.MouseEvent.dwMousePosition.X
+							&& uifc_last_button_press.y==input.Event.MouseEvent.dwMousePosition.Y) {
+						memcpy(&last_mouse_click,&uifc_last_button_press,sizeof(last_mouse_click));
+						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
 						return(KEY_MOUSE);
+					}
+					else {
+						memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
 					}
 				}
 				else {
-					uifc_last_button_press=0;
+					memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
 					switch(input.Event.MouseEvent.dwButtonState) {
 						case FROM_LEFT_1ST_BUTTON_PRESSED:
-							uifc_last_button_press=1;
+							uifc_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
+							uifc_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
+							uifc_last_button_press.button=1;
 							break;
 						case RIGHTMOST_BUTTON_PRESSED:
-							uifc_last_button_press=2;
+							uifc_last_button_press.x=input.Event.MouseEvent.dwMousePosition.X;
+							uifc_last_button_press.y=input.Event.MouseEvent.dwMousePosition.Y;
+							uifc_last_button_press.button=2;
 							break;
-						default:
-							uifc_last_button_press=0;
 					}
 				}
 		}
@@ -278,10 +273,14 @@ int uifcini32(uifcapi_t* uifcapi)
 		api->esc_delay=25;
 
 #ifdef PDCURSES
-	if(mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED)==0)
-		api->mode|=UIFC_MOUSE;
-	else
-		mouse_set(0);
+/*	
+ * "ALL  DESCRIPTIONS  ARE  GUESSES.  I DON'T KNOW ANYONE WHO KNOWS EXACTLY WHAT THESE FUNCTIONS DO!"
+ *
+ * 	if(mouse_set(BUTTON1_CLICKED|BUTTON3_CLICKED)==0)
+ *		api->mode|=UIFC_MOUSE;
+ *	else
+ *		mouse_set(0);
+ */
 #endif
 #ifdef __unix__
 	initciowrap(api->mode);
@@ -329,6 +328,8 @@ int uifcini32(uifcapi_t* uifcapi)
 
     gettextinfo(&txtinfo);
 #ifdef _WIN32
+	memset(&uifc_last_button_press,0,sizeof(uifc_last_button_press));
+	memset(&last_mouse_click,0,sizeof(last_mouse_click));
 	api->mode|=UIFC_MOUSE;
     /* unsupported mode? */
     if(txtinfo.screenheight<MIN_LINES
@@ -576,7 +577,7 @@ static void truncsp(char *str)
 int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
-	uchar line[256],shade[256],*ptr,longopt
+	uchar line[256],shade[256],*ptr
 		,search[MAX_OPLN],bline=0,*win;
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
@@ -588,7 +589,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	uint title_len;
 	struct uifc_mouse_event mevnt;
 	char	*title;
-	int	a,b,c;
+	int	a,b,c,longopt;
 
 	if((title=(char *)MALLOC(strlen(initial_title)+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes."
@@ -959,7 +960,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							(*bar)=(*cur);
 						y=top+3+((mevnt.y)-(s_top+top+2));
 
-						if(!opts || (mode&WIN_XTR && (*cur)==opts-1))
+						if(!opts)
 							continue;
 
 						if(mode&WIN_ACT) {
@@ -991,6 +992,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							free(sav[api->savnum].buf);
 							api->savdepth--;
 						}
+						if(mode&WIN_XTR && (*cur)==opts-1)
+							return(MSK_INS|*cur);
 						return(*cur);
 					}
 					/* Clicked Scroll Up */
@@ -1024,7 +1027,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						continue;
 					}
 					/* Clicked Scroll Down */
-					if(mevnt.x=s_left+left
+					if(mevnt.x==s_left+left
 							&& mevnt.y==(s_top+top+height)-3
 							&& mevnt.button==1) {
 						if(!opts)
@@ -1328,7 +1331,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					case KEY_F(1):	/* F1 */
-						help();
+						api->showhelp();
 						break;
 					case KEY_F(5):	/* F5 */
 						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur)==opts-1))
@@ -1377,6 +1380,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							return((*cur)|MSK_DEL); 
 						}
 						break;
+					default:
+						return(-2-i);
 				} 
 			}
 			else {
@@ -1476,7 +1481,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				else
 					switch(i) {
 						case CR:
-							if(!opts || (mode&WIN_XTR && (*cur)==opts-1))
+							if(!opts)
 								break;
 							if(mode&WIN_ACT) {
 								gettext(s_left+left,s_top+top,s_left
@@ -1497,6 +1502,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								FREE(sav[api->savnum].buf);
 								api->savdepth--; 
 							}
+							if(mode&WIN_XTR && (*cur)==opts-1)
+								return(MSK_INS|*cur);
 							return(*cur);
 						case 3:
 						case ESC:
@@ -1517,8 +1524,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								api->savdepth--; 
 							}
 							return(-1);
-				} 
-			} 
+						default:
+							return(-2-i);
+				}
+			}
 		}
 		else
 			mswait(1);
@@ -1538,8 +1547,9 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	int max, int kmode)
 {
 	unsigned char save_buf[2048],in_win[2048]
-		,shade[160],height=3;
+		,shade[160];
 	int	width;
+	int height=3;
 	int i,plen,slen,j;
 	int	iwidth;
 
@@ -1801,7 +1811,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			switch(ch)
 			{
 				case KEY_F(1):	/* F1 Help */
-					help();
+					api->showhelp();
 					continue;
 				case KEY_LEFT:	/* left arrow */
 					if(i)
@@ -1915,7 +1925,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			/* This broke swedish chars... */
 			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
 #else
-			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max))
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && ch < 256)
 #endif
 			{
 				if(mode&K_UPPER)
