@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.3 2001/06/20 01:35:41 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.4 2001/06/23 00:51:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ static struct JSPropertySpec js_bbs_properties[] = {
 	{	"new_file_time"		,BBS_PROP_NS_TIME		,JSPROP_ENUMERATE	,NULL,NULL},
 	{	"last_new_file_time",BBS_PROP_LAST_NS_TIME	,JSPROP_ENUMERATE	,NULL,NULL},
 	{	"online"			,BBS_PROP_ONLINE		,JSPROP_ENUMERATE	,NULL,NULL},
-	{	"timeleft"			,BBS_PROP_TIMELEFT		,JSPROP_ENUMERATE	,NULL,NULL},
+	{	"time_left"			,BBS_PROP_TIMELEFT		,JSPROP_ENUMERATE	,NULL,NULL},
 	{	"node_num"			,BBS_PROP_NODE_NUM		,BBS_PROP_READONLY	,NULL,NULL},
 	{	"node_settings"		,BBS_PROP_NODE_MISC		,JSPROP_ENUMERATE	,NULL,NULL},
 	{	"node_val_user"		,BBS_PROP_NODE_VAL_USER	,JSPROP_ENUMERATE	,NULL,NULL},
@@ -309,6 +309,24 @@ static struct JSPropertySpec js_bbs_properties[] = {
 /* bbs Object Methods */
 /**************************/
 
+static JSBool
+js_menu(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+    JSString*	str;
+ 	sbbs_t*		sbbs;
+ 
+ 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+ 		return(JS_FALSE);
+ 
+ 	str = JS_ValueToString(cx, argv[0]);
+ 	if (!str)
+ 		return(JS_FALSE);
+ 
+	sbbs->menu(JS_GetStringBytes(str));
+ 
+    return(JS_TRUE);
+}
+ 
 static JSBool
 js_hangup(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -396,12 +414,26 @@ js_user_event(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	return(JS_TRUE);
 }
 
+static JSBool
+js_chksyspass(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	sbbs_t*		sbbs;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	*rval = BOOLEAN_TO_JSVAL(sbbs->chksyspass());
+
+	return(JS_TRUE);
+}
 
 static JSFunctionSpec js_bbs_functions[] = {
+	{"menu",			js_menu,			1},		// show menu
 	{"hangup",			js_hangup,			0},		// hangup immediately
 	{"exec",			js_exec,			2},		// execute command line with mode
 	{"exec_xtrn",		js_exec_xtrn,		1},		// execute external program by code
 	{"user_event",		js_user_event,		1},		// execute user event by event type
+	{"check_syspass",	js_chksyspass,		0},		// verify system password
 	{0}
 };
 
