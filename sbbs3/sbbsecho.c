@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.151 2004/09/02 22:10:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.142 2004/08/19 03:01:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1935,7 +1935,7 @@ ulong getlastmsg(uint subnum, ulong *ptr, time_t *t)
 		bail(1); }
 	sprintf(smbfile.file,"%s%s",scfg.sub[subnum]->data_dir,scfg.sub[subnum]->code);
 	smbfile.retry_time=scfg.smb_retry_time;
-	if((i=smb_open(&smbfile))!=SMB_SUCCESS) {
+	if((i=smb_open(&smbfile))!=0) {
 		printf("ERROR %d opening %s\n",i,smbfile.file);
 		logprintf("ERROR %d line %d opening %s",i,__LINE__,smbfile.file);
 		return(0); }
@@ -1957,7 +1957,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 	idxrec_t idx;
 
 
-	if((i=smb_locksmbhdr(&smb[cur_smb]))!=SMB_SUCCESS) {
+	if((i=smb_locksmbhdr(&smb[cur_smb]))!=0) {
 		printf("ERROR %d locking %s\n",i,smb[cur_smb].file);
 		logprintf("ERROR %d line %d locking %s",i,__LINE__,smb[cur_smb].file);
 		return(0); 
@@ -2267,7 +2267,6 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	ulong	save;
 	faddr_t faddr,origaddr,destaddr;
 	smbmsg_t	msg;
-	smbmsg_t	remsg;
 	smb_t	*smbfile;
 	char	fname[MAX_PATH+1];
 
@@ -2561,7 +2560,6 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	else
 		smbfile=&smb[cur_smb];
 
-
 	if(subnum!=INVALID_SUB && scfg.sub[subnum]->misc&SUB_LZH
 		&& bodylen+2L+taillen+2L>=SDT_BLOCK_LEN && bodylen) {
 		if((outbuf=(char *)malloc(bodylen*2L))==NULL) {
@@ -2603,37 +2601,20 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		return(-1); 
 	}
 
-	if((i=smb_locksmbhdr(smbfile))!=SMB_SUCCESS) {
-		printf("ERROR %d locking %s\n",i,smbfile->file);
-		logprintf("ERROR %d line %d locking %s",i,__LINE__,smbfile->file);
-		smb_freemsgmem(&msg);
-		free(sbody);
-		free(stail);
-		return(i); 
-	}
-
-	if(msg.ftn_reply!=NULL) {	/* auto-thread linkage */
-
-		if(smb_getstatus(smbfile)==SMB_SUCCESS
-			&& smb_getmsghdr_by_ftnid(smbfile, &remsg, msg.ftn_reply)==SMB_SUCCESS) {
-
-			msg.hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
-
-			/* Add RFC-822 Reply-ID (generate if necessary) */
-			smb_hfield_str(&msg,RFC822REPLYID,get_msgid(&scfg,smbfile->subnum,&remsg));
-
-			smb_updatethread(smbfile,&remsg,smbfile->status.last_msg+1);
-			smb_freemsgmem(&remsg);
-		}
-	}
-
 	if(smbfile->status.attr&SMB_HYPERALLOC) {
+		if((i=smb_locksmbhdr(smbfile))!=0) {
+			printf("ERROR %d locking %s\n",i,smbfile->file);
+			logprintf("ERROR %d line %d locking %s",i,__LINE__,smbfile->file);
+			smb_freemsgmem(&msg);
+			free(sbody);
+			free(stail);
+			return(i); 
+		}
 		msg.hdr.offset=smb_hallocdat(smbfile);
 		storage=SMB_HYPERALLOC; 
 	}
 	else {
-		if((i=smb_open_da(smbfile))!=SMB_SUCCESS) {
-			smb_unlocksmbhdr(smbfile);
+		if((i=smb_open_da(smbfile))!=0) {
 			smb_freemsgmem(&msg);
 			printf("ERROR %d opening %s.sda\n",i,smbfile->file);
 			logprintf("ERROR %d line %d opening %s.sda",i,__LINE__
@@ -2651,7 +2632,8 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		smb_close_da(smbfile); }
 
 	if(msg.hdr.offset && msg.hdr.offset<1L) {
-		smb_unlocksmbhdr(smbfile);
+		if(smbfile->status.attr&SMB_HYPERALLOC)
+			smb_unlocksmbhdr(smbfile);
 		smb_freemsgmem(&msg);
 		free(sbody);
 		free(stail);
@@ -2676,6 +2658,8 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	free(sbody);
 	free(stail);
 	fflush(smbfile->sdt_fp);
+	if(smbfile->status.attr&SMB_HYPERALLOC)
+		smb_unlocksmbhdr(smbfile);
 
 	if(lzh)
 		bodylen+=2;
@@ -2684,18 +2668,15 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	if(taillen)
 		smb_dfield(&msg,TEXT_TAIL,taillen+2);
 
-	i=smb_addmsghdr(smbfile,&msg,storage);	// calls smb_unlocksmbhdr() 
-
-	if(i!=SMB_SUCCESS) {
-		printf("ERROR smb_addmsghdr returned %d: %s\n"
-			,i,smbfile->last_error);
-		logprintf("ERROR smb_addmsghdr returned %d: %s"
-			,i,smbfile->last_error);
-		smb_freemsg_dfields(smbfile,&msg,1);
-	}
+	i=smb_addmsghdr(smbfile,&msg,storage);
 	smb_freemsgmem(&msg);
-
-	return(i);
+	if(i) {
+		printf("ERROR smb_addmsghdr returned %d\n",i);
+		logprintf("ERROR line %d smb_addmsghdr returned %d"
+			,__LINE__,i);
+		return(i); 
+	}
+	return(0);	/* success */
 }
 
 /***********************************************************************/
@@ -3498,7 +3479,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	if(email->shd_fp==NULL) {
 		sprintf(email->file,"%smail",scfg.data_dir);
 		email->retry_time=scfg.smb_retry_time;
-		if((i=smb_open(email))!=SMB_SUCCESS) {
+		if((i=smb_open(email))!=0) {
 			printf("ERROR %d opening %s\n",i,email->file);
 			logprintf("ERROR %d line %d opening %s",i,__LINE__,email->file);
 			bail(1); } }
@@ -3508,7 +3489,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 		email->status.max_msgs=MAX_SYSMAIL;
 		email->status.max_age=scfg.mail_maxage;
 		email->status.attr=SMB_EMAIL;
-		if((i=smb_create(email))!=SMB_SUCCESS) {
+		if((i=smb_create(email))!=0) {
 			sprintf(str,"ERROR %d creating %s",i,email->file);
 			printf("%s\n",str);
 			logprintf(str);
@@ -3728,7 +3709,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 			sprintf(smb[cur_smb].file,"%s%s"
 				,scfg.sub[i]->data_dir,scfg.sub[i]->code);
 			smb[cur_smb].retry_time=scfg.smb_retry_time;
-			if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
+			if((j=smb_open(&smb[cur_smb]))!=0) {
 				printf("ERROR %d opening %s\n",j,smb[cur_smb].file);
 				logprintf("ERROR %d line %d opening %s",j,__LINE__
 					,smb[cur_smb].file);
@@ -3752,7 +3733,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					,scfg.sub[i]->code,m+1,posts);
 				memset(&msg,0,sizeof(msg));
 				msg.idx=post[m];
-				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=0) {
 					printf("ERROR %d locking %s msghdr\n",k,smb[cur_smb].file);
 					logprintf("ERROR %d line %d locking %s msghdr\n"
 						,k,__LINE__,smb[cur_smb].file);
@@ -3764,17 +3745,17 @@ void export_echomail(char *sub_code,faddr_t addr)
 					smb_freemsgmem(&msg);
 
 					msg.hdr.number=post[m].number;
-					if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=0) {
 						printf("ERROR %d reading %s index\n",k,smb[cur_smb].file);
 						logprintf("ERROR %d line %d reading %s index",k,__LINE__
 							,smb[cur_smb].file);
 						continue; }
-					if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=0) {
 						printf("ERROR %d locking %s msghdr\n",k,smb[cur_smb].file);
 						logprintf("ERROR %d line %d locking %s msghdr",k,__LINE__
 							,smb[cur_smb].file);
 						continue; }
-					if((k=smb_getmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					if((k=smb_getmsghdr(&smb[cur_smb],&msg))!=0) {
 						smb_unlockmsghdr(&smb[cur_smb],&msg);
 						printf("ERROR %d reading %s msghdr\n",k,smb[cur_smb].file);
 						logprintf("ERROR %d line %d reading %s msghdr",k,__LINE__
@@ -3853,9 +3834,9 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 				if(msg.ftn_reply!=NULL)			/* use original REPLYID */
 					f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
-				else if(msg.hdr.thread_back) {	/* generate REPLYID */
+				else if(msg.hdr.thread_orig) {	/* generate REPLYID */
 					memset(&orig_msg,0,sizeof(orig_msg));
-					orig_msg.hdr.number=msg.hdr.thread_back;
+					orig_msg.hdr.number=msg.hdr.thread_orig;
 					if(smb_getmsgidx(smb, &orig_msg))
 						f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb->last_error);
 					else {
@@ -4071,7 +4052,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.151 $", "%*s %s", revision);
+	sscanf("$Revision: 1.142 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4095,8 +4076,14 @@ int main(int argc, char **argv)
 #endif
 		,revision
 		);
+#if 0
+	putenv("TZ=UTC0");
+#endif
 
 	putenv("TMP=");
+#if !defined(__unix__)
+	_fmode=O_BINARY;
+#endif
 	setvbuf(stdout,NULL,_IONBF,0);
 
 	sub_code[0]=0;
@@ -4722,7 +4709,7 @@ int main(int argc, char **argv)
 					sprintf(smb[cur_smb].file,"%s%s",scfg.sub[cfg.area[i].sub]->data_dir
 						,scfg.sub[cfg.area[i].sub]->code);
 					smb[cur_smb].retry_time=scfg.smb_retry_time;
-					if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
+					if((j=smb_open(&smb[cur_smb]))!=0) {
 						sprintf(str,"ERROR %d opening %s area #%d, sub #%d)"
 							,j,smb[cur_smb].file,i+1,cfg.area[i].sub+1);
 						printf(str);
@@ -4739,7 +4726,7 @@ int main(int argc, char **argv)
 						smb[cur_smb].status.max_age=scfg.sub[cfg.area[i].sub]->maxage;
 						smb[cur_smb].status.attr=scfg.sub[cfg.area[i].sub]->misc&SUB_HYPER
 								? SMB_HYPERALLOC:0;
-						if((j=smb_create(&smb[cur_smb]))!=SMB_SUCCESS) {
+						if((j=smb_create(&smb[cur_smb]))!=0) {
 							sprintf(str,"ERROR %d creating %s",j,smb[cur_smb].file);
 							printf(str);
 							logprintf(str);
