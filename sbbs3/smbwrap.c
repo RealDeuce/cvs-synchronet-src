@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.11 2000/11/07 04:51:54 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.12 2000/11/07 11:17:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,7 +185,6 @@ int SMBCALL lock(int fd, long pos, int len)
 	alock.l_whence = L_SET;	  // SEEK_SET
 	alock.l_start = pos;
 	alock.l_len = len;
-	alock.l_pid = getpid();   // current process ID
 
 	return fcntl(fd, F_SETLK, &alock);
 }
@@ -199,7 +198,6 @@ int SMBCALL unlock(int fd, long pos, int len)
 	alock.l_whence = L_SET;
 	alock.l_start = pos;
 	alock.l_len = len;
-	alock.l_pid = getpid();   // current process ID
 	return fcntl(fd, F_SETLK, &alock);
 }
 
@@ -208,6 +206,10 @@ int SMBCALL sopen(char *fn, int access, int share)
 {
 	int fd;
 	struct flock alock;
+
+	if (share == SH_DENYNO	/* we're going to be using lock/unlock later */
+		&& access == O_RDONLY)
+		access = O_RDWR;	/* must have write access to set exclusive lock */
 
 	if ((fd = open(fn, access, S_IREAD|S_IWRITE)) < 0)
 		return -1;
@@ -220,7 +222,12 @@ int SMBCALL sopen(char *fn, int access, int share)
 	alock.l_whence = L_SET;
 	alock.l_start = 0;
 	alock.l_len = 0;       // lock to EOF
+
+#if 0
+	/* The l_pid field is only used with F_GETLK to return the process 
+		ID of the process holding a blocking lock.  */
 	alock.l_pid = getpid();
+#endif
 
 	if (fcntl(fd, F_SETLK, &alock) < 0) {
 		close(fd);
