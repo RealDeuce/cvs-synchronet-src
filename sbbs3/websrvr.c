@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.14 2002/08/08 10:00:51 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.15 2002/08/08 10:04:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -969,7 +969,7 @@ static BOOL check_request(http_session_t * session)
 		send_error("404 Not Found",session);
 		return(FALSE);
 	}
-	if(!strcmp(path,session->req.request)) {
+	if(strcmp(path,session->req.request)) {
 		session->req.send_location=TRUE;
 		SAFECOPY(session->req.request,path);
 	}
@@ -1122,7 +1122,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.14 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.15 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
