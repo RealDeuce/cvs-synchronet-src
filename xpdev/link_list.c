@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.8 2004/05/21 02:52:05 rswindell Exp $ */
+/* $Id: link_list.c,v 1.9 2004/05/28 03:33:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,7 +187,7 @@ str_list_t listStringList(const link_list_t* list)
 
 	for(node=list->first; node!=NULL; node=node->next) {
 		if(node->data!=NULL)
-			strListAdd(&str_list, node->data);
+			strListAppend(&str_list, node->data, STR_LIST_APPEND);
 	}
 
 	MUTEX_UNLOCK(list);
@@ -210,7 +210,7 @@ str_list_t listSubStringList(const list_node_t* node, long max)
 
 	for(count=0; count<max && node!=NULL; node=node->next) {
 		if(node->data!=NULL) {
-			strListAdd(&str_list, node->data);
+			strListAppend(&str_list, node->data, STR_LIST_APPEND);
 			count++;
 		}
 	}
@@ -344,12 +344,11 @@ static list_node_t* list_add_node(link_list_t* list, list_node_t* node, list_nod
 
 	if(after==list->last)					/* append to list */
 		list->last = node;
-	if(after==NULL) {						/* insert at beginning of list */
+	if(after==FIRST_NODE) {					/* insert at beginning of list */
 		if(list->first!=NULL)
 			list->first->prev = node;
 		list->first = node;
-	}
-	if(after!=NULL) {
+	} else {
 		if(after->next!=NULL) {
 			after->next->prev = node;
 			node->next = after->next;
@@ -509,7 +508,7 @@ void* listRemoveNode(link_list_t* list, list_node_t* node)
 	if(list==NULL)
 		return(NULL);
 
-	if(node==NULL)
+	if(node==FIRST_NODE)
 		node=list->first;
 	if(node==NULL)
 		return(NULL);
@@ -552,7 +551,7 @@ long listRemoveNodes(link_list_t* list, list_node_t* node, long max)
 
 	MUTEX_LOCK(list);
 
-	if(node==NULL)
+	if(node==FIRST_NODE)
 		node=list->first;
 
 	for(count=0; node!=NULL && count<max; node=node->next, count++)
