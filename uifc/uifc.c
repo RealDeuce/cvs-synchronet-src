@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.22 2004/05/30 07:16:23 deuce Exp $ */
+/* $Id: uifc.c,v 1.23 2004/07/20 01:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -374,7 +374,7 @@ if(mode&WIN_GET) bline|=BL_GET;
 if(mode&WIN_PUT) bline|=BL_PUT;
 bottomline(bline);
 while(opts<max_opts && opts<MAX_OPTS)
-	if(option[opts][0]==0)
+	if(option[opts]==NULL || option[opts][0]==0)
 		break;
 	else opts++;
 if(mode&WIN_XTR && opts<max_opts && opts<MAX_OPTS)
