@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.108 2003/06/12 07:55:56 rswindell Exp $ */
+/* $Id: services.c,v 1.109 2003/07/04 10:07:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -445,12 +445,27 @@ js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool
+js_reset_loop(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	service_client_t* client;
+
+	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	client->js_loop=0;
+	*rval = JSVAL_VOID;
+	return(JS_TRUE);
+}
+
 static JSFunctionSpec js_global_functions[] = {
-	{"write",			js_write,			1},		/* write to client socket */
-	{"writeln",			js_writeln,			1},		/* write line to client socket */
-	{"log",				js_log,				1},		/* Log a string */
+	{"write",			js_write,			0},		/* write to client socket */
+	{"writeln",			js_writeln,			0},		/* write line to client socket */
+	{"print",			js_writeln,			0},		/* write line to client socket */
+	{"log",				js_log,				0},		/* Log a string */
  	{"login",			js_login,			2},		/* Login specified username and password */
 	{"logout",			js_logout,			0},		/* Logout user */
+	{"reset_loop",		js_reset_loop,		0},		/* reset loop counter */
     {0}
 };
 
@@ -1239,7 +1254,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.108 $", "%*s %s", revision);
+	sscanf("$Revision: 1.109 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
