@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.74 2003/03/13 04:44:42 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.75 2003/03/17 22:59:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -285,7 +285,8 @@ js_connect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	result=connect(p->sock, (struct sockaddr *)&addr, sizeof(addr));
 	
-	if(result==SOCKET_ERROR && ERROR_VALUE==EWOULDBLOCK) {
+	if(result==SOCKET_ERROR
+		&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
 		FD_ZERO(&socket_set);
 		FD_SET(p->sock,&socket_set);
 		if(select(p->sock+1,NULL,&socket_set,NULL,&tv)==1)
