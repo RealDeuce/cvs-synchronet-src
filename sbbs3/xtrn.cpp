@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.63 2002/01/17 02:20:43 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.64 2002/01/17 02:22:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -305,6 +305,11 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 			sprintf(env_monthname	,"MONTHNAME=%s\n"	,mon[tm_p->tm_mon]);
 			sprintf(env_month		,"MONTH=%02u\n"		,tm_p->tm_mon+1);
 			sprintf(env_year		,"YEAR=%u\n"		,1900+tm_p->tm_year);
+			putenv(env_day);
+			putenv(env_weekday);
+			putenv(env_monthname);
+			putenv(env_month);
+			putenv(env_year);
 		}
 
     } else { // DOS external
