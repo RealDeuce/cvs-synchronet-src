@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.39 2002/03/13 18:58:10 rswindell Exp $ */
+/* $Id: services.c,v 1.40 2002/03/18 20:08:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1166,7 +1166,7 @@ void DLLCALL services_thread(void* arg)
 		while(!terminated) {
 
 			sprintf(path,"%sservices.rec",scfg.ctrl_dir);
-			if(fdate(path)>initialized) {
+			if(!total_clients && fdate(path)>initialized) {
 				lprintf("0000 Recycle semaphore detected");
 				break;
 			}

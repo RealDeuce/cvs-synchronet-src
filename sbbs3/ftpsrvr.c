@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.143 2002/03/13 23:18:19 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.144 2002/03/18 20:08:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4498,7 +4498,7 @@ void DLLCALL ftp_server(void* arg)
 		while(server_socket!=INVALID_SOCKET) {
 
 			sprintf(path,"%sftpsrvr.rec",scfg.ctrl_dir);
-			if(fdate(path)>initialized) {
+			if(!active_clients && fdate(path)>initialized) {
 				lprintf("0000 Recycle semaphore detected");
 				break;
 			}
