@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.16 2001/04/30 00:46:28 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.17 2001/06/14 23:49:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -717,7 +717,7 @@ BOOL read_msgs_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 	#endif
 		fread(str,1,LEN_DIR+1,instream);   /* substitute EchoMail path */
 		offset+=LEN_DIR+1;
-	#ifndef SBBS
+	#if 0 /* ndef SBBS */
 		backslash(str);
 		strcpy(cfg->sub[i]->echopath,str);
 	#endif
