@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.9 2003/10/12 12:04:09 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.10 2003/10/12 12:21:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,6 +217,7 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 	JSObject*		obj;
 	js_branch_t*	branch;
 	JSErrorReporter	reporter;
+	JSBranchCallback callback;
 
 	*rval=JSVAL_VOID;
 
@@ -233,15 +234,12 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 		return(JS_FALSE);
 
 	/* Use the error reporter from the parent context */
-#ifdef jscntxt_h___
-	reporter=parent_cx->errorReporter;
-#else
 	JS_SetErrorReporter(parent_cx,(reporter=JS_SetErrorReporter(parent_cx,NULL)));
-#endif
 	JS_SetErrorReporter(cx,reporter);
 
-#ifdef jscntxt_h___
-	JS_SetBranchCallback(cx, parent_cx->branchCallback);
+#if 1
+	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
+	JS_SetBranchCallback(cx, (callback=JS_SetBranchCallback(parent_cx,NULL)));
 #else
 	JS_SetContextPrivate(cx,branch);
 	JS_SetBranchCallback(cx, js_BranchCallback);
