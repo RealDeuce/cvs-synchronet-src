@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.42 2002/10/29 11:54:40 rswindell Exp $ */
+/* $Id: smblib.c,v 1.43 2002/10/30 03:27:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -616,17 +616,18 @@ int SMBCALL smb_getlastidx(smb_t* smb, idxrec_t *idx)
 uint SMBCALL smb_getmsghdrlen(smbmsg_t* msg)
 {
 	int i;
+	int	length;
 
 	/* fixed portion */
-	msg->hdr.length=sizeof(msghdr_t);
+	length=sizeof(msghdr_t);
 	/* data fields */
-	msg->hdr.length+=msg->hdr.total_dfields*sizeof(dfield_t);
+	length+=msg->hdr.total_dfields*sizeof(dfield_t);
 	/* header fields */
 	for(i=0;i<msg->total_hfields;i++) {
-		msg->hdr.length+=sizeof(hfield_t);
-		msg->hdr.length+=msg->hfield[i].length; 
+		length+=sizeof(hfield_t);
+		length+=msg->hfield[i].length; 
 	}
-	return(msg->hdr.length);
+	return(length);
 }
 
 /****************************************************************************/
