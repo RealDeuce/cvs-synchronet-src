@@ -41,8 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "msvc.win32.release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\xpdev" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /D "MD5_EXPORTS" /Zl /FD /c
-# SUBTRACT CPP /YX
+# ADD CPP /nologo /W3 /GX /O2 /I "..\xpdev" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /D "MD5_EXPORTS" /YX /Zl /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -50,7 +49,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /out:"msvc.win32.release\smb.lib"
 
 !ELSEIF  "$(CFG)" == "smblib - Win32 Debug"
 
@@ -73,7 +72,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /out:"msvc.win32.debug\smb.lib"
 
 !ENDIF 
 
