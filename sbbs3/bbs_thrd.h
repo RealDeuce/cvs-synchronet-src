@@ -2,7 +2,7 @@
 
 /* Synchronet BBS (telnet server) thread function prototypes */
 
-/* $Id: bbs_thrd.h,v 1.1 2000/10/10 11:26:04 rswindell Exp $ */
+/* $Id: bbs_thrd.h,v 1.2 2000/10/23 20:17:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,13 +43,13 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#ifdef SBBS
-#define BBS_CALL __declspec( dllexport )
-#else
-#define BBS_CALL __declspec( dllimport )
-#endif
-#else
-#define BBS_CALL
+	#ifdef SBBS
+		#define BBS_CALL __declspec( dllexport )
+	#else
+		#define BBS_CALL __declspec( dllimport )
+	#endif
+#else	/* !_WIN32 */
+	#define BBS_CALL
 #endif
 
 /* arg is pointer to static bbs_startup_t* */
