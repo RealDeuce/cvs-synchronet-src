@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.8 2000/11/06 10:00:34 rswindell Exp $ */
+/* $Id: mxlookup.c,v 1.9 2000/11/07 00:00:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@
 /* Synchronet-specific */
 #include "gen_defs.h"
 #include "sbbsinet.h"
+#include "smbdefs.h"		/* _PACK */
 
 #ifdef _WIN32
 #pragma pack(push)
