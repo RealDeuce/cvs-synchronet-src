@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.144 2004/04/20 08:13:22 deuce Exp $ */
+/* $Id: websrvr.c,v 1.145 2004/04/29 08:47:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2495,7 +2495,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.144 $", "%*s %s", revision);
+	sscanf("$Revision: 1.145 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2717,7 +2717,7 @@ void DLLCALL web_server(void* arg)
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
 
-		while(server_socket!=INVALID_SOCKET) {
+		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
 			/* check for re-cycle semaphores */
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
