@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.37 2002/05/02 23:55:15 rswindell Exp $ */
+/* $Id: str.cpp,v 1.38 2002/08/16 21:59:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -452,7 +452,7 @@ uint sbbs_t::gettmplt(char *strout,char *templt, long mode)
 		bputs(str);
 		c=strlen(str); }
 	while((ch=getkey(mode))!=CR && online && !(sys_status&SS_ABORT)) {
-		if(ch==BS) {
+		if(ch==BS || ch==DEL) {
 			if(!c)
 				continue;
 			for(ch=1,c--;c;c--,ch++)

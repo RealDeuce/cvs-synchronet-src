@@ -2,7 +2,7 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.6 2002/08/06 03:39:26 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.7 2002/08/16 21:59:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -481,7 +481,7 @@ long sbbs_t::getnum(ulong max)
 			outchar('Q');
 			if(useron.misc&COLDKEYS)
 				ch=getkey(K_UPPER);
-			if(ch==BS) {
+			if(ch==BS || ch==DEL) {
 				bputs("\b \b");
 				continue; }
 			CRLF;
@@ -495,7 +495,7 @@ long sbbs_t::getnum(ulong max)
 			CRLF;
 			lncntr=0;
 			return(i); }
-		else if(ch==BS && n) {
+		else if((ch==BS || ch==DEL) && n) {
 			bputs("\b \b");
 			i/=10;
 			n--; }
