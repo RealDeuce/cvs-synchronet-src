@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.14 2005/01/15 21:52:52 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.11 2004/12/15 04:45:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	size_t		l,length;
 	size_t		taillen=0;
 	size_t		bodylen=0;
-	size_t		chklen=0;
 	long		offset;
 	ulong		crc=0xffffffff;
 	hash_t		found;
@@ -82,6 +81,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			break;
 
 		msg->hdr.number=smb->status.last_msg+1;
+
 		hashes=smb_msghashes(msg,body);
 
 		if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
@@ -100,13 +100,12 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		if(body!=NULL && (bodylen=strlen(body))>0) {
 
 			/* Remove white-space from end of message text */
-			chklen=bodylen;
-			while(chklen && body[chklen-1]<=' ')
-				chklen--;
+			while(bodylen && body[bodylen-1]<=' ')
+				bodylen--;
 
 			/* Calculate CRC-32 of message text (before encoding, if any) */
-			if(smb->status.max_crcs && dupechk_hashes&(1<<SMB_HASH_SOURCE_BODY)) {
-				for(l=0;l<chklen;l++)
+			if(smb->status.max_crcs && dupechk_hashes&SMB_HASH_SOURCE_BODY) {
+				for(l=0;l<bodylen;l++)
 					crc=ucrc32(body[l],crc); 
 				crc=~crc;
 
@@ -244,7 +243,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		}
 		if(msg->hdr.when_written.time==0)	/* Uninitialized */
 			msg->hdr.when_written = msg->hdr.when_imported;
-		smb_init_idx(smb,msg);
+		msg->idx.time=msg->hdr.when_imported.time;
 
 		/* Look-up thread_back if RFC822 Reply-ID was specified */
 		if(msg->hdr.thread_back==0 && msg->reply_id!=NULL) {
@@ -262,35 +261,38 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		if(msg->hdr.thread_back) {
 			memset(&remsg,0,sizeof(remsg));
 			remsg.hdr.number=msg->hdr.thread_back;
-			if(smb_getmsgidx(smb, &remsg)==SMB_SUCCESS	/* valid thread origin */
-				&& smb_lockmsghdr(smb,&remsg)==SMB_SUCCESS) {
+			if((retval=smb_getmsgidx(smb, &remsg))!=SMB_SUCCESS)	/* invalid thread origin */
+				break;
 
-				do { /* try */
+			if((retval=smb_lockmsghdr(smb,&remsg))!=SMB_SUCCESS)
+				break;
 
-					if(smb_getmsghdr(smb, &remsg)!=SMB_SUCCESS)
-						break;
-
-					/* Add RFC-822 Reply-ID if original message has RFC Message-ID */
-					if(msg->reply_id==NULL && remsg.id!=NULL
-						&& smb_hfield_str(msg,RFC822REPLYID,remsg.id)!=SMB_SUCCESS)
-						break;
-
-					/* Add FidoNet Reply if original message has FidoNet MSGID */
-					if(msg->ftn_reply==NULL && remsg.ftn_msgid!=NULL
-						&& smb_hfield_str(msg,FIDOREPLYID,remsg.ftn_msgid)!=SMB_SUCCESS)
-						break;
-
-					smb_updatethread(smb, &remsg, msg->hdr.number);
-
-				} while(0); /* finally */
-
-				smb_unlockmsghdr(smb, &remsg);
-				smb_freemsgmem(&remsg);
+			if((retval=smb_getmsghdr(smb, &remsg))!=SMB_SUCCESS) {
+				smb_unlockmsghdr(smb, &remsg); 
+				break;
 			}
+
+			/* Add RFC-822 Reply-ID if original message has RFC Message-ID */
+			if(msg->reply_id==NULL && remsg.id!=NULL
+				&& (retval=smb_hfield_str(msg,RFC822REPLYID,remsg.id))!=SMB_SUCCESS)
+				break;
+
+			/* Add FidoNet Reply if original message has FidoNet MSGID */
+			if(msg->ftn_reply==NULL && remsg.ftn_msgid!=NULL
+				&& (retval=smb_hfield_str(msg,FIDOREPLYID,remsg.ftn_msgid))!=SMB_SUCCESS)
+				break;
+
+			retval=smb_updatethread(smb, &remsg, msg->hdr.number);
+			smb_unlockmsghdr(smb, &remsg);
+			smb_freemsgmem(&remsg);
+
+			if(retval!=SMB_SUCCESS)
+				break;
 		}
 
 		if(smb_addhashes(smb,hashes,/* skip_marked? */FALSE)==SMB_SUCCESS)
 			msg->flags|=MSG_FLAG_HASHED;
+
 		if(msg->to==NULL)	/* no recipient, don't add header (required for bulkmail) */
 			break;
 

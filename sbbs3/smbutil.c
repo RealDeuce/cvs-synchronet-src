@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.87 2005/01/11 08:42:18 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.85 2004/12/22 21:01:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,8 +217,6 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	msg.hdr.when_written.zone=tzone;
 	msg.hdr.when_imported=msg.hdr.when_written;
 
-	if((to==NULL || stricmp(to,"All")==0) && to_address!=NULL)
-		to=to_address;
 	if(to==NULL) {
 		printf("To User Name: ");
 		fgets(str,sizeof(str),stdin); 
@@ -234,30 +232,36 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	if(type=='E' || type=='N')
 		smb.status.attr|=SMB_EMAIL;
 	if(smb.status.attr&SMB_EMAIL) {
-		if(to_address==NULL) {
-			if(to_number==NULL) {
-				printf("To User Number: ");
-				gets(str);
-			} else
-				SAFECOPY(str,to_number);
-			truncsp(str);
-			if((i=smb_hfield_str(&msg,RECIPIENTEXT,str))!=SMB_SUCCESS) {
-				fprintf(errfp,"\n%s!smb_hfield_str(0x%02X) returned %d: %s\n"
-					,beep,RECIPIENTEXT,i,smb.last_error);
-				bail(1); 
-			}
+		if(to_number==NULL) {
+			printf("To User Number (0=QWKnet or Internet): ");
+			gets(str);
+		} else
+			SAFECOPY(str,to_number);
+		truncsp(str);
+		if((i=smb_hfield_str(&msg,RECIPIENTEXT,str))!=SMB_SUCCESS) {
+			fprintf(errfp,"\n%s!smb_hfield_str(0x%02X) returned %d: %s\n"
+				,beep,RECIPIENTEXT,i,smb.last_error);
+			bail(1); 
 		}
+		msg.idx.to=atoi(str); 
+	}
+	else {
+		strlwr(str);
+		msg.idx.to=crc16(str,0); 
 	}
 
-	if(smb.status.attr&SMB_EMAIL && (type=='N' || to_address!=NULL)) {
+	if(smb.status.attr&SMB_EMAIL && (type=='N' || !msg.idx.to)) {
 		if(to_address==NULL) {
-			printf("To Address (e.g. user@host): ");
+			printf("To Address: ");
 			gets(str);
 		} else
 			SAFECOPY(str,to_address);
 		truncsp(str);
 		if(*str) {
-			net=smb_netaddr_type(str);
+			if(strchr(str,'.'))
+				net=NET_INTERNET;
+			else
+				net=NET_QWK;
 			if((i=smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net))!=SMB_SUCCESS) {
 				fprintf(errfp,"\n%s!smb_hfield(0x%02X) returned %d: %s\n"
 					,beep,RECIPIENTNETTYPE,i,smb.last_error);
@@ -294,6 +298,10 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 				,beep,SENDEREXT,i,smb.last_error);
 			bail(1); 
 		}
+		msg.idx.from=atoi(str); 
+	} else {
+		strlwr(str);
+		msg.idx.from=crc16(str,0); 
 	}
 	if((i=smb_hfield(&msg, SENDERAGENT, sizeof(agent), &agent))!=SMB_SUCCESS) {
 		fprintf(errfp,"\n%s!smb_hfield(0x%02X) returned %d: %s\n"
@@ -312,6 +320,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 			,beep,SUBJECT,i,smb.last_error);
 		bail(1); 
 	}
+	msg.idx.subj=smb_subject_crc(str);
 
 	safe_snprintf(str,sizeof(str),"SMBUTIL %s-%s r%s %s %s"
 		,SMBUTIL_VER
@@ -1447,7 +1456,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.87 $", "%*s %s", revision);
+	sscanf("$Revision: 1.85 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1490,7 +1499,6 @@ int main(int argc, char **argv)
 						break;
 					case 'D':
 						to="All";
-						to_number="1";
 						from="Sysop";
 						from_number="1";
 						subj="Announcement";
