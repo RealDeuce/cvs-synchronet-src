@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.38 2003/01/14 21:11:43 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.39 2003/01/31 21:34:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -522,6 +522,7 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 	int		i,j,line,lines=0,maxlines;
 	char	strin[256],**str,done=0;
 	char 	tmp[512];
+	char	path[MAX_PATH+1];
     ulong	l,m;
 
 	if(online==ON_REMOTE) {
@@ -569,11 +570,17 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 	if(lines)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
-	for(i=0;i<79;i++)
-		if(i%TABSIZE || !i)
-			outchar('-');
-		else outchar('+');
-	CRLF;
+
+	sprintf(path,"%smenu/msgtabs.*", cfg.text_dir);
+	if(fexist(path))
+		menu("msgtabs");
+	else {
+		for(i=0;i<79;i++)
+			if(i%TABSIZE || !i)
+				outchar('-');
+			else outchar('+');
+		CRLF;
+	}
 	putmsg(top,P_SAVEATR|P_NOATCODES);
 	for(line=0;line<lines && !msgabort();line++) { /* display lines in buf */
 		putmsg(str[line],P_SAVEATR|P_NOATCODES);
