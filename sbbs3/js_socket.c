@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.72 2003/03/03 21:40:57 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.73 2003/03/10 04:53:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -753,7 +753,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			break;
 		}
 
-		if(ch=='\n' && i>=1) 
+		if(ch=='\n' /* && i>=1 */) /* Mar-9-2003: terminate on sole LF */
 			break;
 
 		buf[i++]=ch;
