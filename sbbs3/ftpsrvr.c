@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.263 2004/03/19 09:59:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.262 2004/01/20 06:49:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,7 +273,6 @@ static int ftp_close_socket(SOCKET* sock, int line)
 static int sockprintf(SOCKET sock, char *fmt, ...)
 {
 	int		len;
-	int		maxlen;
 	int		result;
 	va_list argptr;
 	char	sbuf[1024];
@@ -281,17 +280,13 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	struct timeval tv;
 
     va_start(argptr,fmt);
-    len=vsnprintf(sbuf,maxlen=sizeof(sbuf)-2,fmt,argptr);
-    va_end(argptr);
-
-	if(len<0)		/* format error? */
-		return(0);
-	if(len>maxlen)	/* output truncated */
-		len=maxlen;
+    len=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
 	if(startup!=NULL && startup->options&FTP_OPT_DEBUG_TX)
-		lprintf(LOG_DEBUG,"%04d TX: %.*s", sock, len, sbuf);
-	memcpy(sbuf+len,"\r\n",2);
+		lprintf(LOG_DEBUG,"%04d TX: %s", sock, sbuf);
+	strcat(sbuf,"\r\n");
 	len+=2;
+    va_end(argptr);
 
 	if(sock==INVALID_SOCKET) {
 		lprintf(LOG_WARNING,"!INVALID SOCKET in call to sockprintf");
@@ -4468,7 +4463,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.263 $", "%*s %s", revision);
+	sscanf("$Revision: 1.262 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

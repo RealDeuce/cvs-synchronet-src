@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.23 2004/03/11 06:04:32 deuce Exp $ */
+/* $Id: uedit.c,v 1.21 2004/03/11 00:57:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,31 +73,6 @@ struct user_list {
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 char YesStr[]="Yes";
 char NoStr[]="No";
-
-/*
- * Find the first occurrence of find in s, ignore case.
- * From FreeBSD src/lib/libc/string/strcasestr.c
- */
-char *
-strcasestr(s, find)
-	const char *s, *find;
-{
-	char c, sc;
-	size_t len;
-
-	if ((c = *find++) != 0) {
-		c = tolower((unsigned char)c);
-		len = strlen(find);
-		do {
-			do {
-				if ((sc = *s++) == 0)
-					return (NULL);
-			} while ((char)tolower((unsigned char)sc) != c);
-		} while (strncasecmp(s, find, len) != 0);
-		s--;
-	}
-	return ((char *)s);
-}
 
 int lprintf(char *fmt, ...)
 {
@@ -1683,8 +1658,13 @@ int finduser(scfg_t *cfg, user_t *user)
 		for(i=1; i<=last; i++) {
 			user->number=i;
 			getuserdat(cfg,user);
+#ifdef BSD
 			if(strcasestr(user->alias, str)!=NULL || strcasestr(user->name, str)!=NULL || strcasestr(user->handle, str)!=NULL 
 					|| user->number==un) {
+#else
+			if(strstr(user->alias, str)!=NULL || strstr(user->name, str)!=NULL || strstr(user->handle, str)!=NULL 
+					|| user->number==un) {
+#endif
 				if((opt[j]=(struct user_list *)malloc(sizeof(struct user_list)))==NULL)
 					allocfail(sizeof(struct user_list));
 				sprintf(opt[j]->info,"%1.1s³%1.1s³ %-25.25s ³ %-25.25s",user->misc&DELETED?"*":" ",user->misc&INACTIVE?"*":" ",user->name,user->alias);
@@ -1728,7 +1708,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
+	sscanf("$Revision: 1.21 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
