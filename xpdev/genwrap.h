@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.23 2003/01/23 10:26:36 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.24 2003/01/23 21:28:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,8 @@
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
 
 #if defined(__unix__)
-	#include <unistd.h>	/* usleep */
+	#include <unistd.h>		/* usleep */
+	#include <sys/time.h>	/* struct timeval */
 #endif
 
 #if defined(__cplusplus)
