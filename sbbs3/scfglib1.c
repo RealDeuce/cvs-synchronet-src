@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.24 2001/08/01 15:57:21 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.25 2002/01/23 00:12:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -665,6 +665,7 @@ BOOL read_msgs_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 	get_str(cfg->inetmail_sem,instream);
 	get_int(cfg->inetmail_misc,instream);
 	get_int(cfg->inetmail_cost,instream);
+	get_str(cfg->smtpmail_sem,instream);
 
 	fclose(instream);
 	if(txt->readit && txt->readit[0])

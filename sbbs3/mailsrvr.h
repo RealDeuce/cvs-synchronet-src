@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.13 2002/01/11 01:13:14 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.14 2002/01/23 00:12:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ typedef struct {
     char	relay_server[128];
     char	dns_server[128];
     char	default_user[128];
-    char	smtp_sem_path[128];
+    char	reserved_path7[128];
     char	reserved_path6[128];
     char	reserved_path5[128];
     char	reserved_path4[128];

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.7 2002/01/21 03:47:06 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.8 2002/01/23 00:12:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -578,6 +578,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->inetmail_sem,stream);
 	put_int(cfg->inetmail_misc,stream);
 	put_int(cfg->inetmail_cost,stream);
+	put_str(cfg->smtpmail_sem,stream);
 
 	fclose(stream);
 
