@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.98 2004/09/20 07:35:18 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.99 2004/09/20 20:07:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -780,7 +780,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
 					if(mevnt.startx>=s_left+left+3
-							&& mevnt.startx<=s_left+left+width+1
+							&& mevnt.startx<=s_left+left+width-2
 							&& mevnt.starty>=s_top+top+3
 							&& mevnt.starty<=(s_top+top+height)-2
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
@@ -838,6 +838,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 						i=CIO_KEY_NPAGE;
 					}
+					/* Clicked Outside of Window */
+					if(mevnt.startx<s_left+left
+							|| mevnt.startx>s_left+left+width-1
+							|| mevnt.starty<s_top+top
+							|| mevnt.starty>s_top+top+height-1)
+						i=ESC;
 				}
 			}
 			if(i>255) {
