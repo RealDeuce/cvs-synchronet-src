@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.6 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.7 2001/04/15 16:46:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,29 +38,6 @@
 #include "sbbs.h"
 #include "post.h"
 #include "qwk.h"
-
-/****************************************************************************/
-/* Removes ctrl-a codes from the string 'instr'                             */
-/****************************************************************************/
-char* remove_ctrl_a(char *instr, char *outstr)
-{
-	char str[512],*p;
-	uint i,j,k;
-
-	j=strlen(instr);
-	for(k=i=0;i<j;i++) {
-		if(instr[i]==1)
-			i++;
-		else str[k++]=instr[i]; }
-	str[k]=0;
-	if(outstr!=NULL)
-		p=outstr;
-	else
-		p=instr;
-	strcpy(p,str);
-	return(p);
-}
-
 
 /****************************************************************************/
 /* Converts a long to an msbin real number. required for QWK NDX file		*/

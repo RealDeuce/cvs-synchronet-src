@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.13 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: str.cpp,v 1.14 2001/04/15 16:46:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,28 @@
 const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
             ,"Jul","Aug","Sep","Oct","Nov","Dec"};
+
+/****************************************************************************/
+/* Removes ctrl-a codes from the string 'instr'                             */
+/****************************************************************************/
+char* DLLCALL remove_ctrl_a(char *instr, char *outstr)
+{
+	char str[1024],*p;
+	uint i,j,k;
+
+	j=strlen(instr);
+	for(k=i=0;i<j;i++) {
+		if(instr[i]==1)
+			i++;
+		else str[k++]=instr[i]; }
+	str[k]=0;
+	if(outstr!=NULL)
+		p=outstr;
+	else
+		p=instr;
+	strcpy(p,str);
+	return(p);
+}
 
 /****************************************************************************/
 /* Lists all users who have access to the current sub.                      */
