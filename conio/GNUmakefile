@@ -20,20 +20,8 @@ ifeq ($(os),netbsd)
  CFLAGS	+=	-DN_CURSES_LIB
 endif
 
-$(MTOBJODIR)$(DIRSEP)console$(OFILE).static:
-	$(QUIET)$(DELETE) $(MTOBJODIR)$(DIRSEP)console$(OFILE)*
-	$(QUIET)touch $(MTOBJODIR)$(DIRSEP)console$(OFILE).static	
-
-$(MTOBJODIR)$(DIRSEP)console$(OFILE).dynamic:
-	$(QUIET)$(DELETE) $(MTOBJODIR)$(DIRSEP)console$(OFILE)*
-	$(QUIET)touch $(MTOBJODIR)$(DIRSEP)console$(OFILE).dynamic
-
 # CIOLIB Library Link Rule
-ifdef STATIC
-$(CIOLIB-MT_BUILD): $(MTOBJODIR)$(DIRSEP)console$(OFILE).static $(MTOBJODIR) $(OBJS)
-else
-$(CIOLIB-MT_BUILD): $(MTOBJODIR)$(DIRSEP)console$(OFILE).dynamic $(MTOBJODIR) $(OBJS)
-endif
+$(CIOLIB-MT_BUILD): $(MTOBJODIR) $(OBJS)
 	@echo Creating $@ ...
 	$(QUIET)$(AR) rc $@ $(OBJS)
 	$(QUIET)$(RANLIB) $@

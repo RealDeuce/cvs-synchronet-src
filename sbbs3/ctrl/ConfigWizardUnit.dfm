@@ -1,9 +1,9 @@
 object ConfigWizard: TConfigWizard
-  Left = 551
-  Top = 386
+  Left = 489
+  Top = 424
   BorderStyle = bsDialog
   Caption = 'Configuration Wizard'
-  ClientHeight = 377
+  ClientHeight = 376
   ClientWidth = 591
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,9 +18,9 @@ object ConfigWizard: TConfigWizard
   TextHeight = 16
   object Shape1: TShape
     Left = 0
-    Top = 9
+    Top = 8
     Width = 198
-    Height = 366
+    Height = 367
     Brush.Color = clBlack
   end
   object TitleLabel: TLabel
@@ -145,9 +145,9 @@ object ConfigWizard: TConfigWizard
     ParentFont = False
   end
   object LogoImage: TImage
-    Left = 9
+    Left = 8
     Top = 16
-    Width = 176
+    Width = 177
     Height = 41
     Picture.Data = {
       0A544A504547496D616765F62C0000FFD8FFFE000857414E473202FFE000104A
@@ -557,9 +557,9 @@ object ConfigWizard: TConfigWizard
     OnClick = BackButtonClick
   end
   object NextButton: TButton
-    Left = 393
+    Left = 392
     Top = 327
-    Width = 88
+    Width = 89
     Height = 31
     Caption = '&Next >'
     TabOrder = 1
@@ -580,6 +580,7 @@ object ConfigWizard: TConfigWizard
     Top = 14
     Width = 360
     Height = 267
+    PageIndex = 5
     TabOrder = 3
     OnPageChanged = WizNotebookPageChanged
     object TPage
@@ -587,25 +588,25 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'Intro'
       object Label13: TLabel
-        Left = 9
-        Top = 9
-        Width = 336
-        Height = 24
+        Left = 8
+        Top = 8
+        Width = 337
+        Height = 25
         Alignment = taCenter
         AutoSize = False
         Caption = 'Welcome'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
-        Font.Height = -15
+        Font.Height = -13
         Font.Name = 'MS Sans Serif'
         Font.Style = [fsBold]
         ParentFont = False
       end
       object IntroMemo: TMemo
-        Left = 9
-        Top = 41
-        Width = 344
-        Height = 216
+        Left = 8
+        Top = 40
+        Width = 345
+        Height = 217
         TabStop = False
         Alignment = taCenter
         BorderStyle = bsNone
@@ -618,8 +619,8 @@ object ConfigWizard: TConfigWizard
           '(SCFG).'
           ''
           'You really should have an active Internet connection in '
-          'order to complete this configuration wizard accurately.'
-          'So if you'#39're not already connected, please do so now.')
+          'order to complete this configuration wizard accurately. So if '
+          'you'#39're not already connected, please do so now.')
         ReadOnly = True
         TabOrder = 0
       end
@@ -629,68 +630,68 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'Identification'
       object Label1: TLabel
-        Left = 9
+        Left = 8
         Top = 144
-        Width = 344
+        Width = 345
         Height = 25
         AutoSize = False
         Caption = 'System Operator (your name, nickname, or alias)'
       end
       object SystemNameLabel: TLabel
-        Left = 9
+        Left = 8
         Top = 16
-        Width = 240
+        Width = 241
         Height = 25
         AutoSize = False
         Caption = 'System Name (try to be original)'
       end
       object Label2: TLabel
-        Left = 9
+        Left = 8
         Top = 80
-        Width = 208
+        Width = 209
         Height = 25
         AutoSize = False
         Caption = 'System Location (city, state)'
       end
       object Label3: TLabel
-        Left = 9
+        Left = 8
         Top = 208
-        Width = 344
+        Width = 345
         Height = 25
         AutoSize = False
         Caption = 'System Password (super secret password for sysops)'
       end
       object SysopNameEdit: TEdit
-        Left = 9
-        Top = 169
-        Width = 176
+        Left = 8
+        Top = 168
+        Width = 177
         Height = 24
         MaxLength = 40
         TabOrder = 2
         OnChange = VerifyIdentification
       end
       object SystemNameEdit: TEdit
-        Left = 9
-        Top = 41
-        Width = 176
+        Left = 8
+        Top = 40
+        Width = 177
         Height = 24
         MaxLength = 40
         TabOrder = 0
         OnChange = VerifyIdentification
       end
       object SystemLocationEdit: TEdit
-        Left = 9
-        Top = 105
-        Width = 176
+        Left = 8
+        Top = 104
+        Width = 177
         Height = 24
         MaxLength = 40
         TabOrder = 1
         OnChange = VerifyIdentification
       end
       object SystemPasswordEdit: TEdit
-        Left = 9
-        Top = 233
-        Width = 176
+        Left = 8
+        Top = 232
+        Width = 177
         Height = 24
         CharCase = ecUpperCase
         MaxLength = 40
@@ -704,64 +705,64 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'Time'
       object GroupBox1: TGroupBox
-        Left = 9
-        Top = 89
-        Width = 344
-        Height = 80
+        Left = 8
+        Top = 88
+        Width = 345
+        Height = 81
         Caption = 'Time Format'
         TabOrder = 0
         object Time12hrRadioButton: TRadioButton
-          Left = 9
-          Top = 25
-          Width = 128
-          Height = 16
+          Left = 8
+          Top = 24
+          Width = 129
+          Height = 17
           Caption = '12 hour (am/pm)'
           TabOrder = 0
         end
         object Time24hrRadioButton: TRadioButton
-          Left = 9
+          Left = 8
           Top = 48
-          Width = 128
+          Width = 129
           Height = 17
           Caption = '24 hour (military)'
           TabOrder = 1
         end
       end
       object GroupBox2: TGroupBox
-        Left = 9
+        Left = 8
         Top = 176
-        Width = 344
+        Width = 345
         Height = 81
         Caption = 'Date Format'
         TabOrder = 1
         object DateUsRadioButton: TRadioButton
-          Left = 9
-          Top = 25
-          Width = 216
-          Height = 16
+          Left = 8
+          Top = 24
+          Width = 217
+          Height = 17
           Caption = 'American (mm/dd/yy)'
           TabOrder = 0
         end
         object DateEuRadioButton: TRadioButton
-          Left = 9
+          Left = 8
           Top = 48
-          Width = 216
+          Width = 217
           Height = 17
           Caption = 'European (dd/mm/yy)'
           TabOrder = 1
         end
       end
       object GroupBox3: TGroupBox
-        Left = 9
-        Top = 9
-        Width = 344
-        Height = 72
+        Left = 8
+        Top = 8
+        Width = 345
+        Height = 73
         Caption = 'Time Zone'
         TabOrder = 2
         object TimeZoneComboBox: TComboBox
-          Left = 9
+          Left = 8
           Top = 32
-          Width = 184
+          Width = 185
           Height = 24
           Style = csDropDownList
           ItemHeight = 16
@@ -774,7 +775,7 @@ object ConfigWizard: TConfigWizard
           Left = 208
           Top = 32
           Width = 129
-          Height = 25
+          Height = 24
           Caption = 'Daylight Savings'
           TabOrder = 1
         end
@@ -785,34 +786,34 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'Internet'
       object Label4: TLabel
-        Left = 9
+        Left = 8
         Top = 16
-        Width = 344
+        Width = 345
         Height = 25
         AutoSize = False
         Caption = 'Your Internet Address (static IP or host name)'
       end
       object Label5: TLabel
-        Left = 9
+        Left = 8
         Top = 80
-        Width = 344
+        Width = 345
         Height = 25
         AutoSize = False
         Caption = 'DNS Server IP Address (i.e. your ISP'#39's DNS server)'
       end
       object DNSAddressEdit: TEdit
-        Left = 9
-        Top = 105
-        Width = 240
+        Left = 8
+        Top = 104
+        Width = 241
         Height = 24
         MaxLength = 127
         TabOrder = 1
         OnChange = VerifyInternetAddresses
       end
       object InternetAddressComboBox: TComboBox
-        Left = 9
-        Top = 41
-        Width = 240
+        Left = 8
+        Top = 40
+        Width = 241
         Height = 24
         ItemHeight = 16
         TabOrder = 0
@@ -824,33 +825,33 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'QWK'
       object Label9: TLabel
-        Left = 9
+        Left = 8
         Top = 144
-        Width = 296
+        Width = 297
         Height = 25
         AutoSize = False
         Caption = 'BBS QWK-ID (system name abbreviation)'
       end
       object Label10: TLabel
-        Left = 9
+        Left = 8
         Top = 208
-        Width = 296
+        Width = 297
         Height = 25
         AutoSize = False
         Caption = 'QWK Network Tagline (system advertisement)'
       end
       object IllegalCharsLabel: TLabel
-        Left = 121
-        Top = 169
-        Width = 232
-        Height = 24
+        Left = 120
+        Top = 168
+        Width = 233
+        Height = 25
         AutoSize = False
         Caption = 'IllegalCharsLabel'
       end
       object QWKIDEdit: TEdit
-        Left = 9
-        Top = 169
-        Width = 88
+        Left = 8
+        Top = 168
+        Width = 89
         Height = 24
         CharCase = ecUpperCase
         MaxLength = 8
@@ -858,9 +859,9 @@ object ConfigWizard: TConfigWizard
         OnChange = VerifyQWK
       end
       object QNetTaglineEdit: TEdit
-        Left = 9
-        Top = 233
-        Width = 344
+        Left = 8
+        Top = 232
+        Width = 345
         Height = 24
         MaxLength = 127
         TabOrder = 1
@@ -868,9 +869,9 @@ object ConfigWizard: TConfigWizard
         OnKeyPress = QNetTaglineEditKeyPress
       end
       object Memo1: TMemo
-        Left = 9
+        Left = 8
         Top = 16
-        Width = 336
+        Width = 337
         Height = 113
         TabStop = False
         BorderStyle = bsNone
@@ -924,16 +925,16 @@ object ConfigWizard: TConfigWizard
         Caption = 'Maximum Number of Simultaneous Web Sessions'
       end
       object NodesEdit: TEdit
-        Left = 9
-        Top = 41
-        Width = 40
+        Left = 8
+        Top = 40
+        Width = 41
         Height = 24
         TabOrder = 0
         Text = '1'
       end
       object NodesUpDown: TUpDown
         Left = 49
-        Top = 41
+        Top = 40
         Width = 19
         Height = 24
         Associate = NodesEdit
@@ -944,16 +945,16 @@ object ConfigWizard: TConfigWizard
         Wrap = False
       end
       object MaxFtpEdit: TEdit
-        Left = 9
-        Top = 105
-        Width = 40
+        Left = 8
+        Top = 104
+        Width = 41
         Height = 24
         TabOrder = 2
         Text = '0'
       end
       object MaxFtpUpDown: TUpDown
         Left = 49
-        Top = 105
+        Top = 104
         Width = 19
         Height = 24
         Associate = MaxFtpEdit
@@ -964,16 +965,16 @@ object ConfigWizard: TConfigWizard
         Wrap = False
       end
       object MaxMailEdit: TEdit
-        Left = 9
-        Top = 169
-        Width = 40
+        Left = 8
+        Top = 168
+        Width = 41
         Height = 24
         TabOrder = 4
         Text = '0'
       end
       object MaxMailUpDown: TUpDown
         Left = 49
-        Top = 169
+        Top = 168
         Width = 19
         Height = 24
         Associate = MaxMailEdit
@@ -984,26 +985,26 @@ object ConfigWizard: TConfigWizard
         Wrap = False
       end
       object AllNodesTelnetCheckBox: TCheckBox
-        Left = 105
-        Top = 41
-        Width = 248
-        Height = 24
+        Left = 104
+        Top = 40
+        Width = 249
+        Height = 25
         Caption = 'All nodes are accessible via Telnet'
         Checked = True
         State = cbChecked
         TabOrder = 6
       end
       object MaxWebEdit: TEdit
-        Left = 9
-        Top = 233
-        Width = 40
+        Left = 8
+        Top = 232
+        Width = 41
         Height = 24
         TabOrder = 7
         Text = '0'
       end
       object MaxWebUpDown: TUpDown
         Left = 49
-        Top = 233
+        Top = 232
         Width = 15
         Height = 24
         Associate = MaxWebEdit
@@ -1019,33 +1020,33 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'Options'
       object GroupBox4: TGroupBox
-        Left = 9
-        Top = 9
-        Width = 344
-        Height = 104
+        Left = 8
+        Top = 8
+        Width = 345
+        Height = 105
         Caption = 'New Users'
         TabOrder = 0
         object FeedbackCheckBox: TCheckBox
-          Left = 9
-          Top = 73
-          Width = 304
-          Height = 16
-          Caption = 'Require new user feedback (e-mail to sysop)'
+          Left = 8
+          Top = 72
+          Width = 305
+          Height = 17
+          Caption = 'Require new user feedback (e-mail)'
           TabOrder = 0
         end
         object NewUsersCheckBox: TCheckBox
-          Left = 9
-          Top = 25
-          Width = 248
-          Height = 16
+          Left = 8
+          Top = 24
+          Width = 249
+          Height = 17
           Caption = 'Allow users to logon as '#39'New'#39
           TabOrder = 1
           OnClick = NewUsersCheckBoxClick
         end
         object AliasesCheckBox: TCheckBox
-          Left = 9
+          Left = 8
           Top = 48
-          Width = 304
+          Width = 305
           Height = 17
           Caption = 'Allow users to use aliases (nicknames)'
           TabOrder = 2
@@ -1053,32 +1054,32 @@ object ConfigWizard: TConfigWizard
       end
       object GroupBox5: TGroupBox
         Left = 7
-        Top = 121
+        Top = 120
         Width = 345
-        Height = 104
+        Height = 105
         Caption = 'Users Can View Deleted Messages'
         TabOrder = 1
         object DeletedEmailYesButton: TRadioButton
-          Left = 9
-          Top = 25
-          Width = 128
-          Height = 16
+          Left = 8
+          Top = 24
+          Width = 129
+          Height = 17
           Caption = 'Yes'
           TabOrder = 0
         end
         object DeletedEmailNoButton: TRadioButton
-          Left = 9
+          Left = 8
           Top = 48
-          Width = 128
+          Width = 129
           Height = 17
           Caption = 'No'
           TabOrder = 1
         end
         object DeletedEmailSysopButton: TRadioButton
-          Left = 9
-          Top = 73
-          Width = 128
-          Height = 16
+          Left = 8
+          Top = 72
+          Width = 129
+          Height = 17
           Caption = 'Sysops Only'
           TabOrder = 2
         end
@@ -1089,24 +1090,24 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'PasswordVerification'
       object Label11: TLabel
-        Left = 9
-        Top = 9
-        Width = 336
-        Height = 24
+        Left = 8
+        Top = 8
+        Width = 337
+        Height = 25
         Alignment = taCenter
         AutoSize = False
         Caption = 'System Password Verification'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
-        Font.Height = -15
+        Font.Height = -13
         Font.Name = 'MS Sans Serif'
         Font.Style = [fsBold]
         ParentFont = False
       end
       object SysPassVerifyEdit: TEdit
-        Left = 89
-        Top = 217
-        Width = 176
+        Left = 88
+        Top = 216
+        Width = 177
         Height = 24
         CharCase = ecUpperCase
         MaxLength = 40
@@ -1115,10 +1116,10 @@ object ConfigWizard: TConfigWizard
         OnChange = VerifyPassword
       end
       object SysPassVerificationMemo: TMemo
-        Left = 9
-        Top = 41
-        Width = 336
-        Height = 160
+        Left = 8
+        Top = 40
+        Width = 337
+        Height = 161
         TabStop = False
         Alignment = taCenter
         BorderStyle = bsNone
@@ -1141,25 +1142,25 @@ object ConfigWizard: TConfigWizard
       Top = 0
       Caption = 'Complete'
       object Label12: TLabel
-        Left = 9
-        Top = 9
-        Width = 336
-        Height = 24
+        Left = 8
+        Top = 8
+        Width = 337
+        Height = 25
         Alignment = taCenter
         AutoSize = False
         Caption = 'Congratulations!'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
-        Font.Height = -15
+        Font.Height = -13
         Font.Name = 'MS Sans Serif'
         Font.Style = [fsBold]
         ParentFont = False
       end
       object CompleteMemo: TMemo
         Left = -1
-        Top = 41
-        Width = 362
-        Height = 216
+        Top = 40
+        Width = 361
+        Height = 217
         Alignment = taCenter
         BorderStyle = bsNone
         Color = clBtnFace
