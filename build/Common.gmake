@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.28 2004/09/28 18:56:10 deuce Exp $
+# $Id: Common.gmake,v 1.24 2004/09/20 02:57:02 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -101,10 +101,6 @@
 ifndef VERSION
  VERSION	:=	3.12
 endif
-
-# Put local (optional) macro definitions in localdefs.mk
--include localdefs.mk
--include $(SRC_ROOT)/build/localdefs.mk
 
 # Set DEBUG
 ifdef DEBUG
@@ -209,7 +205,7 @@ OUTPUT		:=	-o
 LOUTPUT		:=	-o
 
 ifeq ($(os),openbsd)
- SOFILE	:=	$(SOFILE).$(VERSION)
+ SOFILE	:=	$(SOFILE)$(VERSION)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
@@ -246,7 +242,7 @@ else
   XP_SEM    :=    1
  else
   ifeq ($(os),netbsd)    # NetBSD
-   CFLAGS    +=	-D__unix__
+   CFLAGS    +=	-D__unix__ 
    MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
    MT_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
    XP_SEM    :=    1
