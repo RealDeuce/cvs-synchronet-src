@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.10 2004/11/18 22:07:50 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.13 2004/12/29 10:13:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	size_t		l,length;
 	size_t		taillen=0;
 	size_t		bodylen=0;
+	size_t		chklen=0;
 	long		offset;
 	ulong		crc=0xffffffff;
 	hash_t		found;
@@ -81,7 +82,6 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			break;
 
 		msg->hdr.number=smb->status.last_msg+1;
-
 		hashes=smb_msghashes(msg,body);
 
 		if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
@@ -100,12 +100,13 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		if(body!=NULL && (bodylen=strlen(body))>0) {
 
 			/* Remove white-space from end of message text */
-			while(bodylen && body[bodylen-1]<=' ')
-				bodylen--;
+			chklen=bodylen;
+			while(chklen && body[chklen-1]<=' ')
+				chklen--;
 
 			/* Calculate CRC-32 of message text (before encoding, if any) */
-			if(smb->status.max_crcs && dupechk_hashes&SMB_HASH_SOURCE_BODY) {
-				for(l=0;l<bodylen;l++)
+			if(smb->status.max_crcs && dupechk_hashes&(1<<SMB_HASH_SOURCE_BODY)) {
+				for(l=0;l<chklen;l++)
 					crc=ucrc32(body[l],crc); 
 				crc=~crc;
 
@@ -172,7 +173,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				if(xlat!=XLAT_NONE) {	/* e.g. XLAT_LZH */
 					if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 						safe_snprintf(smb->last_error,sizeof(smb->last_error)
-							,"%d (%s) writing body xlat string"
+							,"%d '%s' writing body xlat string"
 							,get_errno(),STRERROR(get_errno()));
 						retval=SMB_ERR_WRITE;
 						break;
@@ -182,7 +183,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				xlat=XLAT_NONE;	/* xlat string terminator */
 				if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d (%s) writing body xlat terminator"
+						,"%d '%s' writing body xlat terminator"
 						,get_errno(),STRERROR(get_errno()));
 					retval=SMB_ERR_WRITE;
 					break;
@@ -191,7 +192,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 				if(smb_fwrite(smb,body,bodylen,smb->sdt_fp)!=bodylen) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d (%s) writing body (%ld bytes)"
+						,"%d '%s' writing body (%ld bytes)"
 						,get_errno(),STRERROR(get_errno())
 						,bodylen);
 					retval=SMB_ERR_WRITE;
@@ -206,7 +207,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				xlat=XLAT_NONE;	/* xlat string terminator */
 				if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d (%s) writing tail xlat terminator"
+						,"%d '%s' writing tail xlat terminator"
 						,get_errno(),STRERROR(get_errno()));
 					retval=SMB_ERR_WRITE;
 					break;
@@ -214,7 +215,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 				if(smb_fwrite(smb,tail,taillen-sizeof(xlat),smb->sdt_fp)!=taillen-sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d (%s) writing tail (%ld bytes)"
+						,"%d '%s' writing tail (%ld bytes)"
 						,get_errno(),STRERROR(get_errno())
 						,taillen-sizeof(xlat));
 					retval=SMB_ERR_WRITE;
@@ -228,7 +229,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 			if(l%SDT_BLOCK_LEN) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%d (%s) writing data padding"
+					,"%d '%s' writing data padding"
 					,get_errno(),STRERROR(get_errno()));
 				retval=SMB_ERR_WRITE;
 				break;
@@ -243,7 +244,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		}
 		if(msg->hdr.when_written.time==0)	/* Uninitialized */
 			msg->hdr.when_written = msg->hdr.when_imported;
-		msg->idx.time=msg->hdr.when_imported.time;
+		smb_init_idx(smb,msg);
 
 		/* Look-up thread_back if RFC822 Reply-ID was specified */
 		if(msg->hdr.thread_back==0 && msg->reply_id!=NULL) {
@@ -292,7 +293,6 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 		if(smb_addhashes(smb,hashes,/* skip_marked? */FALSE)==SMB_SUCCESS)
 			msg->flags|=MSG_FLAG_HASHED;
-
 		if(msg->to==NULL)	/* no recipient, don't add header (required for bulkmail) */
 			break;
 
