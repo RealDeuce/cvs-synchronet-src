@@ -1,16 +1,15 @@
-/* $Id: curs_cio.c,v 1.13 2004/07/05 05:22:29 deuce Exp $ */
-#define NEED_CURSES_GETCH
-
+/* $Id: curs_cio.c,v 1.3 2004/07/17 01:44:19 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
-#include "ciowrap.h"
-#undef beep				/* I'm going to need to use the real beep() in here */
+#include "conio.h"
 #include "curs_cio.h"
-#include "uifc.h"		/* UIFC_IBM */
 
 static unsigned char curs_nextgetch=0;
+const int curs_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
 static int lastattr=0;
 static long mode;
@@ -136,7 +135,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 				thischar=attr&255-'A'+1;
 			}
 			else if(attr&A_ALTCHARSET) {
-				if(!(mode&UIFC_IBM)){
+				if(!(mode==CIOWRAP_CURSES_IBM_MODE)){
 					ext_char=A_ALTCHARSET|(attr&255);
 					/* likely ones */
 					if (ext_char == ACS_CKBOARD)
@@ -345,7 +344,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 				thischar=attr;
 			fill[fillpos++]=(unsigned char)(thischar);
 			attrib=0;
-			if (attr & A_BOLD)  
+			if (attr & A_BOLD)
 			{
 				attrib |= 8;
 			}
@@ -390,26 +389,6 @@ void curs_textattr(unsigned char attr)
 	bkgdset(colour);
 }
 
-void curs_textbackground(int colour)
-{
-	unsigned char attr;
-	
-	attr=lastattr;
-	attr&=143;
-	attr|=(colour<<4);
-	textattr(attr);
-}
-
-void curs_textcolor(int colour)
-{
-	unsigned char attr;
-	
-	attr=lastattr;
-	attr&=240;
-	attr|=colour;
-	textattr(attr);
-}
-
 int curs_kbhit(void)
 {
 	struct timeval timeout;
@@ -449,7 +428,7 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	int		ret;
 	chtype	cha;
 
-	if(!(mode&UIFC_IBM))
+	if(!(mode==CIOWRAP_CURSES_IBM_MODE))
 	{
 		switch(ch)
 		{
@@ -598,7 +577,9 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	else
 		cha=ch;
 
-	if(ch == ' ')
+	if(!cha)
+		cha=' ';
+	if(cha == ' ')
 		ret=addch(A_BOLD|' ');
 	else if (cha<' ') {
  		attron(A_REVERSE);
@@ -614,43 +595,13 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	return(ret);
 }
 
-int curs_cprintf(char *fmat, ...)
-{
-    va_list argptr;
-	unsigned char	str[MAX_BFLN];
-	int		pos;
-	int		ret;
-
-    va_start(argptr,fmat);
-    ret=vsprintf(str,fmat,argptr);
-    va_end(argptr);
-	if(ret>=0)
-		cputs(str);
-	else
-		ret=EOF;
-    return(ret);
-}
-
-int curs_cputs(unsigned char *str)
-{
-	int		pos;
-	int		ret=0;
-
-	for(pos=0;str[pos];pos++)
-	{
-		ret=str[pos];
-		putch(str[pos]);
-	}
-	return(ret);
-}
-
 void curs_gotoxy(int x, int y)
 {
 	move(y-1,x-1);
 	refresh();
 }
 
-void curs_initciowrap(long inmode)
+int curs_initciowrap(long inmode)
 {
 	short	fg, bg, pair=0;
 
@@ -659,6 +610,16 @@ void curs_initciowrap(long inmode)
 
 	Xinitscr(1,argv);
 #else
+	char *term;
+	SCREEN *tst;
+
+	term=getenv("TERM");
+	if(term==NULL)
+		return(0);
+	tst=newterm(term,stdout,stdin);
+	if(tst==NULL)
+		return(0);
+	endwin();
 	initscr();
 #endif
 	start_color();
@@ -676,6 +637,7 @@ void curs_initciowrap(long inmode)
 		}
 	}
 	mode = inmode;
+	return(1);
 }
 
 void curs_gettextinfo(struct text_info *info)
@@ -712,6 +674,7 @@ int curs_putch(unsigned char c)
 {
 	struct text_info ti;
 	int		ret;
+	int		i;
 
 	ret=c;
 	switch(c) {
@@ -734,6 +697,20 @@ int curs_putch(unsigned char c)
 			gotoxy(wherex()-1,wherey());
 			_putch(' ',FALSE);
 			gotoxy(wherex()-1,wherey());
+			break;
+		case '\t':
+			for(i=0;i<10;i++) {
+				if(curs_tabs[i]>wherex()) {
+					while(wherex()<curs_tabs[i]) {
+						putch(' ');
+					}
+					break;
+				}
+			}
+			if(i==10) {
+				putch('\r');
+				putch('\n');
+			}
 			break;
 		default:
 			gettextinfo(&ti);
@@ -776,7 +753,7 @@ int curs_getch(void)
 		while((ch=getch())==ERR) {
 			delay(1);
 		}
-		if(ch & KEY_CODE_YES) {
+		if(ch > 255) {
 			switch(ch) {
 				case KEY_DOWN:            /* Down-arrow */
 					curs_nextgetch=0x50;
@@ -962,29 +939,6 @@ int curs_getche(void)
 	if(ch)
 		putch(ch);
 	return(ch);
-}
-
-void curs_highvideo(void)
-{
-	int attr;
-
-	attr=lastattr;
-	attr |= 8;
-	textattr(attr);
-}
-
-void curs_lowvideo(void)
-{
-	int attr;
-
-	attr=lastattr;
-	attr &= 0xf7;
-	textattr(attr);
-}
-
-void curs_normvideo(void)
-{
-	textattr(0x07);
 }
 
 void curs_textmode(int mode)
