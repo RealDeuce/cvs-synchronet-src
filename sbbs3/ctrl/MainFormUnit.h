@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.31 2002/01/11 22:56:12 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.32 2002/02/06 19:40:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@
 #include <Buttons.hpp>
 #include <Graphics.hpp>
 #include <vcl\Registry.hpp>	/* TRegistry */
-#include "Trayicon.h"
+#include "trayicon.h"
 //---------------------------------------------------------------------------
 #define APP_TITLE "Synchronet Control Panel"
 #define REG_KEY "\\Software\\Swindell\\"APP_TITLE"\\"
