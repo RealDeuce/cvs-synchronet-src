@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.34 2001/06/14 01:09:29 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.35 2001/06/14 02:59:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -744,6 +744,8 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	}
 
 //	lprintf("%s returned %d",realcmdline, retval);
+
+	errorlevel = retval; // Baja-retrievable error value
 
 	return(retval);
 }
