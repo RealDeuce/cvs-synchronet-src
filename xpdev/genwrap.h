@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.5 2002/04/06 11:33:07 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.6 2002/04/13 09:05:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,10 @@
 #include <stdio.h>		/* sprintf */
 #include "gen_defs.h"	/* ulong */
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
+
+#if defined(__unix__)
+	#include <unistd.h>	/* usleep */
+#endif
 
 #if defined(__cplusplus)
 extern "C" {

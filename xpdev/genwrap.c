@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.10 2002/04/12 08:37:33 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.11 2002/04/13 09:05:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,8 +40,10 @@
 #include <fcntl.h>		/* O_NOCTTY */
 #include <time.h>		/* clock() */
 #include <errno.h>		/* errno */
+#include <ctype.h>		/* toupper/tolower */
 
 #if defined(__unix__)
+	#include <sys/ioctl.h>		/* ioctl() */
 	#include <sys/utsname.h>	/* uname() */
 	/* KIOCSOUND */
 	#if defined(__FreeBSD__)

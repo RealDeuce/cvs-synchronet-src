@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.3 2002/04/06 10:51:18 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.4 2002/04/13 09:05:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,10 @@
 #define _FILEWRAP_H
 
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
+
+#if defined(__unix__)
+	#include <unistd.h>	/* read, write, close, ftruncate, lseek, etc. */
+#endif
 
 /**********/
 /* Macros */
