@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.30 2003/02/16 13:10:02 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.31 2003/02/16 14:07:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,6 +283,8 @@ void sbbs_read_ini(
 		=iniReadShortInt(fp,section,"LinesPerYield",10);
 	mail->max_recipients
 		=iniReadShortInt(fp,section,"MaxRecipients",100);
+	mail->max_msg_size
+		=iniReadInteger(fp,section,"MaxMsgSize",10*1024*1024);	/* 10MB */
 
 	SAFECOPY(mail->host_name
 		,iniReadString(fp,section,"HostName",host_name));
