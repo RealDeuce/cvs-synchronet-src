@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.6 2000/11/04 10:09:35 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.7 2000/11/04 10:12:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -370,6 +370,12 @@ enum {
 /************/
 /* Typedefs */
 /************/
+
+#ifdef __GNUC__ 
+	#define _PACK __attribute__ ((packed));
+#else
+	#define _PACK
+#endif
 
 #ifdef _WIN32	/* necessary for compatibility with SBBS v2 */
 #pragma pack(push)
