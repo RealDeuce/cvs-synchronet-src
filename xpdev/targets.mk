@@ -2,10 +2,15 @@
 
 # Make 'include file' defining targets for xpdel wrappers
 
-# $Id: targets.mk,v 1.2 2004/03/11 06:26:00 deuce Exp $
+# $Id: targets.mk,v 1.3 2004/09/12 21:27:23 deuce Exp $
 
-# ODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
+# ODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
-WRAPTEST	= $(EXEODIR)$(SLASH)wraptest$(EXEFILE) 
+WRAPTEST	= $(EXEODIR)$(DIRSEP)wraptest$(EXEFILE)
 
-all: $(EXEODIR) $(LIBODIR) $(WRAPTEST)
+XPDEV_LIB	= $(LIBODIR)$(DIRSEP)$(LIBPREFIX)xpdev$(LIBFILE)
+XPDEV-MT_LIB	= $(LIBODIR)$(DIRSEP)$(LIBPREFIX)xpdev-mt$(LIBFILE)
+
+libs: $(OBJODIR) $(LIBODIR) $(XPDEV_LIB) $(XPDEV-MT_LIB)
+
+all: $(OBJODIR) $(OBJODIR)-mt $(EXEODIR) $(LIBODIR) $(XPDEV_LIB) $(WRAPTEST)
