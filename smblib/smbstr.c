@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.1 2004/09/11 09:27:44 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.3 2004/09/15 08:47:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <genwrap.h> 		/* stricmp */
 #include "smblib.h"
 
 char* SMBCALL smb_hfieldtype(ushort type)
@@ -134,11 +135,22 @@ char* SMBCALL smb_dfieldtype(ushort type)
 	return(str);
 }
 
-char* SMBCALL smb_hashsource(uchar type)
+char* SMBCALL smb_hashsourcetype(uchar type)
 {
 	if(type==TEXT_BODY || type==TEXT_TAIL)
 		return(smb_dfieldtype(type));
 	return(smb_hfieldtype(type));
+}
+
+char* SMBCALL smb_hashsource(smbmsg_t* msg, int source)
+{
+	switch(source) {
+		case RFC822MSGID:
+			return(msg->id);
+		case FIDOMSGID:
+			return(msg->ftn_msgid);
+	}
+	return("hash");
 }
 
 /****************************************************************************/
