@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.12 2001/09/24 11:52:47 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.13 2001/10/08 22:08:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,6 +186,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 			smb_unlockmsghdr(&smb,&msg);
 			msgcnt++;
 			submsgs++; 
+			if(!(l%50))
+				mswait(1); /* yield */
 		}
 		eprintf(remove_ctrl_a(text[QWKPackedSubboard],tmp),submsgs,msgcnt);
 		LFREE(post);
