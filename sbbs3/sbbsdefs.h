@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.55 2002/03/07 12:30:41 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.56 2002/03/11 18:29:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,6 +62,13 @@
 #define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
+
+#ifdef JAVASCRIPT
+	#define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
+	#define JAVASCRIPT_CONTEXT_STACK	(16*1024)
+	#define JAVASCRIPT_BRANCH_LIMIT		100000000
+	#define JAVASCRIPT_YIELD_FREQUENCY	10000
+#endif
 
 #ifndef __FLAT__
 #define __FLAT__	/* 32-bit "flat" memory model */
