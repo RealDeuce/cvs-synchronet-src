@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.87 2002/01/17 23:04:16 rswindell Exp $ */
+/* $Id: main.cpp,v 1.88 2002/01/17 23:09:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1186,8 +1186,8 @@ void event_thread(void* arg)
 					&& sbbs->cfg.qhub[i]->node<=last_node) {
 					sprintf(str,"%sqnet/%s.now",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 					if(fexist(str)) {
-						eprintf("Semaphore signaled for QWK Network Hub: %s"
-							,sbbs->cfg.qhub[i]->id);
+						strcpy(str,sbbs->cfg.qhub[i]->id);
+						eprintf("Semaphore signaled for QWK Network Hub: %s",strupr(str));
 						sbbs->cfg.qhub[i]->last=-1; 
 					}
 				}
@@ -1200,8 +1200,8 @@ void event_thread(void* arg)
 					|| sbbs->cfg.event[i]->misc&EVENT_EXCL) {
 					sprintf(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 					if(fexist(str)) {
-						eprintf("Semaphore signaled for Timed Event: %s"
-							,sbbs->cfg.event[i]->code);
+						strcpy(str,sbbs->cfg.event[i]->code);
+						eprintf("Semaphore signaled for Timed Event: %s",strupr(str));
 						sbbs->cfg.event[i]->last=-1; 
 					}
 				}
