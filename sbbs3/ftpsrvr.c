@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.217 2003/02/26 11:00:10 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.218 2003/02/26 19:50:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1455,7 +1455,7 @@ static void send_thread(void* arg)
 		if(wr!=rd) {
 			if(wr==SOCKET_ERROR) {
 				if(ERROR_VALUE==EWOULDBLOCK) {
-					lprintf("%04d DATA send would block, retrying",xfer.ctrl_sock);
+					/*lprintf("%04d DATA send would block, retrying",xfer.ctrl_sock);*/
 					mswait(1);
 					continue;
 				}
@@ -1713,7 +1713,7 @@ static void receive_thread(void* arg)
 			}
 			if(rd==SOCKET_ERROR) {
 				if(ERROR_VALUE==EWOULDBLOCK) {
-					lprintf("%04d DATA recv would block, retrying",xfer.ctrl_sock);
+					/*lprintf("%04d DATA recv would block, retrying",xfer.ctrl_sock);*/
 					mswait(1);
 					continue;
 				}
@@ -4440,7 +4440,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.217 $", "%*s %s", revision);
+	sscanf("$Revision: 1.218 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
