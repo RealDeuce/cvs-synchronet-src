@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.19 2002/01/11 01:11:22 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.20 2002/02/15 13:23:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1186,11 +1186,8 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					lp2=getintvar(csi,*(long *)csi->ip);
 					csi->ip+=4;
-	#if 0 /* ftime */
-					if(lp1 && *lp1 && lp2) {
-						getftime(fileno((FILE *)*lp1),&ft);
-						*lp2=ftimetounix(ft); }
-	#endif
+					if(lp1 && *lp1 && lp2) 
+						*lp2=filetime(fileno((FILE *)*lp1));
 					return(0);
 				case FIO_SET_TIME:
 					lp1=getintvar(csi,*(long *)csi->ip);
