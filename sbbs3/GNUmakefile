@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.171 2005/01/13 23:45:59 deuce Exp $
+# $Id: GNUmakefile,v 1.173 2005/02/20 19:03:00 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -20,7 +20,6 @@ UTIL_LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDE
 UTIL_LIBS	+=	$(SMBLIB_LIBS)
 
 ifndef bcc
- LDFLAGS	+=	-lm
  ifneq ($(os),sunos)
   LDFLAGS	+=	-lutil
  endif
@@ -96,7 +95,7 @@ ifeq ($(os),darwin)
 else
  ifeq ($(os),sunos)
   MKSHLIB		:=	/usr/ccs/bin/ld -G
-  MKSHPPLIB		:=	/usr/ccs/bin/ld -G -L/usr/local/lib -lstdc++
+  MKSHPPLIB		:=	/usr/ccs/bin/ld -G
   SHLIBOPTS	:=	
  else
   MKSHLIB		:=	$(CC)

@@ -6,7 +6,12 @@ ifdef XP_SEM
 endif
 MTOBJS	+=	$(MTOBJODIR)$(DIRSEP)xpevent$(OFILE)
 
-MT_CFLAGS += -DLINK_LIST_THREADSAFE
+ifdef NEED_DATEWRAP
+	MTOBJS	+=	$(MTOBJODIR)$(DIRSEP)datewrap$(OFILE)
+	OBJS	+=	$(OBJODIR)$(DIRSEP)datewrap$(OFILE)
+endif
+
+CFLAGS	+=	-DSOUNDCARD_H_IN=$(shell if [ -f /usr/include/sys/soundcard.h ] ; then echo SYS ; elif [ -f /usr/include/soundcard.h ] ; then echo INCLUDE ; elif [ -f /usr/include/linux/soundcard.h ] ; then echo LINUX ; else echo NONE ; fi) -I.
 
 # Executable Build Rule
 $(WRAPTEST): $(OBJODIR)/wraptest.o $(DEPS)

@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Program */
 
-/* $Id: sexyz.h,v 1.7 2005/01/19 12:11:47 rswindell Exp $ */
+/* $Id: sexyz.h,v 1.8 2005/01/21 11:21:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,6 @@
 #define RECVDIR 		(1<<7)	/* Directory specified to download to		*/
 #define DEBUG			(1<<8)	/* Debug output 							*/
 #define OVERWRITE		(1<<9)	/* Overwrite receiving files				*/
-#define ALARM			(1<<11) /* Alarm when starting and stopping xfer	*/
 
 							/* Zmodem mode bits 						*/
 #define CTRL_ESC	(1<<0)	/* Escape all control chars 				*/
