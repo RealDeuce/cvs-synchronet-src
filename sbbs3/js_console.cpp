@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.58 2004/12/31 02:39:19 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.56 2004/11/09 02:46:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -832,8 +832,8 @@ js_uselect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uintN		i;
 	int32		num=0;
-	char*		title=NULL;
-	char*		item=NULL;
+	char*		title="";
+	char*		item="";
 	char*		ar_str;
 	uchar*		ar=NULL;
 	sbbs_t*		sbbs;
@@ -1255,7 +1255,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},		
 	{"uselect",			js_uselect,			0, JSTYPE_NUMBER,	JSDOCSTR("[number, string title, string item, string ars]")
 	,JSDOCSTR("user selection menu, call for each item, then with no args to display select menu")
-	,312
+	,310
 	},		
 	{"saveline",		js_saveline,		0, JSTYPE_VOID,		""
 	,JSDOCSTR("save last output line")
