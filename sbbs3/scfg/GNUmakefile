@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.30 2003/05/18 07:09:06 deuce Exp $
+# $Id: GNUmakefile,v 1.31 2003/05/21 03:34:23 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -22,7 +22,8 @@ endif
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 #USE_FLTK =	1	# Use Windowed version
-USE_CURSES	=	1	# Curses version of UIFC
+#USE_CURSES	=	1	# Curses version of UIFC
+USE_UIFC32	=	1	# NEW curses version of uifc
 CC		=	gcc
 CCPP		=	g++
 SLASH	=	/
@@ -64,6 +65,10 @@ ifdef USE_CURSES
  CFLAGS	+=	-DUSE_CURSES
 endif
 
+ifdef UIFC32
+ LFLAGS	+=	$(CURSESLIB)
+endif
+
 ifdef USE_FLTK
  LFLAGS +=	-L../../../lib/fltk/$(os) -L/usr/X11R6/lib -lfltk -lX11
  CFLAGS +=	-I../../../include/fltk -I/usr/X11R6/include -DUSE_FLTK
@@ -89,6 +94,11 @@ endif
 
 ifdef USE_CURSES		
  OBJS += $(ODIR)$(SLASH)uifcc.$(OFILE)
+endif
+
+ifdef UIFC32
+ OBJS += $(ODIR)$(SLASH)uifc32.$(OFILE)
+ OBJS += $(ODIR)$(SLASH)ciowrap.$(OFILE)
 endif
 
 ifdef USE_FLTK
@@ -135,7 +145,7 @@ $(SCFG): $(OBJS)
 	@$(MAKE) --no-print-directory -C ../../libdialog
    endif
 	@echo Linking $@
-	@$(CCPP) -o $@ $(OBJS) $(LFLAGS)
+	$(CCPP) -o $@ $(OBJS) $(LFLAGS)
 
 # Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
 -include ./*.d
