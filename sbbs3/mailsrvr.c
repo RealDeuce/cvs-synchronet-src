@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.246 2003/04/09 03:20:31 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.247 2003/04/14 22:34:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2275,7 +2275,7 @@ static void smtp_thread(void* arg)
 				sockprintf(socket,"334 VXNlcm5hbWU6");	/* Base64-encoded "Username:" */
 			else
 				sockprintf(socket,"334 Username:");
-			if((rd=sockreadline(socket, buf, sizeof(buf)))<0) {
+			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -2291,7 +2291,7 @@ static void smtp_thread(void* arg)
 				sockprintf(socket,"334 UGFzc3dvcmQ6");	/* Base64-encoded "Password:" */
 			else
 				sockprintf(socket,"334 Password:");
-			if((rd=sockreadline(socket, buf, sizeof(buf)))<0) {
+			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -2351,7 +2351,7 @@ static void smtp_thread(void* arg)
 #endif
 			b64_encode(str,sizeof(str),challenge,0);
 			sockprintf(socket,"334 %s",str);
-			if((rd=sockreadline(socket, buf, sizeof(buf)))<0) {
+			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -3390,7 +3390,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.246 $", "%*s %s", revision);
+	sscanf("$Revision: 1.247 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
