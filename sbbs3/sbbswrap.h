@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.25 2000/11/29 05:43:25 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.26 2000/12/04 22:14:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,12 +167,11 @@ extern "C" {
 	#define mswait(x)			usleep(x*1000)
 	#define _mkdir(dir)			mkdir(dir,0777)
 	#define _rmdir(dir)			rmdir(dir)
+	#define _fullpath(a,r,l)	realpath(r,a)
 	#define tell(fd)			lseek(fd,0,SEEK_CUR)
 
 	DLLEXPORT void	DLLCALL sbbs_beep(int freq, int dur);
 	DLLEXPORT char* DLLCALL strrev(char* str);
-	DLLEXPORT char* DLLCALL _fullpath(char* absPath, const char* relPath
-										,size_t maxLength);
 
 #else	/* Unsupported OS */
 

@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.28 2000/11/15 02:59:38 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.29 2000/12/04 22:14:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -276,34 +276,6 @@ char* strrev(char* str)
         t=*i; *(i++)=*(--j); *j=t;
     }
     return str;
-}
-#endif
-
-/****************************************************************************/
-/* Create an absolute or full path name for the specified relative path.	*/
-/* e.g. convert "/sbbs/node1/../data" to "/sbbs/data/"						*/
-/****************************************************************************/
-#ifdef __unix__
-/* This is a bit of a hack, but it works */
-char* _fullpath(char* absPath, const char* relPath, size_t maxLength)
-{
-	char *curdir = (char *) malloc(PATH_MAX+1);
-
-	if(curdir == NULL) {
-		strcpy(absPath,relPath);
-		return(absPath);
-	}
-
-    getcwd(curdir, PATH_MAX);
-    if(chdir(relPath)!=0) /* error, invalid dir */
-		strcpy(absPath,relPath);
-	else {
-		getcwd(absPath, maxLength);
-		chdir(curdir);
-	}
-	free(curdir);
-
-    return absPath;
 }
 #endif
 
