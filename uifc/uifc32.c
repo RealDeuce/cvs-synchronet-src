@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.114 2005/02/05 20:52:01 deuce Exp $ */
+/* $Id: uifc32.c,v 1.115 2005/02/10 06:13:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -410,9 +410,9 @@ void uifcbail(void)
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
 	clrscr();
-	FREE(blk_scrn);
-	FREE(tmp_buffer);
-	FREE(tmp_buffer2);
+	FREE_AND_NULL(blk_scrn);
+	FREE_AND_NULL(tmp_buffer);
+	FREE_AND_NULL(tmp_buffer2);
 }
 
 /****************************************************************************/
