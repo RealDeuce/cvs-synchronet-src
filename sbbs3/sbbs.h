@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.21 2000/11/14 01:58:37 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.22 2000/11/14 22:16:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,7 +332,7 @@ public:
 	void	getusrsubs(void);
 	void	getusrdirs(void);
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
-				,char del);
+				,bool del);
 	void	gettimeleft(void);
 	bool	gettimeleft_inside;
 
