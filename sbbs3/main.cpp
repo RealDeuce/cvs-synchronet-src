@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.7 2001/04/12 03:59:44 rswindell Exp $ */
+/* $Id: main.cpp,v 1.8 2001/04/16 23:57:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1643,7 +1643,7 @@ bool sbbs_t::init()
 
 	JSObject* sysobj;
 	
-	if((sysobj=CreateSystemObject(&cfg, js_cx, js_glob))==NULL)
+	if((sysobj=js_CreateSystemObject(&cfg, js_cx, js_glob))==NULL)
 		return(false);
 
 	char	ver[256];
