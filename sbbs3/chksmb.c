@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.37 2004/12/30 02:04:07 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.34 2004/12/29 04:35:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,6 @@ int main(int argc, char **argv)
 				,dfieldlength,dfieldoffset
 				,dupenum,dupenumhdr,dupeoff,attr,actalloc
 				,datactalloc,misnumbered,timeerr,idxofferr,idxerr
-				,subjcrc,fromcrc,tocrc
 				,zeronum,idxzeronum,idxnumerr,packable=0L,totallzhsaved=0L
 				,totalmsgs=0,totallzhmsgs=0,totaldelmsgs=0,totalmsgbytes=0L
 				,lzhblocks,lzhsaved;
@@ -258,7 +257,6 @@ int main(int argc, char **argv)
 	}
 
 	headers=deleted=orphan=dupenumhdr=attr=zeronum=timeerr=lockerr=hdrerr=0;
-	subjcrc=fromcrc=tocrc=0;
 	hdrnumerr=hdrlenerr=0;
 	actalloc=datactalloc=deldatblocks=delhdrblocks=xlaterr=0;
 	lzhblocks=lzhsaved=acthdrblocks=actdatblocks=0;
@@ -402,73 +400,22 @@ int main(int argc, char **argv)
 						,msg.hdr.number);
 				orphan++; 
 			}
-			else {
-				if(msg.hdr.attr!=msg.idx.attr) {
-					fprintf(stderr,"%sAttributes mismatch\n",beep);
-					msgerr=TRUE;
-					if(extinfo)
-						printf("MSGERR: Header attributes (%04X) do not match index "
-							"attributes (%04X)\n"
-							,msg.hdr.attr,msg.idx.attr);
-					attr++; 
-				}
-				if(msg.hdr.when_imported.time!=msg.idx.time) {
-					fprintf(stderr,"%sImport date/time mismatch\n",beep);
-					msgerr=TRUE;
-					if(extinfo)
-						printf("MSGERR: Header import date/time does not match "
-							"index import date/time\n");
-					timeerr++; 
-				}
-				if(msg.idx.subj!=smb_subject_crc(msg.subj)) {
-					fprintf(stderr,"%sSubject CRC mismatch\n",beep);
-					msgerr=TRUE;
-					if(extinfo)
-						printf("MSGERR: Subject (%04X) does not match index "
-							"CRC (%04X)\n"
-							,smb_subject_crc(msg.subj),msg.idx.subj);
-					subjcrc++; 
-				}
-				if(smb.status.attr&SMB_EMAIL 
-					&& msg.from_ext && msg.idx.from!=atoi(msg.from_ext)) {
-					fprintf(stderr,"%sFrom extension mismatch\n",beep);
-					msgerr=TRUE;
-					if(extinfo)
-						printf("MSGERR: From extension (%s) does not match index "
-							"(%u)\n"
-							,msg.from_ext,msg.idx.from);
-					fromcrc++; 
-				}
-				if(!(smb.status.attr&SMB_EMAIL) 
-					&& msg.idx.from!=smb_name_crc(msg.from)) {
-					fprintf(stderr,"%sFrom CRC mismatch\n",beep);
-					msgerr=TRUE;
-					if(extinfo)
-						printf("MSGERR: From (%04X) does not match index "
-							"CRC (%04X)\n"
-							,smb_name_crc(msg.from),msg.idx.from);
-					fromcrc++; 
-				}
-				if(smb.status.attr&SMB_EMAIL 
-					&& msg.to_ext && msg.idx.to!=atoi(msg.to_ext)) {
-					fprintf(stderr,"%sTo extension mismatch\n",beep);
-					msgerr=TRUE;
-					if(extinfo)
-						printf("MSGERR: To extension (%s) does not match index "
-							"(%u)\n"
-							,msg.to_ext,msg.idx.to);
-					tocrc++; 
-				}
-				if(!(smb.status.attr&SMB_EMAIL) 
-					&& msg.to_ext==NULL && msg.idx.to!=smb_name_crc(msg.to)) {
-					fprintf(stderr,"%sTo CRC mismatch\n",beep);
-					msgerr=TRUE;
-					if(extinfo)
-						printf("MSGERR: To (%04X) does not match index "
-							"CRC (%04X)\n"
-							,smb_name_crc(msg.to),msg.idx.to);
-					tocrc++; 
-				}
+			else if(msg.hdr.attr!=msg.idx.attr) {
+				fprintf(stderr,"%sAttributes mismatch index\n",beep);
+				msgerr=TRUE;
+				if(extinfo)
+					printf("MSGERR: Header attributes (%04X) do not match index "
+						"attributes (%04X)\n"
+						,msg.hdr.attr,msg.idx.attr);
+				attr++; 
+			}
+			else if(msg.hdr.when_imported.time!=msg.idx.time) {
+				fprintf(stderr,"%sImport date/time mismatch index\n",beep);
+				msgerr=TRUE;
+				if(extinfo)
+					printf("MSGERR: Header import date/time does not match "
+						"index import date/time\n");
+				timeerr++; 
 			}
 			if(msg.hdr.number==0) {
 				fprintf(stderr,"%sZero message number\n",beep);
@@ -812,27 +759,14 @@ int main(int argc, char **argv)
 		printf("%-35.35s (!): %lu\n"
 			,"Mismatched Header Lengths"
 			,hdrlenerr);
-#define INDXERR "Index/Header Mismatch: "
 	if(attr)
 		printf("%-35.35s (!): %lu\n"
-			,INDXERR "Attributes"
+			,"Mismatched Header Attributes"
 			,attr);
 	if(timeerr)
 		printf("%-35.35s (!): %lu\n"
-			,INDXERR "Import Time"
+			,"Mismatched Header Import Time"
 			,timeerr);
-	if(subjcrc)
-		printf("%-35.35s (!): %lu\n"
-			,INDXERR "Subject CRCs"
-			,subjcrc);
-	if(fromcrc)
-		printf("%-35.35s (!): %lu\n"
-			,smb.status.attr&SMB_EMAIL ? INDXERR "From Ext" : INDXERR "From CRCs"
-			,fromcrc);
-	if(tocrc)
-		printf("%-35.35s (!): %lu\n"
-			,smb.status.attr&SMB_EMAIL ? INDXERR "To Ext" : INDXERR "To CRCs"
-			,tocrc);
 	if(getbodyerr)
 		printf("%-35.35s (!): %lu\n"
 			,"Message Body Text Read Failures"
@@ -884,8 +818,7 @@ int main(int argc, char **argv)
 		|| getbodyerr || gettailerr
 		|| orphan || dupenumhdr || dupenum || dupeoff || attr
 		|| lockerr || hdrerr || hdrnumerr || idxnumerr || idxofferr
-		|| actalloc || datactalloc || misnumbered || timeerr 
-		|| subjcrc || fromcrc || tocrc
+		|| actalloc || datactalloc || misnumbered || timeerr
 		|| dfieldoffset || dfieldlength || xlaterr || idxerr) {
 		printf("%shas Errors!\n",beep);
 		errors++; 
