@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.91 2001/07/25 02:59:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.92 2001/07/25 03:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2144,7 +2144,7 @@ static void ctrl_thread(void* arg)
 #endif
 
 #ifdef JAVASCRIPT
-	if(!(startup->options&FTP_OPT_NO_JAVASCRIPT)) {
+	if(js_runtime!=NULL) {
 		if(((js_cx=js_initcx(sock,&js_glob,&js_ftp))==NULL)) {
 			lprintf("%04d !ERROR initializing JavaScript context",sock);
 			sockprintf(sock,"425 Error initializing JavaScript context");

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.43 2001/07/25 02:47:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.44 2001/07/25 03:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -899,7 +899,7 @@ void event_thread(void* arg)
 	thread_up();
 
 #ifdef JAVASCRIPT
-	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) 
+	if(js_runtime!=NULL) 
 		sbbs->js_initcx();	/* This must be done in the context of the event thread */
 #endif
 
@@ -2539,7 +2539,7 @@ void node_thread(void* arg)
 	sbbs_random(10);	/* Throw away first number */
 
 #ifdef JAVASCRIPT
-	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) 
+	if(js_runtime!=NULL) 
 		sbbs->js_initcx();	/* This must be done in the context of the node thread */
 #endif
 
