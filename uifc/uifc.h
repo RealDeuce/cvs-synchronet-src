@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.37 2003/05/22 21:26:59 deuce Exp $ */
+/* $Id: uifc.h,v 1.38 2003/05/23 20:22:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,7 +195,8 @@
 #define K_CHAT		(1L<<8) 	/* In chat multi-chat						*/
 #define K_NOCRLF	(1L<<9) 	/* Don't print CRLF after string input      */
 #define K_ALPHA 	(1L<<10)	/* Only allow alphabetic characters 		*/
-#define K_SCANNING	(1L<<11)	/* UPC Scanner is active... abort on '%'	*/
+#define K_SCANNING	(1L<<11)	/* UPC Scanner is active... return on '%'	*/
+#define K_TABEXIT	(1L<<12)	/* Return on TAB					    	*/
 
 #define HELPBUF_SIZE 4000
 
@@ -371,7 +372,7 @@ typedef struct {
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
 /****************************************************************************/
-	int (*getstrxy)(int left, int top, char *outstr, int max, long mode);
+	int (*getstrxy)(int left, int top, char *outstr, int max, long mode, int *lastkey);
 } uifcapi_t;
 
 /****************************************************************************/
