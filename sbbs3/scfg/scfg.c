@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.49 2003/05/22 11:45:51 rswindell Exp $ */
+/* $Id: scfg.c,v 1.50 2003/06/07 07:16:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,8 @@ int main(int argc, char **argv)
 
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright 2003 "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION);
+
+	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
     p=getenv("SBBSCTRL");
