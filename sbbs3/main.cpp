@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.6 2001/04/10 01:15:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.7 2001/04/12 03:59:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,8 +120,10 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if (!str)
 			    return JS_FALSE;
 			arglist[i-1]=JS_GetStringBytes(str);
-		} else
+		} else if(JSVAL_IS_INT(argv[i]))
 			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else
+			arglist[i-1]=NULL;
 	}
 	
 	vsprintf(tmp,JS_GetStringBytes(fmt),(char*)arglist);
@@ -149,8 +151,10 @@ js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if (!str)
 			    return JS_FALSE;
 			arglist[i-1]=JS_GetStringBytes(str);
-		} else
+		} else if(JSVAL_IS_INT(argv[i]))
 			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else
+			arglist[i-1]=NULL;
 	}
 	
 	vsprintf(tmp,JS_GetStringBytes(fmt),(char*)arglist);
