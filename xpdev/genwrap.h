@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.47 2003/06/11 02:01:45 deuce Exp $ */
+/* $Id: genwrap.h,v 1.48 2003/06/13 23:45:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,6 +179,8 @@ extern "C" {
 	#define	MAYBE_YIELD()	Sleep(0)
 	#define SLEEP(x)		Sleep(x)
 	#define BEEP(freq,dur)	Beep(freq,dur)
+	#define	popen			_popen
+	#define pclose			_pclose
 
 #elif defined(__OS2__)
 
