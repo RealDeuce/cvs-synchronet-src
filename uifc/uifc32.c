@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.41 2003/12/08 07:29:16 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.40 2003/11/03 05:15:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1944,7 +1944,7 @@ static void help(void)
 {
 	char hbuf[HELPBUF_SIZE],str[256];
     char *p;
-	unsigned short line;	/* This must be 16-bits */
+	unsigned int line;
 	long l;
 	FILE *fp;
 
@@ -1968,12 +1968,12 @@ static void help(void)
 				if(!fread(str,12,1,fp))
 					break;
 				str[12]=0;
-				fread(&line,sizeof(line),1,fp);
+				fread(&line,2,1,fp);
 				if(stricmp(str,p) || line!=helpline) {
-					fseek(fp,sizeof(l),SEEK_CUR);
+					fseek(fp,4,SEEK_CUR);
 					continue; 
 				}
-				fread(&l,sizeof(l),1,fp);
+				fread(&l,4,1,fp);
 				break;
 			}
 			fclose(fp);
