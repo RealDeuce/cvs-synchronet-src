@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.30 2002/08/12 21:09:32 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.31 2002/08/12 21:17:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -353,7 +353,6 @@ static void init_enviro(http_session_t *session)  {
 	if(!strcmp(session->host_name,"<no name>"))
 		add_env(session,"REMOTE_HOST",session->host_name);
 	add_env(session,"REMOTE_ADDR",session->host_ip);
-	add_env(session,"ELEBBS","/usr/home/admin/bbs");
 	return;
 }
 
@@ -1584,7 +1583,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.30 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.31 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
