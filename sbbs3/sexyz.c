@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.5 2003/11/20 10:36:44 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.6 2004/08/23 05:20:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,7 +73,7 @@ void cancel(void);
 /***************/
 /* Global Vars */
 /***************/
-long	mode=PAUSE_ABEND|TELNET;		/* Program mode 					*/
+long	mode=TELNET;					/* Program mode 					*/
 long	zmode=0L;						/* Zmodem mode						*/
 uchar	block[1024];					/* Block buffer 					*/
 int	block_size; 						/* Block size (128 or 1024) 		*/
@@ -128,17 +128,7 @@ void newline(void)
 	fprintf(statfp,"\n");
 }
 
-/****************************************************************************/
-/* Truncates white-space chars off end of 'str' and terminates at first tab */
-/****************************************************************************/
-void truncsp(char *str)
-{
-	char c;
-
-	c=strlen(str);
-	while(c && str[c-1]<=SP) c--;
-	str[c]=0;
-}
+#include "truncsp.c"
 
 /**************/
 /* Exit Point */
@@ -1130,7 +1120,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.5 $", "%*s %s", revision);
+	sscanf("$Revision: 1.6 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2003 Rob Swindell\n\n"
