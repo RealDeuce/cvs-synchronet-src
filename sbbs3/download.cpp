@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.1 2000/10/10 11:25:49 rswindell Exp $ */
+/* $Id: download.cpp,v 1.2 2000/10/30 09:33:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,7 @@ void sbbs_t::autohangup()
 	for(c=9,a=0;c>-1 && online && !a;c--) {
 		checkline();
 		attr(LIGHTGRAY|HIGH);
-		bputs(itoa(c,tmp,10));
+		bputs(ultoa(c,tmp,10));
 		attr(GREEN);
 		outchar(']');
 		while((k=inkey(0))!=0 && online) {

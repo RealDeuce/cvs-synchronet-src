@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.2 2000/10/24 11:30:00 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.3 2000/10/30 09:33:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -333,9 +333,9 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 
 		useron.emails++;
 		logon_emails++;
-		putuserrec(&cfg,useron.number,U_EMAILS,5,itoa(useron.emails,tmp,10)); 
+		putuserrec(&cfg,useron.number,U_EMAILS,5,ultoa(useron.emails,tmp,10)); 
 		useron.etoday++;
-		putuserrec(&cfg,useron.number,U_ETODAY,5,itoa(useron.etoday,tmp,10));
+		putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
 		if(!(useron.exempt&FLAG('S')))
 			subtract_cdt(&cfg,&useron,cfg.netmail_cost);
@@ -695,9 +695,9 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 			useron.emails++;
 			logon_emails++;
-			putuserrec(&cfg,useron.number,U_EMAILS,5,itoa(useron.emails,tmp,10)); 
+			putuserrec(&cfg,useron.number,U_EMAILS,5,ultoa(useron.emails,tmp,10)); 
 			useron.etoday++;
-			putuserrec(&cfg,useron.number,U_ETODAY,5,itoa(useron.etoday,tmp,10));
+			putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
 			sprintf(str,"Sent %s NetMail to %s (%s) via QWK"
 				,qnet ? "QWK":"Internet",name,qnet ? fulladdr : to);
@@ -851,9 +851,9 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 	useron.emails++;
 	logon_emails++;
-	putuserrec(&cfg,useron.number,U_EMAILS,5,itoa(useron.emails,tmp,10)); 
+	putuserrec(&cfg,useron.number,U_EMAILS,5,ultoa(useron.emails,tmp,10)); 
 	useron.etoday++;
-	putuserrec(&cfg,useron.number,U_ETODAY,5,itoa(useron.etoday,tmp,10));
+	putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
 	sprintf(str,"Sent NetMail to %s @%s via QWK",hdr.to,faddrtoa(fidoaddr));
 	logline("EN",str);

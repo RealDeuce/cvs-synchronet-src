@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.2 2000/10/30 08:49:26 rswindell Exp $ */
+/* $Id: file.cpp,v 1.3 2000/10/30 09:33:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,7 @@ void sbbs_t::openfile(file_t* f)
 		errormsg(WHERE,ERR_READ,str1,3);
 		return; }
 	str2[3]=0;
-	itoa(atoi(str2)+1,str3,10);
+	ultoa(atoi(str2)+1,str3,10);
 	putrec(str2,0,3,str3);
 	lseek(file,f->datoffset+F_OPENCOUNT,SEEK_SET);
 	if(write(file,str2,3)!=3) {
@@ -189,7 +189,7 @@ void sbbs_t::closefile(file_t* f)
 	str2[3]=0;
 	ch=atoi(str2);
 	if(ch) ch--;
-	itoa(ch,str3,10);
+	ultoa(ch,str3,10);
 	putrec(str2,0,3,str3);
 	lseek(file,f->datoffset+F_OPENCOUNT,SEEK_SET);
 	if(write(file,str2,3)!=3) {

@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.1 2000/10/10 11:24:13 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.2 2000/10/30 09:33:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1203,7 +1203,7 @@ int sbbs_t::exec(csi_t *csi)
 				return(0);
 			case CS_SET_USER_LEVEL:
 				useron.level=*(csi->ip++);
-				putuserrec(&cfg,useron.number,U_LEVEL,2,itoa(useron.level,tmp,10));
+				putuserrec(&cfg,useron.number,U_LEVEL,2,ultoa(useron.level,tmp,10));
 				return(0);
 			case CS_SET_USER_STRING:
 				csi->logic=LOGIC_FALSE;
