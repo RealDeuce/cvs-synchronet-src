@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.104 2003/08/22 01:28:28 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.105 2003/09/10 07:19:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,14 +67,14 @@
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
 #define JAVASCRIPT_BRANCH_LIMIT		99999999
-#define JAVASCRIPT_YIELD_FREQUENCY	10000
-#define JAVASCRIPT_GC_FREQUENCY		100 
+#define JAVASCRIPT_YIELD_INTERVAL	10000
+#define JAVASCRIPT_GC_INTERVAL		100 
 
 typedef struct {
 	ulong	counter;
 	ulong	limit;
-	ulong	yield_freq;
-	ulong	gc_freq;
+	ulong	yield_interval;
+	ulong	gc_interval;
 } js_branch_t;
 
 #ifndef __FLAT__
