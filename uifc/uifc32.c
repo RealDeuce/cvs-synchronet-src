@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.74 2004/07/05 07:44:28 deuce Exp $ */
+/* $Id: uifc32.c,v 1.75 2004/07/05 08:03:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@
     #define mswait(x) delay(x)
 #elif defined(_WIN32)
 	#include <share.h>
-	#include <conio.h>
 	#include <windows.h>
 	#define mswait(x) Sleep(x)
 #endif
@@ -301,36 +300,47 @@ int uifcini32(uifcapi_t* uifcapi)
 		}
 	#endif
 	
-#else
+#endif
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
+#ifdef C80X14
             case 14:
                 textmode(C80X14);
                 break;
+#endif
+#ifdef C80X21
             case 21:
                 textmode(C80X21);
                 break;
+#endif
             case 25:
                 textmode(C80);
                 break;
+#ifdef C80X28
             case 28:
                 textmode(C80X28);
                 break;
+#endif
+#ifdef C80X43
             case 43:
                 textmode(C80X43);
                 break;
+#endif
+#ifdef C80X50
             case 50:
                 textmode(C80X50);
                 break;
+#endif
+#ifdef C80X60
             case 60:
                 textmode(C80X60);
                 break;
+#endif
             default:
                 textmode(C4350);
                 break;
         }
     }
-#endif
 
     clrscr();
 
