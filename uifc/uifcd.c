@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.22 2002/03/06 17:53:32 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.23 2002/03/18 17:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -350,7 +350,8 @@ void umsg(char *str)
 void upop(char *str)
 {
 	// Pop-down doesn't do much... the mext item should over-write this.
-    dialog_gauge((char*)NULL,str,8,20,7,40,0);
+	if(str!=NULL)
+    	dialog_gauge((char*)NULL,str,8,20,7,40,0);
 }
 
 /****************************************************************************/
