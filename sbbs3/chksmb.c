@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.4 2000/10/30 02:21:53 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.5 2000/11/02 13:19:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,18 +35,14 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-/* OS-specific */
-#if defined(__MSDOS__) || defined (_WIN32)
-	#include <dos.h>
-	#include <conio.h>	/* getch */
-#endif
-
 /* ANSI */
+#include <string.h>		/* strrchr */
 #include <time.h>		/* ctime */
 
 /* SMB-specific */
 #include "smblib.h"
 #include "smbwrap.h"
+#include "conwrap.h"	/* getch */
 
 /****************************************************************************/
 /* Returns in 'string' a character representation of the number in l with   */
