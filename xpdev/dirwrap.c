@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.36 2003/10/18 07:55:06 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.37 2004/02/11 20:17:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,11 +83,13 @@
 /****************************************************************************/
 char* DLLCALL getfname(const char* path)
 {
-	char *fname;
+	char* fname;
+	char* bslash;
 
 	fname=strrchr(path,'/');
-	if(fname==NULL) 
-		fname=strrchr(path,'\\');
+	bslash=strrchr(path,'\\');
+	if(bslash>fname)
+		fname=bslash;
 	if(fname!=NULL) 
 		fname++;
 	else 
