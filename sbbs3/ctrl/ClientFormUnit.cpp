@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.cpp,v 1.4 2003/03/30 11:04:16 rswindell Exp $ */
+/* $Id: ClientFormUnit.cpp,v 1.5 2003/04/22 00:44:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ __fastcall TClientForm::TClientForm(TComponent* Owner)
     : TForm(Owner)
 {
 	MainForm=(TMainForm*)Application->MainForm;
-    ListMutex=CreateMutex(NULL,false,NULL);
+    pthread_mutex_init(&ListMutex,NULL);
 }
 //---------------------------------------------------------------------------
 void __fastcall TClientForm::FormShow(TObject *Sender)
@@ -71,8 +71,7 @@ void __fastcall TClientForm::TimerTimer(TObject *Sender)
     int     i;
     time_t  t;
 
-    if(WaitForSingleObject(ListMutex,1)!=WAIT_OBJECT_0)
-        return;
+    pthread_mutex_lock(&ListMutex);
     for(i=0;i<ListView->Items->Count;i++) {
         t=time(NULL)-(ulong)ListView->Items->Item[i]->Data;
         if(t/(60*60))
@@ -82,7 +81,7 @@ void __fastcall TClientForm::TimerTimer(TObject *Sender)
         ListView->Items->Item[i]->SubItems->Strings[5]=str;
 
     }
-    ReleaseMutex(ListMutex);
+    pthread_mutex_unlock(&ListMutex);
 
 }
 //---------------------------------------------------------------------------
@@ -131,4 +130,5 @@ void __fastcall TClientForm::FilterIpMenuItemClick(TObject *Sender)
     }
 }
 //---------------------------------------------------------------------------
+
 
