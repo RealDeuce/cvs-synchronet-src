@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.47 2001/05/25 20:48:00 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.48 2001/06/05 02:39:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -789,6 +789,10 @@ extern "C" {
 	/* conobj.cpp */
 	JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent);
 
+	/* sockobj.c */
+	JSObject* DLLCALL js_CreateSocketObject(scfg_t* cfg, JSContext* cx, JSObject* parent
+													,char* name, SOCKET);
+
 #endif
 
 #ifdef SBBS /* These aren't exported */
@@ -821,6 +825,10 @@ extern "C" {
 
 	/* qwk.cpp */
 	void	remove_re(char *str);
+
+	/* ver.cpp */
+	char*	os_version(char *str);
+	char*	socklib_version(char* str);
 
 	/* sortdir.cpp */
 	int		fnamecmp_a(char **str1, char **str2);	 /* for use with resort() */
