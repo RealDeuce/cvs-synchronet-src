@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.10 2002/07/21 05:23:14 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.11 2002/07/21 07:03:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,14 +162,14 @@ extern "C" {
 #endif
 
 /* General file system wrappers for all platforms and compilers */
-DLLEXPORT BOOL		DLLCALL fexist(char *filespec);
+DLLEXPORT BOOL		DLLCALL fexist(const char *filespec);
 DLLEXPORT BOOL		DLLCALL fexistcase(char *filespec);	/* fixes upr/lwr case fname */
-DLLEXPORT long		DLLCALL flength(char *filename);
-DLLEXPORT time_t	DLLCALL fdate(char *filename);
-DLLEXPORT BOOL		DLLCALL	isdir(char *filename);
-DLLEXPORT char*		DLLCALL getfname(char* path);
-DLLEXPORT int		DLLCALL getfattr(char* filename);
-DLLEXPORT ulong		DLLCALL getfreediskspace(char* path);
+DLLEXPORT long		DLLCALL flength(const char *filename);
+DLLEXPORT time_t	DLLCALL fdate(const char *filename);
+DLLEXPORT BOOL		DLLCALL	isdir(const char *filename);
+DLLEXPORT char*		DLLCALL getfname(const char* path);
+DLLEXPORT int		DLLCALL getfattr(const char* filename);
+DLLEXPORT ulong		DLLCALL getfreediskspace(const char* path);
 
 #if defined(__unix__)
 DLLEXPORT void DLLCALL _splitpath(const char *path, char *drive, char *dir, 
