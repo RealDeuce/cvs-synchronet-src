@@ -1,11 +1,13 @@
-/* $Id: curs_cio.c,v 1.1 2004/07/02 20:19:06 deuce Exp $ */
-
+/* $Id: curs_cio.c,v 1.1 2004/07/05 21:27:40 deuce Exp $ */
 #include <sys/time.h>
+#include <stdarg.h>
 #include <unistd.h>
 
-#include "ciowrap.h"
+#include "conio.h"
 #include "curs_cio.h"
-#include "uifc.h"		/* UIFC_IBM */
+
+static unsigned char curs_nextgetch=0;
+const int curs_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
 static int lastattr=0;
 static long mode;
@@ -58,6 +60,22 @@ int curs_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	unsigned char fill_char;
 	unsigned char orig_attr;
 	int oldx, oldy;
+	struct text_info	ti;
+
+	gettextinfo(&ti);
+
+	if(		   sx < 1
+			|| sy < 1
+			|| ex < 1
+			|| ey < 1
+			|| sx > ti.screenwidth
+			|| sy > ti.screenheight
+			|| sx > ex
+			|| sy > ey
+			|| ex > ti.screenwidth
+			|| ey > ti.screenheight
+			|| fill==NULL)
+		return(0);
 
 	getyx(stdscr,oldy,oldx);
 	orig_attr=lastattr;
@@ -88,8 +106,24 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	int oldx, oldy;
 	unsigned char thischar;
 	int	ext_char;
+	struct text_info	ti;
 
-	getyx(stdscr,oldy,oldx);	
+	gettextinfo(&ti);
+
+	if(		   sx < 1
+			|| sy < 1
+			|| ex < 1
+			|| ey < 1
+			|| sx > ti.screenwidth
+			|| sy > ti.screenheight
+			|| sx > ex
+			|| sy > ey
+			|| ex > ti.screenwidth
+			|| ey > ti.screenheight
+			|| fill==NULL)
+		return(0);
+
+	getyx(stdscr,oldy,oldx);
 	for(y=sy-1;y<=ey-1;y++)
 	{
 		for(x=sx-1;x<=ex-1;x++)
@@ -308,7 +342,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 				thischar=attr;
 			fill[fillpos++]=(unsigned char)(thischar);
 			attrib=0;
-			if (attr & A_BOLD)  
+			if (attr & A_BOLD)
 			{
 				attrib |= 8;
 			}
@@ -353,31 +387,13 @@ void curs_textattr(unsigned char attr)
 	bkgdset(colour);
 }
 
-void curs_textbackground(int colour)
-{
-	unsigned char attr;
-	
-	attr=lastattr;
-	attr&=143;
-	attr|=(colour<<4);
-	textattr(attr);
-}
-
-void curs_textcolor(int colour)
-{
-	unsigned char attr;
-	
-	attr=lastattr;
-	attr&=240;
-	attr|=colour;
-	textattr(attr);
-}
-
 int curs_kbhit(void)
 {
 	struct timeval timeout;
 	fd_set	rfds;
 
+	if(curs_nextgetch)
+		return(1);
 	timeout.tv_sec=0;
 	timeout.tv_usec=0;
 	FD_ZERO(&rfds);
@@ -405,8 +421,9 @@ int curs_wherex(void)
 	return(x+1);
 }
 
-void _putch(unsigned char ch, BOOL refresh_now)
+int _putch(unsigned char ch, BOOL refresh_now)
 {
+	int		ret;
 	chtype	cha;
 
 	if(!(mode&UIFC_IBM))
@@ -558,60 +575,27 @@ void _putch(unsigned char ch, BOOL refresh_now)
 	else
 		cha=ch;
 
-	if(ch == ' ')
-		addch(A_BOLD|' ');
+	if(!cha)
+		cha=' ';
+	if(cha == ' ')
+		ret=addch(A_BOLD|' ');
 	else if (cha<' ') {
  		attron(A_REVERSE);
-		addch(cha+'A'-1);
+		ret=addch(cha+'A'-1);
 		attroff(A_REVERSE);
-		refresh();
-		printf("\b%c",cha);
-		refresh();
 	}
 	else
-		addch(cha);
+		ret=addch(cha);
 
 	if(refresh_now)
 		refresh();
-}
 
-int curs_cprintf(char *fmat, ...)
-{
-    va_list argptr;
-	unsigned char	str[MAX_BFLN];
-	int		pos;
-
-    va_start(argptr,fmat);
-    vsprintf(str,fmat,argptr);
-    va_end(argptr);
-	for(pos=0;str[pos];pos++)
-	{
-		_putch(str[pos],FALSE);
-	}
-	refresh();
-    return(1);
-}
-
-void curs_cputs(unsigned char *str)
-{
-	int		pos;
-
-	for(pos=0;str[pos];pos++)
-	{
-		_putch(str[pos],FALSE);
-	}
-	refresh();
+	return(ret);
 }
 
 void curs_gotoxy(int x, int y)
 {
 	move(y-1,x-1);
-	refresh();
-}
-
-void curs_clrscr(void)
-{
-    clear();
 	refresh();
 }
 
@@ -650,6 +634,9 @@ void curs_gettextinfo(struct text_info *info)
 		info->currmode=COLOR_MODE;
 	else
 		info->currmode=MONO;
+	info->curx=wherex();
+	info->cury=wherey();
+	info->attribute=lastattr;
 }
 
 void curs_setcursortype(int type) {
@@ -670,12 +657,277 @@ void curs_setcursortype(int type) {
 	refresh();
 }
 
-void curs_clreol(void)
+int curs_putch(unsigned char c)
 {
-	clrtoeol();
+	struct text_info ti;
+	int		ret;
+	int		i;
+
+	ret=c;
+	switch(c) {
+		case '\r':
+			gotoxy(1,wherey());
+			break;
+		case '\n':
+			gettextinfo(&ti);
+			if(wherey()==ti.winbottom-ti.wintop+1) {
+				wscroll();
+			}
+			else {
+				gotoxy(wherex(),wherey()+1);
+			}
+			break;
+		case 0x07:
+			cio_api.beep();
+			break;
+		case 0x08:
+			gotoxy(wherex()-1,wherey());
+			_putch(' ',FALSE);
+			gotoxy(wherex()-1,wherey());
+			break;
+		case '\t':
+			for(i=0;i<10;i++) {
+				if(curs_tabs[i]>wherex()) {
+					while(wherex()<curs_tabs[i]) {
+						putch(' ');
+					}
+					break;
+				}
+			}
+			if(i==10) {
+				putch('\r');
+				putch('\n');
+			}
+			break;
+		default:
+			gettextinfo(&ti);
+			if(wherey()==ti.winbottom-ti.wintop+1
+					&& wherex()==ti.winright-ti.winleft+1) {
+				if(_putch(c,TRUE)==ERR)
+					ret=EOF;
+				else {
+					wscroll();
+					gotoxy(ti.winleft,ti.cury);
+				}
+			}
+			else {
+				if(wherex()==ti.winright-ti.winleft+1) {
+					if(_putch(c,TRUE)==ERR)
+						ret=EOF;
+					else
+						gotoxy(ti.winleft,ti.cury+1);
+				}
+				else {
+					if(_putch(c,TRUE)==ERR)
+						ret=EOF;
+					else
+						gotoxy(ti.curx+1,ti.cury);
+				}
+			}
+			break;
+	}
 }
 
-void curs_putch(unsigned char c)
+int curs_getch(void)
 {
-	_putch(c,TRUE);
+	int ch;
+
+	if(curs_nextgetch) {
+		ch=curs_nextgetch;
+		curs_nextgetch=0;
+	}
+	else {
+		while((ch=getch())==ERR) {
+			delay(1);
+		}
+		if(ch & KEY_CODE_YES) {
+			switch(ch) {
+				case KEY_DOWN:            /* Down-arrow */
+					curs_nextgetch=0x50;
+					ch=0;
+					break;
+
+				case KEY_UP:		/* Up-arrow */
+					curs_nextgetch=0x48;
+					ch=0;
+					break;
+
+				case KEY_LEFT:		/* Left-arrow */
+					curs_nextgetch=0x4b;
+					ch=0;
+					break;
+
+				case KEY_RIGHT:            /* Right-arrow */
+					curs_nextgetch=0x4d;
+					ch=0;
+					break;
+
+				case KEY_HOME:            /* Home key (upward+left arrow) */
+					curs_nextgetch=0x47;
+					ch=0;
+					break;
+
+				case KEY_BACKSPACE:            /* Backspace (unreliable) */
+					ch=8;
+					break;
+
+				case KEY_F(1):			/* Function Key */
+					curs_nextgetch=0x3b;
+					ch=0;
+					break;
+
+				case KEY_F(2):			/* Function Key */
+					curs_nextgetch=0x3c;
+					ch=0;
+					break;
+
+				case KEY_F(3):			/* Function Key */
+					curs_nextgetch=0x3d;
+					ch=0;
+					break;
+
+				case KEY_F(4):			/* Function Key */
+					curs_nextgetch=0x3e;
+					ch=0;
+					break;
+
+				case KEY_F(5):			/* Function Key */
+					curs_nextgetch=0x3f;
+					ch=0;
+					break;
+
+				case KEY_F(6):			/* Function Key */
+					curs_nextgetch=0x40;
+					ch=0;
+					break;
+
+				case KEY_F(7):			/* Function Key */
+					curs_nextgetch=0x41;
+					ch=0;
+					break;
+
+				case KEY_F(8):			/* Function Key */
+					curs_nextgetch=0x42;
+					ch=0;
+					break;
+
+				case KEY_F(9):			/* Function Key */
+					curs_nextgetch=0x43;
+					ch=0;
+					break;
+
+				case KEY_F(10):			/* Function Key */
+					curs_nextgetch=0x44;
+					ch=0;
+					break;
+
+				case KEY_F(11):			/* Function Key */
+					curs_nextgetch=0x57;
+					ch=0;
+					break;
+
+				case KEY_F(12):			/* Function Key */
+					curs_nextgetch=0x58;
+					ch=0;
+					break;
+
+				case KEY_DC:            /* Delete character */
+					curs_nextgetch=0x53;
+					ch=0;
+					break;
+
+				case KEY_IC:            /* Insert char or enter insert mode */
+					curs_nextgetch=0x52;
+					ch=0;
+					break;
+
+				case KEY_EIC:            /* Exit insert char mode */
+					curs_nextgetch=0x52;
+					ch=0;
+					break;
+
+				case KEY_NPAGE:            /* Next page */
+					curs_nextgetch=0x51;
+					ch=0;
+					break;
+
+				case KEY_PPAGE:            /* Previous page */
+					curs_nextgetch=0x49;
+					ch=0;
+					break;
+
+				case KEY_ENTER:            /* Enter or send (unreliable) */
+					curs_nextgetch=0x0d;
+					ch=0;
+					break;
+
+				case KEY_A1:		/* Upper left of keypad */
+					curs_nextgetch=0x47;
+					ch=0;
+					break;
+
+				case KEY_A3:		/* Upper right of keypad */
+					curs_nextgetch=0x49;
+					ch=0;
+					break;
+
+				case KEY_B2:		/* Center of keypad */
+					curs_nextgetch=0x4c;
+					ch=0;
+					break;
+
+				case KEY_C1:		/* Lower left of keypad */
+					curs_nextgetch=0x4f;
+					ch=0;
+					break;
+
+				case KEY_C3:		/* Lower right of keypad */
+					curs_nextgetch=0x51;
+					ch=0;
+					break;
+
+				case KEY_BEG:		/* Beg (beginning) */
+					curs_nextgetch=0x47;
+					ch=0;
+					break;
+
+				case KEY_CANCEL:		/* Cancel */
+					curs_nextgetch=0x03;
+					ch=0;
+					break;
+
+				case KEY_END:		/* End */
+					curs_nextgetch=0x4f;
+					ch=0;
+					break;
+
+				case KEY_SELECT:		/* Select  - Is "End" in X */
+					curs_nextgetch=0x4f;
+					ch=0;
+					break;
+
+				default:
+					curs_nextgetch=0xff;
+					ch=0;
+					break;
+			}
+		}
+	}
+	return(ch);
+}
+
+int curs_getche(void)
+{
+	int ch;
+
+	if(curs_nextgetch)
+		return(curs_getch());
+	ch=curs_getch();
+	if(ch)
+		putch(ch);
+	return(ch);
+}
+
+void curs_textmode(int mode)
+{
 }
