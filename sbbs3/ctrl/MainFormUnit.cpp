@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.127 2004/07/03 00:20:34 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.129 2004/08/20 02:08:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -663,6 +663,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     ClientDisplayInterval=5;    /* seconds */
     MinimizeToSysTray=false;
     UndockableForms=false;
+    UseFileAssociations=true;
     Initialized=false;
 
     char* p;
@@ -1546,6 +1547,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	Password=Registry->ReadString("Password");
     if(Registry->ValueExists("MinimizeToSysTray"))
     	MinimizeToSysTray=Registry->ReadBool("MinimizeToSysTray");
+    if(Registry->ValueExists("UseFileAssociations"))
+    	UseFileAssociations=Registry->ReadBool("UseFileAssociations");
 	if(Registry->ValueExists("NodeDisplayInterval"))
     	NodeDisplayInterval=Registry->ReadInteger("NodeDisplayInterval");
 	if(Registry->ValueExists("ClientDisplayInterval"))
@@ -1574,12 +1577,13 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         }
         sbbs_read_ini(fp
             ,&global
-            ,(BOOL*)&SysAutoStart   		,&bbs_startup
-            ,(BOOL*)&FtpAutoStart 			,&ftp_startup
-            ,(BOOL*)&WebAutoStart 			,&web_startup
-            ,(BOOL*)&MailAutoStart 	    	,&mail_startup
-            ,(BOOL*)&ServicesAutoStart     	,&services_startup
+            ,&SysAutoStart   		,&bbs_startup
+            ,&FtpAutoStart 			,&ftp_startup
+            ,&WebAutoStart 			,&web_startup
+            ,&MailAutoStart 	    	,&mail_startup
+            ,&ServicesAutoStart     	,&services_startup
             );
+       	StatusBar->Panels->Items[4]->Text="Imported " + AnsiString(ini_file);
         fclose(fp);
 
     } else {
@@ -2066,6 +2070,7 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     Registry->WriteString("ConfigCommand",ConfigCommand);
     Registry->WriteString("Password",Password);
     Registry->WriteBool("MinimizeToSysTray",MinimizeToSysTray);
+    Registry->WriteBool("UseFileAssociations",UseFileAssociations);    
     Registry->WriteInteger("NodeDisplayInterval",NodeDisplayInterval);
     Registry->WriteInteger("ClientDisplayInterval",ClientDisplayInterval);
 
@@ -2381,6 +2386,8 @@ void __fastcall TMainForm::ImportSettings(TObject* Sender)
     	,Password);
    	MinimizeToSysTray=IniFile->ReadBool(section,"MinimizeToSysTray"
     	,MinimizeToSysTray);
+   	UseFileAssociations=IniFile->ReadBool(section,"UseFileAssociations"
+    	,UseFileAssociations);
    	NodeDisplayInterval=IniFile->ReadInteger(section,"NodeDisplayInterval"
     	,NodeDisplayInterval);
    	ClientDisplayInterval=IniFile->ReadInteger(section,"ClientDisplayInterval"
@@ -2419,6 +2426,7 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
     IniFile->WriteString(section,"ConfigCommand",ConfigCommand);
     IniFile->WriteString(section,"Password",Password);
     IniFile->WriteBool(section,"MinimizeToSysTray",MinimizeToSysTray);
+    IniFile->WriteBool(section,"UseFileAssociations",UseFileAssociations);    
     IniFile->WriteBool(section,"UndockableForms",UndockableForms);
 
     section = "SBBSCTRL::MainForm";
@@ -2763,11 +2771,7 @@ void __fastcall TMainForm::TextMenuItemEditClick(TObject *Sender)
     sprintf(filename,"%s%s"
     	,MainForm->cfg.text_dir
         ,((TMenuItem*)Sender)->Hint.c_str());
-	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption=((TMenuItem*)Sender)->Caption;
-	TextFileEditForm->ShowModal();
-    delete TextFileEditForm;
+    EditFile(filename,((TMenuItem*)Sender)->Caption);
 }
 
 //---------------------------------------------------------------------------
@@ -2778,12 +2782,7 @@ void __fastcall TMainForm::CtrlMenuItemEditClick(TObject *Sender)
     sprintf(filename,"%s%s"
     	,MainForm->cfg.ctrl_dir
         ,((TMenuItem*)Sender)->Hint.c_str());
-	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-   	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption=((TMenuItem*)Sender)->Caption;
-	TextFileEditForm->ShowModal();
-    delete TextFileEditForm;
-
+    EditFile(filename,((TMenuItem*)Sender)->Caption);
 }
 void __fastcall TMainForm::DataMenuItemClick(TObject *Sender)
 {
@@ -2792,11 +2791,7 @@ void __fastcall TMainForm::DataMenuItemClick(TObject *Sender)
     sprintf(filename,"%s%s"
     	,MainForm->cfg.data_dir
         ,((TMenuItem*)Sender)->Hint.c_str());
-	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-   	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption=((TMenuItem*)Sender)->Caption;
-	TextFileEditForm->ShowModal();
-    delete TextFileEditForm;
+    EditFile(filename,((TMenuItem*)Sender)->Caption);
 }
 //---------------------------------------------------------------------------
 
@@ -2857,12 +2852,7 @@ void __fastcall TMainForm::BBSViewErrorLogMenuItemClick(TObject *Sender)
 
     sprintf(filename,"%sERROR.LOG"
     	,MainForm->cfg.logs_dir);
-	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-    TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption="Error Log";
-    TextFileEditForm->Memo->ReadOnly=true;
-	TextFileEditForm->ShowModal();
-    delete TextFileEditForm;
+    ViewFile(filename,"Error Log");
 }
 //---------------------------------------------------------------------------
 
@@ -2923,8 +2913,6 @@ void __fastcall TMainForm::BBSLoginMenuItemClick(TObject *Sender)
         WinExec(LoginCommand.c_str(),SW_SHOWNORMAL);
 }
 //---------------------------------------------------------------------------
-
-
 void __fastcall TMainForm::ViewLogClick(TObject *Sender)
 {
     char    str[128];
@@ -2962,16 +2950,9 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
         ,tm->tm_mday
         ,tm->tm_year%100
         );
-	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption=((TMenuItem*)Sender)->Caption;
-    TextFileEditForm->Memo->ReadOnly=true;
-	TextFileEditForm->ShowModal();
-    delete TextFileEditForm;
+    ViewFile(filename,((TMenuItem*)Sender)->Caption);
 }
 //---------------------------------------------------------------------------
-
-
 void __fastcall TMainForm::UserListExecute(TObject *Sender)
 {
     UserListForm->Show();
@@ -2984,7 +2965,6 @@ void __fastcall TMainForm::WebPageMenuItemClick(TObject *Sender)
         NULL,NULL,SW_SHOWDEFAULT);
 }
 //---------------------------------------------------------------------------
-
 void __fastcall TMainForm::FormMinimize(TObject *Sender)
 {
     if(MinimizeToSysTray) {
@@ -3248,13 +3228,8 @@ void __fastcall TMainForm::FileEditTextFilesClick(TObject *Sender)
     dlg->Filter = 	"Text files (*.txt)|*.TXT"
     				"|All files|*.*";
     dlg->InitialDir=cfg.text_dir;
-    if(dlg->Execute()==true) {
-        Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-        TextFileEditForm->Filename=AnsiString(dlg->FileName);
-        TextFileEditForm->Caption="Edit";
-        TextFileEditForm->ShowModal();
-        delete TextFileEditForm;
-    }
+    if(dlg->Execute()==true)
+        EditFile(dlg->FileName.c_str());
     delete dlg;
 }
 //---------------------------------------------------------------------------
@@ -3289,13 +3264,8 @@ void __fastcall TMainForm::FileEditJavaScriptClick(TObject *Sender)
     dlg->Options << ofNoChangeDir;
     dlg->Filter = "JavaScript Files (*.js)|*.JS";
     dlg->InitialDir=cfg.exec_dir;
-    if(dlg->Execute()==true) {
-        Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-        TextFileEditForm->Filename=AnsiString(dlg->FileName);
-        TextFileEditForm->Caption="Edit";
-        TextFileEditForm->ShowModal();
-        delete TextFileEditForm;
-    }
+    if(dlg->Execute()==true)
+        EditFile(dlg->FileName.c_str());
     delete dlg;
 }
 //---------------------------------------------------------------------------
@@ -3307,13 +3277,8 @@ void __fastcall TMainForm::FileEditConfigFilesClick(TObject *Sender)
     dlg->Options << ofNoChangeDir;
     dlg->Filter = "Configuration Files (*.cfg)|*.CFG";
     dlg->InitialDir=cfg.ctrl_dir;
-    if(dlg->Execute()==true) {
-        Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
-        TextFileEditForm->Filename=AnsiString(dlg->FileName);
-        TextFileEditForm->Caption="Edit";
-        TextFileEditForm->ShowModal();
-        delete TextFileEditForm;
-    }
+    if(dlg->Execute()==true)
+        EditFile(dlg->FileName.c_str());
     delete dlg;
 }
 
@@ -3521,6 +3486,31 @@ void __fastcall TMainForm::ServiceStatusTimerTick(TObject *Sender)
         ,NULL
         );
 
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::EditFile(AnsiString filename, AnsiString Caption)
+{
+   if(!UseFileAssociations
+        || (int)ShellExecute(Handle, "open", filename.c_str(), NULL,NULL,SW_SHOWDEFAULT)<=32) {
+        Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
+        TextFileEditForm->Filename=filename;
+        TextFileEditForm->Caption=Caption;
+        TextFileEditForm->ShowModal();
+        delete TextFileEditForm;
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ViewFile(AnsiString filename, AnsiString Caption)
+{
+   if(!UseFileAssociations
+        || (int)ShellExecute(Handle, "open", filename.c_str(), NULL,NULL,SW_SHOWDEFAULT)<=32) {
+        Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
+        TextFileEditForm->Filename=filename;
+        TextFileEditForm->Caption=Caption;
+        TextFileEditForm->Memo->ReadOnly=true;
+        TextFileEditForm->ShowModal();
+        delete TextFileEditForm;
+    }
 }
 //---------------------------------------------------------------------------
 
