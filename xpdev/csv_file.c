@@ -2,7 +2,7 @@
 
 /* Functions to deal with comma-separated value (CSV) files and lists */
 
-/* $Id: csv_file.c,v 1.4 2004/08/04 04:06:19 rswindell Exp $ */
+/* $Id: csv_file.c,v 1.5 2004/08/04 08:48:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,7 @@
 #include "csv_file.h"
 #include "genwrap.h"	/* lastchar */
 #include <stdlib.h>		/* malloc */
+#include <string.h>		/* strdup */
 
 char* csvEncode(char* field)
 {
@@ -190,6 +191,8 @@ str_list_t*	csvReadFile(FILE* fp, str_list_t* columns)
 	str_list_t	lines;
 	size_t		i;
 
+	rewind(fp);
+
 	if((lines=strListReadFile(fp, NULL, 0))==NULL)
 		return(NULL);
 
@@ -231,7 +234,7 @@ int main()
 		printf("%s\n",list[i]);
 }
 
-#elif 1	/* decode and display .csv file */
+#elif 0	/* decode and display .csv file */
 
 void main(int argc, char** argv)
 {
