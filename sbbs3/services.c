@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.78 2002/09/07 04:15:50 rswindell Exp $ */
+/* $Id: services.c,v 1.79 2002/10/13 06:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1155,7 +1155,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.78 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.79 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1553,6 +1553,8 @@ void DLLCALL services_thread(void* arg)
 								,service[i].socket, service[i].protocol, ERROR_VALUE);
 						break;
 					}
+					if(startup->socket_open!=NULL)
+						startup->socket_open(TRUE);	/* Callback, increments socket counter */
 				}
 				strcpy(host_ip,inet_ntoa(client_addr.sin_addr));
 
@@ -1591,9 +1593,6 @@ void DLLCALL services_thread(void* arg)
 					close_socket(client_socket);
 					continue;
 				}
-
-				if(startup->socket_open!=NULL)
-					startup->socket_open(TRUE);	/* Callback */
 
 				memset(client,0,sizeof(service_client_t));
 				client->socket=client_socket;
