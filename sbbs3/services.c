@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.25 2002/02/08 13:19:12 rswindell Exp $ */
+/* $Id: services.c,v 1.26 2002/02/20 13:51:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1234,6 +1234,7 @@ void DLLCALL services_thread(void* arg)
 	if(total_clients) {
 		lprintf("0000 Waiting for %d clients to disconnect",total_clients);
 		while(1) {
+			total_clients=0;
 			for(i=0;i<(int)services;i++) 
 				total_clients+=service[i].clients;
 			if(!total_clients)
