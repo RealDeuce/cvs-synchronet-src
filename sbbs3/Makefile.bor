@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.bor,v 1.18 2002/01/21 04:09:41 rswindell Exp $
+# $Id: Makefile.bor,v 1.19 2002/02/15 13:21:35 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -67,9 +67,9 @@ SBBSLIB	=	$(LIBODIR)\sbbs.lib
 
 # Create output directories if they don't exist
 $(LIBODIR):
-	if not exist $(LIBODIR) mkdir $(LIBODIR)
+	@if not exist $(LIBODIR) mkdir $(LIBODIR)
 $(EXEODIR):
-	if not exist $(EXEODIR) mkdir $(EXEODIR)
+	@if not exist $(EXEODIR) mkdir $(EXEODIR)
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): sbbscon.c $(OBJS) $(LIBODIR)\ver.$(OFILE) $(LIBODIR)\ftpsrvr.$(OFILE) \
