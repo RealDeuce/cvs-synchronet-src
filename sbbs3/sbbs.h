@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.40 2001/04/23 01:16:37 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.41 2001/04/26 02:50:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,6 +53,10 @@
 	#include <process.h>	/* _beginthread() prototype */
 	#include <direct.h>		/* _mkdir() prototype */
 	#include <mmsystem.h>	/* SND_ASYNC */
+
+	#if defined(_DEBUG)
+		#include <crtdbg.h> /* Windows debug macros and stuff */
+	#endif
 
 #elif defined(__unix__)		/* Unix-variant */
 
@@ -118,7 +122,8 @@ class sbbs_t
 
 public:
 
-	sbbs_t(ushort node_num, DWORD addr, char* host_name, SOCKET, scfg_t*, char* text[]);
+	sbbs_t(ushort node_num, DWORD addr, char* host_name, SOCKET
+		,scfg_t*, char* text[], client_t* client_info);
 	~sbbs_t();
 
 	bool	init(void);
@@ -215,7 +220,6 @@ public:
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
 	char 	orgcmd[129];	/* Original command to execute bbs */
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
-	char 	debug;			/* Flag to allow debug writes */
 	int		keybuftop,keybufbot;	/* Keyboard input buffer pointers */
 	char 	keybuf[KEY_BUFSIZE];	/* Keyboard input buffer */
 	char *	connection;		/* Connection Description */
@@ -262,7 +266,6 @@ public:
 			logon_fbacks;	/* Feedbacks This Call */
 	uchar	logon_ml;		/* ML of the user apon logon */
 
-	int 	node_disk;		/* Number of Node's disk */
 	uint 	main_cmds;		/* Number of Main Commands this call */
 	uint 	xfer_cmds;		/* Number of Xfer Commands this call */
 	ulong	posts_read; 	/* Number of Posts read this call */
