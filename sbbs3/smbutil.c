@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.85 2004/12/22 21:01:23 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.84 2004/11/17 11:07:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -606,7 +606,6 @@ void dump_hashes(void)
 		printf("\n");
 		printf("%-10s: %lu\n",		"Number",	hash.number);
 		printf("%-10s: %s\n",		"Source",	smb_hashsourcetype(hash.source));
-		printf("%-10s: %lu\n",		"Length",	hash.length);
 		printf("%-10s: %s\n",		"Time",		my_timestr((time_t*)&hash.time));
 		printf("%-10s: %x\n",		"Flags",	hash.flags);
 		if(hash.flags&SMB_HASH_CRC16)
@@ -1456,7 +1455,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.85 $", "%*s %s", revision);
+	sscanf("$Revision: 1.84 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
