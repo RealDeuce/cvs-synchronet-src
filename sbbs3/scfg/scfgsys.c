@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.21 2003/03/04 10:56:57 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.22 2003/03/09 23:33:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1106,7 +1106,7 @@ user.
 					,cfg.sys_lastnode);
 				sprintf(opt[i++],"%-27.27s%s","Phone Number Format"
 					,cfg.sys_phonefmt);
-				sprintf(opt[i++],"%-27.27s%.40s","Sysop Chat Requirements"
+				sprintf(opt[i++],"%-27.27s%.40s","Sysop Chat Override"
 					,cfg.sys_chat_arstr);
 				if(cfg.user_backup_level)
 					sprintf(str,"%hu",cfg.user_backup_level);
@@ -1347,7 +1347,7 @@ format. An example for North American phone numbers is NNN-NNN-NNNN.
 							,LEN_PHONE,K_UPPER|K_EDIT);
                         break;
 					case 13:
-						getar("Sysop Chat",cfg.sys_chat_arstr);
+						getar("Sysop Chat Override",cfg.sys_chat_arstr);
 						break;
 					case 14:
 						SETHELP(WHERE);
