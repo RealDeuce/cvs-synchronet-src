@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.6 2001/06/26 02:44:48 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.7 2001/07/17 03:24:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,7 +334,8 @@ js_menu(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
  		return(JS_FALSE);
  
 	sbbs->menu(JS_GetStringBytes(str));
- 
+ 	*rval=JSVAL_VOID;
+
     return(JS_TRUE);
 }
  
@@ -347,6 +348,7 @@ js_hangup(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->hangup();
+	*rval=JSVAL_VOID;
 
 	return(JS_TRUE);
 }
@@ -434,7 +436,6 @@ js_chksyspass(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 
 	*rval = BOOLEAN_TO_JSVAL(sbbs->chksyspass());
-
 	return(JS_TRUE);
 }
 
@@ -839,8 +840,8 @@ static JSFunctionSpec js_bbs_functions[] = {
 	{"hangup",			js_hangup,			0},		// hangup immediately
 	/* menuing */
 	{"menu",			js_menu,			1},		// show menu
-	{"logkey",			js_logkey,			1},		// log key to node.log (comma optional)
-	{"logstr",			js_logstr,			1},		// log string to node.log
+	{"log_key",			js_logkey,			1},		// log key to node.log (comma optional)
+	{"log_str",			js_logstr,			1},		// log string to node.log
 	/* users */
 	{"finduser",		js_finduser,		1},		// find user (partial name support)
 	{"trashcan",		js_trashcan,		2},		// search file for psuedo-regexp
