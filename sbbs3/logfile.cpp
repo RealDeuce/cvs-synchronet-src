@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.5 2001/06/26 02:43:33 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.6 2001/08/28 14:45:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,32 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 		);
 	write(file,hdr,strlen(hdr));
 	write(file,text,strlen(text));
+	write(file,crlf,2);
+	write(file,crlf,2);
+	close(file);
+
+	return(TRUE);
+}
+
+extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* reason, char* host, char* ip_addr)
+{
+	char	hdr[512];
+	char	fname[MAX_PATH+1];
+	int		file;
+	time_t	now=time(NULL);
+
+	sprintf(fname,"%sspam.log",cfg->data_dir);
+
+	if((file=sopen(fname,O_CREAT|O_WRONLY|O_BINARY|O_APPEND,SH_DENYWR))==-1)
+		return(FALSE);
+
+	sprintf(hdr,"SUSPECTED SPAM REJECTED from %s [%s] on %.24s\r\nReason: "
+		,host
+		,ip_addr
+		,ctime(&now)
+		);
+	write(file,hdr,strlen(hdr));
+	write(file,reason,strlen(reason));
 	write(file,crlf,2);
 	write(file,crlf,2);
 	close(file);
