@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.19 2004/11/09 17:30:03 rswindell Exp $ */
+/* $Id: link_list.c,v 1.20 2004/11/09 18:15:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,7 +158,7 @@ void* listGetPrivateData(link_list_t* list)
 
 BOOL listSemPost(const link_list_t* list)
 {
-	if(list==NULL)
+	if(list==NULL || list->sem==NULL)
 		return(FALSE);
 
 	return(sem_post(&list->sem)==0);
@@ -166,7 +166,7 @@ BOOL listSemPost(const link_list_t* list)
 
 BOOL listSemWait(const link_list_t* list)
 {
-	if(list==NULL)
+	if(list==NULL || list->sem==NULL)
 		return(FALSE);
 
 	return(sem_wait(&list->sem)==0);
@@ -174,7 +174,7 @@ BOOL listSemWait(const link_list_t* list)
 
 BOOL listSemTryWait(const link_list_t* list)
 {
-	if(list==NULL)
+	if(list==NULL || list->sem==NULL)
 		return(FALSE);
 
 	return(sem_trywait(&list->sem)==0);
@@ -182,7 +182,7 @@ BOOL listSemTryWait(const link_list_t* list)
 
 BOOL listSemTryWaitBlock(const link_list_t* list, unsigned long timeout)
 {
-	if(list==NULL)
+	if(list==NULL || list->sem==NULL)
 		return(FALSE);
 
 	return(sem_trywait_block(&list->sem,timeout));
