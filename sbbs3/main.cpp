@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.176 2002/08/27 07:53:15 rswindell Exp $ */
+/* $Id: main.cpp,v 1.177 2002/08/27 11:13:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,7 +191,6 @@ SOCKET open_socket(int type)
 SOCKET accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
-	char	error[256];
 
 	sock=accept(s,addr,addrlen);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
