@@ -1103,7 +1103,6 @@ init_mode(int mode)
     
     idx = find_vmode(mode & 0x7f);
     if (idx == -1 || vmodelist[idx].type == NOMODE) {
-		fprintf(stderr,"Cannot initialize selected mode\n");
 		return(-1);
 	}
     vmode = vmodelist[idx];
@@ -1132,10 +1131,8 @@ init_mode(int mode)
 
     /* Update font. */
     xfont = vmode.fontname;
-    if(load_font()) {
-		fprintf(stderr,"Cannot load ``%s'' font\n",xfont);
+    if(load_font())
 		return(-1);
-	}
 
     /* Resize window if necessary. */
     resize_window();
@@ -1177,7 +1174,6 @@ init_window()
 
 	dpy = XOpenDisplay(NULL);
     if (dpy == NULL) {
-		fprintf(stderr,"Cannot open connection to X server\n");
 		return(-1);
 	}
     xfd = ConnectionNumber(dpy);
@@ -1261,18 +1257,12 @@ console_init()
 	if(dpy!=NULL)
 		return(0);
 
-    if(kbd_init()) {
-		fprintf(stderr,"Cannot initialize X keyboard\n");
+    if(kbd_init())
 		return(-1);
-	}
-    if(video_init()) {
-		fprintf(stderr,"X video init failure\n");
+    if(video_init())
 		return(-1);
-	}
-    if(mouse_init()) {
-		fprintf(stderr,"Cannot initialize X mouse\n");
+    if(mouse_init())
 		return(-1);
-	}
 
 	_beginthread(video_async_event,1<<16,NULL);
 	return(0);
@@ -1379,9 +1369,4 @@ tty_kbhit(void)
 	if(x_nextchar || !KbdEmpty())
 		return(1);
 	return(0);
-}
-
-void x_win_title(const char *title)
-{
-    XStoreName(dpy, win, title);
 }
