@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: AboutBoxFormUnit.cpp,v 1.5 2001/07/18 03:36:20 rswindell Exp $ */
+/* $Id: AboutBoxFormUnit.cpp,v 1.6 2001/08/03 21:09:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,12 +107,10 @@ void __fastcall TAboutBoxForm::FormShow(TObject *Sender)
     Memo->Lines->Add(mail_ver());
     Memo->Lines->Add(ftp_ver());
     Memo->Lines->Add(ver);
-#if 0
-    Memo->Lines->Add("EmulVT ANSI Terminal Emulation v2.15 "
-        "(c) 1996-2000 François Piette");
-#else
-    Memo->Lines->Add("Synchronet Local Spy ANSI Terminal Emulation"+CopyRight);
-#endif
+    Memo->Lines->Add("Synchronet Local Spy ANSI Terminal Emulation"
+        + CopyRight);
+    Memo->Lines->Add(AnsiString(js_ver())
+        + " (c) 1998 Netscape Communications Corp.");
 }
 //---------------------------------------------------------------------------
 
