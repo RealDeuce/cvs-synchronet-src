@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.39 2004/08/04 03:45:50 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.41 2004/09/13 00:27:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -416,3 +416,40 @@ clock_t DLLCALL msclock(void)
 	return((clock_t)(usecs/(1000000/MSCLOCKS_PER_SEC)));
 }
 #endif
+
+/****************************************************************************/
+/* Truncates all white-space chars off end of 'str'	(needed by STRERRROR)	*/
+/****************************************************************************/
+char* DLLCALL truncsp(char* str)
+{
+	unsigned c;
+
+	c=strlen(str);
+	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
+
+	return(str);
+}
+
+/****************************************************************************/
+/* Truncates carriage-return and line-feed chars off end of 'str'			*/
+/****************************************************************************/
+char* DLLCALL truncnl(char* str)
+{
+	unsigned c;
+
+	c=strlen(str);
+	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
+
+	return(str);
+}
+
+/****************************************************************************/
+/* Return errno from the proper C Library implementation					*/
+/* (single/multi-threaded)													*/
+/****************************************************************************/
+int DLLCALL	get_errno(void)
+{
+	return(errno);
+}
