@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.27 2000/11/04 02:25:17 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.28 2000/11/04 05:59:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2292,6 +2292,8 @@ static void ctrl_thread(void* arg)
 				lprintf("%04d %s %.4s by alias: %s"
 					,sock,user.alias,cmd,p);
 				p=getfname(fname);
+				if(dir>=0)
+					lib=scfg.dir[dir]->lib;
 			}
 			if(!success && lib<0 && (tp=strchr(p,'/'))!=NULL) {
 				dir=-1;
