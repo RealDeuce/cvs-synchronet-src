@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.101 2004/10/27 09:13:55 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.99 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 {
 	char*		cp;
 	char		to[256];
-	ushort		nettype=NET_UNKNOWN;
+	ushort		nettype;
 	ushort		agent;
 	int32		i32;
 	jsval		val;
@@ -153,24 +153,21 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	if(JS_GetProperty(cx, hdr, "to_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		nettype=(ushort)i32;
+		smb_hfield(msg, RECIPIENTNETTYPE, sizeof(nettype), &nettype);
+		if(p->smb.status.attr&SMB_EMAIL && nettype!=NET_NONE)
+			msg->idx.to=0;
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
-		smb_hfield_netaddr(msg, RECIPIENTNETADDR, cp, &nettype);
-	}
-
-	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
-		if(p->smb.status.attr&SMB_EMAIL)
-			msg->idx.to=0;
-		smb_hfield_bin(msg, RECIPIENTNETTYPE, nettype);
+		smb_hfield_str(msg, RECIPIENTNETADDR, cp);
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_agent", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		agent=(ushort)i32;
-		smb_hfield_bin(msg, RECIPIENTAGENT, agent);
+		smb_hfield(msg, RECIPIENTAGENT, sizeof(agent), &agent);
 	}
 
 	return(TRUE);
@@ -181,7 +178,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 {
 	char*		cp;
 	char		from[256];
-	ushort		nettype=NET_UNKNOWN;
+	ushort		nettype;
 	ushort		type;
 	ushort		agent;
 	ushort		port;
@@ -236,24 +233,21 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	if(JS_GetProperty(cx, hdr, "from_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		nettype=(ushort)i32;
+		smb_hfield(msg, SENDERNETTYPE, sizeof(nettype), &nettype);
+		if(p->smb.status.attr&SMB_EMAIL && nettype!=NET_NONE)
+			msg->idx.from=0;
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
-		smb_hfield_netaddr(msg, SENDERNETADDR, cp, &nettype);
-	}
-	
-	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
-		if(p->smb.status.attr&SMB_EMAIL)
-			msg->idx.from=0;
-		smb_hfield_bin(msg, SENDERNETTYPE, nettype);
+		smb_hfield_str(msg, SENDERNETADDR, cp);
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_agent", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		agent=(ushort)i32;
-		smb_hfield_bin(msg, SENDERAGENT, agent);
+		smb_hfield(msg, SENDERAGENT, sizeof(agent), &agent);
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_ip_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
@@ -277,7 +271,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	if(JS_GetProperty(cx, hdr, "from_port", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		port=(ushort)i32;
-		smb_hfield_bin(msg, SENDERPORT, port);
+		smb_hfield(msg, SENDERPORT, sizeof(port), &port);
 	}
 
 	if(JS_GetProperty(cx, hdr, "replyto", &val) && !JSVAL_NULL_OR_VOID(val)) {
@@ -298,23 +292,22 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		smb_hfield_str(msg, REPLYTOORG, cp);
 	}
 
-	nettype=NET_UNKNOWN;
 	if(JS_GetProperty(cx, hdr, "replyto_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		nettype=(ushort)i32;
+		smb_hfield(msg, REPLYTONETTYPE, sizeof(nettype), &nettype);
 	}
+
 	if(JS_GetProperty(cx, hdr, "replyto_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
-		smb_hfield_netaddr(msg, REPLYTONETADDR, cp, &nettype);
+		smb_hfield_str(msg, REPLYTONETADDR, cp);
 	}
-	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE)
-		smb_hfield_bin(msg, REPLYTONETTYPE, nettype);
 
 	if(JS_GetProperty(cx, hdr, "replyto_agent", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		agent=(ushort)i32;
-		smb_hfield_bin(msg, REPLYTOAGENT, agent);
+		smb_hfield(msg, REPLYTOAGENT, sizeof(agent), &agent);
 	}
 
 	/* RFC822 headers */
