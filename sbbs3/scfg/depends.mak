@@ -1,8 +1,8 @@
 # depends.mak
 
-# Make 'include file' defining dependencies for Synchronet SBBS.DLL
+# Make 'include file' defining dependencies for Synchronet SCFG
 
-# $Id: depends.mak,v 1.2 2002/01/28 00:31:00 rswindell Exp $
+# $Id: depends.mak,v 1.3 2002/03/05 17:01:43 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, and OFILE must be pre-defined
 
@@ -15,6 +15,5 @@ $(LIBODIR)$(SLASH)scfgsys.$(OFILE):		$(HEADERS)
 $(LIBODIR)$(SLASH)scfgxfr1.$(OFILE):	$(HEADERS)
 $(LIBODIR)$(SLASH)scfgxfr2.$(OFILE):	$(HEADERS)
 $(LIBODIR)$(SLASH)scfgchat.$(OFILE):	$(HEADERS)
-$(LIBODIR)$(SLASH)scfg.$(OFILE):		$(HEADERS) $(OBJS)
-$(LIBODIR)$(SLASH)scfg:					$(HEADERS) $(OBJS) $(LIBODIR)$(SLASH)scfg.$(OFILE)
+$(LIBODIR)$(SLASH)scfg.$(OFILE):		$(HEADERS)
 
