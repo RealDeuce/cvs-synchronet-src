@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.8 2001/10/02 14:56:22 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.9 2001/11/04 00:46:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 					&& chk_ar(cfg.prot[x]->ar,&useron))
 					break;
 			if(x<cfg.total_prots)	/* This should be always */
-				protocol(cmdstr(cfg.prot[x]->ulcmd,subj,nulstr,NULL),0); }
+				protocol(cmdstr(cfg.prot[x]->ulcmd,subj,nulstr,NULL),true); }
 		l=flength(subj);
 		if(l>0)
 			bprintf(text[FileNBytesReceived],fname,ultoac(l,tmp));

@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.7 2001/10/02 14:57:22 rswindell Exp $ */
+/* $Id: email.cpp,v 1.8 2001/11/04 00:46:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 					&& chk_ar(cfg.prot[x]->ar,&useron))
 					break;
 			if(x<cfg.total_prots)	/* This should be always */
-				protocol(cmdstr(cfg.prot[x]->ulcmd,str2,nulstr,NULL),0); }
+				protocol(cmdstr(cfg.prot[x]->ulcmd,str2,nulstr,NULL),true); }
 		l=flength(str2);
 		if(l>0)
 			bprintf(text[FileNBytesReceived],title,ultoac(l,tmp));
