@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.116 2002/02/28 01:15:44 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.117 2002/02/28 02:22:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2746,7 +2746,7 @@ void DLLCALL mail_server(void* arg)
 	/* Setup intelligent defaults */
 	if(startup->relay_port==0)				startup->relay_port=IPPORT_SMTP;
 	if(startup->smtp_port==0)				startup->smtp_port=IPPORT_SMTP;
-	if(startup->pop3_port==0)				startup->pop3_port=110;
+	if(startup->pop3_port==0)				startup->pop3_port=IPPORT_POP3;
 	if(startup->rescan_frequency==0)		startup->rescan_frequency=3600;	/* 60 minutes */
 	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=50;
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */

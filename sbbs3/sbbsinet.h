@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.16 2001/12/20 01:30:30 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.17 2002/02/28 02:22:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -115,8 +115,15 @@ static  wsa_error;
 
 #ifndef IPPORT_FTP
 #define IPPORT_FTP		21
+#endif
+#ifndef IPPORT_TELNET
 #define IPPORT_TELNET	23
+#endif
+#ifndef IPPORT_SMTP
 #define IPPORT_SMTP		25
+#endif
+#ifndef IPPORT_POP3
+#define IPPORT_POP3		110
 #endif
 
 #endif	/* Don't add anything after this line */
