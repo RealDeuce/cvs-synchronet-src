@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.17 2001/08/27 18:59:09 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.18 2001/10/26 16:23:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,6 +427,7 @@ char* DLLCALL prep_dir(char* base, char* path)
 	char	*p;
 #endif
 	char	str[LEN_DIR*2];
+	char	abspath[MAX_PATH+1];
 
 	if(!path[0])
 		return(path);
@@ -444,9 +445,10 @@ char* DLLCALL prep_dir(char* base, char* path)
 
 	backslashcolon(str);
 	strcat(str,".");                // Change C: to C:. and C:\SBBS\ to C:\SBBS\.
-	_fullpath(path,str,LEN_DIR+1);	// Change C:\SBBS\NODE1\..\EXEC to C:\SBBS\EXEC
-	backslash(path);
+	_fullpath(abspath,str,LEN_DIR+1);	// Change C:\SBBS\NODE1\..\EXEC to C:\SBBS\EXEC
+	backslash(abspath);
 
+	sprintf(path,"%.*s",LEN_DIR,abspath);
 	return(path);
 }
 
