@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.6 2001/06/24 12:28:07 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.7 2001/08/24 13:59:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,7 +176,7 @@ void sbbs_t::outchar(char ch)
 	#if 0 
 	if(console&CON_L_ECHO) {
 		if(console&CON_L_ECHOX && (uchar)ch>=SP)
-			putch('X');
+			putch(password_char);
 		else if(cfg.node_misc&NM_NOBEEP && ch==BEL);	 /* Do nothing if beep */
 		else if(ch==BEL) {
 				sbbs_beep(2000,110);
@@ -185,8 +185,10 @@ void sbbs_t::outchar(char ch)
 	#endif
 
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
-		if(console&CON_R_ECHOX && (uchar)ch>=SP)
-			ch='X';
+		if(console&CON_R_ECHOX && (uchar)ch>=SP) {
+			ch=text[YN][3];
+			if(ch==0) ch='X';
+		}
 		if(ch==FF && useron.misc&ANSI) {
 			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
 		}
