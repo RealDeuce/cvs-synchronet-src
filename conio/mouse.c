@@ -3,6 +3,7 @@
 #include <genwrap.h>
 #include <semwrap.h>
 #include <threadwrap.h>
+#include <link_list.h>
 
 #include "mouse.h"
 
@@ -59,23 +60,27 @@ struct mouse_state {
 	int	click_timeout;			/* Timeout between press and release events for a click (ms) */
 	int	multi_timeout;			/* Timeout after a click for detection of multi clicks (ms) */
 	int	click_drift;			/* Allowed "drift" during a click event */
-	struct in_mouse_event	*events_in;		/* Pointer to recevied events queue */
-	struct out_mouse_event	*events_out;	/* Pointer to output events queue */
+	link_list_t	*input;
+	link_list_t	*output;
 };
 
 struct mouse_state state;
 int mouse_events=0;
+static mouse_initialized=0;
 
 void init_mouse(void)
 {
 	memset(&state,0,sizeof(state));
+	state.input=malloc(sizeof(link_list_t));
+	state.output=malloc(sizeof(link_list_t));
 	state.click_timeout=200;
 	state.multi_timeout=300;
-	state.events_in=(struct in_mouse_event *)NULL;
-	state.events_out=(struct out_mouse_event *)NULL;
+	listInit(state.input,LINK_LIST_NEVER_FREE);
+	listInit(state.output,LINK_LIST_NEVER_FREE);
 	pthread_mutex_init(&in_mutex,NULL);
 	pthread_mutex_init(&out_mutex,NULL);
 	sem_init(&in_sem,0,0);
+	mouse_initialized=1;
 }
 
 int ciomouse_setevents(int events)
@@ -101,6 +106,8 @@ void ciomouse_gotevent(int event, int x, int y)
 	struct in_mouse_event *ime;
 	struct in_mouse_event **lastevent;
 
+	while(!mouse_initialized)
+		SLEEP(1);
 	ime=(struct in_mouse_event *)malloc(sizeof(struct in_mouse_event));
 	ime->ts=MSEC_CLOCK();
 	ime->event=event;
@@ -110,8 +117,7 @@ void ciomouse_gotevent(int event, int x, int y)
 
 	pthread_mutex_lock(&in_mutex);
 
-	for(lastevent=&state.events_in;*lastevent != NULL;lastevent=&(*lastevent)->nextevent);
-	*lastevent=ime;
+	listPushNode(state.input,ime);
 
 	pthread_mutex_unlock(&in_mutex);
 	sem_post(&in_sem);
@@ -139,8 +145,7 @@ void add_outevent(int event, int x, int y)
 
 	pthread_mutex_lock(&out_mutex);
 
-	for(lastevent=&state.events_out;*lastevent != NULL;lastevent=&(*lastevent)->nextevent);
-	*lastevent=ome;
+	listPushNode(state.output,ome);
 
 	pthread_mutex_unlock(&out_mutex);
 }
@@ -166,8 +171,9 @@ void ciolib_mouse_thread(void *data)
 				timedout=sem_trywait_block(&in_sem,delay);
 			}
 		}
-		else
+		else {
 			sem_wait(&in_sem);
+}
 		if(timedout) {
 			state.timeout[timeout_button-1]=0;
 			switch(state.button_state[timeout_button-1]) {
@@ -210,25 +216,32 @@ void ciolib_mouse_thread(void *data)
 			state.button_state[timeout_button-1]=MOUSE_NOSTATE;
 		}
 		else {
-			but=CIOLIB_BUTTON_NUMBER(state.events_in->event);
-			switch(CIOLIB_BUTTON_BASE(state.events_in->event)) {
+			struct in_mouse_event *in;
+
+			pthread_mutex_lock(&in_mutex);
+			in=listRemoveNode(state.input, FIRST_NODE);
+			pthread_mutex_unlock(&in_mutex);
+			if(in==NULL)
+					continue;
+			but=CIOLIB_BUTTON_NUMBER(in->event);
+			switch(CIOLIB_BUTTON_BASE(in->event)) {
 				case CIOLIB_MOUSE_MOVE:
-					if(state.events_in->x==state.button_x[but]
-							&& state.events_in->y==state.button_y[but])
+					if(in->x==state.button_x[but]
+							&& in->y==state.button_y[but])
 						break;
-					add_outevent(CIOLIB_MOUSE_MOVE,state.events_in->x,state.events_in->y);
+					add_outevent(CIOLIB_MOUSE_MOVE,in->x,in->y);
 					for(but=1;but<=3;but++) {
 						switch(state.button_state[but-1]) {
 							case MOUSE_NOSTATE:
 								if(state.buttonstate & CIOLIB_BUTTON(but)) {
 									add_outevent(CIOLIB_BUTTON_DRAG_START(but),state.button_x[but-1],state.button_y[but-1]);
-									add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),state.events_in->x,state.events_in->y);
+									add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),in->x,in->y);
 									state.button_state[but-1]=MOUSE_DRAGSTARTED;
 								}
 								break;
 							case MOUSE_SINGLEPRESSED:
 								add_outevent(CIOLIB_BUTTON_DRAG_START(but),state.button_x[but-1],state.button_y[but-1]);
-								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),state.events_in->x,state.events_in->y);
+								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),in->x,in->y);
 								state.button_state[but-1]=MOUSE_DRAGSTARTED;
 								break;
 							case MOUSE_CLICKED:
@@ -238,7 +251,7 @@ void ciolib_mouse_thread(void *data)
 							case MOUSE_DOUBLEPRESSED:
 								add_outevent(CIOLIB_BUTTON_CLICK(but),state.button_x[but-1],state.button_y[but-1]);
 								add_outevent(CIOLIB_BUTTON_DRAG_START(but),state.button_x[but-1],state.button_y[but-1]);
-								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),state.events_in->x,state.events_in->y);
+								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),in->x,in->y);
 								state.button_state[but-1]=MOUSE_DRAGSTARTED;
 								break;
 							case MOUSE_DOUBLECLICKED:
@@ -248,7 +261,7 @@ void ciolib_mouse_thread(void *data)
 							case MOUSE_TRIPLEPRESSED:
 								add_outevent(CIOLIB_BUTTON_DBL_CLICK(but),state.button_x[but-1],state.button_y[but-1]);
 								add_outevent(CIOLIB_BUTTON_DRAG_START(but),state.button_x[but-1],state.button_y[but-1]);
-								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),state.events_in->x,state.events_in->y);
+								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),in->x,in->y);
 								state.button_state[but-1]=MOUSE_DRAGSTARTED;
 								break;
 							case MOUSE_TRIPLECLICKED:
@@ -258,11 +271,11 @@ void ciolib_mouse_thread(void *data)
 							case MOUSE_QUADPRESSED:
 								add_outevent(CIOLIB_BUTTON_TRPL_CLICK(but),state.button_x[but-1],state.button_y[but-1]);
 								add_outevent(CIOLIB_BUTTON_DRAG_START(but),state.button_x[but-1],state.button_y[but-1]);
-								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),state.events_in->x,state.events_in->y);
+								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),in->x,in->y);
 								state.button_state[but-1]=MOUSE_DRAGSTARTED;
 								break;
 							case MOUSE_DRAGSTARTED:
-								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),state.events_in->x,state.events_in->y);
+								add_outevent(CIOLIB_BUTTON_DRAG_MOVE(but),in->x,in->y);
 								break;
 						}
 					}
@@ -273,8 +286,8 @@ void ciolib_mouse_thread(void *data)
 					switch(state.button_state[but-1]) {
 						case MOUSE_NOSTATE:
 							state.button_state[but-1]=MOUSE_SINGLEPRESSED;
-							state.button_x[but-1]=state.events_in->x;
-							state.button_y[but-1]=state.events_in->y;
+							state.button_x[but-1]=in->x;
+							state.button_y[but-1]=in->y;
 							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
 							break;
 						case MOUSE_CLICKED:
@@ -296,8 +309,8 @@ void ciolib_mouse_thread(void *data)
 					state.knownbuttonstatemask|=1<<(but-1);
 					switch(state.button_state[but-1]) {
 						case MOUSE_NOSTATE:
-							state.button_x[but-1]=state.events_in->x;
-							state.button_y[but-1]=state.events_in->y;
+							state.button_x[but-1]=in->x;
+							state.button_y[but-1]=in->y;
 							add_outevent(CIOLIB_BUTTON_RELEASE(but),state.button_x[but-1],state.button_y[but-1]);
 							break;
 						case MOUSE_SINGLEPRESSED:
@@ -318,18 +331,14 @@ void ciolib_mouse_thread(void *data)
 							state.timeout[but-1]=0;
 							break;
 						case MOUSE_DRAGSTARTED:
-							add_outevent(CIOLIB_BUTTON_DRAG_END(but),state.events_in->x,state.events_in->y);
+							add_outevent(CIOLIB_BUTTON_DRAG_END(but),in->x,in->y);
 							state.button_state[but-1]=0;
 					}
 			}
-			state.curx=state.events_in->x;
-			state.cury=state.events_in->y;
+			state.curx=in->x;
+			state.cury=in->y;
 
-			pthread_mutex_lock(&in_mutex);
-			old_in_event=state.events_in;
-			state.events_in=state.events_in->nextevent;
-			free(old_in_event);
-			pthread_mutex_unlock(&in_mutex);
+			free(in);
 		}
 
 		ttime=-1;
@@ -345,7 +354,9 @@ void ciolib_mouse_thread(void *data)
 
 int mouse_pending(void)
 {
-	return(state.events_out!=NULL);
+	while(!mouse_initialized)
+		SLEEP(1);
+	return(listCountNodes(state.output));
 }
 
 int ciolib_getmouse(struct mouse_event *mevent)
@@ -353,22 +364,25 @@ int ciolib_getmouse(struct mouse_event *mevent)
 	int retval=0;
 	struct out_mouse_event *old_out_event;
 
-	pthread_mutex_lock(&out_mutex);
-
-	if(state.events_out!=NULL) {
-		mevent->event=state.events_out->event;
-		mevent->bstate=state.events_out->bstate;
-		mevent->kbsm=state.events_out->kbsm;
-		mevent->startx=state.events_out->startx;
-		mevent->starty=state.events_out->starty;
-		mevent->endx=state.events_out->endx;
-		mevent->endy=state.events_out->endy;
-		old_out_event=state.events_out;
-		state.events_out=state.events_out->nextevent;
-		free(old_out_event);
+	while(!mouse_initialized)
+		SLEEP(1);
+	if(listCountNodes(state.output)) {
+		struct out_mouse_event *out;
+		pthread_mutex_lock(&out_mutex);
+		out=listRemoveNode(state.output,FIRST_NODE);
+		pthread_mutex_unlock(&out_mutex);
+		if(out==NULL)
+			return(-1);
+		mevent->event=out->event;
+		mevent->bstate=out->bstate;
+		mevent->kbsm=out->kbsm;
+		mevent->startx=out->startx;
+		mevent->starty=out->starty;
+		mevent->endx=out->endx;
+		mevent->endy=out->endy;
+		free(out);
 	}
 	else
 		retval=-1;
-	pthread_mutex_unlock(&out_mutex);
 	return(retval);
 }
