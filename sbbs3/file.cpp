@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.18 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: file.cpp,v 1.17 2003/08/22 10:07:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,7 +273,7 @@ bool sbbs_t::checkfname(char *fname)
 #endif
 	d=strlen(fname);
 	while(c<d) {
-		if(fname[c]<=' ' || fname[c]&0x80)
+		if(fname[c]<=SP || fname[c]&0x80)
 			return(false);
 		c++; }
 	return(true);

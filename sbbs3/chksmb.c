@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.23 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: chksmb.c,v 1.22 2003/09/04 22:19:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,7 @@ void truncsp(char *str)
 	uint c;
 
 	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
+	while(c && (uchar)str[c-1]<=SP) c--;
 	if(str[c]!=0)
 		str[c]=0;
 }
@@ -107,7 +107,7 @@ char* DLLCALL strip_ctrl(char *str)
 	for(i=j=0;str[i] && j<sizeof(tmp)-1;i++) {
 		if(str[i]==CTRL_A && str[i+1]!=0)
 			i++;
-		else if((uchar)str[i]>=' ')
+		else if((uchar)str[i]>=SP)
 			tmp[j++]=str[i];
 	}
 	if(i!=j) {

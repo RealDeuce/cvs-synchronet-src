@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.47 2004/06/03 05:00:07 deuce Exp $ */
+/* $Id: uifc.h,v 1.44 2004/03/29 23:00:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,9 +178,6 @@
 #define WIN_FAT		(1<<20)	/* Do not pad outside borders */
 #define WIN_REDRAW	(1<<21) /* Force redraw on dynamic window */
 #define WIN_NODRAW	(1<<22) /* Force not to redraw on dynamic window */
-#define WIN_EXTKEYS	(1<<23) /* Return on any keypress... if it's not handled internally
-							 * Return value is -2 - keyvalue
-							 */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -218,6 +215,7 @@
 #define FF		0x0c				/* Form feed				^L	*/
 #define CR		'\r'				/* Carriage return			^M	*/
 #define ESC 	0x1b				/* Escape					^[	*/
+#define SP      ' '                 /* Space                        */
 #define DEL     0x7f                /* Delete                   ^BS */
 #endif
 
@@ -306,14 +304,6 @@ typedef struct {
 /****************************************************************************/
     char    helpdatfile[MAX_PATH+1];
     char    helpixbfile[MAX_PATH+1];
-/****************************************************************************/
-/* Help and exit button locations for current/last window					*/
-/****************************************************************************/
-	int		buttony;
-	int		exitstart;
-	int		exitend;
-	int		helpstart;
-	int		helpend;
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/

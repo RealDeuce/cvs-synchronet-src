@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.10 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: filelist.c,v 1.9 2003/10/24 22:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 	time_t	uld,dld;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.10 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -360,10 +360,10 @@ int main(int argc, char **argv)
 
 
 			if(misc&PLUS && datbuf[n+F_MISC]!=ETX
-				&& (datbuf[n+F_MISC]-' ')&FM_EXTDESC)
+				&& (datbuf[n+F_MISC]-SP)&FM_EXTDESC)
 				fputc('+',out);
 			else
-				fputc(' ',out);
+				fputc(SP,out);
 
 			desc_off=12;
 			if(misc&(CDT_|TOT)) {
@@ -379,9 +379,9 @@ int main(int argc, char **argv)
 				if(!fexistcase(str))
 					fputc('-',out);
 				else
-					fputc(' ',out); }
+					fputc(SP,out); }
 			else
-				fputc(' ',out);
+				fputc(SP,out);
 			desc_off++;
 
 			if(misc&DFD) {
@@ -408,7 +408,7 @@ int main(int argc, char **argv)
 				fprintf(out,"%5u ",j);
 				desc_off+=6; }
 
-			if(datbuf[n+F_MISC]!=ETX && (datbuf[n+F_MISC]-' ')&FM_EXTDESC)
+			if(datbuf[n+F_MISC]!=ETX && (datbuf[n+F_MISC]-SP)&FM_EXTDESC)
 				ext=1;	/* extended description exists */
 			else
 				ext=0;	/* it doesn't */
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
 					if(lines) {
 						if(misc&JST)
 							fprintf(out,"%*s",desc_off,"");
-						fputc(' ',out);				/* indent one character */ }
+						fputc(SP,out);				/* indent one character */ }
 					fprintf(out,"%s",str);
 					lines++; }
 				fclose(in); }
