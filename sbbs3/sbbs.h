@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.10 2000/10/24 07:55:55 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.11 2000/10/26 11:04:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,15 +47,16 @@
 /***************/
 #ifdef _WIN32			/* Windows */
 
-#include <io.h>
-#include <share.h>
-#include <windows.h>
-#include <process.h>	/* _beginthread() prototype */
-#include <direct.h>		/* _mkdir() prototype */
+	#include <io.h>
+	#include <share.h>
+	#include <windows.h>
+	#include <process.h>	/* _beginthread() prototype */
+	#include <direct.h>		/* _mkdir() prototype */
+	#include <mmsystem.h>	/* SND_ASYNC */
 
 #elif defined(__unix__)	/* Unix-variant */
 
-#include <unistd.h>		/* close */
+	#include <unistd.h>		/* close */
 
 #endif
 
