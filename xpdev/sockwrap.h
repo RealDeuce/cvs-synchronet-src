@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.10 2002/08/12 21:13:16 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.11 2002/08/24 22:26:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 /***************/
 /* OS-specific */
 /***************/
-#if defined _WIN32	|| defined __OS2__	/* Use WinSock */
+#if defined(_WIN32)		/* Use WinSock */
 
 #include <winsock.h>	/* socket/bind/etc. */
 
