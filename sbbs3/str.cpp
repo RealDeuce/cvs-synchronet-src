@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.34 2002/04/25 22:14:29 rswindell Exp $ */
+/* $Id: str.cpp,v 1.35 2002/04/25 22:24:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,7 @@ char* DLLCALL strip_ctrl(char *str)
 	char tmp[1024];
 	int i,j;
 
-	for(i=j=0;str[i] && j<sizeof(tmp)-1;i++)
+	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++)
 		if(str[i]==CTRL_A && str[i+1]!=0)
 			i++;
 		else if((uchar)str[i]>=SP)
@@ -83,7 +83,7 @@ char* DLLCALL strip_exascii(char *str)
 	char tmp[1024];
 	int i,j;
 
-	for(i=j=0;str[i] && j<sizeof(tmp)-1;i++)
+	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++)
 		if(!(str[i]&0x80))
 			tmp[j++]=str[i];
 	tmp[j]=0;
