@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.9 2002/04/13 09:43:44 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.10 2002/04/13 09:46:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		else if(msg->from_net.type==NET_INTERNET)
 			sprintf(from,"%.128s",(char*)msg->from_net.addr);
 		else
-			sprintf(from,"%.128s@%.128s",msg->from,msg->from_net.addr);
+			sprintf(from,"%.128s@%.128s",msg->from,(char*)msg->from_net.addr);
 		if(strlen(from)>25) {
 			sprintf(str,"From: %.128s\xe3\xe3",from);
 			fwrite(str,strlen(str),1,qwk_fp);
