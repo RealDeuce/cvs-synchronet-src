@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.1 2000/10/10 11:23:57 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.2 2001/06/15 03:36:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,7 +82,7 @@ int sbbs_t::stripattr(char *strin)
 
 	e=strlen(strin);
 	for(a=c=d=0;c<e && d<sizeof(str)-1;c++) {
-		if(strin[c]==1) {
+		if(strin[c]==CTRL_A) {
 			a++;
 			if(!validattr(strin[c+1])) {
 				c++;
