@@ -176,10 +176,8 @@ SOCKET open_socket(int type)
 int close_socket(SOCKET sock)
 {
 	int		result;
-	ulong	l=0;
 
-	ioctlsocket(sock, FIONBIO, &l);	/* Insure that we close successfully */
-
+	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
 	if(/* result==0 && */ startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(FALSE);
@@ -2266,6 +2264,7 @@ void DLLCALL mail_server(void* arg)
 	time_t			start;
 	LINGER			linger;
 	fd_set			socket_set;
+	SOCKET			high_socket_set;
 	pop3_t*			pop3;
 	smtp_t*			smtp;
 
@@ -2496,10 +2495,14 @@ void DLLCALL mail_server(void* arg)
 
 		FD_ZERO(&socket_set);
 		FD_SET(server_socket,&socket_set);
-		if(startup->options&MAIL_OPT_ALLOW_POP3)
+		high_socket_set=server_socket+1;
+		if(startup->options&MAIL_OPT_ALLOW_POP3) {
 			FD_SET(pop3_socket,&socket_set);
+			if(pop3_socket+1>high_socket_set)
+				high_socket_set=pop3_socket+1;
+		}
 
-		if((i=select(0,&socket_set,NULL,NULL,NULL))<1) {
+		if((i=select(high_socket_set,&socket_set,NULL,NULL,NULL))<1) {
 			if(!i) {
 				lprintf("select returned zero");
 				break;
