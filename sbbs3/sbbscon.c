@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.2 2000/11/10 03:48:48 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.3 2000/11/10 03:49:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,8 +235,8 @@ int main(int argc, char** argv)
     strcpy(mail_startup.ctrl_dir,ctrl_dir);
 
 	_beginthread(bbs_thread,0,&bbs_startup);
-	_beginthread(ftp_thread,0,&ftp_startup);
-//	_beginthread(mail_thread,0,&mail_startup);
+	_beginthread(ftp_server,0,&ftp_startup);
+//	_beginthread(mail_server,0,&mail_startup);
 
 	while(1) {
 		if(kbhit())
