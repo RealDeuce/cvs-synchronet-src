@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.11 2000/11/29 05:15:21 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.12 2001/02/04 16:45:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,6 +102,12 @@
 
 #ifndef SHUT_RDWR
 #define SHUT_RDWR		2	/* for shutdown() */
+#endif
+
+#ifndef IPPORT_FTP
+#define IPPORT_FTP		21
+#define IPPORT_TELNET	23
+#define IPPORT_SMTP		25
 #endif
 
 #endif	/* Don't add anything after this line */
