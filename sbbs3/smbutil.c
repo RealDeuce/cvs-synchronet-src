@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.16 2001/11/09 01:46:54 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.17 2001/11/09 02:15:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define SMBUTIL_VER "2.20"
+#define SMBUTIL_VER "2.30"
 
 #define NOANALYSIS		(1L<<0)
 
