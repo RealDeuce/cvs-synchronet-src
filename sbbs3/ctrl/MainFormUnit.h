@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.69 2004/10/21 02:47:48 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.68 2004/10/20 03:38:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -340,7 +340,6 @@ __published:	// IDE-managed Components
     void __fastcall ViewClientsExecute(TObject *Sender);
     void __fastcall UserEditExecute(TObject *Sender);
     void __fastcall SaveSettings(TObject *Sender);
-    bool __fastcall SaveIniSettings(TObject* Sender);    
     void __fastcall SaveRegistrySettings(TObject* Sender);    
     void __fastcall ImportSettings(TObject *Sender);
     void __fastcall ImportFormSettings(TMemIniFile* IniFile, const char* section, TForm* form);
