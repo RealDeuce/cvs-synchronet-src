@@ -9,7 +9,7 @@
 # Win32: make -f Makefile.gnu os=win32									#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.8 2000/10/30 02:25:46 rswindell Exp $
+# $Id: Makefile.gnu,v 1.9 2000/10/30 08:51:44 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -79,7 +79,7 @@ $(EXEODIR):
 
 
 # SBBS Link Rule
-$(SBBS) $(SBBSLIB): $(OBJS) $(LIBODIR)/ver.o
+$(SBBS): $(OBJS) $(LIBODIR)/ver.o
 	$(LD) $(LFLAGS) -o $(SBBS) $^ $(LIBS) --output-lib $(SBBSLIB)
 
 # FTP Server Link Rule
