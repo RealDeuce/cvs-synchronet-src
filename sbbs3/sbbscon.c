@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.87 2002/07/27 06:10:58 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.88 2002/07/27 06:11:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -827,7 +827,7 @@ int main(int argc, char** argv)
 		switch(toupper(*(arg++))) {
 #ifdef __unix__
 				case 'D': /* Run as daemon */
-					is_daemon=true;
+					is_daemon=TRUE;
 					SAFECOPY(daemon_type,arg++);
 				break;
 #endif
