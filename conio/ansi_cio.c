@@ -1,10 +1,43 @@
+/* $Id: ansi_cio.c,v 1.34 2004/09/23 02:02:11 deuce Exp $ */
+
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
+
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdlib.h>	/* malloc */
 
 #include <genwrap.h>
 #include <threadwrap.h>
-#include <xpsem.h>
+#include <semwrap.h>
 
 #ifdef __unix__
 	#include <termios.h>
@@ -17,9 +50,10 @@
 #define	ANSI_TIMEOUT	500
 
 sem_t	got_key;
-sem_t	used_key;
 sem_t	got_input;
 sem_t	used_input;
+sem_t	goahead;
+sem_t	need_key;
 WORD	ansi_curr_attr=0x07<<8;
 
 int ansi_rows=24;
@@ -131,8 +165,6 @@ tODKeySequence aKeySequences[] =
 
 void ansi_sendch(char ch)
 {
-	struct text_info ti;
-
 	if(!ch)
 		ch=' ';
 	if(ansi_row<ansi_rows-1 || (ansi_row==ansi_rows-1 && ansi_col<ansi_cols-1)) {
@@ -202,7 +234,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 				textattr(sch>>8);
 				attrib=sch>>8;
 			}
-			ansi_sendch(sch&0xff);
+			ansi_sendch((char)(sch&0xff));
 		}
 	}
 
@@ -317,20 +349,26 @@ static void ansi_keyparse(void *par)
 	int		i;
 	char	*p;
 	int		timeout=0;
-	int		timedout;
+	int		timedout=0;
 
+	seq[0]=0;
 	for(;;) {
+		sem_wait(&goahead);
+		sem_post(&need_key);
 		timedout=0;
 		if(timeout) {
 			if(sem_trywait_block(&got_key,timeout)) {
+				/* Sneak it back down just in case */
+				sem_trywait(&need_key);
 				gotesc=0;
 				timeout=0;
+				timedout=1;
 			}
 		}
 		else
 			sem_wait(&got_key);
 
-		if(!gotesc && seq[0]) {
+		if(timedout) {
 			for(p=seq;*p;p++) {
 				sem_wait(&used_input);
 				ansi_inch=*p;
@@ -342,7 +380,6 @@ static void ansi_keyparse(void *par)
 		else {
 			ch=ansi_raw_inch;
 			ansi_raw_inch=0;
-			sem_post(&used_key);
 		}
 		switch(gotesc) {
 			case 1:	/* Escape Sequence */
@@ -399,7 +436,7 @@ static void ansi_keythread(void *params)
 	_beginthread(ansi_keyparse,1024,NULL);
 
 	for(;;) {
-		sem_wait(&used_key);
+		sem_wait(&need_key);
 		if(fread(&ansi_raw_inch,1,1,stdin)==1)
 			sem_post(&got_key);
 		else
@@ -409,9 +446,11 @@ static void ansi_keythread(void *params)
 
 int ansi_kbhit(void)
 {
-	int sval;
+	int sval=1;
 
 	sem_getvalue(&got_input,&sval);
+	sem_trywait(&goahead);
+	sem_post(&goahead);
 	return(sval);
 }
 
@@ -437,7 +476,6 @@ int ansi_wherex(void)
 int ansi_putch(int ch)
 {
 	struct text_info ti;
-	WORD sch;
 	int i;
 	unsigned char buf[2];
 
@@ -507,7 +545,6 @@ int ansi_putch(int ch)
 
 void ansi_gotoxy(int x, int y)
 {
-	struct text_info ti;
 	char str[16];
 
 	if(x < 1
@@ -594,6 +631,8 @@ int ansi_getch(void)
 {
 	int ch;
 
+	sem_trywait(&goahead);
+	sem_post(&goahead);
 	sem_wait(&got_input);
 	ch=ansi_inch&0xff;
 	ansi_inch=ansi_inch>>8;
@@ -633,6 +672,13 @@ void ansi_fixterm(void)
 }
 #endif
 
+#ifndef ENABLE_EXTENDED_FLAGS
+#define ENABLE_INSERT_MODE		0x0020
+#define ENABLE_QUICK_EDIT_MODE	0x0040
+#define ENABLE_EXTENDED_FLAGS	0x0080
+#define ENABLE_AUTO_POSITION	0x0100
+#endif
+
 #if defined(__BORLANDC__)
         #pragma argsused
 #endif
@@ -643,18 +689,10 @@ int ansi_initciolib(long inmode)
 
 #ifdef _WIN32
 	if(isatty(fileno(stdin))) {
-		if(!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
-			return(0);
-		conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
-		conmode|=ENABLE_MOUSE_INPUT;
-		if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode))
+		if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0))
 			return(0);
 
-		if(!GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &conmode))
-			return(0);
-		conmode&=~ENABLE_PROCESSED_OUTPUT;
-		conmode&=~ENABLE_WRAP_AT_EOL_OUTPUT;
-		if(!SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), conmode))
+		if(!SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), 0))
 			return(0);
 	}
 	else {
@@ -677,9 +715,10 @@ int ansi_initciolib(long inmode)
 
 	/* Initialize used_* to 1 so they can be immediately waited on */
 	sem_init(&got_key,0,0);
-	sem_init(&used_key,0,1);
 	sem_init(&got_input,0,0);
 	sem_init(&used_input,0,1);
+	sem_init(&goahead,0,0);
+	sem_init(&need_key,0,0);
 
 	vmem=(WORD *)malloc(ansi_rows*ansi_cols*sizeof(WORD));
 	ansi_sendstr(init,-1);
