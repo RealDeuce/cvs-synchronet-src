@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.24 2002/12/11 22:01:37 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.25 2003/02/16 13:09:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -443,8 +443,9 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	}
 	length=strlen(msgbuf)+sizeof(xlat);	 /* +2 for translation string */
 
-	if(length&0xfff00000UL) {
+	if(length&0x80000000) {
 		smb_unlocksmbhdr(smb);
+		sprintf(smb->last_error,"message length: 0x%lX",length);
 		return(-1);
 	}
 
