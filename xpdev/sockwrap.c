@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.11 2003/05/08 03:50:06 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.12 2003/05/10 18:26:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,6 +196,8 @@ BOOL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 		wr_set_p=&wr_set;
 		FD_ZERO(wr_set_p);
 		FD_SET(sock,wr_set_p);
+		if(rd_p==NULL)
+			FD_CLR(sock,&rd_set);
 	}
 
 	/* Convert timeout from ms to sec/usec */
