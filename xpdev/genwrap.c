@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.1 2002/04/06 00:40:31 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.2 2002/04/06 01:37:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,7 @@ char* strrev(char* str)
 /* Thanks to Casey Martin for this code										*/
 /****************************************************************************/
 #ifdef __unix__
-void DLLCALL xp_beep(int freq, int dur)
+void DLLCALL unix_beep(int freq, int dur)
 {
 	static int console_fd=-1;
 
