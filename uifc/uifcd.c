@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.24 2002/03/21 19:15:44 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.25 2002/04/26 00:40:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,7 +100,7 @@ void uifcbail(void)
 /****************************************************************************/
 int uscrn(char *str)
 {
-	sprintf(app_title,"%.*s",sizeof(app_title)-1,str);
+	sprintf(app_title,"%.*s",(int)sizeof(app_title)-1,str);
 	/**********************************************************************/
     /* ToDo - Does not display application title... mostly 'cause I clear */
 	/* the screen so often                                                */
@@ -320,13 +320,13 @@ int ulist(int mode, char left, int top, char width, int *cur, int *bar
 /*************************************************************************/
 /* This function is a windowed input string input routine.               */
 /*************************************************************************/
-int uinput(int mode, char left, char top, char *prompt, char *outstr,
-	char max, int kmode)
+int uinput(int mode, int left, int top, char *prompt, char *outstr,
+	int max, int kmode)
 {
 	char str[256];
 	if(!(kmode&K_EDIT))
 		outstr[0]=0;
-	sprintf(str,"%.*s",sizeof(str)-1,outstr);
+	sprintf(str,"%.*s",(int)sizeof(str)-1,outstr);
     while(dialog_inputbox((char*)NULL, prompt, 9, max+4, str)==-2)
 		help();
     if(kmode&K_UPPER)	/* convert to uppercase? */
