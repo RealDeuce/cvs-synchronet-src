@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.8 2002/02/09 13:15:50 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.9 2002/02/09 13:17:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,6 +169,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	*/
 
 	CRLF;
+	current_msg=NULL;
 }
 
 #if !LZH
