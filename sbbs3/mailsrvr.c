@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.49 2001/04/03 00:54:52 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.50 2001/04/10 01:26:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -539,8 +539,8 @@ static void pop3_thread(void* arg)
 	strcpy(host_ip,inet_ntoa(pop3.client_addr.sin_addr));
 
 	if(startup->options&MAIL_OPT_DEBUG_POP3)
-		lprintf("%04d POP3 connection accepted from: %s"
-			,socket, host_ip);
+		lprintf("%04d POP3 connection accepted from: %s port %u"
+			,socket, host_ip, ntohs(pop3.client_addr.sin_port));
 
 	if(startup->options&MAIL_OPT_NO_HOST_LOOKUP)
 		host=NULL;
@@ -1090,7 +1090,8 @@ static void smtp_thread(void* arg)
 
 	strcpy(host_ip,inet_ntoa(smtp.client_addr.sin_addr));
 
-	lprintf("%04d SMTP connection accepted from: %s", socket, host_ip);
+	lprintf("%04d SMTP connection accepted from: %s port %u"
+		, socket, host_ip, ntohs(smtp.client_addr.sin_port));
 
 	if(startup->options&MAIL_OPT_NO_HOST_LOOKUP)
 		host=NULL;
