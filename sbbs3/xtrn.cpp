@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.173 2004/12/12 09:25:08 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.172 2004/11/09 20:58:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,10 +48,12 @@
 
 #if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
-#elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DARWIN__)
+#elif defined(__OpenBSD__)
 	#include <util.h>
 #elif defined(__linux__)
 	#include <pty.h>
+#elif defined(__DARWIN__)
+	#include <util.h>
 #elif defined(__QNX__)
 #if 0
 	#include <unix.h>
@@ -152,7 +154,7 @@
 #ifndef TTYDEF_CFLAG
 	#define TTYDEF_CFLAG    (CREAD | CS8 | HUPCL)
 #endif
-#if defined(__QNX__) || defined(__solaris__) || defined(__NetBSD__)
+#if defined(__QNX__) || defined(__solaris__)
 	static cc_t     ttydefchars[NCCS] = {
         CEOF,   CEOL,   CEOL,   CERASE, CWERASE, CKILL, CREPRINT,
         CERASE2, CINTR, CQUIT,  CSUSP,  CDSUSP, CSTART, CSTOP,  CLNEXT,
