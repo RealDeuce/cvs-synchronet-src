@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.214 2004/11/16 05:01:25 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.215 2004/11/16 06:24:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -772,11 +772,13 @@ static void close_request(http_session_t * session)
 		session->req.cgi_env=p;
 	}
 	FREE_AND_NULL(session->req.post_data);
-	if(!session->req.keep_alive || session->socket==INVALID_SOCKET) {
+	if(!session->req.keep_alive) {
 		close_socket(session->socket);
 		session->socket=INVALID_SOCKET;
-		session->finished=TRUE;
 	}
+	if(session->socket==INVALID_SOCKET)
+		session->finished=TRUE;
+
 	memset(&session->req,0,sizeof(session->req));
 }
 
@@ -1232,7 +1234,6 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 			|| !rd || recv(session->socket, &ch, 1, 0)!=1)  {
 			session->req.keep_alive=FALSE;
 			close_request(session);
-			session->socket=INVALID_SOCKET;
 			return(-1);        /* time-out */
 		}
 
@@ -2720,8 +2721,6 @@ void http_session_thread(void* arg)
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
-	if(session.socket!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL)
-		startup->socket_open(startup->cbdata,TRUE);
 
 	session.last_user_num=-1;
 	session.last_js_user_num=-1;
@@ -2782,11 +2781,11 @@ void http_session_thread(void* arg)
 		PlaySound(startup->hangup_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
+	close_socket(session.socket);
+
 	active_clients--;
 	update_clients();
 	client_off(socket);
-	if(startup!=NULL && startup->socket_open!=NULL)
-		startup->socket_open(startup->cbdata,FALSE);
 
 	thread_down();
 	lprintf(LOG_INFO,"%04d Session thread terminated (%u clients, %u threads remain, %lu served)"
@@ -2839,7 +2838,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.214 $", "%*s %s", revision);
+	sscanf("$Revision: 1.215 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3246,6 +3245,9 @@ void DLLCALL web_server(void* arg)
 				continue;
 			}
 
+			if(startup->socket_open!=NULL)
+				startup->socket_open(startup->cbdata,TRUE);
+
 			SAFECOPY(host_ip,inet_ntoa(client_addr.sin_addr));
 
 			if(trashcan(&scfg,host_ip,"ip-silent")) {
@@ -3267,11 +3269,8 @@ void DLLCALL web_server(void* arg)
 				,client_socket
 				,host_ip, host_port);
 
-			if(startup->socket_open!=NULL)
-				startup->socket_open(startup->cbdata,TRUE);
-	
 			if((session=malloc(sizeof(http_session_t)))==NULL) {
-				lprintf(LOG_CRIT,"%04d !ERROR allocating %u bytes of memory for service_client"
+				lprintf(LOG_CRIT,"%04d !ERROR allocating %u bytes of memory for http_session_t"
 					,client_socket, sizeof(http_session_t));
 				mswait(3000);
 				close_socket(client_socket);
