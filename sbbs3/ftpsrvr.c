@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.236 2003/05/09 03:31:20 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.237 2003/05/14 20:38:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,7 @@
 
 /* Synchronet-specific headers */
 #include "sbbs.h"
+#include "text.h"			/* TOTAL_TEXT */
 #include "ftpsrvr.h"
 #include "telnet.h"
 
@@ -4416,7 +4417,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.236 $", "%*s %s", revision);
+	sscanf("$Revision: 1.237 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
