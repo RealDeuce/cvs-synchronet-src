@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.127 2004/12/31 09:38:52 rswindell Exp $ */
+/* $Id: smblib.c,v 1.126 2004/12/31 09:23:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -352,9 +352,7 @@ int SMBCALL smb_locksmbhdr(smb_t* smb)
 		/* In case we've already locked it */
 		if(unlock(fileno(smb->shd_fp),0L,sizeof(smbhdr_t)+sizeof(smbstatus_t))==0)
 			smb->locked=FALSE;
-		else {
-			SLEEP(smb->retry_delay);
-		}
+		SLEEP(smb->retry_delay);
 	}
 	safe_snprintf(smb->last_error,sizeof(smb->last_error),"timeout locking header");
 	return(SMB_ERR_TIMEOUT);
@@ -477,9 +475,8 @@ int SMBCALL smb_lockmsghdr(smb_t* smb, smbmsg_t* msg)
 			if(time(NULL)-start>=(time_t)smb->retry_time) 
 				break;
 		/* In case we've already locked it */
-		if(unlock(fileno(smb->shd_fp),msg->idx.offset,sizeof(msghdr_t))!=0) {
+		if(unlock(fileno(smb->shd_fp),msg->idx.offset,sizeof(msghdr_t))!=0)
 			SLEEP(smb->retry_delay);
-		}
 	}
 	safe_snprintf(smb->last_error,sizeof(smb->last_error),"timeout locking header");
 	return(SMB_ERR_TIMEOUT);
