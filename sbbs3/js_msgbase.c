@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.95 2004/08/24 08:36:37 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.99 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,7 +201,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	} else
 		cp="";
 	smb_hfield_str(msg, SUBJECT, cp);
-	msg->idx.subj=subject_crc(cp);
+	msg->idx.subj=smb_subject_crc(cp);
 
 	if(JS_GetProperty(cx, hdr, "from", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
@@ -416,9 +416,10 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		msg->hdr.when_imported.zone=(short)i32;
 	}
 
-	if(JS_GetProperty(cx, hdr, "thread_orig", &val) && !JSVAL_NULL_OR_VOID(val)) {
+	if((JS_GetProperty(cx, hdr, "thread_orig", &val) 
+		|| JS_GetProperty(cx, hdr, "thread_back", &val)) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
-		msg->hdr.thread_orig=i32;
+		msg->hdr.thread_back=i32;
 	}
 	if(JS_GetProperty(cx, hdr, "thread_next", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
@@ -464,10 +465,8 @@ BOOL msg_offset_by_id(scfg_t* scfg, smb_t* smb, char* id, ulong* offset)
 {
 	smbmsg_t msg;
 
-	if(!get_msg_by_id(scfg,smb,id,&msg))
+	if(smb_getmsgidx_by_msgid(smb,&msg,id)!=SMB_SUCCESS)
 		return(FALSE);
-
-	smb_freemsgmem(&msg);
 
 	*offset = msg.offset;
 	return(TRUE);
@@ -558,7 +557,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	int			i;
 	uintN		n;
 	smbmsg_t	msg;
-	smbmsg_t	orig_msg;
+	smbmsg_t	remsg;
 	JSObject*	hdrobj;
 	JSObject*	array;
 	JSObject*	field;
@@ -613,11 +612,9 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 			smb_unlockmsghdr(&(p->smb),&msg); 
 			break;
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
-			if(!get_msg_by_id(scfg,&(p->smb)
-				,JS_GetStringBytes(JSVAL_TO_STRING(argv[n]))
-				,&msg))
+			if(smb_getmsghdr_by_msgid(&(p->smb),&msg
+				,JS_GetStringBytes(JSVAL_TO_STRING(argv[n])))!=SMB_SUCCESS)
 				return(JS_TRUE);	/* ID not found */
-
 			break;
 		}
 	}
@@ -700,7 +697,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		JS_DefineProperty(cx, hdrobj, "to_net_type",INT_TO_JSVAL(msg.to_net.type)
 			,NULL,NULL,JSPROP_ENUMERATE);
 	if(msg.to_net.type
-		&& (js_str=JS_NewStringCopyZ(cx,net_addr(&msg.to_net)))!=NULL)
+		&& (js_str=JS_NewStringCopyZ(cx,smb_netaddr(&msg.to_net)))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "to_net_addr"
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -709,7 +706,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		JS_DefineProperty(cx, hdrobj, "from_net_type",INT_TO_JSVAL(msg.from_net.type)
 			,NULL,NULL,JSPROP_ENUMERATE);
 	if(msg.from_net.type
-		&& (js_str=JS_NewStringCopyZ(cx,net_addr(&msg.from_net)))!=NULL)
+		&& (js_str=JS_NewStringCopyZ(cx,smb_netaddr(&msg.from_net)))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "from_net_addr"
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -719,7 +716,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		JS_DefineProperty(cx, hdrobj, "replyto_net_type",INT_TO_JSVAL(msg.replyto_net.type)
 			,NULL,NULL,JSPROP_ENUMERATE);
 	if(msg.replyto_net.type
-		&& (js_str=JS_NewStringCopyZ(cx,net_addr(&msg.replyto_net)))!=NULL)
+		&& (js_str=JS_NewStringCopyZ(cx,smb_netaddr(&msg.replyto_net)))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "replyto_net_addr"
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -784,8 +781,9 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	JS_NewNumberValue(cx,msg.hdr.when_imported.zone,&v);
 	JS_DefineProperty(cx, hdrobj, "when_imported_zone", v, NULL,NULL,JSPROP_ENUMERATE);
 
-	JS_NewNumberValue(cx,msg.hdr.thread_orig,&v);
-	JS_DefineProperty(cx, hdrobj, "thread_orig", v, NULL,NULL,JSPROP_ENUMERATE);
+	JS_NewNumberValue(cx,msg.hdr.thread_back,&v);
+	JS_DefineProperty(cx, hdrobj, "thread_back", v, NULL,NULL,JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, hdrobj, "thread_orig", v, NULL,NULL,0);
 	JS_NewNumberValue(cx,msg.hdr.thread_next,&v);
 	JS_DefineProperty(cx, hdrobj, "thread_next", v, NULL,NULL,JSPROP_ENUMERATE);
 	JS_NewNumberValue(cx,msg.hdr.thread_first,&v);
@@ -812,13 +810,13 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		val=msg.reply_id;
 	else {
 		reply_id[0]=0;
-		if(expand_fields && msg.hdr.thread_orig) {
-			memset(&orig_msg,0,sizeof(orig_msg));
-			orig_msg.hdr.number=msg.hdr.thread_orig;
-			if(smb_getmsgidx(&(p->smb), &orig_msg))
+		if(expand_fields && msg.hdr.thread_back) {
+			memset(&remsg,0,sizeof(remsg));
+			remsg.hdr.number=msg.hdr.thread_back;
+			if(smb_getmsgidx(&(p->smb), &remsg))
 				sprintf(reply_id,"<%s>",p->smb.last_error);
 			else
-				SAFECOPY(reply_id,get_msgid(scfg,p->smb.subnum,&orig_msg));
+				SAFECOPY(reply_id,get_msgid(scfg,p->smb.subnum,&remsg));
 		}
 		val=reply_id;
 	}
@@ -1375,13 +1373,13 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				if(!JSVAL_IS_OBJECT(val))
 					break;
 
-				if(smb_copymsgmem(&(p->smb), &rcpt_msg, &msg)!=0)
+				if(smb_copymsgmem(&(p->smb), &rcpt_msg, &msg)!=SMB_SUCCESS)
 					break;
 
 				if(!parse_recipient_object(cx, p, JSVAL_TO_OBJECT(val), &rcpt_msg))
 					break;
 
-				if(smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK)!=0)
+				if(smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK)!=SMB_SUCCESS)
 					break;
 
 				smb_freemsgmem(&rcpt_msg);
@@ -1664,7 +1662,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td><tt>when_written_zone</tt><td>Time zone"
 	"<tr><td><tt>when_imported_time</tt><td>Date/time message was imported"
 	"<tr><td><tt>when_imported_zone</tt><td>Time zone"
-	"<tr><td><tt>thread_orig</tt><td>Replying to this message number"
+	"<tr><td><tt>thread_back</tt><td>Replying to this message number"
 	"<tr><td><tt>thread_next</tt><td>Number of next message in this thread"
 	"<tr><td><tt>thread_first</tt><td>Number of first reply to this message"
 	"<tr><td><tt>field_list[].type</tt><td>Other SMB header fields (type)"
