@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.46 2003/01/31 03:24:59 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.47 2003/02/01 03:04:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,7 +465,10 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_str(cfg->grp[i]->arstr,instream);
 		cfg->grp[i]->ar=arstr(NULL,cfg->grp[i]->arstr,cfg);
 
-		for(j=0;j<48;j++)
+		get_str(cfg->grp[i]->code_prefix,instream);
+
+		get_int(c,instream);
+		for(j=0;j<43;j++)
 			get_int(n,instream);
 		}
 	cfg->total_grps=i;
@@ -492,7 +495,7 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_str(cfg->sub[i]->lname,instream);
 		get_str(cfg->sub[i]->sname,instream);
 		get_str(cfg->sub[i]->qwkname,instream);
-		get_str(cfg->sub[i]->code,instream);
+		get_str(cfg->sub[i]->code_suffix,instream);
 		get_str(cfg->sub[i]->data_dir,instream);
 
 		get_str(cfg->sub[i]->arstr,instream);
