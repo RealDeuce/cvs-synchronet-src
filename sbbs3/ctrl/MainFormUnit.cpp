@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.110 2003/05/16 01:47:24 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.111 2003/06/07 01:42:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1043,6 +1043,9 @@ void __fastcall TMainForm::StatsTimerTick(TObject *Sender)
 	char 	str[128];
 	int 	i;
 	static stats_t stats;
+
+	if(!StatsForm->Visible)
+		return;
 
     getstats(&cfg,0,&stats);
 
