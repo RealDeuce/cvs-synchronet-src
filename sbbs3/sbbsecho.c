@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.133 2004/05/03 21:43:31 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.134 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3888,7 +3888,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					else
 						cr=0;
 					if(scfg.sub[i]->misc&SUB_ASCII || misc&ASCII_ONLY) {
-						if(buf[l]<SP && buf[l]!='\r'
+						if(buf[l]<' ' && buf[l]!='\r'
 							&& buf[l]!='\n')			/* Ctrl ascii */
 							buf[l]='.';             /* converted to '.' */
 						if((uchar)buf[l]>0x7f)		/* extended ASCII */
@@ -4054,7 +4054,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.133 $", "%*s %s", revision);
+	sscanf("$Revision: 1.134 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

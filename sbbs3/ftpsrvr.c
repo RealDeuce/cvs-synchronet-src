@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.265 2004/04/15 11:55:19 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.266 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1808,7 +1808,7 @@ static void receive_thread(void* arg)
 						memset(ext,0,sizeof(ext));
 						read(file,ext,sizeof(ext)-1);
 						for(i=sizeof(ext)-1;i;i--)	/* trim trailing spaces */
-							if(ext[i-1]>SP)
+							if(ext[i-1]>' ')
 								break;
 						ext[i]=0;
 						if(!f.desc[0]) {			/* use for normal description */
@@ -4463,7 +4463,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.265 $", "%*s %s", revision);
+	sscanf("$Revision: 1.266 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.10 2003/07/08 10:26:57 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.11 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,7 @@ void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 			cursor_left(l-i); 
 	} else {
 		while(c<cols-1) { /* clear to end of line */
-			outchar(SP);
+			outchar(' ');
 			c++; 
 		}
 		while(c>l) { /* back space to end of string */
