@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.171 2003/04/18 21:10:34 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.172 2003/04/18 22:30:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,6 +176,7 @@ public:
 	uchar	telnet_last_rxch;
 
 	time_t	event_time;				// Time of next exclusive event
+	char*	event_code;				// Internal code of next exclusive event
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
