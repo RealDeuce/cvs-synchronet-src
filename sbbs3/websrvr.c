@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.195 2004/10/28 05:11:24 deuce Exp $ */
+/* $Id: websrvr.c,v 1.196 2004/10/28 05:25:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,6 +207,7 @@ typedef struct  {
 	int				last_user_num;
 	time_t			logon_time;
 	char			username[LEN_NAME+1];
+	int				last_js_user_num;
 
 	/* JavaScript parameters */
 	JSRuntime*		js_runtime;
@@ -1057,6 +1058,8 @@ void http_logoff(http_session_t * session)
 BOOL http_checkuser(http_session_t * session)
 {
 	if(session->req.dynamic==IS_SSJS) {
+		if(session->last_js_user_num==session->user.number)
+			return(TRUE);
 		lprintf(LOG_INFO,"%04d JavaScript: Initializing User Objects",session->socket);
 		if(session->user.number>0) {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
@@ -1074,6 +1077,7 @@ BOOL http_checkuser(http_session_t * session)
 				return(FALSE);
 			}
 		}
+		session->last_js_user_num==session->user.number;
 	}
 	return(TRUE);
 }
@@ -2676,6 +2680,7 @@ void http_session_thread(void* arg)
 		startup->socket_open(startup->cbdata,TRUE);
 
 	session.last_user_num=-1;
+	session.last_js_user_num=-1;
 	session.logon_time=0;
 
 	while(!session.finished && server_socket!=INVALID_SOCKET) {
@@ -2785,7 +2790,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.195 $", "%*s %s", revision);
+	sscanf("$Revision: 1.196 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
