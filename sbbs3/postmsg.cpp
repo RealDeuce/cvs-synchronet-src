@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.12 2002/07/12 01:39:19 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.13 2002/08/16 23:40:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -324,10 +324,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	smb_hfield(&msg,SENDEREXT,strlen(str),str);
 
 	smb_hfield(&msg,SUBJECT,strlen(title),title);
-	strcpy(str,title);
-	strlwr(str);
-	remove_re(str);
-	msg.idx.subj=crc16(str);
+	msg.idx.subj=subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 

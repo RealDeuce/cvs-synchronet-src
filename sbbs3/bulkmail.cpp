@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.8 2002/04/10 22:23:17 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.9 2002/08/16 23:40:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -225,8 +225,7 @@ int sbbs_t::bulkmailhdr(uint usernum, smbmsg_t *msg, ushort msgattr, ulong offse
 
 	strcpy(str,title);
 	smb_hfield(msg,SUBJECT,strlen(str),str);
-	strlwr(str);
-	msg->idx.subj=crc16(str);
+	msg->idx.subj=subject_crc(str);
 
 	smb_dfield(msg,TEXT_BODY,length);
 

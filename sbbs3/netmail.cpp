@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.14 2002/04/12 08:41:01 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.15 2002/08/16 23:40:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -243,8 +243,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 
 	smb_hfield(&msg,SUBJECT,strlen(title),title);
 	strcpy(str,title);
-	strlwr(str);
-	msg.idx.subj=crc16(str);
+	msg.idx.subj=subject_crc(str);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -432,9 +431,7 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 	msg.idx.from=useron.number;
 
 	smb_hfield(&msg,SUBJECT,strlen(title),title);
-	strcpy(str,title);
-	strlwr(str);
-	msg.idx.subj=crc16(str);
+	msg.idx.subj=subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 

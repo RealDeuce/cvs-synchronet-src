@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.15 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: email.cpp,v 1.16 2002/08/16 23:40:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,8 +269,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 	msg.idx.from=useron.number;
 
 	smb_hfield(&msg,SUBJECT,strlen(title),title);
-	strlwr(title);
-	msg.idx.subj=crc16(title);
+	msg.idx.subj=subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 

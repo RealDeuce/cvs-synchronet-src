@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.30 2002/05/02 23:55:15 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.31 2002/08/16 23:40:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -421,14 +421,6 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 	LFREE((char *)buf);
 	bprintf(text[SavedNBytes],l,i);
 	return(true);
-}
-
-void remove_re(char *str)
-{
-	while(!strnicmp(str,"RE:",3)) {
-		strcpy(str,str+3);
-		while(str[0]==SP)
-			strcpy(str,str+1); }
 }
 
 /****************************************************************************/

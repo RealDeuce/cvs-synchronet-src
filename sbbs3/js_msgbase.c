@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.31 2002/08/08 21:35:29 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.32 2002/08/16 23:40:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,8 +166,7 @@ static BOOL parse_header_object(JSContext* cx, JSObject* hdr, uint subnum, smbms
 	} else
 		cp="";
 	smb_hfield(msg, SUBJECT, (ushort)strlen(cp), cp);
-	strlwr(cp);
-	msg->idx.subj=crc16(cp);
+	msg->idx.subj=subject_crc(cp);
 
 	if(JS_GetProperty(cx, hdr, "to", &val) && val!=JSVAL_VOID) {
 		if((js_str=JS_ValueToString(cx,val))==NULL)

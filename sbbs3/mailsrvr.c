@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.184 2002/08/01 21:58:54 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.185 2002/08/16 23:40:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1501,7 +1501,7 @@ static void smtp_thread(void* arg)
 				if(msg.idx.subj==0) {
 					p="";
 					smb_hfield(&msg, SUBJECT, 0, p);
-					msg.idx.subj=crc16(p);
+					msg.idx.subj=subject_crc(p);
 				}
 
 				rewind(msgtxt);
@@ -1750,8 +1750,7 @@ static void smtp_thread(void* arg)
 						,socket, startup->dnsbl_tag);
 				}
 				smb_hfield(&msg, SUBJECT, (ushort)strlen(p), p);
-				strlwr(p);
-				msg.idx.subj=crc16(p);
+				msg.idx.subj=subject_crc(p);
 				continue;
 			}
 			if(!strnicmp(buf, "TO:",3)) {
@@ -2785,7 +2784,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.184 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.185 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.51 2002/08/16 22:00:47 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.52 2002/08/16 23:40:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1807,14 +1807,6 @@ BOOL unpack_bundle(void)
 	return(FALSE);
 }
 
-void remove_re(char *str)
-{
-	while(!strnicmp(str,"RE:",3)) {
-		strcpy(str,str+3);
-		while(str[0]==SP)
-			strcpy(str,str+1); }
-}
-
 /****************************************************************************/
 /* Moves or copies a file from one dir to another                           */
 /* both 'src' and 'dest' must contain full path and filename                */
@@ -2261,9 +2253,8 @@ if(user) {
 	msg.idx.to=user; }
 
 smb_hfield(&msg,SUBJECT,(ushort)strlen(fmsghdr.subj),fmsghdr.subj);
-remove_re(fmsghdr.subj);
-strlwr(fmsghdr.subj);
-msg.idx.subj=crc16(fmsghdr.subj);
+msg.idx.subj=subject_crc(fmsghdr.subj);
+
 if(fbuf==NULL) {
 	printf("ERROR allocating fbuf\n");
 	logprintf("ERROR line %d allocating fbuf",__LINE__);
@@ -3819,7 +3810,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.51 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.52 $" + 11, "%s", revision);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
