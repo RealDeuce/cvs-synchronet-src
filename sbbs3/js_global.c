@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.21 2002/04/23 08:45:05 rswindell Exp $ */
+/* $Id: js_global.c,v 1.22 2002/05/29 02:26:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,7 +128,10 @@ js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			    return(JS_FALSE);
 			arglist[i-1]=JS_GetStringBytes(str);
-		} else if(JSVAL_IS_INT(argv[i]) || JSVAL_IS_BOOLEAN(argv[i]))
+		}
+		else if(JSVAL_IS_DOUBLE(argv[i]))
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
+		else if(JSVAL_IS_INT(argv[i]) || JSVAL_IS_BOOLEAN(argv[i]))
 			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
 		else
 			arglist[i-1]=NULL;
