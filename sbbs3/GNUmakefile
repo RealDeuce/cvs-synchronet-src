@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.135 2003/12/06 05:02:53 rswindell Exp $
+# $Id: GNUmakefile,v 1.136 2003/12/10 11:38:22 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -388,6 +388,7 @@ BAJA_OBJS = \
 	$(LIBODIR)/ars.o \
 	$(LIBODIR)/crc32.o \
 	$(LIBODIR)/genwrap.o \
+	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/filewrap.o
 FORCE$(BAJA): $(BAJA_OBJS)
 
