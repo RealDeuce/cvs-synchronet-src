@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.44 2003/04/18 09:43:46 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.45 2003/05/09 02:58:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,10 +202,6 @@ void prep_cfg(scfg_t* cfg)
 		if(!cfg->sub[i]->tagline[0])
 			strcpy(cfg->sub[i]->tagline,cfg->qnet_tagline);
 
-		/* default echomail semaphore */
-		if(!cfg->sub[i]->echomail_sem[0])
-			strcpy(cfg->sub[i]->echomail_sem,cfg->echomail_sem);
-
 		/* default origin line */
 		if(!cfg->sub[i]->origline[0])
 			strcpy(cfg->sub[i]->origline,cfg->origline);
@@ -216,6 +212,8 @@ void prep_cfg(scfg_t* cfg)
 			,cfg->sub[i]->code_suffix);
 
 		strlwr(cfg->sub[i]->code); 		/* data filenames are all lowercase */
+
+		prep_path(cfg->sub[i]->post_sem);
 	}
 
 	for(i=0;i<cfg->total_libs;i++) {

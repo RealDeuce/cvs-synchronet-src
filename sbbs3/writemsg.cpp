@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.41 2003/03/18 21:34:47 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.42 2003/05/09 02:58:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1140,7 +1140,7 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 {
 	char str[256],*buf;
 	uint i;
-	int file,newgrp,newsub,storage;
+	int newgrp,newsub,storage;
 	ulong offset,length;
 
 	for(i=0;i<usrgrps;i++)		 /* Select New Group */
@@ -1244,10 +1244,8 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 	logline("M+",str);
-	if(cfg.sub[newsub]->misc&SUB_FIDO && cfg.sub[newsub]->echomail_sem[0])
-		if((file=nopen(cmdstr(cfg.sub[newsub]->echomail_sem,nulstr,nulstr,NULL)
-			,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
-			close(file);
+	signal_sub_sem(newsub);
+
 	return(true);
 }
 

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.31 2003/04/30 23:50:22 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.32 2003/05/09 02:58:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -466,7 +466,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		put_int(l,stream);
 		put_str(cfg->sub[i]->tagline,stream);
 		put_str(cfg->sub[i]->origline,stream);
-		put_str(cfg->sub[i]->echomail_sem,stream);
+		put_str(cfg->sub[i]->post_sem,stream);
 		put_str(cfg->sub[i]->newsgroup,stream);
 		put_int(cfg->sub[i]->faddr,stream);
 		put_int(cfg->sub[i]->maxmsgs,stream);
