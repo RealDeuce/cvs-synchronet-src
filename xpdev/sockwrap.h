@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.5 2002/06/25 09:12:16 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.6 2002/08/06 23:53:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -115,6 +115,9 @@ static  wsa_error;
 #define SHUT_RDWR		2	/* for shutdown() */
 #endif
 
+#ifndef IPPORT_HTTP
+#define IPPORT_HTTP		80
+#endif
 #ifndef IPPORT_FTP
 #define IPPORT_FTP		21
 #endif
