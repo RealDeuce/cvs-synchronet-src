@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.120 2003/07/25 01:45:00 rswindell Exp $ */
+/* $Id: services.c,v 1.121 2003/07/25 01:53:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,6 +73,7 @@
 #define MAX_SERVICES			128
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 #define MAX_UDP_BUF_LEN			8192	/* 8K */
+#define DEFAULT_LISTEN_BACKLOG	5
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
@@ -1284,7 +1285,7 @@ static service_t* read_services_cfg(service_t* service, char* services_cfg, DWOR
 		service=np;
 		memset(&service[*services],0,sizeof(service_t));
 		service[*services].socket=INVALID_SOCKET;
-		service[*services].listen_backlog=SOMAXCONN;
+		service[*services].listen_backlog=DEFAULT_LISTEN_BACKLOG;
 
 		tp=p; 
 		while(*tp && *tp>' ') tp++; 
@@ -1329,7 +1330,7 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 		serv.socket=INVALID_SOCKET;
 		serv.port=iniGetShortInt(fp,sec_list[i],"Port",0);
 		serv.max_clients=iniGetInteger(fp,sec_list[i],"MaxClients",0);
-		serv.listen_backlog=iniGetInteger(fp,sec_list[i],"ListenBacklog",SOMAXCONN);
+		serv.listen_backlog=iniGetInteger(fp,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
 		serv.options=iniGetBitField(fp,sec_list[i],"Options",service_options,0);
 		SAFECOPY(serv.cmd,iniGetString(fp,sec_list[i],"Command","",cmd));
 
@@ -1382,7 +1383,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.120 $", "%*s %s", revision);
+	sscanf("$Revision: 1.121 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
