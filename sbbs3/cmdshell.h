@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id: cmdshell.h,v 1.4 2001/03/09 21:58:58 rswindell Exp $ */
+/* $Id: cmdshell.h,v 1.5 2001/06/21 01:31:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,6 +112,7 @@ enum {
 	,CS_NODE_STATUS
 	,CS_CMDCHAR
 	,CS_COMPARE_CHAR
+	,CS_MULTINODE_CHAT
 	,CS_TWO_MORE_BYTES=0x3f
 
 /* Three byte instructions */

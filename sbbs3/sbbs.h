@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.53 2001/06/20 01:35:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.54 2001/06/21 01:31:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -505,6 +505,7 @@ public:
 
 	/* chat.cpp */
 	void	chatsection(void);
+	void	multinodechat(int channel=1);
 	void	nodepage(void);
 	void	nodemsg(void);
 	int		nodemsg_inside;
@@ -513,7 +514,8 @@ public:
 	void	guruchat(char *line, char *guru, int gurunum);
 	bool	guruexp(char **ptrptr, char *line);
 	void	localguru(char *guru, int gurunum);
-	void	sysop_page(void);
+	bool	sysop_page(void);
+	bool	guru_page(void);
 	void	privchat(bool local=false);
 	bool	chan_access(uint cnum);
 	int		getnodetopage(int all, int telegram);

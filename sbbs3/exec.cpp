@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.14 2001/06/20 01:19:33 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.15 2001/06/21 01:32:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1277,6 +1277,9 @@ int sbbs_t::exec(csi_t *csi)
 				getnodedat(cfg.node_num,&thisnode,1);
 				thisnode.status=*csi->ip++;
 				putnodedat(cfg.node_num,&thisnode);
+				return(0);
+			case CS_MULTINODE_CHAT:
+				multinodechat(*csi->ip++);
 				return(0);
 			case CS_GETSTR:
 				csi->logic=LOGIC_TRUE;

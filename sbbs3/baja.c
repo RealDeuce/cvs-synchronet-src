@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.16 2001/03/14 21:59:41 rswindell Exp $ */
+/* $Id: baja.c,v 1.17 2001/06/21 01:31:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3056,6 +3056,23 @@ void compile(char *src)
 
 		if(!stricmp(p,"PRIVATE_MESSAGE")) {
 			fprintf(out,"%c",CS_PRIVATE_MESSAGE);
+			continue; }
+
+		if(!stricmp(p,"MULTINODE_CHAT")) {
+			if(!(*arg)) 
+				ch=1;
+			else {
+				if((l=isvar(arg))!=0) {
+					fputc(CS_USE_INT_VAR,out);
+					fwrite(&l,4,1,out); // variable
+					fputc(1,out);		// int offset
+					fputc(1,out);       // int length
+					ch=0; } 			// place holder
+				else
+					ch=val(src,arg);
+			}
+
+			fprintf(out,"%c%c",CS_MULTINODE_CHAT,ch);
 			continue; }
 
 		if(!stricmp(p,"MAIL_READ")) {
