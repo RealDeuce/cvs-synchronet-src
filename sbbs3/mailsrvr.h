@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.39 2003/09/05 09:52:35 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.40 2003/09/26 01:20:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,7 @@ typedef struct {
 	void	(*socket_open)(BOOL open);
     void	(*client_on)(BOOL on, int sock, client_t*, BOOL update);
     BOOL	(*seteuid)(BOOL user);
+	BOOL	(*setuid)(BOOL force);
     char    ctrl_dir[128];
     char	relay_server[128];
     char	dns_server[128];

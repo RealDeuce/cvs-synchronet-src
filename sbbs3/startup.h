@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.40 2003/09/16 21:51:24 rswindell Exp $ */
+/* $Id: startup.h,v 1.41 2003/09/26 01:20:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,7 @@ typedef struct {
 	void	(*socket_open)(BOOL open);
     void	(*client_on)(BOOL on, int sock, client_t*, BOOL update);
     BOOL	(*seteuid)(BOOL user);	// Set Unix uid for thread (bind)
+	BOOL	(*setuid)(BOOL force);
     char    ctrl_dir[128];
     char	dosemu_path[128];
     char	temp_dir[128];

@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.11 2003/09/16 21:49:22 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.12 2003/09/26 01:20:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,7 @@ typedef struct {
 	void	(*socket_open)(BOOL open);
     void	(*client_on)(BOOL on, int sock, client_t*, BOOL update);
     BOOL	(*seteuid)(BOOL user);
+	BOOL	(*setuid)(BOOL);
 	char	ssjs_ext[16];			/* Server-Side JavaScript file extension */
 	char**	cgi_ext;				/* CGI Extensions */
     char    ctrl_dir[128];

@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.149 2003/09/03 14:12:46 runderwo Exp $ */
+/* $Id: xtrn.cpp,v 1.150 2003/09/26 01:20:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1503,6 +1503,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 	}
 	if(pid==0) {	/* child process */
+		/* Give away all privs for good now */
+		if(startup->setuid!=NULL)
+			startup->setuid(TRUE);
+
 		sigset_t        sigs;
 		sigfillset(&sigs);
 		sigprocmask(SIG_UNBLOCK,&sigs,NULL);
