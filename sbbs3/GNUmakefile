@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.88 2003/06/11 05:38:34 deuce Exp $
+# $Id: GNUmakefile,v 1.89 2003/06/12 09:38:15 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -65,7 +65,7 @@ ifeq ($(shell uname -m),ppc)
  os		:=	$(os)-ppc
 endif
 # this line wont work with solaris unless awk in path is actually gawk 
-os      :=	$(shell echo $(os) | tr "[ A-Z]" "[-a-z]")
+os      :=	$(shell echo $(os) | tr "[ A-Z]" "[\-a-z]")
 # remove '/' from "os/2"
 os      :=  $(shell echo $(os) | tr -d "/")
 
