@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.90 2003/02/14 22:07:21 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.91 2003/02/25 00:01:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1183,7 +1183,7 @@ void command(char *instr,faddr_t addr)
 	strupr(instr);
 	if((p=strstr(instr,"HELP"))!=NULL) {
 		sprintf(str,"%sAREAMGR.HLP",scfg.exec_dir);
-		if(!fexist(str))
+		if(!fexistcase(str))
 			return;
 		if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 			printf("\7ERROR couldn't open %s.\n",str);
@@ -4022,7 +4022,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.90 $", "%*s %s", revision);
+	sscanf("$Revision: 1.91 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
