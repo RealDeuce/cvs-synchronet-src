@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.93 2002/08/08 07:39:15 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.94 2002/08/08 07:42:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1269,7 +1269,7 @@ int main(int argc, char** argv)
 		while(!bbs_stopped && !ftp_stopped && !mail_stopped && !services_stopped
 			&& ((run_bbs && !bbs_running) 
 				|| (run_ftp && !ftp_running) 
-				|| (web_ftp && !web_running) 
+				|| (run_web && !web_running) 
 				|| (run_mail && !mail_running) 
 				|| (run_services && !services_running)))
 			mswait(1);
