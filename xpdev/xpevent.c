@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.6 2005/01/14 19:25:55 deuce Exp $ */
+/* $Id: xpevent.c,v 1.3 2005/01/14 00:26:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,12 @@
 
 #include <stdio.h>		/* NULL */
 #include "xpevent.h"
+
+#define _EVENT_CHECK_VALIDITY(event)		\
+	if (event==NULL || (event->magic != EVENT_MAGIC)) {	\
+		errno = EINVAL;			\
+		return(FALSE);			\
+	}
 
 xpevent_t
 CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
@@ -76,10 +82,7 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 BOOL
 SetEvent(xpevent_t event)
 {
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {
-		errno = EINVAL;
-		return(FALSE);
-	}
+	_EVENT_CHECK_VALIDITY(event)
 
 	pthread_mutex_lock(&event->lock);
 
@@ -102,10 +105,7 @@ SetEvent(xpevent_t event)
 BOOL
 ResetEvent(xpevent_t event)
 {
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {
-		errno = EINVAL;
-		return(FALSE);
-	}
+	_EVENT_CHECK_VALIDITY(event)
 
 	pthread_mutex_lock(&event->lock);
 
@@ -119,10 +119,7 @@ ResetEvent(xpevent_t event)
 BOOL
 CloseEvent(xpevent_t event)
 {
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {
-		errno = EINVAL;
-		return(FALSE);
-	}
+	_EVENT_CHECK_VALIDITY(event)
 
 	/* Make sure there are no waiters. */
 	pthread_mutex_lock(&event->lock);
@@ -144,7 +141,7 @@ CloseEvent(xpevent_t event)
 }
 
 DWORD
-WaitForEvent(xpevent_t event, DWORD ms)
+WaitEvent(xpevent_t event, DWORD ms)
 {
 	DWORD	retval=WAIT_FAILED;
 	struct timespec abstime;
@@ -201,5 +198,8 @@ WaitForEvent(xpevent_t event, DWORD ms)
 
 	pthread_mutex_unlock(&event->lock);
 
+  RETURN:
+
+	pthread_testcancel();
 	return retval;
 }
