@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.86 2004/08/10 03:59:52 deuce Exp $ */
+/* $Id: uifc32.c,v 1.90 2004/08/11 00:48:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,11 +97,6 @@ static int *last_menu_cur=NULL;
 static int *last_menu_bar=NULL;
 static int save_menu_cur=-1;
 static int save_menu_bar=-1;
-
-#ifdef _WIN32
-#define kbhit()	console_hit()
-int	console_hit(void);
-#endif
 
 static void reset_dynamic(void) {
 	last_menu_cur=NULL;
@@ -1525,6 +1520,7 @@ void umsg(char *str)
 /***************************************/
 void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *scrnoffset)
 {
+	_setcursortype(_NOCURSOR);
 	if(cursoffset<*scrnoffset)
 		*scrnoffset=cursoffset;
 
@@ -1534,6 +1530,7 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 	gotoxy(left,top);
 	cprintf("%-*.*s",width,width,outstr+*scrnoffset);
 	gotoxy(left+(cursoffset-*scrnoffset),top);
+	_setcursortype(_NORMALCURSOR);
 }
 
 /****************************************************************************/
@@ -1616,27 +1613,24 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		if(i>j) j=i;
 		str[j]=0;
 		getstrupd(left, top, width, str, i, &soffset);
-		if(f || kbwait())
+		if(f || (ch=inkey())!=0)
 		{
 			if(f)
 				ch=f;
-			else {
-				ch=inkey();
-				if(ch==CIO_KEY_MOUSE) {
-					if((ch=uifc_getmouse(&mevnt))==0) {
-						if(mevnt.x>=left-1
-								&& mevnt.x<=left+width-1
-								&& mevnt.button==1) {
-							i=mevnt.x-left+soffset+1;
-							if(i>j)
-								i=j;
-						}
+			f=0;
+			if(ch==CIO_KEY_MOUSE) {
+				if((ch=uifc_getmouse(&mevnt))==0) {
+					if(mevnt.x>=left-1
+							&& mevnt.x<=left+width-1
+							&& mevnt.button==1) {
+						i=mevnt.x-left+soffset+1;
+						if(i>j)
+							i=j;
 					}
 				}
 			}
 			if(lastkey != NULL)
 				*lastkey=ch;
-			f=0;
 			switch(ch)
 			{
 				case CIO_KEY_F(1):	/* F1 Help */
@@ -1766,8 +1760,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				str[i++]=ch; 
 			}
 		}
-		else
-			mswait(1);
 	}
 
 
