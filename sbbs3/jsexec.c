@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.45 2003/09/19 09:05:31 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.46 2003/09/20 06:20:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,8 @@ FILE*		errfp;
 FILE*		nulfp;
 FILE*		statfp;
 char		revision[16];
+char*		host_name=NULL;
+char		host_name_buf[128];
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
@@ -84,6 +86,8 @@ void usage(FILE* fp)
 		"\t-b <limit>      set branch limit (default=%u, 0=unlimited)\n"
 		"\t-y <freq>       set yield interval (default=%u, 0=never)\n"
 		"\t-g <freq>       set garbage collection interval (default=%u, 0=never)\n"
+		"\t-H              use local host name (instead of SCFG value)\n"
+		"\t-h <hostname>   use specified host name (instead of SCFG value)\n"
 		"\t-t <filename>   send console output to stdout and filename\n"
 		"\t-e              send error messages to console instead of stderr\n"
 		"\t-n              send status messages to %s instead of stdout\n"
@@ -462,7 +466,7 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 
 	/* System Object */
-	if(js_CreateSystemObject(js_cx, js_glob, &scfg, time(NULL), scfg.sys_inetaddr)==NULL)
+	if(js_CreateSystemObject(js_cx, js_glob, &scfg, time(NULL), host_name)==NULL)
 		return(FALSE);
 
 	/* Socket Class */
@@ -651,7 +655,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.terminated=&terminated;
 
-	sscanf("$Revision: 1.45 $", "%*s %s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -673,6 +677,12 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'g':
 					branch.gc_interval=strtoul(argv[++argn],NULL,0);
+					break;
+				case 'h':
+					host_name=argv[++argn];
+					break;
+				case 'H':
+					gethostname(host_name=host_name_buf,sizeof(host_name_buf));
 					break;
 				case 'e':
 					errfp=confp;
@@ -701,7 +711,6 @@ int main(int argc, char **argv, char** environ)
 				default:
 					fprintf(errfp,"\n!Unsupported option: %s\n",argv[argn]);
 				case '?':
-				case 'h':
 					usage(errfp);
 					bail(1);
 			}
@@ -737,6 +746,9 @@ int main(int argc, char **argv, char** environ)
 		bail(1);
 	}
 	prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+
+	if(host_name==NULL)
+		host_name=scfg.sys_inetaddr;
 
 	if(!(scfg.sys_misc&SM_LOCAL_TZ))
 		putenv("TZ=UTC0");
