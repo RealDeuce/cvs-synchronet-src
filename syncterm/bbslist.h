@@ -5,13 +5,8 @@
 
 #define LIST_NAME_MAX	30
 #define LIST_ADDR_MAX	30
-#define MAX_USER_LEN	30
+#define MAX_USER_LEN	16
 #define MAX_PASSWD_LEN	16
-
-enum {
-	 USER_BBSLIST
-	,SYSTEM_BBSLIST
-};
 
 enum {
 	 BBSLIST_SELECT
@@ -42,12 +37,8 @@ struct bbslist {
 	int				id;
 	int				reversed;
 	int				screen_mode;
-	int				nostatus;
 };
 
 struct bbslist *show_bbslist(int mode,char *path);
-void read_list(char *listpath, struct bbslist **list, int *i, int type);
-void free_list(struct bbslist **list, int listcount);
-void add_bbs(char *listpath, struct bbslist *bbs);
 
 #endif

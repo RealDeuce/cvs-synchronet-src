@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.41 2005/04/05 17:02:23 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.38 2005/01/24 10:46:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,7 @@ typedef struct
 #define ANSI_KEY_INSERT	0x52<<8
 #define ANSI_KEY_DELETE	0x53<<8
 
-tODKeySequence ODaKeySequences[] =
+tODKeySequence aKeySequences[] =
 {
    /* VT-52 control sequences. */
    {"\033A", ANSI_KEY_UP},
@@ -162,18 +162,6 @@ tODKeySequence ODaKeySequences[] =
    /* Terminator */
    {"",0}
 };
-
-#ifdef NEEDS_CFMAKERAW
-void
-cfmakeraw(struct termios *t)
-{
-	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_oflag &= ~OPOST;
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-	t->c_cflag &= ~(CSIZE|PARENB);
-	t->c_cflag |= CS8;
-}
-#endif
 
 void ansi_sendch(char ch)
 {
@@ -412,9 +400,9 @@ static void ansi_keyparse(void *par)
 					unknown=1;
 					gotesc=0;
 					timeout=0;
-					for(i=0;ODaKeySequences[i].pszSequence[0];i++) {
-						if(!strcmp(seq,ODaKeySequences[i].pszSequence)) {
-							ansi_inch=ODaKeySequences[i].chExtendedKey;
+					for(i=0;aKeySequences[i].pszSequence[0];i++) {
+						if(!strcmp(seq,aKeySequences[i].pszSequence)) {
+							ansi_inch=aKeySequences[i].chExtendedKey;
 							sem_post(&got_input);
 							/* Two-byte code, need to post twice and wait for one to
 							   be received */
@@ -651,8 +639,8 @@ void ansi_gettextinfo(struct text_info *info)
 	info->currmode=3;
 	info->screenheight=ansi_rows;
 	info->screenwidth=ansi_cols;
-	info->curx=ansi_wherex();
-	info->cury=ansi_wherey();
+	info->curx=wherex();
+	info->cury=wherey();
 	info->attribute=ansi_curr_attr>>8;
 }
 

@@ -1,5 +1,5 @@
 /*
- * $Id: xpsem.c,v 1.9 2005/01/25 08:18:59 deuce Exp $
+ * $Id: xpsem.c,v 1.8 2005/01/24 09:10:46 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -244,7 +244,7 @@ xp_sem_setvalue(xp_sem_t *sem, int sval)
 	_SEM_CHECK_VALIDITY(sem);
 
 	pthread_mutex_lock(&(*sem)->lock);
-	(*sem)->count=(u_int32_t)sval;
+	(int)(*sem)->count=sval;
 	if (((*sem)->nwaiters > 0) && sval) {
 		/*
 		 * We must use pthread_cond_broadcast() rather than

@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.13 2005/01/28 03:13:38 deuce Exp $ */
+/* $Id: x_cio.c,v 1.12 2005/01/24 00:00:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,8 +213,8 @@ void x_gettextinfo(struct text_info *info)
 	info->currmode=CurrMode;
 	info->screenheight=DpyRows+1;
 	info->screenwidth=DpyCols;
-	info->curx=x_wherex();
-	info->cury=x_wherey();
+	info->curx=wherex();
+	info->cury=wherey();
 	info->attribute=x_curr_attr>>8;
 }
 
