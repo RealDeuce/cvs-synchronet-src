@@ -2,14 +2,19 @@
 
 # Make 'include file' defining targets for Synchronet SCFG project
 
-# $Id: targets.mk,v 1.4 2004/03/11 06:26:00 deuce Exp $
+# $Id: targets.mk,v 1.5 2004/09/13 08:36:52 deuce Exp $
 
 # LIBODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
-SCFG	=	$(EXEODIR)$(SLASH)scfg$(EXEFILE) 
-MAKEHELP=	$(EXEODIR)$(SLASH)makehelp$(EXEFILE) 
-SCFGHELP=	$(EXEODIR)$(SLASH)scfghelp.dat
+SCFG	=	$(EXEODIR)$(DIRSEP)scfg$(EXEFILE) 
+MAKEHELP=	$(EXEODIR)$(DIRSEP)makehelp$(EXEFILE) 
+SCFGHELP=	$(EXEODIR)$(DIRSEP)scfghelp.dat
 
-all:	$(EXEODIR) \
+all:		xpdev-mt \
+		uifc-mt \
+		ciolib-mt \
+		smblib \
+		$(EXEODIR) \
+		$(MTOBJODIR) \
 		$(LIBODIR) \
 		$(SCFG) $(SCFGHELP)
