@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.19 2002/07/21 05:25:15 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.20 2002/07/25 01:29:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 		strcpy(str,repfile);
 	else
 		sprintf(str,"%s%s.rep",cfg.temp_dir,cfg.sys_id);
-	if(!fexist(str)) {
+	if(!fexistcase(str)) {
 		bputs(text[QWKReplyNotReceived]);
 		logline("U!",AttemptedToUploadREPpacket);
 		logline(nulstr,"REP file not received");
