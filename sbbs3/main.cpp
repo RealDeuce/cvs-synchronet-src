@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.89 2002/01/20 14:18:18 rswindell Exp $ */
+/* $Id: main.cpp,v 1.90 2002/01/22 21:55:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2610,16 +2610,18 @@ void node_thread(void* arg)
 		if(!sbbs->js_init())	/* This must be done in the context of the node thread */
 			lprintf("!JavaScript Initialization FAILURE");
 	}
+
+	if(sbbs->js_cx!=NULL) {
+		/* User class */
+		if(js_CreateUserClass(sbbs->js_cx, sbbs->js_glob, &scfg)==NULL) 
+			lprintf("!JavaScript ERROR creating user class");
+	}
 #endif
 
 	if(sbbs->answer()) {
 
 #ifdef JAVASCRIPT
-		if(sbbs->js_cx!=NULL) {
-			/* User class */
-			if(js_CreateUserClass(sbbs->js_cx, sbbs->js_glob, &scfg)==NULL) 
-				lprintf("!JavaScript ERROR creating user class");
-
+	if(sbbs->js_cx!=NULL) {
 			/* user object */
 			if(js_CreateUserObject(sbbs->js_cx, sbbs->js_glob, &sbbs->cfg, "user", sbbs->useron.number)==NULL) 
 				lprintf("!JavaScript ERROR creating user object");
