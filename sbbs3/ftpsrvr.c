@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.268 2004/09/17 23:53:40 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.267 2004/06/05 02:50:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -95,7 +95,7 @@ static DWORD	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
-#ifdef _DEBUG
+#if 0 //def _DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
 
 	#define	SOCKET_DEBUG_CTRL		(1<<0)	// 0x01
@@ -4463,7 +4463,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.268 $", "%*s %s", revision);
+	sscanf("$Revision: 1.267 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
