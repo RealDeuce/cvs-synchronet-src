@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.60 2003/11/26 11:48:12 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.61 2003/11/26 12:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -545,6 +545,8 @@ long js_exec(const char *fname, char** args)
 	uint		line_no;
 	char		path[MAX_PATH+1];
 	char		line[1024];
+	char		compiler[32];
+	char		rev_detail[256];
 	size_t		len;
 	char*		js_buf=NULL;
 	size_t		js_buflen;
@@ -594,6 +596,23 @@ long js_exec(const char *fname, char** args)
 
 	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
+		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+
+	DESCRIBE_COMPILER(compiler);
+
+	sprintf(rev_detail,"JSexec %s%s  "
+		"Compiled %s %s with %s"
+		,revision
+#ifdef _DEBUG
+		," Debug"
+#else
+		,""
+#endif
+		,__DATE__, __TIME__, compiler
+		);
+
+	JS_DefineProperty(js_cx, js_glob, "jsexec_revision_detail"
+		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
@@ -691,7 +710,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.60 $", "%*s %s", revision);
+	sscanf("$Revision: 1.61 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
