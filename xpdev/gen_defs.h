@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.2 2002/04/06 09:14:09 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.3 2002/04/13 08:42:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ enum {
 #define HANDLE	void*
 #endif
 
-#define SAFECOPY(dst,src)	sprintf(dst,"%.*s",sizeof(dst)-1,src)
+#define SAFECOPY(dst,src)	sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
 
 /****************************************************************************/
 /* MALLOC/FREE Macros for various compilers and environments				*/
