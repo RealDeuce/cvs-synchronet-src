@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.309 2003/12/07 09:33:22 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.307 2003/12/06 11:03:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2205,7 +2205,8 @@ static void smtp_thread(void* arg)
 				}
 
 				/* Security logging */
-				msg_client_hfields(&msg,&client);
+				smb_hfield_str(&msg,SENDERIPADDR,host_ip);
+				smb_hfield_str(&msg,SENDERHOSTNAME,host_name);
 
 				length=filelength(fileno(msgtxt))-ftell(msgtxt);
 
@@ -3339,7 +3340,7 @@ static void sendmail_thread(void* arg)
 				smb_unlockmsghdr(&smb,&msg);
 				continue;
 			}
-			if(!(startup->options&MAIL_OPT_SEND_INTRANSIT) && msg.hdr.netattr&MSG_INTRANSIT) {
+			if(msg.hdr.netattr&MSG_INTRANSIT) {
 				smb_unlockmsghdr(&smb,&msg);
 				lprintf(LOG_ERR,"0000 SEND Message #%lu from %s to %s - in transit"
 					,msg.hdr.number, msg.from, msg.to_net.addr);
@@ -3624,7 +3625,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.309 $", "%*s %s", revision);
+	sscanf("$Revision: 1.307 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

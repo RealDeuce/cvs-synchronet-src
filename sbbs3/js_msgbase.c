@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.85 2003/12/07 07:07:49 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.83 2003/12/06 11:03:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,7 +120,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	ushort		nettype;
 	ushort		type;
 	ushort		agent;
-	ushort		port;
 	int32		i32;
 	jsval		val;
 	JSObject*	array;
@@ -211,18 +210,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
 		smb_hfield_str(msg, SENDERHOSTNAME, cp);
-	}
-
-	if(JS_GetProperty(cx, hdr, "from_protocol", &val) && val!=JSVAL_VOID) {
-		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
-			return(FALSE);
-		smb_hfield_str(msg, SENDERPROTOCOL, cp);
-	}
-
-	if(JS_GetProperty(cx, hdr, "from_port", &val) && val!=JSVAL_VOID) {
-		JS_ValueToInt32(cx,val,&i32);
-		port=(ushort)i32;
-		smb_hfield(msg, SENDERPORT, sizeof(port), &port);
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_ext", &val) && val!=JSVAL_VOID) {
@@ -534,7 +521,6 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	char		msg_id[256];
 	char		reply_id[256];
 	char*		val;
-	ushort*		port;
 	int			i;
 	uintN		n;
 	smbmsg_t	msg;
@@ -697,17 +683,6 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		&& (js_str=JS_NewStringCopyZ(cx,val))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "from_host_name"
 			,STRING_TO_JSVAL(js_str)
-			,NULL,NULL,JSPROP_ENUMERATE);
-
-	if((val=smb_get_hfield(&msg,SENDERPROTOCOL,NULL))!=NULL
-		&& (js_str=JS_NewStringCopyZ(cx,val))!=NULL)
-		JS_DefineProperty(cx, hdrobj, "from_protocol"
-			,STRING_TO_JSVAL(js_str)
-			,NULL,NULL,JSPROP_ENUMERATE);
-
-	if((port=smb_get_hfield(&msg,SENDERPORT,NULL))!=NULL)
-		JS_DefineProperty(cx, hdrobj, "from_port"
-			,INT_TO_JSVAL(*port)
 			,NULL,NULL,JSPROP_ENUMERATE);
 		
 	JS_DefineProperty(cx, hdrobj, "forwarded",INT_TO_JSVAL(msg.forwarded)
@@ -1531,8 +1506,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td><tt>from_net_addr</tt><td>Sender's network address"
 	"<tr><td><tt>from_ip_addr</tt><td>Sender's IP address (if available, for security tracking)"
 	"<tr><td><tt>from_host_name</tt><td>Sender's host name (if available, for security tracking)"
-	"<tr><td><tt>from_protocol</tt><td>TCP/IP protocol used by sender (if available, for security tracking)"
-	"<tr><td><tt>from_port</tt><td>TCP/UDP port number used by sender (if available, for security tracking)"
 	"<tr><td><tt>replyto</tt><td>Replies should be sent to this name"
 	"<tr><td><tt>replyto_ext</tt><td>Replies should be sent to this user number"
 	"<tr><td><tt>replyto_org</tt><td>Replies should be sent to organization"

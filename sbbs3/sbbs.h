@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.218 2003/12/07 03:52:33 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.217 2003/11/26 12:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -779,7 +779,6 @@ extern "C" {
 	/* postmsg.cpp */
 	DLLEXPORT int		DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgbuf);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t* cfg, uint subnum);
-	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);

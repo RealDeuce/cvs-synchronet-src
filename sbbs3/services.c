@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.152 2003/12/06 19:18:31 rswindell Exp $ */
+/* $Id: services.c,v 1.151 2003/11/26 12:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1523,7 +1523,7 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 		serv.js_yield_interval=iniGetInteger(fp,sec_list[i]	,strJavaScriptYieldInterval	,startup->js_yield_interval);
 
 		for(j=0;j<*services;j++)
-			if(service[j].port==serv.port && (service[j].options&SERVICE_OPT_UDP)==(serv.options&SERVICE_OPT_UDP))
+			if(service[j].port==serv.port && service[j].options==serv.options)
 				break;
 		if(j<*services)	{ /* ignore duplicate services */
 			lprintf(LOG_NOTICE,"Ignoring duplicate service: %s",sec_list[i]);
@@ -1581,7 +1581,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.152 $", "%*s %s", revision);
+	sscanf("$Revision: 1.151 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
