@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.73 2003/05/22 22:59:42 rswindell Exp $ */
+/* $Id: userdat.c,v 1.74 2003/06/12 09:03:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2199,4 +2199,27 @@ int DLLCALL user_rec_len(int offset)
 	}
 
 	return(-1);
+}
+
+BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user)
+{
+	if(!VALID_CFG(cfg))
+		return(FALSE);
+	
+	if(dirnum>=cfg->total_dirs)
+		return(FALSE);
+
+	if(cfg->dir[dirnum]->misc&DIR_FREE)
+		return(TRUE);
+
+	if(user==NULL)
+		return(FALSE);
+
+	if(user->exempt&FLAG('D'))
+		return(TRUE);
+
+	if(cfg->dir[dirnum]->ex_ar[0]==0)
+		return(FALSE);
+
+	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user));
 }
