@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.8 2003/05/15 08:17:11 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.9 2003/05/18 10:38:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,8 @@ extern "C" {
 #endif
 
 /* Read all section names and return as an allocated string list */
-char**		iniGetSectionList		(FILE* fp);
+/* Optionally (if prefix!=NULL), returns a subset of section names */
+char**		iniGetSectionList		(FILE* fp, const char* prefix);
 /* Read all key names and return as an allocated string list */
 char**		iniGetKeyList			(FILE* fp, const char* section);
 /* Read all key and value pairs and return as a named string list */
