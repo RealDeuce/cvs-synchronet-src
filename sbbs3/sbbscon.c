@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.40 2002/02/28 01:25:18 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.41 2002/02/28 01:28:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,6 +394,7 @@ int main(int argc, char** argv)
 {
 	int		i;
 	char	ch;
+	char	str[256];
 	char*	arg;
 	char*	ctrl_dir;
 	BOOL	quit=FALSE;
@@ -588,26 +589,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-#ifdef __unix__
-
-	if(getuid())  /*  are we running as a normal user?  */
-		fprintf(stderr,
-	"*** Started as non-root user.  Cannot bind() to ports below 1024.\n");
-	
-	else if(!new_uid_name)   /*  check the user arg, if we have uid 0 */
-		fprintf(stderr,
-	"*** No user account specified and started as root.  HAZARDOUS!\n");
-	
-	else if (!do_setuid())
-			/* actually try to change the uid of this process */
-		fprintf(stderr,
-	"*** Setting new uid failed!  (Does the user exist?)\n");
-	
-	else
-		printf("*** Successfully changed to user %s.\n", new_uid_name);
-
-#endif
-
 	_beginthread((void(*)(void*))bbs_thread,0,&bbs_startup);
 	_beginthread((void(*)(void*))ftp_server,0,&ftp_startup);
 	_beginthread((void(*)(void*))mail_server,0,&mail_startup);
@@ -620,6 +601,21 @@ int main(int argc, char** argv)
 	signal(SIGQUIT, _sighandler_quit);
 	signal(SIGABRT, _sighandler_quit);
 	signal(SIGTERM, _sighandler_quit);
+
+	if(getuid())  /*  are we running as a normal user?  */
+		lputs("*** Started as non-root user.  Cannot bind() to ports below 1024.\n");
+	
+	else if(!new_uid_name)   /*  check the user arg, if we have uid 0 */
+		lputs("*** No user account specified and started as root.  HAZARDOUS!\n");
+	
+	else if (!do_setuid())
+			/* actually try to change the uid of this process */
+		lputs("*** Setting new uid failed!  (Does the user exist?)\n");
+	
+	else {
+		sprintf(str,"*** Successfully changed to user %s.\n", new_uid_name);
+		lputs(str);
+	}
 
 	if(!isatty(fileno(stdin)))			/* redirected */
 		select(0,NULL,NULL,NULL,NULL);	/* so wait here until signaled */
