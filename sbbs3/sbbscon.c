@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.74 2002/07/21 12:55:32 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.75 2002/07/21 12:59:35 rob Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,11 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+/* ANSI headers */
+#include <string.h>
+#include <signal.h>
+#include <ctype.h>
 
 /* Synchronet-specific headers */
 #include "sbbsdefs.h"	/* VERSION, REVISION, and COPYRIGHT_NOTICE */
