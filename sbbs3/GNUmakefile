@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.15 2002/04/25 07:58:42 rswindell Exp $
+# $Id: GNUmakefile,v 1.16 2002/04/25 08:02:20 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -190,12 +190,12 @@ $(SBBSECHO): \
 	$(EXEODIR)/misc.o \
 	$(EXEODIR)/userdat.o \
 	$(EXEODIR)/rechocfg.o \
-	$(EXEODIR)/conwrap.o \ 
+	$(EXEODIR)/conwrap.o \
 	$(EXEODIR)/dirwrap.o \
 	$(EXEODIR)/genwrap.o \
 	$(SMBLIB) \
 	$(EXEODIR)/smbtxt.o \
-	$(EXEODIR)/lzh.o 
+	$(EXEODIR)/lzh.o
 	@echo Linking $@
 	@$(CC) $^ -o $@
 
