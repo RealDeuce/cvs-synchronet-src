@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.27 2000/12/05 03:25:45 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.28 2001/02/04 16:50:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,6 +235,10 @@ extern "C" {
 	#define PLATFORM_DESC	"DOS"
 #elif defined(__linux__)
 	#define PLATFORM_DESC	"Linux"
+#elif defined(__FreeBSD__)
+	#define PLATFORM_DESC	"FreeBSD"
+#elif defined(BSD)
+	#define PLATFORM_DESC	"BSD"
 #elif defined(__unix__)
 	#define PLATFORM_DESC	"Unix"
 #else
