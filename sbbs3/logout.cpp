@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.17 2002/11/13 03:08:00 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.18 2003/01/31 02:16:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,7 +234,7 @@ void sbbs_t::logofflist()
 		return;
 	if(localtime_r(&logontime,&tm)==NULL)
 		return;
-	sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg.data_dir,tm.tm_mon+1,tm.tm_mday
+	sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg.logs_dir,tm.tm_mon+1,tm.tm_mday
 		,TM_YEAR(tm.tm_year));
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);

@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.31 2002/12/19 22:14:48 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.32 2003/01/31 02:16:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1708,7 +1708,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	if(online==ON_REMOTE) {
 		checkline();
 		if(!online) {
-			sprintf(str,"%shungup.log",cfg.data_dir);
+			sprintf(str,"%shungup.log",cfg.logs_dir);
 			if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
 				return(false); 

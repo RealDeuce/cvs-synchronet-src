@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.20 2002/12/30 05:26:48 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.21 2003/01/31 02:16:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -537,6 +537,8 @@ typedef struct
 	char 	text_dir[LEN_DIR+1];
 	char 	exec_dir[LEN_DIR+1];
 	char 	temp_dir[LEN_DIR+1];
+	char	mods_dir[LEN_DIR+1];
+	char	logs_dir[LEN_DIR+1];
 	char 	node_path[MAX_NODES][LEN_DIR+1]; /* paths to all node dirs */
 	ushort	sysop_dir;			/* Destination for uploads to sysop */
 	ushort	user_dir;			/* Directory for user to user xfers */

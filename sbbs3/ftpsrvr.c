@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.202 2003/01/23 09:49:43 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.203 2003/01/31 02:16:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -659,11 +659,13 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		/* Add extension if not specified */
-		if(!strchr(startup->html_index_script,BACKSLASH))
-			sprintf(spath,"%s%s",scfg.exec_dir,startup->html_index_script);
-		else
+		if(strcspn(startup->html_index_script,"/\\")==strlen(startup->html_index_script)) {
+			sprintf(spath,"%s%s",scfg.mods_dir,startup->html_index_script);
+			if(scfg.mods_dir[0]==0 || !fexist(spath))
+				sprintf(spath,"%s%s",scfg.exec_dir,startup->html_index_script);
+		} else
 			sprintf(spath,"%.*s",(int)sizeof(spath)-4,startup->html_index_script);
+		/* Add extension if not specified */
 		if(!strchr(spath,'.'))
 			strcat(spath,".js");
 
@@ -4350,7 +4352,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.202 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.203 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

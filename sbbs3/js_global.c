@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.38 2003/01/03 11:12:01 rswindell Exp $ */
+/* $Id: js_global.c,v 1.39 2003/01/31 02:16:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,9 +117,11 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	errno = 0;
-	if(!strchr(filename,BACKSLASH))
-		sprintf(path,"%s%s",cfg->exec_dir,filename);
-	else
+	if(strcspn(filename,"/\\")==strlen(filename)) {
+		sprintf(path,"%s%s",cfg->mods_dir,filename);
+		if(cfg->mods_dir[0]==0 || !fexist(path))
+			sprintf(path,"%s%s",cfg->exec_dir,filename);
+	} else
 		strcpy(path,filename);
 	if((script=JS_CompileFile(cx, obj, path))==NULL)
 		return(JS_FALSE);

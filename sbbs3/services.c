@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.91 2003/01/14 20:53:01 rswindell Exp $ */
+/* $Id: services.c,v 1.92 2003/01/31 02:16:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -824,7 +824,9 @@ static void js_service_thread(void* arg)
 	}
 
 	/* RUN SCRIPT */
-	sprintf(spath,"%s%s",scfg.exec_dir,service->cmd);
+	sprintf(spath,"%s%s",scfg.mods_dir,service->cmd);
+	if(scfg.mods_dir[0]==0 || !fexist(spath))
+		sprintf(spath,"%s%s",scfg.exec_dir,service->cmd);
 
 	js_init_cmdline(js_cx, js_glob, spath);
 
@@ -920,7 +922,10 @@ static void js_static_service_thread(void* arg)
 		return;
 	}
 
-	sprintf(spath,"%s%s",scfg.exec_dir,service->cmd);
+	sprintf(spath,"%s%s",scfg.mods_dir,service->cmd);
+	if(scfg.mods_dir[0]==0 || !fexist(spath))
+		sprintf(spath,"%s%s",scfg.exec_dir,service->cmd);
+
 	js_init_cmdline(js_cx, js_glob, spath);
 
 	val = BOOLEAN_TO_JSVAL(JS_FALSE);
@@ -1212,7 +1217,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.91 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.92 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
