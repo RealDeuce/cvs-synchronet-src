@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.32 2002/12/19 22:14:48 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.33 2003/01/14 22:04:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,6 +149,12 @@ char* sbbs_t::atcode(char* sp, char* str)
 			,(ulong)(up/(60L*60L))
 			,(ulong)((up/60L)%60L)
 			);
+		return(str);
+	}
+
+	if(!strcmp(sp,"SERVED")) {
+		extern DWORD served;
+		sprintf(str,"%lu",served);
 		return(str);
 	}
 
