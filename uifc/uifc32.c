@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.106 2004/11/19 00:47:33 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.108 2005/01/19 06:42:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -832,27 +832,33 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					i=CIO_KEY_DC;	/* delete */
 					break;
 				case CTRL_B:
-					i=CIO_KEY_HOME;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_HOME;
 					break;
 				case CTRL_E:
-					i=CIO_KEY_END;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_END;
 					break;
 				case CTRL_U:
-					i=CIO_KEY_PPAGE;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_PPAGE;
 					break;
 				case CTRL_D:
-					i=CIO_KEY_NPAGE;
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_NPAGE;
 					break;
 				case CTRL_Z:
-					i=CIO_KEY_F(1);	/* help */
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_F(1);	/* help */
 					break;
 				case CTRL_C:
-					i=CIO_KEY_F(5);	/* copy */
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_F(5);	/* copy */
 					break;
 				case CTRL_V:
-					i=CIO_KEY_F(6);	/* paste */
+					if(!(api->mode&UIFC_NOCTRL))
+						i=CIO_KEY_F(6);	/* paste */
 					break;
-
 			}
 			if(i>255) {
 				s=0;
@@ -1704,9 +1710,11 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				case CIO_KEY_F(2):
 				case CIO_KEY_UP:
 				case CIO_KEY_DOWN:
-					if(mode&K_DEUCEEXIT)
+					if(mode&K_DEUCEEXIT) {
 						ch=CR;
-					break;
+						break;
+					}
+					continue;
 				case CTRL_X:
 					if(j)
 					{
