@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.16 2002/03/19 22:47:46 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.17 2002/03/21 18:17:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,28 @@
 		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#endif
 	#define chsize(fd,size)		ftruncate(fd,size)
+
+#endif
+
+#if defined(_WIN32)
+
+	#define mswait(x)			Sleep(x)
+
+#elif defined(__OS2__)
+
+	#define mswait(x)			DosSleep(x)
+
+#elif defined(__unix__)
+
+	#define mswait(x)			usleep(x*1000)
+	#define _mkdir(dir)			mkdir(dir,0777)
+	#define _rmdir(dir)			rmdir(dir)
+	#define _fullpath(a,r,l)	realpath(r,a)
+	#define tell(fd)			lseek(fd,0,SEEK_CUR)
+
+#else	/* Unsupported OS */
+
+	#warning "Unsupported Target: Need some macros or function prototypes here."
 
 #endif
 

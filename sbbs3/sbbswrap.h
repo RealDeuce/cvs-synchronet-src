@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.33 2002/03/18 23:53:58 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.34 2002/03/21 18:17:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,28 +156,20 @@ extern "C" {
 
 #if defined(_WIN32)
 
-	#define mswait(x)			Sleep(x)
 	#define sbbs_beep(freq,dur)	Beep(freq,dur)
 
 #elif defined(__OS2__)
 
-	#define mswait(x)			DosSleep(x)
 	#define sbbs_beep(freq,dur)	DosBeep(freq,dur)
 
 #elif defined(__unix__)
-
-	#define mswait(x)			usleep(x*1000)
-	#define _mkdir(dir)			mkdir(dir,0777)
-	#define _rmdir(dir)			rmdir(dir)
-	#define _fullpath(a,r,l)	realpath(r,a)
-	#define tell(fd)			lseek(fd,0,SEEK_CUR)
 
 	DLLEXPORT void	DLLCALL sbbs_beep(int freq, int dur);
 	DLLEXPORT char* DLLCALL strrev(char* str);
 
 #else	/* Unsupported OS */
 
-	#warning "Unsupported Target: Need some macros of function prototypes here."
+	#warning "Unsupported Target: Need some macros or function prototypes here."
 
 #endif
 
