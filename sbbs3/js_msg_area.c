@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.14 2002/08/10 08:17:26 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.15 2002/08/10 10:47:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,7 +130,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 	JSBool		found;
 
 	/* Return existing object if it's already been created */
-	if(JS_GetProperty(cx,parent,"msg_area",&val))
+	if(JS_GetProperty(cx,parent,"msg_area",&val) && val!=JSVAL_VOID)
 		return(JSVAL_TO_OBJECT(val));
 
 	areaobj = JS_DefineObject(cx, parent, "msg_area", &js_msg_area_class, NULL, 0);
