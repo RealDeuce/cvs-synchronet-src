@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.113 2005/02/04 22:06:07 deuce Exp $ */
+/* $Id: uifc32.c,v 1.114 2005/02/05 20:52:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1490,7 +1490,7 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 	int lbrdrwidth=1;
 	int rbrdrwidth=1;
 	int vbrdrsize=4;
-	int tbrdrwidth=3;
+	int tbrdrwidth=1;
 	int bbrdrwidth=1;
 
 	reset_dynamic();
