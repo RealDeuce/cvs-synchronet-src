@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.39 2004/01/01 23:29:37 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.44 2004/12/15 20:59:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -46,7 +46,8 @@ enum {	/* msg_area Object Properties */
 #ifdef _DEBUG
 
 static char* msg_grp_prop_desc[] = {
-	 "group number"
+	 "index into grp_list array"
+	,"unique number for this message group"
 	,"group name"
 	,"group description"
 	,"group access requirements"
@@ -55,8 +56,11 @@ static char* msg_grp_prop_desc[] = {
 
 static char* msg_area_prop_desc[] = {
 
-	 "sub-board number"
+	 "index into sub_list array"
+	,"group's index into grp_list array"
+	,"unique number for this sub-board"
 	,"group number"
+	,"group name"
 	,"sub-board internal code"
 	,"sub-board name"
 	,"sub-board description"
@@ -82,7 +86,7 @@ static char* msg_area_prop_desc[] = {
 	,"user has operator access to this message area"
 	,"user's posts are moderated"
 	,"user's current new message scan pointer (highest-read message number)"
-	,"user's message scan configuration (bitfield) see <tt>SUB_SCAN_*</tt> in <tt>sbbsdefs.js</tt> for valid bits"
+	,"user's message scan configuration (bitfield) see <tt>SCAN_CFG_*</tt> in <tt>sbbsdefs.js</tt> for valid bits"
 	,"user's last-read message number"
 	,NULL
 };
@@ -106,6 +110,12 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		return(FALSE);
 
 	if(!JS_DefineProperty(cx, subobj, "grp_number", INT_TO_JSVAL(sub->grp)
+		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
+		return(FALSE);
+
+	if((js_str=JS_NewStringCopyZ(cx, cfg->grp[sub->grp]->sname))==NULL)
+		return(FALSE);
+	if(!JS_DefineProperty(cx, subobj, "grp_name", STRING_TO_JSVAL(js_str)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
 
@@ -293,9 +303,9 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static struct JSPropertySpec js_sub_properties[] = {
 /*		 name				,tinyid		,flags	*/
 
-	{	"scan_ptr"	,SUB_PROP_SCAN_PTR	,JSPROP_ENUMERATE },
-	{	"scan_cfg"	,SUB_PROP_SCAN_CFG	,JSPROP_ENUMERATE },
-	{	"lead_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE },
+	{	"scan_ptr"	,SUB_PROP_SCAN_PTR	,JSPROP_ENUMERATE|JSPROP_SHARED },
+	{	"scan_cfg"	,SUB_PROP_SCAN_CFG	,JSPROP_ENUMERATE|JSPROP_SHARED },
+	{	"lead_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE|JSPROP_SHARED },
 	{0}
 };
 
@@ -317,6 +327,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 										  ,user_t* user, subscan_t* subscan)
 {
 	JSObject*	areaobj;
+	JSObject*	allgrps;
 	JSObject*	allsubs;
 	JSObject*	grpobj;
 	JSObject*	subobj;
@@ -324,7 +335,8 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 	JSObject*	sub_list;
 	JSString*	js_str;
 	jsval		val;
-	jsuint		index;
+	jsuint		grp_index;
+	jsuint		sub_index;
 	uint		l,d;
 
 	/* Return existing object if it's already been created */
@@ -341,6 +353,15 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 	js_DescribeSyncObject(cx,areaobj,"Message Areas",310);
 #endif
 
+	/* msg_area.grp[] */
+	if((allgrps=JS_NewObject(cx, NULL, NULL, areaobj))==NULL)
+		return(NULL);
+
+	val=OBJECT_TO_JSVAL(allgrps);
+	if(!JS_SetProperty(cx, areaobj, "grp", &val))
+		return(NULL);
+
+	/* msg_area.sub[] */
 	if((allsubs=JS_NewObject(cx, NULL, NULL, areaobj))==NULL)
 		return(NULL);
 
@@ -348,7 +369,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 	if(!JS_SetProperty(cx, areaobj, "sub", &val))
 		return(NULL);
 
-	/* grp_list[] */
+	/* msg_area.grp_list[] */
 	if((grp_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 		return(NULL);
 
@@ -368,11 +389,20 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 		if((grpobj=JS_NewObject(cx, NULL, NULL, NULL))==NULL)
 			return(NULL);
 
-		if(!JS_GetArrayLength(cx, grp_list, &index))
+		if(!JS_GetArrayLength(cx, grp_list, &grp_index))
 			return(NULL);
 
 		val=OBJECT_TO_JSVAL(grpobj);
-		if(!JS_SetElement(cx, grp_list, index, &val))
+		if(!JS_SetElement(cx, grp_list, grp_index, &val))
+			return(NULL);
+
+		/* Add as property (associative array element) */
+		if(!JS_DefineProperty(cx, allgrps, cfg->grp[l]->sname, val
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
+			return(NULL);
+
+		val=INT_TO_JSVAL(grp_index);
+		if(!JS_SetProperty(cx, grpobj, "index", &val))
 			return(NULL);
 
 		val=INT_TO_JSVAL(l);
@@ -425,16 +455,24 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			if(subscan!=NULL)
 				JS_SetPrivate(cx,subobj,&subscan[d]);
 
-			if(!JS_GetArrayLength(cx, sub_list, &index))
+			if(!JS_GetArrayLength(cx, sub_list, &sub_index))
 				return(NULL);							
 
 			val=OBJECT_TO_JSVAL(subobj);
-			if(!JS_SetElement(cx, sub_list, index, &val))
+			if(!JS_SetElement(cx, sub_list, sub_index, &val))
 				return(NULL);
 
 			/* Add as property (associative array element) */
 			if(!JS_DefineProperty(cx, allsubs, cfg->sub[d]->code, val
 				,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
+				return(NULL);
+
+			val=INT_TO_JSVAL(sub_index);
+			if(!JS_SetProperty(cx, subobj, "index", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(grp_index);
+			if(!JS_SetProperty(cx, subobj, "grp_index", &val))
 				return(NULL);
 
 			if(!js_CreateMsgAreaProperties(cx, cfg, subobj, d))
@@ -492,8 +530,12 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 #ifdef _DEBUG
 		js_CreateArrayOfStrings(cx, grpobj, "_property_desc_list", msg_grp_prop_desc, JSPROP_READONLY);
 #endif
-
 	}
+
+#ifdef _DEBUG
+	js_DescribeSyncObject(cx,allgrps,"Associative array of all groups (use name as index)",312);
+	JS_DefineProperty(cx,allgrps,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
+#endif
 
 #ifdef _DEBUG
 	js_DescribeSyncObject(cx,allsubs,"Associative array of all sub-boards (use internal code as index)",311);
