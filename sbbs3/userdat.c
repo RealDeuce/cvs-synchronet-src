@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.81 2003/09/03 01:09:09 rswindell Exp $ */
+/* $Id: userdat.c,v 1.82 2003/09/23 21:49:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1626,7 +1626,7 @@ BOOL DLLCALL chk_ar(scfg_t* cfg, uchar *ar, user_t* user)
 
 	if(ar==NULL)
 		return(TRUE);
-	if(!VALID_CFG(cfg) || user==NULL)
+	if(!VALID_CFG(cfg))
 		return(FALSE);
 	p=ar;
 	return(ar_exp(cfg,&p,user));
