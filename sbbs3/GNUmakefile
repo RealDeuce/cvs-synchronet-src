@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.151 2004/09/08 09:32:00 deuce Exp $
+# $Id: GNUmakefile,v 1.158 2004/09/09 21:28:35 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -44,7 +44,6 @@ else
  endif
 endif
 
-CFLAGS  +=  -I$(XPDEV)
 CFLAGS	+=  $(UIFC_CFLAGS)
 
 ifndef bcc
@@ -87,22 +86,9 @@ SBBSLIB	=	-lsbbs
 $(SBBSLIB) : $(SBBS)
 	$(QUIET)touch -- '$(SBBSLIB)'
 
-ifneq ($(os),darwin)
-ifneq ($(os),sunos)
-SBBSLDFLAGS	:=	$(LDFLAGS) -rpath-link ./$(LIBODIR) -rpath ./ 
-#LDFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
-LDFLAGS		+=	-Xlinker -rpath
-LDFLAGS		+=	-Xlinker .
-ifneq ($(os),openbsd)
-LDFLAGS		+=	-Xlinker -rpath-link
-LDFLAGS		+=	-Xlinker ./$(LIBODIR)
-LDFLAGS		+=	-Xlinker -rpath-link
-LDFLAGS		+=	-Xlinker $(JSLIBDIR)
-LDFLAGS		+=	-Xlinker -rpath-link
-LDFLAGS		+=	-Xlinker $(NSPRDIR)
-endif
-endif
-endif
+PWD	:=	$(shell pwd)
+LD_RUN_PATH	:=	.:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
+export LD_RUN_PATH
 
 CON_OBJS	= $(LIBODIR)/sbbscon.o $(LIBODIR)/conwrap.o \
 		  $(LIBODIR)/sbbs_ini.o
@@ -255,6 +241,7 @@ CHKSMB_OBJS = \
 	$(LIBODIR)/smbdump.o \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/genwrap.o
 FORCE$(CHKSMB): $(CHKSMB_OBJS)
 
@@ -267,8 +254,8 @@ SMBUTIL_OBJS = \
 	$(LIBODIR)/smbutil.o \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/genwrap.o \
-	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/str_util.o
 FORCE$(SMBUTIL): $(SMBUTIL_OBJS)
 	
@@ -290,8 +277,10 @@ SBBSECHO_OBJS = \
 	$(LIBODIR)/userdat.o \
 	$(LIBODIR)/rechocfg.o \
 	$(LIBODIR)/conwrap.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
+	$(LIBODIR)/msg_id.o \
 	$(SMB_OBJS)
 
 FORCE$(SBBSECHO): $(SBBSECHO_OBJS)
@@ -332,6 +321,7 @@ ADDFILES_OBJS = \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/userdat.o \
 	$(LIBODIR)/filedat.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
 
@@ -353,6 +343,7 @@ FILELIST_OBJS = \
 	$(LIBODIR)/str_util.o \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/filedat.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
 
@@ -374,6 +365,7 @@ MAKEUSER_OBJS = \
 	$(LIBODIR)/str_util.o \
 	$(LIBODIR)/dat_rec.o \
 	$(LIBODIR)/userdat.o \
+	$(LIBODIR)/filewrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
 
@@ -409,3 +401,6 @@ $(ASC2ANS): $(LIBODIR)/asc2ans.o
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $^ $(ADD_LIBS)
 
 FORCE:
+
+SMBLIB:	$(SMBLIB_TARGET)
+
