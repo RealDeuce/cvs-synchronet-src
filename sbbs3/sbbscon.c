@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.107 2003/01/04 13:07:00 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.108 2003/01/14 22:00:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,9 +94,9 @@ web_startup_t		web_startup;
 uint				thread_count=1;
 uint				socket_count=0;
 uint				client_count=0;
-ulong				served=0;
 int					prompt_len=0;
-static scfg_t				scfg;					/* To allow rerun */
+static scfg_t		scfg;					/* To allow rerun */
+static ulong		served=0;
 
 #ifdef __unix__
 char				new_uid_name[32];
