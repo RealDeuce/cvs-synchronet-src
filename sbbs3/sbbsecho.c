@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.126 2004/03/26 02:54:18 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.127 2004/03/27 00:05:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2745,6 +2745,8 @@ void getzpt(FILE *stream, fmsghdr_t *hdr)
 	pos=ftell(stream);
 	len=fread(buf,1,0x1000,stream);
 	for(i=0;i<len;i++) {
+		if(buf[i]=='\n')	/* ignore line-feeds */
+			continue;
 		if((!i || cr) && buf[i]==1) {	/* kludge */
 			if(!strncmp(buf+i+1,"TOPT ",5))
 				hdr->destpoint=atoi(buf+i+6);
@@ -4089,7 +4091,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.126 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
