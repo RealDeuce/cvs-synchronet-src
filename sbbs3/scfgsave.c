@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.33 2003/05/14 01:42:27 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.34 2003/05/14 01:45:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ BOOL DLLCALL backup(char *fname, int backup_level, BOOL ren)
 				if(rename(fname,newname)!=0)
 					return(FALSE);
 			else
-				if(!fcopy(fname,newname)
+				if(!fcopy(fname,newname))
 					return(FALSE);
 			continue; 
 		}
