@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.44 2002/07/08 02:51:11 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.45 2002/07/15 20:40:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,6 @@
 #include "sbbsdefs.h"
 #include "smblib.h"
 #include "scfglib.h"
-#include "post.h"
 #include "lzh.h"
 #include "sbbsecho.h"
 
