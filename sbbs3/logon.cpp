@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.34 2003/04/22 06:36:56 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.35 2003/05/12 21:43:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,7 +281,7 @@ bool sbbs_t::logon()
 				console|=CON_R_ECHOX;
 				if(!(cfg.sys_misc&SM_ECHO_PW))
 					console|=CON_L_ECHOX;
-				getstr(tmp,LEN_PASS,K_UPPER);
+				getstr(tmp,LEN_PASS*2,K_UPPER);
 				console&=~(CON_R_ECHOX|CON_L_ECHOX);
 				if(strcmp(str,tmp)) {
 					bputs(text[Wrong]);
