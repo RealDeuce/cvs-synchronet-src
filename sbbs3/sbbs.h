@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.166 2003/03/11 09:26:58 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.167 2003/03/21 23:42:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -865,7 +865,7 @@ extern "C" {
 	/* main.cpp */
 	DLLEXPORT JSBool	DLLCALL js_DescribeObject(JSContext* cx, JSObject* obj, const char*);
 	DLLEXPORT JSBool	DLLCALL js_DescribeConstructor(JSContext* cx, JSObject* obj, const char*);
-	DLLEXPORT JSBool	DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *fs);
+	DLLEXPORT JSBool	DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, jsMethodSpec *fs, BOOL append);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
 

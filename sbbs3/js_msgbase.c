@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.67 2003/03/21 21:33:51 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.68 2003/03/21 23:42:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1492,7 +1492,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 		}
 	}
 
-	if(!js_DefineMethods(cx, obj, js_msgbase_functions)) {
+	if(!js_DefineMethods(cx, obj, js_msgbase_functions, FALSE)) {
 		JS_ReportError(cx,"js_DefineMethods failed");
 		return(JS_FALSE);
 	}

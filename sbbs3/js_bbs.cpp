@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.52 2003/01/09 01:34:24 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.53 2003/03/21 23:42:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2753,7 +2753,7 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 	if(!JS_DefineProperties(cx, obj, js_bbs_properties))
 		return(NULL);
 
-	if (!js_DefineMethods(cx, obj, js_bbs_functions)) 
+	if (!js_DefineMethods(cx, obj, js_bbs_functions, FALSE)) 
 		return(NULL);
 
 #ifdef _DEBUG

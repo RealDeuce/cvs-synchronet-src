@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.58 2003/03/12 22:31:54 rswindell Exp $ */
+/* $Id: js_system.c,v 1.59 2003/03/21 23:42:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1398,7 +1398,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if(!JS_DefineProperties(cx, sysobj, js_system_properties))
 		return(NULL);
 
-	if (!js_DefineMethods(cx, sysobj, js_system_functions)) 
+	if (!js_DefineMethods(cx, sysobj, js_system_functions, FALSE)) 
 		return(NULL);
 
 #ifdef _DEBUG

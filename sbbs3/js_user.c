@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.36 2003/03/03 05:49:37 rswindell Exp $ */
+/* $Id: js_user.c,v 1.37 2003/03/21 23:42:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -829,7 +829,7 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	JS_SetPrivate(cx, statsobj, p);
 	JS_SetPrivate(cx, securityobj, p);
 
-	js_DefineMethods(cx, obj, js_user_functions);
+	js_DefineMethods(cx, obj, js_user_functions, FALSE);
 
 	return(JS_TRUE);
 }
@@ -887,7 +887,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		,"_property_desc_list", user_prop_desc, JSPROP_READONLY);
 #endif
 
-	js_DefineMethods(cx, userobj, js_user_functions);
+	js_DefineMethods(cx, userobj, js_user_functions, FALSE);
 
 	/* user.stats */
 	statsobj = JS_DefineObject(cx, userobj, "stats"
