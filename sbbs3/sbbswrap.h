@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.23 2000/11/15 02:46:55 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.24 2000/11/15 02:59:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,7 +121,8 @@ extern "C" {
 
 #ifdef __unix__
 
-	#include <semaphore.h>	/* POSIX 1003.1b semaphores */
+	#include <pthread.h>	/* POSIX threads and mutexes */
+	#include <semaphore.h>	/* POSIX semaphores */
 	ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist);
 
