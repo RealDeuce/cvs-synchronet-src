@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.86 2002/01/20 14:18:18 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.87 2002/01/28 15:59:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -850,6 +850,9 @@ extern "C" {
 
 #endif
 
+/* misc.c */
+FILE *	fnopen(int *file, char *str, int access);
+
 #ifdef SBBS /* These aren't exported */
 
 	/* main.c */
@@ -861,7 +864,6 @@ extern "C" {
 
 	/* misc.c */
 	int		nopen(char *str, int access);
-	FILE *	fnopen(int *file, char *str, int access);
 	int		bstrlen(char *str);
 	char *	ultoac(ulong l,char *str);
 	void	truncsp(char *str);		/* Truncates white spaces off end of str */
