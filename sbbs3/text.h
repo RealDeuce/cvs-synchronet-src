@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.1 2000/10/10 11:26:03 rswindell Exp $ */
+/* $Id: text.h,v 1.2 2001/10/01 16:52:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,11 +118,11 @@ enum {
 	,YouDidntPostMsgN
 	,DeletePostQ
 	,UserDefaultsAutoLogon
-	,Unused75
+	,MsgSentToUser
 	,SearchStringPrompt
-	,Unused77
+	,PrivateChatSeparator
 	,SubMsgLstFmt
-	,Unused79
+	,SysopChatSeparator
 	,NoTextSections
 	,TextSectionLstHdr
 	,TextSectionLstFmt
@@ -164,7 +164,7 @@ enum {
 	,MessageScanAborted
 	,LogOffQ
 	,CantPostOnSub
-	,Unused121
+	,SendingMessageToUser
 	,NoOtherActiveNodes
 	,R_ExternalPrograms
 	,UserStats
@@ -185,7 +185,7 @@ enum {
 	,RawMsgInputModeIsNow
 	,OFF
 	,ON
-	,Unused142
+	,PagingUser
 	,SystemStatsHdr
 	,NodeStatsHdr
 	,StatsTotalLogons
@@ -205,9 +205,9 @@ enum {
 	,NoErrorLogExists
 	,ClearErrCounter
 	,InvalidNode
-	,Unused162
+	,SendingTelegramToUser
 	,DeleteGuruLogQ
-	,Unused164
+	,TelegramFmt
 	,R_Download
 	,SearchingAllDirs
 	,SearchingAllLibs
