@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.1 2002/04/06 01:35:03 rswindell Exp $
+# $Id: Makefile,v 1.2 2002/04/06 02:06:09 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -41,11 +41,7 @@ all: $(ODIR) $(ODIR)/wraptest.exe
 
 # Implicit C Compile Rule
 {.}.c.$(OFILE):
-	$(CC) $(CFLAGS) -WD -WM -n$(ODIR) -c $<
-
-# Implicit C++ Compile Rule
-{.}.cpp.$(OFILE):
-	@$(CC) $(CFLAGS) -WD -WM -n$(ODIR) -c  $<
+	@$(CC) $(CFLAGS) -WD -WM -n$(ODIR) -c $<
 
 # Create output directories if they don't exist
 $(ODIR):
@@ -54,5 +50,3 @@ $(ODIR):
 # Executable Build Rule
 $(ODIR)/wraptest.exe: $(ODIR)\wraptest.obj $(OBJS)
 	@$(CC) $(CFLAGS) -WM -n$(ODIR) $**
-
-#!include depends.mak	# defines dependencies
