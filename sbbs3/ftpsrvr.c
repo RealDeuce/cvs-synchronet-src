@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.187 2002/09/05 08:35:03 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.188 2002/10/25 10:04:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2061,7 +2061,7 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 
 	sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
 	if((fp=fopen(aliasfile,"r"))==NULL) 
-		return(result);
+		return(FALSE);
 
 	SAFECOPY(alias,fullalias);
 	p=strrchr(alias+1,'/');
@@ -2069,6 +2069,9 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 		*p=0;
 		fname=p+1;
 	}
+
+	if(filename==NULL /* directory */ && *fname /* filename specified */)
+		return(FALSE);
 
 	while(!feof(fp)) {
 		if(!fgets(line,sizeof(line)-1,fp))
@@ -4117,8 +4120,8 @@ static void ctrl_thread(void* arg)
 			if((!success && curdir<0) || (success && tp && *(tp+1))) {
 				if(tp)
 					p=tp+1;
-				tp=strchr(p,'/');
-				if(tp) *tp=0;
+				tp=lastchar(p);
+				if(tp && *tp=='/') *tp=0;
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=curlib)
 						continue;
@@ -4290,7 +4293,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.187 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.188 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
