@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.72 2002/03/25 09:11:23 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.73 2002/04/04 11:37:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1662,6 +1662,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     StatsTimer->Interval=cfg.node_stat_check*1000;
 	StatsTimer->Enabled=true;
     Initialized=true;
+
+    UpTimer->Enabled=true; /* Start updating the status bar */
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::SaveSettings(TObject* Sender)
