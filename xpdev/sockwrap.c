@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.3 2002/08/08 02:58:19 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.4 2002/08/08 06:18:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include <stdlib.h>		/* malloc/free on FreeBSD */
+#include <string.h>		/* bzero (for FD_ZERO) on FreeBSD */
 #include <errno.h>		/* ENOMEM */
 #include <stdio.h>		/* SEEK_SET */
 
