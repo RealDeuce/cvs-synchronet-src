@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.20 2004/09/08 03:44:00 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.19 2004/04/21 22:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,11 +247,11 @@ outgoing network packets and must be accurate.
 			i=0;
 			sprintf(opt[i++],"%-27.27s%s"
 				,"System Addresses",cfg.total_faddrs
-                	? smb_faddrtoa(&cfg.faddr[0],tmp) : nulstr);
+                	? faddrtoa(&cfg.faddr[0],tmp) : nulstr);
 			sprintf(opt[i++],"%-27.27s%s"
 				,"Default Outbound Address"
 				,cfg.dflt_faddr.zone
-                	? smb_faddrtoa(&cfg.dflt_faddr,tmp) : "No");
+                	? faddrtoa(&cfg.dflt_faddr,tmp) : "No");
 			sprintf(opt[i++],"%-27.27s"
 				,"Default Origin Line");
 			sprintf(opt[i++],"%-27.27s%.40s"
@@ -320,7 +320,7 @@ Format: Zone:Net/Node[.Point]
 							else
 								sprintf(str,"AKA %u",i);
 							sprintf(opt[i],"%-8.8s %-16s"
-								,str,smb_faddrtoa(&cfg.faddr[i],tmp)); }
+								,str,faddrtoa(&cfg.faddr[i],tmp)); }
 						opt[i][0]=0;
 						j=WIN_RHT|WIN_SAV|WIN_ACT|WIN_INSACT;
 						if(cfg.total_faddrs<MAX_OPTS)
@@ -337,7 +337,7 @@ Format: Zone:Net/Node[.Point]
 							if(!cfg.total_faddrs)
 								strcpy(str,"1:1/0");
 							else
-								smb_faddrtoa(&cfg.faddr[0],str);
+								faddrtoa(&cfg.faddr[0],str);
 							if(!uifc.input(WIN_MID|WIN_SAV,0,0,"Address"
 								,str,25,K_EDIT|K_UPPER))
 								continue;
@@ -365,7 +365,7 @@ Format: Zone:Net/Node[.Point]
 								i++; }
 							uifc.changes=1;
 							continue; }
-						smb_faddrtoa(&cfg.faddr[i],str);
+						faddrtoa(&cfg.faddr[i],str);
 						uifc.input(WIN_MID|WIN_SAV,0,0,"Address"
 							,str,25,K_EDIT);
 						cfg.faddr[i]=atofaddr(str); }
@@ -395,7 +395,7 @@ NetMail mail messages that do not have an address specified, select
 					if(!cfg.dflt_faddr.zone) {
 						cfg.dflt_faddr.zone=1;
 						uifc.changes=1; }
-					smb_faddrtoa(&cfg.dflt_faddr,str);
+					faddrtoa(&cfg.dflt_faddr,str);
 					SETHELP(WHERE);
 /*
 Default Outbound FidoNet NetMail Address:
