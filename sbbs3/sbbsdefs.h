@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.119 2004/10/18 00:07:58 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.122 2004/11/03 03:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,7 +95,6 @@ typedef struct {
 #define MAX_NODES		250
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
-#define MAX_SYSMAIL   50000 /* Maximum number of total emails in system */
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
 
 
@@ -173,24 +172,11 @@ typedef struct {
 #define SM_SYSVDELM		(1L<<31)	/* Sysops can see deleted msgs				*/
 						
 									/* Different bits in node_misc				*/
-#define NM_ANSALARM		(1<<0)		/* Alarm locally on answer					*/
-#define NM_WFCSCRN		(1<<1)		/* Wait for call screen                     */
-#define NM_WFCMSGS		(1<<2)		/* Include total messages/files on WFC		*/
-#define NM_LCL_EDIT		(1<<3)		/* Use local editor to create messages		*/
-#define NM_EMSOVL		(1<<4)		/* Use expanded memory of overlays			*/
-#define NM_WINOS2		(1<<5)		/* Use Windows/OS2 time slice API call		*/
-#define NM_INT28		(1<<6)		/* Make int 28 DOS idle calls				*/
-#define NM_NODV 		(1<<7)		/* Don't detect and use DESQview API        */
 #define NM_NO_NUM		(1<<8)		/* Don't allow logons by user number        */
 #define NM_LOGON_R		(1<<9)		/* Allow logons by user real name			*/
 #define NM_LOGON_P		(1<<10)		/* Secure logons (always ask for password)	*/
-#define NM_NO_LKBRD		(1<<11)		/* No local keyboard (at all)				*/
-#define NM_SYSPW		(1<<12)		/* Protect WFC keys and Alt keys with SY:	*/
-#define NM_NO_INACT		(1<<13)		/* No local inactivity alert/logoff 		*/
-#define NM_NOBEEP		(1<<14)		/* Don't beep locally                       */
 #define NM_LOWPRIO		(1<<15)		/* Always use low priority input			*/
 #define NM_7BITONLY		(1L<<16)	/* Except 7-bit input only (E71 terminals)	*/
-#define NM_RESETVID		(1L<<17)	/* Reset video mode between callers?		*/
 #define NM_NOPAUSESPIN	(1L<<18)	/* No spinning cursor at pause prompt		*/
 #define NM_CLOSENODEDAB	(1L<<19)	/* Keep node.dab file closed (for Samba)	*/
 
@@ -464,9 +450,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_DELETELINE	(1<<17)	/* Deleted line, exiting from getstr()		*/
 																			
 							/* Number of milliseconds						*/
-#define DELAY_HANGUP 250    /* Delay before modem drops carrier				*/
-#define DELAY_MDMTLD 500    /* Delay to give each ~ in modem strings		*/
-#define DELAY_SPIN   10     /* Delay for the spinning cursor				*/
 #define DELAY_AUTOHG 1500	/* Delay for auto-hangup (xfer) 				*/
 																			
 #define SEC_LOGON	1800	/* 30 minutes allowed to logon					*/
@@ -629,6 +612,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WIP 		(1L<<21)		/* Supports WIP terminal emulation		*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
 #define HTML		(1L<<23)		/* Using Deuce's HTML terminal			*/
+#define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 																			
 #define CLREOL      256     /* Character to erase to end of line 			*/
 																			
@@ -811,22 +795,6 @@ enum {							/* Values of mode for userlist function     */
 #define BO_LEN		16			/* backout.dab record length				*/
 								
 #define BO_OPENFILE 0			/* Backout types */
-
-#if defined(__unix__)
-	#include <syslog.h>
-#else
-	/*
-	 * log priorities (copied from BSD syslog.h)
-	 */
-	#define LOG_EMERG       0       /* system is unusable */
-	#define LOG_ALERT       1       /* action must be taken immediately */
-	#define LOG_CRIT        2       /* critical conditions */
-	#define LOG_ERR         3       /* error conditions */
-	#define LOG_WARNING     4       /* warning conditions */
-	#define LOG_NOTICE      5       /* normal but significant condition */
-	#define LOG_INFO        6       /* informational */
-	#define LOG_DEBUG       7       /* debug-level messages */
-#endif
 
 /**********/
 /* Macros */

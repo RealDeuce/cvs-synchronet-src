@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.10 2003/10/24 21:46:55 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.11 2004/10/27 21:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,32 +86,27 @@ void sbbs_t::printfile(char *str, long mode)
 		return; 
 	}
 
-	if(mode&P_OPENCLOSE) {
-		length=filelength(file);
-		if(length<0) {
-			close(file);
-			errormsg(WHERE,ERR_CHK,str,length);
-			return;
-		}
-		if((buf=(char*)MALLOC(length+1L))==NULL) {
-			close(file);
-			errormsg(WHERE,ERR_ALLOC,str,length+1L);
-			return; 
-		}
-		l=lread(file,buf,length);
-		fclose(stream);
-		if(l!=length)
-			errormsg(WHERE,ERR_READ,str,length);
-		else {
-			buf[l]=0;
-			putmsg(buf,mode);
-		}
-		FREE(buf); 
+	length=filelength(file);
+	if(length<0) {
+		close(file);
+		errormsg(WHERE,ERR_CHK,str,length);
+		return;
 	}
+	if((buf=(char*)MALLOC(length+1L))==NULL) {
+		close(file);
+		errormsg(WHERE,ERR_ALLOC,str,length+1L);
+		return; 
+	}
+	l=lread(file,buf,length);
+	fclose(stream);
+	if(l!=length)
+		errormsg(WHERE,ERR_READ,str,length);
 	else {
-		putmsg_fp(stream,filelength(file),mode);
-		fclose(stream); 
+		buf[l]=0;
+		putmsg(buf,mode);
 	}
+	FREE(buf); 
+
 	if((mode&P_NOABORT || wip || rip || html) && online==ON_REMOTE) {
 		SYNC;
 		rioctl(IOSM|ABORT); 
