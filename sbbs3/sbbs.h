@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.94 2002/02/11 15:45:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.95 2002/02/12 17:17:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -555,7 +555,7 @@ public:
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
 	char	sbbsfilename[128],sbbsfiledesc[128]; /* env vars */
-	void	upload(uint dirnum);
+	bool	upload(uint dirnum);
     char	upload_lastdesc[LEN_FDESC+1];
 	void	update_uldate(file_t* f);
 	bool	bulkupload(uint dirnum);
