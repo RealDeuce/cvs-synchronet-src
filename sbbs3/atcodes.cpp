@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.14 2002/02/09 13:19:49 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.15 2002/02/11 01:25:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -717,21 +717,19 @@ int sbbs_t::syncatcodes(char *sp, int len)
 		bputs(current_msg->to_net.type==NET_FIDO
 			? faddrtoa(*(faddr_t *)current_msg->to_net.addr) 
 			: (char*)current_msg->to_net.addr);
-	if(current_msg!=NULL && (!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)) {	
-		if(!strcmp(sp,"MSG_FROM")) {
+	else if(!strcmp(sp,"MSG_FROM") && current_msg!=NULL) {
+		if(!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)
 			bputs(current_msg->from);
-			return(0);
-		}
-		if(!strcmp(sp,"MSG_FROM_EXT")) {
+	}
+	else if(!strcmp(sp,"MSG_FROM_EXT") && current_msg!=NULL) {
+		if(!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)
 			bputs(current_msg->from_ext);
-			return(0);
-		}
-		if(!strcmp(sp,"MSG_FROM_NET")) {
+	}
+	else if(!strcmp(sp,"MSG_FROM_NET") && current_msg!=NULL) {
+		if(!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)
 			bputs(current_msg->from_net.type==NET_FIDO
 				? faddrtoa(*(faddr_t *)current_msg->from_net.addr) 
 				: (char*)current_msg->from_net.addr);
-			return(0);
-		}
 	}
 	else if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
 		bputs(current_msg->subj);
