@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.16 2002/10/18 04:23:25 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.17 2002/11/01 00:03:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -501,11 +501,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	/* Generate FTN MSGID */
 	if(smb->subnum!=INVALID_SUB && cfg->sub[smb->subnum]->misc&SUB_FIDO
 		&& smb_get_hfield(msg,FIDOMSGID,NULL)==NULL) {
-		sprintf(msg_id,"<%lu.%s@%s> %08lX"
-			,smb->status.last_msg+1	/* this *will* be the new message number */
-			,cfg->sub[smb->subnum]->code,faddrtoa(&cfg->sub[smb->subnum]->faddr,NULL)
-			,msg->idx.time
-			);
+		SAFECOPY(msg_id,ftn_msgid(cfg->sub[smb->subnum],msg));
 		smb_hfield(msg,FIDOMSGID,strlen(msg_id),msg_id);
 	}
 
