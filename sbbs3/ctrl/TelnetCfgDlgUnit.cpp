@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.12 2003/02/07 06:44:21 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.13 2003/02/10 01:39:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,8 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
     AnswerSoundEdit->Text=AnsiString(MainForm->bbs_startup.answer_sound);
     HangupSoundEdit->Text=AnsiString(MainForm->bbs_startup.hangup_sound);
     CmdLogCheckBox->Checked=MainForm->bbs_startup.options&BBS_OPT_DEBUG_TELNET;
-    TelnetGaCheckBox->Checked=MainForm->bbs_startup.options&BBS_OPT_SEND_TELNET_GA;
+    TelnetNopCheckBox->Checked
+    	=!(MainForm->bbs_startup.options&BBS_OPT_NO_TELNET_NOP);
 	XtrnMinCheckBox->Checked=MainForm->bbs_startup.options&BBS_OPT_XTRN_MINIMIZED;
     AutoLogonCheckBox->Checked=MainForm->bbs_startup.options&BBS_OPT_AUTO_LOGON;
     HostnameCheckBox->Checked
@@ -164,10 +165,10 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
         ,AnswerSoundEdit->Text.c_str());
     SAFECOPY(MainForm->bbs_startup.hangup_sound
         ,HangupSoundEdit->Text.c_str());
-	if(TelnetGaCheckBox->Checked==true)
-    	MainForm->bbs_startup.options|=BBS_OPT_SEND_TELNET_GA;
+	if(TelnetNopCheckBox->Checked==false)
+    	MainForm->bbs_startup.options|=BBS_OPT_NO_TELNET_NOP;
     else
-	    MainForm->bbs_startup.options&=~BBS_OPT_SEND_TELNET_GA;
+	    MainForm->bbs_startup.options&=~BBS_OPT_NO_TELNET_NOP;
     if(XtrnMinCheckBox->Checked==true)
     	MainForm->bbs_startup.options|=BBS_OPT_XTRN_MINIMIZED;
     else
