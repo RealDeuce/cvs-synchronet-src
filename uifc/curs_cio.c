@@ -1,15 +1,16 @@
-/* $Id: curs_cio.c,v 1.4 2004/07/26 22:06:01 rswindell Exp $ */
+/* $Id: curs_cio.c,v 1.15 2004/07/05 08:22:36 deuce Exp $ */
+#define NEED_CURSES_GETCH
+
 #include <sys/time.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-#include "ciolib.h"
+#include "ciowrap.h"
+#undef beep				/* I'm going to need to use the real beep() in here */
 #include "curs_cio.h"
+#include "uifc.h"		/* UIFC_IBM */
 
 static unsigned char curs_nextgetch=0;
-const int curs_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
 static int lastattr=0;
 static long mode;
@@ -135,7 +136,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 				thischar=attr&255-'A'+1;
 			}
 			else if(attr&A_ALTCHARSET) {
-				if(!(mode==CIOWRAP_CURSES_IBM_MODE)){
+				if(!(mode&UIFC_IBM)){
 					ext_char=A_ALTCHARSET|(attr&255);
 					/* likely ones */
 					if (ext_char == ACS_CKBOARD)
@@ -428,7 +429,7 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	int		ret;
 	chtype	cha;
 
-	if(!(mode==CIOWRAP_CURSES_IBM_MODE))
+	if(!(mode&UIFC_IBM))
 	{
 		switch(ch)
 		{
@@ -601,7 +602,7 @@ void curs_gotoxy(int x, int y)
 	refresh();
 }
 
-int curs_initciowrap(long inmode)
+void curs_initciowrap(long inmode)
 {
 	short	fg, bg, pair=0;
 
@@ -610,16 +611,6 @@ int curs_initciowrap(long inmode)
 
 	Xinitscr(1,argv);
 #else
-	char *term;
-	SCREEN *tst;
-
-	term=getenv("TERM");
-	if(term==NULL)
-		return(0);
-	tst=newterm(term,stdout,stdin);
-	if(tst==NULL)
-		return(0);
-	endwin();
 	initscr();
 #endif
 	start_color();
@@ -637,7 +628,6 @@ int curs_initciowrap(long inmode)
 		}
 	}
 	mode = inmode;
-	return(1);
 }
 
 void curs_gettextinfo(struct text_info *info)
@@ -674,7 +664,6 @@ int curs_putch(unsigned char c)
 {
 	struct text_info ti;
 	int		ret;
-	int		i;
 
 	ret=c;
 	switch(c) {
@@ -697,20 +686,6 @@ int curs_putch(unsigned char c)
 			gotoxy(wherex()-1,wherey());
 			_putch(' ',FALSE);
 			gotoxy(wherex()-1,wherey());
-			break;
-		case '\t':
-			for(i=0;i<10;i++) {
-				if(curs_tabs[i]>wherex()) {
-					while(wherex()<curs_tabs[i]) {
-						putch(' ');
-					}
-					break;
-				}
-			}
-			if(i==10) {
-				putch('\r');
-				putch('\n');
-			}
 			break;
 		default:
 			gettextinfo(&ti);
@@ -753,7 +728,7 @@ int curs_getch(void)
 		while((ch=getch())==ERR) {
 			delay(1);
 		}
-		if(ch > 255) {
+		if(ch & KEY_CODE_YES) {
 			switch(ch) {
 				case KEY_DOWN:            /* Down-arrow */
 					curs_nextgetch=0x50;
