@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.18 2003/07/21 10:01:45 rswindell Exp $ */
+/* $Id: services.h,v 1.19 2003/07/25 01:45:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ typedef struct {
 #define SERVICE_OPT_STATIC		(1<<1)	/* Static service (accepts client connectsions) */
 #define SERVICE_OPT_STATIC_LOOP (1<<2)	/* Loop static service until terminated */
 #define SERVICE_OPT_NATIVE		(1<<3)	/* non-JavaScript service */
+#define SERVICE_OPT_FULL_ACCEPT	(1<<4)	/* Accept/close connections when server is full */
 
 #ifdef __cplusplus
 extern "C" {

@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.119 2003/07/23 04:06:12 rswindell Exp $ */
+/* $Id: services.c,v 1.120 2003/07/25 01:45:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,6 +90,7 @@ typedef struct {
 	char	cmd[128];
 	DWORD	max_clients;
 	DWORD	options;
+	int		listen_backlog;
 	/* These are run-time state and stat vars */
 	DWORD	clients;
 	DWORD	served;
@@ -108,6 +109,7 @@ static ini_bitdesc_t service_options[] = {
 	{ SERVICE_OPT_STATIC			,"STATIC"				},
 	{ SERVICE_OPT_STATIC_LOOP		,"LOOP"					},
 	{ SERVICE_OPT_NATIVE			,"NATIVE"				},
+	{ SERVICE_OPT_FULL_ACCEPT		,"FULL_ACCEPT"			},
 	/* terminator */				
 	{ -1							,NULL					}
 };
@@ -1282,6 +1284,7 @@ static service_t* read_services_cfg(service_t* service, char* services_cfg, DWOR
 		service=np;
 		memset(&service[*services],0,sizeof(service_t));
 		service[*services].socket=INVALID_SOCKET;
+		service[*services].listen_backlog=SOMAXCONN;
 
 		tp=p; 
 		while(*tp && *tp>' ') tp++; 
@@ -1326,6 +1329,7 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 		serv.socket=INVALID_SOCKET;
 		serv.port=iniGetShortInt(fp,sec_list[i],"Port",0);
 		serv.max_clients=iniGetInteger(fp,sec_list[i],"MaxClients",0);
+		serv.listen_backlog=iniGetInteger(fp,sec_list[i],"ListenBacklog",SOMAXCONN);
 		serv.options=iniGetBitField(fp,sec_list[i],"Options",service_options,0);
 		SAFECOPY(serv.cmd,iniGetString(fp,sec_list[i],"Command","",cmd));
 
@@ -1378,7 +1382,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.119 $", "%*s %s", revision);
+	sscanf("$Revision: 1.120 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1589,7 +1593,7 @@ void DLLCALL services_thread(void* arg)
 				,service[i].port);
 
 			if(!(service[i].options&SERVICE_OPT_UDP)) {
-				if(listen(socket,10)!=0) {
+				if(listen(socket,service[i].listen_backlog)!=0) {
 					lprintf("%04d !ERROR %d listening on %s socket"
 						,socket, ERROR_VALUE, service[i].protocol);
 					close_socket(socket);
@@ -1665,6 +1669,9 @@ void DLLCALL services_thread(void* arg)
 				if(service[i].options&SERVICE_OPT_STATIC)
 					continue;
 				if(service[i].socket==INVALID_SOCKET)
+					continue;
+				if(!(service[i].options&SERVICE_OPT_FULL_ACCEPT)
+					&& service[i].max_clients && service[i].clients >= service[i].max_clients)
 					continue;
 				FD_SET(service[i].socket,&socket_set);
 				if(service[i].socket>high_socket)
