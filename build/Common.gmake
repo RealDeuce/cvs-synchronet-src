@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.28 2004/09/28 18:56:10 deuce Exp $
+# $Id: Common.gmake,v 1.26 2004/09/24 20:01:55 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -209,7 +209,7 @@ OUTPUT		:=	-o
 LOUTPUT		:=	-o
 
 ifeq ($(os),openbsd)
- SOFILE	:=	$(SOFILE).$(VERSION)
+ SOFILE	:=	$(SOFILE)$(VERSION)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
@@ -246,7 +246,7 @@ else
   XP_SEM    :=    1
  else
   ifeq ($(os),netbsd)    # NetBSD
-   CFLAGS    +=	-D__unix__
+   CFLAGS    +=	-D__unix__ -DUSE_XP_SEMAPHORES
    MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
    MT_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
    XP_SEM    :=    1
