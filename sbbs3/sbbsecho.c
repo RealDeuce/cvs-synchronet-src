@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.125 2004/03/22 17:05:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.123 2004/03/01 09:39:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1361,12 +1361,8 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 
 	while(*p==1) {				/* Skip kludge lines 11/05/95 */
 		FIND_CHAR(p,'\r');
-		if(*p) {
-			p++;				/* Skip CR (required) */
-			if(*p=='\n')
-				p++;			/* Skip LF (optional) */
-		}
-	}
+		if(*p)
+			p++; }				/* Skip CR */
 
 	if(((tp=strstr(p,"---\r"))!=NULL || (tp=strstr(p,"--- "))!=NULL) &&
 		(*(tp-1)==10 || *(tp-1)==13))
@@ -3254,8 +3250,7 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 			memset(&outpkt[i],0,sizeof(outpkt_t)); }
 		totalpkts=openpkts=0;
 		attach_bundles();
-		if(!(misc&FLO_MAILER))
-			attachment(0,faddr,ATTACHMENT_NETMAIL);
+		attachment(0,faddr,ATTACHMENT_NETMAIL);
 		return; }
 
 	if(fbuf==NULL) {
@@ -3492,10 +3487,6 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 		if(hdr.attr&FIDO_LOCAL && !(misc&LOCAL_NETMAIL)) {
 			printf("Created locally");
 			return(4); 
-		}
-		if(hdr.attr&FIDO_INTRANS) {
-			printf("In-transit");
-			return(5);
 		}
 	}
 
@@ -4089,7 +4080,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.125 $", "%*s %s", revision);
+	sscanf("$Revision: 1.123 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
