@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.103 2003/04/30 23:50:22 rswindell Exp $ */
+/* $Id: services.c,v 1.104 2003/05/07 20:44:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1234,7 +1234,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.103 $", "%*s %s", revision);
+	sscanf("$Revision: 1.104 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1520,10 +1520,8 @@ void DLLCALL services_thread(void* arg)
 			tv.tv_sec=2;
 			tv.tv_usec=0;
 			if((result=select(high_socket+1,&socket_set,NULL,NULL,&tv))<1) {
-				if(result==0) {
-					YIELD();
+				if(result==0)
 					continue;
-				}
 
 				if(ERROR_VALUE==EINTR)
 					lprintf("0000 Services listening interrupted");
