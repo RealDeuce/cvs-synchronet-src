@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.33 2001/08/29 16:04:31 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.34 2001/09/16 17:54:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@
 
 #ifdef JAVASCRIPT
 	#define VERSION 	"3.10"  /* Version: Major.minor  */
-	#define REVISION	'C'
+	#define REVISION	'D'
 #else
 	#define VERSION 	"3.00"  /* Version: Major.minor  */
 	#define REVISION	'G'
