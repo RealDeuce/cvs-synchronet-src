@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.140 2004/04/15 11:56:01 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.141 2004/04/20 08:05:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1609,12 +1609,21 @@ static BOOL check_request(http_session_t * session)
 		SAFECOPY(str,path);
 	}
 	
-	if(session->req.ars[0] && !(check_ars(session))) {
-		/* No authentication provided */
-		sprintf(str,"401 Unauthorized%s%s: Basic realm=\"%s\""
-			,newline,get_header(HEAD_WWWAUTH),scfg.sys_name);
-		send_error(session,str);
-		return(FALSE);
+	if(session->req.ars[0]) {
+		if (!(check_ars(session))) {
+			/* No authentication provided */
+			sprintf(str,"401 Unauthorized%s%s: Basic realm=\"%s\""
+				,newline,get_header(HEAD_WWWAUTH),scfg.sys_name);
+			send_error(session,str);
+			return(FALSE);
+		}
+	}
+	else {
+		if(session->req.dynamic==IS_SSJS)  {
+			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
+				,NULL /* ftp index file */, NULL /* subscan */))
+				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
+		}
 	}
 	return(TRUE);
 }
@@ -2487,7 +2496,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.140 $", "%*s %s", revision);
+	sscanf("$Revision: 1.141 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
