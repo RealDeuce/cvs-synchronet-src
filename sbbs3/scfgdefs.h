@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.14 2002/08/21 11:12:03 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.15 2002/08/21 22:04:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -114,7 +114,7 @@ typedef struct {                        /* Transfer Library Information */
 	char	lname[LEN_GLNAME+1],		/* Short Name - used for prompts */
 			sname[LEN_GSNAME+1],		/* Long Name - used for listings */
 			arstr[LEN_ARSTR+1],			/* Access Requirements */
-			root[LEN_DIR+1];			/* Root for directory paths */
+			parent_path[48];			/* Parent for dir paths */
 	uchar	*ar;
 	ushort	offline_dir;				/* Offline file directory */
 
