@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.11 2002/04/26 00:12:03 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.12 2002/04/26 00:28:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,8 +107,8 @@ void net_cfg()
 {
 	static	int net_dflt,qnet_dflt,pnet_dflt,fnet_dflt,inet_dflt
 			,qhub_dflt,phub_dflt;
-	char	str[81],done,*p;
-	int 	i,j,k,l,m,n;
+	char	str[81],done;
+	int 	i,j,k,l;
 
 while(1) {
 	i=0;
@@ -943,7 +943,7 @@ void qhub_edit(int num)
 {
 	static int qhub_dflt;
 	char *p,done=0,str[256];
-	int i,j,k,n;
+	int i,j;
 
 while(!done) {
 	i=0;
