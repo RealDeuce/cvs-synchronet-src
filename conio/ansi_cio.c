@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.37 2004/12/22 11:06:46 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.39 2005/01/28 03:13:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -639,8 +639,8 @@ void ansi_gettextinfo(struct text_info *info)
 	info->currmode=3;
 	info->screenheight=ansi_rows;
 	info->screenwidth=ansi_cols;
-	info->curx=wherex();
-	info->cury=wherey();
+	info->curx=ansi_wherex();
+	info->cury=ansi_wherey();
 	info->attribute=ansi_curr_attr>>8;
 }
 
@@ -732,7 +732,12 @@ int ansi_initciolib(long inmode)
 	if (isatty(STDIN_FILENO))  {
 		tcgetattr(STDIN_FILENO,&tio_default);
 		tio_raw = tio_default;
-		cfmakeraw(&tio_raw);
+		/* cfmakeraw(&tio_raw); */
+		tio_raw.c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+		tio_raw.c_oflag &= ~OPOST;
+		tio_raw.c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+		tio_raw.c_cflag &= ~(CSIZE|PARENB);
+		tio_raw.c_cflag |= CS8;
 		tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
 		setvbuf(stdout, NULL, _IONBF, 0);
 		atexit(ansi_fixterm);
