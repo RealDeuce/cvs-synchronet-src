@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.1 2000/10/10 11:26:23 rswindell Exp $ */
+/* $Id: ringbuf.c,v 1.2 2001/02/04 16:45:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,11 @@
 #ifdef RINGBUF_USE_STD_RTL
 
 	#ifndef VTOOLSD
+
+	/* FreeBSD uses <stdlib.h> instead of <malloc.h> */
+	#ifndef __FreeBSD__
 	#include <malloc.h>		/* malloc prototype */
+	#endif
     #include <string.h>		/* memcpy prototype */
     #endif
 
