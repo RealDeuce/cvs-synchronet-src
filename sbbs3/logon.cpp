@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.36 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: logon.cpp,v 1.37 2004/08/16 21:16:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -146,6 +146,9 @@ bool sbbs_t::logon()
 		else
 			getnodedat(cfg.node_num,&thisnode,1); 
 	}
+
+	if(useron.exempt&FLAG('H'))
+		console|=CON_NO_INACT;
 
 	if((useron.exempt&FLAG('Q') && useron.misc&QUIET))
 		thisnode.status=NODE_QUIET;
