@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.10 2000/11/07 03:14:07 rswindell Exp $ */
+/* $Id: str.cpp,v 1.11 2000/11/07 21:50:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -713,7 +713,7 @@ void sbbs_t::dirinfo(uint dirnum)
 }
 
 /****************************************************************************/
-/* Searches the file <name>.CAN in the TEXT directory for matches			*/
+/* Searches the file <name>.can in the TEXT directory for matches			*/
 /* Returns 1 if found in list, 0 if not.									*/
 /****************************************************************************/
 extern "C" BOOL DLLCALL trashcan(scfg_t* cfg, char* insearch, char* name)

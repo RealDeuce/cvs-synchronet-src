@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.5 2000/11/04 12:03:51 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.6 2000/11/07 21:50:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ void sbbs_t::upload(uint dirnum)
 	f.altpath=altul;
 	bputs(text[Filename]);
 	if(!getstr(fname,12,K_UPPER) || strchr(fname,'?') || strchr(fname,'*')
-		|| !checkfname(fname) || (trashcan(fname,"FILE") && !dir_op(dirnum))) {
+		|| !checkfname(fname) || (trashcan(fname,"file") && !dir_op(dirnum))) {
 		if(fname[0])
 			bputs(text[BadFilename]);
 		return; }
