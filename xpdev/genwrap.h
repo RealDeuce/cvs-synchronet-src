@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.63 2004/08/04 03:45:50 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.64 2004/09/11 09:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,6 +170,11 @@ extern "C" {
 		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#endif
 #endif
+
+/* Truncate white-space chars off end of string */
+DLLEXPORT char*		DLLCALL truncsp(char* str);
+/* Truncate new-line chars off end of string */
+DLLEXPORT char*		DLLCALL truncnl(char* str);
 
 #if defined(__unix__)
 	#define STRERROR(x)		strerror(x)
