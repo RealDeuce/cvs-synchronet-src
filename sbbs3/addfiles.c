@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.20 2002/10/13 08:35:43 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.21 2002/10/20 21:40:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -215,7 +215,9 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		dir=opendir(str);
 
 		while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
-			sprintf(tmp,"%s%s",str,dirent->d_name);
+			sprintf(tmp,"%s%s"
+				,cur_altpath ? scfg.altpath[cur_altpath-1] : scfg.dir[f.dir]->path
+				,dirent->d_name);
 			if(isdir(tmp))
 				continue;
 #ifdef _WIN32
@@ -660,7 +662,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.20 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.21 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
