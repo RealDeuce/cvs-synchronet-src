@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 			strncat(listpath,"/syncterm.lst",sizeof(listpath));
 			if(strlen(listpath)>MAX_PATH) {
 				fprintf(stderr,"Path to syncterm.lst too long");
-				return(0);
+				return(NULL);
 			}
 			bbs->connected=time(NULL);
 			bbs->calls++;
