@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.18 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: js_global.c,v 1.19 2002/03/21 01:38:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@
 /* Global Object Properites */
 enum {
 	 GLOB_PROP_ERRNO
+	,GLOB_PROP_ERRNO_STR
 };
 
 static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -54,6 +55,9 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case GLOB_PROP_ERRNO:
 	        *vp = INT_TO_JSVAL(errno);
 			break;
+		case GLOB_PROP_ERRNO_STR:
+	        *vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, strerror(errno)));
+			break;
 	}
 	return(TRUE);
 }
@@ -64,6 +68,7 @@ static struct JSPropertySpec js_global_properties[] = {
 /*		 name,		tinyid,				flags,				getter,	setter	*/
 
 	{	"errno",	GLOB_PROP_ERRNO,	GLOBOBJ_FLAGS,		NULL,	NULL },
+	{	"errno_str",GLOB_PROP_ERRNO_STR,GLOBOBJ_FLAGS,		NULL,	NULL },
 	{0}
 };
 
