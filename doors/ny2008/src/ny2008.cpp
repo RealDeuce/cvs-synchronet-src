@@ -17,7 +17,7 @@
 extern unsigned _stklen=20000U;
 
 // price arrays
-DWORD    gun_price[ULTRASOUND_GUN+1] =  {
+INT32    gun_price[ULTRASOUND_GUN+1] =  {
                                             0,
                                             70,
                                             1500,
@@ -281,7 +281,7 @@ loadbadwords(void) {
 	fclose(fp);
 }
 
-int
+INT16
 main(int argc,char *argv[]) {
 	FILE *justfile,*njustfile;
 	char key;

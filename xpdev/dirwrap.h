@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.27 2004/04/26 22:25:50 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.26 2003/09/08 23:01:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,8 +66,6 @@ extern "C" {
 	#define MKDIR(dir)		mkdir(dir,0777)
 
 #else	
-
-	#include <direct.h>		/* mkdir() */
 
 	#define ALLFILES "*.*"	/* matches all files in a directory */
 	#ifdef __WATCOMC__
@@ -147,6 +145,8 @@ extern "C" {
 	struct dirent  *	readdir  (DIR *__dir);
 	int                 closedir (DIR *__dir);
 	void                rewinddir(DIR *__dir);
+#elif defined(__WATCOMC__)
+	#include <direct.h>	/* opendir, etc defined here in Watcom */
 #else
 	#include <dirent.h>	/* POSIX directory functions */
 #endif

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.10 2004/04/29 23:31:26 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.9 2004/03/27 02:16:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,6 +96,10 @@
 #define LOG_UNKNOWN 	(1L<<27)		 /* Log netmail for unknown users */
 
 #define LOG_DEFAULTS	0xffffffL		/* Low 24 bits default to ON */
+
+#define PKT_TWO_PLUS	0				/* Type 2+ Packet Header  */
+#define PKT_TWO_TWO 	1				/* Type 2.2 Packet Header */
+#define PKT_TWO 		2				/* Old Type Packet Header */
 
 #define MAX_OPEN_SMBS	2
 #define DFLT_OPEN_PKTS  4
