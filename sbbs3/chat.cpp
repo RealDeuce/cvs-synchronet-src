@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.31 2003/01/31 02:16:49 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.32 2003/04/24 07:57:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1210,6 +1210,7 @@ void sbbs_t::nodemsg()
 	char 	tmp[512];
 	int 	i,usernumber,done=0;
 	node_t	node,savenode;
+	time_t	last=0;
 
 	if(nodemsg_inside>1)	/* nested once only */
 		return;
@@ -1231,26 +1232,29 @@ void sbbs_t::nodemsg()
 				break;
 			if(sys_status&SS_ABORT)
 				break;
-			getnodedat(cfg.node_num,&thisnode,0);
-			if(thisnode.misc&(NODE_MSGW|NODE_NMSG)) {
-				lncntr=0;	/* prevent pause prompt */
-				SAVELINE;
-				CRLF;
-				if(thisnode.misc&NODE_NMSG)
-					getnmsg();
-				if(thisnode.misc&NODE_MSGW)
-					getsmsg(useron.number);
-				CRLF;
-				RESTORELINE; }
-			else
-				nodesync();
-			gettimeleft();
-			checkline(); }
+			if(last!=now && getnodedat(cfg.node_num,&thisnode,false)==0) {
+				if(thisnode.misc&(NODE_MSGW|NODE_NMSG)) {
+					lncntr=0;	/* prevent pause prompt */
+					SAVELINE;
+					CRLF;
+					if(thisnode.misc&NODE_NMSG)
+						getnmsg();
+					if(thisnode.misc&NODE_MSGW)
+						getsmsg(useron.number);
+					CRLF;
+					RESTORELINE; }
+				else
+					nodesync();
+				last=now;
+			}
+			gettimeleft();	// sets 'now'
+		}
 
 		if(!online || sys_status&SS_ABORT) {
 			sys_status&=~SS_ABORT;
 			CRLF;
-			break; }
+			break; 
+		}
 
 		switch(toupper(ch)) {
 			case 'T':   /* Telegram */
