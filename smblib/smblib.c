@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.20 2002/03/21 18:40:45 rswindell Exp $ */
+/* $Id: smblib.c,v 1.21 2002/03/21 18:52:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,9 +93,10 @@ int SMBCALL smb_open(smb_t* smb)
 
 	/* Set default values, if uninitialized */
 	if(!smb->retry_time)
-		smb->retry_time=10;
-	if(!smb->retry_delay)
-		smb->retry_delay=250;
+		smb->retry_time=10;		/* seconds */
+	if(!smb->retry_delay 
+		|| smb->retry_delay>(smb->retry_time*100))	/* at least ten retries */
+		smb->retry_delay=250;	/* milliseconds */
 	smb->shd_fp=smb->sdt_fp=smb->sid_fp=NULL;
 	smb->last_error[0]=0;
 	sprintf(str,"%s.shd",smb->file);
