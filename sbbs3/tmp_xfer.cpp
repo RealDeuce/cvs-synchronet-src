@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.9 2001/07/03 02:25:02 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.10 2001/11/03 17:42:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,8 +220,10 @@ void sbbs_t::temp_xfer()
 				for(i=0;i<g.gl_pathc && !msgabort();i++) {
 					if(isdir(g.gl_pathv[i]))
 						continue;
-					bprintf("%s %15s\r\n",padfname(getfname(g.gl_pathv[i]),str)
-						,ultoac(flength(g.gl_pathv[i]),tmp));
+					t=fdate(g.gl_pathv[i]);
+					bprintf("%-15s %15s %s\r\n",getfname(g.gl_pathv[i])
+						,ultoac(flength(g.gl_pathv[i]),tmp)
+						,timestr(&t));
 					files++;
 					bytes+=flength(g.gl_pathv[i]);
 				}
@@ -240,10 +242,9 @@ void sbbs_t::temp_xfer()
 				sys_status&=~SS_ABORT;
 				break;
 			case 'R':   /* Remove files from dir */
-				if(!getfilespec(str))
+				if(!getfilespec(str) || !checkfname(str))
 					break;
-				// padfname(str,tmp);  Removed 04/14/96
-				bprintf(text[NFilesRemoved],delfiles(cfg.temp_dir,tmp));
+				bprintf(text[NFilesRemoved],delfiles(cfg.temp_dir,str));
 				break;
 			case 'V':   /* view files in dir */
 				bputs(text[FileSpec]);
