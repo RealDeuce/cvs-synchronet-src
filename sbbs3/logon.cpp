@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.30 2003/01/03 20:52:48 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.31 2003/01/04 13:06:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,7 @@ bool sbbs_t::logon()
 	sprintf(str,"%smsgs/n%3.3u.ixb",cfg.data_dir,cfg.node_num);
 	remove(str);			/* remove any pending node message indices */
 
-	if(!SYSOP && online==ON_REMOTE) {
+	if(!SYSOP && online==ON_REMOTE && !qwklogon) {
 		rioctl(IOCM|ABORT);	/* users can't abort anything */
 		rioctl(IOCS|ABORT); 
 	}
