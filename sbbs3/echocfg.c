@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.6 2003/02/09 04:23:21 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.7 2003/02/11 07:51:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,8 @@ uifcapi_t uifc;
 void bail(int code)
 {
 
-	uifc.bail();
+	if(uifc.bail!=NULL)
+		uifc.bail();
 	exit(code);
 }
 
