@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.273 2005/03/05 06:53:11 deuce Exp $ */
+/* $Id: websrvr.c,v 1.274 2005/03/08 16:29:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2830,9 +2830,10 @@ static void respond(http_session_t * session)
 		sprintf(session->req.physical_path
 			,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
 	}
-
-	session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
-	send_file=send_headers(session,session->req.status);
+	else {
+		session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
+		send_file=send_headers(session,session->req.status);
+	}
 	if(session->req.method==HTTP_HEAD)
 		send_file=FALSE;
 	if(send_file)  {
@@ -3049,7 +3050,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.273 $", "%*s %s", revision);
+	sscanf("$Revision: 1.274 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
