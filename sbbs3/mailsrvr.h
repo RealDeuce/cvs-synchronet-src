@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.31 2002/07/31 08:03:33 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.32 2002/12/06 07:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,6 +109,7 @@ typedef struct {
 #define MAIL_OPT_DNSBL_REFUSE		(1<<15) /* Refuse session, return error */
 #define MAIL_OPT_DNSBL_IGNORE		(1<<16) /* Dump mail, return success */
 #define MAIL_OPT_DNSBL_BADUSER		(1<<17) /* Refuse mail (bad user name) */
+#define MAIL_OPT_DNSBL_DEBUG		(1<<20) /* Debug DNSBL activity */
 #define MAIL_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define MAIL_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define MAIL_OPT_MUTE				(1<<31)
