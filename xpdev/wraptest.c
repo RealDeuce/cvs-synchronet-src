@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.42 2003/10/01 23:45:40 deuce Exp $ */
+/* $Id: wraptest.c,v 1.43 2005/01/20 06:18:07 deuce Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -12,6 +12,7 @@
 #include "filewrap.h"
 #include "sockwrap.h"
 #include "threadwrap.h"
+#include "xpbeep.h"
 
 #define LOCK_FNAME	"test.fil"
 #define LOCK_OFFSET	0

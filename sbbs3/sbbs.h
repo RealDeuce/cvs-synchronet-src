@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.244 2004/12/30 09:24:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.247 2005/01/28 04:11:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,9 @@
 #endif
 
 /* xpdev */
-#define LINK_LIST_THREADSAFE
+#ifndef LINK_LIST_THREADSAFE
+ #define LINK_LIST_THREADSAFE
+#endif
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
@@ -783,7 +785,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, ulong* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
