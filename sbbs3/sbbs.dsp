@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include\mozilla\js" /I "..\xpdev" /I "..\smblib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS" /D "SBBS_EXPORTS" /D "SMB_EXPORTS" /D "JAVASCRIPT" /D "RINGBUF_SEM" /FR /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include\mozilla\js" /I "..\..\include\mozilla\nspr" /I "..\xpdev" /I "..\smblib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS" /D "SBBS_EXPORTS" /D "SMB_EXPORTS" /D "JAVASCRIPT" /D "RINGBUF_SEM" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -70,7 +70,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\include\mozilla\js" /I "..\xpdev" /I "..\smblib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS" /D "SBBS_EXPORTS" /D "SMB_EXPORTS" /D "JAVASCRIPT" /D "RINGBUF_SEM" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\include\mozilla\js" /I "..\..\include\mozilla\nspr" /I "..\xpdev" /I "..\smblib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS" /D "SBBS_EXPORTS" /D "SMB_EXPORTS" /D "JAVASCRIPT" /D "RINGBUF_SEM" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -263,6 +263,10 @@ SOURCE=.\js_msgbase.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\js_queue.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\js_server.c
 # End Source File
 # Begin Source File
@@ -411,10 +415,6 @@ SOURCE=.\sockopts.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\xpdev\sockwrap.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\sortdir.cpp
 # End Source File
 # Begin Source File
@@ -436,10 +436,6 @@ SOURCE=.\telnet.c
 # Begin Source File
 
 SOURCE=.\text_sec.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\xpdev\threadwrap.c
 # End Source File
 # Begin Source File
 
