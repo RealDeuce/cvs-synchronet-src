@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.85 2001/07/11 02:28:41 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.86 2001/07/12 23:53:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2375,8 +2375,12 @@ static void ctrl_thread(void* arg)
 				sysop=TRUE;
 			}
 			else if(stricmp(password,user.pass)) {
-				lprintf("%04d !FTP: WRONG PASSWORD for user %s: '%s' expected '%s'"
-					,sock,user.alias,password,user.pass);
+				if(scfg.sys_misc&SM_ECHO_PW)
+					lprintf("%04d !FTP: FAILED Password attempt for user %s: '%s' expected '%s'"
+						,sock, user.alias, password, user.pass);
+				else
+					lprintf("%04d !FTP: FAILED Password attempt for user %s"
+						,sock, user.alias);
 				sockprintf(sock,"530 Password not accepted.");
 				user.number=0;
 				continue;

@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.4 2001/07/09 02:36:30 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.5 2001/07/12 23:53:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,9 +186,14 @@ bool sbbs_t::chksyspass()
 	console=orgcon;
 	CRLF;
 	if(strcmp(cfg.sys_pass,str)) {
-		sprintf(str2,"%s #%u System password attempt: '%s'"
-			,useron.alias,useron.number,str);
+		if(cfg.sys_misc&SM_ECHO_PW) 
+			sprintf(str2,"%s #%u System password attempt: '%s'"
+				,useron.alias,useron.number,str);
+		else
+			sprintf(str2,"%s #%u System password verification failure"
+				,useron.alias,useron.number);
 		logline("S!",str2);
-		return(false); }
+		return(false); 
+	}
 	return(true);
 }

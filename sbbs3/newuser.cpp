@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.13 2001/06/27 02:30:01 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.14 2001/07/12 23:53:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -343,8 +343,11 @@ void sbbs_t::newuser()
 			getstr(str,LEN_PASS,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(!strcmp(str,useron.pass)) break;
-			sprintf(tmp,"Failed PW verification: '%s' instead of '%s'",str
-				,useron.pass);
+			if(cfg.sys_misc&SM_ECHO_PW) 
+				sprintf(tmp,"FAILED Password verification: '%s' instead of '%s'",str
+					,useron.pass);
+			else
+				sprintf(tmp,"FAILED Password verification");
 			logline(nulstr,tmp);
 			if(++c==4) {
 				logline("N!","Couldn't figure out password.");
