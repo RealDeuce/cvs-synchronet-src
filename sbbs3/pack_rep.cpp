@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.20 2002/04/22 09:33:20 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.21 2002/07/03 08:36:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,7 +178,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue; }
 
 			mode=cfg.qhub[hubnum]->mode[i]|TO_QNET|REP;
-			if(mode&A_LEAVE) mode|=(VIA|TZ);
+			if(mode&A_LEAVE) mode|=(VIA|TZ|MSGID);
 			if(msg.from_net.type!=NET_QWK)
 				mode|=TAGLINE;
 

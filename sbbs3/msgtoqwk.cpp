@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.11 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.12 2002/07/03 08:36:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,6 +53,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	int 	i;
 	struct	tm	tm;
 	struct	tm* tm_p;
+	smbmsg_t	orig_msg;
 
 	offset=ftell(qwk_fp);
 	memset(str,SP,128);
@@ -110,12 +111,43 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		sprintf(to,"%.128s",msg->to);
 
 	if(msg->from_net.type==NET_QWK && mode&VIA && !msg->forwarded) {
-		sprintf(str,"@VIA:%.128s\xe3",(char*)msg->from_net.addr);
+		sprintf(str,"@VIA: %.128s\xe3",(char*)msg->from_net.addr);
 		fwrite(str,strlen(str),1,qwk_fp);
 		size+=strlen(str); }
+	
+	if(mode&MSGID && (uint)subnum!=INVALID_SUB) {
+		if(msg->id)
+			sprintf(str,"@MSGID: %.128s\xe3",msg->id);
+		else
+			sprintf(str,"@MSGID: <%08lX.%lu.%s@%s>\xe3"
+				,msg->idx.time,msg->idx.number
+				,cfg.sub[subnum]->code
+				,cfg.sys_inetaddr);
+		fwrite(str,strlen(str),1,qwk_fp);
+		size+=strlen(str); 
+
+		str[0]=0;
+		if(msg->reply_id)
+			sprintf(str,"@REPLY: %.128s\xe3",msg->reply_id);
+		else if(msg->hdr.thread_orig) {
+			memset(&orig_msg,0,sizeof(orig_msg));
+			orig_msg.hdr.number=msg->hdr.thread_orig;
+			if(smb_getmsgidx(&smb, &orig_msg))
+				sprintf(str,"@REPLY: <%s>\xe3",smb.last_error);
+			else
+				sprintf(str,"@REPLY: <%08lX.%lu.%s@%s>\xe3"
+					,orig_msg.idx.time,msg->hdr.thread_orig
+					,cfg.sub[subnum]->code
+					,cfg.sys_inetaddr);
+		}
+		if(str[0]) {
+			fwrite(str,strlen(str),1,qwk_fp);
+			size+=strlen(str); 
+		}
+	}
 
 	if(msg->hdr.when_written.zone && mode&TZ) {
-		sprintf(str,"@TZ:%04x\xe3",msg->hdr.when_written.zone);
+		sprintf(str,"@TZ: %04x\xe3",msg->hdr.when_written.zone);
 		fwrite(str,strlen(str),1,qwk_fp);
 		size+=strlen(str); }
 
