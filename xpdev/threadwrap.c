@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.2 2002/04/06 08:46:31 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.3 2002/04/06 08:50:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,10 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#if defined(__unix__)
+	#include <unistd.h>	/* _POSIX_THREADS */
+#endif
 
 #include "threadwrap.h"	/* DLLCALL */
 
@@ -75,7 +79,7 @@ ulong _beginthread(void( *start_address )( void * )
 /****************************************************************************/
 /* Win32 implementation of POSIX sem_getvalue() function					*/
 /****************************************************************************/
-#ifdef _WIN32
+#if defined(_WIN32)
 int DLLCALL sem_getvalue(sem_t* psem, int* val)
 {
 	if(psem==NULL || val==NULL)
