@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.221 2004/11/19 09:48:50 deuce Exp $ */
+/* $Id: websrvr.c,v 1.222 2004/11/22 20:32:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1544,9 +1544,7 @@ static int is_dynamic_req(http_session_t* session)
 				return(IS_CGI);
 			}
 		}
-		/* It would be more secure if this was a true physical directory comparision */
-		sprintf(path,"/%s/",cgi_dir);
-		if(stricmp(dir,path)==0)  {
+		if(stricmp(dir,cgi_dir)==0)  {
 			init_enviro(session);
 			return(IS_CGI);
 		}
@@ -2845,7 +2843,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.221 $", "%*s %s", revision);
+	sscanf("$Revision: 1.222 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
