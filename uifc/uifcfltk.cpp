@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.2 2003/01/22 05:34:17 rswindell Exp $ */
+/* $Id: uifcfltk.cpp,v 1.3 2003/01/26 19:55:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1096,7 +1096,6 @@ int uinput(int mode, int left, int top, char *prompt, char *outstr,
 			GUI_RetVal=UIFC_INPUT;
 	}
 	if(GUI_RetVal==0)  {
-		printf("Pressed 'Ok'\n");
 		if(kmode&K_EDIT)  {
 			if(strcmp(outstr,InputWin->invalue))  {
 				api->changes=TRUE;
@@ -1115,7 +1114,6 @@ int uinput(int mode, int left, int top, char *prompt, char *outstr,
 	if(GUI_RetVal==UIFC_CANCEL)
 		return(-1);
 
-	printf("Returning %d\n",strlen(outstr));
     return(strlen(outstr));
 }
 
@@ -1181,7 +1179,7 @@ void help()
     char *p;
 	unsigned short line;
 	size_t	len,j;
-	int i;
+	int i=0;
 	long l;
 	FILE *fp;
 	int inverse=0;
