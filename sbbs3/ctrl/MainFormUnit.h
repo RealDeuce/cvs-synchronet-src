@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.26 2001/11/02 00:03:20 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.27 2001/11/10 04:26:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,9 +48,9 @@
 #include <ActnList.hpp>
 //---------------------------------------------------------------------------
 #include "scfgdefs.h"  	// scfg_t
-#include "bbs_thrd.h" 	// bbs_startup_t
 #include "mailsrvr.h"
 #include "ftpsrvr.h"
+#include "services.h"   // services_startup_t
 #include <ImgList.hpp>
 #include <Buttons.hpp>
 #include <Graphics.hpp>
@@ -314,6 +314,7 @@ public:		// User declarations
     bbs_startup_t 	bbs_startup;
     mail_startup_t 	mail_startup;
     ftp_startup_t	ftp_startup;
+    services_startup_t  services_startup;
     int             NodeDisplayInterval;
     int             ClientDisplayInterval;
     int             SpyTerminalWidth;

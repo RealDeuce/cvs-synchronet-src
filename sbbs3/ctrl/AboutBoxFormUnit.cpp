@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: AboutBoxFormUnit.cpp,v 1.6 2001/08/03 21:09:58 rswindell Exp $ */
+/* $Id: AboutBoxFormUnit.cpp,v 1.7 2001/11/10 04:26:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,9 @@
 
 #include "AboutBoxFormUnit.h"
 #include "emulvt.hpp"
-#include "bbs_thrd.h" 	// bbs_startup_t
 #include "mailsrvr.h"
 #include "ftpsrvr.h"
+#include "services.h"
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -106,6 +106,7 @@ void __fastcall TAboutBoxForm::FormShow(TObject *Sender)
     Memo->Lines->Add(bbs_ver());
     Memo->Lines->Add(mail_ver());
     Memo->Lines->Add(ftp_ver());
+    Memo->Lines->Add(services_ver());
     Memo->Lines->Add(ver);
     Memo->Lines->Add("Synchronet Local Spy ANSI Terminal Emulation"
         + CopyRight);
