@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.51 2004/09/13 22:48:12 deuce Exp $
+# $Id: Makefile,v 1.50 2004/09/08 03:27:12 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -295,4 +295,4 @@ $(ASC2ANS): asc2ans.c
 	@echo Creating $@
 	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $** 
 
-SMBLIB:
+
