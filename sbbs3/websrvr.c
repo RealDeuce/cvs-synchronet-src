@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.37 2002/11/05 04:44:34 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.38 2002/11/05 08:48:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1832,6 +1832,8 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob)
 
 BOOL js_setup(http_session_t* session)
 {
+	JSObject*	argv;
+
 	if(session->js_runtime == NULL) {
 		lprintf("%04d JavaScript: Creating runtime: %lu bytes"
 			,session->socket,startup->js_max_bytes);
@@ -1864,6 +1866,13 @@ BOOL js_setup(http_session_t* session)
 		if(js_CreateFileAreaObject(session->js_cx, session->js_glob, &scfg, &session->user
 			,NULL)==NULL) 
 			lprintf("%04d !JavaScript ERROR creating file area object",session->socket);
+
+		argv=JS_NewArrayObject(session->js_cx, 0, NULL);
+
+		JS_DefineProperty(session->js_cx, session->js_glob, "argv", OBJECT_TO_JSVAL(argv)
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+		JS_DefineProperty(session->js_cx, session->js_glob, "argc", INT_TO_JSVAL(0)
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 	}
 
 	JS_SetContextPrivate(session->js_cx, session);
@@ -2086,7 +2095,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.37 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.38 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
