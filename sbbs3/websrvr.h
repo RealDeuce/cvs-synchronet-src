@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.30 2004/11/08 08:58:13 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.23 2004/10/20 23:09:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,6 @@ typedef struct {
 
 	/* Paths */
 	char	ssjs_ext[16];			/* Server-Side JavaScript file extension */
-	char	js_ext[16];			/* Embedded JavaScript file extension */
 	char**	cgi_ext;				/* CGI Extensions */
 	char	cgi_dir[128];			/* relative to root_dir (all files executable) */
     char    ctrl_dir[128];
@@ -79,65 +78,21 @@ typedef struct {
     char	error_dir[128];			/* relative to root_dir */
     char	cgi_temp_dir[128];
     char**	index_file_name;		/* Index filenames */
-	char	logfile_base[128];		/* Logfile base name (date is appended) */
-	char	answer_sound[128];
-	char	hangup_sound[128];
-    char	hack_sound[128];
+	char	logfile_base[128];	/* Logfile base name (date is appended) */
 
 	/* Misc */
     char	host_name[128];
 	BOOL	recycle_now;
-	BOOL	shutdown_now;
+	sem_t	recycle_sem;
 	DWORD	log_mask;
-	uint	bind_retry_count;		/* Number of times to retry bind() calls */
-	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
 } web_startup_t;
-
-#if defined(STARTUP_INIT_FIELD_TABLES)
-/* startup options that requires re-initialization/recycle when changed */
-static struct init_field web_init_fields[] = { 
-	 OFFSET_AND_SIZE(web_startup_t,port)
-	,OFFSET_AND_SIZE(web_startup_t,interface_addr)
-	,OFFSET_AND_SIZE(web_startup_t,ctrl_dir)
-	,OFFSET_AND_SIZE(web_startup_t,root_dir)
-	,OFFSET_AND_SIZE(web_startup_t,error_dir)
-	,OFFSET_AND_SIZE(web_startup_t,cgi_dir)
-	,OFFSET_AND_SIZE(web_startup_t,logfile_base)
-	,{ 0,0 }	/* terminator */
-};
-#endif
 
 #define WEB_OPT_DEBUG_RX			(1<<0)	/* Log all received requests		*/
 #define WEB_OPT_DEBUG_TX			(1<<1)	/* Log all transmitted responses	*/
 #define WEB_OPT_VIRTUAL_HOSTS		(1<<4)	/* Use virutal host html subdirs	*/
 #define WEB_OPT_NO_CGI				(1<<5)	/* Disable CGI support				*/
 #define WEB_OPT_HTTP_LOGGING		(1<<6)	/* Create/write-to HttpLogFile		*/
-
-/* web_startup_t.options bits that require re-init/recycle when changed */
-#define WEB_INIT_OPTS	(BBS_OPT_LOCAL_TIMEZONE|WEB_OPT_HTTP_LOGGING)
-
-#if defined(STARTUP_INI_BITDESC_TABLES)
-static ini_bitdesc_t web_options[] = {
-
-	{ WEB_OPT_DEBUG_RX				,"DEBUG_RX"				},
-	{ WEB_OPT_DEBUG_TX				,"DEBUG_TX"				},
-	{ WEB_OPT_VIRTUAL_HOSTS			,"VIRTUAL_HOSTS"		},
-	{ WEB_OPT_NO_CGI				,"NO_CGI"				},
-	{ WEB_OPT_HTTP_LOGGING			,"HTTP_LOGGING"			},
-
-	/* shared bits */
-	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
-	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
-	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
-	{ BBS_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
-	{ BBS_OPT_MUTE					,"MUTE"					},
-
-	/* terminator */										
-	{ 0								,NULL					}
-};
-#endif
 
 #define WEB_DEFAULT_ROOT_DIR		"../html"
 #define WEB_DEFAULT_ERROR_DIR		"error"
