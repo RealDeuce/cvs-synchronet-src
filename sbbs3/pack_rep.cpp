@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.23 2002/08/06 02:50:52 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.24 2002/11/10 01:45:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 				smb_freemsgmem(&msg);
 				continue; }
 
-			msgtoqwk(&msg,rep,TO_QNET|REP|A_LEAVE,INVALID_SUB,0);
+			msgtoqwk(&msg,rep,QM_TO_QNET|QM_REP|A_LEAVE,INVALID_SUB,0);
 			packedmail++;
 			smb_unlockmsghdr(&smb,&msg);
 			smb_freemsgmem(&msg); 
@@ -180,10 +180,10 @@ bool sbbs_t::pack_rep(uint hubnum)
 				smb_unlockmsghdr(&smb,&msg);
 				continue; }
 
-			mode=cfg.qhub[hubnum]->mode[i]|TO_QNET|REP;
-			if(mode&A_LEAVE) mode|=(VIA|TZ|MSGID);
+			mode=cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
+			if(mode&A_LEAVE) mode|=(QM_VIA|QM_TZ|QM_MSGID);
 			if(msg.from_net.type!=NET_QWK)
-				mode|=TAGLINE;
+				mode|=QM_TAGLINE;
 
 			msgtoqwk(&msg,rep,mode,j,cfg.qhub[hubnum]->conf[i]);
 
