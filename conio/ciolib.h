@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.20 2004/10/17 02:07:04 deuce Exp $ */
+/* $Id: ciolib.h,v 1.18 2004/09/22 21:55:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,7 +189,6 @@ typedef struct {
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
 	int		(*getmouse)		(struct mouse_event *mevent);
-	int		(*ungetmouse)	(struct mouse_event *mevent);
 	int		(*hidemouse)	(void);
 	int		(*showmouse)	(void);
 	void	(*settitle)		(const char *);
@@ -255,7 +254,7 @@ void ciolib_settitle(const char *title);
 	#define cgets(a)				ciolib_cgets(a)
 	#define kbhit()					ciolib_kbhit()
 	#define getch()					ciolib_getch()
-	#define getche()				ciolib_getche()
+	#define getchr()				ciolib_getche()
 	#define ungetch(a)				ciolib_ungetch(a)
 	#define gettextinfo(a)			ciolib_gettextinfo(a)
 	#define wherex()				ciolib_wherex()
@@ -282,7 +281,6 @@ void ciolib_settitle(const char *title);
 	#define insline()				ciolib_insline()
 	#define getpass(a)				ciolib_getpass(a)
 	#define getmouse(a)				ciolib_getmouse(a)
-	#define ungetmouse(a)			ciolib_ungetmouse(a)
 	#define	hidemouse()				ciolib_hidemouse()
 	#define showmouse()				ciolib_showmouse()
 	#define settitle(a)				ciolib_settitle(a)
