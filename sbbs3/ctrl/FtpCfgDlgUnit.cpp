@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.cpp,v 1.7 2005/02/18 09:32:22 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.cpp,v 1.6 2002/04/17 07:13:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,7 @@ void __fastcall TFtpCfgDlg::OKBtnClick(TObject *Sender)
     else
 	    MainForm->ftp_startup.options&=~FTP_OPT_HTML_INDEX_FILE;
 
-    MainForm->SaveIniSettings(Sender);
+    MainForm->SaveSettings(Sender);
 }
 //---------------------------------------------------------------------------
 
