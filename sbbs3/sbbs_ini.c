@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.83 2004/10/21 19:09:30 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.84 2004/10/23 00:39:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -343,9 +343,6 @@ void sbbs_read_ini(
 			,iniReadString(fp,section,"InboundSound",nulstr,value));
 		SAFECOPY(mail->outbound_sound
 			,iniReadString(fp,section,"OutboundSound",nulstr,value));
-
-		SAFECOPY(mail->proc_cfg_file
-			,iniReadString(fp,section,"ProcessConfigFile","mailproc.cfg",value));
 
 		/* JavaScript Operating Parameters */
 		mail->js_max_bytes
@@ -740,9 +737,6 @@ BOOL sbbs_write_ini(
 		if(!iniSetString(lp,section,"InboundSound",mail->inbound_sound,&style))
 			break;
 		if(!iniSetString(lp,section,"OutboundSound",mail->outbound_sound,&style))
-			break;
-
-		if(!iniSetString(lp,section,"ProcessConfigFile",mail->proc_cfg_file,&style))
 			break;
 
 		/* JavaScript Operating Parameters */
