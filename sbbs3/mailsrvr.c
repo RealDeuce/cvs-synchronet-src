@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.317 2004/04/02 12:40:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.318 2004/04/06 04:28:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1720,6 +1720,7 @@ static void smtp_thread(void* arg)
 	socklen_t	addr_len;
 	ushort		hfield_type;
 	ushort		nettype;
+	ushort		agent;
 	uint		usernum;
 	ulong		lines=0;
 	ulong		hdr_lines=0;
@@ -2355,6 +2356,7 @@ static void smtp_thread(void* arg)
 
 					SAFECOPY(rcpt_name,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
 					usernum=iniGetInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
+					agent=iniGetShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTAGENT),AGENT_PERSON);
 					nettype=iniGetShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTNETTYPE),NET_NONE);
 					sprintf(str,"#%u",usernum);
 					SAFECOPY(rcpt_addr,iniGetString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
@@ -2382,6 +2384,8 @@ static void smtp_thread(void* arg)
 						smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(nettype), &nettype);
 						smb_hfield_str(&newmsg, RECIPIENTNETADDR, rcpt_addr);
 					}
+					if(agent!=newmsg.to_agent)
+						smb_hfield(&newmsg, RECIPIENTAGENT, sizeof(agent), &agent);
 
 					i=smb_addmsghdr(&smb,&newmsg,SMB_SELFPACK);
 					smb_freemsgmem(&newmsg);
@@ -3698,7 +3702,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.317 $", "%*s %s", revision);
+	sscanf("$Revision: 1.318 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
