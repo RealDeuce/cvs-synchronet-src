@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.71 2001/05/21 23:03:11 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.72 2001/06/12 01:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1239,7 +1239,7 @@ static void send_thread(void* arg)
 			break;
 		}
 		total+=wr;
-		*xfer.lastactive=time(NULL);
+		*xfer.lastactive=time(NULL);	/* exception here */
 		mswait(1);
 	}
 
@@ -4033,7 +4033,7 @@ void DLLCALL ftp_server(void* arg)
             	lprintf("0000 FTP socket closed while listening");
             else
 				lprintf("0000 !accept failed (ERROR %d)", ERROR_VALUE);
-			break;
+			continue;	/* Jun-08-2001 was break; */
 		}
 		if(startup->socket_open!=NULL)
 			startup->socket_open(TRUE);
