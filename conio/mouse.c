@@ -1,36 +1,3 @@
-/* $Id: mouse.c,v 1.19 2004/09/30 04:44:19 deuce Exp $ */
-
-/****************************************************************************
- * @format.tab-size 4		(Plain Text/Source Code File Header)			*
- * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
- *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
- *																			*
- * This library is free software; you can redistribute it and/or			*
- * modify it under the terms of the GNU Lesser General Public License		*
- * as published by the Free Software Foundation; either version 2			*
- * of the License, or (at your option) any later version.					*
- * See the GNU Lesser General Public License for more details: lgpl.txt or	*
- * http://www.fsf.org/copyleft/lesser.html									*
- *																			*
- * Anonymous FTP access to the most recent released source is available at	*
- * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
- *																			*
- * Anonymous CVS access to the development source and modification history	*
- * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
- *     (just hit return, no password is necessary)							*
- * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
- *																			*
- * For Synchronet coding style and modification guidelines, see				*
- * http://www.synchro.net/source.html										*
- *																			*
- * You are encouraged to submit any modifications (preferably in Unix diff	*
- * format) via e-mail to mods@synchro.net									*
- *																			*
- * Note: If this box doesn't appear square, then you need to fix your tabs.	*
- ****************************************************************************/
-
 #include <stdlib.h>
 
 #include <genwrap.h>
@@ -97,6 +64,7 @@ struct mouse_state {
 	link_list_t	*output;
 };
 
+
 struct mouse_state state;
 int mouse_events=0;
 static mouse_initialized=0;
@@ -104,12 +72,10 @@ static mouse_initialized=0;
 void init_mouse(void)
 {
 	memset(&state,0,sizeof(state));
-	state.input=malloc(sizeof(link_list_t));
-	state.output=malloc(sizeof(link_list_t));
-	state.click_timeout=0;
+	state.click_timeout=200;
 	state.multi_timeout=300;
-	listInit(state.input,LINK_LIST_NEVER_FREE);
-	listInit(state.output,LINK_LIST_NEVER_FREE);
+	state.input=listInit(NULL,LINK_LIST_MALLOC);
+	state.output=listInit(NULL,LINK_LIST_MALLOC);
 	pthread_mutex_init(&in_mutex,NULL);
 	pthread_mutex_init(&out_mutex,NULL);
 	sem_init(&in_sem,0,0);
@@ -134,21 +100,10 @@ int ciomouse_delevents(int events)
 	return mouse_events;
 }
 
-int ciomouse_addevent(int event)
-{
-	mouse_events |= (1<<event);
-	return mouse_events;
-}
-
-int ciomouse_delevent(int event)
-{
-	mouse_events &= ~(1<<event);
-	return mouse_events;
-}
-
 void ciomouse_gotevent(int event, int x, int y)
 {
 	struct in_mouse_event *ime;
+	struct in_mouse_event **lastevent;
 
 	while(!mouse_initialized)
 		SLEEP(1);
@@ -170,6 +125,7 @@ void ciomouse_gotevent(int event, int x, int y)
 void add_outevent(int event, int x, int y)
 {
 	struct out_mouse_event *ome;
+	struct out_mouse_event **lastevent;
 	int	but=0;
 
 	if(!(mouse_events & 1<<event))
@@ -193,24 +149,9 @@ void add_outevent(int event, int x, int y)
 	pthread_mutex_unlock(&out_mutex);
 }
 
-int more_multies(int button, int clicks)
-{
-	switch(clicks) {
-		case 1:
-			if(mouse_events & (1<<CIOLIB_BUTTON_DBL_CLICK(button)))
-				return(1);
-		case 2:
-			if(mouse_events & (1<<CIOLIB_BUTTON_TRPL_CLICK(button)))
-				return(1);
-		case 3:
-			if(mouse_events & (1<<CIOLIB_BUTTON_QUAD_CLICK(button)))
-				return(1);
-	}
-	return(0);
-}
-
 void ciolib_mouse_thread(void *data)
 {
+	struct in_mouse_event *old_in_event;
 	int	timedout;
 	int timeout_button=0;
 	int but;
@@ -218,6 +159,8 @@ void ciolib_mouse_thread(void *data)
 	clock_t	ttime=0;
 
 	init_mouse();
+	while(!mouse_initialized)
+		SLEEP(1);
 	while(1) {
 		timedout=0;
 		if(timeout_button) {
@@ -229,9 +172,8 @@ void ciolib_mouse_thread(void *data)
 				timedout=sem_trywait_block(&in_sem,delay);
 			}
 		}
-		else {
+		else
 			sem_wait(&in_sem);
-		}
 		if(timedout) {
 			state.timeout[timeout_button-1]=0;
 			switch(state.button_state[timeout_button-1]) {
@@ -275,7 +217,6 @@ void ciolib_mouse_thread(void *data)
 		}
 		else {
 			struct in_mouse_event *in;
-
 			pthread_mutex_lock(&in_mutex);
 			in=listRemoveNode(state.input, FIRST_NODE);
 			pthread_mutex_unlock(&in_mutex);
@@ -284,8 +225,8 @@ void ciolib_mouse_thread(void *data)
 			but=CIOLIB_BUTTON_NUMBER(in->event);
 			switch(CIOLIB_BUTTON_BASE(in->event)) {
 				case CIOLIB_MOUSE_MOVE:
-					if(in->x==state.curx
-							&& in->y==state.cury)
+					if(in->x==state.button_x[but]
+							&& in->y==state.button_y[but])
 						break;
 					add_outevent(CIOLIB_MOUSE_MOVE,in->x,in->y);
 					for(but=1;but<=3;but++) {
@@ -347,34 +288,18 @@ void ciolib_mouse_thread(void *data)
 							state.button_x[but-1]=in->x;
 							state.button_y[but-1]=in->y;
 							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
-							if(state.click_timeout==0)
-								state.timeout[but-1]=0;
 							break;
 						case MOUSE_CLICKED:
 							state.button_state[but-1]=MOUSE_DOUBLEPRESSED;
 							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
-							if(state.click_timeout==0)
-								state.timeout[but-1]=0;
 							break;
 						case MOUSE_DOUBLECLICKED:
 							state.button_state[but-1]=MOUSE_TRIPLEPRESSED;
 							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
-							if(state.click_timeout==0)
-								state.timeout[but-1]=0;
 							break;
 						case MOUSE_TRIPLECLICKED:
 							state.button_state[but-1]=MOUSE_QUADPRESSED;
 							state.timeout[but-1]=MSEC_CLOCK()+state.click_timeout;
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
-							if(state.click_timeout==0)
-								state.timeout[but-1]=0;
 							break;
 					}
 					break;
@@ -389,28 +314,20 @@ void ciolib_mouse_thread(void *data)
 							break;
 						case MOUSE_SINGLEPRESSED:
 							state.button_state[but-1]=MOUSE_CLICKED;
-							state.timeout[but-1]=more_multies(but,1)?MSEC_CLOCK()+state.multi_timeout:MSEC_CLOCK();
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
+							state.timeout[but-1]=MSEC_CLOCK()+state.multi_timeout;
 							break;
 						case MOUSE_DOUBLEPRESSED:
 							state.button_state[but-1]=MOUSE_DOUBLECLICKED;
-							state.timeout[but-1]=more_multies(but,2)?MSEC_CLOCK()+state.multi_timeout:MSEC_CLOCK();
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
+							state.timeout[but-1]=MSEC_CLOCK()+state.multi_timeout;
 							break;
 						case MOUSE_TRIPLEPRESSED:
 							state.button_state[but-1]=MOUSE_TRIPLECLICKED;
-							state.timeout[but-1]=more_multies(but,3)?MSEC_CLOCK()+state.multi_timeout:MSEC_CLOCK();
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
+							state.timeout[but-1]=MSEC_CLOCK()+state.multi_timeout;
 							break;
 						case MOUSE_QUADPRESSED:
 							state.button_state[but-1]=MOUSE_NOSTATE;
 							add_outevent(CIOLIB_BUTTON_QUAD_CLICK(but),state.button_x[but-1],state.button_y[but-1]);
 							state.timeout[but-1]=0;
-							if(state.timeout[but-1]==0)
-								state.timeout[but-1]=1;
 							break;
 						case MOUSE_DRAGSTARTED:
 							add_outevent(CIOLIB_BUTTON_DRAG_END(but),in->x,in->y);
@@ -423,12 +340,10 @@ void ciolib_mouse_thread(void *data)
 			free(in);
 		}
 
+		ttime=-1;
 		timeout_button=0;
 		for(but=1;but<=3;but++) {
-			if(state.button_state[but-1]!=MOUSE_NOSTATE 
-					&& state.button_state[but-1]!=MOUSE_DRAGSTARTED 
-					&& state.timeout[but-1]!=0
-					&& (timeout_button==0 || state.timeout[but-1]<ttime)) {
+			if(state.button_state[but-1]!=MOUSE_NOSTATE && state.button_state[but-1]!=MOUSE_DRAGSTARTED && state.timeout[but-1]<ttime) {
 				ttime=state.timeout[but-1];
 				timeout_button=but;
 			}
@@ -446,6 +361,7 @@ int mouse_pending(void)
 int ciolib_getmouse(struct mouse_event *mevent)
 {
 	int retval=0;
+	struct out_mouse_event *old_out_event;
 
 	while(!mouse_initialized)
 		SLEEP(1);

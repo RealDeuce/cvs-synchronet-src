@@ -3,16 +3,12 @@ SRC_ROOT = ..
 include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
 
 CFLAGS += $(XPDEV-MT_CFLAGS) $(CIOLIB-MT_CFLAGS)
-X_HEADERS	?=	/usr/X11R6/include
 
 OBJS	+=	$(MTOBJODIR)$(DIRSEP)curs_cio$(OFILE)
 ifdef NO_X
  CFLAGS	+=	-DNO_X
 else
- ifdef X_PATH
-  X_HEADERS	?=	$(X_PATH)$(DIRSEP)include
- endif
- CFLAGS	+=	-I$(X_HEADERS)
+ CFLAGS	+=	-I/usr/X11R6/include
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)console$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)x_cio$(OFILE)
 endif
@@ -21,7 +17,7 @@ ifeq ($(os),netbsd)
 endif
 
 # CIOLIB Library Link Rule
-$(CIOLIB-MT_BUILD): $(MTOBJODIR) $(OBJS)
+$(CIOLIB-MT): $(MTOBJODIR) $(OBJS)
 	@echo Creating $@ ...
-	$(QUIET)$(AR) rc $@ $(OBJS)
-	$(QUIET)$(RANLIB) $@
+	$(QUIET)ar rc $@ $(OBJS)
+	$(QUIET)ranlib $@
