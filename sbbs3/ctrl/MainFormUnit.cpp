@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.99 2003/03/12 06:31:38 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.100 2003/04/05 02:51:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1039,10 +1039,6 @@ void __fastcall TMainForm::FtpCloseButtonClick(TObject *Sender)
 	ViewFtpServerExecute(Sender);
 }
 //---------------------------------------------------------------------------
-
-
-#define STAT_DESC_LEN 23
-
 void __fastcall TMainForm::StatsTimerTick(TObject *Sender)
 {
 	char 	str[128];
@@ -1059,7 +1055,7 @@ void __fastcall TMainForm::StatsTimerTick(TObject *Sender)
 	StatsForm->EMailToday->Caption=AnsiString(stats.etoday);
 	StatsForm->TotalFeedback->Caption=AnsiString(getmail(&cfg,1,0));
 	StatsForm->FeedbackToday->Caption=AnsiString(stats.ftoday);
-    StatsForm->TotalUsers->Caption=AnsiString(lastuser(&cfg));
+    StatsForm->TotalUsers->Caption=AnsiString(total_users(&cfg));
     StatsForm->NewUsersToday->Caption=AnsiString(stats.nusers);
     StatsForm->PostsToday->Caption=AnsiString(stats.ptoday);
     StatsForm->UploadedFiles->Caption=AnsiString(stats.uls);
