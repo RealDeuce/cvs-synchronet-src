@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.172 2002/07/13 10:14:30 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.173 2002/07/16 07:31:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4266,7 +4266,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.172 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.173 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4348,7 +4348,7 @@ void DLLCALL ftp_server(void* arg)
 		signal(SIGPIPE,SIG_IGN);
 #endif
 
-		lprintf("Synchronet FTP Server %s%s"
+		lprintf("Synchronet FTP Server Revision %s%s"
 			,revision
 #ifdef _DEBUG
 			," Debug"

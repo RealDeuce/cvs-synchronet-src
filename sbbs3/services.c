@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.63 2002/07/13 10:10:54 rswindell Exp $ */
+/* $Id: services.c,v 1.64 2002/07/16 07:31:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -968,7 +968,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.63 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.64 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1043,7 +1043,7 @@ void DLLCALL services_thread(void* arg)
 		signal(SIGPIPE,SIG_IGN);
 #endif
 
-		lprintf("Synchronet Services %s%s"
+		lprintf("Synchronet Services Revision %s%s"
 			,revision
 #ifdef _DEBUG
 			," Debug"
