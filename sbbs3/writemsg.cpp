@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.35 2002/12/12 02:32:31 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.36 2002/12/14 02:57:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -299,6 +299,8 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 				ex_mode|=EX_WWIV; }
 		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
 			ex_mode|=EX_NATIVE;
+		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
+			ex_mode|=EX_SH;
 
 		if(!linesquoted && fexist(msgtmp))
 			remove(msgtmp);
@@ -798,6 +800,8 @@ void sbbs_t::editfile(char *str)
 		editor_inf(useron.xedit,nulstr,nulstr,0,INVALID_SUB);
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
 			mode|=EX_NATIVE;
+		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
+			mode|=EX_SH;
 		if(cfg.xedit[useron.xedit-1]->misc&IO_INTS) {
 			if(online==ON_REMOTE)
 				mode|=(EX_OUTR|EX_INR);
