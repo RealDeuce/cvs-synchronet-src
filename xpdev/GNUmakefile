@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.11 2002/11/26 06:44:29 rswindell Exp $
+# $Id: GNUmakefile,v 1.12 2003/04/08 02:23:25 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -34,7 +34,6 @@ OFILE	=	o
 
 ifndef os
  os		=	$(shell uname)
- $(warning OS not specified on command line, setting to '$(os)'.)
 endif
 os      :=	$(shell echo $(os) | tr "[A-Z]" "[a-z]")
 #os      :=	$(shell echo $(os) | awk '/.*/ { print tolower($$1)}')
@@ -59,9 +58,9 @@ else
    LFLAGS	:=	libpthread.a
   else
    LFLAGS	:=	-lpthread
-  endif	!bcc
- endif	!OpenBSD
-endif	!FreeBSD
+  endif
+ endif
+endif
 
 ifdef DEBUG
  ifdef bcc
