@@ -1,3 +1,5 @@
+/* $Id: xpbeep.h,v 1.9 2005/01/27 22:12:52 rswindell Exp $ */
+
 #ifndef _XPBEEP_H_
 #define _XPBEEP_H_
 
@@ -17,10 +19,22 @@
 	#error "Unsupported Target: Need some macros and/or function prototypes here."
 #endif
 
+enum WAVE_SHAPE {
+	 WAVE_SHAPE_SINE
+	,WAVE_SHAPE_SAWTOOTH
+	,WAVE_SHAPE_SQUARE
+	,WAVE_SHAPE_SINE_SAW
+	,WAVE_SHAPE_SINE_HARM
+	,WAVE_SHAPE_SINE_SAW_CHORD
+	,WAVE_SHAPE_SINE_SAW_HARM
+};
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 void xpbeep(double freq, DWORD duration);
+BOOL xptone(double freq, DWORD duration, enum WAVE_SHAPE);
 #ifdef __unix__
 void unix_beep(int freq, int dur);
 #endif
