@@ -2,7 +2,7 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.4 2004/11/10 07:46:33 rswindell Exp $ */
+/* $Id: msg_queue.c,v 1.5 2004/11/10 20:27:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,8 +197,12 @@ void* msgQueuePeek(msg_queue_t* q, long timeout)
 
 void* msgQueueFind(msg_queue_t* q, const void* data, size_t length)
 {
-	return listRemoveNode(msgQueueReadList(q)
-		,listFindNode(msgQueueReadList(q),data,length));
+	link_list_t*	list = msgQueueReadList(q);
+	list_node_t*	node;
+
+	if((node=listFindNode(list,data,length))==NULL)
+		return(NULL);
+	return listRemoveNode(list,node);
 }
 
 list_node_t* msgQueueFirstNode(msg_queue_t* q)
