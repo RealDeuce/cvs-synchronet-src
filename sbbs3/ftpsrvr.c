@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.276 2004/11/03 06:07:17 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.277 2004/11/04 03:16:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1382,7 +1382,8 @@ static void send_thread(void* arg)
 
 	length=flength(xfer.filename);
 
-	if((fp=fnopen(NULL,xfer.filename,O_RDONLY|O_BINARY))==NULL) {	/* was fopen(...,"rb") */
+	if((fp=fnopen(NULL,xfer.filename,O_RDONLY|O_BINARY))==NULL	/* non-shareable open failed */
+		&& (fp=fopen(xfer.filename,"rb"))==NULL) {				/* shareable open failed */
 		lprintf(LOG_ERR,"%04d !DATA ERROR %d opening %s",xfer.ctrl_sock,errno,xfer.filename);
 		sockprintf(xfer.ctrl_sock,"450 ERROR %d opening %s.",errno,xfer.filename);
 		if(xfer.tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
@@ -4471,7 +4472,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.276 $", "%*s %s", revision);
+	sscanf("$Revision: 1.277 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
