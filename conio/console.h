@@ -1,4 +1,4 @@
-/* $Id: console.h,v 1.7 2004/10/14 06:47:03 deuce Exp $ */
+/* $Id: console.h,v 1.8 2005/01/24 00:00:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,12 @@
 #include "vidmodes.h"
 
 extern sem_t	console_mode_changed;
+extern sem_t	copybuf_set;
+extern sem_t	pastebuf_request;
+extern sem_t	pastebuf_set;
+extern pthread_mutex_t	copybuf_mutex;
+extern char *copybuf;
+extern char *pastebuf;
 
 extern int CurrMode;
 
