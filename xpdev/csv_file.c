@@ -1,8 +1,8 @@
-/* dat_file.c */
+/* csv_file.c */
 
-/* Functions that deal with line-based (text) data files and lists */
+/* Functions to deal with comma-separated value (CSV) files and lists */
 
-/* $Id: dat_file.c,v 1.1 2004/08/04 09:41:39 rswindell Exp $ */
+/* $Id: csv_file.c,v 1.2 2004/07/29 11:15:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,19 +35,53 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "dat_file.h"
+#include "csv_file.h"
 #include "genwrap.h"	/* lastchar */
-#include "filewrap.h"	/* chsize */
 #include <stdlib.h>		/* malloc */
-#include <string.h>		/* strdup */
 
-#include "truncsp.c"	/* truncsp() and truncnl() */
+str_list_t csvParseLine(char* line)
+{
+	char*		p;
+	char*		buf;
+	size_t		count=0;
+	str_list_t	list;
 
-/***********************************/
-/* CSV (Comma Separated Value) API */
-/***********************************/
+	if((list=strListInit())==NULL)
+		return(NULL);
 
-static char* csvEncode(char* field)
+	if((buf=strdup(line))==NULL) {
+		strListFree(&list);
+		return(NULL);
+	}
+
+	for(p=strtok(buf,",");p;p=strtok(NULL,","))
+		strListAppend(&list,p,count++);
+
+	free(buf);
+
+	return(list);
+}
+
+str_list_t* csvParse(str_list_t records )
+{
+	size_t	i;
+	str_list_t* list;
+
+	if(records==NULL)
+		return(NULL);
+
+	if((list=(str_list_t*)malloc(sizeof(str_list_t*)*(strListCount(records)+1)))==NULL)
+		return(NULL);
+
+	for(i=0;records[i];i++)
+		list[i]=csvParseLine(records[i]);
+
+	list[i]=NULL; /* terminate */
+
+	return(list);
+}
+
+char* csvEncode(char* field)
 {
 	char* dst;
 	char* src;
@@ -87,7 +121,7 @@ static char* csvEncode(char* field)
 	return(buf);
 }
 
-char* csvLineCreator(str_list_t columns)
+char* csvLine(str_list_t columns)
 {
 	char*	str=NULL;
 	char*	p;
@@ -115,85 +149,7 @@ char* csvLineCreator(str_list_t columns)
 	return(str);
 }
 
-str_list_t csvLineParser(char* line)
-{
-	char*		p;
-	char*		buf;
-	size_t		count=0;
-	str_list_t	list;
-
-	if((list=strListInit())==NULL)
-		return(NULL);
-
-	if((buf=strdup(line))==NULL) {
-		strListFree(&list);
-		return(NULL);
-	}
-
-	truncsp(buf);
-
-	for(p=strtok(buf,",");p;p=strtok(NULL,","))
-		strListAppend(&list,p,count++);
-
-	free(buf);
-
-	return(list);
-}
-
-/*********************/
-/* Tab-Delimited API */
-/*********************/
-
-char* tabLineCreator(str_list_t columns)
-{
-	char*	str=NULL;
-	char*	p;
-	size_t	i,len;
-
-	if(columns==NULL)
-		return(NULL);
-
-	for(i=0;columns[i]!=NULL;i++) {
-		len=strlen(columns[i])*2;
-		if(str)
-			len+=strlen(str);
-		if((p=realloc(str,len))==NULL)
-			break;
-		str=p;
-		if(i) strcat(str,"\t");
-		else  *str=0;
-		strcat(str,columns[i]);
-	}
-
-	return(str);
-}
-
-str_list_t tabLineParser(char* line)
-{
-	char*		p;
-	char*		buf;
-	size_t		count=0;
-	str_list_t	list;
-
-	if((list=strListInit())==NULL)
-		return(NULL);
-
-	if((buf=strdup(line))==NULL) {
-		strListFree(&list);
-		return(NULL);
-	}
-
-	for(p=strtok(buf,"\t");p;p=strtok(NULL,"\t"))
-		strListAppend(&list,p,count++);
-
-	free(buf);
-
-	return(list);
-}
-
-/* Generic API */
-
-str_list_t dataCreateList(str_list_t records[], str_list_t columns, dataLineCreator_t lineCreator)
+str_list_t csvCreate(str_list_t data[], str_list_t columns)
 {
 	char*		p;
 	str_list_t	list;
@@ -204,14 +160,14 @@ str_list_t dataCreateList(str_list_t records[], str_list_t columns, dataLineCrea
 		return(NULL);
 
 	if(columns!=NULL) {
-		p=lineCreator(columns);
+		p=csvLine(columns);
 		strListAppend(&list,p,li++);
 		free(p);
 	}
 		
-	if(records!=NULL)
-		for(i=0;records[i]!=NULL;i++) {
-			p=lineCreator(records[i]);
+	if(data!=NULL)
+		for(i=0;data[i]!=NULL;i++) {
+			p=csvLine(data[i]);
 			strListAppend(&list,p,li++);
 			free(p);
 		}
@@ -219,69 +175,95 @@ str_list_t dataCreateList(str_list_t records[], str_list_t columns, dataLineCrea
 	return(list);
 }
 
-BOOL dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, dataLineCreator_t lineCreator)
+/****************************************************************************/
+/* Truncates all white-space chars off end of 'str'							*/
+/****************************************************************************/
+static void truncsp(char *str)
 {
-	size_t		count,total;
-	str_list_t	list;
+	uint c;
 
-	rewind(fp);
-
-	if(chsize(fileno(fp),0)!=0)	/* truncate */
-		return(FALSE);
-
-	if((list=dataCreateList(records,columns,lineCreator))==NULL)
-		return(FALSE);
-
-	total = strListCount(list);
-	count = strListWriteFile(fp,list,"\n");
-	strListFree(&list);
-
-	return(count == total);
+	c=strlen(str);
+	while(c && (uchar)str[c-1]<=' ') c--;
+	str[c]=0;
 }
 
-str_list_t* dataParseList(str_list_t records, str_list_t* columns, dataLineParser_t lineParser)
-{
-	size_t		ri=0;
-	size_t		li=0;
-	str_list_t* list;
-
-	if(records==NULL)
-		return(NULL);
-
-	if((list=(str_list_t*)malloc(sizeof(str_list_t*)*(strListCount(records)+1)))==NULL)
-		return(NULL);
-
-	if(columns!=NULL) {
-		if((*columns=lineParser(records[ri++]))==NULL)
-			return(NULL);
-	}
-
-	while(records[ri]!=NULL)
-		list[li++]=lineParser(records[ri++]);
-
-	list[li]=NULL; /* terminate */
-
-	return(list);
-}
-
-str_list_t*	dataReadFile(FILE* fp, str_list_t* columns, dataLineParser_t lineParser)
+str_list_t*	csvReadFile(FILE* fp, str_list_t* columns)
 {
 	str_list_t*	records;
 	str_list_t	lines;
 	size_t		i;
 
-	rewind(fp);
-
 	if((lines=strListReadFile(fp, NULL, 0))==NULL)
 		return(NULL);
 
-	/* truncate line-feed chars off end of strings */
+	/* truncate white-space off end of strings */
 	for(i=0; lines[i]!=NULL; i++)
-		truncnl(lines[i]);
+		truncsp(lines[i]);
 
-	records=dataParseList(lines,columns,lineParser);
+	if(columns!=NULL) {
+		if((*columns=csvParseLine(strListRemove(&lines,0)))==NULL)
+			return(NULL);
+	}
 
-	strListFree(&lines);
+	records=csvParse(lines);
 
 	return(records);
 }
+
+#if 0
+
+int main()
+{
+	char* columns[] =	{"name", "rank", "serial number", NULL};
+	str_list_t	data[3];
+	str_list_t	list;
+	size_t		i;
+
+	data[0]=strListInit();
+	strListPush(&data[0],"rob \"the stud\"");
+	strListPush(&data[0],"general");
+	strListPush(&data[0],"549-71-1344");
+
+	data[1]=strListInit();
+	strListPush(&data[1],"mark");
+	strListPush(&data[1]," colonel");
+	strListPush(&data[1],"x,xx");
+
+	data[2]=NULL;
+
+	list=csvCreate(data, columns);
+
+	for(i=0;list[i];i++)
+		printf("%s\n",list[i]);
+}
+
+#elif 1	/* decode and display .csv file */
+
+void main(int argc, char** argv)
+{
+	str_list_t*	records;
+	str_list_t	columns;
+	FILE*		fp;
+	size_t		i,j;
+
+	if(argc<2) {
+		printf("usage: csv_file <file.csv>\n");
+		exit(0);
+	}
+
+	if((fp=fopen(argv[1],"r"))==NULL) {
+		printf("Error opening %s\n",argv[1]);
+		exit(0);
+	}
+
+	if((records=csvReadFile(fp, &columns))==NULL) {
+		printf("Error reading %s\n",argv[1]);
+		exit(0);
+	}
+
+	for(i=0;records[i];i++)
+		for(j=0;records[i][j];j++)
+			printf("%s[%d]=%s\n",columns[j],i,records[i][j]);
+}
+
+#endif

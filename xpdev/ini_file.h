@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.23 2004/08/23 23:29:55 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.19 2004/07/02 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,35 +63,35 @@ extern "C" {
 
 /* Read all section names and return as an allocated string list */
 /* Optionally (if prefix!=NULL), returns a subset of section names */
-str_list_t	iniReadSectionList(FILE*, const char* prefix);
+str_list_t	iniGetSectionList		(FILE*, const char* prefix);
 /* Read all key names and return as an allocated string list */
-str_list_t	iniReadKeyList(FILE*, const char* section);
+str_list_t	iniGetKeyList			(FILE*, const char* section);
 /* Read all key and value pairs and return as a named string list */
 named_string_t**
-			iniReadNamedStringList	(FILE*, const char* section);
+			iniGetNamedStringList	(FILE*, const char* section);
 
 /* These functions read a single key of the specified type */
-char*		iniReadString(FILE*, const char* section, const char* key, 
+char*		iniGetString	(FILE*, const char* section, const char* key, 
 							 const char* deflt, char* value);
-str_list_t	iniReadStringList(FILE*, const char* section, const char* key
+str_list_t	iniGetStringList(FILE*, const char* section, const char* key
 							,const char* sep, const char* deflt);
-long		iniReadInteger(FILE*, const char* section, const char* key, 
+long		iniGetInteger	(FILE*, const char* section, const char* key, 
 							 long deflt);
-ushort		iniReadShortInt(FILE*, const char* section, const char* key, 
+ushort		iniGetShortInt	(FILE*, const char* section, const char* key, 
 							 ushort deflt);
-ulong		iniReadIpAddress(FILE*, const char* section, const char* key, 
+ulong		iniGetIpAddress(FILE*, const char* section, const char* key, 
 							 ulong deflt);
-double		iniReadFloat(FILE*, const char* section, const char* key, 
+double		iniGetFloat	(FILE*, const char* section, const char* key, 
 							 double deflt);
-BOOL		iniReadBool(FILE*, const char* section, const char* key, 
+BOOL		iniGetBool		(FILE*, const char* section, const char* key, 
 							 BOOL deflt);
-ulong		iniReadBitField(FILE*, const char* section, const char* key, 
+ulong		iniGetBitField	(FILE*, const char* section, const char* key, 
 							 ini_bitdesc_t* bitdesc, ulong deflt);
 
-/* Free string list returned from iniRead*List functions */
+/* Free string list returned from iniGet*List functions */
 void*		iniFreeStringList(str_list_t list);
 
-/* Free named string list returned from iniReadNamedStringList */
+/* Free named string list returned from iniGetNamedStringList */
 void*		iniFreeNamedStringList(named_string_t** list);
 
 
@@ -121,13 +121,10 @@ char*		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bit
 char*		iniSetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, str_list_t value, ini_style_t*);
 
-BOOL		iniSectionExists(str_list_t*, const char* section);
 BOOL		iniKeyExists(str_list_t*, const char* section, const char* key);
 BOOL		iniValueExists(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
-BOOL		iniRemoveSection(str_list_t*, const char* section);
-BOOL		iniRenameSection(str_list_t*, const char* section, const char* newname);
 
 #if defined(__cplusplus)
 }
