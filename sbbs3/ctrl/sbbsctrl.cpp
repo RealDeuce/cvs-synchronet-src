@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: sbbsctrl.cpp,v 1.2 2000/10/31 13:28:44 rswindell Exp $ */
+/* $Id: sbbsctrl.cpp,v 1.3 2000/11/01 03:03:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,14 +55,17 @@ USEFORM("AboutBoxFormUnit.cpp", AboutBoxForm);
 USEFORM("StatsLogFormUnit.cpp", StatsLogForm);
 USEFORM("CodeInputFormUnit.cpp", CodeInputForm);
 USEFORM("ClientFormUnit.cpp", ClientForm);
-USEFORM("SpyFormUnit.cpp", SpyForm);
+USEFORM("SpyFormUnit.cpp",SpyForm);
 USEUNIT("..\ringbuf.c");
 //---------------------------------------------------------------------------
 #include "MainFormUnit.h"
+#include "SpyFormUnit.h"
 #include "CtrlPathDialogUnit.h"
+TSpyForm *SpyForms[MAX_NODES];
 //---------------------------------------------------------------------------
 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
+    memset(SpyForms,0,sizeof(SpyForms));
     try
     {
         Application->Initialize();
