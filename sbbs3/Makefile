@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.7 2002/07/21 23:05:56 rswindell Exp $
+# $Id: Makefile,v 1.8 2002/07/24 10:03:09 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -80,7 +80,7 @@ $(SBBSMONO): sbbscon.c sbbs_ini.c $(XPDEV)ini_file.c $(OBJS) \
 	$(LIBODIR)\ver.$(OFILE) $(LIBODIR)\ftpsrvr.$(OFILE) \
 	$(LIBODIR)\mailsrvr.$(OFILE) $(LIBODIR)\mxlookup.$(OFILE) $(LIBODIR)\mime.$(OFILE) \
 	$(LIBODIR)\services.$(OFILE)
-	@$(CC) $(CFLAGS) -WM -e$(SBBSMONO) $** $(LIBS)
+	@$(CC) $(CFLAGS) -DWRAPPER_EXPORTS -WM -e$(SBBSMONO) $** $(LIBS)
 
 # SBBS DLL Link Rule
 $(SBBS): $(OBJS) $(LIBODIR)\ver.$(OFILE)
