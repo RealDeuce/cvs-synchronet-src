@@ -1,6 +1,6 @@
 /* mime.h */
 
-/* $Id: mime.h,v 1.2 2002/01/20 00:46:40 rswindell Exp $ */
+/* $Id: mime.h,v 1.3 2002/02/02 04:19:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
