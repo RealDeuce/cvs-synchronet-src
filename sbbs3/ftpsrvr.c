@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.244 2003/06/14 00:02:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.245 2003/06/14 00:05:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2507,6 +2507,9 @@ static void ctrl_thread(void* arg)
 			if(user.level>=SYSOP_LEVEL)
 				sockprintf(sock,
 							" RECYCLE [ALL]");
+			if(sysop)
+				sockprintf(sock,
+							" EXEC <cmd>");
 			sockprintf(sock,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
 			continue;
 		}
@@ -4432,7 +4435,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.244 $", "%*s %s", revision);
+	sscanf("$Revision: 1.245 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
