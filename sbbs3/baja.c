@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.6 2000/11/01 05:02:21 rswindell Exp $ */
+/* $Id: baja.c,v 1.7 2000/11/02 13:33:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,15 +35,22 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <io.h>
+/* OS-specific */
+#ifndef __unix__
+	#include <io.h>
+	#include <share.h>
+#endif
+#ifdef _WIN32
+	#include <windows.h>
+#endif
+
+/* ANSI */
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <share.h>
-#ifdef _WIN32
-#include <windows.h>
-#endif
+
+/* Synchronet-specific */
 #include "cmdshell.h"
 #include "ars_defs.h"
 #include "crc32.h"
