@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.31 2004/11/03 03:58:54 deuce Exp $ */
+/* $Id: services.h,v 1.32 2004/11/06 02:15:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +75,7 @@ typedef struct {
 	/* Misc */
     char	host_name[128];
 	BOOL	recycle_now;
-	sem_t	recycle_sem;
+	BOOL	shutdown_now;
 	DWORD	log_mask;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
