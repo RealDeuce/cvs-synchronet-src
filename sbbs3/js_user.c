@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.12 2001/11/29 04:29:07 rswindell Exp $ */
+/* $Id: js_user.c,v 1.13 2001/12/01 02:06:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -614,7 +614,7 @@ static void js_user_finalize(JSContext *cx, JSObject *obj)
 static JSBool
 js_chk_ar(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		ar;
+	uchar*		ar;
 	JSString*	js_str;
 	user_t		user;
 	private_t*	p;

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.15 2001/11/16 00:54:07 rswindell Exp $ */
+/* $Id: js_system.c,v 1.16 2001/12/01 02:06:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -262,7 +262,7 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case SYS_PROP_MISC:
-			JS_ValueToInt32(cx, *vp, &cfg->sys_misc);
+			JS_ValueToInt32(cx, *vp, (int32*)&cfg->sys_misc);
 			break;
 	}
 
