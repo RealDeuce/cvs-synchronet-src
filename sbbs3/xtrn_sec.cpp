@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.28 2002/11/13 03:08:01 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.29 2002/12/14 01:41:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1664,7 +1664,9 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	if(fexistcase(str))
 		remove(str);
 
-	mode=0; 	/* EX_SH */
+	mode=0; 	
+	if(cfg.xtrn[xtrnnum]->misc&XTRN_SH)
+		mode|=EX_SH;
 	if(cfg.xtrn[xtrnnum]->misc&IO_INTS)
 		mode|=(EX_OUTR|EX_INR|EX_OUTL);
 	if(cfg.xtrn[xtrnnum]->misc&WWIVCOLOR)
