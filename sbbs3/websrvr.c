@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.49 2002/11/14 11:21:08 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.50 2002/11/14 23:07:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -729,9 +729,10 @@ static BOOL send_headers(http_session_t *session, const char *status)
 			,get_header(HEAD_LASTMODIFIED)
 			,days[tm.tm_wday],tm.tm_mday,months[tm.tm_mon]
 			,tm.tm_year+1900,tm.tm_hour,tm.tm_min,tm.tm_sec);
-	} else 
-		if(ret && !session->req.was_cgi)
-			sockprintf(session->socket,"%s: 0",get_header(HEAD_LENGTH));
+	} 
+	else  {
+		session->req.keep_alive=FALSE;
+	}
 
 	if(session->req.was_cgi)  {
 		/* CGI-generated headers */
@@ -2041,7 +2042,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.49 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.50 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
