@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.13 2004/08/17 23:52:57 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.12 2003/12/05 02:53:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,10 +178,33 @@ int main(int argc, char **argv)
 			exit(1); 
 		}
 	uifc.size=sizeof(uifc);
+#if defined(USE_FLTK)
+	if(!door_mode && gui_mode==TRUE
+#if defined(__unix__)
+		&& (getenv("DISPLAY")!=NULL)
+#endif
+		)
+		i=uifcinifltk(&uifc);  /* dialog */
+	else
+#endif
+#if defined(USE_UIFC32)
 	if(!door_mode)
 		i=uifcini32(&uifc);
 	else
-		i=uifcinix(&uifc);
+#elif defined(USE_DIALOG)
+	if(!door_mode)
+		i=uifcinid(&uifc);
+	else
+#elif defined(USE_CURSES)
+	if(!door_mode)
+		i=uifcinic(&uifc);
+	else
+#elif !defined(__unix__) && !defined(USE_UIFC32)
+	if(!door_mode)
+		i=uifcini(&uifc);
+	else
+#endif
+	i=uifcinix(&uifc);
 
 	if(i!=0) {
 		printf("uifc library init returned error %d\n",i);

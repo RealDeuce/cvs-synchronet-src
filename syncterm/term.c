@@ -2,7 +2,6 @@
 #include <ciolib.h>
 #include <keys.h>
 
-#include "rlogin.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "menu.h"
@@ -24,7 +23,7 @@ void doterm(void)
 
 	scrollback=malloc(term.width*2*backlines);
 	memset(scrollback,0,term.width*2*backlines);
-	cterm_init(term.height,term.width,term.x-1,term.y-1,backlines,scrollback);
+	cterm_init(term.height,term.width,term.x,term.y,backlines,scrollback);
 	ch[1]=0;
 
 	/* Main input loop */
@@ -118,7 +117,6 @@ void doterm(void)
 					
 			}
 		}
-		if(!rcvtimeo)
-			SLEEP(1);
+		SLEEP(1);
 	}
 }
