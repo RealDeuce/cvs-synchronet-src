@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.31 2003/08/22 10:50:15 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.32 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,9 +86,9 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 						putmsg(cmdstr(tmp,path,csi->str,buf),P_SAVEATR|P_NOABORT);
 					else {
 						if(online==ON_LOCAL)
-							eprintf("%s",cmdstr(tmp,path,csi->str,buf));
+							eprintf(LOG_INFO,"%s",cmdstr(tmp,path,csi->str,buf));
 						else
-							lputs(cmdstr(tmp,path,csi->str,buf));
+							lputs(LOG_INFO,cmdstr(tmp,path,csi->str,buf));
 					}
 					return(0);
 				case SHOW_VARS:

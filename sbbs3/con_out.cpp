@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.27 2003/08/28 01:27:19 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.28 2003/10/24 21:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,7 @@ int sbbs_t::bputs(char *str)
     ulong l=0;
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
-		return(eprintf("%s",str));
+		return(eprintf(LOG_INFO,"%s",str));
 
 	while(str[l]) {
 		if(str[l]==CTRL_A	        /* ctrl-a */
@@ -120,7 +120,7 @@ int sbbs_t::rputs(char *str)
     ulong l=0;
 
 	if(online==ON_LOCAL && console&CON_L_ECHO)	/* script running as event */
-		return(eprintf("%s",str));
+		return(eprintf(LOG_INFO,"%s",str));
 
 	while(str[l])
 		outchar(str[l++]);
@@ -229,7 +229,7 @@ void sbbs_t::outchar(char ch)
 			}
 			if(i==1440) {							/* timeout - beep flush outbuf */
 				i=rioctl(TXBC);
-				lprintf("timeout(outchar) %04X %04X\r\n",i,rioctl(IOFO));
+				lprintf(LOG_NOTICE,"timeout(outchar) %04X %04X\r\n",i,rioctl(IOFO));
 				outcom(BEL);
 				rioctl(IOCS|PAUSE); 
 			} 

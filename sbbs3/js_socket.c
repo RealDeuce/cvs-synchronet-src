@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.93 2003/10/19 07:15:58 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.94 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 	
-	lprintf("%04d Socket %s%s",p->sock,error ? "ERROR: ":"",sbuf);
+	lprintf(LOG_DEBUG,"%04d Socket %s%s",p->sock,error ? "ERROR: ":"",sbuf);
 }
 
 /* Socket Destructor */

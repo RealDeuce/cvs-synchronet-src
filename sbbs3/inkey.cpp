@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.22 2003/07/02 10:59:06 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.23 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,7 +298,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					if(i && !(useron.rows)) {	/* auto-detect rows */
 						str[i]=0;
 						rows=atoi(str);
-						lprintf("Node %d ANSI cursor position report: %u rows"
+						lprintf(LOG_DEBUG,"Node %d ANSI cursor position report: %u rows"
 							,cfg.node_num, rows);
 						if(rows<10 || rows>99) rows=24; 
 					}

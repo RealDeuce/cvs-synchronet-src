@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.62 2003/10/19 07:15:58 rswindell Exp $ */
+/* $Id: js_file.c,v 1.63 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +75,7 @@ static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 	
-	lprintf("%04u File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
+	lprintf(LOG_DEBUG,"%04u File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
 }
 
 /* Converts fopen() style 'mode' string into open() style 'flags' integer */

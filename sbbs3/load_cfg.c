@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.47 2003/07/03 01:16:41 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.48 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@ static void prep_cfg(scfg_t* cfg);
 static void free_attr_cfg(scfg_t* cfg);
 
 char *	readtext(long *line, FILE *stream);
-int 	lprintf(char *fmt, ...);
+/*int 	lprintf(char *fmt, ...);*/
 
 /****************************************************************************/
 /* Initializes system and node configuration information and data variables */
@@ -322,7 +322,7 @@ BOOL md(char *inpath)
 	if(dir==NULL) {
 		/* lprintf("Creating directory: %s",path); */
 		if(MKDIR(path)) {
-			lprintf("!ERROR %d creating directory: %s",errno,path);
+			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
@@ -350,7 +350,7 @@ char *readtext(long *line,FILE *stream)
 	p=strrchr(buf,'"');
 	if(!p) {
 		if(line) {
-			lprintf("No quotation marks in line %d of text.dat",*line);
+			lprintf(LOG_ERR,"No quotation marks in line %d of text.dat",*line);
 			return(NULL); 
 		}
 		return(NULL); 
@@ -435,7 +435,7 @@ char *readtext(long *line,FILE *stream)
 	}
 	str[j]=0;
 	if((p=(char *)calloc(1,j+2))==NULL) { /* +1 for terminator, +1 for YNQX line */
-		lprintf("Error allocating %u bytes of memory from text.dat",j);
+		lprintf(LOG_CRIT,"Error allocating %u bytes of memory from text.dat",j);
 		return(NULL); 
 	}
 	strcpy(p,str);

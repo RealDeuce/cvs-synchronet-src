@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.33 2003/07/03 01:16:41 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.34 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ bool sbbs_t::syslog(char* code, char *entry)
 	sprintf(fname,"%slogs/%2.2d%2.2d%2.2d.log",cfg.logs_dir,tm.tm_mon+1,tm.tm_mday
 		,TM_YEAR(tm.tm_year));
 	if((file=nopen(fname,O_WRONLY|O_APPEND|O_CREAT))==-1) {
-		lprintf("!ERRROR %d opening/creating %s",errno,fname); 
+		lprintf(LOG_ERR,"!ERRROR %d opening/creating %s",errno,fname); 
 		return(false);
 	}
 
@@ -170,9 +170,9 @@ void sbbs_t::logline(char *code, char *str)
 {
 	if(strchr(str,'\n')==NULL) {	// Keep the console log pretty
 		if(online==ON_LOCAL)
-			eprintf("%s",str);
+			eprintf(LOG_INFO,"%s",str);
 		else
-			lprintf("Node %d %s", cfg.node_num, str);
+			lprintf(LOG_INFO,"Node %d %s", cfg.node_num, str);
 	}
 	if(logfile_fp==NULL || (online==ON_LOCAL && strcmp(code,"!!"))) return;
 	if(logcol!=1)
@@ -297,9 +297,9 @@ void sbbs_t::errormsg(int line, const char *source, char action, const char *obj
 #endif
 		,src, line, actstr, object, access);
 	if(online==ON_LOCAL)
-		eprintf("%s",str);
+		eprintf(LOG_ERR,"%s",str);
 	else {
-		lprintf("%s",str);
+		lprintf(LOG_ERR,"%s",str);
 		bprintf("\7\r\nERROR -   action: %s",actstr);   /* tell user about error */
 		bprintf("\7\r\n          object: %s",object);
 		bprintf("\7\r\n          access: %ld",access);

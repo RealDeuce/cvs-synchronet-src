@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.17 2003/05/18 04:22:04 rswindell Exp $ */
+/* $Id: data.cpp,v 1.18 2003/10/24 21:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,7 +202,7 @@ void sbbs_t::gettimeleft(void)
 	if(event_time && now+(time_t)timeleft>event_time) {    /* less time, set flag */
 		timeleft=event_time-now; 
 		if(!(sys_status&SS_EVENT)) {
-			lprintf("Node %d Time reduced (to %s) due to upcoming event (%s) on %s"
+			lprintf(LOG_NOTICE,"Node %d Time reduced (to %s) due to upcoming event (%s) on %s"
 				,cfg.node_num,sectostr(timeleft,tmp),event_code,timestr(&event_time));
 			sys_status|=SS_EVENT;
 		}

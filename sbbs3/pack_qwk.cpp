@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.42 2003/06/12 09:08:14 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.43 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -480,10 +480,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	}
 
 	if(online==ON_LOCAL) /* event */
-		eprintf("%s scanned %lu sub-boards for new messages"
+		eprintf(LOG_INFO,"%s scanned %lu sub-boards for new messages"
 			,useron.alias,subs_scanned);
 	else
-		lprintf("Node %d %s scanned %lu sub-boards for new messages"
+		lprintf(LOG_INFO,"Node %d %s scanned %lu sub-boards for new messages"
 			,cfg.node_num,useron.alias,subs_scanned);
 
 	if((*msgcnt)+mailmsgs && time(NULL)-start) {
@@ -499,9 +499,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			,(ulong)(time(NULL)-start)
 			,((*msgcnt)+mailmsgs)/(time(NULL)-start));
 		if(online==ON_LOCAL) /* event */
-			eprintf(str);
+			eprintf(LOG_INFO,"%s",str);
 		else
-			lprintf(str);
+			lprintf(LOG_INFO,"%s",str);
 	}
 
 	fclose(qwk);			/* close MESSAGE.DAT */
@@ -526,9 +526,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			sprintf(tmp2,"%s%s",cfg.temp_dir,dirent->d_name);
 			lncntr=0;	/* Default pause */
 			if(online==ON_LOCAL)
-				eprintf("Including %s in packet",str);
+				eprintf(LOG_INFO,"Including %s in packet",str);
 			else
-				lprintf("Including %s in packet",str);
+				lprintf(LOG_INFO,"Including %s in packet",str);
 			bprintf(text[RetrievingFile],str);
 			if(!mv(str,tmp2,1))
 				netfiles++;

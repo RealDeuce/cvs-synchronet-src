@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.100 2003/10/19 07:15:58 rswindell Exp $ */
+/* $Id: js_global.c,v 1.101 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2015,7 +2015,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 	if(select(maxsock+1,rd_set,wr_set,NULL,&tv)<0)
 	{
-		lprintf("Error in socket_select()  %s (%d)",strerror(errno),errno);
+		lprintf(LOG_DEBUG,"Error in socket_select()  %s (%d)",strerror(errno),errno);
 	}
 
 	for(i=0;i<limit;i++)

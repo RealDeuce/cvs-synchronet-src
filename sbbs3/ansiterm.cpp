@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.9 2003/05/09 21:53:43 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.10 2003/10/24 21:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ bool sbbs_t::ansi_getxy(int* x, int* y)
 				ungetkey(ch);
         }
     	if(time(NULL)-start>TIMEOUT_ANSI_GETXY) {
-        	lprintf("Node %d !TIMEOUT in ansi_getxy", cfg.node_num);
+        	lprintf(LOG_NOTICE,"Node %d !TIMEOUT in ansi_getxy", cfg.node_num);
             return(false);
         }
     }
