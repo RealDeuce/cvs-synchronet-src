@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.105 2005/04/06 18:49:17 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.106 2005/04/06 18:51:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,7 +95,7 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 		return;
 #endif
 	iniFileName(ini_file,MAX_PATH,ctrl_dir,"sbbs.ini");
-	if(fexistCase(ini_file))
+	if(fexistcase(ini_file))
 		return;
 	iniFileName(ini_file,MAX_PATH,ctrl_dir,"startup.ini");
 }
