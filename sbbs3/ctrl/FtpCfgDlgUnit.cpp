@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.cpp,v 1.5 2001/07/21 01:47:17 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.cpp,v 1.6 2002/04/17 07:13:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,8 +104,7 @@ void __fastcall TFtpCfgDlg::OKBtnClick(TObject *Sender)
     char    str[128],*p;
     DWORD   addr;
 
-    sprintf(str,"%.*s",sizeof(str)-1
-        ,NetworkInterfaceEdit->Text.c_str());
+    SAFECOPY(str,NetworkInterfaceEdit->Text.c_str());
     p=str;
     while(*p && *p<=' ') p++;
     if(*p && isdigit(*p)) {
@@ -129,24 +128,18 @@ void __fastcall TFtpCfgDlg::OKBtnClick(TObject *Sender)
     MainForm->FtpAutoStart=AutoStartCheckBox->Checked;
     MainForm->FtpLogFile=LogFileCheckBox->Checked;
 
-    sprintf(MainForm->ftp_startup.index_file_name,"%.*s"
-	    ,sizeof(MainForm->ftp_startup.index_file_name)-1
+    SAFECOPY(MainForm->ftp_startup.index_file_name
         ,IndexFileNameEdit->Text.c_str());
-    sprintf(MainForm->ftp_startup.html_index_file,"%.*s"
-	    ,sizeof(MainForm->ftp_startup.html_index_file)-1
+    SAFECOPY(MainForm->ftp_startup.html_index_file
         ,HtmlFileNameEdit->Text.c_str());
-    sprintf(MainForm->ftp_startup.html_index_script,"%.*s"
-	    ,sizeof(MainForm->ftp_startup.html_index_script)-1
+    SAFECOPY(MainForm->ftp_startup.html_index_script
         ,HtmlJavaScriptEdit->Text.c_str());
 
-    sprintf(MainForm->ftp_startup.answer_sound,"%.*s"
-	    ,sizeof(MainForm->ftp_startup.answer_sound)-1
+    SAFECOPY(MainForm->ftp_startup.answer_sound
         ,AnswerSoundEdit->Text.c_str());
-    sprintf(MainForm->ftp_startup.hangup_sound,"%.*s"
-	    ,sizeof(MainForm->ftp_startup.hangup_sound)-1
+    SAFECOPY(MainForm->ftp_startup.hangup_sound
         ,HangupSoundEdit->Text.c_str());
-    sprintf(MainForm->ftp_startup.hack_sound,"%.*s"
-	    ,sizeof(MainForm->ftp_startup.hack_sound)-1
+    SAFECOPY(MainForm->ftp_startup.hack_sound
         ,HackAttemptSoundEdit->Text.c_str());
 
 	if(DebugTxCheckBox->Checked==true)
