@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.240 2003/04/04 04:49:13 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.241 2003/04/04 07:58:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1525,6 +1525,20 @@ static void smtp_thread(void* arg)
 		lprintf("%04d SMTP Hostname: %s", socket, host_name);
 		for(i=0;host!=NULL && host->h_aliases!=NULL && host->h_aliases[i]!=NULL;i++)
 			lprintf("%04d SMTP HostAlias: %s", socket, host->h_aliases[i]);
+#if 0
+		if(host!=NULL) {
+			ip=resolve_ip(host_name);
+			if(ip!=smtp.client_addr.sin_addr.s_addr) {
+				smtp.client_addr.sin_addr.s_addr=ip;
+				lprintf("%04d !SMTP DNS/IP ADDRESS MISMATCH: %s vs %s"
+					,socket, inet_ntoa(smtp.client_addr.sin_addr), host_ip);
+				sockprintf(socket,"550 DNS and IP address mismatch");
+				mail_close_socket(socket);
+				thread_down();
+				return;
+			}
+		}
+#endif
 	}
 
 	SAFECOPY(hello_name,host_name);
@@ -1606,7 +1620,7 @@ static void smtp_thread(void* arg)
 		,startup->host_name,revision,PLATFORM_DESC);
 	while(1) {
 		rd = sockreadline(socket, buf, sizeof(buf));
-		if(rd<1) 
+		if(rd<0) 
 			break;
 		truncsp(buf);
 		if(spy!=NULL)
@@ -3213,7 +3227,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.240 $", "%*s %s", revision);
+	sscanf("$Revision: 1.241 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
