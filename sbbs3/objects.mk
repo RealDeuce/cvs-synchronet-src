@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.28 2004/10/15 23:32:19 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.26 2004/09/23 06:48:04 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -84,7 +84,6 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)scfglib1$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)scfglib2$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)scfgsave$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)semfile$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)sockopts$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)sortdir$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)str$(OFILE)\
@@ -118,6 +117,7 @@ FTP_OBJS	= $(MTOBJODIR)$(DIRSEP)ftpsrvr$(OFILE) \
 MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)mxlookup$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)mime$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)md5$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)base64$(OFILE)
 
 # Must add new additions to MONO_OBJS too!
