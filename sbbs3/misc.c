@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.19 2002/03/08 02:47:34 rswindell Exp $ */
+/* $Id: misc.c,v 1.20 2002/03/12 23:05:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,7 +139,7 @@ char* DLLCALL strip_ctrl(char *str)
 	char tmp[1024];
 	int i,j;
 
-	for(i=j=0;str[i];i++)
+	for(i=j=0;str[i] && j<sizeof(tmp)-1;i++)
 		if(str[i]==CTRL_A)
 			i++;
 		else if((uchar)str[i]>=SP)
@@ -154,7 +154,7 @@ char* DLLCALL strip_exascii(char *str)
 	char tmp[1024];
 	int i,j;
 
-	for(i=j=0;str[i];i++)
+	for(i=j=0;str[i] && j<sizeof(tmp)-1;i++)
 		if(!(str[i]&0x80))
 			tmp[j++]=str[i];
 	tmp[j]=0;
