@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.40 2004/03/23 04:14:22 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.39 2003/08/30 11:17:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -344,24 +344,19 @@ bool sbbs_t::upload(uint dirnum)
 		if(!dir_op(dirnum)) return(false); 
 	}
 	bputs(text[SearchingForDupes]);
-	if(findfile(&cfg,dirnum,f.name)) {
-		bputs(text[SearchedForDupes]);
-		bprintf(text[FileAlreadyOnline],fname);
-		return(false); 	 /* File is already in database */
-	}
 	for(i=k=0;i<usrlibs;i++) {
 		for(j=0;j<usrdirs[i];j++,k++) {
 			outchar('.');
 			if(k && !(k%5))
 				bputs("\b\b\b\b\b     \b\b\b\b\b");
-			if(usrdir[i][j]==dirnum)
-				continue;	/* we already checked this dir */
-			if(cfg.dir[usrdir[i][j]]->misc&DIR_DUPES
+			if((usrdir[i][j]==dirnum || cfg.dir[usrdir[i][j]]->misc&DIR_DUPES)
 				&& findfile(&cfg,usrdir[i][j],f.name)) {
 				bputs(text[SearchedForDupes]);
-				bprintf(text[FileAlreadyOnline],fname);
+				bprintf(text[FileAlreadyOnline],f.name);
 				if(!dir_op(dirnum))
 					return(false); 	 /* File is in database for another dir */
+				if(usrdir[i][j]==dirnum)
+					return(false); /* don't allow duplicates */
 			}
 		}
 	}
@@ -480,7 +475,7 @@ bool sbbs_t::upload(uint dirnum)
 			else {
 				for(i=0;i<batup_total;i++)
 					if(!strcmp(batup_name[i],f.name)) {
-						bprintf(text[FileAlreadyInQueue],fname);
+						bprintf(text[FileAlreadyInQueue],f.name);
 						return(false); 
 					}
 				strcpy(batup_name[batup_total],f.name);
@@ -490,7 +485,7 @@ bool sbbs_t::upload(uint dirnum)
 				batup_alt[batup_total]=altul;
 				batup_total++;
 				bprintf(text[FileAddedToUlQueue]
-					,fname,batup_total,cfg.max_batup); 
+					,f.name,batup_total,cfg.max_batup); 
 			} 
 		} else {
 			for(i=0;i<cfg.total_prots;i++)
