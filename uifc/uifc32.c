@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.106 2004/11/19 00:47:33 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.107 2004/12/20 20:59:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1704,9 +1704,11 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				case CIO_KEY_F(2):
 				case CIO_KEY_UP:
 				case CIO_KEY_DOWN:
-					if(mode&K_DEUCEEXIT)
+					if(mode&K_DEUCEEXIT) {
 						ch=CR;
-					break;
+						break;
+					}
+					continue;
 				case CTRL_X:
 					if(j)
 					{
