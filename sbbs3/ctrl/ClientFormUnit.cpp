@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.cpp,v 1.2 2003/03/01 06:59:38 rswindell Exp $ */
+/* $Id: ClientFormUnit.cpp,v 1.3 2003/03/12 06:32:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,6 +105,8 @@ void __fastcall TClientForm::CloseSocketMenuItemClick(TObject *Sender)
 
 void __fastcall TClientForm::FilterIpMenuItemClick(TObject *Sender)
 {
+	char 	str[256];
+    int		res;
     TListItem* ListItem;
     TItemStates State;
 
@@ -112,11 +114,19 @@ void __fastcall TClientForm::FilterIpMenuItemClick(TObject *Sender)
     State << isSelected;
 
     while(ListItem!=NULL) {
-        MainForm->FilterIP(
-         	 ListItem->SubItems->Strings[2].c_str() /* ip_addr */
-        	,ListItem->SubItems->Strings[0].c_str() /* protocol */
-        	,ListItem->SubItems->Strings[1].c_str() /* username */
-            );
+
+    	wsprintf(str,"Disallow future connections from %s"
+        	,ListItem->SubItems->Strings[2].c_str());
+    	res=Application->MessageBox(str,"Filter IP?"
+        		,MB_YESNOCANCEL|MB_ICONQUESTION);
+        if(res==IDCANCEL)
+    		break;
+    	if(res==IDOK)
+	        MainForm->FilterIP(
+    	     	 ListItem->SubItems->Strings[2].c_str() /* ip_addr */
+	        	,ListItem->SubItems->Strings[0].c_str() /* protocol */
+	        	,ListItem->SubItems->Strings[1].c_str() /* username */
+	            );
         ListItem=ListView->GetNextItem(ListItem,sdAll,State);
     }
 }
