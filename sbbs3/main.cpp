@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.2 2001/03/02 23:57:59 rswindell Exp $ */
+/* $Id: main.cpp,v 1.3 2001/03/09 22:03:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,6 +183,30 @@ int close_socket(SOCKET sock)
 	if(result!=0)
 		lprintf("!ERROR %d closing socket %d",ERROR_VALUE,sock);
 	return(result);
+}
+
+/* Return true if connected */
+bool socket_check(SOCKET sock)
+{
+	char	ch;
+	int		i;
+	fd_set	socket_set;
+	struct	timeval tv;
+
+	FD_ZERO(&socket_set);
+	FD_SET(sock,&socket_set);
+
+	tv.tv_sec=0;
+	tv.tv_usec=0;
+
+	i=select(sock+1,&socket_set,NULL,NULL,&tv);
+	if(i==SOCKET_ERROR)
+		return(false);
+
+	if(i==0 || recv(sock,&ch,1,MSG_PEEK)==1) 
+		return(true);
+
+	return(false);
 }
 
 u_long resolve_ip(char *addr)
