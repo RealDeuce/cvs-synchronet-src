@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.2 2003/09/17 03:09:08 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.3 2003/09/17 03:51:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 
 void xmodem_put_nak(xmodem_t* xm)
 {
-	while(getcom(1)!=NOINP && (xm->mode&NO_LOCAL || kbhit()!=LOC_ABORT))
+	while(getcom(1)!=NOINP)
 		;				/* wait for any trailing data */
 	putcom(NAK);
 }
@@ -263,14 +263,15 @@ int xmodem_get_ack(xmodem_t* xm, int tries)
 	return(0);
 }
 
-char* xmodem_ver(char *buf)
-{
-	sscanf("$Revision: 1.2 $", "%*s %s", buf);
-
-	return(buf);
-}
-
 const char* xmodem_source(void)
 {
 	return(__FILE__);
 }
+
+char* xmodem_ver(char *buf)
+{
+	sscanf("$Revision: 1.3 $", "%*s %s", buf);
+
+	return(buf);
+}
+

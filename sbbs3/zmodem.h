@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.2 2003/09/17 03:09:08 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.3 2003/09/17 03:51:58 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -23,6 +23,7 @@
 #define	LF			0x0a
 #define	CR			0x0d
 #endif
+#define DLE			0x10
 #define	XON			0x11
 #define	XOFF		0x13
 #define	NAK			0x15
@@ -190,8 +191,6 @@
 
 typedef struct {
 
-	SOCKET sock;											/* socket descriptor */
-
 	unsigned char rxd_header[ZMAXHLEN];						/* last received header */
 	int rxd_header_len;										/* last received header size */
 
@@ -240,7 +239,11 @@ typedef struct {
 
 	int n_cans;
 
-	long mode;
+	/* Stuff added by RRS */
+	SOCKET	sock;					/* socket descriptor */
+	long	mode;
+	FILE*	statfp;
+	FILE*	errfp;
 
 } zmodem_t;
 
