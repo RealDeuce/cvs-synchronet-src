@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.26 2004/09/08 03:32:36 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.28 2004/12/29 10:15:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,7 @@ int fixsmb(char* sub)
 {
 	char*		p;
 	char*		text;
-	char		str[MAX_PATH+1],c;
+	char		c;
 	int 		i,w;
 	ulong		l,length,size,n;
 	smbmsg_t	msg;
@@ -213,27 +213,14 @@ int fixsmb(char* sub)
 			msg.offset=n;
 			if(renumber)
 				msg.hdr.number=n+1;
+			if(msg.hdr.netattr&MSG_INTRANSIT) {
+				printf("Removing 'in transit' attribute\n");
+				msg.hdr.netattr&=~MSG_INTRANSIT;
+			}
 			msg.idx.number=msg.hdr.number;
 			msg.idx.attr=msg.hdr.attr;
 			msg.idx.time=msg.hdr.when_imported.time;
-			msg.idx.subj=smb_subject_crc(msg.subj);
-			if(smb.status.attr&SMB_EMAIL) {
-				if(msg.to_ext)
-					msg.idx.to=atoi(msg.to_ext);
-				else
-					msg.idx.to=0;
-				if(msg.from_ext)
-					msg.idx.from=atoi(msg.from_ext);
-				else
-					msg.idx.from=0; 
-			} else {
-				SAFECOPY(str,msg.to);
-				strlwr(str);
-				msg.idx.to=crc16(str,0);
-				SAFECOPY(str,msg.from);
-				strlwr(str);
-				msg.idx.from=crc16(str,0); 
-			}
+			smb_init_idx(&smb,&msg);
 			if((i=smb_putmsg(&smb,&msg))!=0) {
 				printf("\nsmb_putmsg returned %d: %s\n",i,smb.last_error);
 				continue; 
@@ -285,7 +272,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+	sscanf("$Revision: 1.28 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
