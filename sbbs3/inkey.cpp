@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.21 2003/05/06 02:02:59 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.22 2003/07/02 10:59:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,8 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			bputs("\b \b");
 		return(0); 
 	}
-	if(ch==CTRL_Z && action!=NODE_PCHT) {	 /* Ctrl-Z toggle raw input mode */
+	if(ch==CTRL_Z && !(mode&K_MSG)
+		&& action!=NODE_PCHT) {	 /* Ctrl-Z toggle raw input mode */
 		if(hotkey_inside>1)	/* only allow so much recursion */
 			return(0);
 		hotkey_inside++;
