@@ -1,4 +1,4 @@
-/* $Id: ciowrap.h,v 1.15 2004/07/03 22:59:55 deuce Exp $ */
+/* $Id: ciowrap.h,v 1.16 2004/07/03 23:04:54 deuce Exp $ */
 
 #ifndef _CIOWRAP_H_
 #define _CIOWRAP_H_
@@ -50,6 +50,12 @@ enum
 	_NORMALCURSOR
 };
 
+enum
+{
+	 X_MODE
+	,CURSES_MODE
+};
+
 struct text_info {
     unsigned char currmode;
     unsigned char screenheight;
@@ -57,6 +63,7 @@ struct text_info {
 };
 
 typedef struct {
+	int		mode;
 	void	(*clreol)		(void);
 	int		(*puttext)		(int,int,int,int,unsigned char *);
 	int		(*gettext)		(int,int,int,int,unsigned char *);
