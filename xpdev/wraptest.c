@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.24 2003/04/08 05:37:04 rswindell Exp $ */
+/* $Id: wraptest.c,v 1.25 2003/04/08 05:38:49 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -301,8 +301,8 @@ static void sopen_child_thread(void* arg)
 			printf("!FAILURE: was able to reopen in child thread\n");
 		else {
 			SLEEP(5000);
-			close(fd);
 		}
+		close(fd);
 	} else if(arg==0)
 		perror(LOCK_FNAME);
 }
