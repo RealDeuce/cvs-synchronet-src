@@ -4,12 +4,10 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.7 2005/01/14 03:34:18 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.3 2003/09/17 03:51:58 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
-
-#include <stdio.h>	/* FILE */
 
 /*
  * ascii constants
@@ -230,7 +228,6 @@ typedef struct {
 
 	long current_file_size;
 	time_t transfer_start;
-	time_t last_status;
 
 	int receive_32_bit_data;
 	int raw_trace;
@@ -243,8 +240,8 @@ typedef struct {
 	int n_cans;
 
 	/* Stuff added by RRS */
-	void*	cbdata;
-	long*	mode;
+	SOCKET	sock;					/* socket descriptor */
+	long	mode;
 	FILE*	statfp;
 	FILE*	errfp;
 
