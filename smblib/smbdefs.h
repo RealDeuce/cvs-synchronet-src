@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.53 2004/09/01 11:10:27 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.54 2004/09/03 01:34:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -618,7 +618,6 @@ typedef struct {			/* Message base */
 	ulong	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 	/* Status header record */
 	BOOL	locked;			/* SMB header is locked */
-	char	shd_buf[SHD_BLOCK_LEN]; 	/* File I/O buffer for header file */
 	char	last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
