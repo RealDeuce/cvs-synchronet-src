@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.64 2002/07/16 07:31:51 rswindell Exp $ */
+/* $Id: services.c,v 1.65 2002/07/20 10:50:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,16 +173,16 @@ static void client_off(SOCKET sock)
 		startup->client_on(FALSE,sock,NULL,FALSE);
 }
 
-static void thread_up(void)
+static void thread_up(BOOL setuid)
 {
 	if(startup!=NULL && startup->thread_up!=NULL)
-		startup->thread_up(TRUE);
+		startup->thread_up(TRUE,setuid);
 }
 
 static void thread_down(void)
 {
 	if(startup!=NULL && startup->thread_up!=NULL)
-		startup->thread_up(FALSE);
+		startup->thread_up(FALSE,FALSE);
 }
 
 static SOCKET open_socket(int type)
@@ -602,7 +602,7 @@ static void js_service_thread(void* arg)
 
 	lprintf("%04d %s JavaScript service thread started", socket, service->protocol);
 
-	thread_up();
+	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
 	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
@@ -780,7 +780,7 @@ static void native_service_thread(void* arg)
 
 	lprintf("%04d %s service thread started", socket, service->protocol);
 
-	thread_up();
+	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
 	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
@@ -968,7 +968,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.64 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.65 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1033,7 +1033,7 @@ void DLLCALL services_thread(void* arg)
 
 	do {
 
-		thread_up();
+		thread_up(FALSE /* setuid */);
 
 		status("Initializing");
 
