@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.5 2002/07/24 01:00:55 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.6 2002/07/30 21:29:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,7 +163,7 @@ ulong iniReadIpAddress(FILE* fp, const char* section, const char* key, ulong def
 	if(strchr(value,'.')==NULL)
 		return(strtol(value,NULL,0));
 
-	return(inet_addr(value));
+	return(ntohl(inet_addr(value)));
 }
 
 double iniReadFloat(FILE* fp, const char* section, const char* key, double deflt)
