@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.26 2004/09/24 20:30:53 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.25 2003/09/19 00:29:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,8 @@
 
 #ifndef _SCFGDEFS_H_
 #define _SCFGDEFS_H_
+
+#include "startup.h"
 
 typedef struct {                        /* Message sub board info */
 	char	code[LEN_EXTCODE+1];		/* Internal code (with optional lib prefix) */
