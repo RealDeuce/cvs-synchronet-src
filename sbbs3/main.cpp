@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.321 2004/03/16 11:33:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.319 2004/02/19 23:06:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -994,11 +994,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	BYTE*	first_cr=NULL;
 	int 	i;
 
-	if(inlen<1) {
-		outlen=0;
-		return(inbuf);	// no length? No interpretation
-	}
-
     first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
 
 	if(!(sbbs->telnet_mode&(TELNET_MODE_BIN_RX|TELNET_MODE_GATE)) 
@@ -1217,7 +1212,6 @@ void input_thread(void *arg)
 				&& FD_ISSET(uspy_socket[sbbs->cfg.node_num-1],&socket_set))  {
 			if(!socket_check(uspy_socket[sbbs->cfg.node_num-1],NULL,NULL,0)) {
 				close_socket(uspy_socket[sbbs->cfg.node_num-1]);
-				lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
 				uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
 				continue;
 			}
@@ -1255,9 +1249,7 @@ void input_thread(void *arg)
 
 		if(rd == SOCKET_ERROR)
 		{
-#ifdef __unix__
 			if(sock==sbbs->client_socket)  {
-#endif
 	        	if(ERROR_VALUE == ENOTSOCK)
     	            lprintf(LOG_NOTICE,"Node %d socket closed by peer on receive", sbbs->cfg.node_num);
         	    else if(ERROR_VALUE==ECONNRESET) 
@@ -1270,8 +1262,9 @@ void input_thread(void *arg)
 					lprintf(LOG_WARNING,"Node %d !ERROR %d receiving from socket %d"
         	        	,sbbs->cfg.node_num, ERROR_VALUE, sock);
 				break;
+			}
 #ifdef __unix__
-			} else  {
+			else  {
 				if(ERROR_VALUE != EAGAIN)  {
 					lprintf(LOG_ERR,"Node %d !ERROR %d on local spy socket %d receive"
 						, sbbs->cfg.node_num, errno, sock);
@@ -4192,7 +4185,7 @@ void DLLCALL bbs_thread(void* arg)
 						close_socket(new_socket);
 					}
 					else  {
-						lprintf(LOG_ERR,"!Spy socket %s (%d) connected",uspy_addr.sun_path,new_socket);
+						lprintf(LOG_ERR,"!Spy socket %s connected",uspy_addr.sun_path);
 						uspy_socket[i-1]=new_socket;
 						sprintf(str,"Spy connection established to node %d\r\n",i);
 						send(uspy_socket[i-1],str,strlen(str),0);
