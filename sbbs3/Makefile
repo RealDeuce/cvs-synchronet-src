@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.18 2003/01/06 00:55:13 rswindell Exp $
+# $Id: Makefile,v 1.19 2003/01/22 22:59:15 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -52,7 +52,7 @@ EXEODIR	=	$(EXEODIR).release
 # JavaScript Support
 !ifdef JS
 CFLAGS	= 	$(CFLAGS) -DJAVASCRIPT -I../mozilla/js/src
-LIBS	=	..\mozilla\js\src\Debug\js32omf.lib
+LIBS	=	..\..\lib\mozilla\js\win32.debug\js32omf.lib
 !endif
 
 # Cross platform/compiler definitions
