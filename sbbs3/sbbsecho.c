@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.43 2002/07/07 20:39:26 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.44 2002/07/08 02:51:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -447,7 +447,6 @@ int create_netmail(char *to,char *subject,char *body,faddr_t dest,int file)
 			logprintf("Directory full: %s",scfg.netmail_dir);
 			return(-1); }
 		startmsg=i+1;
-		strupr(fname);
 		if((fstream=fnopen(&fmsg,fname,O_RDWR|O_CREAT))==NULL) {
 			printf("\7ERROR line %d opening %s %s\n",__LINE__,fname,sys_errlist[errno]);
 			logprintf("ERROR line %d opening %s %s",__LINE__,fname,sys_errlist[errno]);
