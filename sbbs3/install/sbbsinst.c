@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.95 2005/02/28 03:37:11 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.94 2005/02/10 08:01:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,8 +72,11 @@
 #endif
 
 char *distlists[]={
-	 "http://cvs.synchro.net/cgi-bin/viewcvs.cgi/*checkout*/src/sbbs3/install/sbbsdist.lst?rev=HEAD&content-type=text/plain"
-	 "http://cvs-mirror.synchro.net/cgi-bin/viewcvs.cgi/*checkout*/src/sbbs3/install/sbbsdist.lst?rev=HEAD&content-type=text/plain"
+	 "http://www.synchro.net/sbbsdist.lst"
+	,"http://rob.synchro.net/sbbsdist.lst"
+	,"http://cvs.synchro.net/sbbsdist.lst"
+	,"http://bbs.synchro.net/sbbsdist.lst"
+	,"http://freebsd.synchro.net/sbbsdist.lst"
 	,NULL	/* terminator */
 };
 
@@ -121,9 +124,7 @@ struct {
 	struct utsname	name;	
 	char	sbbsuser[9];		/* Historical UName limit of 8 chars */
 	char	sbbsgroup[17];		/* Can't find historical limit for group names */
-#ifdef __linux__
-	BOOL	use_dosemu;
-#endif
+	BOOL	useX;
 } params; /* Build parameters */
 
 #define MAKEFILE "/tmp/SBBSmakefile"
@@ -230,11 +231,9 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsuser,p);
 	if((p=getenv("GROUP"))!=NULL)
 		SAFECOPY(params.sbbsgroup,p);
-#ifdef __linux__
-	params.use_dosemu=FALSE;
-#endif
+	params.useX=FALSE;
 
-	sscanf("$Revision: 1.95 $", "%*s %s", revision);
+	sscanf("$Revision: 1.94 $", "%*s %s", revision);
 	umask(077);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
@@ -381,8 +380,8 @@ int main(int argc, char **argv)
 		sprintf(mopt[i++],"%-27.27s%s","Make Command-line",params.make_cmdline);
 		sprintf(mopt[i++],"%-27.27s%s","File Owner",params.sbbsuser);
 		sprintf(mopt[i++],"%-27.27s%s","File Group",params.sbbsgroup);
-#ifdef __linux__
-		sprintf(mopt[i++],"%-27.27s%s","Integrate DOSEmu support",params.use_dosemu?"Yes":"No");
+#if 0 /* this won't work until we get the FTLK source in CVS */
+		sprintf(mopt[i++],"%-27.27s%s","Include X/FLTK Support",params.useX?"Yes":"No");
 #endif
 		sprintf(mopt[i++],"%-27.27s","Start Installation...");
 		mopt[i][0]=0;
@@ -489,26 +488,24 @@ int main(int argc, char **argv)
 								"\n";
 				uifc.input(WIN_MID,0,0,"",params.sbbsgroup,32,K_EDIT);
 				break;
-#ifdef __linux__
+#if 0
 			case 11:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
-				i=params.use_dosemu?0:1;
-				uifc.helpbuf=	"`Include DOSEmu Support`\n"
+				i=params.useX?0:1;
+				uifc.helpbuf=	"`Include X Support`\n"
 								"\nToDo: Add help.";
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Integrate DOSEmu support into Synchronet?",opt);
+					,"Build GUI Versions of scfg and echocfg",opt);
 				if(!i)
-					params.use_dosemu=TRUE;
+					params.useX=TRUE;
 				else if(i==1)
-					params.use_dosemu=FALSE;
+					params.useX=FALSE;
 				i=0;
 				break;
-			case 12:
-#else
-			case 11:
 #endif
+			case 11:
 				install_sbbs(distlist[dist],distlist[dist]->type==LOCAL_FILE?NULL:distlist[dist]->servers[server]);
 				bail(0);
 				break;
@@ -755,11 +752,9 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 		sprintf(sbbsgroup,"SBBSGROUP=%s",params.sbbsgroup);
 		putenv(sbbsgroup);
 	}
-#ifdef __linux__
-	if(params.use_dosemu==TRUE) {
-		putenv("USE_DOSEMU=1");
+	if(params.useX==TRUE) {
+		putenv("MKFLAGS=USE_FLTK=1");
 	}
-#endif
 
 	if(params.usebcc)
 		putenv("bcc=1");

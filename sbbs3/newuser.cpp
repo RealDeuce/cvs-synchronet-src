@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.42 2005/02/19 11:07:20 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.41 2004/10/21 09:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,14 +346,13 @@ BOOL sbbs_t::newuser()
 	if(i<cfg.total_xedits)
 		useron.xedit=i+1;
 
-	if(cfg.total_xedits && cfg.uq&UQ_XEDIT) {
-		if(yesno("Use an external message editor")) {
-			for(i=0;i<cfg.total_xedits;i++)
-				uselect(1,i,"External Editor",cfg.xedit[i]->name,cfg.xedit[i]->ar);
-			if((int)(i=uselect(0,useron.xedit ? useron.xedit-1 : 0,0,0,0))>=0)
-				useron.xedit=i+1; 
-		} else
-			useron.xedit=0;
+	if(cfg.total_xedits && cfg.uq&UQ_XEDIT 
+		&& !noyes("Use an external text editor")) {
+		if(useron.xedit) useron.xedit--;
+		for(i=0;i<cfg.total_xedits;i++)
+			uselect(1,i,"External Editor",cfg.xedit[i]->name,cfg.xedit[i]->ar);
+		if((int)(i=uselect(0,useron.xedit,0,0,0))>=0)
+			useron.xedit=i+1; 
 	}
 
 	if(cfg.total_shells>1 && cfg.uq&UQ_CMDSHELL) {

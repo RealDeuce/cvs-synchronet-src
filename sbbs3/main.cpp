@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.378 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.372 2005/02/09 05:15:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,8 +92,8 @@ static	char *	text[TOTAL_TEXT];
 static	WORD	first_node;
 static	WORD	last_node;
 static	bool	terminate_server=false;
-static	str_list_t recycle_semfiles;
-static	str_list_t shutdown_semfiles;
+static	link_list_t recycle_semfiles;
+static	link_list_t shutdown_semfiles;
 
 extern "C" {
 
@@ -2182,7 +2182,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
-	char	path[MAX_PATH+1];
 	uint	i;
 
     if(node_num)
@@ -2191,7 +2190,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
     	strcpy(nodestr,name);
 
 	lprintf(LOG_DEBUG,"%s constructor using socket %d (settings=%lx)"
-		,nodestr, sd, global_cfg->node_misc);
+		, nodestr, sd, global_cfg->node_misc);
 
 	startup = ::startup;	// Convert from global to class member
 
@@ -2201,23 +2200,10 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	if(node_num>0) {
 		strcpy(cfg.node_dir, cfg.node_path[node_num-1]);
 		prep_dir(cfg.node_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
-	} else {	/* event thread needs exclusive-use temp_dir */
-		if(startup->temp_dir[0])
-			SAFECOPY(cfg.temp_dir,startup->temp_dir);
-		else
-			SAFECOPY(cfg.temp_dir,"../temp");
-    	prep_dir(cfg.ctrl_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
-		md(cfg.temp_dir);
-		if(sd==INVALID_SOCKET) {	/* events thread */
-			if(startup->first_node==1)
-				SAFEPRINTF(path,"%sevent",cfg.temp_dir);
-			else
-				SAFEPRINTF2(path,"%sevent%u",cfg.temp_dir,startup->first_node);
-			backslash(path);
-			SAFECOPY(cfg.temp_dir,path);
-		}
-	}
-	lprintf(LOG_DEBUG,"%s temporary file directory: %s", nodestr, cfg.temp_dir);
+	} else if(startup->temp_dir[0]) {
+		SAFECOPY(cfg.temp_dir,startup->temp_dir);
+	} else
+    	prep_dir(cfg.data_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
 
 	terminated = false;
 	event_thread_running = false;
@@ -4075,13 +4061,13 @@ void DLLCALL bbs_thread(void* arg)
 #endif // _WIN32 && _DEBUG && _MSC_VER
 
 	/* Setup recycle/shutdown semaphore file lists */
-	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
-	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
+	semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","telnet");
+	semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized) {
-		semfile_list_check(&initialized,recycle_semfiles);
-		semfile_list_check(&initialized,shutdown_semfiles);
+		semfile_list_check(&initialized,&recycle_semfiles);
+		semfile_list_check(&initialized,&shutdown_semfiles);
 	}
 
 #ifdef __unix__	//	unix-domain spy sockets
@@ -4151,7 +4137,7 @@ void DLLCALL bbs_thread(void* arg)
 			if(rerun)
 				break;
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
-				if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
+				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
 						,telnet_socket,p);
 					break;
@@ -4166,7 +4152,7 @@ void DLLCALL bbs_thread(void* arg)
 					break;
 				}
 			}
-			if(((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL
+			if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
 					&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
 						,telnet_socket,p))
 				|| (startup->shutdown_now==TRUE

@@ -8,7 +8,7 @@
 int rlogin_recv(char *buffer, size_t buflen)
 {
 	int	r;
-	size_t	avail;
+	int	avail;
 	int rd;
 
 	if(!socket_check(conn_socket, NULL, NULL, 0))
@@ -26,7 +26,7 @@ int rlogin_recv(char *buffer, size_t buflen)
 
 int rlogin_send(char *buffer, size_t buflen, unsigned int timeout)
 {
-	size_t sent=0;
+	int sent=0;
 	int	ret;
 	int	i;
 
@@ -52,15 +52,11 @@ int rlogin_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int rlogin_close(void)
-{
-	return(closesocket(conn_socket));
-}
-
 int rlogin_connect(char *addr, int port, char *ruser, char *passwd)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
+	char	nil=0;
 	char	*p;
 	unsigned int	neta;
 	int	i;
@@ -111,4 +107,9 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd)
 	rlogin_send("ansi-bbs/9600",14,1000);
 
 	return(0);
+}
+
+int rlogin_close(void)
+{
+	return(closesocket(conn_socket));
 }

@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.173 2005/02/20 19:03:00 deuce Exp $
+# $Id: GNUmakefile,v 1.172 2005/01/24 08:12:32 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -95,7 +95,7 @@ ifeq ($(os),darwin)
 else
  ifeq ($(os),sunos)
   MKSHLIB		:=	/usr/ccs/bin/ld -G
-  MKSHPPLIB		:=	/usr/ccs/bin/ld -G
+  MKSHPPLIB		:=	/usr/ccs/bin/ld -G -L/usr/local/lib -lstdc++
   SHLIBOPTS	:=	
  else
   MKSHLIB		:=	$(CC)

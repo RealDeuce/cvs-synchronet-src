@@ -29,6 +29,7 @@ int drawwin(void)
 																"window is farking huge!");
 		return(-1);
 	}
+	p=str;
 
 	c=0;
 	for(y=0;y<txtinfo.screenheight;y++) {
