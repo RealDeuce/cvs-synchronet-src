@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.170 2004/09/26 20:06:44 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.174 2004/10/27 02:13:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,11 +65,6 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
-#endif
-
-/* Temporary: Do not include web server in 3.1x-Win32 release build */
-#if defined(_MSC_VER)
-	#define NO_WEB_SERVER
 #endif
 
 /* Services doesn't work without JavaScript support */
@@ -759,7 +754,8 @@ static void terminate(void)
 	}
 }
 
-static void read_startup_ini(void)
+static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup_t* web
+							 ,mail_startup_t* mail, services_startup_t* services)
 {
 	char	str[MAX_PATH+1];
 	FILE*	fp=NULL;
@@ -780,11 +776,11 @@ static void read_startup_ini(void)
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
 		NULL,			/* global_startup */
-		&run_bbs,		&bbs_startup,
-		&run_ftp,		&ftp_startup, 
-		&run_web,		&web_startup,
-		&run_mail,		&mail_startup, 
-		&run_services,	&services_startup);
+		&run_bbs,		bbs,
+		&run_ftp,		ftp, 
+		&run_web,		web,
+		&run_mail,		mail, 
+		&run_services,	services);
 
 	/* read/default any sbbscon-specific .ini keys here */
 #if defined(__unix__)
@@ -802,6 +798,28 @@ static void read_startup_ini(void)
 		fclose(fp);
 }
 
+/* Server recycle callback (read relevant startup .ini file section)		*/
+void recycle(void* cbdata)
+{
+	bbs_startup_t* bbs=NULL;
+	ftp_startup_t* ftp=NULL;
+	web_startup_t* web=NULL;
+	mail_startup_t* mail=NULL;
+	services_startup_t* services=NULL;
+
+	if(cbdata==&bbs_startup)
+		bbs=cbdata;
+	else if(cbdata==&ftp_startup)
+		ftp=cbdata;
+	else if(cbdata==&web_startup)
+		web=cbdata;
+	else if(cbdata==&mail_startup)
+		mail=cbdata;
+	else if(cbdata==&services_startup)
+		services=cbdata;
+
+	read_startup_ini(bbs,ftp,web,mail,services);
+}
 
 #if defined(_WIN32)
 BOOL WINAPI ControlHandler(DWORD CtrlType)
@@ -976,10 +994,12 @@ int main(int argc, char** argv)
 	/* Initialize BBS startup structure */
     memset(&bbs_startup,0,sizeof(bbs_startup));
     bbs_startup.size=sizeof(bbs_startup);
-
+	bbs_startup.cbdata=&bbs_startup;
+	bbs_startup.log_mask=~0;
 	bbs_startup.lputs=bbs_lputs;
 	bbs_startup.event_lputs=event_lputs;
     bbs_startup.started=bbs_started;
+	bbs_startup.recycle=recycle;
     bbs_startup.terminated=bbs_terminated;
     bbs_startup.thread_up=thread_up;
     bbs_startup.socket_open=socket_open;
@@ -997,8 +1017,11 @@ int main(int argc, char** argv)
 	/* Initialize FTP startup structure */
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
+	ftp_startup.cbdata=&ftp_startup;
+	ftp_startup.log_mask=~0;
 	ftp_startup.lputs=ftp_lputs;
     ftp_startup.started=ftp_started;
+	ftp_startup.recycle=recycle;
     ftp_startup.terminated=ftp_terminated;
 	ftp_startup.thread_up=thread_up;
     ftp_startup.socket_open=socket_open;
@@ -1013,8 +1036,11 @@ int main(int argc, char** argv)
 	/* Initialize Web Server startup structure */
     memset(&web_startup,0,sizeof(web_startup));
     web_startup.size=sizeof(web_startup);
+	web_startup.cbdata=&web_startup;
+	web_startup.log_mask=~0;
 	web_startup.lputs=web_lputs;
     web_startup.started=web_started;
+	web_startup.recycle=recycle;
     web_startup.terminated=web_terminated;
 	web_startup.thread_up=thread_up;
     web_startup.socket_open=socket_open;
@@ -1027,8 +1053,11 @@ int main(int argc, char** argv)
 	/* Initialize Mail Server startup structure */
     memset(&mail_startup,0,sizeof(mail_startup));
     mail_startup.size=sizeof(mail_startup);
+	mail_startup.cbdata=&mail_startup;
+	mail_startup.log_mask=~0;
 	mail_startup.lputs=mail_lputs;
     mail_startup.started=mail_started;
+	mail_startup.recycle=recycle;
     mail_startup.terminated=mail_terminated;
 	mail_startup.thread_up=thread_up;
     mail_startup.socket_open=socket_open;
@@ -1067,8 +1096,11 @@ int main(int argc, char** argv)
 	/* Initialize Services startup structure */
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
+	services_startup.cbdata=&services_startup;
+	services_startup.log_mask=~0;
 	services_startup.lputs=services_lputs;
     services_startup.started=services_started;
+	services_startup.recycle=recycle;
     services_startup.terminated=services_terminated;
 	services_startup.thread_up=thread_up;
     services_startup.socket_open=socket_open;
@@ -1094,7 +1126,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	read_startup_ini();
+	read_startup_ini(&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
 
 #if SBBS_MAGIC_FILENAMES	/* This stuff is just broken */
 
@@ -1519,7 +1551,7 @@ int main(int argc, char** argv)
 	if(new_uid_name[0]!=0) {        /*  check the user arg, if we have uid 0 */
 		/* Can't recycle servers (re-bind ports) as non-root user */
 		/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
-#if !defined(DONT_BLAME_SYNCHRONET)
+#if !defined(DONT_BLAME_SYNCHRONET) && !defined(_THREAD_SUID_BROKEN)
  		if(bbs_startup.telnet_port < IPPORT_RESERVED
 			|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
 				&& bbs_startup.rlogin_port < IPPORT_RESERVED))
@@ -1534,8 +1566,8 @@ int main(int argc, char** argv)
 			mail_startup.options|=MAIL_OPT_NO_RECYCLE;
 		/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
 		services_startup.options|=BBS_OPT_NO_RECYCLE;
-	}
 #endif
+	}
 #endif
 
 	if(run_bbs)
