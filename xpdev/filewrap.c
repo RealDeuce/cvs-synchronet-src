@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.10 2003/04/08 04:26:11 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.11 2003/04/08 04:29:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,7 @@ int DLLCALL lock(int file, long offset, int len)
 }
 
 /* Removes a lock from a file record */
-int DLLCALL unlock(int file, long pos, int len)
+int DLLCALL unlock(int file, long offset, int len)
 {
 	int		i;
 	long	pos;
