@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: AboutBoxFormUnit.cpp,v 1.1 2000/10/10 11:27:01 rswindell Exp $ */
+/* $Id: AboutBoxFormUnit.cpp,v 1.2 2000/10/10 20:54:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,9 +96,9 @@ void __fastcall TAboutBoxForm::FormShow(TObject *Sender)
         ,Ver->dwFileVersionLS>>16
         ,Ver->dwFileVersionLS&0xffff
         ,Ver->dwFileFlags&VS_FF_DEBUG ?
-            " debug" : ""
+            " Debug" : ""
         ,Ver->dwFileFlags&VS_FF_PRERELEASE ?
-            " pre-release" : ""
+            " Pre-release" : ""
         ,__DATE__, __TIME__, compiler
         );
 
