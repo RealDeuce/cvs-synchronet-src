@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.10 2002/03/15 19:26:37 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.11 2002/04/26 00:12:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,10 +34,6 @@
  ****************************************************************************/
 
 #include "scfg.h"
-
-const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
-            ,"Jul","Aug","Sep","Oct","Nov","Dec"};
 
 char *daystr(char days);
 
