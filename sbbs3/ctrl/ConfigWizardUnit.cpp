@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.10 2003/01/02 21:40:21 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.11 2003/01/05 12:50:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,10 +310,11 @@ void __fastcall TConfigWizard::NextButtonClick(TObject *Sender)
             scfg.sys_misc&=~SM_USRVDELM;
         }
 
-        if(!save_cfg(&scfg,3)) {
+        if(!save_cfg(&scfg,5)) {
         	Application->MessageBox("Error saving configuration"
             	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
-        }
+        } else
+        	refresh_cfg(&scfg);
 
         MainForm->FirstRun=false;
         Close();
