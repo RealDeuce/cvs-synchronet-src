@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.c,v 1.7 2003/05/02 23:29:36 deuce Exp $ */
+/* $Id: semwrap.c,v 1.8 2003/05/08 06:41:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,7 @@
 #if defined(__unix__)
 
 #include <sys/time.h>	/* timespec */
+#include <stdlib.h>	/* NULL */
 
 int
 sem_trywait_block(sem_t *sem, unsigned long timeout)
