@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.3 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: data.cpp,v 1.4 2000/11/14 01:50:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -251,6 +251,8 @@ void sbbs_t::gettimeleft(void)
 	if(!timeleft && !SYSOP && !(sys_status&SS_LCHAT)) {
 		logline(nulstr,"Ran out of time");
 		SAVELINE;
+		if(sys_status&SS_EVENT)
+			bputs(text[ReducedTime]);
 		bputs(text[TimesUp]);
 		if(!(sys_status&(SS_EVENT|SS_USERON)) && useron.cdt>=100L*1024L
 			&& !(cfg.sys_misc&SM_NOCDTCVT)) {
