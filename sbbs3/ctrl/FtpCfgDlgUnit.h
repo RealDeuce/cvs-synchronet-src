@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.h,v 1.1 2000/10/10 11:26:59 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.h,v 1.2 2000/10/12 00:10:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,6 +85,7 @@ __published:
     TButton *OKBtn;
     TButton *CancelBtn;
     TButton *ApplyBtn;
+    TCheckBox *DirFilesCheckBox;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
