@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.28 2004/10/20 02:19:52 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.29 2004/10/20 07:17:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -86,6 +86,7 @@ char sbbs_t::getkey(long mode)
 					case 3:
 						outchar(BS);
 						outchar('\\');
+						c=0;
 						break;
 				}
 			} else {
