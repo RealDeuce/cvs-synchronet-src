@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.90 2004/05/17 20:53:31 rswindell Exp $ */
+/* $Id: js_system.c,v 1.91 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1204,7 +1204,7 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	memset(&user,0,sizeof(user));
 
-	user.sex=SP;
+	user.sex=' ';
 	SAFECOPY(user.alias,alias);
 
 	/* statistics */
