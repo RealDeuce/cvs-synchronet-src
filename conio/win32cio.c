@@ -4,26 +4,7 @@
 #include "keys.h"
 #include "win32cio.h"
 
-#define VID_MODES	7
-
 const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
-
-struct vid_mode {
-	int	mode;
-	int	xsize;
-	int	ysize;
-	int	colour;
-};
-
-const struct vid_mode vid_modes[VID_MODES]={
-	 {BW40,40,25,0}
-	,{C40,40,25,1}
-	,{BW80,80,25,0}
-	,{C80,80,25,1}
-	,{MONO,80,25,1}
-	,{C4350,80,50,1}
-	,{C80X50,80,50,1}
-};
 
 static struct cio_mouse_event	cio_last_button_press;
 static struct cio_mouse_event	last_mouse_click;
@@ -34,7 +15,6 @@ static int xpos=1;
 static int ypos=1;
 
 static int currattr=7;
-static int modeidx=3;
 
 WORD DOStoWinAttr(int newattr)
 {
@@ -241,24 +221,6 @@ int win32_showmouse(void)
 
 void win32_textmode(int mode)
 {
-	int i;
-	COORD	sz;
-	SMALL_RECT	rc;
-	CONSOLE_SCREEN_BUFFER_INFO	sb;
-
-	for(i=0;i<VID_MODES;i++) {
-		if(vid_modes[i].mode==mode)
-			modeidx=i;
-	}
-	sz.X=vid_modes[modeidx].xsize;
-	sz.Y=vid_modes[modeidx].ysize;
-	rc.Left=0;
-	rc.Right=vid_modes[modeidx].xsize-1;
-	rc.Top=0;
-	rc.Bottom=vid_modes[modeidx].ysize-1;
-	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
-	SetConsoleWindowInfo(GetStdHandle(STD_OUTPUT_HANDLE),TRUE,&rc);
-	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
 }
 
 int win32_gettext(int left, int top, int right, int bottom, void* buf)
@@ -294,12 +256,17 @@ int win32_gettext(int left, int top, int right, int bottom, void* buf)
 
 void win32_gettextinfo(struct text_info* info)
 {
-	info->currmode=vid_modes[modeidx].mode;
+	CONSOLE_SCREEN_BUFFER_INFO bi;
+
+	/* GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE),&bi); */
+
+	/* ToDo Fix this! */
+	info->currmode=C80;
 	info->curx=xpos;
 	info->cury=ypos;
 	info->attribute=currattr;
-	info->screenheight=vid_modes[modeidx].ysize;
-	info->screenwidth=vid_modes[modeidx].xsize;
+	info->screenheight=25;
+	info->screenwidth=80;
 }
 
 void win32_gotoxy(int x, int y)
@@ -310,8 +277,7 @@ void win32_gotoxy(int x, int y)
 	ypos=y;
 	cp.X=x-1;
 	cp.Y=y-1;
-	if(!dont_move_cursor)
-		SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),cp);
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),cp);
 }
 
 void win32_highvideo(void)
@@ -364,7 +330,7 @@ int win32_puttext(int left, int top, int right, int bottom, void* buf)
 
 void win32_textattr(int newattr)
 {
-	/* SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),DOStoWinAttr(newattr)); */
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),DOStoWinAttr(newattr));
 	currattr=newattr;
 }
 
@@ -404,12 +370,18 @@ void win32_setcursortype(int type)
 
 int win32_wherex(void)
 {
-	return(xpos);
+	CONSOLE_SCREEN_BUFFER_INFO bi;
+
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE),&bi);
+	return bi.dwCursorPosition.X+1;
 }
 
 int win32_wherey(void)
 {
-	return(ypos);
+	CONSOLE_SCREEN_BUFFER_INFO bi;
+
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE),&bi);
+	return bi.dwCursorPosition.Y+1;
 }
 
 int win32_putch(int ch)
@@ -423,21 +395,22 @@ int win32_putch(int ch)
 	buf[0]=ch;
 	buf[1]=currattr;
 
+
 	gettextinfo(&ti);
 	switch(ch) {
 		case '\r':
-			win32_gotoxy(1,ypos);
+			gotoxy(1,ypos);
 			break;
 		case '\n':
 			if(ypos==ti.winbottom-ti.wintop+1)
 				wscroll();
 			else
-				win32_gotoxy(xpos,ypos+1);
+				gotoxy(xpos,ypos+1);
 			break;
 		case '\b':
 			if(ti.curx>ti.winleft) {
 				buf[0]=' ';
-				win32_gotoxy(xpos-1,ypos);
+				gotoxy(xpos-1,ypos);
 				puttext(xpos,ypos,xpos,ypos,buf);
 			}
 			break;
@@ -448,17 +421,17 @@ int win32_putch(int ch)
 			if(ypos==ti.winbottom-ti.wintop+1
 					&& xpos==ti.winright-ti.winleft+1) {
 				puttext(xpos,ypos,xpos,ypos,buf);
-				win32_gotoxy(1,ypos);
+				gotoxy(1,ypos);
 				wscroll();
 			}
 			else {
 				if(xpos==ti.winright-ti.winleft+1) {
 					puttext(xpos,ypos,xpos,ypos,buf);
-					win32_gotoxy(1,ypos+1);
+					gotoxy(1,ypos+1);
 				}
 				else {
 					puttext(xpos,ypos,xpos,ypos,buf);
-					win32_gotoxy(xpos+1,ypos);
+					gotoxy(xpos+1,ypos);
 				}
 			}
 			break;

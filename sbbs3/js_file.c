@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.73 2004/08/25 00:07:55 rswindell Exp $ */
+/* $Id: js_file.c,v 1.71 2004/08/10 02:14:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,35 +465,32 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 	}
 
-	if(p->fp==NULL)
-		return(JS_TRUE);
-
 	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
 	key=JS_GetStringBytes(JS_ValueToString(cx, argv[1]));
 
 	if(dflt==JSVAL_VOID) {	/* unspecified default value */
-		*rval=get_value(cx,iniReadString(p->fp,section,key,NULL,buf));
+		*rval=get_value(cx,iniGetString(p->fp,section,key,NULL,buf));
 		return(JS_TRUE);
 	}
 
 	switch(JSVAL_TAG(dflt)) {
 		case JSVAL_STRING:
 			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,
-				iniReadString(p->fp,section,key
+				iniGetString(p->fp,section,key
 					,JS_GetStringBytes(JS_ValueToString(cx,dflt)),buf)));
 			break;
 		case JSVAL_BOOLEAN:
 			*rval = BOOLEAN_TO_JSVAL(
-				iniReadBool(p->fp,section,key,JSVAL_TO_BOOLEAN(dflt)));
+				iniGetBool(p->fp,section,key,JSVAL_TO_BOOLEAN(dflt)));
 			break;
 		case JSVAL_DOUBLE:
 			JS_NewNumberValue(cx
-				,iniReadFloat(p->fp,section,key,*JSVAL_TO_DOUBLE(dflt)),rval);
+				,iniGetFloat(p->fp,section,key,*JSVAL_TO_DOUBLE(dflt)),rval);
 			break;
 		case JSVAL_OBJECT:
 		    array = JS_NewArrayObject(cx, 0, NULL);
-			list=iniReadStringList(p->fp,section,key,",",JS_GetStringBytes(JS_ValueToString(cx,dflt)));
+			list=iniGetStringList(p->fp,section,key,",",JS_GetStringBytes(JS_ValueToString(cx,dflt)));
 			for(i=0;list && list[i];i++) {
 				val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,list[i]));
 				if(!JS_SetElement(cx, array, i, &val))
@@ -505,7 +502,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		default:
 			if(JSVAL_IS_NUMBER(dflt)) {
 				JS_ValueToInt32(cx,dflt,&i);
-				JS_NewNumberValue(cx,iniReadInteger(p->fp,section,key,i),rval);
+				JS_NewNumberValue(cx,iniGetInteger(p->fp,section,key,i),rval);
 				break;
 			}
 			break;
@@ -531,9 +528,6 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
-
-	if(p->fp==NULL)
-		return(JS_TRUE);
 
 	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
@@ -595,15 +589,12 @@ js_iniGetSections(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 		return(JS_FALSE);
 	}
 
-	if(p->fp==NULL)
-		return(JS_TRUE);
-
 	if(argc)
 		prefix=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
 
     array = JS_NewArrayObject(cx, 0, NULL);
 
-	list = iniReadSectionList(p->fp,prefix);
+	list = iniGetSectionList(p->fp,prefix);
     for(i=0;list && list[i];i++) {
 		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,list[i]));
         if(!JS_SetElement(cx, array, i, &val))
@@ -633,14 +624,11 @@ js_iniGetKeys(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 	}
 
-	if(p->fp==NULL)
-		return(JS_TRUE);
-
 	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
     array = JS_NewArrayObject(cx, 0, NULL);
 
-	list = iniReadKeyList(p->fp,section);
+	list = iniGetKeyList(p->fp,section);
     for(i=0;list && list[i];i++) {
 		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,list[i]));
         if(!JS_SetElement(cx, array, i, &val))
@@ -669,14 +657,11 @@ js_iniGetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		return(JS_FALSE);
 	}
 
-	if(p->fp==NULL)
-		return(JS_TRUE);
-
 	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
     object = JS_NewObject(cx, NULL, NULL, obj);
 
-	list = iniReadNamedStringList(p->fp,section);
+	list = iniGetNamedStringList(p->fp,section);
     for(i=0;list && list[i];i++) {
 		JS_DefineProperty(cx, object, list[i]->name
 			,get_value(cx,list[i]->value)
@@ -695,10 +680,16 @@ js_iniSetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 {
     jsint       i;
     JSObject*	object;
+	private_t*	p;
 	JSIdArray*	id_array;
 	jsval		set_argv[3];
 
 	*rval = JSVAL_FALSE;
+
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
 
 	set_argv[0]=argv[0];	/* section */
 
@@ -744,9 +735,6 @@ js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 		return(JS_FALSE);
 	}
 
-	if(p->fp==NULL)
-		return(JS_TRUE);
-
 	if(argc)
 		name=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
 
@@ -755,7 +743,7 @@ js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
     array = JS_NewArrayObject(cx, 0, NULL);
 
-	sec_list = iniReadSectionList(p->fp,prefix);
+	sec_list = iniGetSectionList(p->fp,prefix);
     for(i=0;sec_list && sec_list[i];i++) {
 	    object = JS_NewObject(cx, NULL, NULL, obj);
 
@@ -766,7 +754,7 @@ js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,sec_name))
 			,NULL,NULL,JSPROP_ENUMERATE);
 
-		key_list = iniReadNamedStringList(p->fp,sec_list[i]);
+		key_list = iniGetNamedStringList(p->fp,sec_list[i]);
 		for(k=0;key_list && key_list[k];k++)
 			JS_DefineProperty(cx, object, key_list[k]->name
 				,get_value(cx,key_list[k]->value)
@@ -780,46 +768,6 @@ js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	iniFreeStringList(sec_list);
 
     *rval = OBJECT_TO_JSVAL(array);
-
-    return(JS_TRUE);
-}
-
-static JSBool
-js_iniSetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		name="name";
-    jsuint      i;
-    jsuint      count;
-    JSObject*	array;
-	jsval		set_argv[2];
-
-	*rval = JSVAL_FALSE;
-
-	if(!JSVAL_IS_OBJECT(argv[0]))
-		return(JS_TRUE);
-
-    array = JSVAL_TO_OBJECT(argv[0]);
-
-	if(!JS_IsArrayObject(cx, array))
-		return(JS_TRUE);
-
-    if(!JS_GetArrayLength(cx, array, &count))
-		return(JS_TRUE);
-
-	if(argc>1)
-		name=JS_GetStringBytes(JS_ValueToString(cx, argv[1]));
-
-	/* enumerate the array */
-	for(i=0; i<count; i++)  {
-        if(!JS_GetElement(cx, array, i, &set_argv[1]))
-			break;
-		if(!JSVAL_IS_OBJECT(set_argv[1]))	/* must be an array of objects */
-			break;
-		if(!JS_GetProperty(cx, JSVAL_TO_OBJECT(set_argv[1]), name, &set_argv[0]))
-			continue;
-		if(!js_iniSetObject(cx, obj, 2, set_argv, rval))
-			break;
-	}
 
     return(JS_TRUE);
 }
@@ -1662,11 +1610,6 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"(default is <tt>\"name\"</tt>), "
 		"the optional <i>prefix</i> has the same use as in the <tt>iniGetSections</tt> method, "
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
-	,311
-	},
-	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property]")
-	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
-	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
 	,311
 	},
 	{0}
