@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.99 2003/05/08 02:58:21 deuce Exp $ */
+/* $Id: websrvr.c,v 1.100 2003/05/08 03:56:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -961,7 +961,7 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 
 	start=time(NULL);
 	for(i=0;TRUE;) {
-		if(!socket_check(session->socket,&rd,1000)) {
+		if(!socket_check(session->socket,&rd,NULL,1000)) {
 			session->req.keep_alive=FALSE;
 			close_request(session);
 			session->socket=INVALID_SOCKET;
@@ -1065,7 +1065,7 @@ int recvbufsocket(int sock, char *buf, long count)
 	}
 
 	/* ToDo Timeout here too? */
-	while(rd<count && socket_check(sock,NULL,100))  {
+	while(rd<count && socket_check(sock,NULL,NULL,100))  {
 		i=recv(sock,buf,count-rd,0);
 		if(i<=0)  {
 			*buf=0;
@@ -2355,7 +2355,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.99 $", "%*s %s", revision);
+	sscanf("$Revision: 1.100 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
