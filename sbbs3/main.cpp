@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.370 2005/02/05 01:48:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.371 2005/02/05 23:27:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1025,8 +1025,8 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 						lprintf(LOG_DEBUG,"Node %d %s telnet window size: %ux%u"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,sbbs->cols
-							,sbbs->rows);
+							,cols
+							,rows);
 						if(rows && !sbbs->useron.rows)	/* auto-detect rows */
 							sbbs->rows=rows;
 						if(cols)
