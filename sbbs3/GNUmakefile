@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2002/04/04 11:31:36 rswindell Exp $
+# $Id: GNUmakefile,v 1.4 2002/04/04 19:30:33 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -36,12 +36,14 @@ DELETE	=	rm -fv
 CFLAGS	=	-DJAVASCRIPT -I../mozilla/js/src
 
 ifeq ($(os),freebsd)	# FreeBSD
-CFLAGS	+= -pthread -D_THREAD_SAFE
+CFLAGS	+= -D_THREAD_SAFE
+# Math libraries needed and uses pthread
+LFLAGS	:=	-lm -pthread
 else			# Linux / Other UNIX
-endif
-
 # Math and pthread libraries needed
 LFLAGS	:=	-lm -lpthread
+endif
+
 
 ifdef DEBUG
 CFLAGS	+=	-g -O0 -D_DEBUG 
