@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.36 2003/03/06 10:24:16 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.37 2003/03/06 10:43:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,7 +307,8 @@ js_handle_ctrlkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx, argv[1], &mode);
+	if(argc>1)
+		JS_ValueToInt32(cx, argv[1], &mode);
 
 	*rval = BOOLEAN_TO_JSVAL(sbbs->handle_ctrlkey(*JS_GetStringBytes(js_str),mode));
     return(JS_TRUE);
@@ -1164,7 +1165,7 @@ static jsMethodSpec js_console_functions[] = {
 	{"telnet_cmd",		js_telnet_cmd,		2, JSTYPE_VOID,		JSDOCSTR("number cmd [,number option]")
 	,JSDOCSTR("Send telnet command (with optional command option) to remote client")
 	},
-	{"handle_ctrlkey",	js_handle_ctrlkey,	2, JSTYPE_BOOLEAN,	JSDOCSTR("string key [,number mode]")
+	{"handle_ctrlkey",	js_handle_ctrlkey,	1, JSTYPE_BOOLEAN,	JSDOCSTR("string key [,number mode]")
 	,JSDOCSTR("Call internal control key handler for specified control key, returns true if handled")
 	},
 	{0}
