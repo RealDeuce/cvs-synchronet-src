@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.57 2003/02/08 18:03:37 deuce Exp $
+# $Id: GNUmakefile,v 1.58 2003/02/09 00:38:00 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -281,7 +281,6 @@ $(ECHOCFG): \
 	$(EXEODIR)/echocfg.o \
 	$(EXEODIR)/rechocfg.o \
 	$(EXEODIR)/uifcx.o \
-	$(EXEODIR)/uifcc.o \
 	$(UIFC_FLTK) \
 	$(UIFC_CURSES) \
 	$(EXEODIR)/nopen.o \
@@ -289,7 +288,7 @@ $(ECHOCFG): \
 	$(EXEODIR)/filewrap.o \
 	$(EXEODIR)/genwrap.o
 	@echo Linking $@
-	$(CC) -o $@ $^ $(LFLAGS_FLTK) $(LFLAGS_CURSES)
+	@$(CC) -o $@ $^ $(LFLAGS_FLTK) $(LFLAGS_CURSES)
 
 # ADDFILES
 $(ADDFILES): \
