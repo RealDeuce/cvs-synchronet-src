@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.61 2002/02/21 13:34:15 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.62 2002/02/25 03:44:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ static void client_add(BOOL add)
     ReleaseMutex(mutex);
 }
 
-static void client_on(BOOL on, int sock, client_t* client)
+static void client_on(BOOL on, int sock, client_t* client, BOOL update)
 {
     char    str[128];
     int     i,j;
