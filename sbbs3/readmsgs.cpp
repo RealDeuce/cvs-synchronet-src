@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.27 2004/09/08 03:41:23 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.25 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -115,9 +115,9 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 	/* fixed fields */
 	bprintf("%-16.16s %s %s\r\n","when_written"	
-		,timestr((time_t *)&msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
+		,timestr((time_t *)&msg->hdr.when_written.time), zonestr(msg->hdr.when_written.zone));
 	bprintf("%-16.16s %s %s\r\n","when_imported"	
-		,timestr((time_t *)&msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
+		,timestr((time_t *)&msg->hdr.when_imported.time), zonestr(msg->hdr.when_imported.zone));
 	bprintf("%-16.16s %04Xh\r\n","type"				,msg->hdr.type);
 	bprintf("%-16.16s %04Xh\r\n","version"			,msg->hdr.version);
 	bprintf("%-16.16s %04Xh\r\n","attr"				,msg->hdr.attr);
@@ -128,8 +128,8 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	bprintf("%-16.16s %u\r\n"	 ,"header length"	,msg->hdr.length);
 
 	/* optional fixed fields */
-	if(msg->hdr.thread_back)
-		bprintf("%-16.16s %ld\r\n"	,"thread_back"		,msg->hdr.thread_back);
+	if(msg->hdr.thread_orig)
+		bprintf("%-16.16s %ld\r\n"	,"thread_orig"		,msg->hdr.thread_orig);
 	if(msg->hdr.thread_next)
 		bprintf("%-16.16s %ld\r\n"	,"thread_next"		,msg->hdr.thread_next);
 	if(msg->hdr.thread_first)
@@ -810,7 +810,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 					strcpy(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO)
 					sprintf(str,"%s @%s",msg.from
-						,smb_faddrtoa((faddr_t *)msg.from_net.addr,tmp));
+						,faddrtoa((faddr_t *)msg.from_net.addr,tmp));
 				else if(msg.from_net.type==NET_INTERNET)
 					strcpy(str,(char *)msg.from_net.addr);
 				else
@@ -992,12 +992,12 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				do_find=false;
 				break;
 			case ',':   /* Thread backwards */
-				if(!msg.hdr.thread_back) {
+				if(!msg.hdr.thread_orig) {
 					domsg=0;
 					break; 
 				}
 				for(i=0;i<smb.msgs;i++)
-					if(msg.hdr.thread_back==post[i].number)
+					if(msg.hdr.thread_orig==post[i].number)
 						break;
 				if(i<smb.msgs)
 					smb.curmsg=i;
