@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.30 2004/11/08 08:58:13 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.31 2004/12/02 09:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,6 +53,9 @@ typedef struct {
     DWORD	options;
     DWORD	js_max_bytes;
 	DWORD	js_cx_stack;
+	DWORD	js_branch_limit;
+	DWORD	js_yield_interval;
+	DWORD	js_gc_interval;
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
