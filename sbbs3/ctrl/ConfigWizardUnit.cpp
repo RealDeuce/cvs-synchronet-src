@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.11 2003/01/05 12:50:37 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.12 2003/01/10 07:56:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,6 +255,8 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
     ProgressBar->Max=WizNotebook->Pages->Count-1;
     IllegalCharsLabel->Caption="Illegal characters: '"
         ILLEGAL_QWKID_CHARS "'";
+
+	NextButton->Enabled=true;
 }
 //---------------------------------------------------------------------------
 void __fastcall TConfigWizard::NextButtonClick(TObject *Sender)
