@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.60 2004/08/31 09:34:50 deuce Exp $ */
+/* $Id: scfg.c,v 1.61 2004/09/13 08:36:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -219,7 +219,7 @@ else
 if(!door_mode)
     i=uifcinic(&uifc);  /* curses */
 else
-#elif !defined(__unix__) && !defined(_MSC_VER) && !defined(USE_UIFC32)
+#elif !defined(__unix__) && !defined(_MSC_VER) && !defined(USE_UIFC32) && 0
 if(!door_mode)
     i=uifcini(&uifc);   /* conio */
 else
