@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.76 2004/09/11 09:36:19 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.75 2004/09/11 03:34:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,6 +164,8 @@ ulong lf_expand(BYTE* inbuf, BYTE* outbuf)
 	outbuf[j]=0;
 	return(j);
 }
+
+#include "truncsp.c"
 
 /****************************************************************************/
 /* Adds a new message to the message base									*/
@@ -1408,7 +1410,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.76 $", "%*s %s", revision);
+	sscanf("$Revision: 1.75 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
