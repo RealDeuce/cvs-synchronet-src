@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.19 2003/01/13 21:25:05 rswindell Exp $ */
+/* $Id: uifc.h,v 1.20 2003/02/19 22:06:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,7 +193,7 @@
 #define CR		'\r'				/* Carriage return			^M	*/
 #define ESC 	0x1b				/* Escape					^[	*/
 #define SP      ' '                 /* Space                        */
-
+#define DEL     0x7f                /* Delete                   ^BS */
 #endif
 
 #define CLREOL 256
