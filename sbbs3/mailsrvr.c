@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.162 2002/06/21 00:06:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.163 2002/06/22 11:30:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1358,7 +1358,7 @@ static void smtp_thread(void* arg)
 	}
 	dns_result.s_addr = dns_blacklisted(smtp.client_addr.sin_addr.s_addr,tmp);
 	if(dns_result.s_addr) {
-		lprintf("%04d !SMTP SPAM server filtered (%s): %s [%s] = %s"
+		lprintf("%04d !SMTP SPAM server listed on %s: %s [%s] = %s"
 			,socket, tmp, host_name, host_ip, inet_ntoa(dns_result));
 		sprintf(str,"Listed on %s as %s", tmp, inet_ntoa(dns_result));
 		spamlog(&scfg, "SMTP", str, host_name, host_ip, NULL);
