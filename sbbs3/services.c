@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.139 2003/09/19 08:00:12 rswindell Exp $ */
+/* $Id: services.c,v 1.140 2003/09/19 08:02:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1510,7 +1510,7 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 			lprintf("Ignoring service (%s) for host: %s", sec_list[i], host);
 			continue;
 		}
-		if(stricmp(iniGetString(fp,sec_list[i],"NotHost",startup->host_name,host), startup->host_name)==0) {
+		if(stricmp(iniGetString(fp,sec_list[i],"NotHost","",host), startup->host_name)==0) {
 			lprintf("Ignoring service (%s) for host: %s", sec_list[i], host);
 			continue;
 		}
@@ -1557,7 +1557,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.139 $", "%*s %s", revision);
+	sscanf("$Revision: 1.140 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
