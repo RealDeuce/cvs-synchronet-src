@@ -12,7 +12,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.31 2001/12/01 03:07:33 rswindell Exp $
+# $Id: Makefile.gnu,v 1.32 2001/12/29 02:38:01 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -99,7 +99,7 @@ $(EXEODIR):
 	mkdir $(EXEODIR)
 
 # Monolithic Synchronet executable Build Rule
-$(SBBSMONO): sbbscon.c conwrap.c $(OBJS) $(LIBODIR)/ver.o $(LIBODIR)/ftpsrvr.o $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o $(LIBODIR)/services.o
+$(SBBSMONO): sbbscon.c conwrap.c $(OBJS) $(LIBODIR)/ver.o $(LIBODIR)/ftpsrvr.o $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o $(LIBODIR)/mime.o $(LIBODIR)/services.o
 #	$(CC) $(CFLAGS) -o $(SBBSMONO) $^ $(LIBS)
 	$(CC) -o $(SBBSMONO) $^ $(LIBS)
 
@@ -112,7 +112,7 @@ $(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 	$(LD) $(LFLAGS) -o $@ $^ $(LIBS) $(OUTLIB) $(LIBODIR)/ftpsrvr.a
 
 # Mail Server Link Rule
-$(MAILSRVR): $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o $(SBBSLIB)
+$(MAILSRVR): $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o $(LIBODIR)/mime.o $(SBBSLIB)
 	$(LD) $(LFLAGS) -o $@ $^ $(LIBS) $(OUTLIB) $(LIBODIR)/mailsrvr.a
 
 # Synchronet Console Build Rule
@@ -127,6 +127,9 @@ $(LIBODIR)/mailsrvr.o: mailsrvr.c mailsrvr.h
 	$(CC) $(CFLAGS) -c -DMAILSRVR_EXPORTS $< -o $@
 
 $(LIBODIR)/mxlookup.o: mxlookup.c
+	$(CC) $(CFLAGS) -c -DMAILSRVR_EXPORTS $< -o $@		
+
+$(LIBODIR)/mime.o: mime.c
 	$(CC) $(CFLAGS) -c -DMAILSRVR_EXPORTS $< -o $@		
 
 $(LIBODIR)/services.o: services.c services.h
