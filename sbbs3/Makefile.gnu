@@ -9,7 +9,7 @@
 # Win32: make -f Makefile.gnu os=win32									#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.9 2000/10/30 08:51:44 rswindell Exp $
+# $Id: Makefile.gnu,v 1.10 2000/10/30 12:35:21 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -28,6 +28,7 @@ LIBDIR	:=	/gcc/i386-mingw32/lib
 CFLAGS	:=	-mno-cygwin
 LFLAGS  :=	--target=i386-mingw32 -mno-cygwin
 DELETE	=	echo y | del 
+OUTLIB	=	--output-lib
 
 else	# Linux
 
@@ -40,6 +41,7 @@ LIBDIR	:=	/usr/lib
 CFLAGS	:=	
 LFLAGS  :=	
 DELETE	=	rm -f -v
+OUTLIB	=	-o
 
 endif
 
@@ -80,15 +82,15 @@ $(EXEODIR):
 
 # SBBS Link Rule
 $(SBBS): $(OBJS) $(LIBODIR)/ver.o
-	$(LD) $(LFLAGS) -o $(SBBS) $^ $(LIBS) --output-lib $(SBBSLIB)
+	$(LD) $(LFLAGS) -o $(SBBS) $^ $(LIBS) $(OUTLIB) $(SBBSLIB)
 
 # FTP Server Link Rule
 $(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
-	$(LD) $(LFLAGS) -o $@ $^ $(LIBS) --output-lib $(LIBODIR)/ftpsrvr.a
+	$(LD) $(LFLAGS) -o $@ $^ $(LIBS) $(OUTLIB) $(LIBODIR)/ftpsrvr.a
 
 # Mail Server Link Rule
 $(MAILSRVR): $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o $(SBBSLIB)
-	$(LD) $(LFLAGS) -o $@ $^ $(LIBS) --output-lib $(LIBODIR)/mailsrvr.a
+	$(LD) $(LFLAGS) -o $@ $^ $(LIBS) $(OUTLIB) $(LIBODIR)/mailsrvr.a
 
 # Specifc Compile Rules
 $(LIBODIR)/ftpsrvr.o: ftpsrvr.c ftpsrvr.h
