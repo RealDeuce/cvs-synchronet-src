@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.283 2003/05/17 00:04:49 deuce Exp $ */
+/* $Id: main.cpp,v 1.284 2003/05/18 04:22:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2638,27 +2638,6 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 	}
     return(0);
 }
-
-/****************************************************************************/
-/* Reads data from dsts.dab into stats structure                            */
-/* If node is zero, reads from ctrl\dsts.dab, otherwise from each node		*/
-/****************************************************************************/
-BOOL DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats)
-{
-    char str[MAX_PATH+1];
-    int file;
-
-    sprintf(str,"%sdsts.dab",node ? cfg->node_path[node-1] : cfg->ctrl_dir);
-    if((file=nopen(str,O_RDONLY))==-1) {
-//        errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
-        return(FALSE); 
-	}
-    lseek(file,4L,SEEK_SET);    /* Skip update time/date */
-    read(file,stats,sizeof(stats_t));
-    close(file);
-	return(TRUE);
-}
-
 
 void sbbs_t::hangup(void)
 {

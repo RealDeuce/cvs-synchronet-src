@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.184 2003/05/18 03:50:46 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.185 2003/05/18 04:22:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -747,8 +747,10 @@ public:
 extern "C" {
 #endif
 
-	/* main.cpp */
+	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
+	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
+	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
@@ -775,8 +777,6 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unpadfname(char *filename, char *str);
 	DLLEXPORT BOOL		DLLCALL rmuserxfers(scfg_t* cfg, int fromuser, int destuser, char *fname);
 
-	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
-	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
 
 	/* str_util.c */
