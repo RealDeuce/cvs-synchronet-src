@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.17 2002/07/24 09:55:38 rswindell Exp $ */
+/* $Id: userdat.h,v 1.18 2002/07/24 09:59:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,7 @@ DLLEXPORT char*	DLLCALL username(scfg_t* cfg, int usernumber, char * str);
 DLLEXPORT char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name);
 DLLEXPORT int	DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* file);
 DLLEXPORT int	DLLCALL putnodedat(scfg_t* cfg, uint number, node_t *node, int file);
-DLLEXPORT void	DLLCALL printnodedat(uint number, node_t* node);
+DLLEXPORT void	DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node);
 DLLEXPORT void	DLLCALL packchatpass(char *pass, node_t* node);
 DLLEXPORT char* DLLCALL unpackchatpass(char *pass, node_t* node);
 
