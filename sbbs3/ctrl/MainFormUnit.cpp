@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.97 2003/03/02 07:52:34 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.98 2003/03/02 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1633,7 +1633,10 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
     if(cfg.new_install) {
     	Application->BringToFront();
-    	Sleep(3000);	// Let 'em see the logo for a bit
+        for(int i=0;i<10;i++) {
+	        Application->ProcessMessages();
+	    	Sleep(300);	// Let 'em see the logo for a bit
+        }
         BBSConfigWizardMenuItemClick(Sender);
     }
 
