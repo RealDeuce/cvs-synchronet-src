@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.177 2005/03/26 09:10:18 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.178 2005/03/26 16:11:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1080,8 +1080,8 @@ static int setenv(const char *name, const char *value, int overwrite)
 			errno=ENOMEM;
 			return(-1);
 		}
-		/* ToDo: (comment for shurd) */
-		/* Uh... I'm pretty sure we're missing an sprintf() call here or something... */
+		/* Note, on some platforms, this can be free()d... */
+		sprintf(envstr,"%s=%s",name,value);
 		putenv(envstr);
 	}
 	return(0);
