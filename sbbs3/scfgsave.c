@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.32 2003/05/09 02:58:53 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.33 2003/05/14 01:42:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@ BOOL DLLCALL save_cfg(scfg_t* cfg, int backup_level)
 	return(TRUE);
 }
 
-static BOOL fcopy(char* src, char* dest)
+BOOL DLLCALL fcopy(char* src, char* dest)
 {
 	int		ch;
 	ulong	count=0;
@@ -109,26 +109,39 @@ static BOOL fcopy(char* src, char* dest)
 
 /****************************************************************************/
 /****************************************************************************/
-void DLLCALL backup(char *fname, int backup_level, BOOL ren)
+BOOL DLLCALL backup(char *fname, int backup_level, BOOL ren)
 {
-	char oldname[MAX_PATH+1];
-	char newname[MAX_PATH+1];
-	int i;
+	char	oldname[MAX_PATH+1];
+	char	newname[MAX_PATH+1];
+	char*	ext;
+	int		i;
+	int		len;
+
+	if((ext=strrchr(fname,'.'))==NULL)
+		ext="";
+
+	len=strlen(fname)-strlen(ext);
 
 	for(i=backup_level;i;i--) {
-		sprintf(newname,"%s.%d",fname,i-1);
+		sprintf(newname,"%.*s.%d%s",len,fname,i-1,ext);
 		if(i==backup_level)
-			remove(newname);
+			if(remove(newname)!=0)
+				return(FALSE);
 		if(i==1) {
 			if(ren == TRUE)
-				rename(fname,newname);
+				if(rename(fname,newname)!=0)
+					return(FALSE);
 			else
-				fcopy(fname,newname);
+				if(!fcopy(fname,newname)
+					return(FALSE);
 			continue; 
 		}
-		sprintf(oldname,"%s.%d",fname,i-2);
-		rename(oldname,newname); 
+		sprintf(oldname,"%.*s.%d%s",len,fname,i-2,ext);
+		if(rename(oldname,newname)!=0)
+			return(FALSE);
 	}
+
+	return(TRUE);
 }
 
 /****************************************************************************/
