@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.105 2002/02/24 04:14:02 rswindell Exp $ */
+/* $Id: main.cpp,v 1.106 2002/02/24 15:09:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -738,7 +738,7 @@ void input_thread(void *arg)
             else if(ERROR_VALUE==ECONNABORTED) 
 				lprintf("Node %d connection aborted by peer on input->select", sbbs->cfg.node_num);
 			else
-				lprintf("!Node %d: ERROR %d input->select socket %d"
+				lprintf("Node %d !ERROR %d input->select socket %d"
                 	,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
 			sbbs->online=0;
 			break;
@@ -776,7 +776,7 @@ void input_thread(void *arg)
             else if(ERROR_VALUE==ECONNABORTED) 
 				lprintf("Node %d connection aborted by peer on receive", sbbs->cfg.node_num);
 			else
-				lprintf("!Node %d: ERROR %d receiving from socket %d"
+				lprintf("Node %d !ERROR %d receiving from socket %d"
                 	,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
 			sbbs->online=0;
 			break;
