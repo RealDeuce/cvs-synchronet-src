@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.h,v 1.1 2000/10/10 11:26:56 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.h,v 1.2 2000/10/12 00:12:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,12 +79,6 @@ __published:
     TRadioButton *RelayRadioButton;
     TEdit *SMTPServerEdit;
     TCheckBox *HostnameCheckBox;
-    TLabel *InboundSoundLabel;
-    TEdit *InboundSoundEdit;
-    TButton *InboundSoundButton;
-    TLabel *OutboundSoundLabel;
-    TEdit *OutboundSoundEdit;
-    TButton *OutboundSoundButton;
     TCheckBox *DebugTXCheckBox;
     TCheckBox *DebugHeadersCheckBox;
     TCheckBox *LogFileCheckBox;
@@ -93,13 +87,20 @@ __published:
     TEdit *POP3PortEdit;
     TCheckBox *POP3LogCheckBox;
     TCheckBox *POP3EnabledCheckBox;
-    TLabel *POP3SoundLabel;
-    TEdit *POP3SoundEdit;
-    TButton *POP3SoundButton;
     TLabel *Label1;
     TEdit *DeliveryAttemptsEdit;
     TLabel *Label2;
     TEdit *RescanFreqEdit;
+    TTabSheet *SoundTabSheet;
+    TLabel *POP3SoundLabel;
+    TEdit *POP3SoundEdit;
+    TButton *POP3SoundButton;
+    TLabel *InboundSoundLabel;
+    TEdit *InboundSoundEdit;
+    TButton *InboundSoundButton;
+    TButton *OutboundSoundButton;
+    TEdit *OutboundSoundEdit;
+    TLabel *OutboundSoundLabel;
     void __fastcall InboundSoundButtonClick(TObject *Sender);
     void __fastcall OutboundSoundButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
