@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.12 2002/11/01 23:47:31 rswindell Exp $ */
+/* $Id: str_util.c,v 1.13 2002/11/04 11:55:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,7 +332,7 @@ char* DLLCALL net_addr(net_t* net)
 
 static ulong msgid_serialno(smbmsg_t* msg)
 {
-	return (msg->idx.time<<5) | (msg->idx.number&0x1f);
+	return (msg->idx.time-1000000000) + msg->idx.number;
 }
 
 /****************************************************************************/
