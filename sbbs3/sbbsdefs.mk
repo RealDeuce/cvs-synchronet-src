@@ -2,6 +2,6 @@
 
 # C/C++ compiler preprocessor definitions for building SBBS.DLL
 
-# $Id: sbbsdefs.mk,v 1.5 2004/09/15 07:40:07 deuce Exp $
+# $Id: sbbsdefs.mk,v 1.8 2004/09/23 18:13:54 rswindell Exp $
 
-SBBSDEFS=	-DSBBS -DSBBS_EXPORTS -DSMB_EXPORTS -D_THREAD_SAFE -DWRAPPER_IMPORTS -DRINGBUF_SEM
+SBBSDEFS=	-DSBBS -DSBBS_EXPORTS -DSMB_EXPORTS -DMD5_EXPORTS -DRINGBUF_SEM
