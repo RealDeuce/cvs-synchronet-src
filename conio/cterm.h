@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.5 2005/01/19 23:59:07 deuce Exp $ */
+/* $Id: cterm.h,v 1.4 2004/09/22 04:03:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,12 +34,6 @@
 #ifndef _CTERM_H_
 #define _CTERM_H_
 
-enum {
-	 CTERM_MUSIC_NORMAL
-	,CTERM_MUSIC_LEGATO
-	,CTERM_MUSIC_STACATTO
-};
-
 struct cterminal {
 	int	height;
 	int	width;
@@ -53,11 +47,6 @@ struct cterminal {
 	int	sequence;
 	char	musicbuf[1024];
 	int music;
-	int	tempo;
-	int	octave;
-	int notelen;
-	int noteshape;
-	int musicfore;
 	char *scrollback;
 	int backpos;
 	int backlines;
