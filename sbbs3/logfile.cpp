@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.34 2003/10/24 21:46:55 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.35 2004/02/14 07:18:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,7 +359,9 @@ void sbbs_t::errorlog(char *text)
 	errorlog_inside=1;
 	if(cfg.node_num>0) {
 		getnodedat(cfg.node_num,&thisnode,1);
-		criterrs=++thisnode.errors;
+		if(thisnode.errors<UCHAR_MAX)
+			thisnode.errors++;
+		criterrs=thisnode.errors;
 		putnodedat(cfg.node_num,&thisnode);
 	}
 	now=time(NULL);
