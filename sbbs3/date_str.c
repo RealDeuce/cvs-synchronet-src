@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.12 2002/04/12 06:20:39 rswindell Exp $ */
+/* $Id: date_str.c,v 1.13 2002/04/26 00:16:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,10 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+
+const char *wday[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
+            ,"Jul","Aug","Sep","Oct","Nov","Dec"};
 
 /****************************************************************************/
 /* Converts a date string in format MM/DD/YY into unix time format			*/
