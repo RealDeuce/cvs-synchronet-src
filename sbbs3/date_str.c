@@ -2,13 +2,13 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.21 2004/09/08 03:35:34 rswindell Exp $ */
+/* $Id: date_str.c,v 1.19 2003/08/30 05:51:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -181,6 +181,74 @@ char* DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str)
 	sprintf(str,"%s %s %02u %4u %02u:%02u %s"
 		,wday[tm.tm_wday],mon[tm.tm_mon],tm.tm_mday,1900+tm.tm_year
 		,hour,tm.tm_min,mer);
+	return(str);
+}
+
+/****************************************************************************/
+/* Converts when_t.zone into ASCII format                                   */
+/****************************************************************************/
+char* DLLCALL zonestr(short zone)
+{
+	char*		plus;
+    static char str[32];
+
+	switch((ushort)zone) {
+		case 0:     return("UTC");
+		case AST:   return("AST");
+		case EST:   return("EST");
+		case CST:   return("CST");
+		case MST:   return("MST");
+		case PST:   return("PST");
+		case YST:   return("YST");
+		case HST:   return("HST");
+		case BST:   return("BST");
+		case ADT:   return("ADT");
+		case EDT:   return("EDT");
+		case CDT:   return("CDT");
+		case MDT:   return("MDT");
+		case PDT:   return("PDT");
+		case YDT:   return("YDT");
+		case HDT:   return("HDT");
+		case BDT:   return("BDT");
+		case MID:   return("MID");
+		case VAN:   return("VAN");
+		case EDM:   return("EDM");
+		case WIN:   return("WIN");
+		case BOG:   return("BOG");
+		case CAR:   return("CAR");
+		case RIO:   return("RIO");
+		case FER:   return("FER");
+		case AZO:   return("AZO");
+		case LON:   return("LON");
+		case BER:   return("BER");
+		case ATH:   return("ATH");
+		case MOS:   return("MOS");
+		case DUB:   return("DUB");
+		case KAB:   return("KAB");
+		case KAR:   return("KAR");
+		case BOM:   return("BOM");
+		case KAT:   return("KAT");
+		case DHA:   return("DHA");
+		case BAN:   return("BAN");
+		case HON:   return("HON");
+		case TOK:   return("TOK");
+		case SYD:   return("SYD");
+		case NOU:   return("NOU");
+		case WEL:   return("WEL");
+		}
+
+	if(!OTHER_ZONE(zone)) {
+		if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
+			zone=-(zone&0xfff);
+		else
+			zone&=0xfff;
+	}
+
+	if(zone>0)
+		plus="+";
+	else
+		plus="";
+	sprintf(str,"UTC%s%d:%02u", plus, zone/60, zone<0 ? (-zone)%60 : zone%60);
 	return(str);
 }
 
