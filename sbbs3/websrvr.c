@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.112 2003/06/07 02:47:29 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.113 2003/06/14 02:32:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1197,6 +1197,7 @@ static BOOL parse_headers(http_session_t * session)
 			if(session->req.dynamic==IS_SSJS)  {
 				js_parse_post(session);
 			}
+			session->req.post_data[content_len]=0;
 		}
 		else  {
 			lprintf("%04d !ERROR Allocating %d bytes of memory",session->socket,content_len);
@@ -2386,7 +2387,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.112 $", "%*s %s", revision);
+	sscanf("$Revision: 1.113 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
