@@ -1,4 +1,5 @@
 #include <windows.h>	/* INPUT_RECORD, etc. */
+#include <genwrap.h>
 #include <stdio.h>		/* stdin */
 #include "ciolib.h"
 #include "keys.h"
@@ -7,6 +8,15 @@
 #define VID_MODES	7
 
 const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
+
+const int	altkeys[26]={
+	 30,48,46,32
+	,18,33,34,35
+	,23,36,37,38
+	,50,49,24,25
+	,16,19,31,20
+	,22,47,17,45
+	,21,44};
 
 struct vid_mode {
 	int	mode;
@@ -92,7 +102,7 @@ int win32_kbhit(void)
 			return(1);
 		if(!PeekConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 			|| !num)
-			break;
+			return(0);
 		if(input.EventType==KEY_EVENT && input.Event.KeyEvent.bKeyDown)
 			return(1);
 		if(domouse) {
@@ -125,12 +135,8 @@ int win32_kbhit(void)
 				}
 			}
 		}
-		if(ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
-			&& num) {
-			continue;
-		}
+		ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num);
 	}
-	return(0);
 }
 
 int win32_getch(void)
@@ -179,6 +185,13 @@ int win32_getch(void)
 				OutputDebugString(str);
 #endif
 
+				if(input.Event.KeyEvent.dwControlKeyState & (LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED)) {
+					if(input.Event.KeyEvent.uChar.AsciiChar) {
+						lastch=altkeys[toupper(input.Event.KeyEvent.uChar.AsciiChar)-'A']<<8;
+						break;
+					}
+				}
+					
 				if(input.Event.KeyEvent.uChar.AsciiChar)
 					lastch=input.Event.KeyEvent.uChar.AsciiChar;
 				else
