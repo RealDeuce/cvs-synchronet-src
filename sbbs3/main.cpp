@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.209 2002/12/06 22:33:09 rswindell Exp $ */
+/* $Id: main.cpp,v 1.210 2002/12/10 23:25:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,7 +227,7 @@ u_long resolve_ip(char *addr)
 	if(!(*p))
 		return(inet_addr(addr));
 	if((host=gethostbyname(addr))==NULL) 
-		return(0);
+		return(INADDR_NONE);
 	return(*((ulong*)host->h_addr_list[0]));
 }
 

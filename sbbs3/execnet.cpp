@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.16 2002/11/09 11:59:49 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.17 2002/12/10 23:25:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,7 +135,7 @@ int sbbs_t::exec_net(csi_t* csi)
 
 			ulong ip_addr;
 
-			if((ip_addr=resolve_ip(*pp))==0)
+			if((ip_addr=resolve_ip(*pp))==INADDR_NONE)
 				return(0);
 
 			SOCKADDR_IN	addr;

@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.13 2002/11/07 09:46:56 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.14 2002/12/10 23:25:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	}
 
 	ip_addr=resolve_ip(destaddr);
-	if(!ip_addr) {
+	if(ip_addr==INADDR_NONE) {
 		lprintf("!Failed to resolve address: %s",destaddr);
 		bprintf("!Failed to resolve address: %s\r\n",destaddr);
 		return;

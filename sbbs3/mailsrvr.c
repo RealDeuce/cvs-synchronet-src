@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.216 2002/12/10 09:38:05 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.217 2002/12/10 23:25:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -606,7 +606,7 @@ static u_long resolve_ip(char *addr)
 
 	if((host=gethostbyname(addr))==NULL) {
 		lprintf("0000 !ERROR resolving hostname: %s",addr);
-		return(0);
+		return(INADDR_NONE);
 	}
 	return(*((ulong*)host->h_addr_list[0]));
 }
@@ -2675,7 +2675,7 @@ static void sendmail_thread(void* arg)
 					bounce(&smb,&msg,err,TRUE);
 					continue;
 				}
-				if((dns=resolve_ip(startup->dns_server))==0) {
+				if((dns=resolve_ip(startup->dns_server))==INADDR_NONE) {
 					lprintf("0000 !SEND INVALID DNS server address: %s"
 						,startup->dns_server);
 					continue;
@@ -2727,7 +2727,7 @@ static void sendmail_thread(void* arg)
 				
 				lprintf("%04d SEND resolving SMTP hostname: %s", sock, server);
 				ip_addr=resolve_ip(server);
-				if(!ip_addr)  {
+				if(ip_addr==INADDR_NONE) {
 					sprintf(err,"Failed to resolve SMTP hostname: %s",server);
 					continue;
 				}
@@ -2899,7 +2899,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.216 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.217 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
