@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.16 2003/01/05 12:52:22 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.17 2003/02/20 07:14:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1478,11 +1478,10 @@ char *daystr(char days)
 
 	str[0]=0;
 	for(i=0;i<7;i++) {
-		if(days&(1<<i))
+		if(days&(1<<i)) {
 			strcat(str,wday[i]);
-		else
-			strcat(str,"   ");
-		strcat(str," "); 
+			strcat(str," "); 
+		}
 	}
 	return(str);
 }
