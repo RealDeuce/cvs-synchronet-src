@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/user.h>
 
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <paths.h>
@@ -44,32 +45,33 @@
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
+#include <genwrap.h>
+
 #include "console.h"
-#include "vparams.h"
+#include "vidmodes.h"
 
 #include "keys.h"
 #include "mouse.h"
+#include "vgafont.h"
 
 /* Console definition variables */
+int console_new_mode=NO_NEW_MODE;
+int CurrMode;
+sem_t	console_mode_changed;
+int InitCS;
+int InitCE;
 BYTE VideoMode;
-int FW, FH, FD;
+int FW, FH;
 WORD DpyCols;
 BYTE DpyRows;
 BYTE *palette;
-WORD DpyPageSize;
 BYTE CursStart;
 BYTE CursEnd;
-WORD CharHeight;
-WORD NumColors;
-BYTE VertResolution;
-WORD *vmem;
-int vattr;
-BYTE VGA_ATC[ATC_Size];
-BYTE VGA_CRTC[CRTC_Size];
+WORD *vmem=NULL;
 static int show = 1;
 static int blink = 1;
-BYTE CursRow0=0;
-BYTE CursCol0=0;
+BYTE CursRow=0;
+BYTE CursCol=0;
 typedef struct TextLine {
     u_short	*data;
     u_char	max_length;	/* Not used, but here for future use */
@@ -77,62 +79,51 @@ typedef struct TextLine {
 } TextLine;
 TextLine *lines = NULL;
 
-/* Indices into the video parameter table. We will use that array to
-   initialize the registers on startup and when the video mode changes. */
-#define CRTC_Ofs	10
-#define ATC_Ofs		35
-#define TSC_Ofs		5
-#define GDC_Ofs		55
-#define MiscOutput_Ofs	9
-
 /* X Variables */
 Display *dpy=NULL;
 Window win;
-XFontStruct *font;
 XImage *xi = 0;
+Pixmap pfnt=0;
 Visual *visual;
 unsigned int depth;
 unsigned long black;
 unsigned long white;
-int FW, FH, FD;
 GC gc;
 GC cgc;
 int xfd;
 
-/* LUT for the vram -> XImage conversion */
-BYTE lut[4][256][8];
+/* X functions */
+#if 0
+struct x11 {
+	int		(*XChangeGC)	(Display*, GC, unsigned long, XGCValues);
+	int		(*XCopyPlane)	(Display*, Drawable, Drawable, GC, int, int, unsigned int, unsigned int, int, int, unsigned long);
+	int		(*XFillRectangle)	(Display*, Drawable, GC, int, int, unsigned int, unsigned int);
+	int		(*XFlush)		(Display*);
+	int		(*XBell)		(Display*, int);
+	int		(*XLookupString)	(XKeyEvent*, char*, int, KeySym*, XComposeStatus);
+	int		(*XNextEvent)	(Display*, XEvent *);
+	XSizeHints	(*XAllocSizeHints)(void);
+	void		(*XSetWMNormalHints)	(Display*, Window, XSizeHints);
+	int		(*XResizeWindow)	(Display*, Window, unsigned int, unsigned int);
+	int		(*XMapWindow)	(Display*, Window);
+	int		(*XFree)		(Display*, XFontSet);
+	int		(*XFreePixmap)	(Display*, Pixmap);
+	int		(*XCreateBitmapFromData)	(Display*, Drawable, _Xconst char*, unsigned int, unsigned int);
+	Status	(*XAllocColor)	(Display*, Colormap, XColor);
+	Display	(*XOpenDisplay)	(_Xconst char*);
+	Window	(*XCreateSimpleWindow)	(Display*, Window, int, int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long);
+	GC		(*XCreateGC)	(Display*, Drawable, unsigned long, XGCValues*);
+	int		(*XSelectInput)	(Display*, Window, long);
+	int		(*XStoreName)	(Display*, Window, _Xconst char*);
+};
+struct x11 x11;
+#endif
 
 /* X pixel values for the RGB triples */
+struct dac_colors *dac_rgb;
 DWORD pixels[16];
 
-const char *xfont;
-
-
-/* Table of supported video modes. */
-vmode_t vmodelist[] = {
-    {0x00, 0x17, TEXT, 16, 8, 2, 0xb8000, FONT8x16},
-    {0x01, 0x17, TEXT, 16, 8, 2, 0xb8000, FONT8x16},
-    {0x02, 0x18, TEXT, 16, 8, 2, 0xb8000, FONT8x16},
-    {0x03, 0x18, TEXT, 16, 8, 2, 0xb8000, FONT8x16},
-    {0x04, 0x04, TEXT, 4, 1, 0, 0xb8000, FONT8x8},
-    {0x05, 0x05, TEXT, 4, 1, 0, 0xb8000, FONT8x8},
-    {0x06, 0x06, TEXT, 2, 1, 0, 0xb8000, FONT8x8},
-    {0x07, 0x19, TEXT, 1, 8, 2, 0xb0000, FONT8x16},
-    {0x08, 0x08, NOMODE, 0, 0, 0, 0, 0},
-    {0x09, 0x09, NOMODE, 0, 0, 0, 0, 0},
-    {0x0a, 0x0a, NOMODE, 0, 0, 0, 0, 0},
-    {0x0b, 0x0b, NOMODE, 0, 0, 0, 0, 0},
-    {0x0c, 0x0c, NOMODE, 0, 0, 0, 0, 0},
-    {0x0d, 0x0d, TEXT, 16, 8, 0, 0xa0000, FONT8x8},
-    {0x0e, 0x0e, TEXT, 16, 4, 0, 0xa0000, FONT8x8},
-    {0x0f, 0x11, TEXT, 1, 2, 1, 0xa0000, FONT8x14},
-    {0x10, 0x12, TEXT, 16, 2, 1, 0xa0000, FONT8x14},
-    {0x11, 0x1a, TEXT, 2, 1, 3, 0xa0000, FONT8x16},
-    {0x12, 0x1b, TEXT, 16, 1, 3, 0xa0000, FONT8x16},
-    /*     {0x13, 0x1c, GRAPHICS, 256, 1, 0, 0xa0000, FONT8x8}, */
-};
-
-#define NUMMODES	(sizeof(vmodelist) / sizeof(vmode_t))
+#define NUMMODES	(sizeof(vparams) / sizeof(struct video_params))
 
 static	fd_set	fdset;		/* File Descriptors to select on */
 
@@ -305,41 +296,6 @@ struct {
     {	0x8600, 0x5888, 0x8a00, 0x8c00 }, /* key 88 - F12 */
 };
 
-/* Mouse Stuff */
-typedef struct {
-    WORD		hardcursor:1;
-    WORD		installed:1;
-    WORD		cursor:1;
-    WORD		show:1;
-    WORD		buttons:3;
-
-    WORD		init;
-    WORD		start;
-    WORD		end;
-    WORD		hmickey;
-    WORD		vmickey;
-    WORD		doubling;
-    DWORD		handler;
-    WORD		mask;
-    DWORD		althandler[3];
-    WORD		altmask[3];
-    struct {
-	WORD	x;
-	WORD	y;
-	WORD	w;
-	WORD	h;
-    }	range, exclude;
-    WORD		x;
-    WORD		y;
-    WORD		lastx;
-    WORD		lasty;
-    
-    WORD		downs[3];
-    WORD		ups[3];
-} mouse_t;
-
-mouse_t		mouse_status;
-
 #define	HWM	16
 
 void tty_pause()
@@ -365,13 +321,13 @@ reset_poll(void)
 void
 sleep_poll(void)
 {
-    if (--poll_cnt <= 0) {
-	poll_cnt = 0;
-	while (KbdEmpty() && poll_cnt <= 0) {
-	    if (KbdEmpty() && poll_cnt <= 0)
-		tty_pause();
+	if (--poll_cnt <= 0) {
+		poll_cnt = 0;
+		while (KbdEmpty() && poll_cnt <= 0) {
+			if (KbdEmpty() && poll_cnt <= 0)
+			tty_pause();
+		}
 	}
-    }
 }
 
 static void
@@ -401,15 +357,14 @@ video_update_text()
 
 	wakeup_poll();	/* Wake up anyone waiting on kbd poll */
 
-/*	show ^= 1; */
-
 	setgc(attr);
+
 
 	for (r = 0; r < (DpyRows+1); ++r) {
 	    int cc = 0;
 
 	    if (!lines[r].changed) {
-			if ((r == or || r == CursRow0) && (or != CursRow0 || oc !=CursCol0))
+			if ((r == or || r == CursRow) && (or != CursRow || oc !=CursCol))
 				lines[r].changed=1;
 			else {
 			    for (c = 0; c < DpyCols; ++c) {
@@ -433,33 +388,16 @@ video_update_text()
 		memcpy(lines[r].data,
 			&vmem[r * DpyCols], sizeof(u_short) * DpyCols);
 
-	    for (c = 0; c < DpyCols; ++c) {
-			int cv = vmem[r * DpyCols + c];
-			if ((cv & 0xff00) != attr) {
-				if (cc < c)
-					XDrawImageString(dpy, win, gc,
-						2 + cc * FW,
-						2 + (r + 1) * FH,
-						buf + cc, c - cc);
-					cc = c;
-					attr = cv  & 0xff00;
-					setgc(attr);
-			}
-			buf[c] = (cv & 0xff) ? cv & 0xff : ' ';
-	    }
-	    if (cc < c) {
-			XDrawImageString(dpy, win, gc,
-				2 + cc * FW,
-				2 + (r + 1) * FH,
-				buf + cc, c - cc);
-	    }
+		for (c = 0; c < DpyCols; ++c) {
+			setgc(vmem[r * DpyCols + c]  & 0xff00);
+			XCopyPlane(dpy,pfnt,win,gc,0,FH*(vmem[r * DpyCols + c]&0xff),FW,FH,c*FW+2,r*FH+2,1);
+		}
 	}
 
-
 	if (CursStart <= CursEnd && CursEnd <= FH &&
-	    (show != os) && CursRow0 < (DpyRows+1) &&CursCol0 < DpyCols) {
+	    (show != os) && CursRow < (DpyRows+1) &&CursCol < DpyCols) {
 
-	    attr = vmem[CursRow0 * DpyCols +CursCol0] & 0xff00;
+	    attr = vmem[CursRow * DpyCols +CursCol] & 0xff00;
 	    v.foreground = pixels[(attr >> 8) & 0x0f] ^
 			pixels[(attr >> 12) & (blink ? 0x07 : 0x0f)];
 	    if (v.foreground) {
@@ -470,13 +408,13 @@ video_update_text()
 	    }
 	    XChangeGC(dpy, cgc, GCForeground | GCFunction, &v);
 	    XFillRectangle(dpy, win, cgc,
-			   2 +CursCol0 * FW,
-			   2 + CursRow0 * FH + CursStart + FD,
+			   2 +CursCol * FW,
+			   2 + CursRow * FH + CursStart,
 			   FW, CursEnd + 1 - CursStart);
 	}
 
-	or =CursRow0;
-	oc =CursCol0;
+	or =CursRow;
+	oc =CursCol;
 	os =show;
 
 	XFlush(dpy);
@@ -485,57 +423,56 @@ video_update_text()
 void
 video_update()
 {
-	static int icnt = 3;
+	static clock_t	lastupd=-1;
+	static clock_started=0;
+	clock_t upd;
 
-    	if (--icnt == 0) {
-	    icnt = 6;
-	show ^= 1;
-
+	upd=msclock();
+	if(!clock_started) {
+		lastupd=upd;
+		clock_started=1;
 	}
-	    /* quick and dirty */
-		video_update_text();
+	if(upd-lastupd>(MSCLOCKS_PER_SEC/2)) {
+		show ^= 1;
+		lastupd=upd;
+	}
 
+	/* quick and dirty */
+	video_update_text();
 }
 
 /* Get memory for the text line buffer. */
 void
 get_lines()
 {
-    int i;
+	int i;
 
-    if (lines == NULL) {
-	lines = (TextLine *)malloc(sizeof(TextLine) * (DpyRows+1));
-	if (lines == NULL)
-	    err(1, "Could not allocate data structure for text lines\n");
+	if (lines == NULL) {
+		lines = (TextLine *)malloc(sizeof(TextLine) * (DpyRows+1));
+		if (lines == NULL)
+			err(1, "Could not allocate data structure for text lines\n");
 
-	for (i = 0; i < (DpyRows+1); ++i) {
-	    lines[i].max_length = DpyCols;
-	    lines[i].data = (u_short *)malloc(DpyCols * sizeof(u_short));
-	    if (lines[i].data == NULL)
-		err(1, "Could not allocate data structure for text lines\n");
-	    lines[i].changed = 1;
+		for (i = 0; i < (DpyRows+1); ++i) {
+			lines[i].max_length = DpyCols;
+			lines[i].data = (u_short *)malloc(DpyCols * sizeof(u_short));
+			if (lines[i].data == NULL)
+				err(1, "Could not allocate data structure for text lines\n");
+			lines[i].changed = 1;
+		}
+	} else {
+		lines = (TextLine *)realloc(lines, sizeof(TextLine) * (DpyRows+1));
+		if (lines == NULL)
+			err(1, "Could not allocate data structure for text lines\n");
+
+		for (i = 0; i < (DpyRows+1); ++i) {
+			lines[i].max_length = DpyCols;
+			lines[i].data = (u_short *)realloc(lines[i].data,
+							   DpyCols * sizeof(u_short));
+			if (lines[i].data == NULL)
+				err(1, "Could not allocate data structure for text lines\n");
+			lines[i].changed = 1;
+		}
 	}
-    } else {
-	lines = (TextLine *)realloc(lines, sizeof(TextLine) * (DpyRows+1));
-	if (lines == NULL)
-	    err(1, "Could not allocate data structure for text lines\n");
-
-	for (i = 0; i < (DpyRows+1); ++i) {
-	    lines[i].max_length = DpyCols;
-	    lines[i].data = (u_short *)realloc(lines[i].data,
-					       DpyCols * sizeof(u_short));
-	    if (lines[i].data == NULL)
-		err(1, "Could not allocate data structure for text lines\n");
-	    lines[i].changed = 1;
-	}
-    }
-}
-
-static void
-Failure(void *arg)
-{
-        fprintf(stderr, "X Connection shutdown\n");
-	exit(1);
 }
 
 void
@@ -567,7 +504,7 @@ video_event(XEvent *ev)
 		case MotionNotify: {
 				XMotionEvent *me = (XMotionEvent *)ev;
 				me->x -= 2;
-				me->y -= 8;
+				me->y -= 2;
 				me->x/=FW;
 				me->y/=FH;
 				me->x++;
@@ -586,7 +523,7 @@ video_event(XEvent *ev)
 		case ButtonRelease: {
 				XButtonEvent *be = (XButtonEvent *)ev;
 				be->x -= 2;
-				be->y -= 8;
+				be->y -= 2;
 				be->x/=FW;
 				be->y/=FH;
 				be->x++;
@@ -607,7 +544,7 @@ video_event(XEvent *ev)
 		case ButtonPress: {
 				XButtonEvent *be = (XButtonEvent *)ev;
 				be->x -= 2;
-				be->y -= 8;
+				be->y -= 2;
 				be->x/=FW;
 				be->y/=FH;
 				be->x++;
@@ -629,10 +566,10 @@ video_event(XEvent *ev)
                 break;
         case GraphicsExpose:
         case Expose: {
-		int r;
-		for (r = 0; r < (DpyRows+1); ++r)
-		    lines[r].changed = 1;
-		break;
+			int r;
+			for (r = 0; r < (DpyRows+1); ++r)
+		    	lines[r].changed = 1;
+			break;
 	    }
 	case KeyRelease: {
 		static char buf[128];
@@ -941,12 +878,14 @@ video_async_event(void *crap)
 	for (;;) {
 		video_update();
 
+		if(console_new_mode!=NO_NEW_MODE)
+			init_mode(console_new_mode);
+
 		tv.tv_sec=0;
 		tv.tv_usec=54925;
 		/*
 		* Handle any events just sitting around...
 		*/
-		XFlush(dpy);
 		while (QLength(dpy) > 0) {
 			XNextEvent(dpy, &ev);
 			video_event(&ev);
@@ -968,7 +907,6 @@ video_async_event(void *crap)
 				perror("select");
 				break;
 			case 0:
-				XFlush(dpy);
 				break;
 			default:
 				if (FD_ISSET(xfd, &fdset)) {
@@ -987,13 +925,11 @@ void
 resize_window()
 {
     XSizeHints *sh;
-    vmode_t vmode;
-    
+
     sh = XAllocSizeHints();
     if (sh == NULL)
-	err(1, "Could not get XSizeHints structure");
-    
-    vmode = vmodelist[find_vmode(VideoMode)];
+		err(1, "Could not get XSizeHints structure");
+
 	sh->base_width = FW * DpyCols + 4;
 	sh->base_height = FH * (DpyRows+1) + 4;
 	sh->base_width += 4;
@@ -1007,36 +943,49 @@ resize_window()
     XResizeWindow(dpy, win, sh->base_width, sh->base_height);
     XMapWindow(dpy, win);
     XFlush(dpy);
-    
+
     XFree(sh);
-    
+
     return;
 }
 
+/* No longer uses X fonts - pass NULL to use VGA 8x16 font */
 int
-load_font()
+load_font(char *filename, int width, int height)
 {
     XGCValues gcv;
-    
-    if (!xfont)
-	xfont = FONTVGA;
+	char *font;
 
-    font = XLoadQueryFont(dpy, xfont);
+	/* I don't actually do this yet! */
+	if(filename != NULL) {
+		return(1);
+	}
 
-    if (font == NULL)
-	font = XLoadQueryFont(dpy, FONTVGA);
+	switch(width) {
+		case 8:
+			switch(height) {
+				case 8:
+					font=vga_font_bitmap8;
+					break;
+				case 14:
+					font=vga_font_bitmap14;
+					break;
+				case 16:
+					font=vga_font_bitmap;
+					break;
+				default:
+					return(1);
+			}
+			break;
+		default:
+			return(1);
+	}
+	FW = width;
+    FH = height;
 
-    if (font == NULL) {
-		return(-1);
-	err(1, "Could not open font ``%s''\n", xfont);
-    }
-
-    gcv.font = font->fid;
-    XChangeGC(dpy, gc, GCFont, &gcv);
-    
-    FW = font->max_bounds.width;
-    FH = font->max_bounds.ascent + font->max_bounds.descent;
-    FD = font->max_bounds.descent;
+	if(pfnt!=0)
+		XFreePixmap(dpy,pfnt);
+	pfnt=XCreateBitmapFromData(dpy, win, font, FW, FH*256);
 
     return(0);
 }
@@ -1047,24 +996,11 @@ load_font()
 static void
 dac2rgb(XColor *color, int i)
 {
-    int n, m;
+    int m;
 
-    /* For the 16 color modes, check bit 7 of the Mode Control register in
-       the ATC. If set, we take bits 0-3 of the Color Select register and
-       bits 0-3 of the palette register 'i' to build the index into the
-       DAC table; otherwise, bits 2 and 3 of the CS reg and bits 0-5 of
-       the palette register are used. Note that the entries in 'palette[]'
-       are supposed to be already masked to 6 bits. */
-    if (VGA_ATC[ATC_ModeCtrl] & 0x80) {
-	n = VGA_ATC[ATC_ColorSelect] & 0x0f;
-	m = palette[i] & 0x0f;
-    } else {
-	n = VGA_ATC[ATC_ColorSelect] & 0x0c;
-	m = palette[i];
-    }
-    color->red   = dac_rgb[16*n + m].red << 10;
-    color->green = dac_rgb[16*n + m].green << 10;
-    color->blue  = dac_rgb[16*n + m].blue << 10;
+    color->red   = dac_rgb[palette[i]].red << 10;
+    color->green = dac_rgb[palette[i]].green << 10;
+    color->blue  = dac_rgb[palette[i]].blue << 10;
 }
 
 /* Calculate 'pixels[]' from the current DAC table and palette.
@@ -1079,16 +1015,16 @@ update_pixels()
 
     /* We support only 16 colors for now. */
     for (i = 0; i < 16; i++) {
-	XColor color;
+		XColor color;
 
-	dac2rgb(&color, i);
-	if (XAllocColor(dpy, DefaultColormap(dpy, DefaultScreen(dpy)), &color)) {
-	    pixels[i] = color.pixel;
-	} else if (i < 7)
-	    pixels[i] = BlackPixel(dpy, DefaultScreen(dpy));
-	else
-	    pixels[i] = WhitePixel(dpy, DefaultScreen(dpy));
-    }
+		dac2rgb(&color, i);
+		if (XAllocColor(dpy, DefaultColormap(dpy, DefaultScreen(dpy)), &color)) {
+		    pixels[i] = color.pixel;
+		} else if (i < 7)
+		    pixels[i] = BlackPixel(dpy, DefaultScreen(dpy));
+		else
+		    pixels[i] = WhitePixel(dpy, DefaultScreen(dpy));
+	}
 }
 
 /* Find the requested mode in the 'vmodelist' table. This function returns the
@@ -1099,53 +1035,47 @@ int find_vmode(int mode)
     unsigned i;
 
     for (i = 0; i < NUMMODES; i++)
-	if (vmodelist[i].modenumber == mode)
+	if (vparams[i].mode == mode)
 	    return i;
-	
+
     return -1;
 }
 
 int
 init_mode(int mode)
 {
-    vmode_t vmode;
+    struct video_params vmode;
     int idx;			/* Index into vmode */
-    int pidx;			/* Index into videoparams */
     int i;
-    
-    idx = find_vmode(mode & 0x7f);
-    if (idx == -1 || vmodelist[idx].type == NOMODE) {
-		fprintf(stderr,"Cannot initialize selected mode\n");
+
+    idx = find_vmode(mode);
+    if (idx == -1) {
+		fprintf(stderr,"Cannot initialize selected mode (%d)\n",mode);
+		sem_post(&console_mode_changed);
 		return(-1);
 	}
-    vmode = vmodelist[idx];
-    pidx = vmode.paramindex;
+    vmode = vparams[idx];
 
-    /* Preset VGA registers. */
-    memcpy(VGA_CRTC, (unsigned char *)&videoparams[pidx][CRTC_Ofs],
-	   sizeof(VGA_CRTC));
-    memcpy(VGA_ATC, (unsigned char *)&videoparams[pidx][ATC_Ofs],
-	   sizeof(VGA_ATC));
+    DpyCols = vmode.cols;
+    CursStart = vmode.curs_start;
+    CursEnd = vmode.curs_end;
+    DpyRows = vmode.rows-1;
+    InitCS = CursStart;
+	InitCE = CursEnd;
 
-    VideoMode=mode & 0x7f;
-    DpyCols = (WORD)videoparams[pidx][0];
-    DpyPageSize = *(WORD *)&videoparams[pidx][3];
-    CursStart = VGA_CRTC[CRTC_CursStart];
-    CursEnd = VGA_CRTC[CRTC_CursEnd];
-    DpyRows = videoparams[pidx][1];
-    CharHeight = videoparams[pidx][2];
+    vmem = (WORD *)realloc(vmem,vmode.cols*vmode.rows*sizeof(WORD));
 
-    NumColors = vmode.numcolors;
-    VertResolution = vmode.vrescode;
-    vmem = (WORD *)malloc(64*1024);
+    /* Point 'palette[]' to the Attribute Controller space. We will only use
+       the first 16 slots. */
+	palette = palettes[vmode.colour];
 
     /* Load 'pixels[]' from default DAC values. */
     update_pixels();
 
     /* Update font. */
-    xfont = vmode.fontname;
-    if(load_font()) {
-		fprintf(stderr,"Cannot load ``%s'' font\n",xfont);
+    if(load_font(NULL,vmode.charwidth,vmode.charheight)) {
+		fprintf(stderr,"Cannot load font\n");
+		sem_post(&console_mode_changed);
 		return(-1);
 	}
 
@@ -1153,31 +1083,15 @@ init_mode(int mode)
     resize_window();
 
 	get_lines();
-	if (mode & 0x80)
-	    return;
+
 	/* Initialize video memory with black background, white foreground */
-	vattr = 0x0700;
-	for (i = 0; i < DpyPageSize / 2; ++i)
-	    vmem[i] = vattr;
+	for (i = 0; i < DpyCols*DpyRows; ++i)
+	    vmem[i] = 0x0700;
 
+	CurrMode=mode;
+	console_new_mode=NO_NEW_MODE;
+	sem_post(&console_mode_changed);
     return(0);
-}
-
-/* Prepare the LUT for the VRAM -> XImage conversion. */
-static void
-prepare_lut()
-{
-    int i, j, k;
-
-    for (i = 0; i < 4; i++) {
-	for (j = 0; j < 256; j++) {
-	    for (k = 0; k < 8; k++) {
-		lut[i][j][7 - k] = ((j & (1 << k)) ? (1 << i) : 0);
-	    }
-	}
-    }
-
-    return;
 }
 
 /* Get a connection to the X server and create the window. */
@@ -1217,8 +1131,6 @@ init_window()
     depth = DefaultDepth(dpy, DefaultScreen(dpy));
     visual = DefaultVisual(dpy, DefaultScreen(dpy));
 
-    prepare_lut();
-
 	return(0);
 }
 
@@ -1238,12 +1150,8 @@ init_vga(void)
 		return(-1);
 
     /* Copy the default DAC table to a working copy we can trash. */
-    for (i = 0; i < 64; i++)
-	dac_rgb[i] = dac_default64[i]; /* Structure copy */
-
-    /* Point 'palette[]' to the Attribute Controller space. We will only use
-       the first 16 slots. */
-    palette = VGA_ATC;
+	for (i = 0; i < 64; i++)
+		dac_rgb[i] = dac_default64[i]; /* Structure copy */
 
 	return(0);
 }
@@ -1268,19 +1176,109 @@ int
 console_init()
 {
     int fd;
-    int i;    
-    
+    int i;
+	void *dl;
+
+#if 0
+	if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
+		return(-1);
+	if((x11.XChangeGC=dlsym(dl,XChangeGC)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCopyPlane=dlsym(dl,XCopyPlane)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XFillRectangle=dlsym(dl,XFillRectangle)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XFlush=dlsym(dl,XFlush)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XBell=dlsym(dl,XBell)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XLookupString=dlsym(dl,XLookupString)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XNextEvent=dlsym(dl,XNextEvent)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XAllocSizeHints=dlsym(dl,XAllocSizeHints)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSetWMNormalHints=dlsym(dl,XSetWMNormalHints)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XResizeWindow=dlsym(dl,XResizeWindow)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XMapWindow=dlsym(dl,XMapWindow)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XFree=dlsym(dl,XFree)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XFreePixmap=dlsym(dl,XFreePixmap)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateBitmapFromData=dlsym(dl,XCreateBitmapFromData)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XAllocColor=dlsym(dl,XAllocColor)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XOpenDisplay=dlsym(dl,XOpenDisplay)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateSimpleWindow=dlsym(dl,XCreateSimpleWindow)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateGC=dlsym(dl,XCreateGC)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSelectInput=dlsym(dl,XSelectInput)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+	if((x11.XStoreName=dlsym(dl,XStoreName)==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
+#endif
+
 	if(dpy!=NULL)
 		return(0);
 
-    if(kbd_init()) {
+	sem_init(&console_mode_changed,0,0);
+
+   	if(kbd_init()) {
 		fprintf(stderr,"Cannot initialize X keyboard\n");
 		return(-1);
 	}
+
     if(video_init()) {
 		fprintf(stderr,"X video init failure\n");
 		return(-1);
 	}
+
     if(mouse_init()) {
 		fprintf(stderr,"Cannot initialize X mouse\n");
 		return(-1);
@@ -1299,13 +1297,15 @@ video_init()
     if(init_window())
 		return(-1);
 
-    /* Set VGA emulator to a sane state */
-    if(init_vga())
+   	/* Set VGA emulator to a sane state */
+   	if(init_vga())
 		return(-1);
 
     /* Initialize mode 3 (text, 80x25, 16 colors) */
-    if(init_mode(3))
+    if(init_mode(3)) {
 		return(-1);
+	}
+	sem_wait(&console_mode_changed);
 
     return(0);
 }
