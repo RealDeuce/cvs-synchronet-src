@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.38 2002/08/27 09:19:09 rswindell Exp $ */
+/* $Id: smblib.c,v 1.39 2002/09/18 22:25:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1723,6 +1723,22 @@ long SMBCALL smb_fwrite(void HUGE16* buf, long bytes, FILE* fp)
 		return(bytes-count);
 	return(bytes);
 #endif
+}
+
+/************************************************************************/
+/* Returns difference from specified timezone and UTC/GMT				*/
+/************************************************************************/
+int SMBCALL smb_tzutc(short zone)
+{
+	int tz;
+
+	if(zone<=1000 && zone>=-1000)	/* 720 is 12 hours */
+		return(zone);
+
+	tz=zone&0xfff;
+	if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
+		return(-tz);
+	return(tz);
 }
 
 /* End of SMBLIB.C */
