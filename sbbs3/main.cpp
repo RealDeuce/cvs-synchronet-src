@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.15 2001/05/03 23:15:53 rswindell Exp $ */
+/* $Id: main.cpp,v 1.16 2001/05/03 23:30:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -279,12 +279,14 @@ bool sbbs_t::js_initcx()
 
 		JS_SetContextPrivate(js_cx, this);	/* Store a pointer to sbbs_t instance */
 
+		/* Global Object */
 		if((js_glob=js_CreateGlobalObject(&cfg, js_cx))==NULL)
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
 			break;
 
+		/* System Object */
 		JSObject* sysobj;
 		
 		if((sysobj=js_CreateSystemObject(&cfg, js_cx, js_glob))==NULL)
@@ -299,6 +301,10 @@ bool sbbs_t::js_initcx()
 
 		val = STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx, bbs_ver()));
 		if(!JS_SetProperty(js_cx, sysobj, "version_detail", &val))
+			break;
+
+		/* Terminal Object */
+		if(js_CreateTerminalObject(js_cx, js_glob)==NULL)
 			break;
 
 		success=true;
