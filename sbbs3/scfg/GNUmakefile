@@ -11,7 +11,7 @@
 # Optional build targets: clean
 #########################################################################
 
-# $Id: GNUmakefile,v 1.41 2004/07/06 02:37:03 deuce Exp $
+# $Id: GNUmakefile,v 1.40 2004/04/17 19:18:14 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 #USE_FLTK =	1	# Use Windowed version
@@ -20,8 +20,8 @@ ifndef NO_CURSES
  USE_UIFC32	=	1	# NEW curses version of uifc
 endif
 
-UIFC_SRC	=	../../uifc/
-XPDEV	=	../../xpdev/
+UIFC_SRC	=	../../uifc
+XPDEV	=	../../xpdev
 SBBS_SRC =	..
 NEED_UIFC	:=	1
 CFLAGS		=	-DSCFG
