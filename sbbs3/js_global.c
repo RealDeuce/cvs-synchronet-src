@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.137 2004/12/09 08:07:13 rswindell Exp $ */
+/* $Id: js_global.c,v 1.138 2004/12/28 03:59:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2790,6 +2790,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		&& js_CreateClientObject(js_cx, js_glob, "client", client, client_socket)==NULL)
 		return(NULL);
 
+	/* Server */
 	if(props!=NULL
 		&& js_CreateServerObject(js_cx, js_glob, props)==NULL)
 		return(NULL);
