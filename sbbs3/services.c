@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.117 2003/07/22 01:06:46 rswindell Exp $ */
+/* $Id: services.c,v 1.118 2003/07/22 01:09:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1031,6 +1031,7 @@ static void js_static_service_thread(void* arg)
 		JS_DestroyScript(js_cx, js_script);
 
 		JS_DestroyContext(js_cx);	/* Free Context */
+		js_cx=NULL;
 	} while(!service->terminated && service->options&SERVICE_OPT_STATIC_LOOP);
 
 	if(js_cx!=NULL)
@@ -1377,7 +1378,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.117 $", "%*s %s", revision);
+	sscanf("$Revision: 1.118 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
