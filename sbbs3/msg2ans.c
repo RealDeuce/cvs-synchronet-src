@@ -2,7 +2,7 @@
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: msg2ans.c,v 1.1 2003/04/02 02:00:16 rswindell Exp $ */
+/* $Id: msg2ans.c,v 1.2 2003/04/02 02:05:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,11 +43,11 @@
 int main(int argc, char **argv)
 {
 	char	revision[16];
-	int		i,ch;
+	int		ch;
 	FILE*	in;
 	FILE*	out;
 
-	sscanf("$Revision: 1.1 $", "%*s %s", revision);
+	sscanf("$Revision: 1.2 $", "%*s %s", revision);
 
 	if(argc<3) {
 		fprintf(stderr,"\nmsg2ans %s\n",revision);
