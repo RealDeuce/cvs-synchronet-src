@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.85 2004/07/31 11:04:31 deuce Exp $ */
+/* $Id: uifc32.c,v 1.86 2004/08/10 03:59:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -366,6 +366,7 @@ int uscrn(char *str)
     gotoxy(1,api->scrn_len+1);
     clreol();
 	reset_dynamic();
+	settitle(str);
     return(0);
 }
 
