@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.67 2003/04/01 11:03:03 rswindell Exp $
+# $Id: GNUmakefile,v 1.68 2003/04/01 11:04:27 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -311,6 +311,7 @@ $(ADDFILES): \
 	$(EXEODIR)/scfglib1.o \
 	$(EXEODIR)/scfglib2.o \
 	$(EXEODIR)/nopen.o \
+	$(EXEODIR)/crc16.o \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/dat_rec.o \
 	$(EXEODIR)/filedat.o \
@@ -329,6 +330,7 @@ $(FILELIST): \
 	$(EXEODIR)/scfglib1.o \
 	$(EXEODIR)/scfglib2.o \
 	$(EXEODIR)/nopen.o \
+	$(EXEODIR)/crc16.o \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/dat_rec.o \
 	$(EXEODIR)/filedat.o \
@@ -347,6 +349,7 @@ $(MAKEUSER): \
 	$(EXEODIR)/scfglib1.o \
 	$(EXEODIR)/scfglib2.o \
 	$(EXEODIR)/nopen.o \
+	$(EXEODIR)/crc16.o \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/dat_rec.o \
 	$(EXEODIR)/userdat.o \
