@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.119 2001/11/27 18:36:41 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.120 2001/11/27 22:25:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4279,7 +4279,9 @@ void DLLCALL ftp_server(void* arg)
 		startup->options&=~FTP_OPT_NO_JAVASCRIPT;
 	else
 		startup->options|=FTP_OPT_NO_JAVASCRIPT;
+#ifdef JAVASCRIPT
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
+#endif
 
 	thread_up();
 

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.81 2001/11/27 18:37:22 rswindell Exp $ */
+/* $Id: main.cpp,v 1.82 2001/11/27 22:25:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3007,7 +3007,9 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
 	if(startup->rlogin_port==0)				startup->rlogin_port=513;
 	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
+#ifdef JAVASCRIPT
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
+#endif
 
 	thread_up();
 
