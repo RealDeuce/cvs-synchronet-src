@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.38 2004/10/14 06:21:27 deuce Exp $ */
+/* $Id: win32cio.c,v 1.43 2004/10/20 11:24:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,10 +37,8 @@
 
 #include "ciolib.h"
 #include "keys.h"
-#include "vparams.h"
+#include "vidmodes.h"
 #include "win32cio.h"
-
-#define VID_MODES	7
 
 const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
@@ -213,7 +211,7 @@ int win32_getchcode(WORD code, DWORD state)
 			if(state & (RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED))
 				return(keyval[i].CTRL);
 			if(state & (SHIFT_PRESSED))
-				return(keyval[i].Shift;
+				return(keyval[i].Shift);
 			return(keyval[i].Key);
 		}
 	}
@@ -258,7 +256,8 @@ int win32_keyboardio(int isgetch)
 
 		switch(input.EventType) {
 			case KEY_EVENT:
-				lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
+				if(input.Event.KeyEvent.bKeyDown)
+					lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {
@@ -366,16 +365,16 @@ void win32_textmode(int mode)
 	COORD	sz;
 	SMALL_RECT	rc;
 
-	for(i=0;i<VID_MODES;i++) {
+	for(i=0;i<NUMMODES;i++) {
 		if(vparams[i].mode==mode)
 			modeidx=i;
 	}
-	sz.X=vparams[modeidx].charwidth;
-	sz.Y=vparams[modeidx].charheight;
+	sz.X=vparams[modeidx].cols;
+	sz.Y=vparams[modeidx].rows;
 	rc.Left=0;
-	rc.Right=vparams[modeidx].charwidth-1;
+	rc.Right=vparams[modeidx].cols-1;
 	rc.Top=0;
-	rc.Bottom=vparams[modeidx].charheight-1;
+	rc.Bottom=vparams[modeidx].rows-1;
 	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
 	SetConsoleWindowInfo(GetStdHandle(STD_OUTPUT_HANDLE),TRUE,&rc);
 	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
@@ -418,8 +417,8 @@ void win32_gettextinfo(struct text_info* info)
 	info->curx=xpos;
 	info->cury=ypos;
 	info->attribute=currattr;
-	info->screenheight=vparams[modeidx].charheight;
-	info->screenwidth=vparams[modeidx].charwidth;
+	info->screenheight=vparams[modeidx].rows;
+	info->screenwidth=vparams[modeidx].cols;
 }
 
 void win32_gotoxy(int x, int y)
@@ -507,11 +506,12 @@ void win32_setcursortype(int type)
 	switch(type) {
 		case _NOCURSOR:
 			ci.bVisible=FALSE;
+			ci.dwSize=1;
 			break;
 		
 		case _SOLIDCURSOR:
 			ci.bVisible=TRUE;
-			ci.dwSize=100;
+			ci.dwSize=99;
 			break;
 		
 		default:	/* Normal cursor */
