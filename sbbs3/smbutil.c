@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.85 2004/12/22 21:01:23 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.86 2005/01/10 09:19:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1456,7 +1456,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.85 $", "%*s %s", revision);
+	sscanf("$Revision: 1.86 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1499,6 +1499,7 @@ int main(int argc, char **argv)
 						break;
 					case 'D':
 						to="All";
+						to_number="1";
 						from="Sysop";
 						from_number="1";
 						subj="Announcement";
