@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.141 2004/03/19 02:47:27 deuce Exp $
+# $Id: GNUmakefile,v 1.138 2004/03/11 06:26:00 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -20,16 +20,13 @@ ifndef NO_CURSES
  USE_UIFC32      =       1       # Curses version of UIFC
 endif
 
-UIFC_SRC =	../uifc/
-XPDEV	 =	../xpdev/
-SBBS_SRC =	./
+UIFC	=	../uifc/
+XPDEV	=	../xpdev/
 
 NEED_JAVASCRIPT	:= 1
 NEED_THREADS	:= 1
 
 include $(XPDEV)/Common.gmake
-include $(SBBS_SRC)/Common.gmake
-include $(UIFC_SRC)/Common.gmake
 
 ifeq ($(os),freebsd)
  BSD	=	1
@@ -40,7 +37,6 @@ else
 endif
 
 CFLAGS  +=  -I$(XPDEV)
-CFLAGS	+=  $(UIFC_CFLAGS)
 
 ifndef bcc
  LDFLAGS	+=	-lm -lutil
@@ -69,7 +65,11 @@ ifdef USE_DOSEMU
 endif
 
 ifdef DONT_BLAME_SYNCHRONET
- CFLAGS += -DDONT_BLAME_SYNCHRONET
+ LDFLAGS += -DDONT_BLAME_SYNCHRONET
+endif
+
+ifeq ($(XP_SEM),1)
+ OBJS	+=	$(LIBODIR)$(SLASH)xpsem.$(OFILE)
 endif
 
 #SBBSLIB	=	$(LIBODIR)$(SLASH)libsbbs.so
@@ -299,7 +299,6 @@ ECHOCFG_OBJS = \
 	$(LIBODIR)/echocfg.o \
 	$(LIBODIR)/rechocfg.o \
 	$(UIFC_OBJS) \
-	$(LIBODIR)/uifcx.o \
 	$(LIBODIR)/nopen.o \
 	$(LIBODIR)/crc16.o \
 	$(LIBODIR)/str_util.o \
