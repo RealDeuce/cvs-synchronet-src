@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.135 2002/03/28 03:59:45 rswindell Exp $ */
+/* $Id: main.cpp,v 1.136 2002/04/08 21:02:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1020,6 +1020,7 @@ void event_thread(void* arg)
 
 			memcpy(&sbbs->cfg,&scfg,sizeof(scfg_t));
 
+			sprintf(sbbs->cfg.temp_dir, "temp/%lX", sbbs_random(~0));
 			prep_dir(sbbs->cfg.data_dir, sbbs->cfg.temp_dir);
 
 			// Read TIME.DAB
@@ -1581,8 +1582,10 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	if(node_num>0) {
 		strcpy(cfg.node_dir, cfg.node_path[node_num-1]);
 		prep_dir(cfg.node_dir, cfg.temp_dir);
-	} else
+	} else {
+		sprintf(cfg.temp_dir, "temp/%lX", sbbs_random(~0));
     	prep_dir(cfg.data_dir, cfg.temp_dir);
+	}
 
 	terminated = false;
 	event_thread_running = false;
@@ -1997,6 +2000,9 @@ sbbs_t::~sbbs_t()
     	strcpy(node,client_name);
 
 	lprintf("%s destructor begin", node);
+
+	if(!cfg.node_num)
+		rmdir(cfg.temp_dir);
 
 	if(client_socket_dup!=INVALID_SOCKET)
 		closesocket(client_socket_dup);	/* close duplicate handle */
