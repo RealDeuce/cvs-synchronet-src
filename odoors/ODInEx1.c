@@ -2381,7 +2381,7 @@ void ODInitError(char *pszErrorText)
    }
 #endif
 #ifdef ODPLAT_NIX
-   fwrite(pszErrorText,strlen(pszErrorText),1,stderr);
+   write(2,pszErrorText,strlen(pszErrorText));
 #endif
 }
 
