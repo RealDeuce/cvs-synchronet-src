@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.13 2000/11/17 00:14:10 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.14 2000/11/17 05:07:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -259,6 +259,8 @@ int main(int argc, char** argv)
     mail_startup.relay_port=IPPORT_SMTP;
     mail_startup.interface_addr=INADDR_ANY;
 	mail_startup.lputs=mail_lputs;
+    mail_startup.started=mail_started;
+    mail_startup.terminated=mail_terminated;
 	mail_startup.options|=MAIL_OPT_ALLOW_POP3;
     strcpy(mail_startup.ctrl_dir,ctrl_dir);
 
