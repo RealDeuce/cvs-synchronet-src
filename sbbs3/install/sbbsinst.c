@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.46 2003/02/03 23:58:14 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.47 2003/02/04 00:02:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 	/* Defaults */
 	/************/
 	SAFECOPY(params.install_path,"/usr/local/sbbs");
-	SAFECOPY(params.make_cmdline,
+	strcpy(params.make_cmdline,
 #if defined(__linux__)
 		"make"
 #else
