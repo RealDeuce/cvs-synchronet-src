@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.141 2004/03/19 02:47:27 deuce Exp $
+# $Id: GNUmakefile,v 1.143 2004/03/24 01:20:39 deuce Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -43,7 +43,10 @@ CFLAGS  +=  -I$(XPDEV)
 CFLAGS	+=  $(UIFC_CFLAGS)
 
 ifndef bcc
- LDFLAGS	+=	-lm -lutil
+ LDFLAGS	+=	-lm
+ ifneq ($(os),sunos)
+  LDFLAGS	+=	-lutil
+ endif
 endif
 
 ifeq ($(os),sunos)    # Solaris
@@ -80,6 +83,7 @@ $(SBBSLIB) : $(SBBS)
 	$(QUIET)touch -- '$(SBBSLIB)'
 
 ifneq ($(os),darwin)
+ifneq ($(os),sunos)
 SBBSLDFLAGS	:=	$(LDFLAGS) -rpath-link ./$(LIBODIR) -rpath ./ 
 #LDFLAGS		+=	-Wl,-rpath-link,./$(LIBODIR),-rpath,./
 LDFLAGS		+=	-Xlinker -rpath
@@ -91,6 +95,7 @@ LDFLAGS		+=	-Xlinker -rpath-link
 LDFLAGS		+=	-Xlinker $(JSLIBDIR)
 LDFLAGS		+=	-Xlinker -rpath-link
 LDFLAGS		+=	-Xlinker $(NSPRDIR)
+endif
 endif
 endif
 
@@ -112,12 +117,18 @@ SMBLIB_OBJS = \
 
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
-MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
-MKSHPPLIB		:=	libtool -dynamic -framework System -lcc_dynamic -lstdc++
-SHLIBOPTS	:=	
+ MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
+ MKSHPPLIB		:=	libtool -dynamic -framework System -lcc_dynamic -lstdc++
+ SHLIBOPTS	:=	
 else
-MKSHLIB		:=	$(CC)
-MKSHPPLIB		:=	$(CXX)
+ ifeq ($(os),sunos)
+  MKSHLIB		:=	/usr/ccs/bin/ld -G
+  MKSHPPLIB		:=	/usr/ccs/bin/ld -G -L/usr/local/lib -lstdc++
+  SHLIBOPTS	:=	
+ else
+  MKSHLIB		:=	$(CC)
+  MKSHPPLIB		:=	$(CXX)
+ endif
 endif
 
 # Monolithic Synchronet executable Build Rule

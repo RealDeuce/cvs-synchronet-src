@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.125 2004/03/22 17:05:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.126 2004/03/26 02:54:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3163,8 +3163,8 @@ void attach_bundles(void)
 
 		printf("%21s: %s ","Outbound Packet",packet);
 		if((fmsg=sopen(packet,O_RDWR,SH_DENYRW))==-1) {
-			printf("ERROR line %d opening.\n",__LINE__);
-			logprintf("ERROR line %d opening %s",__LINE__,packet);
+			printf("ERROR %d line %d opening.\n",errno,__LINE__);
+			logprintf("ERROR %d line %d opening %s",errno,__LINE__,packet);
 			continue; }
 		if((fidomsg=fdopen(fmsg,"r+b"))==NULL) {
 			close(fmsg);
@@ -4089,7 +4089,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.125 $", "%*s %s", revision);
+	sscanf("$Revision: 1.126 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
