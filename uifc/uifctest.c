@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uifctest.c,v 1.4 2004/07/26 22:06:35 rswindell Exp $ */
+/* $Id: uifctest.c,v 1.3 2004/07/02 20:19:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include <signal.h>
 #include <stdio.h>
-/* #include "curs_fix.h" */
+#include "curs_fix.h"
 #include "uifc.h"
 
 /********************/
@@ -67,7 +67,7 @@ int main(int argc, char** argv)  {
 	char	ini_file[MAX_PATH+1];
 	FILE*				fp;
 
-	sscanf("$Revision: 1.4 $", "%*s %s", revision);
+	sscanf("$Revision: 1.3 $", "%*s %s", revision);
 
     printf("\nSynchronet UIFC Test Suite Copyright 2004 "
         "Rob Swindell\n");

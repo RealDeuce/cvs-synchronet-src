@@ -2,13 +2,13 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.29 2004/07/20 23:26:58 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.28 2004/04/05 19:25:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*

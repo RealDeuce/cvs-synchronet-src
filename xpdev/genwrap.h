@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.61 2004/07/20 01:41:28 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.60 2004/03/31 03:29:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,7 +272,7 @@ extern "C" {
 DLLEXPORT int		DLLCALL	xp_random(int);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
-DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
+DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, char *fmt, ...);
 
 #if defined(_WIN32)
 #define		msclock()	clock()
