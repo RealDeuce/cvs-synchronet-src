@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.5 2001/11/02 15:19:02 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.6 2001/11/02 21:30:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 	if(smb_open(&smb)!=0) 
 		return(0); 
 	while(!smb_feof(smb.sid_fp)) {
-		if(smb_fread(&idx,sizeof(idx),smb.sid_fp) != siuzeof(idx))
+		if(smb_fread(&idx,sizeof(idx),smb.sid_fp) != sizeof(idx))
 			break;
 		if(idx.number==0)	/* invalid message number, ignore */
 			continue;
