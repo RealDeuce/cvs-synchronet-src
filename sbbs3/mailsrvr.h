@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.57 2005/02/18 08:54:04 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.56 2004/11/06 02:13:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,11 +75,8 @@ typedef struct {
     BOOL	(*seteuid)(BOOL user);
 	BOOL	(*setuid)(BOOL force);
 
-	/* Paths */
-    char    ctrl_dir[128];
-	char    temp_dir[128];
-
 	/* Strings */
+    char    ctrl_dir[128];
     char	dns_server[128];
     char	default_user[128];
     char	dnsbl_tag[32];		// Tag to add to blacklisted subject
