@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.17 2003/08/14 12:10:52 deuce Exp $ */
+/* $Id: filewrap.h,v 1.18 2003/10/09 15:57:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,17 +80,17 @@
 		#undef	O_DENYNONE
 		#define O_DENYNONE  (1<<31)	/* req'd for Baja/nopen compatibility */
 
-		#define SH_DENYNO	2          // no locks
+		#define SH_DENYNO	2          /* no locks */
 		#ifdef F_SANEWRLCKNO
-			#define SH_DENYRW	F_SANEWRLCKNO	   // exclusive lock
+			#define SH_DENYRW	F_SANEWRLCKNO	   /* exclusive lock */
 		#else
-			#define SH_DENYRW	F_WRLCK	   // exclusive lock
+			#define SH_DENYRW	F_WRLCK	   /* exclusive lock */
 		#endif
 	
 		#ifdef F_SANERDLCKNO
-			#define SH_DENYWR   F_SANERDLCKNO    // shareable lock
+			#define SH_DENYWR   F_SANERDLCKNO    /* shareable lock */
 		#else
-			#define SH_DENYWR   F_RDLCK    // shareable lock
+			#define SH_DENYWR   F_RDLCK    /* shareable lock */
 		#endif
 	#endif
 	#define chsize(fd,size)		ftruncate(fd,size)
