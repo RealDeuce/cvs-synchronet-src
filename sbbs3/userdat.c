@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.31 2002/01/21 03:17:27 rswindell Exp $ */
+/* $Id: userdat.c,v 1.32 2002/02/24 04:06:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1417,6 +1417,10 @@ char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name)
 {
 	int i;
 
+	if(strchr(name,'@')!=NULL) { /* Avoid double-@ */
+		strcpy(addr,name);
+		return(addr);
+	}
 	if(strchr(name,'.') && strchr(name,' '))
 		sprintf(addr,"\"%s\"@",name);
 	else {
