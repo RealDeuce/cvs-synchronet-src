@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.4 2003/07/03 05:42:02 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.5 2003/07/03 05:44:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -320,7 +320,7 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 	return(TRUE);
 }
 
-static BOOL js_init(void)
+static BOOL js_init(char** environ)
 {
 	fprintf(errfp,"JavaScript: Creating runtime: %lu bytes\n"
 		,js_max_bytes);
@@ -440,7 +440,7 @@ long js_exec(const char *fname, char** args)
 /*********************/
 /* Entry point (duh) */
 /*********************/
-int main(int argc, char **argv)
+int main(int argc, char **argv, char** environ)
 {
 	char	error[512];
 	char*	module=NULL;
@@ -450,7 +450,7 @@ int main(int argc, char **argv)
 	confp=stdout;
 	errfp=stderr;
 
-	sscanf("$Revision: 1.4 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	p=getenv("SBBSCTRL");
 	if(p==NULL) {
@@ -510,7 +510,7 @@ int main(int argc, char **argv)
 	if(!(scfg.sys_misc&SM_LOCAL_TZ))
 		putenv("TZ=UTC0");
 
-	if(!js_init()) {
+	if(!js_init(environ)) {
 		fprintf(errfp,"!JavaScript initialization failure\n");
 		bail(1);
 	}
