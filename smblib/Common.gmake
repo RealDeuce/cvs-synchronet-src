@@ -5,8 +5,9 @@
 SMBLIB_SRC	?=	$(XPDEV)../smblib/
 
 SMBLIB_CFLAGS	+=	-I$(SMBLIB_SRC)
-SMBLIB_LDFLAGS	+=	-L$(SMBLIB_SRC) -lsmblib
 SMBLIB_ODIR	?=	$(XPDEV)../smblib/$(LIBODIR)
+SMBLIB_LDFLAGS	+=	-L$(SMBLIB_ODIR)
+SMBLIB_LIBS	+=	-lsmb
 SMBLIB_TARGET	:=	$(SMBLIB_ODIR)/libsmb.a
 SMBLIB_OBJS	:= \
         $(SMBLIB_ODIR)/smblib.o \
@@ -15,12 +16,13 @@ SMBLIB_OBJS	:= \
         $(SMBLIB_ODIR)/crc16.o \
         $(SMBLIB_ODIR)/crc32.o \
         $(SMBLIB_ODIR)/md5.o \
-        $(SMBLIB_ODIR)/lzh.o \
+        $(SMBLIB_ODIR)/lzh.o
 
 ifdef NEED_SMBLIB
 	CFLAGS	+=	$(SMBLIB_CFLAGS)
 	LDFLAGS	+=	$(SMBLIB_LDFLAGS)
 	OBJS	+=	$(SMBLIB_TARGET)
+	ADD_LIBS	+=	$(SMBLIB_LIBS)
 endif
 
 vpath %.c $(SMBLIB_SRC)
@@ -31,8 +33,11 @@ $(SMBLIB_ODIR)/%.o : %.c $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) -o $@ -c $<
 
-$(SMBLIB_ODIR)/libsmb.a: $(SMBLIB_OBJS) $(BUILD_DEPENDS)
+$(SMBLIB_TARGET): $(SMBLIB_ODIR) $(SMBLIB_OBJS) $(BUILD_DEPENDS)
 	@echo Creating $<
-	@(QUIET)ar rc $@ $(SMBLIB_OBJS)
-	@(QUIET)ranlib $@
+	$(QUIET)ar rc $@ $(SMBLIB_OBJS)
+	$(QUIET)ranlib $@
+
+$(SMBLIB_ODIR):
+	$(QUIET)$(IFNOTEXIST) mkdir $(SMBLIB_ODIR)
 
