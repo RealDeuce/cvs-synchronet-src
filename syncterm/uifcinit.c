@@ -33,8 +33,7 @@ int	init_uifc(void) {
 void uifcbail(void)
 {
 	if(uifc_initialized) {
-		uifc.bail();
-		initciowrap(UIFC_IBM|COLOR_MODE);
+		uifc.bail;
 	}
 	uifc_initialized=0;
 }
