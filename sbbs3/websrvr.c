@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.294 2005/03/27 03:15:41 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.295 2005/03/27 08:09:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2054,6 +2054,7 @@ static BOOL check_request(http_session_t * session)
 	SAFECOPY(session->req.physical_path,path);
 	if(session->req.dynamic==IS_CGI)  {
 		add_env(session,"SCRIPT_NAME",session->req.virtual_path);
+		add_env(session,"SCRIPT_FILENAME",session->req.physical_path);
 	}
 	SAFECOPY(str,session->req.virtual_path);
 	last_slash=find_last_slash(str);
@@ -3361,7 +3362,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.294 $", "%*s %s", revision);
+	sscanf("$Revision: 1.295 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
