@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.43 2003/02/28 10:49:46 rswindell Exp $ */
+/* $Id: scfg.c,v 1.44 2003/02/28 22:08:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 	char	**mopt,*p;
     char    errormsg[MAX_PATH*2];
 	int 	i,j,main_dflt=0,chat_dflt=0;
-	char 	str[129];
+	char 	str[MAX_PATH+1];
  	char	exepath[MAX_PATH+1];
 	BOOL	gui_mode=FALSE;
 	BOOL    door_mode=FALSE;
