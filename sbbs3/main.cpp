@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.212 2002/12/14 03:04:58 rswindell Exp $ */
+/* $Id: main.cpp,v 1.213 2002/12/19 22:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1503,7 +1503,7 @@ void event_thread(void* arg)
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						if(sbbs->unpack_qwk(str,i)==false) {
 							char newname[MAX_PATH+1];
-							sprintf(newname,"%s.%lx.bad",str,now);
+							sprintf(newname,"%s.%x.bad",str,now);
 							remove(newname);
 							if(rename(str,newname)==0) {
 								char logmsg[MAX_PATH*3];
