@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.32 2003/07/02 10:59:46 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.33 2003/07/03 01:47:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,7 @@ bool sbbs_t::answer()
 				str2[i]=in;
 			}
 			str2[i]=0;
-			for(i=0;i<sizeof(terminal)-1;i++) {
+			for(i=0;i<(int)sizeof(terminal)-1;i++) {
 				in=incom(1000);
 				if(in==0 || in==NOINP)
 					break;
