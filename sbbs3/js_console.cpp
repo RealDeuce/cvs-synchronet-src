@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.38 2003/03/06 10:47:34 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.39 2003/03/06 14:41:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,7 +316,7 @@ js_handle_ctrlkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if(argc>1)
 		JS_ValueToInt32(cx, argv[1], &mode);
 
-	*rval = BOOLEAN_TO_JSVAL(sbbs->handle_ctrlkey(key,mode));
+	*rval = BOOLEAN_TO_JSVAL(sbbs->handle_ctrlkey(key,mode)==0);
     return(JS_TRUE);
 }
 
