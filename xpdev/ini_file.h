@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.9 2003/05/18 10:38:55 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.10 2003/09/16 03:59:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,8 +40,7 @@
 
 #include "genwrap.h"
 
-#define MAX_LINE_LEN	256		/* Maximum length of entire line, includes '\0' */
-#define MAX_VALUE_LEN	128		/* Maximum value length, includes '\0' */
+#define INI_MAX_VALUE_LEN	128		/* Maximum value length, includes '\0' */
 
 typedef struct {
 	ulong		bit;
