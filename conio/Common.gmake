@@ -1,6 +1,17 @@
-CIOLIB-MT_LIBS		+=	$(UL_PRE)ncurses$(UL_SUF)
+ifeq ($(os),sunos)
+ CIOLIB-MT_LIBS		+=	$(UL_PRE)curses$(UL_SUF)
+else
+ CIOLIB-MT_LIBS		+=	$(UL_PRE)ncurses$(UL_SUF)
+endif
 ifndef NO_X
- ifeq ($(os),linux)
-  CIOLIB-MT_LIBS		+=  $(UL_PRE)dl$(UL_SUF)
+ ifdef STATIC
+  CIOLIB-MT_LIBS		+=	-L/usr/X11R6/lib -lX11
+ else
+  ifeq ($(os),linux)
+   CIOLIB-MT_LIBS		+=  $(UL_PRE)dl$(UL_SUF)
+  endif
+  ifeq ($(os),sunos)
+   CIOLIB-MT_LIBS		+=  $(UL_PRE)dl$(UL_SUF)
+  endif
  endif
 endif
