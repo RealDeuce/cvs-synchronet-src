@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.85 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: userdat.c,v 1.84 2004/03/24 08:17:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -293,10 +293,10 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 		user->rows=10;
 	user->sex=userdat[U_SEX];
 	if(!user->sex)
-		user->sex=' ';	 /* fix for v1b04 that could save as 0 */
+		user->sex=SP;	 /* fix for v1b04 that could save as 0 */
 	user->prot=userdat[U_PROT];
-	if(user->prot<' ')
-		user->prot=' ';
+	if(user->prot<SP)
+		user->prot=SP;
 	getrec(userdat,U_MISC,8,str); user->misc=ahtoul(str);
 	if(user->rest&FLAG('Q'))
 		user->misc&=~SPIN;
@@ -327,7 +327,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	user->shell=i;
 
 	getrec(userdat,U_QWK,8,str);
-	if(str[0]<' ') { 			   /* v1c, so set defaults */
+	if(str[0]<SP) { 			   /* v1c, so set defaults */
 		if(user->rest&FLAG('Q'))
 			user->qwk=(QWK_RETCTLA);
 		else

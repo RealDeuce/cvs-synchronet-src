@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.17 2004/05/28 10:44:55 rswindell Exp $ */
+/* $Id: str_list.c,v 1.15 2004/05/28 03:33:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ size_t strListCount(const str_list_t list)
 	return(i);
 }
 
-static char* str_list_append(str_list_t* list, char* str, size_t index)
+static str_list_t str_list_append(str_list_t* list, char* str, size_t index)
 {
 	str_list_t lp;
 
@@ -75,10 +75,10 @@ static char* str_list_append(str_list_t* list, char* str, size_t index)
 	lp[index++]=str;
 	lp[index]=NULL;	/* terminate list */
 
-	return(str);
+	return(lp);
 }
 
-static char* str_list_insert(str_list_t* list, char* str, size_t index)
+static str_list_t str_list_insert(str_list_t* list, char* str, size_t index)
 {
 	size_t	i;
 	size_t	count;
@@ -97,21 +97,16 @@ static char* str_list_insert(str_list_t* list, char* str, size_t index)
 		lp[i]=lp[i-1];
 	lp[index]=str;
 
-	return(str);
+	return(lp);
 }
 
-char* strListRemove(str_list_t* list, size_t index)
+str_list_t strListRemove(str_list_t* list, size_t index)
 {
-	char*	str;
 	size_t	i;
 	size_t	count;
 	str_list_t lp;
 
 	count = strListCount(*list);
-
-	if(index==STR_LIST_LAST_INDEX && count)
-		index = count-1;
-
 	if(index >= count)	/* invalid index, do nothing */
 		return(NULL);
 
@@ -120,49 +115,14 @@ char* strListRemove(str_list_t* list, size_t index)
 		return(NULL);
 
 	*list=lp;
-	str=lp[index];
 	for(i=index; i<count; i++)
 		lp[i]=lp[i+1];
 	lp[count]=NULL;
 
-	return(str);
+	return(lp);
 }
 
-BOOL strListDelete(str_list_t* list, size_t index)
-{
-	char*	str;
-
-	if((str=strListRemove(list, index))==NULL)
-		return(FALSE);
-
-	free(str);
-
-	return(TRUE);
-}
-
-char* strListReplace(const str_list_t list, size_t index, const char* str)
-{
-	char*	buf;
-	size_t	count;
-
-	count = strListCount(list);
-
-	if(index==STR_LIST_LAST_INDEX && count)
-		index = count-1;
-
-	if(index >= count)	/* invalid index, do nothing */
-		return(NULL);
-
-	if((buf=(char*)realloc(list[index],strlen(str)+1))==NULL)
-		return(NULL);
-
-	list[index]=buf;
-	strcpy(buf,str);
-
-	return(buf);
-}
-
-char* strListAppend(str_list_t* list, const char* str, size_t index)
+str_list_t strListAppend(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
 
@@ -171,13 +131,13 @@ char* strListAppend(str_list_t* list, const char* str, size_t index)
 
 	strcpy(buf,str);
 
-	if(index==STR_LIST_LAST_INDEX)
+	if(index==STR_LIST_APPEND)
 		index=strListCount(*list);
 
 	return(str_list_append(list,buf,index));
 }
 
-size_t	strListAppendList(str_list_t* list, const str_list_t add_list)
+str_list_t	strListAppendList(str_list_t* list, const str_list_t add_list)
 {
 	size_t	i;
 	size_t	count;
@@ -186,10 +146,10 @@ size_t	strListAppendList(str_list_t* list, const str_list_t add_list)
 	for(i=0; add_list[i]!=NULL; i++)
 		strListAppend(list,add_list[i],count++);
 
-	return(count);
+	return(*list);
 }
 
-char* strListInsert(str_list_t* list, const char* str, size_t index)
+str_list_t strListInsert(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
 
@@ -201,37 +161,29 @@ char* strListInsert(str_list_t* list, const char* str, size_t index)
 	return(str_list_insert(list,buf,index));
 }
 
-size_t strListInsertList(str_list_t* list, const str_list_t add_list, size_t index)
+str_list_t	strListInsertList(str_list_t* list, const str_list_t add_list, size_t index)
 {
 	size_t	i;
 
-
 	for(i=0; add_list[i]!=NULL; i++)
-		if(strListInsert(list,add_list[i],index++)==NULL)
-			break;
+		strListInsert(list,add_list[i],index++);
 
-	return(i);
+	return(*list);
 }
 
-str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
+str_list_t strListSplit(str_list_t* list, char* str, const char* delimit)
 {
-	size_t	count;
 	char*	token;
-	str_list_t	list;
 
-	if(lp==NULL) {
-		if((list = strListInit())==NULL)
-			return(0);
-		lp=&list;
-		count=0;
-	} else
-		count=strListCount(*lp);
+	if(list==NULL) {
+		if((*list = strListInit())==NULL)
+			return(NULL);
+	}
 
 	for(token = strtok(str, delimit); token!=NULL; token=strtok(NULL, delimit))
-		if(strListAppend(lp, token, count++)==NULL)
-			break;
+		strListAppend(list, token, STR_LIST_APPEND);
 
-	return(*lp);
+	return(*list);
 }
 
 str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delimit)
@@ -243,23 +195,22 @@ str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delim
 
 	strcpy(buf,str);
 
-	*list=strListSplit(list,buf,delimit);
+	*list = strListSplit(list,buf,delimit);
 
 	free(buf);
 
 	return(*list);
 }
 
-size_t	strListMerge(str_list_t* list, str_list_t add_list)
+str_list_t	strListMerge(str_list_t* list, str_list_t add_list)
 {
-	size_t	i;
-	size_t	count;
+	size_t	i,j;
 
-	count=strListCount(*list);
+	j=strListCount(*list);
 	for(i=0; add_list[i]!=NULL; i++)
-		str_list_append(list,add_list[i],count++);
+		str_list_append(list,add_list[i],j++);
 
-	return(i);
+	return(*list);
 }
 
 static int strListCompareAlpha(const void *arg1, const void *arg2)
@@ -321,35 +272,37 @@ void strListFree(str_list_t* list)
 	}
 }
 
-str_list_t strListReadFile(FILE* fp, str_list_t* lp, size_t max_line_len)
+str_list_t strListReadFile(FILE* fp, str_list_t* list, size_t max_line_len, BOOL pad)
 {
 	char*		buf=NULL;
 	size_t		count;
-	str_list_t	list;
 
 	if(max_line_len<1)
 		max_line_len=2048;
 
-	if(lp==NULL) {
-		if((list = strListInit())==NULL)
+	if(list==NULL) {
+		if((*list = strListInit())==NULL)
 			return(NULL);
-		lp=&list;
 	}
 
-	count = strListCount(*lp);
+	count = strListCount(*list);
 	while(!feof(fp)) {
 		if(buf==NULL && (buf=malloc(max_line_len+1))==NULL)
 			return(NULL);
 		
 		if(fgets(buf,max_line_len+1,fp)==NULL)
 			break;
-		strListAppend(lp, buf, count++);
+		if(pad) {
+			str_list_append(list, buf, count++);
+			buf=NULL;
+		} else
+			strListAppend(list, buf, count++);
 	}
 
-	if(buf!=NULL)
+	if(buf)
 		free(buf);
 
-	return(*lp);
+	return(*list);
 }
 
 size_t strListWriteFile(FILE* fp, const str_list_t list, const char* separator)

@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.32 2004/05/30 06:56:06 deuce Exp $ */
+/* $Id: scfgxtrn.c,v 1.31 2004/04/21 22:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -799,7 +799,7 @@ This is the name or description of the online program (door).
 			,0)<1)
             continue;
 		sprintf(code,"%.8s",str);
-		p=strchr(code,' ');
+		p=strchr(code,SP);
 		if(p) *p=0;
         strupr(code);
 		SETHELP(WHERE);
@@ -1489,7 +1489,7 @@ This is the name or description of the external editor.
 			,0)<1)
             continue;
 		sprintf(code,"%.8s",str);
-		p=strchr(code,' ');
+		p=strchr(code,SP);
 		if(p) *p=0;
         strupr(code);
 		SETHELP(WHERE);
@@ -2008,7 +2008,7 @@ This is the name of this section.
 			,0)<1)
             continue;
 		sprintf(code,"%.8s",str);
-		p=strchr(code,' ');
+		p=strchr(code,SP);
 		if(p) *p=0;
         strupr(code);
 		SETHELP(WHERE);
