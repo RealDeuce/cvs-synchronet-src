@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.230 2003/04/29 22:47:11 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.231 2003/04/30 23:48:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -315,7 +315,7 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	while((result=sendsocket(sock,sbuf,len))!=len) {
 		if(result==SOCKET_ERROR) {
 			if(ERROR_VALUE==EWOULDBLOCK) {
-				mswait(1);
+				YIELD();
 				continue;
 			}
 			if(ERROR_VALUE==ECONNRESET) 
@@ -1132,7 +1132,7 @@ int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 						,startup->max_inactivity);
 					return(0);
 				}
-				mswait(1);
+				YIELD();
 				continue;
 			}
 			recverror(socket,i,__LINE__);
@@ -1423,7 +1423,7 @@ static void send_thread(void* arg)
 			break;
 		}
 		if(i<1) {
-			mswait(1);
+			YIELD();
 			continue;
 		}
 
@@ -1443,7 +1443,7 @@ static void send_thread(void* arg)
 			if(wr==SOCKET_ERROR) {
 				if(ERROR_VALUE==EWOULDBLOCK) {
 					/*lprintf("%04d DATA send would block, retrying",xfer.ctrl_sock);*/
-					mswait(1);
+					YIELD();
 					continue;
 				}
 				else if(ERROR_VALUE==ECONNRESET) 
@@ -1475,7 +1475,7 @@ static void send_thread(void* arg)
 		}
 		total+=wr;
 		*xfer.lastactive=time(NULL);
-		mswait(1);
+		YIELD();
 	}
 
 	if((i=ferror(fp))!=0) 
@@ -1679,7 +1679,7 @@ static void receive_thread(void* arg)
 			break;
 		}
 		if(i<1) {
-			mswait(1);
+			YIELD();
 			continue;
 		}
 
@@ -1700,7 +1700,7 @@ static void receive_thread(void* arg)
 			if(rd==SOCKET_ERROR) {
 				if(ERROR_VALUE==EWOULDBLOCK) {
 					/*lprintf("%04d DATA recv would block, retrying",xfer.ctrl_sock);*/
-					mswait(1);
+					YIELD();
 					continue;
 				}
 				else if(ERROR_VALUE==ECONNRESET) 
@@ -1728,7 +1728,7 @@ static void receive_thread(void* arg)
 		fwrite(buf,1,rd,fp);
 		total+=rd;
 		*xfer.lastactive=time(NULL);
-		mswait(1);
+		YIELD();
 	}
 
 	if(server_socket!=INVALID_SOCKET)
@@ -2935,7 +2935,7 @@ static void ctrl_thread(void* arg)
 				lprintf("%04d %s aborting transfer"
 					,sock,user.alias);
 				transfer_aborted=TRUE;
-				mswait(1); /* give send thread time to abort */
+				YIELD(); /* give send thread time to abort */
 				sockprintf(sock,"226 Transfer aborted.");
 			}
 			continue;
@@ -4416,7 +4416,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.230 $", "%*s %s", revision);
+	sscanf("$Revision: 1.231 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4658,7 +4658,7 @@ void DLLCALL ftp_server(void* arg)
 
 			if((i=select(server_socket+1,&socket_set,NULL,NULL,&tv))<1) {
 				if(i==0) {
-					mswait(1);
+					YIELD();
 					continue;
 				}
 				if(ERROR_VALUE==EINTR)

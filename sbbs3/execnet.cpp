@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.17 2002/12/10 23:25:30 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.18 2003/04/30 23:48:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2001 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -236,7 +236,7 @@ int sbbs_t::exec_net(csi_t* csi)
 							,TIMEOUT_SOCK_READLINE);
 						return(0);
 					}
-					mswait(1);
+					YIELD();
 					continue;
 				}
 
@@ -494,7 +494,7 @@ bool sbbs_t::ftp_cmd(csi_t* csi, SOCKET sock, char* cmdsrc, char* rsp)
 							,TIMEOUT_FTP_RESPONSE);
 						return(FALSE);
 					}
-					mswait(1);
+					YIELD();
 					continue;
 				}
 
@@ -724,7 +724,7 @@ bool sbbs_t::ftp_get(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest, bool d
 			break; /* Data connection lost */
 
 		if(!data_avail) {
-			mswait(1);
+			YIELD();
 			continue;
 		}
 
