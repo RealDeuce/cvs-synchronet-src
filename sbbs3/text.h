@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.3 2001/10/02 14:56:22 rswindell Exp $ */
+/* $Id: text.h,v 1.4 2001/12/28 16:47:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ enum {
 	,Emailing
 	,Posting
 	,NewFile
-	,TitlePrompt
+	,SubjectPrompt
 	,EnterMsgNow
 	,EnterMsgNowRaw
 	,NoMoreLines
@@ -668,7 +668,7 @@ enum {
 	,DirLibOrAll
 	,EnterPath
 	,SearchExtendedQ
-	,DisplayTitlesOnlyQ
+	,DisplaySubjectsOnlyQ
 	,EchoIsNow
 	,WelcomeToPrivateChat
 	,UploadingREP
