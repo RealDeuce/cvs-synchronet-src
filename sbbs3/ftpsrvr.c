@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.227 2003/04/03 04:53:05 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.228 2003/04/05 02:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -473,7 +473,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	do {
 
 		lprintf("%04d JavaScript: Initializing Global object",sock);
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
@@ -4415,7 +4415,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.227 $", "%*s %s", revision);
+	sscanf("$Revision: 1.228 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

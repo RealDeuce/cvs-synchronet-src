@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.98 2003/04/02 00:47:49 rswindell Exp $ */
+/* $Id: services.c,v 1.99 2003/04/05 02:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -573,7 +573,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		JS_SetContextPrivate(js_cx, service_client);
 
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
@@ -1235,7 +1235,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.98 $", "%*s %s", revision);
+	sscanf("$Revision: 1.99 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

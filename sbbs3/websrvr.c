@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.93 2003/04/02 00:47:49 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.94 2003/04/05 02:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1980,7 +1980,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, http_session_t *sess
 	do {
 
 		lprintf("%04d JavaScript: Initializing Global object",sock);
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
@@ -2343,7 +2343,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.93 $", "%*s %s", revision);
+	sscanf("$Revision: 1.94 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
