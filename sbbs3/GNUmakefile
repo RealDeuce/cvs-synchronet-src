@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.53 2003/02/08 02:54:21 rswindell Exp $
+# $Id: GNUmakefile,v 1.54 2003/02/08 03:04:18 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -130,7 +130,7 @@ $(EXEODIR)/%.o : %.cpp
    ifndef bcc
 	@echo Compiling $<
    endif
-	@$(CC) $(CFLAGS) -o $@ -c $<
+	@$(CCPP) $(CFLAGS) -o $@ -c $<
 
 # Implicit C Compile Rule for SBBS
 $(LIBODIR)/%.o : %.c
