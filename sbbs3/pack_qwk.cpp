@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.15 2001/10/08 22:08:23 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.16 2001/10/09 01:34:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -410,7 +410,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					(*msgcnt)++;
 					submsgs++;
 					if(cfg.max_qwkmsgs
-						/* && !(useron.rest&FLAG('Q')) */ && (*msgcnt)>=cfg.max_qwkmsgs) {
+						&& !(useron.exempt&FLAG('O')) && (*msgcnt)>=cfg.max_qwkmsgs) {
 						bputs(text[QWKmsgLimitReached]);
 						break; 
 					} 
