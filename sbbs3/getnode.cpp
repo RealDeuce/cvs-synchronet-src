@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.18 2002/06/18 10:05:41 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.19 2002/06/20 22:19:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -115,16 +115,17 @@ void sbbs_t::nodesync()
 		putnodedat(cfg.node_num,&thisnode); 
 	}
 
-	if(thisnode.status==NODE_WFC) {
-		errorlog("NODE STATUS FIXUP");
-		getnodedat(cfg.node_num,&thisnode,1);
-		thisnode.status=NODE_INUSE;
-		putnodedat(cfg.node_num,&thisnode); 
-	}
-
 	criterrs=thisnode.errors;
 
 	if(sys_status&SS_USERON) {
+
+		if(thisnode.status==NODE_WFC) {
+			errorlog("NODE STATUS FIXUP");
+			getnodedat(cfg.node_num,&thisnode,1);
+			thisnode.status=NODE_INUSE;
+			putnodedat(cfg.node_num,&thisnode); 
+		}
+
 		if(!(sys_status&SS_NEWDAY)) {
 			now=time(NULL);
 			unixtodstr(&cfg,logontime,str);
