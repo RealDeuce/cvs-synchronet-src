@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: sbbsctrl.cpp,v 1.9 2001/07/11 03:32:24 rswindell Exp $ */
+/* $Id: sbbsctrl.cpp,v 1.10 2001/11/10 04:26:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,7 @@ USEFORM("TelnetCfgDlgUnit.cpp", TelnetCfgDlg);
 USELIB("sbbs.lib");
 USELIB("mailsrvr.lib");
 USELIB("ftpsrvr.lib");
+USELIB("services.lib");
 USEFORM("MailCfgDlgUnit.cpp", MailCfgDlg);
 USEFORM("FtpCfgDlgUnit.cpp", FtpCfgDlg);
 USEFORM("TextFileEditUnit.cpp", TextFileEditForm);
@@ -63,6 +64,7 @@ USEFORM("UserMsgFormUnit.cpp", UserMsgForm);
 USEFORM("PropertiesDlgUnit.cpp", PropertiesDlg);
 USEFORM("EventsFormUnit.cpp", EventsForm);
 USEFORM("ConfigWizardUnit.cpp", ConfigWizardForm);
+USEFORM("ServicesFormUnit.cpp", ServicesForm);
 //---------------------------------------------------------------------------
 #include "MainFormUnit.h"
 #include "SpyFormUnit.h"
@@ -85,6 +87,7 @@ WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmd, int)
          Application->CreateForm(__classid(TClientForm), &ClientForm);
          Application->CreateForm(__classid(TUserListForm), &UserListForm);
          Application->CreateForm(__classid(TEventsForm), &EventsForm);
+         Application->CreateForm(__classid(TServicesForm), &ServicesForm);
          Application->Run();
     }
     catch (Exception &exception)
