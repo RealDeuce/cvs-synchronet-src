@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.10 2000/11/03 01:22:34 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.11 2000/11/06 10:36:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -720,7 +720,8 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 
 int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 {
-	system(cmdline);
+//	system(cmdline);	This is going to be a lot of work for me... :-)
+	return(0);
 }
 
 #endif	/* !WIN32 */
