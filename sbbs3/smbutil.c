@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.37 2002/08/29 23:25:49 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.38 2002/10/29 11:55:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1034,7 +1034,7 @@ void packmsgs(ulong packable)
 			printf("\nDeleted header.\n");
 			smb_freemsgmem(&msg);
 			continue; }
-		if(msg.expiration.time && msg.expiration.time<=now) {
+		if(msg.expiration && msg.expiration<=now) {
 			printf("\nExpired message.\n");
 			smb_freemsgmem(&msg);
 			continue; }
@@ -1304,7 +1304,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.37 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.38 $" + 11, "%s", revision);
 
 	smb.file[0]=0;
 	fprintf(stderr,"\nSMBUTIL v%s-%s (rev %s) SMBLIB %s - Synchronet Message Base "\
