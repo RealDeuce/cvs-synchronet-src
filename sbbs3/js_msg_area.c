@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.5 2001/12/20 13:07:16 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.6 2001/12/20 13:14:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,6 +148,26 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			val=INT_TO_JSVAL(cfg->sub[d]->misc);
 			if(!JS_SetProperty(cx, subobj, "settings", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->sub[d]->ptridx);
+			if(!JS_SetProperty(cx, subobj, "ptridx", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->sub[d]->qwkconf);
+			if(!JS_SetProperty(cx, subobj, "qwk_conf", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->sub[d]->maxage);
+			if(!JS_SetProperty(cx, subobj, "max_age", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->sub[d]->maxmsgs);
+			if(!JS_SetProperty(cx, subobj, "max_msgs", &val))
+				return(NULL);
+
+			val=INT_TO_JSVAL(cfg->sub[d]->maxcrcs);
+			if(!JS_SetProperty(cx, subobj, "max_crcs", &val))
 				return(NULL);
 
 			sprintf(str,"%s.%s",cfg->grp[l]->sname,cfg->sub[d]->sname);
