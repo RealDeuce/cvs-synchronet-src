@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.12 2003/05/09 05:33:58 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.13 2003/05/15 00:16:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -429,7 +429,7 @@ BOOL iniGetBool(FILE* fp, const char* section, const char* key, BOOL deflt)
 ulong iniGetBitField(FILE* fp, const char* section, const char* key, 
 						ini_bitdesc_t* bitdesc, ulong deflt)
 {
-	int		b,i;
+	int		i;
 	char*	p;
 	char*	tp;
 	char*	value;
@@ -438,11 +438,7 @@ ulong iniGetBitField(FILE* fp, const char* section, const char* key,
 	if((value=get_value(fp,section,key))==NULL)
 		return(deflt);
 
-	if(isdigit(value[0]))
-		return(strtoul(value,NULL,0));
-
-	p=value;
-	for(b=0;*p && b<32;b++) {
+	for(p=value;*p;) {
 		tp=strchr(p,'|');
 		if(tp!=NULL)
 			*tp=0;
@@ -454,6 +450,8 @@ ulong iniGetBitField(FILE* fp, const char* section, const char* key,
 
 		if(bitdesc[i].name)
 			v|=bitdesc[i].bit;
+		else
+			v|=strtoul(p,NULL,0);
 
 		if(tp==NULL)
 			break;
