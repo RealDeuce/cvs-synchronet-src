@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.18 2004/11/10 04:50:56 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.17 2003/11/26 11:50:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,9 +71,7 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,(char *)JS_GetImplementationVersion()));
 			break;
 		case PROP_TERMINATED:
-			if(branch->terminated==NULL)
-				*vp=JSVAL_FALSE;
-			else
+			if(branch->terminated!=NULL)
 				*vp=BOOLEAN_TO_JSVAL(*branch->terminated);
 			break;
 		case PROP_AUTO_TERMINATE:
@@ -195,9 +193,15 @@ static char* prop_desc[] = {
 };
 #endif
 
-DLLEXPORT JSBool DLLCALL
-js_GenericBranchCallback(JSContext *cx, js_branch_t* branch)
+#ifdef EVAL_BRANCH_CALLBACK
+static JSBool
+js_BranchCallback(JSContext *cx, JSScript *script)
 {
+	js_branch_t*	branch;
+
+	if((branch=(js_branch_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
 	branch->counter++;
 
 	/* Infinite loop? */
@@ -218,6 +222,7 @@ js_GenericBranchCallback(JSContext *cx, js_branch_t* branch)
 
     return(JS_TRUE);
 }
+#endif
 
 /* Execute a string in its own context (away from Synchronet objects) */
 static JSBool

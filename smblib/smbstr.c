@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.7 2004/11/16 21:10:03 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.6 2004/10/27 09:04:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -297,7 +297,7 @@ char* SMBCALL smb_netaddr(net_t* net)
 }
 
 /****************************************************************************/
-/* Returns net_type for passed e-mail address (i.e. "user@addr")			*/
+/* Returns net_type for passing e-mail address (i.e. "user@addr")			*/
 /****************************************************************************/
 ushort SMBCALL smb_netaddr_type(const char* str)
 {
@@ -308,10 +308,6 @@ ushort SMBCALL smb_netaddr_type(const char* str)
 		return(NET_NONE);
 
 	p++;
-	SKIP_WHITESPACE(p);
-	if(*p==0)
-		return(NET_UNKNOWN);
-
 	if(isalpha(*p) && strchr(p,'.')==NULL)
 		return(NET_QWK);
 
