@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.27 2003/05/09 02:58:53 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.28 2003/05/09 03:32:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -400,7 +400,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				,cfg.sub[n]->lname);
 			sprintf(str,"%s posted on %s %s"
 				,useron.alias,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
-			signal_sub_sem(n);
+			signal_sub_sem(&cfg,n);
 			logline("P+",str); 
 		}   /* end of public message */
 	}

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.21 2003/05/09 02:58:53 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.22 2003/05/09 03:32:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,7 +256,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			continue;
 		}
 
-		signal_sub_sem(j);
+		signal_sub_sem(&cfg,j);
 /*
 		eprintf("Message from %s Posted on %s %s"
 			,cfg.qhub[hubnum]->id,cfg.grp[cfg.sub[j]->grp]->sname,cfg.sub[j]->lname); 

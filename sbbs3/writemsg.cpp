@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.42 2003/05/09 02:58:53 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.43 2003/05/09 03:32:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1244,7 +1244,7 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 	logline("M+",str);
-	signal_sub_sem(newsub);
+	signal_sub_sem(&cfg,newsub);
 
 	return(true);
 }
