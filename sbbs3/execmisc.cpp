@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.7 2000/10/30 08:47:28 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.8 2000/10/30 09:37:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,6 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
-#include <sys/locking.h>
 
 int sbbs_t::exec_misc(csi_t *csi, char *path)
 {
