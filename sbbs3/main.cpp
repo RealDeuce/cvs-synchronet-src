@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.69 2001/10/13 00:21:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.70 2001/10/16 23:39:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,9 @@ HANDLE	exec_mutex;
 
 #endif // _WIN32
 
-static uint node_threads_running=0;
+time_t	uptime;
+
+static	uint node_threads_running=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
 RingBuf* node_inbuf[MAX_NODES];
@@ -82,7 +84,6 @@ static	bool	scfg_reloaded=true;
 static	char *	text[TOTAL_TEXT];
 static	WORD	first_node;
 static	WORD	last_node;
-static	time_t	uptime;
 
 #ifdef JAVASCRIPT
 JSRuntime* js_runtime=NULL;
