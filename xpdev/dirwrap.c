@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.1 2002/04/06 00:40:31 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.2 2002/04/06 02:04:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <string.h>	/* strrchr */
+
 #ifdef _WIN32
 
 #include <windows.h>	/* WINAPI, etc */
@@ -58,7 +60,7 @@
 #include <sys/vfs.h>    /* statfs() */
 #endif
 
-#endif
+#endif /* __unix__ */
 
 #include <sys/types.h>	/* _dev_t */
 #include <sys/stat.h>	/* struct stat */
