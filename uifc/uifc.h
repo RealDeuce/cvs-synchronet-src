@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.53 2004/11/19 03:04:00 rswindell Exp $ */
+/* $Id: uifc.h,v 1.52 2004/11/19 00:34:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,7 +212,7 @@
 
 #define HELPBUF_SIZE 4000
 
-#ifndef _GEN_DEFS_H
+#ifndef TAB
 									/* Control characters */
 #define STX 	0x02				/* Start of text			^B	*/
 #define ETX 	0x03				/* End of text				^C	*/
@@ -223,7 +223,9 @@
 #define CR		'\r'				/* Carriage return			^M	*/
 #define ESC 	0x1b				/* Escape					^[	*/
 #define DEL     0x7f                /* Delete                   ^BS */
+#endif
 
+#if !CTRL_A
 enum {
 	 CTRL_A=1
 	,CTRL_B
@@ -252,8 +254,9 @@ enum {
 	,CTRL_Y
 	,CTRL_Z
 };
-
 #endif
+
+#define CLREOL 256
 
 #ifndef uchar				/* Short-hand for unsigned data types */
 #define uchar unsigned char
