@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.229 2003/04/10 10:02:13 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.230 2003/04/29 22:47:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1824,7 +1824,8 @@ static void receive_thread(void* arg)
 				putextdesc(&scfg,f.dir,f.datoffset,ext);
 
 			if(scfg.dir[f.dir]->upload_sem[0])
-				if((file=sopen(scfg.dir[f.dir]->upload_sem,O_WRONLY|O_CREAT|O_TRUNC,SH_DENYNO))!=-1)
+				if((file=sopen(scfg.dir[f.dir]->upload_sem,O_WRONLY|O_CREAT|O_TRUNC
+					,SH_DENYNO,S_IREAD|S_IWRITE))!=-1)
 					close(file);
 			/**************************/
 			/* Update Uploader's Info */
@@ -4415,7 +4416,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.229 $", "%*s %s", revision);
+	sscanf("$Revision: 1.230 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
