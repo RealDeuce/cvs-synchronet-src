@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.8 2003/02/07 23:50:04 deuce Exp $ */
+/* $Id: uifcfltk.cpp,v 1.9 2003/02/08 00:45:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -796,6 +796,10 @@ int uifcinifltk(uifcapi_t* uifcapi)
 
 	CurrWin=0;
 	MainWin=NULL;
+
+#if defined(_WIN32)
+	FreeConsole();		// close popup console window
+#endif
     return(0);
 }
 
