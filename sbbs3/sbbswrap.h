@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.30 2001/11/29 18:11:20 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.31 2002/02/15 13:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -285,10 +285,11 @@ extern "C" {
 
 
 /* General file system wrappers for all platforms and compilers */
-DLLEXPORT long	DLLCALL fdate(char *filename);
-DLLEXPORT BOOL	DLLCALL	isdir(char *filename);
-DLLEXPORT int	DLLCALL getfattr(char* filename);
-DLLEXPORT ulong	DLLCALL getfreediskspace(char* path);
+DLLEXPORT time_t	DLLCALL fdate(char *filename);
+DLLEXPORT time_t	DLLCALL filetime(int fd);
+DLLEXPORT BOOL		DLLCALL	isdir(char *filename);
+DLLEXPORT int		DLLCALL getfattr(char* filename);
+DLLEXPORT ulong		DLLCALL getfreediskspace(char* path);
 
 #ifdef __cplusplus
 }
