@@ -1,14 +1,16 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "conio.h"
+#include <threadwrap.h>
+
+#include "ciolib.h"
 #include "x_cio.h"
 #include "console.h"
 WORD	x_curr_attr=0x0700;
 
 const int x_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
-int x_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
+int x_puttext(int sx, int sy, int ex, int ey, void *fill)
 {
 	int x,y;
 	unsigned char *out;
@@ -40,7 +42,7 @@ int x_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	}
 }
 
-int x_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
+int x_gettext(int sx, int sy, int ex, int ey, void *fill)
 {
 	int x,y;
 	unsigned char *out;
@@ -72,7 +74,7 @@ int x_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 	}
 }
 
-void x_textattr(unsigned char attr)
+void x_textattr(int attr)
 {
 	x_curr_attr=attr<<8;
 }
@@ -101,7 +103,7 @@ int x_wherex(void)
  * The special characters return, linefeed, bell, and backspace are handled
  * properly, as is line wrap and scrolling. The cursor position is updated. 
  */
-int x_putch(unsigned char ch)
+int x_putch(int ch)
 {
 	struct text_info ti;
 	WORD sch;

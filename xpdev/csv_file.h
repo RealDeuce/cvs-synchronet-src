@@ -1,8 +1,8 @@
-/* conwrap.h */
+/* csv_file.h */
 
-/* Cross-platform local console I/O wrapppers */
+/* Functions to deal with comma-separated value (CSV) files and lists */
 
-/* $Id: conwrap.h,v 1.4 2004/07/20 23:19:43 rswindell Exp $ */
+/* $Id: csv_file.h,v 1.3 2004/07/30 02:03:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,18 +35,22 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _CONWRAP_H
-#define _CONWRAP_H
+#ifndef _CSV_FILE_H
+#define _CSV_FILE_H
 
-#if defined(__unix__)
+#include "str_list.h"
 
-	int kbhit(void);
-	int getch(void);
-
-#else	/* DOS-Based */
-
-	#include <conio.h>
-
+#if defined(__cplusplus)
+extern "C" {
 #endif
 
-#endif	/* _CONWRAP_H */
+str_list_t	csvCreateList(str_list_t records[], str_list_t columns /* optional */);
+str_list_t	csvParseLine(char* line);
+str_list_t*	csvParseList(str_list_t list, str_list_t* columns /* optional */);
+str_list_t*	csvReadFile(FILE* fp, str_list_t* columns /* optional */);
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif	/* Don't add anything after this line */
