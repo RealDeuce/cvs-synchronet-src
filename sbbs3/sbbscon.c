@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.183 2004/11/02 23:12:46 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.187 2004/11/18 09:12:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 #endif
 
 /* Synchronet-specific headers */
+#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"		/* load_cfg() */
 #include "sbbs_ini.h"	/* sbbs_read_ini() */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
@@ -771,7 +772,8 @@ static void terminate(void)
 	}
 }
 
-static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup_t* web
+static void read_startup_ini(BOOL recycle
+							 ,bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup_t* web
 							 ,mail_startup_t* mail, services_startup_t* services)
 {
 	FILE*	fp=NULL;
@@ -802,7 +804,8 @@ static void read_startup_ini(bbs_startup_t* bbs, ftp_startup_t* ftp, web_startup
 		char	value[INI_MAX_VALUE_LEN];
 		SAFECOPY(new_uid_name,iniReadString(fp,"UNIX","User","",value));
 		SAFECOPY(new_gid_name,iniReadString(fp,"UNIX","Group","",value));
-		is_daemon=iniReadBool(fp,"UNIX","Daemonize",FALSE);
+		if(!recycle)
+			is_daemon=iniReadBool(fp,"UNIX","Daemonize",FALSE);
 		SAFECOPY(daemon_type,iniReadString(fp,"UNIX","LogFacility","U",value));
 		umask(iniReadInteger(fp,"UNIX","umask",077));
 	}
@@ -832,7 +835,7 @@ void recycle(void* cbdata)
 	else if(cbdata==&services_startup)
 		services=cbdata;
 
-	read_startup_ini(bbs,ftp,web,mail,services);
+	read_startup_ini(/* recycle? */TRUE,bbs,ftp,web,mail,services);
 }
 
 void cleanup(void)
@@ -876,9 +879,6 @@ void _sighandler_rerun(int sig)
 
 	lputs(LOG_NOTICE,"     Got HUP (rerun) signal");
 
-	/*
-	Currently, rereading the ini appears to case 100% CPU issues. - ToDo
-		read_startup_ini(); */
 	bbs_startup.recycle_now=TRUE;
 	ftp_startup.recycle_now=TRUE;
 	web_startup.recycle_now=TRUE;
@@ -1065,6 +1065,7 @@ int main(int argc, char** argv)
     web_startup.terminated=web_terminated;
 	web_startup.thread_up=thread_up;
     web_startup.socket_open=socket_open;
+	web_startup.client_on=client_on;
 #ifdef __unix__
 	web_startup.seteuid=do_seteuid;
 	web_startup.setuid=do_setuid;
@@ -1147,7 +1148,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	read_startup_ini(&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
+	read_startup_ini(/* recycle? */FALSE
+		,&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
 
 #if SBBS_MAGIC_FILENAMES	/* This stuff is just broken */
 
@@ -1736,6 +1738,82 @@ int main(int argc, char** argv)
 					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
 					break;
+				case 'r':	/* recycle */
+				case 's':	/* shutdown */
+				case 't':	/* terminate */
+					printf("BBS, FTP, Web, Mail, Services, or [All] ? ");
+					switch(toupper(getch())) {
+						case 'B':
+							printf("BBS\n");
+							if(ch=='t')
+								bbs_terminate();
+							else if(ch=='s')
+								bbs_startup.shutdown_now=TRUE;
+							else
+								bbs_startup.recycle_now=TRUE;
+							break;
+						case 'F':
+							printf("FTP\n");
+							if(ch=='t')
+								ftp_terminate();
+							else if(ch=='s')
+								ftp_startup.shutdown_now=TRUE;
+							else
+								ftp_startup.recycle_now=TRUE;
+							break;
+						case 'W':
+							printf("Web\n");
+							if(ch=='t')
+								web_terminate();
+							else if(ch=='s')
+								web_startup.shutdown_now=TRUE;
+							else
+								web_startup.recycle_now=TRUE;
+							break;
+						case 'M':
+							printf("Mail\n");
+							if(ch=='t')
+								mail_terminate();
+							else if(ch=='s')
+								mail_startup.shutdown_now=TRUE;
+							else
+								mail_startup.recycle_now=TRUE;
+							break;
+						case 'S':
+							printf("Services\n");
+							if(ch=='t')
+								services_terminate();
+							else if(ch=='s')
+								services_startup.shutdown_now=TRUE;
+							else
+								services_startup.recycle_now=TRUE;
+							break;
+						default:
+							printf("All\n");
+							if(ch=='t')
+								terminate();
+							else if(ch=='s') {
+								bbs_startup.shutdown_now=TRUE;
+								ftp_startup.shutdown_now=TRUE;
+								web_startup.shutdown_now=TRUE;
+								mail_startup.shutdown_now=TRUE;
+								services_startup.shutdown_now=TRUE;
+							}
+							else {
+								bbs_startup.recycle_now=TRUE;
+								ftp_startup.recycle_now=TRUE;
+								web_startup.recycle_now=TRUE;
+								mail_startup.recycle_now=TRUE;
+								services_startup.recycle_now=TRUE;							
+							}
+							break;
+					}
+					break;
+				case '!':	/* execute */
+					printf("Command line: ");
+					fgets(str,sizeof(str),stdin);
+					system(str);
+					break;
 				default:
 					printf("\nSynchronet Console Version %s%c Help\n\n",VERSION,REVISION);
 					printf("q   = quit\n");
@@ -1744,6 +1822,10 @@ int main(int argc, char** argv)
 					printf("l   = lock node (toggle)\n");
 					printf("d   = down node (toggle)\n");
 					printf("i   = interrupt node (toggle)\n");
+					printf("r   = recycle servers (when not in use)\n");
+					printf("s   = shutdown servers (when not in use)\n");
+					printf("t   = terminate servers (immediately)\n");
+					printf("!   = execute external command\n");
 #if 0	/* to do */	
 					printf("c#  = chat with node #\n");
 					printf("s#  = spy on node #\n");
