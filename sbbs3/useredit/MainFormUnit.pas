@@ -1,6 +1,6 @@
 { Synchronet User Editor (Delphi 5 for Win32 project) }
 
-{ $Id: MainFormUnit.pas,v 1.2 2000/10/27 21:33:03 rswindell Exp $ }
+{ $Id: MainFormUnit.pas,v 1.3 2000/11/16 16:07:12 rswindell Exp $ }
 
 {****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1018,7 +1018,9 @@ begin
     SexEdit.MaxLength:=1;
     { Stats }
     { etc. }
-    GetUserData(1); { Read and display in User #1 }
+
+    ScrollBar.Position:=StrToIntDef(ParamStr(2),1);
+    GetUserData(ScrollBar.Position);
 
     PageControl.ActivePage:=PersonalTabSheet;
 end;
