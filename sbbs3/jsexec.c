@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.13 2003/07/08 23:37:35 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.14 2003/07/08 23:39:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -473,12 +473,13 @@ int main(int argc, char **argv, char** environ)
 	confp=stdout;
 	errfp=stderr;
 	nulfp=fopen(_PATH_DEVNULL,"w+");
+	statfp=stdout;
 
 	branch.limit=JAVASCRIPT_BRANCH_LIMIT;
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.13 $", "%*s %s", revision);
+	sscanf("$Revision: 1.14 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
