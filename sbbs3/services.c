@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.55 2002/05/03 00:37:26 rswindell Exp $ */
+/* $Id: services.c,v 1.56 2002/05/03 01:56:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,6 +200,9 @@ static SOCKET open_socket(int type)
 static int close_socket(SOCKET sock)
 {
 	int		result;
+
+	if(sock==INVALID_SOCKET)
+		return(-1);
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
