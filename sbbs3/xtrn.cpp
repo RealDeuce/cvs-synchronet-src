@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.1 2000/10/10 11:25:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.2 2000/10/17 20:23:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,12 +148,9 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen, bool&
 //
 HANDLE (WINAPI *GetAddressOfOpenVxDHandle(void))(HANDLE)
 {
-	CHAR K32Path[MAX_PATH];
 	HINSTANCE hK32;
 
-	GetSystemDirectory(K32Path, MAX_PATH);
-	strcat(K32Path, "\\kernel32.dll");
-	if ((hK32 = LoadLibrary(K32Path)) == 0)
+	if ((hK32 = LoadLibrary("KERNEL32")) == NULL)
 		return NULL;
 
 	return (HANDLE(WINAPI *)(HANDLE))GetProcAddress(hK32, "OpenVxDHandle");
