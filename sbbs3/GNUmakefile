@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.127 2003/09/06 20:45:48 deuce Exp $
+# $Id: GNUmakefile,v 1.128 2003/09/09 02:31:42 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -392,6 +392,7 @@ FIXSMB_OBJS = \
 	$(LIBODIR)/fixsmb.o \
 	$(SMBLIB_OBJS) \
 	$(LIBODIR)/genwrap.o \
+	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/str_util.o
 FORCE$(FIXSMB): $(FIXSMB_OBJS)
 	

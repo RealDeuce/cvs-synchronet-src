@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.39 2003/07/25 01:00:16 rswindell Exp $
+# $Id: Makefile,v 1.40 2003/09/09 02:31:42 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -149,7 +149,7 @@ SMBLIB = $(LIBODIR)\smblib.obj $(LIBODIR)\genwrap.obj $(LIBODIR)\filewrap.obj \
 	 $(LIBODIR)\crc16.obj
 
 # FIXSMB Utility
-$(FIXSMB): fixsmb.c $(SMBLIB) $(LIBODIR)\str_util.obj
+$(FIXSMB): fixsmb.c $(SMBLIB) $(LIBODIR)\str_util.obj $(LIBODIR)\dirwrap.obj
 	@echo Creating $@
 	$(QUIET)$(CC) $(CFLAGS) -n$(EXEODIR) $**
 
