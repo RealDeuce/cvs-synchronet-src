@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.376 2005/02/18 13:12:58 rswindell Exp $ */
+/* $Id: main.cpp,v 1.377 2005/02/26 06:54:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,10 +38,6 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
-
-#ifdef JAVASCRIPT
-#include <jsnum.h>	/* JSDOUBLE_IS_NaN() */
-#endif
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -281,20 +277,6 @@ DLLEXPORT int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
-
-JSBool
-DLLCALL jsval_isNaN(JSContext *cx, jsval v)
-{
-    jsdouble d;
-
-    if(JSVAL_IS_DOUBLE(v)) {
-	    if(!JS_ValueToNumber(cx, v, &d))
-			return JS_FALSE;
-		if(JSDOUBLE_IS_NaN(d))
-			return JS_TRUE;
-	}
-	return JS_FALSE;
-}
 
 JSBool	
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, char* str[],uintN flags)
