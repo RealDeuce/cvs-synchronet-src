@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.7 2005/04/06 01:11:00 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.8 2005/04/06 08:22:57 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -120,8 +120,11 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 							case TELNET_NEGOTIATE_WINDOW_SIZE:
 								telnet_local_option[option]=command;
 								send_telnet_cmd(telnet_opt_ack(command),option);
-							default:
-								send_telnet_cmd(telnet_opt_nak(command),option);
+								break;
+							default: /* unsupported local options */
+								if(command==TELNET_DO) /* NAK */
+									send_telnet_cmd(telnet_opt_nak(command),option);
+								break;
 						}
 					}
 
