@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.10 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: telnet.h,v 1.9 2004/10/14 03:28:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,6 +116,8 @@ enum {
 
 /* bits for telnet_mode */   
    
+#define TELNET_MODE_BIN_RX	(1<<0)   
+#define TELNET_MODE_ECHO	(1<<1)   
 #define TELNET_MODE_GATE	(1<<2)	/* Pass-through telnet commands/responses */
 #define TELNET_MODE_OFF		(1<<3)	/* This is not a Telnet connection */
 
