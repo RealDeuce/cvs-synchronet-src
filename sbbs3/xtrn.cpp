@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.76 2002/03/13 23:17:53 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.77 2002/03/16 02:52:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1240,6 +1240,11 @@ char * sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case '%':   /* %% for percent sign */
                     strcat(cmd,"%");
                     break;
+				case '.':	/* .exe for DOS/OS2/Win32, blank for Unix */
+#ifndef __unix__
+					strcat(cmd,".exe");
+#endif
+					break;
 				case '?':	/* Platform */
 #ifdef __OS2__
 					strcpy(str,"OS2");
