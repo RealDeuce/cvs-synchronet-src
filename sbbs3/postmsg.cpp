@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.46 2003/12/06 11:03:47 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.45 2003/12/04 06:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,10 +389,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
-
-	/* Security logging */
-	smb_hfield_str(&msg,SENDERIPADDR,client.addr);
-	smb_hfield_str(&msg,SENDERHOSTNAME,client.host);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 	msg.idx.subj=subject_crc(title);

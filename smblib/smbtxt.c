@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.12 2003/12/04 07:06:12 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.11 2003/12/04 06:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,8 +36,12 @@
  ****************************************************************************/
 
 /* ANSI */
-#include <stdlib.h>	/* malloc/realloc/free */
-#include <string.h>	/* strlen */
+
+#ifdef __unix__
+	#include <stdlib.h>		/* malloc/realloc/free is defined here */
+#else
+	#include <malloc.h>
+#endif
 
 /* SMB-specific */
 #include "smblib.h"
@@ -53,7 +57,7 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 	int		lzh;	/* BOOL */
 	long	l=0,lzhlen,length;
 
-	if((buf=(char*)malloc(sizeof(char)))==NULL) {
+	if((buf=malloc(sizeof(char)))==NULL) {
 		sprintf(smb->last_error
 			,"malloc failure of %u bytes for buffer"
 			,sizeof(char));
@@ -66,7 +70,7 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 			continue;
 		str=(char*)msg->hfield_dat[i];
 		length=strlen(str)+2;	/* +2 for crlf */
-		if((p=(char*)realloc(buf,l+length+1))==NULL) {
+		if((p=(char*)REALLOC(buf,l+length+1))==NULL) {
 			sprintf(smb->last_error
 				,"realloc failure of %ld bytes for comment buffer"
 				,l+length+1);
@@ -107,7 +111,7 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 			length-=sizeof(xlat);
 			if(length<1)
 				continue;
-			if((lzhbuf=(char*)malloc(length))==NULL) {
+			if((lzhbuf=(char*)LMALLOC(length))==NULL) {
 				sprintf(smb->last_error
 					,"malloc failure of %ld bytes for LZH buffer"
 					,length);
@@ -115,20 +119,20 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 			}
 			smb_fread(smb,lzhbuf,length,smb->sdt_fp);
 			lzhlen=*(long*)lzhbuf;
-			if((p=(char*)realloc(buf,l+lzhlen+3L))==NULL) {
+			if((p=(char*)REALLOC(buf,l+lzhlen+3L))==NULL) {
 				sprintf(smb->last_error
 					,"realloc failure of %ld bytes for text buffer"
 					,l+lzhlen+3L);
-				free(lzhbuf);
+				FREE(lzhbuf);
 				return(buf); 
 			}
 			buf=p;
 			lzh_decode((char*)lzhbuf,length,(char*)buf+l);
-			free(lzhbuf);
+			FREE(lzhbuf);
 			l+=lzhlen; 
 		}
 		else {
-			if((p=(char*)realloc(buf,l+length+3L))==NULL) {
+			if((p=(char*)REALLOC(buf,l+length+3L))==NULL) {
 				sprintf(smb->last_error
 					,"realloc failure of %ld bytes for text buffer"
 					,l+length+3L);
@@ -156,5 +160,5 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 void SMBCALL smb_freemsgtxt(char* buf)
 {
 	if(buf!=NULL)
-		free(buf);
+		FREE(buf);
 }
