@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.67 2003/03/11 07:51:07 deuce Exp $ */
+/* $Id: websrvr.c,v 1.68 2003/03/11 08:39:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1618,8 +1618,6 @@ JSObject* DLLCALL js_CreateHttpRequestObject(JSContext* cx, JSObject* parent, ht
 	/* Return existing object if it's already been created */
 	if(JS_GetProperty(cx,parent,"http_request",&val) && val!=JSVAL_VOID)  {
 		request = JSVAL_TO_OBJECT(val);
-		/* Delete query object if re-using http_request object */
-		JS_DeleteProperty(cx,request,"query");
 	}
 	else
 		request = JS_DefineObject(cx, parent, "http_request", NULL
@@ -1672,8 +1670,10 @@ JSObject* DLLCALL js_CreateHttpRequestObject(JSContext* cx, JSObject* parent, ht
 
 	
 	/* Return existing object if it's already been created */
-	if(JS_GetProperty(cx,request,"query",&val) && val!=JSVAL_VOID)
+	if(JS_GetProperty(cx,request,"query",&val) && val!=JSVAL_VOID)  {
 		query = JSVAL_TO_OBJECT(val);
+		JS_ClearScope(cx,query);
+	}
 	else
 		query = JS_DefineObject(cx, request, "query", NULL
 									, NULL, JSPROP_ENUMERATE);
@@ -2182,7 +2182,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.67 $", "%*s %s", revision);
+	sscanf("$Revision: 1.68 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
