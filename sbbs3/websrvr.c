@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.280 2005/03/11 20:37:16 deuce Exp $ */
+/* $Id: websrvr.c,v 1.281 2005/03/11 20:39:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2064,6 +2064,7 @@ static BOOL exec_cgi(http_session_t *session)
 	char	*p;
 	char	ch;
 	list_node_t	*node;
+	BOOL	orig_keep=FALSE;
 #endif
 
 	SAFECOPY(cmdline,session->req.physical_path);
@@ -2072,7 +2073,7 @@ static BOOL exec_cgi(http_session_t *session)
 
 	lprintf(LOG_INFO,"%04d Executing %s",session->socket,cmdline);
 
-	/* ToDo: Should only do this if the Content-Length header was NOT sent */
+	orig_keep=session->req.keep_alive;
 	session->req.keep_alive=FALSE;
 
 	/* Set up I/O pipes */
@@ -2201,7 +2202,7 @@ static BOOL exec_cgi(http_session_t *session)
 									SAFECOPY(cgi_status,value);
 									break;
 								case HEAD_LENGTH:
-									session->req.keep_alive=TRUE;
+									session->req.keep_alive=orig_keep;
 									listPushNodeString(&session->req.dynamic_heads,buf);
 									break;
 								case HEAD_TYPE:
@@ -3030,7 +3031,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.280 $", "%*s %s", revision);
+	sscanf("$Revision: 1.281 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
