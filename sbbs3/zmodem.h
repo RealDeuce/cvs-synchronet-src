@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.8 2005/01/15 13:19:32 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.17 2005/02/01 10:13:38 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -209,8 +209,6 @@ typedef struct {
 	int escape_all_control_characters;						/* guess */
 	int escape_8th_bit;
 
-	int use_variable_headers;								/* use variable length headers */
-
 	/*
 	 * file management options.
 	 * only one should be on
@@ -227,6 +225,7 @@ typedef struct {
 	int n_files_remaining;
 	int n_bytes_remaining;
 	unsigned char tx_data_subpacket[MAX_SUBPACKETSIZE];
+	unsigned char rx_data_subpacket[8192];							/* zzap = 8192 */
 
 	ulong current_file_size;
 	time_t transfer_start;
@@ -247,36 +246,54 @@ typedef struct {
 	/* Status */
 	BOOL		cancelled;
 	BOOL		file_skipped;
-	ulong		sent_successfully;
+	BOOL		no_streaming;
 
 	/* Configuration */
 	long*		mode;
 	unsigned	send_timeout;
 	unsigned	recv_timeout;
 	unsigned	max_errors;
-	time_t		progress_interval;
 
 	/* Callbacks */
 	void*		cbdata;
 	int			(*lputs)(void*, int level, const char* str);
 	int			(*send_byte)(void*, uchar ch, unsigned timeout);
 	int			(*recv_byte)(void*, unsigned timeout);
-	void		(*progress)(void*, ulong offset, ulong fsize, time_t t);
+	void		(*progress)(void*, ulong start_pos, ulong current_pos, ulong fsize, time_t start);
+	BOOL		(*is_connected)(void*);
 
 } zmodem_t;
 
 void		zmodem_init(zmodem_t*, void* cbdata, long* mode
 						,int	(*lputs)(void*, int level, const char* str)
-						,void	(*progress)(void*, ulong offset, ulong fsize, time_t t)
+						,void	(*progress)(void*, ulong, ulong, ulong, time_t)
 						,int	(*send_byte)(void*, uchar ch, unsigned timeout)
-						,int	(*recv_byte)(void*, unsigned timeout));
+						,int	(*recv_byte)(void*, unsigned timeout)
+						,BOOL	(*is_connected)(void*)
+						);
 char*		zmodem_ver(char *buf);
 const char* zmodem_source(void);
+void		zmodem_send_nak(zmodem_t*);
+void		zmodem_send_zskip(zmodem_t* zm);
+void		zmodem_send_zrinit(zmodem_t*);
+void		zmodem_send_pos_header(zmodem_t* zm, int type, long pos, BOOL hex);
 int			zmodem_get_zrinit(zmodem_t*);
+int			zmodem_get_zfin(zmodem_t* zm);
 void		zmodem_parse_zrinit(zmodem_t*);
-int			zmodem_send_zfin(zmodem_t*);
-int			zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init);
-
+void		zmodem_send_zfin(zmodem_t*);
+BOOL		zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init, time_t* start, ulong* bytes_sent);
+int			zmodem_recv_init(zmodem_t* zm);
+BOOL		zmodem_recv_file_info(zmodem_t* zm
+									,char* fname, size_t maxlen
+									,ulong* size
+									,time_t* time
+									,long* mode
+									,long* serial_num
+									,ulong* total_files
+									,ulong* total_bytes);
+unsigned	zmodem_recv_file_data(zmodem_t*, FILE*, ulong offset, ulong fsize, time_t start);
+int			zmodem_recv_file_frame(zmodem_t* zm, FILE* fp, ulong offset, ulong fsize, time_t start);
+int			zmodem_rx_header_and_check(zmodem_t* zm, int timeout);
 #endif
 
 
