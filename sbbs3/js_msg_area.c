@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.12 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.13 2002/07/26 08:40:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,65 @@ static JSClass js_msg_area_class = {
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
+
+BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, JSObject* subobj, sub_t* sub)
+{
+	jsval		val;
+
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sub->code));
+	if(!JS_SetProperty(cx, subobj, "code", &val))
+		return(FALSE);
+
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sub->sname));
+	if(!JS_SetProperty(cx, subobj, "name", &val))
+		return(FALSE);
+
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sub->lname));
+	if(!JS_SetProperty(cx, subobj, "description", &val))
+		return(FALSE);
+
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sub->qwkname));
+	if(!JS_SetProperty(cx, subobj, "qwk_name", &val))
+		return(FALSE);
+
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sub->data_dir));
+	if(!JS_SetProperty(cx, subobj, "data_dir", &val))
+		return(FALSE);
+
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sub->origline));
+	if(!JS_SetProperty(cx, subobj, "fidonet_origin", &val))
+		return(FALSE);
+
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, sub->tagline));
+	if(!JS_SetProperty(cx, subobj, "qwknet_tagline", &val))
+		return(FALSE);
+
+	val=INT_TO_JSVAL(sub->misc);
+	if(!JS_SetProperty(cx, subobj, "settings", &val))
+		return(FALSE);
+
+	val=INT_TO_JSVAL(sub->ptridx);
+	if(!JS_SetProperty(cx, subobj, "ptridx", &val))
+		return(FALSE);
+
+	val=INT_TO_JSVAL(sub->qwkconf);
+	if(!JS_SetProperty(cx, subobj, "qwk_conf", &val))
+		return(FALSE);
+
+	val=INT_TO_JSVAL(sub->maxage);
+	if(!JS_SetProperty(cx, subobj, "max_age", &val))
+		return(FALSE);
+
+	val=INT_TO_JSVAL(sub->maxmsgs);
+	if(!JS_SetProperty(cx, subobj, "max_msgs", &val))
+		return(FALSE);
+
+	val=INT_TO_JSVAL(sub->maxcrcs);
+	if(!JS_SetProperty(cx, subobj, "max_crcs", &val))
+		return(FALSE);
+
+	return(TRUE);
+}
 
 JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
 										  ,user_t* user, subscan_t* subscan)
@@ -126,56 +185,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			if(!JS_SetProperty(cx, subobj, "number", &val))
 				return(NULL);
 
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->sub[d]->code));
-			if(!JS_SetProperty(cx, subobj, "code", &val))
-				return(NULL);
-
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->sub[d]->sname));
-			if(!JS_SetProperty(cx, subobj, "name", &val))
-				return(NULL);
-
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->sub[d]->lname));
-			if(!JS_SetProperty(cx, subobj, "description", &val))
-				return(NULL);
-
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->sub[d]->qwkname));
-			if(!JS_SetProperty(cx, subobj, "qwk_name", &val))
-				return(NULL);
-
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->sub[d]->data_dir));
-			if(!JS_SetProperty(cx, subobj, "data_dir", &val))
-				return(NULL);
-
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->sub[d]->origline));
-			if(!JS_SetProperty(cx, subobj, "fidonet_origin", &val))
-				return(NULL);
-
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cfg->sub[d]->tagline));
-			if(!JS_SetProperty(cx, subobj, "qwknet_tagline", &val))
-				return(NULL);
-
-			val=INT_TO_JSVAL(cfg->sub[d]->misc);
-			if(!JS_SetProperty(cx, subobj, "settings", &val))
-				return(NULL);
-
-			val=INT_TO_JSVAL(cfg->sub[d]->ptridx);
-			if(!JS_SetProperty(cx, subobj, "ptridx", &val))
-				return(NULL);
-
-			val=INT_TO_JSVAL(cfg->sub[d]->qwkconf);
-			if(!JS_SetProperty(cx, subobj, "qwk_conf", &val))
-				return(NULL);
-
-			val=INT_TO_JSVAL(cfg->sub[d]->maxage);
-			if(!JS_SetProperty(cx, subobj, "max_age", &val))
-				return(NULL);
-
-			val=INT_TO_JSVAL(cfg->sub[d]->maxmsgs);
-			if(!JS_SetProperty(cx, subobj, "max_msgs", &val))
-				return(NULL);
-
-			val=INT_TO_JSVAL(cfg->sub[d]->maxcrcs);
-			if(!JS_SetProperty(cx, subobj, "max_crcs", &val))
+			if(!js_CreateMsgAreaProperties(cx, subobj, cfg->sub[d]))
 				return(NULL);
 
 			if(cfg->sub[d]->newsgroup[0])
@@ -189,7 +199,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 			if(!JS_SetProperty(cx, subobj, "newsgroup", &val))
 				return(NULL);
-
+			
 			if(user==NULL || chk_ar(cfg,cfg->sub[d]->read_ar,user))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
