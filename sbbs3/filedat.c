@@ -2,7 +2,7 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.16 2002/08/06 03:40:14 rswindell Exp $ */
+/* $Id: filedat.c,v 1.17 2003/03/02 11:51:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,9 +291,11 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 					FREE((char *)ixbbuf);
 					return(FALSE); 
 				}
-				if(cfg->dir[f->dir]->sort==SORT_NAME_A && fname[i]<ixbbuf[l+i])
+				if(cfg->dir[f->dir]->sort==SORT_NAME_A 
+					&& toupper(fname[i])<toupper(ixbbuf[l+i]))
 					break;
-				if(cfg->dir[f->dir]->sort==SORT_NAME_D && fname[i]>ixbbuf[l+i])
+				if(cfg->dir[f->dir]->sort==SORT_NAME_D 
+					&& toupper(fname[i])>toupper(ixbbuf[l+i]))
 					break; 
 			} 
 		}
