@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.46 2001/05/15 00:30:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.47 2001/05/25 20:48:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,8 +291,9 @@ public:
 	uint	cursubnum;		/* For ARS */
 	uint	curdirnum;		/* For ARS */
 	ulong 	timeleft;		/* Number of seconds user has left online */
-	char	sbbsnode[81];	/* Environment var to contain node dir path */
-	char	sbbsnnum[81];	/* Environment var to contain node num */
+	char	sbbsnode[MAX_PATH];	/* Environment var to contain node dir path */
+	char	sbbsnnum[MAX_PATH];	/* Environment var to contain node num */
+	char	sbbsctrl[MAX_PATH];	/* Environmetn var to contain ctrl dir path */
 	char 	*comspec;		/* Pointer to environment variable COMSPEC */
 	ushort	altul;			/* Upload to alternate path flag */
 	time_t	next_event; 	/* Next event time - from front-end */
