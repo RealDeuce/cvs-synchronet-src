@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.8 2000/12/01 18:32:30 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.9 2000/12/01 18:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -527,6 +527,7 @@ void __fastcall TNodeForm::UserMsgButtonClick(TObject *Sender)
     UserMsgForm->Memo->Text="\1n\1y\1hMessage From Sysop:\1w ";
     UserMsgForm->Memo->SelStart=UserMsgForm->Memo->Text.Length();
 	if(UserMsgForm->ShowModal()==mrOk) {
+        UserMsgForm->Memo->Lines->Add("");
         for(i=0;i<ListBox->Items->Count;i++)
             if(ListBox->Selected[i]==true) {
                 getnodedat(&MainForm->cfg,i+1,&node,0);
