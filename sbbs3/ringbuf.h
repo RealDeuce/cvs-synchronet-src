@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.2 2000/10/21 02:58:16 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.3 2002/12/31 01:45:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,10 @@
 #ifndef _RINGBUF_H_
 #define _RINGBUF_H_
 
+#ifdef RINGBUF_MUTEX
+#include "threadwrap.h"
+#endif
+
 #ifndef DWORD
 #define DWORD unsigned long
 #endif
@@ -73,6 +77,9 @@ typedef struct {
 	BYTE* 	pTail;			/* next byte to be consumed */
 	BYTE* 	pEnd; 			/* end of the buffer, used for wrap around */
     DWORD	size;
+#ifdef RINGBUF_MUTEX
+	pthread_mutex_t mutex;
+#endif
 
 } RingBuf;
 
