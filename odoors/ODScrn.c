@@ -943,14 +943,16 @@ tODResult ODScrnInitialize(void)
 {
    BOOL bClear = TRUE;
 
-#if defined(ODPLAT_DOS)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_NIX)
    BYTE btDisplayMode;
 
    /* In silent mode, we perform all output in a block of memory that is */
    /* never displayed.                                                   */
    /* *nix is always in "silent mode"									 */
+#ifndef ODPLAT_NIX
    if(od_control.od_silent_mode)
    {
+#endif
       /* Allocate memory for screen buffer, using standard pointer type */
       /* for current memory model.                                      */
       pAllocatedBufferMemory = malloc(SCREEN_BUFFER_SIZE);
@@ -963,6 +965,7 @@ tODResult ODScrnInitialize(void)
       /* Set the screen buffer far pointer to point to the allocated */
       /* buffer.                                                     */
       pScrnBuffer = pAllocatedBufferMemory;
+#ifndef ODPLAT_NIX
    }
    else
    {
@@ -1056,8 +1059,9 @@ tODResult ODScrnInitialize(void)
       }
    }
 #endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS/NIX */
 
-#if defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
+#ifdef ODPLAT_WIN32
    /* Allocate memory for screen buffer. */
    pScrnBuffer = malloc(SCREEN_BUFFER_SIZE);
 
@@ -1101,22 +1105,26 @@ tODResult ODScrnInitialize(void)
  */
 void ODScrnShutdown(void)
 {
-#if defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
+#ifdef ODPLAT_WIN32
    /* Deallocate screen buffer memory. */
    if(pScrnBuffer != NULL)
    {
       free(pScrnBuffer);
       pScrnBuffer = NULL;
    }
-#else /* !(ODPLAT_WIN32 || ODPLAY_NIX) */
+#else /* !ODPLAT_WIN32 */
    /* In silent mode, we must deallocate screen buffer memory. */
    /* *nix is always in silent mode							   */
+#ifndef ODPLAT_NIX
    if(od_control.od_silent_mode && pAllocatedBufferMemory != NULL)
    {
+#endif
       free(pAllocatedBufferMemory);
       pAllocatedBufferMemory = NULL;
       pScrnBuffer = NULL;
+#ifndef ODPLAT_NIX
    }
+#endif
 #endif
 }
 
