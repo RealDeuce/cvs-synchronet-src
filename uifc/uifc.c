@@ -1,6 +1,6 @@
 /* uifc.c */
 
-/* $Id: uifc.c,v 1.7 2002/01/24 19:45:52 rswindell Exp $ */
+/* $Id: uifc.c,v 1.8 2002/01/25 12:47:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,6 +133,35 @@ int uifcini(uifcapi_t* uifcapi)
     api->list=ulist;
     api->input=uinput;
     api->sethelp=sethelp;
+
+    if(api->scrn_len!=0) {
+        switch(api->scrn_len) {
+            case 14:
+                textmode(C80X14);
+                break;
+            case 21:
+                textmode(C80X21);
+                break;
+            case 25:
+                textmode(C80);
+                break;
+            case 28:
+                textmode(C80X28);
+                break;
+            case 43:
+                textmode(C80X43);
+                break;
+            case 50:
+                textmode(C80X50);
+                break;
+            case 60:
+                textmode(C80X60);
+                break;
+            default:
+                textmode(C4350);
+                break;
+        }
+    }
 
     clrscr();
     gettextinfo(&txtinfo);
