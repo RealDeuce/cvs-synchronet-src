@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.220 2002/12/12 03:18:55 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.221 2002/12/12 21:29:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -597,6 +597,9 @@ static u_long resolve_ip(char *addr)
 {
 	char*		p;
 	HOSTENT*	host;
+
+	if(*addr==0)
+		return(INADDR_NONE);
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -3094,7 +3097,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.220 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.221 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
