@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.48 2002/01/21 03:26:32 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.49 2002/01/21 03:47:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,7 @@
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_NOLFN		(1L<<13)	/* No long filenames in listings			*/
+#define SM_UNUSED		(1L<<13)	/* <UNUSED>									*/
 #define SM_L_SYSOP		(1L<<14)	/* Allow local sysop logon/commands 		*/
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
@@ -276,6 +276,9 @@
                                     /* Bit values for file_t.misc */
 #define FM_EXTDESC  (1<<0)          /* Extended description exists */
 #define FM_ANON 	(1<<1)			/* Anonymous upload */
+
+									/* Bit values for cfg.file_misc				*/
+#define FM_NO_LFN	(1<<0)			/* No long filenames in listings			*/
 
 enum {								/* errormsg() codes */
 	 ERR_OPEN						/* opening a file */

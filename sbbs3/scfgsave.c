@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.6 2002/01/16 18:25:38 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.7 2002/01/21 03:47:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -659,8 +659,9 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	put_str(cmd,stream);
 	put_int(cfg->leech_pct,stream);
 	put_int(cfg->leech_sec,stream);
+	put_int(cfg->file_misc,stream);
 	n=0;
-	for(i=0;i<32;i++)
+	for(i=0;i<30;i++)
 		put_int(n,stream);
 
 	/* Extractable File Types */

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.14 2002/01/16 18:25:38 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.15 2002/01/21 03:47:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,8 +71,9 @@ BOOL read_file_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 	get_str(cmd,instream);	/* unused - was temp_cmd */
 	get_int(cfg->leech_pct,instream);
 	get_int(cfg->leech_sec,instream);
+	get_int(cfg->file_misc,instream);
 
-	for(i=0;i<32;i++)
+	for(i=0;i<30;i++)
 		get_int(n,instream);
 
 	/**************************/

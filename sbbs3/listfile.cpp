@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.17 2002/01/21 03:28:17 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.18 2002/01/21 03:47:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -437,7 +437,7 @@ bool sbbs_t::listfile(char *fname, char HUGE16 *buf, uint dirnum
 
 #ifdef _WIN32
  
-	if(!(cfg.sys_misc&SM_NOLFN) && Win98GetLongPathName!=NULL) {
+	if(!(cfg.file_misc&FM_NO_LFN) && Win98GetLongPathName!=NULL) {
 
 		lfn_len=Win98GetLongPathName(path,lfn,sizeof(lfn));
 		if(lfn_len!=0 && lfn_len!=strlen(path)) {
