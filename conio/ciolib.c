@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.29 2004/09/30 04:44:19 deuce Exp $ */
+/* $Id: ciolib.c,v 1.30 2004/10/15 05:13:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -663,7 +663,7 @@ int ciolib_cprintf(char *fmat, ...)
 {
     va_list argptr;
 	int		ret;
-#ifdef _WIN32			/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
+#ifdef _MSC_VER		/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
 	char	str[16384];
 #else
 	char	*str;
@@ -672,7 +672,7 @@ int ciolib_cprintf(char *fmat, ...)
 	CIOLIB_INIT();
 
     va_start(argptr,fmat);
-#ifdef _WIN32
+#ifdef _MSC_VER
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
     ret=vsnprintf(NULL,0,fmat,argptr);
