@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.6 2002/02/28 01:15:21 rswindell Exp $ */
+/* $Id: services.h,v 1.7 2002/02/28 15:54:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ typedef struct {
     void	(*reserved_fptr2)(void);
     void	(*reserved_fptr1)(void);
     char    ctrl_dir[128];
-    char	reserved_path8[128];
+    char	services_cfg[128];
     char	reserved_path7[128];
     char	reserved_path6[128];
     char	reserved_path5[128];
