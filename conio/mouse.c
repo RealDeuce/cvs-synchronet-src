@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.22 2004/11/18 01:29:04 rswindell Exp $ */
+/* $Id: mouse.c,v 1.21 2004/10/13 20:15:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,7 +275,7 @@ void ciolib_mouse_thread(void *data)
 			struct in_mouse_event *in;
 
 			pthread_mutex_lock(&in_mutex);
-			in=listShiftNode(&state.input);
+			in=listRemoveNode(&state.input, FIRST_NODE);
 			pthread_mutex_unlock(&in_mutex);
 			if(in==NULL)
 					continue;
@@ -450,7 +450,7 @@ int ciolib_getmouse(struct mouse_event *mevent)
 	if(listCountNodes(&state.output)) {
 		struct out_mouse_event *out;
 		pthread_mutex_lock(&out_mutex);
-		out=listShiftNode(&state.output);
+		out=listRemoveNode(&state.output,FIRST_NODE);
 		pthread_mutex_unlock(&out_mutex);
 		if(out==NULL)
 			return(-1);
