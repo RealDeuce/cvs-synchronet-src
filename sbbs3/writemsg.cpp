@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.25 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.26 2002/02/14 03:03:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,12 +373,21 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
     		&& cfg.xedit[useron.xedit-1]->misc&QUICKBBS) {
 			fwrite(crlf,2,1,stream);
 			i++;
-			continue; }
+			continue; 
+		}
+		/* Expand LF to CRLF? */
 		if(buf[l]==LF && (!l || buf[l-1]!=CR) && useron.xedit
 			&& cfg.xedit[useron.xedit-1]->misc&EXPANDLF) {
 			fwrite(crlf,2,1,stream);
 			i++;
-			continue; }
+			continue; 
+		}
+		/* Strip FidoNet Kludge Lines? */
+		if(buf[l]==1 && useron.xedit
+			&& cfg.xedit[useron.xedit-1]->misc&STRIPKLUDGE) {
+			while(buf[l]!=LF) l++;
+			continue;
+		}
 		if(!(mode&(WM_EMAIL|WM_NETMAIL))
 			&& (!l || buf[l-1]==LF)
 			&& buf[l]=='-' && buf[l+1]=='-' && buf[l+2]=='-'

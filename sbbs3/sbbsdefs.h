@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.51 2002/02/05 21:50:49 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.52 2002/02/14 03:03:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -376,6 +376,7 @@ typedef enum {						/* Values for xtrn_t.event			*/
 #define QUOTEALL	(1L<<12)		/* Automatically quote all of msg	*/
 #define QUOTENONE	(1L<<13)		/* Automatically quote none of msg	*/
 #define XTRN_NATIVE	(1L<<14)		/* Native application				*/
+#define STRIPKLUDGE (1L<<15)		/* Strip FTN Kludge lines from msg  */
 
 									/* Bits in user.qwk 				*/
 #define QWK_FILES	(1L<<0) 		/* Include new files list			*/
