@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.18 2002/02/12 17:17:01 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.19 2002/02/21 19:10:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -579,7 +579,8 @@ bool sbbs_t::bulkupload(uint dirnum)
 			uploadfile(&f); 
 		}
 	}
-	closedir(dir);
+	if(dir!=NULL)
+		closedir(dir);
 	if(sys_status&SS_ABORT)
 		return(true);
 	return(false);
