@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.28 2004/09/11 09:36:18 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.30 2004/09/16 06:14:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,20 +107,22 @@ char* DLLCALL strip_ctrl(char *str)
 char *usage="\nusage: chksmb [-opts] <filespec.SHD>\n"
 			"\n"
 			" opts:\n"
+			"       b - beep on error\n"
 			"       s - stop after errored message base\n"
 			"       p - pause after errored messsage base\n"
-			"       q - quiet mode (no beeps while checking)\n"
+			"       h - don't check hash file\n"
 			"       a - don't check allocation files\n"
 			"       t - don't check translation strings\n"
 			"       e - display extended info on corrupted msgs\n";
 
 int main(int argc, char **argv)
 {
-	char		str[128],*p,*s,*beep="\7";
+	char		str[128],*p,*s,*beep="";
 	char*		body;
 	char*		tail;
-	int 		i,j,x,y,lzh,errors,errlast,stop_on_error=0,pause_on_error=0
-				,chkxlat=1,chkalloc=1,lzhmsg,extinfo=0,msgerr;
+	int 		h,i,j,x,y,lzh,errors,errlast;
+	BOOL		stop_on_error=FALSE,pause_on_error=FALSE,chkxlat=TRUE,chkalloc=TRUE,chkhash=TRUE
+				,lzhmsg,extinfo=FALSE,msgerr;
 	ushort		xlat;
 	ulong		l,m,n,length,size,total=0,orphan=0,deleted=0,headers=0
 				,*offset,*number,xlaterr
@@ -169,20 +171,26 @@ int main(int argc, char **argv)
 					case 'Q':
 						beep="";
 						break;
+					case 'B':
+						beep="\a";
+						break;
 					case 'P':
-						pause_on_error=1;
+						pause_on_error=TRUE;
 						break;
 					case 'S':
-						stop_on_error=1;
+						stop_on_error=TRUE;
 						break;
 					case 'T':
-						chkxlat=0;
+						chkxlat=FALSE;
 						break;
 					case 'A':
-						chkalloc=0;
+						chkalloc=FALSE;
+						break;
+					case 'H':
+						chkhash=FALSE;
 						break;
 					case 'E':
-						extinfo=1;
+						extinfo=TRUE;
 						break;
 					default:
 						printf("%s",usage);
@@ -257,7 +265,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"\r%2lu%%  ",(long)(100.0/((float)length/l)));
 		memset(&msg,0,sizeof(msg));
 		msg.idx.offset=l;
-		msgerr=0;
+		msgerr=FALSE;
 		if((i=smb_lockmsghdr(&smb,&msg))!=0) {
 			printf("\n(%06lX) smb_lockmsghdr returned %d: %s\n",l,i,smb.last_error);
 			lockerr++;
@@ -292,7 +300,7 @@ int main(int argc, char **argv)
 
 		if(msg.hdr.length!=smb_getmsghdrlen(&msg)) {
 			fprintf(stderr,"%sHeader length mismatch\n",beep);
-			msgerr=1;
+			msgerr=TRUE;
 			if(extinfo)
 				printf("MSGERR: Header length (%hu) does not match calculcated length (%lu)\n"
 					,msg.hdr.length,smb_getmsghdrlen(&msg));
@@ -305,38 +313,49 @@ int main(int argc, char **argv)
 		else {
 			if((body=smb_getmsgtxt(&smb,&msg,0))==NULL) {
 				fprintf(stderr,"%sGet text body failure\n",beep);
-				msgerr=1;
+				msgerr=TRUE;
 				if(extinfo)
 					printf("MSGERR: %s\n", smb.last_error);
 				getbodyerr++;
 			}
 			if((tail=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAIL_ONLY))==NULL) {
 				fprintf(stderr,"%sGet text tail failure\n",beep);
-				msgerr=1;
+				msgerr=TRUE;
 				if(extinfo)
 					printf("MSGERR: %s\n", smb.last_error);
 				gettailerr++;
 			}
 		}
 
-		/* Look-up the message hashes */
-		hashes=smb_msghashes(&msg,body,TRUE);
-		if(hashes[0]!=NULL 
-			&& (i=smb_findhash(&smb,hashes,NULL,FALSE /* mark */))!=SMB_SUCCESS) {
-			fprintf(stderr,"%sFailed to find hash\n",beep);
-			msgerr=1;
-			if(extinfo)
-				printf("MSGERR: %d searching for message hashes",i);
-			hasherr++;
-		}
-		
-		smb_close_hash(&smb);	/* just incase */
+		if(chkhash) {
+			/* Look-up the message hashes */
+			hashes=smb_msghashes(&msg,body);
+			if(hashes[0]!=NULL 
+				&& (i=smb_findhash(&smb,hashes,NULL,SMB_HASH_SOURCE_ALL,/* mark */TRUE ))
+					!=SMB_SUCCESS) {
+				for(h=0;hashes[h]!=NULL;h++) {
+					if(hashes[h]->flags&SMB_HASH_MARKED)
+						continue;
+					fprintf(stderr,"%sFailed to find %s hash\n"
+						,beep,smb_hashsourcetype(hashes[h]->source));
+					msgerr=TRUE;
+					if(extinfo)
+						printf("MSGERR: %d searching for %s: %s\n"
+							,i
+							,smb_hashsourcetype(hashes[h]->source)
+							,smb_hashsource(&msg,hashes[h]->source));
+					hasherr++;
+				}
+			}
+			
+			smb_close_hash(&smb);	/* just incase */
 
-		FREE_LIST(hashes,i);
+			FREE_LIST(hashes,i);
+		}
 		FREE_AND_NULL(body);
 		FREE_AND_NULL(tail);
 
-		lzhmsg=0;
+		lzhmsg=FALSE;
 		if(msg.hdr.attr&MSG_DELETE) {
 			deleted++;
 			if(number)
@@ -348,7 +367,7 @@ int main(int argc, char **argv)
 			actdatblocks+=smb_datblocks(smb_getmsgdatlen(&msg));
 			if(msg.hdr.number>smb.status.last_msg) {
 				fprintf(stderr,"%sOut-Of-Range message number\n",beep);
-				msgerr=1;
+				msgerr=TRUE;
 				if(extinfo)
 					printf("MSGERR: Header number (%lu) greater than last (%lu)\n"
 						,msg.hdr.number,smb.status.last_msg);
@@ -356,7 +375,7 @@ int main(int argc, char **argv)
 			}
 			if(smb_getmsgidx(&smb,&msg)) {
 				fprintf(stderr,"%sNot found in index\n",beep);
-				msgerr=1;
+				msgerr=TRUE;
 				if(extinfo)
 					printf("MSGERR: Header number (%lu) not found in index\n"
 						,msg.hdr.number);
@@ -364,7 +383,7 @@ int main(int argc, char **argv)
 			}
 			else if(msg.hdr.attr!=msg.idx.attr) {
 				fprintf(stderr,"%sAttributes mismatch index\n",beep);
-				msgerr=1;
+				msgerr=TRUE;
 				if(extinfo)
 					printf("MSGERR: Header attributes (%04X) do not match index "
 						"attributes (%04X)\n"
@@ -373,7 +392,7 @@ int main(int argc, char **argv)
 			}
 			else if(msg.hdr.when_imported.time!=msg.idx.time) {
 				fprintf(stderr,"%sImport date/time mismatch index\n",beep);
-				msgerr=1;
+				msgerr=TRUE;
 				if(extinfo)
 					printf("MSGERR: Header import date/time does not match "
 						"index import date/time\n");
@@ -381,7 +400,7 @@ int main(int argc, char **argv)
 			}
 			if(msg.hdr.number==0) {
 				fprintf(stderr,"%sZero message number\n",beep);
-				msgerr=1;
+				msgerr=TRUE;
 				if(extinfo)
 					printf("MSGERR: Header number is zero (invalid)\n");
 				zeronum++; 
@@ -390,7 +409,7 @@ int main(int argc, char **argv)
 				for(m=0;m<headers;m++)
 					if(number[m] && msg.hdr.number==number[m]) {
 						fprintf(stderr,"%sDuplicate message number\n",beep);
-						msgerr=1;
+						msgerr=TRUE;
 						if(extinfo)
 							printf("MSGERR: Header number (%lu) duplicated\n"
 								,msg.hdr.number);
@@ -413,7 +432,7 @@ int main(int argc, char **argv)
 					if(xlat!=XLAT_NONE) {
 						fprintf(stderr,"%sUnsupported Xlat %04X dfield[%u]\n"
 							,beep,xlat,i);
-						msgerr=1;
+						msgerr=TRUE;
 						if(extinfo)
 							printf("MSGERR: Unsupported translation type (%04X) "
 								"in dfield[%u] (offset %ld)\n"
@@ -422,7 +441,7 @@ int main(int argc, char **argv)
 					}
 					else {
 						if(lzh) {
-							lzhmsg=1;
+							lzhmsg=TRUE;
 							if(fread(&m,4,1,smb.sdt_fp)) { /* Get uncompressed len */
 								lzhsaved+=(smb_datblocks(m+2)
 									-smb_datblocks(msg.dfield[i].length))
@@ -442,14 +461,14 @@ int main(int argc, char **argv)
 				if(msg.hdr.attr&MSG_DELETE && (i=fgetc(smb.sha_fp))!=0) {
 					fprintf(stderr,"%sDeleted Header Block %lu marked %02X\n"
 						,beep,m/SHD_BLOCK_LEN,i);
-					msgerr=1;
+					msgerr=TRUE;
 					delalloc++; 
 					}
 	***/
 				if(!(msg.hdr.attr&MSG_DELETE) && (i=fgetc(smb.sha_fp))!=1) {
 					fprintf(stderr,"%sActive Header Block %lu marked %02X\n"
 						,beep,m/SHD_BLOCK_LEN,i);
-					msgerr=1;
+					msgerr=TRUE;
 					if(extinfo)
 						printf("MSGERR: Active header block %lu marked %02X "
 							"instead of 01\n"
@@ -462,14 +481,14 @@ int main(int argc, char **argv)
 				acthdrblocks+=(size/SHD_BLOCK_LEN);
 				for(n=0;n<msg.hdr.total_dfields;n++) {
 					if(msg.dfield[n].offset&0x80000000UL) {
-						msgerr=1;
+						msgerr=TRUE;
 						if(extinfo)
 							printf("MSGERR: Invalid Data Field [%lu] Offset: %lu\n"
 								,n,msg.dfield[n].offset);
 						dfieldoffset++; 
 					}
 					if(msg.dfield[n].length&0x80000000UL) {
-						msgerr=1;
+						msgerr=TRUE;
 						if(extinfo)
 							printf("MSGERR: Invalid Data Field [%lu] Length: %lu\n"
 								,n,msg.dfield[n].length);
@@ -483,7 +502,7 @@ int main(int argc, char **argv)
 							fprintf(stderr
 								,"%sActive Data Block %lu.%lu marked free\n"
 								,beep,n,m/SHD_BLOCK_LEN);
-							msgerr=1;
+							msgerr=TRUE;
 							if(extinfo)
 								printf("MSGERR: Active Data Block %lu.%lu "
 									"marked free\n"
