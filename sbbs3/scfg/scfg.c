@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.31 2002/07/24 08:11:17 rswindell Exp $ */
+/* $Id: scfg.c,v 1.32 2002/09/14 08:05:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -839,32 +839,6 @@ indicate a Baja shell file named MYBBS.BIN in your EXEC directory.
 					uifc.msg("Invalid Code");
 					uifc.helpbuf=0; }
 				break; } } }
-}
-
-/****************************************************************************/
-/* Deletes all files in dir 'path' that match file spec 'spec'              */
-/****************************************************************************/
-int delfiles(char *inpath, char *spec)
-{
-	char	path[MAX_PATH+1];
-    uint	i,files=0;
-	glob_t	g;
-
-	strcpy(path,inpath);
-	backslash(path);
-	strcat(path,spec);
-	glob(path,0,NULL,&g);
-	for(i=0;i<g.gl_pathc;i++) {
-		if(isdir(g.gl_pathv[i]))
-			continue;
-		CHMOD(g.gl_pathv[i],S_IWRITE);	// Incase it's been marked RDONLY
-		if(remove(g.gl_pathv[i]))
-			errormsg(WHERE,ERR_REMOVE,g.gl_pathv[i],0);
-		else
-			files++;
-	}
-	globfree(&g);
-	return(files);
 }
 
 int whichlogic()
