@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.10 2002/06/28 01:48:18 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.11 2002/08/26 21:56:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -441,6 +441,8 @@ CRCs is reached, the oldest CRCs will be automatically purged.
 						,cfg.sub[i]->misc&SUB_TOUSER ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","Allow Message Quoting"
 						,cfg.sub[i]->misc&SUB_QUOTE ? "Yes":"No");
+					sprintf(opt[n++],"%-27.27s%s","Suppress User Signatures"
+						,cfg.sub[i]->misc&SUB_NOUSERSIG ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","Permanent Operator Msgs"
 						,cfg.sub[i]->misc&SUB_SYSPERM ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","Kill Read Messages"
@@ -774,6 +776,30 @@ this option to Yes.
 								cfg.sub[i]->misc&=~SUB_QUOTE; }
                             break;
 						case 10:
+							n=(cfg.sub[i]->misc&SUB_NOUSERSIG) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
+							SETHELP(WHERE);
+/*
+Suppress User Signatures:
+
+If you do not wish to have user signatures automatically appended to
+messages posted in this sub-board, set this option to Yes.
+*/
+							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
+								,"Suppress User Signatures",opt);
+							if(n==-1)
+                                break;
+							if(!n && !(cfg.sub[i]->misc&SUB_NOUSERSIG)) {
+								uifc.changes=1;
+								cfg.sub[i]->misc|=SUB_NOUSERSIG;
+								break; }
+							if(n==1 && cfg.sub[i]->misc&SUB_NOUSERSIG) {
+								uifc.changes=1;
+								cfg.sub[i]->misc&=~SUB_NOUSERSIG; }
+                            break;
+						case 11:
 							n=(cfg.sub[i]->misc&SUB_SYSPERM) ? 0:1;
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
@@ -798,7 +824,7 @@ option to Yes.
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_SYSPERM; }
                             break;
-						case 11:
+						case 12:
 							if(cfg.sub[i]->misc&SUB_KILLP)
 								n=2;
 							else
@@ -833,7 +859,7 @@ be automatically deleted by SMBUTIL, set this option to Yes or
 								cfg.sub[i]->misc&=~SUB_KILL;
                                 break; }
                             break;
-						case 12:
+						case 13:
 							n=(cfg.sub[i]->misc&SUB_LZH) ? 0:1;
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
