@@ -2,7 +2,7 @@
 
 /* Synchronet MIME functions */
 
-/* $Id: mime.c,v 1.2 2002/02/02 04:19:29 rswindell Exp $ */
+/* $Id: mime.c,v 1.3 2002/02/21 01:35:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,6 +133,7 @@ BOOL base64out(SOCKET socket, char * pathfile)
     if(i!=-1)   /* already printed the last line */
         sockprintf(socket,line);
     sockprintf(socket,"");
+	fclose(fp);
 	return(TRUE);
 }
 
