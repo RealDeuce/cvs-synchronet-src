@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.4 2000/10/31 08:55:23 cmartin Exp $ */
+/* $Id: smbwrap.h,v 1.5 2000/10/31 14:36:11 cmartin Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,11 +64,6 @@
 	#define chsize(fd,size)		ftruncate(fd,size)
 
 	#define O_BINARY		0
-	#define SH_DENYNO		0
-	#define SH_DENYRW		F_WRLCK
-	#define SH_DENYRD       F_RDLCK
-	#define SH_DENYWR       F_WRLCK
-
 #endif
 
 #ifndef BOOL
