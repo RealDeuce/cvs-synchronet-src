@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.26 2004/09/08 03:32:36 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.27 2004/12/17 07:21:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,6 +213,10 @@ int fixsmb(char* sub)
 			msg.offset=n;
 			if(renumber)
 				msg.hdr.number=n+1;
+			if(msg.hdr.netattr&MSG_INTRANSIT) {
+				printf("Removing 'in transit' attribute\n");
+				msg.hdr.netattr&=~MSG_INTRANSIT;
+			}
 			msg.idx.number=msg.hdr.number;
 			msg.idx.attr=msg.hdr.attr;
 			msg.idx.time=msg.hdr.when_imported.time;
@@ -285,7 +289,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+	sscanf("$Revision: 1.27 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
