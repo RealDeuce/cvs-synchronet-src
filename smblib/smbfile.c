@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.5 2004/09/23 19:04:02 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.7 2004/12/29 04:27:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,17 +151,18 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 			,smb->file, fp);
 		return(SMB_ERR_OPEN);
 	}
-	SAFEPRINTF2(path,"%s.%s",smb->file,ext);
 
 	if(*fp!=NULL)	/* Already open! */
 		return(SMB_SUCCESS);
+
+	SAFEPRINTF2(path,"%s.%s",smb->file,ext);
 
 	while(1) {
 		if((file=sopen(path,O_RDWR|O_CREAT|O_BINARY,share,S_IREAD|S_IWRITE))!=-1)
 			break;
 		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d (%s) opening %s"
+				,"%d '%s' opening %s"
 				,get_errno(),STRERROR(get_errno()),path);
 			return(SMB_ERR_OPEN);
 		}
@@ -178,7 +179,7 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 	}
 	if((*fp=fdopen(file,"r+b"))==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%d (%s) fdopening %s (%d)"
+			,"%d '%s' fdopening %s (%d)"
 			,get_errno(),STRERROR(get_errno()),path,file);
 		close(file);
 		return(SMB_ERR_OPEN); 
