@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.284 2003/05/18 04:22:04 rswindell Exp $ */
+/* $Id: main.cpp,v 1.285 2003/06/04 02:02:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1350,6 +1350,9 @@ void event_thread(void* arg)
 					write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
 				else
 					read(file,&sbbs->cfg.event[i]->last,sizeof(time_t)); 
+				/* Event always runs after initialization? */
+				if(sbbs->cfg.event[i]->misc&EVENT_INIT)
+					sbbs->cfg.event[i]->last=-1;
 			}
 			read(file,&lastprepack,sizeof(time_t));
 			close(file);

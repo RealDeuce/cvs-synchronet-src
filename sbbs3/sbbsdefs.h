@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.92 2003/05/14 20:24:19 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.93 2003/06/04 02:02:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -365,8 +365,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 } user_event_t;																
 																			
 									/* Misc bits for event_t.misc			*/
-#define EVENT_EXCL	(1L<<0) 		/* Exclusive							*/
-#define EVENT_FORCE (1L<<1) 		/* Force users off-line for event		*/
+#define EVENT_EXCL	(1<<0) 			/* Exclusive							*/
+#define EVENT_FORCE (1<<1) 			/* Force users off-line for event		*/
+#define EVENT_INIT	(1<<2)			/* Always run event after init			*/
 																			
 									/* Mode bits for QWK stuff */			
 #define A_EXPAND	(1<<0)			/* Expand to ANSI sequences */			
