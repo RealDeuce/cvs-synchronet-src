@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.39 2003/09/20 07:08:29 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.40 2003/09/25 07:33:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -602,8 +602,10 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	}
 	smb_dfield(msg,TEXT_BODY,length);
 
-	pid=program_id();
-	smb_hfield(msg,FIDOPID,strlen(pid),pid);
+	if(smb_get_hfield(msg,FIDOPID,NULL)==NULL) {	/* Don't create duplicate PIDs */
+		pid=program_id();
+		smb_hfield(msg,FIDOPID,strlen(pid),pid);
+	}
 
 	/* Generate default (RFC822) message-id  */
 	if(smb_get_hfield(msg,RFC822MSGID,NULL)==NULL) {
