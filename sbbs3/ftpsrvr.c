@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.155 2002/04/12 08:35:12 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.156 2002/04/12 08:41:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2980,7 +2980,7 @@ static void ctrl_thread(void* arg)
 				else		/* relative */
 					sprintf(fname,"%s%s",local_dir,p);
 
-				if((i=_mkdir(fname))==0) {
+				if((i=MKDIR(fname))==0) {
 					sockprintf(sock,"257 \"%s\" directory created",fname);
 					lprintf("%04d %s created directory: %s",sock,user.alias,fname);
 				} else {

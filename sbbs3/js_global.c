@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.19 2002/03/21 01:38:15 rswindell Exp $ */
+/* $Id: js_global.c,v 1.20 2002/04/12 08:41:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -542,7 +542,7 @@ js_mkdir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(_mkdir(p)==0);
+	*rval = BOOLEAN_TO_JSVAL(MKDIR(p)==0);
 	return(JS_TRUE);
 }
 

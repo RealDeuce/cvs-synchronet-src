@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.13 2002/04/10 22:23:17 rswindell Exp $ */
+/* $Id: email.cpp,v 1.14 2002/04/12 08:41:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 
 	if(mode&WM_FILE) {
 		sprintf(str2,"%sfile/%04u.in", cfg.data_dir,usernumber);
-		_mkdir(str2);
+		MKDIR(str2);
 		sprintf(str2,"%sfile/%04u.in/%s", cfg.data_dir,usernumber,title);
 		if(fexist(str2)) {
 			bputs(text[FileAlreadyThere]);

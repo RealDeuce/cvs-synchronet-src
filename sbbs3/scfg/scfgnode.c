@@ -1,6 +1,6 @@
 /* scfgnode.c */
 
-/* $Id: scfgnode.c,v 1.14 2002/03/17 01:46:24 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.15 2002/04/12 08:41:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ If you want to abort the creation of this new node, hit  ESC .
 		strcpy(cfg.node_path[i-1],str);
 		if(str[strlen(str)-1]=='\\' || str[strlen(str)-1]=='/')
 			str[strlen(str)-1]=0;
-		_mkdir(str);
+		MKDIR(str);
 		cfg.node_num=++cfg.sys_nodes;
 		sprintf(cfg.node_name,"Node %u",cfg.node_num);
 		write_node_cfg(&cfg,backup_level);
