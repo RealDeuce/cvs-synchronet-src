@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.136 2004/06/14 19:07:32 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.137 2004/06/15 05:31:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1363,7 +1363,7 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 	del_area.tags=0;
 	del_area.tag=NULL;
 	for(l=0;l<m;l++) { 
-		while(*(p+l) && isspace(*(p+l)) l++;
+		while(*(p+l) && isspace(*(p+l))) l++;
 		while(*(p+l)==1) {				/* Ignore kludge lines June-13-2004 */
 			while(*(p+l) && *(p+l)!='\r') l++;
 			continue;
@@ -4058,7 +4058,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.136 $", "%*s %s", revision);
+	sscanf("$Revision: 1.137 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
