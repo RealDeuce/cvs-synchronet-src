@@ -1,1 +1,6 @@
-all: $(EXEODIR) $(LIBODIR) ${EXEODIR}/uifctest
+UIFCLIB		=	$(LIBODIR)$(DIRSEP)$(LIBPREFIX)uifc$(LIBFILE)
+UIFCLIB-MT	=	$(LIBODIR)$(DIRSEP)$(LIBPREFIX)uifc-mt$(LIBFILE)
+all: lib mtlib
+
+lib: $(LIBODIR) $(UIFCLIB)
+mtlib: $(LIBODIR) $(UIFCLIB-MT)
