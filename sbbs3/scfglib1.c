@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.36 2002/08/01 21:33:08 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.37 2002/08/24 23:30:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,8 +85,8 @@ BOOL read_node_cfg(scfg_t* cfg, char* error)
 	get_str(cfg->node_phone,instream);
 	get_str(cfg->node_comspec,instream);
 	#ifdef __OS2__
-	if(!node_comspec[0])
-		strcpy(node_comspec,"C:\\OS2\\MDOS\\COMMAND.COM");
+	if(!cfg->node_comspec[0])
+		strcpy(cfg->node_comspec,"C:\\OS2\\MDOS\\COMMAND.COM");
 	#endif
 	get_int(cfg->node_misc,instream);
 	get_int(cfg->node_ivt,instream);
