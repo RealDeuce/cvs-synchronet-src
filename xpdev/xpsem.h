@@ -2,7 +2,7 @@
 #define _XPSEM_H_
 
 /*
- * $Id: xpsem.h,v 1.5 2004/11/22 20:57:46 deuce Exp $
+ * $Id: xpsem.h,v 1.7 2005/01/24 10:46:07 deuce Exp $
  *
  * semaphore.h: POSIX 1003.1b semaphores
 */
@@ -54,7 +54,7 @@ typedef struct xp_sem *xp_sem_t;
 #define SEM_FAILED	((xp_sem_t *)0)
 #define SEM_VALUE_MAX	UINT_MAX
 
-#ifdef __solaris__
+#if defined(__solaris__)
 typedef unsigned int	u_int32_t;
 #endif
 
@@ -70,13 +70,14 @@ int	 xp_sem_wait (xp_sem_t *);
 int	 xp_sem_trywait (xp_sem_t *);
 int	 xp_sem_post (xp_sem_t *);
 int	 xp_sem_getvalue (xp_sem_t *, int *);
+int	 xp_sem_setvalue (xp_sem_t *, int);
 int  xp_sem_timedwait (xp_sem_t *sem, const struct timespec *abs_timeout);
 #if defined(__cplusplus)
 }
 #endif
 
 /*
-* $Id: xpsem.h,v 1.5 2004/11/22 20:57:46 deuce Exp $
+* $Id: xpsem.h,v 1.7 2005/01/24 10:46:07 deuce Exp $
 */
 
 /* Begin thread_private.h kluge */

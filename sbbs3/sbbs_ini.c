@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.95 2004/12/23 22:28:03 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.98 2005/01/05 06:35:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,13 +51,13 @@ static const char*	strLogMask="LogMask";
 static const char*	strBindRetryCount="BindRetryCount";
 static const char*	strBindRetryDelay="BindRetryDelay";
 
-#if defined(SBBSNTSVCS)
+#if defined(SBBSNTSVCS) && 0	/* sbbs_ini.obj is shared with sbbs.exe (!) */
 	#define DEFAULT_LOG_MASK		0x3f	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE */
 #else
 	#define DEFAULT_LOG_MASK		0xff	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO|DEBUG */
 #endif
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
-#define DEFAULT_BIND_RETRY_COUNT	10
+#define DEFAULT_BIND_RETRY_COUNT	2
 #define DEFAULT_BIND_RETRY_DELAY	15
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
@@ -708,7 +708,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,bbs->bind_retry_count,&style))
 			break;
 		if(bbs->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,bbs->bind_retry_delay,&style))
 			break;
 	}
@@ -784,7 +784,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,ftp->bind_retry_count,&style))
 			break;
 		if(ftp->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,ftp->bind_retry_delay,&style))
 			break;
 	}
@@ -883,7 +883,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,mail->bind_retry_count,&style))
 			break;
 		if(mail->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,mail->bind_retry_delay,&style))
 			break;
 	}
@@ -956,7 +956,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,services->bind_retry_count,&style))
 			break;
 		if(services->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,services->bind_retry_delay,&style))
 			break;
 	}
@@ -1054,7 +1054,7 @@ BOOL sbbs_write_ini(
 		else if(!iniSetInteger(lp,section,strBindRetryCount,web->bind_retry_count,&style))
 			break;
 		if(web->bind_retry_delay==global->bind_retry_delay)
-			iniRemoveValue(lp,section,strBindRetryCount);
+			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,web->bind_retry_delay,&style))
 			break;
 	}
