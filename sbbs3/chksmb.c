@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.26 2004/08/30 18:32:34 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.27 2004/09/11 01:22:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -333,8 +333,9 @@ int main(int argc, char **argv)
 		}
 
 		/* Look-up the message hashes */
-		hashes=smb_msghashes(&smb,&msg,body);
-		if((i=smb_findhash(&smb,hashes,NULL,FALSE /* mark */))!=SMB_SUCCESS) {
+		hashes=smb_msghashes(&msg,body,TRUE);
+		if(hashes[0]!=NULL 
+			&& (i=smb_findhash(&smb,hashes,NULL,FALSE /* mark */))!=SMB_SUCCESS) {
 			fprintf(stderr,"%sFailed to find hash\n",beep);
 			msgerr=1;
 			if(extinfo)
