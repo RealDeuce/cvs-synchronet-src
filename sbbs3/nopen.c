@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.4 2002/04/26 06:48:23 rswindell Exp $ */
+/* $Id: nopen.c,v 1.5 2002/04/26 07:10:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 /* number of times if the attempted file is already open or denying access  */
 /* for some other reason.	All files are opened in BINARY mode.			*/
 /****************************************************************************/
-int DLLCALL nopen(char *str, int access)
+int nopen(char *str, int access)
 {
 	int file,share,count=0;
 
@@ -64,7 +64,7 @@ int DLLCALL nopen(char *str, int access)
 /* This function performs an nopen, but returns a file stream with a buffer */
 /* allocated.																*/
 /****************************************************************************/
-FILE* DLLCALL fnopen(int *fd, char *str, int access)
+FILE* fnopen(int *fd, char *str, int access)
 {
 	char	mode[128];
 	int		file;
