@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.4 2002/04/06 10:51:18 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.5 2002/04/06 11:33:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,6 +146,7 @@ extern "C" {
 #endif
 
 DLLEXPORT int		DLLCALL	xp_random(int);
+DLLEXPORT char*		DLLCALL os_version(char *str);
 
 #if defined(__cplusplus)
 }
