@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.114 2003/03/28 04:49:09 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.115 2003/04/17 02:51:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -856,8 +856,11 @@ int main(int argc, char** argv)
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
 	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
-	if(ctrl_dir==NULL || ctrl_dir[0]==0)
+	if(ctrl_dir==NULL || ctrl_dir[0]==0) {
 		ctrl_dir="/sbbs/ctrl";		/* Not set? Use default */
+		printf("!SBBSCTRL environment variable not set, using default value: %s\n\n"
+			,ctrl_dir);
+	}
 
 	if(!winsock_startup())
 		return(-1);
