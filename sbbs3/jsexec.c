@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.10 2003/07/08 22:13:32 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.11 2003/07/08 22:34:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@ ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_context_stack=JAVASCRIPT_CONTEXT_STACK;
 FILE*		confp;
 FILE*		errfp;
+FILE*		nulfp;
 char		revision[16];
 BOOL		pause_on_exit=FALSE;
 
@@ -69,6 +70,7 @@ void usage(FILE* fp)
 
 	fprintf(fp,"\nusage: jsexec [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
+		"\t-c <ctrl_dir>   specify path to Synchronet CTRL directory\n"
 		"\t-m <bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s <bytes>      set context stack size (default=%u bytes)\n"
 		"\t-b <limit>      set branch limit (default=%u, 0=unlimited)\n"
@@ -467,23 +469,16 @@ int main(int argc, char **argv, char** environ)
 
 	confp=stdout;
 	errfp=stderr;
+	nulfp=fopen(_PATH_DEVNULL,"w+");
 
 	branch.limit=JAVASCRIPT_BRANCH_LIMIT;
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.10 $", "%*s %s", revision);
-
-	p=getenv("SBBSCTRL");
-	if(p==NULL) {
-		fprintf(errfp,"\nSBBSCTRL environment variable not set.\n");
-		fprintf(errfp,"\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
-		bail(1); 
-	}
+	sscanf("$Revision: 1.11 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
-	SAFECOPY(scfg.ctrl_dir,p);
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
@@ -507,10 +502,13 @@ int main(int argc, char **argv, char** environ)
 					errfp=confp;
 					break;
 				case 'q':
-					confp=fopen(_PATH_DEVNULL,"w");
+					confp=nulfp;
 					break;
 				case 'p':
 					pause_on_exit=TRUE;
+					break;
+				case 'c':
+					SAFECOPY(scfg.ctrl_dir,argv[++argn]);
 					break;
 				default:
 					usage(errfp);
@@ -520,6 +518,16 @@ int main(int argc, char **argv, char** environ)
 		}
 		module=argv[argn];
 	}
+
+	if(scfg.ctrl_dir[0]==0) {
+		if((p=getenv("SBBSCTRL"))==NULL) {
+			fprintf(errfp,"\nSBBSCTRL environment variable not set and -c option not specified.\n");
+			fprintf(errfp,"\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+			fprintf(errfp,"\n     or: %s -c /sbbs/ctrl [module]\n",argv[0]);
+			bail(1); 
+		}
+		SAFECOPY(scfg.ctrl_dir,p);
+	}	
 
 	if(module==NULL) {
 		usage(errfp);
