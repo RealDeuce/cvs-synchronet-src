@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.7 2000/11/15 02:47:51 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.8 2000/11/15 03:06:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,9 +58,12 @@ static const char* prompt = "Command (?=Help): ";
 static lputs(char *str)
 {
 	static pthread_mutex_t mutex;
+	static BOOL mutex_initialized;
 
-	if(mutex==0) 
+	if(!mutex_initialized) {
 		pthread_mutex_init(&mutex,NULL);
+		mutex_initialized=TRUE;
+	}
 
 	pthread_mutex_lock(&mutex);
 	printf("\r%*s\r%s\n",strlen(prompt),"",str);
