@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.15 2001/12/01 01:04:58 rswindell Exp $ */
+/* $Id: services.c,v 1.16 2001/12/01 02:38:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,9 @@
 #include <errno.h>			/* errno */
 
 /* Synchronet-specific headers */
+#ifndef JAVASCRIPT
 #define JAVASCRIPT	/* required to include JS API headers */
+#endif
 #include "sbbs.h"
 #include "services.h"
 #include "ident.h"	/* identify() */
