@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.c,v 1.1 2000/10/10 11:26:26 rswindell Exp $ */
+/* $Id: lzh.c,v 1.2 2000/10/21 04:41:10 rswindell Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -35,9 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#ifdef __BORLANDC__
-	#include <alloc.h>
-#endif
+#include <malloc.h>
 #include "lzh.h"
 
 /****************************************************************************/
