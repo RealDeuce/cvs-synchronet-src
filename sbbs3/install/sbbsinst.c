@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.19 2003/01/23 03:39:50 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.20 2003/01/23 03:51:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -406,8 +406,7 @@ endif
 		fprintf(makefile,"\t$(SBBSDIR)/src/sbbs3 $(SBBSDIR)/src/uifc \\\n");
 		fprintf(makefile,"\t$(SBBSDIR)/src/xpdev $(SBBSDIR)/src/mozilla \\\n");
 	}
-	fprintf(makefile,"\n");
-	fprintf(makefile,"\t$(SBBSDIR)/src/mozilla $(SBBSDIR)/lib/mozilla/js/%s.%s\n\n",platform,build);
+	fprintf(makefile,"\t$(SBBSDIR)/lib/mozilla/js/%s.%s\n",platform,build);
 	fprintf(makefile,"\tgmake -C $(SBBSDIR)/src/sbbs3 $(MKFLAGS)\n");
 
 	/* what's this doing *here* ? */
