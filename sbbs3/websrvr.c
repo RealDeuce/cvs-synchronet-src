@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.109 2003/05/31 06:42:57 deuce Exp $ */
+/* $Id: websrvr.c,v 1.110 2003/06/02 18:45:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1382,10 +1382,11 @@ static BOOL get_req(http_session_t * session)
 static char *find_last_slash(char *str)
 {
 #ifdef _WIN32
-	char * LastFSlash,LastBSlash;
+	char * LastFSlash;
+	char * LastBSlash;
 
-	LastFSlash=strrchr(y,'/');
-	LastBSlash=strrchr(y,'\\');
+	LastFSlash=strrchr(str,'/');
+	LastBSlash=strrchr(str,'\\');
 	if(LastFSlash==NULL)
 		return(LastBSlash);
 	if(LastBSlash==NULL)
@@ -1402,10 +1403,11 @@ static char *find_last_slash(char *str)
 static char *find_first_slash(char *str)
 {
 #ifdef _WIN32
-	char * FirstFSlash,FirstBSlash;
+	char * FirstFSlash;
+	char * FirstBSlash;
 
-	FirstFSlash=strchr(y,'/');
-	FirstBSlash=strchr(y,'\\');
+	FirstFSlash=strchr(str,'/');
+	FirstBSlash=strchr(str,'\\');
 	if(FirstFSlash==NULL)
 		return(FirstBSlash);
 	if(FirstBSlash==NULL)
@@ -2384,7 +2386,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.109 $", "%*s %s", revision);
+	sscanf("$Revision: 1.110 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2545,6 +2547,12 @@ void DLLCALL web_server(void* arg)
 			return;
 		}
 		
+/*
+ *		i=1;
+ *		if(setsockopt(server_socket, IPPROTO_TCP, TCP_NOPUSH, &i, sizeof(i)))
+ *			lprintf("Cannot set TCP_NOPUSH socket option");
+ */
+
 		lprintf("Web Server socket %d opened",server_socket);
 
 		/*****************************/
