@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.38 2003/03/02 07:13:28 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.39 2003/03/02 07:24:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -443,14 +443,9 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 		cfg->color=p;
 		cfg->color[cfg->total_colors]=attrstr(str); 
 	}
-#if	0 /* Need to support v2.x attr.cfg with fewer colors */
-	if(cfg->total_colors<MIN_COLORS) {
-		sprintf(error,"Less than MIN_COLORS (%lu<%u) defined in %s"
-			,cfg->total_colors,MIN_COLORS,fname);
-		return(FALSE); 
-	}
-#endif
 	fclose(instream);
+	if(cfg->total_colors<MIN_COLORS)
+		cfg->total_colors=MIN_COLORS;
 	return(TRUE);
 }
 
