@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.336 2004/10/16 00:47:21 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.334 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,8 +103,6 @@ static BOOL		terminate_sendmail=FALSE;
 static sem_t	sendmail_wakeup_sem;
 static char		revision[16];
 static time_t	uptime;
-static link_list_t recycle_semfiles;
-static link_list_t shutdown_semfiles;
 
 typedef struct {
 	SOCKET			socket;
@@ -2081,8 +2079,8 @@ static void smtp_thread(void* arg)
 						section=sec_list[rcpt_count];
 
 						SAFECOPY(rcpt_name,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
-						usernum=iniReadInteger(rcptlst,section				,smb_hfieldtype(RECIPIENTEXT),0);
-						SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),rcpt_name,value));
+						usernum=iniReadInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
+						SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
 
 						if((i=putsmsg(&scfg,usernum,telegram_buf))==0)
 							lprintf(LOG_INFO,"%04d SMTP Created telegram (%ld/%u bytes) from %s to %s <%s>"
@@ -3817,9 +3815,6 @@ static void cleanup(int code)
 {
 	free_cfg(&scfg);
 
-	semfile_list_free(&recycle_semfiles);
-	semfile_list_free(&shutdown_semfiles);
-
 	if(server_socket!=INVALID_SOCKET) {
 		mail_close_socket(server_socket);
 		server_socket=INVALID_SOCKET;
@@ -3853,7 +3848,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.336 $", "%*s %s", revision);
+	sscanf("$Revision: 1.334 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3872,7 +3867,6 @@ const char* DLLCALL mail_ver(void)
 
 void DLLCALL mail_server(void* arg)
 {
-	char*			p;
 	char			path[MAX_PATH+1];
 	char			str[256];
 	char			error[256];
@@ -4023,7 +4017,7 @@ void DLLCALL mail_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"%04d SMTP socket opened",server_socket);
+		lprintf(LOG_DEBUG,"%04d SMTP Socket opened",server_socket);
 
 		/*****************************/
 		/* Listen for incoming calls */
@@ -4047,7 +4041,7 @@ void DLLCALL mail_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"%04d SMTP socket bound to port %u"
+		lprintf(LOG_DEBUG,"%04d SMTP Socket bound to port %u"
 			,server_socket, startup->smtp_port);
 
 		result = listen (server_socket, 1);
@@ -4116,15 +4110,12 @@ void DLLCALL mail_server(void* arg)
 		lprintf(LOG_NOTICE,"%04d Mail Server thread started",server_socket);
 		status(STATUS_WFC);
 
-		/* Setup recycle/shutdown semaphore file lists */
-		semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown",startup->host_name,"mail");
-		semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle",startup->host_name,"mail");
-		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
-		semfile_list_add(&recycle_semfiles,path);
-		if(!initialized) {
+		if(initialized==0) {
 			initialized=time(NULL);
-			semfile_list_check(&initialized,&recycle_semfiles);
-			semfile_list_check(&initialized,&shutdown_semfiles);
+			sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
+			t=fdate(path);
+			if(t!=-1 && t>initialized)
+				initialized=t;
 		}
 
 		/* signal caller that we've started up successfully */
@@ -4133,25 +4124,22 @@ void DLLCALL mail_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(active_clients==0 && !(startup->options&MAIL_OPT_NO_RECYCLE)) {
-				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
+			if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
+				sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
+				t=fdate(path);
+				if(!active_clients && t!=-1 && t>initialized) {
+					lprintf(LOG_NOTICE,"0000 Recycle semaphore file (%s) detected",path);
+					initialized=t;
 					break;
 				}
 				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
 					startup->recycle_now=TRUE;
-				if(startup->recycle_now==TRUE) {
+				if(!active_clients && startup->recycle_now==TRUE) {
 					lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;
 					break;
 				}
 			}
-			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
-				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
-				terminate_server=TRUE;
-				break;
-			}
-
 			/* now wait for connection */
 
 			FD_ZERO(&socket_set);
