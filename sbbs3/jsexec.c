@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.32 2003/07/30 03:02:05 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.33 2003/08/19 07:55:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -566,7 +566,7 @@ long js_exec(const char *fname, char** args)
 				,js_buflen+strlen(line));
 			return(-1);
 		}
-		strcpy(js_buf+js_buflen,line);
+		memcpy(js_buf+js_buflen,line,strlen(line));
 		js_buflen+=strlen(line);
 	}
 	if((js_script=JS_CompileScript(js_cx, js_scope, js_buf, js_buflen, fname==NULL ? NULL : path, 1))==NULL) {
@@ -620,7 +620,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.32 $", "%*s %s", revision);
+	sscanf("$Revision: 1.33 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
