@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.2 2000/10/21 00:25:38 rswindell Exp $ */
+/* $Id: baja.c,v 1.3 2000/10/21 04:40:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-//#include <alloc.h>
 #include "cmdshell.h"
 #include "ars_defs.h"
 #include "crc32.h"
