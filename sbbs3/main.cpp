@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.295 2003/08/18 21:09:34 rswindell Exp $ */
+/* $Id: main.cpp,v 1.296 2003/08/27 10:29:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2194,8 +2194,12 @@ bool sbbs_t::init()
 #endif
 		);
 	if(comspec==NULL) {
+#if defined(__unix__) && defined(_PATH_BSHELL)
+		comspec =  _PATH_BSHELL;
+#else
 		errormsg(WHERE, ERR_CHK, "SHELL or COMSPEC environment variable", 0);
 		return(false);
+#endif
 	}
 
 	md(cfg.temp_dir);
