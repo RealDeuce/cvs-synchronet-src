@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.5 2004/09/17 07:51:37 rswindell Exp $
+# $Id: Makefile,v 1.3 2004/09/13 01:23:28 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -24,7 +24,7 @@ SRC_ROOT = ..
 CFLAGS = $(CFLAGS) -I$(XPDEV_SRC)
 
 # SBBS DLL Link Rule
-$(SMBLIB_BUILD): $(OBJS)
+$(SMBLIB): $(OBJS)
     @echo Creating $< ...
 	-$(QUIET)$(DELETE) $@
 	&$(QUIET)tlib $@ +$**
