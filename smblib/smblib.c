@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.74 2003/09/25 08:13:36 rswindell Exp $ */
+/* $Id: smblib.c,v 1.75 2003/10/02 23:44:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -625,7 +625,7 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 	}
 
 	if(!msg->hdr.number) {
-		if(msg->offset%sizeof(idxrec_t) || msg->offset*sizeof(idxrec_t)>=length) {
+		if(msg->offset*sizeof(idxrec_t)>=length) {
 			sprintf(smb->last_error,"invalid index offset: %lu, byte offset: %lu, length: %lu"
 				,msg->offset, msg->offset*sizeof(idxrec_t), length);
 			return(SMB_ERR_HDR_OFFSET);
