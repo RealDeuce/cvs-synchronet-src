@@ -2,7 +2,7 @@
 
 /* Synchronet X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: stp.c,v 1.5 2003/08/22 19:50:07 rswindell Exp $ */
+/* $Id: stp.c,v 1.6 2005/01/20 06:19:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,7 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 
+#include "xpbeep.h"
 #include "conwrap.h"
 #include "genwrap.h"
 #include "dirwrap.h"
