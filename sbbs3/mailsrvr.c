@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.182 2002/07/31 08:03:33 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.183 2002/08/01 21:31:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2785,7 +2785,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.182 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.183 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -2850,6 +2850,7 @@ void DLLCALL mail_server(void* arg)
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
 	if(startup->max_recipients==0) 			startup->max_recipients=100;
 
+	startup->recycle_now=FALSE;
 	recycle_server=TRUE;
 	do {
 

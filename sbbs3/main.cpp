@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.170 2002/07/31 08:03:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.171 2002/08/01 21:31:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3160,6 +3160,7 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 #endif
 
+	startup->recycle_now=FALSE;
 	recycle_server=true;
 	do {
 

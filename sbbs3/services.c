@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.67 2002/07/31 08:03:34 rswindell Exp $ */
+/* $Id: services.c,v 1.68 2002/08/01 21:31:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -964,7 +964,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.67 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.68 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1027,6 +1027,7 @@ void DLLCALL services_thread(void* arg)
 	/* Setup intelligent defaults */
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 
+	startup->recycle_now=FALSE;
 	do {
 
 		thread_up(FALSE /* setuid */);
