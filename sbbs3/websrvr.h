@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.19 2004/09/24 08:11:37 deuce Exp $ */
+/* $Id: websrvr.h,v 1.20 2004/09/25 06:07:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,6 +39,7 @@
 #define _WEBSRVR_H_
 
 #include "client.h"				/* client_t */
+#include "startup.h"			/* BBS_OPT_* */
 
 typedef struct {
 	DWORD	size;				/* sizeof(web_startup_t) */
