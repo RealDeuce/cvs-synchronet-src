@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.1 2000/10/10 11:25:22 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.2 2000/10/21 00:24:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -363,7 +363,7 @@ public:
 	void	printnodedat(uint number, node_t* node);
 	void	reports(void);
 	bool	inputnstime(time_t *dt);
-	bool	chkpass(char *pass, user_t* user);
+	bool	chkpass(char *pass, user_t* user, bool unique);
 	char *	cmdstr(char *instr, char *fpath, char *fspec, char *outstr);
 	char	cmdstr_output[512];
 

@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.2 2000/10/11 23:50:28 rswindell Exp $ */
+/* $Id: str.cpp,v 1.3 2000/10/21 00:24:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -594,7 +594,7 @@ bool sbbs_t::inputnstime(time_t *dt)
 /*****************************************************************************/
 /* Checks a password for uniqueness and validity                              */
 /*****************************************************************************/
-bool sbbs_t::chkpass(char *pass, user_t* user)
+bool sbbs_t::chkpass(char *pass, user_t* user, bool unique)
 {
 	char c,d,first[128],last[128],sysop[41],sysname[41],*p;
 	char alias[LEN_ALIAS+1], name[LEN_NAME+1], handle[LEN_HANDLE+1];
@@ -641,7 +641,7 @@ bool sbbs_t::chkpass(char *pass, user_t* user)
 	strupr(sysop);
 	strcpy(sysname,cfg.sys_name);
 	strupr(sysname);
-	if((user->pass[0]
+	if((unique && user->pass[0]
 			&& (strstr(pass,user->pass) || strstr(user->pass,pass)))
 		|| (name[0]
 			&& (strstr(pass,name) || strstr(name,pass)))

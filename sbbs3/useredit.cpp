@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.1 2000/10/10 11:25:10 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.2 2000/10/21 00:24:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -950,7 +950,7 @@ void sbbs_t::maindflts(user_t* user)
 				if(!getstr(str,LEN_PASS,K_UPPER|K_LINE))
 					break;
 				truncsp(str);
-				if(!chkpass(str,user)) {
+				if(!chkpass(str,user,false)) {
 					CRLF;
 					pause();
 					break; }

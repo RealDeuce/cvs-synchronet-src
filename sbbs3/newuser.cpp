@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.1 2000/10/10 11:24:55 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.2 2000/10/21 00:24:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -311,7 +311,7 @@ void sbbs_t::newuser()
 			bputs(text[NewPassword]);
 			getstr(str,LEN_PASS,K_UPPER|K_LINE);
 			truncsp(str);
-			if(chkpass(str,&useron)) {
+			if(chkpass(str,&useron,true)) {
 				strcpy(useron.pass,str);
 				CRLF;
 				bprintf(text[YourPasswordIs],useron.pass);
