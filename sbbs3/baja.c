@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.7 2000/11/02 13:33:22 rswindell Exp $ */
+/* $Id: baja.c,v 1.8 2000/11/02 13:39:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,9 +54,10 @@
 #include "cmdshell.h"
 #include "ars_defs.h"
 #include "crc32.h"
+#include "smbwrap.h"	/* portability wrappers */
 
 #ifdef __BORLANDC__
-unsigned _stklen=20000; 		  /* Set stack size in code, not header */
+unsigned _stklen=20000;	/* Set stack size in code, not header */
 #endif
 
 char **label_name=NULL
