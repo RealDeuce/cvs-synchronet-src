@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.136 2003/12/10 11:38:22 rswindell Exp $
+# $Id: GNUmakefile,v 1.137 2004/03/08 19:22:30 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -35,6 +35,12 @@ ifdef DEBUG
  BUILD	=	debug
 else
  BUILD	=	release
+endif
+BUILDPATH	:=	$(BUILD)
+
+ifeq ($(shell hostname),dmjunk.kingcole.local)
+ THREADS_ACTUALLY_WORK=1
+ BUILDPATH	:=	redhat
 endif
 
 ifdef bcc
@@ -94,8 +100,8 @@ else
  endif
 endif
 
-LIBODIR :=	$(CCPRE).$(os).lib.$(BUILD)
-EXEODIR :=	$(CCPRE).$(os).exe.$(BUILD)
+LIBODIR :=	$(CCPRE).$(os).lib.$(BUILDPATH)
+EXEODIR :=	$(CCPRE).$(os).exe.$(BUILDPATH)
 
 DELETE	=	rm -f
 
@@ -196,7 +202,11 @@ ifdef USE_CURSES
  ifeq ($(os),qnx)
   UIFC_LFLAGS += -lncurses
  else
-  UIFC_LFLAGS += -lcurses
+  ifeq ($(os),netbsd)
+   UIFC_LFLAGS += -lncurses
+  else
+   UIFC_LFLAGS += -lcurses
+  endif
  endif
  UIFC_OBJS +=	$(LIBODIR)/uifcc.o
 endif
@@ -206,7 +216,11 @@ ifdef USE_UIFC32
  ifeq ($(os),qnx)
   UIFC_LFLAGS += -lncurses
  else
-  UIFC_LFLAGS += -lcurses
+  ifeq ($(os),netbsd)
+   UIFC_LFLAGS += -lncurses
+  else
+   UIFC_LFLAGS += -lcurses
+  endif
  endif
  UIFC_OBJS +=	$(LIBODIR)/uifc32.o
  UIFC_OBJS +=	$(LIBODIR)/ciowrap.o

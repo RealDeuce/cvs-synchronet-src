@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.51 2004/02/22 08:09:22 deuce Exp $ */
+/* $Id: umonitor.c,v 1.53 2004/02/23 02:08:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -474,12 +474,12 @@ int view_logs(scfg_t *cfg)
 				freeopt(opt);
 				return(0);
 			case 0:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg->logs_dir,tm.tm_mon+1,tm.tm_mday
+				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.lol",cfg->logs_dir,tm.tm_mon+1,tm.tm_mday
 					,TM_YEAR(tm.tm_year));
 				view_log(str,"Todays Callers");
 				break;
 			case 1:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg->logs_dir,tm_yest.tm_mon+1
+				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.lol",cfg->logs_dir,tm_yest.tm_mon+1
 					,tm_yest.tm_mday,TM_YEAR(tm_yest.tm_year));
 				view_log(str,"Yesterdays Callers");
 				break;
@@ -667,22 +667,26 @@ int recycle_servers(scfg_t *cfg)
 	return(0);
 }
 
+char *geteditor(char *edit)
+{
+	if(getenv("EDITOR")==NULL && (getenv("VISUAL")==NULL || getenv("DISPLAY")==NULL))
+		strcpy(edit,"vi");
+	else {
+		if(getenv("DISPLAY")!=NULL && getenv("VISUAL")!=NULL)
+			strcpy(edit,getenv("VISUAL"));
+		else
+			strcpy(edit,getenv("EDITOR"));
+	}
+	return(edit);
+}
+
+
 int edit_cfg(scfg_t *cfg)
 {
 	char**	opt;
 	int		i;
 	char	cmd[1024];
 	char	editcmd[1024];
-
-	if(getenv("EDITOR")==NULL && (getenv("VISUAL")==NULL || getenv("DISPLAY")==NULL)) {
-		uifc.msg("EDITOR/VISUAL environment variable(s) not found");
-		return(1);
-	}
-
-	if(getenv("DISPLAY")!=NULL && getenv("VISUAL")!=NULL)
-		strcpy(editcmd,getenv("VISUAL"));
-	else
-		strcpy(editcmd,getenv("EDITOR"));
 
 	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
 		allocfail(sizeof(char *)*(MAX_OPTS+1));
@@ -715,7 +719,7 @@ int edit_cfg(scfg_t *cfg)
 				return(0);
 				break;
 			default:
-				sprintf(cmd,"%s %s%s",editcmd,cfg->ctrl_dir,opt[i]);
+				sprintf(cmd,"%s %s%s",geteditor(editcmd),cfg->ctrl_dir,opt[i]);
 				do_cmd(cmd);
 				break;
 		}
@@ -729,16 +733,6 @@ int edit_can(scfg_t *cfg)
 	int		i;
 	char	cmd[1024];
 	char	editcmd[1024];
-
-	if(getenv("EDITOR")==NULL && (getenv("VISUAL")==NULL || getenv("DISPLAY")==NULL)) {
-		uifc.msg("EDITOR/VISUAL environment variable(s) not found");
-		return(1);
-	}
-
-	if(getenv("DISPLAY")!=NULL && getenv("VISUAL")!=NULL)
-		strcpy(editcmd,getenv("VISUAL"));
-	else
-		strcpy(editcmd,getenv("EDITOR"));
 
 	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
 		allocfail(sizeof(char *)*(MAX_OPTS+1));
@@ -765,7 +759,7 @@ int edit_can(scfg_t *cfg)
 				return(0);
 				break;
 			default:
-				sprintf(cmd,"%s %s%s",editcmd,cfg->text_dir,opt[i]);
+				sprintf(cmd,"%s %s%s",geteditor(editcmd),cfg->text_dir,opt[i]);
 				do_cmd(cmd);
 				break;
 		}
@@ -794,7 +788,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.51 $", "%*s %s", revision);
+	sscanf("$Revision: 1.53 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
