@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.14 2000/11/17 04:33:08 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.15 2000/12/06 03:10:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -493,6 +493,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 {
     CtrlDirectory="c:\\sbbs\\ctrl\\";
     LoginCommand="start telnet://localhost";
+    ConfigCommand="%sSCFG %s /T2";
 
     memset(&bbs_startup,0,sizeof(bbs_startup));
     bbs_startup.size=sizeof(bbs_startup);
@@ -697,6 +698,7 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
 
     Registry->WriteString("CtrlDirectory",CtrlDirectory);
     Registry->WriteString("LoginCommand",LoginCommand);
+    Registry->WriteString("ConfigCommand",ConfigCommand);
 
     Registry->WriteInteger("SysAutoStart",SysAutoStart);
     Registry->WriteInteger("MailAutoStart",MailAutoStart);
@@ -923,7 +925,7 @@ void __fastcall TMainForm::BBSConfigureMenuItemClick(TObject *Sender)
 {
 	char str[256];
 
-    sprintf(str,"%sSCFG %s /T2"
+    sprintf(str,ConfigCommand.c_str()
     	,cfg.exec_dir, cfg.ctrl_dir);
     STARTUPINFO startup_info={0};
     PROCESS_INFORMATION process_info;
@@ -1260,6 +1262,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	CtrlDirectory=Registry->ReadString("CtrlDirectory");
     if(Registry->ValueExists("LoginCommand"))
     	LoginCommand=Registry->ReadString("LoginCommand");
+    if(Registry->ValueExists("ConfigCommand"))
+    	ConfigCommand=Registry->ReadString("ConfigCommand");
 
     if(Registry->ValueExists("MailLogFile"))
     	MailLogFile=Registry->ReadInteger("MailLogFile");
