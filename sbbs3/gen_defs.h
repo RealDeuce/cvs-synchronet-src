@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.9 2000/11/02 12:45:06 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.10 2001/06/15 03:37:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,35 @@
 #define LF		'\n'				/* Line feed				^J	*/
 #define CR		'\r'				/* Carriage return			^M	*/
 #define SP		' '					/* Space						*/
+
+enum {
+	 CTRL_A=1
+	,CTRL_B
+	,CTRL_C
+	,CTRL_D	
+	,CTRL_E
+	,CTRL_F
+	,CTRL_G
+	,CTRL_H
+	,CTRL_I
+	,CTRL_J
+	,CTRL_K
+	,CTRL_L
+	,CTRL_M
+	,CTRL_N
+	,CTRL_O
+	,CTRL_P
+	,CTRL_Q
+	,CTRL_R
+	,CTRL_S
+	,CTRL_T
+	,CTRL_U
+	,CTRL_V
+	,CTRL_W
+	,CTRL_X
+	,CTRL_Y
+	,CTRL_Z
+};
 
 #ifndef MAX_PATH
 	#ifdef MAXPATHLEN

@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.6 2000/11/28 02:41:50 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.7 2001/06/15 03:37:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,7 +316,7 @@ void sbbs_t::mnemonics(char *str)
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnelow]); }
 		else {
-			if(str[l]==1) {             /* ctrl-a */
+			if(str[l]==CTRL_A) {        /* ctrl-a */
 				ctrl_a(str[++l]);       /* skip the ctrl-a */
 				l++; }                  /* skip the attribute code */
 			else
