@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.126 2002/01/23 03:54:12 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.127 2002/01/24 12:19:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,9 +145,11 @@ static int lprintf(char *fmt, ...)
     if(startup==NULL || startup->lputs==NULL)
         return(0);
 
-#if defined(_WIN32)
-	if(IsBadCodePtr((FARPROC)startup->lputs))
+#if defined(_WIN32) && defined(_DEBUG)
+	if(IsBadCodePtr((FARPROC)startup->lputs)) {
+		DebugBreak();
 		return(0);
+	}
 #endif
 
     va_start(argptr,fmt);
