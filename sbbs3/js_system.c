@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.31 2002/08/30 22:54:04 rswindell Exp $ */
+/* $Id: js_system.c,v 1.32 2002/09/04 03:53:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -836,7 +836,7 @@ js_put_telegram(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 }
 
 
-static JSFunctionSpec js_system_functions[] = {
+static jsMethodSpec js_system_functions[] = {
 	{"alias",			js_alias,			1},		// return user name for alias
 	{"matchuser",		js_matchuser,		1},		// exact user name matching
 	{"trashcan",		js_trashcan,		2},		// search file for pseudo-regexp
