@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.50 2003/02/04 01:50:03 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.51 2003/02/04 02:08:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -665,14 +665,13 @@ get_distlist(void)
 				break;
 			case 's':
 				p=in_line+2;
-				tp=strchr(p,'\t');
-				if(tp!=NULL)
-					*tp=0;	/* truncate address at first tab */
-				else
-					tp=p;
+				tp=p;
+				while(*tp && *tp>' ') tp++;
+					*tp=0;	/* truncate address at first whitespace */
 				SAFECOPY(server[s]->addr,p);
-				if((p=strrchr(tp+1,'\t'))!=NULL)	/* description follows last tab */
-					SAFECOPY(server[s]->desc,++p);
+				p=tp+1;
+				while(*p && *p<=' ') p++;	/* desc follows whitepsace */
+				SAFECOPY(server[s]->desc,++p);
 				s++;
 				break;
 		}
