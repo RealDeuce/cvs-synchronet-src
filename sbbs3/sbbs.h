@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.148 2002/11/01 08:15:58 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.149 2002/11/01 08:45:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -781,7 +781,7 @@ extern "C" {
 	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
 	DLLEXPORT ushort	DLLCALL subject_crc(char *subj);
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg);
-	DLLEXPORT char *	DLLCALL gen_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg);
+	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg);
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
