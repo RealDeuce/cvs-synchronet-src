@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.24 2003/01/05 05:19:13 rswindell Exp $ */
+/* $Id: smblib.h,v 1.25 2003/03/10 09:25:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,6 +112,7 @@ SMBEXPORT int 	SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 	SMBCALL smb_unlockmsghdr(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 	SMBCALL smb_addcrc(smb_t* smb, ulong crc);
 SMBEXPORT int 	SMBCALL smb_hfield(smbmsg_t* msg, ushort type, size_t length, void* data);
+SMBEXPORT int	SMBCALL smb_hfield_append(smbmsg_t* msg, ushort type, size_t length, void* data);
 SMBEXPORT int 	SMBCALL smb_dfield(smbmsg_t* msg, ushort type, ulong length);
 SMBEXPORT void* SMBCALL smb_get_hfield(smbmsg_t* msg, ushort type, hfield_t* hfield);
 SMBEXPORT char* SMBCALL smb_hfieldtype(ushort type);
