@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.18 2002/01/29 00:58:39 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.19 2002/01/29 13:57:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -311,6 +311,8 @@ int uinput(int mode, char left, char top, char *prompt, char *outstr,
 	char max, int kmode)
 {
 	char str[256];
+	if(!(kmode&K_EDIT))
+		outstr[0]=0;
 	sprintf(str,"%.*s",sizeof(str)-1,outstr);
     while(dialog_inputbox((char*)NULL, prompt, 9, max+4, outstr)==-2)
 		help();
