@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.28 2000/11/11 01:07:26 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.29 2000/11/11 01:20:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1315,7 +1315,7 @@ static void smtp_thread(void* arg)
 						truncsp(rcpt_name);
 						truncsp(rcpt_addr);
 
-						_snprintf(hdrfield,sizeof(hdrfield),
+						snprintf(hdrfield,sizeof(hdrfield),
 							"Received: from %s (%s [%s])\r\n"
 							"          by %s [%s] (Synchronet Mail Server for %s v%s) with %s\r\n"
 							"          for %s; %s"

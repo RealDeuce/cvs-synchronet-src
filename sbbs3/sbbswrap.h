@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.21 2000/11/10 12:07:13 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.22 2000/11/11 01:20:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,6 +234,7 @@ extern "C" {
 #define CHMOD(s,m)		_chmod(s,m)
 #define PUTENV  		_putenv
 #define GETCWD  		_getcwd
+#define snprintf		_snprintf
 
 #elif defined(__BORLANDC__)
 
