@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.74 2003/09/20 07:08:29 rswindell Exp $ */
+/* $Id: js_system.c,v 1.75 2003/09/20 23:16:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -451,6 +451,7 @@ static char* sys_prop_desc[] = {
 	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inetaddr</i>)"
 	,"Synchronet version number (e.g. '3.10')"
 	,"Synchronet revision letter (e.g. 'k')"
+	,"Synchronet alpha/beta designation (e.g. ' beta')"
 	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
 	,"Synchronet version notice (includes version and platform)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
