@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.62 2004/09/13 08:40:30 deuce Exp $ */
+/* $Id: scfg.c,v 1.60 2004/08/31 09:34:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,9 +198,32 @@ FULLPATH(cfg.ctrl_dir,".",sizeof(cfg.ctrl_dir));
 backslashcolon(cfg.ctrl_dir);
 
 uifc.size=sizeof(uifc);
+#if defined(USE_FLTK)
+if(!door_mode && gui_mode==TRUE
+#if defined(__unix__)
+	&& (getenv("DISPLAY")!=NULL)
+#endif
+	)
+    i=uifcinifltk(&uifc);  /* dialog */
+else
+#endif
+#if defined(USE_DIALOG)
+if(!door_mode)
+    i=uifcinid(&uifc);  /* dialog */
+else
+#elif defined(USE_UIFC32)
 if(!door_mode)
     i=uifcini32(&uifc);  /* curses/conio */
 else
+#elif defined(USE_CURSES)
+if(!door_mode)
+    i=uifcinic(&uifc);  /* curses */
+else
+#elif !defined(__unix__) && !defined(_MSC_VER) && !defined(USE_UIFC32)
+if(!door_mode)
+    i=uifcini(&uifc);   /* conio */
+else
+#endif
     i=uifcinix(&uifc);  /* stdio */
 if(i!=0) {
     printf("uifc library init returned error %d\n",i);

@@ -1,7 +1,5 @@
 #include <genwrap.h>
 #include <ciolib.h>
-#include <cterm.h>
-#include <mouse.h>
 #include <keys.h>
 
 #include "rlogin.h"
@@ -49,16 +47,10 @@ void doterm(void)
 
 		/* Get local input */
 		while(kbhit()) {
-			struct mouse_event mevent;
 			key=getch();
 			switch(key) {
-				case 0xff:
 				case 0:
-					switch(key|(getch()<<8)) {
-						case CIO_KEY_MOUSE:
-							getmouse(&mevent);
-							break;
-
+					switch(getch()<<8) {
 						case CIO_KEY_LEFT:
 							rlogin_send("\033[D",3,100);
 							break;
@@ -126,6 +118,7 @@ void doterm(void)
 					
 			}
 		}
-		SLEEP(1);
+		if(!rcvtimeo)
+			SLEEP(1);
 	}
 }
