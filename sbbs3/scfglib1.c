@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.25 2002/01/23 00:12:08 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.26 2002/02/08 13:18:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
