@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.64 2004/09/21 05:59:47 deuce Exp $ */
+/* $Id: umonitor.c,v 1.65 2004/09/28 05:39:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -726,6 +726,7 @@ int edit_cfg(scfg_t *cfg)
 			allocfail(MAX_OPLN);
 
 	i=0;
+	strcpy(opt[i++],"sbbs.ini");
 	strcpy(opt[i++],"alias.cfg");
 	strcpy(opt[i++],"attr.cfg");
 	strcpy(opt[i++],"dns_blacklist.cfg");
@@ -736,6 +737,7 @@ int edit_cfg(scfg_t *cfg)
 	strcpy(opt[i++],"relay.cfg");
 	strcpy(opt[i++],"sbbsecho.cfg");
 	strcpy(opt[i++],"services.cfg");
+	strcpy(opt[i++],"services.ini");
 	strcpy(opt[i++],"ftpalias.cfg");
 	strcpy(opt[i++],"sockopts.cfg");
 	strcpy(opt[i++],"spambait.cfg");
@@ -824,7 +826,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.64 $", "%*s %s", revision);
+	sscanf("$Revision: 1.65 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -993,7 +995,7 @@ int main(int argc, char** argv)  {
 		}
 		mopt[i][0]=0;
 
-		uifc.helpbuf=	"`Synchronet Monitor\n"
+		uifc.helpbuf=	"`Synchronet UNIX Monitor\n"
 		                "`------------------\n"
 		                "Welcome to the Synchronet UNIX Monitor.\n"
 		                "Displayed on this screen are the statitics for the BBS\n"
@@ -1029,17 +1031,20 @@ int main(int argc, char** argv)  {
 			i=0;
 			strcpy(opt[i++],"Run SCFG");
 			strcpy(opt[i++],"Run User Editor");
+			strcpy(opt[i++],"Run SyncTERM");
 			strcpy(opt[i++],"View logs");
 			strcpy(opt[i++],"Force QWK Net callout");
 			strcpy(opt[i++],"Run event");
 			strcpy(opt[i++],"Recycle servers");
-			strcpy(opt[i++],"Edit CFG files");
+			strcpy(opt[i++],"Edit CFG/INI files");
 			strcpy(opt[i++],"Edit trashcan files");
 			opt[i][0]=0;
 			uifc.helpbuf=	"`System Options`\n"
 			                "`------------`\n\n"
 							"`Run SCFG              : `Run the Synchronet Configuration Utility.\n"
 							"`Run User Editor       : `Call up the User Editor.\n"
+							"`Run SynchTERM         : `Run SyncTERM for RLogin.  SyncTERM must be\n"
+							"                        in the exec directory.\n"
 							"`View logs             : `View the various system logs.\n"
 							"`Force QWK Net callout : `Force a callout to QWK Net Hub.  Select which\n"
 							"                        Hub from a popup list of configured Hubs.\n"
@@ -1075,21 +1080,30 @@ int main(int argc, char** argv)  {
 						do_cmd(str);
 						break;
 					case 2:
-						view_logs(&cfg);
+						sprintf(str,"%ssyncterm",cfg.exec_dir);
+						for(j=1; j<argc; j++) {
+							strcat(str,"'");
+							strcat(str,argv[j]);
+							strcat(str,"' ");
+						}
+						do_cmd(str);
 						break;
 					case 3:
-						qwk_callouts(&cfg);
+						view_logs(&cfg);
 						break;
 					case 4:
-						run_events(&cfg);
+						qwk_callouts(&cfg);
 						break;
 					case 5:
-						recycle_servers(&cfg);
+						run_events(&cfg);
 						break;
 					case 6:
-						edit_cfg(&cfg);
+						recycle_servers(&cfg);
 						break;
 					case 7:
+						edit_cfg(&cfg);
+						break;
+					case 8:
 						edit_can(&cfg);
 						break;
 				}
@@ -1324,6 +1338,7 @@ int main(int argc, char** argv)  {
        	}
 	}
 }
+
 
 
 
