@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.41 2005/03/17 02:30:49 deuce Exp $ */
+/* $Id: console.c,v 1.42 2005/03/19 16:49:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1215,8 +1215,8 @@ scale_bitmap(char *bitmap, int width, int height, int *multiplier)
 		*multiplier=MAX_SCALE;
 	if(*multiplier < 1)
 		*multiplier=1;
-	bmpsize=width*height/(8*bytesperline);
-	ret=(char *)malloc(bmpsize*(*multiplier)*(*multiplier)/(8*bytesperline));
+	bmpsize=bytesperline*height;
+	ret=(char *)malloc(bmpsize*(*multiplier)*(*multiplier));
 	if(ret==NULL)
 		return(NULL);
 	outbyte=ret;
