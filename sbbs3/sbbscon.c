@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.150 2003/09/30 23:17:11 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.151 2003/10/01 05:12:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1600,7 +1600,7 @@ int main(int argc, char** argv)
 	else								/* interactive */
 #endif
 		while(!terminated) {
-			if(!kbhit()) {
+			if(!isatty(fileno(stdin)) || !kbhit()) {
 				YIELD();
 				continue;
 			}
