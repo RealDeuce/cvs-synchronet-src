@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.4 2001/06/15 03:39:41 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.5 2001/06/24 12:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,13 +202,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 						strcpy(str,ansi(BLINK));
 						break;
 					case 'N':   /* Normal */
-						strcpy(str,"\x1b[0m");
-						break;
-					case '0':
-						strcpy(str,"\x1b[40m");
-						break;
-					case '7':
-						strcpy(str,ansi(LIGHTGRAY<<4));
+						strcpy(str,ansi(ANSI_NORMAL));
 						break;
 					case 'R':                               /* Color codes */
 						strcpy(str,ansi(RED));
@@ -228,28 +222,37 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 					case 'Y':   /* Yellow */
 						strcpy(str,ansi(BROWN));
 						break;
+					case '0':
+						strcpy(str,ansi(BG_BLACK));
+						break;
 					case '1':
-						strcpy(str,ansi(RED<<4));
+						strcpy(str,ansi(BG_RED));
 						break;
 					case '2':
-						strcpy(str,ansi(GREEN<<4));
+						strcpy(str,ansi(BG_GREEN));
 						break;
 					case '3':
-						strcpy(str,ansi(BROWN<<4));
+						strcpy(str,ansi(BG_BROWN));
 						break;
 					case '4':
-						strcpy(str,ansi(BLUE<<4));
+						strcpy(str,ansi(BG_BLUE));
 						break;
 					case '5':
-						strcpy(str,ansi(MAGENTA<<4));
+						strcpy(str,ansi(BG_MAGENTA));
 						break;
 					case '6':
-						strcpy(str,ansi(CYAN<<4));
-						break; }
+						strcpy(str,ansi(BG_CYAN));
+						break; 
+					case '7':
+						strcpy(str,ansi(BG_LIGHTGRAY));
+						break;
+				}
 				if(str[0]) {
 					fwrite(str,strlen(str),1,qwk_fp);
-					size+=strlen(str); }
-				continue; } 						/* End Expand */
+					size+=strlen(str); 
+				}
+				continue; 
+			} 						/* End Expand */
 
 			if(mode&A_LEAVE) {
 				fputc(1,qwk_fp);

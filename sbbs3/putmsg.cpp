@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.3 2001/06/15 03:40:07 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.4 2001/06/24 12:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,7 +177,7 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 					attr(MAGENTA);
 					break;
 				case '4':
-					attr(LIGHTGRAY|HIGH|(BLUE<<4));
+					attr(LIGHTGRAY|HIGH|BG_BLUE);
 					break;
 				case '5':
 					attr(GREEN);
