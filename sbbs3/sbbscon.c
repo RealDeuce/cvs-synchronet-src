@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.166 2004/09/13 21:52:29 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.171 2004/10/13 23:35:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,12 +45,15 @@
 #endif
 
 /* Synchronet-specific headers */
-#include "conwrap.h"	/* kbhit/getch */
 #include "sbbs.h"		/* load_cfg() */
 #include "sbbs_ini.h"	/* sbbs_read_ini() */
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
 #include "mailsrvr.h"	/* mail_startup_t, mail_server */
 #include "services.h"	/* services_startup_t, services_thread */
+
+/* XPDEV headers */
+#include "conwrap.h"	/* kbhit/getch */
+#include "threadwrap.h"	/* pthread_mutex_t */
 
 #ifdef __unix__
 
@@ -62,11 +65,6 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
-#endif
-
-/* Temporary: Do not include web server in 3.1x-Win32 release build */
-#if defined(_MSC_VER)
-	#define NO_WEB_SERVER
 #endif
 
 /* Services doesn't work without JavaScript support */
@@ -200,6 +198,9 @@ static int log_puts(int level, char *str)
 {
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
+
+	if(!(bbs_startup.log_mask&(1<<level)))
+		return(0);
 
 #ifdef __unix__
 
@@ -463,6 +464,9 @@ static int ftp_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
+	if(!(ftp_startup.log_mask&(1<<level)))
+		return(0);
+
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -520,6 +524,9 @@ static int mail_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
+	if(!(mail_startup.log_mask&(1<<level)))
+		return(0);
+
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -572,6 +579,9 @@ static int services_lputs(void* p, int level, char *str)
 	char		tstr[64];
 	time_t		t;
 	struct tm	tm;
+
+	if(!(services_startup.log_mask&(1<<level)))
+		return(0);
 
 #ifdef __unix__
 	if (is_daemon)  {
@@ -626,6 +636,9 @@ static int event_lputs(int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
+	if(!(bbs_startup.log_mask&(1<<level)))
+		return(0);
+
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -662,6 +675,9 @@ static int web_lputs(void* p, int level, char *str)
 	char		tstr[64];
 	time_t		t;
 	struct tm	tm;
+
+	if(!(web_startup.log_mask&(1<<level)))
+		return(0);
 
 #ifdef __unix__
 	if (is_daemon)  {
