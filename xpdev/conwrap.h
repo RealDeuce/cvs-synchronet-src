@@ -2,7 +2,7 @@
 
 /* Synchronet local console I/O wrapppers */
 
-/* $Id: conwrap.h,v 1.1 2002/04/06 00:40:31 rswindell Exp $ */
+/* $Id: conwrap.h,v 1.2 2002/04/06 09:13:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #ifndef _CONWRAP_H
 #define _CONWRAP_H
 
-#ifdef __unix__
+#if defined(__unix__)
 
 	int kbhit(void);
 	int getch(void);
