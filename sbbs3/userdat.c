@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.26 2001/11/29 04:17:30 rswindell Exp $ */
+/* $Id: userdat.c,v 1.27 2001/12/14 17:59:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,9 +58,8 @@ uint DLLCALL matchuser(scfg_t* cfg, char *name)
 	ulong l,length;
 	FILE *stream;
 
-	if(!stricmp(name,"SYSOP") || !stricmp(name,cfg->sys_id) 
-		|| !stricmp(name,"POSTMASTER") || !stricmp(name,cfg->sys_op)) 
-		return(1); /* pseudonyms for user #1 */
+	if(!stricmp(name,"SYSOP") || !stricmp(name,"POSTMASTER") || !stricmp(name,cfg->sys_id))
+		return(1);
 
 	sprintf(str,"%suser/name.dat",cfg->data_dir);
 	if((file=nopen(str,O_RDONLY))==-1)
