@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.20 2004/04/08 00:29:37 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.22 2004/04/23 09:24:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1061,7 +1061,7 @@ tagline in the Networks configuration, you should enter that tagline
 here. If this option is left blank, the default tagline is used.
 */
 							uifc.input(WIN_MID|WIN_SAV,0,0,nulstr,cfg.sub[i]->tagline
-								,63,K_MSG|K_EDIT);
+								,sizeof(cfg.sub[i]->tagline)-1,K_MSG|K_EDIT);
 							break;
 						case 5:
 							n=1;
@@ -1150,7 +1150,7 @@ If this sub-board is part of a FidoNet EchoMail conference, this is
 the address used for this sub-board. Format: Zone:Net/Node[.Point]
 */
 							uifc.input(WIN_MID|WIN_SAV,0,0,"FidoNet Address"
-								,str,20,K_EDIT);
+								,str,25,K_EDIT);
 							cfg.sub[i]->faddr=atofaddr(str);
 							break;
 						case 9:
@@ -1165,7 +1165,7 @@ want to use an origin line other than the default origin line in the
 If this option is blank, the default origin line is used.
 */
 							uifc.input(WIN_MID|WIN_SAV,0,0,nulstr,cfg.sub[i]->origline
-								,50,K_EDIT);
+								,sizeof(cfg.sub[i]->origline)-1,K_EDIT);
                             break;
 					} 
 				}
@@ -1189,6 +1189,7 @@ If this option is blank, the default origin line is used.
 						strcpy(str,cfg.sub[i]->data_dir);
 					sprintf(opt[n++],"%-27.27s%.40s","Storage Directory",str);
 					sprintf(opt[n++],"%-27.27s%.40s","Semaphore File",cfg.sub[i]->post_sem);
+					sprintf(opt[n++],"%-27.27s%u","Pointer File Index",cfg.sub[i]->ptridx);
 					opt[n][0]=0;
 					uifc.savnum=2;
 					SETHELP(WHERE);
@@ -1306,10 +1307,10 @@ Use this if you wish to place the data directory for this sub-board on
 another drive or in another directory besides the default setting.
 */
 							uifc.input(WIN_MID|WIN_SAV,0,17,"Directory"
-								,cfg.sub[i]->data_dir,50,K_EDIT);
+								,cfg.sub[i]->data_dir,sizeof(cfg.sub[i]->data_dir)-1,K_EDIT);
 							break; 
 						case 3:
-SETHELP(WHERE);
+							SETHELP(WHERE);
 /*
 `Sub-board Semaphore File:`
 
@@ -1317,8 +1318,24 @@ This is a filename that will be created as a semaphore (signal) to an
 external program or event whenever a message is posted in this sub-board.
 */
 							uifc.input(WIN_MID|WIN_SAV,0,17,"Semaphore File"
-								,cfg.sub[i]->post_sem,50,K_EDIT);
+								,cfg.sub[i]->post_sem,sizeof(cfg.sub[i]->post_sem)-1,K_EDIT);
 							break; 
+						case 4:
+							SETHELP(WHERE);
+/*
+`Sub-board Pointer Index:`
+
+You should normally have no reason to modify this value. If you get
+crossed-up or duplicate ptridx values, then you may want to adjust
+this value, but do so with great care and trepidation.
+*/
+							sprintf(str,"%u",cfg.sub[i]->ptridx);
+							if(uifc.input(WIN_MID|WIN_SAV,0,17
+								,"Pointer File Index (Danger!)"
+								,str,5,K_EDIT|K_NUMBER)>=0)
+								cfg.sub[i]->ptridx=atoi(str);
+							break;
+
 					} 
 				}
 				break;

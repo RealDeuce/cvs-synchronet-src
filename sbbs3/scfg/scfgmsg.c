@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.24 2004/03/29 23:02:47 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.26 2004/04/21 23:58:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -420,11 +420,11 @@ export the current message group into.
 					sprintf(str,"FIDONET.NA");
 				if(k && k<3)
 					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Uplinks"
-						,str2,40,0)<=0) {
+						,str2,sizeof(str2)-1,0)<=0) {
 						uifc.changes=q;
 						break; }
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Filename"
-					,str,40,K_EDIT)<=0) {
+					,str,sizeof(str)-1,K_EDIT)<=0) {
 					uifc.changes=q;
 					break; }
 				if(fexist(str)) {
@@ -471,12 +471,12 @@ export the current message group into.
 						fprintf(stream,"%-20s %s\r\n"
 							,stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
 						continue; }
-					fprintf(stream,"%s\r\n%s\r\n%s\r\n%s%s\r\n%s\r\n%s\r\n"
+					fprintf(stream,"%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
 							"%s\r\n%s\r\n%s\r\n"
 						,cfg.sub[j]->lname
 						,cfg.sub[j]->sname
 						,cfg.sub[j]->qwkname
-						,cfg.grp[cfg.sub[j]->grp]->code_prefix,cfg.sub[j]->code_suffix
+						,cfg.sub[j]->code_suffix
 						,cfg.sub[j]->data_dir
 						,cfg.sub[j]->arstr
 						,cfg.sub[j]->read_arstr
@@ -534,7 +534,7 @@ import into the current message group.
 				else if(k==3)
 					sprintf(str,"FIDONET.NA");
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Filename"
-					,str,40,K_EDIT)<=0)
+					,str,sizeof(str)-1,K_EDIT)<=0)
                     break;
 				if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 					uifc.msg("Open Failure");
@@ -834,7 +834,7 @@ a unique QWK system ID.
 */
 
 				uifc.input(WIN_MID|WIN_SAV,0,0,"BBS ID for QWK Packets"
-					,str,8,K_EDIT|K_UPPER);
+					,str,LEN_QWKID,K_EDIT|K_UPPER);
 				if(code_ok(str))
 					strcpy(cfg.sys_id,str);
 				else
