@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.18 2002/05/03 01:15:58 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.19 2002/06/08 08:44:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,6 +118,8 @@
 #define SMB_HYPERALLOC		2			/* No allocation */
 
 #define SMB_EMAIL			1			/* User numbers stored in Indexes */
+
+#define SMB_ERR_NOT_OPEN	-100		/* Message base not open */
 
 										/* Time zone macros for when_t.zone */
 #define DAYLIGHT			0x8000		/* Daylight savings is active */
