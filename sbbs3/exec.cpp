@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.42 2003/07/15 00:45:29 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.43 2003/07/15 06:35:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -574,6 +574,7 @@ long sbbs_t::js_execfile(const char *cmd)
 	JSObject*	js_scope=NULL;
 	JSScript*	js_script=NULL;
 	jsval		rval;
+	int32		result=0;
 	
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -654,7 +655,10 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_GC(js_cx);
 
-	return(JSVAL_TO_INT(rval));
+	if(rval!=JSVAL_VOID)
+		JS_ValueToInt32(js_cx,rval,&result);
+		
+	return(result);
 }
 #endif
 
