@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.50 2002/01/29 22:46:31 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.51 2002/02/05 21:50:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -989,5 +989,13 @@ typedef struct {						/* FidoNet msg header */
 
 } fmsghdr_t;
 
+typedef struct {						/* Sub-board scan information */
+	ushort	cfg;						/* User's configuration */
+	ulong	ptr;						/* New-message pointer */
+	ulong	last;						/* Last read message number */
+	ushort	sav_cfg;					/* Saved configuration */
+	ulong	sav_ptr;					/* Saved New-message pointer */
+	ulong	sav_last;					/* Saved Last read message number */
+} subscan_t;
 
 #endif /* Don't add anything after this #endif statement */
