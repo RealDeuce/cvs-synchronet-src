@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.40 2004/10/14 07:05:48 deuce Exp $ */
+/* $Id: win32cio.c,v 1.43 2004/10/20 11:24:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,7 +256,7 @@ int win32_keyboardio(int isgetch)
 
 		switch(input.EventType) {
 			case KEY_EVENT:
-				if(input.Event.KeyEvent.bKeydown)
+				if(input.Event.KeyEvent.bKeyDown)
 					lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
 				break;
 			case MOUSE_EVENT:
@@ -506,11 +506,12 @@ void win32_setcursortype(int type)
 	switch(type) {
 		case _NOCURSOR:
 			ci.bVisible=FALSE;
+			ci.dwSize=1;
 			break;
 		
 		case _SOLIDCURSOR:
 			ci.bVisible=TRUE;
-			ci.dwSize=100;
+			ci.dwSize=99;
 			break;
 		
 		default:	/* Normal cursor */

@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.37 2004/10/14 03:28:21 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.43 2004/10/21 08:44:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,7 +42,7 @@ bool sbbs_t::answer()
 {
 	char	str[MAX_PATH+1],str2[MAX_PATH+1],c;
 	char 	tmp[MAX_PATH+1];
-	char 	tmp2[MAX_PATH+1];
+	char 	path[MAX_PATH+1];
 	int		i,l,in;
 	struct tm tm;
 	struct in_addr addr;
@@ -107,18 +107,59 @@ bool sbbs_t::answer()
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
-#if 1
-				if(!trashcan(client.addr,"rlogin")) {
-					lprintf(LOG_INFO,"%04d !CLIENT IP NOT LISTED in rlogin.can",client_socket);
+				useron.misc&=~(ANSI|COLOR|RIP|WIP);
+				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
+				if(!findstr(client.addr,path)) {
 					SAFECOPY(tmp
 						,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
-					if(stricmp(tmp,useron.pass)) {
-						useron.number=0;
+					for(i=0;i<3;i++) {
+						if(stricmp(tmp,useron.pass)) {
+							rioctl(IOFI);       /* flush input buffer */
+							bputs(text[InvalidLogon]);
+							if(cfg.sys_misc&SM_ECHO_PW)
+								sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
+									,0,useron.alias,tmp);
+							else
+								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
+									,0,useron.alias);
+								logline("+!",str);
+							bputs(text[PasswordPrompt]);
+							console|=CON_R_ECHOX;
+							if(!(cfg.sys_misc&SM_ECHO_PW))
+								console|=CON_L_ECHOX;
+							getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
+							console&=~(CON_R_ECHOX|CON_L_ECHOX);
+						}
+						else {
+							if(REALSYSOP) {
+								rioctl(IOFI);       /* flush input buffer */
+								if(!chksyspass())
+									bputs(text[InvalidLogon]);
+								else {
+									i=0;
+									break;
+								}
+							}
+							else
+								break;
+						}
 					}
-					else
-						lprintf(LOG_INFO,"%04d RLogin password auth",client_socket);
+					if(i) {
+						if(stricmp(tmp,useron.pass)) {
+							bputs(text[InvalidLogon]);
+							if(cfg.sys_misc&SM_ECHO_PW)
+								sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
+									,0,useron.alias,tmp);
+							else
+								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
+									,0,useron.alias);
+								logline("+!",str);
+						}
+						lprintf(LOG_INFO,"%04d !CLIENT IP NOT LISTED in rlogin.can",client_socket);
+						useron.number=0;
+						hangup();
+					}
 				}
-#endif
 			}
 			else
 				lprintf(LOG_DEBUG,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
@@ -157,6 +198,7 @@ bool sbbs_t::answer()
 			);
 	i=l=0;
 	tos=1;
+	lncntr=0;
 	strcpy(str,VERSION_NOTICE);
 	strcat(str,"  ");
 	strcat(str,COPYRIGHT_NOTICE);
@@ -256,11 +298,11 @@ bool sbbs_t::answer()
 		/* Display ANSWER screen */
 		sprintf(str,"%sanswer",cfg.text_dir);
 		sprintf(tmp,"%s.%s",str,autoterm&WIP ? "wip":"rip");
-		sprintf(tmp2,"%s.html",str);
+		sprintf(path,"%s.html",str);
 		sprintf(str2,"%s.ans",str);
 		if(autoterm&(RIP|WIP) && fexist(tmp))
 			strcat(str,autoterm&WIP ? ".wip":".rip");
-		else if(autoterm&HTML && fexist(tmp2))
+		else if(autoterm&HTML && fexist(path))
 			strcat(str,".html");
 		else if(autoterm&ANSI && fexist(str2))
 			strcat(str,".ans");
