@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.3 2005/01/14 00:26:06 rswindell Exp $ */
+/* $Id: xpevent.c,v 1.4 2005/01/14 00:28:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,12 +37,6 @@
 
 #include <stdio.h>		/* NULL */
 #include "xpevent.h"
-
-#define _EVENT_CHECK_VALIDITY(event)		\
-	if (event==NULL || (event->magic != EVENT_MAGIC)) {	\
-		errno = EINVAL;			\
-		return(FALSE);			\
-	}
 
 xpevent_t
 CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
@@ -198,8 +192,5 @@ WaitEvent(xpevent_t event, DWORD ms)
 
 	pthread_mutex_unlock(&event->lock);
 
-  RETURN:
-
-	pthread_testcancel();
 	return retval;
 }
