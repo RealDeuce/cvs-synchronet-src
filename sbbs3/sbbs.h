@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.68 2001/10/02 20:10:56 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.69 2001/10/08 22:07:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,7 +196,6 @@ public:
 
 	int 	nodefile;		/* File handle for node.dab */
 	int		node_ext;		/* File handle for node.exb */
-	FILE 	*capfile;		/* File string to use for capture file */
 	int 	inputfile;		/* File handle to use for input */
 
 							/* Batch download queue */
