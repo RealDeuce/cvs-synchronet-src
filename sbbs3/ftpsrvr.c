@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.283 2004/11/18 09:12:09 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.278 2004/11/06 02:13:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,6 @@
 #include <sys/stat.h>		/* S_IWRITE */
 
 /* Synchronet-specific headers */
-#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "text.h"			/* TOTAL_TEXT */
 #include "ftpsrvr.h"
@@ -255,7 +254,7 @@ static int ftp_close_socket(SOCKET* sock, int line)
 	shutdown(*sock,SHUT_RDWR);	/* required on Unix */
 
 	result=closesocket(*sock);
-	if(startup!=NULL && startup->socket_open!=NULL) 
+	if(result==0 && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
 
 	sockets--;
@@ -2323,6 +2322,7 @@ static void ctrl_thread(void* arg)
 	u_short		p1,p2;	/* For PORT command */
 	int			i;
 	int			rd;
+	int			file;
 	int			result;
 	int			lib;
 	int			dir;
@@ -3368,7 +3368,7 @@ static void ctrl_thread(void* arg)
 				/* QWK Packet */
 				if(startup->options&FTP_OPT_ALLOW_QWK/* && fexist(qwkfile)*/) {
 					if(detail) {
-						if(fexistcase(qwkfile)) {
+						if(fexist(qwkfile)) {
 							t=fdate(qwkfile);
 							l=flength(qwkfile);
 						} else {
@@ -3645,40 +3645,41 @@ static void ctrl_thread(void* arg)
 			sprintf(str,"%s.qwk",scfg.sys_id);
 			if(lib<0 && startup->options&FTP_OPT_ALLOW_QWK 
 				&& !stricmp(p,str) && !delecmd) {
-				if(!fexistcase(qwkfile)) {
-					lprintf(LOG_INFO,"%04d %s creating QWK packet...",sock,user.alias);
-					sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
-					if(!ftouch(str))
-						lprintf(LOG_ERR,"%04d !ERROR creating semaphore file: %s"
-							,sock, str);
-					t=time(NULL);
-					while(fexist(str)) {
-						if(time(NULL)-t>startup->qwk_timeout)
-							break;
-						mswait(1000);
-					}
-					if(fexist(str)) {
-						lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
-						sockprintf(sock,"451 Time-out waiting for packet creation.");
-						remove(str);
-						filepos=0;
-						continue;
-					}
-					if(!fexistcase(qwkfile)) {
-						lprintf(LOG_INFO,"%04d No QWK Packet created (no new messages)",sock);
-						sockprintf(sock,"550 No QWK packet created (no new messages)");
-						filepos=0;
-						continue;
-					}
+				lprintf(LOG_INFO,"%04d %s creating/updating QWK packet...",sock,user.alias);
+				sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
+				if((file=open(str,O_WRONLY|O_CREAT,S_IWRITE))==-1) {
+					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock, errno, str);
+					sockprintf(sock, "451 !ERROR %d creating semaphore file",errno);
+					filepos=0;
+					continue;
+				}
+				close(file);
+				t=time(NULL);
+				while(fexist(str)) {
+					if(time(NULL)-t>startup->qwk_timeout)
+						break;
+					mswait(1000);
+				}
+				if(fexist(str)) {
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
+					sockprintf(sock,"451 Time-out waiting for packet creation.");
+					remove(str);
+					filepos=0;
+					continue;
+				}
+				if(!fexist(qwkfile)) {
+					lprintf(LOG_INFO,"%04d No QWK Packet created (no new messages)",sock);
+					sockprintf(sock,"550 No QWK packet created (no new messages)");
+					filepos=0;
+					continue;
 				}
 				SAFECOPY(fname,qwkfile);
 				success=TRUE;
 				delfile=TRUE;
 				credits=FALSE;
-				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
-						,sock,user.alias,flength(fname)
-						,pasv_sock==INVALID_SOCKET ? "active":"passive");
+				lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
+					,sock,user.alias,flength(fname)
+					,pasv_sock==INVALID_SOCKET ? "active":"passive");
 			/* ASCII Index File */
 			} else if(startup->options&FTP_OPT_INDEX_FILE 
 				&& !stricmp(p,startup->index_file_name)
@@ -4471,7 +4472,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.283 $", "%*s %s", revision);
+	sscanf("$Revision: 1.278 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4747,11 +4748,11 @@ void DLLCALL ftp_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"%04d FTP Server listening interrupted", server_socket);
+					lprintf(LOG_NOTICE,"0000 FTP Server listening interrupted");
 				else if(ERROR_VALUE == ENOTSOCK)
-            		lprintf(LOG_NOTICE,"%04d FTP Server sockets closed", server_socket);
+            		lprintf(LOG_NOTICE,"0000 FTP Server sockets closed");
 				else
-					lprintf(LOG_WARNING,"%04d !ERROR %d selecting sockets",server_socket, ERROR_VALUE);
+					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
 				continue;
 			}
 
@@ -4764,19 +4765,11 @@ void DLLCALL ftp_server(void* arg)
 
 			if(client_socket == INVALID_SOCKET)
 			{
-#if 0	/* is this necessary still? */
-				if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
+				if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) 
             		lprintf(LOG_NOTICE,"0000 FTP socket closed while listening");
-					break;
-				}
-#endif
-				lprintf(LOG_WARNING,"%04d !ERROR %d accepting connection"
-					,server_socket, ERROR_VALUE);
-#ifdef _WIN32
-				if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
-					break;
-#endif
-				continue;
+				else
+					lprintf(LOG_WARNING,"0000 !ERROR %d accepting connection", ERROR_VALUE);
+				break;
 			}
 			if(startup->socket_open!=NULL)
 				startup->socket_open(startup->cbdata,TRUE);
@@ -4817,31 +4810,29 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_DEBUG,"0000 terminate_server: %d",terminate_server);
 #endif
 		if(active_clients) {
-			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
-				,server_socket, active_clients);
+			lprintf(LOG_DEBUG,"0000 Waiting for %d active clients to disconnect...", active_clients);
 			start=time(NULL);
 			while(active_clients) {
-				if(time(NULL)-start>startup->max_inactivity) {
-					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients);
+				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
+					lprintf(LOG_WARNING,"0000 !TIMEOUT waiting for %d active clients", active_clients);
 					break;
 				}
 				mswait(100);
 			}
+			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
 		if(thread_count>1) {
-			lprintf(LOG_DEBUG,"%04d Waiting for %d threads to terminate..."
-				,server_socket, thread_count-1);
+			lprintf(LOG_DEBUG,"0000 Waiting for %d threads to terminate...", thread_count-1);
 			start=time(NULL);
 			while(thread_count>1) {
 				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d threads"
-						,server_socket, thread_count-1);
+					lprintf(LOG_WARNING,"0000 !TIMEOUT waiting for %d threads",thread_count-1);
 					break;
 				}
 				mswait(100);
 			}
+			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
 		cleanup(0,__LINE__);

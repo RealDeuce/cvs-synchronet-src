@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.172 2004/11/09 20:58:07 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.170 2004/11/05 01:37:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1566,7 +1566,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 
 	if(!(mode&EX_INR) && input_thread_running) {
-		lprintf(LOG_DEBUG,"Locking input thread mutex"); 
+		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		if(pthread_mutex_lock(&input_thread_mutex)!=0)
 			errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
 		input_thread_mutex_locked=true;
@@ -1606,6 +1606,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		out_pipe[0]=in_pipe[1];
 	}
 	else  {
+		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		if(mode&EX_INR)
 			if(pipe(in_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"in_pipe",0);
@@ -1696,8 +1697,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(online!=ON_LOCAL)
-		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
+	lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
