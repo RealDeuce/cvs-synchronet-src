@@ -6,17 +6,20 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.4 2005/02/20 20:51:40 deuce Exp $
+# $Id: GNUmakefile,v 1.3 2004/07/29 21:08:38 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
+#USE_FLTK=	1
+USE_UIFC32= 1
+NEED_UIFC	:=	1
+XPDEV	?=	../../xpdev/
+UIFC_SRC	?=	../../uifc/
 
-SRC_ROOT        =       ../..
-include $(SRC_ROOT)/build/Common.gmake
-CFLAGS	+=	$(UIFC_CFLAGS) $(XPDEV_CFLAGS)
-LDFLAGS	+=	$(UIFC_LDFLAGS) $(XPDEV_LDFLAGS)
+include ${XPDEV}Common.gmake
+include ${UIFC_SRC}Common.gmake
 
 # MenuEdit Build Rule
 $(MENUEDIT): $(OBJS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@
+	${QUIET}$(CC) $(LDFLAGS) $(OBJS) -o $@
