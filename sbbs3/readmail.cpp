@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.11 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.12 2002/02/06 00:40:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,11 @@ void sbbs_t::readmail(uint usernumber, int which)
 	file_t	fd;
 	mail_t	*mail;
 	smbmsg_t msg;
+
+	if(which==MAIL_SENT && useron.rest&FLAG('K')) {
+		bputs(text[R_ReadSentMail]);
+		return;
+	}
 
 	msg.total_hfields=0;			/* init to NULL, cause not allocated yet */
 
