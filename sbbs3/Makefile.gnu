@@ -7,9 +7,11 @@
 #																		#
 # Linux: make -f Makefile.gnu											#
 # Win32: make -f Makefile.gnu os=win32									#
+#																		#
+# Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.17 2000/11/04 09:50:39 rswindell Exp $
+# $Id: Makefile.gnu,v 1.18 2000/11/10 03:45:52 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -81,7 +83,7 @@ $(EXEODIR):
 	mkdir $(EXEODIR)
 
 # Monolithic Synchronet executable Build Rule
-$(SBBSMONO): sbbsctrl.c $(OBJS) $(LIBODIR)/ver.o # $(LIBODIR)/ftpsrvr.o $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o
+$(SBBSMONO): sbbscon.c $(OBJS) $(LIBODIR)/ver.o # $(LIBODIR)/ftpsrvr.o $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o
 	$(CC) -o $(SBBSMONO) $^ $(LIBS)
 
 # Synchronet BBS library Link Rule
@@ -96,8 +98,8 @@ $(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 $(MAILSRVR): $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o $(SBBSLIB)
 	$(LD) $(LFLAGS) -o $@ $^ $(LIBS) $(OUTLIB) $(LIBODIR)/mailsrvr.a
 
-# Synchronet Control Panel Build Rule
-$(SBBSCTRL): sbbsctrl.c $(SBBSLIB)
+# Synchronet Console Build Rule
+$(SBBSCON): sbbscon.c $(SBBSLIB)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Specifc Compile Rules
@@ -112,6 +114,10 @@ $(LIBODIR)/mxlookup.o: mxlookup.c
 
 # Baja Utility
 $(BAJA): baja.c ars.c smbwrap.c
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Node Utility
+$(NODE): node.c smbwrap.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 # FIXSMB Utility
