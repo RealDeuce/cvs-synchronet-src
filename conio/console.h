@@ -1,4 +1,4 @@
-/* $Id: console.h,v 1.6 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: console.h,v 1.7 2004/10/14 06:47:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,14 +43,9 @@
 #include <gen_defs.h>
 #include <semwrap.h>
 
-extern sem_t	console_mode_changed;
+#include "vidmodes.h"
 
-/* Entry type for the DAC table. Each value is actually 6 bits wide. */
-struct dac_colors {
-    BYTE red;
-    BYTE green;
-    BYTE blue;
-};
+extern sem_t	console_mode_changed;
 
 extern int CurrMode;
 
