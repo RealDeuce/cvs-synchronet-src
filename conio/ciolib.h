@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.8 2004/08/17 22:16:39 deuce Exp $ */
+/* $Id: ciolib.h,v 1.4 2004/07/27 00:17:25 rswindell Exp $ */
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
@@ -12,11 +12,9 @@ enum {
 	,CIOLIB_MODE_CONIO
 };
 
-#if defined(__BORLANDC__)	/* presumably, Win32 */
-
-	#include <conio.h>
-	#include <io.h>			/* isatty */
-
+#ifndef __unix__		/* presumably, Win32 */
+#include <conio.h>
+#include <io.h>			/* isatty */
 #else
 
 #ifndef BOOL
@@ -83,15 +81,8 @@ struct text_info {
 
 #endif
 
-struct cio_mouse_event {
-	int	x;
-	int	y;
-	int	button;
-};
-
 typedef struct {
 	int		mode;
-	int		mouse;
 	void	(*clreol)		(void);
 	int		(*puttext)		(int,int,int,int,void *);
 	int		(*gettext)		(int,int,int,int,void *);
@@ -125,16 +116,11 @@ typedef struct {
 	int		(*cputs)		(char *);
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
-	int		(*getmouse)		(struct cio_mouse_event *mevent);
-	int		(*hidemouse)	(void);
-	int		(*showmouse)	(void);
-	void	(*settitle)		(const char *);
 } cioapi_t;
 
 extern cioapi_t cio_api;
 extern int _wscroll;
 extern int directvideo;
-extern int dont_move_cursor;
 
 #define _conio_kbhit()		kbhit()
 
@@ -175,7 +161,6 @@ void ciolib_window(int sx, int sy, int ex, int ey);
 void ciolib_delline(void);
 void ciolib_insline(void);
 char *ciolib_getpass(const char *prompt);
-void settitle(const char *title);
 #ifdef __cplusplus
 }
 #endif
@@ -212,12 +197,8 @@ void settitle(const char *title);
 	#define textmode(a)				ciolib_textmode(a)
 	#define window(a,b,c,d)			ciolib_window(a,b,c,d)
 	#define delline()				ciolib_delline()
-	#define insline()				ciolib_insline()
-	#define getpass(a)				ciolib_getpass(a)
-	#define getmouse(a)				ciolib_getmouse(a)
-	#define	hidemouse()				ciolib_hidemouse()
-	#define showmouse()				ciolib_showmouse()
-	#define settitle(a)				ciolib_settitle(a)
+	#define insline					ciolib_insline()
+	#define getpass(a)				ciolib_getpass(a);
 #endif
 
 #endif	/* Do not add anything after this line */
