@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.34 2002/07/08 18:58:33 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.35 2002/07/27 06:48:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,27 +213,12 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 		return(FALSE); 
 	}
 
-#if 0	/* old dynamic way */
-
-	if((cfg->node_path=(char **)MALLOC(sizeof(char *)*cfg->sys_nodes))==NULL)
-		return allocerr(instream,error,offset,fname,sizeof(char *)*cfg->sys_nodes);
-
 	for(i=0;i<cfg->sys_nodes;i++) {
-		if(feof(instream)) break;
-		fread(str,LEN_DIR+1,1,instream);
-		prep_dir(cfg->ctrl_dir, str);
-		offset+=LEN_DIR+1;
-		if((cfg->node_path[i]=(char *)MALLOC(strlen(str)+1))==NULL)
-			return allocerr(instream,error,offset,fname,strlen(str)+1);
-		strcpy(cfg->node_path[i],str); 
-	}
-
-#else
-
-	for(i=0;i<cfg->sys_nodes;i++) 
 		get_str(cfg->node_path[i],instream);
-
+#if defined(__unix__)
+		strlwr(cfg->node_path[i]);
 #endif
+	}
 
 	get_str(cfg->data_dir,instream); 			  /* data directory */
 	get_str(cfg->exec_dir,instream); 			  /* exec directory */
