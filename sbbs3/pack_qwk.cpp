@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.18 2001/11/04 01:44:30 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.19 2001/11/11 21:34:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,9 +176,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			/* Create NETFLAGS.DAT */
 			/***********************/
 			sprintf(str,"%sNETFLAGS.DAT",cfg.temp_dir);
-			if((stream=fnopen(&file,str,O_WRONLY|O_CREAT))==NULL) {
-				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT);
-				return(false); }
+			if((stream=fopen(str,"w"))==NULL) {
+				errormsg(WHERE,ERR_CREATE,str,0);
+				return(false); 
+			}
 			ch=1;						/* Net enabled */
 			if(usrgrps)
 				for(i=0;i<(usrgrps*1000)+usrsubs[usrgrps-1];i++)
