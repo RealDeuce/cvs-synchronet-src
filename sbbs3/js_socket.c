@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.70 2002/12/10 23:25:30 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.71 2003/02/20 03:02:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1025,7 +1025,7 @@ static jsMethodSpec js_socket_functions[] = {
 	,JSDOCSTR("send an entire file over the socket")
 	},
 	{"read",		js_recv,		1,	JSTYPE_ALIAS },
-	{"recv",		js_recv,		0,	JSTYPE_STRING,	JSDOCSTR("[maxlen]")
+	{"recv",		js_recv,		1,	JSTYPE_STRING,	JSDOCSTR("[maxlen]")
 	,JSDOCSTR("receive a string, default maxlen is 512 characters (AKA read)")
 	},
 	{"peek",		js_peek,		0,	JSTYPE_STRING,	JSDOCSTR("[maxlen]")
