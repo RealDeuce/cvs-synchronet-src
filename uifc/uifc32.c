@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.55 2004/05/31 23:57:07 deuce Exp $ */
+/* $Id: uifc32.c,v 1.56 2004/06/01 04:18:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,9 +587,14 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	uint s_bottom=api->scrn_len-3;
 	uint title_len;
 	struct uifc_mouse_event mevnt;
-	char	title[MAX_OPLN];
+	char	*title;
 
-	sprintf(title,"%.*s",sizeof(title)-1,initial_title);
+	if((title=(char *)MALLOC(strlen(initial_title)+1))==NULL) {
+		cprintf("UIFC line %d: error allocating %u bytes."
+			,__LINE__,strlen(title)+1);
+		return(-1);
+	}
+	strcpy(title,initial_title);
 	hidemouse();
 
 	title_len=strlen(title);
@@ -631,6 +636,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			*(title+width-6)='.';
 			*(title+width-5)='.';
 			*(title+width-4)=0;
+			title_len=strlen(title);
 		}
 	}
 	if(mode&WIN_L2R)
@@ -665,6 +671,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			if((sav[api->savnum].buf=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
+				free(title);
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -686,6 +693,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			if((sav[api->savnum].buf=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
+				free(title);
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -911,6 +919,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		else
 			y=top+3+(*cur);
 	}
+	free(title);
 
 	last_menu_cur=cur;
 	last_menu_bar=bar;
