@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.65 2004/09/13 00:27:56 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.66 2004/10/27 22:00:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,6 +173,8 @@ extern "C" {
 
 /* Truncate white-space chars off end of string */
 DLLEXPORT char*		DLLCALL truncsp(char* str);
+/* Truncate white-space chars off end of every \n-terminated line in string */
+DLLEXPORT char*		DLLCALL truncsp_lines(char* str);
 /* Truncate new-line chars off end of string */
 DLLEXPORT char*		DLLCALL truncnl(char* str);
 
