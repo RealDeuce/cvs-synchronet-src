@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.1 2000/10/10 11:25:51 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.2 2000/10/17 23:38:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,6 +103,7 @@ typedef struct {
 #define MAIL_OPT_USE_DUL			(1<<9)
 #define MAIL_OPT_USE_RSS			(1<<10)
 #define MAIL_OPT_NO_HOST_LOOKUP		(1<<11)
+#define MAIL_OPT_USE_TCP_DNS		(1<<12)
 #define MAIL_OPT_MUTE				(1<<31)
 
 #ifdef MAILSRVR_EXPORTS
