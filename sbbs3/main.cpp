@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.94 2002/01/28 20:16:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.95 2002/01/29 22:47:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1484,8 +1484,10 @@ void event_thread(void* arg)
 					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf("Running timed event: %s",strupr(str));
 					int ex_mode = EX_OFFLINE;
-					if(!(sbbs->cfg.event[i]->misc&EVENT_EXCL))
+					if(!(sbbs->cfg.event[i]->misc&EVENT_EXCL)
+						&& sbbs->cfg.event[i]->misc&EX_BG)
 						ex_mode |= EX_BG;
+					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,nulstr,NULL)
