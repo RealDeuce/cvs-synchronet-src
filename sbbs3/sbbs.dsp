@@ -263,10 +263,6 @@ SOURCE=.\js_msgbase.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\js_queue.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\js_server.c
 # End Source File
 # Begin Source File
@@ -415,6 +411,10 @@ SOURCE=.\sockopts.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\xpdev\sockwrap.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\sortdir.cpp
 # End Source File
 # Begin Source File
@@ -436,6 +436,10 @@ SOURCE=.\telnet.c
 # Begin Source File
 
 SOURCE=.\text_sec.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\xpdev\threadwrap.c
 # End Source File
 # Begin Source File
 
