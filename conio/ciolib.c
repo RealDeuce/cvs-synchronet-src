@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.30 2004/10/15 05:13:35 deuce Exp $ */
+/* $Id: ciolib.c,v 1.33 2005/01/23 22:21:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,6 +94,8 @@ void ciolib_window(int sx, int sy, int ex, int ey);
 void ciolib_delline(void);
 void ciolib_insline(void);
 char *ciolib_getpass(const char *prompt);
+void ciolib_copytext(const char *text, size_t buflen);
+char *ciolib_getcliptext(void);
 
 #define CIOLIB_INIT()		{ if(!initialized) initciolib(CIOLIB_MODE_AUTO); }
 
@@ -121,6 +123,8 @@ int try_x_init(int mode)
 		cio_api.showmouse=NULL;
 		cio_api.hidemouse=NULL;
 		cio_api.settitle=x_settitle;
+		cio_api.copytext=x_copytext;
+		cio_api.getcliptext=x_getcliptext;
 		return(1);
 	}
 	return(0);
@@ -148,6 +152,8 @@ int try_curses_init(int mode)
 		cio_api.showmouse=curs_showmouse;
 		cio_api.hidemouse=curs_hidemouse;
 		cio_api.settitle=NULL;
+		cio_api.copytext=NULL;
+		cio_api.getcliptext=NULL;
 		return(1);
 	}
 	return(0);
@@ -176,6 +182,8 @@ int try_ansi_init(int mode)
 		cio_api.showmouse=NULL;
 		cio_api.hidemouse=NULL;
 		cio_api.settitle=NULL;
+		cio_api.copytext=NULL;
+		cio_api.getcliptext=NULL;
 		return(1);
 	}
 	return(0);
@@ -188,7 +196,7 @@ int try_ansi_init(int mode)
 int try_conio_init(int mode)
 {
 	/* This should test for something or other */
-	if(win32_initciolib(C80)) {
+	if(win32_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_CONIO;
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
@@ -207,6 +215,8 @@ int try_conio_init(int mode)
 		cio_api.showmouse=win32_showmouse;
 		cio_api.hidemouse=win32_hidemouse;
 		cio_api.settitle=win32_settitle;
+		cio_api.copytext=win32_copytext;
+		cio_api.getcliptext=win32_getcliptext;
 		return(1);
 	}
 	return(0);
@@ -477,8 +487,8 @@ void ciolib_gettextinfo(struct text_info *info)
                                			 BW40, BW80, C40, C80, or C4350 */
 		info->screenheight=cio_textinfo.screenheight;   /* text screen's height */
 		info->screenwidth=cio_textinfo.screenwidth;    /* text screen's width */
-		info->curx=cio_textinfo.curx;           /* x-coordinate in current window */
-		info->cury=cio_textinfo.cury;           /* y-coordinate in current window */
+		info->curx=cio_textinfo.curx-cio_textinfo.winleft+1;           /* x-coordinate in current window */
+		info->cury=cio_textinfo.cury-cio_textinfo.wintop+1;           /* y-coordinate in current window */
 	}
 }
 
@@ -835,4 +845,22 @@ void ciolib_settitle(const char *title) {
 
 	if(cio_api.settitle!=NULL)
 		cio_api.settitle(title);
+}
+
+void ciolib_copytext(const char *text, size_t buflen)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.copytext!=NULL)
+		cio_api.copytext(text,buflen);
+}
+
+char *ciolib_getcliptext(void)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.getcliptext!=NULL)
+		return(cio_api.getcliptext());
+	else
+		return(NULL);
 }

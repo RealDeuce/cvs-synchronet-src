@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.142 2004/12/30 23:07:48 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.144 2005/01/01 22:10:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -968,7 +968,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
 
     // Verify SBBS.DLL version
     long bbs_ver = bbs_ver_num();
-    if(bbs_ver < (0x31000 | 'M'-'A') || bbs_ver > (0x399<<8)) {
+    if(bbs_ver < (0x31200 | 'A'-'A') || bbs_ver > (0x399<<8)) {
         char str[128];
         sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -1880,11 +1880,11 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             ServicesAutoStart=true;
 
         if(Registry->ValueExists("Hostname"))
-            SAFECOPY(global.host_name,Registry->ReadString("Hostname"));
-        if(Registry->ValueExists("CtrlDirectory"))
-            SAFECOPY(global.ctrl_dir,Registry->ReadString("CtrlDirectory"));
+            SAFECOPY(global.host_name,Registry->ReadString("Hostname").c_str());
+		if(Registry->ValueExists("CtrlDirectory"))
+            SAFECOPY(global.ctrl_dir,Registry->ReadString("CtrlDirectory").c_str());
         if(Registry->ValueExists("TempDirectory"))
-            SAFECOPY(global.temp_dir,Registry->ReadString("TempDirectory"));
+            SAFECOPY(global.temp_dir,Registry->ReadString("TempDirectory").c_str());
 
         if(Registry->ValueExists("SemFileCheckFrequency"))
             global.sem_chk_freq=Registry->ReadInteger("SemFileCheckFrequency");
@@ -2078,7 +2078,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("ServicesOptions"))
             services_startup.options=Registry->ReadInteger("ServicesOptions");
 
-        if(SaveIniSettings(Sender))
+		if(SaveIniSettings(Sender))
             Registry->WriteBool("Imported",true);   /* Use the .ini file for these settings from now on */
     }
 

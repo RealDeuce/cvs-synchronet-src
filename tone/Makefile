@@ -1,6 +1,6 @@
-# tome/Makefile
+# tone/Makefile
 #
-# $Id: Makefile,v 1.2 2004/09/12 22:13:55 deuce Exp $
+# $Id: Makefile,v 1.4 2005/01/21 03:07:04 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -34,12 +34,11 @@
 #############################################################################
 
 SRC_ROOT	=	..
-include $(SRC_ROOT)/build/Common.gmake
+!include $(SRC_ROOT)\build\Common.bmake
 LDFLAGS 	=	$(LDFLAGS) $(XPDEV_LDFLAGS)
 CFLAGS		=	$(CFLAGS) $(XPDEV_CFLAGS)
-LDLIBS		=	$(LDLIBS) -lm -lxpdev
 
-$(TONE):	$(OBJODIR)$(DIRSEP)tone$(OFILE)
+$(TONE):	$(OBJS)
 	@echo Creating $@
-	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(LDFLAGS) $(OUTPUT)$@ $^ $(LDLIBS)
+	$(QUIET)$(CC) $(CFLAGS) $(LDFLAGS) -e$@ $** $(XPDEV_LIBS)
 
