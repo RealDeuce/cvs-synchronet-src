@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.320 2004/03/05 23:46:43 deuce Exp $ */
+/* $Id: main.cpp,v 1.319 2004/02/19 23:06:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1212,7 +1212,6 @@ void input_thread(void *arg)
 				&& FD_ISSET(uspy_socket[sbbs->cfg.node_num-1],&socket_set))  {
 			if(!socket_check(uspy_socket[sbbs->cfg.node_num-1],NULL,NULL,0)) {
 				close_socket(uspy_socket[sbbs->cfg.node_num-1]);
-				lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
 				uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
 				continue;
 			}
@@ -4186,7 +4185,7 @@ void DLLCALL bbs_thread(void* arg)
 						close_socket(new_socket);
 					}
 					else  {
-						lprintf(LOG_ERR,"!Spy socket %s (%d) connected",uspy_addr.sun_path,new_socket);
+						lprintf(LOG_ERR,"!Spy socket %s connected",uspy_addr.sun_path);
 						uspy_socket[i-1]=new_socket;
 						sprintf(str,"Spy connection established to node %d\r\n",i);
 						send(uspy_socket[i-1],str,strlen(str),0);
