@@ -1,9 +1,10 @@
-/* $Id: curs_cio.h,v 1.6 2004/07/26 23:56:35 deuce Exp $ */
+/* $Id: curs_cio.h,v 1.7 2004/08/02 02:43:59 deuce Exp $ */
 
 #ifdef __unix__
 #include "ciolib.h"
 #undef getch
 #undef ungetch
+#undef getmouse
 #include "curs_fix.h"
 
 #ifdef __cplusplus
@@ -26,6 +27,9 @@ void curs_setcursortype(int type);
 int curs_getch(void);
 int curs_getche(void);
 void curs_textmode(int mode);
+int curs_getmouse(struct cio_mouse_event *mevent);
+int curs_showmouse(void);
+int curs_hidemouse(void);
 #ifdef __cplusplus
 }
 #endif
