@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.12 2004/03/15 23:15:14 rswindell Exp $
+# $Id: Makefile,v 1.14 2004/04/08 00:25:53 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -22,8 +22,8 @@ XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
 LIB	=	..\..\..\lib
 INCLUDE	=	..\..\..\include
-CFLAGS	=	-M -I..;$(UIFC);$(XPDEV) 
-DELETE	=	echo y | del 
+CFLAGS	=	-DSCFG -M -I..;$(UIFC);$(XPDEV) 
+DELETE	=	-@echo y | del 
 
 .path.c = .;..;$(UIFC);$(XPDEV)
 .path.cpp = $(UIFC)
@@ -44,7 +44,7 @@ EXEODIR	=	$(EXEODIR).debug
 !else
 EXEODIR	=	$(EXEODIR).release
 !endif
-LIBODIR = 	$(EXEODIR)
+LIBODIR =	$(EXEODIR)
 
 # Cross platform/compiler definitions
 !include targets.mk	# defines all targets
@@ -69,7 +69,7 @@ OBJS 	= $(OBJS) $(EXEODIR)\uifcfltk.$(OFILE) $(LIB)/fltk/win32/fltk.lib
 .cpp.$(OFILE):
 	@$(CC) $(CFLAGS) -n$(EXEODIR) -c $<
 
-# Create output directories if they don't exist
+# Create output directory if it doesn't exist
 $(EXEODIR):
 	@if not exist $(EXEODIR) mkdir $(EXEODIR)
 
@@ -83,3 +83,7 @@ $(SCFGHELP): $(OBJS) $(MAKEHELP)
 $(SCFG): $(OBJS)
 	@echo Linking $@
 	@$(CC) $(CFLAGS) -e$@ $**
+
+clean:
+	@echo Deleting $(EXEODIR)
+	$(QUIET)$(DELETE) $(EXEODIR)\*
