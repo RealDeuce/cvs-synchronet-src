@@ -2,7 +2,7 @@
 
 /* X/Windows Implementation of UIFC (user interface) library */
 
-/* $Id: uifcfltk.cpp,v 1.3 2003/01/26 19:55:05 deuce Exp $ */
+/* $Id: uifcfltk.cpp,v 1.4 2003/01/26 20:08:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,6 +378,24 @@ int UIFC_Button::handle(int event)  {
 			parent()->child(i)->handle(FL_FOCUS);
 			return(1);
 		}
+		if(key==FL_Up)  {
+			for(i=0;i<parent()->children() && this!=parent()->child(i);i++)  {}
+			i=i-1;
+			if(i<0)
+				i=parent()->children()-3;
+			Fl::focus(parent()->child(i));
+			parent()->child(i)->handle(FL_FOCUS);
+			return(1);
+		}
+		if(key==FL_Down)  {
+			for(i=0;i<parent()->children() && this!=parent()->child(i);i++)  {}
+			i=i+1;
+			if(i>parent()->children()-3)
+				i=0;
+			Fl::focus(parent()->child(i));
+			parent()->child(i)->handle(FL_FOCUS);
+			return(1);
+		}
 	}
 	return Fl_Button::handle(event);
 }
@@ -489,6 +507,10 @@ int UIFC_Input_Box::handle_key() {
 		case FL_BackSpace:
 			ascii = ctrl('H');
 			break;
+		case FL_Enter:
+		case FL_KP_Enter:
+			GUI_RetVal=0;
+			return 1;
 	}
 
 	int i;
