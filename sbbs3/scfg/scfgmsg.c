@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.13 2003/01/05 12:52:22 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.14 2003/01/28 00:00:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -244,6 +244,7 @@ select Yes.
 			for(j=0;j<cfg.total_subs;j++)
 				if(cfg.sub[j]->grp==i) {
 					sprintf(str,"%s.s*",cfg.sub[j]->code);
+					strlwr(str);
 					if(!cfg.sub[j]->data_dir[0])
 						sprintf(tmp,"%ssubs/",cfg.data_dir);
 					else

@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.11 2002/08/26 21:56:18 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.12 2003/01/28 00:00:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,6 +198,7 @@ If you want to delete all the messages for this sub-board, select Yes.
 			continue;
 		if(j==0) {
 				sprintf(str,"%s.s*",cfg.sub[subnum[i]]->code);
+				strlwr(str);
 				if(!cfg.sub[subnum[i]]->data_dir[0])
 					sprintf(tmp,"%ssubs/",cfg.data_dir);
 				else
@@ -1281,6 +1282,7 @@ by entering the conference number you want to use.
 								else
 									sprintf(str,"%ssubs/",cfg.data_dir);
 								sprintf(str2,"%s.*",cfg.sub[i]->code);
+								strlwr(str2);
 								delfiles(str,str2); }
 
 							if(cfg.sub[i]->misc&SUB_HYPER)
