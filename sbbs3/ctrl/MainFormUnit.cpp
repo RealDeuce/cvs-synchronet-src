@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.10 2000/11/02 03:43:16 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.11 2000/11/02 11:33:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -531,7 +531,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     SpyTerminalFont->Size=9;
     SpyTerminalFont->Pitch=fpFixed;
     SpyTerminalWidth=434;
-    SpyTerminalHeight=364;
+    SpyTerminalHeight=365;
     SpyTerminalKeyboardActive=true;
 }
 //---------------------------------------------------------------------------
