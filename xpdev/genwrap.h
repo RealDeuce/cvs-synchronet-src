@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.41 2003/05/01 22:16:33 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.42 2003/05/02 00:07:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,10 @@
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
 	#ifdef _THREAD_SAFE
-		#include <pthread.h>	/* Check for GNU PTH libs */
+		#include <pthread.h>/* Check for GNU PTH libs */
 	#endif
+#elif defined(_WIN32)
+	#include <process.h>	/* getpid() */
 #endif
 
 #if defined(__cplusplus)
@@ -156,9 +158,9 @@ extern "C" {
 	#define STRERROR(x)		truncsp(strerror(x))
 #endif
 
-/****************************/
-/* Common Utility Functions */
-/****************************/
+/**********************************/
+/* Common Utility Macro Functions */
+/**********************************/
 
 #if defined(_WIN32)
 
