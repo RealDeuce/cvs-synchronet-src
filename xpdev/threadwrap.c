@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.11 2003/03/12 22:35:14 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.12 2003/03/12 22:40:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,8 @@ ulong _beginthread(void( *start_address )( void * )
 
 #ifdef __FreeBSD__
 	/* Default stack size in FreeBSD is too small for JS stuff */
-	pthread_attr_setstacksize(&attr, (1<<17));
+	if(stack_size==0)
+		pthread_attr_setstacksize(&attr, (1<<17));
 #endif
 
 	if(pthread_create(&thread
