@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.281 2003/05/13 05:45:41 rswindell Exp $ */
+/* $Id: main.cpp,v 1.282 2003/05/14 20:25:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1076,7 +1076,7 @@ void input_thread(void *arg)
 #ifdef __unix__
 			else  {
 				if(ERROR_VALUE != EAGAIN)  {
-					lprintf("Node %d !ERRRO %d on local spy socket %d receive"
+					lprintf("Node %d !ERROR %d on local spy socket %d receive"
 						, sbbs->cfg.node_num, errno, sock);
 					close_socket(uspy_socket[sbbs->cfg.node_num-1]);
 					uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
