@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.15 2001/07/19 12:12:57 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.16 2001/07/21 01:44:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -222,7 +222,8 @@ void sbbs_t::newuser()
 		if(!online) return;
 		while(!(sys_status&SS_RLOGIN) && /* cfg.uq&UQ_EMAIL && */ online) {
 			bputs(text[EnterNetMailAddress]);
-			if(getstr(useron.netmail,LEN_NETMAIL,K_EDIT|K_AUTODEL|K_LINE))
+			if(getstr(useron.netmail,LEN_NETMAIL,K_EDIT|K_AUTODEL|K_LINE)
+				&& !trashcan(useron.netmail,"email"))
 				break;
 		}
 		if(useron.netmail[0] && cfg.sys_misc&SM_FWDTONET && yesno(text[ForwardMailQ]))
