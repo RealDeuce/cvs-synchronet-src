@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.4 2001/03/25 14:55:43 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.5 2001/06/12 03:08:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@ int sbbs_t::exec_net(csi_t* csi)
 	char	str[512],rsp[512],buf[1025],ch,*p,**pp,**pp1,**pp2;
 	ushort	w;
 	uint 	i;
-	bool	rd;
+	BOOL	rd;
 	long	*lp,*lp1,*lp2;
 	time_t	start;
 
@@ -111,7 +111,7 @@ int sbbs_t::exec_net(csi_t* csi)
 			if(lp==NULL || *lp==INVALID_SOCKET) 
 				return(0);
 
-			if(socket_check(*lp,NULL)==true)
+			if(socket_check(*lp,NULL)==TRUE)
 				csi->logic=LOGIC_TRUE;
 			else
 				csi->socket_error=ERROR_VALUE;
@@ -450,7 +450,7 @@ bool sbbs_t::ftp_cmd(csi_t* csi, SOCKET sock, char* cmdsrc, char* rsp)
 {
 	char	cmd[512];
 	int		len;
-	bool	data_avail;
+	BOOL	data_avail;
 	time_t	start;
 
 	if(cmdsrc!=NULL) {
@@ -627,7 +627,7 @@ bool sbbs_t::ftp_get(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest, bool d
 	char		buf[4097];
 	int			rd;
 	int			result;
-	bool		data_avail;
+	BOOL		data_avail;
 	ulong		total=0;
 	SOCKET		data_sock;
 	SOCKADDR_IN	addr;
