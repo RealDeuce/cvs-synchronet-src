@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.54 2004/05/31 23:52:58 deuce Exp $ */
+/* $Id: uifc32.c,v 1.55 2004/05/31 23:57:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -470,11 +470,13 @@ static int uifc_getmouse(struct uifc_mouse_event *mevent)
 			else
 				return(-1);
 		#endif
+
+		if(mevent->button==2)
+			return(ESC);
 		if(mevent->y==api->buttony) {
-			if((mevent->x>=api->exitstart
+			if(mevent->x>=api->exitstart
 					&& mevent->x<=api->exitend
-					&& mevent->button==1)
-					|| mevent->button==2) {
+					&& mevent->button==1) {
 				return(ESC);
 			}
 			if(mevent->x>=api->helpstart
