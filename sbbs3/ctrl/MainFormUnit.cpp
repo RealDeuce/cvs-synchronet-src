@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.129 2004/08/20 02:08:42 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.136 2004/10/21 02:47:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,7 @@
 #include "EventsFormUnit.h"
 #include "ServicesFormUnit.h"
 #include "FtpFormUnit.h"
+#include "WebFormUnit.h"
 #include "MailFormUnit.h"
 #include "NodeFormUnit.h"
 
@@ -103,16 +104,20 @@ CloseServiceHandle_t	closeServiceHandle;
 SC_HANDLE       hSCManager;
 SC_HANDLE	    bbs_svc;
 SC_HANDLE	    ftp_svc;
+SC_HANDLE	    web_svc;
 SC_HANDLE	    mail_svc;
 SC_HANDLE	    services_svc;
 SERVICE_STATUS	bbs_svc_status;
 SERVICE_STATUS	ftp_svc_status;
+SERVICE_STATUS	web_svc_status;
 SERVICE_STATUS	mail_svc_status;
 SERVICE_STATUS	services_svc_status;
 QUERY_SERVICE_CONFIG*	bbs_svc_config;
 DWORD					bbs_svc_config_size;
 QUERY_SERVICE_CONFIG*	ftp_svc_config;
 DWORD					ftp_svc_config_size;
+QUERY_SERVICE_CONFIG*	web_svc_config;
+DWORD					web_svc_config_size;
 QUERY_SERVICE_CONFIG*	mail_svc_config;
 DWORD					mail_svc_config_size;
 QUERY_SERVICE_CONFIG*	services_svc_config;
@@ -528,21 +533,6 @@ static int ftp_lputs(void* p, int level, char *str)
         return(0);
     }
 
-#if defined(_DEBUG)
-    if(IsBadReadPtr(FtpForm,sizeof(void*))) {
-        DebugBreak();
-        return(0);
-    }
-    if(IsBadReadPtr(FtpForm->Log,sizeof(void*))) {
-        DebugBreak();
-        return(0);
-    }
-    if(IsBadReadPtr(FtpForm->Log->Lines,sizeof(void*))) {
-        DebugBreak();
-        return(0);
-    }
-#endif
-
     while(MaxLogLen && FtpForm->Log->Text.Length()>=MaxLogLen)
         FtpForm->Log->Lines->Delete(0);
 
@@ -642,6 +632,120 @@ static void ftp_start(void)
     Application->ProcessMessages();
 }
 //---------------------------------------------------------------------------
+static int web_lputs(void* p, int level, char *str)
+{
+	static HANDLE mutex;
+	static FILE* LogStream;
+
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
+    if(str==NULL) {
+        if(LogStream!=NULL)
+            fclose(LogStream);
+        LogStream=NULL;
+        ReleaseMutex(mutex);
+        return(0);
+    }
+
+    while(MaxLogLen && WebForm->Log->Text.Length()>=MaxLogLen)
+        WebForm->Log->Lines->Delete(0);
+
+    AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(str).Trim();
+	WebForm->Log->Lines->Add(Line);
+#if 0
+    if(MainForm->WebLogFile && MainForm->WebStop->Enabled) {
+        AnsiString LogFileName
+            =AnsiString(MainForm->cfg.data_dir)
+            +"LOGS\\FS"
+            +Now().FormatString("mmddyy")
+            +".LOG";
+
+        if(!FileExists(LogFileName)) {
+            FileClose(FileCreate(LogFileName));
+            if(LogStream!=NULL) {
+                fclose(LogStream);
+                LogStream=NULL;
+            }
+        }
+        if(LogStream==NULL)
+            LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
+
+        if(LogStream!=NULL) {
+            Line=Now().FormatString("hh:mm:ss")+"  ";
+            Line+=AnsiString(str).Trim();
+            Line+="\n";
+        	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
+        }
+	}
+#endif
+    ReleaseMutex(mutex);
+    return(Line.Length());
+}
+
+static void web_status(void* p, char *str)
+{
+	static HANDLE mutex;
+
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
+	WebForm->Status->Caption=AnsiString(str);
+
+    ReleaseMutex(mutex);
+}
+
+static void web_clients(void* p, int clients)
+{
+	static HANDLE mutex;
+
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
+    WebForm->ProgressBar->Max=MainForm->ftp_startup.max_clients;
+	WebForm->ProgressBar->Position=clients;
+
+    ReleaseMutex(mutex);
+}
+
+static void web_terminated(void* p, int code)
+{
+	Screen->Cursor=crDefault;
+	MainForm->WebStart->Enabled=true;
+	MainForm->WebStop->Enabled=false;
+    MainForm->WebRecycle->Enabled=false;
+    Application->ProcessMessages();
+}
+static void web_started(void* p)
+{
+	Screen->Cursor=crDefault;
+	MainForm->WebStart->Enabled=false;
+    MainForm->WebStop->Enabled=true;
+    MainForm->WebRecycle->Enabled=true;
+    Application->ProcessMessages();
+}
+static void web_start(void)
+{
+	Screen->Cursor=crAppStart;
+    web_status(NULL, "Starting");
+    SAFECOPY(MainForm->web_startup.ctrl_dir
+        ,MainForm->global.ctrl_dir);
+    SAFECOPY(MainForm->web_startup.host_name
+        ,MainForm->global.host_name);
+    MainForm->web_startup.sem_chk_freq=MainForm->global.sem_chk_freq;
+
+    /* JavaScript operational parameters */
+    MainForm->web_startup.js_max_bytes=MainForm->global.js.max_bytes;
+    MainForm->web_startup.js_cx_stack=MainForm->global.js.cx_stack;
+
+	_beginthread((void(*)(void*))web_server,0,&MainForm->web_startup);
+    Application->ProcessMessages();
+}
+//---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
 __fastcall TMainForm::TMainForm(TComponent* Owner)
@@ -659,8 +763,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     /* These are SBBSCTRL-specific */
     LoginCommand="telnet://localhost";
     ConfigCommand="%sscfg.exe %s -l25";
-    NodeDisplayInterval=1;  	/* seconds */
-    ClientDisplayInterval=5;    /* seconds */
     MinimizeToSysTray=false;
     UndockableForms=false;
     UseFileAssociations=true;
@@ -675,6 +777,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
         
     memset(&bbs_startup,0,sizeof(bbs_startup));
     bbs_startup.size=sizeof(bbs_startup);
+    bbs_startup.cbdata=&bbs_startup;
     bbs_startup.first_node=1;
     bbs_startup.last_node=4;
 	bbs_startup.options=BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE;
@@ -694,6 +797,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 
     memset(&mail_startup,0,sizeof(mail_startup));
     mail_startup.size=sizeof(mail_startup);
+    mail_startup.cbdata=&mail_startup;
     mail_startup.smtp_port=IPPORT_SMTP;
     mail_startup.relay_port=IPPORT_SMTP;
     mail_startup.pop3_port=110;
@@ -715,6 +819,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
+    ftp_startup.cbdata=&ftp_startup;
     ftp_startup.port=IPPORT_FTP;
     ftp_startup.interface_addr=INADDR_ANY;
 	ftp_startup.lputs=ftp_lputs;
@@ -734,9 +839,19 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 
     memset(&web_startup,0,sizeof(web_startup));
     web_startup.size=sizeof(web_startup);
+    web_startup.cbdata=&web_startup;
+	web_startup.lputs=web_lputs;
+    web_startup.status=web_status;
+    web_startup.clients=web_clients;
+    web_startup.started=web_started;
+    web_startup.terminated=web_terminated;
+    web_startup.thread_up=thread_up;
+    web_startup.client_on=client_on;
+    web_startup.socket_open=socket_open;
 
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
+    services_startup.cbdata=&services_startup;
     services_startup.interface_addr=INADDR_ANY;
     services_startup.lputs=service_lputs;
     services_startup.status=services_status;
@@ -750,6 +865,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_log=INVALID_HANDLE_VALUE;
     event_log=INVALID_HANDLE_VALUE;
     ftp_log=INVALID_HANDLE_VALUE;
+    web_log=INVALID_HANDLE_VALUE;    
     mail_log=INVALID_HANDLE_VALUE;
     services_log=INVALID_HANDLE_VALUE;
 
@@ -789,6 +905,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     if(hSCManager!=NULL) {
 		bbs_svc =  openService(hSCManager, NTSVC_NAME_BBS, SERVICE_ALL_ACCESS);
 		ftp_svc =  openService(hSCManager, NTSVC_NAME_FTP, SERVICE_ALL_ACCESS);
+		web_svc =  openService(hSCManager, NTSVC_NAME_WEB, SERVICE_ALL_ACCESS);        
 		mail_svc =  openService(hSCManager, NTSVC_NAME_MAIL, SERVICE_ALL_ACCESS);
 		services_svc =  openService(hSCManager, NTSVC_NAME_SERVICES, SERVICE_ALL_ACCESS);
     }
@@ -854,8 +971,7 @@ void __fastcall TMainForm::FormShow(TObject *Sender)
 
 void __fastcall TMainForm::ViewToolbarMenuItemClick(TObject *Sender)
 {
-	Toolbar->Visible=!ViewToolbarMenuItem->Checked;
-    ViewToolbarMenuItem->Checked=Toolbar->Visible;
+	Toolbar->Visible=ViewToolbarMenuItem->Checked;
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
@@ -867,13 +983,14 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
         
     /* This is necessary to save form sizes/positions */
     if(Initialized) /* Don't overwrite registry settings with defaults */
-        SaveSettings(Sender);
+        SaveRegistrySettings(Sender);
 
 	StatusBar->Panels->Items[4]->Text="Closing...";
     time_t start=time(NULL);
 	while( (bbs_svc==NULL && TelnetStop->Enabled)
         || (mail_svc==NULL && MailStop->Enabled)
         || (ftp_svc==NULL && FtpStop->Enabled)
+        || (web_svc==NULL && WebStop->Enabled)        
     	|| (services_svc==NULL && ServicesStop->Enabled)) {
         if(time(NULL)-start>30)
             break;
@@ -920,6 +1037,15 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
             return;
         FtpStopExecute(Sender);
     }
+
+    if(WebStop->Enabled && web_svc==NULL) {
+    	if(WebForm->ProgressBar->Position
+    		&& Application->MessageBox("Shut down the Web Server?"
+	       	,"Web Server In Use", MB_OKCANCEL)!=IDOK)
+            return;
+        WebStopExecute(Sender);
+    }
+
     if(ServicesStop->Enabled && services_svc==NULL)
 	    ServicesStopExecute(Sender);
 
@@ -940,7 +1066,12 @@ BOOL StartNTsvc(SC_HANDLE svc, SERVICE_STATUS* status, QUERY_SERVICE_CONFIG* con
     	return(FALSE);
     if(status->dwCurrentState!=SERVICE_STOPPED)
     	return(TRUE);
-    return startService(svc,0,NULL);
+    if(!startService(svc,0,NULL))
+       	Application->MessageBox(AnsiString("ERROR " + IntToStr(GetLastError()) +
+            " starting " + config->lpDisplayName).c_str()
+            ,"ERROR"
+            ,MB_OK|MB_ICONEXCLAMATION);
+    return(TRUE);
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::TelnetStartExecute(TObject *Sender)
@@ -972,8 +1103,8 @@ void __fastcall TMainForm::ServicesStartExecute(TObject *Sender)
 	_beginthread((void(*)(void*))services_thread,0,&MainForm->services_startup);
     Application->ProcessMessages();
 }
-//---------------------------------------------------------------------------
 
+//---------------------------------------------------------------------------
 BOOL StopNTsvc(SC_HANDLE svc, SERVICE_STATUS* status)
 {
 	if(svc==NULL || controlService==NULL)
@@ -1071,38 +1202,52 @@ void __fastcall TMainForm::MailStopExecute(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::ViewTelnetExecute(TObject *Sender)
 {
-	TelnetForm->Visible=!TelnetForm->Visible;
-    ViewTelnet->Checked=TelnetForm->Visible;
+	TelnetForm->Visible=ViewTelnet->Checked;
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::ViewEventsExecute(TObject *Sender)
 {
-	EventsForm->Visible=!EventsForm->Visible;
-    ViewEvents->Checked=EventsForm->Visible;
+	EventsForm->Visible=ViewEvents->Checked;
 }
 //---------------------------------------------------------------------------
 
 void __fastcall TMainForm::ViewNodesExecute(TObject *Sender)
 {
-	NodeForm->Visible=!NodeForm->Visible;
-    ViewNodes->Checked=NodeForm->Visible;
+	NodeForm->Visible=ViewNodes->Checked;
 }
 //---------------------------------------------------------------------------
 
 void __fastcall TMainForm::ViewMailServerExecute(TObject *Sender)
 {
-	MailForm->Visible=!MailForm->Visible;
-    ViewMailServer->Checked=MailForm->Visible;
+	MailForm->Visible=ViewMailServer->Checked;
 }
 //---------------------------------------------------------------------------
 
 void __fastcall TMainForm::ViewFtpServerExecute(TObject *Sender)
 {
-	FtpForm->Visible=!FtpForm->Visible;
-    ViewFtpServer->Checked=FtpForm->Visible;
+	FtpForm->Visible=ViewFtpServer->Checked;
 }
 //---------------------------------------------------------------------------
-
+void __fastcall TMainForm::ViewWebServerExecute(TObject *Sender)
+{
+    WebForm->Visible=ViewWebServer->Checked;
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ViewServicesExecute(TObject *Sender)
+{
+    ServicesForm->Visible=ViewServices->Checked;
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ViewStatsExecute(TObject *Sender)
+{
+	StatsForm->Visible=ViewStats->Checked;
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ViewClientsExecute(TObject *Sender)
+{
+	ClientForm->Visible=ViewClients->Checked;
+}
+//---------------------------------------------------------------------------
 void __fastcall TMainForm::FtpStartExecute(TObject *Sender)
 {
 	if(!StartNTsvc(ftp_svc,&ftp_svc_status,ftp_svc_config,ftp_svc_config_size))
@@ -1134,8 +1279,35 @@ void __fastcall TMainForm::FtpConfigureExecute(TObject *Sender)
     inside=false;
 }
 //---------------------------------------------------------------------------
+void __fastcall TMainForm::WebStartExecute(TObject *Sender)
+{
+	if(!StartNTsvc(web_svc,&web_svc_status,web_svc_config,web_svc_config_size))
+		web_start();
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::WebStopExecute(TObject *Sender)
+{
+	if(StopNTsvc(web_svc,&web_svc_status))
+    	return;
+    Screen->Cursor=crAppStart;
+    web_status(NULL, "Terminating");
+    web_terminate();
+    Application->ProcessMessages();
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::WebConfigureExecute(TObject *Sender)
+{
+    static inside;
+    if(inside) return;
+    inside=true;
 
+	Application->CreateForm(__classid(TFtpCfgDlg), &FtpCfgDlg);
+	FtpCfgDlg->ShowModal();
+    delete FtpCfgDlg;
 
+    inside=false;
+}
+//---------------------------------------------------------------------------
 void __fastcall TMainForm::BBSConfigureMenuItemClick(TObject *Sender)
 {
 	char str[256];
@@ -1238,14 +1410,6 @@ void __fastcall TMainForm::StatsTimerTick(TObject *Sender)
 	counter++;
 }
 //---------------------------------------------------------------------------
-
-void __fastcall TMainForm::ViewStatsExecute(TObject *Sender)
-{
-	StatsForm->Visible=!StatsForm->Visible;
-    ViewStats->Checked=StatsForm->Visible;
-}
-//---------------------------------------------------------------------------
-
 void __fastcall TMainForm::StatsCloseButtonClick(TObject *Sender)
 {
 	ViewStatsExecute(Sender);
@@ -1297,6 +1461,24 @@ void __fastcall TMainForm::WriteColor(TRegistry* Registry
 {
     Registry->WriteString(name + "Color", ColorToString(color));
 }
+
+int FontStyleToInt(TFont* Font)
+{
+    int style=0;
+    for(int i=fsBold;i<=fsStrikeOut;i++)
+    	if(Font->Style.Contains((TFontStyle)i))
+        	style|=(1<<i);
+    return(style);
+}
+
+void IntToFontStyle(int style, TFont* Font)
+{
+    Font->Style=Font->Style.Clear();
+    for(int i=fsBold;i<=fsStrikeOut;i++)
+        if(style&(1<<i))
+            Font->Style=Font->Style<<(TFontStyle)i;
+}
+
 void __fastcall TMainForm::ReadFont(AnsiString subkey, TFont* Font)
 {
     // Read Registry keys
@@ -1317,13 +1499,9 @@ void __fastcall TMainForm::ReadFont(AnsiString subkey, TFont* Font)
     if(Registry->ValueExists("Size"))
         Font->Size=Registry->ReadInteger("Size");
 
-    if(Registry->ValueExists("Style")) {
-        int style=Registry->ReadInteger("Style");
-        Font->Style=Font->Style.Clear();
-        for(int i=fsBold;i<=fsStrikeOut;i++)
-            if(style&(1<<i))
-                Font->Style=Font->Style<<(TFontStyle)i;
-    }
+    if(Registry->ValueExists("Style"))
+        IntToFontStyle(Registry->ReadInteger("Style"),Font);
+
     Registry->CloseKey();
     delete Registry;
 }
@@ -1342,12 +1520,7 @@ void __fastcall TMainForm::WriteFont(AnsiString subkey, TFont* Font)
     Registry->WriteString("Color",ColorToString(Font->Color));
     Registry->WriteInteger("Height",Font->Height);
     Registry->WriteInteger("Size",Font->Size);
-
-    int style=0;
-    for(int i=fsBold;i<=fsStrikeOut;i++)
-    	if(Font->Style.Contains((TFontStyle)i))
-        	style|=(1<<i);
-    Registry->WriteInteger("Style",style);
+    Registry->WriteInteger("Style",FontStyleToInt(Font));
 
     Registry->CloseKey();
     delete Registry;
@@ -1362,6 +1535,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     bool	ClientFormFloating=false;
     bool 	MailFormFloating=false;
     bool	FtpFormFloating=false;
+    bool	WebFormFloating=false;
     int		NodeFormPage=PAGE_UPPERLEFT;
     int		StatsFormPage=PAGE_UPPERLEFT;
     int		ClientFormPage=PAGE_UPPERLEFT;
@@ -1369,7 +1543,18 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     int		EventsFormPage=PAGE_LOWERLEFT;
     int		MailFormPage=PAGE_UPPERRIGHT;
     int		FtpFormPage=PAGE_LOWERRIGHT;
+    int		WebFormPage=PAGE_LOWERRIGHT;
     int     ServicesFormPage=PAGE_LOWERRIGHT;
+    bool	TelnetFormVisible=true;
+    bool	EventsFormVisible=true;
+    bool	ServicesFormVisible=true;
+    bool 	NodeFormVisible=true;
+    bool	StatsFormVisible=true;
+    bool	ClientFormVisible=true;
+    bool 	MailFormVisible=true;
+    bool	FtpFormVisible=true;
+    bool	WebFormVisible=true;
+
 
     AnsiString	Str;
 
@@ -1416,7 +1601,28 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             MailFormFloating=Registry->ReadBool("MailFormFloating");
         if(Registry->ValueExists("FtpFormFloating"))
             FtpFormFloating=Registry->ReadBool("FtpFormFloating");
+        if(Registry->ValueExists("WebFormFloating"))
+            WebFormFloating=Registry->ReadBool("WebFormFloating");
     }
+
+    if(Registry->ValueExists("TelnetFormVisible"))
+        TelnetFormVisible=Registry->ReadBool("TelnetFormVisible");
+    if(Registry->ValueExists("EventsFormVisible"))
+        EventsFormVisible=Registry->ReadBool("EventsFormVisible");
+    if(Registry->ValueExists("ServicesFormVisible"))
+        ServicesFormVisible=Registry->ReadBool("ServicesFormVisible");
+    if(Registry->ValueExists("NodeFormVisible"))
+        NodeFormVisible=Registry->ReadBool("NodeFormVisible");
+    if(Registry->ValueExists("StatsFormVisible"))
+        StatsFormVisible=Registry->ReadBool("StatsFormVisible");
+    if(Registry->ValueExists("ClientFormVisible"))
+        ClientFormVisible=Registry->ReadBool("ClientFormVisible");
+    if(Registry->ValueExists("MailFormVisible"))
+        MailFormVisible=Registry->ReadBool("MailFormVisible");
+    if(Registry->ValueExists("FtpFormVisible"))
+        FtpFormVisible=Registry->ReadBool("FtpFormVisible");
+    if(Registry->ValueExists("WebFormVisible"))
+        WebFormVisible=Registry->ReadBool("WebFormVisible");
 
     if(Registry->ValueExists("TelnetFormPage"))
     	TelnetFormPage=Registry->ReadInteger("TelnetFormPage");
@@ -1434,6 +1640,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	MailFormPage=Registry->ReadInteger("MailFormPage");
     if(Registry->ValueExists("FtpFormPage"))
     	FtpFormPage=Registry->ReadInteger("FtpFormPage");
+    if(Registry->ValueExists("WebFormPage"))
+    	WebFormPage=Registry->ReadInteger("WebFormPage");
 
     TelnetForm->Log->Color=ReadColor(Registry,"TelnetLog");
     ReadFont("TelnetLog",TelnetForm->Log->Font);
@@ -1445,6 +1653,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     ReadFont("MailLog",MailForm->Log->Font);
     FtpForm->Log->Color=ReadColor(Registry,"FtpLog");
     ReadFont("FtpLog",FtpForm->Log->Font);
+    WebForm->Log->Color=ReadColor(Registry,"WebLog");
+    ReadFont("WebLog",WebForm->Log->Font);
     NodeForm->ListBox->Color=ReadColor(Registry,"NodeList");
     ReadFont("NodeList",NodeForm->ListBox->Font);
     ClientForm->ListView->Color=ReadColor(Registry,"ClientList");
@@ -1485,6 +1695,15 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	FtpForm->Width=Registry->ReadInteger("FtpFormWidth");
 	if(Registry->ValueExists("FtpFormHeight"))
     	FtpForm->Height=Registry->ReadInteger("FtpFormHeight");
+
+	if(Registry->ValueExists("WebFormTop"))
+    	WebForm->Top=Registry->ReadInteger("WebFormTop");
+	if(Registry->ValueExists("WebFormLeft"))
+    	WebForm->Left=Registry->ReadInteger("WebFormLeft");
+	if(Registry->ValueExists("WebFormWidth"))
+    	WebForm->Width=Registry->ReadInteger("WebFormWidth");
+	if(Registry->ValueExists("WebFormHeight"))
+    	WebForm->Height=Registry->ReadInteger("WebFormHeight");
 
 	if(Registry->ValueExists("MailFormTop"))
     	MailForm->Top=Registry->ReadInteger("MailFormTop");
@@ -1550,9 +1769,9 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     if(Registry->ValueExists("UseFileAssociations"))
     	UseFileAssociations=Registry->ReadBool("UseFileAssociations");
 	if(Registry->ValueExists("NodeDisplayInterval"))
-    	NodeDisplayInterval=Registry->ReadInteger("NodeDisplayInterval");
+    	NodeForm->Timer->Interval=Registry->ReadInteger("NodeDisplayInterval")*1000;
 	if(Registry->ValueExists("ClientDisplayInterval"))
-    	ClientDisplayInterval=Registry->ReadInteger("ClientDisplayInterval");
+    	ClientForm->Timer->Interval=Registry->ReadInteger("ClientDisplayInterval")*1000;
 
     if(Registry->ValueExists("MailLogFile"))
     	MailLogFile=Registry->ReadInteger("MailLogFile");
@@ -1580,13 +1799,13 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             ,&SysAutoStart   		,&bbs_startup
             ,&FtpAutoStart 			,&ftp_startup
             ,&WebAutoStart 			,&web_startup
-            ,&MailAutoStart 	    	,&mail_startup
-            ,&ServicesAutoStart     	,&services_startup
+            ,&MailAutoStart 	    ,&mail_startup
+            ,&ServicesAutoStart     ,&services_startup
             );
-       	StatusBar->Panels->Items[4]->Text="Imported " + AnsiString(ini_file);
+       	StatusBar->Panels->Items[4]->Text="Read " + AnsiString(ini_file);
         fclose(fp);
 
-    } else {
+    } else {    /* Legacy (v3.10-3.11) */
 
         if(Registry->ValueExists("SysAutoStart"))
             SysAutoStart=Registry->ReadInteger("SysAutoStart");
@@ -1602,6 +1821,11 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             FtpAutoStart=Registry->ReadInteger("FtpAutoStart");
         else
             FtpAutoStart=true;
+
+        if(Registry->ValueExists("WebAutoStart"))
+            WebAutoStart=Registry->ReadInteger("WebAutoStart");
+        else
+            WebAutoStart=true;
 
         if(Registry->ValueExists("ServicesAutoStart"))
             ServicesAutoStart=Registry->ReadInteger("ServicesAutoStart");
@@ -1806,6 +2030,9 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
         if(Registry->ValueExists("ServicesOptions"))
             services_startup.options=Registry->ReadInteger("ServicesOptions");
+
+        if(SaveIniSettings(Sender))
+            Registry->WriteBool("Imported",true);   /* Use the .ini file for these settings from now on */
     }
 
     Registry->CloseKey();
@@ -1881,15 +2108,28 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	ServicesForm->ManualDock(PageControl(ServicesFormPage),NULL,alClient);
 	if(!FtpFormFloating)
     	FtpForm->ManualDock(PageControl(FtpFormPage),NULL,alClient);
+	if(!WebFormFloating)
+    	WebForm->ManualDock(PageControl(WebFormPage),NULL,alClient);
 
     NodeForm->Show();
+//    ViewNodes->Checked=NodeFormVisible,     ViewNodesExecute(Sender);
     ClientForm->Show();
+//    ViewClients->Checked=ClientFormVisible, ViewClientsExecute(Sender);
     StatsForm->Show();
+//    ViewStats->Checked=StatsFormVisible,    ViewStatsExecute(Sender);
     TelnetForm->Show();
+//    ViewTelnet->Checked=TelnetFormVisible,  ViewTelnetExecute(Sender);
     EventsForm->Show();
+//    ViewEvents->Checked=EventsFormVisible,  ViewEventsExecute(Sender);
     FtpForm->Show();
-    ServicesForm->Show();
+//    ViewFtpServer->Checked=FtpFormVisible,  ViewFtpServerExecute(Sender);
+    WebForm->Show();
+//    ViewWebServer->Checked=WebFormVisible;
+//    WebForm->Visible=ViewWebServer->Checked;
     MailForm->Show();
+//    ViewMailServer->Checked=MailFormVisible,ViewMailServerExecute(Sender);
+    ServicesForm->Show();
+//    ViewServices->Checked=ServicesFormVisible,ViewServicesExecute(Sender);
 
 	UpperLeftPageControl->Visible=true;
 	UpperRightPageControl->Visible=true;
@@ -1927,12 +2167,12 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         MailStartExecute(Sender);
     if(FtpAutoStart)
         FtpStartExecute(Sender);
+    if(WebAutoStart)
+        WebStartExecute(Sender);
     if(ServicesAutoStart)
         ServicesStartExecute(Sender);
 
-    NodeForm->Timer->Interval=NodeDisplayInterval*1000;
     NodeForm->Timer->Enabled=true;
-    ClientForm->Timer->Interval=ClientDisplayInterval*1000;
     ClientForm->Timer->Enabled=true;
 
     StatsTimer->Interval=cfg.node_stat_check*1000;
@@ -1945,12 +2185,9 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	FormMinimize(Sender);   /* Put icon in systray */
 }
 //---------------------------------------------------------------------------
-void __fastcall TMainForm::SaveSettings(TObject* Sender)
+void __fastcall TMainForm::SaveRegistrySettings(TObject* Sender)
 {
-	StatusBar->Panels->Items[4]->Text="Saving Settings...";
-
-    NodeForm->Timer->Interval=NodeDisplayInterval*1000;
-    ClientForm->Timer->Interval=ClientDisplayInterval*1000;
+	StatusBar->Panels->Items[4]->Text="Saving Registry Settings...";
 
     // Write Registry keys
 	TRegistry* Registry=new TRegistry;
@@ -2007,6 +2244,11 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     Registry->WriteInteger("FtpFormHeight",FtpForm->Height);
     Registry->WriteInteger("FtpFormWidth",FtpForm->Width);
 
+    Registry->WriteInteger("WebFormTop",WebForm->Top);
+    Registry->WriteInteger("WebFormLeft",WebForm->Left);
+    Registry->WriteInteger("WebFormHeight",WebForm->Height);
+    Registry->WriteInteger("WebFormWidth",WebForm->Width);
+
     Registry->WriteInteger("MailFormTop",MailForm->Top);
     Registry->WriteInteger("MailFormLeft",MailForm->Left);
     Registry->WriteInteger("MailFormHeight",MailForm->Height);
@@ -2027,7 +2269,18 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     Registry->WriteBool("StatsFormFloating",StatsForm->Floating);
     Registry->WriteBool("ClientFormFloating",ClientForm->Floating);
     Registry->WriteBool("FtpFormFloating",FtpForm->Floating);
+    Registry->WriteBool("WebFormFloating",WebForm->Floating);
     Registry->WriteBool("MailFormFloating",MailForm->Floating);
+
+    Registry->WriteBool("TelnetFormVisible",TelnetForm->Visible);
+    Registry->WriteBool("EventsFormVisible",EventsForm->Visible);
+    Registry->WriteBool("ServicesFormVisible",ServicesForm->Visible);
+    Registry->WriteBool("NodeFormVisible",NodeForm->Visible);
+    Registry->WriteBool("StatsFormVisible",StatsForm->Visible);
+    Registry->WriteBool("ClientFormVisible",ClientForm->Visible);
+    Registry->WriteBool("FtpFormVisible",FtpForm->Visible);
+    Registry->WriteBool("WebFormVisible",WebForm->Visible);
+    Registry->WriteBool("MailFormVisible",MailForm->Visible);
 
     Registry->WriteInteger("TelnetFormPage"
 	    ,PageNum((TPageControl*)TelnetForm->HostDockSite));
@@ -2041,6 +2294,8 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     	,PageNum((TPageControl*)MailForm->HostDockSite));
     Registry->WriteInteger("FtpFormPage"
     	,PageNum((TPageControl*)FtpForm->HostDockSite));
+    Registry->WriteInteger("WebFormPage"
+    	,PageNum((TPageControl*)WebForm->HostDockSite));
     Registry->WriteInteger("StatsFormPage"
     	,PageNum((TPageControl*)StatsForm->HostDockSite));
     Registry->WriteInteger("ClientFormPage"
@@ -2056,6 +2311,8 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     WriteFont("MailLog",MailForm->Log->Font);
     WriteColor(Registry,"FtpLog",FtpForm->Log->Color);
     WriteFont("FtpLog",FtpForm->Log->Font);
+    WriteColor(Registry,"WebLog",WebForm->Log->Color);
+    WriteFont("WebLog",WebForm->Log->Font);
     WriteColor(Registry,"NodeList",NodeForm->ListBox->Color);
     WriteFont("NodeList",NodeForm->ListBox->Font);
     WriteColor(Registry,"ClientList",ClientForm->ListView->Color);
@@ -2071,8 +2328,8 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     Registry->WriteString("Password",Password);
     Registry->WriteBool("MinimizeToSysTray",MinimizeToSysTray);
     Registry->WriteBool("UseFileAssociations",UseFileAssociations);    
-    Registry->WriteInteger("NodeDisplayInterval",NodeDisplayInterval);
-    Registry->WriteInteger("ClientDisplayInterval",ClientDisplayInterval);
+    Registry->WriteInteger("NodeDisplayInterval",NodeForm->Timer->Interval/1000);
+    Registry->WriteInteger("ClientDisplayInterval",ClientForm->Timer->Interval/1000);
 
 #if 0   /* Moved to sbbs.ini */
     Registry->WriteString("Hostname",global.host_name);
@@ -2091,6 +2348,7 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
     Registry->WriteInteger("SysAutoStart",SysAutoStart);
     Registry->WriteInteger("MailAutoStart",MailAutoStart);
     Registry->WriteInteger("FtpAutoStart",FtpAutoStart);
+    Registry->WriteInteger("WebAutoStart",WebAutoStart);    
     Registry->WriteInteger("ServicesAutoStart",ServicesAutoStart);
     Registry->WriteInteger("MailLogFile",MailLogFile);
     Registry->WriteInteger("FtpLogFile",FtpLogFile);
@@ -2179,228 +2437,166 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
 	Registry->WriteBool(    "SpyTerminalKeyboardActive"
                             ,SpyTerminalKeyboardActive);
 
-    FILE* fp=NULL;
-   	if(ini_file[0]) {
-        if((fp=fopen(ini_file,"r+"))==NULL) {
-            char err[MAX_PATH*2];
-            sprintf(err,"Error %d opening initialization file: %s",errno,ini_file);
-            Application->MessageBox(err,"ERROR",MB_OK|MB_ICONEXCLAMATION);
-        } else {
-            if(sbbs_write_ini(fp
-                ,&cfg
-                ,&global
-                ,SysAutoStart		,&bbs_startup
-                ,FtpAutoStart		,&ftp_startup
-                ,WebAutoStart		,&web_startup
-                ,MailAutoStart		,&mail_startup
-                ,ServicesAutoStart	,&services_startup
-                ))
-                Registry->WriteBool("Imported",true);
-            fclose(fp);
-        }
-    }
     Registry->CloseKey();
     delete Registry;
 }
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::SaveSettings(TObject* Sender)
+{
+    SaveIniSettings(Sender);
+    SaveRegistrySettings(Sender);
+}
+//---------------------------------------------------------------------------
+bool __fastcall TMainForm::SaveIniSettings(TObject* Sender)
+{
+    FILE* fp=NULL;
+   	if(ini_file[0]==0)
+        return(false);
 
+    if((fp=fopen(ini_file,"r+"))==NULL) {
+        char err[MAX_PATH*2];
+        SAFEPRINTF2(err,"Error %d opening initialization file: %s",errno,ini_file);
+        Application->MessageBox(err,"ERROR",MB_OK|MB_ICONEXCLAMATION);
+        return(false);
+    }
+
+	StatusBar->Panels->Items[4]->Text="Saving Settings to " + AnsiString(ini_file) + " ...";
+
+    bool success = sbbs_write_ini(fp
+        ,&cfg
+        ,&global
+        ,SysAutoStart		,&bbs_startup
+        ,FtpAutoStart		,&ftp_startup
+        ,WebAutoStart		,&web_startup
+        ,MailAutoStart		,&mail_startup
+        ,ServicesAutoStart	,&services_startup
+        );
+    fclose(fp);
+
+    return(success);
+}
+
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ImportFormSettings(TMemIniFile* IniFile, const char* section, TForm* Form)
+{
+   	Form->Top=IniFile->ReadInteger(section,"Top",Form->Top);
+   	Form->Left=IniFile->ReadInteger(section,"Left",Form->Left);
+   	Form->Width=IniFile->ReadInteger(section,"Width",Form->Width);
+   	Form->Height=IniFile->ReadInteger(section,"Height",Form->Height);
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ExportFormSettings(TMemIniFile* IniFile, const char* section, TForm* Form)
+{
+    IniFile->WriteInteger(section,"Top",Form->Top);
+    IniFile->WriteInteger(section,"Left",Form->Left);
+    IniFile->WriteInteger(section,"Width",Form->Width);
+    IniFile->WriteInteger(section,"Height",Form->Height);
+    IniFile->WriteInteger(section,"Page",PageNum((TPageControl*)Form->HostDockSite));
+    IniFile->WriteBool(section,"Floating",Form->Floating);
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ImportFont(TMemIniFile* IniFile, const char* section, AnsiString prefix, TFont* Font)
+{
+    Font->Name=IniFile->ReadString(section,prefix + "Name",Font->Name);
+    Font->Color=StringToColor(IniFile->ReadString(section,prefix + "Color",ColorToString(Font->Color)));
+    Font->Height=IniFile->ReadInteger(section,prefix + "Height",Font->Height);
+    Font->Size=IniFile->ReadInteger(section,prefix + "Size", Font->Size);
+    IntToFontStyle(IniFile->ReadInteger(section,prefix + "Style",FontStyleToInt(Font)),Font);
+}
+//---------------------------------------------------------------------------
+void __fastcall TMainForm::ExportFont(TMemIniFile* IniFile, const char* section, AnsiString prefix, TFont* Font)
+{
+    IniFile->WriteString(section,prefix+"Name",Font->Name);
+    IniFile->WriteString(section,prefix+"Color",ColorToString(Font->Color));
+    IniFile->WriteInteger(section,prefix+"Height",Font->Height);
+    IniFile->WriteInteger(section,prefix+"Size",Font->Size);
+    IniFile->WriteInteger(section,prefix+"Style",FontStyleToInt(Font));
+}
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::ImportSettings(TObject* Sender)
 {
     OpenDialog->Filter="Settings files (*.ini)|*.ini|All files|*.*";
-    OpenDialog->FileName=AnsiString(global.ctrl_dir)+"sbbs.ini";
+    OpenDialog->FileName=AnsiString(global.ctrl_dir)+"sbbsctrl.ini";
     if(!OpenDialog->Execute())
     	return;
 
-    FILE* fp;
-
-    if((fp=fopen(OpenDialog->FileName.c_str(),"r"))==NULL) {
-    	char str[MAX_PATH*2];
-        char err[MAX_PATH];
-        SAFECOPY(err,truncsp(strerror(errno)));
-    	sprintf(str,"ERROR (%s) opening %s"
-        	,err
-            ,OpenDialog->FileName.c_str());
-        Application->MessageBox(str,"Import Error",MB_OK|MB_ICONEXCLAMATION);
-    	return;
-    }
-    
 	StatusBar->Panels->Items[4]->Text="Importing Settings...";
-
-    sbbs_read_ini(fp
-		,&global
-    	,(BOOL*)&SysAutoStart   		,&bbs_startup
-    	,(BOOL*)&FtpAutoStart 			,&ftp_startup
-    	,(BOOL*)&WebAutoStart 			,&web_startup
-    	,(BOOL*)&MailAutoStart 	    	,&mail_startup
-    	,(BOOL*)&ServicesAutoStart     	,&services_startup
-        );
-    fclose(fp);
 
 	TMemIniFile* IniFile=new TMemIniFile(OpenDialog->FileName);
 
-    const char* section = "sbbsctrl";
+    const char* section = "Properties";
 
-   	TopPanel->Height
-    	=IniFile->ReadInteger(section,"TopPanelHeight"
-    		,TopPanel->Height);
-   	UpperLeftPageControl->Width
-       	=IniFile->ReadInteger(section,"UpperLeftPageControlWidth"
-        	,UpperLeftPageControl->Width);
-   	LowerLeftPageControl->Width
-       	=IniFile->ReadInteger(section,"LowerLeftPageControlWidth"
-        	,LowerLeftPageControl->Width);
-    UndockableForms=IniFile->ReadBool(section,"UndockableForms"
-    	,UndockableForms);
-#if 0
-    if(UndockableForms) {
-        TelnetFormFloating=IniFile->ReadBool(section,"TelnetFormFloating",false);
-        EventsFormFloating=IniFile->ReadBool(section,"EventsFormFloating",false);
-        ServicesFormFloating=IniFile->ReadBool(section,"ServicesFormFloating",false);
-        NodeFormFloating=IniFile->ReadBool(section,"NodeFormFloating",false);
-        StatsFormFloating=IniFile->ReadBool(section,"StatsFormFloating",false);
-        ClientFormFloating=IniFile->ReadBool(section,"ClientFormFloating",false);
-        MailFormFloating=IniFile->ReadBool(section,"MailFormFloating",false);
-        FtpFormFloating=IniFile->ReadBool(section,"FtpFormFloating",false);
-    }
-#endif
+   	LoginCommand=IniFile->ReadString(section,"LoginCommand",LoginCommand);
+    ConfigCommand=IniFile->ReadString(section,"ConfigCommand",ConfigCommand);
+   	Password=IniFile->ReadString(section,"Password",Password);
+   	MinimizeToSysTray=IniFile->ReadBool(section,"MinimizeToSysTray",MinimizeToSysTray);
+   	UseFileAssociations=IniFile->ReadBool(section,"UseFileAssociations"	,UseFileAssociations);
+    UndockableForms=IniFile->ReadBool(section,"UndockableForms",UndockableForms);
 
-#if 0
-  	TelnetFormPage=IniFile->ReadInteger(section,"TelnetFormPage",TelnetFormPage);
-  	EventsFormPage=IniFile->ReadInteger(section,"EventsFormPage",EventsFormPage);
-   	ServicesFormPage=IniFile->ReadInteger(section,"ServicesFormPage",ServicesFormPage);
-   	NodeFormPage=IniFile->ReadInteger(section,"NodeFormPage",NodeFormPage);
-   	StatsFormPage=IniFile->ReadInteger(section,"StatsFormPage",StatsFormPage);
-  	ClientFormPage=IniFile->ReadInteger(section,"ClientFormPage",ClientFormPage);
-   	MailFormPage=IniFile->ReadInteger(section,"MailFormPage",MailFormPage);
-   	FtpFormPage=IniFile->ReadInteger(section,"FtpFormPage",FtpFormPage);
+    ImportFormSettings(IniFile,section="MainForm",MainForm);
+   	TopPanel->Height=IniFile->ReadInteger(section,"TopPanelHeight",TopPanel->Height);
+   	UpperLeftPageControl->Width=IniFile->ReadInteger(section,"UpperLeftPageControlWidth",UpperLeftPageControl->Width);
+   	LowerLeftPageControl->Width=IniFile->ReadInteger(section,"LowerLeftPageControlWidth",LowerLeftPageControl->Width);
+    Toolbar->Visible=IniFile->ReadBool(section,"ToolBarVisible",Toolbar->Visible);
+    StatusBar->Visible=IniFile->ReadBool(section,"StatusBarVisible",StatusBar->Visible);
 
-#endif
-    
-#if 0
-    TelnetForm->Log->Color=ReadColor(IniFile,"TelnetLog");
-    ReadFont("TelnetLog",TelnetForm->Log->Font);
-    EventsForm->Log->Color=ReadColor(IniFile,"EventsLog");
-    ReadFont("EventsLog",EventsForm->Log->Font);
-    ServicesForm->Log->Color=ReadColor(IniFile,"ServicesLog");
-    ReadFont("ServicesLog",ServicesForm->Log->Font);
-    MailForm->Log->Color=ReadColor(IniFile,"MailLog");
-    ReadFont("MailLog",MailForm->Log->Font);
-    FtpForm->Log->Color=ReadColor(IniFile,"FtpLog");
-    ReadFont("FtpLog",FtpForm->Log->Font);
-    NodeForm->ListBox->Color=ReadColor(IniFile,"NodeList");
-    ReadFont("NodeList",NodeForm->ListBox->Font);
-    ClientForm->ListView->Color=ReadColor(IniFile,"ClientList");
-    ReadFont("ClientList",ClientForm->ListView->Font);
-#endif
+    ImportFormSettings(IniFile,section="TelnetForm",TelnetForm);
+    ImportFont(IniFile,section,"LogFont",TelnetForm->Log->Font);
+    TelnetForm->Log->Color=StringToColor(IniFile->ReadString(section,"LogColor",clWindow));
 
-   	TelnetForm->Top=IniFile->ReadInteger(section,"TelnetFormTop"
-    	,TelnetForm->Top);
-   	TelnetForm->Left=IniFile->ReadInteger(section,"TelnetFormLeft"
-    	,TelnetForm->Left);
-   	TelnetForm->Width=IniFile->ReadInteger(section,"TelnetFormWidth"
-    	,TelnetForm->Width);
-   	TelnetForm->Height=IniFile->ReadInteger(section,"TelnetFormHeight"
-    	,TelnetForm->Height);
+    ImportFormSettings(IniFile,section="EventsForm",EventsForm);
+    ImportFont(IniFile,section,"LogFont",EventsForm->Log->Font);
+    EventsForm->Log->Color=StringToColor(IniFile->ReadString(section,"LogColor",clWindow));
 
-   	EventsForm->Top=IniFile->ReadInteger(section,"EventsFormTop"
-    	,EventsForm->Top);
-   	EventsForm->Left=IniFile->ReadInteger(section,"EventsFormLeft"
-    	,EventsForm->Left);
-   	EventsForm->Width=IniFile->ReadInteger(section,"EventsFormWidth"
-    	,EventsForm->Width);
-   	EventsForm->Height=IniFile->ReadInteger(section,"EventsFormHeight"
-    	,EventsForm->Height);
+    ImportFormSettings(IniFile,section="ServicesForm",ServicesForm);
+    ImportFont(IniFile,section,"LogFont",ServicesForm->Log->Font);
+    ServicesForm->Log->Color=StringToColor(IniFile->ReadString(section,"LogColor",clWindow));
 
-   	ServicesForm->Top=IniFile->ReadInteger(section,"ServicesFormTop"
-    	,ServicesForm->Top);
-   	ServicesForm->Left=IniFile->ReadInteger(section,"ServicesFormLeft"
-    	,ServicesForm->Left);
-   	ServicesForm->Width=IniFile->ReadInteger(section,"ServicesFormWidth"
-    	,ServicesForm->Width);
-   	ServicesForm->Height=IniFile->ReadInteger(section,"ServicesFormHeight"
-    	,ServicesForm->Height);
+    ImportFormSettings(IniFile,section="FtpForm",FtpForm);
+    ImportFont(IniFile,section,"LogFont",FtpForm->Log->Font);
+   	FtpLogFile=IniFile->ReadInteger(section,"LogFile",true);
+    FtpForm->Log->Color=StringToColor(IniFile->ReadString(section,"LogColor",clWindow));
 
-   	FtpForm->Top=IniFile->ReadInteger(section,"FtpFormTop"
-    	,FtpForm->Top);
-   	FtpForm->Left=IniFile->ReadInteger(section,"FtpFormLeft"
-    	,FtpForm->Left);
-   	FtpForm->Width=IniFile->ReadInteger(section,"FtpFormWidth"
-    	,FtpForm->Width);
-   	FtpForm->Height=IniFile->ReadInteger(section,"FtpFormHeight"
-    	,FtpForm->Height);
+    ImportFormSettings(IniFile,section="WebForm",WebForm);
+    ImportFont(IniFile,section,"LogFont",WebForm->Log->Font);
+    WebForm->Log->Color=StringToColor(IniFile->ReadString(section,"LogColor",clWindow));
 
-   	MailForm->Top=IniFile->ReadInteger(section,"MailFormTop"
-    	,MailForm->Top);
-   	MailForm->Left=IniFile->ReadInteger(section,"MailFormLeft"
-    	,MailForm->Left);
-   	MailForm->Width=IniFile->ReadInteger(section,"MailFormWidth"
-    	,MailForm->Width);
-   	MailForm->Height=IniFile->ReadInteger(section,"MailFormHeight"
-    	,MailForm->Height);
+    ImportFormSettings(IniFile,section="MailForm",MailForm);
+    ImportFont(IniFile,section,"LogFont",MailForm->Log->Font);
+   	MailLogFile=IniFile->ReadInteger(section,"LogFile",true);
+    MailForm->Log->Color=StringToColor(IniFile->ReadString(section,"LogColor",clWindow));
 
-   	NodeForm->Top=IniFile->ReadInteger(section,"NodeFormTop"
-    	,NodeForm->Top);
-   	NodeForm->Left=IniFile->ReadInteger(section,"NodeFormLeft"
-    	,NodeForm->Left);
-   	NodeForm->Width=IniFile->ReadInteger(section,"NodeFormWidth"
-    	,NodeForm->Width);
-   	NodeForm->Height=IniFile->ReadInteger(section,"NodeFormHeight"
-    	,NodeForm->Height);
+    ImportFormSettings(IniFile,section="NodeForm",NodeForm);
+    ImportFont(IniFile,section,"ListFont",NodeForm->ListBox->Font);
+    NodeForm->Timer->Interval=IniFile->ReadInteger(section,"DisplayInterval"
+        ,NodeForm->Timer->Interval/1000)*1000;
+    NodeForm->ListBox->Color=StringToColor(IniFile->ReadString(section,"ListColor",clWindow));
 
-   	StatsForm->Top=IniFile->ReadInteger(section,"StatsFormTop"
-    	,StatsForm->Top);
-   	StatsForm->Left=IniFile->ReadInteger(section,"StatsFormLeft"
-    	,StatsForm->Left);
-   	StatsForm->Width=IniFile->ReadInteger(section,"StatsFormWidth"
-    	,StatsForm->Width);
-   	StatsForm->Height=IniFile->ReadInteger(section,"StatsFormHeight"
-    	,StatsForm->Height);
+    ImportFormSettings(IniFile,section="StatsForm",StatsForm);
 
-   	ClientForm->Top=IniFile->ReadInteger(section,"ClientFormTop"
-    	,ClientForm->Top);
-   	ClientForm->Left=IniFile->ReadInteger(section,"ClientFormLeft"
-    	,ClientForm->Left);
-   	ClientForm->Width=IniFile->ReadInteger(section,"ClientFormWidth"
-    	,ClientForm->Width);
-   	ClientForm->Height=IniFile->ReadInteger(section,"ClientFormHeight"
-    	,ClientForm->Height);
-
+    ImportFormSettings(IniFile,section="ClientForm",ClientForm);
+    ImportFont(IniFile,section,"ListFont",ClientForm->ListView->Font);
+    ClientForm->ListView->Color=StringToColor(IniFile->ReadString(section,"ListColor",clWindow));
+    ClientForm->Timer->Interval=IniFile->ReadInteger(section,"DisplayInterval"
+        ,ClientForm->Timer->Interval/1000)*1000;
     for(int i=0;i<ClientForm->ListView->Columns->Count;i++) {
         char str[128];
-        sprintf(str,"ClientListColumn%dWidth",i);
+        sprintf(str,"Column%dWidth",i);
         if(IniFile->ValueExists(section,str))
             ClientForm->ListView->Columns->Items[i]->Width
                 =IniFile->ReadInteger(section,str,0);
     }
 
-   	Toolbar->Visible=IniFile->ReadBool(section,"ToolbarVisible"
-    	,Toolbar->Visible);
-    ViewToolbarMenuItem->Checked=Toolbar->Visible;
-    ViewStatusBarMenuItem->Checked=StatusBar->Visible;
-
-   	LoginCommand=IniFile->ReadString(section,"LoginCommand"
-    	,LoginCommand);
-   	ConfigCommand=IniFile->ReadString(section,"ConfigCommand"
-    	,ConfigCommand);
-   	Password=IniFile->ReadString(section,"Password"
-    	,Password);
-   	MinimizeToSysTray=IniFile->ReadBool(section,"MinimizeToSysTray"
-    	,MinimizeToSysTray);
-   	UseFileAssociations=IniFile->ReadBool(section,"UseFileAssociations"
-    	,UseFileAssociations);
-   	NodeDisplayInterval=IniFile->ReadInteger(section,"NodeDisplayInterval"
-    	,NodeDisplayInterval);
-   	ClientDisplayInterval=IniFile->ReadInteger(section,"ClientDisplayInterval"
-    	,ClientDisplayInterval);
-    global.sem_chk_freq=IniFile->ReadInteger(section,"SemFileCheckFrequency"
-    	,global.sem_chk_freq);
-
-   	MailLogFile=IniFile->ReadInteger(section,"MailLogFile",true);
-   	FtpLogFile=IniFile->ReadInteger(section,"FtpLogFile",true);
+    section = "SpyTerminal";
+	SpyTerminalWidth=IniFile->ReadInteger(section, "Width", SpyTerminalWidth);
+	SpyTerminalHeight=IniFile->ReadInteger(section, "Height", SpyTerminalHeight);
+   	SpyTerminalFont->Name=IniFile->ReadString(section, "FontName", SpyTerminalFont->Name);
+	SpyTerminalFont->Size=IniFile->ReadInteger(section, "FontSize", SpyTerminalFont->Size);
+	SpyTerminalKeyboardActive=IniFile->ReadBool(section, "KeyboardActive", SpyTerminalKeyboardActive);
 
     delete IniFile;
 
-    Application->MessageBox(AnsiString("Successfully imported settings from "
+    Application->MessageBox(AnsiString("Successfully imported SBBSCTRL settings from "
     	+ OpenDialog->FileName).c_str(),"Successful Import",MB_OK);
 }
 //---------------------------------------------------------------------------
@@ -2409,7 +2605,7 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
 	char str[128];
 
     SaveDialog->Filter="Settings files (*.ini)|*.ini|All files|*.*";
-    SaveDialog->FileName=AnsiString(global.ctrl_dir)+"sbbs.ini";
+    SaveDialog->FileName=AnsiString(global.ctrl_dir)+"sbbsctrl.ini";
     if(!SaveDialog->Execute())
     	return;
 
@@ -2417,61 +2613,33 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
 
 	StatusBar->Panels->Items[4]->Text="Exporting Settings...";
 
-    NodeForm->Timer->Interval=NodeDisplayInterval*1000;
-    ClientForm->Timer->Interval=ClientDisplayInterval*1000;
-
-    const char* section = "SBBSCTRL::Settings";
+    const char* section = "Properties";
 
     IniFile->WriteString(section,"LoginCommand",LoginCommand);
     IniFile->WriteString(section,"ConfigCommand",ConfigCommand);
     IniFile->WriteString(section,"Password",Password);
     IniFile->WriteBool(section,"MinimizeToSysTray",MinimizeToSysTray);
-    IniFile->WriteBool(section,"UseFileAssociations",UseFileAssociations);    
+    IniFile->WriteBool(section,"UseFileAssociations",UseFileAssociations);
     IniFile->WriteBool(section,"UndockableForms",UndockableForms);
 
-    section = "SBBSCTRL::MainForm";
-    IniFile->WriteInteger(section,"Top",Top);
-    IniFile->WriteInteger(section,"Left",Left);
-    IniFile->WriteInteger(section,"Height",Height);
-    IniFile->WriteInteger(section,"Width",Width);
-
+    ExportFormSettings(IniFile,section="MainForm",MainForm);
     IniFile->WriteInteger(section,"TopPanelHeight",TopPanel->Height);
- 	IniFile->WriteInteger(section,"UpperLeftPageControlWidth"
-    	,UpperLeftPageControl->Width);
-    IniFile->WriteInteger(section,"LowerLeftPageControlWidth"
-    	,LowerLeftPageControl->Width);
+ 	IniFile->WriteInteger(section,"UpperLeftPageControlWidth",UpperLeftPageControl->Width);
+    IniFile->WriteInteger(section,"LowerLeftPageControlWidth",LowerLeftPageControl->Width);
     IniFile->WriteBool(section,"ToolBarVisible",Toolbar->Visible);
     IniFile->WriteBool(section,"StatusBarVisible",StatusBar->Visible);
 
-    section = "SBBSCTRL::NodeForm";
-    IniFile->WriteInteger(section,"Top",NodeForm->Top);
-    IniFile->WriteInteger(section,"Left",NodeForm->Left);
-    IniFile->WriteInteger(section,"Height",NodeForm->Height);
-    IniFile->WriteInteger(section,"Width",NodeForm->Width);
-    IniFile->WriteInteger(section,"Page"
-    	,PageNum((TPageControl*)NodeForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",NodeForm->Floating);
-    IniFile->WriteInteger(section,"DisplayInterval",NodeDisplayInterval);
+    ExportFormSettings(IniFile,section = "NodeForm",NodeForm);
+    ExportFont(IniFile,section,"ListFont",NodeForm->ListBox->Font);
+    IniFile->WriteString(section,"ListColor",ColorToString(NodeForm->ListBox->Color));
+    IniFile->WriteInteger(section,"DisplayInterval",NodeForm->Timer->Interval/1000);
 
-    section = "SBBSCTRL::StatsForm";
-    IniFile->WriteInteger(section,"Top",StatsForm->Top);
-    IniFile->WriteInteger(section,"Left",StatsForm->Left);
-    IniFile->WriteInteger(section,"Height",StatsForm->Height);
-    IniFile->WriteInteger(section,"Width",StatsForm->Width);
-    IniFile->WriteInteger(section,"Page"
-    	,PageNum((TPageControl*)StatsForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",StatsForm->Floating);
+    ExportFormSettings(IniFile,section = "StatsForm",StatsForm);
 
-    section = "SBBSCTRL::ClientForm";
-    IniFile->WriteInteger(section,"Top",ClientForm->Top);
-    IniFile->WriteInteger(section,"Left",ClientForm->Left);
-    IniFile->WriteInteger(section,"Height",ClientForm->Height);
-    IniFile->WriteInteger(section,"Width",ClientForm->Width);
-    IniFile->WriteInteger(section,"Page"
-    	,PageNum((TPageControl*)ClientForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",ClientForm->Floating);
-    IniFile->WriteInteger(section,"DisplayInterval",ClientDisplayInterval);
-
+    ExportFormSettings(IniFile,section = "ClientForm",ClientForm);
+    ExportFont(IniFile,section,"ListFont",ClientForm->ListView->Font);
+    IniFile->WriteString(section,"ListColor",ColorToString(ClientForm->ListView->Color));
+    IniFile->WriteInteger(section,"DisplayInterval",ClientForm->Timer->Interval/1000);
     for(int i=0;i<ClientForm->ListView->Columns->Count;i++) {
         char str[128];
         sprintf(str,"Column%dWidth",i);
@@ -2479,52 +2647,22 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
             ,ClientForm->ListView->Columns->Items[i]->Width);
     }
 
-    section = "SBBSCTRL::TelnetForm";
-    IniFile->WriteInteger(section,"Top",TelnetForm->Top);
-    IniFile->WriteInteger(section,"Left",TelnetForm->Left);
-    IniFile->WriteInteger(section,"Height",TelnetForm->Height);
-    IniFile->WriteInteger(section,"Width",TelnetForm->Width);
-    IniFile->WriteInteger(section,"Page"
-	    ,PageNum((TPageControl*)TelnetForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",TelnetForm->Floating);
+    ExportFormSettings(IniFile,section = "TelnetForm",TelnetForm);
+    ExportFont(IniFile,section,"LogFont",TelnetForm->Log->Font);
 
-    section = "SBBSCTRL::EventForm";
-    IniFile->WriteInteger(section,"Top",EventsForm->Top);
-    IniFile->WriteInteger(section,"Left",EventsForm->Left);
-    IniFile->WriteInteger(section,"Height",EventsForm->Height);
-    IniFile->WriteInteger(section,"Width",EventsForm->Width);
-    IniFile->WriteInteger(section,"Page"
-	    ,PageNum((TPageControl*)EventsForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",EventsForm->Floating);
+    ExportFormSettings(IniFile,section = "EventsForm",EventsForm);
+    ExportFont(IniFile,section,"LogFont",EventsForm->Log->Font);
 
-    section = "SBBSCTRL::ServicesForm";
-    IniFile->WriteInteger(section,"Top",ServicesForm->Top);
-    IniFile->WriteInteger(section,"Left",ServicesForm->Left);
-    IniFile->WriteInteger(section,"Height",ServicesForm->Height);
-    IniFile->WriteInteger(section,"Width",ServicesForm->Width);
-    IniFile->WriteInteger(section,"Page"
-	    ,PageNum((TPageControl*)ServicesForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",ServicesForm->Floating);
+    ExportFormSettings(IniFile,section = "ServicesForm",ServicesForm);
+    ExportFont(IniFile,section,"LogFont",ServicesForm->Log->Font);
 
-    section = "SBBSCTRL::FtpForm";
-    IniFile->WriteInteger(section,"Top",FtpForm->Top);
-    IniFile->WriteInteger(section,"Left",FtpForm->Left);
-    IniFile->WriteInteger(section,"Height",FtpForm->Height);
-    IniFile->WriteInteger(section,"Width",FtpForm->Width);
-    IniFile->WriteInteger(section,"Page"
-    	,PageNum((TPageControl*)FtpForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",FtpForm->Floating);
+    ExportFormSettings(IniFile,section = "FtpForm",FtpForm);
+    ExportFont(IniFile,section,"LogFont",FtpForm->Log->Font);
 
-    section = "SBBSCTRL::MailForm";
-    IniFile->WriteInteger(section,"Top",MailForm->Top);
-    IniFile->WriteInteger(section,"Left",MailForm->Left);
-    IniFile->WriteInteger(section,"Height",MailForm->Height);
-    IniFile->WriteInteger(section,"Width",MailForm->Width);
-    IniFile->WriteInteger(section,"Page"
-    	,PageNum((TPageControl*)MailForm->HostDockSite));
-    IniFile->WriteBool(section,"Floating",MailForm->Floating);
+    ExportFormSettings(IniFile,section = "MailForm",MailForm);
+    ExportFont(IniFile,section,"LogFont",MailForm->Log->Font);
 
-    section = "SBBSCTRL::SpyTerminal";
+    section = "SpyTerminal";
 	IniFile->WriteInteger(section, "Width"
                             ,SpyTerminalWidth);
 	IniFile->WriteInteger(section, "Height"
@@ -2536,126 +2674,11 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
 	IniFile->WriteBool(section,    "KeyboardActive"
                             ,SpyTerminalKeyboardActive);
 
-#if 0
-    WriteColor(Registry,"TelnetLog",TelnetForm->Log->Color);
-    WriteFont("TelnetLog",TelnetForm->Log->Font);
-    WriteColor(Registry,"EventsLog",EventsForm->Log->Color);
-    WriteFont("EventsLog",EventsForm->Log->Font);
-    WriteColor(Registry,"ServicesLog",ServicesForm->Log->Color);
-    WriteFont("ServicesLog",ServicesForm->Log->Font);
-    WriteColor(Registry,"MailLog",MailForm->Log->Color);
-    WriteFont("MailLog",MailForm->Log->Font);
-    WriteColor(Registry,"FtpLog",FtpForm->Log->Color);
-    WriteFont("FtpLog",FtpForm->Log->Font);
-    WriteColor(Registry,"NodeList",NodeForm->ListBox->Color);
-    WriteFont("NodeList",NodeForm->ListBox->Font);
-    WriteColor(Registry,"ClientList",ClientForm->ListView->Color);
-    WriteFont("ClientList",ClientForm->ListView->Font);
-#endif
-
-	/***********************************************************************/
-    section = "Global";
-    IniFile->WriteString(section,"Hostname",global.host_name);
-    IniFile->WriteString(section,"CtrlDirectory",global.ctrl_dir);
-    IniFile->WriteString(section,"TempDirectory",global.temp_dir);
-    IniFile->WriteInteger(section,strJavaScriptMaxBytes,global.js.max_bytes);
-    IniFile->WriteInteger(section,strJavaScriptContextStack,global.js.cx_stack);
-    IniFile->WriteInteger(section,strJavaScriptBranchLimit,global.js.branch_limit);
-    IniFile->WriteInteger(section,strJavaScriptGcInterval,global.js.gc_interval);
-    IniFile->WriteInteger(section,strJavaScriptYieldInterval,global.js.yield_interval);
-
-    /***********************************************************************/
-	section = "BBS";
-    IniFile->WriteInteger(section,"AutoStart",SysAutoStart);
-    IniFile->WriteInteger(section,"TelnetInterface",bbs_startup.telnet_interface);
-    IniFile->WriteInteger(section,"RLoginInterface",bbs_startup.rlogin_interface);
-
-	IniFile->WriteInteger(section,"TelnetPort",bbs_startup.telnet_port);
-	IniFile->WriteInteger(section,"RLoginPort",bbs_startup.rlogin_port);
-    IniFile->WriteInteger(section,"FirstNode",bbs_startup.first_node);
-    IniFile->WriteInteger(section,"LastNode",bbs_startup.last_node);
-
-    IniFile->WriteInteger(section,"ExternalYield",bbs_startup.xtrn_polls_before_yield);
-    IniFile->WriteString(section,"AnswerSound",bbs_startup.answer_sound);
-    IniFile->WriteString(section,"HangupSound",bbs_startup.hangup_sound);
-
-    sprintf(str,"0x%x",bbs_startup.options);
-    IniFile->WriteString(section,"Options",str);
-
-    /***********************************************************************/
-    section = "Mail";
-    IniFile->WriteInteger(section,"AutoStart",MailAutoStart);
-    IniFile->WriteInteger(section,"LogFile",MailLogFile);
-    IniFile->WriteInteger(section,"MaxClients",mail_startup.max_clients);
-    IniFile->WriteInteger(section,"MaxInactivity",mail_startup.max_inactivity);
-    IniFile->WriteInteger(section,"Interface",mail_startup.interface_addr);
-    IniFile->WriteInteger(section,"MaxDeliveryAttempts"
-        ,mail_startup.max_delivery_attempts);
-    IniFile->WriteInteger(section,"RescanFrequency"
-        ,mail_startup.rescan_frequency);
-    IniFile->WriteInteger(section,"LinesPerYield"
-        ,mail_startup.lines_per_yield);
-    IniFile->WriteInteger(section,"MaxRecipients"
-        ,mail_startup.max_recipients);
-    IniFile->WriteInteger(section,"MaxMsgSize"
-        ,mail_startup.max_msg_size);
-
-    IniFile->WriteInteger(section,"SMTPPort",mail_startup.smtp_port);
-    IniFile->WriteInteger(section,"POP3Port",mail_startup.pop3_port);
-
-    IniFile->WriteString(section,"DefaultUser",mail_startup.default_user);
-	IniFile->WriteString(section,"DNSBlacklistHeader"
-    	,mail_startup.dnsbl_hdr);
-	IniFile->WriteString(section,"DNSBlacklistSubject"
-    	,mail_startup.dnsbl_tag);
-
-    IniFile->WriteString(section,"RelayServer",mail_startup.relay_server);
-    IniFile->WriteInteger(section,"RelayPort",mail_startup.relay_port);
-    IniFile->WriteString(section,"DNSServer",mail_startup.dns_server);
-
-    IniFile->WriteString(section,"POP3Sound",mail_startup.pop3_sound);
-    IniFile->WriteString(section,"InboundSound",mail_startup.inbound_sound);
-    IniFile->WriteString(section,"OutboundSound",mail_startup.outbound_sound);
-
-	sprintf(str,"0x%x",mail_startup.options);
-    IniFile->WriteString(section,"Options",str);
-
-    /***********************************************************************/
-	section = "FTP";
-    IniFile->WriteInteger(section,"AutoStart",FtpAutoStart);
-    IniFile->WriteInteger(section,"LogFile",FtpLogFile);
-	IniFile->WriteInteger(section,"Port",ftp_startup.port);
-    IniFile->WriteInteger(section,"MaxClients",ftp_startup.max_clients);
-    IniFile->WriteInteger(section,"MaxInactivity",ftp_startup.max_inactivity);
-    IniFile->WriteInteger(section,"QwkTimeout",ftp_startup.qwk_timeout);
-    IniFile->WriteInteger(section,"Interface",ftp_startup.interface_addr);
-    IniFile->WriteString(section,"AnswerSound",ftp_startup.answer_sound);
-    IniFile->WriteString(section,"HangupSound",ftp_startup.hangup_sound);
-    IniFile->WriteString(section,"HackAttemptSound",ftp_startup.hack_sound);
-
-    IniFile->WriteString(section,"IndexFileName",ftp_startup.index_file_name);
-    IniFile->WriteString(section,"HtmlIndexFile",ftp_startup.html_index_file);
-    IniFile->WriteString(section,"HtmlIndexScript",ftp_startup.html_index_script);
-
-    sprintf(str,"0x%x",ftp_startup.options);
-    IniFile->WriteString(section,"Options",str);
-
-    /***********************************************************************/
-    section = "Services";
-    IniFile->WriteInteger(section,"AutoStart",ServicesAutoStart);
-    IniFile->WriteInteger(section,"Interface",services_startup.interface_addr);
-
-    IniFile->WriteString(section,"AnswerSound",services_startup.answer_sound);
-    IniFile->WriteString(section,"HangupSound",services_startup.hangup_sound);
-
-    sprintf(str,"0x%x",services_startup.options);
-    IniFile->WriteString(section,"Options",str);
-
     IniFile->UpdateFile();
 
     delete IniFile;
 
-    Application->MessageBox(AnsiString("Successfully exported settings to "
+    Application->MessageBox(AnsiString("Successfully exported SBBSCTRL settings to "
     	+ SaveDialog->FileName).c_str(),"Successful Export",MB_OK);
 }
 //---------------------------------------------------------------------------
@@ -2866,15 +2889,6 @@ void __fastcall TMainForm::ChatToggleExecute(TObject *Sender)
 
 }
 //---------------------------------------------------------------------------
-
-void __fastcall TMainForm::ViewClientsExecute(TObject *Sender)
-{
-	ClientForm->Visible=!ClientForm->Visible;
-    ViewClients->Checked=ClientForm->Visible;
-}
-//---------------------------------------------------------------------------
-
-
 void __fastcall TMainForm::UserEditExecute(TObject *Sender)
 {
     char str[256];
@@ -3004,8 +3018,8 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->HostnameEdit->Text=global.host_name;
     PropertiesDlg->CtrlDirEdit->Text=global.ctrl_dir;
     PropertiesDlg->TempDirEdit->Text=global.temp_dir;
-    PropertiesDlg->NodeIntUpDown->Position=NodeDisplayInterval;
-    PropertiesDlg->ClientIntUpDown->Position=ClientDisplayInterval;
+    PropertiesDlg->NodeIntUpDown->Position=NodeForm->Timer->Interval/1000;
+    PropertiesDlg->ClientIntUpDown->Position=ClientForm->Timer->Interval/1000;
     PropertiesDlg->SemFreqUpDown->Position=global.sem_chk_freq;
     PropertiesDlg->TrayIconCheckBox->Checked=MinimizeToSysTray;
     PropertiesDlg->UndockableCheckBox->Checked=UndockableForms;
@@ -3027,8 +3041,8 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         SAFECOPY(global.ctrl_dir,PropertiesDlg->CtrlDirEdit->Text.c_str());
         SAFECOPY(global.temp_dir,PropertiesDlg->TempDirEdit->Text.c_str());
         Password=PropertiesDlg->PasswordEdit->Text;
-        NodeDisplayInterval=PropertiesDlg->NodeIntUpDown->Position;
-        ClientDisplayInterval=PropertiesDlg->ClientIntUpDown->Position;
+        NodeForm->Timer->Interval=PropertiesDlg->NodeIntUpDown->Position*1000;
+        ClientForm->Timer->Interval=PropertiesDlg->ClientIntUpDown->Position*1000;
         global.sem_chk_freq=PropertiesDlg->SemFreqUpDown->Position;
         MinimizeToSysTray=PropertiesDlg->TrayIconCheckBox->Checked;
         UndockableForms=PropertiesDlg->UndockableCheckBox->Checked;
@@ -3115,6 +3129,7 @@ void __fastcall TMainForm::PageControlUnDock(TObject *Sender,
 void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
 {
 	FtpRecycleExecute(Sender);
+	WebRecycleExecute(Sender);
 	MailRecycleExecute(Sender);
 	ServicesRecycleExecute(Sender);
 
@@ -3192,7 +3207,6 @@ void __fastcall TMainForm::MailRecycleExecute(TObject *Sender)
     }
 }
 //---------------------------------------------------------------------------
-
 void __fastcall TMainForm::FtpRecycleExecute(TObject *Sender)
 {
 	if(!RecycleService(ftp_svc,&ftp_svc_status)) {
@@ -3201,7 +3215,14 @@ void __fastcall TMainForm::FtpRecycleExecute(TObject *Sender)
     }
 }
 //---------------------------------------------------------------------------
-
+void __fastcall TMainForm::WebRecycleExecute(TObject *Sender)
+{
+	if(!RecycleService(web_svc,&web_svc_status)) {
+		web_startup.recycle_now=true;
+	    WebRecycle->Enabled=false;
+    }
+}
+//---------------------------------------------------------------------------
 void __fastcall TMainForm::ServicesRecycleExecute(TObject *Sender)
 {
 	if(!RecycleService(services_svc,&services_svc_status)) {
@@ -3275,7 +3296,7 @@ void __fastcall TMainForm::FileEditConfigFilesClick(TObject *Sender)
 	TOpenDialog* dlg=new TOpenDialog((TComponent*)Sender);
 
     dlg->Options << ofNoChangeDir;
-    dlg->Filter = "Configuration Files (*.cfg)|*.CFG";
+    dlg->Filter = "Configuration Files (*.cfg; *.ini; *.conf)|*.cfg;*.ini;*.conf";
     dlg->InitialDir=cfg.ctrl_dir;
     if(dlg->Execute()==true)
         EditFile(dlg->FileName.c_str());
@@ -3358,6 +3379,9 @@ void __fastcall TMainForm::LogTimerTick(TObject *Sender)
 	while(GetServerLogLine(ftp_log,NTSVC_NAME_FTP,line,sizeof(line)))
     	ftp_lputs(NULL,LOG_INFO,line);
 
+	while(GetServerLogLine(web_log,NTSVC_NAME_WEB,line,sizeof(line)))
+    	web_lputs(NULL,LOG_INFO,line);
+
 	while(GetServerLogLine(mail_log,NTSVC_NAME_MAIL,line,sizeof(line)))
     	mail_lputs(NULL,LOG_INFO,line);
 
@@ -3435,6 +3459,7 @@ void __fastcall TMainForm::ServiceStatusTimerTick(TObject *Sender)
 	if(queryServiceStatus==NULL || queryServiceConfig==NULL
     	|| (bbs_svc==NULL
         && ftp_svc==NULL
+		&& web_svc==NULL
         && mail_svc==NULL
         && services_svc==NULL)) {
     	ServiceStatusTimer->Enabled=false;
@@ -3462,6 +3487,17 @@ void __fastcall TMainForm::ServiceStatusTimerTick(TObject *Sender)
         ,FtpStop
         ,FtpRecycle
         ,FtpForm->ProgressBar
+        );
+    CheckServiceStatus(
+    	 web_svc
+    	,&web_svc_status
+		,web_svc_config
+		,web_svc_config_size
+        ,WebForm->Status
+        ,WebStart
+        ,WebStop
+        ,WebRecycle
+        ,WebForm->ProgressBar
         );
     CheckServiceStatus(
     	 mail_svc
