@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.25 2002/04/12 09:23:11 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.26 2002/04/12 10:15:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,8 +56,9 @@
 #include <errno.h>	/* errno */
 #include <string.h>	/* strrchr */
 
-#include "filewrap.h"
+#include "genwrap.h"	/* stricmp */
 #include "dirwrap.h"	/* fexist */
+#include "filewrap.h"
 #include "smblib.h"
 #include "crc32.h"
 #include "gen_defs.h"	/* MAX_PATH */
