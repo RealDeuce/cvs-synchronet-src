@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.4 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.5 2001/11/02 15:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,8 +61,10 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 	if(smb_open(&smb)!=0) 
 		return(0); 
 	while(!smb_feof(smb.sid_fp)) {
-		if(!smb_fread(&idx,sizeof(idxrec_t),smb.sid_fp))
+		if(smb_fread(&idx,sizeof(idx),smb.sid_fp) != siuzeof(idx))
 			break;
+		if(idx.number==0)	/* invalid message number, ignore */
+			continue;
 		if(idx.attr&MSG_DELETE)
 			continue;
 		if((!sent && idx.to==usernumber)
@@ -233,8 +235,10 @@ mail_t* DLLCALL loadmail(smb_t* smb, ulong* msgs, uint usernumber
 
 	smb_rewind(smb->sid_fp);
 	while(!smb_feof(smb->sid_fp)) {
-		if(!smb_fread(&idx,sizeof(idxrec_t),smb->sid_fp))
+		if(smb_fread(&idx,sizeof(idx),smb->sid_fp) != sizeof(idx))
 			break;
+		if(idx.number==0)	/* invalid message number, ignore */
+			continue;
 		if((which==MAIL_SENT && idx.from!=usernumber)
 			|| (which==MAIL_YOUR && idx.to!=usernumber)
 			|| (which==MAIL_ANY && idx.from!=usernumber && idx.to!=usernumber))

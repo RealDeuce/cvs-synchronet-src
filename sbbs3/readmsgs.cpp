@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.4 2001/06/23 00:49:05 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.5 2001/11/02 15:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -160,8 +160,11 @@ post_t HUGE16 * sbbs_t::loadposts(long *posts, uint subnum, ulong ptr, long mode
 		return(NULL); }
 	while(!feof(smb.sid_fp)) {
 		skip=0;
-		if(!fread(&idx,sizeof(idxrec_t),1,smb.sid_fp))
+		if(smb_fread(&idx,sizeof(idx),smb.sid_fp) != sizeof(idx))
 			break;
+
+		if(idx.number==0)	/* invalid message number, ignore */
+			continue;
 
 		if(idx.number<=ptr)
 			continue;
