@@ -2,7 +2,7 @@
 
 /* DOS's kbhit and getch functions for Unix - Casey Martin 2000 */
 
-/* $Id: conwrap.c,v 1.7 2002/05/09 00:31:12 rswindell Exp $ */
+/* $Id: conwrap.c,v 1.8 2002/05/09 00:32:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,6 @@ int kbhit(void)
 {
 	fd_set inp;
 	struct timeval timeout = {0, 0};
-	struct stat st;
 
 	if(!istty) {
 		istty = isatty(STDIN_FILENO);
