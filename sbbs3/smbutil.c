@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.19 2001/11/10 04:30:56 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.20 2001/12/13 17:15:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -558,7 +558,7 @@ char *zonestr(short zone)
 	static char str[32];
 
 	switch((ushort)zone) {
-		case 0: 	return("UT");
+		case 0: 	return("UTC");
 		case AST:	return("AST");
 		case EST:	return("EST");
 		case CST:	return("CST");
@@ -1428,7 +1428,7 @@ int main(int argc, char **argv)
 		,smb_lib_ver()
 		);
 
-	putenv("TZ=UCT0");
+	putenv("TZ=UTC0");
 	tzset();
 
 	if((t=checktime())!=0) {

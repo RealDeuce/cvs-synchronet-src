@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.14 2001/11/27 18:36:08 rswindell Exp $ */
+/* $Id: startup.h,v 1.15 2001/12/13 17:15:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,7 +103,7 @@ typedef struct {
 #define BBS_OPT_NO_HOST_LOOKUP		(1<<11)
 #define BBS_OPT_GET_IDENT			(1<<28)	/* Get Identity (RFC 1413)			*/
 #define BBS_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
-#define BBS_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UCT/GMT				*/
+#define BBS_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT				*/
 #define BBS_OPT_MUTE				(1<<31)	/* Mute sounds						*/
 
 #ifdef __cplusplus

@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.17 2001/12/05 16:03:11 rswindell Exp $ */
+/* $Id: services.c,v 1.18 2001/12/13 17:15:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1030,7 +1030,7 @@ void DLLCALL services_thread(void* arg)
 	srand(time(NULL));
 
 	if(!(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-		if(PUTENV("TZ=UCT0"))
+		if(PUTENV("TZ=UTC0"))
 			lprintf("!putenv() FAILED");
 		tzset();
 
