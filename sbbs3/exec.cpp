@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.27 2002/06/19 07:26:12 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.28 2002/08/30 19:45:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -627,9 +627,9 @@ long sbbs_t::js_execfile(char *cmd)
 			}
 		}
 		JS_DefineProperty(js_cx, js_scope, "argv", OBJECT_TO_JSVAL(argv)
-			,NULL,NULL,JSPROP_READONLY);
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 		JS_DefineProperty(js_cx, js_scope, "argc", INT_TO_JSVAL(argc)
-			,NULL,NULL,JSPROP_READONLY);
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 		js_script=JS_CompileFile(js_cx, js_scope, path);
 	}
