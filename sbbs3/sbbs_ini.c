@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.59 2003/10/15 09:13:30 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.60 2003/10/16 09:56:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,7 +153,7 @@ static ini_bitdesc_t log_mask_bits[] = {
 	{ -1							,NULL					}
 };
 
-#define DEFAULT_LOG_MASK		0x3f	/* LOG_EMERG|LOG_ALERT|LOG_CRIT|LOG_ERR|LOG_WARNING|LOG_NOTICE */
+#define DEFAULT_LOG_MASK		0x1f	/* EMERG|ALERT|CRIT|ERR|WARNING */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* host_name)
 {
