@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.38 2001/07/09 02:34:06 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.39 2001/07/19 00:32:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -461,7 +461,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		NULL,  			// process security attributes
 		NULL,   		// thread security attributes
 		native && !(mode&EX_OFFLINE),	 			// handle inheritance flag
-		CREATE_NEW_CONSOLE|CREATE_SEPARATE_WOW_VDM, // creation flags
+		CREATE_NEW_CONSOLE/*|CREATE_SEPARATE_WOW_VDM*/, // creation flags
         NULL,  			// pointer to new environment block
 		p_startup_dir,	// pointer to current directory name
 		&startup_info,  // pointer to STARTUPINFO
