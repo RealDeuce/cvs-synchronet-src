@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.21 2004/09/17 08:13:21 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.20 2004/09/08 03:44:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ if((p=strchr(str,'.'))!=NULL)
 return(addr);
 }
 
-uint getsub(void)
+uint getsub()
 {
 	static int grp_dflt,sub_dflt,grp_bar,sub_bar;
 	char str[81];

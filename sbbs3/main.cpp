@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.332 2004/09/17 07:53:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.331 2004/08/30 07:38:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3726,10 +3726,6 @@ void DLLCALL bbs_thread(void* arg)
         return;
     }
 
-#ifdef __BORLANDC__
-	#pragma warn -8008	/* Disable "Condition always false" warning */
-	#pragma warn -8066	/* Disable "Unreachable code" warning */
-#endif
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
 		lprintf(LOG_ERR,"!COMPILER ERROR: sizeof(node_t)=%d instead of %d"
 			,sizeof(node_t),SIZEOF_NODE_T);
