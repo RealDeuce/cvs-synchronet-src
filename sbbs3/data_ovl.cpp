@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.11 2004/12/17 07:08:53 deuce Exp $ */
+/* $Id: data_ovl.cpp,v 1.10 2004/03/29 22:59:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,9 @@ extern "C" BOOL DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 	long	length;
 	FILE	*stream;
 
+	if(!usernumber)
+		return(FALSE);
+
 	/* Initialize to configured defaults */
 	for(i=0;i<cfg->total_subs;i++) {
 		subscan[i].ptr=subscan[i].sav_ptr=0;
@@ -70,9 +73,6 @@ extern "C" BOOL DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 			subscan[i].cfg&=~SUB_CFG_SSCAN;
 		subscan[i].sav_cfg=subscan[i].cfg; 
 	}
-
-	if(!usernumber)
-		return(FALSE);
 
 	sprintf(str,"%suser/ptrs/%4.4u.ixb", cfg->data_dir,usernumber);
 	if((stream=fnopen(&file,str,O_RDONLY))==NULL)
