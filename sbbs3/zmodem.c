@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.1 2003/09/04 09:54:17 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.2 2003/09/17 03:09:08 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1836,3 +1836,15 @@ zmodem_send_files(char** fname, int total_files)
 
 
 #endif
+
+char* zmodem_ver(char *buf)
+{
+	sscanf("$Revision: 1.2 $", "%*s %s", buf);
+
+	return(buf);
+}
+
+const char* zmodem_source(void)
+{
+	return(__FILE__);
+}

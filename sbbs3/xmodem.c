@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.1 2003/09/04 09:54:17 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.2 2003/09/17 03:09:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -261,4 +261,16 @@ int xmodem_get_ack(xmodem_t* xm, int tries)
 	}
 
 	return(0);
+}
+
+char* xmodem_ver(char *buf)
+{
+	sscanf("$Revision: 1.2 $", "%*s %s", buf);
+
+	return(buf);
+}
+
+const char* xmodem_source(void)
+{
+	return(__FILE__);
 }

@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.1 2003/09/04 09:54:17 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.2 2003/09/17 03:09:08 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -244,10 +244,12 @@ typedef struct {
 
 } zmodem_t;
 
-int		zmodem_get_zrinit(zmodem_t* zm);
-void	zmodem_parse_zrinit(zmodem_t* zm);
-int		zmodem_send_zfin(zmodem_t* zm);
-int		zmodem_send_file(zmodem_t* zm, char* name, FILE* fp);
+char*		zmodem_ver(char *buf);
+const char* zmodem_source(void);
+int			zmodem_get_zrinit(zmodem_t* zm);
+void		zmodem_parse_zrinit(zmodem_t* zm);
+int			zmodem_send_zfin(zmodem_t* zm);
+int			zmodem_send_file(zmodem_t* zm, char* name, FILE* fp);
 
 #endif
 
