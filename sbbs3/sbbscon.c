@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.125 2003/07/03 01:47:10 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.126 2003/07/11 05:56:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1388,7 +1388,7 @@ int main(int argc, char** argv)
 	sprintf(str,"Loading configuration files from %s", scfg.ctrl_dir);
 	bbs_lputs(str);
 	if(!load_cfg(&scfg, NULL /* text.dat */, TRUE /* prep */, error)) {
-		fprintf(stderr,"\n!ERROR Loading Configuration Files: %s", error);
+		fprintf(stderr,"\n!ERROR Loading Configuration Files: %s\n", error);
         return(-1);
     }
 
