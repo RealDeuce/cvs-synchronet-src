@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.275 2003/05/11 19:34:52 deuce Exp $ */
+/* $Id: main.cpp,v 1.276 2003/05/11 19:38:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3940,6 +3940,14 @@ void DLLCALL bbs_thread(void* arg)
 		} else {
 #ifdef __unix__
 			for(i=first_node;i<=last_node;i++)  {
+				if(uspy_socket[i-1]!=INVALID_SOCKET
+				&& FD_ISSET(uspy_socket[i-1],&socket_set)) {
+					if(!socket_check(uspy_socket[i-1],NULL,NULL,0)) {
+						lprintf("Spy socket for node %d disconnected",i);
+						close_socket(uspy_socket[i-1]);
+						uspy_socket[i-1]=INVALID_SOCKET;
+					}
+				}
 				if(uspy_listen_socket[i-1]!=INVALID_SOCKET
 				&& FD_ISSET(uspy_listen_socket[i-1],&socket_set)) {
 					BOOL already_connected=(uspy_socket[i-1]!=INVALID_SOCKET);
@@ -3962,14 +3970,6 @@ void DLLCALL bbs_thread(void* arg)
 						uspy_socket[i-1]=new_socket;
 						sprintf(str,"Spy connection established to node %d\r\n",i);
 						send(uspy_socket[i-1],str,strlen(str),0);
-					}
-				}
-				if(uspy_socket[i-1]!=INVALID_SOCKET
-				&& FD_ISSET(uspy_socket[i-1],&socket_set)) {
-					if(!socket_check(uspy_socket[i-1],NULL,NULL,0)) {
-						lprintf("Spy socket for node %d disconnected",i);
-						close_socket(uspy_socket[i-1]);
-						uspy_socket[i-1]=INVALID_SOCKET;
 					}
 				}
 			}
