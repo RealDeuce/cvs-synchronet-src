@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.28 2002/07/27 06:42:29 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.29 2002/08/08 07:36:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,9 +142,9 @@ void prep_cfg(scfg_t* cfg)
 	prep_dir(cfg->ctrl_dir, cfg->exec_dir);
 	prep_dir(cfg->ctrl_dir, cfg->text_dir);
 
-	prep_dir(cfg->netmail_dir,cfg->data_dir);
-	prep_dir(cfg->echomail_dir,cfg->data_dir);
-	prep_dir(cfg->fidofile_dir,cfg->data_dir);
+	prep_dir(cfg->ctrl_dir, cfg->netmail_dir);
+	prep_dir(cfg->ctrl_dir, cfg->echomail_dir);
+	prep_dir(cfg->ctrl_dir, cfg->fidofile_dir);
 
 	prep_path(cfg->netmail_sem);
 	prep_path(cfg->echomail_sem);
