@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.2 2000/10/23 19:44:56 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.3 2000/10/24 08:00:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,8 +58,10 @@
 #include <sys/ioctl.h>	/* FIONBIO */
 #include <unistd.h>		/* close */
 
+/* WinSockisms */
 #define HOSTENT			struct hostent
 #define SOCKADDR_IN		struct sockaddr_in
+#define LINGER			struct linger
 #define SOCKET			int
 #define SOCKET_ERROR	-1
 #define INVALID_SOCKET  (SOCKET)(~0)
