@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.23 2002/04/13 08:40:33 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.24 2002/04/13 09:29:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 	FILE 	*instream;
 
 	if(cfg->size!=sizeof(scfg_t)) {
-		sprintf(error,"cfg->size (%d) != sizeof(scfg_t) (%d)"
+		sprintf(error,"cfg->size (%ld) != sizeof(scfg_t) (%d)"
 			,cfg->size,sizeof(scfg_t));
 		return(FALSE);
 	}
@@ -105,7 +105,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 		fclose(instream);
 
 		if(i<TOTAL_TEXT) {
-			sprintf(error,"line %u in %s: Less than TOTAL_TEXT (%u) strings defined in %s."
+			sprintf(error,"line %lu in %s: Less than TOTAL_TEXT (%u) strings defined in %s."
 				,line,fname
 				,TOTAL_TEXT,fname);
 			return(FALSE); 
