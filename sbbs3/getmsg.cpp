@@ -2,13 +2,13 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.25 2004/09/02 01:34:31 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.26 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -156,17 +156,17 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	if(msg->to_ext)
 		bprintf(text[MsgToExt],msg->to_ext);
 	if(msg->to_net.addr)
-		bprintf(text[MsgToNet],net_addr(&msg->to_net));
+		bprintf(text[MsgToNet],smb_netaddr(&msg->to_net));
 	if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
 		bprintf(text[MsgFrom],msg->from);
 		if(msg->from_ext)
 			bprintf(text[MsgFromExt],msg->from_ext);
 		if(msg->from_net.addr && !strchr(msg->from,'@'))
-			bprintf(text[MsgFromNet],net_addr(&msg->from_net)); 
+			bprintf(text[MsgFromNet],smb_netaddr(&msg->from_net)); 
 	}
 	bprintf(text[MsgDate]
 		,timestr((time_t *)&msg->hdr.when_written.time)
-		,zonestr(msg->hdr.when_written.zone));
+		,smb_zonestr(msg->hdr.when_written.zone,NULL));
 
 	CRLF;
 
@@ -311,15 +311,15 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 		if(msg->to_ext)
 			fprintf(out," #%s",msg->to_ext);
 		if(msg->to_net.addr)
-			fprintf(out," (%s)",net_addr(&msg->to_net));
+			fprintf(out," (%s)",smb_netaddr(&msg->to_net));
 		fprintf(out,"\r\nFrom : %s",msg->from);
 		if(msg->from_ext && !(msg->hdr.attr&MSG_ANONYMOUS))
 			fprintf(out," #%s",msg->from_ext);
 		if(msg->from_net.addr)
-			fprintf(out," (%s)",net_addr(&msg->from_net));
+			fprintf(out," (%s)",smb_netaddr(&msg->from_net));
 		fprintf(out,"\r\nDate : %.24s %s"
 			,timestr((time_t *)&msg->hdr.when_written.time)
-			,zonestr(msg->hdr.when_written.zone));
+			,smb_zonestr(msg->hdr.when_written.zone,NULL));
 		fprintf(out,"\r\n\r\n"); }
 
 	buf=smb_getmsgtxt(&smb,msg,tails);
