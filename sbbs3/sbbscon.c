@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.103 2002/12/12 02:32:31 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.104 2002/12/19 21:58:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1386,12 +1386,11 @@ int main(int argc, char** argv)
 	else 
 	{
 		bbs_lputs("Waiting for child threads to bind ports...");
-		while(!bbs_stopped && !ftp_stopped && !mail_stopped && !services_stopped
-			&& ((run_bbs && !bbs_running) 
-				|| (run_ftp && !ftp_running) 
-				|| (run_web && !web_running) 
-				|| (run_mail && !mail_running) 
-				|| (run_services && !services_running)))
+		while((run_bbs && !(bbs_running || bbs_stopped)) 
+				|| (run_ftp && !(ftp_running || ftp_stopped)) 
+				|| (run_web && !(web_running || web_stopped)) 
+				|| (run_mail && !(mail_running || mail_stopped)) 
+				|| (run_services && !(services_running || services_stopped)))
 			mswait(1);
 
 		if(!do_setuid())
