@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.49 2003/03/02 07:52:34 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.50 2003/04/23 08:45:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,6 +346,7 @@ public:		// User declarations
     bool			MailLogFile;
     bool			FtpLogFile;
     AnsiString		CtrlDirectory;
+    AnsiString		TempDirectory;
     AnsiString      Hostname;
     AnsiString      LoginCommand;
     AnsiString      ConfigCommand;
