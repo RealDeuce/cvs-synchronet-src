@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.26 2003/03/21 20:52:35 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.27 2003/03/22 00:14:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,7 +294,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 			/* Add as property (associative array element) */
 			if(!JS_DefineProperty(cx, alldirs, cfg->dir[d]->code, val
-				,NULL,NULL,JSPROP_READONLY))
+				,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
 
 #ifdef _DEBUG
@@ -314,6 +314,11 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	val=OBJECT_TO_JSVAL(alldirs);
 	if(!JS_SetProperty(cx, areaobj, "dir", &val))
 		return(NULL);
+
+#ifdef _DEBUG
+	js_DescribeObject(cx,alldirs,"Associative array of all directories (use internal code as index)");
+	JS_DefineProperty(cx,alldirs,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
+#endif
 
 	return(areaobj);
 }

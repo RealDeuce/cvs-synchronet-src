@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.6 2003/03/21 20:52:35 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.7 2003/03/22 00:14:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -245,7 +245,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 			/* Add as property (associative array element) */
 			if(!JS_DefineProperty(cx, allprog, cfg->xtrn[d]->code, val
-				,NULL,NULL,JSPROP_READONLY))
+				,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
 
 #ifdef _DEBUG
@@ -265,6 +265,11 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 	val=OBJECT_TO_JSVAL(allprog);
 	if(!JS_SetProperty(cx, areaobj, "prog", &val))
 		return(NULL);
+
+#ifdef _DEBUG
+	js_DescribeObject(cx,allprog,"Associative array of all external programs (use internal code as index)");
+	JS_DefineProperty(cx,allprog,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
+#endif
 
 	/* Create event property */
 	if((eventobj=JS_NewObject(cx,NULL,NULL,areaobj))==NULL)

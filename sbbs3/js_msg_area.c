@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.28 2003/03/21 20:52:35 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.29 2003/03/22 00:14:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -317,9 +317,8 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			/* Add as property (associative array element) */
 			if(!JS_DefineProperty(cx, allsubs, cfg->sub[d]->code, val
-				,NULL,NULL,JSPROP_READONLY))
+				,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
-
 
 #ifdef _DEBUG
 			js_DescribeObject(cx,subobj,"Message Sub-boards");
@@ -338,6 +337,11 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 	val=OBJECT_TO_JSVAL(allsubs);
 	if(!JS_SetProperty(cx, areaobj, "sub", &val))
 		return(NULL);
+
+#ifdef _DEBUG
+	js_DescribeObject(cx,allsubs,"Associative array of all sub-boards (use internal code as index)");
+	JS_DefineProperty(cx,allsubs,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
+#endif
 
 	return(areaobj);
 }
