@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.39 2002/07/16 22:32:49 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.40 2002/08/08 05:41:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,6 +284,7 @@ js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 	if(read(file,buf,len)!=len) {
+		free(buf);
 		close(file);
 		return(JS_TRUE);
 	}
