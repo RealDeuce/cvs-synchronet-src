@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.48 2003/09/27 10:59:24 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.49 2003/11/02 18:20:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -392,7 +392,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.48 $", "%*s %s", revision);
+	sscanf("$Revision: 1.49 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -543,11 +543,14 @@ int main(int argc, char** argv)  {
 						"\nCTRL-D Down node toggle"
 						"\nCTRL-I Interrupt node"
 						"\nToDo: Add more help. (Explain what you're looking at)";
-						
+
 		drawstats(&cfg, main_dflt+1, &node, &main_dflt, &main_bar);
-		
+
 		j=uifc.list(WIN_L2R|WIN_ESC|WIN_ACT|WIN_DYN,0,5,70,&main_dflt,&main_bar
 			,title,mopt);
+
+		if(j == -2)
+			continue;
 
 		if(j==-7) {	/* CTRL-E */
 			sprintf(str,"%s/error.log",cfg.data_dir);
