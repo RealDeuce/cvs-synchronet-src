@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.285 2005/01/07 03:50:49 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.284 2004/12/17 01:51:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3016,12 +3016,6 @@ static void ctrl_thread(void* arg)
 
 				p=cmd+4;
 				while(*p && *p<=' ') p++;
-
-				if(*p=='-') {	/* -Letc */
-					while(*p && *p>' ') p++;
-					while(*p && *p<=' ') p++;
-				}
-
 				SAFEPRINTF2(path,"%s%s",local_dir, *p ? p : "*");
 				lprintf(LOG_INFO,"%04d %s listing: %s", sock, user.alias, path);
 				sockprintf(sock, "150 Directory of %s%s", local_dir, p);
@@ -4457,7 +4451,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.285 $", "%*s %s", revision);
+	sscanf("$Revision: 1.284 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
