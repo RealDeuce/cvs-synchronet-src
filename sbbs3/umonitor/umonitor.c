@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.58 2004/08/10 03:49:03 deuce Exp $ */
+/* $Id: umonitor.c,v 1.57 2004/08/09 06:27:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,9 @@ int dospy(int nodenum, bbs_startup_t *bbs_startup)  {
     	snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup->temp_dir, nodenum);
 	else
 		snprintf(str,sizeof(str),"%slocalspy%d.sock", bbs_startup->ctrl_dir, nodenum);
+	endwin();
 	i=spyon(str);
+	refresh();
 	switch(i) {
 		case SPY_NOSOCKET:
 			uifc.msg("Could not create socket");
@@ -523,12 +525,20 @@ int do_cmd(char *cmd)
 	struct text_info ti;
 	char *p;
 
+#if 0
+	endwin();
+#else
 	gettextinfo(&ti);
 	p=malloc(ti.screenheight*ti.screenwidth*2);
 	gettext(1,1,ti.screenwidth,ti.screenheight,p);
+#endif
 	i=system(cmd);
+#if 0
+	refresh();
+#else
 	puttext(1,1,ti.screenwidth,ti.screenheight,p);
 	free(p);
+#endif
 	return(i);
 }
 
@@ -793,7 +803,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.58 $", "%*s %s", revision);
+	sscanf("$Revision: 1.57 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
