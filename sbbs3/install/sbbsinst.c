@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.92 2005/02/10 03:33:46 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.91 2004/11/20 18:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,7 +181,7 @@ int filereadline(int sock, char *buf, size_t length, char *error)
 void bail(int code)
 {
     if(code) {
-        cputs("\nHit a key...");
+        puts("\nHit a key...");
         getch(); 
 	}
     uifc.bail();
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.92 $", "%*s %s", revision);
+	sscanf("$Revision: 1.91 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
