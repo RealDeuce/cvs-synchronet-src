@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.9 2001/04/30 00:46:28 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.10 2001/05/21 23:13:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1291,8 +1291,8 @@ void free_xtrn_cfg(scfg_t* cfg)
 #ifndef SCFG
 			FREE_AND_NULL(cfg->xtrn[i]->path);
 #endif
-			FREE_ALLOC(cfg->xtrn[i]->ar);
-			FREE_ALLOC(cfg->xtrn[i]->run_ar);
+			FREE_AR(cfg->xtrn[i]->ar);
+			FREE_AR(cfg->xtrn[i]->run_ar);
 			FREE_ALLOC(cfg->xtrn[i]->name);
 			FREE_ALLOC(cfg->xtrn[i]->cmd);
 			FREE_ALLOC(cfg->xtrn[i]->clean);
