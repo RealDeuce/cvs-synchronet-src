@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.250 2005/01/28 21:26:10 deuce Exp $ */
+/* $Id: websrvr.c,v 1.251 2005/01/29 02:00:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,6 +155,7 @@ struct log_data {
 	char	*request;
 	char	*referrer;
 	char	*agent;
+	char	*vhost;
 	int		status;
 	unsigned int	size;
 	struct tm completed;
@@ -1753,6 +1754,8 @@ static BOOL get_req(http_session_t * session, char *request_line)
 				get_request_headers(session);
 			if(!get_fullpath(session))
 				return(FALSE);
+			if(session->req.ld!=NULL)
+				session->req.ld->vhost=strdup(session->req.vhost);
 			session->req.dynamic=is_dynamic_req(session);
 			if(session->req.query_str[0])  {
 				switch(session->req.dynamic) {
@@ -2855,7 +2858,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.250 $", "%*s %s", revision);
+	sscanf("$Revision: 1.251 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2910,6 +2913,11 @@ void http_logging_thread(void* arg)
 			continue;
 		}
 		SAFECOPY(newfilename,base);
+		if(startup->options&WEB_OPT_VIRTUAL_HOSTS && ld->vhost!=NULL) {
+			strcat(newfilename,ld->vhost);
+			if(ld->vhost[0])
+				strcat(newfilename,"-");
+		}
 		strftime(strchr(newfilename,0),15,"%Y-%m-%d.log",&ld->completed);
 		if(strcmp(newfilename,filename)) {
 			if(logfile!=NULL)
