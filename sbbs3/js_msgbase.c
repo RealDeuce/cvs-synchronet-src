@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.40 2002/10/30 11:24:04 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.41 2002/11/01 02:28:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,6 +181,14 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		smb_hfield(msg, SENDEREXT, (ushort)strlen(cp), cp);
 		if(p->smb.status.attr&SMB_EMAIL)
 			msg->idx.from=atoi(cp);
+	}
+
+	if(JS_GetProperty(cx, hdr, "from_org", &val) && val!=JSVAL_VOID) {
+		if((js_str=JS_ValueToString(cx,val))==NULL)
+			return(FALSE);
+		if((cp=JS_GetStringBytes(js_str))==NULL)
+			return(FALSE);
+		smb_hfield(msg, SENDERORG, (ushort)strlen(cp), cp);
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_net_type", &val) && val!=JSVAL_VOID) {
@@ -421,6 +429,8 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	JS_DefineProperty(cx, hdrobj, "to_ext",STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.to_ext))
 		,NULL,NULL,JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, hdrobj, "from_ext",STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.from_ext))
+		,NULL,NULL,JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, hdrobj, "from_org",STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.from_org))
 		,NULL,NULL,JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, hdrobj, "replyto",STRING_TO_JSVAL(JS_NewStringCopyZ(cx,msg.replyto))
 		,NULL,NULL,JSPROP_ENUMERATE);
