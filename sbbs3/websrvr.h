@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.32 2005/01/22 19:48:33 deuce Exp $ */
+/* $Id: websrvr.h,v 1.33 2005/02/08 01:27:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ typedef struct {
     char    ctrl_dir[128];
     char	root_dir[128];			/* HTML root directory */
     char	error_dir[128];			/* relative to root_dir */
-    char	cgi_temp_dir[128];
+    char	temp_dir[128];
     char**	index_file_name;		/* Index filenames */
 	char	logfile_base[128];		/* Logfile base name (date is appended) */
 	char	answer_sound[128];

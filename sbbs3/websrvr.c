@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.253 2005/02/02 22:58:33 deuce Exp $ */
+/* $Id: websrvr.c,v 1.254 2005/02/08 01:27:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1566,7 +1566,7 @@ static int is_dynamic_req(http_session_t* session)
 			return(IS_STATIC);
 		}
 
-		sprintf(path,"%s/SBBS_SSJS.%d.html",startup->cgi_temp_dir,session->socket);
+		sprintf(path,"%s/SBBS_SSJS.%d.html",startup->temp_dir,session->socket);
 		if((session->req.fp=fopen(path,"wb"))==NULL) {
 			lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
 			send_error(session,error_500);
@@ -2644,7 +2644,7 @@ static void respond(http_session_t * session)
 			return;
 		}
 		sprintf(session->req.physical_path
-			,"%s/SBBS_SSJS.%d.html",startup->cgi_temp_dir,session->socket);
+			,"%s/SBBS_SSJS.%d.html",startup->temp_dir,session->socket);
 	}
 
 	session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
@@ -2864,7 +2864,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.253 $", "%*s %s", revision);
+	sscanf("$Revision: 1.254 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3086,6 +3086,12 @@ void DLLCALL web_server(void* arg)
 
 		lprintf(LOG_DEBUG,"Root HTML directory: %s", root_dir);
 		lprintf(LOG_DEBUG,"Error HTML directory: %s", error_dir);
+		lprintf(LOG_DEBUG,"Temporary file directory: %s", startup->temp_dir);
+		if(!isdir(startup->temp_dir)) {
+			lprintf(LOG_ERR,"!Invalid temp directory: %s", startup->temp_dir);
+			cleanup(1);
+			return;
+		}
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
