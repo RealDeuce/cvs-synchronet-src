@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.2 2004/05/11 17:29:44 rswindell Exp $ */
+/* $Id: str_list.h,v 1.3 2004/05/11 19:28:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,21 +44,23 @@
 extern "C" {
 #endif
 
+typedef char** str_list_t;
+
 /* Returns an allocated and terminated string list */
-char**	strListAlloc(void);
+str_list_t	strListAlloc(void);
 
 /* Frees the strings in the list (and the list itself) */
-void	strListFree(char*** list);
+void		strListFree(str_list_t* list);
 
 /* Pass a pointer to a string list, the string to add */
 /* Returns the updated list or NULL on error */
-char**	strListAdd(char*** list, char* str);
+str_list_t	strListAdd(str_list_t* list, char* str);
 
 /* Adds a string into the list at a specific index */
-char**	strListAddAt(char*** list, char* str, size_t index);
+str_list_t	strListAddAt(str_list_t* list, char* str, size_t index);
 
 /* Count the number of strings in the list and returns the count */
-size_t	strListCount(char** list);
+size_t		strListCount(str_list_t list);
 
 #if defined(__cplusplus)
 }
