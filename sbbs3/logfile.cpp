@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.12 2002/01/15 21:39:36 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.13 2002/01/16 11:54:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,7 +91,7 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* reason, char* hos
 		,timestr(cfg,&now,tstr)
 		,host
 		,ip_addr
-		,to
+		,to_user
 		);
 	write(file,hdr,strlen(hdr));
 	write(file,reason,strlen(reason));
