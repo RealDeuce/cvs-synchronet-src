@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.16 2004/06/16 01:50:03 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.19 2004/07/02 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@
 #include "str_list.h"	/* strList_t */
 
 #define INI_MAX_VALUE_LEN	1024		/* Maximum value length, includes '\0' */
+#define ROOT_SECTION		NULL
 
 typedef struct {
 	ulong		bit;
@@ -119,6 +120,11 @@ char*		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bit
 					,ini_style_t*);
 char*		iniSetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, str_list_t value, ini_style_t*);
+
+BOOL		iniKeyExists(str_list_t*, const char* section, const char* key);
+BOOL		iniValueExists(str_list_t*, const char* section, const char* key);
+BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
+BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 
 #if defined(__cplusplus)
 }

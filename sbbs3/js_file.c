@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.68 2004/06/16 01:49:23 rswindell Exp $ */
+/* $Id: js_file.c,v 1.70 2004/06/16 09:54:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -445,7 +445,7 @@ static jsval get_value(JSContext *cx, char* value)
 static JSBool
 js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*	section=NULL;
+	char*	section=ROOT_SECTION;
 	char*	key;
 	char**	list;
 	char	buf[INI_MAX_VALUE_LEN];
@@ -511,7 +511,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 static JSBool
 js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*	section=NULL;
+	char*	section=ROOT_SECTION;
 	char*	key;
 	char*	result=NULL;
 	int32	i;
@@ -607,7 +607,7 @@ js_iniGetSections(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 static JSBool
 js_iniGetKeys(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		section=NULL;
+	char*		section=ROOT_SECTION;
 	char**		list;
     jsint       i;
     jsval       val;
@@ -641,7 +641,7 @@ js_iniGetKeys(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 static JSBool
 js_iniGetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		section=NULL;
+	char*		section=ROOT_SECTION;
     jsint       i;
     JSObject*	object;
 	private_t*	p;
@@ -1567,36 +1567,41 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"optionally, only those section names that begin with the specified <i>prefix</i>")
 	,311
 	},
-	{"iniGetKeys",		js_iniGetKeys,		0,	JSTYPE_ARRAY,	JSDOCSTR("section")
+	{"iniGetKeys",		js_iniGetKeys,		1,	JSTYPE_ARRAY,	JSDOCSTR("[section]")
 	,JSDOCSTR("parse all key names from the specified <i>section</i> in a <tt>.ini</tt> file "
-		"and return the key names as an <i>array of strings</i>")
+		"and return the key names as an <i>array of strings</i>. "
+		"if <i>section</i> is undefined, returns key names from the <i>root</i> section")
 	,311
 	},
 	{"iniGetValue",		js_iniGetValue,		3,	JSTYPE_STRING,	JSDOCSTR("section, key [,default]")
 	,JSDOCSTR("parse a key from a <tt>.ini</tt> file and return its value (format = '<tt>key = value</tt>'). "
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
+		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
 		"will return a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
 		"determined by the type of <i>default</i> value specified")
 	,311
 	},
 	{"iniSetValue",		js_iniSetValue,		3,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key, value")
 	,JSDOCSTR("set the specified <i>key</i> to the specified <i>value</i> in the specified <i>section</i> "
-		"of a <tt>.ini</tt> file")
+		"of a <tt>.ini</tt> file. "
+		"to set a key in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,311
 	},
-	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("section")
+	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section]")
 	,JSDOCSTR("parse an entire section from a .ini file "
-		"and return all of its keys and values as properties of an object")
+		"and return all of its keys and values as properties of an object. "
+		"if <i>section</i> is undefined, returns key and values from the <i>root</i> section")
 	,311
 	},
 	{"iniSetObject",	js_iniSetObject,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, object")
 	,JSDOCSTR("write all the properties of the specified <i>object</i> as separate <tt>key=value</tt> pairs "
-		"in the specified <i>section</i> of a <tt>.ini</tt> file")
+		"in the specified <i>section</i> of a <tt>.ini</tt> file. "
+		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,311
 	},
 	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix]")
-	,JSDOCSTR("parse all sections from a .ini file and return all sections and keys "
-		"an array of objects with each section's keys as properties of each section object, "
+	,JSDOCSTR("parse all sections from a .ini file and return all (non-<i>root</i>) sections "
+		"in an array of objects with each section's keys as properties of each object. "
 		"<i>name_property</i> is the name of the property to create to contain the section's name "
 		"(default is <tt>\"name\"</tt>), "
 		"the optional <i>prefix</i> has the same use as in the <tt>iniGetSections</tt> method, "
