@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.18 2005/01/14 00:44:17 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.19 2005/01/14 20:57:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1401,7 +1401,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.18 $", "%*s %s", revision);
+	sscanf("$Revision: 1.19 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1412,7 +1412,7 @@ int main(int argc, char **argv)
 	RingBufInit(&inbuf, IO_THREAD_BUF_SIZE);
 	RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
 
-	xmodem_init(&xm,INVALID_SOCKET,&mode,lputs,send_byte,recv_byte);
+	xmodem_init(&xm,NULL,&mode,lputs,send_byte,recv_byte);
 
 	/* Generate path/sexyz[.host].ini from path/sexyz[.exe] */
 	SAFECOPY(str,argv[0]);
