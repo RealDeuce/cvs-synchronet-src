@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.24 2002/02/05 23:17:28 rswindell Exp $ */
+/* $Id: services.c,v 1.25 2002/02/08 13:19:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
