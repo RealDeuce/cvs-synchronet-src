@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.8 2001/11/08 22:06:07 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.9 2002/03/09 02:31:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,11 +391,11 @@ int main(int argc, char **argv)
 				,msg.hdr.number,msg.offset+1);
 			printf("%-20s: %s\n","Subject",msg.subj);
 			printf("%-20s: %s","To",msg.to);
-			if(msg.to_net.type)
+			if(msg.to_net.type && msg.to_net.addr)
 				printf(" (%s)",msg.to_net.type==NET_FIDO
 					? faddrtoa(*(fidoaddr_t *)msg.to_net.addr) : msg.to_net.addr);
 			printf("\n%-20s: %s","From",msg.from);
-			if(msg.from_net.type)
+			if(msg.from_net.type && msg.from_net.addr)
 				printf(" (%s)",msg.from_net.type==NET_FIDO
 					? faddrtoa(*(fidoaddr_t *)msg.from_net.addr)
 						: msg.from_net.addr);

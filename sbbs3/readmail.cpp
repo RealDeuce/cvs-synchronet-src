@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.14 2002/03/08 02:41:18 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.15 2002/03/09 02:31:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -354,15 +354,15 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 				quotemsg(&msg,1);
 
-				if(msg.from_net.type==NET_FIDO) 		/* FidoNet type */
+				if(msg.from_net.addr==NULL)
+					strcpy(str,msg.from);
+				else if(msg.from_net.type==NET_FIDO) 	/* FidoNet type */
 					sprintf(str,"%s @%s",msg.from
 						,faddrtoa((faddr_t *)msg.from_net.addr,tmp));
 				else if(msg.from_net.type==NET_INTERNET)
 					strcpy(str,(char *)msg.from_net.addr);
-				else if(msg.from_net.type)
+				else
 					sprintf(str,"%s@%s",msg.from,msg.from_net.addr);
-				else									/* No net */
-					strcpy(str,msg.from);
 
 				strcpy(str2,str);
 
