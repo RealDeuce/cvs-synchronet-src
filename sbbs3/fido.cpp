@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.16 2002/04/12 08:41:01 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.17 2002/04/24 08:56:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 		return(false); 
 	}
 
-	sprintf(subj,"%.127s",title);
+	SAFECOPY(subj,title);
 
 	strcpy(to,into);
 

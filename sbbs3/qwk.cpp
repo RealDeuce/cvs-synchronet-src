@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.16 2002/03/06 13:59:14 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.17 2002/04/24 08:56:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 	FILE *stream;
 
 	fulladdr[0]=0;
-	sprintf(str,"%.255s",inaddr);
+	SAFECOPY(str,inaddr);
 	p=strrchr(str,'/');
 	if(p) p++;
 	else p=str;
