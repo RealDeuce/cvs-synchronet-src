@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.50 2004/08/30 10:18:26 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.55 2004/09/08 03:30:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -460,9 +460,7 @@ typedef struct _PACK {		/* Index record */
 #define SMB_HASH_MD5		(1<<2)	/* MD5 digest is valid				*/
 #define SMB_HASH_MASK		(SMB_HASH_CRC16|SMB_HASH_CRC32|SMB_HASH_MD5)
 
-#define SMB_HASH_MARK		(1<<3)	/* Used by smb_findhash()			*/
 #define SMB_HASH_MARKED		(1<<4)	/* Used by smb_findhash()			*/
-#define SMB_HASH_MARK_MASK	(SMB_HASH_MARK|SMB_HASH_MARKED)
 
 #define SMB_HASH_STRIP_WSP	(1<<6)	/* Strip white-space chars first	*/
 #define SMB_HASH_LOWERCASE	(1<<7)	/* Convert A-Z to a-z first			*/
@@ -554,12 +552,15 @@ typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 #pragma pack(pop)		/* original packing */
 #endif
 
-typedef struct _PACK {		/* Network (type and address) */
+typedef struct {		/* Network (type and address) */
 
     ushort  type;
 	void	*addr;
 
 } net_t;
+
+								/* Valid bits in smbmsg_t.flags					*/
+#define MSG_FLAG_HASHED	(1<<0)	/* Message has been hashed with smb_hashmsg()	*/
 
 typedef struct {				/* Message */
 
@@ -600,6 +601,7 @@ typedef struct {				/* Message */
 	ulong		expiration; 	/* Message will expire on this day (if >0) */
 	ulong		priority;		/* Message priority (0 is lowest) */
 	ulong		cost;			/* Cost to download/read */
+	ulong		flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
 
 } smbmsg_t;
 
@@ -615,8 +617,7 @@ typedef struct {			/* Message base */
 	ulong	retry_time; 	/* Maximum number of seconds to retry opens/locks */
 	ulong	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 	/* Status header record */
-	int		locked;			/* SMB header is locked */
-	char	shd_buf[SHD_BLOCK_LEN]; 	/* File I/O buffer for header file */
+	BOOL	locked;			/* SMB header is locked */
 	char	last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
