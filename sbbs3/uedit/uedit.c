@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.29 2004/09/12 22:00:25 deuce Exp $ */
+/* $Id: uedit.c,v 1.32 2004/09/16 02:11:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1733,11 +1733,11 @@ int finduser(scfg_t *cfg, user_t *user)
 /* Get newly created Default User "New User" and set for Editing */
 /*               Adapted from finduser function                  */
 
-int getnewuser(scfg_t *cfg, user_t *user)
+int getuser(scfg_t *cfg, user_t *user, char* str)
 {
 	int i,j,last;
 	ushort un;
-	char* str ;
+	/* char* str ; */
 	struct user_list **opt;
 	int done=0;
 
@@ -1746,7 +1746,7 @@ int getnewuser(scfg_t *cfg, user_t *user)
 	for(i=0;i<(MAX_OPTS+1);i++)
 		opt[i]=NULL;
 
-    str="New User";
+	/* strcpy(str, username); */
 	/* User List */
 	done=0;
 	while(!done) {
@@ -1906,7 +1906,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.29 $", "%*s %s", revision);
+	sscanf("$Revision: 1.32 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -2072,7 +2072,7 @@ int main(int argc, char** argv)  {
 			/* New User */
 			    createdefaults();
 			    lprintf("Please edit defaults using next screen.");
-			    getnewuser(&cfg,&user);
+			    getuser(&cfg,&user,"New User");
 		}
 		if(j==1) {
 		    /* Find User */
@@ -2102,4 +2102,5 @@ int main(int argc, char** argv)  {
 		}
 	}
 }
+
 

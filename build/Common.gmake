@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.11 2004/09/12 22:07:11 deuce Exp $
+# $Id: Common.gmake,v 1.22 2004/09/16 18:12:55 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -85,6 +85,10 @@
 #  UIFC_SRC			- Path to uifc											#
 #  CIOLIB_SRC		- Path to ciolib										#
 #  SMBLIB_SRC		- Path to smblib										#
+#  MT_CFLAGS		- CFLAGS for building MT objects						#
+#  MT_LDFLAGS		- LDFLAGS for linking MT targets						#
+#  UL_PRE			- Use Library prefix (*nix is -l)						#
+#  UL_SUF			- Use Library siffix (bcc is .lib)						#
 #																			#
 # Common Targets Defined:													#
 #  Implicit C and C++ targets												#
@@ -190,6 +194,8 @@ OFILE		:= .o
 EXEFILE		:=
 SOFILE		:= .so
 LIBFILE		:= .a
+UL_PRE		:=	-l
+UL_SUF		:=	
 
 OUTPUT		:=	-o
 LOUTPUT		:=	-o
@@ -217,41 +223,43 @@ endif
 # PThread-specific flags
 ifeq ($(os),linux)    # Linux
  ifndef THREADS_ACTUALLY_WORK
-  PTHREAD_CFLAGS    += -D_THREAD_SUID_BROKEN
+  CFLAGS    += -D_THREAD_SUID_BROKEN
  endif
 endif
-PTHREAD_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
+MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
 ifeq ($(os),freebsd)    # FreeBSD
- PTHREAD_CFLAGS    += -DUSE_XP_SEMAPHORES
- PTHREAD_LDFLAGS    +=    -pthread
+ MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+ MT_LDFLAGS    +=    -pthread
  XP_SEM    :=    1
 else
  ifeq ($(os),openbsd)    # OpenBSD
-  PTHREAD_CFLAGS    += -DUSE_XP_SEMAPHORES
-  PTHREAD_LDFLAGS    +=    -pthread
+  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+  MT_LDFLAGS    +=    -pthread
   XP_SEM    :=    1
  else
   ifeq ($(os),netbsd)    # NetBSD
-   PTHREAD_CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES
-   PTHREAD_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
+   CFLAGS    +=	-D__unix__ 
+   MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
+   MT_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
    XP_SEM    :=    1
   else
    ifeq ($(os),qnx)    # QNX
    else
     ifeq ($(os),darwin)    # Darwin/Mac OS X
-     PTHREAD_CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES -D__DARWIN__
-     PTHREAD_LDFLAGS    += -lpthread
+     CFLAGS    += -D__unix__ 
+     MT_CFLAGS    += -DUSE_XP_SEMAPHORES -D__DARWIN__
+     MT_LDFLAGS    += -lpthread
      XP_SEM    := 1
     else
      ifeq ($(os),sunos)  # Solaris
       XP_SEM :=    1
-      PTHREAD_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
-      PTHREAD_CFLAGS    += -DUSE_XP_SEMAPHORES
-      PTHREAD_LDFLAGS    +=    -lpthread
+      MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
+      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+      MT_LDFLAGS    +=    -lpthread
      else            # Linux / Other UNIX
       XP_SEM :=    1
-      PTHREAD_CFLAGS    += -DUSE_XP_SEMAPHORES
-      PTHREAD_LDFLAGS    +=    -lpthread
+      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+      MT_LDFLAGS    +=    -lpthread
      endif
     endif
    endif
@@ -270,6 +278,10 @@ include		$(CIOLIB_SRC)$(DIRSEP)Common.make
 include		$(UIFC_SRC)$(DIRSEP)Common.make
 include		$(SMBLIB_SRC)$(DIRSEP)Common.make
 include		$(XPDEV_SRC)$(DIRSEP)Common.make
+-include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
+-include		$(UIFC_SRC)$(DIRSEP)Common.gmake
+-include		$(SMBLIB_SRC)$(DIRSEP)Common.gmake
+-include		$(XPDEV_SRC)$(DIRSEP)Common.gmake
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
@@ -281,27 +293,26 @@ endif
 -include targets.mk
 -include $(SRC_ROOT)/build/rules.mk
 -include objects.mk		# defines $(OBJS)
--include libobjs.mk		# defines $(LIB_OBJS)
 
 # Implicit C Compile Rule
-$(OBJODIR)/%.o : %.c $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
 
 # Implicit C++ Compile Rule
-$(OBJODIR)/%.o : %.cpp $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ -c $<
 
 # Implicit MT C Compile Rule
-$(MTOBJODIR)/%.o : %.c $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(PTHREAD_CFLAGS) -o $@ -c $<
+	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
 # Implicit MT C++ Compile Rule
-$(MTOBJODIR)/%.o : %.cpp $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) $(PTHREAD_CFLAGS) -o $@ -c $<
+	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
 depend:
 	$(QUIET)$(DELETE) $(OBJODIR)/.depend
@@ -320,3 +331,27 @@ FORCE:
 -include $(OBJODIR)/*.d
 -include $(LIBODIR)/*.d
 -include $(EXEODIR)/*.d
+
+$(XPDEV_LIB): xpdev
+xpdev:
+	$(MAKE) -C $(XPDEV_SRC) lib
+
+$(XPDEV-MT_LIB): xpdev-mt
+xpdev-mt:
+	$(MAKE) -C $(XPDEV_SRC) mtlib
+
+$(SMBLIB): smblib
+smblib:
+	$(MAKE) -C $(SMBLIB_SRC) lib
+
+$(CIOLIB-MT_LIB): ciolib-mt
+ciolib-mt:
+	$(MAKE) -C $(CIOLIB_SRC) mtlib
+
+$(UIFC_LIB): uifc
+uifc:
+	$(MAKE) -C $(UIFC_SRC) lib
+
+$(UIFC-MT_LIB): uifc-mt
+uifclib-mt:
+	$(MAKE) -C $(UIFC_SRC) mtlib
