@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.91 2004/11/03 09:05:40 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.92 2004/11/08 09:22:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -431,6 +431,10 @@ void sbbs_read_ini(
 			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
 		web->port
 			=iniReadShortInt(fp,section,"Port",IPPORT_HTTP);
+		web->max_clients
+			=iniReadShortInt(fp,section,"MaxClients",10);
+		web->max_inactivity
+			=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
 		web->sem_chk_freq
 			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
@@ -951,6 +955,10 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(!iniSetShortInt(lp,section,"Port",web->port,&style))
+			break;
+		if(!iniSetShortInt(lp,section,"MaxClients",web->max_clients,&style))
+			break;
+		if(!iniSetShortInt(lp,section,"MaxInactivity",web->max_inactivity,&style))
 			break;
 
 		if(web->sem_chk_freq==global->sem_chk_freq)
