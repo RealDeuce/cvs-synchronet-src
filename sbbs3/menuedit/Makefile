@@ -1,12 +1,12 @@
 # Makefile
 
 #########################################################################
-# Makefile for Synchronet BBS Configuration Utility (SCFG)				#
+# Makefile for Synchronet BBS Menu Editor (menuedit)
 # For use with Borland C++ Builder 5+ or Borland C++ 5.5 for Win32      #
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.15 2004/07/27 22:37:27 rswindell Exp $
+# $Id: Makefile,v 1.1 2004/07/20 02:09:21 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -20,13 +20,12 @@ EXEFILE	=	.exe
 EXEODIR	=	bcc.win32	# Executable output directory
 XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
-CIOLIB	=	..\..\conio
 LIB	=	..\..\..\lib
 INCLUDE	=	..\..\..\include
-CFLAGS	=	-DSCFG -M -I..;$(UIFC);$(XPDEV);$(CIOLIB)
+CFLAGS	=	-M -I..;$(UIFC);$(XPDEV) 
 DELETE	=	-@echo y | del 
 
-.path.c = .;..;$(UIFC);$(XPDEV);$(CIOLIB)
+.path.c = .;..;$(UIFC);$(XPDEV)
 .path.cpp = $(UIFC)
 
 # Enable auto-dependency checking
@@ -52,8 +51,8 @@ LIBODIR =	$(EXEODIR)
 !include objects.mk	# defines $(OBJS)
 
 !ifdef USE_UIFC32
-OBJS = $(OBJS) $(EXEODIR)\uifc32.$(OFILE) $(EXEODIR)\ciolib.$(OFILE) $(EXEODIR)\ansi_cio.$(OFILE)
-CFLAGS  =   $(CFLAGS) -DUSE_UIFC32 -WM
+OBJS = $(OBJS) $(EXEODIR)\uifc32.$(OFILE)
+CFLAGS  =   $(CFLAGS) -DUSE_UIFC32
 !else
 OBJS = $(OBJS) $(EXEODIR)\uifc.$(OFILE)
 !endif
@@ -74,14 +73,8 @@ OBJS 	= $(OBJS) $(EXEODIR)\uifcfltk.$(OFILE) $(LIB)/fltk/win32/fltk.lib
 $(EXEODIR):
 	@if not exist $(EXEODIR) mkdir $(EXEODIR)
 
-$(MAKEHELP): makehelp.c
-	@$(CC) -q -n$(EXEODIR) $?
-
-$(SCFGHELP): $(OBJS) $(MAKEHELP)
-	@$(MAKEHELP) $(EXEODIR)
-
-# Monolithic SCFG executable Build Rule
-$(SCFG): $(OBJS)
+# MenuEdit Build Rule
+$(MENUEDIT): $(OBJS)
 	@echo Linking $@
 	@$(CC) $(CFLAGS) -e$@ $**
 
