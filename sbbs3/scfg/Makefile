@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.12 2004/03/15 23:15:14 rswindell Exp $
+# $Id: Makefile,v 1.13 2004/04/07 23:51:50 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -22,7 +22,7 @@ XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
 LIB	=	..\..\..\lib
 INCLUDE	=	..\..\..\include
-CFLAGS	=	-M -I..;$(UIFC);$(XPDEV) 
+CFLAGS	=	-DSCFG -M -I..;$(UIFC);$(XPDEV) 
 DELETE	=	echo y | del 
 
 .path.c = .;..;$(UIFC);$(XPDEV)
