@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.cpp,v 1.11 2004/10/18 00:01:46 rswindell Exp $ */
+/* $Id: ClientFormUnit.cpp,v 1.12 2004/11/16 06:21:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,8 +92,7 @@ void __fastcall TClientForm::CloseSocketMenuItemClick(TObject *Sender)
     State << isSelected;
 
     while(ListItem!=NULL) {
-        if(closesocket(atoi(ListItem->Caption.c_str()))==0)
-            socket_open(NULL, FALSE);
+        closesocket(atoi(ListItem->Caption.c_str()));
         ListItem=ListView->GetNextItem(ListItem,sdAll,State);
     }
 }
