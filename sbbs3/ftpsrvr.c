@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.83 2001/06/30 03:11:20 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.84 2001/07/03 02:20:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4109,7 +4109,8 @@ void DLLCALL ftp_server(void* arg)
     sprintf(scfg.ctrl_dir, "%.*s",(int)sizeof(scfg.ctrl_dir)-1
     	,startup->ctrl_dir);
     lprintf("Loading configuration files from %s", scfg.ctrl_dir);
-	if(!load_cfg(&scfg, NULL)) {
+	scfg.size=sizeof(scfg);
+	if(!load_cfg(&scfg, NULL, TRUE)) {
 		lprintf("!Failed to load configuration files");
 		cleanup(1);
 		return;
