@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.294 2003/07/23 04:06:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.295 2003/08/18 21:09:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1656,6 +1656,8 @@ void event_thread(void* arg)
 					|| sbbs->cfg.event[i]->node>last_node)
 					&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 					continue;	// ignore non-exclusive events for other instances
+				if(sbbs->cfg.event[i]->misc&EVENT_DISABLED)
+					continue;
 				if(sbbs->cfg.event[i]->last==-1) // already signaled
 					continue;
 				sprintf(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
@@ -1811,6 +1813,9 @@ void event_thread(void* arg)
 			if(!sbbs->cfg.event[i]->node 
 				|| sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes)
 				continue;	// ignore events for invalid nodes
+
+			if(sbbs->cfg.event[i]->misc&EVENT_DISABLED)
+				continue;
 
 			if((sbbs->cfg.event[i]->node<first_node
 				|| sbbs->cfg.event[i]->node>last_node)
