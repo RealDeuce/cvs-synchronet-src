@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.19 2003/04/14 23:49:00 deuce Exp $ */
+/* $Id: base64.c,v 1.20 2003/04/16 05:22:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@ int b64_decode(char *target, size_t tlen, const char *source, size_t slen)
 			return(-1);
 		}
 		if(*i=='=')  { /* pad char */
-			if(working&0xFF != 0)
+			if((working&0xFF) != 0)
 				return(-1);
 			break;
 		}
