@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.169 2004/09/25 20:51:50 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.166 2004/09/13 21:52:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,9 +200,6 @@ static int log_puts(int level, char *str)
 {
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
-
-	if(!(bbs_startup.log_mask&(1<<level)))
-		return(0);
 
 #ifdef __unix__
 
@@ -466,9 +463,6 @@ static int ftp_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(!(ftp_startup.log_mask&(1<<level)))
-		return(0);
-
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -526,9 +520,6 @@ static int mail_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(!(mail_startup.log_mask&(1<<level)))
-		return(0);
-
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -581,9 +572,6 @@ static int services_lputs(void* p, int level, char *str)
 	char		tstr[64];
 	time_t		t;
 	struct tm	tm;
-
-	if(!(services_startup.log_mask&(1<<level)))
-		return(0);
 
 #ifdef __unix__
 	if (is_daemon)  {
@@ -638,9 +626,6 @@ static int event_lputs(int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(!(bbs_startup.log_mask&(1<<level)))
-		return(0);
-
 #ifdef __unix__
 	if (is_daemon)  {
 		if(str==NULL)
@@ -677,9 +662,6 @@ static int web_lputs(void* p, int level, char *str)
 	char		tstr[64];
 	time_t		t;
 	struct tm	tm;
-
-	if(!(web_startup.log_mask&(1<<level)))
-		return(0);
 
 #ifdef __unix__
 	if (is_daemon)  {
