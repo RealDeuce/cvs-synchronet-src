@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.100 2002/11/26 06:54:40 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.101 2002/12/06 07:31:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -628,7 +628,7 @@ static int web_lputs(char *str)
 		if (std_facilities)
 			syslog(LOG_INFO|LOG_DAEMON,"%s",str);
 		else
-			syslog(LOG_INFO,"srvc %s",str);
+			syslog(LOG_INFO,"web  %s",str);
 		return(strlen(str));
 	}
 #endif
@@ -641,7 +641,7 @@ static int web_lputs(char *str)
 			,tm.tm_mon+1,tm.tm_mday
 			,tm.tm_hour,tm.tm_min,tm.tm_sec);
 
-	sprintf(logline,"%shttp %.*s",tstr,(int)sizeof(logline)-32,str);
+	sprintf(logline,"%sweb  %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
 	lputs(logline);
 	
