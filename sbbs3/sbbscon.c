@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.165 2004/08/23 23:34:46 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.166 2004/09/13 21:52:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -744,10 +744,17 @@ static void read_startup_ini(void)
 	FILE*	fp=NULL;
 
 	/* Read .ini file here */
-	if(ini_file[0]!=0 && (fp=fopen(ini_file,"r"))!=NULL) {
-		sprintf(str,"Reading %s",ini_file);
-		bbs_lputs(NULL,LOG_INFO,str);
+	if(ini_file[0]!=0) { 
+		if((fp=fopen(ini_file,"r"))==NULL) {
+			sprintf(str,"!ERROR %d (%s) opening %s",errno,strerror(errno),ini_file);
+			bbs_lputs(NULL,LOG_ERR,str);
+		} else {
+			sprintf(str,"Reading %s",ini_file);
+			bbs_lputs(NULL,LOG_INFO,str);
+		}
 	}
+	if(fp==NULL)
+		bbs_lputs(NULL,LOG_WARNING,"Using default initialization values");
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
