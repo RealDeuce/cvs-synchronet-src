@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.h,v 1.11 2005/01/13 21:58:33 deuce Exp $ */
+/* $Id: semwrap.h,v 1.12 2005/01/13 22:03:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,8 +99,6 @@ int sem_trywait_block(sem_t* psem, unsigned long timeout);
 #define	sem_reset(psem)					xp_sem_setvalue((psem), 0)
 #else
 #define sem_reset(psem)					while(sem_trywait(psem)==0)
-#else
-
 #endif
 
 #if defined(__cplusplus)
