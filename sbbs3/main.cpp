@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.228 2003/02/15 13:24:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.229 2003/02/20 23:37:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1778,7 +1778,7 @@ void event_thread(void* arg)
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
-						 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,nulstr,NULL)
+						 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
 						,ex_mode
 						,sbbs->cfg.event[i]->dir);
 					sbbs->cfg.event[i]->last=time(NULL);
