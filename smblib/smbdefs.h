@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.11 2002/02/11 15:25:24 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.12 2002/02/11 15:29:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -518,6 +518,7 @@ typedef struct {			// Message base
 	smbstatus_t status; 	// Status header record
 	char	shd_buf[SHD_BLOCK_LEN]; 	// File I/O buffer for header file
 	char	last_error[128];			// Last error message
+	uint	subnum;			// Sub-board number (not initialized by smblib)
 
     } smb_t;
 
