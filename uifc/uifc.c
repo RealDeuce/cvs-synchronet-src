@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.15 2002/05/01 20:25:39 rswindell Exp $ */
+/* $Id: uifc.c,v 1.16 2002/06/16 07:08:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +75,8 @@ static uifcapi_t* api;
 static int  uprintf(int x, int y, char attr, char *fmt,...);
 static void bottomline(int line);
 static char *utimestr(time_t *intime);
-static void help();
+static void help(void);
+static int	getstr(char *outstr, int max, long mode);
 
 /* API routines */
 static void uifcbail(void);
@@ -310,7 +311,7 @@ else
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-static void timedisplay()
+static void timedisplay(void)
 {
 	static time_t savetime;
 	time_t now;
