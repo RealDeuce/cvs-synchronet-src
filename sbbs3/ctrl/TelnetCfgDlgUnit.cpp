@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.8 2001/08/05 14:43:36 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.9 2001/10/02 20:14:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,7 +240,7 @@ void __fastcall TTelnetCfgDlg::RLoginEnabledCheckBoxClick(TObject *Sender)
 
 void __fastcall TTelnetCfgDlg::RLoginIPallowButtonClick(TObject *Sender)
 {
-	char filename[MAX_PATH];
+	char filename[MAX_PATH+1];
 
     sprintf(filename,"%sRLOGIN.CAN"
     	,MainForm->cfg.text_dir);
