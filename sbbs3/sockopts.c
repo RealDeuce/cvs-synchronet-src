@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.cfg */
 
-/* $Id: sockopts.c,v 1.2 2002/06/14 08:46:29 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.3 2002/06/14 09:21:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,7 @@ static const sockopt_name option_names[] = {
 	{ NULL }
 };
 
-static int sockopt(char* str)
+int DLLCALL sockopt(char* str)
 {
 	int i;
 
