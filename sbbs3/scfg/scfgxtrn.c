@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.5 2002/01/17 02:25:11 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.6 2002/01/17 17:54:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,7 +185,7 @@ while(1) {
 	if(cfg.total_events)
 		j|=WIN_DEL|WIN_GET;
 	if(cfg.total_events<MAX_OPTS)
-		j|=WIN_INS|WIN_INSACT;
+		j|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savevent.code[0])
 		j|=WIN_PUT;
 	SETHELP(WHERE);
