@@ -948,7 +948,7 @@ tODResult ODScrnInitialize(void)
 
    /* In silent mode, we perform all output in a block of memory that is */
    /* never displayed.                                                   */
-   /* *nix is always in "silent mode"									 */
+   /* *nix is always in "silent mode"                                    */
 #ifndef ODPLAT_NIX
    if(od_control.od_silent_mode)
    {
@@ -1114,7 +1114,7 @@ void ODScrnShutdown(void)
    }
 #else /* !ODPLAT_WIN32 */
    /* In silent mode, we must deallocate screen buffer memory. */
-   /* *nix is always in silent mode							   */
+   /* *nix is always in silent mode                            */
 #ifndef ODPLAT_NIX
    if(od_control.od_silent_mode && pAllocatedBufferMemory != NULL)
    {
@@ -2549,3 +2549,4 @@ void ODScrnRemoveMessage(void *pMessageInfo)
    ODScrnEnableCaret(TRUE);
 #endif /* !ODPLAT_WIN32 */
 }
+
