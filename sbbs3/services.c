@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.136 2003/09/10 08:02:28 rswindell Exp $ */
+/* $Id: services.c,v 1.137 2003/09/16 04:00:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1456,8 +1456,8 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 {
 	uint		i,j;
 	FILE*		fp;
-	char		cmd[MAX_LINE_LEN+1];
-	char		host[MAX_LINE_LEN+1];
+	char		cmd[INI_MAX_VALUE_LEN];
+	char		host[INI_MAX_VALUE_LEN];
 	char**		sec_list;
 	service_t*	np;
 	service_t	serv;
@@ -1531,7 +1531,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.136 $", "%*s %s", revision);
+	sscanf("$Revision: 1.137 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

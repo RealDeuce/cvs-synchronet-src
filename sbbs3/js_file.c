@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.60 2003/07/30 03:01:08 rswindell Exp $ */
+/* $Id: js_file.c,v 1.61 2003/09/16 04:00:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -448,7 +448,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	char*	section;
 	char*	key;
 	char**	list;
-	char	buf[MAX_VALUE_LEN];
+	char	buf[INI_MAX_VALUE_LEN];
 	int32	i;
 	jsval	val;
 	jsval	dflt=argv[2];

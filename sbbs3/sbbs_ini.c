@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.55 2003/09/05 09:52:35 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.56 2003/09/16 04:00:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,7 +164,7 @@ void sbbs_read_ini(
 	char*		ctrl_dir;
 	char*		temp_dir;
 	char		host_name[128];
-	char		value[MAX_VALUE_LEN];
+	char		value[INI_MAX_VALUE_LEN];
 	ulong		interface_addr;
 	ulong		js_max_bytes;
 	ushort		sem_chk_freq;
