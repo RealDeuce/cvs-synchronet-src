@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.74 2004/11/10 04:44:42 rswindell Exp $ */
+/* $Id: js_file.c,v 1.75 2004/11/12 03:42:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -478,11 +478,6 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	}
 
 	switch(JSVAL_TAG(dflt)) {
-		case JSVAL_STRING:
-			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,
-				iniReadString(p->fp,section,key
-					,JS_GetStringBytes(JS_ValueToString(cx,dflt)),buf)));
-			break;
 		case JSVAL_BOOLEAN:
 			*rval = BOOLEAN_TO_JSVAL(
 				iniReadBool(p->fp,section,key,JSVAL_TO_BOOLEAN(dflt)));
@@ -506,8 +501,9 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			if(JSVAL_IS_NUMBER(dflt)) {
 				JS_ValueToInt32(cx,dflt,&i);
 				JS_NewNumberValue(cx,iniReadInteger(p->fp,section,key,i),rval);
-				break;
-			}
+			} else
+				*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx
+					,iniReadString(p->fp,section,key,JS_GetStringBytes(JS_ValueToString(cx,dflt)),buf)));
 			break;
 	}
 
@@ -547,24 +543,19 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	else {
 
 		switch(JSVAL_TAG(value)) {
-			case JSVAL_STRING:
-				result = iniSetString(&list,section,key,JS_GetStringBytes(JS_ValueToString(cx,value)),NULL);
-				break;
 			case JSVAL_BOOLEAN:
 				result = iniSetBool(&list,section,key,JSVAL_TO_BOOLEAN(value),NULL);
 				break;
 			case JSVAL_DOUBLE:
 				result = iniSetFloat(&list,section,key,*JSVAL_TO_DOUBLE(value),NULL);
 				break;
-			case JSVAL_OBJECT:
-				result = iniSetString(&list,section,key,JS_GetStringBytes(JS_ValueToString(cx,value)),NULL);
-				break;
 			default:
 				if(JSVAL_IS_NUMBER(value)) {
 					JS_ValueToInt32(cx,value,&i);
 					result = iniSetInteger(&list,section,key,i,NULL);
-					break;
-				}
+				} else
+					result = iniSetString(&list,section,key
+								,JS_GetStringBytes(JS_ValueToString(cx,value)),NULL);
 				break;
 		}
 	}
@@ -702,7 +693,7 @@ js_iniSetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 
 	set_argv[0]=argv[0];	/* section */
 
-	if(!JSVAL_IS_OBJECT(argv[1]))
+	if(!JSVAL_IS_OBJECT(argv[1]) || argv[1]==JSVAL_NULL)
 		return(JS_TRUE);
 
     object = JSVAL_TO_OBJECT(argv[1]);
