@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.23 2003/07/26 11:24:44 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.24 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,7 @@ void sbbs_t::batchmenu()
 					bputs(text[NotEnoughTimeToDl]);
 					break; 
 				}
-				menu("biprot");
+				xfer_prot_menu(XFER_BIDIR);
 				if(!create_batchdn_lst())
 					break;
 				if(!create_batchup_lst())
@@ -278,7 +278,7 @@ void sbbs_t::batchmenu()
 					bputs(text[UploadQueueIsEmpty]);
 					break; 
 				}
-				menu("batuprot");
+				xfer_prot_menu(XFER_BATCH_UPLOAD);
 				if(!create_batchup_lst())
 					break;
 				if(!create_bimodem_pth())
@@ -370,7 +370,7 @@ BOOL sbbs_t::start_batch_download()
 		bputs(text[NotEnoughTimeToDl]);
 		return(FALSE); 
 	}
-	menu("batdprot");
+	xfer_prot_menu(XFER_BATCH_DOWNLOAD);
 	if(!create_batchdn_lst())
 		return(FALSE);
 	if(!create_bimodem_pth())

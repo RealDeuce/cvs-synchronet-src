@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.30 2003/07/26 11:24:44 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.31 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ void sbbs_t::temp_xfer()
 					bputs(text[CantDownloadFromDir]);
 					break; }
 				addfiledat(&cfg,&f);
-				menu("dlprot");
+				xfer_prot_menu(XFER_DOWNLOAD);
 				SYNC;
 				mnemonics(text[ProtocolOrQuit]);
 				strcpy(tmp2,"Q");

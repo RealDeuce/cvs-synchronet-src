@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.22 2003/03/30 00:39:15 rswindell Exp $ */
+/* $Id: email.cpp,v 1.23 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,7 +125,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 			strcat(str,title);
 			mv(str,str2,1); }
 		else { /* Remote */
-			menu("ulprot");
+			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
 			for(x=0;x<cfg.total_prots;x++)

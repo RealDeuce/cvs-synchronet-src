@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.29 2003/05/09 20:10:04 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.30 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -361,7 +361,7 @@ int sbbs_t::exec_function(csi_t *csi)
 		case CS_FILE_SEND:
 
 			csi->logic=LOGIC_FALSE;
-			menu("dlprot");
+			xfer_prot_menu(XFER_DOWNLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
 			for(i=0;i<cfg.total_prots;i++)
@@ -388,7 +388,7 @@ int sbbs_t::exec_function(csi_t *csi)
 
 		case CS_FILE_RECEIVE:
 			csi->logic=LOGIC_FALSE;
-			menu("ulprot");
+			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
 			for(i=0;i<cfg.total_prots;i++)

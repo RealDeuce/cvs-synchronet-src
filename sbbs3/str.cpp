@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.46 2003/07/08 10:26:23 rswindell Exp $ */
+/* $Id: str.cpp,v 1.47 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -922,6 +922,47 @@ void sbbs_t::xfer_policy()
 		bprintf(text[TpDownload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->dn_pct);
 		}
+}
+
+const char* prot_menu_file[] = {
+	 "ulprot"
+	,"dlprot"
+	,"batuprot"
+	,"batdprot"
+	,"biprot"
+};
+
+void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
+{
+	char path[MAX_PATH+1];
+
+	sprintf(path,"%smenu/%s.*",cfg.text_dir,prot_menu_file[type]);
+	if(fexistcase(path)) {
+		menu(prot_menu_file[type]);
+		return;
+	}
+
+	CRLF;
+	int printed=0;
+	for(int i=0;i<cfg.total_prots;i++) {
+		if(!chk_ar(cfg.prot[i]->ar,&useron))
+			continue;
+		if(type==XFER_UPLOAD && cfg.prot[i]->ulcmd[0]==0)
+			continue;
+		if(type==XFER_DOWNLOAD && cfg.prot[i]->dlcmd[0]==0)
+			continue;
+		if(type==XFER_BATCH_UPLOAD && cfg.prot[i]->batulcmd[0]==0)
+			continue;
+		if(type==XFER_BATCH_DOWNLOAD && cfg.prot[i]->batdlcmd[0]==0)
+			continue;
+		if(type==XFER_BIDIR && cfg.prot[i]->bicmd[0]==0)
+			continue;
+		if(printed && (printed%2)==0)
+			CRLF;
+		bprintf(text[TransferProtLstFmt],cfg.prot[i]->mnemonic,cfg.prot[i]->name);
+		printed++;
+	}
+	CRLF;
 }
 
 void sbbs_t::node_stats(uint node_num)

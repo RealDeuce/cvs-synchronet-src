@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.35 2003/07/26 03:59:25 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.36 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -457,7 +457,7 @@ bool sbbs_t::upload(uint dirnum)
 		if(!uploadfile(&f))
 			return(false); 
 	} else {
-		menu("ulprot");
+		xfer_prot_menu(XFER_UPLOAD);
 		SYNC;
 		strcpy(keys,"Q");
 		if(dirnum==cfg.user_dir || !cfg.max_batup)  /* no batch user to user xfers */

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.24 2003/06/06 22:09:21 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.25 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -236,7 +236,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 			if(mv(str,subj,1))
 				return(false); 
 		} else { /* Remote */
-			menu("ulprot");
+			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
 			for(x=0;x<cfg.total_prots;x++)

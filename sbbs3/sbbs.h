@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.198 2003/07/26 11:24:44 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.199 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -369,6 +369,8 @@ public:
 	void	sys_info(void);
 	void	user_info(void);
 	void	xfer_policy(void);
+
+	void	xfer_prot_menu(enum XFER_TYPE);
 	void	node_stats(uint node_num);
 	void	sys_stats(void);
 	void	logonlist(void);
@@ -502,7 +504,7 @@ public:
 	/* prntfile.cpp */
 	void	printfile(char *str, long mode);
 	void	printtail(char *str, int lines, long mode);
-	void	menu(char *code);
+	void	menu(const char *code);
 
 	int		uselect(int add, uint n, char *title, char *item, uchar *ar);
 	uint	uselect_total, uselect_num[500];

@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.29 2003/05/12 21:43:47 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.30 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -998,7 +998,7 @@ void sbbs_t::maindflts(user_t* user)
 					remove(str);
 				break;
 			case 'Z':
-				menu("dlprot");
+				xfer_prot_menu(XFER_DOWNLOAD);
 				SYNC;
 				mnemonics(text[ProtocolOrQuit]);
 				strcpy(str,"Q");

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.100 2003/07/11 01:18:14 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.101 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -780,7 +780,15 @@ enum {							/* Values for 'mode' in listfileinfo        */
 	,FI_USERXFER  				/* User Xfer Download                       */
 	,FI_CLOSE 	  				/* Close any open records					*/
 	};							
-								
+
+enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
+	 XFER_UPLOAD
+	,XFER_DOWNLOAD
+	,XFER_BATCH_UPLOAD
+	,XFER_BATCH_DOWNLOAD
+	,XFER_BIDIR
+};
+	
 #define L_LOGON     1			/* Logon List maintenance                   */
 #define LOL_SIZE    81			/* Length of each logon list entry          */
 								

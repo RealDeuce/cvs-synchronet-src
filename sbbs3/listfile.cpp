@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.33 2003/07/26 11:24:44 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.34 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1220,7 +1220,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					found=-1;
 					break; }
 				continue; }
-			menu("dlprot");
+			xfer_prot_menu(XFER_DOWNLOAD);
 			openfile(&f);
 			SYNC;
 			mnemonics(text[ProtocolBatchQuitOrNext]);

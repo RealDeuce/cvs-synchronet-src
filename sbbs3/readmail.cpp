@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.23 2003/07/26 11:24:44 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.24 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,7 +254,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 											,fd.name,ultoac(length,tmp)); } } }
 
 							else {	/* Remote User */
-								menu("dlprot");
+								xfer_prot_menu(XFER_DOWNLOAD);
 								mnemonics(text[ProtocolOrQuit]);
 								strcpy(str3,"Q");
 								for(i=0;i<cfg.total_prots;i++)

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.30 2003/07/26 11:24:44 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.31 2003/07/26 21:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -563,7 +563,7 @@ void sbbs_t::qwk_sec()
 				last_ns_time=ns_time;
 				continue; }
 			bprintf(text[UploadingREP],cfg.sys_id);
-			menu("biprot");
+			xfer_prot_menu(XFER_BIDIR);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(tmp2,"Q");
 			for(i=0;i<cfg.total_prots;i++)
@@ -663,7 +663,7 @@ void sbbs_t::qwk_sec()
 			/***************/
 			/* Send Packet */
 			/***************/
-			menu("dlprot");
+			xfer_prot_menu(XFER_DOWNLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(tmp2,"Q");
 			for(i=0;i<cfg.total_prots;i++)
@@ -738,7 +738,7 @@ void sbbs_t::qwk_sec()
 			/******************/
 			/* Receive Packet */
 			/******************/
-			menu("ulprot");
+			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(tmp2,"Q");
 			for(i=0;i<cfg.total_prots;i++)
