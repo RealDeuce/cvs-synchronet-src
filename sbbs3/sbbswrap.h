@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.9 2000/10/26 15:06:41 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.10 2000/10/29 04:51:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,14 +84,10 @@ extern "C" {
 #elif defined(__unix__)
 
 	#define mswait(x)			usleep(x*1000)
-	#define stricmp(x,y)		strcasecmp(x,y)
-	#define strnicmp(x,y,z)		strncasecmp(x,y,z)
-	#define chsize(fd,size)		ftruncate(fd,size)
 	#define _mkdir(dir)			mkdir(dir,0777)
 	#define _rmdir(dir)			rmdir(dir)
 
 	DLLEXPORT void	DLLCALL sbbs_beep(int freq, int dur);
-	DLLEXPORT long	DLLCALL filelength(int fd);
 	DLLEXPORT char*	DLLCALL strupr(char* str);
 	DLLEXPORT char*	DLLCALL strlwr(char* str);
 
@@ -168,8 +164,6 @@ extern "C" {
 
 
 /* General file system wrappers for all platforms and compilers */
-DLLEXPORT BOOL		DLLCALL fexist(char *filespec);
-DLLEXPORT long		DLLCALL flength(char *filename);
 DLLEXPORT long		DLLCALL fdate(char *filename);
 DLLEXPORT int		DLLCALL getfattr(char* filename);
 DLLEXPORT ulong		DLLCALL getfreediskspace(char* path);
