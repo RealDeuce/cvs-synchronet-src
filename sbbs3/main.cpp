@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.239 2003/04/18 21:26:27 rswindell Exp $ */
+/* $Id: main.cpp,v 1.240 2003/04/18 22:37:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1873,6 +1873,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	nodemsg_inside = 0;	/* allows single nest */
 	hotkey_inside = 0;	/* allows single nest */
 	event_time = 0;
+	event_code = nulstr;
 	nodesync_inside = false;
 	errorlog_inside = false;
 	errormsg_inside = false;
