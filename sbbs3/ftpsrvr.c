@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.253 2003/09/26 07:35:59 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.254 2003/10/09 02:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4456,7 +4456,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.253 $", "%*s %s", revision);
+	sscanf("$Revision: 1.254 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4691,6 +4691,8 @@ void DLLCALL ftp_server(void* arg)
 					initialized=t;
 					break;
 				}
+				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+					startup->recycle_now=TRUE;
 				if(!active_clients && startup->recycle_now==TRUE) {
 					lprintf("0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;

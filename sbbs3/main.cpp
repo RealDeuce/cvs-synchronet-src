@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.305 2003/10/03 09:03:09 rswindell Exp $ */
+/* $Id: main.cpp,v 1.306 2003/10/09 02:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3974,6 +3974,8 @@ void DLLCALL bbs_thread(void* arg)
 					initialized=t;
 					break;
 				}
+				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+					startup->recycle_now=TRUE;
 				if(startup->recycle_now==TRUE) {
 					lprintf("0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;

@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.118 2003/09/26 07:36:00 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.119 2003/10/09 02:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2384,7 +2384,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.118 $", "%*s %s", revision);
+	sscanf("$Revision: 1.119 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2609,6 +2609,8 @@ void DLLCALL web_server(void* arg)
 					initialized=t;
 					break;
 				}
+				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+					startup->recycle_now=TRUE;
 				if(!active_clients && startup->recycle_now==TRUE) {
 					lprintf("0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;
