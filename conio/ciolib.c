@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.30 2004/10/15 05:13:35 deuce Exp $ */
+/* $Id: ciolib.c,v 1.27 2004/09/22 04:03:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -663,16 +663,16 @@ int ciolib_cprintf(char *fmat, ...)
 {
     va_list argptr;
 	int		ret;
-#ifdef _MSC_VER		/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
+#ifdef _WIN32			/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
 	char	str[16384];
 #else
 	char	*str;
 #endif
 
 	CIOLIB_INIT();
-
+	
     va_start(argptr,fmat);
-#ifdef _MSC_VER
+#ifdef _WIN32
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
     ret=vsnprintf(NULL,0,fmat,argptr);
@@ -700,7 +700,7 @@ int ciolib_cputs(char *str)
 
 	CIOLIB_INIT();
 
-	olddmc=dont_move_cursor;
+	olddmc=dont_move_cursor;	
 	dont_move_cursor=1;
 	for(pos=0;str[pos];pos++)
 	{
@@ -801,10 +801,9 @@ void ciolib_delay(long a)
 
 int ciolib_putch(int a)
 {
-	unsigned char a1=a;
 	CIOLIB_INIT();
 
-	return(cio_api.putch(a1));
+	return(cio_api.putch(a));
 }
 
 void ciolib_setcursortype(int a)

@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: EventsFormUnit.h,v 1.2 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: EventsFormUnit.h,v 1.1 2001/04/10 01:31:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@ class TEventsForm : public TForm
 {
 __published:	// IDE-managed Components
     TMemo *Log;
+    void __fastcall FormShow(TObject *Sender);
     void __fastcall FormHide(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
