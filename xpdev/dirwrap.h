@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.17 2002/12/20 00:32:18 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.18 2003/02/13 01:09:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,7 +197,7 @@ DLLEXPORT time_t	DLLCALL fdate(const char *filename);
 DLLEXPORT BOOL		DLLCALL	isdir(const char *filename);
 DLLEXPORT char*		DLLCALL getfname(const char* path);
 DLLEXPORT int		DLLCALL getfattr(const char* filename);
-DLLEXPORT ulong		DLLCALL getfreediskspace(const char* path);
+DLLEXPORT ulong		DLLCALL getfreediskspace(const char* path, ulong unit);
 DLLEXPORT ulong		DLLCALL delfiles(char *inpath, char *spec);
 
 #if defined(__unix__)
