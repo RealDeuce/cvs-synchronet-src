@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.23 2004/05/30 06:56:06 deuce Exp $ */
+/* $Id: scfgsub.c,v 1.22 2004/04/23 09:24:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,7 +120,7 @@ This is the name of the sub-board used for QWK off-line readers.
             continue;
 #endif
 		sprintf(code,"%.8s",str2);
-		p=strchr(code,' ');
+		p=strchr(code,SP);
 		if(p) *p=0;
 		strupr(code);
 		SETHELP(WHERE);

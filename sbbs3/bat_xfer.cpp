@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.29 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: bat_xfer.cpp,v 1.28 2004/05/11 22:27:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,7 @@ void sbbs_t::batchmenu()
 		ASYNC;
 		bputs(text[BatchMenuPrompt]);
 		ch=(char)getkeys("BCDLQRU?\r",0);
-		if(ch>' ')
+		if(ch>SP)
 			logch(ch,0);
 		switch(ch) {
 			case '?':

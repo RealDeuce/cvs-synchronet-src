@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.7 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: ars.c,v 1.6 2001/12/27 16:28:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 	uint i,j,n,artype=AR_LEVEL,not=0,equal=0;
 
 	for(i=j=0;str[i];i++) {
-		if(str[i]==' ')
+		if(str[i]==SP)
 			continue;
 
 		if(str[i]=='(') {
@@ -479,7 +479,7 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 		if(artype==AR_SUBCODE || artype==AR_DIRCODE || artype==AR_SHELL) {
 			for(n=0;n<8
 				&& str[i]
-				&& str[i]!=' '
+				&& str[i]!=SP
 				&& str[i]!='('
 				&& str[i]!=')'
 				&& str[i]!='='
