@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.34 2005/01/25 06:37:50 deuce Exp $
+# $Id: Common.gmake,v 1.35 2005/02/20 18:55:58 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -221,6 +221,7 @@ endif
 # OS Specific Flags
 ifeq ($(os),sunos)    # Solaris
  CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_SETENV -DNEEDS_CFMAKERAW
+ LDFLAGS	+=	-L/opt/sfw/lib
 endif
 ifeq ($(os),netbsd)	# NetBSD
  CFLAGS	+=	-D__unix__ -I/usr/pkg/include
