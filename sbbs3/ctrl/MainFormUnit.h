@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.63 2004/08/20 02:08:42 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.62 2004/08/03 06:56:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -367,7 +367,6 @@ public:		// User declarations
     AnsiString		Password;
     bool            MinimizeToSysTray;
     bool            UndockableForms;
-    bool            UseFileAssociations;
     scfg_t		    cfg;
     char		    ini_file[MAX_PATH+1];
     bbs_startup_t 	bbs_startup;
@@ -394,8 +393,6 @@ public:		// User declarations
     void __fastcall WriteColor(TRegistry*, AnsiString, TColor);
     void __fastcall ReadFont(AnsiString, TFont*);
     void __fastcall WriteFont(AnsiString, TFont*);
-    void __fastcall EditFile(AnsiString filename, AnsiString Caption="Edit");
-    void __fastcall ViewFile(AnsiString filename, AnsiString Caption);
 };
 
 //---------------------------------------------------------------------------
