@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.3 2000/10/18 06:26:10 rswindell Exp $ */
+/* $Id: mxlookup.c,v 1.4 2000/10/24 08:23:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,11 +35,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-
 #include <stdio.h>
-#include <winsock.h>
-
-#define ERROR_VALUE			GetLastError()
+#include "sbbsinet.h"
 
 #ifdef _WIN32
 #pragma pack(push)
@@ -165,7 +162,7 @@ int dns_getmx(char* name, char* mx, char* mx2, DWORD intf, DWORD ip_addr, BOOL u
 	if (sock == INVALID_SOCKET)
 		return(ERROR_VALUE);
 	
-	addr.sin_addr.S_un.S_addr = htonl(intf);
+	addr.sin_addr.s_addr = htonl(intf);
     addr.sin_family = AF_INET;
     addr.sin_port   = htons (0);
 
@@ -177,7 +174,7 @@ int dns_getmx(char* name, char* mx, char* mx2, DWORD intf, DWORD ip_addr, BOOL u
 	}
 
 	memset(&addr,0,sizeof(addr));
-	addr.sin_addr.S_un.S_addr = ip_addr;
+	addr.sin_addr.s_addr = ip_addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port   = htons(53);
 	

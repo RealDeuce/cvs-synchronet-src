@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.3 2000/10/21 02:58:16 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.4 2000/10/24 08:23:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,8 +39,6 @@
 #include "cmdshell.h"
 #include "execvxd.h"
 #include "telnet.h"
-
-#define ERROR_VALUE			GetLastError()
 
 #define XTRN_IO_BUF_LEN 5000
 

@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.1 2000/10/10 11:24:44 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.2 2000/10/24 08:23:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@ bool sbbs_t::answer()
 
 	answertime=logontime=starttime=now=time(NULL);
 	/* Caller ID is IP address */
-	addr.S_un.S_addr=client_addr;
+	addr.s_addr=client_addr;
 	strcpy(cid,inet_ntoa(addr)); 
 	
     tm=localtime(&now); 

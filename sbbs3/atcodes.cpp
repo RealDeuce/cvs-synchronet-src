@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.1 2000/10/10 11:23:51 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.2 2000/10/24 08:23:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,7 +398,7 @@ int sbbs_t::syncatcodes(char *sp, int len)
 
 	else if(!strcmp(sp,"LOCAL-IP")) {
 		struct in_addr in_addr;
-		in_addr.S_un.S_addr=local_addr;
+		in_addr.s_addr=local_addr;
 		bprintf("%s",inet_ntoa(in_addr));
 	}
 
