@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.227 2004/12/01 06:49:50 deuce Exp $ */
+/* $Id: websrvr.c,v 1.249 2005/01/11 03:48:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,7 +170,8 @@ typedef struct  {
 	BOOL		keep_alive;
 	char		ars[256];
 	char    	auth[128];				/* UserID:Password */
-	char		host[128];				/* The requested host. (virtual hosts) */
+	char		host[128];				/* The requested host. (as used for self-referencing URLs) */
+	char		vhost[128];				/* The requested host. (virtual host) */
 	int			send_location;
 	const char*	mime_type;
 	link_list_t	headers;
@@ -179,6 +180,7 @@ typedef struct  {
 	size_t		post_len;
 	int			dynamic;
 	struct log_data	*ld;
+	char		request_line[MAX_REQUEST_LINE+1];
 
 	/* CGI parameters */
 	char		query_str[MAX_REQUEST_LINE+1];
@@ -212,6 +214,8 @@ typedef struct  {
 	JSObject*		js_query;
 	JSObject*		js_header;
 	JSObject*		js_request;
+	js_branch_t		js_branch;
+	subscan_t		*subscan;
 
 	/* Client info */
 	client_t		client;
@@ -745,9 +749,10 @@ static void close_request(http_session_t * session)
 		session->finished=TRUE;
 
 	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)) {
-		lprintf(LOG_INFO,"%04d JavaScript: Garbage Collection",session->socket);
 		JS_GC(session->js_cx);
 	}
+	if(session->subscan!=NULL)
+		putmsgptrs(&scfg, session->user.number, session->subscan);
 
 	memset(&session->req,0,sizeof(session->req));
 }
@@ -819,7 +824,6 @@ static BOOL send_headers(http_session_t *session, const char *status)
 	struct tm	tm;
 	char	*headers;
 	char	header[MAX_REQUEST_LINE+1];
-	char	*p;
 	list_node_t	*node;
 
 	lprintf(LOG_DEBUG,"%04d Request resolved to: %s"
@@ -1003,9 +1007,17 @@ void http_logon(http_session_t * session, user_t *usr)
 {
 	if(usr==NULL)
 		getuserdat(&scfg, &session->user);
+	else
+		session->user=*usr;
 
 	if(session->user.number==session->last_user_num)
 		return;
+
+	lprintf(LOG_DEBUG,"%04d HTTP Logon (%d)",session->socket,session->user.number);
+
+	if(session->subscan!=NULL)
+		getmsgptrs(&scfg,session->user.number,session->subscan);
+
 	if(session->user.number==0)
 		SAFECOPY(session->username,unknown);
 	else {
@@ -1015,6 +1027,9 @@ void http_logon(http_session_t * session, user_t *usr)
 		putuserrec(&scfg,session->user.number,U_COMP,LEN_COMP,session->host_name);
 		putuserrec(&scfg,session->user.number,U_NOTE,LEN_NOTE,session->host_ip);
 	}
+	session->client.user=session->username;
+	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
+
 	session->last_user_num=session->user.number;
 	session->logon_time=time(NULL);
 }
@@ -1023,6 +1038,9 @@ void http_logoff(http_session_t * session)
 {
 	if(session->last_user_num<=0)
 		return;
+
+	lprintf(LOG_DEBUG,"%04d HTTP Logoff (%d)",session->socket,session->user.number);
+
 	SAFECOPY(session->username,unknown);
 	logoutuserdat(&scfg, &session->user, time(NULL), session->logon_time);
 	memset(&session->user,0,sizeof(session->user));
@@ -1037,7 +1055,7 @@ BOOL http_checkuser(http_session_t * session)
 		lprintf(LOG_INFO,"%04d JavaScript: Initializing User Objects",session->socket);
 		if(session->user.number>0) {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
-				,NULL /* ftp index file */, NULL /* subscan */)) {
+				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
 				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
@@ -1045,7 +1063,7 @@ BOOL http_checkuser(http_session_t * session)
 		}
 		else {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
-				,NULL /* ftp index file */, NULL /* subscan */)) {
+				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
 				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
@@ -1231,7 +1249,7 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 	if(startup->options&WEB_OPT_DEBUG_RX) {
 		lprintf(LOG_DEBUG,"%04d RX: %s",session->socket,buf);
 		if(chucked)
-			lprintf(LOG_DEBUG,"%04d Long header, chucked %d bytes",session->socket,buf,chucked);
+			lprintf(LOG_DEBUG,"%04d Long header, chucked %d bytes",session->socket,chucked);
 	}
 	return(i);
 }
@@ -1329,19 +1347,80 @@ static void unescape(char *p)
 	*(dst)=0;
 }
 
-static void js_parse_post(http_session_t * session)
+static void js_add_queryval(http_session_t * session, char *key, char *value)
 {
+	JSObject*	keyarray;
+	jsval		val;
+	jsint		len;
+	int			alen;
+
+	/* Return existing object if it's already been created */
+	if(JS_GetProperty(session->js_cx,session->js_query,key,&val) && val!=JSVAL_VOID)  {
+		keyarray = JSVAL_TO_OBJECT(val);
+		alen=-1;
+	}
+	else {
+		keyarray = JS_NewArrayObject(session->js_cx, 0, NULL);
+		if(!JS_DefineProperty(session->js_cx, session->js_query, key, OBJECT_TO_JSVAL(keyarray)
+			, NULL, NULL, JSPROP_ENUMERATE))
+			return;
+		alen=0;
+	}
+
+	if(alen==-1) {
+		if(JS_GetArrayLength(session->js_cx, keyarray, &len)==JS_FALSE)
+			return;
+		alen=len;
+	}
+
+	lprintf(LOG_DEBUG,"%04d Adding query value %s=%s at pos %d",session->socket,key,value,alen);
+	val=STRING_TO_JSVAL(JS_NewStringCopyZ(session->js_cx,value));
+	JS_SetElement(session->js_cx, keyarray, alen, &val);
+}
+
+static void js_add_request_prop(http_session_t * session, char *key, char *value)  
+{
+	JSString*	js_str;
+
+	if(session->js_cx==NULL || session->js_request==NULL)
+		return;
+	if(key==NULL || value==NULL)
+		return;
+	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
+		return;
+	JS_DefineProperty(session->js_cx, session->js_request, key, STRING_TO_JSVAL(js_str)
+		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+}
+
+static void js_add_header(http_session_t * session, char *key, char *value)  
+{
+	JSString*	js_str;
+	char		*lckey;
+
+	if((lckey=(char *)malloc(strlen(key)+1))==NULL)
+		return;
+	strcpy(lckey,key);
+	strlwr(lckey);
+	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL) {
+		free(lckey);
+		return;
+	}
+	JS_DefineProperty(session->js_cx, session->js_header, lckey, STRING_TO_JSVAL(js_str)
+		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+	free(lckey);
+}
+
+static void js_parse_query(http_session_t * session, char *p)  {
 	size_t		key_len;
 	size_t		value_len;
 	char		*lp;
 	char		*key;
 	char		*value;
-	JSString*	js_str;
 
-	if(session->req.post_data == NULL)
+	if(p == NULL)
 		return;
 
-	lp=session->req.post_data;
+	lp=p;
 
 	while(key_len=strcspn(lp,"="))  {
 		key=lp;
@@ -1359,27 +1438,13 @@ static void js_parse_post(http_session_t * session)
 		}
 		unescape(value);
 		unescape(key);
-		if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
-			return;
-		JS_DefineProperty(session->js_cx, session->js_query, key, STRING_TO_JSVAL(js_str)
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+		js_add_queryval(session, key, value);
 	}
-}
-
-static void js_add_header(http_session_t * session, char *key, char *value)  
-{
-	JSString*	js_str;
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
-		return;
-	JS_DefineProperty(session->js_cx, session->js_header, key, STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 }
 
 static BOOL parse_headers(http_session_t * session)
 {
 	char	*head_line;
-	char	next_char;
 	char	*value;
 	char	*p;
 	int		i;
@@ -1449,7 +1514,8 @@ static BOOL parse_headers(http_session_t * session)
 				session->req.post_len=0;
 			session->req.post_data[session->req.post_len]=0;
 			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
-				js_parse_post(session);
+				js_add_request_prop(session,"post_data",session->req.post_data);
+				js_parse_query(session,session->req.post_data);
 			}
 		}
 		else  {
@@ -1476,42 +1542,6 @@ static int get_version(char *p)
 		}
 	}
 	return(i-1);
-}
-
-static void js_parse_query(http_session_t * session, char *p)  {
-	size_t		key_len;
-	size_t		value_len;
-	char		*lp;
-	char		*key;
-	char		*value;
-	JSString*	js_str;
-
-	if(p == NULL)
-		return;
-
-	lp=p;
-
-	while(key_len=strcspn(lp,"="))  {
-		key=lp;
-		lp+=key_len;
-		if(*lp) {
-			*lp=0;
-			lp++;
-		}
-		value_len=strcspn(lp,"&");
-		value=lp;
-		lp+=value_len;
-		if(*lp) {
-			*lp=0;
-			lp++;
-		}
-		unescape(value);
-		unescape(key);
-		if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
-			return;
-		JS_DefineProperty(session->js_cx, session->js_query, key, STRING_TO_JSVAL(js_str)
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-	}
 }
 
 static int is_dynamic_req(http_session_t* session)
@@ -1573,6 +1603,7 @@ static char *get_request(http_session_t * session, char *req_line)
 	SKIP_WHITESPACE(req_line);
 	SAFECOPY(session->req.virtual_path,req_line);
 	strtok(session->req.virtual_path," \t");
+	SAFECOPY(session->req.request_line,session->req.virtual_path);
 	retval=strtok(NULL," \t");
 	strtok(session->req.virtual_path,"?");
 	query=strtok(NULL,"");
@@ -1583,6 +1614,9 @@ static char *get_request(http_session_t * session, char *req_line)
 	if(!strnicmp(session->req.physical_path,http_scheme,http_scheme_len)) {
 		/* Set HOST value... ignore HOST header */
 		SAFECOPY(session->req.host,session->req.physical_path+http_scheme_len);
+		SAFECOPY(session->req.vhost,session->req.host);
+		/* Remove port specification */
+		strtok(session->req.vhost,":");
 		strtok(session->req.physical_path,"/");
 		p=strtok(NULL,"/");
 		if(p==NULL) {
@@ -1626,7 +1660,6 @@ static BOOL get_request_headers(http_session_t * session)
 	char	head_line[MAX_REQUEST_LINE+1];
 	char	next_char;
 	char	*value;
-	char	*p;
 	int		i;
 
 	while(sockreadline(session,head_line,sizeof(head_line)-1)>0) {
@@ -1650,9 +1683,11 @@ static BOOL get_request_headers(http_session_t * session)
 				case HEAD_HOST:
 					if(session->req.host[0]==0) {
 						SAFECOPY(session->req.host,value);
-						if(startup->options&WEB_OPT_DEBUG_RX)
-							lprintf(LOG_INFO,"%04d Grabbing from virtual host: %s"
-								,session->socket,value);
+						SAFECOPY(session->req.vhost,value);
+						/* Remove port part of host (Win32 doesn't allow : in dir names) */
+						/* Either an existing : will be replaced with a null, or nothing */
+						/* Will happen... the return value is not relevent here */
+						strtok(session->req.vhost,":");
 					}
 					break;
 				default:
@@ -1668,11 +1703,11 @@ static BOOL get_fullpath(http_session_t * session)
 	char	str[MAX_PATH+1];
 
 	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
-		session->req.host[0]=0;
-	if(session->req.host[0]) {
-		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.host);
+		session->req.vhost[0]=0;
+	if(session->req.vhost[0]) {
+		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.vhost);
 		if(isdir(str))
-			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.host,session->req.physical_path);
+			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.vhost,session->req.physical_path);
 		else
 			safe_snprintf(str,sizeof(str),"%s%s",root_dir,session->req.physical_path);
 	} else
@@ -1726,6 +1761,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 						break;
 					case IS_JS:
 					case IS_SSJS:
+						js_add_request_prop(session,"query_string",session->req.query_str);
 						js_parse_query(session,session->req.query_str);
 						break;
 				}
@@ -2275,59 +2311,41 @@ JSObject* DLLCALL js_CreateHttpReplyObject(JSContext* cx
 JSObject* DLLCALL js_CreateHttpRequestObject(JSContext* cx
 											 ,JSObject* parent, http_session_t *session)
 {
-	JSObject*	request;
-	JSObject*	query;
 /*	JSObject*	cookie; */
-	JSObject*	headers;
-	JSString*	js_str;
 	jsval		val;
 
 	/* Return existing object if it's already been created */
 	if(JS_GetProperty(cx,parent,"http_request",&val) && val!=JSVAL_VOID)  {
-		request = JSVAL_TO_OBJECT(val);
+		session->js_request=JSVAL_TO_OBJECT(val);
 	}
 	else
-		request = JS_DefineObject(cx, parent, "http_request", NULL
+		session->js_request = JS_DefineObject(cx, parent, "http_request", NULL
 									, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
-	if((js_str=JS_NewStringCopyZ(session->js_cx, session->req.extra_path_info))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, request, "path_info", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, methods[session->req.method]))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, request, "method", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, session->req.virtual_path))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, request, "virtual_path", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+	js_add_request_prop(session,"path_info",session->req.extra_path_info);
+	js_add_request_prop(session,"method",methods[session->req.method]);
+	js_add_request_prop(session,"virtual_path",session->req.virtual_path);
 
 	/* Return existing object if it's already been created */
-	if(JS_GetProperty(cx,request,"query",&val) && val!=JSVAL_VOID)  {
-		query = JSVAL_TO_OBJECT(val);
-		JS_ClearScope(cx,query);
+	if(JS_GetProperty(cx,session->js_request,"query",&val) && val!=JSVAL_VOID)  {
+		session->js_query = JSVAL_TO_OBJECT(val);
+		JS_ClearScope(cx,session->js_query);
 	}
 	else
-		query = JS_DefineObject(cx, request, "query", NULL
+		session->js_query = JS_DefineObject(cx, session->js_request, "query", NULL
 									, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	
 	/* Return existing object if it's already been created */
-	if(JS_GetProperty(cx,request,"header",&val) && val!=JSVAL_VOID)  {
-		headers = JSVAL_TO_OBJECT(val);
-		JS_ClearScope(cx,headers);
+	if(JS_GetProperty(cx,session->js_request,"header",&val) && val!=JSVAL_VOID)  {
+		session->js_header = JSVAL_TO_OBJECT(val);
+		JS_ClearScope(cx,session->js_header);
 	}
 	else
-		headers = JS_DefineObject(cx, request, "header", NULL
+		session->js_header = JS_DefineObject(cx, session->js_request, "header", NULL
 									, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
-	session->js_query=query;
-	session->js_header=headers;
-	session->js_request=request;
-	return(request);
+	return(session->js_request);
 }
 
 static void
@@ -2435,49 +2453,47 @@ static JSFunctionSpec js_global_functions[] = {
 	{0}
 };
 
+static JSBool
+js_BranchCallback(JSContext *cx, JSScript *script)
+{
+	http_session_t* session;
+
+	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+    return(js_CommonBranchCallback(cx,&session->js_branch));
+}
+
 static JSContext* 
-js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, http_session_t *session)
+js_initcx(http_session_t *session)
 {
 	JSContext*	js_cx;
-	JSObject*	js_glob;
-	BOOL		success=FALSE;
 
 	lprintf(LOG_INFO,"%04d JavaScript: Initializing context (stack: %lu bytes)"
-		,sock,startup->js_cx_stack);
+		,session->socket,startup->js_cx_stack);
 
-    if((js_cx = JS_NewContext(runtime, startup->js_cx_stack))==NULL)
+    if((js_cx = JS_NewContext(session->js_runtime, startup->js_cx_stack))==NULL)
 		return(NULL);
 
-	lprintf(LOG_INFO,"%04d JavaScript: Context created",sock);
+	lprintf(LOG_INFO,"%04d JavaScript: Context created",session->socket);
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-	do {
+	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
-		lprintf(LOG_INFO,"%04d JavaScript: Initializing Global object",sock);
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
-			break;
-
-		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
-			break;
-
-		lprintf(LOG_INFO,"%04d JavaScript: Initializing System object",sock);
-		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
-			break;
-
-		if(js_CreateServerObject(js_cx,js_glob,&js_server_props)==NULL)
-			break;
-
-		if(glob!=NULL)
-			*glob=js_glob;
-
-		success=TRUE;
-
-	} while(0);
-
-	if(!success) {
+	lprintf(LOG_INFO,"%04d JavaScript: Creating Global Objects and Classes",session->socket);
+	if((session->js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL
+									,NULL						/* global */
+									,uptime						/* system */
+									,startup->host_name			/* system */
+									,SOCKLIB_DESC				/* system */
+									,&session->js_branch		/* js */
+									,&session->client			/* client */
+									,session->socket			/* client */
+									,&js_server_props			/* server */
+		))==NULL
+		|| !JS_DefineFunctions(js_cx, session->js_glob, js_global_functions)) {
 		JS_DestroyContext(js_cx);
-		session->js_cx=NULL;
 		return(NULL);
 	}
 
@@ -2500,24 +2516,11 @@ static BOOL js_setup(http_session_t* session)
 	}
 
 	if(session->js_cx==NULL) {	/* Context not yet created, create it now */
-		if(((session->js_cx=js_initcx(session->js_runtime, session->socket
-			,&session->js_glob, session))==NULL)) {
+		if(((session->js_cx=js_initcx(session))==NULL)) {
 			lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",session->socket);
 			send_error(session,"500 Error initializing JavaScript context");
 			return(FALSE);
 		}
-		if(js_CreateUserClass(session->js_cx, session->js_glob, &scfg)==NULL) 
-			lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user class",session->socket);
-
-		if(js_CreateFileClass(session->js_cx, session->js_glob)==NULL) 
-			lprintf(LOG_ERR,"%04d !JavaScript ERROR creating File class",session->socket);
-
-		if(js_CreateSocketClass(session->js_cx, session->js_glob)==NULL)
-			lprintf(LOG_ERR,"%04d !JavaScript ERROR creating Socket class",session->socket);
-
-		if(js_CreateMsgBaseClass(session->js_cx, session->js_glob, &scfg)==NULL)
-			lprintf(LOG_ERR,"%04d !JavaScript ERROR creating MsgBase class",session->socket);
-
 		argv=JS_NewArrayObject(session->js_cx, 0, NULL);
 
 		JS_DefineProperty(session->js_cx, session->js_glob, "argv", OBJECT_TO_JSVAL(argv)
@@ -2557,41 +2560,19 @@ static BOOL exec_ssjs(http_session_t* session)  {
 	char		str[MAX_REQUEST_LINE+1];
 	int			i;
 
-	if((js_str=JS_NewStringCopyZ(session->js_cx, session->req.physical_path))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, session->js_request, "real_path", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, session->req.ars))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, session->js_request, "ars", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, session->req.host))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, session->js_request, "host", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, http_vers[session->http_ver]))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, session->js_request, "http_ver", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, session->host_ip))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, session->js_request, "remote_ip", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if((js_str=JS_NewStringCopyZ(session->js_cx, session->host_name))==NULL)
-		return(FALSE);
-	JS_DefineProperty(session->js_cx, session->js_request, "remote_host", STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+	js_add_request_prop(session,"real_path",session->req.physical_path);
+	js_add_request_prop(session,"ars",session->req.ars);
+	js_add_request_prop(session,"request_string",session->req.request_line);
+	js_add_request_prop(session,"host",session->req.host);
+	js_add_request_prop(session,"http_ver",http_vers[session->http_ver]);
+	js_add_request_prop(session,"remote_ip",session->host_ip);
+	js_add_request_prop(session,"remote_host",session->host_name);
 
 	do {
 		/* RUN SCRIPT */
 		JS_ClearPendingException(session->js_cx);
 
-
+		session->js_branch.counter=0;
 
 		if((js_script=JS_CompileFile(session->js_cx, session->js_glob
 			,session->req.physical_path))==NULL) {
@@ -2754,6 +2735,8 @@ void http_session_thread(void* arg)
 	session.last_js_user_num=-1;
 	session.logon_time=0;
 
+	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
+
 	while(!session.finished && server_socket!=INVALID_SOCKET) {
 	    memset(&(session.req), 0, sizeof(session.req));
 		SAFECOPY(session.req.status,"200 OK");
@@ -2807,6 +2790,8 @@ void http_session_thread(void* arg)
 		JS_DestroyRuntime(session.js_runtime);
 		session.js_runtime=NULL;
 	}
+
+	FREE_AND_NULL(session.subscan);
 
 #ifdef _WIN32
 	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
@@ -2870,7 +2855,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.227 $", "%*s %s", revision);
+	sscanf("$Revision: 1.249 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2905,7 +2890,7 @@ void http_logging_thread(void* arg)
 
 	thread_up(TRUE /* setuid */);
 
-	lprintf(LOG_INFO,"%04d http logging thread started", server_socket);
+	lprintf(LOG_DEBUG,"%04d http logging thread started", server_socket);
 
 	for(;!terminate_http_logging_thread;) {
 		struct log_data *ld;
@@ -2969,7 +2954,7 @@ void http_logging_thread(void* arg)
 		logfile=NULL;
 	}
 	thread_down();
-	lprintf(LOG_INFO,"%04d http logging thread terminated",server_socket);
+	lprintf(LOG_DEBUG,"%04d http logging thread terminated",server_socket);
 
 	http_logging_thread_running=FALSE;
 }
@@ -3026,8 +3011,8 @@ void DLLCALL web_server(void* arg)
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
-	if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,"ssjs");
-	if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,"bbs");
+	if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,".ssjs");
+	if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,".bbs");
 
 	sprintf(js_server_props.version,"%s %s",server_name,revision);
 	js_server_props.version_detail=web_ver();
@@ -3313,6 +3298,11 @@ void DLLCALL web_server(void* arg)
 			SAFECOPY(session->host_ip,host_ip);
 			session->addr=client_addr;
    			session->socket=client_socket;
+			session->js_branch.auto_terminate=TRUE;
+			session->js_branch.terminated=&terminate_server;
+			session->js_branch.limit=startup->js_branch_limit;
+			session->js_branch.gc_interval=startup->js_gc_interval;
+			session->js_branch.yield_interval=startup->js_yield_interval;
 
 			_beginthread(http_session_thread, 0, session);
 			served++;
