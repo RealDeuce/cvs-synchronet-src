@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.13 2003/05/18 05:45:54 deuce Exp $
+# $Id: GNUmakefile,v 1.14 2003/05/18 07:12:04 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -73,7 +73,15 @@ CFLAGS	+=	-I../../include/mozilla/js -I$(XPDEV) -I$(UIFC) -I$(SBBS3)
 LFLAGS	+=	-lcurses
 
 ifeq ($(os),netbsd)
- CFLAGS	+=	-D__unix__
+ CFLAGS	+=	-D__unix__ -I/usr/pkg/include
+endif
+
+# So far, only QNX has sem_timedwait() 
+ifeq ($(os),qnx)
+ LFLAGS := -lm -lsocket
+else
+ CFLAGS +=      -DUSE_XP_SEMAPHORES
+ USE_XP_SEMAPHORES      :=      1
 endif
 
 vpath %.c $(UIFC) $(XPDEV) $(SBBS3)
