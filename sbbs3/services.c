@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.14 2001/11/27 18:36:30 rswindell Exp $ */
+/* $Id: services.c,v 1.15 2001/12/01 01:04:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -485,11 +485,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 //	lprintf("%04d JavaScript: Context created",sock);
 
-#if 0
-	lprintf("%04d %s JS_BeginRequest"
-		,sock,service_client->service->protocol);
-	JS_BeginRequest(js_cx);	/* Required for multi-thread support */
-#endif
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	do {
@@ -550,8 +545,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 
 	if(!success) {
-		lprintf("%04d JS_EndRequest",sock);
-		JS_EndRequest(js_cx);		/* Required for multi-thread support */
 		JS_DestroyContext(js_cx);
 		return(NULL);
 	}
