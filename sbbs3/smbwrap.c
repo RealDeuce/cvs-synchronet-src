@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.16 2001/10/24 04:22:17 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.17 2002/02/02 04:09:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
