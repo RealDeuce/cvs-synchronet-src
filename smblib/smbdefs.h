@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.38 2003/09/08 23:06:55 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.39 2003/09/09 10:04:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -551,14 +551,8 @@ typedef struct {				// Message
 				*ftn_flags,		// FTN FLAGS
 				*ftn_msgid,		// FTN MSGID
 				*ftn_reply;		// FTN REPLY
-	union {
-		char*	summary;		// Summary 
-		char*	description;	// (or file description)
-	};
-	union {
-		char*	subj;			// Subject 
-		char*	name;			// (or filename)
-	};
+	char*		summary;		// Summary 
+	char*		subj;			// Subject 
 	ushort		to_agent,		// Type of agent message is to
 				from_agent, 	// Type of agent message is from
 				replyto_agent;	// Type of agent replies should be sent to
