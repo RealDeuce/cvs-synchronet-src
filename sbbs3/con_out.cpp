@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.7 2001/08/24 13:59:42 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.8 2001/08/24 14:18:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -548,10 +548,11 @@ void sbbs_t::attr(int atr)
 /****************************************************************************/
 bool sbbs_t::msgabort()
 {
+#if 0	/* slows down menu display too much */
 	if(sys_status&SS_SYSPAGE) {
 		sbbs_beep(sbbs_random(800),1);
 	}
-
+#endif
 	checkline();
 	if(sys_status&SS_ABORT)
 		return(true);
