@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.121 2002/03/12 17:53:11 rswindell Exp $ */
+/* $Id: main.cpp,v 1.122 2002/03/13 02:32:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2857,7 +2857,7 @@ void node_thread(void* arg)
 		node.status=NODE_WFC;
 	node.misc&=~(NODE_DOWN|NODE_INTR|NODE_MSGW|NODE_NMSG
 				|NODE_UDAT|NODE_POFF|NODE_AOFF|NODE_EXT);
-	node.useron=0;
+/*	node.useron=0; needed for hang-ups while in multinode chat */
 	sbbs->putnodedat(sbbs->cfg.node_num,&node);
 
 	if(node_threads_running>0)
