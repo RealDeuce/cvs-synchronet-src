@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.cfg */
 
-/* $Id: sockopts.c,v 1.1 2002/06/14 08:33:10 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.2 2002/06/14 08:46:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,6 @@ static const sockopt_name option_names[] = {
 	{ "KEEPALIVE",		SO_KEEPALIVE	},
 	{ "DONTROUTE",		SO_DONTROUTE	},
 	{ "BROADCAST",		SO_BROADCAST	},
-	{ "USELOOPBACK",	SO_USELOOPBACK	},
 	{ "OOBINLINE",		SO_OOBINLINE	},
 	{ "SNDBUF",			SO_SNDBUF		},
 	{ "RCVBUF",			SO_RCVBUF		},
