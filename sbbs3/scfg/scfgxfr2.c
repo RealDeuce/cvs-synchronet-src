@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.15 2003/02/19 20:43:20 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.16 2003/07/11 03:05:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1009,6 +1009,8 @@ are later downloaded, set this value to 0.
 						,cfg.dir[i]->misc&DIR_SINCEDL ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","Mark Moved Files as New"
 						,cfg.dir[i]->misc&DIR_MOVENEW ? "Yes":"No");
+					sprintf(opt[n++],"%-27.27s%s","Include Transfers In Stats"
+						,cfg.dir[i]->misc&DIR_NOSTAT ? "No":"Yes");
 					opt[n][0]=0;
 					uifc.savnum=2;
 					SETHELP(WHERE);
@@ -1466,7 +1468,32 @@ appear in users' new-file scans again.
 								cfg.dir[i]->misc&=~DIR_MOVENEW;
                                 uifc.changes=1; }
                             break;
-							} }
+						case 19:
+                            n=cfg.dir[i]->misc&DIR_NOSTAT ? 1:0;
+                            strcpy(opt[0],"Yes");
+                            strcpy(opt[1],"No");
+                            opt[2][0]=0;
+                            SETHELP(WHERE);
+/*
+`Include Transfers In System Statistics:`
+
+If this option is set to ~Yes~, then all files uploaded to or downloaded from
+this directory will be included in the system's daily and cumulative
+statistics.
+*/
+                            n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
+								,"Include Transfers In System Statistics"
+                                ,opt);
+							if(n==1 && !(cfg.dir[i]->misc&DIR_NOSTAT)) {
+								cfg.dir[i]->misc|=DIR_NOSTAT;
+								uifc.changes=1; 
+							} else if(n==0 && cfg.dir[i]->misc&DIR_NOSTAT){
+								cfg.dir[i]->misc&=~DIR_NOSTAT;
+								uifc.changes=1; 
+							}
+                            break;
+					} 
+				}
 				break;
 		case 14:
 			while(1) {
