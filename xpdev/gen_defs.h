@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.25 2004/11/03 03:24:38 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.27 2004/11/19 03:41:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
