@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.16 2000/11/02 12:26:32 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.17 2000/11/02 12:45:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,6 +159,8 @@ extern "C" {
 	DLLEXPORT char*	DLLCALL strupr(char* str);
 	DLLEXPORT char*	DLLCALL strlwr(char* str);
 	DLLEXPORT char* DLLCALL strrev(char* str);
+	DLLEXPORT char* DLLCALL _fullpath(char* absPath, const char* relPath
+										,size_t maxLength);
 
 #else	/* Unsupported OS */
 

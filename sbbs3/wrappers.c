@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.14 2000/11/02 12:26:32 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.15 2000/11/02 12:45:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -309,6 +309,18 @@ char* strrev(char* str)
 	strcpy(str,newstr);
 	free(newstr);
 	return(str);
+}
+#endif
+
+/****************************************************************************/
+/* Create an absolute or full path name for the specified relative path.	*/
+/****************************************************************************/
+#ifdef __unix__
+char* _fullpath(char* absPath, const char* relPath, size_t maxLength)
+{
+#warning "Need _fullpath() equivalent for Unix - not critical"
+	strcpy(absPath,relPath);
+	return(absPath);
 }
 #endif
 
