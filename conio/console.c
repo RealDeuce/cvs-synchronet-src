@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.29 2005/01/24 04:00:36 deuce Exp $ */
+/* $Id: console.c,v 1.30 2005/01/24 09:34:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +92,6 @@
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/user.h>
 
 #include <dlfcn.h>
 #include <fcntl.h>
