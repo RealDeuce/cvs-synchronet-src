@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.48 2003/08/20 10:02:19 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.49 2003/09/25 08:13:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -931,12 +931,12 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	msg->hdr.attr=msg->idx.attr;
 
 
-	smb_hfield(msg,SENDER,strlen(useron.alias),useron.alias);
+	smb_hfield_str(msg,SENDER,useron.alias);
 	sprintf(str,"%u",useron.number);
-	smb_hfield(msg,SENDEREXT,strlen(str),str);
+	smb_hfield_str(msg,SENDEREXT,str);
 
 	username(&cfg,usernumber,touser);
-	smb_hfield(msg,RECIPIENT,strlen(touser),touser);
+	smb_hfield_str(msg,RECIPIENT,touser);
 	sprintf(str,"%u",usernumber);
 	smb_hfield(msg,RECIPIENTEXT,sizeof(str),str);
 	msg->idx.to=usernumber;

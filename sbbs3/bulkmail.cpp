@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.14 2003/08/20 10:45:01 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.15 2003/09/25 08:13:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,13 +94,13 @@ bool sbbs_t::bulkmail(uchar *ar)
 	}
 	msgbuf[length]=0;	/* ASCIIZ */
 
-	smb_hfield(&msg,SENDER,strlen(useron.alias),useron.alias);
+	smb_hfield_str(&msg,SENDER,useron.alias);
 
 	sprintf(str,"%u",useron.number);
-	smb_hfield(&msg,SENDEREXT,strlen(str),str);
+	smb_hfield_str(&msg,SENDEREXT,str);
 	msg.idx.from=useron.number;
 
-	smb_hfield(&msg,SUBJECT,strlen(title),title);
+	smb_hfield_str(&msg,SUBJECT,title);
 	msg.idx.subj=subject_crc(title);
 
 	memset(&smb,0,sizeof(smb));
@@ -185,16 +185,16 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 		return(i);
 
 	SAFECOPY(str,user.alias);
-	smb_hfield(&newmsg,RECIPIENT,strlen(str),str);
+	smb_hfield_str(&newmsg,RECIPIENT,str);
 
 	if(cfg.sys_misc&SM_FWDTONET && user.misc&NETMAIL && user.netmail[0]) {
 		bprintf(text[UserNetMail],user.netmail);
 		nettype=NET_INTERNET;
 		smb_hfield(&newmsg,RECIPIENTNETTYPE,sizeof(nettype),&nettype);
-		smb_hfield(&newmsg,RECIPIENTNETADDR,strlen(user.netmail),user.netmail);
+		smb_hfield_str(&newmsg,RECIPIENTNETADDR,user.netmail);
 	} else {
 		sprintf(str,"%u",usernum);
-		smb_hfield(&newmsg,RECIPIENTEXT,strlen(str),str);
+		smb_hfield_str(&newmsg,RECIPIENTEXT,str);
 		newmsg.idx.to=usernum;
 	}
 

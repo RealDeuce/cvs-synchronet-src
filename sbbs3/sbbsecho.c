@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.108 2003/09/21 10:25:03 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.109 2003/09/25 08:13:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2388,23 +2388,23 @@ int fmsgtosmsg(uchar HUGE16 *fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	destaddr.node=fmsghdr.destnode;
 	destaddr.point=fmsghdr.destpoint;
 
-	smb_hfield(&msg,SENDER,(ushort)strlen(fmsghdr.from),fmsghdr.from);
+	smb_hfield_str(&msg,SENDER,fmsghdr.from);
 	strlwr(fmsghdr.from);
 	if(subnum==INVALID_SUB)
 		msg.idx.from=0;
 	else
 		msg.idx.from=crc16(fmsghdr.from,0);
 
-	smb_hfield(&msg,RECIPIENT,(ushort)strlen(fmsghdr.to),fmsghdr.to);
+	smb_hfield_str(&msg,RECIPIENT,fmsghdr.to);
 	strlwr(fmsghdr.to);
 	msg.idx.to=crc16(fmsghdr.to,0);
 
 	if(user) {
 		sprintf(str,"%u",user);
-		smb_hfield(&msg,RECIPIENTEXT,(ushort)strlen(str),str);
+		smb_hfield_str(&msg,RECIPIENTEXT,str);
 		msg.idx.to=user; }
 
-	smb_hfield(&msg,SUBJECT,(ushort)strlen(fmsghdr.subj),fmsghdr.subj);
+	smb_hfield_str(&msg,SUBJECT,fmsghdr.subj);
 	msg.idx.subj=subject_crc(fmsghdr.subj);
 
 	if(fbuf==NULL) {
@@ -4086,7 +4086,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.108 $", "%*s %s", revision);
+	sscanf("$Revision: 1.109 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
