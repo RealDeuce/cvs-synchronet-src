@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.26 2003/04/28 05:29:11 deuce Exp $
+# $Id: GNUmakefile,v 1.27 2003/04/28 06:24:54 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -116,7 +116,7 @@ $(ODIR):
 	mkdir $(ODIR)
 
 $(MAKEHELP): makehelp.c
-	@$(CC) makehelp.c -o $(MAKEHELP)
+	@$(CC) $(CFLAGS) makehelp.c -o $(MAKEHELP)
 
 $(SCFGHELP): $(OBJS) $(MAKEHELP)
 	@$(MAKEHELP) $(ODIR)
