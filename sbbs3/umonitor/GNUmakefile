@@ -11,7 +11,10 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.14 2003/05/18 07:12:04 deuce Exp $
+# $Id: GNUmakefile,v 1.15 2003/05/31 06:43:27 deuce Exp $
+
+#USE_CURSES	:=	1	#Use old curses UIFC implementation
+USE_UIFC32	:=	1	# Use new uifc32 implementation
 
 # Macros
 ifndef RELEASE
@@ -89,7 +92,6 @@ vpath %.cpp $(SBBS3)
 
 OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/chat.o \
-			$(LIBODIR)/uifcc.o \
 			$(LIBODIR)/sockwrap.o \
 			$(LIBODIR)/dirwrap.o \
 			$(LIBODIR)/genwrap.o \
@@ -110,6 +112,15 @@ OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/getstats.o \
 			$(LIBODIR)/getmail.o \
 			$(LIBODIR)/umonitor.o
+
+ifdef USE_CURSES
+ OBJS	+=	$(LIBODIR)/uifcc.o
+endif
+
+ifdef USE_UIFC32
+ OBJS	+=	$(LIBODIR)/uifc32.o \
+		$(LIBODIR)/ciowrap.o
+endif
 
 all: $(LIBODIR) $(BUILD_DEPENDS)$(EXEODIR)/umonitor
 
