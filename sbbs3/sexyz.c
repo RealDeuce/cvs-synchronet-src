@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.6 2004/08/23 05:20:49 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.7 2004/09/11 09:36:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,8 +127,6 @@ void newline(void)
 {
 	fprintf(statfp,"\n");
 }
-
-#include "truncsp.c"
 
 /**************/
 /* Exit Point */
@@ -1120,7 +1118,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.7 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2003 Rob Swindell\n\n"
