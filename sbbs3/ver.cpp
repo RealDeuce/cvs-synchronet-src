@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.4 2000/10/30 12:29:43 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.5 2000/10/31 13:26:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 
 #define BETA		" alpha"     /* Space if non-beta, " beta" otherwise */
 
-#if defined(__WINSOCKAPI__)
+#if defined(_WINSOCKAPI_)
 	extern WSADATA WSAData;
 #endif
 
@@ -69,7 +69,7 @@ void sbbs_t::ver()
 	center(str);
 	CRLF;
 
-#if defined(__WINSOCKAPI__)
+#if defined(_WINSOCKAPI_)
 
 	center(WSAData.szDescription);
 	CRLF;
