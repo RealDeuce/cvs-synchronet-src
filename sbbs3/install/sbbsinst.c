@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.87 2003/12/08 23:19:41 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.78 2003/03/26 22:50:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,12 +43,17 @@
 #include "conwrap.h"
 #include "uifc.h"
 #include "sbbs.h"
-#include "httpio.h"
+#include "ftpio.h"
 
 /***************/
 /* Definitions */
 /***************/
 #define DEFAULT_CVSROOT		":pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs"
+#define DIST_LIST_URL1		"ftp://ftp.synchro.net/sbbsdist.lst"
+#define DIST_LIST_URL2		"ftp://rob.synchro.net/Synchronet/sbbsdist.lst"
+#define DIST_LIST_URL3		"ftp://cvs.synchro.net/Synchronet/sbbsdist.lst"
+#define DIST_LIST_URL4		"ftp://vert.synchro.net/Synchronet/sbbsdist.lst"
+#define DIST_LIST_URL5		"ftp://freebsd.synchro.net/Synchronet/sbbsdist.lst"
 #define DEFAULT_DISTFILE	"sbbs_src.tgz"
 #define DEFAULT_LIBFILE		"lib-%s.tgz"	/* MUST HAVE ONE %s for system type (os-machine or just os) */
 #define DEFAULT_SYSTYPE		"unix"			/* If no other system type available, use this one */
@@ -62,15 +67,6 @@
 #else
 #define MAKE				"gmake"
 #endif
-
-char *distlists[]={
-	 "http://www.synchro.net/sbbsdist.lst"
-	,"http://rob.synchro.net/sbbsdist.lst"
-	,"http://cvs.synchro.net/sbbsdist.lst"
-	,"http://bbs.synchro.net/sbbsdist.lst"
-	,"http://freebsd.synchro.net/sbbsdist.lst"
-	,NULL	/* terminator */
-};
 
 /*******************/
 /* DistList Format */
@@ -132,8 +128,14 @@ char revision[16];
 
 int  backup_level=5;
 BOOL keep_makefile=FALSE;
-BOOL http_distlist=TRUE;
-BOOL http_verbose=FALSE;
+BOOL ftp_distlist=TRUE;
+BOOL ftp_verbose=FALSE;
+
+/*************/
+/* Constants */
+/*************/
+char *ftp_user="anonymous";
+char *ftp_pass="new@synchro.net";
 
 /**************/
 /* Prototypes */
@@ -142,37 +144,6 @@ void install_sbbs(dist_t *, struct server_ent_t *);
 dist_t **get_distlist(void);
 int choose_dist(char **opts);
 int choose_server(char **opts);
-
-int filereadline(int sock, char *buf, size_t length, char *error)
-{
-	char    ch;
-	int             i;
-
-	for(i=0;1;) {
-		if(read(sock, &ch,1)!=1)  {
-			if(error != NULL)
-				strcpy(error,"Error Reading File");
-			return(-1);
-		}
-
-		if(ch=='\n')
-			break;
-
-		if(i<length)
-			buf[i++]=ch;
-	}
-
-	/* Terminate at length if longer */
-	if(i>length)
-		i=length;
-
-	if(i>0 && buf[i-1]=='\r')
-		buf[--i]=0;
-	else
-		buf[i]=0;
-
-	return(i);
-}
 
 void bail(int code)
 {
@@ -221,7 +192,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.87 $", "%*s %s", revision);
+	sscanf("$Revision: 1.78 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -250,11 +221,10 @@ int main(int argc, char **argv)
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
 				case 'F':
-				case 'H':
-					http_verbose=TRUE;
+					ftp_verbose=TRUE;
 					break;
 				case 'N':
-					http_distlist=FALSE;
+					ftp_distlist=FALSE;
 					break;
 				case 'I':
 					uifc.mode|=UIFC_IBM;
@@ -267,8 +237,8 @@ int main(int argc, char **argv)
                 default:
                     printf("\nusage: %s [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
-						"-n  =  do not HTTP-download distribution list\n"
-						"-h  =  run in HTTP-verbose (debug) mode\n"
+						"-n  =  do not FTP-download distribution list\n"
+						"-f  =  run in FTP-verbose (debug) mode\n"
                         "-d  =  run in standard input/output/door mode\n"
                         "-c  =  force color mode\n"
 #ifdef USE_CURSES
@@ -297,7 +267,7 @@ int main(int argc, char **argv)
 	else
 #elif defined(USE_CURSES)
 	if(!door_mode)
-		i=uifcini32(&uifc);  /* curses */
+		i=uifcinic(&uifc);  /* curses */
 	else
 #elif !defined(__unix__)
 	if(!door_mode)
@@ -530,10 +500,9 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 	char	sbbsgroup[128];
 	int		i;
 	int		fout,ret1,ret2;
-	size_t	flen;
+	long	flen;
 	long	offset;
-	int		remote;
-	char	http_error[128];
+	ftp_FILE	*remote;
 
 	if(params.debug)
 		putenv("DEBUG=1");
@@ -596,27 +565,33 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 					exit(EXIT_FAILURE);
 				}
 				sprintf(url,"%s%s",server->addr,fname);
-				if((remote=http_get_fd(url,&flen,NULL))<0)  {
+				if((remote=ftpGetURL(url,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL)  {
 					/* retry without machine type in name */
 					SAFECOPY(str,fname);
 					sprintf(fname,dist->files[i],params.name.sysname);
 					sprintf(url,"%s%s",server->addr,fname);
 					if(stricmp(str,fname)==0	/* no change in name? */
-						|| (remote=http_get_fd(url,&flen,NULL))<0)  {
+						|| (remote=ftpGetURL(url,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL)  {
 						/* retry using default system-type for system name */
 						sprintf(fname,dist->files[i],DEFAULT_SYSTYPE);
-						if((remote=http_get_fd(url,&flen,http_error))<0)  {
+						if((remote=ftpGetURL(url,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL)  {
 							printf("Cannot get distribution file %s!\n",fname);
-							printf("%s\n- %s\n",url,http_error);
+							printf("%s\n- %s\n",url,ftpErrString(ret1));
 							close(fout);
 							unlink(dstfname);
 							exit(EXIT_FAILURE);
 						}
 					}
 				}
-				printf("Downloading %s           ",url);
+				if((flen=ftpGetSize(remote,fname))<1)  {
+					printf("Cannot get size of distribution file: %s!\n",fname);
+					close(fout);
+					unlink(dstfname);
+					exit(EXIT_FAILURE);
+				}
+				printf("Downloading %s     ",url);
 				offset=0;
-				while((ret1=read(remote,buf,sizeof(buf)))>0)  {
+				while((ret1=remote->read(remote,buf,sizeof(buf)))>0)  {
 					ret2=write(fout,buf,ret1);
 					if(ret2!=ret1)  {
 						printf("\n!ERROR %d writing to %s\n",errno,dstfname);
@@ -625,10 +600,7 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 						exit(EXIT_FAILURE);
 					}
 					offset+=ret2;
-					if(flen)
-						printf("\b\b\b\b\b\b\b\b\b\b%3lu%%      ",(long)(((float)offset/(float)flen)*100.0));
-					else
-						printf("\b\b\b\b\b\b\b\b\b\b%10lu",offset);
+					printf("\b\b\b\b%3lu%%",(long)(((float)offset/(float)flen)*100.0));
 					fflush(stdout);
 				}
 				printf("\n");
@@ -683,6 +655,7 @@ void install_sbbs(dist_t *dist,struct server_ent_t *server)  {
 dist_t **
 get_distlist(void)
 {
+	int ret1,ret2,ret3,ret4,ret5;
 	int i;
 	char	in_line[256];
 	dist_t	**dist;
@@ -693,13 +666,10 @@ get_distlist(void)
 	int		s=0;
 	char*	p;
 	char*	tp;
-	int		list=-1;
+	ftp_FILE	*list=NULL;
 	char	sep[2]={'\t',0};
 	char	str[1024];
-	char	errors[sizeof(distlists)/sizeof(char*)][128];
-	int     (*readline) (int sock, char *buf, size_t length, char *error)=NULL;
 
-	memset(errors,0,sizeof(errors));
 	if((dist=(dist_t **)MALLOC(sizeof(void *)*MAX_DISTRIBUTIONS))==NULL)
 		allocfail(sizeof(void *)*MAX_DISTRIBUTIONS);
 	for(i=0;i<MAX_DISTRIBUTIONS;i++)
@@ -732,33 +702,33 @@ get_distlist(void)
 		strcpy(file[f++],str);
 	}
 
-	if(http_distlist) {
+	if(ftp_distlist) {
 		uifc.pop("Getting distributions");
-		for(i=0;distlists[i]!=NULL;i++)  {
-			if((list=http_get_fd(distlists[i],NULL,errors[i]))>=0)  {
-				readline=sockreadline;
-				break;
-			}
+		if((list=ftpGetURL(DIST_LIST_URL1,ftp_user,ftp_pass,ftp_verbose,&ret1))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL2,ftp_user,ftp_pass,ftp_verbose,&ret2))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL3,ftp_user,ftp_pass,ftp_verbose,&ret3))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL4,ftp_user,ftp_pass,ftp_verbose,&ret4))==NULL
+				&& (list=ftpGetURL(DIST_LIST_URL5,ftp_user,ftp_pass,ftp_verbose,&ret5))==NULL
+				&& r==0)  {
+			uifc.pop(NULL);
+			uifc.bail();
+			printf("Cannot get distribution list!\n"
+				"%s\n- %s\n"
+				"%s\n- %s\n"
+				"%s\n- %s\n"
+				"%s\n- %s\n"
+				"%s\n- %s\n"
+				,DIST_LIST_URL1,ftpErrString(ret1)
+				,DIST_LIST_URL2,ftpErrString(ret2)
+				,DIST_LIST_URL3,ftpErrString(ret3)
+				,DIST_LIST_URL4,ftpErrString(ret4)
+				,DIST_LIST_URL5,ftpErrString(ret5)
+				);
+			exit(EXIT_FAILURE);
 		}
 	}
-	if(list<0)  {
-		if(http_distlist)
-			uifc.pop(NULL);
-		uifc.pop("Loading distlist");
-		if((list=open("./sbbsdist.lst",O_RDONLY))<0)
-			list=open("../sbbsdist.lst",O_RDONLY);
-		if(list>=0)
-			readline=filereadline;
-	}
-	if(list<0)  {
-		uifc.bail();
-		printf("Cannot get distribution list!\n");
-		for(i=0;distlists[i]!=NULL;i++)
-			printf("%s\n- %s\n",distlists[i],errors[i]);
-		exit(EXIT_FAILURE);
-	}
 
-	while(readline != NULL && list>=0 && (readline(list,in_line,sizeof(in_line),NULL)>=0))  {
+	while(list!=NULL && (list->gets(in_line,sizeof(in_line),list))!=NULL)  {
 		i=strlen(in_line);
 		while(i>0 && in_line[i]<=' ')
 			in_line[i--]=0;
@@ -842,8 +812,6 @@ get_distlist(void)
 				tp=p;
 				while(*tp && *tp>' ') tp++;
 					*tp=0;	/* truncate address at first whitespace */
-				if(!strncasecmp(p,"ftp://",6))
-					break;
 				SAFECOPY(server[s]->addr,p);
 				p=tp+1;
 				while(*p && *p<=' ') p++;	/* desc follows whitepsace */
@@ -854,8 +822,6 @@ get_distlist(void)
 	}
 	memset(dist[r],0,sizeof(dist_t));
 	uifc.pop(NULL);
-	if(list>=0)
-		close(list);
 	if(r<1)
 		return(NULL);
 	return(dist);
