@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.191 2002/08/27 11:14:32 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.192 2002/08/29 06:56:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -444,8 +444,8 @@ static BOOL sockgetrsp(SOCKET socket, char* rsp, char *buf, int len)
 
 static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlines)
 {
-	char		toaddr[256];
-	char		fromaddr[256];
+	char		toaddr[256]="";
+	char		fromaddr[256]="";
 	char		date[64];
 	char		filepath[MAX_PATH+1]="";
 	char*		p;
@@ -497,10 +497,10 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 	}
 	if(!s)
 		return(0);
-	if(msg->replyto_net.type==NET_INTERNET)
+	if((p=smb_get_hfield(msg,RFC822REPLYTO,NULL))!=NULL)
+		s=sockprintf(socket,"Reply-To: %s",p);	/* use original RFC822 header field */
+	else if(msg->replyto_net.type==NET_INTERNET)
 		s=sockprintf(socket,"Reply-To: %s",msg->replyto_net.addr);
-	else
-		s=sockprintf(socket,"Reply-To: %s",fromaddr);
 	if(!s)
 		return(0);
 	if(msg->id!=NULL)
@@ -1014,15 +1014,6 @@ static void pop3_thread(void* arg)
 				}
 
 				sockprintf(socket,"+OK message follows");
-#if 0
-				if(msg.from_net.type==NET_INTERNET && msg.from_net.addr!=NULL)
-					SAFECOPY(fromaddr,msg.from_net.addr);
-				else if(msg.from_net.type==NET_QWK && msg.from_net.addr!=NULL)
-					sprintf(fromaddr,"\"%s@%s\"@%s"
-						,msg.from,(char*)msg.from_net.addr,scfg.sys_inetaddr);
-				else 
-					usermailaddr(&scfg,fromaddr,msg.from);	/* unresolved exception here Nov-06-2000 */
-#endif
 				lprintf("%04d POP3 sending message text (%u bytes)"
 					,socket,strlen(msgtxt));
 				lines_sent=sockmsgtxt(socket,&msg,msgtxt,lines);
@@ -2851,7 +2842,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.191 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.192 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
