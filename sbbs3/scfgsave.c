@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.8 2002/01/23 00:12:08 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.9 2002/01/25 00:57:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-int no_msghdr=0,all_msghdr=0;
+BOOL no_msghdr=FALSE,all_msghdr=FALSE;
 
 static char nulbuf[256]={0};
 static int  pslen;
