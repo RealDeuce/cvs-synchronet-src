@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.15 2002/01/25 16:05:20 rswindell Exp $ */
+/* $Id: scfg.c,v 1.16 2002/01/26 15:01:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,9 +155,9 @@ int main(int argc, char **argv)
                         "-f  =  force save of config files\r\n"
                         "-u  =  update all message base status headers\r\n"
                         "-h  =  don't update message base status headers\r\n"
-#if !defined(__unix__)
                         "-d  =  run in standard input/output/door mode\r\n"
                         "-c  =  force color mode\r\n"
+#if !defined(__unix__)
                         "-v# =  set video mode to #\r\n"
 #endif
                         "-l# =  set screen lines to #\r\n"
