@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.8 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.9 2002/05/03 00:49:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,7 @@ extern "C" {
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 	#define CHMOD(s,m)		_chmod(s,m)
-#elif defined(__BORLANDC__)
+#elif defined(__BORLANDC__) && !defined(__unix__)
 	#define CHMOD(p,a)		_rtl_chmod(p,1,a) 	/* _chmod obsolete in 4.x */
 #else	
 	#define CHMOD(s,m)		chmod(s,m)
