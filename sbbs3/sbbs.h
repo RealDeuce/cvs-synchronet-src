@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.207 2003/09/20 07:08:29 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.208 2003/10/03 09:00:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,7 +138,7 @@ public:
 	bbs_startup_t*	startup;
 
 	bool	init(void);
-	bool	terminated;
+	BOOL	terminated;
 
 	client_t client;
 	SOCKET	client_socket;
