@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.77 2001/06/22 02:31:17 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.78 2001/06/22 03:24:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2229,6 +2229,9 @@ static void ctrl_thread(void* arg)
 
 			if((js_user=js_CreateUserObject(js_cx, js_glob, &scfg, "user", &user))==NULL) {
 				lprintf("%04d !JavaScript ERROR creating user object",sock);
+			}
+			if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) {
+				lprintf("%04d !JavaScript ERROR creating client object",sock);
 			}
 			if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user
 				,startup->html_index_file)==NULL) {
