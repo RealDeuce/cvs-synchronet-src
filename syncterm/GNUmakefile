@@ -2,7 +2,7 @@ SRC_ROOT	:=	..
 include ${SRC_ROOT}/build/Common.gmake
 
 ifeq ($(os),sunos)    # Solaris
- LDFLAGS += -lsocket -lnsl -lrt -lcurses -ldl
+ LDFLAGS += -lsocket -lnsl -lrt -lncurses
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 

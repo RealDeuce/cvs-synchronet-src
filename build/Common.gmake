@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.37 2005/03/21 20:22:05 deuce Exp $
+# $Id: Common.gmake,v 1.31 2005/01/20 06:14:17 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -50,7 +50,6 @@
 #  DONT_CLOBBER_CC	- Do not change the default setting of CC				#
 #  OBJPATH_SUFFIX	- Suffix appended to OBJPATH usefull for compiling 		#
 #					  different options of the same source file				#
-#  STATIC			- Create a statically linked build if possible			#
 #																			#
 # Common Build Macros Defined:												#
 #  DELETE			- Delete files (Preferrably verbose)					#
@@ -168,13 +167,7 @@ endif
 os      :=	$(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
 machine		:=	$(shell if uname -m | egrep -v "(i[3456789]|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
-ifeq ($(machine),sparc64)
- CFLAGS +=      -D__BIG_ENDIAN__
-endif
 ifeq ($(machine),sun4u)
- CFLAGS +=      -D__BIG_ENDIAN__
-endif
-ifeq ($(machine),power_macintosh)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
 ifeq ($(machine),)
@@ -188,6 +181,7 @@ OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
 MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
 EXEODIR :=	$(CCPRE).$(machine).exe.$(BUILDPATH)
 LDFLAGS	+=	-L$(LIBODIR)
+LDFLAGS +=  -lm
 
 ifeq ($(os),openbsd)
  DELETE :=	rm -f
@@ -211,11 +205,6 @@ UL_SUF		:=
 OUTPUT		:=	-o
 LOUTPUT		:=	-o
 
-ifdef STATIC
- LDFLAGS	+=	-static
- CFLAGS		+=	-DSTATIC_LINK
-endif
-
 ifeq ($(os),openbsd)
  SOFILE	:=	$(SOFILE).$(VERSION)
 else
@@ -227,7 +216,6 @@ endif
 # OS Specific Flags
 ifeq ($(os),sunos)    # Solaris
  CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_SETENV -DNEEDS_CFMAKERAW
- LDFLAGS	+=	-L/opt/sfw/lib
 endif
 ifeq ($(os),netbsd)	# NetBSD
  CFLAGS	+=	-D__unix__ -I/usr/pkg/include
@@ -255,7 +243,7 @@ else
  else
   ifeq ($(os),netbsd)    # NetBSD
    MT_CFLAGS	+=	-DUSE_XP_SEMAPHORES
-   MT_LDFLAGS    +=   -L/usr/pkg/lib
+   MT_LDFLAGS    +=   -L/usr/pkg/lib -lpthread
    XP_SEM    :=    1
   else
    ifeq ($(os),qnx)    # QNX
@@ -263,15 +251,18 @@ else
     ifeq ($(os),darwin)    # Darwin/Mac OS X
      CFLAGS    += -D__unix__ 
      MT_CFLAGS    += -DUSE_XP_SEMAPHORES -D__DARWIN__
+     MT_LDFLAGS    += -lpthread
      XP_SEM    := 1
     else
      ifeq ($(os),sunos)  # Solaris
       XP_SEM :=    1
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+      MT_LDFLAGS    +=    -lpthread
      else            # Linux / Other UNIX
       XP_SEM :=    1
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+      MT_LDFLAGS    +=    -lpthread
      endif
     endif
    endif
