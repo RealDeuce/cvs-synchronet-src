@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.70 2002/03/20 00:56:28 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.71 2002/03/24 10:19:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -687,13 +687,6 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
-
-	if(putenv("TZ=UCT0")) {
-    	Application->MessageBox("Error settings timezone"
-        	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
-        Application->Terminate();
-    }
-	tzset();
 
     // Read Registry keys
 	TRegistry* Registry=new TRegistry;
@@ -1577,6 +1570,15 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
         return;
+    }
+
+    if(!(cfg.sys_misc&SM_LOCAL_TZ)) {
+    	if(putenv("TZ=UTC0")) {
+        	Application->MessageBox("Error settings timezone"
+            	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
+            Application->Terminate();
+        }
+    	tzset();
     }
 
     if(FirstRun) {
