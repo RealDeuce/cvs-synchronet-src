@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.148 2002/04/25 22:16:31 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.149 2002/04/26 03:57:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2754,6 +2754,7 @@ void DLLCALL mail_server(void* arg)
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
 		lprintf("Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
+		error[0]=0;
 		if(!load_cfg(&scfg, NULL, TRUE, error)) {
 			lprintf("!ERROR %s",error);
 			lprintf("!Failed to load configuration files");
