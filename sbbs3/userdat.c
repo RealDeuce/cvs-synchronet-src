@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.70 2003/05/15 04:07:07 rswindell Exp $ */
+/* $Id: userdat.c,v 1.71 2003/05/15 05:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -942,7 +942,7 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
                     strcat(str,"performing sysop activities");
                     break;
                 default:
-                    itoa(node->action,str+strlen(str),10);
+                    sprintf(str+strlen(str),"%d",node->action);
                     break;  
 			}
             if(!node->connection)
