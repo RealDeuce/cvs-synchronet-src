@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.10 2001/10/17 19:20:45 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.11 2001/10/24 02:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -345,7 +345,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	len = len > sizeof(buf)-1 ? sizeof(buf)-1 : len;
 
 	start=time(NULL);
-	for(i=0;i<len;i++) {
+	for(i=0;i<len;) {
 
 		if(!socket_check(p->sock,&rd)) {
 			p->last_error=ERROR_VALUE;
@@ -354,8 +354,10 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(time(NULL)-start>TIMEOUT_SOCK_READLINE) 
 			break;		/* time-out */
 
-		if(!rd)
+		if(!rd) {
+			mswait(1);
 			continue;	/* no data */
+		}
 
 		if(recv(p->sock, &ch, 1, 0)!=1) {
 			p->last_error=ERROR_VALUE;
@@ -365,7 +367,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(ch=='\n' && i>=1) 
 			break;
 
-		buf[i]=ch;
+		buf[i++]=ch;
 	}
 	if(i>0)
 		buf[i-1]=0;
