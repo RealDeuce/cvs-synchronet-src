@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.11 2002/07/21 07:03:14 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.12 2002/08/05 23:19:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,10 @@
 #define _DIRWRAP_H
 
 #include <stdlib.h>		/* _fullpath() on Win32 */
+
+#ifdef __FreeBSD__		/* FreeBSD-specific */
+	#include <sys/param.h>	/* PATH_MAX */
+#endif
 
 #include "gen_defs.h"	/* ulong */
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
@@ -148,9 +152,21 @@ extern "C" {
 #endif
 
 #if defined(__unix__)
-#define BACKSLASH	'/'
+	#define BACKSLASH	'/'
 #else /* MS-DOS based OS */
-#define BACKSLASH	'\\'
+	#define BACKSLASH	'\\'
+#endif
+
+#if !defined(MAX_PATH)	/* maximum path length */
+	#if defined MAXPATHLEN
+		#define MAX_PATH MAXPATHLEN	/* clib.h */
+	#elif defined PATH_MAX
+		#define MAX_PATH PATH_MAX
+	#elif defined _MAX_PATH
+		#define MAX_PATH _MAX_PATH
+	#else
+		#define MAX_PATH 260		
+	#endif
 #endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__)

@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.4 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.5 2002/08/05 23:19:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,18 +86,6 @@ enum {
 	,CTRL_Y
 	,CTRL_Z
 };
-
-#ifndef MAX_PATH
-	#if defined MAXPATHLEN
-		#define MAX_PATH MAXPATHLEN	/* clib.h */
-	#elif defined PATH_MAX
-		#define MAX_PATH PATH_MAX
-	#elif defined _MAX_PATH
-		#define MAX_PATH _MAX_PATH
-	#else
-		#define MAX_PATH 260		
-	#endif
-#endif
 
 /* Unsigned type short-hands	*/
 #ifndef uchar
