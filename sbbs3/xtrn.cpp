@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.102 2002/12/30 21:47:59 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.103 2002/12/31 00:50:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1051,6 +1051,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	ulong	avail;
     ulong	output_len;
 	bool	native=false;			// DOS program by default
+	bool	rio_abortable_save;
 	int		i;
 	int		rd;
 	int		wr;
@@ -1236,6 +1237,12 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	}
 
 	lprintf("Node %d executing external: %s",cfg.node_num,cmdline);
+
+	/* Disable Ctrl-C checking */
+	if(!(mode&EX_OFFLINE)) {
+		rio_abortable_save=rio_abortable;
+		rio_abortable=false;
+	}
 	
 	if(mode&EX_OUTR) {
 		if(!(mode&EX_INR))
@@ -1328,6 +1335,18 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	}
 
 	waitpid(pid, &i, 0); /* Wait for child to terminate */
+
+	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
+
+		curatr=~0;			// Can't guarantee current attributes
+		attr(LIGHTGRAY);	// Force to "normal"
+
+		rio_abortable=rio_abortable_save;	// Restore abortable state
+
+		/* Got back to Text/NVT mode */
+		send_telnet_cmd(TELNET_DONT,TELNET_BINARY);
+		telnet_mode&=~TELNET_MODE_BIN_RX;
+	}
 
 	pthread_mutex_unlock(&input_thread_mutex);
 
