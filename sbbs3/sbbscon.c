@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.142 2003/09/02 18:46:13 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.143 2003/09/16 04:05:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -896,7 +896,7 @@ int main(int argc, char** argv)
 	node_t	node;
 #ifdef __unix__
 	char	daemon_type[2];
-	char	value[MAX_VALUE_LEN];
+	char	value[INI_MAX_VALUE_LEN];
 	struct passwd* pw_entry;
 	struct group*  gr_entry;
 	sigset_t			sigs;
