@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.35 2003/11/02 00:19:59 deuce Exp $ */
+/* $Id: genwrap.c,v 1.36 2003/11/03 00:10:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,6 +142,7 @@ void DLLCALL unix_beep(int freq, int dur)
 {
 	static int console_fd=-1;
 
+#if !defined(__OpenBSD__) && !defined(__GNU__) && !defined(__NetBSD__) && !defined(__QNX__)
 #if defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__)
 	int speaker_fd=-1;
 	tone_t tone;
@@ -175,6 +176,7 @@ void DLLCALL unix_beep(int freq, int dur)
 #endif /* solaris */
 	}
 #endif
+#endif /* Nasty Kludge */
 }
 #endif
 
