@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: CodeInputFormUnit.cpp,v 1.2 2002/01/17 23:27:35 rswindell Exp $ */
+/* $Id: CodeInputFormUnit.cpp,v 1.3 2002/02/20 01:07:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,10 @@ __fastcall TCodeInputForm::TCodeInputForm(TComponent* AOwner)
 //---------------------------------------------------------------------
 void __fastcall TCodeInputForm::FormShow(TObject *Sender)
 {
-	ActiveControl=ComboBox;	
+	if(Edit->Visible)
+    	ActiveControl=Edit;
+    else
+		ActiveControl=ComboBox;
 }
 //---------------------------------------------------------------------------
 
