@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.7 2000/11/08 02:04:04 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.8 2000/11/09 01:19:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,10 +117,9 @@ void sbbs_t::ver()
 	if(uname(&unixver)!=0)
 		sprintf(str,"Unix (uname errno: %d)",errno);
 	else
-		sprintf(str,"%s %s %s %s"
+		sprintf(str,"%s %s %s"
 			,unixver.sysname	/* e.g. "Linux" */
 			,unixver.release	/* e.g. "2.2.14-5.0" */
-			,unixver.version	/* e.g. "#1 Tue Mar 7 20:53:41 EST 2000" */
 			,unixver.machine	/* e.g. "i586" */
 			);
 
