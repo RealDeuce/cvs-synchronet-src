@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.64 2004/02/19 23:06:57 rswindell Exp $ */
+/* $Id: js_file.c,v 1.63 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1039,17 +1039,19 @@ js_fprintf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	memset(arglist,0,sizeof(arglist));	/* Initialize arglist to NULLs */
 
     for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
-		if(JSVAL_IS_DOUBLE(argv[i]))
-			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
-		else if(JSVAL_IS_INT(argv[i]))
-			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
-		else {
+		if(JSVAL_IS_STRING(argv[i])) {
 			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
 				JS_ReportError(cx,"JS_ValueToString failed");
 			    return(JS_FALSE);
 			}
-			arglist[i-1]=JS_GetStringBytes(str);
+			arglist[i-1]=JS_GetStringBytes(str);	/* exception here July-29-2002 */
 		}
+		else if(JSVAL_IS_DOUBLE(argv[i]))
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
+		else if(JSVAL_IS_INT(argv[i]) || JSVAL_IS_BOOLEAN(argv[i]))
+			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else
+			arglist[i-1]=NULL;
 	}
 
 	if((cp=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL) {
