@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.46 2003/01/23 11:00:36 rswindell Exp $
+# $Id: GNUmakefile,v 1.47 2003/02/07 21:34:47 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -67,7 +67,7 @@ EXEODIR :=	$(CCPRE).$(os).exe.$(BUILD)
 
 DELETE	=	rm -f
 
-CFLAGS	+=	-DJAVASCRIPT -I../mozilla/js/src -I$(XPDEV) -I$(UIFC)
+CFLAGS	+=	-DJAVASCRIPT -I../../include/mozilla/js -I$(XPDEV) -I$(UIFC)
 
 ifdef BSD	# BSD
  CFLAGS	+=	-D_THREAD_SAFE
