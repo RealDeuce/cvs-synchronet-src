@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.30 2003/06/06 23:27:18 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.31 2003/11/05 03:58:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 	char	str[MAX_PATH+1],fname[MAX_PATH+1]
 			,*AttemptedToUploadREPpacket="Attempted to upload REP packet";
 	char 	tmp[512];
+	char	from[26];
+	char	to[26];
 	char	inbox[MAX_PATH+1];
 	char	block[QWK_BLOCK_LEN];
 	int 	file;
@@ -342,13 +344,17 @@ bool sbbs_t::unpack_rep(char* repfile)
 			/* TWIT FILTER */
 			if(twit_list) {
 				sprintf(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-				sprintf(str,"%25.25s",block+46);  /* From user */
-				truncsp(str);
+				sprintf(from,"%25.25s",block+46);	/* From user */
+				truncsp(from);
+				sprintf(to,"%25.25s",block+21);		/* To user */
+				truncsp(to);
 
-				if(findstr(str,fname)) {
-					sprintf(tmp,"Filtering post from twit (%s) on %s %s"
-						,str,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
-					logline("P!",tmp);
+				if(findstr(from,fname) || findstr(to,fname)) {
+					sprintf(str,"Filtering post from %s to %s on %s %s"
+						,from
+						,to
+						,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
+					logline("P!",str);
 					continue; 
 				}
 			}

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.114 2003/10/28 00:21:36 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.115 2003/11/05 03:58:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2340,8 +2340,8 @@ int fmsgtosmsg(uchar HUGE16 *fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 
 	if(twit_list) {
 		sprintf(fname,"%stwitlist.cfg",scfg.ctrl_dir);
-		if(findstr(fmsghdr.from,fname)) {
-			printf("Filtering message from twit: %s",fmsghdr.from);
+		if(findstr(fmsghdr.from,fname) || findstr(fmsghdr.to,fname)) {
+			printf("Filtering message from %s to %s",fmsghdr.from,fmsghdr.to);
 			return(0);
 		}
 	}
@@ -4067,7 +4067,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.114 $", "%*s %s", revision);
+	sscanf("$Revision: 1.115 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
