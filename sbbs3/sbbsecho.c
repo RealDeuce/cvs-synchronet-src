@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.89 2003/02/14 17:32:02 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.90 2003/02/14 22:07:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,7 +316,6 @@ char *cmdstr(scfg_t* cfg, char *instr, char *fpath, char *fspec)
 int execute(char *cmdline)
 {
 #if 1
-	printf("Executing: %s\n",cmdline);
 	return system(cmdline);
 #else
 	char c,d,e,cmdlen,*arg[30],str[256];
@@ -1520,7 +1519,6 @@ void pack(char *srcfile,char *destfile,faddr_t dest)
 	int i,j;
 	uint use=0;
 
-	printf("Executing\n");
 	i=matchnode(dest,0);
 	if(i<cfg.nodecfgs)
 		use=cfg.nodecfg[i].arctype;
@@ -4024,7 +4022,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.89 $", "%*s %s", revision);
+	sscanf("$Revision: 1.90 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
