@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.43 2004/09/20 05:23:20 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.42 2004/09/11 02:47:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,7 +159,7 @@ BOOL DLLCALL write_node_cfg(scfg_t* cfg, int backup_level)
 	if(cfg->prepped)
 		return(FALSE);
 
-	if(cfg->node_num<1 || cfg->node_num>MAX_NODES)
+	if(cfg->node_num<1)
 		return(FALSE);
 
 	SAFECOPY(str,cfg->node_path[cfg->node_num-1]);
