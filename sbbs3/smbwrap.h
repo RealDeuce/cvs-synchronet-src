@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.14 2001/10/30 18:32:02 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.15 2002/01/26 14:50:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,9 +71,11 @@
 	#define SH_DENYNO	2          // no locks
 	#define SH_DENYRW	F_WRLCK	   // exclusive lock
 	#define SH_DENYWR   F_RDLCK    // shareable lock
-
-	#define stricmp(x,y)		strcasecmp(x,y)
-	#define strnicmp(x,y,z)		strncasecmp(x,y,z)
+	
+	#if !defined(stricmp)
+		#define stricmp(x,y)		strcasecmp(x,y)
+		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
+	#endif
 	#define chsize(fd,size)		ftruncate(fd,size)
 
 #endif
