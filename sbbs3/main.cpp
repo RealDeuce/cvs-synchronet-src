@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.150 2002/06/14 09:53:59 rswindell Exp $ */
+/* $Id: main.cpp,v 1.151 2002/06/16 21:14:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1343,7 +1343,7 @@ void event_thread(void* arg)
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call,nulstr,nulstr,NULL)
-						,EX_OFFLINE|EX_BG);
+						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
 				}
 			} 
 		}
@@ -1386,7 +1386,7 @@ void event_thread(void* arg)
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.phub[i]->call,nulstr,nulstr,NULL)
-						,EX_OFFLINE|EX_BG);
+						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
 				} 
 			}
 		}
