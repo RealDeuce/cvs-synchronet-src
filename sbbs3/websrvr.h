@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.15 2003/10/11 11:26:17 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.16 2003/10/15 09:10:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +79,7 @@ typedef struct {
     char	host_name[128];
 	BOOL	recycle_now;
 	sem_t	recycle_sem;
+	DWORD	log_mask;
 
 } web_startup_t;
 

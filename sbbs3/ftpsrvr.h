@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.33 2003/10/11 11:26:16 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.34 2003/10/15 09:10:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,6 +81,7 @@ typedef struct {
     char	host_name[128];
 	BOOL	recycle_now;
 	sem_t	recycle_sem;
+	DWORD	log_mask;
 
 } ftp_startup_t;
 
