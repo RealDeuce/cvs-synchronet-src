@@ -1,8 +1,4 @@
-/* msg_id.c */
-
-/* Synchronet Message-ID generation routines */
-
-/* $Id: msg_id.c,v 1.2 2004/10/21 07:34:33 rswindell Exp $ */
+/* $Id: WebFormUnit.cpp,v 1.2 2004/10/18 00:04:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,58 +30,20 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+//---------------------------------------------------------------------------
 
-#include "sbbs.h"
+#include <vcl.h>
+#pragma hdrstop
 
-static ulong msgid_serialno(smbmsg_t* msg)
+#include "WebFormUnit.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TWebForm *WebForm;
+//---------------------------------------------------------------------------
+__fastcall TWebForm::TWebForm(TComponent* Owner)
+    : TForm(Owner)
 {
-	return (msg->idx.time-1000000000) + msg->idx.number;
+	MainForm=(TMainForm*)Application->MainForm;
 }
-
-/****************************************************************************/
-/* Returns a FidoNet (FTS-9) message-ID										*/
-/****************************************************************************/
-char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg)
-{
-	static char msgid[256];
-
-	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0)
-		return(msg->ftn_msgid);
-
-	snprintf(msgid,sizeof(msgid)
-		,"%lu.%s@%s %08lx"
-		,msg->idx.number
-		,sub->code
-		,smb_faddrtoa(&sub->faddr,NULL)
-		,msgid_serialno(msg)
-		);
-
-	return(msgid);
-}
-
-/****************************************************************************/
-/* Return a general purpose (RFC-822) message-ID							*/
-/****************************************************************************/
-char* DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg)
-{
-	static char msgid[256];
-
-	if(msg->id!=NULL && *msg->id!=0)
-		return(msg->id);
-
-	if(subnum>=cfg->total_subs)
-		snprintf(msgid,sizeof(msgid)
-			,"<%08lX.%lu@%s>"
-			,msg->idx.time
-			,msg->idx.number
-			,cfg->sys_inetaddr);
-	else
-		snprintf(msgid,sizeof(msgid)
-			,"<%08lX.%lu.%s@%s>"
-			,msg->idx.time
-			,msg->idx.number
-			,cfg->sub[subnum]->code
-			,cfg->sys_inetaddr);
-
-	return(msgid);
-}
+//---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.49 2004/09/26 20:06:44 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.51 2004/10/23 00:39:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,7 @@ typedef struct {
 	int 	(*lputs)(void*, int, char*);
 	void	(*status)(void*, char*);
     void	(*started)(void*);
+	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
     void	(*clients)(void*, int active);
     void	(*thread_up)(void*, BOOL up, BOOL setuid);
@@ -81,7 +82,6 @@ typedef struct {
     char	default_user[128];
     char	dnsbl_tag[32];		// Tag to add to blacklisted subject
 	char	dnsbl_hdr[32];		// Header field to add to msg header
-    char	proc_cfg_file[128];
 	char	inbound_sound[128];
 	char	outbound_sound[128];
     char	pop3_sound[128];
