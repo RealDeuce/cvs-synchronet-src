@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.2 2002/10/31 03:36:03 rswindell Exp $ */
+/* $Id: filelist.c,v 1.3 2002/10/31 10:05:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 	time_t	uld,dld;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.2 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.3 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 		if(misc&AUTO && scfg.dir[i]->seqdev) 	/* CD-ROM */
 			continue;
 		printf("\n%-*s %s",LEN_GSNAME,scfg.lib[scfg.dir[i]->lib]->sname,scfg.dir[i]->lname);
-		sprintf(str,"%s%s.IXB",scfg.dir[i]->data_dir,scfg.dir[i]->code);
+		sprintf(str,"%s%s.ixb",scfg.dir[i]->data_dir,scfg.dir[i]->code);
 		if((file=nopen(str,O_RDONLY))==-1)
 			continue;
 		l=filelength(file);
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 			FREE((char *)ixbbuf);
 			continue; }
 		close(file);
-		sprintf(str,"%s%s.DAT",scfg.dir[i]->data_dir,scfg.dir[i]->code);
+		sprintf(str,"%s%s.dat",scfg.dir[i]->data_dir,scfg.dir[i]->code);
 		if((file=nopen(str,O_RDONLY))==-1) {
 			printf("\7ERR_OPEN %s %u\n",str,O_RDONLY);
 			FREE((char *)ixbbuf);
@@ -435,7 +435,7 @@ int main(int argc, char **argv)
 
 			if(misc&EXT && ext) {							/* Print ext desc */
 
-				sprintf(str,"%s%s.EXB",scfg.dir[i]->data_dir,scfg.dir[i]->code);
+				sprintf(str,"%s%s.exb",scfg.dir[i]->data_dir,scfg.dir[i]->code);
 				if(!fexist(str))
 					continue;
 				if((j=nopen(str,O_RDONLY))==-1) {
