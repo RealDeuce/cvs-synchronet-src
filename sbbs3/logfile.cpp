@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.35 2004/02/14 07:18:25 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.36 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,7 +188,7 @@ void sbbs_t::logch(char ch, bool comma)
 {
 
 	if(logfile_fp==NULL || (online==ON_LOCAL)) return;
-	if((uchar)ch<SP)	/* Don't log control chars */
+	if((uchar)ch<' ')	/* Don't log control chars */
 		return;
 	if(logcol==1) {
 		logcol=4;
@@ -204,7 +204,7 @@ void sbbs_t::logch(char ch, bool comma)
 	}
 	if(ch&0x80) {
 		ch&=0x7f;
-		if(ch<SP)
+		if(ch<' ')
 			return;
 		fprintf(logfile_fp,"/"); 
 	}
