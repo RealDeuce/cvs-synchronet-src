@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.1 2004/09/11 09:27:44 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.5 2004/09/15 20:24:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 
 /****************************************************************************/
 /****************************************************************************/
-int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
+int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
 					   ,ushort xlat, const uchar* body, const uchar* tail)
 {
 	uchar*		lzhbuf=NULL;
@@ -82,12 +82,14 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 
 		msg->hdr.number=smb->status.last_msg+1;
 
-		hashes=smb_msghashes(msg,body,dupechk);
+		hashes=smb_msghashes(msg,body);
 
-		if(smb_findhash(smb, hashes, &found, /* update? */FALSE)==SMB_SUCCESS) {
+		if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"duplicate %s hash found (message #%lu)"
-				,smb_hashsource(found.source), found.number);
+				,"duplicate %s: %s found in message #%lu"
+				,smb_hashsourcetype(found.source)
+				,smb_hashsource(msg,found.source)
+				,found.number);
 			retval=SMB_DUPE_MSG;
 			break;
 		}
@@ -102,7 +104,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, BOOL dupechk
 				bodylen--;
 
 			/* Calculate CRC-32 of message text (before encoding, if any) */
-			if(smb->status.max_crcs && dupechk) {
+			if(smb->status.max_crcs && dupechk_hashes&SMB_HASH_SOURCE_BODY) {
 				for(l=0;l<bodylen;l++)
 					crc=ucrc32(body[l],crc); 
 				crc=~crc;
