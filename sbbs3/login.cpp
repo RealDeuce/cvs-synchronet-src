@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.8 2002/01/21 03:27:04 rswindell Exp $ */
+/* $Id: login.cpp,v 1.9 2002/03/05 13:10:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,14 +38,17 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-int sbbs_t::login(char *str, char *pw)
+int sbbs_t::login(char *username, char *pw)
 {
+	char	str[128];
 	char 	tmp[512];
 	long	useron_misc=useron.misc;
 
 	useron.number=0;
 	if(cfg.node_dollars_per_call && noyes(text[AreYouSureQ]))
 		return(LOGIC_FALSE);
+
+	sprintf(str,"%.*s",sizeof(str)-1,username);
 
 	if(str[0]=='*') {
 		memmove(str,str+1,strlen(str));
