@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.6 2000/11/02 12:25:33 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.7 2000/11/02 13:02:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,13 +95,15 @@ extern "C" {
 #endif
 
 #if !defined(__BORLANDC__)
-	int		lock(int fd, long pos, int len);
-	int		unlock(int fd, long pos, int len);
+	SMBEXPORT int	SMBCALL	lock(int fd, long pos, int len);
+	SMBEXPORT int	SMBCALL unlock(int fd, long pos, int len);
 #endif
 
 #if defined(__unix__)
-	int		sopen(char *fn, int access, int share);
-	long	filelength(int fd);
+	SMBEXPORT int	SMBCALL sopen(char *fn, int access, int share);
+	SMBEXPORT long	SMBCALL filelength(int fd);
+	SMBEXPORT char*	SMBCALL strupr(char* str);
+	SMBEXPORT char*	SMBCALL strlwr(char* str);
 #endif
 
 SMBEXPORT BOOL	SMBCALL fexist(char *filespec);

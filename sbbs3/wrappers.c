@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.15 2000/11/02 12:45:47 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.16 2000/11/02 13:02:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,35 +265,9 @@ char* DLLCALL ultoa(ulong val, char* str, int radix)
 #endif
 
 /****************************************************************************/
-/* Convert ASCIIZ string to upper case										*/
-/****************************************************************************/
-#ifdef __unix__
-char* strupr(char* str)
-{
-	char* p=str;
-
-	while(*p) {
-		*p=toupper(*p);
-		p++;
-	}
-	return(str);
-}
-/****************************************************************************/
-/* Convert ASCIIZ string to lower case										*/
-/****************************************************************************/
-char* strlwr(char* str)
-{
-	char* p=str;
-
-	while(*p) {
-		*p=tolower(*p);
-		p++;
-	}
-	return(str);
-}
-/****************************************************************************/
 /* Reverse characters of a string											*/
 /****************************************************************************/
+#ifdef __unix__
 char* strrev(char* str)
 {
 	char*	newstr;
