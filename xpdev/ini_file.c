@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.41 2004/07/03 00:16:14 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.36 2004/06/17 00:29:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,11 +137,6 @@ static char* key_name(char* p, char** vp)
 	char* equal;
 	char* colon;
 
-    *vp=NULL;
-    
-	if(p==NULL)
-		return(NULL);
-
 	/* Parse value name */
 	SKIP_WHITESPACE(p);
 	if(*p==INI_COMMENT_CHAR)
@@ -225,57 +220,6 @@ static size_t find_value_index(str_list_t list, const char* section, const char*
 	return(i);
 }
 
-BOOL iniKeyExists(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-	size_t	i;
-
-	i=find_value_index(*list, section, key, val);
-
-	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR)
-		return(FALSE);
-
-	return(TRUE);
-}
-
-BOOL iniValueExists(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-
-	find_value_index(*list, section, key, val);
-
-	return(val[0]!=0);
-}
-
-BOOL iniRemoveKey(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-	size_t	i;
-
-	i=find_value_index(*list, section, key, val);
-
-	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR)
-		return(FALSE);
-
-	return(strListDelete(list,i));
-}
-
-BOOL iniRemoveValue(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-	size_t	i;
-	char*	vp=NULL;
-
-	i=find_value_index(*list, section, key, val);
-
-    key_name((*list)[i], &vp);
-	if(vp==NULL)
-		return(FALSE);
-
-	*vp=0;	/* Terminate string at beginning of value */
-	return(TRUE);
-}
-
 size_t iniAddSection(str_list_t* list, const char* section
 					,ini_style_t* style)
 {
@@ -316,10 +260,8 @@ char* iniSetString(str_list_t* list, const char* section, const char* key, const
 		style->value_separator="=";
 	sprintf(str, "%s%-*s%s%s", style->key_prefix, style->key_len, key, style->value_separator, value);
 	i=find_value_index(*list, section, key, curval);
-	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
-        while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
+	if((*list)[i]==NULL)
 		return strListInsert(list, str, i);
-    }
 
 	if(strcmp(curval,value)==0)
 		return((*list)[i]);	/* no change */

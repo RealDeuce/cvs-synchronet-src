@@ -21,7 +21,6 @@ struct bbslist_file {
 	unsigned int	calls;
 	char			user[MAX_USER_LEN+1];
 	char			password[MAX_PASSWD_LEN+1];
-	int				dumb;
 };
 
 void sort_list(struct bbslist **list)  {
@@ -70,7 +69,6 @@ void write_list(struct bbslist **list)
 			bbs.added=list[i]->added;
 			bbs.connected=list[i]->connected;
 			bbs.calls=list[i]->calls;
-			bbs.dumb=list[i]->dumb;
 			strcpy(bbs.user,list[i]->user);
 			strcpy(bbs.password,list[i]->password);
 			fwrite(&bbs,sizeof(bbs),1,listfile);
@@ -105,7 +103,6 @@ void read_list(char *listpath, struct bbslist **list, int *i, int type)
 			list[*i]->calls=bbs.calls;
 			strcpy(list[*i]->user,bbs.user);
 			strcpy(list[*i]->password,bbs.password);
-			list[*i]->dumb=bbs.dumb;
 			list[*i]->type=type;
 			list[*i]->id=(*i)++;
 		}
@@ -129,9 +126,7 @@ int edit_list(struct bbslist *item)
 	if(item->type==SYSTEM_BBSLIST) {
 		uifc.helpbuf=	"`Cannot edit system BBS list`\n\n"
 						"SyncTERM supports system-wide and per-user lists.  You may only edit entries"
-						"in your own personal list.\n"
-						"\n"
-						"The Be Dumb option can be used to connect to BBSs which support 'dumb' telnet";
+						"in your own personal list.\n";
 		uifc.msg("Cannot edit system BBS list");
 		return(0);
 	}
@@ -142,7 +137,6 @@ int edit_list(struct bbslist *item)
 		sprintf(opt[2],"RLogin Port:    %hu",item->port);
 		sprintf(opt[3],"Username:       %s",item->user);
 		sprintf(opt[4],"Password");
-		sprintf(opt[5],"Be Dumb:        %s",item->dumb?"Yes":"No");
 		uifc.changes=0;
 
 		uifc.helpbuf=	"`Edit BBS`\n\n"
@@ -212,7 +206,6 @@ struct bbslist *show_bbslist(int mode)
 	int		val;
 	int		listcount=0;
 	char	str[6];
-	char	*YesNo[3]={"Yes","No",""};
 
 	if(init_uifc())
 		return(NULL);
@@ -308,24 +301,12 @@ struct bbslist *show_bbslist(int mode)
 								j=0;
 							list[listcount-1]->port=j;
 						}
-						if(list[listcount-1]->port != 513) {
-							uifc.helpbuf=	"`Be Dumb`\n\n"
-											"Select this option if attempting to connect to a dumb telnet BBS";
-							list[listcount-1]->dumb=0;
-							uifc.list(WIN_MID|WIN_SAV,0,0,0,&list[listcount-1]->dumb,NULL,"Be Dumb",YesNo);
-						}
-						if(list[listcount-1]->dumb) {
-							uifc.helpbuf=	"`Username`\n\n"
-											"Enter the username to attempt auto-login to the remote with.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"User Name",list[listcount-1]->user,MAX_USER_LEN,K_EDIT);
-							uifc.helpbuf=	"`Password`\n\n"
-											"Enter your password for auto-login.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Password",list[listcount-1]->password,MAX_PASSWD_LEN,K_EDIT);
-						}
-						else {
-							list[listcount-1]->user[0]=0;
-							list[listcount-1]->password[0]=0;
-						}
+						uifc.helpbuf=	"`Username`\n\n"
+										"Enter the username to attempt auto-login to the remote with.";
+						uifc.input(WIN_MID|WIN_SAV,0,0,"User Name",list[listcount-1]->user,MAX_USER_LEN,K_EDIT);
+						uifc.helpbuf=	"`Password`\n\n"
+										"Enter your password for auto-login.";
+						uifc.input(WIN_MID|WIN_SAV,0,0,"Password",list[listcount-1]->password,MAX_PASSWD_LEN,K_EDIT);
 						sort_list(list);
 						for(j=0;list[j]->name[0];j++) {
 							if(list[j]->id==listcount-1)
