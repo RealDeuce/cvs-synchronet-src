@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.21 2002/03/13 18:17:17 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.22 2002/04/13 09:07:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -766,7 +766,7 @@ void sbbs_t::maindflts(user_t* user)
 		if(user->rows)
 			ultoa(user->rows,tmp,10);
 		else
-			sprintf(tmp,"Auto Detect (%d)",rows);
+			sprintf(tmp,"Auto Detect (%ld)",rows);
 		bprintf(text[UserDefaultsRows],tmp);
 		if(cfg.total_shells>1)
 			bprintf(text[UserDefaultsCommandSet]
