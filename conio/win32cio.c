@@ -1,3 +1,36 @@
+/* $Id: win32cio.c,v 1.27 2004/10/01 01:54:34 deuce Exp $ */
+
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
+
 #include <windows.h>	/* INPUT_RECORD, etc. */
 #include <genwrap.h>
 #include <stdio.h>		/* stdin */
@@ -8,6 +41,15 @@
 #define VID_MODES	7
 
 const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
+
+const int	altkeys[26]={
+	 30,48,46,32
+	,18,33,34,35
+	,23,36,37,38
+	,50,49,24,25
+	,16,19,31,20
+	,22,47,17,45
+	,21,44};
 
 struct vid_mode {
 	int	mode;
@@ -101,7 +143,7 @@ int win32_kbhit(void)
 				if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
 					ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
 				}
-				if(!input.Event.MouseEvent.dwEventFlags) {
+				if(last_state != input.Event.MouseEvent.dwButtonState) {
 					switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
 						case FROM_LEFT_1ST_BUTTON_PRESSED:
 							if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
@@ -132,7 +174,6 @@ int win32_kbhit(void)
 
 int win32_getch(void)
 {
-	char str[128];
 	INPUT_RECORD input;
 	DWORD num=0;
 
@@ -176,6 +217,12 @@ int win32_getch(void)
 				OutputDebugString(str);
 #endif
 
+				if(input.Event.KeyEvent.dwControlKeyState & (LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED)
+						&& isalpha(input.Event.KeyEvent.uChar.AsciiChar)) {
+					lastch=altkeys[toupper(input.Event.KeyEvent.uChar.AsciiChar)-'A']<<8;
+					break;
+				}
+
 				if(input.Event.KeyEvent.uChar.AsciiChar)
 					lastch=input.Event.KeyEvent.uChar.AsciiChar;
 				else
@@ -187,7 +234,7 @@ int win32_getch(void)
 						if(input.Event.MouseEvent.dwEventFlags==MOUSE_MOVED) {
 							ciomouse_gotevent(CIOLIB_MOUSE_MOVE,input.Event.MouseEvent.dwMousePosition.X+1,input.Event.MouseEvent.dwMousePosition.Y+1);
 						}
-						if(!input.Event.MouseEvent.dwEventFlags) {
+						if(last_state != input.Event.MouseEvent.dwButtonState) {
 							switch(input.Event.MouseEvent.dwButtonState ^ last_state) {
 								case FROM_LEFT_1ST_BUTTON_PRESSED:
 									if(input.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
@@ -226,20 +273,47 @@ int win32_getche(void)
 	return(ch);
 }
 
+#ifndef ENABLE_EXTENDED_FLAGS
+#define ENABLE_INSERT_MODE		0x0020
+#define ENABLE_QUICK_EDIT_MODE	0x0040
+#define ENABLE_EXTENDED_FLAGS	0x0080
+#define ENABLE_AUTO_POSITION	0x0100
+#endif
+
 int win32_initciolib(long inmode)
 {
 	DWORD conmode;
+	char	*buf;
+	int	i,j;
 
 	if(!isatty(fileno(stdin)))
 		return(0);
-	win32_textmode(inmode);
 	if(!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
 		return(0);
-	conmode&=~ENABLE_PROCESSED_INPUT;
+	conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
 	conmode|=ENABLE_MOUSE_INPUT;
 	if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode))
 		return(0);
+
+	if(!GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &conmode))
+		return(0);
+	conmode&=~ENABLE_PROCESSED_OUTPUT;
+	conmode&=~ENABLE_WRAP_AT_EOL_OUTPUT;
+	if(!SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), conmode))
+		return(0);
+
+	win32_textmode(inmode);
 	cio_api.mouse=1;
+	j=vid_modes[modeidx].ysize*vid_modes[modeidx].xsize*2;
+	buf=(char *)malloc(j);
+	if(buf==NULL)
+		return(0);
+	for(i=0;i<j;) {
+		buf[i++]=32;
+		buf[i++]=7;
+	}
+	win32_puttext(1,1,vid_modes[modeidx].xsize,vid_modes[modeidx].ysize,buf);
+	gree(buf);
 	return(1);
 }
 
@@ -260,7 +334,6 @@ void win32_textmode(int mode)
 	int i;
 	COORD	sz;
 	SMALL_RECT	rc;
-	CONSOLE_SCREEN_BUFFER_INFO	sb;
 
 	for(i=0;i<VID_MODES;i++) {
 		if(vid_modes[i].mode==mode)
@@ -431,10 +504,7 @@ int win32_wherey(void)
 int win32_putch(int ch)
 {
 	struct text_info ti;
-	WORD sch;
-	int i;
 	unsigned char buf[2];
-	DWORD wr;
 
 	buf[0]=ch;
 	buf[1]=currattr;
