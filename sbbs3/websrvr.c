@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.144 2004/04/20 08:13:22 deuce Exp $ */
+/* $Id: websrvr.c,v 1.139 2004/03/28 18:33:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,7 +91,7 @@ static BOOL		scfg_reloaded=TRUE;
 static uint 	http_threads_running=0;
 static ulong	active_clients=0;
 static ulong	sockets=0;
-static BOOL		terminate_server=FALSE;
+static BOOL		recycle_server=FALSE;
 static uint		thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
 static ulong	mime_count=0;
@@ -1610,11 +1610,11 @@ static BOOL check_request(http_session_t * session)
 	}
 	
 	if(session->req.ars[0] && !(check_ars(session))) {
-			/* No authentication provided */
-			sprintf(str,"401 Unauthorized%s%s: Basic realm=\"%s\""
-				,newline,get_header(HEAD_WWWAUTH),scfg.sys_name);
-			send_error(session,str);
-			return(FALSE);
+		/* No authentication provided */
+		sprintf(str,"401 Unauthorized%s%s: Basic realm=\"%s\""
+			,newline,get_header(HEAD_WWWAUTH),scfg.sys_name);
+		send_error(session,str);
+		return(FALSE);
 	}
 	return(TRUE);
 }
@@ -2213,14 +2213,6 @@ static BOOL js_setup(http_session_t* session)
 		return(FALSE);
 	}
 
-	lprintf(LOG_INFO,"     JavaScript: Initializing User Objects");
-	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
-		,NULL /* ftp index file */, NULL /* subscan */)) {
-		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
-		send_error(session,"500 Error initializing JavaScript User Objects");
-		return(FALSE);
-	}
-
 	JS_SetContextPrivate(session->js_cx, session);
 
 	return(TRUE);
@@ -2459,8 +2451,12 @@ void http_session_thread(void* arg)
 
 void DLLCALL web_terminate(void)
 {
-   	lprintf(LOG_INFO,"%04d Web Server terminate",server_socket);
-	terminate_server=TRUE;
+	recycle_server=FALSE;
+	if(server_socket!=INVALID_SOCKET) {
+    	lprintf(LOG_INFO,"%04d Web Terminate: closing socket",server_socket);
+		close_socket(server_socket);
+		server_socket=INVALID_SOCKET;
+    }
 }
 
 static void cleanup(int code)
@@ -2481,9 +2477,8 @@ static void cleanup(int code)
 
 	thread_down();
 	status("Down");
-	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### Web Server thread terminated (%u threads remain, %lu clients served)"
-			,thread_count, served);
+    lprintf(LOG_INFO,"#### Web Server thread terminated (%u threads remain, %lu clients served)"
+		,thread_count, served);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -2495,7 +2490,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.144 $", "%*s %s", revision);
+	sscanf("$Revision: 1.139 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2560,7 +2555,7 @@ void DLLCALL web_server(void* arg)
 	if(startup->error_dir[0]==0)			SAFECOPY(startup->error_dir,WEB_DEFAULT_ERROR_DIR);
 	if(startup->cgi_dir[0]==0)				SAFECOPY(startup->error_dir,WEB_DEFAULT_CGI_DIR);
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=5; /* seconds */
 	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
 	if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,"ssjs");
@@ -2586,7 +2581,7 @@ void DLLCALL web_server(void* arg)
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
-	terminate_server=FALSE;
+	recycle_server=TRUE;
 	do {
 
 		thread_up(FALSE /* setuid */);
@@ -2837,10 +2832,10 @@ void DLLCALL web_server(void* arg)
 
 		cleanup(0);
 
-		if(!terminate_server) {
+		if(recycle_server) {
 			lprintf(LOG_INFO,"Recycling server...");
 			mswait(2000);
 		}
 
-	} while(!terminate_server);
+	} while(recycle_server);
 }

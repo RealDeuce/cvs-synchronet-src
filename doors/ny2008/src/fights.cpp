@@ -544,24 +544,19 @@ void attack_ops(user_rec *user_on) {
 	//readin the index
 	ch_game_d();
 	justfile=ShareFileOpen(ENEMY_INDEX,"rb");
-	if(justfile != NULL) {
-		fseek(justfile,(INT32)user_on->level*2,SEEK_SET);
-		ny_fread(&first,2,1,justfile);
-		fseek(justfile,(INT32)user_on->level*2 + 42,SEEK_SET);
-		ny_fread(&last,2,1,justfile);
+	fseek(justfile,(INT32)user_on->level*2,SEEK_SET);
+	ny_fread(&first,2,1,justfile);
+	fseek(justfile,(INT32)user_on->level*2 + 42,SEEK_SET);
+	ny_fread(&last,2,1,justfile);
 
-		fclose(justfile);
-	}
+	fclose(justfile);
 
 	intval=xp_random(last-first+1)+first;
 
 	justfile=ShareFileOpen(ENEMY_FILENAME,"rb");
-	if(justfile != NULL) {
-		fseek(justfile,(INT32)intval*sizeof(enemy),SEEK_SET);
-		ny_fread(&erec,sizeof(enemy),1,justfile);
-		fclose(justfile);
-	}
-
+	fseek(justfile,(INT32)intval*sizeof(enemy),SEEK_SET);
+	ny_fread(&erec,sizeof(enemy),1,justfile);
+	fclose(justfile);
 
 	od_printf("\n\r\n");
 
@@ -840,10 +835,8 @@ fgc(INT16 *enm_num, INT16 *user_num) {
 	sprintf(numstr,"u%07d.fgc",*user_num);
 	if (fexist(numstr)) {
 		justfile=ShareFileOpen(numstr,"rb");
-		if(justfile != NULL) {
-			ny_fread(enm_num,2,1,justfile);
-			fclose(justfile);
-		}
+		ny_fread(enm_num,2,1,justfile);
+		fclose(justfile);
 	}
 }
 
@@ -855,16 +848,13 @@ sfflg(INT16 user_num,char numstr[], INT16 enm_num, user_rec *erec) {
 
 	sprintf(numstr,"u%07d.fgg",user_num); //set fight flag
 	justfile = ShareFileOpen(numstr, "wb");
-	if(justfile != NULL)
-		fclose(justfile);
+	fclose(justfile);
 
 	//readin the enemy record
 	sprintf(numstr,"u%07d.sts",enm_num);
 	justfile=ShareFileOpen(numstr,"rb");
-	if(justfile != NULL) {
-		ny_fread(erec,sizeof(user_rec),1,justfile);
-		fclose(justfile);
-	}
+	ny_fread(erec,sizeof(user_rec),1,justfile);
+	fclose(justfile);
 }
 
 INT16
@@ -996,10 +986,8 @@ bam_ofm:
 
 		sprintf(numstr,"u%07d.atk",*enm_num);
 		justfile = ShareFileOpen(numstr, "wb");
-		if(justfile != NULL) {
-			ny_fwrite(&hit_s,4,1,justfile);
-			fclose(justfile);
-		}
+		ny_fwrite(&hit_s,4,1,justfile);
+		fclose(justfile);
 		sprintf(numstr,"u%07d.atk",*enm_num);
 		sprintf(numstr2,"u%07d.on",*enm_num);
 		ny_line(222,2,1);
@@ -1042,10 +1030,8 @@ bam_ofm:
 
 		sprintf(numstr,"u%07d.sts",*enm_num);
 		justfile=ShareFileOpen(numstr,"rb");
-		if(justfile != NULL) {
-			ny_fread(erec,sizeof(user_rec),1,justfile);
-			fclose(justfile);
-		}
+		ny_fread(erec,sizeof(user_rec),1,justfile);
+		fclose(justfile);
 
 		intval -= erec->hitpoints;
 
@@ -1068,11 +1054,9 @@ bam_ofm:
 
 			sprintf(numstr,"u%07d.atk",*enm_num);
 			justfile = ShareFileOpen(numstr, "wb");
-			if(justfile != NULL) {
-				intval=-1; //user got away
-				ny_fwrite(&intval,4,1,justfile);
-				fclose(justfile);
-			}
+			intval=-1; //user got away
+			ny_fwrite(&intval,4,1,justfile);
+			fclose(justfile);
 			sprintf(numstr,"u%07d.fgg",*user_num);
 			ny_remove(numstr);
 			if(!rip)
@@ -1086,11 +1070,9 @@ bam_ofm:
 
 			sprintf(numstr,"u%07d.atk",*enm_num);
 			justfile = ShareFileOpen(numstr, "wb");
-			if(justfile != NULL) {
-				intval=-2; ///user couldn't get away
-				ny_fwrite(&intval,4,1,justfile);
-				fclose(justfile);
-			}
+			intval=-2; ///user couldn't get away
+			ny_fwrite(&intval,4,1,justfile);
+			fclose(justfile);
 			sprintf(numstr,"u%07d.atk",*enm_num);
 			sprintf(numstr2,"u%07d.on",*enm_num);
 
@@ -1188,10 +1170,8 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 	//read atack file
 	sprintf(numstr,"u%07d.atk",*user_num);
 	justfile = ShareFileOpen(numstr, "rb");
-	if(justfile != NULL) {
-		ny_fread(&en_hit_s,4,1,justfile);
-		fclose(justfile);
-	}
+	ny_fread(&en_hit_s,4,1,justfile);
+	fclose(justfile);
 
 	if (en_hit_s==-1) {
 
@@ -1214,12 +1194,11 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 		//	od_printf("\n\r\n`bright red`Y`red`a `bright white`WON`red`!\n\r\n");
 		sprintf(numstr,"u%07d.atk",*user_num);
 		justfile = ShareFileOpen(numstr, "rb");
-		if(justfile != NULL) {
-			ny_fread(&en_hit_s,4,1,justfile);
-			ny_fread(&intval,4,1,justfile);
 
-			fclose(justfile);
-		}
+		ny_fread(&en_hit_s,4,1,justfile);
+		ny_fread(&intval,4,1,justfile);
+
+		fclose(justfile);
 
 		money_plus(intval);
 
@@ -1267,22 +1246,18 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 				if (fexist(numstr)) {
 					sprintf(numstr,"u%07d.swp",*enm_num);
 					justfile=ShareFileOpen(numstr,"wb");
-					if(justfile != NULL) {
-						ny_fwrite(&(erec->arm),2,1,justfile);
-						fclose(justfile);
-					}
+					ny_fwrite(&(erec->arm),2,1,justfile);
+					fclose(justfile);
 				} else {
 					tarm=erec->arm;
 					ch_game_d();
 					justfile=ShareFileOpen(USER_FILENAME,"r+b");
-					if(justfile != NULL) {
-						fseek(justfile,*enm_num * sizeof(user_rec),SEEK_SET);
-						ny_fread(erec,sizeof(user_rec),1,justfile);
-						erec->arm=tarm;
-						fseek(justfile,*enm_num * sizeof(user_rec),SEEK_SET);
-						ny_fwrite(erec,sizeof(user_rec),1,justfile);
-						fclose(justfile);
-					}
+					fseek(justfile,*enm_num * sizeof(user_rec),SEEK_SET);
+					ny_fread(erec,sizeof(user_rec),1,justfile);
+					erec->arm=tarm;
+					fseek(justfile,*enm_num * sizeof(user_rec),SEEK_SET);
+					ny_fwrite(erec,sizeof(user_rec),1,justfile);
+					fclose(justfile);
 					ch_flag_d();
 				}
 
@@ -1327,11 +1302,9 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 					if (fexist(numstr)) {
 						sprintf(numstr,"u%07d.kik",*enm_num);
 						justfile=ShareFileOpen(numstr,"wb");
-						if(justfile != NULL) {
-							rape=-1;
-							ny_fwrite(&rape,2,2,justfile);
-							fclose(justfile);
-						}
+						rape=-1;
+						ny_fwrite(&rape,2,2,justfile);
+						fclose(justfile);
 					}
 					//	      WaitForEnter();
 				} else {
@@ -1339,11 +1312,9 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 					if (fexist(numstr)) {
 						sprintf(numstr,"u%07d.kik",*enm_num);
 						justfile=ShareFileOpen(numstr,"wb");
-						if(justfile != NULL) {
-							ny_fwrite(&user_on->std,2,1,justfile);
-							ny_fwrite(&user_on->std_percent,2,1,justfile);
-							fclose(justfile);
-						}
+						ny_fwrite(&user_on->std,2,1,justfile);
+						ny_fwrite(&user_on->std_percent,2,1,justfile);
+						fclose(justfile);
 					} else {
 						strcpy(mail_idx.recver,erec->name);
 						strcpy(mail_idx.sender,user_on->name);
@@ -1359,10 +1330,8 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 						mail_idx.sender_sex=user_on->sex;
 						ch_game_d();
 						justfile=ShareFileOpen(MAIL_INDEX,"a+b");
-						if(justfile != NULL) {
-							ny_fwrite(&mail_idx,sizeof(mail_idx_type),1,justfile);
-							fclose(justfile);
-						}
+						ny_fwrite(&mail_idx,sizeof(mail_idx_type),1,justfile);
+						fclose(justfile);
 						ch_flag_d();
 					}
 					user_on->since_got_laid=0;
@@ -1387,11 +1356,9 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 				if (fexist(numstr)) {
 					sprintf(numstr,"u%07d.kik",*enm_num);
 					justfile=ShareFileOpen(numstr,"wb");
-					if(justfile != NULL) {
-						rape=-1;
-						ny_fwrite(&rape,2,2,justfile);
-						fclose(justfile);
-					}
+					rape=-1;
+					ny_fwrite(&rape,2,2,justfile);
+					fclose(justfile);
 				}
 			}
 		}
@@ -1432,13 +1399,11 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 			ny_remove(numstr);
 			sprintf(numstr,"u%07d.atk",*enm_num);
 			justfile = ShareFileOpen(numstr, "wb");
-			if(justfile != NULL) {
-				intval=-9; //user lost
-				ny_fwrite(&intval,4,1,justfile);
-				intval=user_on->money; //users money
-				ny_fwrite(&intval,4,1,justfile);
-				fclose(justfile);
-			}
+			intval=-9; //user lost
+			ny_fwrite(&intval,4,1,justfile);
+			intval=user_on->money; //users money
+			ny_fwrite(&intval,4,1,justfile);
+			fclose(justfile);
 
 			od_printf("\n\r\n");
 			ny_send_menu(ASS_KICKED_O,"");
@@ -1476,11 +1441,9 @@ o_checks(INT16 *enm_num,INT16 *user_num, user_rec *user_on, user_rec *erec) {
 					INT16 inf;
 
 					justfile=ShareFileOpen(numstr,"rb");
-					if(justfile != NULL) {
-						ny_fread(&ill,2,1,justfile);
-						ny_fread(&inf,2,1,justfile);
-						fclose(justfile);
-					}
+					ny_fread(&ill,2,1,justfile);
+					ny_fread(&inf,2,1,justfile);
+					fclose(justfile);
 
 					ny_remove(numstr);
 					//sprintf(numstr,"del u%07d.kik",*user_num);
@@ -1553,10 +1516,8 @@ online_fight_a(INT16 *user_num, user_rec *user_on, INT16 enm_num) {
 
 	sprintf(numstr,"u%07d.chl",enm_num); //set fight flag
 	justfile = ShareFileOpen(numstr, "wb");
-	if(justfile != NULL) {
-		ny_fwrite(user_num,2,1,justfile);
-		fclose(justfile);
-	}
+	ny_fwrite(user_num,2,1,justfile);
+	fclose(justfile);
 	sprintf(numstr2,"u%07d.on",enm_num);
 
 	ny_line(219,2,1);
@@ -2873,17 +2834,15 @@ void p_attack_ops(user_rec *user_on,INT16 *nCurrentUserNumber) {
 		do {
 			ch_game_d();
 			justfile=ShareFileOpen(SCR_FILENAME,"rb");
-			if(justfile != NULL) {
-				fseek(justfile,sizeof(scr_rec) * (INT32)unum,SEEK_SET);
-				do {
-					ret=ny_fread(&urec,sizeof(scr_rec),1,justfile);
-					od_kernal();
-				} while ( ((unum++)==user_on->rank ||
-				           strzcmp(hand,ny_un_emu(urec.name,numstr)) ||
-				           urec.alive!=ALIVE) &&
-				          ret==1);
-				fclose(justfile);
-			}
+			fseek(justfile,sizeof(scr_rec) * (INT32)unum,SEEK_SET);
+			do {
+				ret=ny_fread(&urec,sizeof(scr_rec),1,justfile);
+				od_kernal();
+			} while ( ((unum++)==user_on->rank ||
+			           strzcmp(hand,ny_un_emu(urec.name,numstr)) ||
+			           urec.alive!=ALIVE) &&
+			          ret==1);
+			fclose(justfile);
 		} while (ret==1 && askifuser(urec.name)==FALSE);
 	}
 	if (ret!=1) {
@@ -2901,10 +2860,8 @@ void p_attack_ops(user_rec *user_on,INT16 *nCurrentUserNumber) {
 		sprintf(numstr,"u%07d.fgg",urec.user_num);
 		if (fexist(numstr)) {
 			justfile=ShareFileOpen(numstr,"rb");
-			if(justfile != NULL) {
-				ny_fread(&intval,2,1,justfile);
-				fclose(justfile);
-			}
+			ny_fread(&intval,2,1,justfile);
+			fclose(justfile);
 			sprintf(numstr,"u%07d.on",intval);
 			if (fexist(numstr)) {
 
@@ -2948,10 +2905,8 @@ void p_attack_ops(user_rec *user_on,INT16 *nCurrentUserNumber) {
 		sprintf(numstr,"u%07d.bfa",urec.user_num);
 		if (fexist(numstr)) {
 			justfile=ShareFileOpen(numstr,"rb");
-			if(justfile != NULL) {
-				ny_fread(&intval,2,1,justfile);
-				fclose(justfile);
-			}
+			ny_fread(&intval,2,1,justfile);
+			fclose(justfile);
 			sprintf(numstr,"u%07d.on",intval);
 			if (fexist(numstr)) {
 
@@ -2987,27 +2942,21 @@ void p_attack_ops(user_rec *user_on,INT16 *nCurrentUserNumber) {
 
 		sprintf(numstr,"u%07d.bfo",*nCurrentUserNumber);
 		justfile = ShareFileOpen(numstr, "wb");
-		if(justfile != NULL) {
-			ny_fwrite(&urec.user_num,2,1,justfile);
-			fclose(justfile);
-		}
+		ny_fwrite(&urec.user_num,2,1,justfile);
+		fclose(justfile);
 
 		sprintf(numstr,"u%07d.bfa",urec.user_num);
 		justfile = ShareFileOpen(numstr, "wb");
-		if(justfile != NULL) {
-			ny_fwrite(nCurrentUserNumber,2,1,justfile);
-			fclose(justfile);
-		}
+		ny_fwrite(nCurrentUserNumber,2,1,justfile);
+		fclose(justfile);
 	}
 
 	//readin the enemy record
 	ch_game_d();
 	justfile=ShareFileOpen(USER_FILENAME,"rb");
-	if(justfile != NULL) {
-		fseek(justfile,(INT32)urec.user_num * sizeof(user_rec),SEEK_SET);
-		ny_fread(&erec,sizeof(user_rec),1,justfile);
-		fclose(justfile);
-	}
+	fseek(justfile,(INT32)urec.user_num * sizeof(user_rec),SEEK_SET);
+	ny_fread(&erec,sizeof(user_rec),1,justfile);
+	fclose(justfile);
 
 	// WaitForEnter();
 
@@ -3563,10 +3512,8 @@ attack_again_p:
 
 		if (fexist(numstr)) {
 			justfile=ShareFileOpen(numstr,"rb");
-			if(justfile != NULL) {
-				ny_fread(&urec.user_num,2,1,justfile);
-				fclose(justfile);
-			}
+			ny_fread(&urec.user_num,2,1,justfile);
+			fclose(justfile);
 
 			ny_remove(numstr);
 
@@ -3585,30 +3532,24 @@ attack_again_p:
 	ch_game_d();
 
 	justfile=ShareFileOpen(USER_FILENAME,"rb");
-	if(justfile != NULL) {
-		fseek(justfile,(INT32)urec.user_num*sizeof(user_rec),SEEK_SET);
-		ny_fread(&serec,sizeof(user_rec),1,justfile);
-		fclose(justfile);
-	}
+	fseek(justfile,(INT32)urec.user_num*sizeof(user_rec),SEEK_SET);
+	ny_fread(&serec,sizeof(user_rec),1,justfile);
+	fclose(justfile);
 
 
 	scr_file=ShareFileOpen(SCR_FILENAME,"r+b");
-	if(justfile != NULL) {
-		fseek(scr_file, (INT32)serec.rank * sizeof(scr_rec), SEEK_SET);
-		ny_fwrite(&urec, sizeof(scr_rec), 1, scr_file);
-		fclose(scr_file);
-	}
+	fseek(scr_file, (INT32)serec.rank * sizeof(scr_rec), SEEK_SET);
+	ny_fwrite(&urec, sizeof(scr_rec), 1, scr_file);
+	fclose(scr_file);
 
 	erec.rank=serec.rank;
 
 
 
 	justfile=ShareFileOpen(USER_FILENAME,"r+b");
-	if(justfile != NULL) {
-		fseek(justfile,(INT32)urec.user_num*sizeof(user_rec),SEEK_SET);
-		ny_fwrite(&erec,sizeof(user_rec),1,justfile);
-		fclose(justfile);
-	}
+	fseek(justfile,(INT32)urec.user_num*sizeof(user_rec),SEEK_SET);
+	ny_fwrite(&erec,sizeof(user_rec),1,justfile);
+	fclose(justfile);
 
 
 	//
@@ -3630,10 +3571,8 @@ attack_again_p:
 	ch_game_d();
 
 	justfile=ShareFileOpen(MAIL_INDEX,"a+b");
-	if(justfile != NULL) {
-		ny_fwrite(&mail_idx,sizeof(mail_idx_type),1,justfile);
-		fclose(justfile);
-	}
+	ny_fwrite(&mail_idx,sizeof(mail_idx_type),1,justfile);
+	fclose(justfile);
 
 
 
@@ -3671,10 +3610,8 @@ attack_again_p:
 				mail_idx.sender_sex=user_on->sex;
 				ch_game_d();
 				justfile=ShareFileOpen(MAIL_INDEX,"a+b");
-				if(justfile != NULL) {
-					ny_fwrite(&mail_idx,sizeof(mail_idx_type),1,justfile);
-					fclose(justfile);
-				}
+				ny_fwrite(&mail_idx,sizeof(mail_idx_type),1,justfile);
+				fclose(justfile);
 				user_on->sex_today--;
 				user_on->since_got_laid=0;
 				ny_line(339,1,0);
@@ -4998,8 +4935,6 @@ ny_send_file(char filename[]) {
 	char *keyp;
 
 	phile=ShareFileOpen(filename,"rb");
-	if(phile=NULL)
-		return;
 
 	cnt=2;
 
@@ -5058,8 +4993,6 @@ ny_get_index(void) {
 		else
 			phile=ShareFileOpen("menusc.dat","rb");
 	}
-	if(phile==NULL)
-		return;
 
 	while (fgets(line,120,phile)!=NULL) {
 		sscanf(line,"%s",numstr);
@@ -5198,8 +5131,6 @@ ny_send_menu(menu_t menu,char allowed[],INT16 onscreen) {
 		else
 			phile=ShareFileOpen("menusc.dat","rb");
 	}
-	if(phile==0)
-		return(0);
 
 	fseek(phile,menu_index[(INT16)menu],SEEK_SET);
 
@@ -5300,8 +5231,6 @@ ny_stat_line(INT16 line,INT16 before,INT16 after) {
 			else
 				phile=ShareFileOpen("linesc.dat","rb");
 		}
-		if(phile==NULL)
-			return;
 		ny_read_stat_line(38,string,phile);
 		lines[0]=(char *)malloc(strlen(string)+1);
 		strcpy(lines[0],string);
@@ -5475,8 +5404,6 @@ ny_line(INT16 line,INT16 before,INT16 after) {
 			phile=ShareFileOpen("linesc.dat","rb");
 	}
 
-	if(phile==NULL)
-		return;
 
 	if(line == -1) {
 		cnt2=1;

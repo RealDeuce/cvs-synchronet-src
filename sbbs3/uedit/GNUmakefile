@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.7 2004/04/17 19:20:52 deuce Exp $
+# $Id: GNUmakefile,v 1.6 2004/03/24 03:26:48 deuce Exp $
 
 #USE_CURSES	:=	1	#Use old curses UIFC implementation
 USE_UIFC32	:=	1	# Use new uifc32 implementation
@@ -26,11 +26,6 @@ include $(UIFC_SRC)Common.gmake
 
 ifeq ($(os),sunos)
  LDFLAGS	+=	-lnsl
-endif
-
-ifeq ($(os),netbsd)
- CFLAGS		+=	$(PTHREAD_CFLAGS)
- LDFLAGS	+=	$(PTHREAD_LDFLAGS)
 endif
 
 FORCE$(EXEODIR)/uedit: $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.132 2004/04/16 08:07:36 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.131 2004/04/03 09:40:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@ two_two_t two_two;
 two_plus_t two_plus;
 BOOL twit_list;
 
-faddr_t		sys_faddr = {1,1,1,0};		/* Default system address: 1:1/1.0 */
+faddr_t		sys_faddr;
 config_t	cfg;
 scfg_t		scfg;
 char		revision[16];
@@ -300,13 +300,20 @@ int execute(char *cmdline)
 faddr_t getsysfaddr(short zone)
 {
 	int i;
+	faddr_t sysfaddr;
 
+	sysfaddr.zone=sysfaddr.net=sysfaddr.node=1;
+	sysfaddr.point=0;
+	if(!scfg.total_faddrs)
+		return(sys_faddr);
+	sysfaddr=scfg.faddr[0];
+	if(scfg.total_faddrs==1)
+		return(sysfaddr);
 	for(i=0;i<scfg.total_faddrs;i++)
 		if(scfg.faddr[i].zone==zone)
 			return(scfg.faddr[i]);
-	return(sys_faddr);
+	return(sysfaddr);
 }
-
 /******************************************************************************
  This function creates or appends on existing Binkley compatible .?LO file
  attach file.
@@ -331,7 +338,7 @@ int write_flofile(char *attachment, faddr_t dest)
 	else if(attr&ATTR_HOLD) ch='h';
 	else if(attr&ATTR_DIRECT) ch='d';
 	else ch='f';
-	if(dest.zone==sys_faddr.zone)		/* Default zone, use default outbound */
+	if(dest.zone==scfg.faddr[0].zone)		/* Default zone, use default outbound */
 		strcpy(outbound,cfg.outbound);
 	else {								/* Inter-zone outbound is OUTBOUND.XXX */
 		sprintf(outbound,"%.*s.%03x"
@@ -1672,7 +1679,7 @@ void pack_bundle(char *infile,faddr_t dest)
 				logprintf("Routing %s to %s",infile,faddrtoa(&dest,NULL));
 		}
 
-		if(dest.zone==sys_faddr.zone)	/* Default zone, use default outbound */
+		if(dest.zone==scfg.faddr[0].zone)	/* Default zone, use default outbound */
 			strcpy(outbound,cfg.outbound);
 		else {							/* Inter-zone outbound is OUTBOUND.XXX */
 			sprintf(outbound,"%.*s.%03x"
@@ -1707,8 +1714,8 @@ void pack_bundle(char *infile,faddr_t dest)
 	if(dest.point && !(misc&FLO_MAILER))
 		sprintf(fname,"%s%04hxp%03hx.%s",outbound,0,(short)dest.point,day);
 	else
-		sprintf(fname,"%s%04hx%04hx.%s",outbound,(short)(sys_faddr.net-dest.net)
-			,(short)(sys_faddr.node-dest.node),day);
+		sprintf(fname,"%s%04hx%04hx.%s",outbound,(short)(scfg.faddr[0].net-dest.net)
+			,(short)(scfg.faddr[0].node-dest.node),day);
 	for(i='0';i<='Z';i++) {
 		if(i==':')
 			i='A';
@@ -4050,7 +4057,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.132 $", "%*s %s", revision);
+	sscanf("$Revision: 1.131 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4202,7 +4209,10 @@ int main(int argc, char **argv)
 	sprintf(str,"%stwitlist.cfg",scfg.ctrl_dir);
 	twit_list=fexist(str);
 
-	if(scfg.total_faddrs)
+	if(scfg.total_faddrs<1) {
+		sys_faddr.zone=sys_faddr.net=sys_faddr.node=1;
+		sys_faddr.point=0; }
+	else
 		sys_faddr=scfg.faddr[0];
 
 	if(!cfg.cfgfile[0])
@@ -5005,7 +5015,7 @@ int main(int argc, char **argv)
 				else if(attr&ATTR_HOLD) ch='h';
 				else if(attr&ATTR_DIRECT) ch='d';
 				else ch='o';
-				if(addr.zone==sys_faddr.zone) /* Default zone, use default outbound */
+				if(addr.zone==scfg.faddr[0].zone) /* Default zone, use default outbound */
 					strcpy(outbound,cfg.outbound);
 				else {						 /* Inter-zone outbound is OUTBOUND.XXX */
 					sprintf(outbound,"%.*s.%03x"

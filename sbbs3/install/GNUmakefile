@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.15 2004/04/17 19:14:46 deuce Exp $
+# $Id: GNUmakefile,v 1.14 2004/03/23 23:55:30 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 #USE_CURSES	=	1	# Curses version of UIFC
@@ -32,11 +32,6 @@ endif
 
 ifeq ($(os),sunos)
  LDFLAGS	+=	-lsocket -lnsl
-endif
-
-ifeq ($(os),netbsd)
- CFLAGS		+=	$(PTHREAD_CFLAGS)
- LDFLAGS	+=	$(PTHREAD_LDFLAGS)
 endif
 
 $(SBBSINST): $(OBJS)

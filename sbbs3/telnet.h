@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.8 2004/04/08 05:37:06 rswindell Exp $ */
+/* $Id: telnet.h,v 1.7 2003/10/09 17:27:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ enum {
 	,TELNET_REMOTE_CTRL
 	,TELNET_OUTPUT_LINE_WIDTH
 	,TELNET_OUTPUT_PAGE_SIZE
-	,TELNET_OUTPUT_CR_DISP		/* 10 */
+	,TELNET_OUTPUT_CR_DISP
 	,TELNET_OUTPUT_HTAB_STOPS
 	,TELNET_OUTPUT_HTAB_DISP
 	,TELNET_OUTPUT_FF_DISP
@@ -82,7 +82,7 @@ enum {
 	,TELNET_EXASCII
 	,TELNET_LOGOUT
 	,TELNET_BYTE_MACRO
-	,TELNET_DATA_ENTRY_TERM		/* 20 */
+	,TELNET_DATA_ENTRY_TERM
 	,TELNET_SUPDUP
 	,TELNET_SUPDUP_OUTPUT
 	,TELNET_SEND_LOCATION
@@ -92,7 +92,7 @@ enum {
 	,TELNET_OUTPUT_MARKING
 	,TELNET_TERM_LOCATION_NUMBER
 	,TELNET_3270
-	,TELNET_X3_PAD				/* 30 */
+	,TELNET_X3_PAD
 	,TELNET_NEGOTIATE_WINDOW_SIZE
 	,TELNET_TERM_SPEED
 	,TELNET_REMOTE_FLOW
@@ -101,8 +101,8 @@ enum {
 	,TELNET_ENV_OPTION
 	,TELNET_AUTH_OPTION
 	,TELNET_ENCRYPTION_OPTION
-	,TELNET_NEW_ENV_OPTION		
-	,TELNET_3270E				/* 40 */
+	,TELNET_NEW_ENV_OPTION
+	,TELNET_3270E
 
 	,TELNET_EXOPL=255	/* Extended options list */
 };
