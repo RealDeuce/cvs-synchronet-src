@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.3 2002/01/18 17:10:43 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.4 2002/02/27 03:35:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,9 +151,10 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
     sprintf(scfg.ctrl_dir,"%.*s",sizeof(scfg.ctrl_dir)-1
         ,MainForm->CtrlDirectory.c_str());
     scfg.size=sizeof(scfg);
-    if(!load_cfg(&scfg,NULL,FALSE)) {
-        sprintf(str,"Failed to load configuration files from %s",scfg.ctrl_dir);
-        Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
+    char error[256];
+    if(!load_cfg(&scfg,NULL,FALSE,error)) {
+        Application->MessageBox(error,"ERROR Loadin Configuration"
+        	,MB_OK|MB_ICONEXCLAMATION);
         Close();
         return;
     }
