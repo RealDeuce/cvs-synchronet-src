@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.20 2003/04/29 04:08:33 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.21 2003/04/29 07:09:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,7 @@ extern "C" {
 	#include <sys/param.h>
 	#include <pthread.h>	/* POSIX threads and mutexes */
 	#undef YIELD
-	#if defined(__linux__)
+	#if defined(__linux__) || defined(__QNX__)
 		#define YIELD()		sched_yield()
 	#elif defined(_PTH_PTHREAD_H_)
 		#define YIELD()		pth_yield(NULL)
