@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.40 2004/10/15 09:45:07 deuce Exp $ */
+/* $Id: answer.cpp,v 1.41 2004/10/15 10:12:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,6 +107,7 @@ bool sbbs_t::answer()
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
+				useron.misc&=~(ANSI|COLOR|RIP|WIP);
 				if(!trashcan(client.addr,"rlogin")) {
 					SAFECOPY(tmp
 						,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
