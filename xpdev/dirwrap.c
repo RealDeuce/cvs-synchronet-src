@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.3 2002/04/06 09:13:27 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.4 2002/04/25 08:28:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,11 +88,43 @@ char* DLLCALL getfname(char* path)
 	return(fname);
 }
 
-#if !defined(__unix__)
+
+/****************************************************************************/
+/* Break a path name into components.										*/
+/****************************************************************************/
+#if defined(__unix__)
+void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, char *ext)
+{
+	char*	p;
+
+	ext[0]=0;
+	drive[0]=0;	/* no drive letters on Unix */
+
+	strcpy(dir,path);
+	p=strrchr(dir,'/');
+	if(p==NULL)
+		p=strrchr(dir,'\\');
+	if(p==NULL) {
+		p=path;
+		dir[0]=0;
+	} else {
+		*p=0;	/* truncate dir */
+		p++;
+	}
+	strcpy(fname,p);
+	p=strrchr(fname,'.');
+	if(p!=NULL) {
+		*p=0;
+		strcpy(ext,p+1);
+	}
+}
+#endif
+
 /****************************************************************************/
 /* Win32 (minimal) implementation of POSIX.2 glob() function				*/
 /* This code _may_ work on other DOS-based platforms (e.g. OS/2)			*/
 /****************************************************************************/
+#if !defined(__unix__)
 static int glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
