@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.10 2000/10/23 19:44:55 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.11 2000/10/23 20:20:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,9 +81,9 @@ static const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
             ,"Jul","Aug","Sep","Oct","Nov","Dec"};
 
 #ifdef _WIN32
-#define IMPORT	__declspec(dllimport)
+	#define IMPORT	__declspec(dllimport)
 #else
-#define IMPORT
+	#define IMPORT
 #endif
 
 IMPORT BOOL	load_cfg(scfg_t* cfg, char* text[]);
