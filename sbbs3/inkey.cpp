@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.13 2003/03/06 10:42:17 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.14 2003/03/06 11:11:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -282,9 +282,10 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 								return(CTRL_F);	/* ctrl-f (rt arrow) */
 							case 'D':
 								return(0x1d);	/* ctrl-] (lf arrow) */
-							case 'H':
+							case 'H':	/* ANSI:  home cursor */
 								return(CTRL_B);	/* ctrl-b (beg line) */
-							case 'K':
+							case 'F'	/* Xterm: cursor preceding line */
+							case 'K':	/* ANSI:  clear-to-end-of-line */
 								return(CTRL_E);	/* ctrl-e (end line) */
 						}
 						ungetkey(ESC);
