@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.29 2003/08/26 04:11:52 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.30 2003/09/03 03:51:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,11 @@
 	#elif defined(__solaris__)
 		#include <sys/kbio.h>
 		#include <sys/kbd.h>
+	#endif
+	#if defined(__OpenBSD__) || defined(__NetBSD__)
+		#include <machine/spkr.h>
+	#elif defined(__FreeBSD__)
+		#include <machine/speaker.h>
 	#endif
 #endif	/* __unix__ */
 
@@ -128,18 +133,31 @@ char* strrev(char* str)
     }
     return str;
 }
-#endif
 
 /****************************************************************************/
 /* Generate a tone at specified frequency for specified milliseconds		*/
 /* Thanks to Casey Martin for this code										*/
 /****************************************************************************/
-#if defined(__unix__)
 void DLLCALL unix_beep(int freq, int dur)
 {
 	static int console_fd=-1;
 
-#if !defined(__OpenBSD__) && !defined(__GNU__) && !defined(__NetBSD__) && !defined(__QNX__)
+#if defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__)
+	int speaker_fd=-1;
+	tone_t tone;
+
+	speaker_fd = open("/dev/speaker", O_WRONLY|O_APPEND);
+	if(speaker_fd != -1)  {
+		tone.frequency=freq;
+		tone.duration=dur;
+		ioctl(speaker_fd,SPKRTONE,&tone);
+		SLEEP(dur);
+		close(speaker_fd);
+		return;
+	}
+#endif
+
+#if !defined(__GNU__) && !defined(__QNX__)
 	if(console_fd == -1) 
   		console_fd = open("/dev/console", O_NOCTTY);
 	
