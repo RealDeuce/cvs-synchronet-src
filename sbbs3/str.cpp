@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.20 2001/09/16 23:54:58 rswindell Exp $ */
+/* $Id: str.cpp,v 1.21 2001/09/17 00:25:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,14 +47,14 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 char* DLLCALL remove_ctrl_a(char *instr, char *outstr)
 {
 	char str[1024],*p;
-	uint i,j,k;
+	uint i,j;
 
-	j=strlen(instr);
-	for(k=i=0;i<j;i++) {
+	for(i=j=0;instr[i];i++) {
 		if(instr[i]==CTRL_A)
 			i++;
-		else str[k++]=instr[i]; }
-	str[k]=0;
+		else str[j++]=instr[i]; 
+	}
+	str[j]=0;
 	if(outstr!=NULL)
 		p=outstr;
 	else
