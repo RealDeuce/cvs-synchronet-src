@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.21 2002/03/18 13:35:00 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.22 2002/04/18 01:32:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,7 +93,7 @@ bool sbbs_t::logon()
 		sprintf(str,"%stooslow.msg",cfg.text_dir);
 		if(fexist(str))
 			printfile(str,0);
-		sprintf(str,"(%04u)  %-25s  Modem speed: %u<%u"
+		sprintf(str,"(%04u)  %-25s  Modem speed: %lu<%u"
 			,useron.number,useron.alias,cur_rate,cfg.node_minbps);
 		logline("+!",str);
 		return(false); }
