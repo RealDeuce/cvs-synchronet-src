@@ -2,7 +2,7 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.18 2004/05/11 02:32:08 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.17 2003/10/02 02:37:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -545,8 +545,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 					str1[i++]=ch;
 					if(!(mode&K_NOECHO))
 						outchar(ch); 
-				} else
-					outchar(BEL);	/* Added at Angus McLeod's request */
+				} 
 		}
 		if(i>l)
 			l=i;
