@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.24 2005/01/01 00:52:43 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.27 2005/03/14 17:58:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,77 +48,64 @@
 
 int sendfilesocket(int sock, int file, long *offset, long count)
 {
-/* sendfile() on Linux may or may not work with non-blocking sockets ToDo */
-#if defined(__FreeBSD__) && 0
-#warning FreeBSD sendfile may cause problems!
-	off_t	total=0;
-	off_t	wr=0;
-	int		i;
+	char	buf[1024*16];
 	long	len;
+	int		rd;
+	int		wr=0;
+	int		total=0;
+	int		i;
 
+/* sendfile() on Linux may or may not work with non-blocking sockets ToDo */
 	len=filelength(file);
+
+	if(offset!=NULL)
+		if(lseek(file,*offset,SEEK_SET)<0)
+			return(-1);
+
 	if(count<1 || count>len) {
 		count=len;
-		count-=offset==NULL?0:*offset;
+		count-=tell(file);		/* don't try to read beyond EOF */
 	}
+#if USE_SENDFILE
 	while((i=sendfile(file,sock,(offset==NULL?0:*offset)+total,count-total,NULL,&wr,0))==-1 && errno==EAGAIN)  {
 		total+=wr;
 		SLEEP(1);
 	}
 	if(i==0)
 		return((int)count);
-	return(i);
-#else
-	char*	buf;
-	long	len;
-	int		rd;
-	int		wr;
-	int		total;
+#endif
 
-	if(offset!=NULL)
-		if(lseek(file,*offset,SEEK_SET)<0)
+	if(count<0) {
+		errno=EINVAL;
+		return(-1);
+	}
+
+	while(total<count) {
+		rd=read(file,buf,sizeof(buf));
+		if(rd==-1)
 			return(-1);
-
-	len=filelength(file);
-
-	if(count<1 || count>len) {
-		count=len;
-		count-=tell(file);		/* don't try to read beyond EOF */
-	}
-
-	if((buf=(char*)malloc(count))==NULL) {
-		errno=ENOMEM;
-		return(-1);
-	}
-
-	rd=read(file,buf,count);
-	if(rd!=count) {
-		free(buf);
-		return(-1);
-	}
-
-	for(total=wr=0;total<count;total+=wr) {
-		wr=sendsocket(sock,buf+total,count-total);
-		if(wr>0)
-			continue;
-		if(wr==SOCKET_ERROR && ERROR_VALUE==EWOULDBLOCK) {
-			wr=0;
-			SLEEP(1);
-			continue;
+		if(rd==0)
+			break;
+		for(i=wr=0;i<rd;i+=wr) {
+			wr=sendsocket(sock,buf+i,rd-i);
+			if(wr>0)
+				continue;
+			if(wr==SOCKET_ERROR && ERROR_VALUE==EWOULDBLOCK) {
+				wr=0;
+				SLEEP(1);
+				continue;
+			}
+			return(wr);
 		}
-		break;
+		if(i!=rd)
+			return(-1);
+		total+=rd;
 	}
-
-	free(buf);
 
 	if(offset!=NULL)
 		(*offset)+=total;
 
-	if(wr<1)
-		return(wr);
-
 	return(total);
-#endif
 }
 
 int recvfilesocket(int sock, int file, long *offset, long count)
