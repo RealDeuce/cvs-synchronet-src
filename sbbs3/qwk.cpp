@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.34 2003/08/22 10:50:15 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.35 2003/08/25 10:18:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -397,6 +397,7 @@ void sbbs_t::qwk_sec()
 	ulong	*sav_ptr;
 	file_t	fd;
 
+	memset(&fd,0,sizeof(fd));
 	getusrdirs();
 	fd.dir=cfg.total_dirs;
 	if((sav_ptr=(ulong *)MALLOC(sizeof(ulong)*cfg.total_subs))==NULL) {
