@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.9 2002/08/06 03:38:54 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.10 2003/07/08 10:26:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,16 +53,19 @@ void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 	else
 		rputs(str);
 	if(useron.misc&ANSI) {
-		bputs("\x1b[K");
+		cleartoeol();
 		if(i<l)
-			bprintf("\x1b[%dD",l-i); }
-	else {
-		while(c<79) { /* clear to end of line */
+			cursor_left(l-i); 
+	} else {
+		while(c<cols-1) { /* clear to end of line */
 			outchar(SP);
-			c++; }
+			c++; 
+		}
 		while(c>l) { /* back space to end of string */
 			outchar(BS);
-			c--; } }
+			c--; 
+		} 
+	}
 }
 
 
