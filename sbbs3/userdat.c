@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.6 2000/11/07 21:41:46 rswindell Exp $ */
+/* $Id: userdat.c,v 1.7 2000/11/08 09:19:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -784,6 +784,27 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				break;
 			case AR_DOS:
 				#ifdef __FLAT__
+					result=not;
+				#else
+					result=!not;
+				#endif
+				break;
+			case AR_WIN32:
+				#ifndef _WIN32
+					result=not;
+				#else
+					result=!not;
+				#endif
+				break;
+			case AR_UNIX:
+				#ifndef __unix__
+					result=not;
+				#else
+					result=!not;
+				#endif
+				break;
+			case AR_LINUX:
+				#ifndef __linux__
 					result=not;
 				#else
 					result=!not;

@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.2 2000/10/24 07:55:55 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.3 2000/11/08 09:19:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,6 +152,27 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				break;
 			case AR_DOS:
 				#ifdef __FLAT__
+					result=not;
+				#else
+					result=!not;
+				#endif
+				break;
+			case AR_WIN32:
+				#ifndef _WIN32
+					result=not;
+				#else
+					result=!not;
+				#endif
+				break;
+			case AR_UNIX:
+				#ifndef __unix__
+					result=not;
+				#else
+					result=!not;
+				#endif
+				break;
+			case AR_LINUX:
+				#ifndef __linux__
 					result=not;
 				#else
 					result=!not;

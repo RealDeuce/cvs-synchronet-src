@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.2 2000/10/29 04:47:00 rswindell Exp $ */
+/* $Id: ars.c,v 1.3 2000/11/08 09:19:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -258,6 +258,27 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 				i+=2; }
 			else if(!strncmp(str+i,"DOS",3)) {
 				artype=AR_DOS;
+				if(not)
+					ar[j++]=AR_NOT;
+				not=0;
+				ar[j++]=artype;
+				i+=2; }
+			else if(!strncmp(str+i,"WIN32",5)) {
+				artype=AR_WIN32;
+				if(not)
+					ar[j++]=AR_NOT;
+				not=0;
+				ar[j++]=artype;
+				i+=2; }
+			else if(!strncmp(str+i,"UNIX",4)) {
+				artype=AR_UNIX;
+				if(not)
+					ar[j++]=AR_NOT;
+				not=0;
+				ar[j++]=artype;
+				i+=2; }
+			else if(!strncmp(str+i,"LINUX",5)) {
+				artype=AR_LINUX;
 				if(not)
 					ar[j++]=AR_NOT;
 				not=0;
