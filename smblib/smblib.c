@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.127 2004/12/31 09:38:52 rswindell Exp $ */
+/* $Id: smblib.c,v 1.128 2005/02/17 22:54:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -982,7 +982,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	if(msg->subj==NULL)	msg->subj=nulstr;
 
 	/* If no reverse path specified, use sender's address */
-	if(msg->reverse_path == NULL)
+	if(msg->reverse_path == NULL && msg->from_net.type==NET_INTERNET)
 		msg->reverse_path = msg->from_net.addr;
 
 	return(SMB_SUCCESS);
