@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.37 2003/05/02 03:49:00 deuce Exp $ */
+/* $Id: wraptest.c,v 1.38 2003/05/02 20:57:14 rswindell Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -72,7 +72,7 @@ int main()
 
 	/* Exclusive sopen test */
 	printf("\nsopen() test\n");
-	if((fd=sopen(LOCK_FNAME,O_RDWR|O_CREAT,SH_DENYRW))==-1) {
+	if((fd=sopen(LOCK_FNAME,O_RDWR|O_CREAT,SH_DENYRW,S_IREAD|S_IWRITE))==-1) {
 		perror(LOCK_FNAME);
 		return(errno);
 	}
@@ -90,7 +90,7 @@ int main()
 
 	/* sopen()/lock test */
 	printf("\nlock() test\n");
-	if((fd=sopen(LOCK_FNAME,O_RDWR|O_CREAT,SH_DENYNO))==-1) {
+	if((fd=sopen(LOCK_FNAME,O_RDWR|O_CREAT,SH_DENYNO,S_IREAD|S_IWRITE))==-1) {
 		perror(LOCK_FNAME);
 		return(errno);
 	}
