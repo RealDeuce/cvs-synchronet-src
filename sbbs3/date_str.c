@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.16 2003/04/18 04:57:08 rswindell Exp $ */
+/* $Id: date_str.c,v 1.17 2003/04/18 20:52:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,7 +335,13 @@ char* DLLCALL zonestr(short zone)
 		case WEL:   return("WEL");
 		}
 
-	zone=smb_tzutc(zone);
+	if(!OTHER_ZONE(zone)) {
+		if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
+			zone=-(zone&0xfff);
+		else
+			zone&=0xfff;
+	}
+
 	if(zone>0)
 		plus="+";
 	else
