@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.13 2001/06/27 02:30:01 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.14 2001/08/01 15:57:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -572,7 +572,7 @@ void sbbs_t::useredit(int usernumber)
 					stype=SEARCH_ARS;
 				if(ar && ar[0])
 					FREE(ar);
-				ar=arstr(0,artxt,&cfg);
+				ar=arstr(NULL,artxt,&cfg);
 				break;
 			case '{':
 				if(stype==SEARCH_TXT)

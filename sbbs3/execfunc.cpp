@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.16 2001/06/23 00:48:37 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.17 2001/08/01 15:57:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -462,7 +462,7 @@ int sbbs_t::exec_function(csi_t *csi)
 			return(0);
 		case CS_MAIL_SEND_BULK:
 			if(csi->str[0])
-				p=arstr(0,csi->str, &cfg);
+				p=arstr(NULL,csi->str, &cfg);
 			else
 				p=(uchar *)nulstr;
 			bulkmail(p);
