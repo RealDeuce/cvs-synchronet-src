@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.16 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.17 2001/11/13 15:01:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,7 +306,7 @@ void sbbs_t::extract(uint dirnum)
 		if(fexist(str)) {
 			bputs(text[RemovingTempFiles]);
 			dir=opendir(cfg.temp_dir);
-			while((dirent=readdir(dir))!=NULL) {
+			while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
 				sprintf(str,"%s%s",cfg.temp_dir,dirent->d_name);
         		if(!isdir(str))
 					remove(str);

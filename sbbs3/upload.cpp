@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.16 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.17 2001/11/13 15:01:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -532,7 +532,7 @@ bool sbbs_t::bulkupload(uint dirnum)
 	action=NODE_ULNG;
 	SYNC;
 	dir=opendir(path);
-	while((dirent=readdir(dir))!=NULL && !msgabort()) {
+	while(dir!=NULL && (dirent=readdir(dir))!=NULL && !msgabort()) {
 		if(getfiles(&cfg,dirnum)>=cfg.dir[dirnum]->maxfiles) {
 			bputs(text[DirFull]);
 			break; 

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.14 2001/11/04 01:42:35 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.15 2001/11/13 15:01:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,7 +201,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	sprintf(str,"%sqnet/%s.out",cfg.data_dir,cfg.qhub[hubnum]->id);
 	strlwr(str);
 	dir=opendir(str);
-	while((dirent=readdir(dir))!=NULL) {
+	while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
 		sprintf(str,"%sqnet/%s.out/%s",cfg.data_dir,cfg.qhub[hubnum]->id,dirent->d_name);
 		strlwr(str);
 		if(isdir(str))

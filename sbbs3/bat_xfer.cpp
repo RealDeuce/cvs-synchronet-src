@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.10 2001/11/08 13:36:27 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.11 2001/11/13 15:01:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -617,7 +617,7 @@ void sbbs_t::batch_upload()
 	if(cfg.upload_dir==INVALID_DIR)
 		return;
 	dir=opendir(cfg.temp_dir);
-	while((dirent=readdir(dir))!=NULL) {
+	while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
 		sprintf(str1,"%s%s",cfg.temp_dir,dirent->d_name);
 		if(isdir(str1))
 			continue;

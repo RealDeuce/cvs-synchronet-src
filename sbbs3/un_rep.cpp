@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.11 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.12 2001/11/13 15:01:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -415,7 +415,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 		remove(str);
 
 		dir=opendir(cfg.temp_dir);
-		while((dirent=readdir(dir))!=NULL) {				/* Extra files */
+		while(dir!=NULL && (dirent=readdir(dir))!=NULL) {				/* Extra files */
 			// Create directory if necessary
 			sprintf(str,"%sqnet/%s.in",cfg.data_dir,useron.alias);
 			_mkdir(str); 
