@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.14 2003/03/12 22:46:25 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.15 2003/03/13 05:13:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,8 +63,8 @@ ulong _beginthread(void( *start_address )( void * )
 	   that thread resources are freed on exit() */
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-#ifdef __FreeBSD__
-	/* Default stack size in FreeBSD is too small for JS stuff */
+#ifdef BSD
+	/* Default stack size in BSD is too small for JS stuff */
 	if(stack_size==0)
 		stack_size=1<<17;
 #endif
