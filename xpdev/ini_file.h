@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.4 2003/05/05 06:23:50 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.5 2003/05/05 23:54:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,8 @@ typedef struct {
 extern "C" {
 #endif
 
+char**		iniReadSectionList(FILE* fp);
+char**		iniReadKeyList	(FILE* fp, const char* section);
 char*		iniReadString	(FILE* fp, const char* section, const char* key, 
 							 const char* deflt);
 char**		iniReadStringList(FILE* fp, const char* section, const char* key
