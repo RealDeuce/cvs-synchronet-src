@@ -3,14 +3,13 @@
 # Make 'include file' for building Synchronet DLLs 
 # Used with GNU and Borland compilers
 
-# $Id: headers.mk,v 1.2 2002/04/13 07:41:41 rswindell Exp $
+# $Id: headers.mk,v 1.3 2002/07/15 20:42:54 rswindell Exp $
 
 HEADERS = \
 	ars_defs.h \
 	client.h \
 	cmdshell.h \
 	nodedefs.h \
-	post.h \
 	ringbuf.h \
 	riodefs.h \
 	sbbs.h \
