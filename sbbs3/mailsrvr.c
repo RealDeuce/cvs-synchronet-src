@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.151 2002/04/26 11:01:12 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.152 2002/04/26 11:11:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1949,6 +1949,7 @@ static void smtp_thread(void* arg)
 					if(p!=alias_buf /* forced relay by alias */ &&
 						(!(startup->options&MAIL_OPT_ALLOW_RELAY)
 							|| relay_user.number==0
+							|| relay_user.laston < time(NULL)-(60*60)
 							|| relay_user.rest&(FLAG('G')|FLAG('M'))) &&
 						!findstr(&scfg,host_name,relay_list) && 
 						!findstr(&scfg,host_ip,relay_list)) {
