@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.15 2001/10/25 22:35:02 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.16 2002/02/20 23:34:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,8 +158,11 @@ bool sbbs_t::answer()
     if(l) {
         if(str[0]==ESC && str[1]=='[') {
 			autoterm|=(ANSI|COLOR);
-            rows=((str[2]&0xf)*10)+(str[3]&0xf);
-			if(rows<10 || rows>99) rows=24; }
+            rows=atoi(str+2);
+			lprintf("Node %d ANSI cursor position report: %u rows"
+				,cfg.node_num, rows);
+			if(rows<10 || rows>99) rows=24; 
+		}
 		truncsp(str);
 		if(strstr(str,"RIPSCRIP")) {
 			logline("@R",strstr(str,"RIPSCRIP"));
