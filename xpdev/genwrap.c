@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.8 2002/04/06 11:33:07 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.9 2002/04/12 08:33:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,6 +131,31 @@ int DLLCALL xp_random(int n)
 
 	return((int)(n*f));
 }
+
+/****************************************************************************/
+/* Return ASCII string representation of ulong								*/
+/* There may be a native GNU C Library function to this...					*/
+/****************************************************************************/
+#if !defined _MSC_VER && !defined __BORLANDC__
+char* DLLCALL ultoa(ulong val, char* str, int radix)
+{
+	switch(radix) {
+		case 8:
+			sprintf(str,"%lo",val);
+			break;
+		case 10:
+			sprintf(str,"%lu",val);
+			break;
+		case 16:
+			sprintf(str,"%lx",val);
+			break;
+		default:
+			sprintf(str,"bad radix: %d",radix);
+			break;
+	}
+	return(str);
+}
+#endif
 
 /****************************************************************************/
 /* Write the version details of the current operating system into str		*/
