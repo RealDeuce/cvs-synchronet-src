@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.39 2001/04/19 22:54:07 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.40 2001/04/23 01:16:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,7 @@
 	#else
 		#define XP_PC
 	#endif
+	#define JS_THREADSAFE	/* required for multi-thread support */
 	#include <jsapi.h>
 
 	#define	JAVASCRIPT_RUNTIME_MEMORY	(1*1024*1024)
@@ -166,6 +167,7 @@ public:
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	long		js_execfile(char *fname);
+	bool		js_initcx(void);
 
 #endif
 
