@@ -1,5 +1,5 @@
 /*
- * $Id: xpsem.c,v 1.4 2003/05/02 23:04:07 rswindell Exp $
+ * $Id: xpsem.c,v 1.5 2003/05/08 18:14:39 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -253,8 +253,10 @@ xp_sem_timedwait(xp_sem_t *sem, const struct timespec *abs_timeout)
 		(*sem)->nwaiters++;
 		retval=pthread_cond_timedwait(&(*sem)->gtzero, &(*sem)->lock, abs_timeout);
 		(*sem)->nwaiters--;
-		if(retval)
-			break;
+		if(retval)  {
+			errno=retval;
+			retval=-1;
+		}
 	}
 	if(retval==0)
 		(*sem)->count--;
