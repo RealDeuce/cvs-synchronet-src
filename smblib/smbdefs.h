@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.13 2002/02/21 22:56:09 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.14 2002/02/28 23:29:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -266,6 +266,7 @@
 #define RFC822HEADER		0xb0
 #define RFC822MSGID 		0xb1
 #define RFC822REPLYID		0xb2
+#define RFC822TO			0xb3
 
 #define UNKNOWN 			0xf1
 #define UNKNOWNASCII		0xf2
