@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.45 2003/02/03 23:53:22 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.46 2003/02/03 23:58:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 #else
 		"gmake"
 #endif
-		" install -f install/GNUmakefile";
+		" install -f install/GNUmakefile");
 	params.usebcc=FALSE;
 	SAFECOPY(params.cflags,"");
 	params.debug=FALSE;
