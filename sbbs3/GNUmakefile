@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.145 2004/07/20 18:38:47 rswindell Exp $
+# $Id: GNUmakefile,v 1.147 2004/09/02 19:12:27 rswindell Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -113,8 +113,13 @@ MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(WEB_OBJS) \
 			$(MAIL_OBJS) $(SERVICE_OBJS)
 SMBLIB_OBJS = \
 	$(LIBODIR)/smblib.o \
-	$(LIBODIR)/filewrap.o \
-	$(LIBODIR)/crc16.o
+	$(LIBODIR)/smbtxt.o \
+	$(LIBODIR)/smbdump.o \
+	$(LIBODIR)/crc16.o \
+	$(LIBODIR)/crc32.o \
+	$(LIBODIR)/md5.o \
+	$(LIBODIR)/lzh.o \
+	$(LIBODIR)/filewrap.o
 
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
@@ -241,6 +246,7 @@ FIXSMB_OBJS = \
 	$(SMBLIB_OBJS) \
 	$(LIBODIR)/genwrap.o \
 	$(LIBODIR)/dirwrap.o \
+	$(LIBODIR)/str_list.o \
 	$(LIBODIR)/str_util.o
 FORCE$(FIXSMB): $(FIXSMB_OBJS)
 	
@@ -269,10 +275,6 @@ SMBUTIL_OBJS = \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
-	$(LIBODIR)/smbtxt.o \
-	$(LIBODIR)/smbdump.o \
-	$(LIBODIR)/crc32.o \
-	$(LIBODIR)/lzh.o \
 	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/str_util.o
 FORCE$(SMBUTIL): $(SMBUTIL_OBJS)
@@ -285,7 +287,6 @@ $(SMBUTIL): $(SMBUTIL_OBJS)
 SBBSECHO_OBJS = \
 	$(LIBODIR)/sbbsecho.o \
 	$(LIBODIR)/ars.o \
-	$(LIBODIR)/crc32.o \
 	$(LIBODIR)/date_str.o \
 	$(LIBODIR)/load_cfg.o \
 	$(LIBODIR)/scfglib1.o \
@@ -298,9 +299,7 @@ SBBSECHO_OBJS = \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
-	$(SMBLIB_OBJS) \
-	$(LIBODIR)/smbtxt.o \
-	$(LIBODIR)/lzh.o
+	$(SMBLIB_OBJS)
 
 FORCE$(SBBSECHO): $(SBBSECHO_OBJS)
 
