@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.47 2004/08/11 09:57:09 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.48 2004/08/11 10:04:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,6 +270,22 @@ BOOL iniRemoveSection(str_list_t* list, const char* section)
 	} while((*list)[i]!=NULL && *(*list)[i]!=INI_OPEN_SECTION_CHAR);
 
 	return(TRUE);
+}
+
+BOOL iniRenameSection(str_list_t* list, const char* section, const char* newname)
+{
+	char	str[INI_MAX_LINE_LEN];
+	size_t	i;
+
+	if(section==ROOT_SECTION)
+		return(FALSE);
+
+	i=find_section_index(*list,section);
+	if((*list)[i]==NULL)	/* not found */
+		return(FALSE);
+
+	sprintf(str,"[%s]",newname);
+	return(strListReplace(*list, i, str)!=NULL);
 }
 
 size_t iniAddSection(str_list_t* list, const char* section
