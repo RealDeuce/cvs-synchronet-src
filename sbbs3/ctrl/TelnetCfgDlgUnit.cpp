@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.16 2004/10/21 08:50:53 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.15 2003/03/12 03:16:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -253,8 +253,8 @@ void __fastcall TTelnetCfgDlg::RLoginIPallowButtonClick(TObject *Sender)
 {
 	char filename[MAX_PATH+1];
 
-    sprintf(filename,"%srlogin.cfg"
-    	,MainForm->cfg.ctrl_dir);
+    sprintf(filename,"%sRLOGIN.CAN"
+    	,MainForm->cfg.text_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
 	TextFileEditForm->Filename=AnsiString(filename);
     TextFileEditForm->Caption="Allowed IP addresses for RLogin";
