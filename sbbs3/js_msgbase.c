@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.74 2003/05/06 09:23:56 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.75 2003/05/19 20:47:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1475,7 +1475,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 		}
 		if(p->smb.subnum<scfg->total_subs) {
 			cfgobj=JS_NewObject(cx,NULL,NULL,obj);
-			js_CreateMsgAreaProperties(cx, cfgobj, scfg->sub[p->smb.subnum]);
+			js_CreateMsgAreaProperties(cx, scfg, cfgobj, p->smb.subnum);
 #ifdef _DEBUG
 			js_DescribeObject(cx,cfgobj
 				,"Configuration parameters for this message area (<i>sub-boards only</i>) "
