@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.151 2004/09/02 22:10:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.138 2004/08/08 19:44:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1832,7 +1832,6 @@ BOOL unpack_bundle(void)
 		}
 		if(gi<g.gl_pathc) {
 			SAFECOPY(fname,g.gl_pathv[gi]);
-			logprintf("Unpacking bundle: %s",fname);
 			if(unpack(fname)) {	/* failure */
 				if(fdate(fname)+(48L*60L*60L)>time(NULL)) {
 					SAFECOPY(str,fname);
@@ -1846,12 +1845,9 @@ BOOL unpack_bundle(void)
 							,__LINE__,fname,str); 
 				} 
 			}
-			else {
-				logprintf("Deleting bundle: %s", fname);
-				if(delfile(fname))	/* successful, so delete bundle */
-					logprintf("ERROR line %d removing %s %s",__LINE__,fname
-						,strerror(errno));
-			}
+			else if(delfile(fname))	/* successful, so delete bundle */
+				logprintf("ERROR line %d removing %s %s",__LINE__,fname
+					,strerror(errno));
 			gi++;
 			return(TRUE); 
 		} 
@@ -1935,7 +1931,7 @@ ulong getlastmsg(uint subnum, ulong *ptr, time_t *t)
 		bail(1); }
 	sprintf(smbfile.file,"%s%s",scfg.sub[subnum]->data_dir,scfg.sub[subnum]->code);
 	smbfile.retry_time=scfg.smb_retry_time;
-	if((i=smb_open(&smbfile))!=SMB_SUCCESS) {
+	if((i=smb_open(&smbfile))!=0) {
 		printf("ERROR %d opening %s\n",i,smbfile.file);
 		logprintf("ERROR %d line %d opening %s",i,__LINE__,smbfile.file);
 		return(0); }
@@ -1957,7 +1953,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 	idxrec_t idx;
 
 
-	if((i=smb_locksmbhdr(&smb[cur_smb]))!=SMB_SUCCESS) {
+	if((i=smb_locksmbhdr(&smb[cur_smb]))!=0) {
 		printf("ERROR %d locking %s\n",i,smb[cur_smb].file);
 		logprintf("ERROR %d line %d locking %s",i,__LINE__,smb[cur_smb].file);
 		return(0); 
@@ -2253,7 +2249,7 @@ char* getfmsg(FILE *stream, ulong *outlen)
 
 /****************************************************************************/
 /* Coverts a FidoNet message into a Synchronet message						*/
-/* Returns 0 on success, 1 dupe, 2 filtered, 3 empty, or other SMB error	*/
+/* Returns 1 on success, 0 on failure, -1 on dupe.							*/
 /****************************************************************************/
 int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 {
@@ -2267,7 +2263,6 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	ulong	save;
 	faddr_t faddr,origaddr,destaddr;
 	smbmsg_t	msg;
-	smbmsg_t	remsg;
 	smb_t	*smbfile;
 	char	fname[MAX_PATH+1];
 
@@ -2275,7 +2270,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		sprintf(fname,"%stwitlist.cfg",scfg.ctrl_dir);
 		if(findstr(fmsghdr.from,fname) || findstr(fmsghdr.to,fname)) {
 			printf("Filtering message from %s to %s",fmsghdr.from,fmsghdr.to);
-			return(2);
+			return(0);
 		}
 	}
 
@@ -2325,24 +2320,21 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		printf("ERROR allocating fbuf\n");
 		logprintf("ERROR line %d allocating fbuf",__LINE__);
 		smb_freemsgmem(&msg);
-		return(-1); 
-	}
+		return(0); }
 	length=strlen((char *)fbuf);
 	if((sbody=(char*)malloc((length+1)*2))==NULL) {
 		printf("ERROR allocating %lu bytes for body",(length+1)*2L);
 		logprintf("ERROR line %d allocating %lu bytes for body",__LINE__
 			,(length+1)*2L);
 		smb_freemsgmem(&msg);
-		return(-1); 
-	}
+		return(0); }
 	if((stail=(char*)malloc(MAX_TAILLEN))==NULL) {
 		printf("ERROR allocating %u bytes\n",MAX_TAILLEN);
 		logprintf("ERROR line %d allocating %u bytes for tail",__LINE__
 			,MAX_TAILLEN);
 		free(sbody);
 		smb_freemsgmem(&msg);
-		return(-1); 
-	}
+		return(0); }
 
 	for(col=l=esc=done=bodylen=taillen=0,cr=1;l<length;l++) {
 
@@ -2516,17 +2508,6 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	if(bodylen>=2 && sbody[bodylen-2]=='\r' && sbody[bodylen-1]=='\n')
 		bodylen-=2; 						/* remove last CRLF if present */
 
-	while(taillen && stail[taillen-1]<=' ')	/* trim all garbage off the tail */
-		taillen--;
-
-	if(subnum==INVALID_SUB && !bodylen && !taillen && misc&KILL_EMPTY_MAIL) {
-		printf("Empty NetMail - Ignored ");
-		smb_freemsgmem(&msg);
-		free(sbody);
-		free(stail);
-		return(3);
-	}
-
 	if(smb[cur_smb].status.max_crcs) {
 		for(l=0,crc=0xffffffff;l<bodylen;l++)
 			crc=ucrc32(sbody[l],crc);
@@ -2540,9 +2521,12 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 			smb_freemsgmem(&msg);
 			free(sbody);
 			free(stail);
-			return(i); 
-		} 
-	}
+			if(i==1)
+				return(-1);
+			return(0); } }
+
+	while(taillen && stail[taillen-1]<=' ')	/* trim all garbage off the tail */
+		taillen--;
 
 	if(!origaddr.zone && subnum==INVALID_SUB)
 		net=NET_NONE;						/* Message from SBBSecho */
@@ -2561,7 +2545,6 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	else
 		smbfile=&smb[cur_smb];
 
-
 	if(subnum!=INVALID_SUB && scfg.sub[subnum]->misc&SUB_LZH
 		&& bodylen+2L+taillen+2L>=SDT_BLOCK_LEN && bodylen) {
 		if((outbuf=(char *)malloc(bodylen*2L))==NULL) {
@@ -2571,8 +2554,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 			smb_freemsgmem(&msg);
 			free(sbody);
 			free(stail);
-			return(-1); 
-		}
+			return(0); }
 		lzhlen=lzh_encode((uchar *)sbody,bodylen,(uchar *)outbuf);
 		if(lzhlen>1 &&
 			smb_datblocks(lzhlen+4L+taillen+2L)<
@@ -2581,13 +2563,10 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 			l=bodylen+4;
 			free(sbody);
 			lzh=1;
-			sbody=outbuf; 
-		}
+			sbody=outbuf; }
 		else {					/* Uncompressable */
 			l=bodylen+2;
-			free(outbuf); 
-		} 
-	}
+			free(outbuf); } }
 	else
 		l=bodylen+2;
 
@@ -2600,48 +2579,27 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		smb_freemsgmem(&msg);
 		free(sbody);
 		free(stail);
-		return(-1); 
-	}
-
-	if((i=smb_locksmbhdr(smbfile))!=SMB_SUCCESS) {
-		printf("ERROR %d locking %s\n",i,smbfile->file);
-		logprintf("ERROR %d line %d locking %s",i,__LINE__,smbfile->file);
-		smb_freemsgmem(&msg);
-		free(sbody);
-		free(stail);
-		return(i); 
-	}
-
-	if(msg.ftn_reply!=NULL) {	/* auto-thread linkage */
-
-		if(smb_getstatus(smbfile)==SMB_SUCCESS
-			&& smb_getmsghdr_by_ftnid(smbfile, &remsg, msg.ftn_reply)==SMB_SUCCESS) {
-
-			msg.hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
-
-			/* Add RFC-822 Reply-ID (generate if necessary) */
-			smb_hfield_str(&msg,RFC822REPLYID,get_msgid(&scfg,smbfile->subnum,&remsg));
-
-			smb_updatethread(smbfile,&remsg,smbfile->status.last_msg+1);
-			smb_freemsgmem(&remsg);
-		}
-	}
+		return(0); }
 
 	if(smbfile->status.attr&SMB_HYPERALLOC) {
+		if((i=smb_locksmbhdr(smbfile))!=0) {
+			printf("ERROR %d locking %s\n",i,smbfile->file);
+			logprintf("ERROR %d line %d locking %s",i,__LINE__,smbfile->file);
+			smb_freemsgmem(&msg);
+			free(sbody);
+			free(stail);
+			return(0); }
 		msg.hdr.offset=smb_hallocdat(smbfile);
-		storage=SMB_HYPERALLOC; 
-	}
+		storage=SMB_HYPERALLOC; }
 	else {
-		if((i=smb_open_da(smbfile))!=SMB_SUCCESS) {
-			smb_unlocksmbhdr(smbfile);
+		if((i=smb_open_da(smbfile))!=0) {
 			smb_freemsgmem(&msg);
 			printf("ERROR %d opening %s.sda\n",i,smbfile->file);
 			logprintf("ERROR %d line %d opening %s.sda",i,__LINE__
 				,smbfile->file);
 			free(sbody);
 			free(stail);
-			return(i); 
-		}
+			return(0); }
 		if(subnum!=INVALID_SUB && scfg.sub[subnum]->misc&SUB_FAST) {
 			msg.hdr.offset=smb_fallocdat(smbfile,l,1);
 			storage=SMB_FASTALLOC; }
@@ -2651,14 +2609,14 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		smb_close_da(smbfile); }
 
 	if(msg.hdr.offset && msg.hdr.offset<1L) {
-		smb_unlocksmbhdr(smbfile);
+		if(smbfile->status.attr&SMB_HYPERALLOC)
+			smb_unlocksmbhdr(smbfile);
 		smb_freemsgmem(&msg);
 		free(sbody);
 		free(stail);
 		printf("ERROR %ld allocating records\n",msg.hdr.offset);
 		logprintf("ERROR line %d %ld allocating records",__LINE__,msg.hdr.offset);
-		return(-1); 
-	}
+		return(0); }
 	fseek(smbfile->sdt_fp,msg.hdr.offset,SEEK_SET);
 	if(lzh) {
 		xlat=XLAT_LZH;
@@ -2676,6 +2634,8 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	free(sbody);
 	free(stail);
 	fflush(smbfile->sdt_fp);
+	if(smbfile->status.attr&SMB_HYPERALLOC)
+		smb_unlocksmbhdr(smbfile);
 
 	if(lzh)
 		bodylen+=2;
@@ -2684,18 +2644,14 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	if(taillen)
 		smb_dfield(&msg,TEXT_TAIL,taillen+2);
 
-	i=smb_addmsghdr(smbfile,&msg,storage);	// calls smb_unlocksmbhdr() 
-
-	if(i!=SMB_SUCCESS) {
-		printf("ERROR smb_addmsghdr returned %d: %s\n"
-			,i,smbfile->last_error);
-		logprintf("ERROR smb_addmsghdr returned %d: %s"
-			,i,smbfile->last_error);
-		smb_freemsg_dfields(smbfile,&msg,1);
-	}
+	i=smb_addmsghdr(smbfile,&msg,storage);
 	smb_freemsgmem(&msg);
-
-	return(i);
+	if(i) {
+		printf("ERROR smb_addmsghdr returned %d\n",i);
+		logprintf("ERROR line %d smb_addmsghdr returned %d"
+			,__LINE__,i);
+		return(0); }
+	return(1);
 }
 
 /***********************************************************************/
@@ -3428,7 +3384,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	uchar info[512],str[256],tmp[256],subj[256]
 		,*fmsgbuf=NULL,*p,*tp,*sp;
 	int i,match,usernumber;
-	ulong length;
+	ulong l;
 	faddr_t addr;
 
 	hdr.destzone=hdr.origzone=sys_faddr.zone;
@@ -3498,7 +3454,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	if(email->shd_fp==NULL) {
 		sprintf(email->file,"%smail",scfg.data_dir);
 		email->retry_time=scfg.smb_retry_time;
-		if((i=smb_open(email))!=SMB_SUCCESS) {
+		if((i=smb_open(email))!=0) {
 			printf("ERROR %d opening %s\n",i,email->file);
 			logprintf("ERROR %d line %d opening %s",i,__LINE__,email->file);
 			bail(1); } }
@@ -3508,7 +3464,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 		email->status.max_msgs=MAX_SYSMAIL;
 		email->status.max_age=scfg.mail_maxage;
 		email->status.attr=SMB_EMAIL;
-		if((i=smb_create(email))!=SMB_SUCCESS) {
+		if((i=smb_create(email))!=0) {
 			sprintf(str,"ERROR %d creating %s",i,email->file);
 			printf("%s\n",str);
 			logprintf(str);
@@ -3538,16 +3494,14 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 		hdr.origzone=hdr.orignet=hdr.orignode=hdr.origpoint=0;
 		p=process_areafix(addr,fmsgbuf,str);
 		if(p && cfg.notify)
-			if(fmsgtosmsg(p,hdr,cfg.notify,INVALID_SUB)==0) {
+			if(fmsgtosmsg(p,hdr,cfg.notify,INVALID_SUB)==1) {
 				sprintf(str,"\7\1n\1hSBBSecho \1n\1msent you mail\r\n");
-				putsmsg(&scfg,cfg.notify,str); 
-			}
+				putsmsg(&scfg,cfg.notify,str); }
 		if(fmsgbuf)
 			FREE(fmsgbuf);
 		if(cfg.log&LOG_AREAFIX)
 			logprintf(info);
-		return(-2); 
-	}
+		return(-2); }
 
 	usernumber=atoi(hdr.to);
 	if(!stricmp(hdr.to,"SYSOP"))  /* NetMail to "sysop" goes to #1 */
@@ -3576,29 +3530,23 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	/* Importing NetMail */
 	/*********************/
 
-	fmsgbuf=getfmsg(fidomsg,&length);
+	fmsgbuf=getfmsg(fidomsg,&l);
 
-	switch(i=fmsgtosmsg(fmsgbuf,hdr,usernumber,INVALID_SUB)) {
-		case 0:			/* success */
-			break;
-		case 2:			/* filtered */
-			if(cfg.log&LOG_IGNORED)
-				logprintf("%s Filtered - Ignored",info);
-			break;
-		case 3:			/* empty */
-			if(cfg.log&LOG_IGNORED)
-				logprintf("%s Empty - Ignored",info);
-			break;
-		default:
-			printf("ERROR (%d) Importing",i);
-			logprintf("ERROR (%d) Importing %s",i,info);
-			break;
-	}
-	if(i) {
+	if(!l && misc&KILL_EMPTY_MAIL) {
+		printf("Empty NetMail - Ignored");
+		if(cfg.log&LOG_IGNORED)
+			logprintf("%s Empty - Ignored",info);
 		if(fmsgbuf)
 			FREE(fmsgbuf);
-		return(0);
-	}
+		return(0); }
+
+	i=fmsgtosmsg(fmsgbuf,hdr,usernumber,INVALID_SUB);
+	if(i!=1) {
+		printf("ERROR (%d) Importing",i);
+		logprintf("ERROR (%d) Importing %s",i,info);
+		if(fmsgbuf)
+			FREE(fmsgbuf);
+		return(10); }
 
 	addr.zone=hdr.origzone;
 	addr.net=hdr.orignet;
@@ -3619,7 +3567,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 			sp=strrchr(tp,'/');              /* sp is slash pointer */
 			if(!sp) sp=strrchr(tp,'\\');
 			if(sp) tp=sp+1;
-			sprintf(str,"%s%s",secure ? cfg.secure : cfg.inbound,tp);
+			sprintf(str,"%s%s",scfg.fidofile_dir,tp);
 			sprintf(tmp,"%sfile/%04u.in",scfg.data_dir,usernumber);
 			MKDIR(tmp);
 			backslash(tmp);
@@ -3728,7 +3676,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 			sprintf(smb[cur_smb].file,"%s%s"
 				,scfg.sub[i]->data_dir,scfg.sub[i]->code);
 			smb[cur_smb].retry_time=scfg.smb_retry_time;
-			if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
+			if((j=smb_open(&smb[cur_smb]))!=0) {
 				printf("ERROR %d opening %s\n",j,smb[cur_smb].file);
 				logprintf("ERROR %d line %d opening %s",j,__LINE__
 					,smb[cur_smb].file);
@@ -3752,7 +3700,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					,scfg.sub[i]->code,m+1,posts);
 				memset(&msg,0,sizeof(msg));
 				msg.idx=post[m];
-				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=0) {
 					printf("ERROR %d locking %s msghdr\n",k,smb[cur_smb].file);
 					logprintf("ERROR %d line %d locking %s msghdr\n"
 						,k,__LINE__,smb[cur_smb].file);
@@ -3764,17 +3712,17 @@ void export_echomail(char *sub_code,faddr_t addr)
 					smb_freemsgmem(&msg);
 
 					msg.hdr.number=post[m].number;
-					if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=0) {
 						printf("ERROR %d reading %s index\n",k,smb[cur_smb].file);
 						logprintf("ERROR %d line %d reading %s index",k,__LINE__
 							,smb[cur_smb].file);
 						continue; }
-					if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=0) {
 						printf("ERROR %d locking %s msghdr\n",k,smb[cur_smb].file);
 						logprintf("ERROR %d line %d locking %s msghdr",k,__LINE__
 							,smb[cur_smb].file);
 						continue; }
-					if((k=smb_getmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					if((k=smb_getmsghdr(&smb[cur_smb],&msg))!=0) {
 						smb_unlockmsghdr(&smb[cur_smb],&msg);
 						printf("ERROR %d reading %s msghdr\n",k,smb[cur_smb].file);
 						logprintf("ERROR %d line %d reading %s msghdr",k,__LINE__
@@ -3853,9 +3801,9 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 				if(msg.ftn_reply!=NULL)			/* use original REPLYID */
 					f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
-				else if(msg.hdr.thread_back) {	/* generate REPLYID */
+				else if(msg.hdr.thread_orig) {	/* generate REPLYID */
 					memset(&orig_msg,0,sizeof(orig_msg));
-					orig_msg.hdr.number=msg.hdr.thread_back;
+					orig_msg.hdr.number=msg.hdr.thread_orig;
 					if(smb_getmsgidx(smb, &orig_msg))
 						f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb->last_error);
 					else {
@@ -4071,7 +4019,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.151 $", "%*s %s", revision);
+	sscanf("$Revision: 1.138 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4095,8 +4043,14 @@ int main(int argc, char **argv)
 #endif
 		,revision
 		);
+#if 0
+	putenv("TZ=UTC0");
+#endif
 
 	putenv("TMP=");
+#if !defined(__unix__)
+	_fmode=O_BINARY;
+#endif
 	setvbuf(stdout,NULL,_IONBF,0);
 
 	sub_code[0]=0;
@@ -4606,8 +4560,10 @@ int main(int argc, char **argv)
 					fseek(fidomsg,(long)-(i+1),SEEK_CUR);
 
 				truncsp(str);
+				strupr(str);
 				p=strstr(str,"AREA:");
-				if(p!=str) {					/* Netmail */
+				if(p==NULL) {					/* Netmail */
+					printf("AREA tag not found, calling import_netmail\n");
 					start_tick=0;
 					if(import_netmail("",hdr,fidomsg))
 						seektonull(fidomsg);
@@ -4624,7 +4580,7 @@ int main(int argc, char **argv)
 				}
 
 				p+=5;								/* Skip "AREA:" */
-				SKIP_WHITESPACE(p);					/* Skip any white space */
+				SKIP_WHITESPACE(p);			/* Skip any white space */
 				printf("%21s: ",p);                 /* Show areaname: */
 				SAFECOPY(areatagstr,p);
 				strupr(p);
@@ -4722,7 +4678,7 @@ int main(int argc, char **argv)
 					sprintf(smb[cur_smb].file,"%s%s",scfg.sub[cfg.area[i].sub]->data_dir
 						,scfg.sub[cfg.area[i].sub]->code);
 					smb[cur_smb].retry_time=scfg.smb_retry_time;
-					if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
+					if((j=smb_open(&smb[cur_smb]))!=0) {
 						sprintf(str,"ERROR %d opening %s area #%d, sub #%d)"
 							,j,smb[cur_smb].file,i+1,cfg.area[i].sub+1);
 						printf(str);
@@ -4739,7 +4695,7 @@ int main(int argc, char **argv)
 						smb[cur_smb].status.max_age=scfg.sub[cfg.area[i].sub]->maxage;
 						smb[cur_smb].status.attr=scfg.sub[cfg.area[i].sub]->misc&SUB_HYPER
 								? SMB_HYPERALLOC:0;
-						if((j=smb_create(&smb[cur_smb]))!=SMB_SUCCESS) {
+						if((j=smb_create(&smb[cur_smb]))!=0) {
 							sprintf(str,"ERROR %d creating %s",j,smb[cur_smb].file);
 							printf(str);
 							logprintf(str);
@@ -4785,7 +4741,7 @@ int main(int argc, char **argv)
 					start_tick=0; 
 				}
 
-				if(j==SMB_DUPE_MSG) {
+				if(j==-1) {
 					if(cfg.log&LOG_DUPES)
 						logprintf("%s Duplicate message",areatagstr);
 					cfg.area[i].dupes++; 
@@ -4796,7 +4752,7 @@ int main(int argc, char **argv)
 						,hdr,msg_seen,msg_path,0); 
 				}
 
-				if(j==0) {		/* Successful import */
+				if(j==1) {		/* Successful import */
 					echomail++;
 					cfg.area[i].imported++;
 					if(misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
