@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.128 2002/03/20 00:59:23 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.129 2002/03/20 01:12:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2399,7 +2399,7 @@ static void sendmail_thread(void* arg)
 
 			lprintf("0000 SEND Message #%lu from %s to %s"
 				,msg.hdr.number, msg.from, msg.to_net.addr);
-			status("SendMail");
+			status("Sending");
 #ifdef _WIN32
 			if(startup->outbound_sound[0] && !(startup->options&MAIL_OPT_MUTE)) 
 				PlaySound(startup->outbound_sound, NULL, SND_ASYNC|SND_FILENAME);
