@@ -2,7 +2,7 @@
 
 /* Unix libdialog implementation of UIFC library (by Deuce)	*/
 
-/* $Id: uifcd.c,v 1.31 2004/07/20 01:13:04 rswindell Exp $ */
+/* $Id: uifcd.c,v 1.30 2003/05/21 00:44:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,7 +135,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	/* Count number of menu options */
     for(cnt=0;cnt<MAX_OPTS;cnt++)
-		if(option[cnt]==NULL || option[cnt][0]==0)
+		if(option[cnt][0]==0)
 	   		break;
 	options=cnt;
 	freecnt=cnt+5;	/* Add, Delete, Copy, Paste, At End */
