@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.19 2005/02/18 08:48:06 deuce Exp $ */
+/* $Id: */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 
 #include <genwrap.h>
 #include <ciolib.h>
-#include <xpbeep.h>
 #include <keys.h>
 
 #include "cterm.h"
@@ -170,7 +169,7 @@ void playnote(int notenum, int notelen, int dotted)
 			break;
 	}
 	duration-=pauselen;
-	xpbeep(((double)note_frequency[notenum])/1000,duration);
+	BEEP((note_frequency[notenum]+500)/1000,duration);
 	SLEEP(pauselen);
 }
 
@@ -179,11 +178,11 @@ void play_music(void)
 	int		i;
 	char	*p;
 	char	*out;
-	int		offset;
+	int		offset=0;
 	char	note;
 	int		notelen;
 	char	numbuf[10];
-	int		dotted;
+	int		dotted=0;
 	int		notenum;
 
 	p=cterm.musicbuf;
@@ -193,7 +192,6 @@ void play_music(void)
 	}
 	for(;*p;p++) {
 		notenum=0;
-		offset=0;
 		switch(toupper(*p)) {
 			case 'M':
 				p++;
@@ -227,6 +225,7 @@ void play_music(void)
 					cterm.tempo=255;
 				if(cterm.tempo<32)
 					cterm.tempo=32;
+				i=1;
 				break;
 			case 'O':						/* Octave */
 				out=numbuf;
@@ -236,6 +235,7 @@ void play_music(void)
 				cterm.octave=atoi(numbuf);
 				if(cterm.octave>6)
 					cterm.octave=6;
+				i=1;
 				break;
 			case 'N':						/* Note by number */
 				if(isdigit(*(p+1))) {
@@ -246,6 +246,7 @@ void play_music(void)
 					}
 					*out=0;
 					notenum=atoi(numbuf);
+					i=1;
 				}
 				if(notenum==0) {
 					notenum=-1;
@@ -262,6 +263,7 @@ void play_music(void)
 			case 'P':
 				note=toupper(*p);
 				notelen=cterm.notelen;
+				offset=0;
 				dotted=0;
 				i=1;
 				while(i) {
@@ -472,7 +474,7 @@ void do_ansi(char *retbuf, int retsize)
 				case 'H':
 					row=1;
 					col=1;
-					*p=0;
+					*(p--)=0;
 					if(strlen(cterm.escbuf)>1) {
 						if((p=strtok(cterm.escbuf+1,";"))!=NULL) {
 							row=atoi(p);
@@ -557,6 +559,7 @@ void do_ansi(char *retbuf, int retsize)
 						p2=(char *)malloc((cterm.height-wherey()-i)*cterm.width*2);
 						gettext(cterm.x+1,cterm.y+wherey(),cterm.x+cterm.width,wherey()+(cterm.height-wherey()-i),p2);
 						puttext(cterm.x+1,cterm.y+wherey()+i,cterm.x+cterm.width,wherey()+(cterm.height-wherey()),p2);
+						j=0;
 						free(p2);
 					}
 					p2=(char *)malloc(cterm.width*2);
@@ -817,6 +820,7 @@ void ctputs(char *buf)
 	int		cy;
 	int		i;
 
+	p=buf;
 	outp=buf;
 	oldscroll=_wscroll;
 	_wscroll=0;
@@ -981,7 +985,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 	cterm.xpos=wherex();
 	cterm.ypos=wherey();
 #if 0
-	window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
+	window(ti.winleft,ti.wintop,ti.winright,ti.wintop);
 	gotoxy(ti.curx,ti.cury);
 	textattr(ti.attribute);
 #endif

@@ -1,9 +1,5 @@
-/* $Id: telnet_io.c,v 1.6 2005/02/18 08:35:38 deuce Exp $ */
-
 #include <stdlib.h>
 #include <string.h>
-
-#include "term.h"
 
 #include "genwrap.h"
 #include "sockwrap.h"
@@ -11,50 +7,25 @@
 #include "gen_defs.h"
 #include "bbslist.h"
 #include "conn.h"
-#include "uifcinit.h"
 
 #define TELNET_TERM_MAXLEN	40
 
 uint	telnet_cmdlen=0;
 uchar	telnet_cmd[64];
 char	terminal[TELNET_TERM_MAXLEN+1];
-uchar	telnet_local_option[0x100];
-uchar	telnet_remote_option[0x100];
+uint		rows;
+uint		cols;
+ulong telnet_mode;
+uchar telnet_local_option[0x100];
+uchar telnet_remote_option[0x100];
 
 #define putcom(buf,len)	send(conn_socket, buf, len, 0)
 
-static void send_telnet_cmd(uchar cmd, uchar opt)
-{
-	char buf[16];
-	
-	if(cmd<TELNET_WILL) {
-		sprintf(buf,"%c%c",TELNET_IAC,cmd);
-		putcom(buf,2);
-	} else {
-		sprintf(buf,"%c%c%c",TELNET_IAC,cmd,opt);
-		putcom(buf,3);
-	}
-}
-
-static void request_telnet_opt(uchar cmd, uchar opt)
-{
-	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
-		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
-			return;	/* already set in this mode, do nothing */
-		telnet_remote_option[opt]=telnet_opt_ack(cmd);
-	} else {	/* local option */
-		if(telnet_local_option[opt]==telnet_opt_ack(cmd))
-			return;	/* already set in this mode, do nothing */
-		telnet_local_option[opt]=telnet_opt_ack(cmd);
-	}
-	send_telnet_cmd(cmd,opt);
-}
+void send_telnet_cmd(uchar cmd, uchar opt);
 
 static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 {
-	BYTE	command;
-	BYTE	option;
-	BYTE*   first_iac;
+	BYTE*   first_iac=NULL;
 	int 	i;
 
 	if(inlen<1) {
@@ -82,25 +53,30 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
             continue;
         }
         if(inbuf[i]==TELNET_IAC || telnet_cmdlen) {
+			uchar command	= telnet_cmd[1];
+			uchar option	= telnet_cmd[2];
 
 			if(telnet_cmdlen<sizeof(telnet_cmd))
 				telnet_cmd[telnet_cmdlen++]=inbuf[i];
-
-			command	= telnet_cmd[1];
-			option	= telnet_cmd[2];
 
 			if(telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE 
 					&& telnet_cmd[telnet_cmdlen-2]==TELNET_IAC) {
 					/* sub-option terminated */
-					if(option==TELNET_TERM_TYPE && telnet_cmd[3]==TELNET_TERM_SEND) {
-						BYTE buf[32];
-						int len=sprintf(buf,"%c%c%c%cANSI%c%c"
-							,TELNET_IAC,TELNET_SB
-							,TELNET_TERM_TYPE,TELNET_TERM_IS
-							,TELNET_IAC,TELNET_SE);
-						putcom(buf,len);
-						request_telnet_opt(TELNET_WILL, TELNET_NEGOTIATE_WINDOW_SIZE);
+					if(option==TELNET_TERM_TYPE
+						&& telnet_cmd[3]==TELNET_TERM_IS) {
+						sprintf(terminal,"%.*s",(int)telnet_cmdlen-6,telnet_cmd+4);
+					} else if(option==TELNET_TERM_SPEED
+						&& telnet_cmd[3]==TELNET_TERM_IS) {
+						char speed[128];
+						sprintf(speed,"%.*s",(int)telnet_cmdlen-6,telnet_cmd+4);
+					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
+						long cols = (telnet_cmd[3]<<8) | telnet_cmd[4];
+						long rows = (telnet_cmd[5]<<8) | telnet_cmd[6];
+						if(rows)	/* auto-detect rows */
+							rows=rows;
+						if(cols)
+							cols=cols;
 					}
 					telnet_cmdlen=0;
 				}
@@ -114,21 +90,6 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 						telnet_local_option[option]=command;
 						send_telnet_cmd(telnet_opt_ack(command),option);
 					}
-
-					if(command==TELNET_DO && option==TELNET_NEGOTIATE_WINDOW_SIZE) {
-						BYTE buf[32];
-						buf[0]=TELNET_IAC;
-						buf[1]=TELNET_SB;
-						buf[2]=TELNET_NEGOTIATE_WINDOW_SIZE;
-						buf[3]=(term.width>>8)&0xff;
-						buf[4]=term.width&0xff;
-						buf[5]=(term.height>>8)&0xff;
-						buf[6]=term.height&0xff;
-						buf[7]=TELNET_IAC;
-						buf[8]=TELNET_SE;
-						putcom(buf,9);
-					}
-
 				} else { /* WILL/WONT (remote options) */ 
 					if(telnet_remote_option[option]!=command) {	
 
@@ -148,6 +109,23 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 								break;
 						}
 					}
+
+					if(command==TELNET_WILL && option==TELNET_TERM_TYPE) {
+						char	buf[64];
+						sprintf(buf,"%c%c%c%c%c%c"
+							,TELNET_IAC,TELNET_SB
+							,TELNET_TERM_TYPE,TELNET_TERM_SEND
+							,TELNET_IAC,TELNET_SE);
+						putcom(buf,6);
+					}
+					else if(command==TELNET_WILL && option==TELNET_TERM_SPEED) {
+						char	buf[64];
+						sprintf(buf,"%c%c%c%c%c%c"
+							,TELNET_IAC,TELNET_SB
+							,TELNET_TERM_SPEED,TELNET_TERM_SEND
+							,TELNET_IAC,TELNET_SE);
+						putcom(buf,6);
+					}
 				}
 
                 telnet_cmdlen=0;
@@ -157,6 +135,36 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
         	outbuf[(*outlen)++]=inbuf[i];
     }
     return(outbuf);
+}
+
+void send_telnet_cmd(uchar cmd, uchar opt)
+{
+	char buf[16];
+	
+	if(telnet_mode&TELNET_MODE_OFF)	
+		return;
+
+	if(cmd<TELNET_WILL) {
+		sprintf(buf,"%c%c",TELNET_IAC,cmd);
+		putcom(buf,2);
+	} else {
+		sprintf(buf,"%c%c%c",TELNET_IAC,cmd,opt);
+		putcom(buf,3);
+	}
+}
+
+void request_telnet_opt(uchar cmd, uchar opt)
+{
+	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
+		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
+			return;	/* already set in this mode, do nothing */
+		telnet_remote_option[opt]=telnet_opt_ack(cmd);
+	} else {	/* local option */
+		if(telnet_local_option[opt]==telnet_opt_ack(cmd))
+			return;	/* already set in this mode, do nothing */
+		telnet_local_option[opt]=telnet_opt_ack(cmd);
+	}
+	send_telnet_cmd(cmd,opt);
 }
 
 int telnet_recv(char *buffer, size_t buflen)
@@ -173,7 +181,7 @@ int telnet_recv(char *buffer, size_t buflen)
 		return(-1);
 
 	if(!ioctlsocket(conn_socket,FIONREAD,(void *)&avail) && avail)
-		r=recv(conn_socket,inbuf,avail<(int)buflen?avail:buflen,0);
+		r=recv(conn_socket,inbuf,avail<buflen?avail:buflen,0);
 	else {
 		free(inbuf);
 		return(0);
@@ -225,7 +233,7 @@ int telnet_send(char *buffer, size_t buflen, unsigned int timeout)
 	if((outbuf=(BYTE *)malloc(buflen*2))==NULL)
 		return(-1);
 	sendbuf=telnet_expand(buffer, buflen, outbuf, &buflen);
-	while(sent<(int)buflen) {
+	while(sent<buflen) {
 		if(!socket_check(conn_socket, NULL, &i, timeout)) {
 			free(outbuf);
 			return(-1);
@@ -262,6 +270,7 @@ int telnet_connect(char *addr, int port, char *ruser, char *passwd)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
+	char	nil=0;
 	char	*p;
 	unsigned int	neta;
 	int	i;
@@ -302,7 +311,7 @@ int telnet_connect(char *addr, int port, char *ruser, char *passwd)
 		telnet_close();
 		sprintf(str,"Cannot connect to %s!",addr);
 		uifcmsg(str,	"`Unable to connect`\n\n"
-						"Cannot connect to the remote system... it is down or unreachable.");
+						"Cannot connect to the remost system... it is down or unreachable.");
 		return(-1);
 	}
 
