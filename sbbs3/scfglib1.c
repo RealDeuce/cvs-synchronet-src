@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.9 2000/11/10 18:56:30 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.10 2000/11/14 02:02:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,9 +128,10 @@ BOOL read_node_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 
 	strcpy(fname,"node.cnf");
 	sprintf(str,"%s%s",cfg->node_dir,fname);
-	if((instream=fopen(str,"rb" /*O_RDONLY*/))==NULL) {
+	if((instream=fnopen(NULL,str,O_RDONLY))==NULL) {
 		lprintf(txt->openerr,str);
-		return(FALSE); }
+		return(FALSE); 
+	}
 
 	if(txt->reading && txt->reading[0])
 		lprintf(txt->reading,fname);
@@ -261,7 +262,7 @@ BOOL read_main_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 
 	strcpy(fname,"main.cnf");
 	sprintf(str,"%s%s",cfg->ctrl_dir,fname);
-	if((instream=fopen(str,"rb" /* O_RDONLY */))==NULL) {
+	if((instream=fnopen(NULL,str,O_RDONLY))==NULL) {
 		lprintf(txt->openerr,str);
 		return(FALSE); }
 
@@ -516,7 +517,7 @@ BOOL read_msgs_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 
 	strcpy(fname,"msgs.cnf");
 	sprintf(str,"%s%s",cfg->ctrl_dir,fname);
-	if((instream=fopen(str,"rb"/*O_RDONLY*/))==NULL) {
+	if((instream=fnopen(NULL,str,O_RDONLY))==NULL) {
 		lprintf(txt->openerr,str);
 		return(FALSE); }
 
