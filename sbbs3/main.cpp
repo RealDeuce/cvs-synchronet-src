@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.154 2002/06/18 09:33:09 rswindell Exp $ */
+/* $Id: main.cpp,v 1.155 2002/06/18 09:47:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2386,7 +2386,7 @@ void sbbs_t::riosync(char abortable)
 			break;								/* abort sync */
 		}
 		if(time(NULL)-start>180) {				/* timeout */
-			errorlog("riosync timeout"); 
+			logline("!!","riosync timeout"); 
 			break;
 		}
 		mswait(100);
