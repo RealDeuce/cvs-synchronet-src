@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.18 2001/07/25 02:45:43 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.19 2001/10/02 19:42:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,9 +94,6 @@ char ** sbbs_t::getstrvar(csi_t *bin, long name)
 
 		case 0x41239e21:
 			sysvar_p[sysvar_pi]=(char*)connection;
-			break;
-		case 0xe9f1fad0:
-			sysvar_p[sysvar_pi]=(char*)cap_fname;
 			break;
 		case 0x90fc82b4:
 			sysvar_p[sysvar_pi]=(char*)cid;
