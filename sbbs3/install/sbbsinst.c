@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.90 2004/09/21 05:06:48 deuce Exp $ */
+/* $Id: sbbsinst.c,v 1.89 2004/03/24 03:05:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,8 +40,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define __COLORS
-#include "ciolib.h"
+#include "conwrap.h"
 #include "uifc.h"
 #include "sbbs.h"
 #include "httpio.h"
@@ -203,7 +202,6 @@ int main(int argc, char **argv)
 	dist_t 	**distlist;
 	int		dist=0;
 	int		server=0;
-	int		ciolib_mode=CIOLIB_MODE_AUTO;
 
 	/************/
 	/* Defaults */
@@ -223,7 +221,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=FALSE;
 
-	sscanf("$Revision: 1.90 $", "%*s %s", revision);
+	sscanf("$Revision: 1.89 $", "%*s %s", revision);
 
     printf("\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -243,8 +241,6 @@ int main(int argc, char **argv)
         			uifc.mode|=UIFC_COLOR;
                     break;
                 case 'D':
-					printf("NOTICE: The -d option is depreciated, use -id instead\r\n");
-					SLEEP(2000);
                     door_mode=TRUE;
                     break;
                 case 'L':
@@ -261,55 +257,27 @@ int main(int argc, char **argv)
 					http_distlist=FALSE;
 					break;
 				case 'I':
-					switch(toupper(argv[i][2])) {
-						case 'A':
-							ciolib_mode=CIOLIB_MODE_ANSI;
-							break;
-						case 'C':
-							ciolib_mode=CIOLIB_MODE_CURSES;
-							break;
-						case 0:
-							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
-							SLEEP(2000);
-						case 'F':
-							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
-							break;
-						case 'X':
-							ciolib_mode=CIOLIB_MODE_X;
-							break;
-						case 'W':
-							ciolib_mode=CIOLIB_MODE_CONIO;
-							break;
-						case 'D':
-		                    door_mode=TRUE;
-		                    break;
-						default:
-							goto USAGE;
-					}
+					uifc.mode|=UIFC_IBM;
 					break;
                 case 'V':
+#if !defined(__unix__)
                     textmode(atoi(argv[i]+2));
+#endif
                     break;
                 default:
-					USAGE:
                     printf("\nusage: %s [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
 						"-n  =  do not HTTP-download distribution list\n"
 						"-h  =  run in HTTP-verbose (debug) mode\n"
+                        "-d  =  run in standard input/output/door mode\n"
                         "-c  =  force color mode\n"
 #ifdef USE_CURSES
                         "-e# =  set escape delay to #msec\n"
+						"-i  =  force IBM charset\n"
 #endif
-						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
-#ifdef __unix__
-						"       X = X11 mode\r\n"
-						"       C = Curses mode\r\n"
-						"       F = Curses mode with forced IBM charset\r\n"
-#else
-						"       W = Win32 native mode\r\n"
-#endif
-						"       A = ANSI mode\r\n"
+#if !defined(__unix__)
                         "-v# =  set video mode to #\n"
+#endif
                         "-l# =  set screen lines to #\n"
 						,argv[0]
                         );
@@ -318,16 +286,29 @@ int main(int argc, char **argv)
     }
 
 	uifc.size=sizeof(uifc);
-	if(!door_mode) {
-		i=initciolib(ciolib_mode);
-		if(i!=0) {
-    		printf("ciolib library init returned error %d\n",i);
-    		exit(1);
-		}
-    	i=uifcini32(&uifc);  /* curses/conio/X/ANSI */
-	}
+#if defined(USE_FLTK)
+	if(!door_mode&&(getenv("DISPLAY")!=NULL))
+		i=uifcinifltk(&uifc);  /* fltk */
 	else
-    	i=uifcinix(&uifc);  /* stdio */
+#endif
+#if defined(USE_UIFC32)	/* "New" UIFC */
+	if(!door_mode)
+		i=uifcini32(&uifc);  /* dialog */
+	else
+#elif defined(USE_DIALOG)
+	if(!door_mode)
+		i=uifcinid(&uifc);  /* dialog */
+	else
+#elif defined(USE_CURSES)
+	if(!door_mode)
+		i=uifcini32(&uifc);  /* curses */
+	else
+#elif !defined(__unix__)
+	if(!door_mode)
+		i=uifcini(&uifc);   /* conio */
+	else
+#endif
+		i=uifcinix(&uifc);  /* stdio */
 	if(i!=0) {
 		printf("uifc library init returned error %d\n",i);
 		exit(1);

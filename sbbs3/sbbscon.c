@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.167 2004/09/24 08:37:37 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.166 2004/09/13 21:52:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -875,9 +875,6 @@ static void handle_sigs(void)  {
 			default:
 				sprintf(str,"     Signal has no handler (unexpected)");
 				log_puts(LOG_NOTICE,str);
-				sprintf(str,"     Sleeping for 1 second");
-				log_puts(LOG_NOTICE,str);
-				SLEEP(1000);
 		}
 	}
 }
