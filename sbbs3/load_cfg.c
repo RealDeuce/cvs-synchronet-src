@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.43 2003/04/18 05:04:40 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.44 2003/04/18 09:43:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,9 +52,12 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 	int		i;
 	long	line=0L;
 	FILE 	*instream;
-#ifdef _WIN32
+#if 0 //def _WIN32
 	TIME_ZONE_INFORMATION tz;
    	DWORD tzRet;
+#else
+	time_t	now;
+	struct tm tm;
 #endif
 
 	if(cfg->size!=sizeof(scfg_t)) {
@@ -129,12 +132,20 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 	/* Auto-toggle daylight savings time in US time-zones */
 	if(cfg->sys_misc&SM_AUTO_DST
 		&& !OTHER_ZONE(cfg->sys_timezone) && cfg->sys_timezone&US_ZONE) {
-#ifdef _WIN32
+#if 0 //def _WIN32
    		tzRet=GetTimeZoneInformation(&tz);
 		if(tzRet==TIME_ZONE_ID_STANDARD)
 			cfg->sys_timezone&=~DAYLIGHT;
 		else if(tzRet==TIME_ZONE_ID_DAYLIGHT)
 			cfg->sys_timezone|=DAYLIGHT;
+#else
+		now=time(NULL);
+		if(localtime_r(&now,&tm)!=NULL) {
+			if(tm.tm_isdst>0)
+				cfg->sys_timezone|=DAYLIGHT;
+			else if(tm.tm_isdst==0)
+				cfg->sys_timezone&=~DAYLIGHT;
+		}
 #endif
 	}
 
