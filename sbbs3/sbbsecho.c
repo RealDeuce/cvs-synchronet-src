@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.92 2003/02/25 00:42:51 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.93 2003/02/28 11:44:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4027,7 +4027,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.92 $", "%*s %s", revision);
+	sscanf("$Revision: 1.93 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4203,7 +4203,8 @@ int main(int argc, char **argv)
 
 	printf("Reading %s",cfg.areafile);
 	if((stream=fnopen(&file,cfg.areafile,O_RDONLY))==NULL) {
-		printf("Unable to open %s for read.\n",cfg.areafile);
+		printf("\nError opening %s for read: %s\n"
+			,cfg.areafile,strerror(errno));
 		bail(1); }
 	cfg.areas=0;		/* Total number of areas in AREAS.BBS */
 	cfg.area=NULL;
