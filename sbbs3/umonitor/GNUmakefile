@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.8 2003/05/12 06:12:01 deuce Exp $
+# $Id: GNUmakefile,v 1.9 2003/05/14 05:02:38 deuce Exp $
 
 # Macros
 ifndef RELEASE
@@ -76,13 +76,18 @@ ifeq ($(os),netbsd)
  CFLAGS	+=	-D__unix__
 endif
 
-vpath %.c $(UIFC) $(XPDEV)
+vpath %.c $(UIFC) $(XPDEV) $(SBBS3)
 
 OBJS	:=	$(LIBODIR)/filewrap.o \
 			$(LIBODIR)/uifcc.o \
 			$(LIBODIR)/sockwrap.o \
 			$(LIBODIR)/dirwrap.o \
 			$(LIBODIR)/genwrap.o \
+			$(LIBODIR)/sbbs_ini.o \
+			$(LIBODIR)/ini_file.o \
+			$(LIBODIR)/scfglib1.o \
+			$(LIBODIR)/nopen.o \
+			$(LIBODIR)/ars.o \
 			$(LIBODIR)/umonitor.o
 
 all: $(LIBODIR) $(BUILD_DEPENDS)$(EXEODIR)/umonitor
