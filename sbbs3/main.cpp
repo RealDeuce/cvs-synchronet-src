@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.155 2002/06/18 09:47:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.156 2002/06/23 07:30:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1512,6 +1512,8 @@ void event_thread(void* arg)
 				}
 				if(sbbs->cfg.event[i]->node<first_node 
 					|| sbbs->cfg.event[i]->node>last_node) {
+					eprintf("Changing node status for nodes %d through %d to WFC"
+						,first_node,last_node);
 					sbbs->cfg.event[i]->last=now;
 					for(j=first_node;j<=last_node;j++) {
 						node.status=NODE_INVALID_STATUS;
