@@ -1,6 +1,6 @@
 { Synchronet User Editor (Delphi 5 for Win32 project) }
 
-{ $Id: MainFormUnit.pas,v 1.7 2002/04/27 20:55:01 rswindell Exp $ }
+{ $Id: MainFormUnit.pas,v 1.8 2003/01/04 10:27:21 rswindell Exp $ }
 
 {****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1006,7 +1006,7 @@ begin
         ShortDateFormat:='dd/mm/yy';    { European }
 
     data_dir:=ParamStr(1);
-    if Length(data_dir)=0 then data_dir:='c:\sbbs\data\';
+{    if Length(data_dir)=0 then data_dir:='.\'; }
 
     users:=LastUser();
 
