@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.13 2002/04/26 01:13:13 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.14 2002/04/26 06:55:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1407,20 +1407,20 @@ security level from 0 to 99. The available options for each level are:
 						case 0:
 							uifc.input(WIN_MID|WIN_SAV,0,0
 								,"Total Time Allowed Per Day"
-								,ultoa(cfg.level_timeperday[i],tmp,10),3
+								,ultoa(cfg.level_timeperday[i],tmp,10),4
 								,K_NUMBER|K_EDIT);
 							cfg.level_timeperday[i]=atoi(tmp);
-							if(cfg.level_timeperday[i]>500)
-								cfg.level_timeperday[i]=500;
+							if(cfg.level_timeperday[i]>1440)
+								cfg.level_timeperday[i]=1440;
 							break;
 						case 1:
 							uifc.input(WIN_MID|WIN_SAV,0,0
 								,"Time Allowed Per Call"
-								,ultoa(cfg.level_timepercall[i],tmp,10),3
+								,ultoa(cfg.level_timepercall[i],tmp,10),4
 								,K_NUMBER|K_EDIT);
 							cfg.level_timepercall[i]=atoi(tmp);
-							if(cfg.level_timepercall[i]>500)
-								cfg.level_timepercall[i]=500;
+							if(cfg.level_timepercall[i]>1440)
+								cfg.level_timepercall[i]=1440;
                             break;
 						case 2:
 							uifc.input(WIN_MID|WIN_SAV,0,0
