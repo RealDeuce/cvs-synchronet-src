@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.56 2004/09/15 07:56:04 deuce Exp $
+# $Id: Makefile,v 1.57 2004/09/15 07:58:00 deuce Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -154,7 +154,7 @@ $(MAKEUSER): $(MAKEUSER_OBJS)
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(MT_LDFLAGS) -e$@ $(LDFLAGS) $(JSEXEC_OBJS) $(LIBODIR)$(DIRSEP)$(UL_PRE)sbbs$(UL_SUF) $(SMBLIB) $(XPDEV-MT_LIB)
+	$(QUIET)$(CC) -e$@ $(LDFLAGS) $(JSEXEC_OBJS) $(SMBLIB) $(XPDEV-MT_LIB) $(LIBODIR)$(DIRSEP)$(UL_PRE)sbbs$(UL_SUF)
 
 # ANS2ASC
 $(ANS2ASC): $(OBJODIR)$(DIRSEP)ans2asc$(OFILE)
