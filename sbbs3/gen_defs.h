@@ -2,7 +2,7 @@
 
 /* Synchronet general constant and macro definitions */
 
-/* $Id: gen_defs.h,v 1.10 2001/06/15 03:37:30 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.11 2002/03/25 08:13:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,6 +127,7 @@ enum {
 #define HANDLE	void*
 #endif
 
+#define SAFECOPY(dst,src)	sprintf(dst,"%.*s",sizeof(dst)-1,src)
 
 /****************************************************************************/
 /* MALLOC/FREE Macros for various compilers and environments				*/
