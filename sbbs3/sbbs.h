@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.136 2002/09/04 04:05:44 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.137 2002/09/04 04:18:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -832,27 +832,11 @@ extern "C" {
 		const char*		name;
 		JSNative        call;
 		uint8           nargs;
-		const char*		type;		/* return type */
+		JSType			type;		/* return type */
 		const char*		args;		/* arguments */
 		const char*		desc;		/* description */
 		const char**	alias;		/* aliases */
 	} jsMethodSpec;
-
-	#ifdef __cplusplus
-
-		const char* jstype_void		= "void";
-		const char* jstype_bool		= "boolean";
-		const char* jstype_str		= "string";
-		const char* jstype_num		= "number";
-
-	#else
-
-		#define		jstype_void		"void"
-		#define		jstype_bool		"boolean"
-		#define		jstype_str		"string"
-		#define		jstype_num		"number"
-
-	#endif
 
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL js_MethodsToFunctions(jsMethodSpec meth[], JSFunctionSpec func[]);
