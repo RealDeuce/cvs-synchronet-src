@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.47 2004/12/31 02:39:19 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.46 2004/12/18 00:15:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@ enum {	/* msg_area Object Properties */
 #ifdef _DEBUG
 
 static char* msg_grp_prop_desc[] = {
-	 "index into grp_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
+	 "index into grp_list array (or -1 if not in array)"
 	,"unique number for this message group"
 	,"group name"
 	,"group description"
@@ -56,11 +56,11 @@ static char* msg_grp_prop_desc[] = {
 
 static char* msg_area_prop_desc[] = {
 
-	 "index into sub_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
-	,"group's index into grp_list array <i>(introduced in v3.12)</i>"
+	 "index into sub_list array (or -1 if not in array)"
+	,"group's index into grp_list array"
 	,"unique number for this sub-board"
 	,"group number"
-	,"group name <i>(introduced in v3.12)</i>"
+	,"group name"
 	,"sub-board internal code"
 	,"sub-board name"
 	,"sub-board description"
