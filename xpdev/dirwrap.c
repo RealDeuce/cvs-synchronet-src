@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.23 2003/03/20 03:32:49 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.24 2003/03/20 03:43:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -679,7 +679,6 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	char	*out;
 	char	*p;
-	struct stat	sb;
 	
 	if(target==NULL)  {
 		if((target=malloc(MAX_PATH+1))==NULL) {
