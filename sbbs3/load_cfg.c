@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.25 2002/04/25 22:15:37 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.26 2002/07/16 07:28:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,10 +254,10 @@ BOOL md(char *inpath)
 	DIR*	dir;
 	char	path[MAX_PATH+1];
 
-	SAFECOPY(path,inpath);
-
-	if(path[0]==0)
+	if(inpath[0]==0)
 		return(FALSE);
+
+	SAFECOPY(path,inpath);
 
 	/* Remove trailing '.' if present */
 	if(path[strlen(path)-1]=='.')
