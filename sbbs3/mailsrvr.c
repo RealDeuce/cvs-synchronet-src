@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.133 2002/03/23 04:47:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.134 2002/03/24 10:46:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2908,15 +2908,21 @@ void DLLCALL mail_server(void* arg)
 		lprintf("%04d Mail Server thread started",server_socket);
 		status(STATUS_WFC);
 
-		if(initialized==0)
+		if(initialized==0) {
 			initialized=time(NULL);
+			sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
+			t=fdate(path);
+			if(t!=-1 && t>initialized)
+				initialized=t;
+		}
 
 		while (server_socket!=INVALID_SOCKET) {
 
 			sprintf(path,"%smailsrvr.rec",scfg.ctrl_dir);
-			if(!active_clients && fdate(path)>initialized) {
+			t=fdate(path);
+			if(!active_clients && t!=-1 && t>initialized) {
 				lprintf("0000 Recycle semaphore file (%s) detected",path);
-				initialized=fdate(path);
+				initialized=t;
 				break;
 			}
 			if(!active_clients && startup->recycle_now==TRUE) {
