@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.11 2002/08/24 22:26:45 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.12 2002/11/26 06:43:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,10 +58,14 @@
 #include <sys/types.h>  /* For u_int32_t on FreeBSD */
 #include <netinet/in.h>	/* IPPROTO_IP */
 #include <sys/socket.h>	/* socket/bind/etc. */
-#include <sys/ioctl.h>	/* FIONBIO */
 #include <sys/time.h>	/* struct timeval */
 #include <arpa/inet.h>	/* inet_ntoa */
 #include <unistd.h>		/* close */
+#if defined(__solaris__)
+	#include <sys/filio.h>  /* FIONBIO */
+#else
+	#include <sys/ioctl.h>	/* FIONBIO */
+#endif
 
 #endif
 
