@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.25 2004/05/28 03:33:43 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.26 2004/05/28 03:35:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -442,7 +442,7 @@ str_list_t iniReadFile(FILE* fp)
 	
 	rewind(fp);
 
-	list = strListReadFile(fp, NULL, INI_MAX_VALUE_LEN);
+	list = strListReadFile(fp, NULL, INI_MAX_VALUE_LEN, TRUE /* pad */);
 	if(list!=NULL) {
 		/* truncate the white-space off end of strings */
 		for(i=0; list[i]!=NULL; i++)
