@@ -1,6 +1,6 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.5 2004/11/11 08:33:41 rswindell Exp $ */
+/* $Id: semfile.c,v 1.4 2004/10/17 07:17:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "link_list.h"
 
 /****************************************************************************/
 /* This function compares a single semaphore file's							*/
