@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.75 2002/07/21 12:59:35 rob Exp $ */
+/* $Id: sbbscon.c,v 1.76 2002/07/21 21:11:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,6 +156,7 @@ static const char* usage  = "usage: %s [[setting] [...]]\n"
 							"\tgi         get user identity (using IDENT protocol)\n"
 							"\tnh         disable hostname lookups\n"
 							"\tnj         disable JavaScript support\n"
+							"\tni         do not read settings from .ini file\n"
 							"\tlt         use local timezone (do not force UTC/GMT)\n"
 							"\tdefaults   show default settings and options\n"
 							;
@@ -1076,6 +1077,9 @@ int main(int argc, char** argv)
 						mail_startup.options	|=BBS_OPT_NO_JAVASCRIPT;
 						services_startup.options|=BBS_OPT_NO_JAVASCRIPT;
 						break;
+					case 'I':	/* ini file */
+						ini_file[0]=0;
+						break;
 					default:
 						printf(usage,argv[0]);
 						return(0);
@@ -1101,7 +1105,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if((fp=fopen(ini_file,"r"))!=NULL) {
+	if(ini_file[0]!=0 && (fp=fopen(ini_file,"r"))!=NULL) {
 		sprintf(str,"Reading %s",ini_file);
 		bbs_lputs(str);
 		sbbs_read_ini(fp, 
