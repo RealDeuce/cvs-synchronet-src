@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.9 2002/03/09 02:31:28 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.10 2002/04/02 18:49:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ char *faddrtoa(fidoaddr_t addr)
 	static char str[25];
 	char point[25];
 
-	sprintf(str,"%u:%u/%u",addr.zone,addr.net,addr.node);
+	sprintf(str,"%hu:%hu/%hu",addr.zone,addr.net,addr.node);
 	if(addr.point) {
 		sprintf(point,".%u",addr.point);
 		strcat(str,point); }

@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.24 2002/03/28 03:59:45 rswindell Exp $ */
+/* $Id: misc.c,v 1.25 2002/04/02 18:49:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,9 +382,9 @@ char *faddrtoa(faddr_t* addr, char* outstr)
 
 	if(addr==NULL)
 		return("0:0/0");
-	sprintf(str,"%u:%u/%u",addr->zone,addr->net,addr->node);
+	sprintf(str,"%hu:%hu/%hu",addr->zone,addr->net,addr->node);
 	if(addr->point) {
-		sprintf(point,".%u",addr->point);
+		sprintf(point,".%hu",addr->point);
 		strcat(str,point); }
 	if(outstr==NULL)
 		return(str);

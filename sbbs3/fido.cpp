@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.13 2002/03/13 18:17:16 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.14 2002/04/02 18:49:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,18 +43,18 @@ void pt_zone_kludge(fmsghdr_t hdr,int fido)
 {
 	char str[256];
 
-	sprintf(str,"\1INTL %u:%u/%u %u:%u/%u\r"
+	sprintf(str,"\1INTL %hu:%hu/%hu %hu:%hu/%hu\r"
 		,hdr.destzone,hdr.destnet,hdr.destnode
 		,hdr.origzone,hdr.orignet,hdr.orignode);
 	write(fido,str,strlen(str));
 
 	if(hdr.destpoint) {
-		sprintf(str,"\1TOPT %u\r"
+		sprintf(str,"\1TOPT %hu\r"
 			,hdr.destpoint);
 		write(fido,str,strlen(str)); }
 
 	if(hdr.origpoint) {
-		sprintf(str,"\1FMPT %u\r"
+		sprintf(str,"\1FMPT %hu\r"
 			,hdr.origpoint);
 		write(fido,str,strlen(str)); }
 }
