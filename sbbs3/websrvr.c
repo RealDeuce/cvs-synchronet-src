@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.149 2004/07/13 23:18:30 deuce Exp $ */
+/* $Id: websrvr.c,v 1.146 2004/07/13 22:06:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -833,16 +833,14 @@ static BOOL check_ars(http_session_t * session)
 	char	*password;
 	uchar	*ar;
 	BOOL	authorized;
-	char	auth_req[MAX_REQUEST_LINE];
 
 	if(session->req.auth[0]==0) {
 		if(startup->options&WEB_OPT_DEBUG_RX)
 			lprintf(LOG_NOTICE,"%04d !No authentication information",session->socket);
 		return(FALSE);
 	}
-	SAFECOPY(auth_req,session->req.auth);
 
-	username=strtok(auth_req,":");
+	username=strtok(session->req.auth,":");
 	if(username==NULL)
 		username="";
 	password=strtok(NULL,":");
@@ -1519,12 +1517,12 @@ static BOOL check_request(http_session_t * session)
 	if(isdir(path)) {
 		last_ch=*lastchar(path);
 		if(!IS_PATH_DELIM(last_ch))  {
-			session->req.send_location=MOVED_PERM;
+			session->req.send_location==MOVED_PERM;
 			strcat(path,"/");
 		}
 		last_ch=*lastchar(session->req.virtual_path);
 		if(!IS_PATH_DELIM(last_ch))  {
-			session->req.send_location=MOVED_PERM;
+			session->req.send_location==MOVED_PERM;
 			strcat(session->req.virtual_path,"/");
 		}
 		last_slash=find_last_slash(path);
@@ -1546,8 +1544,7 @@ static BOOL check_request(http_session_t * session)
 			return(FALSE);
 		}
 		strcat(session->req.virtual_path,startup->index_file_name[i]);
-		if(session->req.send_location != MOVED_PERM)
-			session->req.send_location=MOVED_STAT;
+		session->req.send_location=MOVED_STAT;
 	}
 	if(strnicmp(path,root_dir,strlen(root_dir))) {
 		session->req.keep_alive=FALSE;
@@ -2500,7 +2497,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.149 $", "%*s %s", revision);
+	sscanf("$Revision: 1.146 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -1,13 +1,10 @@
-/* $Id: curs_cio.c,v 1.9 2004/08/02 02:43:59 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.1 2004/07/05 21:27:40 deuce Exp $ */
 #include <sys/time.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-#include "ciolib.h"
+#include "conio.h"
 #include "curs_cio.h"
-#include "keys.h"
 
 static unsigned char curs_nextgetch=0;
 const int curs_tabs[10]={9,17,25,33,41,49,57,65,73,80};
@@ -55,7 +52,7 @@ short curses_color(short color)
 	return(0);
 }
 
-int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
+int curs_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
 	int x,y;
 	int fillpos=0;
@@ -64,9 +61,7 @@ int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
 	unsigned char orig_attr;
 	int oldx, oldy;
 	struct text_info	ti;
-	unsigned char *fill;
 
-	fill=fillbuf;
 	gettextinfo(&ti);
 
 	if(		   sx < 1
@@ -101,7 +96,7 @@ int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
 	return(1);
 }
 
-int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
+int curs_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
 	int x,y;
 	int fillpos=0;
@@ -112,9 +107,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 	unsigned char thischar;
 	int	ext_char;
 	struct text_info	ti;
-	unsigned char *fill;
 
-	fill=fillbuf;
 	gettextinfo(&ti);
 
 	if(		   sx < 1
@@ -140,7 +133,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 				thischar=attr&255-'A'+1;
 			}
 			else if(attr&A_ALTCHARSET) {
-				if(!(mode==CIOLIB_MODE_CURSES_IBM)){
+				if(!(mode&UIFC_IBM)){
 					ext_char=A_ALTCHARSET|(attr&255);
 					/* likely ones */
 					if (ext_char == ACS_CKBOARD)
@@ -366,7 +359,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 	return(1);
 }
 
-void curs_textattr(int attr)
+void curs_textattr(unsigned char attr)
 {
 	chtype   attrs=A_NORMAL;
 	int	colour;
@@ -433,7 +426,7 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	int		ret;
 	chtype	cha;
 
-	if(!(mode==CIOLIB_MODE_CURSES_IBM))
+	if(!(mode&UIFC_IBM))
 	{
 		switch(ch)
 		{
@@ -606,25 +599,15 @@ void curs_gotoxy(int x, int y)
 	refresh();
 }
 
-int curs_initciolib(long inmode)
+void curs_initciowrap(long inmode)
 {
 	short	fg, bg, pair=0;
 
 #ifdef XCURSES
-	char	*argv[2]={"ciolib",NULL};
+	char	*argv[2]={"Syhcnronet",NULL};
 
 	Xinitscr(1,argv);
 #else
-	char *term;
-	SCREEN *tst;
-
-	term=getenv("TERM");
-	if(term==NULL)
-		return(0);
-	tst=newterm(term,stdout,stdin);
-	if(tst==NULL)
-		return(0);
-	endwin();
 	initscr();
 #endif
 	start_color();
@@ -634,7 +617,6 @@ int curs_initciolib(long inmode)
 	keypad(stdscr, TRUE);
 	scrollok(stdscr,FALSE);
 	raw();
-	atexit(endwin);
 
 	/* Set up color pairs */
 	for(bg=0;bg<8;bg++)  {
@@ -643,13 +625,6 @@ int curs_initciolib(long inmode)
 		}
 	}
 	mode = inmode;
-	#ifdef NCURSES_VERSION_MAJOR
-		if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
-			cio_api.mouse=1;
-		else
-			mousemask(0,NULL);
-	#endif
-	return(1);
 }
 
 void curs_gettextinfo(struct text_info *info)
@@ -682,7 +657,7 @@ void curs_setcursortype(int type) {
 	refresh();
 }
 
-int curs_putch(int c)
+int curs_putch(unsigned char c)
 {
 	struct text_info ti;
 	int		ret;
@@ -703,7 +678,7 @@ int curs_putch(int c)
 			}
 			break;
 		case 0x07:
-			beep();
+			cio_api.beep();
 			break;
 		case 0x08:
 			gotoxy(wherex()-1,wherey());
@@ -765,7 +740,7 @@ int curs_getch(void)
 		while((ch=getch())==ERR) {
 			delay(1);
 		}
-		if(ch > 255) {
+		if(ch & KEY_CODE_YES) {
 			switch(ch) {
 				case KEY_DOWN:            /* Down-arrow */
 					curs_nextgetch=0x50;
@@ -931,11 +906,6 @@ int curs_getch(void)
 					ch=0;
 					break;
 
-				case KEY_MOUSE:			/* Mouse stuff */
-					ch=CIO_KEY_MOUSE>>8;
-					curs_nextgetch=CIO_KEY_MOUSE&0xff;
-					break;
-
 				default:
 					curs_nextgetch=0xff;
 					ch=0;
@@ -960,49 +930,4 @@ int curs_getche(void)
 
 void curs_textmode(int mode)
 {
-}
-
-int curs_hidemouse(void)
-{
-	#ifdef NCURSES_VERSION_MAJOR
-		mousemask(0,NULL);
-		return(0);
-	#else
-		return(-1);
-	#endif
-}
-
-int curs_showmouse(void)
-{
-	#ifdef NCURSES_VERSION_MAJOR
-		if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
-			return(0);
-	#endif
-	return(-1);
-}
-
-/* cio_get_mouse() */
-int curs_getmouse(struct cio_mouse_event *mevent)
-{
-	#ifdef NCURSES_VERSION_MAJOR
-		MEVENT	mevnt;
-
-		if(getmouse(&mevnt)==OK) {
-			mevent->x=mevnt.x;
-			mevent->y=mevnt.y;
-			switch(mevnt.bstate) {
-				case BUTTON1_CLICKED:
-					mevent->button=1;
-					break;
-				case BUTTON3_CLICKED:
-					mevent->button=2;
-					break;
-			}
-		}
-		else
-			return(-1);
-		return(0);
-	#else
-		return(-1);
-	#endif
 }
