@@ -19,7 +19,7 @@
  *
  * Severly mangled for use in the Synchronet installer
  *
- * $Id: ftpio.c,v 1.10 2003/03/27 01:56:33 rswindell Exp $
+ * $Id: ftpio.c,v 1.11 2003/07/09 23:41:12 deuce Exp $
  *
  */
 
@@ -567,7 +567,7 @@ static u_long resolve_ip(char *addr)
 		return(inet_addr(addr));
 	if((host=gethostbyname(addr))==NULL) 
 		return(INADDR_NONE);
-	return(*((ulong*)host->h_addr_list[0]));
+	return(*((u_long*)host->h_addr_list[0]));
 }
 
 
