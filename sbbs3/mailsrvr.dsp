@@ -115,9 +115,5 @@ SOURCE=.\mime.c
 
 SOURCE=.\mxlookup.c
 # End Source File
-# Begin Source File
-
-SOURCE=..\xpdev\str_list.c
-# End Source File
 # End Target
 # End Project

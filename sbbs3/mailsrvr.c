@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.325 2004/04/29 08:49:52 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.324 2004/04/27 10:07:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1621,7 +1621,7 @@ static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 	if((p=strchr(buf,':'))==NULL)
 		return smb_hfield_str(msg, *type=RFC822HEADER, buf);
 
-	len=(ulong)p-(ulong)buf;
+	len=p-buf;
 	if(len>sizeof(field)-1)
 		len=sizeof(field)-1;
 	sprintf(field,"%.*s",len,buf);
@@ -3754,7 +3754,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.325 $", "%*s %s", revision);
+	sscanf("$Revision: 1.324 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

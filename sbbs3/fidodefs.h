@@ -2,7 +2,7 @@
 
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.6 2004/04/29 23:31:26 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.5 2003/10/10 00:16:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,9 +87,6 @@ typedef struct _PACK {				/* Fidonet Packet Header				*/
           sec,						/* Second of Packet Creation 0-59		*/
           baud,						/* Max Baud Rate of Orig & Dest			*/
           pkttype,					/* Packet Type (-1 is obsolete)			*/
-#define PKT_TWO_PLUS	0			/* Type 2+ Packet Header				*/
-#define PKT_TWO_TWO 	1			/* Type 2.2 Packet Header				*/
-#define PKT_TWO 		2			/* Old Type Packet Header				*/
           orignet,					/* Origination Net of Packet			*/
           destnet;					/* Destination Net of Packet			*/
     uchar prodcode,					/* Product Code (00h is Fido)			*/
