@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.58 2003/02/26 06:42:14 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.59 2003/02/28 05:04:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -466,6 +466,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 				,JS_GetStringBytes(JSVAL_TO_STRING(argv[n]))
 				,&msg))
 				return(JS_TRUE);	/* ID not found */
+
 			break;
 		}
 	}
@@ -901,12 +902,14 @@ js_get_msg_body(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 				msg.offset=JSVAL_TO_INT(argv[n]);
 			else									/* Get by number */
 				msg.hdr.number=JSVAL_TO_INT(argv[n]);
+			n++;
 			break;
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 			if(!msg_offset_by_id(scfg,&(p->smb)
 				,JS_GetStringBytes(JSVAL_TO_STRING(argv[n]))
 				,&msg.offset))
 				return(JS_TRUE);	/* ID not found */
+			n++;
 			break;
 		}
 	}
@@ -964,12 +967,14 @@ js_get_msg_tail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 				msg.offset=JSVAL_TO_INT(argv[n]);
 			else									/* Get by number */
 				msg.hdr.number=JSVAL_TO_INT(argv[n]);
+			n++;
 			break;
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 			if(!msg_offset_by_id(scfg,&(p->smb)
 				,JS_GetStringBytes(JSVAL_TO_STRING(argv[n]))
 				,&msg.offset))
 				return(JS_TRUE);	/* ID not found */
+			n++;
 			break;
 		}
 	}
