@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.33 2001/09/13 18:33:04 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.34 2001/09/13 20:26:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1945,6 +1945,7 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->NodeIntUpDown->Position=NodeDisplayInterval;
     PropertiesDlg->ClientIntUpDown->Position=ClientDisplayInterval;
     PropertiesDlg->TrayIconCheckBox->Checked=MinimizeToSysTray;
+    PropertiesDlg->UndockableCheckBox->Checked=UndockableForms;
 	if(PropertiesDlg->ShowModal()==mrOk) {
         LoginCommand=PropertiesDlg->LoginCmdEdit->Text;
         ConfigCommand=PropertiesDlg->ConfigCmdEdit->Text;
@@ -1952,6 +1953,7 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         NodeDisplayInterval=PropertiesDlg->NodeIntUpDown->Position;
         ClientDisplayInterval=PropertiesDlg->ClientIntUpDown->Position;
         MinimizeToSysTray=PropertiesDlg->TrayIconCheckBox->Checked;
+        UndockableForms=PropertiesDlg->UndockableCheckBox->Checked;
         SaveSettings(Sender);
     }
     delete PropertiesDlg;
