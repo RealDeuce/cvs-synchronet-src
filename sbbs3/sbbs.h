@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.163 2003/02/25 02:39:01 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.164 2003/03/01 02:28:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,7 +188,7 @@ public:
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	ulong		js_loop;
-	long		js_execfile(char *fname);
+	long		js_execfile(const char *fname);
 	bool		js_init(void);
 	void		js_create_user_objects(void);
 
@@ -624,7 +624,7 @@ public:
 	void	resort(uint dirnum);
 
 	/* xtrn.cpp */
-	int		external(char* cmdline, long mode, char* startup_dir=NULL);
+	int		external(const char* cmdline, long mode, const char* startup_dir=NULL);
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */
@@ -645,8 +645,8 @@ public:
 	void	errorlog(char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
 	bool	errorlog_inside;
 	bool	errormsg_inside;
-	void	errormsg(int line, char *file, char action, char *object
-				,ulong access, char *extinfo=NULL);
+	void	errormsg(int line, const char *file, char action, const char *object
+				,ulong access, const char *extinfo=NULL);
 	
 	/* qwk.cpp */
 	bool	qwklogon;
