@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.40 2003/05/24 00:30:53 deuce Exp $ */
+/* $Id: uifc.h,v 1.41 2003/08/29 10:33:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,7 +181,7 @@
 
 #define SCRN_TOP	3
 #define SCRN_LEFT	5
-#define SCRN_RIGHT 	(api->scrn_width-6)
+#define SCRN_RIGHT 	(api->scrn_width-4)
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_UPPER 	(1L<<0) 	/* Converts all letters to upper case		*/
