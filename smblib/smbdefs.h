@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.57 2004/09/15 20:24:37 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.59 2004/10/13 23:50:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,8 +38,16 @@
 #ifndef _SMBDEFS_H
 #define _SMBDEFS_H
 
+/* ANSI headers */
 #include <stdio.h>
+#include <time.h>
+
+/* XPDEV headers */
+#include "genwrap.h"	/* truncsp() and get_errno() */
 #include "dirwrap.h"	/* MAX_PATH */
+#include "filewrap.h"	/* SH_DENYRW */
+
+/* SMBLIB Headers */
 #include "md5.h"		/* MD5_DIGEST_SIZE */
 
 /**********/
@@ -140,6 +148,7 @@
 #define SMB_ERR_TIMEOUT		-205		/* File operation timed-out */
 #define SMB_ERR_FILE_LEN	-206		/* File length invalid */
 #define SMB_ERR_DELETE		-207		/* File deletion error */
+#define SMB_ERR_UNLOCK		-208		/* File unlock error */
 #define SMB_ERR_MEM			-300		/* Memory allocation error */
 
 #define SMB_DUPE_MSG		1			/* Duplicate message detected by smb_addcrc() */
