@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.10 2000/11/07 04:44:14 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.11 2000/11/07 04:51:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -209,7 +209,7 @@ int SMBCALL sopen(char *fn, int access, int share)
 	int fd;
 	struct flock alock;
 
-	if ((fd = open(fn, access)) < 0)
+	if ((fd = open(fn, access, S_IREAD|S_IWRITE)) < 0)
 		return -1;
 
 	if (share == SH_DENYNO)
