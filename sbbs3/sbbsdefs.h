@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.36 2001/10/02 17:12:43 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.37 2001/10/09 00:59:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,10 +48,10 @@
 
 #ifdef JAVASCRIPT
 	#define VERSION 	"3.10"  /* Version: Major.minor  */
-	#define REVISION	'e'
+	#define REVISION	'f'
 #else
 	#define VERSION 	"3.00"  /* Version: Major.minor  */
-	#define REVISION	'g'
+	#define REVISION	'h'
 #endif
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
