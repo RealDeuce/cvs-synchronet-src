@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.18 2002/08/08 10:48:37 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.19 2002/08/08 10:52:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -754,7 +754,8 @@ static int sockreadline(http_session_t * session, time_t timeout, char *buf, siz
 	else
 		buf[i]=0;
 
-	lprintf("%04d RX: %s",session->socket,buf);
+	if(startup->options&WEB_OPT_DEBUG_RX)
+		lprintf("%04d RX: %s",session->socket,buf);
 	return(0);
 }
 
@@ -1128,7 +1129,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.18 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.19 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
