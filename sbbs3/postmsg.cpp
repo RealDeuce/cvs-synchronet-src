@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.62 2004/11/18 08:32:07 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.63 2004/12/22 10:51:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -475,6 +475,9 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 
 		if(cfg->sys_misc&SM_FASTMAIL)
 			storage=SMB_FASTALLOC;
+
+		/* duplicate message-IDs must be allowed in mail database */
+		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
 
 	} else {	/* sub-board */
 
