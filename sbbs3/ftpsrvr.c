@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.46 2000/12/02 22:47:41 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.47 2000/12/02 22:57:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3015,7 +3015,8 @@ void DLLCALL ftp_server(void* arg)
 	}
 
 	t=time(NULL);
-	lprintf("Initializing on %s",ctime(&t));
+	lprintf("Initializing on %s with options: %lx"
+		,ctime(&t),startup->options);
 
 #ifdef _WIN32
     if((socket_mutex=CreateMutex(NULL,FALSE,NULL))==NULL) {
