@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.91 2004/11/03 09:05:40 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.93 2004/12/02 09:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -431,6 +431,10 @@ void sbbs_read_ini(
 			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
 		web->port
 			=iniReadShortInt(fp,section,"Port",IPPORT_HTTP);
+		web->max_clients
+			=iniReadShortInt(fp,section,"MaxClients",10);
+		web->max_inactivity
+			=iniReadShortInt(fp,section,"MaxInactivity",120);		/* seconds */
 		web->sem_chk_freq
 			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
@@ -439,6 +443,12 @@ void sbbs_read_ini(
 			=iniReadInteger(fp,section,strJavaScriptMaxBytes		,global->js.max_bytes);
 		web->js_cx_stack
 			=iniReadInteger(fp,section,strJavaScriptContextStack	,global->js.cx_stack);
+		web->js_branch_limit
+			=iniReadInteger(fp,section,strJavaScriptBranchLimit		,global->js.branch_limit);
+		web->js_gc_interval
+			=iniReadInteger(fp,section,strJavaScriptGcInterval		,global->js.gc_interval);
+		web->js_yield_interval
+			=iniReadInteger(fp,section,strJavaScriptYieldInterval	,global->js.yield_interval);
 
 		SAFECOPY(web->host_name
 			,iniReadString(fp,section,strHostName,global->host_name,value));
@@ -952,6 +962,10 @@ BOOL sbbs_write_ini(
 
 		if(!iniSetShortInt(lp,section,"Port",web->port,&style))
 			break;
+		if(!iniSetShortInt(lp,section,"MaxClients",web->max_clients,&style))
+			break;
+		if(!iniSetShortInt(lp,section,"MaxInactivity",web->max_inactivity,&style))
+			break;
 
 		if(web->sem_chk_freq==global->sem_chk_freq)
 			iniRemoveValue(lp,section,strSemFileCheckFrequency);
@@ -972,6 +986,21 @@ BOOL sbbs_write_ini(
 		if(web->js_cx_stack==global->js.cx_stack)
 			iniRemoveValue(lp,section,strJavaScriptContextStack);
 		else if(!iniSetInteger(lp,section,strJavaScriptContextStack	,web->js_cx_stack,&style))
+			break;
+
+		if(web->js_branch_limit==global->js.branch_limit)
+			iniRemoveValue(lp,section,strJavaScriptBranchLimit);
+		else if(!iniSetInteger(lp,section,strJavaScriptBranchLimit	,web->js_branch_limit,&style))
+			break;
+
+		if(web->js_gc_interval==global->js.gc_interval)
+			iniRemoveValue(lp,section,strJavaScriptGcInterval);
+		else if(!iniSetInteger(lp,section,strJavaScriptGcInterval	,web->js_gc_interval,&style))
+			break;
+
+		if(web->js_yield_interval==global->js.yield_interval)
+			iniRemoveValue(lp,section,strJavaScriptYieldInterval);
+		else if(!iniSetInteger(lp,section,strJavaScriptYieldInterval,web->js_yield_interval,&style))
 			break;
 
 		if(strcmp(web->host_name,global->host_name)==0
