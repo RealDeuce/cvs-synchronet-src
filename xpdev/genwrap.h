@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.66 2004/10/27 22:00:28 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.67 2004/11/17 10:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,9 +83,18 @@ extern "C" {
 
 	#define DESCRIBE_COMPILER(str) sprintf(str,"MSC %u", _MSC_VER);
 
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && defined(__VERSION__)
 
-	#define DESCRIBE_COMPILER(str) sprintf(str,"GCC %u.%02u" \
+	#define DESCRIBE_COMPILER(str) sprintf(str,"GCC %s", __VERSION__);
+
+#elif defined(__GNUC__) && defined(__GNUC_PATCHLEVEL__)
+
+	#define DESCRIBE_COMPILER(str) sprintf(str,"GCC %u.%u.%u" \
+		,__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__);
+
+#elif defined(__GNUC__) && defined(__GNUC_MINOR__)
+
+	#define DESCRIBE_COMPILER(str) sprintf(str,"GCC %u.%u" \
 		,__GNUC__,__GNUC_MINOR__);
 
 #elif defined(__WATCOMC__)
