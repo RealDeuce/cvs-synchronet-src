@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.87 2004/10/27 21:21:50 rswindell Exp $ */
+/* $Id: userdat.c,v 1.88 2004/12/01 03:06:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1523,7 +1523,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				if(user==NULL)
 					result=not;
 				else if(user->logons>user->posts
-					&& (!user->posts || 100/(user->logons/user->posts)<(long)n))
+					&& (!user->posts || 100/((float)user->logons/user->posts)<(long)n))
 					result=not;
 				else
 					result=!not;
@@ -1535,7 +1535,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					l=user->dlb;
 					if(!l) l=1;
 					if(user->dlb>user->ulb
-						&& (!user->ulb || 100/(l/user->ulb)<n))
+						&& (!user->ulb || 100/((float)l/user->ulb)<n))
 						result=not;
 					else
 						result=!not;
@@ -1548,7 +1548,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					i=user->dls;
 					if(!i) i=1;
 					if(user->dls>user->uls
-						&& (!user->uls || 100/(i/user->uls)<n))
+						&& (!user->uls || 100/((float)i/user->uls)<n))
 						result=not;
 					else
 						result=!not;
