@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.20 2002/11/13 03:07:59 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.21 2003/03/27 23:33:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -222,7 +222,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 			sprintf(tmp,"%s%s", cfg.node_dir, cfg.data_dir);
 		sprintf(str,"%sfile/%04u.out/%s",tmp,useron.number,fname);
 		strcpy(subj,str);
-		if(fexist(str)) {
+		if(fexistcase(str)) {
 			bputs(text[FileAlreadyThere]);
 			return(false); }
 		if(online==ON_LOCAL) {		/* Local upload */
@@ -305,7 +305,7 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 	while(1) {
 		for(i=1;i;i++) {
 			sprintf(str,"%s%u.msg", cfg.netmail_dir,i);
-			if(!fexist(str))
+			if(!fexistcase(str))
 				break; }
 		if(!i) {
 			bputs(text[TooManyEmailsToday]);
@@ -824,7 +824,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 	for(i=1;i;i++) {
 		sprintf(str,"%s%u.msg", cfg.netmail_dir,i);
-		if(!fexist(str))
+		if(!fexistcase(str))
 			break; }
 	if(!i) {
 		bputs(text[TooManyEmailsToday]);

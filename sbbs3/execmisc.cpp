@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.27 2002/11/13 03:07:59 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.28 2003/03/27 23:33:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -888,7 +888,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 				case CHKFILE_VAR:
 					pp=getstrvar(csi,*(long *)csi->ip);
 					csi->ip+=4;
-					if(pp && *pp && fexist(cmdstr(*pp,path,csi->str,buf)))
+					if(pp && *pp && fexistcase(cmdstr(*pp,path,csi->str,buf)))
 						csi->logic=LOGIC_TRUE;
 					else
 						csi->logic=LOGIC_FALSE;

@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.27 2003/02/20 03:01:38 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.28 2003/03/27 23:33:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -371,7 +371,7 @@ void sbbs_t::extract(uint dirnum)
 			temp_cdt=f.cdt;
 		strcpy(temp_uler,f.uler);
 		strcpy(temp_file,f.name); }     /* padded filename */
-	if(!fexist(path)) {
+	if(!fexistcase(path)) {
 		bputs(text[FileNotThere]);  /* not on disk */
 		return; }
 	done=0;

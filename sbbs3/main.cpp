@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.232 2003/03/21 23:42:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.233 2003/03/27 23:33:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2475,12 +2475,12 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 
     if(!stricmp(src,dest))	 /* source and destination are the same! */
         return(0);
-    if(!fexist(src)) {
+    if(!fexistcase(src)) {
         bprintf("\r\n\7MV ERROR: Source doesn't exist\r\n'%s'\r\n"
             ,src);
         return(-1); 
 	}
-    if(!copy && fexist(dest)) {
+    if(!copy && fexistcase(dest)) {
         bprintf("\r\n\7MV ERROR: Destination already exists\r\n'%s'\r\n"
             ,dest);
         return(-1); 
@@ -2937,7 +2937,7 @@ void node_thread(void* arg)
 					sbbs->useron.shell=0;
 				sprintf(str,"%s%s.bin",sbbs->cfg.mods_dir
 					,sbbs->cfg.shell[sbbs->useron.shell]->code);
-				if(sbbs->cfg.mods_dir[0]==0 || !fexist(str))
+				if(sbbs->cfg.mods_dir[0]==0 || !fexistcase(str))
 					sprintf(str,"%s%s.bin",sbbs->cfg.exec_dir
 						,sbbs->cfg.shell[sbbs->useron.shell]->code);
 				if((file=sbbs->nopen(str,O_RDONLY))==-1) {

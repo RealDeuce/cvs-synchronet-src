@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.96 2003/03/06 22:37:18 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.97 2003/03/27 23:33:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1920,10 +1920,10 @@ int mv(char *src, char *dest, BOOL copy)
 
 	if(!strcmp(src,dest))	/* source and destination are the same! */
 		return(0);
-	if(!fexist(src)) {
+	if(!fexistcase(src)) {
 		logprintf("MV ERROR: Source doesn't exist '%s",src);
 		return(-1); }
-	if(!copy && fexist(dest)) {
+	if(!copy && fexistcase(dest)) {
 		logprintf("MV ERROR: Destination already exists '%s'",dest);
 		return(-1); }
 	if(!copy && ((src[1]!=':' && dest[1]!=':')
@@ -4054,7 +4054,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.96 $", "%*s %s", revision);
+	sscanf("$Revision: 1.97 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
