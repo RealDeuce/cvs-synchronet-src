@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.5 2002/07/27 01:22:37 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.6 2002/07/27 01:25:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.5 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.6 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds files to Synchronet "
 		"Filebase\n"
@@ -764,10 +764,12 @@ int main(int argc, char **argv)
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
 					remove(tmp);
 					system(cmdstr(scfg.fextr[i]->cmd,str,"FILE_ID.DIZ",NULL));
-					if(!fexist(tmp)) {
+					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
 						remove(tmp);
-						system(cmdstr(scfg.fextr[i]->cmd,str,"DESC.SDI",NULL)); }
+						system(cmdstr(scfg.fextr[i]->cmd,str,"DESC.SDI",NULL)); 
+						fexistcase(tmp);
+					}
 					if((file=nopen(tmp,O_RDONLY))!=-1) {
 						memset(ext,0,513);
 						read(file,ext,512);
