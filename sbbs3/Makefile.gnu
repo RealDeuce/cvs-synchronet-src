@@ -12,7 +12,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.23 2001/10/26 16:27:53 rswindell Exp $
+# $Id: Makefile.gnu,v 1.24 2001/10/30 17:23:39 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -54,9 +54,8 @@ DELETE	=	rm -f -v
 OUTLIB	=	-o
 
 ifeq ($(os),freebsd)	# FreeBSD
-LIBS	=	
-LIBS	=	-L/usr/local/lib /usr/local/lib/liblthread_p.a
-CFLAGS	:=	-I/usr/local/include/pthread/linuxthreads
+LIBS	=	-pthread
+CFLAGS	:=	-pthread
 else			        # Linux / Other UNIX
 CFLAGS	:=	
 LIBS	=	$(LIBDIR)/libpthread.a
