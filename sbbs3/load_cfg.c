@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.10 2000/11/14 02:16:57 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.11 2000/11/15 15:55:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,6 +101,10 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[])
 		if(txt.readit && txt.readit[0])
 			lprintf(txt.readit,fname);
 	}
+
+    /* Override com-port settings */
+    cfg->com_base=0xf;	/* All nodes use FOSSIL */
+    cfg->com_port=1;	/* All nodes use "COM1" */
 
 	return(TRUE);
 }
