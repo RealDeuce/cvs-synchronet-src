@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.37 2003/03/21 23:42:24 rswindell Exp $ */
+/* $Id: js_user.c,v 1.38 2003/03/29 11:39:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -801,7 +801,7 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	JS_ValueToInt32(cx,argv[0],&val);
 	user.number=(ushort)val;
 	if(user.number!=0 && getuserdat(scfg,&user)!=0) {
-		JS_ReportError(cx,"Invalid user number");
+		JS_ReportError(cx,"Invalid user number: %d",val);
 		return(JS_FALSE);
 	}
 
