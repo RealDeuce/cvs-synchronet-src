@@ -2,7 +2,7 @@
 
 /* Synchronet QWK-related structures, constants, and prototypes */ 
 
-/* $Id: qwk.h,v 1.1 2000/10/10 11:25:51 rswindell Exp $ */
+/* $Id: qwk.h,v 1.2 2002/07/03 08:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,7 @@ typedef union {
 #define REP 		(1<<7)	/* It's a REP packet */
 #define VIA 		(1<<8)	/* Include VIA */
 #define TZ			(1<<9)	/* Include TZ */
+#define MSGID		(1<<10)	/* Include MSGID and REPLY */
 
 float	ltomsbin(long val);
 bool	route_circ(char *via, char *id);

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.67 2002/06/28 01:46:12 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.68 2002/07/03 08:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -409,6 +409,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_VIA 	(1L<<11)		/* Include "@VIA" seen-bys in msgs		*/
 #define QWK_NOCTRL	(1L<<12)		/* No extraneous control files			*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
+#define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
 																			
 							/* Bits in user.chat							*/
 #define CHAT_ECHO	(1<<0)	/* Multinode chat echo							*/
