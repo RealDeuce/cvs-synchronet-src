@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.242 2003/06/12 09:07:40 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.243 2003/06/13 23:15:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2781,6 +2781,12 @@ static void ctrl_thread(void* arg)
 			sockprintf(sock,"211 ALL servers/nodes will recycle when not in-use");
 			continue;
 		}
+		if(!strnicmp(cmd,"SITE EXEC ",10) && sysop) {
+			p=cmd+10;
+			while(*p && *p<=' ') p++;
+			sockprintf(sock,"211 system(%s) returned %d",p,system(p));
+			continue;
+		}
 
 
 #ifdef SOCKET_DEBUG_CTRL
@@ -4412,7 +4418,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.242 $", "%*s %s", revision);
+	sscanf("$Revision: 1.243 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
