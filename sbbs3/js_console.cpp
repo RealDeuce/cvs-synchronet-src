@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.48 2003/07/08 10:31:18 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.49 2003/07/08 22:06:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -583,19 +583,6 @@ js_clear(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->CLS;
-	*rval=JSVAL_VOID;
-    return(JS_TRUE);
-}
-
-static JSBool
-js_home(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	sbbs->cursor_home();
 	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
