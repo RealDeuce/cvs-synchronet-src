@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.34 2004/10/13 22:12:07 deuce Exp $ */
+/* $Id: win32cio.c,v 1.35 2004/10/13 22:13:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,7 +172,7 @@ int win32_keyboardio(int isgetch)
 
 				if(input.Event.KeyEvent.wVirtualScanCode==0x38 /* ALT */
 						|| input.Event.KeyEvent.wVirtualScanCode==0x36 /* SHIFT */
-						|| input.Event.KeyEvent.wVirtualScanCode==0x1D /* CTRL */
+						|| input.Event.KeyEvent.wVirtualScanCode==0x1D /* CTRL */ )
 					break;
 
 				if(input.Event.KeyEvent.dwControlKeyState & (LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED)) {
