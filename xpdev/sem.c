@@ -1,5 +1,5 @@
 /*
- * $Id: sem.c,v 1.2 2003/04/26 17:31:45 deuce Exp $
+ * $Id: sem.c,v 1.3 2003/05/02 01:16:29 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -34,7 +34,6 @@
 #include <errno.h>
 #include "sem.h"
 #include <pthread.h>
-#include "pthread_private.h"
 
 int
 sem_init(sem_t *sem, int pshared, unsigned int value)
