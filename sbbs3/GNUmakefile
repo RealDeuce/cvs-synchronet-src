@@ -2,16 +2,16 @@
 
 #########################################################################
 # Makefile for Synchronet BBS 											#
-# For use with GNU make and GNU C Compiler								#
+# For use with GNU make and GNU C Compiler or Borland Kylix C++			#
 # @format.tab-size 4, @format.use-tabs true								#
 #																		#
-# Linux: gmake [bcc=1]													#
-# FreeBSD: gmake os=FreeBSD												#
+# gcc: gmake															#
+# Borland (still in testing/debuging stage): gmake bcc=1				#
 #																		#
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.38 2002/11/02 21:18:33 rswindell Exp $
+# $Id: GNUmakefile,v 1.39 2002/11/05 08:08:31 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -25,13 +25,13 @@ ifdef bcc
  CCPRE	:=	bcc
  CCPP	=	bc++ -q
  LD		=	ilink -q
- CFLAGS 	+=	-D__unix__ -w-csu -w-pch -w-ccc -w-rch -w-par -w-aus
+ CFLAGS +=	-mm -md -D__unix__ -w-csu -w-pch -w-ccc -w-rch -w-par -w-aus
 else
  CC		=	gcc
  CCPRE	:=	gcc
  CCPP	=	g++
  LD		=	ld
- CFLAGS	+=	-Wall
+ CFLAGS	+=	-MMD -Wall
 endif
 SLASH	=	/
 OFILE	=	o
@@ -57,7 +57,7 @@ endif
 LIBODIR :=	$(CCPRE).$(os).lib
 EXEODIR :=	$(CCPRE).$(os).exe
 
-DELETE	=	rm -f
+DELETE	=	rm -fv
 
 CFLAGS	+=	-DJAVASCRIPT -I../mozilla/js/src -I$(XPDEV) -I$(UIFC)
 
@@ -323,4 +323,6 @@ $(FILELIST): \
 	@echo Linking $@
 	@$(CC) -o $@ $^
 
-include depends.mk
+# Auto-dependency files
+-include $(LIBODIR)/*.d
+-include $(EXEODIR)/*.d
