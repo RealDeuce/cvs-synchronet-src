@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.83 2003/01/02 10:42:00 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.84 2003/01/02 11:33:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -640,6 +640,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     mail_startup.max_delivery_attempts=50;
     mail_startup.rescan_frequency=3600;  /* 60 minutes */
     mail_startup.lines_per_yield=100;
+    mail_startup.max_clients=10;
 
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
@@ -655,6 +656,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     ftp_startup.socket_open=socket_open;
 	ftp_startup.options
         =FTP_OPT_INDEX_FILE|FTP_OPT_HTML_INDEX_FILE|FTP_OPT_ALLOW_QWK;
+    ftp_startup.max_clients=10;
     strcpy(ftp_startup.index_file_name,"00index");
     strcpy(ftp_startup.html_index_file,"00index.html");
     strcpy(ftp_startup.html_index_script,"ftp-html.js");
