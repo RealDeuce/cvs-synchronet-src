@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.3 2004/09/17 11:10:09 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.2 2004/09/13 00:31:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ size_t SMBCALL smb_fread(smb_t* smb, void* buf, size_t bytes, FILE* fp)
 	while(1) {
 		if((ret=fread(buf,sizeof(char),bytes,fp))==bytes)
 			return(ret);
-		if(errno!=EDEADLOCK)
+		if(ferror(fp)!=EDEADLOCK)
 			return(ret);
 		if(!start)
 			start=time(NULL);
