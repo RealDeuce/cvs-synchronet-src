@@ -6,14 +6,15 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.64 2004/11/17 02:04:09 rswindell Exp $
+# $Id: Makefile,v 1.66 2004/11/19 01:31:13 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
 
-UTIL_LDFLAGS	=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
+UTIL_LDFLAGS	=	-q $(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
 CFLAGS	=	$(CFLAGS) -w-csu -w-par -w-aus
 MKSHLIB	=	$(CC) -WD
+WILDARGS=	$(MAKEDIR)\..\lib\wildargs.obj
 
 # JS and NSPR setup stuff...
 CFLAGS = $(CFLAGS) -DJAVASCRIPT
@@ -125,17 +126,17 @@ $(NODE): $(NODE_OBJS)
 # FIXSMB Utility
 $(FIXSMB): $(FIXSMB_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS) $(WILDARGS)
 
 # CHKSMB Utility
 $(CHKSMB): $(CHKSMB_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS) $(WILDARGS)
 
 # SMB Utility
 $(SMBUTIL): $(SMBUTIL_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS) $(WILDARGS)
 
 # SBBSecho (FidoNet Packet Tosser)
 $(SBBSECHO): $(SBBSECHO_OBJS)
