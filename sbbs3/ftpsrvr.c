@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.221 2003/03/10 08:16:47 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.222 2003/03/11 19:31:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1485,9 +1485,11 @@ static void send_thread(void* arg)
 			}
 			lprintf("%04d !DATA ERROR sent %d instead of %d on socket %d"
 				,xfer.ctrl_sock,wr,rd,*xfer.data_sock);
+#if 0 /* Removed Mar-11-2003, this is apparently normal in Linux */
 			sockprintf(xfer.ctrl_sock,"451 Short DATA transfer");
 			error=TRUE;
 			break;
+#endif
 		}
 		total+=wr;
 		*xfer.lastactive=time(NULL);
@@ -4437,7 +4439,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.221 $", "%*s %s", revision);
+	sscanf("$Revision: 1.222 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
