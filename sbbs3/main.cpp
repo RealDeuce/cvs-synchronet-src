@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.25 2001/06/07 12:47:17 rswindell Exp $ */
+/* $Id: main.cpp,v 1.26 2001/06/12 01:25:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ js_print(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char		tmp[1024];
+	char*		p;
     uintN		i;
 	JSString *	fmt;
     JSString *	str;
@@ -136,8 +136,11 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			arglist[i-1]=NULL;
 	}
 	
-	vsprintf(tmp,JS_GetStringBytes(fmt),(char*)arglist);
-	sbbs->bputs(tmp);
+	if((p=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL)
+		return JS_FALSE;
+
+	sbbs->bputs(p);
+	JS_smprintf_free(p);
 
     return JS_TRUE;
 }
