@@ -1,9 +1,40 @@
-/* $Id: ciolib.h,v 1.15 2004/09/21 08:30:16 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.20 2004/10/17 02:07:04 deuce Exp $ */
+
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
 
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
 
-#include <mouse.h>
+#include "mouse.h"
 
 enum {
 	 CIOLIB_MODE_AUTO
@@ -18,16 +49,6 @@ enum {
 
 	#include <io.h>			/* isatty */
 
-#endif
-
-#ifndef BOOL
-#define BOOL    int
-#ifndef TRUE
-#define TRUE    1
-#endif
-#ifndef FALSE
-#define FALSE   0
-#endif
 #endif
 
 enum {
@@ -168,6 +189,7 @@ typedef struct {
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
 	int		(*getmouse)		(struct mouse_event *mevent);
+	int		(*ungetmouse)	(struct mouse_event *mevent);
 	int		(*hidemouse)	(void);
 	int		(*showmouse)	(void);
 	void	(*settitle)		(const char *);
@@ -233,7 +255,7 @@ void ciolib_settitle(const char *title);
 	#define cgets(a)				ciolib_cgets(a)
 	#define kbhit()					ciolib_kbhit()
 	#define getch()					ciolib_getch()
-	#define getchr()				ciolib_getche()
+	#define getche()				ciolib_getche()
 	#define ungetch(a)				ciolib_ungetch(a)
 	#define gettextinfo(a)			ciolib_gettextinfo(a)
 	#define wherex()				ciolib_wherex()
@@ -260,6 +282,7 @@ void ciolib_settitle(const char *title);
 	#define insline()				ciolib_insline()
 	#define getpass(a)				ciolib_getpass(a)
 	#define getmouse(a)				ciolib_getmouse(a)
+	#define ungetmouse(a)			ciolib_ungetmouse(a)
 	#define	hidemouse()				ciolib_hidemouse()
 	#define showmouse()				ciolib_showmouse()
 	#define settitle(a)				ciolib_settitle(a)
