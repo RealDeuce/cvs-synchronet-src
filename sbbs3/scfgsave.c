@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.1 2001/07/08 03:45:59 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.2 2001/07/09 02:33:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,23 +86,23 @@ BOOL DLLCALL save_cfg(scfg_t* cfg, int backup_level)
 /****************************************************************************/
 static void backup(char *org, int backup_level)
 {
-	char old[128],new[128];
+	char old[128],newname[128];
 	int i,x;
 
 	x=strlen(org)-1;
 	if(x<=0)
 		return;
 	strcpy(old,org);
-	strcpy(new,org);
+	strcpy(newname,org);
 	for(i=backup_level;i;i--) {
-		new[x]=(i-1)+'0';
+		newname[x]=(i-1)+'0';
 		if(i==backup_level)
-			remove(new);
+			remove(newname);
 		if(i==1) {
-			rename(org,new);
+			rename(org,newname);
 			continue; }
 		old[x]=(i-2)+'0';
-		rename(old,new); }
+		rename(old,newname); }
 }
 
 /****************************************************************************/
