@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.8 2002/08/08 02:58:19 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.9 2002/08/08 05:01:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #ifndef _SOCKWRAP_H
 #define _SOCKWRAP_H
+
+#include "gen_defs.h"	/* BOOL */
 
 /***************/
 /* OS-specific */
