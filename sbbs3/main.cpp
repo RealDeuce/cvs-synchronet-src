@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.147 2002/05/29 02:23:59 rswindell Exp $ */
+/* $Id: main.cpp,v 1.148 2002/05/29 06:47:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -996,6 +996,12 @@ void event_thread(void* arg)
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
 		if(!sbbs->js_init())	/* This must be done in the context of the node thread */
 			lprintf("!JavaScript Initialization FAILURE");
+	}
+
+	if(sbbs->js_cx!=NULL) {
+		/* User class */
+		if(js_CreateUserClass(sbbs->js_cx, sbbs->js_glob, &scfg)==NULL) 
+			lprintf("Node %d !JavaScript ERROR creating user class",sbbs->cfg.node_num);
 	}
 #endif
 
