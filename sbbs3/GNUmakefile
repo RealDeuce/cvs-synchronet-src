@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.73 2003/04/30 07:15:42 deuce Exp $
+# $Id: GNUmakefile,v 1.74 2003/04/30 07:20:10 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -416,7 +416,7 @@ $(MAKEUSER): \
 depend:
 	@$(DELETE) $(LIBODIR)/.depend
 	@$(DELETE) $(EXEODIR)/.depend
-	gmake BUILD_DEPENDS=1
+	$(MAKE) BUILD_DEPENDS=1
 
 # Auto-dependency files (should go in output dir, but gcc v2.9.5 puts in cwd)
 -include ./*.d
