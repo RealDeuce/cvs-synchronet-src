@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.6 2001/10/31 17:05:24 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.7 2002/03/25 05:49:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 	static  HANDLE	rdslot=INVALID_HANDLE_VALUE;
 	static  HANDLE	wrslot=INVALID_HANDLE_VALUE;
 	static  RingBuf	rdbuf;
-	static	FILE*	fp;
+	static	FILE*	fp=NULL;
 
 	retval=0;
 	node_num=getBH();
@@ -73,8 +73,10 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 	switch(getBL()) {
 
 		case VDD_OPEN:
+#if 0
 			sprintf(str,"sbbsexec%d.log",node_num);
 			fp=fopen(str,"wb");
+#endif
 
 			sprintf(str,"\\\\.\\mailslot\\sbbsexec\\wr%d",node_num);
 			rdslot=CreateMailslot(str
