@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.22 2005/01/15 13:21:21 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.23 2005/01/16 09:55:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -740,7 +740,7 @@ int send_files(char** fname, uint fnames)
 					,path,fsize/1024
 					,mode&XMODEM ? "Xmodem" : mode&YMODEM ? mode&GMODE ? "Ymodem-G"
 						: "Ymodem" : "Zmodem"
-					,mode&ZMODEM ? (zm.can_fcs_32 ? "CRC-32" : "CRC-16")
+					,mode&ZMODEM ? ""
 						: mode&CRC ? "CRC-16":"Checksum");
 
 				if(mode&ZMODEM) {
@@ -889,7 +889,6 @@ int send_files(char** fname, uint fnames)
 
 			memset(block,0,128);	/* send short block for terminator */
 			xmodem_put_block(&xm, block, 128 /* block_size */, 0 /* block_num */);
-//			SLEEP(1000);
 			if(!xmodem_get_ack(&xm,6,0)) {
 				newline();
 				fprintf(statfp,"Failed to receive ACK after terminating block\n"); 
@@ -1321,7 +1320,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.22 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
