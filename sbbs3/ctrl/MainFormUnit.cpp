@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.89 2003/01/13 09:38:58 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.90 2003/01/31 03:29:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2589,7 +2589,7 @@ void __fastcall TMainForm::BBSViewErrorLogMenuItemClick(TObject *Sender)
 	char filename[MAX_PATH+1];
 
     sprintf(filename,"%sERROR.LOG"
-    	,MainForm->cfg.data_dir);
+    	,MainForm->cfg.logs_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
     TextFileEditForm->Filename=AnsiString(filename);
     TextFileEditForm->Caption="Error Log";
@@ -2695,7 +2695,7 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
     ftp_lputs(NULL);
 
     sprintf(filename,"%sLOGS\\%s%02d%02d%02d.LOG"
-    	,MainForm->cfg.data_dir
+    	,MainForm->cfg.logs_dir
         ,((TMenuItem*)Sender)->Hint.c_str()
         ,tm->tm_mon+1
         ,tm->tm_mday
