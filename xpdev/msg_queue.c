@@ -2,7 +2,7 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.10 2004/11/19 00:51:25 rswindell Exp $ */
+/* $Id: msg_queue.c,v 1.9 2004/11/18 00:59:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 #include <string.h>		/* memset */
 
 #include "genwrap.h"	/* msclock() */
-#include "threadwrap.h"	/* pthread_self */
+#include "threadwrap.h"	/* GetCurrentThreadId */
 #include "msg_queue.h"
 
 msg_queue_t* msgQueueInit(msg_queue_t* q, long flags)
@@ -54,7 +54,7 @@ msg_queue_t* msgQueueInit(msg_queue_t* q, long flags)
 
 	q->flags = flags;
 	q->refs = 1;
-	q->owner_thread_id = pthread_self();
+	q->owner_thread_id = GetCurrentThreadId();
 
 	if(q->flags&MSG_QUEUE_BIDIR)
 		listInit(&q->in,LINK_LIST_SEMAPHORE);
@@ -125,7 +125,7 @@ static link_list_t* msgQueueReadList(msg_queue_t* q)
 		return(NULL);
 
 	if((q->flags&MSG_QUEUE_BIDIR)
-		&& q->owner_thread_id == pthread_self())
+		&& q->owner_thread_id == GetCurrentThreadId())
 		return(&q->in);
 	return(&q->out);
 }
@@ -136,7 +136,7 @@ static link_list_t* msgQueueWriteList(msg_queue_t* q)
 		return(NULL);
 
 	if(!(q->flags&MSG_QUEUE_BIDIR)
-		|| q->owner_thread_id == pthread_self())
+		|| q->owner_thread_id == GetCurrentThreadId())
 		return(&q->out);
 	return(&q->in);
 }

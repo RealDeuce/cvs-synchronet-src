@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.33 2004/12/28 04:26:16 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.32 2004/11/02 02:15:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,16 +124,16 @@ int main(int argc, char **argv)
 	BOOL		stop_on_error=FALSE,pause_on_error=FALSE,chkxlat=TRUE,chkalloc=TRUE,chkhash=TRUE
 				,lzhmsg,extinfo=FALSE,msgerr;
 	ushort		xlat;
-	ulong		l,m,n,length,size,total=0,orphan,deleted,headers
+	ulong		l,m,n,length,size,total=0,orphan=0,deleted=0,headers=0
 				,*offset,*number,xlaterr
 				,delidx
-				,delhdrblocks,deldatblocks,hdrerr,lockerr,hdrnumerr,hdrlenerr
-				,getbodyerr,gettailerr
-				,hasherr
+				,delhdrblocks,deldatblocks,hdrerr=0,lockerr=0,hdrnumerr=0,hdrlenerr=0
+				,getbodyerr=0,gettailerr=0
+				,hasherr=0
 				,acthdrblocks,actdatblocks
-				,dfieldlength,dfieldoffset
-				,dupenum,dupenumhdr,dupeoff,attr,actalloc
-				,datactalloc,misnumbered,timeerr,idxofferr,idxerr
+				,dfieldlength=0,dfieldoffset=0
+				,dupenum=0,dupenumhdr=0,dupeoff=0,attr=0,actalloc=0
+				,datactalloc=0,misnumbered=0,timeerr=0,idxofferr=0,idxerr
 				,zeronum,idxzeronum,idxnumerr,packable=0L,totallzhsaved=0L
 				,totalmsgs=0,totallzhmsgs=0,totaldelmsgs=0,totalmsgbytes=0L
 				,lzhblocks,lzhsaved;
@@ -257,13 +257,8 @@ int main(int argc, char **argv)
 	}
 
 	headers=deleted=orphan=dupenumhdr=attr=zeronum=timeerr=lockerr=hdrerr=0;
-	hdrnumerr=hdrlenerr=0;
 	actalloc=datactalloc=deldatblocks=delhdrblocks=xlaterr=0;
 	lzhblocks=lzhsaved=acthdrblocks=actdatblocks=0;
-	getbodyerr=gettailerr=0;
-	hasherr=0;
-	acthdrblocks=actdatblocks=0;
-	dfieldlength=dfieldoffset=0;
 
 	for(l=smb.status.header_offset;l<length;l+=size) {
 		size=SHD_BLOCK_LEN;
