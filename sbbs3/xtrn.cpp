@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.165 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.169 2004/11/04 19:49:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1031,7 +1031,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 //	lprintf("%s returned %d",realcmdline, retval);
 
-	errorlevel = retval; // Baja-retrievable error value
+	errorlevel = retval; // Baja or JS retrievable error value
 
 	return(retval);
 }
@@ -1237,6 +1237,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
+
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -1565,6 +1566,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 
 	if(!(mode&EX_INR) && input_thread_running) {
+		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		pthread_mutex_lock(&input_thread_mutex);
 		input_thread_mutex_locked=true;
 	}
@@ -1602,6 +1604,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		out_pipe[0]=in_pipe[1];
 	}
 	else  {
+		lprintf(LOG_DEBUG,"%s %d",__FILE__,__LINE__); 
 		if(mode&EX_INR)
 			if(pipe(in_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"in_pipe",0);
@@ -1893,7 +1896,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		input_thread_mutex_locked=false;
 	}
 
-	return(WEXITSTATUS(i));
+	return(errorlevel = WEXITSTATUS(i));
 }
 
 #endif	/* !WIN32 */
@@ -1970,8 +1973,8 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case 'O':   /* SysOp */
                     strcat(cmd,cfg.sys_op);
                     break;
-                case 'P':   /* COM Port */
-                    strcat(cmd,ultoa(online==ON_LOCAL ? 0:cfg.com_port,str,10));
+                case 'P':   /* Client protocol */
+                    strcat(cmd,client.protocol);
                     break;
                 case 'Q':   /* QWK ID */
                     strcat(cmd,cfg.sys_id);
@@ -2126,7 +2129,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'O':   /* SysOp */
                     strcat(cmd,cfg->sys_op);
                     break;
-                case 'P':   /* COM Port */
+                case 'P':   /* Client protocol */
                     break;
                 case 'Q':   /* QWK ID */
                     strcat(cmd,cfg->sys_id);
