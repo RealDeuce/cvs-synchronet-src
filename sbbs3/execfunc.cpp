@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.9 2000/11/08 08:19:39 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.10 2000/11/08 23:31:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,7 +272,7 @@ int sbbs_t::exec_function(csi_t *csi)
 			userlist(UL_ALL);
 			return(0);
 		case CS_USERLIST_LOGONS:
-			sprintf(str,"%sLOGON.LST", cfg.data_dir);
+			sprintf(str,"%slogon.lst", cfg.data_dir);
 			if(flength(str)<1) {
 				bputs("\r\n\r\n");
 				bputs(text[NoOneHasLoggedOnToday]); }
