@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.121 2004/10/27 09:04:05 rswindell Exp $ */
+/* $Id: smblib.c,v 1.120 2004/10/14 00:05:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1150,26 +1150,6 @@ int	SMBCALL smb_hfield_addlist(smbmsg_t* msg, hfield_t** hfield_list, void** hfi
 int SMBCALL smb_hfield_str(smbmsg_t* msg, ushort type, const char* str)
 {
 	return smb_hfield(msg, type, strlen(str), (void*)str);
-}
-
-/****************************************************************************/
-/* Convenience function to add an ASCIIZ string header field				*/
-/****************************************************************************/
-int	SMBCALL smb_hfield_netaddr(smbmsg_t* msg, ushort type, const char* str, ushort* nettype)
-{
-	fidoaddr_t	sys_addr = {0,0,0,0};	/* replace unspecified fields with 0 (don't assume 1:1/1) */
-	fidoaddr_t	fidoaddr;
-	ushort		tmp_nettype=NET_UNKNOWN;
-
-	if(nettype==NULL)
-		nettype=&tmp_nettype;
-	if(*nettype==NET_UNKNOWN)
-		*nettype=smb_netaddr_type(str);
-	if(*nettype==NET_FIDO) {
-		fidoaddr=smb_atofaddr(&sys_addr,str);
-		return smb_hfield_bin(msg,type,fidoaddr);
-	} else
-		return smb_hfield_str(msg,type,str);
 }
 
 /****************************************************************************/
