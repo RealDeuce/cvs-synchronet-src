@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.9 2001/08/03 21:10:32 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.10 2001/12/13 17:13:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,7 @@ typedef struct {
 #define MAIL_OPT_NO_HOST_LOOKUP		(1<<11)	/* Don't look-up hostnames */
 #define MAIL_OPT_USE_TCP_DNS		(1<<12)	/* Use TCP vs UDP for DNS req */
 #define MAIL_OPT_NO_SENDMAIL		(1<<13)	/* Don't run SendMail thread */
-#define MAIL_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UCT/GMT */
+#define MAIL_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define MAIL_OPT_MUTE				(1<<31)
 
 #ifdef DLLEXPORT

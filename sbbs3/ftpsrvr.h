@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.14 2001/11/27 18:36:08 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.15 2001/12/13 17:13:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,7 @@ typedef struct {
 #define FTP_OPT_HTML_INDEX_FILE		(1<<8)	/* Auto-generate HTML index files */
 #define FTP_OPT_NO_HOST_LOOKUP		(1<<11)
 #define FTP_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
-#define FTP_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UCT/GMT */
+#define FTP_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define FTP_OPT_MUTE				(1<<31)
 
 #ifdef DLLEXPORT

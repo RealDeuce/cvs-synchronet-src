@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.83 2001/12/01 23:47:28 rswindell Exp $ */
+/* $Id: main.cpp,v 1.84 2001/12/13 17:13:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3064,7 +3064,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 	if(!(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-		if(PUTENV("TZ=UCT0"))
+		if(PUTENV("TZ=UTC0"))
 			lprintf("!putenv() FAILED");
 		tzset();
 
