@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.62 2003/02/07 11:29:29 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.63 2003/02/07 11:31:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -433,6 +433,7 @@ int main(int argc, char **argv)
 int exec(char* cmd)
 {
 	printf("%s\n",cmd);
+	fflush(stdout);
 	return(system(cmd));
 }
 
