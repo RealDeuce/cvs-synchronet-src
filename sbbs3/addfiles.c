@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.19 2002/10/13 08:11:52 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.20 2002/10/13 08:35:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -354,7 +354,9 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(p) *p=0;
 		else				   /* no space after filename? */
 			continue;
+#if 0
 		strupr(fname);
+#endif
 		strcpy(fname,unpadfname(fname,tmp));
 
 		padfname(fname,f.name);
@@ -658,7 +660,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.19 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.20 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -814,7 +816,9 @@ int main(int argc, char **argv)
 			namegiven=1;
 			padfname(argv[j],f.name);
 			f.desc[0]=0;
+#if 0
 			strupr(f.name);
+#endif
 			if(j+1==argc) {
 				printf("%s no description given.\n",f.name);
 				continue; 
