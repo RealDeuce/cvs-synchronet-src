@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.271 2003/07/30 07:50:29 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.272 2003/08/12 06:27:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1849,7 +1849,7 @@ static void smtp_thread(void* arg)
 					if(!strnicmp(buf, "SUBJECT:",8)) {
 						p=buf+8;
 						while(*p && *p<=' ') p++;
-						if(dnsbl_result.s_addr && startup->dnsbl_tag[0]
+						if(relay_user.number==0	&& dnsbl_result.s_addr && startup->dnsbl_tag[0]
 							&& !(startup->options&MAIL_OPT_DNSBL_IGNORE)) {
 							sprintf(str,"%.*s: %.*s"
 								,(int)sizeof(str)/2, startup->dnsbl_tag
@@ -1924,7 +1924,7 @@ static void smtp_thread(void* arg)
 					sockprintf(socket, "554 Subject not allowed.");
 					continue;
 				}
-				if(dnsbl_result.s_addr) {
+				if(relay_user.number==0 && dnsbl_result.s_addr) {
 					if(startup->options&MAIL_OPT_DNSBL_IGNORE) {
 						lprintf("%04d !SMTP IGNORED MAIL from blacklisted server"
 							,socket);
@@ -2491,7 +2491,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 
-			if(dnsbl_result.s_addr && startup->options&MAIL_OPT_DNSBL_BADUSER) {
+			if(relay_user.number==0 && dnsbl_result.s_addr && startup->options&MAIL_OPT_DNSBL_BADUSER) {
 				lprintf("%04d !SMTP REFUSED MAIL from blacklisted server"
 					,socket);
 				sprintf(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
@@ -3297,7 +3297,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.271 $", "%*s %s", revision);
+	sscanf("$Revision: 1.272 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
