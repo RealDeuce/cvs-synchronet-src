@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.9 2003/07/08 22:02:12 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.10 2003/07/08 22:13:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -472,7 +472,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.9 $", "%*s %s", revision);
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
 
 	p=getenv("SBBSCTRL");
 	if(p==NULL) {
@@ -531,7 +531,7 @@ int main(int argc, char **argv, char** environ)
 	if(chdir(scfg.ctrl_dir)!=0)
 		fprintf(errfp,"!ERROR changing directory to: %s", scfg.ctrl_dir);
 
-	printf("\nLoading configuration files from %s\n",scfg.ctrl_dir);
+	fprintf(errfp,"\nLoading configuration files from %s\n",scfg.ctrl_dir);
 	if(!load_cfg(&scfg,NULL,TRUE,error)) {
 		fprintf(errfp,"!ERROR loading configuration files: %s\n",error);
 		bail(1);
@@ -545,7 +545,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(errfp,"!JavaScript initialization failure\n");
 		bail(1);
 	}
-	printf("\n");
+	fprintf(errfp,"\n");
 
 	bail(js_exec(module,&argv[argn]));
 
