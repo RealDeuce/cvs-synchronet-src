@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.10 2002/01/24 14:05:11 rswindell Exp $ */
+/* $Id: scfg.c,v 1.11 2002/01/24 14:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,7 @@ printf("\r\nSynchronet Configuration Util (%s)  v%s  Copyright 2002 "
     if(p!=NULL)
         sprintf(cfg.ctrl_dir,"%.*s",sizeof(cfg.ctrl_dir)-1,p);
     else
-        getcwd(cfg.ctrl_dir,MAXDIR);
+        getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
