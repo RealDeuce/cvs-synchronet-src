@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.19 2001/12/14 17:58:32 rswindell Exp $ */
+/* $Id: services.c,v 1.20 2001/12/27 15:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1004,8 +1004,6 @@ void DLLCALL services_thread(void* arg)
 
 	thread_up();
 
-	uptime=time(NULL);
-
 	status("Initializing");
 
     memset(&scfg, 0, sizeof(scfg));
@@ -1040,6 +1038,8 @@ void DLLCALL services_thread(void* arg)
 			return;
 		}
 	}
+
+	uptime=time(NULL);
 
 	if(!winsock_startup()) {
 		cleanup(1);

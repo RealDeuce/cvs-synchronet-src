@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.122 2001/12/14 17:56:42 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.123 2001/12/27 15:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4285,8 +4285,6 @@ void DLLCALL ftp_server(void* arg)
 
 	thread_up();
 
-	uptime=time(NULL);
-
 	status("Initializing");
 
     memset(&scfg, 0, sizeof(scfg));
@@ -4321,6 +4319,8 @@ void DLLCALL ftp_server(void* arg)
 			return;
 		}
 	}
+
+	uptime=time(NULL);
 
 	if(!winsock_startup()) {
 		cleanup(1);
