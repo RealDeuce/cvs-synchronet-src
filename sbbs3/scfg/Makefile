@@ -6,11 +6,11 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.10 2003/05/21 04:19:23 deuce Exp $
+# $Id: Makefile,v 1.11 2003/07/25 00:20:15 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
-USE_FLTK=	1
+#USE_FLTK=	1
 USE_UIFC32= 1
 CC		=	bcc32
 LD		=	ilink32
