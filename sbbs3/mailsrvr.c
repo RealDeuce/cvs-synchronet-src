@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.299 2003/10/21 04:03:02 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.300 2003/11/25 09:43:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2261,6 +2261,7 @@ static void smtp_thread(void* arg)
 				i=savemsg(&scfg, &smb, &msg, msgbuf);
 				free(msgbuf);
 				if(i!=0) {
+					smb_close(&smb);
 					lprintf(LOG_ERR,"%04d !SMTP ERROR %d (%s) saving message"
 						,socket,i,smb.last_error);
 					sockprintf(socket, "452 ERROR %d (%s) saving message"
@@ -2344,7 +2345,9 @@ static void smtp_thread(void* arg)
 					sockprintf(socket,ok_rsp);
 					signal_smtp_sem();
 				}
+#if 0 /* This shouldn't be necessary here */
 				smb_close_da(&smb);
+#endif
 				smb_close(&smb);
 				continue;
 			}
@@ -3571,7 +3574,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.299 $", "%*s %s", revision);
+	sscanf("$Revision: 1.300 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
