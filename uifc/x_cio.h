@@ -1,7 +1,7 @@
-/* $Id: x_cio.h,v 1.1 2004/07/05 21:27:40 deuce Exp $ */
+/* $Id: x_cio.h,v 1.1 2004/07/02 20:19:06 deuce Exp $ */
 
 #ifdef __unix__
-#include "conio.h"
+#include "ciowrap.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,15 +13,17 @@ int x_kbhit(void);
 void x_delay(long msec);
 int x_wherey(void);
 int x_wherex(void);
-int x_putch(unsigned char ch);
+void x_putch(unsigned char ch);
+int x_cprintf(char *fmat, ...);
+void x_cputs(unsigned char *str);
 void x_gotoxy(int x, int y);
+void x_clrscr(void);
 void x_initciowrap(long inmode);
 void x_gettextinfo(struct text_info *info);
 void x_setcursortype(int type);
-int x_getch(void);
-int x_getche(void);
-int x_beep(void);
-void x_textmode(int mode);
+void x_textbackground(int colour);
+void x_textcolor(int colour);
+void x_clreol(void);
 #ifdef __cplusplus
 }
 #endif
