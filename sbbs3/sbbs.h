@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.152 2002/11/07 11:43:58 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.153 2002/11/08 05:41:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -768,7 +768,7 @@ extern "C" {
 	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
 
 	/* str_util.c */
-	DLLEXPORT void		DLLCALL truncsp(char* str);
+	DLLEXPORT char *	DLLCALL truncsp(char* str);
 	DLLEXPORT char *	DLLCALL truncstr(char* str, const char* set);
 	DLLEXPORT char *	DLLCALL ascii_str(uchar* str);
 	DLLEXPORT BOOL		DLLCALL findstr(char *insearch, char *fname);
