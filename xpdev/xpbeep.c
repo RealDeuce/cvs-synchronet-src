@@ -1,22 +1,12 @@
-/* $Id: xpbeep.c,v 1.22 2005/03/07 23:35:14 deuce Exp $ */
-
-/* standard headers */
 #include <math.h>
 
-#if defined(_WIN32)
+#ifdef _WIN32
 	#include <windows.h>
 	#include <mmsystem.h>
-#elif defined(__unix__)
+#endif
+#ifdef __unix__
 	#include <fcntl.h>
-	#if SOUNDCARD_H_IN==SYS
-		#include <sys/soundcard.h>
-	#elif SOUNDCARD_H_IN==INCLUDE
-		#include <soundcard.h>
-	#elif SOUNDCARD_H_IN==LINUX
-		#include <linux/soundcard.h>
-	#else
-		#warning Cannot find soundcard.h
-	#endif
+	#include <machine/soundcard.h>
 	/* KIOCSOUND */
 	#if defined(__FreeBSD__)
 		#include <sys/kbio.h>
@@ -32,28 +22,19 @@
 		#include <machine/speaker.h>
 	#endif
 #endif
-
-/* xpdev headers */
 #include "genwrap.h"
-#include "xpbeep.h"
 
-#define S_RATE	22050
+#define S_RATE	11025
 
 static BOOL sound_device_open_failed=FALSE;
 
-#define WAVE_PI	3.14159265358979323846
-#define WAVE_TPI 6.28318530717958647692
-
-/********************************************************************************/
-/* Calculate and generate a sound wave pattern (thanks to Deuce!)				*/
-/********************************************************************************/
-void makewave(double freq, unsigned char *wave, int samples, enum WAVE_SHAPE shape)
+void makesine(double freq, unsigned char *wave, int samples)
 {
 	int	i;
 	int j;
+	int k;
 	int midpoint;
 	double inc;
-	double pos;
 	BOOL endhigh;
 	BOOL starthigh;
 
@@ -62,40 +43,10 @@ void makewave(double freq, unsigned char *wave, int samples, enum WAVE_SHAPE sha
 	inc *= ((double)freq / (double)S_RATE);
 
 	for(i=0;i<samples;i++) {
-		pos=(inc*(double)i);
-		pos -= (int)(pos/WAVE_TPI)*WAVE_TPI;
-		switch(shape) {
-			case WAVE_SHAPE_SINE:
-				wave[i]=(sin (pos))*127+128;
-				break;
-			case WAVE_SHAPE_SINE_HARM:
-				wave[i]=(sin (pos))*64+128;
-				wave[i]=(sin ((inc*2)*(double)i))*24;
-				wave[i]=(sin ((inc*3)*(double)i))*16;
-				break;
-			case WAVE_SHAPE_SAWTOOTH:
-				wave[i]=(WAVE_TPI-pos)*40.5;
-				break;
-			case WAVE_SHAPE_SQUARE:
-				wave[i]=(pos<WAVE_PI)?255:0;
-				break;
-			case WAVE_SHAPE_SINE_SAW:
-				wave[i]=(((sin (pos))*127+128)+((WAVE_TPI-pos)*40.5))/2;
-				break;
-			case WAVE_SHAPE_SINE_SAW_CHORD:
-				wave[i]=(((sin (pos))*64+128)+((WAVE_TPI-pos)*6.2))/2;
-				wave[i]+=(sin ((inc/2)*(double)i))*24;
-				wave[i]+=(sin ((inc/3)*(double)i))*16;
-				break;
-			case WAVE_SHAPE_SINE_SAW_HARM:
-				wave[i]=(((sin (pos))*64+128)+((WAVE_TPI-pos)*6.2))/2;
-				wave[i]+=(sin ((inc*2)*(double)i))*24;
-				wave[i]+=(sin ((inc*3)*(double)i))*16;
-				break;
-		}
+		wave[i]=(sin (inc * (double)i))*127+128;
 	}
 	
-	/* Now we have a "perfect" wave... 
+	/* Now we have a "perfect" sine wave... 
 	 * we must clean it up now to avoid click/pop
 	 */
 	if(wave[samples-1]>128)
@@ -113,8 +64,30 @@ void makewave(double freq, unsigned char *wave, int samples, enum WAVE_SHAPE sha
 			wave[i]=128;
 		}
 	}
+	/* Fade out */
+	for(k=4;k>0;k--) {
+		for(;i>midpoint;i--) {
+			if(!endhigh && wave[i]<128)
+				break;
+			if(endhigh && wave[i]>128)
+				break;
+			j=wave[i];
+			j-=128;
+			j/=1<<k;
+			wave[i]=j+128;
+		}
+		for(;i>midpoint;i--) {
+			if(endhigh && wave[i]<128)
+				break;
+			if(!endhigh && wave[i]>128)
+				break;
+			j=wave[i];
+			j-=128;
+			j/=1<<k;
+			wave[i]=j+128;
+		}
+	}
 
-#if 0
 	if(wave[0]>128)
 		starthigh=TRUE;
 	else
@@ -130,16 +103,34 @@ void makewave(double freq, unsigned char *wave, int samples, enum WAVE_SHAPE sha
 			wave[i]=128;
 		}
 	}
-#endif
+	/* Fade in */
+	for(k=4;k>0;k--) {
+		for(;i<midpoint;i++) {
+			if(!starthigh && wave[i]<128)
+				break;
+			if(starthigh && wave[i]>128)
+				break;
+			j=wave[i];
+			j-=128;
+			j/=1<<k;
+			wave[i]=j+128;
+		}
+		for(;i<midpoint;i++) {
+			if(starthigh && wave[i]<=128)
+				break;
+			if(!starthigh && wave[i]>=128)
+				break;
+			j=wave[i];
+			j-=128;
+			j/=1<<k;
+			wave[i]=j+128;
+		}
+	}
 }
 
-/********************************************************************************/
-/* Play a tone through the wave/DSP output device (sound card) - Deuce			*/
-/********************************************************************************/
+#ifdef _WIN32
 
-#if defined(_WIN32)
-
-BOOL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
+void SineBeep(double freq, DWORD duration)
 {
 	WAVEFORMATEX	w;
 	WAVEHDR			wh;
@@ -147,7 +138,6 @@ BOOL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 	unsigned char	wave[S_RATE*15/2+1];
 	WORD* 			p;
 	DWORD			endTime;
-	BOOL			success=FALSE;
 
 	w.wFormatTag = WAVE_FORMAT_PCM;
 	w.nChannels = 1;
@@ -158,88 +148,30 @@ BOOL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 
 	if(!sound_device_open_failed && waveOutOpen(&waveOut, WAVE_MAPPER, &w, 0, 0, 0)!=MMSYSERR_NOERROR)
 		sound_device_open_failed=TRUE;
-	if(sound_device_open_failed)
-		return(FALSE);
-
+	if(sound_device_open_failed) {
+		Beep((DWORD)(freq+.5), duration);
+		return;
+	}
 	memset(&wh, 0, sizeof(wh));
 	wh.lpData=wave;
 	wh.dwBufferLength=S_RATE*duration/1000;
-	if(wh.dwBufferLength<=S_RATE/freq*2)
-		wh.dwBufferLength=S_RATE/freq*2;
-
-	makewave(freq,wave,wh.dwBufferLength,shape);
+	makesine(freq,wave,wh.dwBufferLength);
 	if(waveOutPrepareHeader(waveOut, &wh, sizeof(wh))!=MMSYSERR_NOERROR)
 		goto abrt;
-	if(waveOutWrite(waveOut, &wh, sizeof(wh))==MMSYSERR_NOERROR)
-		success=TRUE;
+	if(waveOutWrite(waveOut, &wh, sizeof(wh))!=MMSYSERR_NOERROR)
+		goto abrt;
 abrt:
 	while(waveOutUnprepareHeader(waveOut, &wh, sizeof(wh))==WAVERR_STILLPLAYING)
 		SLEEP(1);
 	waveOutClose(waveOut);
-
-	return(success);
 }
 
-#elif defined(__unix__)
+#endif /* _WIN32 */
 
-BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
-{
-#ifdef AFMT_U8
-	int dsp;
-	int format=AFMT_U8;
-	int channels=1;
-	int	rate=S_RATE;
-	int samples;
-	int	fragsize=0x7fff0004;
-	int wr;
-	int	i;
-	unsigned char	wave[S_RATE*15/2+1];
-
-	if(freq<17)
-		freq=17;
-	samples=S_RATE*duration/1000;
-	if(samples<=S_RATE/freq*2)
-		samples=S_RATE/freq*2;
-	makewave(freq,wave,samples,shape);
-	if(!sound_device_open_failed) {
-		if((dsp=open("/dev/dsp",O_WRONLY,0))<0) {
-			sound_device_open_failed=TRUE;
-		}
-		else  {
-			ioctl(dsp, SNDCTL_DSP_SETFRAGMENT, &fragsize);
-			if((ioctl(dsp, SNDCTL_DSP_SETFMT, &format)==-1) || format!=AFMT_U8) {
-				sound_device_open_failed=TRUE;
-				close(dsp);
-			}
-			else if((ioctl(dsp, SNDCTL_DSP_CHANNELS, &channels)==-1) || channels!=1) {
-				sound_device_open_failed=TRUE;
-				close(dsp);
-			}
-			else if((ioctl(dsp, SNDCTL_DSP_SPEED, &rate)==-1) || rate!=S_RATE) {
-				sound_device_open_failed=TRUE;
-				close(dsp);
-			}
-		}
-	}
-	if(sound_device_open_failed)
-		return(FALSE);
-	wr=0;
-	while(wr<samples) {
-		i=write(dsp, wave+wr, samples-wr);
-		if(i>=0)
-			wr+=i;
-	}
-	close(dsp);
-
-	return(TRUE);
-#else
-	return(FALSE);
-#endif
-}
-
+#ifdef __unix__
 /****************************************************************************/
 /* Generate a tone at specified frequency for specified milliseconds		*/
-/* Thanks to Casey Martin (and Deuce) for this code							*/
+/* Thanks to Casey Martin for this code										*/
 /****************************************************************************/
 void DLLCALL unix_beep(int freq, int dur)
 {
@@ -280,19 +212,55 @@ void DLLCALL unix_beep(int freq, int dur)
 #endif
 }
 
-#endif
-
-/********************************************************************************/
-/* Play sound through DSP/wave device, if unsuccessful, play through PC speaker	*/
-/********************************************************************************/
-void xpbeep(double freq, DWORD duration)
+void DLLCALL SineBeep(double freq, DWORD duration)
 {
-	if(xptone(freq,duration,WAVE_SHAPE_SINE_SAW_HARM))
-		return;
+#ifdef AFMT_U8
+	int dsp;
+	int format=AFMT_U8;
+	int channels=1;
+	int	rate=S_RATE;
+	int samples;
+	int	fragsize=0x7fff0004;
+	int wr;
+	int	i;
+	unsigned char	wave[S_RATE*15/2+1];
 
-#if defined(_WIN32)
-	Beep((DWORD)(freq+.5), duration);
-#elif defined(__unix__)
-	unix_beep((int)(freq+.5),duration);
+	samples=S_RATE*duration/1000;
+	makesine(freq,wave,samples);
+	if(!sound_device_open_failed) {
+		if((dsp=open("/dev/dsp",O_WRONLY,0))<0) {
+			sound_device_open_failed=TRUE;
+		}
+		else  {
+			ioctl(dsp, SNDCTL_DSP_SETFRAGMENT, &fragsize);
+			if((ioctl(dsp, SNDCTL_DSP_SETFMT, &format)==-1) || format!=AFMT_U8) {
+				sound_device_open_failed=TRUE;
+				close(dsp);
+			}
+			else if((ioctl(dsp, SNDCTL_DSP_CHANNELS, &channels)==-1) || channels!=1) {
+				sound_device_open_failed=TRUE;
+				close(dsp);
+			}
+			else if((ioctl(dsp, SNDCTL_DSP_SPEED, &rate)==-1) || rate!=S_RATE) {
+				sound_device_open_failed=TRUE;
+				close(dsp);
+			}
+		}
+	}
+	if(sound_device_open_failed) {
+		sound_device_open_failed=TRUE;
+		unix_beep((int)(freq+.5),duration);
+		return;
+	}
+	wr=0;
+	while(wr<samples) {
+		i=write(dsp, wave+wr, samples-wr);
+		if(i>=0)
+			wr+=i;
+	}
+	close(dsp);
+#else
+		unix_beep((int)(freq+.5),duration);
 #endif
 }
+#endif
