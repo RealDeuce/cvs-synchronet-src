@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.79 2003/08/19 01:09:15 rswindell Exp $ */
+/* $Id: userdat.c,v 1.80 2003/08/30 08:55:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1930,7 +1930,7 @@ char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name)
 		strcpy(addr,name);
 		return(addr);
 	}
-	if(strchr(name,'.') && strchr(name,' '))
+	if(strchr(name,'!') || (strchr(name,'.') && strchr(name,' ')))
 		sprintf(addr,"\"%s\"@",name);
 	else {
 		sprintf(addr,"%s@",name);
