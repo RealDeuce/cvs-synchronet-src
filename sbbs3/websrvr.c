@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.41 2002/11/09 23:04:34 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.42 2002/11/09 23:10:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -669,14 +669,14 @@ static void close_request(http_session_t * session)
 	uint i;
 	
 	
-	if(session->req.cgi_heads_size)  {
+	if(session->req.cgi_heads_size && session->req.cgi_heads!=NULL)  {
 		for(i=0;i<session->req.cgi_heads_size;i++)
 			FREE_AND_NULL(session->req.cgi_heads[i]);
 		FREE_AND_NULL(session->req.cgi_heads);
 		session->req.cgi_heads_size=0;
 	}
 	
-	if(session->req.cgi_env_size)  {
+	if(session->req.cgi_env_size && session->req.cgi_env!=NULL)  {
 		for(i=0;i<session->req.cgi_env_size;i++)
 			FREE_AND_NULL(session->req.cgi_env[i]);
 		FREE_AND_NULL(session->req.cgi_env);
@@ -2104,7 +2104,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.41 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.42 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
