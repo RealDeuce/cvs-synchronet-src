@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.15 2001/11/09 17:04:46 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.16 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -491,7 +491,7 @@ bool sbbs_t::removefcdt(file_t* f)
 	int		u;
 	long	cdt;
 
-	if((u=matchuser(&cfg,f->uler))==0) {
+	if((u=matchuser(&cfg,f->uler,TRUE /*sysop_alias*/))==0) {
 	   bputs(text[UnknownUser]);
 	   return(false); }
 	cdt=0L;
@@ -1079,7 +1079,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 						if(noyes(text[RemoveCreditsQ]))
 	/* Fall through */      break; }
 				case 'C':   /* remove credits only */
-					if((i=matchuser(&cfg,f.uler))==0) {
+					if((i=matchuser(&cfg,f.uler,TRUE /*sysop_alias*/))==0) {
 						bputs(text[UnknownUser]);
 						break; }
 					if(dir_op(dirnum)) {

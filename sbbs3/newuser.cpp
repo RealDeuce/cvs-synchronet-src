@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.20 2001/11/29 21:10:58 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.21 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,7 +180,8 @@ void sbbs_t::newuser()
 				if(useron.alias[0]<=SP || !isalpha(useron.alias[0])
 					|| !stricmp(useron.alias,cfg.sys_id)
 					|| strchr(useron.alias,0xff)
-					|| matchuser(&cfg,useron.alias) || trashcan(useron.alias,"name")
+					|| matchuser(&cfg,useron.alias,TRUE /* sysop_alias */) 
+					|| trashcan(useron.alias,"name")
 					|| (!(cfg.uq&UQ_ALIASES) && !strchr(useron.alias,SP))) {
 					bputs(text[YouCantUseThatName]);
 					continue; }

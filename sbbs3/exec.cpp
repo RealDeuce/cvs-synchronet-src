@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.20 2001/11/15 18:59:26 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.21 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1405,7 +1405,7 @@ int sbbs_t::exec(csi_t *csi)
 					case USER_STRING_ALIAS:
 						if(!isalpha(csi->str[0]) || trashcan(csi->str,"name"))
 							break;
-						i=matchuser(&cfg,csi->str);
+						i=matchuser(&cfg,csi->str,TRUE /*sysop_alias*/);
 						if(i && i!=useron.number)
 							break;
 						sprintf(useron.alias,"%.*s",LEN_ALIAS,csi->str);

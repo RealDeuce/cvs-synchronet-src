@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.16 2001/12/01 02:06:04 rswindell Exp $ */
+/* $Id: js_system.c,v 1.17 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -518,6 +518,7 @@ js_matchuser(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		p;
 	JSString*	js_str;
 	scfg_t*		cfg;
+	BOOL		sysop_alias=TRUE;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -527,12 +528,15 @@ js_matchuser(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
+	if(argc>1)
+		sysop_alias=JSVAL_TO_BOOLEAN(argv[1]);
+
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = INT_TO_JSVAL(0);
 		return(JS_TRUE);
 	}
 
-	*rval = INT_TO_JSVAL(matchuser(cfg,p));
+	*rval = INT_TO_JSVAL(matchuser(cfg,p,sysop_alias));
 	return(JS_TRUE);
 }
 

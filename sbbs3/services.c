@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.20 2001/12/27 15:47:26 rswindell Exp $ */
+/* $Id: services.c,v 1.21 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -311,7 +311,7 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(isdigit(*p))
 		user.number=atoi(p);
 	else
-		user.number=matchuser(&scfg,p);
+		user.number=matchuser(&scfg,p,FALSE);
 
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf("%04d %s !USER NOT FOUND: '%s'"

@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.8 2001/12/20 01:40:32 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.9 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,7 +202,7 @@ void sbbs_t::telluser(smbmsg_t* msg)
 	if(msg->from_ext)
 		usernumber=atoi(msg->from_ext);
 	else {
-		usernumber=matchuser(&cfg,msg->from);
+		usernumber=matchuser(&cfg,msg->from,TRUE /*sysop_alias*/);
 		if(!usernumber)
 			return; }
 	for(n=1;n<=cfg.sys_nodes;n++) { /* Tell user */

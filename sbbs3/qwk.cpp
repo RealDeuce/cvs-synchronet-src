@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.12 2001/11/09 17:04:46 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.13 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,14 +87,14 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 	sprintf(node,"%.8s",p);                 /* node = destination node */
 	truncsp(node);
 
-	for(i=0;i<cfg.total_qhubs;i++)				/* Check if destination is our hub */
+	for(i=0;i<cfg.total_qhubs;i++)			/* Check if destination is our hub */
 		if(!stricmp(cfg.qhub[i]->id,node))
 			break;
 	if(i<cfg.total_qhubs) {
 		strcpy(fulladdr,node);
 		return(0); }
 
-	i=matchuser(&cfg,node);						/* Check if destination is a node */
+	i=matchuser(&cfg,node,FALSE);			/* Check if destination is a node */
 	if(i) {
 		getuserrec(&cfg,i,U_REST,8,str);
 		if(ahtoul(str)&FLAG('Q')) {
@@ -115,7 +115,7 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 			strcpy(fulladdr,inaddr);
 			return(0); }
 
-		i=matchuser(&cfg,node);					/* Check if next hop is a node */
+		i=matchuser(&cfg,node,FALSE);			/* Check if next hop is a node */
 		if(i) {
 			getuserrec(&cfg,i,U_REST,8,str);
 			if(ahtoul(str)&FLAG('Q')) {
@@ -155,7 +155,7 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 	if(i<cfg.total_qhubs)
 		return(0);
 
-	i=matchuser(&cfg,node);						/* Check if first hop is a node */
+	i=matchuser(&cfg,node,FALSE);				/* Check if first hop is a node */
 	if(i) {
 		getuserrec(&cfg,i,U_REST,8,str);
 		if(ahtoul(str)&FLAG('Q'))

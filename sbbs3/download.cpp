@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.12 2001/11/09 17:04:46 rswindell Exp $ */
+/* $Id: download.cpp,v 1.13 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,7 @@ void sbbs_t::downloadfile(file_t* f)
 	/**************************/
 	/* Update Uploader's Info */
 	/**************************/
-	i=matchuser(&cfg,f->uler);
+	i=matchuser(&cfg,f->uler,TRUE /*sysop_alias*/);
 	uploader.number=i;
 	getuserdat(&cfg,&uploader);
 	if(i && i!=useron.number && uploader.firston<f->dateuled) {

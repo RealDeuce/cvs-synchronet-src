@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.18 2001/11/04 00:48:40 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.19 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -994,7 +994,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					if(lp) {
 						if(pp && *pp)
-							*lp=matchuser(&cfg, *pp);
+							*lp=matchuser(&cfg, *pp, TRUE /*sysop_alias*/);
 						else
 							*lp=0; 
 					}

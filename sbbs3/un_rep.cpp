@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.12 2001/11/13 15:01:11 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.13 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,13 +151,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 			j=atoi(str);
 			if(j && j>lastuser(&cfg))
 				j=0;
-			if(!j &&
-				(!stricmp(str,"SYSOP")
-				|| !stricmp(str,cfg.sys_id)
-				|| !stricmp(str,cfg.sys_op)))
-				j=1;
 			if(!j)
-				j=matchuser(&cfg,str);
+				j=matchuser(&cfg,str,TRUE /* sysop_alias */);
 			if(!j) {
 				bputs(text[UnknownUser]);
 				continue; }

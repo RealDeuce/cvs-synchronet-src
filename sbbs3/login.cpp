@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.6 2002/01/11 00:39:28 rswindell Exp $ */
+/* $Id: login.cpp,v 1.7 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@ int sbbs_t::login(char *str, char *pw)
 			useron.number=0; }
 
 	if(!useron.number) {
-		useron.number=matchuser(&cfg,str);
+		useron.number=matchuser(&cfg,str,FALSE);
 		if(!useron.number && (uchar)str[0]<0x7f && str[1]
 			&& isalpha(str[0]) && strchr(str,SP) && cfg.node_misc&NM_LOGON_R)
 			useron.number=userdatdupe(0,U_NAME,LEN_NAME,str,0);

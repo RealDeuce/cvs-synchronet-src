@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.6 2001/11/09 17:04:47 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.7 2002/01/11 01:11:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -684,7 +684,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 							if(cfg.sub[subnum]->misc&SUB_NAME)
 								i=userdatdupe(0,U_NAME,LEN_NAME,str,0);
 							else
-								i=matchuser(&cfg,str); }
+								i=matchuser(&cfg,str,TRUE /* sysop_alias */); }
 						email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE); } }
 	//			  post=loadposts(&posts,subnum,0,lp);
 				break;
@@ -747,7 +747,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 						case 'P':   /* Purge user */
 							purgeuser(cfg.sub[subnum]->misc&SUB_NAME
 								? userdatdupe(0,U_NAME,LEN_NAME,msg.from,0)
-								: matchuser(&cfg,msg.from));
+								: matchuser(&cfg,msg.from,FALSE));
 							break;
 						case 'C':   /* Change message attributes */
 							i=chmsgattr(msg.hdr.attr);
@@ -810,7 +810,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 						case 'U':   /* User edit */
 							useredit(cfg.sub[subnum]->misc&SUB_NAME
 								? userdatdupe(0,U_NAME,LEN_NAME,msg.from,0)
-								: matchuser(&cfg,msg.from));
+								: matchuser(&cfg,msg.from,TRUE /* sysop_alias */));
 							break;
 						case 'V':   /* Validate message */
 							if(msg.total_hfields)
