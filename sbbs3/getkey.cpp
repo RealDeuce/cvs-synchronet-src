@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.16 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.17 2002/05/04 07:29:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,7 +234,7 @@ char sbbs_t::getkey(long mode)
 				else
 					outchar(ch);
 				while((coldkey=inkey(mode))==0 && online && !(sys_status&SS_ABORT))
-					checkline();
+					mswait(1);
 				bputs("\b \b");
 				if(coldkey==BS)
 					continue;
