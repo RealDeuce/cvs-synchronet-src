@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.13 2004/09/12 23:26:36 deuce Exp $
+# $Id: Common.gmake,v 1.14 2004/09/13 00:40:51 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -283,7 +283,6 @@ endif
 -include targets.mk
 -include $(SRC_ROOT)/build/rules.mk
 -include objects.mk		# defines $(OBJS)
--include libobjs.mk		# defines $(LIB_OBJS)
 
 # Implicit C Compile Rule
 $(OBJODIR)/%.o : %.c $(BUILD_DEPENDS)
@@ -322,3 +321,24 @@ FORCE:
 -include $(OBJODIR)/*.d
 -include $(LIBODIR)/*.d
 -include $(EXEODIR)/*.d
+
+xpdev:
+	$(MAKE) -C $(XPDEV_SRC) lib
+
+xpdev-mt:
+	$(MAKE) -C $(XPDEV_SRC) mtlib
+
+smblib:
+	$(MAKE) -C $(SMBLIB_SRC) lib
+
+smblib-mt:
+	$(MAKE) -C $(SMBLIB_SRC) mtlib
+
+ciolib-mt:
+	$(MAKE) -C $(CIOLIB_SRC) mtlib
+
+uifc:
+	$(MAKE) -C $(UIFCLIB_SRC) lib
+
+uifc-mt:
+	$(MAKE) -C $(UIFCLIB_SRC) mtlib
