@@ -33,10 +33,8 @@
 #ifdef ODPLAT_NIX
 #define strnicmp      strncasecmp
 #define stricmp       strcasecmp
-#define strlwr(x)	od_strlwr(x)
-#define strupr(x)	od_strupr(x)
-char *od_strlwr(char *str);
-char *od_strupr(char *str);
+int strlwr(char *str);
+int strupr(char *str);
 #endif
 
 #endif
