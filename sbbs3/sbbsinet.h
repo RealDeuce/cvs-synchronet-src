@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.13 2001/05/21 23:04:24 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.14 2001/10/26 16:20:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,6 +53,9 @@
 #elif defined __unix__	/* Unix-variant */
 
 #include <netdb.h>		/* gethostbyname */
+#ifdef __FreeBSD__
+#include <sys/types.h>  /* For u_int32_t on FreeBSD */
+#endif
 #include <netinet/in.h>	/* IPPROTO_IP */
 #include <sys/socket.h>	/* socket/bind/etc. */
 #include <sys/ioctl.h>	/* FIONBIO */
