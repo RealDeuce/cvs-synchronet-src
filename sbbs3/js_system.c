@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.53 2003/02/13 02:40:28 rswindell Exp $ */
+/* $Id: js_system.c,v 1.54 2003/02/13 04:13:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -413,6 +413,8 @@ static char* sys_prop_desc[] = {
 	,"text file directory"
 	,"tempory file directory"
 	,"executable file directory"
+	,"modified modules directory"
+	,"log file directory"
 
 	/* INSERT new tabled properties here */
 
