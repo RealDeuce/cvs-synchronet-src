@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.372 2005/02/09 05:15:09 rswindell Exp $ */
+/* $Id: main.cpp,v 1.373 2005/02/18 02:32:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2182,6 +2182,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
+	char	path[MAX_PATH+1];
 	uint	i;
 
     if(node_num)
@@ -2200,10 +2201,16 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	if(node_num>0) {
 		strcpy(cfg.node_dir, cfg.node_path[node_num-1]);
 		prep_dir(cfg.node_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
-	} else if(startup->temp_dir[0]) {
-		SAFECOPY(cfg.temp_dir,startup->temp_dir);
-	} else
-    	prep_dir(cfg.data_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
+	} else {	/* event thread needs exclusive-use temp_dir */
+		if(startup->temp_dir[0])
+			SAFECOPY(cfg.temp_dir,startup->temp_dir);
+		else
+	    	prep_dir(cfg.data_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
+		md(cfg.temp_dir);
+		SAFEPRINTF2(path,"%sevent%u",cfg.temp_dir,startup->first_node);
+		backslash(path);
+		SAFECOPY(cfg.temp_dir,path);
+	}
 
 	terminated = false;
 	event_thread_running = false;
