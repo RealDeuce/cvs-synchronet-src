@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.1 2000/10/10 11:26:33 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.2 2000/10/26 15:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			,*p,*tp,*sp,ch;
 	int		i,j;
 	int		mismatches=0,act;
-	long 	msgs,curmsg;
+	ulong 	msgs,curmsg;
     long    length,l,lm_mode;
 	ulong	last;
 	bool	replied;
@@ -461,7 +461,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bputs(text[MailOnSystemLstHdr]);
 				else
 					bputs(text[MailWaitingLstHdr]);
-				for(;i<msgs && !msgabort();i++) {
+				for(;(ulong)i<msgs && !msgabort();i++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
@@ -506,10 +506,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 					smb_unlockmsghdr(&smb,&msg); }
 				break;
 			case '>':
-				for(i=curmsg+1;i<msgs;i++)
+				for(i=curmsg+1;(ulong)i<msgs;i++)
 					if(mail[i].subj==msg.idx.subj)
 						break;
-				if(i<msgs)
+				if((ulong)i<msgs)
 					curmsg=i;
 				else
 					domsg=0;
@@ -525,19 +525,19 @@ void sbbs_t::readmail(uint usernumber, int which)
 				break;
 			case '}':   /* Search Author forward */
 				strcpy(str,msg.from);
-				for(i=curmsg+1;i<msgs;i++)
+				for(i=curmsg+1;(ulong)i<msgs;i++)
 					if(mail[i].from==msg.idx.from)
 						break;
-				if(i<msgs)
+				if((ulong)i<msgs)
 					curmsg=i;
 				else
 					domsg=0;
 				break;
 			case 'N':   /* Got to next un-read message */
-				for(i=curmsg+1;i<msgs;i++)
+				for(i=curmsg+1;(ulong)i<msgs;i++)
 					if(!(mail[i].attr&MSG_READ))
 						break;
-				if(i<msgs)
+				if((ulong)i<msgs)
 					curmsg=i;
 				else
 					domsg=0;
@@ -554,20 +554,20 @@ void sbbs_t::readmail(uint usernumber, int which)
 				break;
 			case ']':   /* Search To User forward */
 				strcpy(str,msg.to);
-				for(i=curmsg+1;i<msgs;i++)
+				for(i=curmsg+1;(ulong)i<msgs;i++)
 					if(mail[i].to==msg.idx.to)
 						break;
-				if(i<msgs)
+				if((ulong)i<msgs)
 					curmsg=i;
 				else
 					domsg=0;
 				break;
 			case '[':   /* Search To User backward */
 				strcpy(str,msg.to);
-				for(i=curmsg-1;i>-1;i--)
+				for(i=curmsg-1;(ulong)i>-1;i--)
 					if(mail[i].to==msg.idx.to)
 						break;
-				if(i>-1)
+				if((ulong)i>-1)
 					curmsg=i;
 				else
 					domsg=0;
@@ -598,7 +598,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				i=curmsg;
 				if(i) i++;
 				j=i+10;
-				if(j>msgs)
+				if((ulong)j>msgs)
 					j=msgs;
 
 				if(which==MAIL_SENT)

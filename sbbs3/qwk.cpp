@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.1 2000/10/10 11:25:02 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.2 2000/10/26 15:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -318,7 +318,7 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 {
 	char	str[128];
 	int 	i;
-	long	l,msgs,deleted=0;
+	ulong	l,msgs,deleted=0;
 	mail_t	*mail;
 	smbmsg_t msg;
 
