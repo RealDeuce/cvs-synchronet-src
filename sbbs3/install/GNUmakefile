@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.4 2003/01/23 11:01:15 rswindell Exp $
+# $Id: GNUmakefile,v 1.5 2003/01/25 09:43:32 deuce Exp $
 
 #USE_DIALOG =	1	# Dialog vesrion of UIFC
 USE_CURSES	=	1	# Curses version of UIFC
@@ -39,35 +39,26 @@ CFLAGS	+=	-MMD -Wall -I$(UIFC) -I$(XPDEV) -I..
 
 LFLAGS	:=	-static -L/usr/local/lib
 
-ifdef USE_DIALOG
- LFLAGS	+=	-L../../libdialog -ldialog -lncurses
- CFLAGS	+=	-I../../libdialog -DUSE_DIALOG
-endif
-
-ifdef USE_CURSES
- LFLAGS	+=	-lncurses
- CFLAGS	+=	-DUSE_CURSES
-endif
-
-ifdef USE_FLTK
- LFLAGS +=	-L/usr/X11R6/lib -lfltk -lX11 -lm
- CFLAGS +=	-I/usr/X11R6/include -DUSE_FLTK
-endif
-
 ODIR	:=	$(ODIR).release
 
 include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
 
 ifdef USE_DIALOG		
+ LFLAGS	+=	-L../../libdialog -ldialog -lncurses
+ CFLAGS	+=	-I../../libdialog -DUSE_DIALOG
  OBJS += $(ODIR)$(SLASH)uifcd.$(OFILE)
 endif
 
 ifdef USE_CURSES		
+ LFLAGS	+=	-lncurses
+ CFLAGS	+=	-DUSE_CURSES
  OBJS += $(ODIR)$(SLASH)uifcc.$(OFILE)
 endif
 
 ifdef USE_FLTK
+ LFLAGS +=	-L/usr/X11R6/lib -lfltk -lX11 -lm
+ CFLAGS +=	-I/usr/local/include -I/usr/X11R6/include -DUSE_FLTK
  OBJS += $(ODIR)$(SLASH)uifcfltk.$(OFILE)
 endif
 
