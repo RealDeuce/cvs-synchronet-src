@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.303 2003/09/26 07:35:59 rswindell Exp $ */
+/* $Id: main.cpp,v 1.304 2003/09/27 01:21:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3897,7 +3897,7 @@ void DLLCALL bbs_thread(void* arg)
 	    else {
 	        lprintf("Node %d local spy using socket %d", i, uspy_listen_socket[i-1]);
 	        if(startup!=NULL && startup->socket_open!=NULL)
-	            startup->socket_open(TRUE);
+	            startup->socket_open(startup->cbdata,TRUE);
 	    }
 	
 	    uspy_addr.sun_family=AF_LOCAL;
