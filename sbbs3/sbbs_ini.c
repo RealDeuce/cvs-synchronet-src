@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.53 2003/09/04 10:15:55 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.54 2003/09/05 07:52:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,6 +111,7 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_TX				,"RELAY_TX"				},
 	{ MAIL_OPT_DEBUG_POP3			,"DEBUG_POP3"			},
 	{ MAIL_OPT_ALLOW_RX_BY_NUMBER	,"ALLOW_RX_BY_NUMBER"	},
+	{ MAIL_OPT_NO_NOTIFY			,"NO_NOTIFY"			},
 	{ MAIL_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ MAIL_OPT_USE_TCP_DNS			,"USE_TCP_DNS"			},
 	{ MAIL_OPT_NO_SENDMAIL			,"NO_SENDMAIL"			},

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.281 2003/09/04 21:25:25 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.282 2003/09/05 07:52:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2135,7 +2135,7 @@ static void smtp_thread(void* arg)
 					}
 					lprintf("%04d SMTP Created message #%ld from %s to %s <%s>"
 						,socket, newmsg.hdr.number, sender, rcpt_name, rcpt_addr);
-					if(usernum) {
+					if(!(startup->options&MAIL_OPT_NO_NOTIFY) && usernum) {
 						sprintf(str,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
 							"\1h%s\1n\r\n"
 							,timestr(&scfg,(time_t*)&newmsg.hdr.when_imported.time,tmp)
@@ -3360,7 +3360,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.281 $", "%*s %s", revision);
+	sscanf("$Revision: 1.282 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
