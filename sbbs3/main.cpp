@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.220 2003/01/03 20:53:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.221 2003/01/12 21:58:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2604,11 +2604,11 @@ int sbbs_t::incom(void)
 
 	if(!RingBufRead(&inbuf, &ch, 1))
 		return(NOINP);
-
+#if 0 // removed Jan-2003
 	if(!(cfg.ctrlkey_passthru&(1<<CTRL_C))	
 		&& rio_abortable && ch==CTRL_C)
 		return(NOINP); /* this should never happen since input_thread eats Ctrl-C chars */
-
+#endif
 	return(ch);
 }
 
