@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.257 2005/02/09 05:15:10 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.258 2005/02/12 02:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -948,7 +948,7 @@ static int sock_sendfile(SOCKET socket,char *path)
 	if((file=open(path,O_RDONLY|O_BINARY))==-1)
 		lprintf(LOG_WARNING,"%04d !ERROR %d opening %s",socket,errno,path);
 	else {
-		if((ret=sendfilesocket(socket, file, &offset, 0)) < 1) {
+		if((ret=sendfilesocket(socket, file, &offset, 0)) < 0) {
 			lprintf(LOG_DEBUG,"%04d !ERROR %d sending %s"
 				, socket, errno, path);
 			ret=0;
@@ -2866,7 +2866,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.257 $", "%*s %s", revision);
+	sscanf("$Revision: 1.258 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
