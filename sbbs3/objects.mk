@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.30 2005/01/13 06:39:07 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.32 2005/01/13 23:45:35 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -220,7 +220,8 @@ JSEXEC_OBJS = \
 			$(OBJODIR)$(DIRSEP)jsexec$(OFILE)
 
 SEXYZ_OBJS = \
-			$(OBJODIR)$(DIRSEP)sexyz$(OFILE) \
-			$(OBJODIR)$(DIRSEP)xmodem$(OFILE) \
-			$(OBJODIR)$(DIRSEP)zmodem$(OFILE) \
-			$(OBJODIR)$(DIRSEP)telnet$(OFILE)
+			$(MTOBJODIR)$(DIRSEP)sexyz$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)xmodem$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)zmodem$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)telnet$(OFILE)
