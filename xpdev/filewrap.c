@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.14 2003/04/11 20:56:31 deuce Exp $ */
+/* $Id: filewrap.c,v 1.15 2003/04/11 21:18:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,9 @@ int DLLCALL sopen(char *fn, int access, int share)
 #ifndef F_SANEWRLCKNO
 	int	flock_op=LOCK_NB;	/* non-blocking */
 #endif
+#ifndef BSD
 	struct flock alock;
+#endif
 
 	if ((fd = open(fn, access, S_IREAD|S_IWRITE)) < 0)
 		return -1;
