@@ -1,8 +1,8 @@
-/* csv_file.h */
+/* truncsp.c */
 
-/* Functions to deal with comma-separated value (CSV) files and lists */
+/* Static functions to truncate white-space chars off end of ASCIIZ strings */
 
-/* $Id: csv_file.h,v 1.1 2004/07/29 03:07:37 rswindell Exp $ */
+/* $Id: truncsp.c,v 1.3 2004/08/04 04:44:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,20 +35,30 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _CSV_FILE_H
-#define _CSV_FILE_H
+/****************************************************************************/
+/* Truncates all white-space chars off end of 'str'							*/
+/****************************************************************************/
+static char* truncsp(char* str)
+{
+	unsigned c;
 
-#include "str_list.h"
+	c=strlen(str);
+	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-named_string_t**	csvParse(str_list_t records, str_list_t columns);
-str_list_t			cvsCreate(str_list_t* records, str_list_t columns);
-
-#if defined(__cplusplus)
+	return(str);
 }
-#endif
 
-#endif	/* Don't add anything after this line */
+/****************************************************************************/
+/* Truncates carriage-return and line-feed chars off end of 'str'			*/
+/****************************************************************************/
+static char* truncnl(char* str)
+{
+	unsigned c;
+
+	c=strlen(str);
+	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
+
+	return(str);
+}
