@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.34 2003/08/22 09:28:30 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.35 2003/09/08 23:01:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,6 +95,20 @@ char* DLLCALL getfname(const char* path)
 	return(fname);
 }
 
+/****************************************************************************/
+/* Return a pointer to a file's extesion (beginning with '.')				*/
+/****************************************************************************/
+char* DLLCALL getfext(const char* path)
+{
+	char *fname;
+	char *fext;
+
+	fname=getfname(path);
+	fext=strrchr(fname,'.');
+	if(fext==NULL || fext==fname) 
+		return(NULL);
+	return(fext);
+}
 
 /****************************************************************************/
 /* Break a path name into components.										*/
