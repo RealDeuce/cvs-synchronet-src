@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.cfg */
 
-/* $Id: sockopts.c,v 1.8 2002/06/14 10:49:47 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.9 2002/06/14 20:11:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,9 @@ static const sockopt_name option_names[] = {
 	{ "DONTROUTE",		SO_DONTROUTE	},
 	{ "BROADCAST",		SO_BROADCAST	},
 	{ "OOBINLINE",		SO_OOBINLINE	},
+#ifdef SO_ACCEPTCONN
 	{ "ACCEPTCONN",		SO_ACCEPTCONN	},
+#endif
 	{ NULL }
 };
 
