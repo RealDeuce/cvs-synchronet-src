@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.45 2003/09/10 07:19:35 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.46 2003/09/10 08:02:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -551,7 +551,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		YIELD();
 
 	if(sbbs->js_branch.gc_interval && (sbbs->js_branch.counter%sbbs->js_branch.gc_interval)==0)
-		JS_MaybeGC(cx);
+		JS_MaybeGC(cx), sbbs->js_branch.gc_attempts++;
 
     return(JS_TRUE);
 }
