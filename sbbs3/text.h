@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.6 2004/07/29 23:40:24 rswindell Exp $ */
+/* $Id: text.h,v 1.7 2004/10/21 08:13:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -607,7 +607,7 @@ enum {
 	,No
 	,NoYesQuestion
 	,Pause
-	,Wait
+	,Unused564 /* was Wait */
 	,SysStatsLogHdr
 	,NodeStatsLogHdr
 	,ReducedTime
