@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.55 2004/08/27 22:55:03 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.52 2004/07/19 07:09:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,9 +66,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	char	pid[128];
 	ushort	xlat,msgattr;
 	int 	i,j,x,file,storage;
-	ulong	length,offset,crc=0xffffffff;
+	ulong	l,length,offset,crc=0xffffffff;
 	FILE*	instream;
-	smbmsg_t msg;
+	smbmsg_t msg,tmpmsg;
 
 	if(remsg) {
 		sprintf(title,"%.*s",LEN_TITLE,remsg->subj);
@@ -189,7 +189,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	if(cfg.sub[subnum]->misc&SUB_NAME)
 		bputs(text[UsingRealName]);
 
-	sprintf(str,"%sinput.msg",cfg.node_dir);
+	sprintf(str,"%sINPUT.MSG",cfg.node_dir);
 	if(!writemsg(str,top,title,wm_mode,subnum,touser)
 		|| (long)(length=flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
@@ -199,7 +199,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	bputs(text[WritingIndx]);
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
-		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i,smb.last_error);
+		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i);
 		return(false); 
 	}
 
@@ -243,7 +243,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(length&0xfff00000UL) {
 		smb_close(&smb);
-		errormsg(WHERE,ERR_LEN,str,length,smb.last_error);
+		errormsg(WHERE,ERR_LEN,str,length);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
 	}
@@ -330,9 +330,37 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		if(remsg->id!=NULL)
 			smb_hfield_str(&msg,RFC822REPLYID,remsg->id);
 		msg.hdr.thread_orig=remsg->hdr.number;
-
-		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
-			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
+		if(!remsg->hdr.thread_first) {
+			remsg->hdr.thread_first=smb.status.last_msg+1;
+			if((i=smb_lockmsghdr(&smb,remsg))!=0)
+				errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
+			else {
+				i=smb_putmsghdr(&smb,remsg);
+				smb_unlockmsghdr(&smb,remsg);
+				if(i)
+					errormsg(WHERE,ERR_WRITE,smb.file,i); 
+			} 
+		}
+		else {
+			l=remsg->hdr.thread_first;
+			while(1) {
+				tmpmsg.idx.offset=0;
+				if(!loadmsg(&tmpmsg,l))
+					break;
+				if(tmpmsg.hdr.thread_next && tmpmsg.hdr.thread_next!=l) {
+					l=tmpmsg.hdr.thread_next;
+					smb_unlockmsghdr(&smb,&tmpmsg);
+					smb_freemsgmem(&tmpmsg);
+					continue; 
+				}
+				tmpmsg.hdr.thread_next=smb.status.last_msg+1;
+				if((i=smb_putmsghdr(&smb,&tmpmsg))!=0)
+					errormsg(WHERE,ERR_WRITE,smb.file,i);
+				smb_unlockmsghdr(&smb,&tmpmsg);
+				smb_freemsgmem(&tmpmsg);
+				break; 
+			} 
+		} 
 	}
 
 
@@ -377,7 +405,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	smb_freemsgmem(&msg);
 	if(i) {
 		smb_freemsgdat(&smb,offset,length,1);
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		errormsg(WHERE,ERR_WRITE,smb.file,i);
 		return(false); 
 	}
 
@@ -444,6 +472,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 	long	offset;
 	ulong	crc=0xffffffff;
 	smbmsg_t remsg;
+	smbmsg_t firstmsg;
 
 	if(msg==NULL)
 		return(SMB_FAILURE);
@@ -639,7 +668,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 			return(i);
 
 		if((i=smb_getmsghdr(smb, &remsg))!=SMB_SUCCESS) {
-			smb_unlockmsghdr(smb, &remsg); 
+			smb_unlockmsghdr(smb,&remsg); 
 			return(i);
 		}
 
@@ -653,12 +682,43 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msg
 		if(msg->ftn_reply==NULL && remsg.ftn_msgid!=NULL)
 			smb_hfield_str(msg,FIDOREPLYID,remsg.ftn_msgid);
 
-		i=smb_updatethread(smb, &remsg, smb->status.last_msg+1);
-		smb_unlockmsghdr(smb, &remsg);
+		if(!remsg.hdr.thread_first) {	/* This msg is first reply */
+			remsg.hdr.thread_first=msg->idx.number;
+			i=smb_putmsghdr(smb,&remsg);
+			smb_unlockmsghdr(smb,&remsg);
+			if(i!=SMB_SUCCESS) {
+				smb_freemsgmem(&remsg);
+				return(i); 
+			}
+		} else {	/* Search for last reply and extend chain */
+			smb_unlockmsghdr(smb,&remsg);
+			memset(&firstmsg,0,sizeof(firstmsg));
+			l=remsg.hdr.thread_first;	/* start with first reply */
+			while(1) {
+				firstmsg.idx.offset=0;
+				firstmsg.hdr.number=l;
+				if(smb_getmsgidx(smb, &firstmsg)!=SMB_SUCCESS) /* invalid thread origin */
+					break;
+				if(smb_lockmsghdr(smb,&remsg)!=SMB_SUCCESS)
+					break;
+				if(smb_getmsghdr(smb, &remsg)!=SMB_SUCCESS) {
+					smb_unlockmsghdr(smb,&remsg); 
+					break;
+				}
+				if(firstmsg.hdr.thread_next && firstmsg.hdr.thread_next!=l) {
+					l=firstmsg.hdr.thread_next;
+					smb_unlockmsghdr(smb,&firstmsg);
+					smb_freemsgmem(&firstmsg);
+					continue; 
+				}
+				firstmsg.hdr.thread_next=msg->idx.number;
+				smb_putmsghdr(smb,&firstmsg);
+				smb_unlockmsghdr(smb,&firstmsg);
+				smb_freemsgmem(&firstmsg);
+				break; 
+			}
+		}
 		smb_freemsgmem(&remsg);
-
-		if(i!=SMB_SUCCESS)
-			return(i); 
 	}
 
 	if((i=smb_addmsghdr(smb,msg,storage))!=0) // calls smb_unlocksmbhdr() 
