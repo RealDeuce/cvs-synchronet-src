@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.25 2003/02/01 06:51:49 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.26 2003/02/01 08:25:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,8 @@ scfg_t scfg;
 int cur_altpath=0;
 
 long files=0,removed=0,mode=0;
+
+char lib[LEN_GSNAME+1];
 
 #define DEL_LIST	(1L<<0)
 #define NO_EXTEND	(1L<<1)
@@ -601,7 +603,7 @@ void synclist(char *inpath, int dirnum)
 		m=l;
 		for(i=0;i<12 && l<length;i++)
 			if(i==8)
-				str[i]='.';
+				str[i]=ixbbuf[m]>' ' ? '.' : ' ';
 			else
 				str[i]=ixbbuf[m++]; 	/* Turns FILENAMEEXT into FILENAME.EXT */
 		str[i]=0;
@@ -663,9 +665,11 @@ char *usage="\nusage: addfiles code [.alt_path] [-opts] [\"*user\"] +list "
 	"\n       z    check for and import FILE_ID.DIZ and DESC.SDI"
 	"\n       k    keep original short description (not DIZ)"
 	"\n       s    search directory for files (no file list)"
+	"\n       l    specify library (short name) to Auto-ADD"
 	"\n"
 	"\nAuto-ADD:   use * in place of code for Auto-ADD of FILES.BBS"
 	"\n            use *filename to Auto-ADD a different filename"
+	"\n            use -l \"libname\" to only Auto-ADD files to a specific library"
 	"\n"
 	;
 
@@ -685,7 +689,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.25 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.26 $" + 11, "%s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -774,6 +778,15 @@ int main(int argc, char **argv)
 						break;
 					case 'I':
 						mode|=UL_STATS;
+						break;
+					case 'L':
+						j++;
+						if(argv[j]==NULL) {
+							printf(usage);
+							return(-1);
+						}
+						SAFECOPY(lib,argv[j]);
+						i=strlen(argv[j])-1;
 						break;
 					case 'Z':
 						mode|=FILE_ID;
@@ -926,6 +939,8 @@ int main(int argc, char **argv)
 
 	if(mode&AUTO_ADD) {
 		for(i=0;i<scfg.total_dirs;i++) {
+			if(lib[0] && stricmp(scfg.lib[scfg.dir[i]->lib]->sname,lib))
+				continue;
 			if(scfg.dir[i]->misc&DIR_NOAUTO)
 				continue;
 			f.dir=i;
