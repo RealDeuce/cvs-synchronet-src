@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.20 2003/11/02 17:57:47 deuce Exp $
+# $Id: GNUmakefile,v 1.21 2003/11/02 17:58:42 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -66,7 +66,7 @@ else
     LFLAGS	:= 
    else
     ifeq ($(os),darwin)	# Darwin/Mac OS X
-     CFLAGS	+= -D__unix__ -DUSE_XP_SEMAPHORES -DDARWIN
+     CFLAGS	+= -D__unix__ -DUSE_XP_SEMAPHORES -D__DARWIN__
      LFLAGS	+= -lpthread
      XP_SEM	:= 1
     else			# Linux / Other UNIX
