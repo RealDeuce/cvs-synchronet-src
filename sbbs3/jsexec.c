@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.35 2003/09/09 10:32:46 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.36 2003/09/10 01:30:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,10 @@
 
 #ifndef JAVASCRIPT
 #define JAVASCRIPT
+#endif
+
+#ifdef __unix__
+#include <signal.h>
 #endif
 
 #include "sbbs.h"
@@ -616,16 +620,16 @@ long js_exec(const char *fname, char** args)
 	return(result);
 }
 
-void break_handler(void)
+void break_handler(int type)
 {
-	fprintf(stderr,"\n-> Terminated Locally <-\n");
+	fprintf(stderr,"\n-> Terminated Locally (%d)<-\n",type);
 	terminated=TRUE;
 }
 
 #if defined(_WIN32)
 BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
-	break_handler();
+	break_handler((int)CtrlType);
 	return TRUE;
 }
 #endif
@@ -653,7 +657,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.36 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -749,6 +753,10 @@ int main(int argc, char **argv, char** environ)
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
+#elif defined(__unix__)
+	signal(SIGQUIT,break_handler);
+	signal(SIGINT,break_handler);
+	signal(SIGTERM,break_handler);
 #endif
 
 	result=js_exec(module,&argv[argn]);
