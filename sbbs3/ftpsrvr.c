@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.25 2000/10/30 12:00:30 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.26 2000/11/02 11:31:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2218,8 +2218,15 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%s\r\n",getfname(g.gl_pathv[i]));
 				}
 				globfree(&g);
-			} else
+			} else {
+				lprintf("%04d %s listing: %s/%s directory (empty - no access)"
+					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code);
+#ifdef __unix__
+				strcpy(fname,"/dev/null");
+#else
 				strcpy(fname,"NUL");
+#endif
+			}
 
 			fclose(fp);
 			filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,0L
