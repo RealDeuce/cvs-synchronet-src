@@ -5,6 +5,4 @@ OBJS	:=	${LIBODIR}/syncterm.${OFILE} \
 			${LIBODIR}/sockwrap.${OFILE} \
 			${LIBODIR}/filewrap.${OFILE} \
 			${LIBODIR}/term.${OFILE} \
-			${LIBODIR}/genwrap.${OFILE} \
-			${LIBODIR}/window.${OFILE} \
-			${LIBODIR}/menu.${OFILE}
+			${LIBODIR}/window.${OFILE}

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.115 2004/06/13 23:16:43 deuce Exp $ */
+/* $Id: js_global.c,v 1.112 2004/04/08 03:32:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -665,7 +665,7 @@ static struct {
 	{ 163	,"pound"	}, /* 156 Pound sign */
 	{ 165	,"yen"		}, /* 157 Yen sign */
 	{ 8359	,NULL		}, /* 158 Pt (unicode) */
-	{ 402	,NULL		}, /* 402 Florin (non-standard alsi 159?) */
+	{ 131	,NULL		}, /* 159 Florin (non-standard) */
 	{ 225	,"aacute"	}, /* 160 a, acute accent */
 	{ 237	,"iacute"	}, /* 161 i, acute accent */
 	{ 243	,"oacute"	}, /* 162 o, acute accent */
@@ -743,7 +743,7 @@ static struct {
 	{ 937	,NULL		}, /* 234 greek char? */
 	{ 948	,NULL		}, /* 235 greek char? */
 	{ 8734	,NULL		}, /* 236 infinity symbol (unicode) */
-	{ 966	,"oslash"	}, /* 237 Greek Phi */
+	{ 248	,"oslash"	}, /* 237 o, slash (also #966?) */
 	{ 949	,NULL		}, /* 238 rounded E */
 	{ 8745	,NULL		}, /* 239 unside down U (unicode) */
 	{ 8801	,NULL		}, /* 240 drawing symbol (unicode) */
@@ -796,7 +796,7 @@ static struct {
 	{ 8595	,"darr"		}, /* downwards arrow */
 	{ 8594	,"rarr"		}, /* rightwards arrow */
 	{ 8592	,"larr"		}, /* leftwards arrow */
-	{ 8985	,NULL		}, /* turned not sign */
+	{ 8976	,NULL		}, /* reversed not sign */
 	{ 8596	,"harr"		}, /* left right arrow */
 	{ 9650	,NULL		}, /* black up-pointing triangle */
 	{ 9660	,NULL		}  /* black down-pointing triangle */
@@ -908,10 +908,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 				else if(inbuf[i]>=' ' && inbuf[i]<DEL)
 					tmpbuf[j++]=inbuf[i];
-#if 0		/* ASCII 127 - Not displayed? */
-				else if(inbuf[i]==DEL && exascii)
-					j+=sprintf(tmpbuf+j,"&#8962;",exasctbl[ch].value);
-#endif
 				else if(inbuf[i]<' ') /* unknown control chars */
 				{
 					if(ansi && inbuf[i]==ESC)

@@ -5,40 +5,10 @@
 #include "rlogin.h"
 #include "uifcinit.h"
 
-#ifdef _WINSOCKAPI_
-
-static WSADATA WSAData;
-#define SOCKLIB_DESC WSAData.szDescription
-static BOOL WSAInitialized=FALSE;
-
-static BOOL winsock_startup(void)
-{
-	int		status;             /* Status Code */
-
-    if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		fprintf(stderr,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
-		WSAInitialized=TRUE;
-		return (TRUE);
-	}
-
-    fprintf(stderr,"!WinSock startup ERROR %d", status);
-	return (FALSE);
-}
-
-#else /* No WINSOCK */
-
-#define winsock_startup()	(TRUE)
-#define SOCKLIB_DESC NULL
-
-#endif
-
 int main(int argc, char **argv)
 {
 	struct bbslist *bbs;
 	struct	text_info txtinfo;
-
-	if(!winsock_startup())
-		return(1);
 
 	initciowrap(UIFC_IBM|COLOR_MODE);
     gettextinfo(&txtinfo);
@@ -56,12 +26,6 @@ int main(int argc, char **argv)
 			if(drawwin())
 				return(1);
 			doterm();
-			rlogin_close();
 		}
 	}
-	uifcbail();
-#ifdef _WINSOCKAPI_
-	if(WSAInitialized && WSACleanup()!=0) 
-		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
-#endif
 }
