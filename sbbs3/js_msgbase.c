@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.101 2004/10/27 09:13:55 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.103 2004/11/22 23:10:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -889,6 +889,8 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 
 	/* Create hdr.field_list[] with repeating header fields (including type and data) */
 	if((array=JS_NewArrayObject(cx,0,NULL))!=NULL) {
+		JS_DefineProperty(cx,hdrobj,"field_list",OBJECT_TO_JSVAL(array)
+			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 		items=0;
 		for(i=0;i<msg.total_hfields;i++) {
 			switch(msg.hfield[i].type) {
@@ -928,8 +930,6 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 				,NULL,NULL,JSPROP_ENUMERATE);
 			items++;
 		}
-		JS_DefineProperty(cx,hdrobj,"field_list",OBJECT_TO_JSVAL(array)
-			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 	}
 
 	smb_freemsgmem(&msg);
@@ -1302,8 +1302,10 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JSObject*	hdr=NULL;
 	JSObject*	objarg;
 	JSObject*	rcpt_list=NULL;
+	JSClass*	cl;
 	smbmsg_t	rcpt_msg;
 	smbmsg_t	msg;
+	client_t*	client=NULL;
 	jsval		open_rval;
 	private_t*	p;
 
@@ -1329,6 +1331,10 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_OBJECT(argv[n])) {
 			objarg = JSVAL_TO_OBJECT(argv[n]);
+			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
+				client=JS_GetPrivate(cx,objarg);
+				continue;
+			}
 			if(JS_IsArrayObject(cx, objarg)) {		/* recipient_list is an array of objects */
 				if(body!=NULL && rcpt_list==NULL) {	/* body text already specified */
 					rcpt_list = objarg;
@@ -1363,7 +1369,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		if(body[0])
 			truncsp(body);
-		if(savemsg(scfg, &(p->smb), &msg, body)==0)
+		if(savemsg(scfg, &(p->smb), &msg, client, body)==0)
 			*rval = JSVAL_TRUE;
 
 		if(rcpt_list!=NULL) {	/* Sending to a list of recipients */
@@ -1624,7 +1630,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("mark message as deleted")
 	,311
 	},
-	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,body_text] [,array rcpt_list]")
+	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,client] [,body_text] [,array rcpt_list]")
 	,JSDOCSTR("create a new message in message base, the <i>header</i> object may contain the following properties:<br>"
 	"<table>"
 	"<tr><td><tt>subject</tt><td>Message subject <i>(required)</i>"
@@ -1675,6 +1681,9 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td><tt>field_list[].type</tt><td>Other SMB header fields (type)"
 	"<tr><td><tt>field_list[].data</tt><td>Other SMB header fields (data)"
 	"</table>"
+	"<br>"
+	"The optional <i>client</i> argument is an instance of the <i>Client</i> class to be used for the "
+	"security log header fields (e.g. sender IP addres, hostname, protocol, and port). "
 	"<br>"
 	"The optional <i>rcpt_list</i> is an array of objects that specifies multiple recipients "
 	"for a single message (e.g. bulk e-mail). Each object in the array may include the following header properties "
