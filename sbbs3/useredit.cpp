@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.30 2003/07/26 21:40:22 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.31 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,7 @@ void sbbs_t::useredit(int usernumber)
 		sprintf(str,"%suser/%4.4u.msg", cfg.data_dir,user.number);
 		i=fexist(str);
 		if(user.comment[0] || i)
-			bprintf(text[UeditCommentLine],i ? '+' : SP
+			bprintf(text[UeditCommentLine],i ? '+' : ' '
 				,user.comment);
 		else
 			CRLF;
@@ -803,7 +803,7 @@ void sbbs_t::maindflts(user_t* user)
 		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
 			bprintf(text[UserDefaultsQuiet]
 				,user->misc&QUIET ? text[On] : text[Off]);
-		if(user->prot!=SP)
+		if(user->prot!=' ')
 			sprintf(str,"%c",user->prot);
 		else
 			strcpy(str,"None");
@@ -1008,7 +1008,7 @@ void sbbs_t::maindflts(user_t* user)
 						strcat(str,tmp); }
 				ch=(char)getkeys(str,0);
 				if(ch=='Q' || sys_status&SS_ABORT) {
-					ch=SP;
+					ch=' ';
 					putuserrec(&cfg,user->number,U_PROT,1,&ch); }
 				else
 					putuserrec(&cfg,user->number,U_PROT,1,&ch);
