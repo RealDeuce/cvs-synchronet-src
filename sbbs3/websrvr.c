@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.29 2002/08/12 21:08:28 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.30 2002/08/12 21:09:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1052,7 +1052,7 @@ static BOOL parse_headers(http_session_t * session)
 	if((incgi=open(session->req.cgi_infile,O_WRONLY|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR))>0)  {
 		lprintf("%04d Created %s",session->socket,session->req.cgi_infile);
 		if(content_len)  {
-			getfilesock(session->socket,incgi,NULL,content_len);
+			recvfilesocket(session->socket,incgi,NULL,content_len);
 		}
 		close(incgi);
 	} else  {
@@ -1584,7 +1584,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.29 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.30 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
