@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.146 2002/04/23 08:20:55 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.147 2002/04/24 07:34:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1962,7 +1962,7 @@ static void smtp_thread(void* arg)
 							,reverse_path, p);
 						spamlog(&scfg, "SMTP", tmp, host_name, host_ip, rcpt_addr);
 						sockprintf(socket, "550 Relay not allowed.");
-						continue;
+						break;
 					}
 
 					lprintf("%04d SMTP Relaying to external mail service: %s"
