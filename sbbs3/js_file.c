@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.15 2002/03/20 13:22:06 rswindell Exp $ */
+/* $Id: js_file.c,v 1.16 2002/03/20 22:53:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,10 +41,10 @@
 
 typedef struct
 {
+	FILE*	fp;
 	char	name[MAX_PATH+1];
 	char	mode[4];
 	uchar	etx;
-	FILE*	fp;
 	BOOL	external;	/* externally created, don't close */
 	BOOL	debug;
 
