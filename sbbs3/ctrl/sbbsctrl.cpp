@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: sbbsctrl.cpp,v 1.5 2000/11/12 15:53:41 rswindell Exp $ */
+/* $Id: sbbsctrl.cpp,v 1.6 2000/12/01 18:35:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,7 @@ USEFORM("SpyFormUnit.cpp", SpyForm);
 USEUNIT("..\ringbuf.c");
 USEUNIT("emulvt.pas");
 USEFORM("UserListFormUnit.cpp", UserListForm);
+USEFORM("UserMsgFormUnit.cpp", UserMsgForm);
 //---------------------------------------------------------------------------
 #include "MainFormUnit.h"
 #include "SpyFormUnit.h"
