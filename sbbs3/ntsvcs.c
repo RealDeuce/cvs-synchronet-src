@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.13 2003/10/15 09:14:03 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.14 2003/10/15 11:20:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,7 +109,7 @@ sbbs_ntsvc_t event ={
 	NULL,
 	NULL,
 	NULL,
-	NULL,
+	&bbs_startup.log_mask,
 	NULL,
 	NULL,
 	NULL,
