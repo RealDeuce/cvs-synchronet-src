@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.cfg */
 
-/* $Id: sockopts.c,v 1.10 2002/06/16 21:15:08 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.11 2002/07/16 22:32:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,7 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, char* error)
 		return(0);
 
 	len = sizeof(type);
-	result=getsockopt(sock,SOL_SOCKET,SO_TYPE,(char*)&type,&len);
+	result=getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
 	if(result) {
 		sprintf(error,"%d getting socket option (TYPE, %d)"
 			,ERROR_VALUE, SO_TYPE);
@@ -140,7 +140,7 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, char* error)
 		}
 #if 0
 		len = sizeof(value);
-		getsockopt(sock,SOL_SOCKET,option,(char*)&value,&len);
+		getsockopt(sock,SOL_SOCKET,option,(void*)&value,&len);
 		lprintf("%04d socket option: %s set to %d", sock, str, value);
 #endif
 	}
