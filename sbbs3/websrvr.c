@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.9 2002/08/08 08:45:27 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.10 2002/08/08 08:55:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,6 +162,25 @@ static char	*months[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oc
 
 static const char * base64alphabet = 
  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+static DWORD monthdays[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+
+static time_t time_gm( struct tm* ti )  {
+	time_t t;
+
+	t=(ti->tm_year-70)*365;
+	t+=(ti->tm_year-69)/4;
+	t+=monthdays[ti->tm_mon];
+	if(ti->tm_mon >= 2 && ti->tm_year+1900%400 ? (ti->tm_year+1900%100 ? (ti->tm_year+1900%4 ? 0:1):0):1)
+		++t;
+	t += ti->tm_mday - 1;
+	t = t * 24 + ti->tm_hour;
+	t = t * 60 + ti->tm_min;
+	t = t * 60 + ti->tm_sec;
+
+	return t;
+}
+
 
 static int lprintf(char *fmt, ...)
 {
@@ -403,7 +422,7 @@ static time_t decode_date(char *date)
 			ti.tm_year -= 1900;
 	}
 
-	t=mktime(&ti);
+	t=time_gm(&ti);
 	lprintf("Parsed date as: %d",t);
 	return(t);
 }
@@ -1089,7 +1108,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.9 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.10 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
