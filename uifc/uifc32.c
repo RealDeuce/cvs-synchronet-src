@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.77 2004/07/07 07:26:16 deuce Exp $ */
+/* $Id: uifc32.c,v 1.78 2004/07/09 03:25:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -1402,7 +1402,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					default:
-						return(-2-i);
+						if(mode&WIN_EXTKEYS)
+							return(-2-i);
+						break;
 				} 
 			}
 			else {
