@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.131 2003/09/02 01:14:56 deuce Exp $ */
+/* $Id: services.c,v 1.132 2003/09/09 08:20:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1390,6 +1390,8 @@ void DLLCALL services_terminate(void)
 	for(i=0;i<services;i++) {
 		if(service[i].socket==INVALID_SOCKET)
 			continue;
+		if(service[i].options&SERVICE_OPT_STATIC)
+			continue;
 		close_socket(service[i].socket);
 		service[i].socket=INVALID_SOCKET;
 	}
@@ -1528,7 +1530,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.131 $", "%*s %s", revision);
+	sscanf("$Revision: 1.132 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1551,7 +1553,6 @@ void DLLCALL services_thread(void* arg)
 	char			host_ip[32];
 	char			compiler[32];
 	char			str[128];
-	char			cmd[128];
 	SOCKADDR_IN		addr;
 	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
@@ -1763,10 +1764,10 @@ void DLLCALL services_thread(void* arg)
 		for(i=0;i<(int)services;i++) {
 			if(!(service[i].options&SERVICE_OPT_STATIC))
 				continue;
+			if(service[i].socket==INVALID_SOCKET)	/* bind failure? */
+				continue;
 
 			/* start thread here */
-			SAFECOPY(cmd,service[i].cmd);
-			strlwr(cmd);
 			if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
 				_beginthread(native_static_service_thread, 0, &service[i]);
 			else										/* JavaScript */
@@ -2016,8 +2017,6 @@ void DLLCALL services_thread(void* arg)
 
 				udp_buf = NULL;
 
-				SAFECOPY(cmd,service[i].cmd);
-				strlwr(cmd);
 				if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
 					_beginthread(native_service_thread, 0, client);
 				else										/* JavaScript */
@@ -2031,8 +2030,11 @@ void DLLCALL services_thread(void* arg)
 		lprintf("0000 Closing service sockets");
 		for(i=0;i<(int)services;i++) {
 			service[i].terminated=TRUE;
-			if(service[i].socket!=INVALID_SOCKET)
-				close_socket(service[i].socket);
+			if(service[i].socket==INVALID_SOCKET)
+				continue;
+			if(service[i].options&SERVICE_OPT_STATIC)
+				continue;
+			close_socket(service[i].socket);
 			service[i].socket=INVALID_SOCKET;
 		}
 
