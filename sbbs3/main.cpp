@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.236 2003/04/03 04:53:06 rswindell Exp $ */
+/* $Id: main.cpp,v 1.237 2003/04/03 22:32:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,8 +55,6 @@ uint riobp;
 #ifdef _WIN32
 	HANDLE		exec_mutex=NULL;
 	HINSTANCE	hK32=NULL;
-
-	GetLongPathName_t Win98GetLongPathName=NULL;
 
 	#if defined(_DEBUG) && defined(_MSC_VER)
 			HANDLE	debug_log=INVALID_HANDLE_VALUE;
@@ -3435,10 +3433,6 @@ void DLLCALL bbs_thread(void* arg)
         return;
     }
 	hK32 = LoadLibrary("KERNEL32");
-
-	if(hK32!=NULL)
-		Win98GetLongPathName
-			= (GetLongPathName_t)GetProcAddress(hK32,"GetLongPathNameA");
 #endif // _WIN32
 
 	pthread_mutex_init(&event_mutex,NULL);
