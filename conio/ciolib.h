@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.21 2005/01/23 22:21:47 deuce Exp $ */
+/* $Id: ciolib.h,v 1.20 2004/10/17 02:07:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,8 +193,6 @@ typedef struct {
 	int		(*hidemouse)	(void);
 	int		(*showmouse)	(void);
 	void	(*settitle)		(const char *);
-	void	(*copytext)		(const char *, size_t);
-	char 	*(*getcliptext)	(void);
 } cioapi_t;
 
 extern cioapi_t cio_api;
@@ -245,8 +243,6 @@ void settitle(const char *title);
 int ciolib_showmouse(void);
 int ciolib_hidemouse(void);
 void ciolib_settitle(const char *title);
-void ciolib_copytext(const char *text, size_t buflen);
-char *ciolib_getcliptext(void);
 #ifdef __cplusplus
 }
 #endif
@@ -290,8 +286,6 @@ char *ciolib_getcliptext(void);
 	#define	hidemouse()				ciolib_hidemouse()
 	#define showmouse()				ciolib_showmouse()
 	#define settitle(a)				ciolib_settitle(a)
-	#define copytext(a,b)			ciolib_copytext(a,b)
-	#define getcliptext()		ciolib_getcliptext()
 #endif
 
 #endif	/* Do not add anything after this line */
