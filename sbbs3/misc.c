@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.18 2002/03/08 02:41:18 rswindell Exp $ */
+/* $Id: misc.c,v 1.19 2002/03/08 02:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -386,7 +386,7 @@ char *faddrtoa(faddr_t* addr, char* str)
 	return(str);
 }
 
-char* net_addr(net_t* net)
+char* DLLCALL net_addr(net_t* net)
 {
 	static char faddr[64];
 	if(net->type==NET_FIDO)
