@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.63 2004/08/04 03:45:50 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.65 2004/09/13 00:27:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -171,11 +171,22 @@ extern "C" {
 	#endif
 #endif
 
+/* Truncate white-space chars off end of string */
+DLLEXPORT char*		DLLCALL truncsp(char* str);
+/* Truncate new-line chars off end of string */
+DLLEXPORT char*		DLLCALL truncnl(char* str);
+
 #if defined(__unix__)
 	#define STRERROR(x)		strerror(x)
 #else
 	#define STRERROR(x)		truncsp(strerror(x))
 #endif
+
+/*********************/
+/* Utility Functions */
+/*********************/
+/* Thunking for multi-threaded specific implementations of "errno" */
+DLLEXPORT int DLLCALL	get_errno(void);
 
 /**********************************/
 /* Common Utility Macro Functions */
