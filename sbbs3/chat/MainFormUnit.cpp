@@ -2,7 +2,7 @@
 
 /* Local sysop chat module (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.2 2000/11/02 05:03:58 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.3 2000/11/03 01:03:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ void __fastcall TMainForm::LocalKeyPress(TObject *Sender, char &Key)
 {
     char c;
 
-    if(out==-1) {
+    if(out==-1 || Local->ReadOnly==true) {
         Beep();
         return;
     }
@@ -225,12 +225,13 @@ void __fastcall TMainForm::InputTimerTick(TObject *Sender)
         /* Got char, display it */
         if(ch=='\r')
             Remote->Lines->Add("");
-        else if(ch==BS || ch==DEL)    // backspace
-            Remote->Lines->Text
-                =Remote->Lines->Text.SetLength(Remote->Lines->Text.Length()-1);
-        else {
+        else if(ch==BS || ch==DEL) {  // backspace
+            Remote->Text
+                =Remote->Text.SetLength(Remote->Text.Length()-1);
+            /* Need to scroll window down here */
+        } else {
             Remote->SelLength=0;
-            Remote->SelStart=Remote->Lines->Text.Length();
+            Remote->SelStart=Remote->Text.Length();
             Remote->SelText=AnsiString(ch);
         }
 
