@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.77 2002/07/31 06:23:56 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.78 2002/08/21 22:44:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,6 +655,9 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     strcpy(ftp_startup.index_file_name,"00index");
     strcpy(ftp_startup.html_index_file,"00index.html");
     strcpy(ftp_startup.html_index_script,"ftp-html.js");
+
+    memset(&web_startup,0,sizeof(web_startup));
+    web_startup.size=sizeof(web_startup);
 
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
@@ -2083,6 +2086,7 @@ void __fastcall TMainForm::ImportSettings(TObject* Sender)
     sbbs_read_ini(fp
     	,(BOOL*)&SysAutoStart   		,&bbs_startup
     	,(BOOL*)&FtpAutoStart 			,&ftp_startup
+    	,(BOOL*)&WebAutoStart 			,&web_startup
     	,(BOOL*)&MailAutoStart 	    	,&mail_startup
     	,(BOOL*)&ServicesAutoStart     	,&services_startup
         );
