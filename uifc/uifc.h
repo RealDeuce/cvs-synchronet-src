@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.48 2004/06/03 05:28:48 deuce Exp $ */
+/* $Id: uifc.h,v 1.49 2004/06/03 05:39:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,6 +131,7 @@
 	#define MSK_DEL 	0x20000000
 	#define MSK_GET 	0x30000000
 	#define MSK_PUT 	0x40000000
+	/* Dont forget, negative return values are used for extended keys! */
 #else
 	#define MAX_OPTS	500 	/* Maximum number of options per menu call */
 	#define MSK_ON		0xf000
