@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.17 2002/04/10 22:16:29 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.18 2002/05/03 01:15:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,7 +382,7 @@ enum {
 	#define _PACK
 #endif
 
-#ifdef _WIN32	
+#if defined(_WIN32) || defined(__BORLANDC__)	
 #pragma pack(push)		/* Disk image structures must be packed */
 #pragma pack(1)
 #endif
@@ -479,7 +479,7 @@ typedef struct _PACK {		// Network (type and address)
 
 	} net_t;
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__BORLANDC__)
 #pragma pack(pop)		/* original packing */
 #endif
 

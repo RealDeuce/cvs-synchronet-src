@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.15 2002/04/12 06:19:58 rswindell Exp $ */
+/* $Id: mxlookup.c,v 1.16 2002/05/03 01:15:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@
 #include "gen_defs.h"
 #include "smbdefs.h"		/* _PACK */
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__BORLANDC__)
 #pragma pack(push)
 #pragma pack(1)
 #endif
@@ -76,7 +76,7 @@ typedef struct _PACK {
 	WORD	length;
 } dns_rr_t;
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__BORLANDC__)
 #pragma pack(pop)		/* original packing */
 #endif
 
