@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.6 2002/11/07 08:44:26 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.7 2002/11/07 09:31:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,22 +46,23 @@ void sbbs_t::printfile(char *str, long mode)
 {
 	char* buf;
 	char* p;
-	int file,wip=0,rip=0;
+	int file;
+	BOOL wip=FALSE,rip=FALSE,html=FALSE;
 	long length,savcon=console;
 	FILE *stream;
 
 	p=strrchr(str,'.');
 	if(p!=NULL) {
 		if(stricmp(p,".wip")==0) {
-			wip=1;
+			wip=TRUE;
 			mode|=P_NOPAUSE;
 		}
 		else if(stricmp(p,".rip")==0) {
-			rip=1;
+			rip=TRUE;
 			mode|=P_NOPAUSE;
 		}
 		else if(stricmp(p,".html")==0)  {
-			html=1;
+			html=TRUE;
 			mode|=(P_HTML|P_NOPAUSE);
 		}
 	}
