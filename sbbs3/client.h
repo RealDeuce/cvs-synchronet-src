@@ -2,7 +2,7 @@
 
 /* Synchronet client information to share with SBBSCTRL */
 
-/* $Id: client.h,v 1.4 2002/02/02 04:01:09 rswindell Exp $ */
+/* $Id: client.h,v 1.5 2002/07/21 13:04:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,9 +38,7 @@
 #ifndef _CLIENT_H
 #define _CLIENT_H
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
+#include "gen_defs.h"	/* WORD, DWORD */
 #include <time.h>		/* time_t */
 
 /* Used for sbbsctrl->client window */
