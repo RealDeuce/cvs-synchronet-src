@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.5 2000/11/07 12:00:27 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.6 2000/11/28 02:41:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@ char sbbs_t::getkey(long mode)
 {
 	char ch,coldkey,c=0,spin=sbbs_random(5);
 
-	if(!online)
+	if(!online || !input_thread_running)
 		return(0);
 	sys_status&=~SS_ABORT;
 	if((sys_status&SS_USERON || action==NODE_DFLT) && !(mode&K_GETSTR))
