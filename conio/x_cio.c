@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.10 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: x_cio.c,v 1.11 2005/01/23 22:21:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,3 +269,14 @@ void x_settitle(const char *title)
 {
 	x_win_title(title);
 }
+
+void x_copytext(const char *text, size_t buflen)
+{
+	return;
+}
+
+char *x_getcliptext(void)
+{
+	return(NULL);
+}
+
