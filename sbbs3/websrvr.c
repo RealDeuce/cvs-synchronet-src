@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.230 2004/12/03 05:07:55 deuce Exp $ */
+/* $Id: websrvr.c,v 1.231 2004/12/03 06:19:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1360,9 +1360,10 @@ static void js_add_queryval(http_session_t * session, char *key, char *value)
 	if(alen==-1) {
 		if(JS_GetArrayLength(session->js_cx, keyarray, &len)==JS_FALSE)
 			return;
-		alen=JSVAL_TO_INT(len)+1;
+		alen=len;
 	}
 
+	lprintf(LOG_DEBUG,"%04d Adding query value %s=%s at pos %d",session->socket,key,value,alen);
 	val=STRING_TO_JSVAL(JS_NewStringCopyZ(session->js_cx,value));
 	JS_SetElement(session->js_cx, keyarray, alen, &val);
 }
@@ -2878,7 +2879,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.230 $", "%*s %s", revision);
+	sscanf("$Revision: 1.231 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
