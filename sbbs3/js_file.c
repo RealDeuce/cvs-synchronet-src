@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.6 2001/09/24 18:27:25 rswindell Exp $ */
+/* $Id: js_file.c,v 1.7 2001/10/05 01:35:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -282,8 +282,8 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc>1) 
-		size = JSVAL_TO_INT(argv[1]);
+	if(argc) 
+		size = JSVAL_TO_INT(argv[0]);
 
 	switch(size) {
 		case sizeof(BYTE):
