@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.23 2002/05/02 23:55:14 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.24 2002/07/27 00:48:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1043,7 +1043,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 							f.altpath=0; }
 					putfiledat(&cfg,&f);
 					inputnstime(&f.dateuled);
-					update_uldate(&f);
+					update_uldate(&cfg, &f);
 					break;
 				case 'F':   /* delete file only */
 					sprintf(str,"%s%s",dirpath,fname);
