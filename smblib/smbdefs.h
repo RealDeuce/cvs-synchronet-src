@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.21 2002/06/28 23:41:05 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.22 2002/07/12 07:04:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -274,6 +274,9 @@
 #define RFC822REPLYID		0xb2
 #define RFC822TO			0xb3
 
+#define USENETPATH			0xc0
+#define USENETNEWSGROUPS	0xc1
+
 #define UNKNOWN 			0xf1
 #define UNKNOWNASCII		0xf2
 #define UNUSED				0xff
@@ -497,6 +500,8 @@ typedef struct {				// Message
 				*replyto_ext,	// Reply-to extension */
 				*id,			// RFC822 Message-ID
 				*reply_id,		// RFC822 Reply-ID
+				*path,			// USENET Path
+				*newsgroups,	// USENET Newsgroups
 				*ftn_pid,		// FTN PID
 				*ftn_area,		// FTN AREA
 				*ftn_flags,		// FTN FLAGS
