@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.56 2003/11/05 05:16:01 deuce Exp $ */
+/* $Id: genwrap.h,v 1.57 2004/03/23 02:22:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -263,7 +263,8 @@ extern "C" {
 #endif
 
 #if defined(__solaris__)
-	#define CTIME_R(x,y)	ctime_r(x,y,sizeof y)
+	#define CTIME_R(x,y)	ctime_r(x,y)
+	/* #define CTIME_R(x,y)	ctime_r(x,y,sizeof y) */
 #else
 	#define CTIME_R(x,y)	ctime_r(x,y)
 #endif
