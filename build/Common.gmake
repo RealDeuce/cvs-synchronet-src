@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.7 2004/09/12 12:33:26 deuce Exp $
+# $Id: Common.gmake,v 1.8 2004/09/12 12:37:39 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -220,6 +220,7 @@ UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
 
 # Pull in lib-specific flags
 include		$(CIOLIB_SRC)$(DIRSEP)Common.make
+include		$(UIFC_SRC)$(DIRSEP)Common.make
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
