@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.155 2004/03/25 04:20:38 rswindell Exp $ */
+/* $Id: services.c,v 1.154 2004/02/14 07:20:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1502,7 +1502,6 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 	FILE*		fp;
 	char		cmd[INI_MAX_VALUE_LEN];
 	char		host[INI_MAX_VALUE_LEN];
-	char		prot[INI_MAX_VALUE_LEN];
 	char**		sec_list;
 	service_t*	np;
 	service_t	serv;
@@ -1514,7 +1513,7 @@ static service_t* read_services_ini(service_t* service, char* services_ini, DWOR
 	sec_list = iniGetSectionList(fp,"");
     for(i=0; sec_list!=NULL && sec_list[i]!=NULL; i++) {
 		memset(&serv,0,sizeof(service_t));
-		SAFECOPY(serv.protocol,iniGetString(fp,sec_list[i],"Protocol",sec_list[i],prot));
+		SAFECOPY(serv.protocol,sec_list[i]);
 		serv.socket=INVALID_SOCKET;
 		serv.interface_addr=iniGetIpAddress(fp,sec_list[i],"Interface",startup->interface_addr);
 		serv.port=iniGetShortInt(fp,sec_list[i],"Port",0);
@@ -1590,7 +1589,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.155 $", "%*s %s", revision);
+	sscanf("$Revision: 1.154 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
