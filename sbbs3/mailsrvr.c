@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.89 2001/11/29 04:29:43 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.90 2001/11/29 21:04:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2352,15 +2352,14 @@ static void sendmail_thread(void* arg)
 				server=startup->relay_server;
 				port=startup->relay_port;
 			} else {
-				sprintf(to,"%.*s",(int)sizeof(to)-1,(char*)msg.to_net.addr);
-				p=strrchr(to,'>');	/* Truncate '>' */
-				if(p!=NULL) *p=0;
-
-				p=strrchr(to,':');	/* non-standard SMTP port */
+				p=strrchr((char*)msg.to_net.addr,':');	/* non-standard SMTP port */
 				if(p!=NULL) {
 					*p=0;
 					port=atoi(p+1);
 				}
+				sprintf(to,"%.*s",(int)sizeof(to)-1,(char*)msg.to_net.addr);
+				p=strrchr(to,'>');	/* Truncate '>' */
+				if(p!=NULL) *p=0;
 
 				p=strrchr(to,'@');
 				if(p==NULL) {
