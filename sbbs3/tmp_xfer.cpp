@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.12 2001/11/04 00:49:28 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.13 2001/11/04 01:13:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,7 +382,7 @@ void sbbs_t::extract(uint dirnum)
 				if(!checkfname(str))
 					break;
 				if((i=external(cmdstr(excmd,path,str,NULL)
-					,EX_INR|EX_OUTL|EX_OUTR|EX_SH))!=0) {
+					,EX_INR|EX_OUTL|EX_OUTR))!=0) {
 					errormsg(WHERE,ERR_EXEC,cmdstr(excmd,path,str,NULL),i);
 					return; }
 				sprintf(tmp,"Extracted %s from %s",str,path);
