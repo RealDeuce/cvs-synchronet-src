@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.56 2001/09/07 15:10:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.57 2001/09/18 20:34:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -330,6 +330,10 @@ bool sbbs_t::js_initcx()
 
 		/* Socket Class */
 		if(js_CreateSocketClass(js_cx, js_glob)==NULL)
+			break;
+
+		/* File Class */
+		if(js_CreateFileClass(js_cx, js_glob)==NULL)
 			break;
 
 		/* Server Object */
