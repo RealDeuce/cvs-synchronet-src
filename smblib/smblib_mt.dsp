@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "msvc.win32.mt.release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\xpdev" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\xpdev" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -49,7 +49,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"msvc.win32.mt.release\smb.lib"
+# ADD LIB32 /nologo
 
 !ELSEIF  "$(CFG)" == "smblib_mt - Win32 Debug"
 
@@ -63,8 +63,8 @@ LIB32=link.exe -lib
 # PROP Output_Dir "msvc.win32.mt.debug"
 # PROP Intermediate_Dir "msvc.win32.mt.debug"
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\xpdev" /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "SMB_EXPORTS" /YX /FD /GZ /c
+# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ  /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\xpdev" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ  /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -72,7 +72,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"msvc.win32.mt.debug\smb.lib"
+# ADD LIB32 /nologo /out:"msvc.win32.mt.debug\smblib.lib"
 
 !ENDIF 
 
@@ -98,31 +98,11 @@ SOURCE=.\md5.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\smbadd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\smballoc.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\smbdump.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\smbfile.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\smbhash.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\smblib.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\smbstr.c
 # End Source File
 # Begin Source File
 
