@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.2 2003/09/17 03:09:08 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.3 2005/01/11 10:36:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,9 +45,10 @@
 typedef struct {
 
 	SOCKET	sock;											/* socket descriptor */
-	long	mode;
+	long*	mode;
 	FILE*	statfp;
 	FILE*	errfp;
+	uint	block_size;
 
 } xmodem_t;
 
@@ -57,7 +58,7 @@ const char* xmodem_source(void);
 void		xmodem_cancel(xmodem_t* xm);
 int			xmodem_get_ack(xmodem_t* xm, int tries);
 void		xmodem_put_nak(xmodem_t* xm);
-int			xmodem_get_block(xmodem_t* xm, uchar* block, uint block_size, BOOL hdrblock);
+int			xmodem_get_block(xmodem_t* xm, uchar* block, BOOL hdrblock);
 void		xmodem_put_block(xmodem_t* xm, uchar* block, uint block_size, ulong block_num);
 
 #endif	/* Don't add anything after this line */
