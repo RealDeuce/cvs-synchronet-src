@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.1 2000/10/10 11:26:02 rswindell Exp $ */
+/* $Id: userdat.h,v 1.2 2000/10/23 20:18:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,13 +43,13 @@
 #endif
 
 #ifdef _WIN32
-#ifdef SBBS_EXPORTS
-#define EXPORT32 __declspec(dllexport)
+	#ifdef SBBS_EXPORTS
+		#define EXPORT32 __declspec(dllexport)
+	#else
+		#define EXPORT32 __declspec(dllimport)
+	#endif
 #else
-#define EXPORT32 __declspec(dllimport)
-#endif
-#else
-#define EXPORT32
+	#define EXPORT32
 #endif
 
 #ifdef __cplusplus
