@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.c,v 1.6 2003/05/02 23:10:08 rswindell Exp $ */
+/* $Id: semwrap.c,v 1.7 2003/05/02 23:29:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,10 +36,7 @@
  ****************************************************************************/
 
 #include <errno.h>
-#include "threadwrap.h"
-#ifdef USE_XP_SEMAPHORES
-	#include "xpsem.h"
-#endif
+#include "semwrap.h"
 
 #if defined(__unix__)
 
@@ -53,8 +50,8 @@ sem_trywait_block(sem_t *sem, unsigned long timeout)
 	struct timeval currtime;
 	
 	gettimeofday(&currtime,NULL);
-	abstime.tv_sec=currtime.tv_sec+(currtime.tv_usec/1000+timeout)/1000;
-	abstime.tv_nsec=(currtime.tv_usec*1000+timeout*1000000)%1000000000;
+	abstime.tv_sec=currtime.tv_sec + (currtime.tv_usec/1000 + timeout)/1000;
+	abstime.tv_nsec=(currtime.tv_usec*1000 + timeout*1000000)%1000000000;
 
 	if((retval=sem_timedwait(sem, &abstime)) && errno==ETIMEDOUT)
 		errno=EAGAIN;
