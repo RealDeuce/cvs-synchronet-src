@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.111 2005/02/03 04:12:53 deuce Exp $ */
+/* $Id: uifc32.c,v 1.112 2005/02/04 03:52:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1125,7 +1125,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							*cur = opts-1;
 						if(bar)
 							*bar = height-vbrdrsize-1;
-						y=height-vbrdrsize-1+top;
+						y=top+height-bbrdrwidth-1;
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
 						textattr(lclr|(bclr<<4));
 						if(*cur>height-vbrdrsize-1)  /* Scroll mode */
