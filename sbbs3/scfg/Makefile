@@ -6,7 +6,7 @@
 # @format.tab-size 4													#
 #########################################################################
 
-# $Id: Makefile,v 1.17 2004/09/11 00:10:43 rswindell Exp $
+# $Id: Makefile,v 1.16 2004/08/11 00:28:14 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -21,13 +21,12 @@ EXEODIR	=	bcc.win32	# Executable output directory
 XPDEV	=   	..\..\xpdev
 UIFC	=	..\..\uifc
 CIOLIB	=	..\..\conio
-SMBLIB	=	..\..\smblib
 LIB	=	..\..\..\lib
 INCLUDE	=	..\..\..\include
-CFLAGS	=	-DSCFG -M -I..;$(UIFC);$(XPDEV);$(CIOLIB);$(SMBLIB)
+CFLAGS	=	-DSCFG -M -I..;$(UIFC);$(XPDEV);$(CIOLIB)
 DELETE	=	-@echo y | del 
 
-.path.c = .;..;$(UIFC);$(XPDEV);$(CIOLIB);$(SMBLIB)
+.path.c = .;..;$(UIFC);$(XPDEV);$(CIOLIB)
 .path.cpp = $(UIFC)
 
 # Enable auto-dependency checking
