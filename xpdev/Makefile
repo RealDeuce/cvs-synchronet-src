@@ -8,7 +8,7 @@
 # usage: make [msc=1]													#
 #########################################################################
 
-# $Id: Makefile,v 1.4 2002/04/06 10:50:29 rswindell Exp $
+# $Id: Makefile,v 1.5 2002/05/10 00:49:44 rswindell Exp $
 
 # Macros
 DEBUG	=	1				# Comment out for release (non-debug) version
@@ -24,7 +24,7 @@ DELETE	=	echo y | del
 !ifdef msc	# Microsoft Visual C++
 CC		=	cl
 LD		=	link
-ODIR	=	msvc.win32
+ODIR	=	msvc.Win32
 OUTPUT	=	-Fo
 LOUTPUT	=	-Fe
 CFLAGS  =	-nologo -MTd
@@ -37,7 +37,7 @@ CFLAGS	=	$(CFLAGS) -Yd
 
 CC		=	bcc32
 LD		=	ilink32
-ODIR	=	bcc.win32		# Output directory
+ODIR	=	bcc.Win32		# Output directory
 OUTPUT	=	-o
 LOUTPUT	=	$(OUTPUT)
 CFLAGS	=	-n$(ODIR) -WM -q 
