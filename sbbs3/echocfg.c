@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.14 2004/09/21 05:15:03 deuce Exp $ */
+/* $Id: echocfg.c,v 1.15 2004/11/19 03:22:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,9 @@
 #include <stdio.h>
 
 #undef JAVASCRIPT
+
+/* XPDEV Headers */
+#include "gen_defs.h"
 
 #define __COLORS
 #include "ciolib.h"
