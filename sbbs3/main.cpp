@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.323 2004/03/24 08:11:31 rswindell Exp $ */
+/* $Id: main.cpp,v 1.321 2004/03/16 11:33:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,10 +41,6 @@
 
 #ifdef __unix__
 	#include <sys/un.h>
-	#ifndef SUN_LEN
-		#define SUN_LEN(su) \
-	        (sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
-	#endif
 #endif
 
 //---------------------------------------------------------------------------
@@ -223,7 +219,7 @@ u_long resolve_ip(char *addr)
 	char*		p;
 
 	if(*addr==0)
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -231,7 +227,7 @@ u_long resolve_ip(char *addr)
 	if(!(*p))
 		return(inet_addr(addr));
 	if((host=gethostbyname(addr))==NULL) 
-		return((u_long)INADDR_NONE);
+		return(INADDR_NONE);
 	return(*((ulong*)host->h_addr_list[0]));
 }
 
@@ -4008,7 +4004,7 @@ void DLLCALL bbs_thread(void* arg)
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node;i++)  {
-	    if((uspy_listen_socket[i-1]=socket(PF_UNIX,SOCK_STREAM,0))==INVALID_SOCKET)
+	    if((uspy_listen_socket[i-1]=socket(PF_LOCAL,SOCK_STREAM,0))==INVALID_SOCKET)
 	        lprintf(LOG_ERR,"Node %d !ERROR %d creating local spy socket"
 	            , i, errno);
 	    else {
@@ -4017,7 +4013,7 @@ void DLLCALL bbs_thread(void* arg)
 	            startup->socket_open(startup->cbdata,TRUE);
 	    }
 	
-	    uspy_addr.sun_family=AF_UNIX;
+	    uspy_addr.sun_family=AF_LOCAL;
 	    if((unsigned int)snprintf(str,sizeof(uspy_addr.sun_path),
 	            "%slocalspy%d.sock", startup->temp_dir, i)
 	            >=sizeof(uspy_addr.sun_path))
