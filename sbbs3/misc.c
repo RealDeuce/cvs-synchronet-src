@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.15 2001/12/13 17:19:29 rswindell Exp $ */
+/* $Id: misc.c,v 1.16 2002/01/16 11:49:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -380,6 +380,19 @@ char *hexplus(uint num, char *str)
 	return(str);
 }
 
+/****************************************************************************/
+/* Converts an ASCII Hex string into an ulong                               */
+/* by Steve Deppe (Ille Homine Albe)										*/
+/****************************************************************************/
+ulong ahtoul(char *str)
+{
+    ulong l,val=0;
+
+	while((l=(*str++)|0x20)!=0x20)
+		val=(l&0xf)+(l>>6&1)*9+val*16;
+	return(val);
+}
+
 uint hptoi(char *str)
 {
 	char tmp[128];
@@ -393,16 +406,4 @@ uint hptoi(char *str)
 	return(i);
 }
 
-/****************************************************************************/
-/* Converts an ASCII Hex string into an ulong                               */
-/* by Steve Deppe (Ille Homine Albe)										*/
-/****************************************************************************/
-ulong ahtoul(char *str)
-{
-    ulong l,val=0;
-
-	while((l=(*str++)|0x20)!=0x20)
-		val=(l&0xf)+(l>>6&1)*9+val*16;
-	return(val);
-}
 
