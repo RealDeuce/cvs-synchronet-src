@@ -19,7 +19,7 @@
  *
  * Severly mangled for use in the Synchronet installer
  *
- * $Id: ftpio.c,v 1.9 2003/03/27 01:53:30 rswindell Exp $
+ * $Id: ftpio.c,v 1.10 2003/03/27 01:56:33 rswindell Exp $
  *
  */
 
@@ -614,6 +614,7 @@ ftp_login_session(FTP_t ftp, char *host,
 		return FAILURE;
 	}
 
+	ftp->addrtype = addr.sin_family;
     ftp->fd_ctrl = s;
     ftp->con_state = isopen;
     ftp->is_verbose = verbose;
