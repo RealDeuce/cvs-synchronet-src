@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.23 2002/11/30 23:10:05 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.24 2002/12/06 07:24:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,7 +265,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			if(user!=NULL &&
 				(user->level>=SYSOP_LEVEL ||
-					cfg->sub[d]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[d]->op_ar,user)))
+					(cfg->sub[d]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[d]->op_ar,user))))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
 				val=BOOLEAN_TO_JSVAL(JS_FALSE);
