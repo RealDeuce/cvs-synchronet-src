@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.13 2001/06/27 02:29:34 rswindell Exp $ */
+/* $Id: userdat.c,v 1.14 2001/06/27 16:29:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -472,7 +472,7 @@ char* DLLCALL username(scfg_t* cfg, int usernumber,char *strin)
 /****************************************************************************/
 /* Puts 'name' into slot 'number' in user/name.dat							*/
 /****************************************************************************/
-int putusername(scfg_t* cfg, int number, char *name)
+int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 {
 	char str[256];
 	int file;
