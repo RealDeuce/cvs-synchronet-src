@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.56 2005/02/04 22:06:07 deuce Exp $ */
+/* $Id: uifc.h,v 1.53 2004/11/19 03:04:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,10 +157,8 @@
 #define UIFC_MONO	(1<<2)	/* Force monochrome mode */
 #define UIFC_COLOR	(1<<3)	/* Force color mode */
 #define UIFC_IBM	(1<<4)	/* Force use of IBM charset	*/
-#define UIFC_NOCTRL	(1<<5)	/* Don't allow useage of CTRL keys for movement 
-							 * etc in menus (Still available in text boxes) */
-                            /* Bits in uifcapi_t.list mode */
 
+                            /* Bits in uifcapi_t.list mode */
 #define WIN_ORG 	(1<<0)	/* Original menu - destroy valid screen area */
 #define WIN_SAV 	(1<<1)	/* Save existing text and replace when finished */
 #define WIN_ACT 	(1<<2)	/* Menu remains active after a selection */
@@ -185,9 +183,8 @@
 #define WIN_REDRAW	(1<<21) /* Force redraw on dynamic window */
 #define WIN_NODRAW	(1<<22) /* Force not to redraw on dynamic window */
 #define WIN_EXTKEYS	(1<<23) /* Return on any keypress... if it's not handled internally
-							 * Return value is -2 - keyvalue */
-#define WIN_NOBRDR	(1<<24)	/* Do not draw a border around the window */
-#define WIN_FIXEDHEIGHT	(1<<25)	/* Use list_height from uifc struct */
+							 * Return value is -2 - keyvalue
+							 */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -349,10 +346,6 @@ typedef struct {
 	int		exitend;
 	int		helpstart;
 	int		helpend;
-/****************************************************************************/
-/* List height for WIN_FIXEDHEIGHT lists.									*/
-/****************************************************************************/
-	int		list_height;
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/

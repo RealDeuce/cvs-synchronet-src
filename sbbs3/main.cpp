@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.370 2005/02/05 01:48:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.366 2004/12/30 09:24:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1919,8 +1919,7 @@ void event_thread(void* arg)
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id); 
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
-						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
-							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
+						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call,nulstr,nulstr,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
 				}
 			} 
@@ -4360,7 +4359,6 @@ void DLLCALL bbs_thread(void* arg)
 					identity++;
 				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
 			}
-			sbbs->putcom(crlf);
 		}
 		/* Initialize client display */
 		client.size=sizeof(client);
@@ -4490,13 +4488,11 @@ void DLLCALL bbs_thread(void* arg)
 		lprintf(LOG_INFO,"Waiting for event thread to terminate...");
 		start=time(NULL);
 		while(events->event_thread_running) {
-#if 0 /* the event thread can/will segfault if it continues to run and dereference sbbs->cfg */
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
 				lprintf(LOG_ERR,"!TIMEOUT waiting for BBS event thread to "
             		"terminate");
 				break;
 			}
-#endif
 			mswait(100);
 		}
 	}
