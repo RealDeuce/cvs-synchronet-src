@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous utility-type routines (exported) */
 
-/* $Id: misc.c,v 1.12 2001/06/29 16:25:33 rswindell Exp $ */
+/* $Id: misc.c,v 1.13 2001/07/18 14:53:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -376,6 +376,7 @@ uint hptoi(char *str)
 
 /****************************************************************************/
 /* Converts an ASCII Hex string into an ulong                               */
+/* by Steve Deppe (Ille Homine Albe)										*/
 /****************************************************************************/
 ulong ahtoul(char *str)
 {
