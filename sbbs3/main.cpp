@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.365 2004/12/30 02:57:43 rswindell Exp $ */
+/* $Id: main.cpp,v 1.369 2005/01/18 22:18:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,7 +355,9 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
-	"array",		// JSTYPE_LIMIT
+	"array",
+	"alias",
+	"undefined"
 };
 
 JSBool
@@ -1917,7 +1919,8 @@ void event_thread(void* arg)
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id); 
 					sbbs->online=ON_LOCAL;
 					sbbs->external(
-						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call,nulstr,nulstr,NULL)
+						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
+							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
 				}
 			} 
@@ -4357,6 +4360,7 @@ void DLLCALL bbs_thread(void* arg)
 					identity++;
 				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
 			}
+			sbbs->putcom(crlf);
 		}
 		/* Initialize client display */
 		client.size=sizeof(client);
