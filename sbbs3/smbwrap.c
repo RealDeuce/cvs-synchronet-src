@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.c,v 1.9 2000/11/07 04:38:10 rswindell Exp $ */
+/* $Id: smbwrap.c,v 1.10 2000/11/07 04:44:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,12 +66,10 @@
 #ifdef __unix__
 char* SMBCALL strupr(char* str)
 {
-	char	ch;
 	char*	p=str;
 
 	while(*p) {
-		ch=toupper(*p);
-		*p=ch;
+		*p=toupper(*p);
 		p++;
 	}
 	return(str);
@@ -81,12 +79,10 @@ char* SMBCALL strupr(char* str)
 /****************************************************************************/
 char* SMBCALL strlwr(char* str)
 {
-	char	ch;
 	char*	p=str;
 
 	while(*p) {
-		ch=tolower(*p);
-		*p=ch;
+		*p=tolower(*p);
 		p++;
 	}
 	return(str);
