@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.57 2005/02/10 06:21:45 deuce Exp $ */
+/* $Id: uifc.h,v 1.54 2005/01/19 06:42:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,9 +104,6 @@
 	#define LFREE free
 	#define FREE free
 #endif
-#if !defined(FREE_AND_NULL)
-	#define FREE_AND_NULL(x)			if(x!=NULL) { FREE(x); x=NULL; }
-#endif
 
 #if !defined(MAX_PATH)	/* maximum path length */
 	#if defined MAXPATHLEN
@@ -188,9 +185,8 @@
 #define WIN_REDRAW	(1<<21) /* Force redraw on dynamic window */
 #define WIN_NODRAW	(1<<22) /* Force not to redraw on dynamic window */
 #define WIN_EXTKEYS	(1<<23) /* Return on any keypress... if it's not handled internally
-							 * Return value is -2 - keyvalue */
-#define WIN_NOBRDR	(1<<24)	/* Do not draw a border around the window */
-#define WIN_FIXEDHEIGHT	(1<<25)	/* Use list_height from uifc struct */
+							 * Return value is -2 - keyvalue
+							 */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -352,10 +348,6 @@ typedef struct {
 	int		exitend;
 	int		helpstart;
 	int		helpend;
-/****************************************************************************/
-/* List height for WIN_FIXEDHEIGHT lists.									*/
-/****************************************************************************/
-	int		list_height;
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
