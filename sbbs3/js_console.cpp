@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.55 2004/05/17 20:53:31 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.54 2004/04/08 03:32:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,7 +153,7 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     tiny = JSVAL_TO_INT(id);
 
-	if(JSVAL_IS_NUMBER(*vp) || JSVAL_IS_BOOLEAN(*vp))
+	if(JSVAL_IS_INT(*vp) || JSVAL_IS_BOOLEAN(*vp))
 		JS_ValueToInt32(cx, *vp, &val);
 
 	switch(tiny) {
@@ -743,7 +743,7 @@ js_printfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if (!str)
 		return(JS_FALSE);
 
-	if(argc>1 && JSVAL_IS_NUMBER(argv[1]))
+	if(argc>1 && JSVAL_IS_INT(argv[1]))
 		JS_ValueToInt32(cx,argv[1],(int32*)&mode);
 
 	sbbs->printfile(JS_GetStringBytes(str),mode);
