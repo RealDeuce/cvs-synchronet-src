@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.19 2003/05/13 05:20:32 deuce Exp $ */
+/* $Id: umonitor.c,v 1.20 2003/05/13 07:56:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -631,7 +631,7 @@ int main(int argc, char** argv)  {
 	char	*buf;
 	int		buffile;
 
-	sscanf("$Revision: 1.19 $", "%*s %s", revision);
+	sscanf("$Revision: 1.20 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -740,10 +740,7 @@ int main(int argc, char** argv)  {
 						read(buffile,buf,j);
 						close(buffile);
 						*(buf+j)=0;
-						uifc.helpbuf=buf;
-						uifc.helptitle="Error Log";
-						uifc.showhelp();
-						uifc.helptitle=NULL;
+						uifc.showbuf(buf,"Error Log",0);
 						free(buf);
 						continue;
 					}
