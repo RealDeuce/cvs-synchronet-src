@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.62 2004/11/04 21:34:59 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.61 2004/11/03 09:01:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -920,10 +920,12 @@ double iniGetFloat(str_list_t* list, const char* section, const char* key, doubl
 
 static BOOL parseBool(const char* value)
 {
-	if(!stricmp(value,"TRUE") || !stricmp(value,"YES"))
+	if(!stricmp(value,"TRUE"))
 		return(TRUE);
+	if(!stricmp(value,"FALSE"))
+		return(FALSE);
 
-	return(INT_TO_BOOL(strtol(value,NULL,0)));
+	return(strtol(value,NULL,0));
 }
 
 BOOL iniReadBool(FILE* fp, const char* section, const char* key, BOOL deflt)
