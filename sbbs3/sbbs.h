@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.187 2003/06/06 21:59:33 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.188 2003/06/26 01:28:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,6 +121,7 @@
 #include "client.h"		/* client_t definition */
 #include "crc16.h"
 #include "crc32.h"
+#include "telnet.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -169,10 +170,11 @@ public:
 
 
 	void	send_telnet_cmd(uchar cmd, uchar opt);
-    uchar	telnet_cmd[10];
+    uchar	telnet_cmd[64];
     int		telnet_cmdlen;
 	ulong	telnet_mode;
 	uchar	telnet_last_rxch;
+	char	terminal[TELNET_TERM_MAXLEN+1];
 
 	time_t	event_time;				// Time of next exclusive event
 	char*	event_code;				// Internal code of next exclusive event
