@@ -4,9 +4,11 @@
 # Makefile for Synchronet BBS 											#
 # For use with Borland C++ Builder 5 or Borland C++ 5.5 for Win32       #
 # @format.tab-size 4													#
+#																		#
+# usage: make -f makefile.bor											#
 #########################################################################
 
-# $Id: Makefile.bor,v 1.4 2000/10/26 11:42:41 rswindell Exp $
+# $Id: Makefile.bor,v 1.5 2000/10/29 00:55:18 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
