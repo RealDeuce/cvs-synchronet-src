@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.3 2000/10/21 00:24:38 rswindell Exp $ */
+/* $Id: str.cpp,v 1.4 2000/10/24 07:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -864,9 +864,9 @@ void sbbs_t::errormsg(int line, char *source, char action, char *object
 	if(access>9 && (long)access!=-1 && (short)access!=-1 && (char)access!=-1)
 		bprintf(" (%lXh)",access);
 	if(cfg.sys_misc&SM_ERRALARM) {
-		beep(500,220); beep(250,220);
-		beep(500,220); beep(250,220);
-		beep(500,220); beep(250,220);
+		sbbs_beep(500,220); sbbs_beep(250,220);
+		sbbs_beep(500,220); sbbs_beep(250,220);
+		sbbs_beep(500,220); sbbs_beep(250,220);
 		nosound(); }
 	bputs("\r\n\r\nThe sysop has been notified. <Hit a key>");
 	getkey(0);

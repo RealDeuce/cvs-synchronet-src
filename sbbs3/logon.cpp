@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.2 2000/10/21 00:24:38 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.3 2000/10/24 07:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,7 +235,7 @@ bool sbbs_t::logon()
 
 			c=0;
 			while(c<LEN_PASS) { 				/* Create random password */
-				str[c]=random(43)+'0';
+				str[c]=sbbs_random(43)+'0';
 				if(isalnum(str[c]))
 					c++; }
 			str[c]=0;

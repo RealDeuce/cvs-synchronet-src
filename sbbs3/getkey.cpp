@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.1 2000/10/10 11:26:28 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.2 2000/10/24 07:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 /****************************************************************************/
 char sbbs_t::getkey(long mode)
 {
-	char ch,coldkey,c=0,spin=random(5);
+	char ch,coldkey,c=0,spin=sbbs_random(5);
 
 	if(!online)
 		return(0);
@@ -64,7 +64,7 @@ char sbbs_t::getkey(long mode)
 			return(0); }
 
 		if(sys_status&SS_SYSPAGE) {
-			beep(random(800),100);
+			sbbs_beep(sbbs_random(800),100);
 		}
 
 		if(mode&K_SPIN)

@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.2 2000/10/21 00:24:38 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.3 2000/10/24 07:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -300,7 +300,7 @@ void sbbs_t::newuser()
 
 	c=0;
 	while(c<LEN_PASS) { 				/* Create random password */
-		useron.pass[c]=random(43)+'0';
+		useron.pass[c]=sbbs_random(43)+'0';
 		if(isalnum(useron.pass[c]))
 			c++; }
 	useron.pass[c]=0;

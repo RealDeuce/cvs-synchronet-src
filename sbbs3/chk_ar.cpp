@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.1 2000/10/10 11:23:56 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.2 2000/10/24 07:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -302,7 +302,7 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 					noaccess_val=i; }
 				break;
 			case AR_RANDOM:
-				n=random(i+1);
+				n=sbbs_random(i+1);
 				if((equal && n!=i) || (!equal && n<i))
 					result=not;
 				else

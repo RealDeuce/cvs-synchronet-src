@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.1 2000/10/10 11:24:42 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.2 2000/10/24 07:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,7 @@ void sbbs_t::logout()
 			CLS;
 			lputs("\r\n\r\nAlerting Sysop...");
 			while(!lkbrd(1)) {
-				beep(1000,200);
+				sbbs_beep(1000,200);
 				nosound();
 				mswait(200); }
 			lkbrd(0); }

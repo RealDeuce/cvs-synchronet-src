@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.2 2000/10/21 02:58:16 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.3 2000/10/24 07:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -686,7 +686,7 @@ int sbbs_t::exec_misc(csi_t *csi, char *path)
 					l=*(long *)csi->ip;
 					csi->ip+=4;
 					if(lp)
-						*lp=random(l);
+						*lp=sbbs_random(l);
 					return(0);
 				case TIME_INT_VAR:
 					lp=getintvar(csi,*(long *)csi->ip);
