@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.15 2004/05/30 07:14:08 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.14 2004/05/28 10:06:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,6 +73,7 @@
 #define TAB 	'\t'				/* Horizontal tabulation	^I	*/
 #define LF		'\n'				/* Line feed				^J	*/
 #define CR		'\r'				/* Carriage return			^M	*/
+#define SP		' '					/* Space						*/
 
 enum {
 	 CTRL_A=1

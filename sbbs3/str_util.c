@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.27 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: str_util.c,v 1.26 2003/08/28 00:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ char* DLLCALL strip_ctrl(char *str)
 	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++) {
 		if(str[i]==CTRL_A && str[i+1]!=0)
 			i++;
-		else if((uchar)str[i]>=' ')
+		else if((uchar)str[i]>=SP)
 			tmp[j++]=str[i];
 	}
 	if(i!=j) {
@@ -98,14 +98,14 @@ char* DLLCALL prep_file_desc(char *str)
 	for(i=j=0;str[i];i++)
 		if(str[i]==CTRL_A && str[i+1]!=0)
 			i++;
-		else if(j && str[i]<=' ' && tmp[j-1]==' ')
+		else if(j && str[i]<=SP && tmp[j-1]==SP)
 			continue;
 		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
 			continue;
-		else if((uchar)str[i]>=' ')
+		else if((uchar)str[i]>=SP)
 			tmp[j++]=str[i];
 		else if(str[i]==TAB || (str[i]==CR && str[i+1]==LF))
-			tmp[j++]=' ';
+			tmp[j++]=SP;
 	tmp[j]=0;
 	strcpy(str,tmp);
 	return(str);
@@ -501,7 +501,7 @@ ushort DLLCALL subject_crc(char *subj)
 
 	while(!strnicmp(subj,"RE:",3)) {
 		subj+=3;
-		while(*subj==' ')
+		while(*subj==SP)
 			subj++; 
 	}
 
