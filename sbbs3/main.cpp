@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.125 2002/03/13 18:17:17 rswindell Exp $ */
+/* $Id: main.cpp,v 1.126 2002/03/13 18:58:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3091,20 +3091,6 @@ void DLLCALL bbs_thread(void* arg)
 		return;
 	}
 
-	if(!(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-		if(PUTENV("TZ=UTC0"))
-			lprintf("!putenv() FAILED");
-		tzset();
-
-		if((t=checktime())!=0) {   /* Check binary time */
-			lprintf("!TIME PROBLEM (%ld)",t);
-			cleanup(1);
-			return;
-		}
-	}
-
-	uptime=time(NULL);
-
 #ifdef _WIN32
     if((exec_mutex=CreateMutex(NULL,false,NULL))==NULL) {
     	lprintf("!ERROR %d creating exec_mutex", GetLastError());
@@ -3145,6 +3131,20 @@ void DLLCALL bbs_thread(void* arg)
 		return;
 	}
 	scfg_reloaded=true;
+
+	if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
+		if(PUTENV("TZ=UTC0"))
+			lprintf("!putenv() FAILED");
+		tzset();
+
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf("!TIME PROBLEM (%ld)",t);
+			cleanup(1);
+			return;
+		}
+	}
+
+	uptime=time(NULL);
 
     if(startup->last_node>scfg.sys_nodes) {
     	lprintf("Specified last_node (%d) > sys_nodes (%d), auto-corrected"

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.57 2002/03/12 14:50:42 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.58 2002/03/13 18:58:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,7 @@
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_UNUSED		(1L<<13)	/* <UNUSED>									*/
+#define SM_LOCAL_TZ		(1L<<13)	/* Use local timezone representations		*/
 #define SM_L_SYSOP		(1L<<14)	/* Allow local sysop logon/commands 		*/
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/

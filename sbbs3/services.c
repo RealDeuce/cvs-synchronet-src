@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.38 2002/03/12 15:30:20 rswindell Exp $ */
+/* $Id: services.c,v 1.39 2002/03/13 18:58:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1058,21 +1058,6 @@ void DLLCALL services_thread(void* arg)
 		srand(clock());		/* Seed random number generator */
 		sbbs_random(10);	/* Throw away first number */
 
-		if(!(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-			if(PUTENV("TZ=UTC0"))
-				lprintf("!putenv() FAILED");
-			tzset();
-
-			if((t=checktime())!=0) {   /* Check binary time */
-				lprintf("!TIME PROBLEM (%ld)",t);
-				cleanup(1);
-				return;
-			}
-		}
-
-		if(uptime==0)
-			uptime=time(NULL);
-
 		if(!winsock_startup()) {
 			cleanup(1);
 			return;
@@ -1093,6 +1078,21 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
+
+		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
+			if(PUTENV("TZ=UTC0"))
+				lprintf("!putenv() FAILED");
+			tzset();
+
+			if((t=checktime())!=0) {   /* Check binary time */
+				lprintf("!TIME PROBLEM (%ld)",t);
+				cleanup(1);
+				return;
+			}
+		}
+
+		if(uptime==0)
+			uptime=time(NULL);
 
 		active_clients=0;
 		update_clients();
