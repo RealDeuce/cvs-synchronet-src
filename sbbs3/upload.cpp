@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.42 2004/10/21 08:43:33 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.41 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -370,7 +370,7 @@ bool sbbs_t::upload(uint dirnum)
 		bputs(text[EnterAfterLastDestUser]);
 		while((!dir_op(dirnum) && destusers<cfg.max_userxfer) || destusers<MAX_USERXFER) {
 			bputs(text[SendFileToUser]);
-			if(!getstr(str,LEN_ALIAS,cfg.uq&UQ_NOUPRLWR ? K_NONE:K_UPRLWR))
+			if(!getstr(str,LEN_ALIAS,K_UPRLWR))
 				break;
 			if((user.number=finduser(str))!=0) {
 				if(!dir_op(dirnum) && user.number==useron.number) {
