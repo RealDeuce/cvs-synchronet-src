@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.102 2002/02/22 00:43:43 rswindell Exp $ */
+/* $Id: main.cpp,v 1.103 2002/02/23 04:42:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -915,7 +915,7 @@ void output_thread(void* arg)
 				/* Signal spy output semaphore? */
 				if(startup->node_spysem!=NULL 
 					&& startup->node_spysem[sbbs->cfg.node_num-1]!=NULL)
-					sem_post(&startup->node_spysem[sbbs->cfg.node_num-1]);
+					sem_post(startup->node_spysem[sbbs->cfg.node_num-1]);
 			}
 			/* Spy on the user remotely */
 			if(spy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) 
@@ -2139,7 +2139,7 @@ void sbbs_t::spymsg(char*msg)
 		/* Signal spy output semaphore? */
 		if(startup->node_spysem!=NULL 
 			&& startup->node_spysem[sbbs->cfg.node_num-1]!=NULL)
-			sem_post(&startup->node_spysem[sbbs->cfg.node_num-1]);
+			sem_post(startup->node_spysem[sbbs->cfg.node_num-1]);
 	}
 
 	if(cfg.node_num && spy_socket[cfg.node_num-1]!=INVALID_SOCKET) 
