@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.95 2002/02/12 17:17:01 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.96 2002/02/18 14:09:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -495,8 +495,8 @@ public:
 	void	clearline(void);
 
 	/* atcodes.cpp */
-	int		atcodes(char *code);
-	int		syncatcodes(char *sp, int len);
+	int		show_atcode(char *code);
+	char*	atcode(char* sp, char* str);
 
 	/* getnode.cpp */
 	int		whos_online(bool listself);/* Lists active nodes, returns active nodes */
