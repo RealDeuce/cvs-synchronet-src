@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.h,v 1.1 2000/10/10 11:26:23 rswindell Exp $ */
+/* $Id: lzh.h,v 1.2 2000/10/23 20:19:01 rswindell Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -32,21 +32,21 @@
  ****************************************************************************/
 
 #ifdef _WIN32
-#	ifndef __FLAT__
-#	define __FLAT__
-#	endif
-#	define LZHCALL __stdcall	/* VB Compatible */
-#	ifdef EXPORT32
-#	undef EXPORT32
-#	endif
-#	if defined(LZHDLL)
-#		define EXPORT32 __declspec( dllexport )
-#	else
-#		define EXPORT32 __declspec( dllimport )
-#	endif
-#else
-#define LZHCALL
-#define EXPORT32
+	#ifndef __FLAT__
+		#define __FLAT__
+	#endif
+	#define LZHCALL __stdcall	/* VB Compatible */
+	#ifdef EXPORT32
+		#undef EXPORT32
+	#endif
+	#if defined(LZHDLL)
+		#define EXPORT32 __declspec( dllexport )
+	#else
+		#define EXPORT32 __declspec( dllimport )
+	#endif
+#else	/* !_WIN32 */
+	#define LZHCALL
+	#define EXPORT32
 #endif
 
 #ifndef uchar
