@@ -11,13 +11,13 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.58 2004/09/16 17:48:56 deuce Exp $
+# $Id: Makefile,v 1.59 2004/09/17 08:13:59 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
 
 UTIL_LDFLAGS	=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
-CFLAGS	=	$(CFLAGS) -w-csu -w-par 
+CFLAGS	=	$(CFLAGS) -w-csu -w-par -w-aus
 MKSHLIB	=	$(CC) -WD
 
 # JS and NSPR setup stuff...
