@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.94 2003/07/11 07:11:48 deuce Exp $
+# $Id: GNUmakefile,v 1.95 2003/07/11 07:23:15 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -254,7 +254,7 @@ FORCE$(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 
 $(FTPSRVR): $(LIBODIR)/ftpsrvr.o $(SBBSLIB)
 	@echo Linking $@
-	$(LD) $(SBBSLDFLAGS) -S $^ $(LIBS) -shared -o $@ 
+	@$(LD) $(SBBSLDFLAGS) -S $^ $(LIBS) -shared -o $@ 
 
 # Mail Server Link Rule
 FORCE$(MAILSRVR): $(MAIL_OBJS) $(LIBODIR)$(SLASH)$(SBBSLIB)
