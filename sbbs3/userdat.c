@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.87 2004/10/27 21:21:50 rswindell Exp $ */
+/* $Id: userdat.c,v 1.85 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1618,15 +1618,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				while(*(*ptrptr))
 					(*ptrptr)++;
 				break;
-			case AR_PROT:
-				if(user==NULL
-					|| stricmp(user->modem,(char*)*ptrptr))	/* should this be changed to client.prot? */
-					result=not;
-				else
-					result=!not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
 		} 
 	}
 	return(result);
@@ -1875,9 +1866,6 @@ BOOL DLLCALL logoutuserdat(scfg_t* cfg, user_t* user, time_t now, time_t logonti
 
 	if(user==NULL)
 		return(FALSE);
-
-	if(now==0)
-		now=time(NULL);
 
 	tused=(now-logontime)/60;
 	user->tlast=(ushort)(tused > USHRT_MAX ? USHRT_MAX : tused);
