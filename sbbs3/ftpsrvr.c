@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.239 2003/06/07 02:47:29 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.240 2003/06/12 07:57:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4415,7 +4415,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.239 $", "%*s %s", revision);
+	sscanf("$Revision: 1.240 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4553,8 +4553,11 @@ void DLLCALL ftp_server(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		/* Use DATA/TEMP for temp dir - should ch'd to be FTP/HOST specific */
-		prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+		if(startup->temp_dir[0]) {
+			SAFECOPY(scfg.temp_dir,startup->temp_dir);
+			backslash(scfg.temp_dir);
+		} else
+			prep_dir(scfg.data_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 		if(!startup->max_clients) {
 			startup->max_clients=scfg.sys_nodes;
@@ -4727,7 +4730,7 @@ void DLLCALL ftp_server(void* arg)
 				}
 				mswait(100);
 			}
-			lprintf("000 Done waiting");
+			lprintf("0000 Done waiting");
 		}
 
 		if(thread_count>1) {
@@ -4740,7 +4743,7 @@ void DLLCALL ftp_server(void* arg)
 				}
 				mswait(100);
 			}
-			lprintf("000 Done waiting");
+			lprintf("0000 Done waiting");
 		}
 
 		cleanup(0,__LINE__);
