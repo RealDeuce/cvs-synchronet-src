@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.3 2000/11/04 12:03:50 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.4 2000/11/07 21:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -512,8 +512,8 @@ long sbbs_t::exec_bin(char *mod, csi_t *csi)
 	clearvars(&bin);
 
 	sprintf(str,"%s%s.bin",cfg.exec_dir,mod);
-	if((file=nopen(str,O_RDONLY|O_BINARY))==-1) {
-		errormsg(WHERE,ERR_OPEN,str,O_RDONLY|O_BINARY);
+	if((file=nopen(str,O_RDONLY))==-1) {
+		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		return(-1); }
 
 	bin.length=filelength(file);
