@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.14 2002/12/30 05:28:04 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.15 2003/01/02 09:27:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1124,7 +1124,8 @@ void qhub_sub_edit(uint num)
 k=0;
 while(1) {
 	for(j=0;j<cfg.qhub[num]->subs;j++)
-		sprintf(opt[j],"%-*.*s %-*.*s"
+		sprintf(opt[j],"%-5u %-*.*s %-*.*s"
+			,cfg.qhub[num]->conf[j]
 			,LEN_GSNAME,LEN_GSNAME
 			,cfg.grp[cfg.sub[cfg.qhub[num]->sub[j]]->grp]->sname
 			,LEN_SSNAME,LEN_SSNAME
