@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.9 2002/03/21 00:50:10 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.10 2002/07/25 03:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -579,6 +579,39 @@ void sbbs_t::getusrdirs()
 		return;
 	while((curlib>=usrlibs || !usrdirs[curlib]) && curlib) curlib--;
 	while(curdir[curlib]>=usrdirs[curlib] && curdir[curlib]) curdir[curlib]--;
+}
+
+uint sbbs_t::getusrgrp(uint subnum)
+{
+	uint	ugrp;
+
+	if(subnum==INVALID_SUB)
+		return(0);
+
+	if(usrgrps<=0)
+		return(0);
+
+	for(ugrp=0;ugrp<usrgrps;ugrp++)
+		if(usrgrp[ugrp]==cfg.sub[subnum]->grp)
+			break;
+
+	return(ugrp+1);
+}
+
+uint sbbs_t::getusrsub(uint subnum)
+{
+	uint	usub;
+	uint	ugrp;
+
+	ugrp = getusrgrp(subnum);
+	if(ugrp<=0)
+		return(0);
+	
+	for(usub=0;usub<usrsubs[ugrp];usub++)
+		if(usrsub[ugrp][usub]==subnum)
+			break;
+
+	return(usub+1);
 }
 
 int sbbs_t::dir_op(uint dirnum)
