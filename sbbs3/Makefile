@@ -10,7 +10,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile,v 1.35 2003/07/16 04:03:12 rswindell Exp $
+# $Id: Makefile,v 1.36 2003/07/21 10:17:19 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -121,7 +121,7 @@ $(WEBSRVR): wesrvr.c $(XPDEV)sockwrap.c base64.c
 		-DWEBSRVR_EXPORTS -DWRAPPER_IMPORTS $** $(LIBS)
 
 # Services DLL Link Rule
-$(SERVICES): services.c $(SBBSLIB)
+$(SERVICES): services.c $(SBBSLIB) $(LIBODIR)\ini_file.obj
     @echo Creating $@
 	@$(CC) $(CFLAGS) -WD -WM -lGi -n$(LIBODIR) \
 		-DSERVICES_EXPORTS -DWRAPPER_IMPORTS $** $(LIBS)

@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.113 2003/07/18 06:47:32 deuce Exp $
+# $Id: GNUmakefile,v 1.114 2003/07/21 10:17:19 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -223,7 +223,7 @@ FTP_OBJS	= $(LIBODIR)/ftpsrvr.o
 MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o \
  		  $(LIBODIR)/mime.o $(LIBODIR)/base64.o
 WEB_OBJS	= $(LIBODIR)/websrvr.o $(LIBODIR)/sockwrap.o $(LIBODIR)/base64.o
-SERVICE_OBJS	= $(LIBODIR)/services.o
+SERVICE_OBJS	= $(LIBODIR)/services.o $(LIBODIR)/ini_file.o
 
 MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(WEB_OBJS) \
 			$(MAIL_OBJS) $(SERVICE_OBJS)
