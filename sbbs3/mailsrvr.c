@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.51 2001/04/16 23:57:04 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.52 2001/04/20 02:27:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@
 #include "crc32.h"
 
 /* Constants */
-#define MAIL_VERSION "1.10"
+#define MAIL_VERSION "1.11"
 
 int dns_getmx(char* name, char* mx, char* mx2, DWORD intf, DWORD ip_addr, BOOL use_tcp);
 
