@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.6 2005/01/12 04:19:42 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.7 2005/01/12 12:20:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,7 @@ void xmodem_put_block(xmodem_t* xm, uchar* block, uint block_size, ulong block_n
 	}
 	else
 		putcom(chksum);
-	YIELD();
+//	YIELD();
 }
 
 /************************************************************/
@@ -235,6 +235,7 @@ int xmodem_get_ack(xmodem_t* xm, int tries)
 	for(errors=0;errors<tries;errors++) {
 
 		if((*xm->mode)&GMODE) {		/* Don't wait for ACK on Ymodem-G */
+			YIELD();
 			if(getcom(0)==CAN) {
 				newline();
 				fprintf(xm->statfp,"Cancelled remotely\n");
@@ -276,7 +277,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.6 $", "%*s %s", buf);
+	sscanf("$Revision: 1.7 $", "%*s %s", buf);
 
 	return(buf);
 }
