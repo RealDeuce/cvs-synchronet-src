@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.44 2002/10/22 09:25:42 rswindell Exp $ */
+/* $Id: js_system.c,v 1.45 2002/10/25 08:48:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
 	char		str[128];
     jsint       tiny;
+	ulong		val;
 	scfg_t*		cfg;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
@@ -151,7 +152,11 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, lastuseron));
 			break;
 		case SYS_PROP_FREEDISKSPACE:
-			*vp = INT_TO_JSVAL(getfreediskspace(cfg->temp_dir));
+			val = getfreediskspace(cfg->temp_dir);
+			if(INT_FITS_IN_JSVAL(val) && !(val&0x80000000))
+				*vp = INT_TO_JSVAL(val);
+			else
+	            JS_NewDoubleValue(cx, val, vp);
 			break;
 
 		case SYS_PROP_NEW_PASS:
