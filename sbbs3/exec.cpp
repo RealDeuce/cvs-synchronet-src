@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.49 2003/11/20 09:00:54 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.50 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1775,7 +1775,7 @@ int sbbs_t::exec(csi_t *csi)
 				ungetkey(csi->str[i]);
 			return(0);
 		case CS_PRINTKEY:
-			if((csi->cmd&0x7f)>=SP)
+			if((csi->cmd&0x7f)>=' ')
 				outchar(csi->cmd&0x7f);
 			return(0);
 		case CS_PRINTSTR:
