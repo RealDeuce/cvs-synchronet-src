@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.12 2001/10/16 23:39:16 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.13 2001/11/26 01:26:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,6 +104,8 @@ int sbbs_t::atcodes(char *instr)
 	else if(!strcmp(sp,"UPTIME")) {
 		extern time_t uptime;
 		time_t up=time(NULL)-uptime;
+		if(up<0)
+			up=0;
 		char   days[64]="";
 		if((up/(24*60*60))>=2) {
 	        sprintf(days,"%u days ",up/(24*60*60));
