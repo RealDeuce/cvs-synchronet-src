@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.56 2003/03/06 09:42:11 rswindell Exp $ */
+/* $Id: userdat.c,v 1.57 2003/03/18 21:34:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -610,7 +610,7 @@ char DLLCALL getage(scfg_t* cfg, char *birth)
 int DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* fp)
 {
 	char	str[MAX_PATH+1];
-	int		count;
+	int		count=0;
 	int		file;
 
 	if(!number || number>cfg->sys_nodes)

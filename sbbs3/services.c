@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.96 2003/03/13 01:49:08 rswindell Exp $ */
+/* $Id: services.c,v 1.97 2003/03/18 21:34:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1235,7 +1235,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.96 $", "%*s %s", revision);
+	sscanf("$Revision: 1.97 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1545,6 +1545,8 @@ void DLLCALL services_thread(void* arg)
 					continue;
 
 				client_addr_len = sizeof(client_addr);
+
+				udp_len=0;
 
 				if(service[i].options&SERVICE_OPT_UDP) {
 					/* UDP */
