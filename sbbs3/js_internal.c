@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.6 2003/10/10 10:06:00 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.7 2003/10/12 10:38:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,20 +178,55 @@ static char* prop_desc[] = {
 };
 #endif
 
+static JSBool
+js_BranchCallback(JSContext *cx, JSScript *script)
+{
+	js_branch_t*	branch;
+
+	if((branch=(js_branch_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	branch->counter++;
+
+	/* Infinite loop? */
+	if(branch->limit && branch->counter > branch->limit) {
+		JS_ReportError(cx,"Infinite loop (%lu branches) detected",branch->counter);
+		branch->counter=0;
+		return(JS_FALSE);
+	}
+	/* Give up timeslices every once in a while */
+	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
+		YIELD();
+
+	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
+		JS_MaybeGC(cx), branch->gc_attempts++;
+
+	if(branch->terminated!=NULL && *branch->terminated)
+		return(JS_FALSE);
+
+    return(JS_TRUE);
+}
+
 /* Execute a string in its own context (away from Synchronet objects) */
 static JSBool
 js_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		buf;
-    JSScript*	script;
+	char*			buf;
+    JSScript*		script;
+	js_branch_t*	branch;
+
+	if((branch=(js_branch_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	*rval=JSVAL_VOID;
 
 	if(argc<1)
 		return(JS_TRUE);
 
-	if((cx=JS_NewContext(JS_GetRuntime(cx),16*1024))==NULL)
+	if((cx=JS_NewContext(JS_GetRuntime(cx),JAVASCRIPT_CONTEXT_STACK))==NULL)
 		return(JS_FALSE);
+
+	JS_SetContextPrivate(cx,branch);
 
 	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL)
 		return(JS_FALSE);
@@ -210,6 +245,8 @@ js_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 #endif
+
+	JS_SetBranchCallback(cx, js_BranchCallback);
 
 	script=JS_CompileScript(cx, obj, buf, strlen(buf), NULL, 0);
 
