@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.2 2000/11/07 03:35:40 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.3 2000/11/15 15:58:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ BOOL read_attr_cfg(scfg_t* cfg, read_cfg_text_t* txt);
 void prep_path(char* base, char* path);
 void make_data_dirs(scfg_t* cfg);
 
+void free_cfg(scfg_t* cfg);
 void free_node_cfg(scfg_t* cfg);
 void free_main_cfg(scfg_t* cfg);
 void free_xtrn_cfg(scfg_t* cfg);

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.10 2000/11/14 02:02:27 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.11 2000/11/15 15:58:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -878,6 +878,16 @@ BOOL read_msgs_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 }
 
 #endif
+
+void free_cfg(scfg_t* cfg)
+{
+	free_node_cfg(cfg);
+	free_main_cfg(cfg);
+	free_msgs_cfg(cfg);
+	free_file_cfg(cfg);
+	free_chat_cfg(cfg);
+	free_xtrn_cfg(cfg);
+}
 
 void free_node_cfg(scfg_t* cfg)
 {
