@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.14 2005/01/22 20:59:25 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.15 2005/01/26 11:10:53 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -248,6 +248,7 @@ typedef struct {
 	/* Status */
 	BOOL		cancelled;
 	BOOL		file_skipped;
+	BOOL		no_streaming;
 
 	/* Configuration */
 	long*		mode;
