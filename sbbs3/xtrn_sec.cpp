@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.10 2001/06/20 01:18:14 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.11 2001/08/01 15:56:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1508,7 +1508,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 /****************************************************************************/
 bool sbbs_t::user_event(user_event_t event)
 {
-    uint i;
+    uint	i;
+	bool	success=false;
 
 	for(i=0;i<cfg.total_xtrns;i++) {
 		if(cfg.xtrn[i]->event!=event)
@@ -1516,10 +1517,10 @@ bool sbbs_t::user_event(user_event_t event)
 		if(!chk_ar(cfg.xtrn[i]->ar,&useron)
 			|| !chk_ar(cfg.xtrnsec[cfg.xtrn[i]->sec]->ar,&useron))
 			continue;
-		return(exec_xtrn(i)); 
+		success=exec_xtrn(i); 
 	}
 
-	return(false);
+	return(success);
 }
 
 
