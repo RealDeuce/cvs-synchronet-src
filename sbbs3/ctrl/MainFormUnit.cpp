@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.66 2002/03/18 00:35:16 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.67 2002/03/18 13:27:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2166,7 +2166,7 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
         t=time(NULL);
         t-=((TMenuItem*)Sender)->Tag*24*60*60;
     }
-    tm=gmtime(&t);
+    tm=localtime(&t);
     if(tm==NULL)
         return;
 
