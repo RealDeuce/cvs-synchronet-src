@@ -89,10 +89,6 @@ SOURCE=.\ntsvcs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ntsvcs.rc
-# End Source File
-# Begin Source File
-
 SOURCE=.\sbbs_ini.c
 # End Source File
 # End Target

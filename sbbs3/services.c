@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.174 2004/12/02 09:03:59 rswindell Exp $ */
+/* $Id: services.c,v 1.167 2004/11/06 02:15:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,6 @@
 #define JAVASCRIPT	/* required to include JS API headers */
 #endif
 #define SERVICES_INI_BITDESC_TABLE	/* required to defined service_options */
-#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "services.h"
 #include "ident.h"	/* identify() */
@@ -79,6 +78,7 @@
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
+static DWORD	active_clients=0;
 static DWORD	sockets=0;
 static BOOL		terminated=FALSE;
 static time_t	uptime=0;
@@ -173,21 +173,10 @@ static BOOL winsock_startup(void)
 
 #endif
 
-static ulong active_clients(void)
-{
-	ulong i;
-	ulong total_clients=0;
-
-	for(i=0;i<services;i++) 
-		total_clients+=service[i].clients;
-
-	return(total_clients);
-}
-
 static void update_clients(void)
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,active_clients());
+		startup->clients(startup->cbdata,active_clients);
 }
 
 static void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -243,7 +232,7 @@ static int close_socket(SOCKET sock)
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
-	if(startup!=NULL && startup->socket_open!=NULL) 
+	if(result==0 && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 	if(result!=0)
@@ -614,7 +603,23 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = BOOLEAN_TO_JSVAL(client->service->terminated);
 			break;
 		case SERVER_PROP_CLIENTS:
-			*vp = INT_TO_JSVAL(active_clients());
+			*vp = INT_TO_JSVAL(active_clients);
+			break;
+	}
+
+	return(JS_TRUE);
+}
+
+static JSBool js_server_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+{
+    jsint       tiny;
+
+    tiny = JSVAL_TO_INT(id);
+
+	switch(tiny) {
+		case SERVER_PROP_CLIENTS:
+			JS_ValueToInt32(cx,*vp,(int32*)&active_clients);
+			update_clients();
 			break;
 	}
 
@@ -627,7 +632,7 @@ static struct JSPropertySpec js_server_properties[] = {
 /*		 name				,tinyid					,flags,				getter,	setter	*/
 
 	{	"terminated"		,SERVER_PROP_TERMINATED	,SERVER_PROP_FLAGS,	NULL,NULL},
-	{	"clients"			,SERVER_PROP_CLIENTS	,SERVER_PROP_FLAGS,	NULL,NULL},
+	{	"clients"			,SERVER_PROP_CLIENTS	,JSPROP_ENUMERATE,	NULL,NULL},
 	{0}
 };
 
@@ -637,7 +642,7 @@ static JSClass js_server_class = {
         ,JS_PropertyStub	/* addProperty	*/
 		,JS_PropertyStub	/* delProperty	*/
 		,js_server_get		/* getProperty	*/
-		,JS_PropertyStub	/* setProperty	*/
+		,js_server_set		/* setProperty	*/
 		,JS_EnumerateStub	/* enumerate	*/
 		,JS_ResolveStub		/* resolve		*/
 		,JS_ConvertStub		/* convert		*/
@@ -657,13 +662,12 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 
+	active_clients++, update_clients();
+
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	service_client->service->clients++;
-	update_clients();
-	service_client->service->served++;
-	served++;
 	memset(&client,0,sizeof(client));
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
@@ -686,10 +690,8 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
 	client_on(sock, &client, /* update? */ FALSE);
-#ifdef _DEBUG
-	lprintf(LOG_DEBUG,"%04d %s client_add(%04u,%s,%s)"
-		,service_client->service->socket,service_client->service->protocol
-		,sock,client.user,client.host);
+#if 0
+	lprintf(LOG_DEBUG,"client_add(%04u,%s,%s)",sock,client.user,client.host);
 #endif
 	return(JS_TRUE);
 }
@@ -727,10 +729,8 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
 	client_on(sock, &client, /* update? */ TRUE);
-#ifdef _DEBUG
-	lprintf(LOG_DEBUG,"%04d %s client_update(%04u,%s,%s)"
-		,service_client->service->socket,service_client->service->protocol
-		,sock,client.user,client.host);
+#if 0
+	lprintf(LOG_DEBUG,"client_update(%04u,%s,%s)",sock,client.user,client.host);
 #endif
 	return(JS_TRUE);
 }
@@ -742,27 +742,20 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	SOCKET	sock=INVALID_SOCKET;
 	service_client_t* service_client;
 
-	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
+	if(active_clients)
+		active_clients--, update_clients();
 
 	sock=js_socket(cx,argv[0]);
 
-	if(sock!=INVALID_SOCKET) {
+	client_off(sock);
 
-		client_off(sock);
+	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
 
-		if(service_client->service->clients==0)
-			lprintf(LOG_WARNING,"%04d %s !client_remove() called with 0 service clients"
-				,service_client->service->socket, service_client->service->protocol);
-		else {
-			service_client->service->clients--;
-			update_clients();
-		}
-	}
+	service_client->service->clients--;
 
-#ifdef _DEBUG
-	lprintf(LOG_DEBUG,"%04d %s client_remove(%04u)"
-		,service_client->service->socket, service_client->service->protocol, sock);
+#if 0	
+	lprintf(LOG_DEBUG,"client_remove(%04u)",sock);
 #endif
 	return(JS_TRUE);
 }
@@ -900,14 +893,28 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
+	client->branch.counter++;
+
 	/* Terminated? */ 
-	if(terminated) {
+	if(client->branch.auto_terminate && terminated) {
 		JS_ReportError(cx,"Terminated");
 		client->branch.counter=0;
 		return(JS_FALSE);
 	}
+	/* Infinite loop? */
+	if(client->branch.limit && client->branch.counter > client->branch.limit) {
+		JS_ReportError(cx,"Infinite loop (%lu branches) detected",client->branch.counter);
+		client->branch.counter=0;
+		return(JS_FALSE);
+	}
+	/* Give up timeslices every once in a while */
+	if(client->branch.yield_interval && (client->branch.counter%client->branch.yield_interval)==0)
+		YIELD();
 
-	return js_CommonBranchCallback(cx,&client->branch);
+	if(client->branch.gc_interval && (client->branch.counter%client->branch.gc_interval)==0)
+		JS_MaybeGC(cx), client->branch.gc_attempts++;
+
+    return(JS_TRUE);
 }
 
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
@@ -1040,6 +1047,8 @@ static void js_service_thread(void* arg)
 	client.user="<unknown>";
 	service_client.client=&client;
 
+	active_clients++, update_clients();
+
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
 
@@ -1049,13 +1058,13 @@ static void js_service_thread(void* arg)
 			,socket,service->protocol);
 		client_off(socket);
 		close_socket(socket);
+		if(active_clients)
+			active_clients--, update_clients();
 		if(service->clients)
 			service->clients--;
 		thread_down();
 		return;
 	}
-
-	update_clients();
 
 	/* RUN SCRIPT */
 	SAFECOPY(fname,service->cmd);
@@ -1105,7 +1114,8 @@ static void js_service_thread(void* arg)
 
 	if(service->clients)
 		service->clients--;
-	update_clients();
+	if(active_clients)
+		active_clients--, update_clients();
 
 #ifdef _WIN32
 	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE)
@@ -1115,7 +1125,7 @@ static void js_service_thread(void* arg)
 
 	thread_down();
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread terminated (%u clients remain, %d total, %lu served)"
-		, socket, service->protocol, service->clients, active_clients(), service->served);
+		, socket, service->protocol, service->clients, active_clients, service->served);
 
 	client_off(socket);
 	close_socket(socket);
@@ -1200,12 +1210,6 @@ static void js_static_service_thread(void* arg)
 		JS_DestroyContext(js_cx);	/* Free Context */
 
 	JS_DestroyRuntime(js_runtime);
-
-	if(service->clients) {
-		lprintf(LOG_WARNING,"%04d %s !service terminating with %u active clients"
-			,socket, service->protocol, service->clients);
-		service->clients=0;
-	}
 
 	thread_down();
 	lprintf(LOG_DEBUG,"%04d %s static JavaScript service thread terminated (%lu clients served)"
@@ -1372,7 +1376,7 @@ static void native_service_thread(void* arg)
 	socket_dup = dup(socket);
 #endif
 
-	update_clients();
+	active_clients++, update_clients();
 
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
@@ -1388,7 +1392,8 @@ static void native_service_thread(void* arg)
 
 	if(service->clients)
 		service->clients--;
-	update_clients();
+	if(active_clients)
+		active_clients--, update_clients();
 
 #ifdef _WIN32
 	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE)
@@ -1398,7 +1403,7 @@ static void native_service_thread(void* arg)
 
 	thread_down();
 	lprintf(LOG_DEBUG,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
-		,socket, service->protocol, service->clients, active_clients(), service->served);
+		,socket, service->protocol, service->clients, active_clients, service->served);
 
 	client_off(socket);
 	close_socket(socket);
@@ -1491,6 +1496,7 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 	return(service);
 }
 
+
 static void cleanup(int code)
 {
 	FREE_AND_NULL(service);
@@ -1523,7 +1529,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.174 $", "%*s %s", revision);
+	sscanf("$Revision: 1.167 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1557,6 +1563,7 @@ void DLLCALL services_thread(void* arg)
 	int				i;
 	int				result;
 	int				optval;
+	ulong			total_clients;
 	ulong			total_running;
 	time_t			t;
 	time_t			initialized=0;
@@ -1669,12 +1676,12 @@ void DLLCALL services_thread(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
+		active_clients=0, update_clients();
+
 		if((service=read_services_ini(service, &services))==NULL) {
 			cleanup(1);
 			return;
 		}
-
-		update_clients();
 
 		/* Open and Bind Listening Sockets */
 		total_sockets=0;
@@ -1788,7 +1795,11 @@ void DLLCALL services_thread(void* arg)
 		/* Main Server Loop */
 		while(!terminated) {
 
-			if(active_clients()==0) {
+			total_clients=0;
+			for(i=0;i<(int)services;i++) 
+				total_clients+=service[i].clients;
+
+			if(total_clients==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
@@ -1951,13 +1962,9 @@ void DLLCALL services_thread(void* arg)
             				lprintf(LOG_NOTICE,"%04d %s socket closed while listening"
 								,service[i].socket, service[i].protocol);
 						else
-							lprintf(LOG_WARNING,"%04d %s !ERROR %d accepting connection" 
+							lprintf(LOG_WARNING,"%04d %s !ERROR %d accept failed" 
 								,service[i].socket, service[i].protocol, ERROR_VALUE);
-#ifdef _WIN32
-						if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
-							break;
-#endif
-						continue;
+						break;
 					}
 					sockets++;
 #if 0 /*def _DEBUG */
@@ -2047,9 +2054,17 @@ void DLLCALL services_thread(void* arg)
 		}
 
 		/* Wait for Dynamic Service Threads to terminate */
-		if(active_clients()) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d clients to disconnect",active_clients());
-			while(active_clients()) {
+		total_clients=0;
+		for(i=0;i<(int)services;i++) 
+			total_clients+=service[i].clients;
+		if(total_clients) {
+			lprintf(LOG_DEBUG,"0000 Waiting for %d clients to disconnect",total_clients);
+			while(1) {
+				total_clients=0;
+				for(i=0;i<(int)services;i++) 
+					total_clients+=service[i].clients;
+				if(!total_clients)
+					break;
 				mswait(500);
 			}
 			lprintf(LOG_DEBUG,"0000 Done waiting");
