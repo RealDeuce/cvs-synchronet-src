@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.21 2003/08/18 18:51:48 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.22 2003/08/30 03:50:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,9 @@ void lfputs(char HUGE16 *buf, FILE *fp)
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
 /* first by offset, and if that's the wrong message, then by number.        */
 /* Returns 1 if the message was loaded and left locked, otherwise			*/
+/* !WARNING!: If you're going to write the msg index back to disk, you must */
+/* Call this function with a msg->idx.offset of 0 (so msg->offset will be	*/
+/* initialized correctly)													*/
 /****************************************************************************/
 int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 {
