@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.51 2003/12/17 04:10:57 rswindell Exp $ */
+/* $Id: js_user.c,v 1.52 2004/02/14 07:16:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -364,12 +364,9 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		if((js_str=JS_NewStringCopyZ(cx, s))==NULL)
 			return(JS_FALSE);
 		*vp = STRING_TO_JSVAL(js_str);
-	} else {
-		if(INT_FITS_IN_JSVAL(val) && !(val&0x80000000))
-			*vp = INT_TO_JSVAL(val);
-		else
-            JS_NewDoubleValue(cx, val, vp);
-	}
+	} else
+		JS_NewNumberValue(cx,val,vp);
+
 	return(JS_TRUE);
 }
 
