@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.47 2003/12/09 09:33:27 rswindell Exp $ */
+/* $Id: js_user.c,v 1.51 2003/12/17 04:10:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -621,9 +621,9 @@ static char* user_prop_desc[] = {
 	,"current external program being run"
 	,"external message editor"
 	,"command shell"
-	,"settings bitfield"
-	,"QWK packet settings bitfield"
-	,"chat settings bitfield"
+	,"settings bitfield - see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
+	,"QWK packet settings bitfield - see <tt>QWK_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
+	,"chat settings bitfield - see <tt>CHAT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions"
 	,"temporary file type (extension)"
 	,"new file scan date/time (time_t format)"
 	,"file transfer protocol (command key)"
@@ -822,6 +822,45 @@ static JSClass js_user_class = {
 	,js_user_finalize		/* finalize		*/
 };
 
+static JSClass js_user_stats_class = {
+     "UserStats"			/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_user_get			/* getProperty	*/
+	,js_user_set			/* setProperty	*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,JS_FinalizeStub        /* finalize		*/
+};
+
+static JSClass js_user_security_class = {
+     "UserSecurity"			/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_user_get			/* getProperty	*/
+	,js_user_set			/* setProperty	*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,JS_FinalizeStub        /* finalize		*/
+};
+
+static JSClass js_user_limits_class = {
+     "UserLimits"			/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_user_get			/* getProperty	*/
+	,js_user_set			/* setProperty	*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,JS_FinalizeStub        /* finalize		*/
+};
+
 /* User Constructor (creates instance of user class) */
 
 static JSBool
@@ -833,6 +872,7 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	private_t*	p;
 	JSObject*	statsobj;
 	JSObject*	securityobj;
+	JSObject*	limitsobj;
 
 	JS_ValueToInt32(cx,argv[0],&val);
 	user.number=(ushort)val;
@@ -843,7 +883,7 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	/* user.stats */
 	if((statsobj=JS_DefineObject(cx, obj, "stats"
-		,&js_user_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
+		,&js_user_stats_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
 		return(JS_FALSE);
 
 	if(!js_DefineSyncProperties(cx, statsobj, js_user_stats_properties))
@@ -851,12 +891,21 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	/* user.security */
 	if((securityobj=JS_DefineObject(cx, obj, "security"
-		,&js_user_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
+		,&js_user_security_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
 		return(JS_FALSE);
 
 	if(!js_DefineSyncProperties(cx, securityobj, js_user_security_properties))
 		return(JS_FALSE);
 
+	/* user.limits */
+	if((limitsobj=JS_DefineObject(cx, obj, "limits"
+		,&js_user_limits_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
+		return(JS_FALSE);
+
+	if(!js_DefineSyncProperties(cx, limitsobj, js_user_limits_properties))
+		return(JS_FALSE);
+
+	/* other user properties */
 	if(!js_DefineSyncProperties(cx, obj, js_user_properties))
 		return(JS_FALSE);
 
@@ -876,6 +925,7 @@ js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	JS_SetPrivate(cx, statsobj, p);
 	JS_SetPrivate(cx, securityobj, p);
+	JS_SetPrivate(cx, limitsobj, p);
 
 	return(JS_TRUE);
 }
@@ -906,9 +956,10 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 	private_t*	p;
 	jsval		val;
 
-	/* Return existing user object if it's already been created */
-	if(JS_GetProperty(cx,parent,name,&val) && val!=JSVAL_VOID)
-		userobj = JSVAL_TO_OBJECT(val);
+	if(name==NULL)
+	    userobj = JS_NewObject(cx, &js_user_class, NULL, parent);
+	else if(JS_GetProperty(cx,parent,name,&val) && val!=JSVAL_VOID)
+		userobj = JSVAL_TO_OBJECT(val);	/* Return existing user object */
 	else
 		userobj = JS_DefineObject(cx, parent, name, &js_user_class
 								, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -942,7 +993,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 
 	/* user.stats */
 	statsobj = JS_DefineObject(cx, userobj, "stats"
-		,&js_user_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
+		,&js_user_stats_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(statsobj==NULL) {
 		free(p);
@@ -963,7 +1014,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 
 	/* user.limits */
 	limitsobj = JS_DefineObject(cx, userobj, "limits"
-		,&js_user_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
+		,&js_user_limits_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(limitsobj==NULL) {
 		free(p);
@@ -985,7 +1036,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 
 	/* user.security */
 	securityobj = JS_DefineObject(cx, userobj, "security"
-		,&js_user_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
+		,&js_user_security_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(securityobj==NULL) {
 		free(p);
