@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.29 2004/09/08 03:37:11 rswindell Exp $ */
+/* $Id: str_util.c,v 1.30 2004/09/11 09:36:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -230,20 +230,6 @@ char* DLLCALL ultoac(ulong l, char *string)
 		if(j>0 && !(k%3))
 			string[j--]=','; }
 	return(string);
-}
-
-/****************************************************************************/
-/* Truncates white-space chars off end of 'str'								*/
-/****************************************************************************/
-char* DLLCALL truncsp(char *str)
-{
-	size_t c;
-
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
-	if(str[c]!=0)
-		str[c]=0;
-	return(str);
 }
 
 /****************************************************************************/
