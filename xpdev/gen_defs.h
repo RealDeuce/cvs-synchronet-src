@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.7 2002/08/24 23:29:38 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.8 2003/05/09 05:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,6 +122,12 @@ enum {
 #ifndef HANDLE
 #define HANDLE	void*
 #endif
+
+/* Custom Types */
+typedef struct {
+	char*	name;
+	char*	value;
+} named_string_t;
 
 #define SAFECOPY(dst,src)	sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
 
