@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.1 2000/10/10 11:26:20 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.2 2000/10/21 00:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1387,7 +1387,7 @@ int main(int argc, char **argv)
 setvbuf(stdout,0,_IONBF,0);
 
 smb.file[0]=0;
-printf("\nSMBUTIL Version %s (%s) SMBLIB %s ú Synchronet Message Base "\
+printf("\nSMBUTIL Version %s (%s) SMBLIB %s - Synchronet Message Base "\
 	"Utility\n\n"
 	,SMBUTIL_VER
 #if defined(__OS2__)

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.1 2000/10/10 11:25:20 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.2 2000/10/21 00:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,7 @@
 #define REVISION	'C'
 
 #define VERSION_NOTICE		"Synchronet BBS for Win32  Version 3.00  "
-#define COPYRIGHT_NOTICE	"Developed 1990-2000 by Rob Swindell"
+#define COPYRIGHT_NOTICE	"Copyright 2000 Rob Swindell"
 #define QWK_HEADER			"Produced by Synchronet BBS  Version 3  "\
 								COPYRIGHT_NOTICE
 
