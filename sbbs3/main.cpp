@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.93 2002/01/24 12:13:21 rswindell Exp $ */
+/* $Id: main.cpp,v 1.94 2002/01/28 20:16:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2851,7 +2851,8 @@ void node_thread(void* arg)
 		node.status=NODE_OFFLINE;
 	else
 		node.status=NODE_WFC;
-	node.misc&=~NODE_DOWN;
+	node.misc&=~(NODE_DOWN|NODE_INTR|NODE_MSGW|NODE_NMSG
+				|NODE_UDAT|NODE_POFF|NODE_AOFF|NODE_EXT);
 	node.useron=0;
 	sbbs->putnodedat(sbbs->cfg.node_num,&node);
 
