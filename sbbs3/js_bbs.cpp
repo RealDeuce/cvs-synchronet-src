@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.24 2002/02/13 15:01:45 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.25 2002/02/15 13:21:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1509,7 +1509,6 @@ js_useredit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_change_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	uint		usernumber=0;
 	sbbs_t*		sbbs;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
