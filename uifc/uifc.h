@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.20 2003/02/19 22:06:58 rswindell Exp $ */
+/* $Id: uifc.h,v 1.21 2003/02/28 22:07:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,8 +271,8 @@ typedef struct {
 /****************************************************************************/
 /* Location of the help data and index files.								*/
 /****************************************************************************/
-    char    helpdatfile[256];
-    char    helpixbfile[256];
+    char    helpdatfile[MAX_PATH+1];
+    char    helpixbfile[MAX_PATH+1];
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
