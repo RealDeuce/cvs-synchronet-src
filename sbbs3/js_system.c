@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.86 2003/12/12 07:37:57 rswindell Exp $ */
+/* $Id: js_system.c,v 1.88 2004/02/14 07:16:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,10 +175,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				val = getfreediskspace(cfg->temp_dir,0);
 			else
 				val = getfreediskspace(cfg->temp_dir,1024);
-			if(INT_FITS_IN_JSVAL(val) && !(val&0x80000000))
-				*vp = INT_TO_JSVAL(val);
-			else
-	            JS_NewDoubleValue(cx, val, vp);
+			JS_NewNumberValue(cx,val,vp);
 			break;
 
 		case SYS_PROP_NEW_PASS:
@@ -1719,7 +1716,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	/***********************/
 
-	val = INT_TO_JSVAL(uptime);
+	JS_NewNumberValue(cx,uptime,&val);
 	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
 		return(NULL);
 
