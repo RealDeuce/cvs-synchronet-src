@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.17 2004/09/13 06:16:28 deuce Exp $
+# $Id: Common.gmake,v 1.6 2004/09/11 08:39:03 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -53,7 +53,6 @@
 #																			#
 # Common Build Macros Defined:												#
 #  DELETE			- Delete files (Preferrably verbose)					#
-#  MTOBJODIR		- Object output dir										#
 #  OBJODIR			- Object output dir										#
 #  LIBODIR			- Library output dir									#
 #  EXEODIR			- Executable output dir									#
@@ -85,10 +84,6 @@
 #  UIFC_SRC			- Path to uifc											#
 #  CIOLIB_SRC		- Path to ciolib										#
 #  SMBLIB_SRC		- Path to smblib										#
-#  MT_CFLAGS		- CFLAGS for building MT objects						#
-#  MT_LDFLAGS		- LDFLAGS for linking MT targets						#
-#  UL_PRE			- Use Library prefix (*nix is -l)						#
-#  UL_SUF			- Use Library siffix (bcc is .lib)						#
 #																			#
 # Common Targets Defined:													#
 #  Implicit C and C++ targets												#
@@ -169,8 +164,7 @@ else
 endif
 
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
-OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
-MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
+OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)$(OBJPATH_SUFFIX)
 EXEODIR :=	$(CCPRE).$(machine).exe.$(BUILDPATH)
 LDFLAGS	+=	-L$(LIBODIR)
 
@@ -194,8 +188,6 @@ OFILE		:= .o
 EXEFILE		:=
 SOFILE		:= .so
 LIBFILE		:= .a
-UL_PRE		:=	-l
-UL_SUF		:=	
 
 OUTPUT		:=	-o
 LOUTPUT		:=	-o
@@ -220,66 +212,11 @@ ifeq ($(os),darwin)
  LDFLAGS +=  -lm
 endif
 
-# PThread-specific flags
-ifeq ($(os),linux)    # Linux
- ifndef THREADS_ACTUALLY_WORK
-  MT_CFLAGS    += -D_THREAD_SUID_BROKEN
- endif
-endif
-MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
-ifeq ($(os),freebsd)    # FreeBSD
- MT_CFLAGS    += -DUSE_XP_SEMAPHORES
- MT_LDFLAGS    +=    -pthread
- XP_SEM    :=    1
-else
- ifeq ($(os),openbsd)    # OpenBSD
-  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-  MT_LDFLAGS    +=    -pthread
-  XP_SEM    :=    1
- else
-  ifeq ($(os),netbsd)    # NetBSD
-   MT_CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES
-   MT_LDFLAGS    +=    -L/usr/pkg/lib -L/usr/pkg/pthreads/lib -lpthread
-   XP_SEM    :=    1
-  else
-   ifeq ($(os),qnx)    # QNX
-   else
-    ifeq ($(os),darwin)    # Darwin/Mac OS X
-     MT_CFLAGS    += -D__unix__ -DUSE_XP_SEMAPHORES -D__DARWIN__
-     MT_LDFLAGS    += -lpthread
-     XP_SEM    := 1
-    else
-     ifeq ($(os),sunos)  # Solaris
-      XP_SEM :=    1
-      MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
-      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      MT_LDFLAGS    +=    -lpthread
-     else            # Linux / Other UNIX
-      XP_SEM :=    1
-      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      MT_LDFLAGS    +=    -lpthread
-     endif
-    endif
-   endif
-  endif
- endif
-endif
-
 # Paths
 XPDEV_SRC	:=	$(SRC_ROOT)$(DIRSEP)xpdev
 CIOLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)conio
 SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
-
-# Pull in lib-specific flags
-include		$(CIOLIB_SRC)$(DIRSEP)Common.make
-include		$(UIFC_SRC)$(DIRSEP)Common.make
-include		$(SMBLIB_SRC)$(DIRSEP)Common.make
-include		$(XPDEV_SRC)$(DIRSEP)Common.make
--include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
--include		$(UIFC_SRC)$(DIRSEP)Common.gmake
--include		$(SMBLIB_SRC)$(DIRSEP)Common.gmake
--include		$(XPDEV_SRC)$(DIRSEP)Common.gmake
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
@@ -291,6 +228,7 @@ endif
 -include targets.mk
 -include $(SRC_ROOT)/build/rules.mk
 -include objects.mk		# defines $(OBJS)
+-include libobjs.mk		# defines $(LIB_OBJS)
 
 # Implicit C Compile Rule
 $(OBJODIR)/%.o : %.c $(BUILD_DEPENDS)
@@ -302,51 +240,17 @@ $(OBJODIR)/%.o : %.cpp $(BUILD_DEPENDS)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ -c $<
 
-# Implicit MT C Compile Rule
-$(MTOBJODIR)/%.o : %.c $(BUILD_DEPENDS)
-	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(MT_CFLAGS) -o $@ -c $<
-
-# Implicit MT C++ Compile Rule
-$(MTOBJODIR)/%.o : %.cpp $(BUILD_DEPENDS)
-	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) $(MT_CFLAGS) -o $@ -c $<
-
 depend:
 	$(QUIET)$(DELETE) $(OBJODIR)/.depend
-	$(QUIET)$(DELETE) $(MTOBJODIR)/.depend
 	$(QUIET)$(DELETE) $(LIBODIR)/.depend
 	$(QUIET)$(DELETE) $(EXEODIR)/.depend
 	$(QUIET)$(MAKE) BUILD_DEPENDS=FORCE
 
 FORCE:
 
--include $(MTOBJODIR)/.depend
 -include $(OBJODIR)/.depend
 -include $(LIBODIR)/.depend
 -include $(EXEODIR)/.depend
--include $(MTOBJODIR)/*.d
 -include $(OBJODIR)/*.d
 -include $(LIBODIR)/*.d
 -include $(EXEODIR)/*.d
-
-xpdev:
-	$(MAKE) -C $(XPDEV_SRC) lib
-
-xpdev-mt:
-	$(MAKE) -C $(XPDEV_SRC) mtlib
-
-smblib:
-	$(MAKE) -C $(SMBLIB_SRC) lib
-
-smblib-mt:
-	$(MAKE) -C $(SMBLIB_SRC) mtlib
-
-ciolib-mt:
-	$(MAKE) -C $(CIOLIB_SRC) mtlib
-
-uifc:
-	$(MAKE) -C $(UIFC_SRC) lib
-
-uifc-mt:
-	$(MAKE) -C $(UIFC_SRC) mtlib
