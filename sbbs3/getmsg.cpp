@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.7 2001/11/04 20:44:11 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.8 2002/02/09 13:15:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,6 +125,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	char	*sender=NULL;
 	int 	i;
 
+	current_msg=msg;
 	attr(LIGHTGRAY);
 	if(useron.misc&CLRSCRN)
 		outchar(FF);

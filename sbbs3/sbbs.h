@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.92 2002/02/07 19:36:17 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.93 2002/02/09 13:15:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,6 +313,8 @@ public:
 	int		errorlevel; 	/* Error level of external program */
 
 	csi_t	main_csi;		/* Main Command Shell Image */
+
+	smbmsg_t*	current_msg;	/* For message header @-codes */
 
 			/* Global command shell variables */
 	uint	global_str_vars;
