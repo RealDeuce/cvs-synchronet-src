@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.9 2001/11/02 21:29:04 rswindell Exp $ */
+/* $Id: download.cpp,v 1.10 2001/11/03 20:58:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -194,7 +194,7 @@ int sbbs_t::protocol(char *cmdline, int cd)
 	i=external(cmdline
 		,EX_OUTL
 #ifdef __unix__		/* file xfer progs use stdio on Unix */
-		|EX_INR|EX_OUTR
+		|EX_INR|EX_OUTR|EX_BIN
 #endif
 		,p);
 	sys_status&=~SS_FILEXFER;
