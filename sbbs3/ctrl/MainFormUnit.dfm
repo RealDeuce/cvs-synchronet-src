@@ -2399,8 +2399,8 @@ object MainForm: TMainForm
         ImageIndex = 27
         object TelnetEditRLoginList: TMenuItem
           Caption = 'Allowed RLogin List'
-          Hint = 'rlogin.cfg'
-          OnClick = CtrlMenuItemEditClick
+          Hint = 'RLOGIN.CAN'
+          OnClick = TextMenuItemEditClick
         end
       end
     end
@@ -2495,7 +2495,7 @@ object MainForm: TMainForm
         end
         object ExternalMailProc: TMenuItem
           Caption = 'External Mail Processing'
-          Hint = 'mailproc.ini'
+          Hint = 'MAILPROC.CFG'
           OnClick = CtrlMenuItemEditClick
         end
       end
@@ -2571,33 +2571,6 @@ object MainForm: TMainForm
         end
       end
     end
-    object WebMenuItem: TMenuItem
-      Caption = '&Web'
-      object Configure1: TMenuItem
-        Action = WebConfigure
-      end
-      object Start1: TMenuItem
-        Action = WebStart
-      end
-      object Stop1: TMenuItem
-        Action = WebStop
-      end
-      object Recycle4: TMenuItem
-        Action = WebRecycle
-      end
-      object N11: TMenuItem
-        Caption = '-'
-      end
-      object WebEditMenuItem: TMenuItem
-        AutoHotkeys = maManual
-        Caption = 'Edit'
-        object WebEditMimeTypesMenuItem: TMenuItem
-          Caption = 'MIME Types'
-          Hint = 'mime_types.ini'
-          OnClick = CtrlMenuItemEditClick
-        end
-      end
-    end
     object ServicesMenuItem: TMenuItem
       Caption = 'Services'
       object ServicesConfigureMenuItem: TMenuItem
@@ -2612,61 +2585,36 @@ object MainForm: TMainForm
       object Recycle3: TMenuItem
         Action = ServicesRecycle
       end
-      object N12: TMenuItem
-        Caption = '-'
-      end
-      object ServicesEditMenuItem: TMenuItem
-        AutoHotkeys = maManual
-        Caption = 'Edit'
-        object ServicesEditIniMenuOption: TMenuItem
-          Caption = 'services.ini'
-          Hint = 'services.ini'
-          OnClick = CtrlMenuItemEditClick
-        end
-      end
     end
     object ViewMenuItem: TMenuItem
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
-        AutoCheck = True
       end
       object ViewStatsMenuItem: TMenuItem
         Action = ViewStats
-        AutoCheck = True
         Caption = 'BBS &Statistics'
       end
       object ViewTelnetMenuItem: TMenuItem
         Action = ViewTelnet
-        AutoCheck = True
-      end
-      object ViewEventsMenuItem: TMenuItem
-        Action = ViewEvents
-        AutoCheck = True
-        Caption = 'BBS &Events'
       end
       object ViewMailServerMenuItem: TMenuItem
         Action = ViewMailServer
-        AutoCheck = True
       end
       object ViewFtpServerMenuItem: TMenuItem
         Action = ViewFtpServer
-        AutoCheck = True
       end
       object ViewWebServerMenuItem: TMenuItem
         Action = ViewWebServer
-        AutoCheck = True
+        Hint = 'View Web Server Window'
       end
-      object ViewServicesMenuItem: TMenuItem
-        Action = ViewServices
-        AutoCheck = True
+      object ViewEventsMenuItem: TMenuItem
+        Action = ViewEvents
       end
       object Clients1: TMenuItem
         Action = ViewClients
-        AutoCheck = True
       end
       object ViewToolbarMenuItem: TMenuItem
-        AutoCheck = True
         Caption = 'Tool&bar'
         OnClick = ViewToolbarMenuItemClick
       end
@@ -2768,73 +2716,37 @@ object MainForm: TMainForm
       OnExecute = MailConfigureExecute
     end
     object ViewTelnet: TAction
-      AutoCheck = True
       Caption = '&Telnet Server'
-      Checked = True
       Hint = 'View Telnet Server Window'
       ImageIndex = 9
       OnExecute = ViewTelnetExecute
     end
-    object ViewEvents: TAction
-      AutoCheck = True
-      Caption = '&Events'
-      Checked = True
-      ImageIndex = 49
-      OnExecute = ViewEventsExecute
-    end
-    object ViewStats: TAction
-      AutoCheck = True
-      Caption = '&Stats'
-      Checked = True
-      ImageIndex = 13
-      OnExecute = ViewStatsExecute
-    end
     object ViewNodes: TAction
-      AutoCheck = True
       Caption = 'BBS &Nodes'
-      Checked = True
       Hint = 'View Node Status Window'
       ImageIndex = 5
       OnExecute = ViewNodesExecute
     end
     object ViewMailServer: TAction
-      AutoCheck = True
       Caption = '&Mail Server'
-      Checked = True
       Hint = 'View Mail Server Window'
       ImageIndex = 7
       OnExecute = ViewMailServerExecute
     end
+    object ViewStats: TAction
+      Caption = '&Stats'
+      ImageIndex = 13
+      OnExecute = ViewStatsExecute
+    end
     object ViewFtpServer: TAction
-      AutoCheck = True
       Caption = '&FTP Server'
-      Checked = True
       Hint = 'View FTP Server Window'
       ImageIndex = 11
       OnExecute = ViewFtpServerExecute
     end
     object ViewWebServer: TAction
-      AutoCheck = True
       Caption = '&Web Server'
-      Checked = True
-      Hint = 'View Web Server Window'
-      ImageIndex = 59
       OnExecute = ViewWebServerExecute
-    end
-    object ViewServices: TAction
-      AutoCheck = True
-      Caption = '&Services'
-      Checked = True
-      Hint = 'View Services Window'
-      OnExecute = ViewServicesExecute
-    end
-    object ViewClients: TAction
-      AutoCheck = True
-      Caption = '&Clients'
-      Checked = True
-      Hint = 'View Active Clients Window'
-      ImageIndex = 35
-      OnExecute = ViewClientsExecute
     end
     object FtpStart: TAction
       Hint = 'Start FTP Server'
@@ -2871,6 +2783,12 @@ object MainForm: TMainForm
       ImageIndex = 33
       OnExecute = ChatToggleExecute
     end
+    object ViewClients: TAction
+      Caption = '&Clients'
+      Hint = 'View Active Clients Window'
+      ImageIndex = 35
+      OnExecute = ViewClientsExecute
+    end
     object UserEdit: TAction
       Caption = '&Editor'
       Hint = 'Edit Users'
@@ -2888,6 +2806,11 @@ object MainForm: TMainForm
       Hint = 'Control Panel Properties'
       ImageIndex = 4
       OnExecute = PropertiesExecute
+    end
+    object ViewEvents: TAction
+      Caption = '&Events'
+      ImageIndex = 49
+      OnExecute = ViewEventsExecute
     end
     object ReloadConfig: TAction
       Caption = '&Reload Configuration'

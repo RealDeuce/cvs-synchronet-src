@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.120 2004/10/28 22:06:05 rswindell Exp $ */
+/* $Id: js_global.c,v 1.119 2004/10/15 09:20:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,13 +123,12 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	errno = 0;
-	if(isfullpath(filename))
-		strcpy(path,filename);
-	else {
+	if(strcspn(filename,"/\\")==strlen(filename)) {
 		sprintf(path,"%s%s",cfg->mods_dir,filename);
 		if(cfg->mods_dir[0]==0 || !fexistcase(path))
 			sprintf(path,"%s%s",cfg->exec_dir,filename);
-	}
+	} else
+		strcpy(path,filename);
 
 	JS_ClearPendingException(cx);
 
