@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.14 2002/04/26 00:40:24 rswindell Exp $ */
+/* $Id: uifc.c,v 1.15 2002/05/01 20:25:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1132,6 +1132,7 @@ hitesc:
 							api->savdepth--; }
 						return(*cur);
 					case ESC:
+					case '\b':	/* backspace */
 						if(mode&WIN_ESC || (mode&WIN_CHE && api->changes)
 							&& !(mode&WIN_SAV)) {
 							hidemouse();
