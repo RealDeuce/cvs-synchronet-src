@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.44 2001/09/24 11:40:10 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.45 2001/10/02 17:15:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,10 +446,10 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		FILE* fp;
 		sprintf(fname,"%sDOOR32.SYS",cfg.node_dir);
 		fp=fopen(fname,"wb");
-		fprintf(fp,"2\r\n%d\r\n38400\r\nSynchronet %s%c\r\n%d\r\n%s\r\n%s\r\n%d\r\n%d\r\n"
+		fprintf(fp,"2\r\n%d\r\n38400\r\n%s%c\r\n%d\r\n%s\r\n%s\r\n%d\r\n%d\r\n"
 			"%d\r\n%d\r\n"
 			,client_socket_dup
-			,VERSION,REVISION
+			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
 			,useron.alias
