@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.178 2002/08/30 22:51:43 rswindell Exp $ */
+/* $Id: main.cpp,v 1.179 2002/09/03 21:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,7 +250,7 @@ static JSClass js_method_class = {
 
 static const char* method_array_name = "_method_list";
 
-static JSBool 
+JSBool 
 DLLCALL js_DefineMethods(JSContext* cx, JSObject* obj, JSFunctionSpec *funcs)
 {
 	int			i;
