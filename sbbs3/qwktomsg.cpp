@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.14 2002/08/06 10:31:57 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.15 2002/08/09 00:09:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,7 +229,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	skip=0;
 	if(useron.rest&FLAG('Q') || fromhub) {      /* QWK Net */
 		if(!strnicmp(header,"@VIA:",5)) {
-			set_qwk_flag(QWK_VIA);
+			if(!fromhub)
+				set_qwk_flag(QWK_VIA);
 			p=strchr(header, '\n');
 			if(p) {
 				*p=0;
@@ -283,7 +284,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 
 	if(!strnicmp(header+skip,"@MSGID:",7)) {
-		set_qwk_flag(QWK_MSGID);
+		if(!fromhub)
+			set_qwk_flag(QWK_MSGID);
 		p=strchr(header+skip, '\n');
 		i=skip;
 		if(p) {
@@ -296,7 +298,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		smb_hfield(&msg,RFC822MSGID,strlen(p),p);
 	}
 	if(!strnicmp(header+skip,"@REPLY:",7)) {
-		set_qwk_flag(QWK_MSGID);
+		if(!fromhub)
+			set_qwk_flag(QWK_MSGID);
 		p=strchr(header+skip, '\n');
 		i=skip;
 		if(p) {
@@ -309,7 +312,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 		smb_hfield(&msg,RFC822REPLYID,strlen(p),p);
 	}
 	if(!strnicmp(header+skip,"@TZ:",4)) {
-		set_qwk_flag(QWK_TZ);
+		if(!fromhub)
+			set_qwk_flag(QWK_TZ);
 		p=strchr(header+skip, '\n');
 		i=skip;
 		if(p) {
