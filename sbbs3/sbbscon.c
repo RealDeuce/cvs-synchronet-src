@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.115 2003/04/17 02:51:18 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.116 2003/04/24 05:24:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -807,6 +807,8 @@ static void handle_sigs(void)  {
 	pthread_sigmask(SIG_BLOCK,&sigs,NULL);
 	while(1)  {
 		sigwait(&sigs,&sig);    /* wait here until signaled */
+		sprintf(str,"     Got signal (%d)",sig);
+		lputs(str);
 		switch(sig)  {
 			/* QUIT-type signals */
 			case SIGINT:
@@ -819,7 +821,7 @@ static void handle_sigs(void)  {
 				_sighandler_rerun(sig);
 				break;
 			default:
-				sprintf(str,"     Got unhandled signal (%d)",sig);
+				sprintf(str,"     Signal has no handler (unexpected)",sig);
 				lputs(str);
 		}
 	}
@@ -1424,8 +1426,19 @@ int main(int argc, char** argv)
 				|| (run_ftp && !(ftp_running || ftp_stopped)) 
 				|| (run_web && !(web_running || web_stopped)) 
 				|| (run_mail && !(mail_running || mail_stopped)) 
-				|| (run_services && !(services_running || services_stopped)))
+				|| (run_services && !(services_running || services_stopped)))  {
 			mswait(1);
+			if(run_bbs && !bbs_running)
+				bbs_lputs("Waiting for BBS thread");
+			if(run_web && !web_running)
+				bbs_lputs("Waiting for Web thread");
+			if(run_ftp && !ftp_running)
+				bbs_lputs("Waiting for FTP thread");
+			if(run_mail && !mail_running)
+				bbs_lputs("Waiting for Mail thread");
+			if(run_services && !services_running)
+				bbs_lputs("Waiting for Services thread");
+		}
 
 		if(!do_setuid())
 				/* actually try to change the uid of this process */
