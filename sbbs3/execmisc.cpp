@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.33 2004/01/08 23:38:16 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.32 2003/10/24 21:46:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 							bprintf("%ld",*lp); }
 					else
 						putmsg(cmdstr(*pp,path,csi->str,buf)
-							,P_SAVEATR|P_NOABORT|P_NOATCODES);
+							,P_SAVEATR|P_NOABORT);
 					csi->ip+=4;
 					return(0);
 				case VAR_PRINTF:
@@ -83,7 +83,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					vsnprintf(tmp,sizeof(tmp),str,(char*)arglist);
 					tmp[sizeof(tmp)-1]=0;
 					if(op==VAR_PRINTF)
-						putmsg(cmdstr(tmp,path,csi->str,buf),P_SAVEATR|P_NOABORT|P_NOATCODES);
+						putmsg(cmdstr(tmp,path,csi->str,buf),P_SAVEATR|P_NOABORT);
 					else {
 						if(online==ON_LOCAL)
 							eprintf(LOG_INFO,"%s",cmdstr(tmp,path,csi->str,buf));
