@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.9 2003/09/03 01:06:08 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.10 2003/09/16 01:28:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,7 +142,7 @@ typedef struct {
 /* ASCIIZ char* parsing helper macros */
 #define SKIP_WHITESPACE(p)			while(*p && isspace(*p))			p++;
 #define FIND_WHITESPACE(p)			while(*p && !isspace(*p))			p++;
-#define SKIP_CHAR(p,c)				while(*p && *p==c)					p++;
+#define SKIP_CHAR(p,c)				while(*p==c)						p++;
 #define FIND_CHAR(p,c)				while(*p && *p!=c)					p++;
 #define SKIP_CHARSET(p,s)			while(*p && strchr(s,*p)!=NULL)		p++;
 #define FIND_CHARSET(p,s)			while(*p && strchr(s,*p)==NULL)		p++;
