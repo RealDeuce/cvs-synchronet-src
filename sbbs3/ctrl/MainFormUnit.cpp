@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.15 2000/12/06 03:10:08 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.16 2001/01/10 02:30:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1763,6 +1763,15 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
 void __fastcall TMainForm::UserListExecute(TObject *Sender)
 {
     UserListForm->Show();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::HelpIndexMenuItemClick(TObject *Sender)
+{
+    char str[512];
+
+    sprintf(str,"start http://synchro.net/docs");
+    WinExec(str,SW_SHOWMINNOACTIVE);
 }
 //---------------------------------------------------------------------------
 
