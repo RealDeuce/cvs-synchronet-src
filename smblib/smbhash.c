@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.6 2004/12/22 20:50:40 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.11 2005/01/14 02:46:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,6 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 
 		rewind(smb->hash_fp);
 		while(!feof(smb->hash_fp)) {
-			memset(&hash,0,sizeof(hash));
 			if(smb_fread(smb,&hash,sizeof(hash),smb->hash_fp)!=sizeof(hash))
 				break;
 
@@ -144,30 +143,27 @@ int SMBCALL smb_addhashes(smb_t* smb, hash_t** hashes, BOOL skip_marked)
 			continue;	
 	
 		/* can't think of any reason to strip SMB_HASH_MARKED flag right now */
-		if(smb_fwrite(smb,hashes[h],sizeof(hash_t),smb->hash_fp)!=sizeof(hash_t))
-			return(SMB_ERR_WRITE);
+		if(smb_fwrite(smb,hashes[h],sizeof(hash_t),smb->hash_fp)!=sizeof(hash_t)) {
+			retval=SMB_ERR_WRITE;
+			break;
+		}
 	}
 
 	smb_close_hash(smb);
 
-	return(SMB_SUCCESS);
+	return(retval);
 }
 
-static char* strip_chars(uchar* str, uchar* set)
+static char* strip_chars(uchar* dst, const uchar* src, uchar* set)
 {
-	char*	src;
-	char*	dst;
-	char*	tmp;
-
-	if((tmp=strdup(str))==NULL)
-		return(NULL);
-	for(src=tmp,dst=str;*src;src++) {
+	while(*src) {
 		if(strchr(set,*src)==NULL)
 			*(dst++)=*src;
+		src++;
 	}
 	*dst=0;
-	
-	return(str);
+
+	return(dst);
 }
 
 /* Allocates and calculates hashes of data (based on flags)					*/
@@ -180,6 +176,7 @@ hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 	if((hash=(hash_t*)malloc(sizeof(hash_t)))==NULL)
 		return(NULL);
 
+	memset(hash,0,sizeof(hash_t));
 	hash->number=msgnum;
 	hash->time=t;
 	hash->length=length;
@@ -207,10 +204,10 @@ hash_t* SMBCALL smb_hashstr(ulong msgnum, ulong t, unsigned source, unsigned fla
 	if(flags&SMB_HASH_PROC_MASK) {	/* string pre-processing */
 		if((p=strdup(str))==NULL)
 			return(NULL);
+		if(flags&SMB_HASH_STRIP_WSP)
+			strip_chars(p,str," \t\r\n");
 		if(flags&SMB_HASH_LOWERCASE)
 			strlwr(p);
-		if(flags&SMB_HASH_STRIP_WSP)
-			strip_chars(p," \t\r\n");
 	}
 	
 	hash=smb_hash(msgnum, t, source, flags, p, strlen(p));
@@ -231,12 +228,10 @@ hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body)
 	hash_t*		hash;
 	time_t		t=time(NULL);
 
-#define SMB_MAX_HASH_COUNT 4
-
-	if((hashes=(hash_t**)malloc(sizeof(hash_t*)*SMB_MAX_HASH_COUNT))==NULL)
+	if((hashes=(hash_t**)malloc(sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1)))==NULL)
 		return(NULL);
 
-	memset(hashes, 0, sizeof(hash_t*)*SMB_MAX_HASH_COUNT);
+	memset(hashes, 0, sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1));
 
 	if(msg->id!=NULL && 
 		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_MSG_ID, flags, msg->id))!=NULL)
@@ -301,7 +296,6 @@ int SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
 
 	hashes[1]=NULL;	/* terminate list */
 
-	memset(&found,0,sizeof(found));
 	if((retval=smb_findhash(smb, hashes, &found, 1<<source, FALSE))==SMB_SUCCESS) {
 		if(found.number==0)
 			retval=SMB_FAILURE;	/* use better error value here? */
@@ -334,10 +328,13 @@ int SMBCALL smb_getmsghdr_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
 	return(retval);
 }
 
-ushort SMBCALL smb_subject_crc(const char *subj)
+ushort SMBCALL smb_subject_crc(const char* subj)
 {
 	char*	str;
 	ushort	crc;
+
+	if(subj==NULL)
+		return(0xffff);
 
 	while(!strnicmp(subj,"RE:",3)) {
 		subj+=3;
@@ -353,4 +350,42 @@ ushort SMBCALL smb_subject_crc(const char *subj)
 	free(str);
 
 	return(crc);
+}
+
+ushort SMBCALL smb_name_crc(const char* name)
+{
+	char*	str;
+	ushort	crc;
+
+	if(name==NULL)
+		return(0xffff);
+
+	if((str=strdup(name))==NULL)
+		return(0xffff);
+
+	strlwr(str);
+	crc=crc16(str,0	/* auto-length */);
+	free(str);
+
+	return(crc);
+}
+
+int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
+{
+	msg->idx.subj=smb_subject_crc(msg->subj);
+	if(smb->status.attr&SMB_EMAIL) {
+		if(msg->to_ext)
+			msg->idx.to=atoi(msg->to_ext);
+		else
+			msg->idx.to=0;
+		if(msg->from_ext)
+			msg->idx.from=atoi(msg->from_ext);
+		else
+			msg->idx.from=0; 
+	} else {
+		msg->idx.to=smb_name_crc(msg->to);
+		msg->idx.from=smb_name_crc(msg->from);
+	}
+
+	return(SMB_SUCCESS);
 }
