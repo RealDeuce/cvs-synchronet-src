@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.17 2005/01/15 04:46:02 rswindell Exp $ */
+/* $Id: ringbuf.c,v 1.15 2005/01/13 11:28:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,10 +96,8 @@ int RINGBUFCALL RingBufInit( RingBuf* rb, DWORD size
     rb->size=size;
 #ifdef RINGBUF_SEM
 	sem_init(&rb->sem,0,0);
+	sem_init(&rb->empty_sem,0,0);
 	sem_init(&rb->highwater_sem,0,0);
-#endif
-#ifdef RINGBUF_EVENT
-	rb->empty_event=CreateEvent(NULL,TRUE,TRUE,NULL);
 #endif
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_init(&rb->mutex,NULL);
@@ -113,12 +111,10 @@ void RINGBUFCALL RingBufDispose( RingBuf* rb)
 		os_free(rb->pStart);
 #ifdef RINGBUF_SEM
 	sem_post(&rb->sem);			/* just incase someone's waiting */
+	sem_post(&rb->empty_sem);	/* just incase someone's waiting */
 	sem_destroy(&rb->sem);
+	sem_destroy(&rb->empty_sem);
 	sem_destroy(&rb->highwater_sem);
-#endif
-#ifdef RINGBUF_EVENT
-	if(rb->empty_event!=NULL)
-		CloseEvent(rb->empty_event);
 #endif
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_destroy(&rb->mutex);
@@ -141,15 +137,6 @@ DWORD RINGBUFCALL RingBufFull( RingBuf* rb )
 		retval = head - tail;
 	else
 		retval = rb->size - (tail - (head + 1));
-
-#ifdef RINGBUF_EVENT
-	if(rb->empty_event!=NULL) {
-		if(retval==0)
-			SetEvent(rb->empty_event);
-		else
-			ResetEvent(rb->empty_event);
-	}
-#endif
 
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_unlock(&rb->mutex);
@@ -212,12 +199,10 @@ DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, BYTE* src,  DWORD cnt )
 	sem_post(&rb->sem);
 	if(rb->highwater_mark!=0 && RingBufFull(rb)>=rb->highwater_mark)
 		sem_post(&rb->highwater_sem);
+/*	do we need this here?
+	sem_reset(&rb->empty_sem); 
+*/
 #endif
-#ifdef RINGBUF_EVENT
-	if(rb->empty_event!=NULL)
-		ResetEvent(rb->empty_event);
-#endif
-
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_unlock(&rb->mutex);
 #endif
@@ -270,15 +255,12 @@ DWORD RINGBUFCALL RingBufRead( RingBuf* rb, BYTE* dst,  DWORD cnt )
 		rb->pTail = rb->pStart;
 
 #ifdef RINGBUF_SEM		/* clear/signal semaphores, if appropriate */
-	if(len-cnt==0)		/* empty */
+	if(len-cnt==0) {	/* empty */
+		sem_post(&rb->empty_sem);
 		sem_reset(&rb->sem);
+	}
 	if(len-cnt<rb->highwater_mark)
 		sem_reset(&rb->highwater_sem);
-#endif
-
-#ifdef RINGBUF_EVENT
-	if(rb->empty_event!=NULL && len-cnt==0)
-		SetEvent(rb->empty_event);
 #endif
 
 #ifdef RINGBUF_MUTEX
@@ -337,6 +319,7 @@ void RINGBUFCALL RingBufReInit(RingBuf* rb)
 	rb->pHead = rb->pTail = rb->pStart;
 #ifdef RINGBUF_SEM
 	sem_reset(&rb->sem);
+	sem_reset(&rb->empty_sem);
 	sem_reset(&rb->highwater_sem);
 #endif
 #ifdef RINGBUF_MUTEX
