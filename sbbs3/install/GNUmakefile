@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.17 2004/09/21 05:06:48 deuce Exp $
+# $Id: GNUmakefile,v 1.16 2004/09/13 22:57:09 deuce Exp $
 
 SRC_ROOT	= ../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -31,4 +31,4 @@ LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_
 
 $(SBBSINST): $(OBJS)
 	$(QUIET)echo Linking $@
-	$(QUIET)$(CC) -o $@ $(MT_LDFLAGS) $(OBJS) $(LDFLAGS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) -o $@ $(OBJS) $(LDFLAGS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
