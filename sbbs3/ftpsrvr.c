@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.35 2000/11/10 18:42:21 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.36 2000/11/12 16:04:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1515,6 +1515,8 @@ static void ctrl_thread(void* arg)
 			/* Adjust User Total Logons/Logons Today */
 			adjustuserrec(&scfg,user.number,U_LOGONS,5,1);
 			putuserrec(&scfg,user.number,U_LTODAY,5,ultoa(user.ltoday+1,str,10));
+			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
+
 			continue;
 		}
 
