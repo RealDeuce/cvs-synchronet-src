@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.15 2002/08/09 09:21:30 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.16 2002/08/24 23:29:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,7 @@ int DLLCALL xp_random(int n)
 /* Return ASCII string representation of ulong								*/
 /* There may be a native GNU C Library function to this...					*/
 /****************************************************************************/
-#if !defined _MSC_VER && !defined __BORLANDC__
+#if !defined(_MSC_VER) && !defined(__BORLANDC__) && !defined(__WATCOMC__)
 char* DLLCALL ultoa(ulong val, char* str, int radix)
 {
 	switch(radix) {

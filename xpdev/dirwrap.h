@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.13 2002/08/24 21:58:02 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.14 2002/08/24 23:29:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,8 +65,12 @@ extern "C" {
 #else	
 
 	#define ALLFILES "*.*"	/* matches all files in a directory */
-	#define MKDIR(dir)		_mkdir(dir)
-	#define FULLPATH(a,r,l)	_fullpath(a,r,l)
+	#ifdef __WATCOMC__
+		#define MKDIR(dir)		mkdir(dir)
+	#else
+		#define MKDIR(dir)		_mkdir(dir)
+	#endif
+	#define FULLPATH(a,r,l)		_fullpath(a,r,l)
 
 	/* glob-compatible findfirst/findnext wrapper */
 
