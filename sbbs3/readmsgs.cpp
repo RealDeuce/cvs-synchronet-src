@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.3 2001/04/10 01:12:42 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.4 2001/06/23 00:49:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -806,7 +806,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 						case 'U':   /* User edit */
 							useredit(cfg.sub[subnum]->misc&SUB_NAME
 								? userdatdupe(0,U_NAME,LEN_NAME,msg.from,0)
-								: matchuser(&cfg,msg.from),0);
+								: matchuser(&cfg,msg.from));
 							break;
 						case 'V':   /* Validate message */
 							if(msg.total_hfields)
