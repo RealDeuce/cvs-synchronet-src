@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.34 2002/02/21 13:34:53 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.35 2002/02/25 03:46:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@
 #include <ExtCtrls.hpp>
 #include <ActnList.hpp>
 //---------------------------------------------------------------------------
+#include <io.h>			// Undefined symbol '_chmod' ???
 #include "scfgdefs.h"  	// scfg_t
 #include "mailsrvr.h"
 #include "ftpsrvr.h"
