@@ -19,6 +19,8 @@
  * 
  */
 
+#pragma resource "mdraw.res"
+
 #include <stdio.h>
 #include <gen_defs.h>
 #include <keys.h>
@@ -33,8 +35,6 @@
 
 #include <stdlib.h>
 #include <sys/types.h>
-
-#include <dirwrap.h>
 
 #include "block.h"
 #include "config.h"
@@ -698,10 +698,7 @@ SelectFont(void)
 	char			buf[11*16*2];
 
 	memset(buf,0,sizeof(buf));
-	sprintf(FontFile, "%s%s", getenv("HOME")==NULL?"":getenv("HOME"), "/.mdraw");
-	if(!isdir(FontFile))
-		MKDIR(FontFile);
-	sprintf(FontFile, "%s%s", getenv("HOME")==NULL?"":getenv("HOME"), "/.mdraw/allfont.fnt");
+	sprintf(FontFile, "%s%s", getenv("HOME"), "/.mdraw/allfont.fnt");
 	DrawBox(10, 6, 27, 18);
 	DrawBox(30, 5, 61, 18);
 	fp = fopen(FontFile, "rb");
@@ -1036,7 +1033,10 @@ main(int argnum, char *args[])
 
 	_wscroll=0;
 
-	initciolib(CIOLIB_MODE_AUTO);
+	if(initciolib(CIOLIB_MODE_X))
+		if(initciolib(CIOLIB_MODE_CURSES_IBM))
+			if(initciolib(CIOLIB_MODE_CONIO))
+				initciolib(CIOLIB_MODE_ANSI);
 
 	/* Silly kludge for now */
 	if(getenv("HOME")==NULL)

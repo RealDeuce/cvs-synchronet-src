@@ -2,13 +2,13 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.10 2005/01/13 11:53:02 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.8 2003/10/09 17:27:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
