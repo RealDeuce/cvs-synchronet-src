@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.44 2003/03/11 00:37:12 rswindell Exp $ */
+/* $Id: js_global.c,v 1.45 2003/03/11 01:06:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -626,7 +626,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					else
 						j+=sprintf(outbuf+j,"&#%u;",exasctbl[ch].value);
 				}
-				else if(inbuf[i]>=' ') /* strip unknown control chars */
+				else if((uchar)inbuf[i]>=' ') /* strip unknown control chars */
 					j+=sprintf(outbuf+j,"&#%u;",inbuf[i]);
 				break;
 		}
