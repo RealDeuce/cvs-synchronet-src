@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.48 2003/05/21 04:19:23 deuce Exp $ */
+/* $Id: scfg.c,v 1.49 2003/05/22 11:45:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1874,14 +1874,14 @@ user's account will expire.
 sprintf(inar,"%.*s",LEN_ARSTR,ar);
 }
 
-char code_ok(char *str)
+int code_ok(char *str)
 {
 
-if(!strlen(str))
-    return(0);
-if(strcspn(str," \\/.|<>*?+[]:=\";,")!=strlen(str))
-    return(0);
-return(1);
+	if(!strlen(str))
+		return(0);
+	if(strcspn(str," \\/|<>*?+[]:=\";,")!=strlen(str))
+		return(0);
+	return(1);
 }
 
 int lprintf(char *fmt, ...)

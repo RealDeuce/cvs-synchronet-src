@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.13 2003/05/21 05:33:27 deuce Exp $ */
+/* $Id: scfg.h,v 1.14 2003/05/22 11:45:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,9 +106,8 @@ void actsets_cfg(void);
 void chan_cfg(void);
 void mdm_cfg(int mdmnum);
 int export_mdm(char *fname);
-char code_ok(char *str);
+int code_ok(char *str);
 int  bits(long l);
-char oneflag(long l);
 void getar(char *desc, char *ar);
 
 /* scfgnet.h */
