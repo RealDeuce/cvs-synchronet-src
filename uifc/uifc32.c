@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.63 2004/06/01 22:33:27 deuce Exp $ */
+/* $Id: uifc32.c,v 1.64 2004/06/01 22:35:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1329,7 +1329,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					case KEY_F(1):	/* F1 */
-						help();
+						api->showhelp();
 						break;
 					case KEY_F(5):	/* F5 */
 						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur)==opts-1))
@@ -1803,7 +1803,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			switch(ch)
 			{
 				case KEY_F(1):	/* F1 Help */
-					help();
+					api->showhelp();
 					continue;
 				case KEY_LEFT:	/* left arrow */
 					if(i)
