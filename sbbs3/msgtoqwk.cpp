@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.15 2002/08/08 06:46:33 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.16 2002/08/25 22:26:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,10 +130,12 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		size+=strlen(str); 
 
 		str[0]=0;
-		if(msg->reply_id)
+		if(msg->reply_id) {
+			SAFECOPY(tmp,msg->reply_id);
+			truncstr(tmp," ");
 			sprintf(str,"@REPLY: %.*s%c"
-				,(int)(sizeof(str)-12),msg->reply_id,QWK_NEWLINE);
-		else if(msg->hdr.thread_orig) {
+				,(int)(sizeof(str)-12),tmp,QWK_NEWLINE);
+		} else if(msg->hdr.thread_orig) {
 			memset(&orig_msg,0,sizeof(orig_msg));
 			orig_msg.hdr.number=msg->hdr.thread_orig;
 			if(smb_getmsgidx(&smb, &orig_msg))
