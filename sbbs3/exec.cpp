@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.33 2003/02/27 21:55:39 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.34 2003/03/01 02:29:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -563,7 +563,7 @@ static JSClass js_scope_class ={
         JS_EnumerateStub,JS_ResolveStub,JS_ConvertStub,JS_FinalizeStub 
     }; 
 
-long sbbs_t::js_execfile(char *cmd)
+long sbbs_t::js_execfile(const char *cmd)
 {
 	char*		p;
 	char*		args=NULL;
