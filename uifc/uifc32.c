@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.71 2004/07/02 22:29:31 deuce Exp $ */
+/* $Id: uifc32.c,v 1.68 2004/06/03 07:00:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,16 +41,17 @@
 	#ifdef __QNX__
 		#include <strings.h>
 	#endif
+	#include "ciowrap.h"
     #define mswait(x) delay(x)
+    #define clreol()	clrtoeol()
 #elif defined(_WIN32)
 	#include <share.h>
 	#include <conio.h>
 	#include <windows.h>
+	#include "keys.h"
 	#define mswait(x) Sleep(x)
 #endif
 
-#include "ciowrap.h"
-#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 							/* Bottom line elements */
@@ -237,78 +238,7 @@ int inkey()
 
 #else 
 
-int inkey()
-{
-	int c;
-
-	c=getch();
-	if(!c)
-		c=(getch()<<8);
-
-	switch(c) {
-		case CIO_KEY_HOME:
-			c=KEY_HOME;
-			break;
-		case CIO_KEY_UP:
-			c=KEY_UP;
-			break;
-		case CIO_KEY_END:
-			c=KEY_END;
-			break;
-		case CIO_KEY_DOWN:
-			c=KEY_DOWN;
-			break;
-		case CIO_KEY_F(1):
-			c=KEY_F(1);
-			break;
-		case CIO_KEY_F(2):
-			c=KEY_F(2);
-			break;
-		case CIO_KEY_F(3):
-			c=KEY_F(3);
-			break;
-		case CIO_KEY_F(4):
-			c=KEY_F(4);
-			break;
-		case CIO_KEY_F(5):
-			c=KEY_F(5);
-			break;
-		case CIO_KEY_F(6):
-			c=KEY_F(6);
-			break;
-		case CIO_KEY_F(7):
-			c=KEY_F(7);
-			break;
-		case CIO_KEY_F(8):
-			c=KEY_F(8);
-			break;
-		case CIO_KEY_F(9):
-			c=KEY_F(9);
-			break;
-		case CIO_KEY_F(10):
-			c=KEY_F(10);
-			break;
-		case CIO_KEY_IC:
-			c=KEY_IC;
-			break;
-		case CIO_KEY_DC:
-			c=KEY_DC;
-			break;
-		case CIO_KEY_LEFT:
-			c=KEY_LEFT;
-			break;
-		case CIO_KEY_RIGHT:
-			c=KEY_RIGHT;
-			break;
-		case CIO_KEY_PPAGE:
-			c=KEY_PPAGE;
-			break;
-		case CIO_KEY_NPAGE:
-			c=KEY_NPAGE;
-			break;
-	}
-	return(c);
-}
+	#define inkey() getch()
 
 #endif
 
@@ -356,12 +286,11 @@ int uifcini32(uifcapi_t* uifcapi)
 	initciowrap(api->mode);
 	#ifdef NCURSES_VERSION_MAJOR
 		ESCDELAY=api->esc_delay;
-#ifdef DISABLED
+		
 		if(mousemask(BUTTON1_CLICKED|BUTTON3_CLICKED,NULL)==BUTTON1_CLICKED|BUTTON3_CLICKED)
 			api->mode|=UIFC_MOUSE;
 		else
 			mousemask(0,NULL);
-#endif
 	#endif
 	
 #else

@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.39 2004/07/02 00:26:52 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.33 2004/06/04 01:13:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,17 +42,14 @@
 #include "filewrap.h"	/* chsize */
 #include "ini_file.h"
 
-/* Maximum length of entire line, includes '\0' */
-#define INI_MAX_LINE_LEN		(INI_MAX_VALUE_LEN*2)
-#define INI_COMMENT_CHAR		';'
-#define INI_OPEN_SECTION_CHAR	'['
-#define INI_CLOSE_SECTION_CHAR	']'
-#define INI_NEW_SECTION			((char*)~0)
+#define INI_MAX_LINE_LEN	256		/* Maximum length of entire line, includes '\0' */
+
+#define NEW_SECTION	((char*)~0)
 
 static ini_style_t default_style;
 
 /****************************************************************************/
-/* Truncates all white-space chars off end of 'str'							*/
+/* Truncates white-space chars off end of 'str'								*/
 /****************************************************************************/
 static void truncsp(char *str)
 {
@@ -63,28 +60,16 @@ static void truncsp(char *str)
 	str[c]=0;
 }
 
-/****************************************************************************/
-/* Truncates carriage-return and line-feed chars off end of 'str'			*/
-/****************************************************************************/
-static void truncnl(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
-	str[c]=0;
-}
-
 static char* section_name(char* p)
 {
 	char*	tp;
 
 	SKIP_WHITESPACE(p);
-	if(*p!=INI_OPEN_SECTION_CHAR)
+	if(*p!='[')
 		return(NULL);
 	p++;
 	SKIP_WHITESPACE(p);
-	tp=strrchr(p,INI_CLOSE_SECTION_CHAR);
+	tp=strchr(p,']');
 	if(tp==NULL)
 		return(NULL);
 	*tp=0;
@@ -99,9 +84,6 @@ static BOOL find_section(FILE* fp, const char* section)
 	char	str[INI_MAX_LINE_LEN];
 
 	rewind(fp);
-
-	if(section==ROOT_SECTION)
-		return(TRUE);
 
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
@@ -120,9 +102,6 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	if(section==ROOT_SECTION)
-		return(0);
-
 	for(i=0; list[i]!=NULL; i++) {
 		SAFECOPY(str,list[i]);
 		if((p=section_name(str))!=NULL && stricmp(p,section)==0)
@@ -134,39 +113,22 @@ static size_t find_section_index(str_list_t list, const char* section)
 
 static char* key_name(char* p, char** vp)
 {
-	char* equal;
-	char* colon;
-
-	if(p==NULL)
-		return(NULL);
-
 	/* Parse value name */
 	SKIP_WHITESPACE(p);
-	if(*p==INI_COMMENT_CHAR)
+	if(*p==';')
 		return(NULL);
-	if(*p==INI_OPEN_SECTION_CHAR)
-		return(INI_NEW_SECTION);
-	equal=strchr(p,'=');
-	colon=strchr(p,':');
-	if(colon==NULL || (equal!=NULL && equal<colon)) {
-		*vp=equal;
-		colon=NULL;
-	} else
-		*vp=colon;
-
+	if(*p=='[')
+		return(NEW_SECTION);
+	*vp=strchr(p,'=');
 	if(*vp==NULL)
 		return(NULL);
-
 	*(*vp)=0;
 	truncsp(p);
 
 	/* Parse value */
 	(*vp)++;
 	SKIP_WHITESPACE(*vp);
-	if(colon!=NULL)			
-		truncnl(*vp);		/* "key : value" - truncate new-line chars only */
-	else	
-		truncsp(*vp);		/* "key = value" - truncate all white-space chars */
+	truncsp(*vp);
 
 	return(p);
 }
@@ -188,7 +150,7 @@ static char* get_value(FILE* fp, const char* section, const char* key, char* val
 			break;
 		if((p=key_name(str,&vp))==NULL)
 			continue;
-		if(p==INI_NEW_SECTION)
+		if(p==NEW_SECTION)
 			break;
 		if(stricmp(p,key)!=0)
 			continue;
@@ -212,7 +174,7 @@ static size_t find_value_index(str_list_t list, const char* section, const char*
 		SAFECOPY(str, list[i]);
 		if((p=key_name(str,&vp))==NULL)
 			continue;
-		if(p==INI_NEW_SECTION)
+		if(p==NEW_SECTION)
 			break;
 		if(stricmp(p,key)!=0)
 			continue;
@@ -223,64 +185,11 @@ static size_t find_value_index(str_list_t list, const char* section, const char*
 	return(i);
 }
 
-BOOL iniKeyExists(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-	size_t	i;
-
-	i=find_value_index(*list, section, key, val);
-
-	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR)
-		return(FALSE);
-
-	return(TRUE);
-}
-
-BOOL iniValueExists(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-
-	find_value_index(*list, section, key, val);
-
-	return(val[0]!=0);
-}
-
-BOOL iniRemoveKey(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-	size_t	i;
-
-	i=find_value_index(*list, section, key, val);
-
-	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR)
-		return(FALSE);
-
-	return(strListDelete(list,i));
-}
-
-BOOL iniRemoveValue(str_list_t* list, const char* section, const char* key)
-{
-	char	val[INI_MAX_VALUE_LEN];
-	size_t	i;
-	char*	vp;
-
-	i=find_value_index(*list, section, key, val);
-
-	if(key_name((*list)[i], &vp)==NULL)
-		return(FALSE);
-
-	*vp=0;	/* Terminate string at beginning of value */
-	return(TRUE);
-}
-
 size_t iniAddSection(str_list_t* list, const char* section
 					,ini_style_t* style)
 {
 	char	str[INI_MAX_LINE_LEN];
 	size_t	i;
-
-	if(section==ROOT_SECTION)
-		return(0);
 
 	i=find_section_index(*list, section);
 	if((*list)[i]==NULL) {
@@ -313,10 +222,8 @@ char* iniSetString(str_list_t* list, const char* section, const char* key, const
 		style->value_separator="=";
 	sprintf(str, "%s%-*s%s%s", style->key_prefix, style->key_len, key, style->value_separator, value);
 	i=find_value_index(*list, section, key, curval);
-	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
-        while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
+	if((*list)[i]==NULL)
 		return strListInsert(list, str, i);
-    }
 
 	if(strcmp(curval,value)==0)
 		return((*list)[i]);	/* no change */
@@ -543,7 +450,7 @@ str_list_t iniGetKeyList(FILE* fp, const char* section)
 			break;
 		if((p=key_name(str,&vp))==NULL)
 			continue;
-		if(p==INI_NEW_SECTION)
+		if(p==NEW_SECTION)
 			break;
 		if(strListAppend(&lp,p,items++)==NULL)
 			break;
@@ -580,7 +487,7 @@ iniGetNamedStringList(FILE* fp, const char* section)
 			break;
 		if((name=key_name(str,&value))==NULL)
 			continue;
-		if(name==INI_NEW_SECTION)
+		if(name==NEW_SECTION)
 			break;
 		if((np=(named_string_t**)realloc(lp,sizeof(named_string_t*)*(items+2)))==NULL)
 			break;
