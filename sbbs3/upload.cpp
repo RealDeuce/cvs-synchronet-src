@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.10 2001/04/19 22:54:43 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.11 2001/06/29 16:24:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,10 @@
 /****************************************************************************/
 bool sbbs_t::uploadfile(file_t *f)
 {
-	char path[256],str[256],fname[25],ext[513],desc[513],tmp[128];
+	char path[256],str[256],fname[25];
+	char ext[F_EXBSIZE+1];
+	char desc[F_EXBSIZE+1];
+	char tmp[128];
 	int  file;
     uint i;
     long length;
@@ -137,9 +140,9 @@ bool sbbs_t::uploadfile(file_t *f)
 				remove(str);
 				external(cmdstr(cfg.fextr[i]->cmd,path,"DESC.SDI",NULL),EX_OUTL); }
 			if((file=nopen(str,O_RDONLY))!=-1) {
-				memset(ext,0,513);
-				read(file,ext,512);
-				for(i=512;i;i--)
+				memset(ext,0,F_EXBSIZE+1);
+				read(file,ext,F_EXBSIZE);
+				for(i=F_EXBSIZE;i;i--)
 					if(ext[i-1]>SP)
 						break;
 				ext[i]=0;

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.26 2001/06/28 03:34:40 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.27 2001/06/29 16:24:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -548,6 +548,8 @@ typedef enum {						/* Values for xtrn_t.event			*/
 #define F_LEN		(F_ALTPATH+2+2) /* Total length of all fdat in file */
 
 #define F_IXBSIZE	22				/* Length of each index entry		*/
+
+#define F_EXBSIZE	512				/* Length of each ext-desc entry	*/
 
 
 #define SIF_MAXBUF  0x7000			/* Maximum buffer size of SIF data */
