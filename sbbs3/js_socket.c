@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.16 2001/11/14 22:40:13 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.17 2002/01/28 20:15:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,12 +206,21 @@ js_connect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	addr.sin_family = AF_INET;
 	addr.sin_port   = htons(port);
 
+#if defined(__unix__)
+	alarm(10);	/* timeout */
+#endif
 	if(connect(p->sock, (struct sockaddr *)&addr, sizeof(addr))!=0) {
+#if defined(__unix__)
+		alarm(0);
+#endif
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "connect failed with error %d",ERROR_VALUE);
 		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 		return(JS_TRUE);
 	}
+#if defined(__unix__)
+	alarm(0);
+#endif
 
 	*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
 	dbprintf(FALSE, p, "connected to port %u at %s", port, JS_GetStringBytes(str));
