@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.6 2003/02/17 02:48:39 deuce Exp $ */
+/* $Id: nopen.c,v 1.7 2003/02/17 02:51:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,17 +77,17 @@ FILE* fnopen(int *fd, char *str, int access)
         *fd=file;
 
     if(access&O_APPEND) {
-        if(access&O_RDWR==O_RDWR)
+        if((access&O_RDWR)==O_RDWR)
             strcpy(mode,"a+");
         else
             strcpy(mode,"a"); 
 	} else if(access&(O_TRUNC|O_WRONLY)) {
-		if(access&O_RDWR==O_RDWR)
+		if((access&O_RDWR)==O_RDWR)
 			strcpy(mode,"w+");
 		else
 			strcpy(mode,"w");
 	} else {
-        if(access&O_RDWR==O_RDWR)
+        if((access&O_RDWR)==O_RDWR)
             strcpy(mode,"r+");
         else
             strcpy(mode,"r"); 
