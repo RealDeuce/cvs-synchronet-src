@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.21 2002/03/20 12:56:38 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.22 2002/04/13 09:06:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -283,7 +283,7 @@ void sbbs_t::errormsg(int line, char *source, char action, char *object
 			actstr="UNKNOWN"; 
 			break;
 	}
-	sprintf(str,"Node %d !ERROR %d in %s line %d %s \"%s\" access=%d"
+	sprintf(str,"Node %d !ERROR %d in %s line %d %s \"%s\" access=%ld"
 		,cfg.node_num, errno, src, line, actstr, object, access);
 	if(online==ON_LOCAL)
 		eprintf("%s",str);
