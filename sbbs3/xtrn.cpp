@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.73 2002/03/07 01:56:22 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.74 2002/03/07 02:16:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -299,7 +299,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 	if(native && mode&EX_OUTR && !(mode&EX_OFFLINE))
 		use_pipes=true;
 
- 	if(native || mode&EX_OFFLINE) { // Native (32-bit) external
+ 	if(native) { // Native (32-bit) external
 
 		// Current environment passed to child process
 		sprintf(dszlog,"DSZLOG=%sPROTOCOL.LOG",cfg.node_dir);
