@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.180 2002/07/27 07:33:38 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.181 2002/07/31 06:47:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,10 +43,6 @@
 	#include <process.h>	/* _beginthread */
 	#include <windows.h>	/* required for mmsystem.h */
 	#include <mmsystem.h>	/* SND_ASYNC */
-
-#elif defined(__unix__)
-
-	#include <signal.h>		/* signal/SIGPIPE */
 
 #endif
 
@@ -2789,7 +2785,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.180 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.181 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -2862,10 +2858,6 @@ void DLLCALL mail_server(void* arg)
 		status("Initializing");
 
 		memset(&scfg, 0, sizeof(scfg));
-
-#ifdef __unix__		/* Ignore "Broken Pipe" signal */
-		signal(SIGPIPE,SIG_IGN);
-#endif
 
 		lprintf("Synchronet Mail Server Revision %s%s"
 			,revision

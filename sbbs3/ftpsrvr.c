@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.176 2002/07/21 05:28:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.177 2002/07/31 06:47:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,10 +43,6 @@
 	#include <process.h>	/* _beginthread */
 	#include <windows.h>	/* required for mmsystem.h */
 	#include <mmsystem.h>	/* SND_ASYNC */
-
-#elif defined(__unix__)
-
-	#include <signal.h>		/* signal/SIGPIPE */
 
 #endif
 
@@ -4268,7 +4264,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.176 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.177 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4345,10 +4341,6 @@ void DLLCALL ftp_server(void* arg)
 		status("Initializing");
 
 		memset(&scfg, 0, sizeof(scfg));
-
-#ifdef __unix__		/* Ignore "Broken Pipe" signal */
-		signal(SIGPIPE,SIG_IGN);
-#endif
 
 		lprintf("Synchronet FTP Server Revision %s%s"
 			,revision

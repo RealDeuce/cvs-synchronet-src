@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.89 2002/07/27 07:32:57 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.90 2002/07/31 06:47:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1179,6 +1179,7 @@ int main(int argc, char** argv)
 	signal(SIGQUIT, _sighandler_quit);
 	signal(SIGABRT, _sighandler_quit);
 	signal(SIGTERM, _sighandler_quit);
+	signal(SIGPIPE, SIG_IGN);	/* Ignore "Broken Pipe" signal */
 
 	if(getuid())  /*  are we running as a normal user?  */
 		bbs_lputs("!Started as non-root user.  Cannot bind() to ports below 1024.");

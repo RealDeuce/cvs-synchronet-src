@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.65 2002/07/20 10:50:44 rswindell Exp $ */
+/* $Id: services.c,v 1.66 2002/07/31 06:47:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,10 +43,6 @@
 	#include <process.h>	/* _beginthread */
 	#include <windows.h>	/* required for mmsystem.h */
 	#include <mmsystem.h>	/* SND_ASYNC */
-
-#elif defined(__unix__)
-
-	#include <signal.h>		/* signal/SIGPIPE */
 
 #endif
 
@@ -968,7 +964,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.65 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.66 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1038,10 +1034,6 @@ void DLLCALL services_thread(void* arg)
 		status("Initializing");
 
 		memset(&scfg, 0, sizeof(scfg));
-
-#ifdef __unix__		/* Ignore "Broken Pipe" signal */
-		signal(SIGPIPE,SIG_IGN);
-#endif
 
 		lprintf("Synchronet Services Revision %s%s"
 			,revision

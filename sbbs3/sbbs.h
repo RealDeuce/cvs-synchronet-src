@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.122 2002/07/27 00:47:37 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.123 2002/07/31 06:47:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,7 +89,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 
 #ifndef __FreeBSD__
 

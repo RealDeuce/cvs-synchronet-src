@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.168 2002/07/31 06:27:05 rswindell Exp $ */
+/* $Id: main.cpp,v 1.169 2002/07/31 06:47:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3174,10 +3174,6 @@ void DLLCALL bbs_thread(void* arg)
 		cleanup(1);
 		return;
 	}
-
-#ifdef __unix__		/* Ignore "Broken Pipe" signal */
-	signal(SIGPIPE,SIG_IGN);
-#endif
 
 	memset(text, 0, sizeof(text));
     memset(&scfg, 0, sizeof(scfg));
