@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.7 2000/12/31 03:41:55 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.8 2001/04/15 16:48:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -396,7 +396,7 @@ void quotestr(char *str)
 	j=strlen(str);
 	while(j && (str[j-1]==SP || str[j-1]==LF || str[j-1]==CR)) j--;
 	str[j]=0;
-	remove_ctrl_a(str);
+	remove_ctrl_a(str,NULL);
 }
 
 void sbbs_t::editor_inf(int xeditnum,char *dest, char *title, long mode
