@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.129 2003/04/28 05:29:11 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.130 2003/04/29 03:49:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1068,7 +1068,7 @@ static int forkpty(int *amaster, char *name, termios *termp, winsize *winp)
 
 	if (openpty(&master, &slave, name, termp, winp) == -1)
 		return (-1);
-	switch (pid = vfork()) {
+	switch (pid = FORK()) {
 	case -1:
 		return (-1);
 	case 0:
@@ -1239,7 +1239,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			}
 
 
-		if((pid=vfork())==-1) {
+		if((pid=FORK())==-1) {
 			pthread_mutex_unlock(&input_thread_mutex);
 			errormsg(WHERE,ERR_EXEC,fullcmdline,0);
 			return(-1);
@@ -1296,7 +1296,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		if(mode&EX_BG)	/* background execution, detach child */
 		{
-			if(vfork())
+			if(FORK())
 				return(0);
 			lprintf("Detaching external process pgid=%d",setsid());
    	    }
