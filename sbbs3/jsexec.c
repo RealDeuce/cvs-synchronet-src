@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.75 2004/12/09 08:07:13 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.73 2004/12/02 06:52:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -462,7 +462,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static JSBool
 js_BranchCallback(JSContext *cx, JSScript *script)
 {
-    return(js_CommonBranchCallback(cx,&branch));
+    return(js_GenericBranchCallback(cx,&branch));
 }
 
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
@@ -514,11 +514,10 @@ static BOOL js_init(char** environ)
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
+	if((js_glob=js_CreateGlobalObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&branch								/* js */
 		,NULL,INVALID_SOCKET					/* client */
-		,NULL									/* server */
 		))==NULL)
 		return(FALSE);
 
@@ -707,7 +706,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.75 $", "%*s %s", revision);
+	sscanf("$Revision: 1.73 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
