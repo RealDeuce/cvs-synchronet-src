@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.17 2002/11/13 02:36:15 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.18 2002/11/13 03:02:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,8 +166,8 @@ extern "C" {
 
 	#include <time.h>		/* time_t, etc. */
 
-	DLLEXPORT struct tm*    DLLCALL		gmtime_r(time_t* t, struct tm* tm);
-	DLLEXPORT struct tm*    DLLCALL		localtime_r(time_t* t, struct tm* tm);
+	DLLEXPORT struct tm*    DLLCALL		gmtime_r(const time_t* t, struct tm* tm);
+	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
 	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf, int buflen);
 	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf, int buflen);
 #endif
