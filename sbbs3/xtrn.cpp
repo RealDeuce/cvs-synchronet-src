@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.14 2000/11/09 01:53:43 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.15 2000/11/17 05:01:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -732,6 +732,8 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 			*p=0; }
 		return(exec_bin(str,&main_csi)); 
 	}
+
+	bprintf("\r\nExternal programs are not yet supported in Synchronet for Linux\r\n");
 
 //	system(cmdline);	This is going to be a lot of work for me... :-)
 	return(0);
