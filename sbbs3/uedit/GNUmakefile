@@ -11,15 +11,17 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2004/03/11 06:26:00 deuce Exp $
+# $Id: GNUmakefile,v 1.4 2004/03/19 02:47:28 deuce Exp $
 
 #USE_CURSES	:=	1	#Use old curses UIFC implementation
 USE_UIFC32	:=	1	# Use new uifc32 implementation
 
 XPDEV	=	../../xpdev/
-SBBS3	=   ../
+SBBS_SRC	=   ../
 NEED_UIFC	:=	1
 include $(XPDEV)Common.gmake
+include $(SBBS_SRC)Common.gmake
+include $(UIFC)Common.gmake
 
 FORCE$(EXEODIR)/uedit: $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 
