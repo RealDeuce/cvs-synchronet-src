@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.162 2004/11/19 05:29:31 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.159 2004/11/17 01:25:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1074,11 +1074,11 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 		if(option==1 && !strcmp(tmp,"AREAFIX")) {       /* Change Password */
 			if(!*p)
 				continue;
-			taddr=smb_atofaddr(&sys_faddr,p);
+			taddr=atofaddr(p);
 			if(!memcmp(&cfg.nodecfg[i].faddr,&taddr,sizeof(faddr_t))) {
-				FIND_WHITESPACE(p); /* Skip over address */
+				FIND_WHITESPACE(p); 	/* Skip over address */
 				SKIP_WHITESPACE(p);	/* Skip over whitespace */
-				FIND_WHITESPACE(p); /* Skip over password */
+				FIND_WHITESPACE(p); 	/* Skip over password */
 				SKIP_WHITESPACE(p);	/* Skip over whitespace */
 				fprintf(outfile,"%-10s %s %s %s\n",tmp
 					,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL),new,p);
@@ -1876,43 +1876,33 @@ int mv(char *src, char *dest, BOOL copy)
 		return(0);
 	if(!fexistcase(src)) {
 		logprintf("MV ERROR: Source doesn't exist '%s",src);
-		return(-1); 
-	}
+		return(-1); }
 	if(!copy && fexistcase(dest)) {
 		logprintf("MV ERROR: Destination already exists '%s'",dest);
-		return(-1); 
-	}
-	if(!copy
-#ifndef __unix__
-		&& ((src[1]!=':' && dest[1]!=':')
-		|| (src[1]==':' && dest[1]==':' && toupper(src[0])==toupper(dest[0])))
-#endif
-		) {
-		if(rename(src,dest)==0)		/* same drive, so move */
-			return(0); 
-		/* rename failed, so attempt copy */
-	}
+		return(-1); }
+	if(!copy && ((src[1]!=':' && dest[1]!=':')
+		|| (src[1]==':' && dest[1]==':' && toupper(src[0])==toupper(dest[0])))) {
+		if(rename(src,dest)) {						/* same drive, so move */
+			logprintf("MV ERROR: Error renaming %s to %s",src,dest);
+			return(-1); }
+		return(0); }
 	if((ind=nopen(src,O_RDONLY))==-1) {
 		logprintf("MV ERROR: ERR_OPEN %s",src);
-		return(-1); 
-	}
+		return(-1); }
 	if((inp=fdopen(ind,"rb"))==NULL) {
 		close(ind);
 		logprintf("MV ERROR: ERR_FDOPEN %s",str);
-		return(-1); 
-	}
+		return(-1); }
 	setvbuf(inp,NULL,_IOFBF,8*1024);
 	if((outd=nopen(dest,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 		fclose(inp);
 		logprintf("MV ERROR: ERR_OPEN %s",dest);
-		return(-1); 
-	}
+		return(-1); }
 	if((outp=fdopen(outd,"wb"))==NULL) {
 		close(outd);
 		fclose(inp);
 		logprintf("MV ERROR: ERR_FDOPEN %s",str);
-		return(-1); 
-	}
+		return(-1); }
 	setvbuf(outp,NULL,_IOFBF,8*1024);
 	length=filelength(ind);
 	l=0L;
@@ -1921,14 +1911,12 @@ int mv(char *src, char *dest, BOOL copy)
 			chunk=length-l;
 		fread(buf,chunk,1,inp);
 		fwrite(buf,chunk,1,outp);
-		l+=chunk; 
-	}
+		l+=chunk; }
 	fclose(inp);
 	fclose(outp);
 	if(!copy && delfile(src)) {
 		logprintf("ERROR line %d removing %s %s",__LINE__,src,strerror(errno));
-		return(-1); 
-	}
+		return(-1); }
 	return(0);
 }
 
@@ -2293,6 +2281,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	}
 
 	memset(&msg,0,sizeof(smbmsg_t));
+	msg.hdr.version=smb_ver();
 	if(fmsghdr.attr&FIDO_PRIVATE)
 		msg.idx.attr|=MSG_PRIVATE;
 	msg.hdr.attr=msg.idx.attr;
@@ -3664,15 +3653,13 @@ void export_echomail(char *sub_code,faddr_t addr)
 						continue; } }
 
 				if((!addr.zone && !(misc&EXPORT_ALL)
-					&& (msg.from_net.type==NET_FIDO || msg.from_net.type==NET_FIDO_ASCII))
+					&& msg.from_net.type==NET_FIDO)
 					|| !strnicmp(msg.subj,"NE:",3)) {   /* no echo */
 					smb_unlockmsghdr(&smb[cur_smb],&msg);
 					smb_freemsgmem(&msg);
 					continue; }  /* From a Fido node, ignore it */
 
-				if(msg.from_net.type!=NET_NONE 
-					&& msg.from_net.type!=NET_FIDO
-					&& msg.from_net.type!=NET_FIDO_ASCII
+				if(msg.from_net.type && msg.from_net.type!=NET_FIDO
 					&& !(scfg.sub[i]->misc&SUB_GATE)) {
 					smb_unlockmsghdr(&smb[cur_smb],&msg);
 					smb_freemsgmem(&msg);
@@ -3955,7 +3942,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.162 $", "%*s %s", revision);
+	sscanf("$Revision: 1.159 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
