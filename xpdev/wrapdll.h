@@ -2,7 +2,7 @@
 
 /* Defines DLLEXPORT and DLLCALL for cross-platform development wrappers */
 
-/* $Id: wrapdll.h,v 1.6 2004/09/23 19:01:44 rswindell Exp $ */
+/* $Id: wrapdll.h,v 1.5 2004/09/08 08:51:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#ifndef _WRAPDLL_H
+#define _WRAPDLL_H
+
 #if defined(DLLEXPORT)
 	#undef DLLEXPORT
 #endif
@@ -58,3 +61,4 @@
 	#define DLLCALL
 #endif
 
+#endif

@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.22 2004/09/17 07:57:12 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.21 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,6 +120,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	}
 
 	j=lastuser(&cfg);
+	x=0;
 
 	if(*ar)
 		for(i=1;i<=j;i++) {

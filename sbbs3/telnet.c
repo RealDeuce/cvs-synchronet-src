@@ -2,13 +2,13 @@
 
 /* Synchronet telnet command/option functions */
 
-/* $Id: telnet.c,v 1.4 2004/10/14 03:28:22 rswindell Exp $ */
+/* $Id: telnet.c,v 1.3 2004/04/08 05:37:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -124,26 +124,4 @@ const char* DLLCALL telnet_opt_desc(uchar opt)
 
 	sprintf(unknown,"%d",opt);
     return(unknown);
-}
-
-const uchar DLLCALL telnet_opt_ack(uchar cmd)
-{
-	switch(cmd) {
-		case TELNET_DO:		return TELNET_WILL;
-		case TELNET_DONT:	return TELNET_WONT;
-		case TELNET_WILL:	return TELNET_DO;
-		case TELNET_WONT:	return TELNET_DONT;
-	}
-	return 0;
-}
-
-const uchar DLLCALL telnet_opt_nak(uchar cmd)
-{
-	switch(cmd) {
-		case TELNET_DO:		return TELNET_WONT;
-		case TELNET_DONT:	return TELNET_WILL;
-		case TELNET_WILL:	return TELNET_DONT;
-		case TELNET_WONT:	return TELNET_DO;
-	}
-	return 0;
 }
