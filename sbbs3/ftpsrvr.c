@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.267 2004/06/05 02:50:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.266 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -840,7 +840,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 							continue;
 						tp++;
 						if(*tp) {
-							SAFEPRINTF2(aliasfile,"%s%s",scfg.dir[dir]->path,tp);
+							sprintf(aliasfile,"%s%s",scfg.dir[dir]->path,tp);
 							np=aliasfile;
 						}
 						else 
@@ -853,7 +853,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 					if(alias_dir) {
 						if(!chk_ar(&scfg,scfg.dir[dir]->ar,user))
 							continue;
-						SAFEPRINTF2(vpath,"/%s/%s",p,startup->html_index_file);
+						sprintf(vpath,"/%s/%s",p,startup->html_index_file);
 					} else
 						SAFECOPY(vpath,p);
 					js_add_file(js_cx
@@ -879,7 +879,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			/* QWK Packet */
 			if(startup->options&FTP_OPT_ALLOW_QWK /* && fexist(qwkfile) */) {
 				sprintf(str,"%s.qwk",scfg.sys_id);
-				SAFEPRINTF(vpath,"/%s",str);
+				sprintf(vpath,"/%s",str);
 				js_add_file(js_cx
 					,file_array 
 					,str						/* filename */
@@ -901,7 +901,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			for(i=0;i<scfg.total_libs;i++) {
 				if(!chk_ar(&scfg,scfg.lib[i]->ar,user))
 					continue;
-				SAFEPRINTF2(vpath,"/%s/%s",scfg.lib[i]->sname,startup->html_index_file);
+				sprintf(vpath,"/%s/%s",scfg.lib[i]->sname,startup->html_index_file);
 				js_add_file(js_cx
 					,dir_array 
 					,scfg.lib[i]->sname			/* filename */
@@ -920,7 +920,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 				if(/* i!=scfg.sysop_dir && i!=scfg.upload_dir && */
 					!chk_ar(&scfg,scfg.dir[i]->ar,user))
 					continue;
-				SAFEPRINTF3(vpath,"/%s/%s/%s"
+				sprintf(vpath,"/%s/%s/%s"
 					,scfg.lib[scfg.dir[i]->lib]->sname
 					,scfg.dir[i]->code_suffix
 					,startup->html_index_file);
@@ -938,7 +938,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 			}
 		} else if(chk_ar(&scfg,scfg.dir[dir]->ar,user)){
-			SAFEPRINTF(path,"%s*",scfg.dir[dir]->path);
+			sprintf(path,"%s*",scfg.dir[dir]->path);
 			glob(path,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
 				if(isdir(g.gl_pathv[i]))
@@ -959,7 +959,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						/* Remove Ctrl-A Codes and Ex-ASCII code */
 						remove_ctrl_a(extdesc,NULL);
 					}
-					SAFEPRINTF3(vpath,"/%s/%s/%s"
+					sprintf(vpath,"/%s/%s/%s"
 						,scfg.lib[scfg.dir[dir]->lib]->sname
 						,scfg.dir[dir]->code_suffix
 						,getfname(g.gl_pathv[i]));
@@ -1558,11 +1558,11 @@ static void send_thread(void* arg)
 						addr_len = sizeof(addr);
 						if(uploader.level>=SYSOP_LEVEL
 							&& getpeername(xfer.ctrl_sock,(struct sockaddr *)&addr,&addr_len)==0)
-							SAFEPRINTF2(username,"%s [%s]",xfer.user->alias,inet_ntoa(addr.sin_addr));
+							sprintf(username,"%s [%s]",xfer.user->alias,inet_ntoa(addr.sin_addr));
 						else
 							SAFECOPY(username,xfer.user->alias);
 						/* Inform uploader of downloaded file */
-						safe_snprintf(str,sizeof(str),text[DownloadUserMsg]
+						sprintf(str,text[DownloadUserMsg]
 							,getfname(xfer.filename)
 							,xfer.filepos ? "partially FTP-" : "FTP-"
 							,username,tmp); 
@@ -2654,7 +2654,7 @@ static void ctrl_thread(void* arg)
 				continue;
 			}
 
-			SAFEPRINTF2(sys_pass,"%s:%s",user.pass,scfg.sys_pass);
+			sprintf(sys_pass,"%s:%s",user.pass,scfg.sys_pass);
 			if(!user.pass[0]) {	/* Guest/Anonymous */
 				if(trashcan(&scfg,password,"email")) {
 					lprintf(LOG_NOTICE,"%04d !BLOCKED e-mail address: %s",sock,password);
@@ -3036,7 +3036,7 @@ static void ctrl_thread(void* arg)
 
 				p=cmd+4;
 				while(*p && *p<=' ') p++;
-				SAFEPRINTF2(path,"%s%s",local_dir, *p ? p : "*");
+				sprintf(path,"%s%s",local_dir, *p ? p : "*");
 				lprintf(LOG_INFO,"%04d %s listing: %s", sock, user.alias, path);
 				sockprintf(sock, "150 Directory of %s%s", local_dir, p);
 
@@ -3100,9 +3100,9 @@ static void ctrl_thread(void* arg)
 				if(p[1]==':' || !strncmp(p,"\\\\",2))
 					SAFECOPY(path,p);
 				else if(*p=='/' || *p=='\\')
-					SAFEPRINTF2(path,"%s%s",root_dir(local_dir),p);
+					sprintf(path,"%s%s",root_dir(local_dir),p);
 				else {
-					SAFEPRINTF2(fname,"%s%s",local_dir,p);
+					sprintf(fname,"%s%s",local_dir,p);
 					FULLPATH(path,fname,sizeof(path));
 				}
 
@@ -3118,7 +3118,7 @@ static void ctrl_thread(void* arg)
 			} /* Local CWD */
 
 			if(!stricmp(cmd,"CDUP") || !stricmp(cmd,"XCUP")) {
-				SAFEPRINTF(path,"%s..",local_dir);
+				sprintf(path,"%s..",local_dir);
 				if(FULLPATH(local_dir,path,sizeof(local_dir))==NULL)
 					sockprintf(sock,"550 Directory does not exist.");
 				else
@@ -3139,9 +3139,9 @@ static void ctrl_thread(void* arg)
 				p=cmd+4;
 				while(*p && *p<=' ') p++;
 				if(*p=='/')	/* absolute */
-					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
+					sprintf(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
-					SAFEPRINTF2(fname,"%s%s",local_dir,p);
+					sprintf(fname,"%s%s",local_dir,p);
 
 				if((i=MKDIR(fname))==0) {
 					sockprintf(sock,"257 \"%s\" directory created",fname);
@@ -3158,9 +3158,9 @@ static void ctrl_thread(void* arg)
 				p=cmd+4;
 				while(*p && *p<=' ') p++;
 				if(*p=='/')	/* absolute */
-					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
+					sprintf(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
-					SAFEPRINTF2(fname,"%s%s",local_dir,p);
+					sprintf(fname,"%s%s",local_dir,p);
 
 				if((i=rmdir(fname))==0) {
 					sockprintf(sock,"250 \"%s\" directory removed",fname);
@@ -3177,9 +3177,9 @@ static void ctrl_thread(void* arg)
 				p=cmd+5;
 				while(*p && *p<=' ') p++;
 				if(*p=='/')	/* absolute */
-					SAFEPRINTF2(ren_from,"%s%s",root_dir(local_dir),p+1);
+					sprintf(ren_from,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
-					SAFEPRINTF2(ren_from,"%s%s",local_dir,p);
+					sprintf(ren_from,"%s%s",local_dir,p);
 				if(!fexist(ren_from)) {
 					sockprintf(sock,"550 File not found: %s",ren_from);
 					lprintf(LOG_WARNING,"%04d !%s attempted to rename %s (not found)"
@@ -3193,9 +3193,9 @@ static void ctrl_thread(void* arg)
 				p=cmd+5;
 				while(*p && *p<=' ') p++;
 				if(*p=='/')	/* absolute */
-					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
+					sprintf(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
-					SAFEPRINTF2(fname,"%s%s",local_dir,p);
+					sprintf(fname,"%s%s",local_dir,p);
 
 				if((i=rename(ren_from, fname))==0) {
 					sockprintf(sock,"250 \"%s\" renamed to \"%s\"",ren_from,fname);
@@ -3220,9 +3220,9 @@ static void ctrl_thread(void* arg)
 				if(p[1]==':')		/* drive specified */
 					SAFECOPY(fname,p);
 				else if(*p=='/')	/* absolute, current drive */
-					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
+					sprintf(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
-					SAFEPRINTF2(fname,"%s%s",local_dir,p);
+					sprintf(fname,"%s%s",local_dir,p);
 				if(!fexist(fname)) {
 					lprintf(LOG_WARNING,"%04d !%s file not found: %s",sock,user.alias,fname);
 					sockprintf(sock,"550 File not found: %s",fname);
@@ -3273,9 +3273,9 @@ static void ctrl_thread(void* arg)
 				if(p[1]==':')		/* drive specified */
 					SAFECOPY(fname,p);
 				else if(*p=='/')	/* absolute, current drive */
-					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
+					sprintf(fname,"%s%s",root_dir(local_dir),p+1);
 				else				/* relative */
-					SAFEPRINTF2(fname,"%s%s",local_dir,p);
+					sprintf(fname,"%s%s",local_dir,p);
 
 				lprintf(LOG_INFO,"%04d %s uploading: %s in %s mode", sock,user.alias,fname
 					,pasv_sock==INVALID_SOCKET ? "active":"passive");
@@ -3420,7 +3420,7 @@ static void ctrl_thread(void* arg)
 								continue;
 							tp++;
 							if(*tp) {
-								SAFEPRINTF2(aliasfile,"%s%s",scfg.dir[dir]->path,tp);
+								sprintf(aliasfile,"%s%s",scfg.dir[dir]->path,tp);
 								np=aliasfile;
 							}
 							else 
@@ -3499,7 +3499,7 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory"
 					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix);
 
-				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,*p ? p : "*");
+				sprintf(path,"%s%s",scfg.dir[dir]->path,*p ? p : "*");
 				glob(path,0,NULL,&g);
 				for(i=0;i<(int)g.gl_pathc;i++) {
 					if(isdir(g.gl_pathv[i]))
@@ -3922,7 +3922,7 @@ static void ctrl_thread(void* arg)
 					filepos=0;
 					continue;
 				}
-				SAFEPRINTF2(fname,"%s%s",scfg.dir[dir]->path,p);
+				sprintf(fname,"%s%s",scfg.dir[dir]->path,p);
 #ifdef _WIN32
 				GetShortPathName(fname, str, sizeof(str));
 #else
@@ -4135,7 +4135,7 @@ static void ctrl_thread(void* arg)
 #endif
 					continue;
 				}
-				SAFEPRINTF2(fname,"%s%s",scfg.dir[dir]->path,p);
+				sprintf(fname,"%s%s",scfg.dir[dir]->path,p);
 				if((!append && filepos==0 && fexist(fname))
 					|| (startup->options&FTP_OPT_INDEX_FILE 
 						&& !stricmp(p,startup->index_file_name))
@@ -4463,7 +4463,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.267 $", "%*s %s", revision);
+	sscanf("$Revision: 1.266 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
