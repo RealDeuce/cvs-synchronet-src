@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.9 2001/07/09 02:35:31 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.10 2001/08/08 00:42:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,7 +264,7 @@ char sbbs_t::getkey(long mode)
 			last_telnet_cmd=now;
 		}
 			
-		if(online==ON_REMOTE && !(cfg.node_misc&NM_NO_INACT) && !(console&CON_NO_INACT)
+		if(online==ON_REMOTE && !(console&CON_NO_INACT)
 			&& now-timeout>=cfg.sec_warn) { 					/* warning */
 			if(sys_status&SS_USERON) {
 				SAVELINE;
