@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.2 2000/10/21 02:58:16 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.3 2000/10/26 15:00:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -203,6 +203,9 @@ int unixtojulian(time_t unix_time)
 /****************************************************************************/
 /* Convert julian date into unix format 									*/
 /****************************************************************************/
+#ifdef __BORLANDC__
+#pragma argsused
+#endif
 time_t juliantounix(ulong j)
 {
 #if 0 /* julian time */
