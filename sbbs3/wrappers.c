@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.16 2000/11/02 13:02:46 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.17 2000/11/02 23:31:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,29 +265,23 @@ char* DLLCALL ultoa(ulong val, char* str, int radix)
 #endif
 
 /****************************************************************************/
-/* Reverse characters of a string											*/
+/* Reverse characters of a string (provided by amcleod)						*/
 /****************************************************************************/
 #ifdef __unix__
 char* strrev(char* str)
 {
-	char*	newstr;
-	int		i;
-	int		len;
+    char t, *i=str, *j=str+strlen(str);
 
-	len=strlen(str);
-	if((newstr=malloc(len+1))==NULL)
-		return(str);
-	for(i=0;i<len;i++)
-		newstr[i]=str[len-(i+1)];
-	newstr[i]=0;
-	strcpy(str,newstr);
-	free(newstr);
-	return(str);
+    while (i<j) {
+        t=*i; *(i++)=*(--j); *j=t;
+    }
+    return str;
 }
 #endif
 
 /****************************************************************************/
 /* Create an absolute or full path name for the specified relative path.	*/
+/* e.g. convert "/sbbs/node1/../data" to "/sbbs/data/"						*/
 /****************************************************************************/
 #ifdef __unix__
 char* _fullpath(char* absPath, const char* relPath, size_t maxLength)
