@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.78 2001/11/02 01:12:30 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.79 2001/11/03 17:46:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -912,8 +912,8 @@ static void pop3_thread(void* arg)
 
 				if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS))==NULL) {
 					smb_freemsgmem(&msg);
-					lprintf("%04d !POP3 ERROR retrieving message text for message #%lu"
-						,socket, msg.hdr.number);
+					lprintf("%04d !POP3 ERROR (%s) retrieving message %lu text"
+						,socket, smb.last_error, msg.hdr.number);
 					sockprintf(socket,"-ERR retrieving message text");
 					continue;
 				}
@@ -2294,7 +2294,7 @@ static void sendmail_thread(void* arg)
 
 			lprintf("0000 SEND getting message text");
 			if((msgtxt=smb_getmsgtxt(&smb,&msg,GETMSGTXT_TAILS))==NULL) {
-				lprintf("0000 !SEND ERROR retrieving message text");
+				lprintf("0000 !SEND ERROR (%s) retrieving message text",smb.last_error);
 				continue;
 			}
 
