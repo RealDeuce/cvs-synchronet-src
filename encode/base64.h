@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding exported function prototypes */
 
-/* $Id: base64.h,v 1.2 2003/03/28 18:14:53 deuce Exp $ */
+/* $Id: base64.h,v 1.3 2003/03/29 05:18:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,5 +35,5 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-char * b64_encode(char *target, const char *source, size_t tlen);
-char * b64_decode(char *target, const char *source, size_t tlen);
+char * b64_encode(char *target, const char *source, size_t tlen, size_t slen);
+char * b64_decode(char *target, const char *source, size_t tlen, size_t slen);
