@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.20 2002/11/18 03:35:58 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.21 2002/11/26 06:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,6 +101,10 @@ extern "C" {
 	#define PLATFORM_DESC	"OpenBSD"
 #elif defined(BSD)
 	#define PLATFORM_DESC	"BSD"
+#elif defined(__solaris__)
+	#define PLATFORM_DESC	"Solaris"
+#elif defined(__sun__)
+	#define PLATFORM_DESC	"SunOS"
 #elif defined(__unix__)
 	#define PLATFORM_DESC	"Unix"
 #else
