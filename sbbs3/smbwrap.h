@@ -2,7 +2,7 @@
 
 /* Synchronet SMBLIB system-call wrappers */
 
-/* $Id: smbwrap.h,v 1.10 2000/11/04 10:12:22 rswindell Exp $ */
+/* $Id: smbwrap.h,v 1.11 2000/11/07 10:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,10 +69,9 @@
 	#define O_BINARY	0		/* all files in binary mode on Unix */
 	#define O_DENYNONE  (1<<31)	/* req'd for Baja/nopen compatibility */
 
-	#define SH_DENYNO	2          // sopen() will *not* block
-	#define SH_DENYRW	F_WRLCK	   // blocks on read/write
-	#define SH_DENYRD   F_RDLCK	   // blocks on read
-	#define SH_DENYWR   F_WRLCK    // blocks on write (and read)
+	#define SH_DENYNO	2          // no locks
+	#define SH_DENYRW	F_WRLCK	   // exclusive lock
+	#define SH_DENYWR   F_RDLCK    // shareable lock
 
 	#define stricmp(x,y)		strcasecmp(x,y)
 	#define strnicmp(x,y,z)		strncasecmp(x,y,z)
