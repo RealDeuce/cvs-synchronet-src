@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.31 2002/11/05 10:48:40 rswindell Exp $ */
+/* $Id: js_user.c,v 1.32 2002/11/07 11:43:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -934,6 +934,8 @@ js_CreateUserObjects(JSContext* cx, JSObject* parent, scfg_t* cfg, user_t* user
 	if(js_CreateFileAreaObject(cx,parent,cfg,user,html_index_file)==NULL) 
 		return(JS_FALSE);
 	if(js_CreateMsgAreaObject(cx,parent,cfg,user,subscan)==NULL) 
+		return(JS_FALSE);
+	if(js_CreateXtrnAreaObject(cx,parent,cfg,user)==NULL)
 		return(JS_FALSE);
 
 	return(JS_TRUE);
