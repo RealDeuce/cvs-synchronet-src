@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.164 2003/03/01 02:28:44 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.165 2003/03/06 10:19:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -476,13 +476,16 @@ public:
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
 	long	getkeys(char *str, ulong max);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
-	char	inkey(long mode);		/* Returns key if one has been hit		*/
 	char	question[128];
 	bool	yesno(char *str);
 	bool	noyes(char *str);
 	void	pause(void);
 	char *	mnestr;
 	void	mnemonics(char *str);
+
+	/* inkey.cpp */
+	char	inkey(long mode);		/* Returns key if one has been hit		*/
+	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
 	void	printfile(char *str, long mode);
