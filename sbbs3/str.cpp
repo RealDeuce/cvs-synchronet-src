@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.32 2002/04/13 08:40:34 rswindell Exp $ */
+/* $Id: str.cpp,v 1.33 2002/04/13 09:43:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1047,7 +1047,7 @@ bool sbbs_t::spy(uint i /* node_num */)
 			}
 			ansi_len=0;
 		}
-		if(ansi_len && ansi_len<sizeof(ansi_seq)-2) {
+		if(ansi_len && ansi_len<(int)sizeof(ansi_seq)-2) {
 			if(ansi_len==1) {
 				if(ch=='[') {
 					ansi_seq[ansi_len++]=ch;

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.17 2002/04/12 08:41:01 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.18 2002/04/13 09:43:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -263,7 +263,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				k--;	/* k is sub */
 				if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf) {
 					bprintf(text[QWKInvalidConferenceN],n);
-					sprintf(str,"%s: Invalid conference number %d",useron.alias,n);
+					sprintf(str,"%s: Invalid conference number %lu",useron.alias,n);
 					logline("P!",str);
 					continue; } }
 
