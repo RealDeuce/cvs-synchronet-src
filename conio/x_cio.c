@@ -1,3 +1,36 @@
+/* $Id: x_cio.c,v 1.10 2004/09/22 04:03:06 deuce Exp $ */
+
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
+
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -91,12 +124,12 @@ void x_delay(long msec)
 
 int x_wherey(void)
 {
-	return(CursRow0+1);
+	return(CursRow+1);
 }
 
 int x_wherex(void)
 {
-	return(CursCol0+1);
+	return(CursCol+1);
 }
 
 /* Put the character _c on the screen at the current cursor position. 
@@ -114,19 +147,19 @@ int x_putch(int ch)
 	switch(ch) {
 		case '\r':
 			gettextinfo(&ti);
-			CursCol0=ti.winleft-1;
+			CursCol=ti.winleft-1;
 			break;
 		case '\n':
 			gettextinfo(&ti);
 			if(wherey()==ti.winbottom-ti.wintop+1)
 				wscroll();
 			else
-				CursRow0++;
+				CursRow++;
 			break;
 		case '\b':
-			if(CursCol0>0)
-				CursCol0--;
-			vmem[CursCol0+CursRow0*DpyCols]=x_curr_attr|' ';
+			if(CursCol>0)
+				CursCol--;
+			vmem[CursCol+CursRow*DpyCols]=x_curr_attr|' ';
 			break;
 		case 7:		/* Bell */
 			tty_beep();
@@ -149,17 +182,17 @@ int x_putch(int ch)
 			gettextinfo(&ti);
 			if(wherey()==ti.winbottom-ti.wintop+1
 					&& wherex()==ti.winright-ti.winleft+1) {
-				vmem[CursCol0+CursRow0*DpyCols]=sch;
+				vmem[CursCol+CursRow*DpyCols]=sch;
 				wscroll();
 				gotoxy(ti.winleft,wherey());
 			}
 			else {
 				if(wherex()==ti.winright-ti.winleft+1) {
-					vmem[CursCol0+CursRow0*DpyCols]=sch;
+					vmem[CursCol+CursRow*DpyCols]=sch;
 					gotoxy(ti.winleft,ti.cury+1);
 				}
 				else {
-					vmem[CursCol0+CursRow0*DpyCols]=sch;
+					vmem[CursCol+CursRow*DpyCols]=sch;
 					gotoxy(ti.curx+1,ti.cury);
 				}
 			}
@@ -171,13 +204,13 @@ int x_putch(int ch)
 
 void x_gotoxy(int x, int y)
 {
-	CursRow0=y-1;
-	CursCol0=x-1;
+	CursRow=y-1;
+	CursCol=x-1;
 }
 
 void x_gettextinfo(struct text_info *info)
 {
-	info->currmode=VideoMode;
+	info->currmode=CurrMode;
 	info->screenheight=DpyRows+1;
 	info->screenwidth=DpyCols;
 	info->curx=wherex();
@@ -194,11 +227,11 @@ void x_setcursortype(int type)
 			break;
 		case _SOLIDCURSOR:
 			CursStart=0;
-			CursEnd=FH;
+			CursEnd=FH-1;
 			break;
 		default:
-		    CursStart = VGA_CRTC[CRTC_CursStart];
-		    CursEnd = VGA_CRTC[CRTC_CursEnd];
+		    CursStart = InitCS;
+		    CursEnd = InitCE;
 			break;
 	}
 }
@@ -228,7 +261,8 @@ int x_beep(void)
 
 void x_textmode(int mode)
 {
-	init_mode(mode);
+	console_new_mode=mode;
+	sem_wait(&console_mode_changed);
 }
 
 void x_settitle(const char *title)
