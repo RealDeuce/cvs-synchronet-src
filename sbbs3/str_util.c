@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.2 2002/07/25 06:05:33 rswindell Exp $ */
+/* $Id: str_util.c,v 1.3 2002/08/06 03:38:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,3 +390,61 @@ ushort DLLCALL crc16(char *str)
 	return(crc);
 }
 
+/****************************************************************************/
+/* Returns 1 if a is a valid ctrl-a code, 0 if it isn't.                    */
+/****************************************************************************/
+BOOL validattr(char a)
+{
+
+	switch(toupper(a)) {
+		case '-':   /* clear        */
+		case '_':   /* clear        */
+		case 'B':   /* blue     fg  */
+		case 'C':   /* cyan     fg  */
+		case 'G':   /* green    fg  */
+		case 'H':   /* high     fg  */
+		case 'I':   /* blink        */
+		case 'K':   /* black    fg  */
+		case 'L':   /* cls          */
+		case 'M':   /* magenta  fg  */
+		case 'N':   /* normal       */
+		case 'P':   /* pause        */
+		case 'R':   /* red      fg  */
+		case 'W':   /* white    fg  */
+		case 'Y':   /* yellow   fg  */
+		case '0':   /* black    bg  */
+		case '1':   /* red      bg  */
+		case '2':   /* green    bg  */
+		case '3':   /* brown    bg  */
+		case '4':   /* blue     bg  */
+		case '5':   /* magenta  bg  */
+		case '6':   /* cyan     bg  */
+		case '7':   /* white    bg  */
+			return(TRUE); 
+	}
+	return(FALSE);
+}
+
+/****************************************************************************/
+/* Strips invalid Ctrl-Ax sequences from str                                */
+/* Returns number of ^A's in line                                           */
+/****************************************************************************/
+size_t strip_invalid_attr(char *strin)
+{
+    char str[1024];
+    size_t a,c,d;
+
+	for(a=c=d=0;strin[c] && d<sizeof(str)-1;c++) {
+		if(strin[c]==CTRL_A && strin[c+1]!=0) {
+			a++;
+			if(!validattr(strin[c+1])) {
+				c++;
+				continue; 
+			} 
+		}
+		str[d++]=strin[c]; 
+	}
+	str[d]=0;
+	strcpy(strin,str);
+	return(a);
+}

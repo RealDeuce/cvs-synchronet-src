@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.8 2002/03/13 12:30:46 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.9 2002/08/06 03:38:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,65 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-
-/****************************************************************************/
-/* Returns 1 if a is a valid ctrl-a code, 0 if it isn't.                    */
-/****************************************************************************/
-bool sbbs_t::validattr(char a)
-{
-
-	switch(toupper(a)) {
-		case '-':   /* clear        */
-		case '_':   /* clear        */
-		case 'B':   /* blue     fg  */
-		case 'C':   /* cyan     fg  */
-		case 'G':   /* green    fg  */
-		case 'H':   /* high     fg  */
-		case 'I':   /* blink        */
-		case 'K':   /* black    fg  */
-		case 'L':   /* cls          */
-		case 'M':   /* magenta  fg  */
-		case 'N':   /* normal       */
-		case 'P':   /* pause        */
-		case 'R':   /* red      fg  */
-		case 'W':   /* white    fg  */
-		case 'Y':   /* yellow   fg  */
-		case '0':   /* black    bg  */
-		case '1':   /* red      bg  */
-		case '2':   /* green    bg  */
-		case '3':   /* brown    bg  */
-		case '4':   /* blue     bg  */
-		case '5':   /* magenta  bg  */
-		case '6':   /* cyan     bg  */
-		case '7':   /* white    bg  */
-			return(true); }
-	return(false);
-}
-
-/****************************************************************************/
-/* Strips invalid Ctrl-Ax sequences from str                                */
-/* Returns number of ^A's in line                                           */
-/****************************************************************************/
-int sbbs_t::stripattr(char *strin)
-{
-    char str[256];
-    uint a,c,d,e;
-
-	e=strlen(strin);
-	for(a=c=d=0;c<e && d<sizeof(str)-1;c++) {
-		if(strin[c]==CTRL_A && strin[c+1]!=0) {
-			a++;
-			if(!validattr(strin[c+1])) {
-				c++;
-				continue; 
-			} 
-		}
-		str[d++]=strin[c]; 
-	}
-	str[d]=0;
-	strcpy(strin,str);
-	return(a);
-}
 
 /****************************************************************************/
 /* Redraws str using i as current cursor position and l as length           */
