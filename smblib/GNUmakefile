@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.5 2004/09/17 04:40:55 deuce Exp $
+# $Id: GNUmakefile,v 1.6 2004/09/20 02:58:45 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -23,6 +23,6 @@ CFLAGS += -I$(XPDEV_SRC)
 # SMBLIB Library Link Rule
 $(SMBLIB_BUILD): $(OBJODIR) $(OBJS)
 	@echo Creating $@ ...
-	$(QUIET)ar rc $@ $(OBJS)
-	$(QUIET)ranlib $@
+	$(QUIET)$(AR) rc $@ $(OBJS)
+	$(QUIET)$(RANLIB) $@
 
