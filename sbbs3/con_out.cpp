@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.8 2001/08/24 14:18:46 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.9 2001/08/28 12:50:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,7 +187,7 @@ void sbbs_t::outchar(char ch)
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
 		if(console&CON_R_ECHOX && (uchar)ch>=SP) {
 			ch=text[YN][3];
-			if(ch==0) ch='X';
+			if(text[YN][2]==0 || ch==0) ch='X';
 		}
 		if(ch==FF && useron.misc&ANSI) {
 			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
