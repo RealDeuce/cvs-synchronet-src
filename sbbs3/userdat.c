@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.23 2001/11/15 23:40:28 rswindell Exp $ */
+/* $Id: userdat.c,v 1.24 2001/11/16 00:50:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,10 @@ uint DLLCALL matchuser(scfg_t* cfg, char *name)
 	char str[256],c;
 	ulong l,length;
 	FILE *stream;
+
+	if(!stricmp(name,"SYSOP") || !stricmp(name,cfg->sys_id) 
+		|| !stricmp(name,"POSTMASTER") || !stricmp(name,cfg->sys_op)) 
+		return(1); /* pseudonyms for user #1 */
 
 	sprintf(str,"%suser/name.dat",cfg->data_dir);
 	if((file=nopen(str,O_RDONLY))==-1)
@@ -1376,7 +1380,7 @@ char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name)
 	return(addr);
 }
 
-char* DLLCALL alias(scfg_t* cfg, SOCKET socket, char* name, char* buf)
+char* DLLCALL alias(scfg_t* cfg, char* name, char* buf)
 {
 	int		file;
 	char*	p;
@@ -1386,12 +1390,6 @@ char* DLLCALL alias(scfg_t* cfg, SOCKET socket, char* name, char* buf)
 	FILE*	fp;
 
 	p=name;
-
-	if(!stricmp(p,"SYSOP") || !stricmp(p,cfg->sys_id) 
-		|| !stricmp(p,"POSTMASTER") || !stricmp(p,cfg->sys_op)) {
-		strcpy(buf,"1");
-		return(buf);
-	}
 
 	sprintf(fname,"%salias.cfg",cfg->ctrl_dir);
 	if((file=sopen(fname,O_RDONLY|O_BINARY,SH_DENYNO))==-1)
