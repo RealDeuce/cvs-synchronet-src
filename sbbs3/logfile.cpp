@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.32 2003/04/29 22:47:11 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.33 2003/07/03 01:16:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,11 +231,7 @@ void sbbs_t::errormsg(int line, const char *source, char action, const char *obj
 	errormsg_inside=true;
 
 	/* Don't log path to source code */
-	src=strrchr(source,BACKSLASH);
-	if(src==NULL) 
-		src=source;
-	else
-		src++;
+	src=getfname(source);
 
 	switch(action) {
 		case ERR_OPEN:

@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.113 2003/06/14 02:32:20 deuce Exp $ */
+/* $Id: websrvr.c,v 1.114 2003/07/03 01:16:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,13 +83,6 @@ extern const uchar* nular;
 #define MAX_MIME_TYPES			128
 #define MAX_REQUEST_LINE		1024
 #define MAX_HEADERS_SIZE		16384	/* Maximum total size of all headers */
-
-/* These probobly exists somewhere else to... ToDo */
-#ifdef _WIN32
-	#define is_slash(x)			((x)=='/' || (x)=='\\')
-#else
-	#define is_slash(x)		(x=='/')
-#endif
 
 static scfg_t	scfg;
 static BOOL		scfg_reloaded=TRUE;
@@ -1449,11 +1442,11 @@ static BOOL check_request(http_session_t * session)
 		lprintf("Path is: %s",path);
 	if(isdir(path)) {
 		last_ch=*lastchar(path);
-		if(!is_slash(last_ch))  {
+		if(!IS_PATH_DELIM(last_ch))  {
 			strcat(path,"/");
 		}
 		last_ch=*lastchar(session->req.virtual_path);
-		if(!is_slash(last_ch))  {
+		if(!IS_PATH_DELIM(last_ch))  {
 			strcat(session->req.virtual_path,"/");
 		}
 		last_slash=find_last_slash(path);
@@ -2387,7 +2380,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.113 $", "%*s %s", revision);
+	sscanf("$Revision: 1.114 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -2460,8 +2453,8 @@ void DLLCALL web_server(void* arg)
 	prep_dir(startup->ctrl_dir, error_dir, sizeof(error_dir));
 
 	/* Trim off trailing slash/backslash */
-	if(*(p=lastchar(root_dir))==BACKSLASH)	*p=0;
-	if(*(p=lastchar(error_dir))==BACKSLASH)	*p=0;
+	if(IS_PATH_DELIM(*(p=lastchar(root_dir))))	*p=0;
+	if(IS_PATH_DELIM(*(p=lastchar(error_dir))))	*p=0;
 
 	uptime=0;
 	served=0;

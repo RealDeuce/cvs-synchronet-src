@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.22 2003/06/14 10:05:13 rswindell Exp $ */
+/* $Id: str_util.c,v 1.23 2003/07/03 01:16:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -287,8 +287,8 @@ void backslashcolon(char *str)
     int i;
 
 	i=strlen(str);
-	if(i && str[i-1]!='\\' && str[i-1]!='/' && str[i-1]!=':') {
-		str[i]=BACKSLASH; 
+	if(i && !IS_PATH_DELIM(str[i-1]) && str[i-1]!=':') {
+		str[i]=PATH_DELIM; 
 		str[i+1]=0; 
 	}
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.49 2003/06/07 02:47:29 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.50 2003/07/03 01:16:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -438,12 +438,7 @@ void sbbs_read_ini(
 			=iniGetShortInt(fp,section,"MaxCgiInactivity",120);	/* seconds */
 
 
-	#ifdef __unix__
-		default_cgi_temp = "/tmp";
-	#else
-		if((default_cgi_temp = getenv("TEMP")) == NULL)
-			default_cgi_temp = nulstr;
-	#endif
+		default_cgi_temp = _PATH_TMP;
 		SAFECOPY(web->cgi_temp_dir
 			,iniGetString(fp,section,"CGITempDirectory",default_cgi_temp,value));
 

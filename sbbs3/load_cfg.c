@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.46 2003/05/14 21:34:16 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.47 2003/07/03 01:16:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -504,7 +504,7 @@ char* DLLCALL prep_dir(char* base, char* path, size_t buflen)
 		if(ch=='\\' || ch=='/')
 			sprintf(str,"%s%s",base,path);
 		else
-			sprintf(str,"%s%c%s",base,BACKSLASH,path);
+			sprintf(str,"%s%c%s",base,PATH_DELIM,path);
 	} else
 		strcpy(str,path);
 
