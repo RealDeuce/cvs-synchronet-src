@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.97 2002/02/05 21:57:23 rswindell Exp $ */
+/* $Id: main.cpp,v 1.98 2002/02/08 16:50:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1780,7 +1780,7 @@ bool sbbs_t::init()
 		thisnode.action=0;
 		thisnode.useron=0;
 		thisnode.aux=0;
-		thisnode.misc&=(NODE_EVENT|NODE_LOCK);
+		thisnode.misc&=(NODE_EVENT|NODE_LOCK|NODE_RRUN);
 		criterrs=thisnode.errors;
 		putnodedat(cfg.node_num,&thisnode);
 	}
