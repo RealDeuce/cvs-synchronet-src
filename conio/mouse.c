@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 #include <genwrap.h>
 #include <semwrap.h>
 #include <threadwrap.h>
