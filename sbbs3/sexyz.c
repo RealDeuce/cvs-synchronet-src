@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.3 2003/09/17 03:50:35 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.4 2003/09/18 03:43:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,10 +403,14 @@ void send_files(char** fname, uint fnames, FILE* log)
 	memset(&xm,0,sizeof(xm));
 	xm.sock=sock;
 	xm.mode=mode;
+	xm.errfp=errfp;
+	xm.statfp=statfp;
 
 	memset(&zm,0,sizeof(zm));
 	zm.sock=sock;
 	zm.mode=mode;
+	zm.errfp=errfp;
+	zm.statfp=statfp;
 	zm.n_files_remaining = total_files;
 	zm.n_bytes_remaining = total_bytes;
 
@@ -597,7 +601,7 @@ void send_files(char** fname, uint fnames, FILE* log)
 					if(!t) t=1; 		/* t is time so far */
 					cps=(uint)((block_num*(long)block_size)/t); 	/* cps so far */
 					if(!cps) cps=1;
-					l=fsize/cps;	/* total transfer est time */
+					l=fsize/cps;		/* total transfer est time */
 					l-=t;				/* now, it's est time left */
 					if(l<0) l=0;
 					b=num_blocks(fsize,block_size);
@@ -1125,7 +1129,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.3 $", "%*s %s", revision);
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2003 Rob Swindell\n\n"
