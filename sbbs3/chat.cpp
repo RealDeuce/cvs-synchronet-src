@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.8 2000/11/07 03:14:07 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.9 2000/11/07 11:47:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1718,7 +1718,8 @@ void sbbs_t::localguru(char *gurubuf, int gurunum)
 	thisnode.aux=gurunum;
 	putnodedat(cfg.node_num,&thisnode);
 	attr(cfg.color[clr_chatlocal]);
-	guruchat("HELLO",gurubuf,gurunum);
+	strcpy(str,"HELLO");
+	guruchat(str,gurubuf,gurunum);
 	while(online && (sys_status&SS_GURUCHAT)) {
 		checkline();
 		action=NODE_GCHT;
