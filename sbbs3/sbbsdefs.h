@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.6 2000/10/31 04:14:51 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.7 2000/11/02 11:28:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -596,6 +596,7 @@ enum {								/* Values for xtrn_t.event			*/
 #define SS_SPLITP	(1L<<24) /* Split-screen private chat				*/
 #define SS_NEWDAY	(1L<<25) /* Date changed while online				*/
 #define SS_RLOGIN	(1L<<26) /* Current login via BSD RLogin			*/
+#define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy		*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_UPPER 	(1L<<0) 	/* Converts all letters to upper case		*/
