@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.49 2003/08/20 10:01:30 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.50 2003/09/04 22:11:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -114,6 +114,7 @@ char *usage=
 "       e<s> = set 'from' user number for imported message\n"
 "       s<s> = set 'subject' for imported message\n"
 "       z[n] = set time zone (n=min +/- from UT or 'EST','EDT','CST',etc)\n"
+"       #    = set number of messages to view/list (e.g. -1)\n"
 ;
 
 /*****************************************************************************/
@@ -1372,11 +1373,12 @@ int main(int argc, char **argv)
 	char*	subj=NULL;
 	FILE*	fp;
 	int		i,j,x,y;
+	long	count=-1;
 	BOOL	create=FALSE;
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.49 $", "%*s %s", revision);
+	sscanf("$Revision: 1.50 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1404,6 +1406,10 @@ int main(int argc, char **argv)
 			argv[x][0]=='/' ||		/* for backwards compatibilty */
 #endif
 			argv[x][0]=='-') {
+			if(isdigit(argv[x][1])) {
+				count=strtol(argv[x]+1,NULL,10);
+				continue;
+			}
 			for(j=1;argv[x][j];j++)
 				switch(toupper(argv[x][j])) {
 					case 'A':
@@ -1541,7 +1547,7 @@ int main(int argc, char **argv)
 							config();
 							break;
 						case 'L':
-							listmsgs(atol(cmd+1),-1L);
+							listmsgs(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'P':
@@ -1553,7 +1559,7 @@ int main(int argc, char **argv)
 							y=strlen(cmd)-1;
 							break;
 						case 'V':
-							viewmsgs(atol(cmd+1),-1L);
+							viewmsgs(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'M':
