@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.5 2003/05/17 00:13:16 rswindell Exp $ */
+/* $Id: chat.c,v 1.6 2003/05/17 00:14:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,7 @@ void wsetcolor(WINDOW *win, int fg, int bg)  {
 	wbkgdset(win, colour);
 }
 
-void drawchatwin(WINDOW **uwin, WINDOW **swin, box_t *boxch, const char* topnmae, const char* botname) {
+void drawchatwin(WINDOW **uwin, WINDOW **swin, box_t *boxch, const char* topname, const char* botname) {
 	int maxy,maxx;
 
 	endwin();
