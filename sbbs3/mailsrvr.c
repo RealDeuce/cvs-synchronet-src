@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.53 2001/04/26 02:55:55 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.54 2001/06/15 03:38:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1422,13 +1422,6 @@ static void smtp_thread(void* arg)
 					tp=strrchr(p,'>');
 					if(tp) *tp=0;
 				}
-#if 0
-				if(!nettype) {
-					nettype=NET_INTERNET;
-					smb_hfield(&msg, RECIPIENTNETTYPE, nettype, &nettype);
-					smb_hfield(&msg, RECIPIENTNETADDR, (ushort)strlen(p), p);
-				}
-#endif
 				continue;
 			}
 			if(!strnicmp(buf, "REPLY-TO:",9)) {
