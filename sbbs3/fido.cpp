@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.34 2004/10/21 08:58:25 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.35 2004/10/27 09:09:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -875,15 +875,15 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		,useron.alias
 		,hdr.to,smb_faddrtoa(&fidoaddr,tmp));
 	logline("EN",str);
-	}
+}
 
-	/****************************************************************************/
-	/* Returns the FidoNet address kept in str as ASCII.                        */
-	/****************************************************************************/
-	faddr_t atofaddr(scfg_t* cfg, char *str)
-	{
-		char *p;
-		faddr_t addr;
+/****************************************************************************/
+/* Returns the FidoNet address kept in str as ASCII.                        */
+/****************************************************************************/
+faddr_t atofaddr(scfg_t* cfg, char *str)
+{
+	char *p;
+	faddr_t addr;
 
 	addr.zone=addr.net=addr.node=addr.point=0;
 	if((p=strchr(str,':'))!=NULL) {
