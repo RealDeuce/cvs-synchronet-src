@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.4 2002/07/25 01:24:31 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.5 2002/11/04 08:32:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,15 +44,19 @@
 /****************************************************************************/
 void sbbs_t::printfile(char *str, long mode)
 {
-	char HUGE16 *buf;
+	char* buf;
+	char* p;
 	int file,wip=0,rip=0;
 	long length,savcon=console;
 	FILE *stream;
 
-	if(strstr(str,".WIP"))
-		wip=1;
-	if(strstr(str,".RIP"))
-		rip=1;
+	p=strrchr(str,'.');
+	if(p!=NULL) {
+		if(stricmp(p,".wip")==0)
+			wip=1;
+		else if(stricmp(p,".rip")==0)
+			rip=1;
+	}
 
 	if(mode&P_NOABORT || wip || rip) {
 		if(online==ON_REMOTE && console&CON_R_ECHO) {
