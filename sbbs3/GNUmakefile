@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.13 2002/04/13 07:42:24 rswindell Exp $
+# $Id: GNUmakefile,v 1.14 2002/04/18 02:09:39 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -38,7 +38,7 @@ endif
 
 DELETE	=	rm -fv
 
-CFLAGS	=	-DJAVASCRIPT -I../mozilla/js/src -I$(XPDEV)
+CFLAGS	=	-Wall -DJAVASCRIPT -I../mozilla/js/src -I$(XPDEV)
 
 ifeq ($(os),FreeBSD)	# FreeBSD
 CFLAGS	+= -D_THREAD_SAFE
