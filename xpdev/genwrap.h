@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.55 2003/11/05 03:56:51 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.56 2003/11/05 05:16:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ extern "C" {
 #elif defined(__NetBSD__)
 	#define PLATFORM_DESC	"NetBSD"
 #elif defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
-	#define PLATFORM_DESC	"Mac OS X"
+	#define PLATFORM_DESC	"MacOSX"
 #elif defined(BSD)
 	#define PLATFORM_DESC	"BSD"
 #elif defined(__solaris__)
