@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.8 2002/04/25 22:47:23 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.9 2002/04/26 23:50:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,8 +97,7 @@ extern "C" {
 #elif defined(__unix__)
 	#define PLATFORM_DESC	"Unix"
 #else
-	#warning "Need to describe target platform"
-	#define PLATFORM_DESC	"UNKNOWN"
+	#error "Need to describe target platform"
 #endif
 
 /*********************/
@@ -118,7 +117,7 @@ extern "C" {
 	DLLEXPORT char*	DLLCALL strupr(char* str);
 	DLLEXPORT char*	DLLCALL strlwr(char* str);
 	DLLEXPORT char* DLLCALL	strrev(char* str);
-	#if !defined(stricmp)
+	#if !defined(__BORLANDC__) && !defined(stricmp)
 		#define stricmp(x,y)		strcasecmp(x,y)
 		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#endif
@@ -146,7 +145,7 @@ extern "C" {
 
 #else	/* Unsupported OS */
 
-	#warning "Unsupported Target: Need some macros and/or function prototypes here."
+	#error "Unsupported Target: Need some macros and/or function prototypes here."
 
 #endif
 
