@@ -2,7 +2,7 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.h,v 1.1 2001/09/19 22:09:57 rswindell Exp $ */
+/* $Id: ident.h,v 1.2 2002/02/02 04:01:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

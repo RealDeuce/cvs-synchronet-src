@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.2 2001/09/19 00:05:32 rswindell Exp $ */
+/* $Id: telnet.h,v 1.3 2002/02/02 04:01:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

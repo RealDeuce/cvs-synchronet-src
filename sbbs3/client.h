@@ -2,7 +2,7 @@
 
 /* Synchronet client information to share with SBBSCTRL */
 
-/* $Id: client.h,v 1.3 2001/06/22 03:27:41 rswindell Exp $ */
+/* $Id: client.h,v 1.4 2002/02/02 04:01:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.9 2002/01/29 22:59:35 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.10 2002/02/02 04:01:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
