@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.113 2003/10/24 22:10:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.114 2003/10/28 00:21:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2356,7 +2356,7 @@ int fmsgtosmsg(uchar HUGE16 *fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
 
 	msg.hdr.when_imported.time=time(NULL);
-	msg.hdr.when_imported.zone=scfg.sys_timezone;
+	msg.hdr.when_imported.zone=sys_timezone(&scfg);
 	msg.hdr.when_written.time=fmsgtime(fmsghdr.time);
 
 	origaddr.zone=fmsghdr.origzone; 	/* only valid if NetMail */
@@ -4067,7 +4067,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.113 $", "%*s %s", revision);
+	sscanf("$Revision: 1.114 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

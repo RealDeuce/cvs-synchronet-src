@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.215 2003/10/26 22:56:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.216 2003/10/28 00:21:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -831,6 +831,7 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error);
 	DLLEXPORT void		DLLCALL free_cfg(scfg_t* cfg);
 	DLLEXPORT void		DLLCALL free_text(char* text[]);
+	DLLEXPORT ushort	DLLCALL sys_timezone(scfg_t* cfg);
 
 	/* scfgsave.c */
 	DLLEXPORT BOOL		DLLCALL save_cfg(scfg_t* cfg, int backup_level);

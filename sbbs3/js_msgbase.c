@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.81 2003/10/19 07:15:58 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.82 2003/10/28 00:21:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1237,7 +1237,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(msg.hdr.when_written.time==0) {
 		msg.hdr.when_written.time=time(NULL);
-		msg.hdr.when_written.zone=scfg->sys_timezone;
+		msg.hdr.when_written.zone=sys_timezone(scfg);
 	}
 
 	truncsp(body);

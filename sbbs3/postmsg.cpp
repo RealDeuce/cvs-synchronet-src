@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.41 2003/09/25 08:13:36 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.42 2003/10/28 00:21:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,7 +306,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msgattr;
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
-	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=cfg.sys_timezone;
+	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	/* using the idx records here is not technically necessary, just for convenience */
 	msg.idx.attr=msg.hdr.attr;

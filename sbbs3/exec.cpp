@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.47 2003/10/24 21:46:54 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.48 2003/10/28 00:21:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -266,7 +266,7 @@ long * sbbs_t::getintvar(csi_t *bin, long name)
 		case 0x11c83294:
 			return((long *)&cfg.sys_psnum);
 		case 0x02408dc5:
-			sysvar_l[sysvar_li]=cfg.sys_timezone;
+			sysvar_l[sysvar_li]=sys_timezone(&cfg);
 			break;
 		case 0x78afeaf1:
 			sysvar_l[sysvar_li]=cfg.sys_pwdays;
