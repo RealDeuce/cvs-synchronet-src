@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.21 2000/10/29 00:54:43 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.22 2000/10/30 02:19:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ static void thread_down(void)
 		startup->thread_up(FALSE);
 }
 
-SOCKET open_socket(int type)
+static SOCKET open_socket(int type)
 {
 	SOCKET sock;
 
@@ -205,7 +205,7 @@ SOCKET open_socket(int type)
 #ifdef __BORLANDC__
 #pragma argsused
 #endif
-int close_socket(SOCKET* sock, int line)
+static int close_socket(SOCKET* sock, int line)
 {
 	int		result;
 	ulong	l=0;
