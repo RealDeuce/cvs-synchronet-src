@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.3 2000/11/09 04:29:39 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.4 2000/11/14 01:24:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,8 +72,8 @@ void sbbs_t::putnodedat(uint number, node_t* node)
 
 	if(nodefile==-1) {
 		sprintf(str,"%snode.dab",cfg.ctrl_dir);
-		if((nodefile=nopen(str,O_RDWR|O_DENYNONE))==-1) {
-			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE);
+		if((nodefile=nopen(str,O_CREAT|O_RDWR|O_DENYNONE))==-1) {
+			errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_RDWR|O_DENYNONE);
 			return; 
 		}
 	}
@@ -129,8 +129,8 @@ void sbbs_t::putnodeext(uint number, char *ext)
 	number--;   /* make zero based */
 
 	sprintf(str,"%snode.exb",cfg.ctrl_dir);
-	if((node_ext=nopen(str,O_RDWR|O_DENYNONE))==-1) {
-		errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE);
+	if((node_ext=nopen(str,O_CREAT|O_RDWR|O_DENYNONE))==-1) {
+		errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_RDWR|O_DENYNONE);
 		return; 
 	}
 	while(count<LOOP_NODEDAB) {
