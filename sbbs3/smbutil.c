@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.4 2000/10/30 02:24:26 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.5 2000/11/02 13:27:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,6 +53,7 @@
 /* ANSI */
 #include <time.h>	/* time */
 #include <errno.h>	/* errno */
+#include <string.h>	/* strrchr */
 
 #include "smblib.h"
 #include "smbwrap.h"
@@ -205,7 +206,7 @@ if(smb.status.max_crcs) {
 msg.hdr.offset=offset;
 
 printf("To User Name: ");
-gets(str);
+fgets(str,sizeof(str)-1,stdin);
 i=smb_hfield(&msg,RECIPIENT,(ushort)strlen(str),str);
 if(i) {
 	printf("\n\7!smb_hfield returned %d\n",i);
