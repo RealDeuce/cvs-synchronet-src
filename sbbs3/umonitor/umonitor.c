@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.52 2004/02/23 01:49:55 deuce Exp $ */
+/* $Id: umonitor.c,v 1.49 2003/11/02 18:20:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,16 +100,6 @@ void allocfail(uint size)
     bail(1);
 }
 
-void freeopt(char** opt)
-{
-	int i;
-
-	for(i=0;i<(MAX_OPTS+1);i++)
-		free(opt[i]);
-
-	free(opt);
-}
-
 void node_toggles(scfg_t *cfg,int nodenum)  {
 	int nodefile;
 	char**	opt;
@@ -173,7 +163,6 @@ void node_toggles(scfg_t *cfg,int nodenum)  {
 		}
 		putnodedat(cfg,nodenum,&node,nodefile);
 	}
-	freeopt(opt);
 }
 
 int dospy(int nodenum, bbs_startup_t *bbs_startup)  {
@@ -328,17 +317,14 @@ int drawstats(scfg_t *cfg, int nodenum, node_t *node, int *curp, int *barp) {
 	ulong	free;
 	uint	i,l,m;
 	time_t	t;
-	int		shownode=1;
 
 	if(getnodedat(cfg,nodenum,node,NULL)) {
-		shownode=0;
-	}
-	else {
-		getstats(cfg, nodenum, &nstats);
+		return(-1);
 	}
 	username(cfg,node->useron,usrname);
 
 	getstats(cfg, 0, &sstats);
+	getstats(cfg, nodenum, &nstats);
 	t=time(NULL);
 	strftime(str[0][0],12,"%b %e",localtime(&t));
 	free=getfreediskspace(cfg->temp_dir,1024);
@@ -348,44 +334,23 @@ int drawstats(scfg_t *cfg, int nodenum, node_t *node, int *curp, int *barp) {
 	}
 	else
 		getsizestr(str[0][1],free,FALSE);
-	if(shownode) {
-		snprintf(str[1][0],12,"%s/%s",getnumstr(str[3][2],nstats.ltoday),getnumstr(str[3][3],sstats.ltoday));
-		getnumstr(str[1][1],sstats.logons);
-		snprintf(str[1][2],12,"%s/%s",getnumstr(str[3][2],nstats.ttoday),getnumstr(str[3][3],sstats.ttoday));
-		getnumstr(str[1][3],sstats.timeon);
-		snprintf(str[2][0],12,"%s/%s",getnumstr(str[3][2],sstats.etoday),getnumstr(str[3][3],getmail(cfg,0,0)));
-		l=m=0;
-		for(i=0;i<cfg->total_subs;i++)
-			l+=getposts(cfg,i); 			/* l=total posts */
-		for(i=0;i<cfg->total_dirs;i++)
-			m+=getfiles(cfg,i); 			/* m=total files */
-		snprintf(str[2][1],12,"%s/%s",getnumstr(str[3][2],sstats.ptoday),getnumstr(str[3][3],l));
-		snprintf(str[2][2],12,"%s/%s",getnumstr(str[3][2],sstats.ftoday),getnumstr(str[3][3],getmail(cfg,1,0)));
-		snprintf(str[2][3],12,"%s/%s",getnumstr(str[3][2],sstats.nusers),getnumstr(str[3][3],total_users(cfg)));
-		getsizestr(str[3][0],sstats.ulb,TRUE);
-		snprintf(str[3][1],12,"%s/%s",getnumstr(str[3][2],sstats.uls),getnumstr(str[3][3],m));
-		getsizestr(str[3][2],sstats.dlb,TRUE);
-		getnumstr(str[3][3],sstats.dls);
-	}
-	else {
-		snprintf(str[1][0],12,"%s",getnumstr(str[3][3],sstats.ltoday));
-		getnumstr(str[1][1],sstats.logons);
-		snprintf(str[1][2],12,"%s",getnumstr(str[3][3],sstats.ttoday));
-		getnumstr(str[1][3],sstats.timeon);
-		snprintf(str[2][0],12,"%s/%s",getnumstr(str[3][2],sstats.etoday),getnumstr(str[3][3],getmail(cfg,0,0)));
-		l=m=0;
-		for(i=0;i<cfg->total_subs;i++)
-			l+=getposts(cfg,i); 			/* l=total posts */
-		for(i=0;i<cfg->total_dirs;i++)
-			m+=getfiles(cfg,i); 			/* m=total files */
-		snprintf(str[2][1],12,"%s/%s",getnumstr(str[3][2],sstats.ptoday),getnumstr(str[3][3],l));
-		snprintf(str[2][2],12,"%s/%s",getnumstr(str[3][2],sstats.ftoday),getnumstr(str[3][3],getmail(cfg,1,0)));
-		snprintf(str[2][3],12,"%s/%s",getnumstr(str[3][2],sstats.nusers),getnumstr(str[3][3],total_users(cfg)));
-		getsizestr(str[3][0],sstats.ulb,TRUE);
-		snprintf(str[3][1],12,"%s/%s",getnumstr(str[3][2],sstats.uls),getnumstr(str[3][3],m));
-		getsizestr(str[3][2],sstats.dlb,TRUE);
-		getnumstr(str[3][3],sstats.dls);
-	}
+	snprintf(str[1][0],12,"%s/%s",getnumstr(str[3][2],nstats.ltoday),getnumstr(str[3][3],sstats.ltoday));
+	getnumstr(str[1][1],sstats.logons);
+	snprintf(str[1][2],12,"%s/%s",getnumstr(str[3][2],nstats.ttoday),getnumstr(str[3][3],sstats.ttoday));
+	getnumstr(str[1][3],sstats.timeon);
+	snprintf(str[2][0],12,"%s/%s",getnumstr(str[3][2],sstats.etoday),getnumstr(str[3][3],getmail(cfg,0,0)));
+	l=m=0;
+	for(i=0;i<cfg->total_subs;i++)
+		l+=getposts(cfg,i); 			/* l=total posts */
+	for(i=0;i<cfg->total_dirs;i++)
+		m+=getfiles(cfg,i); 			/* m=total files */
+	snprintf(str[2][1],12,"%s/%s",getnumstr(str[3][2],sstats.ptoday),getnumstr(str[3][3],l));
+	snprintf(str[2][2],12,"%s/%s",getnumstr(str[3][2],sstats.ftoday),getnumstr(str[3][3],getmail(cfg,1,0)));
+	snprintf(str[2][3],12,"%s/%s",getnumstr(str[3][2],sstats.nusers),getnumstr(str[3][3],total_users(cfg)));
+	getsizestr(str[3][0],sstats.ulb,TRUE);
+	snprintf(str[3][1],12,"%s/%s",getnumstr(str[3][2],sstats.uls),getnumstr(str[3][3],m));
+	getsizestr(str[3][2],sstats.dlb,TRUE);
+	getnumstr(str[3][3],sstats.dls);
 	snprintf(statbuf,sizeof(statbuf),"`Node #`: %-3d %6s  `Space`: %s"
 			"\n`Logons`: %-11s `Total`: %-11s `Timeon`: %-11s `Total`: %-11s"
 			"\n`Emails`: %-11s `Posts`: %-11s `Fbacks`: %-11s `Users`: %-11s"
@@ -403,369 +368,7 @@ int drawstats(scfg_t *cfg, int nodenum, node_t *node, int *curp, int *barp) {
 	return(0);
 }
 
-int view_log(char *filename, char *title)
-{
-	char str[1024];
-	int buffile;
-	int j;
-	char *buf;
 
-	if(fexist(filename)) {
-		if((buffile=sopen(filename,O_RDONLY,SH_DENYWR))>=0) {
-			j=filelength(buffile);
-			if((buf=(char *)MALLOC(j+1))!=NULL) {
-				read(buffile,buf,j);
-				close(buffile);
-				*(buf+j)=0;
-				uifc.showbuf(WIN_MID,0,0,76,uifc.scrn_len-2,title,buf,NULL,NULL);
-				free(buf);
-				return(0);
-			}
-			close(buffile);
-			uifc.msg("Error allocating memory for the error log");
-			return(3);
-		}
-		sprintf(str,"Error opening %s",title);
-		uifc.msg(str);
-		return(1);
-	}
-	sprintf(str,"%s does not exists",title);
-	uifc.msg(str);
-	return(2);
-}
-
-int view_logs(scfg_t *cfg)
-{
-	char**	opt;
-	int		i;
-	char	str[1024];
-	struct tm tm;
-	struct tm tm_yest;
-	time_t	now;
-
-	now=time(NULL);
-	localtime_r(&now,&tm);
-	now -= 60*60*24;
-	localtime_r(&now,&tm_yest);
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	i=0;
-	strcpy(opt[i++],"Todays callers");
-	strcpy(opt[i++],"Yesterdays callers");
-	strcpy(opt[i++],"Error log");
-	strcpy(opt[i++],"Todays log");
-	strcpy(opt[i++],"Yesterdays log");
-	strcpy(opt[i++],"Spam log");
-	strcpy(opt[i++],"SBBSEcho log");
-	strcpy(opt[i++],"Guru log");
-	strcpy(opt[i++],"Hack log");
-	opt[i][0]=0;
-	i=0;
-	uifc.helpbuf=	"`View Logs:`\n"
-					"\nToDo: Add help";
-
-	while(1) {
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"View Logs",opt))  {
-			case -1:
-				freeopt(opt);
-				return(0);
-			case 0:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg->logs_dir,tm.tm_mon+1,tm.tm_mday
-					,TM_YEAR(tm.tm_year));
-				view_log(str,"Todays Callers");
-				break;
-			case 1:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.LOL",cfg->logs_dir,tm_yest.tm_mon+1
-					,tm_yest.tm_mday,TM_YEAR(tm_yest.tm_year));
-				view_log(str,"Yesterdays Callers");
-				break;
-			case 2:
-				sprintf(str,"%s/error.log",cfg->logs_dir);
-				view_log(str,"Error Log");
-				break;
-			case 3:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.log",cfg->logs_dir,tm.tm_mon+1,tm.tm_mday
-					,TM_YEAR(tm.tm_year));
-				view_log(str,"Todays Log");
-				break;
-			case 4:
-				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.log",cfg->logs_dir,tm_yest.tm_mon+1
-					,tm_yest.tm_mday,TM_YEAR(tm_yest.tm_year));
-				view_log(str,"Yesterdays Log");
-				break;
-			case 5:
-				sprintf(str,"%sspam.log",cfg->logs_dir);
-				view_log(str,"SPAM Log");
-				break;
-			case 6:
-				sprintf(str,"%ssbbsecho.log",cfg->logs_dir);
-				view_log(str,"SBBSEcho Log");
-				break;
-			case 7:
-				sprintf(str,"%sguru.log",cfg->logs_dir);
-				view_log(str,"Guru Log");
-				break;
-			case 8:
-				sprintf(str,"%shack.log",cfg->logs_dir);
-				view_log(str,"Hack Log");
-				break;
-		}
-	}
-}
-
-int do_cmd(char *cmd)
-{
-	int i;
-	
-	endwin();
-	i=system(cmd);
-	refresh();
-	return(i);
-}
-
-int qwk_callouts(scfg_t *cfg)
-{
-	char**	opt;
-	int		i,j;
-	char	str[1024];
-
-	if(cfg->total_qhubs<1) {
-		uifc.msg("No QWK hubs configured!");
-		return(1);
-	}
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-
-	uifc.helpbuf=	"`QWK Callouts:`\n"
-					"\nToDo: Add help";
-
-	j=0;
-	while(1) {
-		for(i=0;i<cfg->total_qhubs;i++) {
-			strcpy(opt[i],cfg->qhub[i]->id);
-			sprintf(str,"%sqnet/%s.now",cfg->data_dir,cfg->qhub[i]->id);
-			if(fexist(str))
-				strcat(opt[i]," (pending)");
-		}
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"QWK Callouts",opt))  {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			default:
-				sprintf(str,"%sqnet/%s.now",cfg->data_dir,cfg->qhub[j]->id);
-				ftouch(str);
-		}
-	}
-	return(0);
-}
-
-int run_events(scfg_t *cfg)
-{
-	char**	opt;
-	int		i,j;
-	char	str[1024];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	if(cfg->total_events<1) {
-		uifc.msg("No events configured!");
-		return(1);
-	}
-	j=0;
-
-	uifc.helpbuf=	"`Run Events:`\n"
-					"\nToDo: Add help";
-
-	while(1) {
-		for(i=0;i<cfg->total_events;i++) {
-			strcpy(opt[i],cfg->event[i]->code);
-			sprintf(str,"%s%s.now",cfg->data_dir,cfg->event[i]->code);
-			if(fexist(str))
-				strcat(opt[i]," (pending)");
-		}
-		opt[i][0]=0;
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Run Events",opt))  {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			default:
-				sprintf(str,"%s%s.now",cfg->data_dir,cfg->event[j]->code);
-				ftouch(str);
-		}
-	}
-	return(0);
-}
-
-int recycle_servers(scfg_t *cfg)
-{
-	char str[1024];
-	char **opt;
-	int i=0;
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	i=0;
-	strcpy(opt[i++],"FTP server");
-	strcpy(opt[i++],"Mail server");
-	strcpy(opt[i++],"Services");
-	strcpy(opt[i++],"Telnet server");
-	strcpy(opt[i++],"Web server");
-	opt[i][0]=0;
-
-	uifc.helpbuf=	"`Recycle Servers:`\n"
-					"\nToDo: Add help";
-
-	i=0;
-	while(1) {
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Recycle Servers",opt))  {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			case 0:
-				sprintf(str,"%sftpsrvr.rec",cfg->ctrl_dir);
-				ftouch(str);
-				break;
-			case 1:
-				sprintf(str,"%smailsrvr.rec",cfg->ctrl_dir);
-				ftouch(str);
-				break;
-			case 2:
-				sprintf(str,"%sservices.rec",cfg->ctrl_dir);
-				ftouch(str);
-				break;
-			case 3:
-				sprintf(str,"%stelnet.rec",cfg->ctrl_dir);
-				ftouch(str);
-				break;
-			case 4:
-				sprintf(str,"%swebsrvr.rec",cfg->ctrl_dir);
-				ftouch(str);
-				break;
-		}
-	}
-	return(0);
-}
-
-char *geteditor(char *edit)
-{
-	if(getenv("EDITOR")==NULL && (getenv("VISUAL")==NULL || getenv("DISPLAY")==NULL))
-		strcpy(edit,"vi");
-	else {
-		if(getenv("DISPLAY")!=NULL && getenv("VISUAL")!=NULL)
-			strcpy(edit,getenv("VISUAL"));
-		else
-			strcpy(edit,getenv("EDITOR"));
-	}
-	return(edit);
-}
-
-
-int edit_cfg(scfg_t *cfg)
-{
-	char**	opt;
-	int		i;
-	char	cmd[1024];
-	char	editcmd[1024];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	i=0;
-	strcpy(opt[i++],"alias.cfg");
-	strcpy(opt[i++],"attr.cfg");
-	strcpy(opt[i++],"dns_blacklist.cfg");
-	strcpy(opt[i++],"dnsbl_exempt.cfg");
-	strcpy(opt[i++],"domains.cfg");
-	strcpy(opt[i++],"mailproc.cfg");
-	strcpy(opt[i++],"mime_types.cfg");
-	strcpy(opt[i++],"relay.cfg");
-	strcpy(opt[i++],"sbbsecho.cfg");
-	strcpy(opt[i++],"services.cfg");
-	strcpy(opt[i++],"ftpalias.cfg");
-	strcpy(opt[i++],"sockopts.cfg");
-	strcpy(opt[i++],"spambait.cfg");
-	strcpy(opt[i++],"spamblock.cfg");
-	strcpy(opt[i++],"twitlist.cfg");
-	opt[i][0]=0;
-	i=0;
-	while(1) {
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"System Options",opt))  {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			default:
-				sprintf(cmd,"%s %s%s",geteditor(editcmd),cfg->ctrl_dir,opt[i]);
-				do_cmd(cmd);
-				break;
-		}
-	}
-	return(0);
-}
-
-int edit_can(scfg_t *cfg)
-{
-	char**	opt;
-	int		i;
-	char	cmd[1024];
-	char	editcmd[1024];
-
-	if((opt=(char **)MALLOC(sizeof(char *)*(MAX_OPTS+1)))==NULL)
-		allocfail(sizeof(char *)*(MAX_OPTS+1));
-	for(i=0;i<(MAX_OPTS+1);i++)
-		if((opt[i]=(char *)MALLOC(MAX_OPLN))==NULL)
-			allocfail(MAX_OPLN);
-
-	i=0;
-	strcpy(opt[i++],"email.can");
-	strcpy(opt[i++],"file.can");
-	strcpy(opt[i++],"host.can");
-	strcpy(opt[i++],"ip.can");
-	strcpy(opt[i++],"ip-silent.can");
-	strcpy(opt[i++],"name.can");
-	strcpy(opt[i++],"phone.can");
-	strcpy(opt[i++],"rlogin.can");
-	strcpy(opt[i++],"subject.can");
-	opt[i][0]=0;
-	i=0;
-	while(1) {
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"System Options",opt))  {
-			case -1:
-				freeopt(opt);
-				return(0);
-				break;
-			default:
-				sprintf(cmd,"%s %s%s",geteditor(editcmd),cfg->text_dir,opt[i]);
-				do_cmd(cmd);
-				break;
-		}
-	}
-	return(0);
-}
 
 int main(int argc, char** argv)  {
 	char**	opt;
@@ -777,10 +380,11 @@ int main(int argc, char** argv)  {
 	char	title[256];
 	int		i,j;
 	node_t	node;
+	char	*buf;
+	int		buffile;
 	int		nodefile;
 	box_t	boxch;
 	scfg_t	cfg;
-	int		done;
 	/******************/
 	/* Ini file stuff */
 	/******************/
@@ -788,7 +392,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.52 $", "%*s %s", revision);
+	sscanf("$Revision: 1.49 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -920,14 +524,13 @@ int main(int argc, char** argv)  {
 	}
 
 	while(1) {
-		strcpy(mopt[0],"System Options");
 		for(i=1;i<=cfg.sys_nodes;i++) {
 			if((j=getnodedat(&cfg,i,&node,NULL)))
-				sprintf(mopt[i],"Error reading node data (%d)!",j);
+				sprintf(mopt[i-1],"Error reading node data (%d)!",j);
 			else
-				sprintf(mopt[i],"%3d: %s",i,nodestatus(&cfg,&node,str,71));
+				sprintf(mopt[i-1],"%3d: %s",i,nodestatus(&cfg,&node,str,71));
 		}
-		mopt[i][0]=0;
+		mopt[i-1][0]=0;
 
 		uifc.helpbuf=	"`Synchronet Monitor:`\n"
 						"\nCTRL-E displays the error log"
@@ -941,7 +544,7 @@ int main(int argc, char** argv)  {
 						"\nCTRL-I Interrupt node"
 						"\nToDo: Add more help. (Explain what you're looking at)";
 
-		drawstats(&cfg, main_dflt, &node, &main_dflt, &main_bar);
+		drawstats(&cfg, main_dflt+1, &node, &main_dflt, &main_bar);
 
 		j=uifc.list(WIN_L2R|WIN_ESC|WIN_ACT|WIN_DYN,0,5,70,&main_dflt,&main_bar
 			,title,mopt);
@@ -951,7 +554,26 @@ int main(int argc, char** argv)  {
 
 		if(j==-7) {	/* CTRL-E */
 			sprintf(str,"%s/error.log",cfg.data_dir);
-			view_log(str,"Error Log");
+			if(fexist(str)) {
+				if((buffile=sopen(str,O_RDONLY,SH_DENYWR))>=0) {
+					j=filelength(buffile);
+					if((buf=(char *)MALLOC(j+1))!=NULL) {
+						read(buffile,buf,j);
+						close(buffile);
+						*(buf+j)=0;
+						uifc.showbuf(WIN_MID,0,0,76,uifc.scrn_len-2,"Error Log",buf,NULL,NULL);
+						free(buf);
+						continue;
+					}
+					close(buffile);
+					uifc.msg("Error allocating memory for the error log");
+					continue;
+				}
+				uifc.msg("Error opening error log");
+			}
+			else {
+				uifc.msg("Error log does not exist");
+			}
 			continue;
 		}
 		
@@ -1044,68 +666,12 @@ int main(int argc, char** argv)  {
 				bail(0);
 			continue;
 		}
-
-		if(j==0) {
-			/* System Options */
-			i=0;
-			strcpy(opt[i++],"Run SCFG");
-			strcpy(opt[i++],"View logs");
-			strcpy(opt[i++],"Force QWK Net callout");
-			strcpy(opt[i++],"Run event");
-			strcpy(opt[i++],"Recycle servers");
-			strcpy(opt[i++],"Edit CFG files");
-			strcpy(opt[i++],"Edit trashcan files");
-			opt[i][0]=0;
-			uifc.helpbuf=	"`System Options:`\n"
-							"\nToDo: Add help";
-
-			done=0;
-			i=0;
-			while(!done) {
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"System Options",opt))  {
-					case -1:
-						done=1;
-						break;
-					case 0:
-						sprintf(str,"%sscfg ",cfg.exec_dir);
-						for(j=1; j<argc; j++) {
-							strcat(str,"'");
-							strcat(str,argv[j]);
-							strcat(str,"' ");
-						}
-						do_cmd(str);
-						break;
-					case 1:
-						view_logs(&cfg);
-						break;
-					case 2:
-						qwk_callouts(&cfg);
-						break;
-					case 3:
-						run_events(&cfg);
-						break;
-					case 4:
-						recycle_servers(&cfg);
-						break;
-					case 5:
-						edit_cfg(&cfg);
-						break;
-					case 6:
-						edit_can(&cfg);
-						break;
-				}
-			}
-			continue;
-		}
-
-		if(j<cfg.sys_nodes && j>0) {
+		if(j<cfg.sys_nodes && j>=0) {
 			i=0;
 			strcpy(opt[i++],"Spy on node");
 			strcpy(opt[i++],"Node toggles");
 			strcpy(opt[i++],"Clear Errors");
-			strcpy(opt[i++],"View node log");
-			strcpy(opt[i++],"View crash log");
-			if(!getnodedat(&cfg,j,&node,NULL)) {
+			if(!getnodedat(&cfg,j+1,&node,NULL)) {
 				if((node.status==NODE_INUSE) && node.useron) {
 					strcpy(opt[i++],"Send message to user");
 					strcpy(opt[i++],"Chat with user");
@@ -1115,47 +681,33 @@ int main(int argc, char** argv)  {
 			i=0;
 			uifc.helpbuf=	"`Node Options:`\n"
 							"\nToDo: Add help";
-			done=0;
-			while(!done) {
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Node Options",opt))  {
-					case 0:	/* Spy */
-						dospy(j,&bbs_startup);
-						break;
+			switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Node Options",opt))  {
+				case 0:	/* Spy */
+					dospy(j+1,&bbs_startup);
+					break;
 
-					case 1: /* Node Toggles */
-						node_toggles(&cfg, j);
-						break;
-	
-					case 2:
-						clearerrors(&cfg, j,&node);
-						break;
-	
-					case 3: /* Node log */
-						sprintf(str,"%snode.log",cfg.node_path[j-1]);
-						view_log(str,"Node Log");
-						break;
+				case 1: /* Node Toggles */
+					node_toggles(&cfg, j+1);
+					break;
 
-					case 4: /* Crash log */
-						sprintf(str,"%scrash.log",cfg.node_path[j-1]);
-						view_log(str,"Crash Log");
-						break;
+				case 2:
+					clearerrors(&cfg, j+1,&node);
+					break;
+
+				case 3:	/* Send message */
+					sendmessage(&cfg, j+1,&node);
+					break;
+
+				case 4:
+					chat(&cfg,main_dflt+1,&node,&boxch,uifc.timedisplay);
+					break;
+				
+				case -1:
+					break;
 					
-					case 5:	/* Send message */
-						sendmessage(&cfg, j,&node);
-						break;
-	
-					case 6:
-						chat(&cfg,main_dflt+1,&node,&boxch,uifc.timedisplay);
-						break;
-					
-					case -1:
-						done=1;
-						break;
-					
-					default:
-						uifc.msg("Option not implemented");
-						break;
-				}
+				default:
+					uifc.msg("Option not implemented");
+					break;
 			}
 		}
 	}
