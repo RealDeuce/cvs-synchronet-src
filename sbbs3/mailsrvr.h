@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.3 2000/10/23 20:22:40 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.4 2000/10/24 22:24:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@ typedef struct {
 	WORD	max_inactivity;
 	WORD	max_delivery_attempts;
 	WORD	rescan_frequency;	/* In seconds */
-	WORD	reserved_word3;
+	WORD	relay_port;
 	WORD	reserved_word2;
 	WORD	reserved_word1;
     DWORD   interface_addr;
