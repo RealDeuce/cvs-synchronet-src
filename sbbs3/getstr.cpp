@@ -2,7 +2,7 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.14 2003/07/08 10:28:43 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.15 2003/07/25 19:59:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -507,15 +507,15 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 					wordwrap[z]=0;
 					if(!(mode&K_NOECHO))
 						while(z--) {
-							bputs("\b \b");
+							rputs("\b \b");
 							i--; 
 						}
 					strrev(wordwrap);
 					str1[x]=0;
 					strcpy(strout,str1);
 					if(strip_invalid_attr(strout) && !(mode&K_NOECHO))
-						redrwstr(strout,i,x,(char)mode);
-					if(!(mode&K_NOECHO|K_NOCRLF))
+						redrwstr(strout,i,x,mode);
+					if(!(mode&(K_NOECHO|K_NOCRLF)))
 						CRLF;
 					return(x); 
 				}
