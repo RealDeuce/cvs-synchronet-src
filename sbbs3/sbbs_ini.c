@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.33 2003/02/27 03:14:02 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.34 2003/03/06 03:11:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,7 @@ void sbbs_read_ini(
 #if defined(__FreeBSD__)
 	default_dosemu_path="/usr/bin/doscmd";
 #else
-	default_dosemu_path="/usr/bin/dosemu";
+	default_dosemu_path="/usr/bin/dosemu.bin";
 #endif
 
 	SAFECOPY(bbs->dosemu_path
