@@ -2,7 +2,7 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.4 2001/06/15 03:38:08 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.5 2001/10/16 23:36:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,6 +97,8 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 			ungetkey(ch); }
 
 	while(!(sys_status&SS_ABORT) && (ch=getkey(mode|K_GETSTR))!=CR && online) {
+		if(!input_thread_running)
+			break;
 		if(sys_status&SS_ABORT)
 			break;
 		if(ch==LF && mode&K_MSG) /* Down-arrow same as CR */
