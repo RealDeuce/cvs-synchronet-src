@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: userobj.c,v 1.3 2001/04/16 23:54:50 rswindell Exp $ */
+/* $Id: userobj.c,v 1.4 2001/05/03 23:14:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,7 +359,6 @@ static struct JSPropertySpec js_user_stats_properties[] = {
 	{	"total_logons"		,USER_PROP_LOGONS     	,USEROBJ_FLAGS,		NULL,NULL},
 	{	"logons_today"		,USER_PROP_LTODAY     	,USEROBJ_FLAGS,		NULL,NULL},
 	{	"total_timeon"		,USER_PROP_TIMEON     	,USEROBJ_FLAGS,		NULL,NULL},
-	{	"extra_time"		,USER_PROP_TEXTRA  	 	,USEROBJ_FLAGS,		NULL,NULL},
 	{	"timeon_today"		,USER_PROP_TTODAY     	,USEROBJ_FLAGS,		NULL,NULL},
 	{	"timeon_last_logon"	,USER_PROP_TLAST      	,USEROBJ_FLAGS,		NULL,NULL},
 	{	"total_posts"		,USER_PROP_POSTS      	,USEROBJ_FLAGS,		NULL,NULL},
