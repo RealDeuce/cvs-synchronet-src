@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.66 2003/02/09 08:01:55 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.67 2003/02/09 08:13:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 		SAFECOPY(params.sbbsgroup,p);
 	params.useX=TRUE;
 
-	sscanf("$Revision: 1.66 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.67 $", "%*s %s", revision);
 
     printf("\r\nSynchronet Installation %s-%s  Copyright 2003 "
         "Rob Swindell\r\n",revision,PLATFORM_DESC);
@@ -719,7 +719,7 @@ get_distlist(void)
 
 		switch(in_line[0])  {
 			case 'R':	/* revision */
-				SAFECOPY(distlist_rev,in_line+2);
+				sscanf(in_line+2, "%*s %s", distlist_rev);
 				break;
 			case 'C':
 				if(file!=NULL)
