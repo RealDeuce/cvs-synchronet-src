@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.16 2003/01/23 10:39:01 rswindell Exp $ */
+/* $Id: node.c,v 1.17 2003/09/05 00:07:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -548,7 +548,10 @@ int main(int argc, char **argv)
 								misc=NODE_INTR;
 								break;
 							case MODE_DOWN:
-								misc=NODE_DOWN;
+					            if(node.status==NODE_WFC)
+            						node.status=NODE_OFFLINE;
+								else
+									misc=NODE_DOWN;
 								break;
 							case MODE_RRUN:
 								misc=NODE_RRUN;
