@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.20 2000/12/04 21:18:59 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.21 2000/12/04 21:38:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -924,6 +924,15 @@ char * sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case '%':   /* %% for percent sign */
                     strcat(cmd,"%");
                     break;
+				case '?':	/* Platform */
+#ifdef __OS2__
+					strcpy(str,"OS2");
+#else
+					strcat(str,PLATFORM_DESC);
+#endif
+					strlwr(str);
+					strcat(cmd,str);
+					break;
                 default:    /* unknown specification */
                     if(isdigit(instr[i])) {
                         sprintf(str,"%0*d",instr[i]&0xf,useron.number);
