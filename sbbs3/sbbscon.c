@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.95 2002/08/08 08:50:23 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.96 2002/08/09 08:37:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -665,7 +665,7 @@ static void web_terminated(int code)
 	web_stopped=TRUE;
 }
 
-static void terminate()
+static void terminate(void)
 {
 	bbs_terminate();
 	ftp_terminate();
