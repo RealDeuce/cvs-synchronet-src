@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.42 2003/05/02 00:07:41 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.43 2003/05/02 18:56:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,9 @@
 	#include <unistd.h>		/* usleep */
 	#ifdef _THREAD_SAFE
 		#include <pthread.h>/* Check for GNU PTH libs */
+		#ifdef _PTH_PTHREAD_H_
+			#include <pth.h>
+		#endif
 	#endif
 #elif defined(_WIN32)
 	#include <process.h>	/* getpid() */
