@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.54 2003/02/08 03:04:18 rswindell Exp $
+# $Id: GNUmakefile,v 1.55 2003/02/08 07:22:44 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -107,7 +107,11 @@ else
 endif
 
 # The following are needed for echocfg
-CFLAGS += -DUSE_CURSES -DUSE_FLTK -I../../include/fltk
+ifdef USE_FLTK
+ CFLAGS += -DUSE_CURSES -DUSE_FLTK -I../../include/fltk
+ LFLAGS_FLTK = -L../../lib/fltk/$(os) -L/usr/X11R6/lib -lfltk -lX11 -lcurses
+ UIFC_FLTK = $(EXEODIR)/uifcfltk.o
+endif
 
 include targets.mk		# defines all targets
 include objects.mk		# defines $(OBJS)
@@ -269,13 +273,13 @@ $(ECHOCFG): \
 	$(EXEODIR)/rechocfg.o \
 	$(EXEODIR)/uifcx.o \
 	$(EXEODIR)/uifcc.o \
-	$(EXEODIR)/uifcfltk.o \
+	$(UIFC_FLTK) \
 	$(EXEODIR)/nopen.o \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/filewrap.o \
 	$(EXEODIR)/genwrap.o
 	@echo Linking $@
-	@$(CC) -L../../lib/fltk/$(os) -L/usr/X11R6/lib -lfltk -lX11 -lcurses -o $@ $^
+	@$(CC) -o $@ $^ $(LFLAGS_FLTK)
 
 # ADDFILES
 $(ADDFILES): \
