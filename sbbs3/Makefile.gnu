@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: Makefile.gnu,v 1.20 2000/11/11 01:21:00 rswindell Exp $
+# $Id: Makefile.gnu,v 1.21 2000/11/14 00:15:17 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -129,7 +129,7 @@ $(CHKSMB): chksmb.c smblib.c smbwrap.c conwrap.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 # SMB Utility
-$(SMBUTIL): smbutil.c smblib.c smbwrap.c conwrap.c smbtxt.c lzh.c
+$(SMBUTIL): smbutil.c smblib.c smbwrap.c conwrap.c smbtxt.c crc32.c lzh.c 
 	$(CC) $(CFLAGS) -o $@ $^
 
 
