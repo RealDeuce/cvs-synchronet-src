@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.24 2003/04/26 17:31:45 deuce Exp $ */
+/* $Id: genwrap.c,v 1.25 2003/06/11 01:52:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,21 @@
 #endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
+
+/****************************************************************************/
+/* Used to replace snprintf()  guarantees to terminate.			  			*/
+/****************************************************************************/
+static int safe_snprintf(char *dst, size_t size, char *fmt, ...)
+{
+	va_list argptr;
+	int     numchars;
+
+	va_start(argptr,fmt);
+	numchars= vsnprintf(dst,size,fmt,argptr);
+	va_end(argptr);
+	dst[size-1]=0;
+	return(numchars);
+}
 
 /****************************************************************************/
 /* Return last character of string											*/
