@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.102 2004/11/17 01:52:34 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.99 2004/09/08 03:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 {
 	char*		cp;
 	char		to[256];
-	ushort		nettype=NET_UNKNOWN;
+	ushort		nettype;
 	ushort		agent;
 	int32		i32;
 	jsval		val;
@@ -153,24 +153,21 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	if(JS_GetProperty(cx, hdr, "to_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		nettype=(ushort)i32;
+		smb_hfield(msg, RECIPIENTNETTYPE, sizeof(nettype), &nettype);
+		if(p->smb.status.attr&SMB_EMAIL && nettype!=NET_NONE)
+			msg->idx.to=0;
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
-		smb_hfield_netaddr(msg, RECIPIENTNETADDR, cp, &nettype);
-	}
-
-	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
-		if(p->smb.status.attr&SMB_EMAIL)
-			msg->idx.to=0;
-		smb_hfield_bin(msg, RECIPIENTNETTYPE, nettype);
+		smb_hfield_str(msg, RECIPIENTNETADDR, cp);
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_agent", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		agent=(ushort)i32;
-		smb_hfield_bin(msg, RECIPIENTAGENT, agent);
+		smb_hfield(msg, RECIPIENTAGENT, sizeof(agent), &agent);
 	}
 
 	return(TRUE);
@@ -181,7 +178,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 {
 	char*		cp;
 	char		from[256];
-	ushort		nettype=NET_UNKNOWN;
+	ushort		nettype;
 	ushort		type;
 	ushort		agent;
 	ushort		port;
@@ -236,24 +233,21 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	if(JS_GetProperty(cx, hdr, "from_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		nettype=(ushort)i32;
+		smb_hfield(msg, SENDERNETTYPE, sizeof(nettype), &nettype);
+		if(p->smb.status.attr&SMB_EMAIL && nettype!=NET_NONE)
+			msg->idx.from=0;
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
-		smb_hfield_netaddr(msg, SENDERNETADDR, cp, &nettype);
-	}
-	
-	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
-		if(p->smb.status.attr&SMB_EMAIL)
-			msg->idx.from=0;
-		smb_hfield_bin(msg, SENDERNETTYPE, nettype);
+		smb_hfield_str(msg, SENDERNETADDR, cp);
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_agent", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		agent=(ushort)i32;
-		smb_hfield_bin(msg, SENDERAGENT, agent);
+		smb_hfield(msg, SENDERAGENT, sizeof(agent), &agent);
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_ip_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
@@ -277,7 +271,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	if(JS_GetProperty(cx, hdr, "from_port", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		port=(ushort)i32;
-		smb_hfield_bin(msg, SENDERPORT, port);
+		smb_hfield(msg, SENDERPORT, sizeof(port), &port);
 	}
 
 	if(JS_GetProperty(cx, hdr, "replyto", &val) && !JSVAL_NULL_OR_VOID(val)) {
@@ -298,23 +292,22 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		smb_hfield_str(msg, REPLYTOORG, cp);
 	}
 
-	nettype=NET_UNKNOWN;
 	if(JS_GetProperty(cx, hdr, "replyto_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		nettype=(ushort)i32;
+		smb_hfield(msg, REPLYTONETTYPE, sizeof(nettype), &nettype);
 	}
+
 	if(JS_GetProperty(cx, hdr, "replyto_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
-		smb_hfield_netaddr(msg, REPLYTONETADDR, cp, &nettype);
+		smb_hfield_str(msg, REPLYTONETADDR, cp);
 	}
-	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE)
-		smb_hfield_bin(msg, REPLYTONETTYPE, nettype);
 
 	if(JS_GetProperty(cx, hdr, "replyto_agent", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JS_ValueToInt32(cx,val,&i32);
 		agent=(ushort)i32;
-		smb_hfield_bin(msg, REPLYTOAGENT, agent);
+		smb_hfield(msg, REPLYTOAGENT, sizeof(agent), &agent);
 	}
 
 	/* RFC822 headers */
@@ -1302,10 +1295,8 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JSObject*	hdr=NULL;
 	JSObject*	objarg;
 	JSObject*	rcpt_list=NULL;
-	JSClass*	cl;
 	smbmsg_t	rcpt_msg;
 	smbmsg_t	msg;
-	client_t*	client=NULL;
 	jsval		open_rval;
 	private_t*	p;
 
@@ -1331,10 +1322,6 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_OBJECT(argv[n])) {
 			objarg = JSVAL_TO_OBJECT(argv[n]);
-			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
-				client=JS_GetPrivate(cx,objarg);
-				continue;
-			}
 			if(JS_IsArrayObject(cx, objarg)) {		/* recipient_list is an array of objects */
 				if(body!=NULL && rcpt_list==NULL) {	/* body text already specified */
 					rcpt_list = objarg;
@@ -1369,7 +1356,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		if(body[0])
 			truncsp(body);
-		if(savemsg(scfg, &(p->smb), &msg, client, body)==0)
+		if(savemsg(scfg, &(p->smb), &msg, body)==0)
 			*rval = JSVAL_TRUE;
 
 		if(rcpt_list!=NULL) {	/* Sending to a list of recipients */
@@ -1630,7 +1617,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("mark message as deleted")
 	,311
 	},
-	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,client] [,body_text] [,array rcpt_list]")
+	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,body_text] [,array rcpt_list]")
 	,JSDOCSTR("create a new message in message base, the <i>header</i> object may contain the following properties:<br>"
 	"<table>"
 	"<tr><td><tt>subject</tt><td>Message subject <i>(required)</i>"
@@ -1681,9 +1668,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td><tt>field_list[].type</tt><td>Other SMB header fields (type)"
 	"<tr><td><tt>field_list[].data</tt><td>Other SMB header fields (data)"
 	"</table>"
-	"<br>"
-	"The optional <i>client</i> argument is an instance of the <i>Client</i> class to be used for the "
-	"security log header fields (e.g. sender IP addres, hostname, protocol, and port). "
 	"<br>"
 	"The optional <i>rcpt_list</i> is an array of objects that specifies multiple recipients "
 	"for a single message (e.g. bulk e-mail). Each object in the array may include the following header properties "
