@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.3 2000/11/08 09:19:30 rswindell Exp $ */
+/* $Id: ars.c,v 1.4 2001/04/30 00:45:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #include "sbbs.h"
 
+const uchar* nular="";	// AR_NULL
+
 /* Converts ASCII ARS string into binary ARS buffer */
 
 #ifdef __BORLANDC__	/* Eliminate warning when buildling Baja */
@@ -44,7 +46,6 @@
 #endif
 uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 {
-	static uchar nular[2]={0};
 	char *p;
 	uchar ar[256],*ar_buf;
 	uint i,j,n,artype=AR_LEVEL,not=0,equal=0;
@@ -539,7 +540,7 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 		} 
 	}
 	if(!j)
-		return(nular);	/* Save memory */
+		return((uchar*)nular);	/* Save memory */
 
 	ar[j++]=AR_NULL;
 	/** DEBUG stuff
