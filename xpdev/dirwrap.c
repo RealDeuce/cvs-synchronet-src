@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.4 2002/04/25 08:28:37 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.5 2002/04/25 08:31:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 	if(p==NULL)
 		p=strrchr(dir,'\\');
 	if(p==NULL) {
-		p=path;
+		p=(char*)path;
 		dir[0]=0;
 	} else {
 		*p=0;	/* truncate dir */
