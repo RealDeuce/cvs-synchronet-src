@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.8 2002/01/29 00:58:39 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.9 2002/01/29 17:16:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,6 +76,7 @@ int uifcinix(uifcapi_t* uifcapi)
     api->input=uinput;
     api->sethelp=sethelp;
 
+    setvbuf(stdin,NULL,_IONBF,0);
     setvbuf(stdout,NULL,_IONBF,0);
     api->scrn_len=24;
 
