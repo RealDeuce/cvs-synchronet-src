@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.8 2000/11/14 02:02:27 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.9 2000/11/14 02:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,7 +247,7 @@ BOOL read_attr_cfg(scfg_t* cfg, read_cfg_text_t* txt)
 
 	strcpy(fname,"attr.cfg");
 	sprintf(str,"%s%s",cfg->ctrl_dir,fname);
-	if((instream=fnopen(str,O_RDONLY))==NULL) {
+	if((instream=fnopen(NULL,str,O_RDONLY))==NULL) {
 		lprintf(txt->openerr,str);
 		return(FALSE); }
 	if(txt->reading && txt->reading[0])
