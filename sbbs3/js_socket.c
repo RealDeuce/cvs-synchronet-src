@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.37 2002/06/27 06:04:12 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.38 2002/06/29 06:48:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -468,7 +468,7 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "error %d getting option %d"
-			,ERROR_VALUE,opt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 );
+			,ERROR_VALUE,opt);
 		*rval = INT_TO_JSVAL(-1);
 	}
 
@@ -528,6 +528,12 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
+
+	if(p->sock==INVALID_SOCKET) {
+		dbprintf(TRUE, p, "INVALID SOCKET in call to poll");
+		*rval = INT_TO_JSVAL(-1);
+		return(JS_TRUE);
+	}
 
 	if(argc>0)
 		tv.tv_sec = JSVAL_TO_INT(argv[0]);
