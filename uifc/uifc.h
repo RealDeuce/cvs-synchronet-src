@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.30 2003/05/16 02:20:38 deuce Exp $ */
+/* $Id: uifc.h,v 1.31 2003/05/18 05:44:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,14 +172,16 @@
 #define WIN_CHE 	(1<<14) /* Stay active after escape if changes */
 #define WIN_XTR 	(1<<15) /* Add extra line at end for inserting at end */
 #ifdef __unix__
-#define WIN_DYN 	(1<<16) /* Dynamic menu - return at least every second */
+#define WIN_DYN 	(1<<16) /* Dynamic window - return at least every second */
+#define WIN_HLP 	(1<<17) /* Parse 'Help codes' */
+#define WIN_PACK 	(1<<18) /* Pack text in window (No padding) */
 #endif
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
 #define SCRN_TOP	3
 #define SCRN_LEFT	5
-#define SCRN_RIGHT  76
+#define SCRN_RIGHT 	(scrn_width-6)
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_UPPER 	(1L<<0) 	/* Converts all letters to upper case		*/
@@ -354,7 +356,7 @@ typedef struct {
 /****************************************************************************/
 /* Shows a scrollable text buffer - optionally parsing "help markup codes"	*/
 /****************************************************************************/
-	void (*showbuf)(char *buf, char *title, BOOL markup);
+	void (*showbuf)(int mode, int left, int top, int width, int height, char *title, char *hbuf);
 
 /****************************************************************************/
 /* Updates time in upper left corner of screen with current time in ASCII/  */
