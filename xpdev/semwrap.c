@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.c,v 1.8 2003/05/08 06:41:30 deuce Exp $ */
+/* $Id: semwrap.c,v 1.9 2003/05/08 18:05:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,8 @@ sem_trywait_block(sem_t *sem, unsigned long timeout)
 	abstime.tv_sec=currtime.tv_sec + (currtime.tv_usec/1000 + timeout)/1000;
 	abstime.tv_nsec=(currtime.tv_usec*1000 + timeout*1000000)%1000000000;
 
-	if((retval=sem_timedwait(sem, &abstime)) && errno==ETIMEDOUT)
+	retval=sem_timedwait(sem, &abstime);
+	if(retval==ETIMEDOUT)
 		errno=EAGAIN;
 	return retval;
 }
