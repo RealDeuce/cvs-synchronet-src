@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.25 2004/04/21 22:39:41 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.26 2004/04/21 23:58:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -471,12 +471,12 @@ export the current message group into.
 						fprintf(stream,"%-20s %s\r\n"
 							,stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
 						continue; }
-					fprintf(stream,"%s\r\n%s\r\n%s\r\n%s%s\r\n%s\r\n%s\r\n"
+					fprintf(stream,"%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
 							"%s\r\n%s\r\n%s\r\n"
 						,cfg.sub[j]->lname
 						,cfg.sub[j]->sname
 						,cfg.sub[j]->qwkname
-						,cfg.grp[cfg.sub[j]->grp]->code_prefix,cfg.sub[j]->code_suffix
+						,cfg.sub[j]->code_suffix
 						,cfg.sub[j]->data_dir
 						,cfg.sub[j]->arstr
 						,cfg.sub[j]->read_arstr
