@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.172 2005/01/24 08:12:32 deuce Exp $
+# $Id: GNUmakefile,v 1.167 2004/12/12 09:25:08 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -20,6 +20,7 @@ UTIL_LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDE
 UTIL_LIBS	+=	$(SMBLIB_LIBS)
 
 ifndef bcc
+ LDFLAGS	+=	-lm
  ifneq ($(os),sunos)
   LDFLAGS	+=	-lutil
  endif
@@ -205,8 +206,3 @@ $(ANS2ASC): $(OBJODIR)/ans2asc.o
 $(ASC2ANS): $(OBJODIR)/asc2ans.o
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(OBJODIR)/asc2ans.o
-
-# SEXYZ
-$(SEXYZ): $(SEXYZ_OBJS)
-	@echo Linking $@
-	$(QUIET)$(CC) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(SEXYZ_OBJS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
