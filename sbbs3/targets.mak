@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mak,v 1.8 2002/01/21 04:09:41 rswindell Exp $
+# $Id: targets.mak,v 1.9 2002/03/05 16:38:54 rswindell Exp $
 
 # LIBODIR, EXEODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -32,5 +32,5 @@ mono:	$(LIBDIR) $(EXEODIR) \
 		$(SBBSMONO)
 
 clean:
-	$(DELETE) $(LIBODIR)/*
-	$(DELETE) $(EXEODIR)/*
+	$(DELETE) $(LIBODIR)$(SLASH)*
+	$(DELETE) $(EXEODIR)$(SLASH)*
