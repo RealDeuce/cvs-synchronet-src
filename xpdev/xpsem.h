@@ -2,7 +2,7 @@
 #define _XPSEM_H_
 
 /*
- * $Id: xpsem.h,v 1.5 2004/11/22 20:57:46 deuce Exp $
+ * $Id: xpsem.h,v 1.6 2005/01/13 21:58:33 deuce Exp $
  *
  * semaphore.h: POSIX 1003.1b semaphores
 */
@@ -70,13 +70,14 @@ int	 xp_sem_wait (xp_sem_t *);
 int	 xp_sem_trywait (xp_sem_t *);
 int	 xp_sem_post (xp_sem_t *);
 int	 xp_sem_getvalue (xp_sem_t *, int *);
+int	 xp_sem_setvalue (xp_sem_t *, int);
 int  xp_sem_timedwait (xp_sem_t *sem, const struct timespec *abs_timeout);
 #if defined(__cplusplus)
 }
 #endif
 
 /*
-* $Id: xpsem.h,v 1.5 2004/11/22 20:57:46 deuce Exp $
+* $Id: xpsem.h,v 1.6 2005/01/13 21:58:33 deuce Exp $
 */
 
 /* Begin thread_private.h kluge */
