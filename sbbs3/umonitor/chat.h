@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.h,v 1.2 2003/05/16 02:20:37 deuce Exp $ */
+/* $Id: chat.h,v 1.3 2004/08/04 06:31:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#undef getch
 #include <curses.h>
 
 typedef struct {
