@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.8 2000/11/08 02:03:27 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.9 2000/11/08 08:19:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -604,14 +604,14 @@ int sbbs_t::exec_function(csi_t *csi)
 			if(!chksyspass(0))
 				return(0);
 			bputs(text[Filename]);
-			if(getstr(str,60,K_UPPER))
+			if(getstr(str,60,0))
 				printfile(str,0);
 			return(0);
 		case CS_EDIT_TEXT_FILE:              /* Edit ASCII/Ctrl-A file */
 			if(!chksyspass(0))
 				return(0);
 			bputs(text[Filename]);
-			if(getstr(str,60,K_UPPER))
+			if(getstr(str,60,0))
 				editfile(str);
 			return(0);
 		case CS_GURU_LOG:
