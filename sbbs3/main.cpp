@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.208 2002/12/06 07:18:52 rswindell Exp $ */
+/* $Id: main.cpp,v 1.209 2002/12/06 22:33:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -948,7 +948,8 @@ void input_thread(void *arg)
     sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
-	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET) {
+	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
+		&& node_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) {
 
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
 
