@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.352 2004/11/06 02:13:08 rswindell Exp $ */
+/* $Id: main.cpp,v 1.342 2004/10/16 00:55:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,7 @@ static	SOCKET telnet_socket=INVALID_SOCKET;
 static	SOCKET rlogin_socket=INVALID_SOCKET;
 static	sbbs_t*	sbbs=NULL;
 static	scfg_t	scfg;
+static	bool	scfg_reloaded=true;
 static	char *	text[TOTAL_TEXT];
 static	WORD	first_node;
 static	WORD	last_node;
@@ -1244,8 +1245,7 @@ void input_thread(void *arg)
 	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
 		&& node_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) {
 
-		if(pthread_mutex_lock(&sbbs->input_thread_mutex)!=0)
-			sbbs->errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
+		pthread_mutex_lock(&sbbs->input_thread_mutex);
 
 		FD_ZERO(&socket_set);
 		FD_SET(sbbs->client_socket,&socket_set);
@@ -1262,8 +1262,7 @@ void input_thread(void *arg)
 		tv.tv_usec=0;
 
 		if((i=select(high_socket+1,&socket_set,NULL,NULL,&tv))<1) {
-			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+			pthread_mutex_unlock(&sbbs->input_thread_mutex);
 			if(i==0)
 				continue;
 
@@ -1321,15 +1320,13 @@ void input_thread(void *arg)
 			continue;
 
 		if(sbbs->client_socket==INVALID_SOCKET) {
-			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+			pthread_mutex_unlock(&sbbs->input_thread_mutex);
 			break;
 		}
 
     	rd=RingBufFree(&sbbs->inbuf);
 
 		if(!rd) { // input buffer full
-			lprintf(LOG_WARNING,"Node %d !WARNING input buffer full", sbbs->cfg.node_num);
         	// wait up to 5 seconds to empty (1 byte min)
 			time_t start=time(NULL);
             while((rd=RingBufFree(&sbbs->inbuf))==0) {
@@ -1346,8 +1343,7 @@ void input_thread(void *arg)
 
     	rd = recv(sock, (char*)inbuf, rd, 0);
 
-		if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-			sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+		pthread_mutex_unlock(&sbbs->input_thread_mutex);
 
 		if(rd == SOCKET_ERROR)
 		{
@@ -1452,7 +1448,6 @@ void output_thread(void* arg)
     ulong		avail;
 	ulong		total_sent=0;
 	ulong		total_pkts=0;
-	ulong		short_sends=0;
     ulong		bufbot=0;
     ulong		buftop=0;
 	sbbs_t*		sbbs = (sbbs_t*) arg;
@@ -1508,8 +1503,7 @@ void output_thread(void* arg)
 
         if(bufbot==buftop) { // linear buf empty, read from ring buf
             if(avail>sizeof(buf)) {
-                lprintf(LOG_WARNING,"!%s: Insufficient linear output buffer (%lu > %lu)"
-					,node, avail, sizeof(buf));
+                lprintf(LOG_DEBUG,"Reducing output buffer");
                 avail=sizeof(buf);
             }
             buftop=RingBufRead(&sbbs->outbuf, buf, avail);
@@ -1550,11 +1544,6 @@ void output_thread(void* arg)
 #endif
 		}
 
-		if(i!=(int)(buftop-bufbot)) {
-			lprintf(LOG_WARNING,"!%s: Short socket send (%u instead of %u)"
-				,node, i ,buftop-bufbot);
-			short_sends++;
-		}
 		bufbot+=i;
 		total_sent+=i;
 		total_pkts++;
@@ -1565,8 +1554,8 @@ void output_thread(void* arg)
     sbbs->output_thread_running = false;
 
 	if(total_sent)
-		sprintf(stats,"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
-			,total_sent, total_pkts, total_sent/total_pkts, short_sends);
+		sprintf(stats,"(sent %lu bytes in %lu blocks, %lu average)"
+			,total_sent, total_pkts, total_sent/total_pkts);
 	else
 		stats[0]=0;
 
@@ -1612,70 +1601,7 @@ void event_thread(void* arg)
 	}
 #endif
 
-	// Read TIME.DAB
-	sprintf(str,"%stime.dab",sbbs->cfg.ctrl_dir);
-	if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1)
-		sbbs->errormsg(WHERE,ERR_OPEN,str,0);
-	else {
-		for(i=0;i<sbbs->cfg.total_events;i++) {
-			sbbs->cfg.event[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
-				eprintf(LOG_WARNING,"Initializing last run time for event: %s"
-					,sbbs->cfg.event[i]->code);
-				write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
-			} else {
-				if(read(file,&sbbs->cfg.event[i]->last,sizeof(time_t))!=sizeof(time_t))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
-			}
-			/* Event always runs after initialization? */
-			if(sbbs->cfg.event[i]->misc&EVENT_INIT)
-				sbbs->cfg.event[i]->last=-1;
-		}
-		lastprepack=0;
-		read(file,&lastprepack,sizeof(time_t));	/* expected to fail first time */
-		close(file);
-	}
-
-	// Read QNET.DAB
-	sprintf(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
-	if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1)
-		sbbs->errormsg(WHERE,ERR_OPEN,str,0);
-	else {
-		for(i=0;i<sbbs->cfg.total_qhubs;i++) {
-			sbbs->cfg.qhub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
-				eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
-					,sbbs->cfg.qhub[i]->id);
-				write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
-			} else {
-				if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t))!=sizeof(time_t))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
-			}
-		}
-		close(file);
-	}
-
-	// Read PNET.DAB
-	sprintf(str,"%spnet.dab",sbbs->cfg.ctrl_dir);
-	if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1)
-		sbbs->errormsg(WHERE,ERR_OPEN,str,0);
-	else {
-		for(i=0;i<sbbs->cfg.total_phubs;i++) {
-			sbbs->cfg.phub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
-				write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
-			else
-				read(file,&sbbs->cfg.phub[i]->last,sizeof(time_t)); 
-		}
-		close(file);
-	}
-
 	while(!sbbs->terminated && !terminate_server) {
-
-		if(startup->options&BBS_OPT_NO_EVENTS) {
-			SLEEP(1000);
-			continue;
-		}
 
 		now=time(NULL);
 		localtime_r(&now,&now_tm);
@@ -1687,6 +1613,79 @@ void event_thread(void* arg)
 			check_semaphores=false;
 
 		sbbs->online=0;	/* reset this from ON_LOCAL */
+
+		if(scfg_reloaded==true) {
+
+			for(i=0;i<TOTAL_TEXT;i++)
+				sbbs->text[i]=sbbs->text_sav[i]=text[i];
+
+			memcpy(&sbbs->cfg,&scfg,sizeof(scfg_t));
+
+			if(startup->temp_dir[0]) {
+				SAFECOPY(sbbs->cfg.temp_dir,startup->temp_dir);
+			} else
+				prep_dir(sbbs->cfg.data_dir, sbbs->cfg.temp_dir, sizeof(sbbs->cfg.temp_dir));
+
+			// Read TIME.DAB
+			sprintf(str,"%stime.dab",sbbs->cfg.ctrl_dir);
+			if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1) {
+				sbbs->errormsg(WHERE,ERR_OPEN,str,0);
+				break; 
+			}
+			for(i=0;i<sbbs->cfg.total_events;i++) {
+				sbbs->cfg.event[i]->last=0;
+				if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
+					eprintf(LOG_WARNING,"Initializing last run time for event: %s"
+						,sbbs->cfg.event[i]->code);
+					write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
+				} else {
+					if(read(file,&sbbs->cfg.event[i]->last,sizeof(time_t))!=sizeof(time_t))
+						sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
+				}
+				/* Event always runs after initialization? */
+				if(sbbs->cfg.event[i]->misc&EVENT_INIT)
+					sbbs->cfg.event[i]->last=-1;
+			}
+			lastprepack=0;
+			read(file,&lastprepack,sizeof(time_t));	/* expected to fail first time */
+			close(file);
+
+			// Read QNET.DAB
+			sprintf(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
+			if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1) {
+				sbbs->errormsg(WHERE,ERR_OPEN,str,0);
+				return;
+			}
+			for(i=0;i<sbbs->cfg.total_qhubs;i++) {
+				sbbs->cfg.qhub[i]->last=0;
+				if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
+					eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
+						,sbbs->cfg.qhub[i]->id);
+					write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
+				} else {
+					if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t))!=sizeof(time_t))
+						sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
+				}
+			}
+			close(file);
+
+			// Read PNET.DAB
+			sprintf(str,"%spnet.dab",sbbs->cfg.ctrl_dir);
+			if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1) {
+				sbbs->errormsg(WHERE,ERR_OPEN,str,0);
+				break;
+			}
+			for(i=0;i<sbbs->cfg.total_phubs;i++) {
+				sbbs->cfg.phub[i]->last=0;
+				if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
+					write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
+				else
+					read(file,&sbbs->cfg.phub[i]->last,sizeof(time_t)); 
+			}
+			close(file);
+
+			scfg_reloaded=false;
+		}
 
 		/* QWK events */
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
@@ -3732,6 +3731,7 @@ void DLLCALL bbs_thread(void* arg)
 	int				i;
     int				file;
 	int				result;
+	BOOL			option;
 	time_t			t;
 	time_t			start;
 	time_t			initialized=0;
@@ -3785,7 +3785,6 @@ void DLLCALL bbs_thread(void* arg)
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
-	startup->shutdown_now=FALSE;
 	terminate_server=false;
 
 	do {
@@ -3875,7 +3874,8 @@ void DLLCALL bbs_thread(void* arg)
 		cleanup(1);
 		return;
 	}
-	
+	scfg_reloaded=true;
+
 	if(startup->host_name[0]==0)
 		SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
@@ -3948,6 +3948,21 @@ void DLLCALL bbs_thread(void* arg)
 
     lprintf(LOG_INFO,"Telnet socket %d opened",telnet_socket);
 
+	if(startup->options&BBS_OPT_KEEP_ALIVE) {
+		lprintf(LOG_INFO,"Enabling WinSock Keep Alives");
+		option = TRUE;
+
+		result = setsockopt(telnet_socket, SOL_SOCKET, SO_KEEPALIVE
+    		,(char *)&option, sizeof(option));
+
+		if(result != 0) {
+			lprintf(LOG_ERR,"!ERROR %d (%d) setting Telnet socket option", result, ERROR_VALUE);
+			cleanup(1);
+			return;
+		}
+
+	}
+
 	/*****************************/
 	/* Listen for incoming calls */
 	/*****************************/
@@ -3959,11 +3974,12 @@ void DLLCALL bbs_thread(void* arg)
 
 	if(startup->seteuid!=NULL)
 		startup->seteuid(FALSE);
-    result = retry_bind(telnet_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
-		,startup->bind_retry_count,startup->bind_retry_delay,"Telnet Server",lprintf);
+    result = bind(telnet_socket,(struct sockaddr *)&server_addr,sizeof(server_addr));
 	if(startup->seteuid!=NULL)
 		startup->seteuid(TRUE);
 	if(result != 0) {
+		lprintf(LOG_ERR,"!ERROR %d (%d) binding Telnet socket to port %d"
+			,result, ERROR_VALUE,startup->telnet_port);
 		lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 		cleanup(1);
 		return;
@@ -4003,11 +4019,12 @@ void DLLCALL bbs_thread(void* arg)
 
 		if(startup->seteuid!=NULL)
 			startup->seteuid(FALSE);
-		result = retry_bind(rlogin_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
-			,startup->bind_retry_count,startup->bind_retry_delay,"RLogin Server",lprintf);
+		result = bind(rlogin_socket,(struct sockaddr *)&server_addr,sizeof(server_addr));
 		if(startup->seteuid!=NULL)
 			startup->seteuid(TRUE);
 		if(result != 0) {
+			lprintf(LOG_ERR,"!ERROR %d (%d) binding RLogin socket to port %d"
+				,result, ERROR_VALUE,startup->rlogin_port);
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
 			return;
@@ -4098,6 +4115,7 @@ void DLLCALL bbs_thread(void* arg)
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized) {
+		initialized=time(NULL);
 		semfile_list_check(&initialized,&recycle_semfiles);
 		semfile_list_check(&initialized,&shutdown_semfiles);
 	}
@@ -4173,21 +4191,16 @@ void DLLCALL bbs_thread(void* arg)
 					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 					break;
 				}
-#if 0	/* unused */
 				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
 					startup->recycle_now=TRUE;
-#endif
 				if(startup->recycle_now==TRUE) {
 					lprintf(LOG_INFO,"0000 Recycle semaphore signaled");
 					startup->recycle_now=FALSE;
 					break;
 				}
 			}
-			if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
-					&& lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p))
-				|| (startup->shutdown_now==TRUE
-					&& lprintf(LOG_INFO,"0000 Shutdown semaphore signaled"))) {
-				startup->shutdown_now=FALSE;
+			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
+				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
 				terminate_server=TRUE;
 				break;
 			}
@@ -4238,7 +4251,7 @@ void DLLCALL bbs_thread(void* arg)
             	lprintf(LOG_NOTICE,"Telnet Server sockets closed");
 			else
 				lprintf(LOG_WARNING,"!ERROR %d selecting sockets",ERROR_VALUE);
-			continue;
+			break;
 		}
 
 		if(terminate_server)	/* terminated */
@@ -4562,8 +4575,6 @@ void DLLCALL bbs_thread(void* arg)
 	if(!terminate_server) {
 		lprintf(LOG_INFO,"Recycling server...");
 		mswait(2000);
-		if(startup->recycle!=NULL)
-			startup->recycle(startup->cbdata);
 	}
 
 	} while(!terminate_server);
