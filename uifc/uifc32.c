@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.42 2003/12/16 16:03:59 deuce Exp $ */
+/* $Id: uifc32.c,v 1.46 2004/03/30 04:05:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@
 #endif
 
 #include "uifc.h"
-
+#define MAX_GETSTR	5120
 							/* Bottom line elements */
 #define BL_INS      (1<<0)  /* INS key */
 #define BL_DEL      (1<<1)  /* DEL key */
@@ -79,7 +79,7 @@ static int   uprintf(int x, int y, unsigned char attr, char *fmt,...);
 static void  bottomline(int line);
 static char  *utimestr(time_t *intime);
 static void  help(void);
-static int   ugetstr(int left, int top, char *outstr, int max, long mode, int *lastkey);
+static int   ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
 static void  timedisplay(void);
 
 /* API routines */
@@ -347,7 +347,7 @@ static void truncsp(char *str)
 	uint c;
 
 	c=strlen(str);
-	while(c && (uchar)str[c-1]<=SP) c--;
+	while(c && (uchar)str[c-1]<=' ') c--;
 	if(str[c]!=0)	/* don't write to string constants */
 		str[c]=0;
 }
@@ -1141,8 +1141,10 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	int max, int kmode)
 {
 	unsigned char c,save_buf[2048],in_win[2048]
-		,shade[160],width,height=3;
+		,shade[160],height=3;
+	int	width;
 	int i,plen,slen;
+	int	iwidth;
 
 	reset_dynamic();
 	plen=strlen(prompt);
@@ -1164,7 +1166,7 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	if(mode&WIN_SAV)
 		gettext(SCRN_LEFT+left,SCRN_TOP+top,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+height,save_buf);
-	max=width-plen-slen;
+	iwidth=width-plen-slen;
 	i=0;
 	in_win[i++]='É';
 	in_win[i++]=hclr|(bclr<<4);
@@ -1178,7 +1180,7 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 	in_win[i++]=hclr|(bclr<<4);
 
 	if(plen) {
-		in_win[i++]=SP;
+		in_win[i++]=' ';
 		in_win[i++]=lclr|(bclr<<4); 
 	}
 
@@ -1192,8 +1194,8 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 		in_win[i++]=lclr|(bclr<<4);
 	}
 
-	for(c=0;c<max+2;c++) {
-		in_win[i++]=SP;
+	for(c=0;c<iwidth+2;c++) {
+		in_win[i++]=' ';
 		in_win[i++]=lclr|(bclr<<4); 
 	}
 
@@ -1227,9 +1229,9 @@ int uinput(int mode, int left, int top, char *prompt, char *str,
 
 	textattr(lclr|(bclr<<4));
 	if(!plen)
-		i=ugetstr(SCRN_LEFT+left+2,SCRN_TOP+top+1,str,max,kmode,NULL);
+		i=ugetstr(SCRN_LEFT+left+2,SCRN_TOP+top+1,iwidth,str,max,kmode,NULL);
 	else
-		i=ugetstr(SCRN_LEFT+left+plen+4,SCRN_TOP+top+1,str,max,kmode,NULL);
+		i=ugetstr(SCRN_LEFT+left+plen+4,SCRN_TOP+top+1,iwidth,str,max,kmode,NULL);
 	if(mode&WIN_SAV)
 		puttext(SCRN_LEFT+left,SCRN_TOP+top,SCRN_LEFT+left+width+1
 			,SCRN_TOP+top+height,save_buf);
@@ -1253,49 +1255,77 @@ void umsg(char *str)
 	api->mode&=~UIFC_INMSG;
 }
 
+/***************************************/
+/* Private sub - updates a ugetstr box */
+/***************************************/
+void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *scrnoffset)
+{
+	if(cursoffset<*scrnoffset)
+		*scrnoffset=cursoffset;
+
+	if(*scrnoffset+width < cursoffset)
+		*scrnoffset=cursoffset-width;
+
+	gotoxy(left,top);
+	cprintf("%-*.*s",width,width,outstr+*scrnoffset);
+	gotoxy(left+(cursoffset-*scrnoffset),top);
+}
+
 /****************************************************************************/
 /* Gets a string of characters from the user. Turns cursor on. Allows 	    */
 /* Different modes - K_* macros. ESC aborts input.                          */
 /****************************************************************************/
-int ugetstr(int left, int top, char *outstr, int max, long mode, int *lastkey)
+int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey)
 {
-	uchar   str[256],ins=0,buf[256],y;
-	int		ch;
+	uchar   *str,ins=0;
+	int	ch;
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
+	int	soffset=0;
 
+	if((str=(uchar *)malloc(max+1))==NULL) {
+		cprintf("UIFC line %d: error allocating %u bytes\r\n"
+			,__LINE__,(max+1));
+		_setcursortype(cursor);
+		return(-1); 
+	}
 	gotoxy(left,top);
 	cursor=_NORMALCURSOR;
 	_setcursortype(cursor);
-	y=wherey();
+	str[0]=0;
 	if(mode&K_EDIT && outstr[0]) {
 	/***
 		truncsp(outstr);
 	***/
 		outstr[max]=0;
+		i=j=strlen(outstr);
 		textattr(lbclr);
-		cputs(outstr);
+		getstrupd(left, top, width, outstr, i, &soffset);
 		textattr(lclr|(bclr<<4));
+		if(strlen(outstr)<width) {
+			k=wherex();
+			f=wherey();
+			cprintf("%*s",width-strlen(outstr),"");
+			gotoxy(k,f);
+		}
 		strcpy(str,outstr);
-		i=j=strlen(str);
 #if 0
 		while(inkey(1)==0) {
 			mswait(1);
 		}
 #endif
 		f=inkey(0);
-		gotoxy(wherex()-i,y);
+
 		if(f == CR 
 				|| (f >= 0xff && f != KEY_DC) 
 				|| (f == '\t' && mode&K_TABEXIT) 
 				|| (f == '%' && mode&K_SCANNING))
 		{
-			cputs(outstr);
+			getstrupd(left, top, width, str, i, &soffset);
 		}
 		else
 		{
-			cprintf("%*s",i,"");
-			gotoxy(wherex()-i,y);
+			getstrupd(left, top, width, str, i, &soffset);
 			i=j=0;
 		}
 	}
@@ -1306,6 +1336,8 @@ int ugetstr(int left, int top, char *outstr, int max, long mode, int *lastkey)
 	while(ch!=CR)
 	{
 		if(i>j) j=i;
+		str[j]=0;
+		getstrupd(left, top, width, str, i, &soffset);
 		if(f || inkey(1))
 		{
 			if(f)
@@ -1323,28 +1355,24 @@ int ugetstr(int left, int top, char *outstr, int max, long mode, int *lastkey)
 				case KEY_LEFT:	/* left arrow */
 					if(i)
 					{
-						gotoxy(wherex()-1,y);
 						i--;
 					}
 					continue;
 				case KEY_RIGHT:	/* right arrow */
 					if(i<j)
 					{
-						gotoxy(wherex()+1,y);
 						i++;
 					}
 					continue;
 				case KEY_HOME:	/* home */
 					if(i)
 					{
-						gotoxy(wherex()-i,y);
 						i=0;
 					}
 					continue;
 				case KEY_END:	/* end */
 					if(i<j)
 					{
-						gotoxy(wherex()+(j-i),y);
 						i=j;
 					}
 					continue;
@@ -1362,33 +1390,24 @@ int ugetstr(int left, int top, char *outstr, int max, long mode, int *lastkey)
 					{
 						if(i==j)
 						{
-							cputs("\b \b");
 							j--;
 							i--;
 						}
 						else {
-							gettext(wherex(),y,wherex()+(j-i),y,buf);
-							puttext(wherex()-1,y,wherex()+(j-i)-1,y,buf);
-							gotoxy(wherex()+(j-i),y);
-							putch(SP);
-							gotoxy(wherex()-((j-i)+2),y);
 							i--;
 							j--;
 							if(str[i]=='.')
 								gotdecimal=FALSE;
-							for(k=i;k<j;k++)
+							for(k=i;k<=j;k++)
 								str[k]=str[k+1]; 
 						}
-						continue; 
+						continue;
 					}
 				case KEY_DC:	/* delete */
 					if(i<j)
 					{
-						gettext(wherex()+1,y,wherex()+(j-i),y,buf);
-						puttext(wherex(),y,wherex()+(j-i)-1,y,buf);
-						gotoxy(wherex()+(j-i),y);
-						putch(SP);
-						gotoxy(wherex()-((j-i)+1),y);
+						if(str[i]=='.')
+							gotdecimal=FALSE;
 						for(k=i;k<j;k++)
 							str[k]=str[k+1];
 						j--;
@@ -1420,17 +1439,12 @@ int ugetstr(int left, int top, char *outstr, int max, long mode, int *lastkey)
 				case 24:   /* ctrl-x  */
 					if(j)
 					{
-						gotoxy(wherex()-i,y);
-						cprintf("%*s",j,"");
-						gotoxy(wherex()-j,y);
 						i=j=0;
 					}
 					continue;
 				case 25:   /* ctrl-y */
 					if(i<j)
 					{
-						cprintf("%*s",(j-i),"");
-						gotoxy(wherex()-(j-i),y);
 						j=i;
 					}
 					continue;
@@ -1446,20 +1460,17 @@ int ugetstr(int left, int top, char *outstr, int max, long mode, int *lastkey)
 			}
 			if(mode&K_ALPHA && !isalpha(ch))
 				continue;
-			if((ch>=SP || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
 			{
 				if(mode&K_UPPER)
 					ch=toupper(ch);
 				if(ins)
 				{
-					gettext(wherex(),y,wherex()+(j-i),y,buf);
-					puttext(wherex()+1,y,wherex()+(j-i)+1,y,buf);
 					for(k=++j;k>i;k--)
 						str[k]=str[k-1];
 				}
-				putch(ch);
 				str[i++]=ch; 
-			} 
+			}
 		}
 		else
 			mswait(1);
@@ -1656,7 +1667,7 @@ void upop(char *str)
 	/* gettext(28,12,53,14,sav); */
 	gettext((api->scrn_width-26+1)/2+1,(api->scrn_len-3+1)/2+1
 			,(api->scrn_width+26-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
-	memset(buf,SP,25*3*2);
+	memset(buf,' ',25*3*2);
 	for(i=1;i<26*3*2;i+=2)
 		buf[i]=(hclr|(bclr<<4));
 	buf[0]='Ú';
@@ -1746,7 +1757,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	gettext(1,1,api->scrn_width,api->scrn_len,tmp_buffer);
 
 	if(!is_redraw) {
-		memset(tmp_buffer2,SP,width*height*2);
+		memset(tmp_buffer2,' ',width*height*2);
 		for(i=1;i<width*height*2;i+=2)
 			tmp_buffer2[i]=(hclr|(bclr<<4));
 	    tmp_buffer2[0]='Ú';
@@ -1830,7 +1841,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		_setcursortype(cursor);
 		return; 
 	}
-	memset(textbuf,SP,(width-2-pad-pad)*lines*2);
+	memset(textbuf,' ',(width-2-pad-pad)*lines*2);
 	for(i=1;i<(width-2-pad-pad)*lines*2;i+=2)
 		textbuf[i]=(hclr|(bclr<<4));
 	i=0;
