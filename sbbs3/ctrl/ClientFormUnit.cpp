@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.cpp,v 1.3 2003/03/12 06:32:30 rswindell Exp $ */
+/* $Id: ClientFormUnit.cpp,v 1.4 2003/03/30 11:04:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,7 +121,7 @@ void __fastcall TClientForm::FilterIpMenuItemClick(TObject *Sender)
         		,MB_YESNOCANCEL|MB_ICONQUESTION);
         if(res==IDCANCEL)
     		break;
-    	if(res==IDOK)
+    	if(res==IDYES)
 	        MainForm->FilterIP(
     	     	 ListItem->SubItems->Strings[2].c_str() /* ip_addr */
 	        	,ListItem->SubItems->Strings[0].c_str() /* protocol */
