@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.99 2003/12/02 01:54:42 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.100 2003/12/02 03:15:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,8 @@
 #include "sbbs.h"
 
 #ifdef JAVASCRIPT
+
+#include <jsobj.h>		/* Needed for OBJ_GET_CLASS macro */
 
 typedef struct
 {
@@ -145,8 +147,9 @@ SOCKET DLLCALL js_socket(JSContext *cx, jsval val)
 	SOCKET		sock=INVALID_SOCKET;
 
 	if(JSVAL_IS_OBJECT(val)) {
-		if((vp=JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)))!=NULL)
-			sock=*(SOCKET*)vp;
+		if(OBJ_GET_CLASS(cx, JSVAL_TO_OBJECT(val))->flags & JSCLASS_HAS_PRIVATE)
+			if((vp=JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)))!=NULL)
+				sock=*(SOCKET*)vp;
 	} else if(val!=JSVAL_VOID)
 		JS_ValueToInt32(cx,val,(int32*)&sock);
 
