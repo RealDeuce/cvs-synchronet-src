@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.30 2000/12/05 03:26:34 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.31 2001/02/04 16:48:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,20 @@
 #include <unistd.h>		/* usleep */
 #include <fcntl.h>		/* O_NOCCTY */
 #include <ctype.h>		/* toupper */
+
+/* FreeBSD uses kbio.h instead of kd.h */
+/* BSD also needs mount.h instead of vfs.h */
+/* param.h has needed definitions for the FreeBSD system */
+#ifndef __FreeBSD__
 #include <sys/kd.h>		/* KIOCSOUND */
+#endif
+
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/mount.h>
+#include <sys/kbio.h>
+#endif
+
 #include <sys/ioctl.h>	/* ioctl */
 
 #ifdef __GLIBC__		/* actually, BSD, but will work for now */
@@ -393,7 +406,9 @@ ulong DLLCALL getfreediskspace(char* path)
 
 	return(NumberOfFreeClusters*SectorsPerCluster*BytesPerSector);
 
-#elif defined(__GLIBC__)
+
+/* statfs is also used under FreeBSD */
+#elif defined(__GLIBC__) || defined(__FreeBSD__)
 
 	struct statfs fs;
 
