@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.29 2004/11/06 00:56:47 rswindell Exp $ */
+/* $Id: download.cpp,v 1.30 2005/01/15 13:22:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -350,9 +350,9 @@ bool sbbs_t::checkdszlog(file_t* f)
 			,&serial_no);
 		p=getfname(path);	/* DSZ stores fullpath, BiModem doesn't */
 		if(stricmp(p,fname)==0 || stricmp(p,rname)==0) {
-			/* E for Error or L for Lost Carrier */
+			/* E for Error or L for Lost Carrier or s for Skipped */
 			/* or only sent 0 bytes! */
-			if(code!='E' && code!='L' && bytes!=0)
+			if(code!='E' && code!='L' && code!='s' && bytes!=0)
 				success=true;
 			break;
 		}
