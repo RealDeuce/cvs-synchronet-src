@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.29 2002/07/21 06:07:36 rob Exp $
+# $Id: GNUmakefile,v 1.30 2002/07/21 13:11:54 rob Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -133,9 +133,11 @@ $(LIBODIR):
 $(EXEODIR):
 	mkdir $(EXEODIR)
 
-CON_OBJS	= $(EXEODIR)/sbbscon.o $(EXEODIR)/conwrap.o
+CON_OBJS	= $(EXEODIR)/sbbscon.o $(EXEODIR)/conwrap.o \
+		  $(EXEODIR)/ini_file.o $(EXEODIR)/sbbs_ini.o
 FTP_OBJS	= $(LIBODIR)/ftpsrvr.o
-MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o $(LIBODIR)/mime.o 
+MAIL_OBJS	= $(LIBODIR)/mailsrvr.o $(LIBODIR)/mxlookup.o \
+ 		  $(LIBODIR)/mime.o 
 SERVICE_OBJS= $(LIBODIR)/services.o
 
 MONO_OBJS	= $(CON_OBJS) $(FTP_OBJS) $(MAIL_OBJS) $(SERVICE_OBJS)
