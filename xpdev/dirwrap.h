@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.15 2002/09/13 01:26:42 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.16 2002/10/29 08:55:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@
 
 #include <stdlib.h>		/* _fullpath() on Win32 */
 
-#ifdef __FreeBSD__		/* FreeBSD-specific */
+#if defined(__unix__)
 	#include <sys/param.h>	/* PATH_MAX */
 #endif
 
@@ -60,6 +60,7 @@ extern "C" {
 	#define ALLFILES "*"	/* matches all files in a directory */
 	#include <glob.h>		/* POSIX.2 directory pattern matching function */
 	#define MKDIR(dir)		mkdir(dir,0777)
+
 	#define FULLPATH(a,r,l)	realpath(r,a)
 
 #else	
