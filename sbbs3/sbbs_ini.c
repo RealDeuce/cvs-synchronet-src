@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.75 2004/09/02 20:48:56 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.76 2004/09/08 08:52:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,10 +35,10 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "dirwrap.h"	/* backslash */
 #include "sbbs_ini.h"
 #include "sbbsdefs.h"	/* JAVASCRIPT_* macros */
 #include "ini_opts.h"	/* bbs_options, ftp_options, etc. */
-#include "dirwrap.h"	/* backslash */
 
 static const char*	nulstr="";
 static const char*	strOptions="Options";
