@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.69 2002/05/03 00:32:43 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.70 2002/05/03 01:47:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -553,6 +553,7 @@ void _sighandler_quit(int sig)
     bbs_terminate();
     ftp_terminate();
     mail_terminate();
+	services_terminate();
     while(bbs_running || ftp_running || mail_running || services_running)
 		mswait(1);
 	if(is_daemon)
