@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.47 2002/03/25 05:43:50 rswindell Exp $ */
+/* $Id: services.c,v 1.48 2002/04/09 09:19:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1053,7 +1053,7 @@ void DLLCALL services_thread(void* arg)
 
 		lprintf("Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
-		srand(clock());		/* Seed random number generator */
+		srand(time(NULL));	/* Seed random number generator */
 		sbbs_random(10);	/* Throw away first number */
 
 		if(!winsock_startup()) {
