@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.38 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: listfile.cpp,v 1.39 2005/01/02 22:20:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -442,7 +442,7 @@ bool sbbs_t::listfile(char *fname, char HUGE16 *buf, uint dirnum
 	if(exist && !(cfg.file_misc&FM_NO_LFN)) {
 		fexistcase(path);	/* Get real (long?) filename */
 		ptr=getfname(path);
-		if(stricmp(ptr,fname) && stricmp(ptr,str))
+		if(stricmp(ptr,tmp) && stricmp(ptr,str))
 			bprintf("%.*s\r\n%21s",LEN_FDESC,ptr,"");
 	}
 
