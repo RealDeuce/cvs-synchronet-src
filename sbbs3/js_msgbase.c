@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.92 2004/07/19 07:08:44 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.94 2004/08/23 23:36:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -514,27 +514,32 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((idxobj=JS_NewObject(cx,NULL,NULL,obj))==NULL)
 		return(JS_TRUE);
 
-	JS_DefineProperty(cx, idxobj, "number", INT_TO_JSVAL(msg.idx.number)
+	JS_NewNumberValue(cx, msg.idx.number	,&val);
+	JS_DefineProperty(cx, idxobj, "number"	,val
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(cx, idxobj, "to" ,INT_TO_JSVAL(msg.idx.to)
+	JS_NewNumberValue(cx, msg.idx.to		,&val);
+	JS_DefineProperty(cx, idxobj, "to"		,val
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(cx, idxobj, "from" ,INT_TO_JSVAL(msg.idx.from)
+	JS_NewNumberValue(cx, msg.idx.from		,&val);
+	JS_DefineProperty(cx, idxobj, "from"	,val
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(cx, idxobj, "subject" ,INT_TO_JSVAL(msg.idx.subj)
+	JS_NewNumberValue(cx, msg.idx.subj		,&val);
+	JS_DefineProperty(cx, idxobj, "subject"	,val
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(cx, idxobj, "attr" ,INT_TO_JSVAL(msg.idx.attr)
+	JS_NewNumberValue(cx, msg.idx.attr		,&val);
+	JS_DefineProperty(cx, idxobj, "attr"	,val
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_NewNumberValue(cx,msg.idx.offset,&val);
-	JS_DefineProperty(cx, idxobj, "offset", val
+	JS_NewNumberValue(cx, msg.idx.offset	,&val);
+	JS_DefineProperty(cx, idxobj, "offset"	,val
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_NewNumberValue(cx,msg.idx.time,&val);
-	JS_DefineProperty(cx, idxobj, "time", val
+	JS_NewNumberValue(cx, msg.idx.time		,&val);
+	JS_DefineProperty(cx, idxobj, "time"	,val
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	*rval = OBJECT_TO_JSVAL(idxobj);
@@ -1284,7 +1289,7 @@ js_get_msg_tail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 static JSBool
 js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		body=NULL;
+	char*		body="";
 	uintN		n;
     jsuint      i;
     jsuint      rcpt_list_length;
@@ -1332,7 +1337,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-	if(hdr==NULL || body==NULL)
+	if(hdr==NULL)
 		return(JS_TRUE);
 
 	if(rcpt_list!=NULL) {
@@ -1344,7 +1349,8 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(parse_header_object(cx, p, hdr, &msg, rcpt_list==NULL)) {
 
-		truncsp(body);
+		if(body[0])
+			truncsp(body);
 		if(savemsg(scfg, &(p->smb), &msg, body)==0)
 			*rval = JSVAL_TRUE;
 
@@ -1606,7 +1612,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("mark message as deleted")
 	,311
 	},
-	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header, string body_text [,array rcpt_list]")
+	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,string body_text] [,array rcpt_list]")
 	,JSDOCSTR("create a new message in message base, the <i>header</i> object may contain the following properties:<br>"
 	"<table>"
 	"<tr><td><tt>subject</tt><td>Message subject <i>(required)</i>"
