@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.17 2002/02/11 16:57:02 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.18 2002/02/16 01:12:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,8 +71,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 	/* Create SYSID.MSG, write header and leave open */
 	/*************************************************/
 	sprintf(str,"%s%s.msg",cfg.temp_dir,cfg.qhub[hubnum]->id);
-	if((rep=fnopen(&file,str,O_CREAT|O_WRONLY))==NULL) {
-		errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_WRONLY);
+	if((rep=fnopen(&file,str,O_CREAT|O_WRONLY|O_TRUNC))==NULL) {
+		errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_WRONLY|O_TRUNC);
 		return(false); }
 	if(filelength(file)<1) { 							/* New REP packet */
 		sprintf(str,"%-128s",cfg.qhub[hubnum]->id);     /* So write header */
