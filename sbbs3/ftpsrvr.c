@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.287 2005/02/09 05:15:09 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.285 2005/01/07 03:50:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2728,7 +2728,6 @@ static void ctrl_thread(void* arg)
 			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
 			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
 			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
-			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa(logintime,str,16));
 			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
@@ -4458,7 +4457,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.287 $", "%*s %s", revision);
+	sscanf("$Revision: 1.285 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4569,7 +4568,8 @@ void DLLCALL ftp_server(void* arg)
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 
-		sbbs_srand();	/* Seed random number generator */
+		srand(time(NULL));	/* Seed random number generator */
+		sbbs_random(10);	/* Throw away first number */
 
 		if(!winsock_startup()) {
 			cleanup(1,__LINE__);
