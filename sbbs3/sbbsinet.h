@@ -2,7 +2,7 @@
 
 /* Synchronet platform-specific Internet stuff */
 
-/* $Id: sbbsinet.h,v 1.10 2000/11/15 01:27:05 rswindell Exp $ */
+/* $Id: sbbsinet.h,v 1.11 2000/11/29 05:15:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,8 +85,6 @@
 
 #define ERROR_VALUE		WSAGetLastError()
 
-#define SHUT_RDWR		2	/* for shutdown() */
-
 #else	/* BSD sockets */
 
 /* WinSock-isms */
@@ -101,5 +99,9 @@
 #define ERROR_VALUE		errno
 
 #endif	/* __unix__ */
+
+#ifndef SHUT_RDWR
+#define SHUT_RDWR		2	/* for shutdown() */
+#endif
 
 #endif	/* Don't add anything after this line */
