@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.5 2000/11/10 04:05:31 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.6 2000/11/10 12:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,6 +227,8 @@ int main(int argc, char** argv)
 	ftp_startup.lputs=ftp_lputs;
     ftp_startup.started=ftp_started;
     ftp_startup.terminated=ftp_terminated;
+	ftp_startup.options=FTP_OPT_INDEX_FILE|FTP_OPT_ALLOW_QWK;
+    strcpy(ftp_startup.index_file_name,"00index");
     strcpy(ftp_startup.ctrl_dir,ctrl_dir);
 
 	/* Initialize Mail Server startup structure */
