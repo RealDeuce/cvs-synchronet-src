@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.29 2004/09/09 21:26:49 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.27 2004/05/30 06:56:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -489,7 +489,7 @@ export the current message group into.
 						,cfg.sub[j]->origline
 						,cfg.sub[j]->post_sem
 						,cfg.sub[j]->newsgroup
-						,smb_faddrtoa(&cfg.sub[j]->faddr,tmp)
+						,faddrtoa(&cfg.sub[j]->faddr,tmp)
 						);
 					fprintf(stream,"%lu\r\n%lu\r\n%u\r\n%u\r\n%s\r\n"
 						,cfg.sub[j]->maxmsgs
@@ -753,7 +753,7 @@ void msg_opts()
 		sprintf(opt[i++],"%-33.33s%s"
 			,"BBS ID for QWK Packets",cfg.sys_id);
 		sprintf(opt[i++],"%-33.33s%s"
-			,"Local Time Zone",smb_zonestr(cfg.sys_timezone,NULL));
+			,"Local Time Zone",zonestr(cfg.sys_timezone));
 		sprintf(opt[i++],"%-33.33s%u seconds"
 			,"Maximum Retry Time",cfg.smb_retry_time);
 		if(cfg.max_qwkmsgs)
