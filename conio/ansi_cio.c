@@ -1,31 +1,29 @@
 #include <fcntl.h>
 #include <stdarg.h>
-#include <stdlib.h>	/* malloc */
 
 #include <genwrap.h>
 #include <threadwrap.h>
 
 #ifdef __unix__
-	#include <termios.h>
-	struct termios tio_default;				/* Initial term settings */
+#include <termios.h>
 #endif
 
-#include "ciolib.h"
+#include "conio.h"
 #include "ansi_cio.h"
 WORD	ansi_curr_attr=0x07<<8;
 
-int ansi_rows=24;
-int ansi_cols=80;
+unsigned int ansi_rows=24;
+unsigned int ansi_cols=80;
 unsigned int ansi_nextchar;
 int ansi_got_row=0;
 int ansi_got_col=0;
 int ansi_esc_delay=25;
-int puttext_no_move=0;
 
 const int 	ansi_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
 static WORD		ansi_inch;
 static char		ansi_raw_inch;
+struct termios tio_default;				/* Initial term settings */
 WORD	*vmem;
 int		ansi_row=0;
 int		ansi_col=0;
@@ -152,14 +150,13 @@ void ansi_sendstr(char *str,int len)
 	}
 }
 
-int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
+int ansi_puttext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
 	int x,y;
 	unsigned char *out;
 	WORD	sch;
 	struct text_info	ti;
 	int		attrib;
-	unsigned char *fill = (unsigned char*)buf;
 
 	gettextinfo(&ti);
 
@@ -198,20 +195,17 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 		}
 	}
 
-	if(!puttext_no_move)
-		gotoxy(ti.curx,ti.cury);
+	gotoxy(ti.curx,ti.cury);
 	if(attrib!=ti.attribute)
 		textattr(ti.attribute);
-	return(1);
 }
 
-int ansi_gettext(int sx, int sy, int ex, int ey, void* buf)
+int ansi_gettext(int sx, int sy, int ex, int ey, unsigned char *fill)
 {
 	int x,y;
 	unsigned char *out;
 	WORD	sch;
 	struct text_info	ti;
-	unsigned char *fill = (unsigned char*)buf;
 
 	gettextinfo(&ti);
 
@@ -236,10 +230,9 @@ int ansi_gettext(int sx, int sy, int ex, int ey, void* buf)
 			*(out++)=sch >> 8;
 		}
 	}
-	return(1);
 }
 
-void ansi_textattr(int attr)
+void ansi_textattr(unsigned char attr)
 {
 	char str[16];
 	int fg,ofg;
@@ -298,9 +291,6 @@ void ansi_textattr(int attr)
 	ansi_sendstr(str,-1);
 }
 
-#if defined(__BORLANDC__)
-        #pragma argsused
-#endif
 static void ansi_keyparse(void *par)
 {
 	int		gotesc=0;
@@ -377,18 +367,13 @@ static void ansi_keyparse(void *par)
 	}
 }
 
-#if defined(__BORLANDC__)
-        #pragma argsused
-#endif
 static void ansi_keythread(void *params)
 {
 	_beginthread(ansi_keyparse,1024,NULL);
 
 	for(;;) {
-		if(!ansi_raw_inch) {
-			if(read(fileno(stdin),&ansi_raw_inch,1)!=1)
-				ansi_raw_inch=0;
-		}
+		if(!ansi_raw_inch)
+			ansi_raw_inch=fgetc(stdin);
 		else
 			SLEEP(1);
 	}
@@ -418,7 +403,7 @@ int ansi_wherex(void)
  * The special characters return, linefeed, bell, and backspace are handled
  * properly, as is line wrap and scrolling. The cursor position is updated. 
  */
-int ansi_putch(int ch)
+int ansi_putch(unsigned char ch)
 {
 	struct text_info ti;
 	WORD sch;
@@ -429,7 +414,6 @@ int ansi_putch(int ch)
 	buf[1]=ansi_curr_attr>>8;
 
 	gettextinfo(&ti);
-	puttext_no_move=1;
 
 	switch(ch) {
 		case '\r':
@@ -485,7 +469,6 @@ int ansi_putch(int ch)
 			break;
 	}
 
-	puttext_no_move=0;
 	return(ch);
 }
 
@@ -603,9 +586,6 @@ int ansi_beep(void)
 	return(0);
 }
 
-#if defined(__BORLANDC__)
-        #pragma argsused
-#endif
 void ansi_textmode(int mode)
 {
 }
@@ -617,17 +597,13 @@ void ansi_fixterm(void)
 }
 #endif
 
-#if defined(__BORLANDC__)
-        #pragma argsused
-#endif
-int ansi_initciolib(long inmode)
+int ansi_initciowrap(long inmode)
 {
 	int i;
 	char *init="\033[0m\033[2J\033[1;1H";
-
 #ifdef _WIN32
-	setmode(fileno(stdout),_O_BINARY);
-	setmode(fileno(stdin),_O_BINARY);
+	_setmode(fileno(stdout),_O_BINARY);
+	_setmode(fileno(stdin),_O_BINARY);
 	setvbuf(stdout, NULL, _IONBF, 0);
 #else
 	struct termios tio_raw;

@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.41 2004/07/22 23:26:16 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.39 2004/06/03 21:59:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -176,8 +176,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 		return(GLOB_NOMATCH);
 
 	do {
-		if((flags&GLOB_PERIOD || ff.name[0]!='.') &&
-			(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR)) {
+		if(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR) {
 			if((new_pathv=realloc(glob->gl_pathv
 				,(glob->gl_pathc+1)*sizeof(char*)))==NULL) {
 				globfree(glob);
@@ -233,8 +232,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 
 	ff_handle=_findfirst((char*)pattern,&ff);
 	while(ff_handle!=-1) {
-		if((flags&GLOB_PERIOD || ff.name[0]!='.') &&
-			(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR)) {
+		if(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR) {
 			if((new_pathv=(char**)realloc(glob->gl_pathv
 				,(glob->gl_pathc+1)*sizeof(char*)))==NULL) {
 				globfree(glob);
