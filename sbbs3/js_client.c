@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.4 2002/02/02 04:13:29 rswindell Exp $ */
+/* $Id: js_client.c,v 1.5 2002/08/30 22:54:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,7 +128,7 @@ JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
 {
 	JSObject*	obj;
 
-	obj = JS_DefineObject(cx, parent, name, &js_client_class, NULL, 0);
+	obj = JS_DefineObject(cx, parent, name, &js_client_class, NULL, JSPROP_ENUMERATE);
 
 	if(obj==NULL)
 		return(NULL);

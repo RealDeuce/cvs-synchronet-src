@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.25 2002/08/25 21:44:43 rswindell Exp $ */
+/* $Id: js_global.c,v 1.26 2002/08/30 22:54:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -749,7 +749,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg)
 	if (!JS_InitStandardClasses(cx, glob))
 		return(NULL);
 
-	if (!JS_DefineFunctions(cx, glob, js_global_functions)) 
+	if (!js_DefineMethods(cx, glob, js_global_functions)) 
 		return(NULL);
 
 	if(!JS_DefineProperties(cx, glob, js_global_properties))

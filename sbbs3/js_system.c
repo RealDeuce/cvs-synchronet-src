@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.30 2002/08/30 19:46:05 rswindell Exp $ */
+/* $Id: js_system.c,v 1.31 2002/08/30 22:54:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1026,7 +1026,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	JSObject*	nodeobj;
 	JSObject*	node_list;
 
-	sysobj = JS_DefineObject(cx, parent, "system", &js_system_class, NULL, 0);
+	sysobj = JS_DefineObject(cx, parent, "system", &js_system_class, NULL, JSPROP_ENUMERATE);
 
 	if(sysobj==NULL)
 		return(NULL);
@@ -1107,10 +1107,10 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if(!JS_DefineProperties(cx, sysobj, js_system_properties))
 		return(NULL);
 
-	if (!JS_DefineFunctions(cx, sysobj, js_system_functions)) 
+	if (!js_DefineMethods(cx, sysobj, js_system_functions)) 
 		return(NULL);
 
-	statsobj = JS_DefineObject(cx, sysobj, "stats", &js_sysstats_class, NULL, 0);
+	statsobj = JS_DefineObject(cx, sysobj, "stats", &js_sysstats_class, NULL, JSPROP_ENUMERATE);
 
 	if(statsobj==NULL)
 		return(NULL);
