@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.61 2003/04/05 02:12:57 rswindell Exp $ */
+/* $Id: userdat.c,v 1.62 2003/04/05 02:30:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +133,8 @@ uint DLLCALL total_users(scfg_t* cfg)
 	length=filelength(file);
 	for(l=0;l<length;l+=U_LEN) {
 		lseek(file,l+U_MISC,SEEK_SET);
-		read(file,str,8);
+		if(read(file,str,8)!=8)
+			continue;
 		getrec(str,0,8,str);
 		if(ahtoul(str)&(DELETED|INACTIVE))
 			continue;
