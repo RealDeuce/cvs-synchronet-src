@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.369 2005/01/18 22:18:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.370 2005/02/05 01:48:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4490,11 +4490,13 @@ void DLLCALL bbs_thread(void* arg)
 		lprintf(LOG_INFO,"Waiting for event thread to terminate...");
 		start=time(NULL);
 		while(events->event_thread_running) {
+#if 0 /* the event thread can/will segfault if it continues to run and dereference sbbs->cfg */
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
 				lprintf(LOG_ERR,"!TIMEOUT waiting for BBS event thread to "
             		"terminate");
 				break;
 			}
+#endif
 			mswait(100);
 		}
 	}
