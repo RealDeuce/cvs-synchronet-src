@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.4 2000/10/30 11:11:10 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.5 2000/10/30 21:51:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,11 +63,16 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	int		rd;
 	ulong	l;
 	bool	gotline;
-	ushort	port=IPPORT_TELNET;
+	ushort	port;
 	ulong	ip_addr;
 	ulong	save_console;
 	SOCKET	remote_socket;
 	SOCKADDR_IN	addr;
+
+	if(mode&TG_RLOGIN)
+		port=513;
+	else
+		port=IPPORT_TELNET;
 
 	p=strchr(destaddr,':');
 	if(p!=NULL) {
