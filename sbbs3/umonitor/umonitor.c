@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.54 2004/03/14 08:37:52 deuce Exp $ */
+/* $Id: umonitor.c,v 1.53 2004/02/23 02:08:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -788,7 +788,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.53 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2003 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -955,6 +955,96 @@ int main(int argc, char** argv)  {
 			continue;
 		}
 		
+		if(j==-2-KEY_DC) {	/* Clear errors */
+			clearerrors(&cfg, main_dflt+1,&node);
+			continue;
+		}
+
+		if(j==-2-KEY_F(10)) {	/* Chat */
+			if(getnodedat(&cfg,main_dflt+1,&node,NULL)) {
+				uifc.msg("Error reading node data!");
+				continue;
+			}
+			if((node.status==NODE_INUSE) && node.useron)
+				chat(&cfg,main_dflt+1,&node,&boxch,uifc.timedisplay);
+			continue;
+		}
+
+		if(j==-2-KEY_F(11)) {	/* Send message */
+			sendmessage(&cfg, main_dflt+1,&node);
+			continue;
+		}
+		
+		if(j==-2-KEY_F(12)) {	/* Spy */
+			dospy(main_dflt+1,&bbs_startup);
+			continue;
+		}
+		
+		if(j==-2-CTRL('l')) {	/* Lock node */
+			if(getnodedat(&cfg,main_dflt+1,&node,&nodefile)) {
+				uifc.msg("Error reading node data!");
+				continue;
+			}
+			node.misc^=NODE_LOCK;
+			putnodedat(&cfg,main_dflt+1,&node,nodefile);
+			continue;
+		}
+		
+		if(j==-2-CTRL('r')) {	/* Rerun node */
+			if(getnodedat(&cfg,main_dflt+1,&node,&nodefile)) {
+				uifc.msg("Error reading node data!");
+				continue;
+			}
+			node.misc^=NODE_RRUN;
+			putnodedat(&cfg,main_dflt+1,&node,nodefile);
+			continue;
+		}
+
+		if(j==-2-CTRL('d')) {	/* Down node */
+			if(getnodedat(&cfg,main_dflt+1,&node,&nodefile)) {
+				uifc.msg("Error reading node data!");
+				continue;
+			}
+			if(node.status != NODE_WFC && node.status != NODE_OFFLINE)
+				node.misc ^= NODE_DOWN;
+			else {
+				if(node.status!=NODE_OFFLINE)
+					node.status=NODE_OFFLINE;
+				else
+					node.status=NODE_WFC;
+			}
+			putnodedat(&cfg,main_dflt+1,&node,nodefile);
+			continue;
+		}
+
+		if(j==-2-CTRL('i')) {	/* Interrupt node */
+			if(getnodedat(&cfg,main_dflt+1,&node,&nodefile)) {
+				uifc.msg("Error reading node data!");
+				continue;
+			}
+			node.misc^=NODE_INTR;
+			putnodedat(&cfg,main_dflt+1,&node,nodefile);
+			continue;
+		}
+		
+		if(j <= -2)
+			continue;
+
+		if(j==-1) {
+			i=0;
+			strcpy(opt[0],YesStr);
+			strcpy(opt[1],NoStr);
+			opt[2][0]=0;
+			uifc.helpbuf=	"`Exit Synchronet UNIX Monitor:`\n"
+							"\n"
+							"\nIf you want to exit the Synchronet UNIX monitor utility,"
+							"\nselect `Yes`. Otherwise, select `No` or hit ~ ESC ~.";
+			i=uifc.list(WIN_MID,0,0,0,&i,0,"Exit Synchronet Monitor",opt);
+			if(!i)
+				bail(0);
+			continue;
+		}
+
 		if(j==0) {
 			/* System Options */
 			i=0;
@@ -1008,101 +1098,7 @@ int main(int argc, char** argv)  {
 			continue;
 		}
 
-		if(j==-1) {
-			i=0;
-			strcpy(opt[0],YesStr);
-			strcpy(opt[1],NoStr);
-			opt[2][0]=0;
-			uifc.helpbuf=	"`Exit Synchronet UNIX Monitor:`\n"
-							"\n"
-							"\nIf you want to exit the Synchronet UNIX monitor utility,"
-							"\nselect `Yes`. Otherwise, select `No` or hit ~ ESC ~.";
-			i=uifc.list(WIN_MID,0,0,0,&i,0,"Exit Synchronet Monitor",opt);
-			if(!i)
-				bail(0);
-			continue;
-		}
-
-		/* Everything after this point is invalid for the System Options */
-		if(main_dflt==0)
-			continue;
-
-		if(j==-2-KEY_DC) {	/* Clear errors */
-			clearerrors(&cfg, main_dflt,&node);
-			continue;
-		}
-
-		if(j==-2-KEY_F(10)) {	/* Chat */
-			if(getnodedat(&cfg,main_dflt,&node,NULL)) {
-				uifc.msg("Error reading node data!");
-				continue;
-			}
-			if((node.status==NODE_INUSE) && node.useron)
-				chat(&cfg,main_dflt,&node,&boxch,uifc.timedisplay);
-			continue;
-		}
-
-		if(j==-2-KEY_F(11)) {	/* Send message */
-			sendmessage(&cfg, main_dflt,&node);
-			continue;
-		}
-		
-		if(j==-2-KEY_F(12)) {	/* Spy */
-			dospy(main_dflt,&bbs_startup);
-			continue;
-		}
-		
-		if(j==-2-CTRL('l')) {	/* Lock node */
-			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
-				uifc.msg("Error reading node data!");
-				continue;
-			}
-			node.misc^=NODE_LOCK;
-			putnodedat(&cfg,main_dflt,&node,nodefile);
-			continue;
-		}
-		
-		if(j==-2-CTRL('r')) {	/* Rerun node */
-			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
-				uifc.msg("Error reading node data!");
-				continue;
-			}
-			node.misc^=NODE_RRUN;
-			putnodedat(&cfg,main_dflt,&node,nodefile);
-			continue;
-		}
-
-		if(j==-2-CTRL('d')) {	/* Down node */
-			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
-				uifc.msg("Error reading node data!");
-				continue;
-			}
-			if(node.status != NODE_WFC && node.status != NODE_OFFLINE)
-				node.misc ^= NODE_DOWN;
-			else {
-				if(node.status!=NODE_OFFLINE)
-					node.status=NODE_OFFLINE;
-				else
-					node.status=NODE_WFC;
-			}
-			putnodedat(&cfg,main_dflt,&node,nodefile);
-			continue;
-		}
-
-		if(j==-2-CTRL('i')) {	/* Interrupt node */
-			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
-				uifc.msg("Error reading node data!");
-				continue;
-			}
-			node.misc^=NODE_INTR;
-			putnodedat(&cfg,main_dflt,&node,nodefile);
-			continue;
-		}
-		
-		if(j <= -2)
-			continue;
-
-		if(j<=cfg.sys_nodes && j>0) {
+		if(j<cfg.sys_nodes && j>0) {
 			i=0;
 			strcpy(opt[i++],"Spy on node");
 			strcpy(opt[i++],"Node toggles");
@@ -1149,7 +1145,7 @@ int main(int argc, char** argv)  {
 						break;
 	
 					case 6:
-						chat(&cfg,main_dflt,&node,&boxch,uifc.timedisplay);
+						chat(&cfg,main_dflt+1,&node,&boxch,uifc.timedisplay);
 						break;
 					
 					case -1:
