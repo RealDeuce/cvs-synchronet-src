@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.124 2003/10/18 09:21:51 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.125 2003/10/18 09:26:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1296,6 +1296,8 @@ static char *get_request(http_session_t * session, char *req_line)
 
 	SKIP_WHITESPACE(req_line);
 	SAFECOPY(session->req.virtual_path,req_line);
+	strtok(session->req.virtual_path," \t");
+	retval=strtok(NULL," \t");
 
 	/* Must initialize physical_path before calling is_dynamic_req() */
 	SAFECOPY(session->req.physical_path,session->req.virtual_path);
@@ -1317,8 +1319,6 @@ static char *get_request(http_session_t * session, char *req_line)
 			);
 	}
 
-	strtok(session->req.virtual_path," \t");
-	retval=strtok(NULL," \t");
 	strtok(session->req.virtual_path,"?");
 	p=strtok(NULL,"");
 	session->req.dynamic=is_dynamic_req(session);
@@ -2406,7 +2406,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.124 $", "%*s %s", revision);
+	sscanf("$Revision: 1.125 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
