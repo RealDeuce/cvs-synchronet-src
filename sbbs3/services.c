@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.71 2002/08/23 07:30:09 rswindell Exp $ */
+/* $Id: services.c,v 1.72 2002/08/23 08:10:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -964,7 +964,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.71 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.72 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1306,12 +1306,15 @@ void DLLCALL services_thread(void* arg)
 					addr.sin_family = AF_INET;
 					addr.sin_port   = htons(service[i].port);
 
-					if(startup->seteuid!=NULL && !startup->seteuid(FALSE))
-						addr.sin_port=0;
-
 					result=bind(client_socket, (struct sockaddr *) &addr, sizeof(addr));
-					if(startup->seteuid!=NULL)
-						startup->seteuid(TRUE);
+					if(result==SOCKET_ERROR) {
+						/* Failed to re-bind to same port number, use user port */
+						lprintf("%04d %s ERROR %d re-binding socket to port %u failed, "
+							"using user port"
+							,client_socket, service[i].protocol, ERROR_VALUE, service[i].port);
+						addr.sin_port=0;
+						result=bind(client_socket, (struct sockaddr *) &addr, sizeof(addr));
+					}
 					if(result!=0) {
 						FREE_AND_NULL(udp_buf);
 						lprintf("%04d %s !ERROR %d re-binding socket to port %u"
