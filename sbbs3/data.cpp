@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.8 2001/04/19 22:53:57 rswindell Exp $ */
+/* $Id: data.cpp,v 1.9 2001/06/14 02:57:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,10 +221,12 @@ void sbbs_t::gettimeleft(void)
 		sys_status|=SS_EVENT;
 		timeleft=eventtime-now; }
 
+#if 0	// We don't support front-end mailers anymore
 	/* Event time passed by front-end */
 	if(next_event && (next_event<now || next_event-now<(time_t)timeleft)) {
 		timeleft=next_event-now;
 		sys_status|=SS_EVENT; }
+#endif
 
 	if(timeleft<0)  /* timeleft can't go negative */
 		timeleft=0;
