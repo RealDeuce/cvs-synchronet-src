@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.166 2002/07/09 02:33:57 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.167 2002/07/10 10:12:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -466,8 +466,8 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, char* fromad
 	if(strchr(msg->to,'@')!=NULL || msg->to_net.addr==NULL)
 		sockprintf(socket,"To: %s",msg->to);	/* Avoid double-@ */
 	else if(msg->to_net.type==NET_INTERNET || msg->to_net.type==NET_QWK) {
-		if(*((char*)msg->to_net.addr)=='<')
-			sockprintf(socket,"To: \"%s\" %s",msg->to,(char*)msg->to_net.addr);
+		if(strchr((char*)msg->to_net.addr,'<')!=NULL)
+			sockprintf(socket,"To: %s",(char*)msg->to_net.addr);
 		else
 			sockprintf(socket,"To: \"%s\" <%s>",msg->to,(char*)msg->to_net.addr);
 	} else {
@@ -1969,10 +1969,13 @@ static void smtp_thread(void* arg)
 			p=buf+8;
 			while(*p && *p<=' ') p++;
 			SAFECOPY(str,p);
-			p=str;
+			p=strrchr(str,'<');
+			if(p==NULL)
+				p=str;
+			else
+				p++;
 
-			if(*p=='<') p++;				/* Skip '<' */
-			tp=strchr(str,'>');				/* Truncate '>' */
+			tp=strchr(str,'>');		/* Truncate at '>' */
 			if(tp!=NULL) *tp=0;
 
 			forward=FALSE;
@@ -2649,7 +2652,7 @@ static void sendmail_thread(void* arg)
 				continue;
 			}
 			/* RCPT */
-			if(*((char*)msg.to_net.addr)=='<')
+			if(strchr((char*)msg.to_net.addr,'<')!=NULL)
 				sockprintf(sock,"RCPT TO: %s", (char*)msg.to_net.addr);
 			else
 				sockprintf(sock,"RCPT TO: <%s>", (char*)msg.to_net.addr);
