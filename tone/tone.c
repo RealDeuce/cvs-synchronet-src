@@ -2,7 +2,7 @@
 
 /* Tone Generation Utility (using PC speaker, not sound card) */
 
-/* $Id: tone.c,v 1.6 2005/01/20 06:18:52 deuce Exp $ */
+/* $Id: tone.c,v 1.5 2004/03/05 23:37:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,8 +41,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "xpbeep.h"	/* BEEP */
-#include "genwrap.h"
+#include "genwrap.h"	/* BEEP */
 #include "dirwrap.h"	/* getfname */
 #include "conwrap.h"	/* kbhit */
 
@@ -190,7 +189,7 @@ int main(int argc, char **argv)
 	int		i,j;
 	FILE*	stream;
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	printf("\nTone Generation Utility  %s  Copyright 2003 Rob Swindell\n\n", revision);
 
