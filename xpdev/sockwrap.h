@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.12 2002/11/26 06:43:51 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.13 2003/03/17 22:58:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,6 +90,8 @@
 #define ESHUTDOWN		(WSAESHUTDOWN-WSABASEERR)
 #undef  ECONNABORTED
 #define ECONNABORTED	(WSAECONNABORTED-WSABASEERR)
+#undef	EINPROGRESS
+#define EINPROGRESS		(WSAEINPROGRESS-WSABASEERR)
 
 #define s_addr			S_un.S_addr
 
