@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.182 2002/08/13 07:55:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.183 2002/08/26 09:46:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,15 +312,19 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 	}
 
 	/* Check socket for writability (using select) */
-	tv.tv_sec=60;
+	tv.tv_sec=300;
 	tv.tv_usec=0;
 
 	FD_ZERO(&socket_set);
 	FD_SET(sock,&socket_set);
 
 	if((result=select(sock+1,NULL,&socket_set,NULL,&tv))<1) {
-		lprintf("%04d !ERROR %d (%d) selecting socket for send"
-			,sock, result, ERROR_VALUE, sock);
+		if(result==0)
+			lprintf("%04d !TIMEOUT selecting socket for send"
+				,sock);
+		else
+			lprintf("%04d !ERROR %d selecting socket for send"
+				,sock, ERROR_VALUE);
 		return(0);
 	}
 	while((result=sendsocket(sock,sbuf,len))!=len) {
@@ -2349,7 +2353,7 @@ static void ctrl_thread(void* arg)
 	client_on(sock,&client,FALSE /* update */);
 
 	sockprintf(sock,"220-%s (%s)",scfg.sys_name, startup->host_name);
-	sockprintf(sock," Synchronet FTP Server %s/%s Ready"
+	sockprintf(sock," Synchronet FTP Server %s-%s Ready"
 		,revision,PLATFORM_DESC);
 	sprintf(str,"%sftplogin.txt",scfg.text_dir);
 	if((fp=fopen(str,"rb"))!=NULL) {
@@ -4267,7 +4271,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.182 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.183 $" + 11, "%s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4506,7 +4510,7 @@ void DLLCALL ftp_server(void* arg)
 			}
 			/* now wait for connection */
 
-			tv.tv_sec=5;
+			tv.tv_sec=2;
 			tv.tv_usec=0;
 
 			FD_ZERO(&socket_set);
