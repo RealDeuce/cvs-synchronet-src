@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.35 2004/09/16 19:02:01 deuce Exp $
+# $Id: Common.bmake,v 1.36 2004/09/16 19:09:43 deuce Exp $
 #
 #############################################################################
 #																			#
@@ -223,7 +223,7 @@ smblib:
 	exit
 |
 
-$(CIOLIB-MT_LIB): ciolib-mt
+$(CIOLIB-MT): ciolib-mt
 ciolib-mt:
 	$(COMSPEC) <<|
 	set VERSION=$(VERSION)
