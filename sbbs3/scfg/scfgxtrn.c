@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.7 2002/01/22 17:13:16 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.8 2002/01/24 13:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1049,7 +1049,7 @@ time users spend running this program.
 					savnum=5;
 					switch(k) {
 						case 0:
-							itoa(cfg.xtrn[i]->textra,str,10);
+							ultoa(cfg.xtrn[i]->textra,str,10);
 							SETHELP(WHERE);
 /*
 Extra Time to Give User in Program:
@@ -1064,7 +1064,7 @@ left online.
 							cfg.xtrn[i]->textra=atoi(str);
 							break;
 						case 1:
-							itoa(cfg.xtrn[i]->maxtime,str,10);
+							ultoa(cfg.xtrn[i]->maxtime,str,10);
 							SETHELP(WHERE);
 /*
 Maximum Time Allowed in Program:

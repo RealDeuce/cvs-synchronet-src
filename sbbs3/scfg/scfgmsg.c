@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.4 2002/01/24 01:32:07 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.5 2002/01/24 13:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1041,7 +1041,7 @@ This is the maximum number of seconds to allow while attempting to open
 or lock a message base (a value in the range of 10 to 45 seconds should
 be fine).
 */
-				itoa(cfg.smb_retry_time,str,10);
+				ultoa(cfg.smb_retry_time,str,10);
 				uinput(WIN_MID|WIN_SAV,0,0
 					,"Maximum Message Base Retry Time (in seconds)"
 					,str,2,K_NUMBER|K_EDIT);

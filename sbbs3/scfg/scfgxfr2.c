@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.5 2002/01/24 13:47:43 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.6 2002/01/24 13:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -879,7 +879,7 @@ to 0.
 */
 				uinput(WIN_MID|WIN_SAV,0,0
 					,"Percentage of Credits to Credit Uploader on Upload"
-					,itoa(cfg.dir[i]->up_pct,tmp,10),4,K_EDIT|K_NUMBER);
+					,ultoa(cfg.dir[i]->up_pct,tmp,10),4,K_EDIT|K_NUMBER);
 				cfg.dir[i]->up_pct=atoi(tmp);
 				break;
 			case 12:
@@ -897,7 +897,7 @@ are later downloaded, set this value to 0.
 */
 				uinput(WIN_MID|WIN_SAV,0,0
 					,"Percentage of Credits to Credit Uploader on Download"
-					,itoa(cfg.dir[i]->dn_pct,tmp,10),4,K_EDIT|K_NUMBER);
+					,ultoa(cfg.dir[i]->dn_pct,tmp,10),4,K_EDIT|K_NUMBER);
 				cfg.dir[i]->dn_pct=atoi(tmp);
 				break;
 			case 13:
