@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.19 2003/07/09 04:31:36 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.20 2003/07/10 11:00:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,7 @@ FILE*		nulfp;
 FILE*		statfp;
 char		revision[16];
 BOOL		pause_on_exit=FALSE;
+BOOL		pause_on_error=FALSE;
 
 void banner(FILE* fp)
 {
@@ -82,6 +83,7 @@ void usage(FILE* fp)
 		"\t-n              send status messages to %s instead of stdout\n"
 		"\t-q              send console messages to %s instead of stderr\n"
 		"\t-p              wait for keypress (pause) on exit\n"
+		"\t-!              wait for keypress (pause) on error\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
 		,JAVASCRIPT_BRANCH_LIMIT
@@ -94,7 +96,7 @@ void usage(FILE* fp)
 
 void bail(int code)
 {
-	if(pause_on_exit) {
+	if(pause_on_exit || (code && pause_on_error)) {
 		fprintf(statfp,"\nHit enter to continue...");
 		getchar();
 	}
@@ -452,7 +454,8 @@ long js_exec(const char *fname, char** args)
 	JSString*	arg;
 	JSObject*	argv;
 	jsval		val;
-	jsval		rval;
+	jsval		rval=JSVAL_VOID;
+	int32		result=0;
 	
 	if(strcspn(fname,"/\\")==strlen(fname)) {
 		sprintf(path,"%s%s",scfg.mods_dir,fname);
@@ -498,7 +501,8 @@ long js_exec(const char *fname, char** args)
 
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
-	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
+	if(!JS_ExecuteScript(js_cx, js_scope, js_script, &rval))
+		result=-1;
 
 	JS_DestroyScript(js_cx, js_script);
 
@@ -506,7 +510,10 @@ long js_exec(const char *fname, char** args)
 
 	JS_GC(js_cx);
 
-	return(JSVAL_TO_INT(rval));
+	if(result==0)	/* No error? Use script result */
+		JS_ValueToInt32(js_cx,rval,&result);
+
+	return(result);
 }
 
 /*********************/
@@ -532,7 +539,7 @@ int main(int argc, char **argv, char** environ)
 	branch.yield_freq=JAVASCRIPT_YIELD_FREQUENCY;
 	branch.gc_freq=JAVASCRIPT_GC_FREQUENCY;
 
-	sscanf("$Revision: 1.19 $", "%*s %s", revision);
+	sscanf("$Revision: 1.20 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -566,6 +573,9 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'p':
 					pause_on_exit=TRUE;
+					break;
+				case '!':
+					pause_on_error=TRUE;
 					break;
 				case 'c':
 					SAFECOPY(scfg.ctrl_dir,argv[++argn]);
