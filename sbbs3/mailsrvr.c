@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.55 2001/06/19 16:16:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.56 2001/06/22 03:36:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,13 +189,14 @@ int mail_close_socket(SOCKET sock)
 	if(/* result==0 && */ startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(FALSE);
 	sockets--;
-	if(result!=0)
-		lprintf("%04d !ERROR %d closing socket",sock, ERROR_VALUE);
-	else {
+	if(result!=0) {
+		if(ERROR_VALUE!=ENOTSOCK)
+			lprintf("%04d !ERROR %d closing socket",sock, ERROR_VALUE);
+	}
 #if 0 /*def _DEBUG */
+	else 
 		lprintf("%04d Socket closed (%d sockets in use)",sock,sockets);
 #endif
-	}
 
 	return(result);
 }
