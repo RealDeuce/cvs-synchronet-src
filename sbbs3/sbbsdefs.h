@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.76 2002/11/07 08:01:38 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.77 2002/11/07 08:41:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -676,6 +676,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 								/* msg has printed. */
 #define P_NOATCODES (1<<2)		/* Don't allow @ codes                      */
 #define P_OPENCLOSE (1<<3)		/* Open and close the file					*/
+#define P_NOPAUSE	(1<<4)		/* Disable screen pause						*/
+#define P_HTML		(1<<5)		/* Message is HTML							*/
 								
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
