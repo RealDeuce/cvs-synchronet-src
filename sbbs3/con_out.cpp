@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.25 2003/07/08 10:19:08 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.26 2003/08/28 00:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,9 +412,16 @@ void sbbs_t::ctrl_a(char x)
 		case ')':   /* turn echo back on */
 			console&=~CON_ECHO_OFF;
 			break;
-		case '-':								/* turn off all attributes if */
-			if(atr&(HIGH|BLINK|BG_LIGHTGRAY))	/* high intensity, blink or */
-				attr(LIGHTGRAY);				/* background bits are set */
+		case '+':	/* push current attribte */
+			if(attr_sp<sizeof(attr_stack))
+				attr_stack[attr_sp++]=curatr;
+			break;
+		case '-':	/* pop current attribute OR optimized "normal" */
+			if(attr_sp>0)
+				attr(attr_stack[--attr_sp]);
+			else									/* turn off all attributes if */
+				if(atr&(HIGH|BLINK|BG_LIGHTGRAY))	/* high intensity, blink or */
+					attr(LIGHTGRAY);				/* background bits are set */
 			break;
 		case '_':								/* turn off all attributes if */
 			if(atr&(BLINK|BG_LIGHTGRAY))		/* blink or background is set */

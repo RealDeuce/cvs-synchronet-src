@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.203 2003/08/22 10:50:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.204 2003/08/28 00:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -244,6 +244,8 @@ public:
 	time_t 	timeout;		/* User inactivity timeout reference */
 	ulong 	timeleft_warn;	/* low timeleft warning flag */
 	uchar 	curatr; 		/* Current Text Attributes Always */
+	uchar	attr_stack[64];	/* Saved attributes (stack) */
+	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
 	long 	tos;			/* Top of Screen */
 	long 	rows;			/* Current number of Rows for User */

@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.296 2003/08/27 10:29:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.297 2003/08/28 00:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2077,6 +2077,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	telnet_last_rxch=0;
 	sys_status=lncntr=tos=criterrs=keybufbot=keybuftop=lbuflen=slcnt=0L;
 	curatr=LIGHTGRAY;
+	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
 	logcol=1;
 	logfile_fp=NULL;

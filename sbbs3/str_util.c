@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.25 2003/07/09 04:42:15 rswindell Exp $ */
+/* $Id: str_util.c,v 1.26 2003/08/28 00:25:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -442,7 +442,8 @@ BOOL DLLCALL validattr(char a)
 {
 
 	switch(toupper(a)) {
-		case '-':   /* clear        */
+		case '+':	/* push attr	*/
+		case '-':   /* pop attr		*/
 		case '_':   /* clear        */
 		case 'B':   /* blue     fg  */
 		case 'C':   /* cyan     fg  */
