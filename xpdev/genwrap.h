@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.29 2003/04/29 04:01:39 deuce Exp $ */
+/* $Id: genwrap.h,v 1.30 2003/04/29 04:08:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,7 +175,7 @@ extern "C" {
 #elif defined(__unix__)
 
 #ifndef SLEEP
-	#ifndef SBBS
+	#ifndef YIELD
 	#define	YIELD()
 	#endif
 	#define SLEEP(x)		({	int y=x; struct timeval tv; \
