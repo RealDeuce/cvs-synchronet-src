@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.106 2003/09/19 04:04:54 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.107 2003/09/19 06:16:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2828,23 +2828,30 @@ void putfmsg(FILE *stream,uchar HUGE16 *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	char str[256],seenby[256];
 	short i,j,lastlen=0,net_exists=0;
 	faddr_t addr,sysaddr;
+	fpkdmsg_t pkdmsg;
 	time_t t;
 	struct tm* tm;
 
 	addr=getsysfaddr(fmsghdr.destzone);
 
-	i=0x0002;
-	fwrite(&i,2,1,stream);
-	fwrite(&addr.node,2,1,stream);
-	fwrite(&fmsghdr.destnode,2,1,stream);
-	fwrite(&addr.net,2,1,stream);
-	fwrite(&fmsghdr.destnet,2,1,stream);
-	fwrite(&fmsghdr.attr,2,1,stream);
-	fwrite(&fmsghdr.cost,2,1,stream);
-	fwrite(fmsghdr.time,strlen(fmsghdr.time)+1,1,stream);
-	fwrite(fmsghdr.to,strlen(fmsghdr.to)+1,1,stream);
-	fwrite(fmsghdr.from,strlen(fmsghdr.from)+1,1,stream);
-	fwrite(fmsghdr.subj,strlen(fmsghdr.subj)+1,1,stream);
+	/* Write fixed-length header fields */
+	memset(&pkdmsg,0,sizeof(pkdmsg));
+	pkdmsg.type		= 2;
+	pkdmsg.orignet	= addr.net;
+	pkdmsg.orignode	= addr.node;
+	pkdmsg.destnet	= fmsghdr.destnet;
+	pkdmsg.destnode	= fmsghdr.destnode;
+	pkdmsg.attr		= fmsghdr.attr;
+	pkdmsg.cost		= fmsghdr.cost;
+	SAFECOPY(pkdmsg.time,fmsghdr.time);
+	fwrite(&pkdmsg		,sizeof(pkdmsg)			,1,stream);
+
+	/* Write variable-length (ASCIIZ) header fields */
+	fwrite(fmsghdr.to	,strlen(fmsghdr.to)+1	,1,stream);
+	fwrite(fmsghdr.from	,strlen(fmsghdr.from)+1	,1,stream);
+	fwrite(fmsghdr.subj	,strlen(fmsghdr.subj)+1	,1,stream);
+
+	/* Write message body */
 	if(area.name)
 		if(strncmp((char *)fbuf,"AREA:",5))                     /* No AREA: Line */
 			fprintf(stream,"AREA:%s\r",area.name);              /* So add one */
@@ -4006,6 +4013,8 @@ char* freadstr(FILE* fp, char* str, size_t maxlen)
 			break;
 	}
 
+	str[maxlen-1]=0;	/* Force terminator */
+
 	return(str);
 }
 
@@ -4077,7 +4086,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.106 $", "%*s %s", revision);
+	sscanf("$Revision: 1.107 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
