@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.14 2003/02/15 22:40:57 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.15 2003/02/21 20:24:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@ extern "C" {
 
 #if defined(__unix__)
 
+	#include <sys/param.h>
 	#include <pthread.h>	/* POSIX threads and mutexes */
 #if defined(_NEED_SEM)
 	#include "sem.h"
