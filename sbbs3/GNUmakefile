@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.47 2003/02/07 21:34:47 rswindell Exp $
+# $Id: GNUmakefile,v 1.48 2003/02/08 02:38:45 rswindell Exp $
 
 # Macros
 ifndef DEBUG
@@ -113,6 +113,7 @@ include sbbsdefs.mk		# defines $(SBBSDEFS)
 SBBSLIB	=	$(LIBODIR)/sbbs.a
 
 vpath %.c $(XPDEV) $(UIFC)
+vpath %.cpp $(UIFC)
 
 # Implicit C Compile Rule for utils
 $(EXEODIR)/%.o : %.c
@@ -257,12 +258,15 @@ $(ECHOCFG): \
 	$(EXEODIR)/echocfg.o \
 	$(EXEODIR)/rechocfg.o \
 	$(EXEODIR)/uifcx.o \
+	$(EXEODIR)/uifcc.o \
+	$(EXEODIR)/uifcfltk.o \
 	$(EXEODIR)/nopen.o \
 	$(EXEODIR)/str_util.o \
 	$(EXEODIR)/filewrap.o \
-	$(EXEODIR)/genwrap.o
+	$(EXEODIR)/genwrap.o \
+	../../lib/fltk/$(os)/libfltk.a
 	@echo Linking $@
-	@$(CC) -o $@ $^
+	@$(CC) -DUSE_CURSES -DUSE_FLTK -I../../include/fltk -o $@ $^
 
 # ADDFILES
 $(ADDFILES): \
