@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.4 2002/04/06 10:51:18 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.5 2002/04/06 11:07:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 
 #ifndef _DIRWRAP_H
 #define _DIRWRAP_H
+
+#include <stdlib.h>		/* _fullpath() on Win32 */
 
 #include "gen_defs.h"	/* ulong */
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
