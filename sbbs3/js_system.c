@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.9 2001/08/01 03:56:27 rswindell Exp $ */
+/* $Id: js_system.c,v 1.10 2001/10/13 00:21:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -722,7 +722,8 @@ static JSClass js_node_class = {
 
 extern const char* beta_version;
 
-JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent, scfg_t* cfg)
+JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
+										,scfg_t* cfg, time_t uptime)
 {
 	char		str[256];
 	uint		i;
@@ -801,6 +802,10 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent, scfg_t*
 		return(NULL);
 
 	/***********************/
+
+	val = INT_TO_JSVAL(uptime);
+	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
+		return(NULL);
 
 	if(!JS_DefineProperties(cx, sysobj, js_system_properties))
 		return(NULL);
