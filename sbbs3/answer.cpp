@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.14 2001/10/02 20:08:57 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.15 2001/10/25 22:35:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,16 +144,15 @@ bool sbbs_t::answer()
 			continue;
 		str[l++]=c;
 		if(c=='R') {   /* break immediately if response */
-			mswait(100);
+			mswait(500);
 			break; 
 		}
 	}
 
-	if(rioctl(RXBC))	/* wait a bit for extra RIP reply chars */
-		mswait(500);
- 
-	while((c=(incom()&0x7f))!=0 && l<sizeof(str)-1)
+	while((c=(incom()&0x7f))!=0 && l<sizeof(str)-1) {
 		str[l++]=c;
+		mswait(1);
+	}
 	str[l]=0;
 
     if(l) {
