@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.16 2002/04/26 06:51:28 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.17 2002/06/16 07:08:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@ static uint helpline=0;
 static uifcapi_t* api;
 
 /* Prototypes */
-static void help();
+static void help(void);
 
 /* API routines */
 static void uifcbail(void);
