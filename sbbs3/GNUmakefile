@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.145 2004/07/20 18:38:47 rswindell Exp $
+# $Id: GNUmakefile,v 1.144 2004/05/11 02:08:17 rswindell Exp $
 
 #USE_DIALOG =   1       # Dialog vesrion of UIFC
 #USE_FLTK =     1       # Use Windowed version
@@ -252,7 +252,6 @@ $(FIXSMB): $(FIXSMB_OBJS)
 CHKSMB_OBJS = \
 	$(LIBODIR)/chksmb.o \
 	$(SMBLIB_OBJS) \
-	$(LIBODIR)/smbdump.o \
 	$(LIBODIR)/conwrap.o \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o
@@ -270,7 +269,6 @@ SMBUTIL_OBJS = \
 	$(LIBODIR)/dirwrap.o \
 	$(LIBODIR)/genwrap.o \
 	$(LIBODIR)/smbtxt.o \
-	$(LIBODIR)/smbdump.o \
 	$(LIBODIR)/crc32.o \
 	$(LIBODIR)/lzh.o \
 	$(LIBODIR)/date_str.o \
