@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.33 2004/10/21 08:58:25 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.34 2004/12/29 04:40:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,6 +116,11 @@ bool sbbs_t::unpack_rep(char* repfile)
 	bputs(text[QWKUnpacking]);
 
 	for(l=QWK_BLOCK_LEN;l<size;l+=i*QWK_BLOCK_LEN) {
+		if(terminated) {
+			bprintf("!Terminated");
+			break;
+		}
+
 		lncntr=0;					/* defeat pause */
 		if(fseek(rep,l,SEEK_SET)!=0) {
 			sprintf(str,"%s.msg", cfg.sys_id);
