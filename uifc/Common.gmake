@@ -16,25 +16,19 @@ ifdef USE_FLTK
 endif
 ifdef USE_DIALOG
  LDFLAGS	+=	-L$(XPDEV)../libdialog -ldialog $(CURSESLIB)
- CFLAGS	+=	-I$(XPDEV)../libdialog -DUSE_DIALOG
+ UIFC_CFLAGS	+=	-I$(XPDEV)../libdialog -DUSE_DIALOG
  UIFC_NEED_CURSES	:=	1
 endif
 ifdef USE_CURSES
  UIFC_CFLAGS +=	-DUSE_CURSES
- UIFC_LDFLAGS += $(CURSES_LDFLAGS)
  UIFC_OBJS +=	$(LIBODIR)/uifcc.o
  UIFC_NEED_CURSES	:=	1
 endif
 ifdef USE_UIFC32
  UIFC_CFLAGS +=	-DUSE_UIFC32
- UIFC_LDFLAGS += $(CURSES_LDFLAGS)
  UIFC_OBJS +=	$(LIBODIR)/uifc32.o
  UIFC_OBJS +=	$(LIBODIR)/ciowrap.o
  UIFC_NEED_CURSES	:=	1
-endif
-ifdef NEED_UIFC
- CFLAGS	+=	$(UIFC_CFLAGS)
- LDFLAGS	+=	$(UIFC_LDFLAGS)
 endif
 
 # Curses Stuff
@@ -56,6 +50,12 @@ endif
 ifdef UIFC_NEED_CURSES
  UIFC_CFLAGS	+=	$(CURSES_CFLAGS)
  UIFC_LDFLAGS	+=	$(CURSES_LDFLAGS)
+endif
+
+ifdef NEED_UIFC
+ CFLAGS	+=	$(UIFC_CFLAGS)
+ LDFLAGS +=	$(UIFC_LDFLAGS)
+ OBJS +=	$(UIFC_OBJS)
 endif
 
 vpath %.c $(UIFC_SRC)

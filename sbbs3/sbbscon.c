@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.160 2004/03/14 22:33:32 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.161 2004/03/24 01:19:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -821,42 +821,6 @@ void _sighandler_rerun(int sig)
 	mail_startup.recycle_now=TRUE;
 	services_startup.recycle_now=TRUE;
 }
-
-#ifdef NEEDS_DAEMON
-/****************************************************************************/
-/* Daemonizes the process                                                   */
-/****************************************************************************/
-int
-daemon(nochdir, noclose)
-    int nochdir, noclose;
-{
-    int fd;
-
-    switch (fork()) {
-    case -1:
-        return (-1);
-    case 0:
-        break;
-    default:
-        _exit(0);
-    }
-
-    if (setsid() == -1)
-        return (-1);
-
-    if (!nochdir)
-        (void)chdir("/");
-
-    if (!noclose && (fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
-        (void)dup2(fd, STDIN_FILENO);
-        (void)dup2(fd, STDOUT_FILENO);
-        (void)dup2(fd, STDERR_FILENO);
-        if (fd > 2)
-            (void)close(fd);
-    }
-    return (0);
-}
-#endif /* NEEDS_DAEMON */
 
 static void handle_sigs(void)  {
 	int			sig;
