@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.19 2002/02/18 14:48:24 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.20 2002/02/19 13:42:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -988,7 +988,7 @@ void sbbs_t::maindflts(user_t* user)
 				}
 				sprintf(str,"%suser/%04u.sig",cfg.data_dir,user->number);
 				if(fexist(str) && yesno("View signature"))
-					printfile(str,0);
+					printfile(str,P_NOATCODES);
 				if(!noyes("Create/Edit signature"))
 					editfile(str);
 				else if(fexist(str) && !noyes("Delete signature"))
