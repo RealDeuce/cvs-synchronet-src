@@ -2666,7 +2666,6 @@ object MainForm: TMainForm
         AutoCheck = True
       end
       object ViewToolbarMenuItem: TMenuItem
-        AutoCheck = True
         Caption = 'Tool&bar'
         OnClick = ViewToolbarMenuItemClick
       end

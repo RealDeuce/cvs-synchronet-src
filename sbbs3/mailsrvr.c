@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.350 2004/11/18 09:12:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.344 2004/11/03 06:07:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,6 @@
 #include <errno.h>			/* errno */
 
 /* Synchronet-specific headers */
-#undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "mailsrvr.h"
 #include "mime.h"
@@ -225,7 +224,7 @@ int mail_close_socket(SOCKET sock)
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
-	if(startup!=NULL && startup->socket_open!=NULL)
+	if(/* result==0 && */ startup!=NULL && startup->socket_open!=NULL)
 		startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 	if(result!=0) {
@@ -2323,6 +2322,9 @@ static void smtp_thread(void* arg)
 					msg.idx.subj=smb_subject_crc(p);
 				}
 
+				/* Security logging */
+				msg_client_hfields(&msg,&client);
+
 				length=filelength(fileno(msgtxt))-ftell(msgtxt);
 
 				if(startup->max_msg_size && length>startup->max_msg_size) {
@@ -2365,7 +2367,7 @@ static void smtp_thread(void* arg)
 					smb_hfield_str(&msg, RECIPIENT, rcpt_name);
 
 					smb.subnum=subnum;
-					if((i=savemsg(&scfg, &smb, &msg, &client, msgbuf))!=SMB_SUCCESS) {
+					if((i=savemsg(&scfg, &smb, &msg, msgbuf))!=SMB_SUCCESS) {
 						lprintf(LOG_WARNING,"%04d !SMTP ERROR %d (%s) saving message"
 							,socket,i,smb.last_error);
 						sockprintf(socket, "452 ERROR %d (%s) saving message"
@@ -2384,7 +2386,7 @@ static void smtp_thread(void* arg)
 
 				/* E-mail */
 				smb.subnum=INVALID_SUB;
-				i=savemsg(&scfg, &smb, &msg, &client, msgbuf);
+				i=savemsg(&scfg, &smb, &msg, msgbuf);
 				free(msgbuf);
 				if(i!=SMB_SUCCESS) {
 					smb_close(&smb);
@@ -3893,7 +3895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.350 $", "%*s %s", revision);
+	sscanf("$Revision: 1.344 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3975,7 +3977,6 @@ void DLLCALL mail_server(void* arg)
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
-	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
 
 	do {
@@ -4195,32 +4196,23 @@ void DLLCALL mail_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(active_clients==0) {
-				if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
-					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
-						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
-							,server_socket,p);
-						break;
-					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
-					if(startup->recycle_now==TRUE) {
-						lprintf(LOG_NOTICE,"%04d Recycle semaphore signaled", server_socket);
-						startup->recycle_now=FALSE;
-						break;
-					}
-				}
-				if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
-						&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
-						,server_socket,p))
-					|| (startup->shutdown_now==TRUE
-						&& lprintf(LOG_INFO,"%04d Shutdown semaphore signaled",server_socket))) {
-					startup->shutdown_now=FALSE;
-					terminate_server=TRUE;
+			if(active_clients==0 && !(startup->options&MAIL_OPT_NO_RECYCLE)) {
+				if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
+					lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 					break;
 				}
+				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+					startup->recycle_now=TRUE;
+				if(startup->recycle_now==TRUE) {
+					lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
+					startup->recycle_now=FALSE;
+					break;
+				}
+			}
+			if((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL) {
+				lprintf(LOG_INFO,"0000 Shutdown semaphore file (%s) detected",p);
+				terminate_server=TRUE;
+				break;
 			}
 
 			/* now wait for connection */
@@ -4242,11 +4234,11 @@ void DLLCALL mail_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"%04d Mail Server listening interrupted",server_socket);
+					lprintf(LOG_NOTICE,"0000 Mail Server listening interrupted");
 				else if(ERROR_VALUE == ENOTSOCK)
-            		lprintf(LOG_NOTICE,"%04d Mail Server sockets closed",server_socket);
+            		lprintf(LOG_NOTICE,"0000 Mail Server sockets closed");
 				else
-					lprintf(LOG_WARNING,"%04d !ERROR %d selecting sockets",server_socket,ERROR_VALUE);
+					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
 				continue;
 			}
 
@@ -4259,20 +4251,11 @@ void DLLCALL mail_server(void* arg)
 
 				if(client_socket == INVALID_SOCKET)
 				{
-#if 0	/* is this necessary still? */
-					if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINVAL) {
-            			lprintf(LOG_NOTICE,"%04d SMTP socket closed while listening"
-							,server_socket);
-						break;
-					}
-#endif
-					lprintf(LOG_WARNING,"%04d SMTP !ERROR %d accepting connection"
-						,server_socket, ERROR_VALUE);
-#ifdef _WIN32
-					if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
-						break;
-#endif
-					continue;
+					if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINVAL)
+            			lprintf(LOG_NOTICE,"0000 SMTP socket closed while listening");
+					else
+						lprintf(LOG_WARNING,"%04d !ERROR %d accept failed", server_socket, ERROR_VALUE);
+					break;
 				}
 				if(startup->socket_open!=NULL)
 					startup->socket_open(startup->cbdata,TRUE);
@@ -4284,7 +4267,7 @@ void DLLCALL mail_server(void* arg)
 				}
 
 				if(active_clients>=startup->max_clients) {
-					lprintf(LOG_WARNING,"%04d SMTP !MAXMIMUM CLIENTS (%u) reached, access denied"
+					lprintf(LOG_WARNING,"%04d !MAXMIMUM CLIENTS (%u) reached, access denied"
 						,client_socket, startup->max_clients);
 					sockprintf(client_socket,"421 Maximum active clients reached, please try again later.");
 					mswait(3000);
@@ -4295,14 +4278,14 @@ void DLLCALL mail_server(void* arg)
 				l=1;
 
 				if((i=ioctlsocket(client_socket, FIONBIO, &l))!=0) {
-					lprintf(LOG_ERR,"%04d SMTP !ERROR %d (%d) disabling blocking on socket"
+					lprintf(LOG_ERR,"%04d !ERROR %d (%d) disabling blocking on socket"
 						,client_socket, i, ERROR_VALUE);
 					mail_close_socket(client_socket);
 					continue;
 				}
 
 				if((smtp=malloc(sizeof(smtp_t)))==NULL) {
-					lprintf(LOG_CRIT,"%04d SMTP !ERROR allocating %u bytes of memory for smtp_t"
+					lprintf(LOG_CRIT,"%04d !ERROR allocating %u bytes of memory for smtp_t"
 						,client_socket, sizeof(smtp_t));
 					mail_close_socket(client_socket);
 					continue;
@@ -4323,19 +4306,11 @@ void DLLCALL mail_server(void* arg)
 
 				if(client_socket == INVALID_SOCKET)
 				{
-#if 0	/* is this necessary still? */
-					if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINVAL) {
+					if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINVAL)
             			lprintf(LOG_NOTICE,"%04d POP3 socket closed while listening",pop3_socket);
-						break;
-					}
-#endif
-					lprintf(LOG_WARNING,"%04d POP3 !ERROR %d accepting connection"
-						,pop3_socket, ERROR_VALUE);
-#ifdef _WIN32
-					if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
-						break;
-#endif
-					continue;
+					else
+						lprintf(LOG_WARNING,"%04d !ERROR %d accept failed", pop3_socket, ERROR_VALUE);
+					break;
 				}
 				if(startup->socket_open!=NULL)
 					startup->socket_open(startup->cbdata,TRUE);
@@ -4347,7 +4322,7 @@ void DLLCALL mail_server(void* arg)
 				}
 
 				if(active_clients>=startup->max_clients) {
-					lprintf(LOG_WARNING,"%04d POP3 !MAXMIMUM CLIENTS (%u) reached, access denied"
+					lprintf(LOG_WARNING,"%04d !MAXMIMUM CLIENTS (%u) reached, access denied"
 						,client_socket, startup->max_clients);
 					sockprintf(client_socket,"-ERR Maximum active clients reached, please try again later.");
 					mswait(3000);
@@ -4359,7 +4334,7 @@ void DLLCALL mail_server(void* arg)
 				l=1;
 
 				if((i=ioctlsocket(client_socket, FIONBIO, &l))!=0) {
-					lprintf(LOG_ERR,"%04d POP3 !ERROR %d (%d) disabling blocking on socket"
+					lprintf(LOG_ERR,"%04d !ERROR %d (%d) disabling blocking on socket"
 						,client_socket, i, ERROR_VALUE);
 					sockprintf(client_socket,"-ERR System error, please try again later.");
 					mswait(3000);
@@ -4368,7 +4343,7 @@ void DLLCALL mail_server(void* arg)
 				}
 
 				if((pop3=malloc(sizeof(pop3_t)))==NULL) {
-					lprintf(LOG_CRIT,"%04d POP3 !ERROR allocating %u bytes of memory for pop3_t"
+					lprintf(LOG_CRIT,"%04d !ERROR allocating %u bytes of memory for pop3_t"
 						,client_socket,sizeof(pop3_t));
 					sockprintf(client_socket,"-ERR System error, please try again later.");
 					mswait(3000);
@@ -4385,13 +4360,11 @@ void DLLCALL mail_server(void* arg)
 		}
 
 		if(active_clients) {
-			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
-				,server_socket, active_clients);
+			lprintf(LOG_DEBUG,"0000 Waiting for %d active clients to disconnect...", active_clients);
 			start=time(NULL);
 			while(active_clients) {
-				if(time(NULL)-start>startup->max_inactivity) {
-					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients);
+				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
+					lprintf(LOG_WARNING,"!TIMEOUT waiting for %d active clients ",active_clients);
 					break;
 				}
 				mswait(100);
@@ -4404,13 +4377,12 @@ void DLLCALL mail_server(void* arg)
 			mswait(100);
 		}
 		if(sendmail_running) {
-			lprintf(LOG_DEBUG,"%04d Waiting for SendMail thread to terminate..."
-				,server_socket);
+			lprintf(LOG_DEBUG,"0000 Waiting for SendMail thread to terminate...");
 			start=time(NULL);
 			while(sendmail_running) {
 				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for sendmail thread to terminate"
-						,server_socket);
+					lprintf(LOG_WARNING,"!TIMEOUT waiting for sendmail thread to "
+            			"terminate");
 					break;
 				}
 				mswait(500);
