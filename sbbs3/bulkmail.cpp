@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.10 2002/08/22 19:49:53 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.11 2002/08/26 21:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,7 @@ void sbbs_t::bulkmail(uchar *ar)
 
 	sprintf(msgpath,"%sINPUT.MSG",cfg.node_dir);
 	sprintf(str2,"Bulk Mailing");
-	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,0,str2)) {
+	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,INVALID_SUB,str2)) {
 		bputs(text[Aborted]);
 		return; }
 

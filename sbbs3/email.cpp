@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.18 2002/08/25 12:00:58 rswindell Exp $ */
+/* $Id: email.cpp,v 1.19 2002/08/26 21:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 
 	sprintf(msgpath,"%sINPUT.MSG", cfg.node_dir);
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top,title,mode,0,str2)) {
+	if(!writemsg(msgpath,top,title,mode,INVALID_SUB,str2)) {
 		bputs(text[Aborted]);
 		return(false); }
 
