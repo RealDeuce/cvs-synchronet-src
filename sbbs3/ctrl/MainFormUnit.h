@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.29 2001/11/16 19:22:40 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.30 2001/12/14 18:00:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,7 +335,7 @@ public:		// User declarations
 	TPageControl* __fastcall PageControl(int num);
 	int __fastcall  PageNum(TPageControl* obj);
     void __fastcall FormMinimize(TObject *Sender);
-    void __fastcall ReadColor(TRegistry*, AnsiString, TColor*);
+    TColor __fastcall ReadColor(TRegistry*, AnsiString);
     void __fastcall WriteColor(TRegistry*, AnsiString, TColor);
     void __fastcall ReadFont(AnsiString, TFont*);
     void __fastcall WriteFont(AnsiString, TFont*);
