@@ -1,6 +1,6 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.4 2002/01/24 19:47:16 rswindell Exp $ */
+/* $Id: scfg.h,v 1.5 2002/01/26 14:57:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,13 +33,11 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "uifc.h"
-#include <dir.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "uifc.h"
 #include "sbbs.h"
-#include "scfglib.h"
 
 /**********/
 /* Macros */
