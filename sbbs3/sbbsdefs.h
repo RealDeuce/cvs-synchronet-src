@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.123 2004/12/30 02:57:00 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.125 2005/01/20 06:22:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,13 +43,14 @@
 #include "gen_defs.h"	/* uchar, ushort, uint, ulong, etc. */
 #include "nodedefs.h"	/* node_t */
 #include "fidodefs.h"	/* fmsghdr_t, fpkthdr_t, FIDO_*, etc. */
+#include "xpbeep.h"		/* BEEP() */
 
 /*************/
 /* Constants */
 /*************/
 
 #define VERSION 	"3.12"  /* Version: Major.minor  */
-#define REVISION	'a'     /* Revision: lowercase letter */
+#define REVISION	'b'     /* Revision: lowercase letter */
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
