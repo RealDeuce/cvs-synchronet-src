@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.21 2002/11/01 00:07:31 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.22 2002/11/01 02:32:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -461,6 +461,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 				break;
 			case 'H':
+				domsg=0;
 				msghdr(&msg);
 				break;
 			case 'L':     /* List mail */
