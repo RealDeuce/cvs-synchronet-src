@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.148 2002/05/29 06:47:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.149 2002/06/14 08:33:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,11 +175,15 @@ int eprintf(char *fmt, ...)
 
 SOCKET open_socket(int type)
 {
-	SOCKET sock;
+	SOCKET	sock;
+	char	error[256];
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(TRUE);
+	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, error))
+		lprintf("%04d !ERROR %s",sock,error);
+
 	return(sock);
 }
 
@@ -3550,6 +3554,9 @@ void DLLCALL bbs_thread(void* arg)
 			close_socket(client_socket);
 			continue;
 		}
+
+		if(set_socket_options(&scfg, client_socket, logstr))
+			lprintf("%04d !ERROR %s",client_socket, logstr);
 
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
