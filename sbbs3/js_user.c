@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.5 2001/07/13 02:55:48 rswindell Exp $ */
+/* $Id: js_user.c,v 1.6 2001/08/02 04:14:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -295,7 +295,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			s=user.tmpext;
 			break;
 		case USER_PROP_CHAT:
-			val=user.laston;
+			val=user.chat;
 			break;
 		case USER_PROP_NS_TIME:
 			val=user.laston;
@@ -488,7 +488,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static struct JSPropertySpec js_user_properties[] = {
 /*		 name				,tinyid					,flags,				getter,	setter	*/
 
-	{	"number"			,USER_PROP_NUMBER		,USER_PROP_NUMBER,		NULL,NULL},
+	{	"number"			,USER_PROP_NUMBER		,USER_PROP_FLAGS,		NULL,NULL},
 	{	"alias"				,USER_PROP_ALIAS 		,USER_PROP_FLAGS,		NULL,NULL},
 	{	"name"				,USER_PROP_NAME		 	,USER_PROP_FLAGS,		NULL,NULL},
 	{	"handle"			,USER_PROP_HANDLE	 	,USER_PROP_FLAGS,		NULL,NULL},
