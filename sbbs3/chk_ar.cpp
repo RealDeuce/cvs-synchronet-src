@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.5 2001/06/05 02:35:06 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.6 2001/10/26 19:25:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,9 +389,9 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 					noaccess_str=text[NoAccessTime];
 					noaccess_val=i; }
 				break;
-			case AR_PCR:
+			case AR_PCR:	/* post/call ratio (by percentage) */
 				if(user->logons>user->posts
-					&& (!user->posts || 100/(user->logons/user->posts)<(long)n))
+					&& (!user->posts || (100/(user->logons/user->posts))<(long)n))
 					result=_not;
 				else
 					result=!_not;
@@ -399,11 +399,11 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 					noaccess_str=text[NoAccessPCR];
 					noaccess_val=n; }
 				break;
-			case AR_UDR:	/* up/download byte ratio */
+			case AR_UDR:	/* up/download byte ratio (by percentage) */
 				l=user->dlb;
 				if(!l) l=1;
 				if(user->dlb>user->ulb
-					&& (!user->ulb || 100/(l/user->ulb)<n))
+					&& (!user->ulb || (100/(l/user->ulb))<n))
 					result=_not;
 				else
 					result=!_not;
@@ -411,11 +411,11 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 					noaccess_str=text[NoAccessUDR];
 					noaccess_val=n; }
 				break;
-			case AR_UDFR:	/* up/download file ratio */
+			case AR_UDFR:	/* up/download file ratio (in percentage) */
 				i=user->dls;
 				if(!i) i=1;
 				if(user->dls>user->uls
-					&& (!user->uls || 100/(i/user->uls)<n))
+					&& (!user->uls || (100/(i/user->uls))<n))
 					result=_not;
 				else
 					result=!_not;
