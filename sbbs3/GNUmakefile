@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.20 2002/05/17 21:00:10 rswindell Exp $
+# $Id: GNUmakefile,v 1.21 2002/06/18 08:26:36 rswindell Exp $
 
 # Macros
 DEBUG	=	1		# Comment out for release (non-debug) version
@@ -28,6 +28,7 @@ SLASH	=	/
 OFILE	=	o
 
 LIBFILE	=	.a
+UIFC	=	../uifc/
 XPDEV	=	../xpdev/
 
 ifndef $(os)
@@ -52,7 +53,7 @@ endif
 
 DELETE	=	rm -fv
 
-CFLAGS	+=	-DJAVASCRIPT -I../mozilla/js/src -I$(XPDEV)
+CFLAGS	+=	-DJAVASCRIPT -I../mozilla/js/src -I$(XPDEV) -I$(UIFC)
 
 ifeq ($(os),FreeBSD)	# FreeBSD
 CFLAGS	+= -D_THREAD_SAFE
@@ -98,7 +99,7 @@ include sbbsdefs.mk		# defines $(SBBSDEFS)
 
 SBBSLIB	=	$(LIBODIR)/sbbs.a
 
-vpath %.c $(XPDEV)
+vpath %.c $(XPDEV) $(UIFC)
 
 # Implicit C Compile Rule for utils
 $(EXEODIR)/%.o : %.c
@@ -225,6 +226,16 @@ $(SBBSECHO): \
 	$(SMBLIB) \
 	$(EXEODIR)/smbtxt.o \
 	$(EXEODIR)/lzh.o
+	@echo Linking $@
+	@$(CC) -o $@ $^
+
+# SBBSecho Configuration Program
+$(ECHOCFG): \
+	$(EXEODIR)/echocfg.o \
+	$(EXEODIR)/rechocfg.o \
+	$(EXEODIR)/uifc.o \
+	$(EXEODIR)/nopen.o \
+	$(EXEODIR)/str_util.o
 	@echo Linking $@
 	@$(CC) -o $@ $^
 
