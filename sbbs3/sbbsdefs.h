@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.61 2002/04/03 02:43:13 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.62 2002/04/12 06:18:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 /*************/
 
 #define VERSION 	"3.10"  /* Version: Major.minor  */
-#define REVISION	'h'     /* Revision: lowercase letter */
+#define REVISION	'i'     /* Revision: lowercase letter */
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -798,6 +798,9 @@ enum {							/* Values of mode for userlist function     */
 #define ANSI_RESTORE()	rputs("\x1b[u")
 #define GOTOXY(x,y)     rprintf("\x1b[%d;%dH",y,x);
 #define TM_YEAR(yy)		((yy)%100)
+#define sbbs_beep(f,d)	BEEP(f,d)
+#define mswait(x)		SLEEP(x)
+#define sbbs_random(x)	xp_random(x)
 
 #ifdef __cplusplus
 extern "C" {
