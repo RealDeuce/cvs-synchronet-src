@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.297 2003/10/20 22:22:37 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.298 2003/10/20 22:40:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1826,7 +1826,7 @@ static void smtp_thread(void* arg)
 						i=system(str);
 						if(i!=0)
 							lprintf(LOG_WARNING,"%04d SMTP external process (%s) returned %d (errno: %d)"
-								,str, i, errno);
+								,socket, str, i, errno);
 						if(flength(proc_err_fname)>0)
 							break;
 						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
@@ -3386,7 +3386,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.297 $", "%*s %s", revision);
+	sscanf("$Revision: 1.298 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
