@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.h,v 1.13 2005/01/13 23:31:11 deuce Exp $ */
+/* $Id: semwrap.h,v 1.10 2004/11/10 23:13:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,6 @@ extern "C" {
 	#else
 		#include <semaphore.h>	/* POSIX semaphores */
 	#endif
-	#include "xpevent.h"
 
 #elif defined(_WIN32)	
 
@@ -95,11 +94,7 @@ int sem_trywait_block(sem_t* psem, unsigned long timeout);
 
 
 /* Change semaphore to "unsignaled" (NOT POSIX) */
-#ifdef USE_XP_SEMAPHORES
-#define	sem_reset(psem)					xp_sem_setvalue((psem), 0)
-#else
 #define sem_reset(psem)					while(sem_trywait(psem)==0)
-#endif
 
 #if defined(__cplusplus)
 }
