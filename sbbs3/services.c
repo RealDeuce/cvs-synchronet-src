@@ -2,7 +2,7 @@
 
 /* Synchronet Services Server */
 
-/* $Id: services.c,v 1.7 2001/11/15 14:13:19 rswindell Exp $ */
+/* $Id: services.c,v 1.8 2001/11/15 19:59:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -314,6 +314,12 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf("%04d %s !USER NOT FOUND: '%s'"
 			,client->socket,client->service->protocol,p);
+		return(JS_TRUE);
+	}
+
+	if(user.misc&(DELETED|INACTIVE)) {
+		lprintf("%04d %s !DELETED OR INACTIVE USER #%d: %s"
+			,client->socket,client->service->protocol,user.number,p);
 		return(JS_TRUE);
 	}
 
@@ -678,21 +684,15 @@ static void js_service_thread(void* arg)
 		lprintf("%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
-		lprintf("%04d %s JS_DestroyScript",socket,service->protocol);
+//		lprintf("%04d %s JS_DestroyScript",socket,service->protocol);
 		JS_DestroyScript(js_cx, js_script);
-//		lprintf("%04d JS_GC",socket);
-//		JS_GC(js_cx);
 	}
 	close_socket(socket);
 
-//	lprintf("%04d JS_EndRequest",socket);
-//	JS_EndRequest(js_cx);
-
-
-	lprintf("%04d %s JS_DestroyContext",socket,service->protocol);
+//	lprintf("%04d %s JS_DestroyContext",socket,service->protocol);
 	JS_DestroyContext(js_cx);	/* Free Context */
 
-	lprintf("%04d %s JS_DestroyRuntime",socket,service->protocol);
+//	lprintf("%04d %s JS_DestroyRuntime",socket,service->protocol);
 	JS_DestroyRuntime(js_runtime);
 
 	if(service_client.user.number) {
