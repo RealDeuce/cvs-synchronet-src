@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.2 2001/06/20 01:22:08 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.3 2001/06/20 01:35:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,6 +310,19 @@ static struct JSPropertySpec js_bbs_properties[] = {
 /**************************/
 
 static JSBool
+js_hangup(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	sbbs_t*		sbbs;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	sbbs->hangup();
+
+	return(JS_TRUE);
+}
+
+static JSBool
 js_exec(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uintN		i;
@@ -385,6 +398,7 @@ js_user_event(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 
 
 static JSFunctionSpec js_bbs_functions[] = {
+	{"hangup",			js_hangup,			0},		// hangup immediately
 	{"exec",			js_exec,			2},		// execute command line with mode
 	{"exec_xtrn",		js_exec_xtrn,		1},		// execute external program by code
 	{"user_event",		js_user_event,		1},		// execute user event by event type
