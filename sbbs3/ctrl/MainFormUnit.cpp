@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.87 2003/01/06 20:57:38 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.88 2003/01/13 09:36:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1597,7 +1597,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     delete Registry;
 
     if(!FileExists(CtrlDirectory+"MAIN.CNF")) {
-    	Sleep(3000);	// Let 'em see the logo for a bit
 		Application->CreateForm(__classid(TCtrlPathDialog), &CtrlPathDialog);
     	if(CtrlPathDialog->ShowModal()!=mrOk) {
         	Application->Terminate();
