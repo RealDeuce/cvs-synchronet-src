@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.26 2000/11/09 02:57:01 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.25 2000/11/09 04:15:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2264,7 +2264,6 @@ void DLLCALL mail_server(void* arg)
 	time_t			start;
 	LINGER			linger;
 	fd_set			socket_set;
-	SOCKET			high_socket_set;
 	pop3_t*			pop3;
 	smtp_t*			smtp;
 
@@ -2495,14 +2494,10 @@ void DLLCALL mail_server(void* arg)
 
 		FD_ZERO(&socket_set);
 		FD_SET(server_socket,&socket_set);
-		high_socket_set=server_socket+1;
-		if(startup->options&MAIL_OPT_ALLOW_POP3) {
+		if(startup->options&MAIL_OPT_ALLOW_POP3)
 			FD_SET(pop3_socket,&socket_set);
-			if(pop3_socket+1>high_socket_set)
-				high_socket_set=pop3_socket+1;
-		}
 
-		if((i=select(high_socket_set,&socket_set,NULL,NULL,NULL))<1) {
+		if((i=select(0,&socket_set,NULL,NULL,NULL))<1) {
 			if(!i) {
 				lprintf("select returned zero");
 				break;
