@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.9 2002/03/17 01:32:59 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.10 2002/03/17 02:26:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,7 @@ void sbbs_t::putnodedat(uint number, node_t* node)
 	}
 
 	number--;	/* make zero based */
+	lock(nodefile,(long)number*sizeof(node_t),sizeof(node_t));
 	for(attempts=0;attempts<10;attempts++) {
 		lseek(nodefile,(long)number*sizeof(node_t),SEEK_SET);
 		wr=write(nodefile,node,sizeof(node_t));
