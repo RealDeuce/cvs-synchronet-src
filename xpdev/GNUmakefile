@@ -10,7 +10,7 @@
 #
 #########################################################################
 
-# $Id: GNUmakefile,v 1.16 2003/06/11 02:00:35 deuce Exp $
+# $Id: GNUmakefile,v 1.17 2003/08/13 03:23:04 deuce Exp $
 
 # Macros
 ifndef DEBUG
@@ -110,3 +110,7 @@ $(WRAPTEST): $(ODIR)/wraptest.o $(OBJS)
 	@echo Linking $@
 	@$(CC) $(CFLAGS) -o $@ $(LFLAGS) $^
 
+lib: $(ODIR)/libxpdev.so
+
+$(ODIR)/libxpdev.so: $(OBJS)
+	gcc -shared $(OBJS) -o $(ODIR)/libxpdev.so
