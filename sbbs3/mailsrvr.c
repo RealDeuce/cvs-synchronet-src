@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.194 2002/10/15 00:47:27 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.195 2002/10/16 05:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2684,11 +2684,12 @@ static void sendmail_thread(void* arg)
 					,ntohs(server_addr.sin_port)
 					,server,inet_ntoa(server_addr.sin_addr));
 				if((i=connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)))!=0) {
-					lprintf("%04d !SEND ERROR %d (%d) connecting to SMTP server: %s"
+					i=ERROR_VALUE;
+					lprintf("%04d !SEND ERROR %d connecting to SMTP server: %s"
 						,sock
-						,i,ERROR_VALUE, server);
+						,i, server);
 					sprintf(err,"Error %d connecting to SMTP server: %s"
-						,(int)ERROR_VALUE,server);
+						,i, server);
 					continue;
 				}
 				success=TRUE;
@@ -2842,7 +2843,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.194 $" + 11, "%s", revision);
+	sscanf("$Revision: 1.195 $" + 11, "%s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
