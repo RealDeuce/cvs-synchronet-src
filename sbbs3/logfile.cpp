@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.3 2001/04/03 15:31:53 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.4 2001/04/11 03:39:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,10 @@ void sbbs_t::log(char *str)
 /****************************************************************************/
 void sbbs_t::logline(char *code, char *str)
 {
-	lprintf("Node %d %s", cfg.node_num, str);
+	if(online==ON_LOCAL)
+		eprintf("%s",str);
+	else
+		lprintf("Node %d %s", cfg.node_num, str);
 	if(logfile_fp==NULL || (online==ON_LOCAL && strcmp(code,"!!"))) return;
 	if(logcol!=1)
 		fprintf(logfile_fp,"\r\n");
