@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.17 2003/09/16 03:59:37 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.18 2004/03/25 06:37:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,11 +122,11 @@ static char* get_value(FILE* fp, const char* section, const char* key, char* val
 
 char* iniGetString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
 {
-	if((value=get_value(fp,section,key,value))==NULL)
-		return((char*)deflt);
-
-	if(*value==0)		/* blank value */
-		return((char*)deflt);
+	if((value=get_value(fp,section,key,value))==NULL || *value==0 /* blank */) {
+		if(deflt==NULL)
+			return(NULL);
+		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
+	}
 
 	return(value);
 }
