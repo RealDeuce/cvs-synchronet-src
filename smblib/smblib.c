@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.55 2003/02/07 00:40:03 rswindell Exp $ */
+/* $Id: smblib.c,v 1.56 2003/02/07 05:29:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,7 +346,7 @@ int SMBCALL smb_stack(smb_t* smb, int op)
 			return(SMB_FAILURE);
 		}
 		if(smb->shd_fp==NULL || smb->sdt_fp==NULL || smb->sid_fp==NULL)
-			return(SMB_ERR_NOT_OPEN);	  /* Msg base not open */
+			return(SMB_SUCCESS);	  /* Msg base not open, do nothing */
 		memcpy(&stack[stack_idx],smb,sizeof(smb_t));
 		stack_idx++;
 		return(SMB_SUCCESS); 
