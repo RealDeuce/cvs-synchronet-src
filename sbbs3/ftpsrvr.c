@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.210 2003/02/15 01:18:30 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.211 2003/02/15 08:53:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1536,7 +1536,7 @@ static void send_thread(void* arg)
 					}
 					/* Inform uploader of downloaded file */
 					sprintf(str,text[DownloadUserMsg]
-						,fname
+						,getfname(xfer.filename)
 						,xfer.filepos ? "Partially FTP-" : "FTP-"
 						,xfer.user->alias,tmp); 
 					putsmsg(&scfg,uploader.number,str); 
@@ -4393,7 +4393,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.210 $", "%*s %s", revision);
+	sscanf("$Revision: 1.211 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
