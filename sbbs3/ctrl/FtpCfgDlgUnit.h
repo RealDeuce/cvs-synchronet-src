@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.h,v 1.2 2000/10/12 00:10:10 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.h,v 1.3 2001/07/11 03:33:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,8 +77,6 @@ __published:
     TEdit *PortEdit;
     TLabel *InterfaceLabel;
     TEdit *NetworkInterfaceEdit;
-    TCheckBox *AutoIndexCheckBox;
-    TEdit *IndexFileNameEdit;
     TCheckBox *AllowQWKCheckBox;
     TCheckBox *LocalFileSysCheckBox;
     TCheckBox *HostnameCheckBox;
@@ -86,11 +84,22 @@ __published:
     TButton *CancelBtn;
     TButton *ApplyBtn;
     TCheckBox *DirFilesCheckBox;
+    TTabSheet *IndexTabSheet;
+    TCheckBox *AutoIndexCheckBox;
+    TEdit *IndexFileNameEdit;
+    TCheckBox *HtmlIndexCheckBox;
+    TEdit *HtmlFileNameEdit;
+    TLabel *HtmlJavaScriptLabel;
+    TEdit *HtmlJavaScriptEdit;
+    TLabel *QwkTimeoutLabel;
+    TEdit *QwkTimeoutEdit;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
 	void __fastcall HangupSoundButtonClick(TObject *Sender);
 	void __fastcall AutoIndexCheckBoxClick(TObject *Sender);
+    void __fastcall HtmlJavaScriptButtonClick(TObject *Sender);
+    void __fastcall HtmlIndexCheckBoxClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TFtpCfgDlg(TComponent* AOwner);
