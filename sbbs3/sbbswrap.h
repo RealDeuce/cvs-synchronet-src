@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.20 2000/11/04 06:40:11 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.21 2000/11/10 12:07:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -211,6 +211,22 @@ extern "C" {
 #define BACKSLASH	'/'
 #else /* MS-DOS based OS */
 #define BACKSLASH	'\\'
+#endif
+
+/* Target Platform Description */
+#if defined(_WIN32)
+	#define PLATFORM_DESC	"Win32"
+#elif defined(__OS2__)
+	#define PLATFORM_DESC	"OS/2"
+#elif defined(__MSDOS__)
+	#define PLATFORM_DESC	"DOS"
+#elif defined(__linux__)
+	#define PLATFORM_DESC	"Linux"
+#elif defined(__unix__)
+	#define PLATFORM_DESC	"Unix"
+#else
+	#warning "Need to describe target platform"
+	#define PLATFORM_DESC	"UNKNOWN"
 #endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
