@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.3 2004/09/13 01:23:28 rswindell Exp $
+# $Id: Makefile,v 1.2 2004/09/11 10:56:48 rswindell Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -27,6 +27,6 @@ CFLAGS = $(CFLAGS) -I$(XPDEV_SRC)
 $(SMBLIB): $(OBJS)
     @echo Creating $< ...
 	-$(QUIET)$(DELETE) $@
-	&$(QUIET)tlib $@ +$**
+	$(QUIET)for %f in ($(OBJS)) do $(QUIET)tlib $@ +%f
 
 
