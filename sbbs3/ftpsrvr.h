@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.41 2004/11/06 02:13:07 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.36 2004/10/20 23:09:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,8 @@
 #ifndef _FTPSRVR_H_
 #define _FTPSRVR_H_
 
-#include "startup.h"
+#include "client.h"				/* client_t */
+#include "semwrap.h"			/* sem_t */
 
 typedef struct {
 
@@ -81,23 +82,10 @@ typedef struct {
 	/* Misc */
     char	host_name[128];
 	BOOL	recycle_now;
-	BOOL	shutdown_now;
+	sem_t	recycle_sem;
 	DWORD	log_mask;
-	uint	bind_retry_count;		/* Number of times to retry bind() calls */
-	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
 } ftp_startup_t;
-
-/* startup options that requires re-initialization/recycle when changed */
-#if defined(STARTUP_INIT_FIELD_TABLES)
-static struct init_field ftp_init_fields[] = { 
-	 OFFSET_AND_SIZE(ftp_startup_t,port)
-	,OFFSET_AND_SIZE(ftp_startup_t,interface_addr)
-	,OFFSET_AND_SIZE(ftp_startup_t,ctrl_dir)
-	,OFFSET_AND_SIZE(ftp_startup_t,temp_dir)
-	,{ 0,0 }	/* terminator */
-};
-#endif
 
 #define FTP_OPT_DEBUG_RX			(1<<0)
 #define FTP_OPT_DEBUG_DATA			(1<<1)
@@ -113,31 +101,6 @@ static struct init_field ftp_init_fields[] = {
 #define FTP_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
 #define FTP_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define FTP_OPT_MUTE				(1<<31)
-
-/* ftp_startup_t.options bits that require re-init/recycle when changed */
-#define FTP_INIT_OPTS	(FTP_OPT_LOCAL_TIMEZONE)
-
-#if defined(STARTUP_INI_BITDESC_TABLES)
-static ini_bitdesc_t ftp_options[] = {
-
-	{ FTP_OPT_DEBUG_RX				,"DEBUG_RX"				},
-	{ FTP_OPT_DEBUG_DATA			,"DEBUG_DATA"			},	
-	{ FTP_OPT_INDEX_FILE			,"INDEX_FILE"			},
-	{ FTP_OPT_DEBUG_TX				,"DEBUG_TX"				},
-	{ FTP_OPT_ALLOW_QWK				,"ALLOW_QWK"			},
-	{ FTP_OPT_NO_LOCAL_FSYS			,"NO_LOCAL_FSYS"		},
-	{ FTP_OPT_DIR_FILES				,"DIR_FILES"			},
-	{ FTP_OPT_KEEP_TEMP_FILES		,"KEEP_TEMP_FILES"		},
-	{ FTP_OPT_HTML_INDEX_FILE		,"HTML_INDEX_FILE"		},
-	{ FTP_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
-	{ FTP_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ FTP_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
-	{ FTP_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
-	{ FTP_OPT_MUTE					,"MUTE"					},
-	/* terminator */										
-	{ 0 							,NULL					}
-};
-#endif
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
