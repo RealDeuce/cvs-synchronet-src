@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.9 2005/01/11 10:36:15 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.10 2005/01/11 11:29:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -752,10 +752,10 @@ void receive_files(char** fname, int fnames, FILE* log)
 				if(errors>(MAXERRORS/2) && mode&CRC && !(mode&GMODE))
 					mode&=~CRC;
 				if(mode&GMODE) {		/* G for Ymodem-G */
-					fprintf(statfp,"G (Streaming CRC-32) mode\n");
+					fprintf(statfp,"G (Streaming CRC) mode\n");
 					putcom('G');
 				} else if(mode&CRC) {	/* C for CRC */
-					fprintf(statfp,"CRC-32 mode\n");
+					fprintf(statfp,"CRC mode\n");
 					putcom('C');
 				} else {				/* NAK for checksum */
 					fprintf(statfp,"Checksum mode\n");
@@ -1076,7 +1076,7 @@ static const char* usage=
 	"opts   = o  to overwrite files when receiving\n"
 	"         d  to disable dropped carrier detection\n"
 	"         a  to sound alarm at start and stop of transfer\n"
-	"         p  to pause after abnormal exit (error)\n"
+	"         !  to pause after abnormal exit (error)\n"
 	"cmd    = v  to display detailed version information\n"
 	"         sx to send Xmodem     rx to recv Xmodem\n"
 	"         sX to send Xmodem-1k  rc to recv Xmodem-CRC\n"
@@ -1106,7 +1106,7 @@ int main(int argc, char **argv)
 	errfp=stderr;
 	statfp=stdout;
 
-	sscanf("$Revision: 1.9 $", "%*s %s", revision);
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1191,7 +1191,7 @@ int main(int argc, char **argv)
 			else if(toupper(argv[i][0])=='A')
 				mode|=ALARM;
 
-			else if(toupper(argv[i][0])=='P')
+			else if(toupper(argv[i][0])=='!')
 				mode|=PAUSE_ABEND;
 
 			else if(argv[i][0]=='*')
