@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.47 2002/08/25 00:53:03 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.48 2002/08/26 22:55:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -745,7 +745,11 @@ static JSBool
 js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	private_t*	p;
+	BOOL	poll_for_write=FALSE;
 	fd_set	socket_set;
+	fd_set*	rd_set=NULL;
+	fd_set*	wr_set=NULL;
+	uintN	argn;
 	struct	timeval tv = {0, 0};
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
@@ -757,13 +761,21 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
-	if(argc>0)
-		tv.tv_sec = JSVAL_TO_INT(argv[0]);
+	for(argn=0;argn<argc;argn++) {
+		if(JSVAL_IS_BOOLEAN(argv[argn]))
+			poll_for_write=JSVAL_TO_BOOLEAN(argv[argn]);
+		else if(JSVAL_IS_INT(argv[argn]))
+			tv.tv_sec = JSVAL_TO_INT(argv[0]);
+	}
 
 	FD_ZERO(&socket_set);
 	FD_SET(p->sock,&socket_set);
+	if(poll_for_write)
+		wr_set=&socket_set;
+	else
+		rd_set=&socket_set;
 
-	*rval = INT_TO_JSVAL(select(p->sock+1,&socket_set,NULL,NULL,&tv));
+	*rval = INT_TO_JSVAL(select(p->sock+1,rd_set,wr_set,NULL,&tv));
 
 	p->last_error=ERROR_VALUE;
 
