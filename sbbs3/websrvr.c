@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.198 2004/10/29 06:56:40 deuce Exp $ */
+/* $Id: websrvr.c,v 1.199 2004/10/29 18:59:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1057,7 +1057,7 @@ void http_logoff(http_session_t * session)
 
 BOOL http_checkuser(http_session_t * session)
 {
-	if(session->req.dynamic==IS_SSJS) {
+	if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 		if(session->last_js_user_num==session->user.number)
 			return(TRUE);
 		lprintf(LOG_INFO,"%04d JavaScript: Initializing User Objects",session->socket);
@@ -1406,7 +1406,7 @@ static BOOL parse_headers(http_session_t * session)
 		if((value=strtok(NULL,""))!=NULL) {
 			i=get_header_type(req_line);
 			while(*value && *value<=' ') value++;
-			if(session->req.dynamic==IS_SSJS)
+			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)
 				js_add_header(session,req_line,value);
 			switch(i) {
 				case HEAD_AUTH:
@@ -1470,7 +1470,7 @@ static BOOL parse_headers(http_session_t * session)
 			if(session->req.post_len<0)
 				session->req.post_len=0;
 			session->req.post_data[session->req.post_len]=0;
-			if(session->req.dynamic==IS_SSJS)  {
+			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
 				js_parse_post(session);
 			}
 		}
@@ -1547,7 +1547,11 @@ static int is_dynamic_req(http_session_t* session)
 
 	_splitpath(session->req.physical_path, drive, dir, fname, ext);
 
-	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT) && stricmp(ext,startup->ssjs_ext)==0)  {
+	if(stricmp(ext,startup->ssjs_ext)==0)
+		i=IS_SSJS;
+	else if(stricmp(ext,startup->js_ext)==0)
+		i=IS_JS;
+	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT) && i)  {
 		lprintf(LOG_INFO,"%04d Setting up JavaScript support", session->socket);
 	
 		if(!js_setup(session)) {
@@ -1562,7 +1566,7 @@ static int is_dynamic_req(http_session_t* session)
 			send_error(session,error_500);
 			return(IS_STATIC);
 		}
-		return(IS_SSJS);
+		return(i);
 	}
 
 	init_enviro(session);
@@ -1626,6 +1630,7 @@ static char *get_request(http_session_t * session, char *req_line)
 			case IS_CGI:
 				add_env(session,"QUERY_STRING",query);
 				break;
+			case IS_JS:
 			case IS_SSJS:
 				js_parse_query(session,query);
 				break;
@@ -2802,7 +2807,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.198 $", "%*s %s", revision);
+	sscanf("$Revision: 1.199 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
