@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.25 2001/10/04 23:37:06 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.26 2001/11/02 00:03:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,6 +234,7 @@ __published:	// IDE-managed Components
     TToolButton *ReloadConfigButton;
     TMenuItem *MailViewSpamLog;
     TMenuItem *DomainList;
+    TMenuItem *BBSEditSubjectFilterMenuItem;
     void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
