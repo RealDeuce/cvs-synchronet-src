@@ -2,13 +2,13 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.16 2004/06/04 11:17:30 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.17 2004/07/28 10:13:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -144,7 +144,7 @@ typedef struct {
 
 typedef struct {
 	char*	name;
-	int	value;
+	int		value;
 } named_int_t;
 
 typedef struct {
