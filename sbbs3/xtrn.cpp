@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.163 2004/07/27 23:48:38 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.162 2004/05/30 06:47:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -788,7 +788,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						&& WriteFile(wrslot,bp,wr,&len,NULL)==TRUE) {
 						RingBufRead(&inbuf, NULL, len);
 						wr=len;
-						if(use_pipes && !(mode&EX_NOECHO)) {
+						if(use_pipes) {
 							/* echo */
 							RingBufWrite(&outbuf, bp, wr);
 						}

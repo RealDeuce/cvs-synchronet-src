@@ -51,7 +51,7 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd, int bedumb)
 	char	nil=0;
 	char	*p;
 	unsigned int	neta;
-	unsigned long	l;
+    sigset_t sigset;
 
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -83,8 +83,14 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd, int bedumb)
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(port);
 	
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGIO);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_BLOCK, &sigset, 0);
 	if(connect(rlogin_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];
+
+	    sigprocmask(SIG_UNBLOCK, &sigset, 0);
 
 		rlogin_close();
 		sprintf(str,"Cannot connect to %s!",addr);
@@ -92,10 +98,9 @@ int rlogin_connect(char *addr, int port, char *ruser, char *passwd, int bedumb)
 						"Cannot connect to the remost system... it is down or unreachable.");
 		return(-1);
 	}
+    sigprocmask(SIG_UNBLOCK, &sigset, 0);
 
-	l=1;
-	ioctlsocket(rlogin_socket, FIONBIO,&l);
-	/* fcntl(rlogin_socket, F_SETFL, fcntl(rlogin_socket, F_GETFL)|O_NONBLOCK); */
+	fcntl(rlogin_socket, F_SETFL, fcntl(rlogin_socket, F_GETFL)|O_NONBLOCK);
 
 	if(!bedumb) {
 		rlogin_send("",1,1000);

@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.22 2004/08/11 10:51:23 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.19 2004/07/02 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,13 +121,10 @@ char*		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bit
 char*		iniSetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, str_list_t value, ini_style_t*);
 
-BOOL		iniSectionExists(str_list_t*, const char* section);
 BOOL		iniKeyExists(str_list_t*, const char* section, const char* key);
 BOOL		iniValueExists(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
-BOOL		iniRemoveSection(str_list_t*, const char* section);
-BOOL		iniRenameSection(str_list_t*, const char* section, const char* newname);
 
 #if defined(__cplusplus)
 }
