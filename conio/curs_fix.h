@@ -1,4 +1,4 @@
-/* $Id: curs_fix.h,v 1.5 2004/05/30 07:16:23 deuce Exp $ */
+/* $Id: curs_fix.h,v 1.1 2004/07/05 21:27:40 deuce Exp $ */
 
 #ifdef XCURSES
  #include <xcurses.h>
@@ -8,7 +8,7 @@
  #include <ncurses.h>
 #endif
 
-#ifdef CURSES_LIB
+#if defined(CURSES_LIB) || (!defined(XCURSES)&&!defined(N_CURSES_LIB))
  #include <curses.h>
 #endif
 
