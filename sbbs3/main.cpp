@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.314 2003/10/26 22:56:50 rswindell Exp $ */
+/* $Id: main.cpp,v 1.315 2003/10/26 23:04:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -300,12 +300,14 @@ DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char* str
 
 #ifdef _DEBUG
 
+#if 0
 static char* server_prop_desc[] = {
 
 	 "server name and version number"
 	,"detailed version/build information"
 	,NULL
 };
+#endif
 
 
 static const char* method_array_name = "_method_list";

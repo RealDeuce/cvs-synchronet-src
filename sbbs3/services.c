@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.148 2003/10/26 22:56:50 rswindell Exp $ */
+/* $Id: services.c,v 1.149 2003/10/26 23:04:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -582,6 +582,8 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	lprintf(LOG_ERR,"%04d %s !JavaScript %s%s%s: %s",sock,prot,warning,file,line,message);
 }
 
+#if 0
+
 /* Server Object Properites */
 enum {
 	 SERVER_PROP_TERMINATED
@@ -653,6 +655,8 @@ static JSClass js_server_class = {
 		,JS_ConvertStub		/* convert		*/
 		,JS_FinalizeStub	/* finalize		*/
 }; 
+
+#endif
 
 /* Server Methods */
 
@@ -1574,7 +1578,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.148 $", "%*s %s", revision);
+	sscanf("$Revision: 1.149 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
