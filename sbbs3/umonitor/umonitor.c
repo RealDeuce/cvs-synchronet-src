@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.63 2004/09/21 04:59:58 deuce Exp $ */
+/* $Id: umonitor.c,v 1.64 2004/09/21 05:59:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -824,7 +824,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.63 $", "%*s %s", revision);
+	sscanf("$Revision: 1.64 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright 2004 "
         "Rob Swindell\n",revision,PLATFORM_DESC);
@@ -1066,7 +1066,7 @@ int main(int argc, char** argv)  {
 						do_cmd(str);
 						break;
 					case 1:
-						sprintf(str,"%suedit",cfg.exec_dir);
+						sprintf(str,"%suedit ",cfg.exec_dir);
 						for(j=1; j<argc; j++) {
 							strcat(str,"'");
 							strcat(str,argv[j]);
