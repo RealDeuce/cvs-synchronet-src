@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.42 2003/05/08 06:43:37 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.43 2003/05/08 10:37:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,7 @@ void sbbs_read_ini(
 		=iniReadShortInt(fp,section,"LastNode",4);
 
 	bbs->outbuf_highwater_mark
-		=iniReadShortInt(fp,section,"OutbufHighwaterMark",128);
+		=iniReadShortInt(fp,section,"OutbufHighwaterMark",1024);
 	bbs->outbuf_drain_timeout
 		=iniReadShortInt(fp,section,"OutbufDrainTimeout",10);
 
