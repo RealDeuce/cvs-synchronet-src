@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.54 2003/10/28 01:18:30 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.55 2003/10/28 01:26:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1348,10 +1348,10 @@ void readmsgs(ulong start)
 	}
 }
 
-ushort str2tzone(const char* str)
+short str2tzone(const char* str)
 {
 	char tmp[32];
-	ushort zone;
+	short zone;
 
 	if(isdigit(*str) || *str=='-' || *str=='+') { /* [+|-]HHMM format */
 		if(*str=='+') str++;
@@ -1365,21 +1365,21 @@ ushort str2tzone(const char* str)
 		return zone;
 	}
 	if(!stricmp(str,"EST") || !stricmp(str,"Eastern Standard Time"))
-		return EST;
+		return (short)EST;
 	if(!stricmp(str,"EDT") || !stricmp(str,"Eastern Daylight Time"))
-		return EDT;
+		return (short)EDT;
 	if(!stricmp(str,"CST") || !stricmp(str,"Central Standard Time"))
-		return CST;
+		return (short)CST;
 	if(!stricmp(str,"CDT") || !stricmp(str,"Central Daylight Time"))
-		return CDT;
+		return (short)CDT;
 	if(!stricmp(str,"MST") || !stricmp(str,"Mountain Standard Time"))
-		return MST;
+		return (short)MST;
 	if(!stricmp(str,"MDT") || !stricmp(str,"Mountain Daylight Time"))
-		return MDT;
+		return (short)MDT;
 	if(!stricmp(str,"PST") || !stricmp(str,"Pacific Standard Time"))
-		return PST;
+		return (short)PST;
 	if(!stricmp(str,"PDT") || !stricmp(str,"Pacific Daylight Time"))
-		return PDT;
+		return (short)PDT;
 
 	return 0;	/* UTC */
 }
@@ -1406,7 +1406,7 @@ int main(int argc, char **argv)
 
 	setvbuf(stdout,0,_IONBF,0);
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.55 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
