@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.49 2004/06/03 05:39:41 deuce Exp $ */
+/* $Id: uifc.h,v 1.45 2004/05/30 07:16:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,9 +34,6 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-
-#ifndef _UIFC_H_
-#define _UIFC_H_
 
 #include <time.h>
 #include <fcntl.h>
@@ -131,7 +128,6 @@
 	#define MSK_DEL 	0x20000000
 	#define MSK_GET 	0x30000000
 	#define MSK_PUT 	0x40000000
-	/* Dont forget, negative return values are used for extended keys! */
 #else
 	#define MAX_OPTS	500 	/* Maximum number of options per menu call */
 	#define MSK_ON		0xf000
@@ -182,9 +178,6 @@
 #define WIN_FAT		(1<<20)	/* Do not pad outside borders */
 #define WIN_REDRAW	(1<<21) /* Force redraw on dynamic window */
 #define WIN_NODRAW	(1<<22) /* Force not to redraw on dynamic window */
-#define WIN_EXTKEYS	(1<<23) /* Return on any keypress... if it's not handled internally
-							 * Return value is -2 - keyvalue
-							 */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -311,14 +304,6 @@ typedef struct {
     char    helpdatfile[MAX_PATH+1];
     char    helpixbfile[MAX_PATH+1];
 /****************************************************************************/
-/* Help and exit button locations for current/last window					*/
-/****************************************************************************/
-	int		buttony;
-	int		exitstart;
-	int		exitend;
-	int		helpstart;
-	int		helpend;
-/****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
     void    (*bail) (void);
@@ -408,5 +393,3 @@ extern "C"
 #endif
 int uifcinifltk(uifcapi_t*);	/* FLTK implementation (by Deuce)			*/
 /****************************************************************************/
-
-#endif /* Don't add anything after this line! */
