@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.17 2002/01/16 22:17:29 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.18 2002/01/17 21:08:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1434,10 +1434,10 @@ void sbbs_t::moduserdat(uint xtrnnum)
 /****************************************************************************/
 bool sbbs_t::exec_xtrn(uint xtrnnum)
 {
-	char str[256],path[256],dropdir[128],name[32],c,mode;
+	char str[256],path[256],dropdir[128],name[32],c;
     int file;
 	uint i;
-	long tleft;
+	long tleft,mode;
     node_t node;
 	time_t start,end;
 
