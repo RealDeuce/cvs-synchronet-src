@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.16 2001/10/09 01:34:50 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.17 2001/11/04 01:42:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	smbmsg_t msg;
 
 
-	ex=EX_OUTL|EX_OUTR;
+	ex=EX_SH|EX_OUTL|EX_OUTR;	/* Need sh for wildcard expansion */
 	if(prepack)
 		ex|=EX_OFFLINE;
 
