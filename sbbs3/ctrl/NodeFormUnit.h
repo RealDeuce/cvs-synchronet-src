@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.h,v 1.8 2002/03/16 00:21:22 rswindell Exp $ */
+/* $Id: NodeFormUnit.h,v 1.9 2002/03/20 00:56:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,8 +54,6 @@ class TNodeForm : public TForm
 __published:	// IDE-managed Components
 	TTimer *Timer;
 	TToolBar *Toolbar;
-	TToolButton *StartButton;
-	TToolButton *StopButton;
 	TListBox *ListBox;
 	TToolButton *InterruptNodeButton;
 	TToolButton *LockNodeButton;
