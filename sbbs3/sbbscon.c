@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.22 2001/11/09 18:27:24 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.23 2001/11/13 19:36:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -279,6 +279,9 @@ int main(int argc, char** argv)
     mail_startup.started=mail_started;
     mail_startup.terminated=mail_terminated;
 	mail_startup.options|=MAIL_OPT_ALLOW_POP3;
+	/* Spam filtering */
+	mail_startup.options|=MAIL_OPT_USE_RBL;	/* Realtime Blackhole List */
+	mail_startup.options|=MAIL_OPT_USE_RSS;	/* Relay Spam Stopper */
     strcpy(mail_startup.ctrl_dir,ctrl_dir);
 
 #ifdef __unix__	/* Look up DNS server address */
