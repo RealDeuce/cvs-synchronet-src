@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.5 2001/06/23 01:07:13 rswindell Exp $ */
+/* $Id: ars.c,v 1.6 2001/12/27 16:28:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -392,8 +392,12 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 			else if(!strnicmp(str+i,"FILE_CMDS",9)) {
 				artype=AR_FILE_CMDS;
 				i+=8; }
+			else if(!strnicmp(str+i,"SHELL",5)) {
+				artype=AR_SHELL;
+				i+=4; }
 			if(n!=i)            /* one of the above */
-				continue; }
+				continue; 
+		}
 
 		if(not)
 			ar[j++]=AR_NOT;
@@ -472,7 +476,7 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 					break; }
 			while(isdigit(str[i+1])) i++;
 			continue; }
-		if(artype==AR_SUBCODE || artype==AR_DIRCODE) {
+		if(artype==AR_SUBCODE || artype==AR_DIRCODE || artype==AR_SHELL) {
 			for(n=0;n<8
 				&& str[i]
 				&& str[i]!=SP

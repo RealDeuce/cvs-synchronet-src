@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.27 2001/12/14 17:59:05 rswindell Exp $ */
+/* $Id: userdat.c,v 1.28 2001/12/27 16:28:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1089,7 +1089,18 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					result=not;
 				else
 					result=!not;
-				break; } }
+				break; 
+			case AR_SHELL:
+				if(user->shell>=cfg->total_shells
+					|| stricmp(cfg->shell[user->shell]->code,(char*)*ptrptr))
+					result=not;
+				else
+					result=!not;
+				while(*(*ptrptr))
+					(*ptrptr)++;
+				break;
+		} 
+	}
 	return(result);
 }
 
