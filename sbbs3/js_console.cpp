@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.23 2002/09/11 02:05:54 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.24 2002/10/16 09:45:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1092,6 +1092,7 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 		return(NULL);
 
 #ifdef _DEBUG
+	js_DescribeObject(cx,obj,"Controls the user's Telnet/RLogin terminal");
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", con_prop_desc, JSPROP_READONLY);
 #endif
 

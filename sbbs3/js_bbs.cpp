@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.44 2002/09/11 02:05:53 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.45 2002/10/16 09:45:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2717,6 +2717,7 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 		return(NULL);
 
 #ifdef _DEBUG
+	js_DescribeObject(cx,obj,"Controls the Telnet/RLogin BBS experience");
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", bbs_prop_desc, JSPROP_READONLY);
 #endif
 
