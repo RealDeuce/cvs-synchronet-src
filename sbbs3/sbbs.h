@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.248 2005/02/09 05:15:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.249 2005/02/18 07:35:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -949,6 +949,9 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
+	DLLEXPORT JSBool	DLLCALL jsval_isNaN(JSContext* cx, jsval);
+
+	#define JSVAL_IS_NUM(cx,v)	(JSVAL_IS_NUMBER(v) && !jsval_isNaN(cx,v))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
