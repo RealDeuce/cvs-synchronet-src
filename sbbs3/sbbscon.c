@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.144 2003/09/25 10:11:34 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.145 2003/09/25 10:12:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -902,7 +902,6 @@ int main(int argc, char** argv)
     char	error[256];
 	char	ini_file[MAX_PATH+1];
 	char	host_name[128]="";
-	BOOL	quit=FALSE;
 	FILE*	fp=NULL;
 	node_t	node;
 #ifdef __unix__
