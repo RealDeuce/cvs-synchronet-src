@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.350 2004/11/18 09:12:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.351 2004/12/29 10:25:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2224,7 +2224,6 @@ static void smtp_thread(void* arg)
 								,socket, startup->dnsbl_tag);
 						}
 						smb_hfield_str(&msg, SUBJECT, p);
-						msg.idx.subj=smb_subject_crc(p);
 						continue;
 					}
 					if(!strnicmp(buf, "FROM:", 5)
@@ -2317,11 +2316,8 @@ static void smtp_thread(void* arg)
 				smb_hfield_str(&msg, SENDER, sender);
 				smb_hfield(&msg, SENDERNETTYPE, sizeof(nettype), &nettype);
 				smb_hfield_str(&msg, SENDERNETADDR, sender_addr);
-				if(msg.idx.subj==0) {
-					p="";
-					smb_hfield(&msg, SUBJECT, 0, p);
-					msg.idx.subj=smb_subject_crc(p);
-				}
+				if(msg.subj==NULL)
+					smb_hfield(&msg, SUBJECT, 0, NULL);
 
 				length=filelength(fileno(msgtxt))-ftell(msgtxt);
 
@@ -3893,7 +3889,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.350 $", "%*s %s", revision);
+	sscanf("$Revision: 1.351 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
