@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.h,v 1.3 2003/04/22 00:44:10 rswindell Exp $ */
+/* $Id: ClientFormUnit.h,v 1.4 2003/04/23 07:48:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ private:	// User declarations
 public:		// User declarations
     __fastcall TClientForm(TComponent* Owner);
     TMainForm* 		MainForm;
-    pthread_mutex_t ListMutex;
+    HANDLE          ListMutex;
 };
 //---------------------------------------------------------------------------
 extern PACKAGE TClientForm *ClientForm;
