@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.8 2000/12/11 23:21:12 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.9 2001/04/10 01:25:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,9 +427,13 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			"(%lu messages/second)."
 			,(*msgcnt)+mailmsgs,time(NULL)-start
 			,((*msgcnt)+mailmsgs)/(time(NULL)-start));
-		lprintf("Packed %lu messages in %lu seconds (%lu msgs/sec)"
+		sprintf(str,"Packed %lu messages in %lu seconds (%lu msgs/sec)"
 			,(*msgcnt)+mailmsgs,time(NULL)-start
 			,((*msgcnt)+mailmsgs)/(time(NULL)-start));
+		if(online==ON_LOCAL) /* event */
+			eprintf(str);
+		else
+			lprintf(str);
 	}
 
 	fclose(qwk);			/* close MESSAGE.DAT */
@@ -452,7 +456,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				continue;
 			sprintf(tmp2,"%s%s",cfg.temp_dir,dirent->d_name);
 			lncntr=0;	/* Default pause */
-			lprintf("Including %s in packet",str);
+			if(online==ON_LOCAL)
+				eprintf("Including %s in packet",str);
+			else
+				lprintf("Including %s in packet",str);
 			bprintf(text[RetrievingFile],str);
 			if(!mv(str,tmp2,1))
 				netfiles++;
