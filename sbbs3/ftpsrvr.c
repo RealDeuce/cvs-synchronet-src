@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.32 2000/11/09 04:15:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.33 2000/11/10 03:55:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,7 +294,7 @@ str[c]=0;
 }
 
 
-int nopen(char *str, int access)
+static int nopen(char *str, int access)
 {
 	int file,share,count=0;
 
