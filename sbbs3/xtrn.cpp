@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.158 2004/01/29 03:21:18 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.159 2004/02/10 23:31:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1751,16 +1751,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			lprintf(LOG_NOTICE,"%.*s",i,buf);
 	}
 
-	/* Re-enable blocking (incase disabled by xtrn program) */
-	ulong l=0;
-	ioctlsocket(client_socket, FIONBIO, &l);
-
-	/* Re-set socket options */
-	if(set_socket_options(&cfg, client_socket, str))
-		lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
-
-
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
+
+		/* Re-enable blocking (incase disabled by xtrn program) */
+		ulong l=0;
+		ioctlsocket(client_socket, FIONBIO, &l);
+
+		/* Re-set socket options */
+		if(set_socket_options(&cfg, client_socket, str))
+			lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 		curatr=~0;			// Can't guarantee current attributes
 		attr(LIGHTGRAY);	// Force to "normal"
