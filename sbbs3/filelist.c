@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.7 2003/03/27 23:33:47 rswindell Exp $ */
+/* $Id: filelist.c,v 1.8 2003/07/11 07:58:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@ scfg_t scfg;
 
 char *crlf="\r\n";
 
-long lputs(char *str)
+int lputs(char* str)
 {
     char tmp[256];
     int i,j,k;
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 	time_t	uld,dld;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.7 $", "%*s %s", revision);
+	sscanf("$Revision: 1.8 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"

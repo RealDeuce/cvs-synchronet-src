@@ -2,7 +2,7 @@
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
-/* $Id: qwknodes.c,v 1.11 2002/04/23 08:20:55 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.12 2003/07/11 07:58:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,7 +201,7 @@ strcpy(str,out);
 }
 
 
-long lputs(char FAR16 *str)
+int lputs(char* str)
 {
     char tmp[256];
     int i,j,k;
