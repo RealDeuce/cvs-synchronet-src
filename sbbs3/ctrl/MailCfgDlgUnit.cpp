@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.19 2005/02/18 09:32:22 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.18 2004/08/11 10:28:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,7 +306,7 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     MainForm->MailAutoStart=AutoStartCheckBox->Checked;
     MainForm->MailLogFile=LogFileCheckBox->Checked;
 
-    MainForm->SaveIniSettings(Sender);
+    MainForm->SaveSettings(Sender);
 }
 //---------------------------------------------------------------------------
 
