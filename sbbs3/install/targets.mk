@@ -2,14 +2,12 @@
 
 # Make 'include file' defining targets for Synchronet SBBSINST project
 
-# $Id: targets.mk,v 1.4 2004/09/16 19:02:02 deuce Exp $
+# $Id: targets.mk,v 1.2 2004/03/11 06:26:00 deuce Exp $
 
 # ODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
-SBBSINST	=	$(EXEODIR)$(DIRSEP)sbbsinst$(EXEFILE) 
+SBBSINST	=	$(EXEODIR)$(SLASH)sbbsinst$(EXEFILE) 
 
-all:	xpdev-mt ciolib-mt uifc-mt $(EXEODIR) \
-		$(MTOBJODIR) \
+all:	$(EXEODIR) \
+		$(LIBODIR) \
 		$(SBBSINST)
-
-$(SBBSINST):	$(XPDEV-MT_LIB) $(CIOLIB-MT) $(UIFCLIB-MT)
