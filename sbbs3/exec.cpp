@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.21 2002/01/11 01:11:22 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.22 2002/01/29 21:14:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,6 +100,9 @@ char ** sbbs_t::getstrvar(csi_t *bin, long name)
 			break;
 		case 0x15755030:
 			return((char **)&comspec);
+		case 0x5E049062:
+			sysvar_p[sysvar_pi]=question;
+			break;
 
 		case 0xf19cd046:
 			sysvar_p[sysvar_pi]=(char*)wordwrap;
