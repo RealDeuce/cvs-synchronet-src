@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.52 2001/06/20 01:17:51 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.53 2001/06/20 01:35:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -782,11 +782,14 @@ extern "C" {
 	/* js_file_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(scfg_t* cfg, JSContext* cx, JSObject* parent
 													,user_t* user, char* html_index_file);
+	/* js_socket.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
+
 	/* js_console.cpp */
 	JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent);
 
-	/* js_socket.c */
-	JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
+	/* js_bbs.cpp */
+	JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent);
 
 #endif
 
