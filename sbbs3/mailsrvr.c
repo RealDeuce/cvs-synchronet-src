@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.311 2004/02/22 02:47:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.310 2003/12/13 00:43:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1861,7 +1861,7 @@ static void smtp_thread(void* arg)
 
 	if(trashcan(&scfg,host_name,"smtpspy") 
 		|| trashcan(&scfg,host_ip,"smtpspy")) {
-		sprintf(str,"%ssmtpspy.txt", scfg.logs_dir);
+		sprintf(str,"%sSMTPSPY.TXT", scfg.data_dir);
 		spy=fopen(str,"a");
 	}
 
@@ -2682,7 +2682,7 @@ static void smtp_thread(void* arg)
 			}
 
 			if(spy==NULL && trashcan(&scfg,reverse_path,"smtpspy")) {
-				sprintf(str,"%ssmtpspy.txt", scfg.logs_dir);
+				sprintf(str,"%sSMTPSPY.TXT", scfg.data_dir);
 				spy=fopen(str,"a");
 			}
 
@@ -3627,7 +3627,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.311 $", "%*s %s", revision);
+	sscanf("$Revision: 1.310 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
