@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.2 2000/10/31 04:19:32 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.3 2000/10/31 06:41:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,7 +180,7 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->bbs_startup.options|=BBS_OPT_ALLOW_RLOGIN;
     else
 	    MainForm->bbs_startup.options&=~BBS_OPT_ALLOW_RLOGIN;
-	if(RLoginEnabledCheckBox->Checked==true)
+	if(RLogin2ndNameCheckBox->Checked==true)
     	MainForm->bbs_startup.options|=BBS_OPT_USE_2ND_RLOGIN;
     else
 	    MainForm->bbs_startup.options&=~BBS_OPT_USE_2ND_RLOGIN;
