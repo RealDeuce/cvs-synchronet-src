@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.7 2003/04/08 03:10:47 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.8 2003/04/08 03:20:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,6 +138,8 @@ int DLLCALL sopen(char *fn, int access, int share)
 	else   /* SH_DENYWR */
 		flock_op|=LOCK_SH;
 	if(flock(fd,flock_op)!=0) {
+		if(errno==EWOULDBLOCK) 
+			errno=EAGAIN;
 		close(fd);
 		return(-1);
 	}
