@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.47 2003/02/01 03:04:18 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.48 2003/02/07 03:50:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,7 +359,7 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 			get_int(n,instream); 
 	}
 	if(i!=100) {
-		sprintf(error,"Insufficient User Level Information"
+		sprintf(error,"Insufficient User Level Information: "
 			"%d user levels read, 100 needed.",i);
 		fclose(instream);
 		return(FALSE); 
