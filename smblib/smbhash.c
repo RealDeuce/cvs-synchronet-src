@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.9 2004/12/29 04:30:39 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.11 2005/01/14 02:46:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,12 +228,10 @@ hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body)
 	hash_t*		hash;
 	time_t		t=time(NULL);
 
-#define SMB_MAX_HASH_COUNT 4
-
-	if((hashes=(hash_t**)malloc(sizeof(hash_t*)*SMB_MAX_HASH_COUNT))==NULL)
+	if((hashes=(hash_t**)malloc(sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1)))==NULL)
 		return(NULL);
 
-	memset(hashes, 0, sizeof(hash_t*)*SMB_MAX_HASH_COUNT);
+	memset(hashes, 0, sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1));
 
 	if(msg->id!=NULL && 
 		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_MSG_ID, flags, msg->id))!=NULL)
@@ -330,10 +328,13 @@ int SMBCALL smb_getmsghdr_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
 	return(retval);
 }
 
-ushort SMBCALL smb_subject_crc(const char *subj)
+ushort SMBCALL smb_subject_crc(const char* subj)
 {
 	char*	str;
 	ushort	crc;
+
+	if(subj==NULL)
+		return(0xffff);
 
 	while(!strnicmp(subj,"RE:",3)) {
 		subj+=3;
@@ -349,4 +350,42 @@ ushort SMBCALL smb_subject_crc(const char *subj)
 	free(str);
 
 	return(crc);
+}
+
+ushort SMBCALL smb_name_crc(const char* name)
+{
+	char*	str;
+	ushort	crc;
+
+	if(name==NULL)
+		return(0xffff);
+
+	if((str=strdup(name))==NULL)
+		return(0xffff);
+
+	strlwr(str);
+	crc=crc16(str,0	/* auto-length */);
+	free(str);
+
+	return(crc);
+}
+
+int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
+{
+	msg->idx.subj=smb_subject_crc(msg->subj);
+	if(smb->status.attr&SMB_EMAIL) {
+		if(msg->to_ext)
+			msg->idx.to=atoi(msg->to_ext);
+		else
+			msg->idx.to=0;
+		if(msg->from_ext)
+			msg->idx.from=atoi(msg->from_ext);
+		else
+			msg->idx.from=0; 
+	} else {
+		msg->idx.to=smb_name_crc(msg->to);
+		msg->idx.from=smb_name_crc(msg->from);
+	}
+
+	return(SMB_SUCCESS);
 }
