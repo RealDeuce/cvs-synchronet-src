@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.49 2004/08/11 10:07:43 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.50 2004/08/11 10:11:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,6 +278,10 @@ BOOL iniRenameSection(str_list_t* list, const char* section, const char* newname
 	size_t	i;
 
 	if(section==ROOT_SECTION)
+		return(FALSE);
+
+	i=find_section_index(*list,newname);
+	if((*list)[i]!=NULL)	/* duplicate */
 		return(FALSE);
 
 	i=find_section_index(*list,section);
