@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.18 2003/10/09 15:57:07 deuce Exp $ */
+/* $Id: filewrap.h,v 1.19 2004/03/23 02:22:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,6 +70,11 @@
 #elif defined(__unix__)
 
 	#include <fcntl.h>
+	#ifdef __solaris__
+		#define LOCK_NB	1
+		#define LOCK_SH 2
+		#define LOCK_EX 4
+	#endif
 
 	#ifdef __QNX__
 		#include <share.h>
