@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.62 2002/07/07 18:49:00 rswindell Exp $ */
+/* $Id: services.c,v 1.63 2002/07/13 10:10:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,6 @@
 #include "ident.h"	/* identify() */
 
 /* Constants */
-#define SERVICES_VERSION		"1.00"
 
 #define MAX_SERVICES			128
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -81,6 +80,7 @@ static int		active_clients=0;
 static DWORD	sockets=0;
 static BOOL		terminated=FALSE;
 static time_t	uptime=0;
+static char		revision[16];
 
 typedef struct {
 	/* These are sysop-configurable */
@@ -511,7 +511,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 			,NULL,0))==NULL)
 			break;
 
-		sprintf(ver,"Synchronet Services v%s",SERVICES_VERSION);
+		sprintf(ver,"Synchronet Services %s",revision);
 		val = STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx, ver));
 		if(!JS_SetProperty(js_cx, server, "version", &val))
 			break;
@@ -968,9 +968,11 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sprintf(ver,"Synchronet Services v%s%s  "
+	sscanf("$Revision: 1.63 $" + 11, "%s", revision);
+
+	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
-		,SERVICES_VERSION
+		,revision
 #ifdef _DEBUG
 		," Debug"
 #else
@@ -1008,6 +1010,8 @@ void DLLCALL services_thread(void* arg)
 	struct timeval	tv;
 	service_client_t* client;
 
+	services_ver();
+
 	startup=(services_startup_t*)arg;
 
     if(startup==NULL) {
@@ -1039,8 +1043,8 @@ void DLLCALL services_thread(void* arg)
 		signal(SIGPIPE,SIG_IGN);
 #endif
 
-		lprintf("Synchronet Services Version %s%s"
-			,SERVICES_VERSION
+		lprintf("Synchronet Services %s%s"
+			,revision
 #ifdef _DEBUG
 			," Debug"
 #else
