@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.80 2002/07/24 06:09:50 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.81 2002/07/24 06:32:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -802,6 +802,8 @@ int main(int argc, char** argv)
 		arg=argv[i];
 		while(*arg=='-')
 			arg++;
+		if(strchr(arg,BACKSLASH))	/* ini_file name */
+			continue;
 		if(!stricmp(arg,"defaults")) {
 			printf("Default settings:\n");
 			printf("\n");
