@@ -2,7 +2,7 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.39 2003/02/03 21:27:18 rswindell Exp $ */
+/* $Id: sbbsinst.c,v 1.40 2003/02/03 21:27:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 
 		uifc.helpbuf=	"`Synchronet Installation Settings:`\n"
 						"\nToDo: Add help.";
-		switch(uifc.list(WIN_MID|WIN_ACT,0,0,60,&main_dflt,0
+		switch(uifc.list(WIN_ESC|WIN_MID|WIN_ACT,0,0,60,&main_dflt,0
 			,"Synchronet Installation Settings",mopt)) {
 			case 0:
 				i=choose_dist((char **)distlist);
