@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: wrappers.c,v 1.22 2000/11/04 06:38:39 rswindell Exp $ */
+/* $Id: wrappers.c,v 1.23 2000/11/04 06:40:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,7 +310,7 @@ char* _fullpath(char* absPath, const char* relPath, size_t maxLength)
 /* Uses POSIX threads														*/
 /****************************************************************************/
 #ifdef __unix__
-ulong _beginthread(void( __cdecl *start_address )( void * )
+ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist)
 {
 	pthread_t	thread;

@@ -2,7 +2,7 @@
 
 /* Synchronet system-call wrappers */
 
-/* $Id: sbbswrap.h,v 1.19 2000/11/04 06:38:39 rswindell Exp $ */
+/* $Id: sbbswrap.h,v 1.20 2000/11/04 06:40:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,7 +122,7 @@ extern "C" {
 #ifdef __unix__
 
 	#include <semaphore.h>	/* POSIX 1003.1b semaphores */
-	ulong _beginthread(void( __cdecl *start_address )( void * )
+	ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist);
 
 #elif defined(_WIN32)	/* semaphores */
