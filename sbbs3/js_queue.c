@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.7 2004/11/12 09:31:35 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.8 2004/11/18 01:00:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,8 +63,8 @@ static void js_finalize_queue(JSContext *cx, JSObject *obj)
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 	
-	if(msgQueueDetach(q)==0 && (n=listFindNode(&named_queues,q,0))!=NULL)
-		listRemoveNode(&named_queues,n);
+	if(msgQueueDetach(q)==0 && (n=listFindNode(&named_queues,q,/* length=0 for ptr compare */0))!=NULL)
+		listRemoveNode(&named_queues,n,TRUE);
 
 	JS_SetPrivate(cx, obj, NULL);
 }
