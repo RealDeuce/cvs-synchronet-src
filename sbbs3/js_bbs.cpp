@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.27 2002/02/20 00:49:23 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.28 2002/02/23 14:02:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1005,12 +1005,15 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	char		str[128];
 	sbbs_t*		sbbs;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	char* p = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+
+	p=sbbs->atcode(p,str);
 
 	if(p==NULL)
 		*rval = JSVAL_NULL;
