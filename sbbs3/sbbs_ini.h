@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.h,v 1.6 2003/09/17 10:20:39 rswindell Exp $ */
+/* $Id: sbbs_ini.h,v 1.7 2003/09/27 10:59:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,12 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+void sbbs_get_ini_fname(
+	 char* ini_file
+	,char* ctrl_dir
+	,char* host_name
+	);
 
 void sbbs_read_ini(
 	 FILE*					fp

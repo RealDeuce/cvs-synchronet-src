@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.4 2003/09/26 11:19:38 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.5 2003/09/27 10:59:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -599,11 +599,8 @@ int main(int argc, char** argv)
 	if(!winsock_cleanup())
 		return(-1);
 
-	if(ini_file[0]==0) {	/* INI file not specified on command-line */
-		sprintf(ini_file,"%s%c%s.ini",ctrl_dir,PATH_DELIM,host_name);
-		if(!fexistcase(ini_file))
-			sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,PATH_DELIM);
-	}
+	if(ini_file[0]==0) 	/* INI file not specified on command-line */
+		sbbs_get_ini_fname(ini_file, ctrl_dir, host_name);
 
 	/* Initialize BBS startup structure */
     memset(&bbs_startup,0,sizeof(bbs_startup));

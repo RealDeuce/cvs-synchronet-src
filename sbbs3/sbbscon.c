@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.148 2003/09/27 00:09:32 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.149 2003/09/27 10:59:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -944,13 +944,7 @@ int main(int argc, char** argv)
 	if(!winsock_cleanup())
 		return(-1);
 
-	sprintf(ini_file,"%s%c%s.ini",ctrl_dir,PATH_DELIM,host_name);
-#if defined(__unix__) && defined(PREFIX)
-	if(!fexistcase(ini_file))
-		sprintf(ini_file,PREFIX"/etc/sbbs.ini");
-#endif
-	if(!fexistcase(ini_file))
-		sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,PATH_DELIM);
+	sbbs_get_ini_fname(ini_file, ctrl_dir, host_name);
 
 	/* Initialize BBS startup structure */
     memset(&bbs_startup,0,sizeof(bbs_startup));

@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.57 2003/09/16 21:52:56 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.58 2003/09/27 10:59:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,6 +140,16 @@ static ini_bitdesc_t service_options[] = {
 	{ -1							,NULL					}
 };
 
+void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* host_name)
+{
+	sprintf(ini_file,"%s%c%s.ini",ctrl_dir,PATH_DELIM,host_name);
+#if defined(__unix__) && defined(PREFIX)
+	if(!fexistcase(ini_file))
+		sprintf(ini_file,PREFIX"/etc/sbbs.ini");
+#endif
+	if(!fexistcase(ini_file))
+		sprintf(ini_file,"%s%csbbs.ini",ctrl_dir,PATH_DELIM);
+}
 
 void sbbs_read_ini(
 	 FILE*					fp
