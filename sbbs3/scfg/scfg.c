@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.19 2002/03/13 19:02:24 rswindell Exp $ */
+/* $Id: scfg.c,v 1.20 2002/03/16 01:24:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -424,13 +424,14 @@ return(i);
 void rerun_nodes()
 {
     int i;
+	int file;
     node_t node;
     
     for(i=0;i<cfg.sys_nodes;i++) {
-       	if(getnodedat(&cfg,i+1,&node,TRUE))
+       	if(getnodedat(&cfg,i+1,&node,&file))
             break;
         node.misc|=NODE_RRUN;
-        if(putnodedat(&cfg,i+1,&node))
+        if(putnodedat(&cfg,i+1,&node,file))
             break;
     }
 }
