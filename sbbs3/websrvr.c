@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.228 2004/12/02 09:21:20 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.229 2004/12/03 04:17:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1003,9 +1003,14 @@ void http_logon(http_session_t * session, user_t *usr)
 {
 	if(usr==NULL)
 		getuserdat(&scfg, &session->user);
+	else
+		session->user=*usr;
 
 	if(session->user.number==session->last_user_num)
 		return;
+
+	lprintf(LOG_INFO,"%04d HTTP Logon (%d)",session->socket,session->user.number);
+
 	if(session->user.number==0)
 		SAFECOPY(session->username,unknown);
 	else {
@@ -1023,6 +1028,9 @@ void http_logoff(http_session_t * session)
 {
 	if(session->last_user_num<=0)
 		return;
+
+	lprintf(LOG_INFO,"%04d HTTP Logoff (%d)",session->socket,session->user.number);
+
 	SAFECOPY(session->username,unknown);
 	logoutuserdat(&scfg, &session->user, time(NULL), session->logon_time);
 	memset(&session->user,0,sizeof(session->user));
@@ -2881,7 +2889,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.228 $", "%*s %s", revision);
+	sscanf("$Revision: 1.229 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
