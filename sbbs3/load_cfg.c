@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.12 2000/11/16 00:28:09 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.13 2000/11/28 02:42:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -115,7 +115,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[])
 	return(TRUE);
 }
 
-void free_cfg(scfg_t* cfg)
+void DLLCALL free_cfg(scfg_t* cfg)
 {
 	free_node_cfg(cfg);
 	free_main_cfg(cfg);
@@ -125,7 +125,7 @@ void free_cfg(scfg_t* cfg)
 	free_xtrn_cfg(cfg);
 }
 
-void free_text(char* text[])
+void DLLCALL free_text(char* text[])
 {
 	int i;
 
