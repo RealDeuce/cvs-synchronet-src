@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.44 2004/03/29 23:00:04 deuce Exp $ */
+/* $Id: uifc.h,v 1.43 2003/11/02 18:19:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -377,7 +377,7 @@ typedef struct {
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
 /****************************************************************************/
-	int (*getstrxy)(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
+	int (*getstrxy)(int left, int top, char *outstr, int max, long mode, int *lastkey);
 } uifcapi_t;
 
 /****************************************************************************/

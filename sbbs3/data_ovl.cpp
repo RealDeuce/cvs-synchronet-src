@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.10 2004/03/29 22:59:54 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.9 2003/05/22 22:59:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,30 +61,35 @@ extern "C" BOOL DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 
 	if(!usernumber)
 		return(FALSE);
-
-	/* Initialize to configured defaults */
-	for(i=0;i<cfg->total_subs;i++) {
-		subscan[i].ptr=subscan[i].sav_ptr=0;
-		subscan[i].last=subscan[i].sav_last=0;
-		subscan[i].cfg=0xff;
-		if(!(cfg->sub[i]->misc&SUB_NSDEF))
-			subscan[i].cfg&=~SUB_CFG_NSCAN;
-		if(!(cfg->sub[i]->misc&SUB_SSDEF))
-			subscan[i].cfg&=~SUB_CFG_SSCAN;
-		subscan[i].sav_cfg=subscan[i].cfg; 
-	}
-
 	sprintf(str,"%suser/ptrs/%4.4u.ixb", cfg->data_dir,usernumber);
-	if((stream=fnopen(&file,str,O_RDONLY))==NULL)
+	if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
+		for(i=0;i<cfg->total_subs;i++) {
+			subscan[i].ptr=subscan[i].sav_ptr=0;
+			subscan[i].last=subscan[i].sav_last=0;
+			subscan[i].cfg=0;
+			if(cfg->sub[i]->misc&SUB_NSDEF)
+				subscan[i].cfg|=SUB_CFG_NSCAN;
+			if(cfg->sub[i]->misc&SUB_SSDEF)
+				subscan[i].cfg|=SUB_CFG_SSCAN;
+			subscan[i].sav_cfg=subscan[i].cfg; 
+		}
 		return(TRUE); 
-
+	}
 	length=filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
-		if(length>=(cfg->sub[i]->ptridx+1)*10L) {
+		if(length<(cfg->sub[i]->ptridx+1)*10L) {
+			subscan[i].ptr=subscan[i].last=0L;
+			subscan[i].cfg=0;
+			if(cfg->sub[i]->misc&SUB_NSDEF)
+				subscan[i].cfg|=SUB_CFG_NSCAN;
+			if(cfg->sub[i]->misc&SUB_SSDEF)
+				subscan[i].cfg|=SUB_CFG_SSCAN; 
+		}
+		else {
 			fseek(stream,(long)cfg->sub[i]->ptridx*10L,SEEK_SET);
-			fread(&subscan[i].ptr,sizeof(subscan[i].ptr),1,stream);
-			fread(&subscan[i].last,sizeof(subscan[i].last),1,stream);
-			fread(&subscan[i].cfg,sizeof(subscan[i].cfg),1,stream);
+			fread(&subscan[i].ptr,sizeof(long),1,stream);
+			fread(&subscan[i].last,sizeof(long),1,stream);
+			fread(&subscan[i].cfg,sizeof(short),1,stream);
 		}
 		subscan[i].sav_ptr=subscan[i].ptr;
 		subscan[i].sav_last=subscan[i].last;
@@ -106,7 +111,7 @@ void sbbs_t::putmsgptrs()
 extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan)
 {
 	char	str[256];
-	ushort	idx,scancfg;
+	ushort	idx,ch;
 	uint	i,j;
 	int 	file;
 	ulong	l=0L,length;
@@ -130,22 +135,21 @@ extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 			for(j=0;j<cfg->total_subs;j++)
 				if(cfg->sub[j]->ptridx==idx)
 					break;
-			write(file,&l,sizeof(l));
-			write(file,&l,sizeof(l));
-			scancfg=0xff;					
+			write(file,&l,sizeof(long));
+			write(file,&l,sizeof(long));
+			ch=0xff;					/* default to scan ON for new sub */
 			if(j<cfg->total_subs) {
 				if(!(cfg->sub[j]->misc&SUB_NSDEF))
-					scancfg&=~SUB_CFG_NSCAN;
+					ch&=~SUB_CFG_NSCAN;
 				if(!(cfg->sub[j]->misc&SUB_SSDEF))
-					scancfg&=~SUB_CFG_SSCAN; 
-			} else	/* default to scan OFF for unknown sub */
-				scancfg&=~(SUB_CFG_NSCAN|SUB_CFG_SSCAN);
-			write(file,&scancfg,sizeof(scancfg)); 
+					ch&=~SUB_CFG_SSCAN; 
+			}
+			write(file,&ch,sizeof(short)); 
 		}
 		lseek(file,(long)((long)(cfg->sub[i]->ptridx)*10),SEEK_SET);
-		write(file,&(subscan[i].ptr),sizeof(subscan[i].ptr));
-		write(file,&(subscan[i].last),sizeof(subscan[i].last));
-		write(file,&(subscan[i].cfg),sizeof(subscan[i].cfg));
+		write(file,&(subscan[i].ptr),sizeof(long));
+		write(file,&(subscan[i].last),sizeof(long));
+		write(file,&(subscan[i].cfg),sizeof(short));
 	}
 	close(file);
 	if(!flength(str))				/* Don't leave 0 byte files */

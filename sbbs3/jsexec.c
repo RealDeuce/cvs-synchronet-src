@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.65 2004/04/02 12:39:06 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.64 2004/02/19 23:06:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,7 +185,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     uintN		i=0;
 	int32		level=LOG_INFO;
-    JSString*	str=NULL;
+    JSString*	str;
 
 	if(JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
@@ -198,11 +198,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		lprintf(level,"\n");
 
-	if(str==NULL)
-		*rval = JSVAL_VOID;
-	else
-		*rval = STRING_TO_JSVAL(str);
-
+	*rval = JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -718,7 +714,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.65 $", "%*s %s", revision);
+	sscanf("$Revision: 1.64 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
