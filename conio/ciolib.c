@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.27 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: ciolib.c,v 1.28 2004/09/22 05:08:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -801,9 +801,10 @@ void ciolib_delay(long a)
 
 int ciolib_putch(int a)
 {
+	unsigned char a1=a;
 	CIOLIB_INIT();
 
-	return(cio_api.putch(a));
+	return(cio_api.putch(a1));
 }
 
 void ciolib_setcursortype(int a)
