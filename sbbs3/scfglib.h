@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.11 2001/07/08 03:46:46 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.12 2001/09/13 20:18:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,16 +47,17 @@
 								memset(var,0,sizeof(var)); \
                               offset+=sizeof(var); }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const char*	scfgnulstr;
 extern const uchar* nular;
 
 #define FREE_AND_NULL(x) if(x!=NULL) { FREE(x); x=NULL; }
 
-#ifdef SCFG
-#define FREE_AR(x)		/* static */
-#else
-#define FREE_AR(x)		if(x!=NULL && x!=nular)	{ FREE(x); }		/* allocated with arstr() */	
-#endif
+/* allocated with arstr() */	
+#define FREE_AR(x)		if(x!=NULL && x!=nular)	{ FREE(x); x=NULL; }	
 
 typedef struct {
     char    *openerr,
@@ -65,10 +66,6 @@ typedef struct {
             *allocerr,
             *error;
             } read_cfg_text_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 char*	get_alloc(long *offset, char *outstr, int maxlen, FILE *instream);
 BOOL	allocerr(read_cfg_text_t* txt, long offset, char *fname, uint size);
