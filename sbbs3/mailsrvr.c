@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.302 2003/11/26 11:18:37 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.303 2003/11/26 12:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,6 +125,7 @@ static int lprintf(int level, char *fmt, ...)
 #ifdef _WINSOCKAPI_
 
 static WSADATA WSAData;
+#define SOCKLIB_DESC WSAData.szDescription
 static BOOL WSAInitialized=FALSE;
 
 static BOOL winsock_startup(void)
@@ -144,6 +145,7 @@ static BOOL winsock_startup(void)
 #else /* No WINSOCK */
 
 #define winsock_startup()	(TRUE)
+#define SOCKLIB_DESC NULL
 
 #endif
 
@@ -1437,7 +1439,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 			break;
 
 		/* System Object */
-		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name)==NULL)
+		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL)
 			break;
 
 		/* Socket Class */
@@ -3627,7 +3629,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.302 $", "%*s %s", revision);
+	sscanf("$Revision: 1.303 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

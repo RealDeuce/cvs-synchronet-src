@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.20 2003/09/20 07:08:29 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.21 2003/11/26 12:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,17 +41,20 @@ extern "C" const char* beta_version = " alpha"; /* Space if non-beta, " beta" ot
 
 #if defined(_WINSOCKAPI_)
 	extern WSADATA WSAData;
+	#define SOCKLIB_DESC WSAData.szDescription
+#else
+	#define	SOCKLIB_DESC NULL
 #endif
 
 #if defined(__unix__)
 	#include <sys/utsname.h>	/* uname() */
 #endif
 
-char* socklib_version(char* str)
+char* socklib_version(char* str, char* winsock_ver)
 {
 #if defined(_WINSOCKAPI_)
 
-	strcpy(str,WSAData.szDescription);
+	strcpy(str,winsock_ver);
 
 #elif defined(__GLIBC__)
 
@@ -101,7 +104,7 @@ void sbbs_t::ver()
 	}
 #endif
 
-	center(socklib_version(str));
+	center(socklib_version(str,SOCKLIB_DESC));
 	CRLF;
 
 	center(os_version(str));

@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.61 2003/11/26 12:08:58 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.62 2003/11/26 12:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,6 +138,7 @@ int lprintf(int level, char *fmt, ...)
 #if defined(_WINSOCKAPI_)
 
 WSADATA WSAData;
+#define SOCKLIB_DESC WSAData.szDescription
 static BOOL WSAInitialized=FALSE;
 
 static BOOL winsock_startup(void)
@@ -156,7 +157,8 @@ static BOOL winsock_startup(void)
 
 #else /* No WINSOCK */
 
-#define winsock_startup()	(TRUE)	
+#define winsock_startup()	(TRUE)
+#define SOCKLIB_DESC NULL
 
 #endif
 
@@ -502,7 +504,7 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 
 	/* System Object */
-	if(js_CreateSystemObject(js_cx, js_glob, &scfg, time(NULL), host_name)==NULL)
+	if(js_CreateSystemObject(js_cx, js_glob, &scfg, time(NULL), host_name, SOCKLIB_DESC)==NULL)
 		return(FALSE);
 
 	/* Socket Class */
@@ -710,7 +712,7 @@ int main(int argc, char **argv, char** environ)
 	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.61 $", "%*s %s", revision);
+	sscanf("$Revision: 1.62 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);

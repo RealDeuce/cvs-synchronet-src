@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.84 2003/11/01 09:02:05 rswindell Exp $ */
+/* $Id: js_system.c,v 1.85 2003/11/26 12:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1587,7 +1587,7 @@ static JSClass js_node_class = {
 };
 
 JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
-										,scfg_t* cfg, time_t uptime, char* host_name)
+										,scfg_t* cfg, time_t uptime, char* host_name, char* socklib_desc)
 {
 	char		str[256];
 	uint		i;
@@ -1671,7 +1671,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if(!JS_SetProperty(cx, sysobj, "platform", &val))
 		return(NULL);
 
-	if((js_str=JS_NewStringCopyZ(cx, socklib_version(str)))==NULL)
+	if((js_str=JS_NewStringCopyZ(cx, socklib_version(str, socklib_desc)))==NULL)
 		return(NULL);
 	val = STRING_TO_JSVAL(js_str);
 	if(!JS_SetProperty(cx, sysobj, "socket_lib", &val))

@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.38 2003/09/20 07:08:29 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.39 2003/11/26 12:28:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,13 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+
+#if defined(_WINSOCKAPI_)
+	extern WSADATA WSAData;
+	#define SOCKLIB_DESC WSAData.szDescription
+#else
+	#define	SOCKLIB_DESC NULL
+#endif
 
 /****************************************************************************/
 /* Returns 0 if invalid @ code. Returns length of @ code if valid.          */
@@ -157,7 +164,7 @@ char* sbbs_t::atcode(char* sp, char* str)
 	}
 
 	if(!strcmp(sp,"SOCKET_LIB")) 
-		return(socklib_version(str));
+		return(socklib_version(str,SOCKLIB_DESC));
 
 	if(!strcmp(sp,"MSG_LIB")) {
 		sprintf(str,"SMBLIB %s",smb_lib_ver());
