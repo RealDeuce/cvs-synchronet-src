@@ -19,7 +19,7 @@
  *
  * Severly mangled for use in the Synchronet installer
  *
- * $Id: ftpio.c,v 1.7 2003/03/27 01:32:02 rswindell Exp $
+ * $Id: ftpio.c,v 1.8 2003/03/27 01:34:42 rswindell Exp $
  *
  */
 
@@ -552,7 +552,7 @@ cmd(FTP_t ftp, const char *fmt, ...)
 
 static u_long resolve_ip(char *addr)
 {
-	HOSTENT*	host;
+	struct hostent*	host;
 	char*		p;
 
 	if(*addr==0)
@@ -574,7 +574,7 @@ ftp_login_session(FTP_t ftp, char *host,
 		  char *user, char *passwd, int port, int verbose)
 {
     char pbuf[10];
-	struct sockaddr addr;
+	struct sockaddr_in addr;
 	u_long		ip_addr;
     int			err;
     int 		s;
@@ -608,7 +608,7 @@ ftp_login_session(FTP_t ftp, char *host,
 	addr.sin_family = AF_INET;
 	addr.sin_port   = htons(port);
 
-	if (connect(s, &addr, sizeof (addr)) < 0) {
+	if (connect(s, (struct sockaddr*)&addr, sizeof (addr)) < 0) {
 		ftp->error = errno;
 		close(s);
 		return FAILURE;
