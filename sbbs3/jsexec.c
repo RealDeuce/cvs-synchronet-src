@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.75 2004/12/09 08:07:13 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.76 2005/02/04 00:29:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,6 +65,7 @@ char		host_name_buf[128];
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
+BOOL		recycled=FALSE;
 DWORD		log_mask=DEFAULT_LOG_MASK;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
 
@@ -612,6 +613,8 @@ long js_exec(const char *fname, char** args)
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
+	branch.terminated=&terminated;
+
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
 	if(fp==stdin) 	 /* Using stdin for script source */
@@ -669,6 +672,14 @@ void break_handler(int type)
 	terminated=TRUE;
 }
 
+void recycle_handler(int type)
+{
+	fprintf(statfp,"\n-> Recycled Locally (signal: %d)\n",type);
+	recycled=TRUE;
+	branch.terminated=&recycled;
+}
+
+
 #if defined(_WIN32)
 BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
@@ -704,10 +715,9 @@ int main(int argc, char **argv, char** environ)
 	branch.limit=JAVASCRIPT_BRANCH_LIMIT;
 	branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
-	branch.terminated=&terminated;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.75 $", "%*s %s", revision);
+	sscanf("$Revision: 1.76 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -848,9 +858,13 @@ int main(int argc, char **argv, char** environ)
 	signal(SIGINT,break_handler);
 	signal(SIGTERM,break_handler);
 
-	/* Don't die on SIGPIPE or SIGHUP */
+	if(loop)
+		signal(SIGHUP,recycle_handler);
+	else
+		signal(SIGHUP,SIG_IGN);
+
+	/* Don't die on SIGPIPE  */
 	signal(SIGPIPE,SIG_IGN);
-	signal(SIGHUP,SIG_IGN);
 #endif
 
 	do {
