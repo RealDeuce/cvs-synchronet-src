@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.25 2000/12/05 03:53:15 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.26 2000/12/06 00:27:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,7 +810,7 @@ int sbbs_t::external(char* cmdline, long mode, char* startup_dir)
 		argc=1;
 		for(i=0;cmdline[i];i++)	/* Break up command line */
 			if(cmdline[i]==SP) {
-				argv[i]=0;			/* insert nulls */
+				cmdline[i]=0;			/* insert nulls */
 				argv[argc++]=cmdline+i+1; /* point to the beginning of the next arg */
 			}
 		argv[argc]=0;
