@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.11 2002/03/07 16:23:09 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.12 2002/04/03 02:45:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -449,6 +449,7 @@ typedef struct
 	uchar * sys_chat_ar;
 
 	long 	file_misc;			/* File Misc Settings */
+	long	xtrn_misc;			/* External Programs Misc Settings */
 
 	char	node_comspec[LEN_CMD+1];	/* DOS COMMAND.COM to use */
 	char	node_editor[LEN_CMD+1]; /* Local text editor command line to use */
