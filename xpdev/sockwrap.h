@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.7 2002/08/07 08:38:29 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.8 2002/08/08 02:58:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,16 @@ static  wsa_error;
 
 #endif	/* __unix__ */
 
-int sendfilesocket(int sock, int file, long *offset, long count);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int		sendfilesocket(int sock, int file, long *offset, long count);
+BOOL	socket_check(SOCKET sock, BOOL* rd_p);
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifndef SHUT_RDWR
 #define SHUT_RDWR		2	/* for shutdown() */
