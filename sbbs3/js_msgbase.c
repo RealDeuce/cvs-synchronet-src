@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.113 2005/01/05 01:43:50 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.111 2004/12/30 10:59:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -505,7 +505,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	return(TRUE);
 }
 
-static BOOL msg_offset_by_id(private_t* p, char* id, long* offset)
+BOOL msg_offset_by_id(private_t* p, char* id, ulong* offset)
 {
 	smbmsg_t msg;
 
@@ -1642,9 +1642,9 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	},
 	{"get_msg_header",	js_get_msg_header,	2, JSTYPE_OBJECT,	JSDOCSTR("[boolean by_offset,] number_or_id [,boolean expand_fields]")
 	,JSDOCSTR("returns a specific message header, <i>null</i> on failure. "
-	"<br><i>New in v3.12:</i> Pass <i>false</i> for the <i>expand_fields</i> argument (default: <i>true</i>) "
+	"Pass <i>false</i> for the <i>expand_fields</i> argument (default: <i>true</i>) "
 	"if you will be re-writing the header later with <i>put_msg_header()</i>")
-	,312
+	,310
 	},
 	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[boolean by_offset,] number, object header")
 	,JSDOCSTR("write a message header")
@@ -1731,16 +1731,16 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>field_list[].type</tt><td>Other SMB header fields (type)"
 	"<tr><td align=top><tt>field_list[].data</tt><td>Other SMB header fields (data)"
 	"</table>"
-	"<br><i>New in v3.12:</i> "
+	"<br>"
 	"The optional <i>client</i> argument is an instance of the <i>Client</i> class to be used for the "
 	"security log header fields (e.g. sender IP address, hostname, protocol, and port). "
-	"<br><br><i>New in v3.12:</i> "
+	"<br><br>"
 	"The optional <i>rcpt_list</i> is an array of objects that specifies multiple recipients "
 	"for a single message (e.g. bulk e-mail). Each object in the array may include the following header properties "
 	"(described above): <br>"
 	"<i>to</i>, <i>to_ext</i>, <i>to_org</i>, <i>to_net_type</i>, <i>to_net_addr</i>, and <i>to_agent</i>"
 	)
-	,312
+	,310
 	},
 	{0}
 };
