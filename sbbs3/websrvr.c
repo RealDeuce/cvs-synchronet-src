@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.308 2005/04/14 01:16:58 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.304 2005/04/06 13:30:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1742,11 +1742,6 @@ static BOOL get_request_headers(http_session_t * session)
 			}
 		}
 	}
-
-	if(!(session->req.vhost[0]))
-		SAFECOPY(session->req.vhost, startup->host_name);
-	if(!(session->req.host[0]))
-		SAFECOPY(session->req.host, startup->host_name);
 	return TRUE;
 }
 
@@ -1754,7 +1749,9 @@ static BOOL get_fullpath(http_session_t * session)
 {
 	char	str[MAX_PATH+1];
 
-	if(session->req.vhost[0] && startup->options&WEB_OPT_VIRTUAL_HOSTS) {
+	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
+		session->req.vhost[0]=0;
+	if(session->req.vhost[0]) {
 		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.vhost);
 		if(isdir(str))
 			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.vhost,session->req.physical_path);
@@ -3050,7 +3047,6 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 	jsval		rval;
 	char		path[MAX_PATH+1];
 	BOOL		retval=TRUE;
-	clock_t		start;
 
 	sprintf(path,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
 	if((session->req.fp=fopen(path,"wb"))==NULL) {
@@ -3075,7 +3071,6 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 
 		session->js_branch.counter=0;
 
-		lprintf(LOG_DEBUG,"%04d JavaScript: Compiling script (%s)",session->socket,script);
 		if((js_script=JS_CompileFile(session->js_cx, session->js_glob
 			,script))==NULL) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)"
@@ -3083,10 +3078,7 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 			return(FALSE);
 		}
 
-		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script",session->socket);
-		start=msclock();
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
-		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing (%ld ms)",session->socket,msclock()-start);
 	} while(0);
 
 	SAFECOPY(session->req.physical_path, path);
@@ -3374,7 +3366,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.308 $", "%*s %s", revision);
+	sscanf("$Revision: 1.304 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
