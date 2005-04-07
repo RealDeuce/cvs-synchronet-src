@@ -1232,12 +1232,14 @@ void command_line( void )
 		printf( "  -D - Specifiy dropfile path if different from %s.cfg\n", ibbsgametitle);
 		printf( "  -? - View all other optional parameters\n\n");
 		printf( "%s\n", od_control.od_prog_copyright);
-		printf( "(972) 226-0485 (Voice)\n");
+		printf( "         12235 China Lake Dr\n");
+		printf( "           Dallas, TX 75253\n\n");
+		printf( "(972) 286-1682 (Voice)\n");
+		printf( "(972) 557-6762 (Pegasus Flight BBS)\n");
 		printf( "Fidonet:  Bryan Turner@1:124/7013)\n");
-		printf( "Telnet:   telnet://pegasus.bbs.us (Pegasus Flight BBS)\n");
 		printf( "Internet: v@vbsoft.org\n");
-		printf( "WWW:      http://www.vbsoft.org\n");
-		printf( "This program is now FREEWARE!");
+		printf( "WWW:      http://vagabond.virtualave.net\n");
+		printf( "This program is now POSTCARDWARE!");
 
 		exit(1);
 
@@ -3640,7 +3642,7 @@ INT16 SendArchive(char *file, INT16 type)
 
 		char archive[128], line[261], keyword[15];
 	FILE *arcfile;
-	INT16 found=FALSE, done=FALSE, encrypted=FALSE;
+	INT16 found=FALSE, done=FALSE;
 	char *p;
 
 	if (type == RIP_FILE)
@@ -3684,10 +3686,6 @@ INT16 SendArchive(char *file, INT16 type)
 		p = &line[2];
 		if (strnicmp(line, "@#", 2) == 0)
 		{
-			if (strnicmp(p, keyword, strlen(keyword)) == 0) {
-				found = TRUE;
-				break;
-			}
 			HelpDecrypt(p);
 
 			// if there are blanks on the end remove them...
@@ -3699,10 +3697,8 @@ INT16 SendArchive(char *file, INT16 type)
 */
 			if (p[0] == '\0')
 				found = FALSE;
-			else if (stricmp(p , keyword) == 0 ) {
+			else if (stricmp(p , keyword) == 0 ) 
 				found = TRUE;
-				encrypted = TRUE;
-			}
 			
 		}
 	}
@@ -3723,8 +3719,7 @@ INT16 SendArchive(char *file, INT16 type)
 			{
 				// display the line
 				// od_disp_emu(line, TRUE);
-				if(encrypted)
-					HelpDecrypt(line);
+				HelpDecrypt(line);
 				od_disp_emu(line, TRUE);
 				//if (type == ASC_FILE)
 					od_printf("\r\n");
