@@ -1,10 +1,14 @@
-/* $Id: x_cio.h,v 1.7 2005/01/23 22:21:47 deuce Exp $ */
+/* datewrap.h */
+
+/* Wrappers for Borland getdate() and gettime() functions */
+
+/* $Id: datewrap.h,v 1.2 2005/04/06 08:51:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -31,33 +35,40 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef __unix__
-#include "ciolib.h"
+#ifndef _DATEWRAP_H_
+#define _DATEWRAP_H_
 
-#ifdef __cplusplus
+#if defined(__BORLANDC__)
+
+#include <dos.h>
+
+#else 
+
+struct date {
+	short da_year;
+	char  da_day;
+	char  da_mon;
+};
+
+struct time {
+	unsigned char ti_min;
+	unsigned char ti_hour;
+	unsigned char ti_hund;
+	unsigned char ti_sec;
+};
+
+#if defined(__cplusplus)
 extern "C" {
 #endif
-int x_puttext(int sx, int sy, int ex, int ey, void *fill);
-int x_gettext(int sx, int sy, int ex, int ey, void *fill);
-void x_textattr(int attr);
-int x_kbhit(void);
-void x_delay(long msec);
-int x_wherey(void);
-int x_wherex(void);
-int x_putch(int ch);
-void x_gotoxy(int x, int y);
-void x_initciolib(long inmode);
-void x_gettextinfo(struct text_info *info);
-void x_setcursortype(int type);
-int x_getch(void);
-int x_getche(void);
-int x_beep(void);
-void x_textmode(int mode);
-void x_settitle(const char *title);
-void x_copytext(const char *text, size_t buflen);
-char *x_getcliptext(void);
-#ifdef __cplusplus
+
+void getdate(struct date*);
+void gettime(struct time*);
+
+#if defined(__cplusplus)
 }
 #endif
 
-#endif
+#endif	/* !Borland */
+
+#endif	/* Don't add anything after this line */
+

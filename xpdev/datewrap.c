@@ -1,10 +1,14 @@
-/* $Id: x_cio.h,v 1.7 2005/01/23 22:21:47 deuce Exp $ */
+/* datewrap.c */
+
+/* Wrappers for Borland getdate() and gettime() functions */
+
+/* $Id: datewrap.c,v 1.3 2005/04/07 00:23:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -31,33 +35,51 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef __unix__
-#include "ciolib.h"
+#if !defined(__BORLANDC__)
 
-#ifdef __cplusplus
-extern "C" {
+#include <time.h>	/* time(), time_t, struct tm, localtime() */
+
+#if defined(_WIN32)
+	#include <windows.h>	/* SYSTEMTIME and GetLocalTime() */
+#else
+	#include <sys/time.h>	/* stuct timeval, gettimeofday() */
 #endif
-int x_puttext(int sx, int sy, int ex, int ey, void *fill);
-int x_gettext(int sx, int sy, int ex, int ey, void *fill);
-void x_textattr(int attr);
-int x_kbhit(void);
-void x_delay(long msec);
-int x_wherey(void);
-int x_wherex(void);
-int x_putch(int ch);
-void x_gotoxy(int x, int y);
-void x_initciolib(long inmode);
-void x_gettextinfo(struct text_info *info);
-void x_setcursortype(int type);
-int x_getch(void);
-int x_getche(void);
-int x_beep(void);
-void x_textmode(int mode);
-void x_settitle(const char *title);
-void x_copytext(const char *text, size_t buflen);
-char *x_getcliptext(void);
-#ifdef __cplusplus
+
+#include "datewrap.h"	/* struct defs, verify prototypes */
+
+void getdate(struct date* nyd)
+{
+	time_t tim;
+	struct tm *dte;
+
+	tim=time(NULL);
+	dte=localtime(&tim);
+	nyd->da_year=dte->tm_year+1900;
+	nyd->da_day=dte->tm_mday;
+	nyd->da_mon=dte->tm_mon+1;
 }
-#endif
 
+void gettime(struct time* nyt)
+{
+#if defined(_WIN32)
+	SYSTEMTIME systime;
+
+	GetLocalTime(&systime);
+	nyt->ti_hour=systime.wHour;
+	nyt->ti_min=systime.wMinute;
+	nyt->ti_sec=systime.wSecond;
+	nyt->ti_hund=systime.wMilliseconds/10;
+#else	/* !Win32 (e.g. Unix) */
+	struct tm *dte;
+	struct timeval tim;
+
+	gettimeofday(&tim,NULL);
+	dte=localtime(&tim.tv_sec);
+	nyt->ti_min=dte->tm_min;
+	nyt->ti_hour=dte->tm_hour;
+	nyt->ti_sec=dte->tm_sec;
+	nyt->ti_hund=tim.tv_usec/10000;
 #endif
+}
+
+#endif	/* !Borland */
