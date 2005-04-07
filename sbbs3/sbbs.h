@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.249 2005/02/18 07:35:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.252 2005/03/26 08:52:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -99,6 +99,8 @@
 	#define JS_THREADSAFE	/* Required! */
 	#include <jsapi.h>
 	#include <jsprf.h>		/* JS-safe sprintf functions */
+	#include <jsnum.h>		/* JSDOUBLE_IS_NaN() */
+
 #endif
 
 /***********************/
@@ -323,16 +325,6 @@ public:
 	uint	cursubnum;		/* For ARS */
 	uint	curdirnum;		/* For ARS */
 	ulong 	timeleft;		/* Number of seconds user has left online */
-	char	sbbsnnum[MAX_PATH+1];	/* Environment var to contain node num */
-	char	sbbsnode[MAX_PATH+1];	/* Environment var to contain node dir path */
-	char	sbbsctrl[MAX_PATH+1];	/* Environment var to contain ctrl dir path */
-	char	sbbsdata[MAX_PATH+1];	/* Environment var to contain data dir path */
-	char	sbbsexec[MAX_PATH+1];	/* Environment var to contain exec dir path */
-	char	env_day[32];			/* Environment var for day of month */
-	char	env_weekday[32];		/* Environment var for name of weekday */
-	char	env_month[32];			/* Environment var for month number (1-based) */
-	char	env_monthname[32];		/* Environment var for day of month abbreviation */
-	char	env_year[32];			/* Environment var for the year */
 
 	char 	*comspec;		/* Pointer to environment variable COMSPEC */
 	ushort	altul;			/* Upload to alternate path flag */
@@ -890,11 +882,12 @@ extern "C" {
 	/* semfile.c */
 	DLLEXPORT BOOL		DLLCALL semfile_signal(const char* fname, const char* text);
 	DLLEXPORT BOOL		DLLCALL semfile_check(time_t* t, const char* fname);
-	DLLEXPORT char*		DLLCALL semfile_list_check(time_t* t, link_list_t* filelist);
-	DLLEXPORT void		DLLCALL semfile_list_init(link_list_t* filelist, const char* parent, 
-												   const char* action, const char* service);
-	DLLEXPORT void		DLLCALL semfile_list_add(link_list_t* filelist, const char* fname);
-	DLLEXPORT void		DLLCALL semfile_list_free(link_list_t* filelist);
+	DLLEXPORT char*		DLLCALL semfile_list_check(time_t* t, str_list_t filelist);
+	DLLEXPORT str_list_t	
+						DLLCALL semfile_list_init(const char* parent, const char* action
+													,const char* service);
+	DLLEXPORT void		DLLCALL semfile_list_add(str_list_t* filelist, const char* fname);
+	DLLEXPORT void		DLLCALL semfile_list_free(str_list_t* filelist);
 
 
 #ifdef JAVASCRIPT
@@ -949,9 +942,8 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
-	DLLEXPORT JSBool	DLLCALL jsval_isNaN(JSContext* cx, jsval);
 
-	#define JSVAL_IS_NUM(cx,v)	(JSVAL_IS_NUMBER(v) && !jsval_isNaN(cx,v))
+	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(*JSVAL_TO_DOUBLE(v))))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
