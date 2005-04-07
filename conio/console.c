@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.46 2005/04/18 00:41:27 deuce Exp $ */
+/* $Id: console.c,v 1.45 2005/03/21 16:46:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1114,7 +1114,7 @@ video_async_event(void *crap)
 				* was wrong with select....
 				*/
 
-				/* perror("select"); */
+				perror("select");
 				break;
 			case 0:
 				if(console_new_mode!=NO_NEW_MODE)
