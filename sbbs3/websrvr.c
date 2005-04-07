@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.292 2005/03/26 07:45:41 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.304 2005/04/06 13:30:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,13 +37,6 @@
 
 /*
  * General notes: (ToDo stuff)
- * strtok() is used a LOT in here... notice that there is a strtok_r() for reentrant...
- * this may imply that strtok() is NOT thread-safe... if in fact it isn't this HAS
- * to be fixed before any real production-level quality is achieved with this web server
- * however, strtok_r() may not be a standard function.
- *
- * RE: not sending the headers if an nph scrpit is detected.  (The headers buffer could
- * just be free()ed and NULLed)
  *
  * Currently, all SSJS requests for a session are ran in the same context without clearing the context in
  * any way.  This behaviour should not be relied on as it may disappear in the future... this will require
@@ -54,32 +47,10 @@
  *
  * Should support RFC2617 Digest auth.
  *
- * Fix up all the logging stuff.
+ * Support the ident protocol... the standard log format supports it.
  *
- * SSJS stuff could work using three different methods:
- * 1) Temporary file as happens currently
- *		Advantages:
- *			Allows to keep current connection (keep-alive works)
- *			write() doesn't need to be "special"
- *		Disadvantages:
- *			Depends on the temp dir being writable and capable of holding
- *				the full reply
- *			Everything goes throug the disk, so probobly some performance
- *				penalty is involved
- *			No way of sending directly to the remote system
- * 2) nph- style
- *		Advantages:
- *			No file I/O involved
- *			Can do magic tricks (ala my perl web wrapper)
- *		Disadvantages:
- *			Pretty much everything needs to be handled by the script.
- * 3) Return body in http_reply object
- *		All the advantages of 1)
- *		Could use a special write() to make everything just great.
- *		Still doesn't allow page to be sent until fully composed (ie: long
- *			delays)
- * 4) Type three with a callback that sends the header and current body, then
- *		converts write() to send directly to remote.
+ * SSJS stuff should support chunked transfer for HTTP/1.1 and fast mode.
+ *		(Would allow keep-alives to stay erm... alive)
  *
  * Add in support to pass connections through to a different webserver...
  *      probobly in access.ars... with like a simplified mod_rewrite.
@@ -191,6 +162,7 @@ typedef struct  {
 	int			dynamic;
 	struct log_data	*ld;
 	char		request_line[MAX_REQUEST_LINE+1];
+	BOOL		finished;				/* Done processing request. */
 
 	/* CGI parameters */
 	char		query_str[MAX_REQUEST_LINE+1];
@@ -554,9 +526,7 @@ static void init_enviro(http_session_t *session)  {
 
 /*
  * Sends string str to socket sock... returns number of bytes written, or 0 on an error
- * (Should it be -1 on an error?)
  * Can not close the socket since it can not set it to INVALID_SOCKET
- * ToDo - Decide error behaviour, should a SOCKET * be passed around rather than a socket?
  */
 static int sockprint(SOCKET sock, const char *str)
 {
@@ -1062,7 +1032,7 @@ static void send_error(http_session_t * session, const char* message)
 				session->req.ld->size=strlen(sbuf);
 		}
 	}
-	close_request(session);
+	session->req.finished=TRUE;
 }
 
 void http_logon(http_session_t * session, user_t *usr)
@@ -1229,8 +1199,10 @@ static BOOL check_ars(http_session_t * session)
 	if(!http_checkuser(session))
 		return(FALSE);
 
-	if(session->req.ld!=NULL)
+	if(session->req.ld!=NULL) {
+		FREE_AND_NULL(session->req.ld->user);
 		session->req.ld->user=strdup(username);
+	}
 
 	ar = arstr(NULL,session->req.ars,&scfg);
 	authorized=chk_ar(&scfg,ar,&session->user);
@@ -1290,7 +1262,7 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 		if(!socket_check(session->socket,&rd,NULL,startup->max_inactivity*1000) 
 			|| !rd || recv(session->socket, &ch, 1, 0)!=1)  {
 			session->req.keep_alive=FALSE;
-			close_request(session);
+			session->req.finished=TRUE;
 			return(-1);        /* time-out */
 		}
 
@@ -1338,7 +1310,7 @@ static int pipereadline(int pipe, char *buf, size_t length)
 
 #if defined(_WIN32)
 		ret=0;
-		ReadFile(pipe, &ch, 1, &ret, NULL);
+		ReadFile(pipe, &ch, 1, (DWORD*)&ret, NULL);
 #else
 		ret=read(pipe, &ch, 1);
 #endif
@@ -1397,7 +1369,6 @@ int recvbufsocket(int sock, char *buf, long count)
 	return(0);
 }
 
-/* Wasn't this done up as a JS thing too?  ToDo */
 static void unescape(char *p)
 {
 	char *	dst;
@@ -1564,12 +1535,16 @@ static BOOL parse_headers(http_session_t * session)
 					}
 					break;
 				case HEAD_REFERER:
-					if(session->req.ld!=NULL)
+					if(session->req.ld!=NULL) {
+						FREE_AND_NULL(session->req.ld->referrer);
 						session->req.ld->referrer=strdup(value);
+					}
 					break;
 				case HEAD_AGENT:
-					if(session->req.ld!=NULL)
+					if(session->req.ld!=NULL) {
+						FREE_AND_NULL(session->req.ld->agent);
 						session->req.ld->agent=strdup(value);
+					}
 					break;
 				default:
 					break;
@@ -1814,14 +1789,14 @@ static BOOL get_req(http_session_t * session, char *request_line)
 			return(FALSE);
 		if(req_line[0])
 			lprintf(LOG_DEBUG,"%04d Request: %s",session->socket,req_line);
+		if(session->req.ld!=NULL && session->req.ld->request==NULL)
+			session->req.ld->request=strdup(req_line);
 	}
 	else {
 		lprintf(LOG_DEBUG,"%04d Handling Internal Redirect to: %s",session->socket,request_line);
 		SAFECOPY(req_line,request_line);
 		is_redir=1;
 	}
-	if(session->req.ld!=NULL)
-		session->req.ld->request=strdup(req_line);
 	if(req_line[0]) {
 		p=NULL;
 		p=get_method(session,req_line);
@@ -1836,7 +1811,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 				send_error(session,error_500);
 				return(FALSE);
 			}
-			if(session->req.ld!=NULL)
+			if(session->req.ld!=NULL && session->req.ld->vhost==NULL)
 				session->req.ld->vhost=strdup(session->req.vhost);
 			session->req.dynamic=is_dynamic_req(session);
 			if(session->req.query_str[0])  {
@@ -2054,6 +2029,7 @@ static BOOL check_request(http_session_t * session)
 	SAFECOPY(session->req.physical_path,path);
 	if(session->req.dynamic==IS_CGI)  {
 		add_env(session,"SCRIPT_NAME",session->req.virtual_path);
+		add_env(session,"SCRIPT_FILENAME",session->req.physical_path);
 	}
 	SAFECOPY(str,session->req.virtual_path);
 	last_slash=find_last_slash(str);
@@ -2068,6 +2044,71 @@ static BOOL check_request(http_session_t * session)
 
 	return(TRUE);
 }
+
+static void get_cgi_handler(char* cmdline, size_t maxlen)
+{
+	char	path[MAX_PATH+1];
+	char	fname[MAX_PATH+1];
+	char	value[INI_MAX_VALUE_LEN+1];
+	char*	ext;
+	FILE*	fp;
+
+	if((fp=iniOpenFile(iniFileName(path,sizeof(path),scfg.ctrl_dir,"cgi_handler.ini")))==NULL)
+		return;
+
+	ext=getfext(cmdline);
+	if(ext!=NULL && iniReadString(fp, ROOT_SECTION, ext+1, NULL, value)!=NULL) {
+		SAFECOPY(fname,cmdline);
+		safe_snprintf(cmdline,maxlen,"%s %s",value,fname);
+	}
+	fclose(fp);
+}
+
+static str_list_t get_cgi_env(http_session_t *session)
+{
+	char		path[MAX_PATH+1];
+	char		value[INI_MAX_VALUE_LEN+1];
+	char*		deflt;
+	char		defltbuf[INI_MAX_VALUE_LEN+1];
+	char		append[INI_MAX_VALUE_LEN+1];
+	char		prepend[INI_MAX_VALUE_LEN+1];
+	char		env_str[(INI_MAX_VALUE_LEN*4)+2];
+	FILE*		fp;
+	size_t		i;
+	str_list_t	env_list;
+	str_list_t	add_list;
+
+	if((env_list=strListInit())==NULL)
+		return(NULL);
+
+	strListAppendList(&env_list, session->req.cgi_env);
+
+	strListPush(&env_list,"REDIRECT_STATUS=200");	/* Kludge for php-cgi */
+
+	if((fp=iniOpenFile(iniFileName(path,sizeof(path),scfg.ctrl_dir,"cgi_env.ini")))==NULL)
+		return(env_list);
+
+	if((add_list=iniReadSectionList(fp,NULL))!=NULL) {
+
+		for(i=0; add_list[i]!=NULL; i++) {
+			if((deflt=getenv(add_list[i]))==NULL)
+				deflt=iniReadString(fp,add_list[i],"default",NULL,defltbuf);
+			if(iniReadString(fp,add_list[i],"value",deflt,value)==NULL)
+				continue;
+			iniReadString(fp,add_list[i],"append","",append);
+			iniReadString(fp,add_list[i],"prepend","",prepend);
+			safe_snprintf(env_str,sizeof(env_str),"%s=%s%s%s"
+				,add_list[i], prepend, value, append);
+			strListPush(&env_list,env_str);
+		}
+		strListFree(&add_list);
+	}
+
+	fclose(fp);
+
+	return(env_list);
+}
+
 
 static BOOL exec_cgi(http_session_t *session)
 {
@@ -2348,12 +2389,23 @@ static BOOL exec_cgi(http_session_t *session)
     PROCESS_INFORMATION process_info;
 	SECURITY_ATTRIBUTES sa;
     STARTUPINFO startup_info={0};
+	str_list_t	env_list;
 
     startup_info.cb=sizeof(startup_info);
 	startup_info.dwFlags|=STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
     startup_info.wShowWindow=SW_HIDE;
 
 	SAFECOPY(cmdline,session->req.physical_path);
+
+	SAFECOPY(startup_dir,cmdline);
+	if((p=strrchr(startup_dir,'/'))!=NULL || (p=strrchr(startup_dir,'\\'))!=NULL)
+		*p=0;
+	else
+		SAFECOPY(startup_dir,cgi_dir);
+
+	lprintf(LOG_DEBUG,"%04d CGI startup dir: %s", session->socket, startup_dir);
+
+	get_cgi_handler(cmdline, sizeof(cmdline));
 
 	lprintf(LOG_INFO,"%04d Executing CGI: %s",session->socket,cmdline);
 
@@ -2389,15 +2441,9 @@ static BOOL exec_cgi(http_session_t *session)
 	CloseHandle(rdoutpipe);
 	CloseHandle(wrinpipe);
 
-	SAFECOPY(startup_dir,cmdline);
-	if((p=strrchr(startup_dir,'/'))!=NULL || (p=strrchr(startup_dir,'\\'))!=NULL)
-		*p=0;
-	else
-		SAFECOPY(startup_dir,cgi_dir);
-
-	lprintf(LOG_DEBUG,"%04d CGI startup dir: %s", session->socket, startup_dir);
-
-	env_block = strListCreateBlock(session->req.cgi_env);
+	env_list=get_cgi_env(session);
+	env_block = strListCreateBlock(env_list);
+	strListFree(&env_list);
 
     success=CreateProcess(
 		NULL,			// pointer to name of executable module
@@ -2422,7 +2468,7 @@ static BOOL exec_cgi(http_session_t *session)
 	start=time(NULL);
 
 	SAFECOPY(cgi_status,session->req.status);
-	SAFEPRINTF(content_type,"%s: text/plain",get_header(HEAD_TYPE));
+	SAFEPRINTF2(content_type,"%s: %s",get_header(HEAD_TYPE),startup->default_cgi_content);
 	while(server_socket!=INVALID_SOCKET) {
 
 		if((time(NULL)-start) >= startup->max_cgi_inactivity)  {
@@ -2455,14 +2501,17 @@ static BOOL exec_cgi(http_session_t *session)
 			}
 			else  {
 				/* This is the tricky part */
-				buf[0];
+				buf[0]=0;
 				i=pipereadline(rdpipe,buf,sizeof(buf));
 				if(i<0)  {
 					got_valid_headers=FALSE;
 					break;
 				}
+				lprintf(LOG_DEBUG,"%04d CGI header line: %s"
+					,session->socket, buf);
 				SAFECOPY(header,buf);
-				if((directive=strtok(header,":"))!=NULL) {
+				if(strchr(header,':')!=NULL) {
+					directive=strtok(header,":");
 					value=strtok(NULL,"");
 					i=get_header_type(directive);
 					switch (i)  {
@@ -2497,15 +2546,18 @@ static BOOL exec_cgi(http_session_t *session)
 					}
 					continue;
 				}
-				msglen=i;	/* we may send this text later */
+				if(i) {
+					strcat(buf,"\r\n");	/* Add back the missing line terminator */
+					msglen=strlen(buf);	/* we will send this text later */
+				}
 				done_parsing_headers = TRUE;	/* invalid header */
 				session->req.dynamic=IS_CGI;
 				strListPush(&session->req.dynamic_heads,content_type);
 				send_headers(session,cgi_status);
 			}
 			if(msglen) {
-				lprintf(LOG_DEBUG,"%04d Sending %d bytes"
-					,session->socket,msglen);
+				lprintf(LOG_DEBUG,"%04d Sending %d bytes: %.*s"
+					,session->socket,msglen,msglen,buf);
 				wr=sendsocket(session->socket,buf,msglen);
 				/* log actual bytes sent */
 				if(session->req.ld!=NULL && wr>0)
@@ -3008,6 +3060,7 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 	js_add_request_prop(session,"ars",session->req.ars);
 	js_add_request_prop(session,"request_string",session->req.request_line);
 	js_add_request_prop(session,"host",session->req.host);
+	js_add_request_prop(session,"vhost",session->req.vhost);
 	js_add_request_prop(session,"http_ver",http_vers[session->http_ver]);
 	js_add_request_prop(session,"remote_ip",session->host_ip);
 	js_add_request_prop(session,"remote_host",session->host_name);
@@ -3058,7 +3111,7 @@ static void respond(http_session_t * session)
 			send_error(session,error_500);
 			return;
 		}
-		close_request(session);
+		session->req.finished=TRUE;
 		return;
 	}
 
@@ -3090,7 +3143,7 @@ static void respond(http_session_t * session)
 			lprintf(LOG_INFO,"%04d Sent file: %s (%d bytes)"
 				,session->socket, session->req.physical_path, snt);
 	}
-	close_request(session);
+	session->req.finished=TRUE;
 }
 
 void http_session_thread(void* arg)
@@ -3103,6 +3156,7 @@ void http_session_thread(void* arg)
 	char			*redirp;
 	http_session_t	session=*(http_session_t*)arg;	/* copies arg BEFORE it's freed */
 	int				loop_count;
+	BOOL			init_error;
 
 	FREE_AND_NULL(arg);
 
@@ -3173,26 +3227,48 @@ void http_session_thread(void* arg)
 	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
 
 	while(!session.finished && server_socket!=INVALID_SOCKET) {
+		init_error=FALSE;
 	    memset(&(session.req), 0, sizeof(session.req));
 		redirp=NULL;
 		loop_count=0;
+		session.req.ld=NULL;
+		if(startup->options&WEB_OPT_HTTP_LOGGING) {
+			if((session.req.ld=(struct log_data*)malloc(sizeof(struct log_data)))==NULL)
+				lprintf(LOG_ERR,"%04d Cannot allocate memory for log data!",session.socket);
+		}
+		if(session.req.ld!=NULL) {
+			memset(session.req.ld,0,sizeof(struct log_data));
+			session.req.ld->hostname=strdup(session.host_name);
+		}
 		while((redirp==NULL || session.req.send_location >= MOVED_TEMP)
-				 && !session.finished && server_socket!=INVALID_SOCKET) {
+				 && !session.finished && !session.req.finished 
+				 && server_socket!=INVALID_SOCKET) {
 			SAFECOPY(session.req.status,"200 OK");
 			session.req.send_location=NO_LOCATION;
-			session.req.ld=NULL;
-			if(startup->options&WEB_OPT_HTTP_LOGGING) {
-				if((session.req.ld=(struct log_data*)malloc(sizeof(struct log_data)))==NULL)
-					lprintf(LOG_ERR,"%04d Cannot allocate memory for log data!",session.socket);
+			if(session.req.headers==NULL) {
+				if((session.req.headers=strListInit())==NULL) {
+					lprintf(LOG_ERR,"%04d !ERROR allocating memory for header list",session.socket);
+					init_error=TRUE;
+				}
 			}
-			if(session.req.ld!=NULL) {
-				memset(session.req.ld,0,sizeof(struct log_data));
-				session.req.ld->hostname=strdup(session.host_name);
+			if(session.req.cgi_env==NULL) {
+				if((session.req.cgi_env=strListInit())==NULL) {
+					lprintf(LOG_ERR,"%04d !ERROR allocating memory for CGI environment list",session.socket);
+					init_error=TRUE;
+				}
 			}
-			session.req.headers=strListInit();
-			session.req.cgi_env=strListInit();
-			session.req.dynamic_heads=strListInit();
+			if(session.req.dynamic_heads==NULL) {
+				if((session.req.dynamic_heads=strListInit())==NULL) {
+					lprintf(LOG_ERR,"%04d !ERROR allocating memory for dynamic header list",session.socket);
+					init_error=TRUE;
+				}
+			}
+
 			if(get_req(&session,redirp)) {
+				if(init_error) {
+					send_error(&session, error_500);
+					continue;
+				}
 				/* At this point, if redirp is non-NULL then the headers have already been parsed */
 				if((session.http_ver<HTTP_1_0)||redirp!=NULL||parse_headers(&session)) {
 					if(check_request(&session)) {
@@ -3209,6 +3285,7 @@ void http_session_thread(void* arg)
 				}
 			}
 		}
+		close_request(&session);
 	}
 
 	http_logoff(&session,socket,__LINE__);
@@ -3289,7 +3366,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.292 $", "%*s %s", revision);
+	sscanf("$Revision: 1.304 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3446,6 +3523,7 @@ void DLLCALL web_server(void* arg)
 	if(startup->root_dir[0]==0)				SAFECOPY(startup->root_dir,WEB_DEFAULT_ROOT_DIR);
 	if(startup->error_dir[0]==0)			SAFECOPY(startup->error_dir,WEB_DEFAULT_ERROR_DIR);
 	if(startup->cgi_dir[0]==0)				SAFECOPY(startup->cgi_dir,WEB_DEFAULT_CGI_DIR);
+	if(startup->default_cgi_content[0]==0)	SAFECOPY(startup->default_cgi_content,WEB_DEFAULT_CGI_CONTENT);
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
 	if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=120; /* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
