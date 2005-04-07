@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.89 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.83 2005/04/05 08:42:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,13 +55,11 @@ js_branch_t	branch;
 scfg_t		scfg;
 ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
-ulong		stack_limit=JAVASCRIPT_THREAD_STACK;
 FILE*		confp;
 FILE*		errfp;
 FILE*		nulfp;
 FILE*		statfp;
 char		revision[16];
-char		compiler[32];
 char*		host_name=NULL;
 char		host_name_buf[128];
 BOOL		pause_on_exit=FALSE;
@@ -76,20 +74,12 @@ BOOL		daemonize=FALSE;
 
 void banner(FILE* fp)
 {
-	fprintf(fp,"\nJSexec v%s%c-%s (rev %s)%s - "
+	fprintf(fp,"\nJSexec v%s%c-%s (rev %s) - "
 		"Execute Synchronet JavaScript Module\n"
 		,VERSION,REVISION
 		,PLATFORM_DESC
 		,revision
-#ifdef _DEBUG
-		," Debug"
-#else
-		,""
-#endif
 		);
-
-	fprintf(fp, "Compiled %s %s with %s\n"
-		,__DATE__, __TIME__, compiler);
 }
 
 void usage(FILE* fp)
@@ -104,7 +94,6 @@ void usage(FILE* fp)
 #endif
 		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
-		"\t-S<bytes>      set thread stack limit (default=%u, 0=unlimited)\n"
 		"\t-b<limit>      set branch limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
@@ -123,7 +112,6 @@ void usage(FILE* fp)
 		"\t-!             wait for keypress (pause) on error\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
-		,JAVASCRIPT_THREAD_STACK
 		,JAVASCRIPT_BRANCH_LIMIT
 		,JAVASCRIPT_YIELD_INTERVAL
 		,JAVASCRIPT_GC_INTERVAL
@@ -154,12 +142,9 @@ int lprintf(int level, char *fmt, ...)
 		return(ret);
 	}
 #endif
-	if(level<=err_level) {
+	if(level<=err_level)
 		ret=fprintf(errfp,"%s\n",sbuf);
-		if(errfp!=stderr && confp!=stdout)
-			ret=fprintf(statfp,"%s\n",sbuf);
-	}
-	if(level>err_level || errfp!=stderr)
+	if(level>err_level || (errfp!=stderr && errfp!=confp))
 		ret=fprintf(confp,"%s\n",sbuf);
     return(ret);
 }
@@ -275,6 +260,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int		rd;
 	int32	len=128;
 
+	*rval = JSVAL_VOID;
+
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	if((buf=malloc(len))==NULL)
@@ -295,6 +282,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*	buf;
 	char*	p;
 	int32	len=128;
+
+	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -390,6 +379,7 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	fprintf(confp,"!%s\n",JS_GetStringBytes(str));
 
+	*rval = JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -427,8 +417,10 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	} else
 		instr[0]=0;
 
-	if(!fgets(instr,sizeof(instr),stdin))
+	if(!fgets(instr,sizeof(instr),stdin)) {
+		*rval = JSVAL_VOID;
 		return(JS_TRUE);
+	}
 
 	if((str=JS_NewStringCopyZ(cx, instr))==NULL)
 	    return(JS_FALSE);
@@ -566,10 +558,6 @@ static BOOL js_init(char** environ)
     if((js_cx = JS_NewContext(js_runtime, js_cx_stack))==NULL)
 		return(FALSE);
 
-	if(stack_limit)
-		fprintf(statfp,"JavaScript: Thread stack limit: %lu bytes\n"
-			,stack_limit);
-
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
@@ -597,11 +585,11 @@ static const char* js_ext(const char* fname)
 
 long js_exec(const char *fname, char** args)
 {
-	ulong		stack_frame;
 	int			argc=0;
 	uint		line_no;
 	char		path[MAX_PATH+1];
 	char		line[1024];
+	char		compiler[32];
 	char		rev_detail[256];
 	size_t		len;
 	char*		js_buf=NULL;
@@ -634,14 +622,6 @@ long js_exec(const char *fname, char** args)
 	}
 	JS_ClearPendingException(js_cx);
 
-	if(stack_limit) {
-#if JS_STACK_GROWTH_DIRECTION > 0
-		stack_frame=((ulong)&stack_frame)+stack_limit;
-#else
-		stack_frame=((ulong)&stack_frame)-stack_limit;
-#endif
-		JS_SetThreadStackLimit(js_cx, stack_frame);
-	}
 
 	argv=JS_NewArrayObject(js_cx, 0, NULL);
 	JS_DefineProperty(js_cx, js_glob, "argv", OBJECT_TO_JSVAL(argv)
@@ -661,6 +641,8 @@ long js_exec(const char *fname, char** args)
 	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+
+	DESCRIBE_COMPILER(compiler);
 
 	sprintf(rev_detail,"JSexec %s%s  "
 		"Compiled %s %s with %s"
@@ -782,8 +764,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.89 $", "%*s %s", revision);
-	DESCRIBE_COMPILER(compiler);
+	sscanf("$Revision: 1.83 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -808,10 +789,6 @@ int main(int argc, char **argv, char** environ)
 				case 's':
 					if(*p==0) p=argv[++argn];
 					js_cx_stack=strtoul(p,NULL,0);
-					break;
-				case 'S':
-					if(*p==0) p=argv[++argn];
-					stack_limit=strtoul(p,NULL,0);
 					break;
 				case 'b':
 					if(*p==0) p=argv[++argn];
