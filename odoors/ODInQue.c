@@ -315,8 +315,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
    /* this thread to be blocked until an event is added to the queue, if it */
    /* is currently empty.                                                   */
 
-   if(ODSemaphoreDown(pInputQueueInfo->hItemCountSemaphore, Timeout)==kODRCTimeout)
-      return(kODRCTimeout);
+   ODSemaphoreDown(pInputQueueInfo->hItemCountSemaphore, Timeout);
 
 #else /* !OD_MULTITHREADED */
 
