@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.361 2005/02/18 08:54:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.362 2005/03/26 06:54:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -104,8 +104,8 @@ static BOOL		terminate_sendmail=FALSE;
 static sem_t	sendmail_wakeup_sem;
 static char		revision[16];
 static time_t	uptime;
-static link_list_t recycle_semfiles;
-static link_list_t shutdown_semfiles;
+static str_list_t recycle_semfiles;
+static str_list_t shutdown_semfiles;
 static int		mailproc_count;
 
 struct mailproc {
@@ -3916,7 +3916,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.361 $", "%*s %s", revision);
+	sscanf("$Revision: 1.362 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4215,14 +4215,14 @@ void DLLCALL mail_server(void* arg)
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
-		semfile_list_init(&shutdown_semfiles,scfg.ctrl_dir,"shutdown","mail");
-		semfile_list_init(&recycle_semfiles,scfg.ctrl_dir,"recycle","mail");
+		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","mail");
+		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","mail");
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
 			initialized=time(NULL);
-			semfile_list_check(&initialized,&recycle_semfiles);
-			semfile_list_check(&initialized,&shutdown_semfiles);
+			semfile_list_check(&initialized,recycle_semfiles);
+			semfile_list_check(&initialized,shutdown_semfiles);
 		}
 
 		/* signal caller that we've started up successfully */
@@ -4233,7 +4233,7 @@ void DLLCALL mail_server(void* arg)
 
 			if(active_clients==0) {
 				if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
-					if((p=semfile_list_check(&initialized,&recycle_semfiles))!=NULL) {
+					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
 							,server_socket,p);
 						break;
@@ -4248,7 +4248,7 @@ void DLLCALL mail_server(void* arg)
 						break;
 					}
 				}
-				if(((p=semfile_list_check(&initialized,&shutdown_semfiles))!=NULL
+				if(((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL
 						&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
 						,server_socket,p))
 					|| (startup->shutdown_now==TRUE
