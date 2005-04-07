@@ -2,14 +2,14 @@
 
 # Make 'include file' listing object files for Synchronet MenuEdit
 
-# $Id: objects.mk,v 1.1 2004/07/20 02:09:21 rswindell Exp $
+# $Id: objects.mk,v 1.2 2005/02/20 20:51:40 deuce Exp $
 
 # LIBODIR, SLASH, and OFILE must be pre-defined
 
 
-OBJS	=	$(LIBODIR)$(SLASH)menuedit.$(OFILE)\
-	        $(LIBODIR)$(SLASH)ini_file.$(OFILE)\
-        	$(LIBODIR)$(SLASH)str_list.$(OFILE)\
-		$(LIBODIR)$(SLASH)genwrap.$(OFILE)\
-		$(LIBODIR)$(SLASH)dirwrap.$(OFILE)\
-		$(LIBODIR)$(SLASH)uifcx.$(OFILE)
+OBJS	=	$(MTOBJODIR)$(DIRSEP)menuedit$(OFILE)\
+	        $(MTOBJODIR)$(DIRSEP)ini_file$(OFILE)\
+        	$(MTOBJODIR)$(DIRSEP)str_list$(OFILE)\
+		$(MTOBJODIR)$(DIRSEP)genwrap$(OFILE)\
+		$(MTOBJODIR)$(DIRSEP)dirwrap$(OFILE)\
+		$(MTOBJODIR)$(DIRSEP)uifcx$(OFILE)

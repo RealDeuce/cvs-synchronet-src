@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.35 2005/01/22 20:59:25 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.38 2005/02/01 10:13:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -539,6 +539,12 @@ static void output_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"output thread terminated\n%s", stats);
 }
+
+BOOL is_connected(void* unused)
+{
+	return socket_check(sock,NULL,NULL,0);
+}
+
 /****************************************************************************/
 /* Returns the number of blocks required to send len bytes					*/
 /****************************************************************************/
@@ -764,16 +770,16 @@ static int send_files(char** fname, uint fnames)
 				xm.sent_bytes+=fsize;
 				lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 						,t/60,t%60,cps);
+
+				if(xm.total_files-xm.sent_files)
+					lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %lu"
+						,((xm.total_bytes-xm.sent_bytes)/cps)/60
+						,((xm.total_bytes-xm.sent_bytes)/cps)%60
+						,xm.total_files-xm.sent_files
+						,(xm.total_bytes-xm.sent_bytes)/1024
+						);
 			} else
 				lprintf(LOG_WARNING,"File Transfer Failure");
-
-			if(xm.total_files-xm.sent_files)
-				lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %lu"
-					,((xm.total_bytes-xm.sent_bytes)/cps)/60
-					,((xm.total_bytes-xm.sent_bytes)/cps)%60
-					,xm.total_files-xm.sent_files
-					,(xm.total_bytes-xm.sent_bytes)/1024
-					);
 
 			/* DSZLOG entry */
 			if(logfp) {
@@ -798,6 +804,10 @@ static int send_files(char** fname, uint fnames)
 		if(gi<(int)g.gl_pathc)/* error occurred */
 			break;
 	}
+
+	if(mode&ZMODEM && !zm.cancelled)
+		zmodem_get_zfin(&zm);
+
 	if(fnum<fnames) /* error occurred */
 		return(-1);
 
@@ -806,9 +816,7 @@ static int send_files(char** fname, uint fnames)
 
 	if(mode&XMODEM)
 		return(0);
-	if(mode&ZMODEM)
-		zmodem_get_zfin(&zm);
-	else {	/* YMODEM */
+	if(mode&YMODEM) {
 
 		if(xmodem_get_mode(&xm)) {
 
@@ -858,7 +866,7 @@ static int receive_files(char** fname_list, int fnames)
 	while((i=getcom(0))!=NOINP)
 		lprintf(LOG_WARNING,"Throwing out received: %s",chr((uchar)i));
 
-	while(!terminate && !cancelled) {
+	while(!terminate && !cancelled && is_connected(NULL)) {
 		if(mode&XMODEM) {
 			SAFECOPY(str,fname_list[0]);	/* we'll have at least one fname */
 			file_bytes=file_bytes_left=0x7fffffff;
@@ -1039,7 +1047,7 @@ static int receive_files(char** fname_list, int fnames)
 			errors=0;
 			block_num=1;
 			xmodem_put_nak(&xm, block_num);
-			while(1) {
+			while(is_connected(NULL)) {
 				xmodem_progress(NULL,block_num,ftell(fp),file_bytes,startfile);
 				i=xmodem_get_block(&xm, block, block_num); 	
 
@@ -1157,6 +1165,7 @@ static const char* usage=
 #endif
 	"\n"
 	"opts   = -o  to overwrite files when receiving\n"
+	"         -s  disable Zmodem streaming (Slow Zmodem)\n"
 	"         -!  to pause after abnormal exit (error)\n"
 	"         -telnet to enable Telnet mode\n"
 	"         -rlogin to enable RLogin (pass-through) mode\n"
@@ -1181,6 +1190,7 @@ int main(int argc, char **argv)
 	char	fname[MAX_PATH+1];
 	char	ini_fname[MAX_PATH+1];
 	char*	p;
+	char*	arg;
 	int 	i;
 	int		retval;
 	uint	fnames=0;
@@ -1201,7 +1211,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1211,8 +1221,8 @@ int main(int argc, char **argv)
 
 	RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
 
-	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte);
-	zmodem_init(&zm,NULL,&mode,lputs,zmodem_progress,send_byte,recv_byte);
+	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected);
+	zmodem_init(&zm,NULL,&mode,lputs,zmodem_progress,send_byte,recv_byte,is_connected);
 
 	/* Generate path/sexyz[.host].ini from path/sexyz[.exe] */
 	SAFECOPY(str,argv[0]);
@@ -1332,19 +1342,24 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 
-
-			if(argv[i][0]=='-') {
-				if(stricmp(argv[i]+1,"telnet")==0) {
+			arg=argv[i];
+			if(*arg=='-') {
+				while(*arg=='-')
+					arg++;
+				if(stricmp(arg,"telnet")==0) {
 					telnet=TRUE;
 					continue;
 				}
-				if(stricmp(argv[i]+1,"rlogin")==0) {
+				if(stricmp(arg,"rlogin")==0) {
 					telnet=FALSE;
 					continue;
 				}
-				switch(toupper(argv[i][1])) {
+				switch(toupper(*arg)) {
 					case 'K':	/* sz/rz compatible */
 						xm.block_size=1024;
+						break;
+					case 'S':	/* disable Zmodem streaming */
+						zm.no_streaming=TRUE;
 						break;
 					case 'G':	/* Ymodem-G */
 						mode|=GMODE;
