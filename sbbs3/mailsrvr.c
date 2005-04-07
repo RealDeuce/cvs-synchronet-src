@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.363 2005/04/16 01:22:57 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.362 2005/03/26 06:54:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3916,7 +3916,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.363 $", "%*s %s", revision);
+	sscanf("$Revision: 1.362 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4064,7 +4064,7 @@ void DLLCALL mail_server(void* arg)
 		mailproc_list=NULL;
 		mailproc_count=0;
 		iniFileName(path,sizeof(path),scfg.ctrl_dir,"mailproc.ini");
-		if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
+		if((fp=iniOpenFile(path))!=NULL) {
 			lprintf(LOG_DEBUG,"Reading %s",path);
 			sec_list = iniReadSectionList(fp,/* prefix */NULL);
 			if((mailproc_count=strListCount(sec_list))!=0

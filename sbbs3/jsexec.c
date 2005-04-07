@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.85 2005/04/14 10:50:24 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.83 2005/04/05 08:42:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@
 
 #define DEFAULT_LOG_MASK	0xff	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
-#define DEFAULT_STACK_LIMIT	(32*1024)
 
 JSRuntime*	js_runtime;
 JSContext*	js_cx;
@@ -56,7 +55,6 @@ js_branch_t	branch;
 scfg_t		scfg;
 ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
-ulong		stack_limit=DEFAULT_STACK_LIMIT;
 FILE*		confp;
 FILE*		errfp;
 FILE*		nulfp;
@@ -96,7 +94,6 @@ void usage(FILE* fp)
 #endif
 		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
-		"\t-S<bytes>      set thread stack size limit (default=%u, 0=unlimited)\n"
 		"\t-b<limit>      set branch limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
@@ -115,7 +112,6 @@ void usage(FILE* fp)
 		"\t-!             wait for keypress (pause) on error\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
-		,DEFAULT_STACK_LIMIT
 		,JAVASCRIPT_BRANCH_LIMIT
 		,JAVASCRIPT_YIELD_INTERVAL
 		,JAVASCRIPT_GC_INTERVAL
@@ -146,12 +142,9 @@ int lprintf(int level, char *fmt, ...)
 		return(ret);
 	}
 #endif
-	if(level<=err_level) {
+	if(level<=err_level)
 		ret=fprintf(errfp,"%s\n",sbuf);
-		if(errfp!=stderr && confp!=stdout)
-			ret=fprintf(statfp,"%s\n",sbuf);
-	}
-	if(level>err_level || errfp!=stderr)
+	if(level>err_level || (errfp!=stderr && errfp!=confp))
 		ret=fprintf(confp,"%s\n",sbuf);
     return(ret);
 }
@@ -592,7 +585,6 @@ static const char* js_ext(const char* fname)
 
 long js_exec(const char *fname, char** args)
 {
-	ulong		stack_frame;
 	int			argc=0;
 	uint		line_no;
 	char		path[MAX_PATH+1];
@@ -630,14 +622,6 @@ long js_exec(const char *fname, char** args)
 	}
 	JS_ClearPendingException(js_cx);
 
-	if(stack_limit) {
-#if JS_STACK_GROWTH_DIRECTION > 0
-		stack_frame=((ulong)&stack_frame)+stack_limit;
-#else
-		stack_frame=((ulong)&stack_frame)-stack_limit;
-#endif
-		JS_SetThreadStackLimit(js_cx, stack_frame);
-	}
 
 	argv=JS_NewArrayObject(js_cx, 0, NULL);
 	JS_DefineProperty(js_cx, js_glob, "argv", OBJECT_TO_JSVAL(argv)
@@ -780,7 +764,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.85 $", "%*s %s", revision);
+	sscanf("$Revision: 1.83 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -805,10 +789,6 @@ int main(int argc, char **argv, char** environ)
 				case 's':
 					if(*p==0) p=argv[++argn];
 					js_cx_stack=strtoul(p,NULL,0);
-					break;
-				case 'S':
-					if(*p==0) p=argv[++argn];
-					stack_limit=strtoul(p,NULL,0);
 					break;
 				case 'b':
 					if(*p==0) p=argv[++argn];

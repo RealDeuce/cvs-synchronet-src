@@ -119,9 +119,9 @@
 /* For DLL versions, definitions of function or data that is exported from */
 /* a module or imported into a module.                                     */
 #ifdef OD_DLL
-#if defined(_MSC_VER) || defined(__BORLANDC__)
+#ifdef _MSC_VER
 #define OD_EXPORT __declspec(dllexport)
-#else /* !_MSC_VER || __BORLANDC__ */
+#else /* !_MSC_VER */
 #define OD_EXPORT _export
 #endif /* !_MSC_VER */
 #define OD_IMPORT DECLSPEC_IMPORT
@@ -915,7 +915,6 @@ od_control;
  *    od_edit_str()           - Fancy formatted string input function (ANS/AVT)
  *    od_clear_keybuffer()    - Removes any waiting keys in keyboard buffer
  *    od_multiline_edit()     - Edits text that spans multiple lines  (ANS/AVT)
- *    od_key_pending()        - Returns TRUE if a key is waiting to be processed
  *
  * COMMON DOOR ACTIVITY FUNCTIONS
  *    od_page()               - Allows user to page sysop
@@ -963,7 +962,6 @@ ODAPIDEF char ODCALL   od_get_answer(char *pszOptions);
 ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
-ODAPIDEF BOOL ODCALL   od_key_pending(void);
 ODAPIDEF char ODCALL   od_get_key(BOOL bWait);
 ODAPIDEF BOOL ODCALL   od_gettext(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, void *pBlock);

@@ -1,5 +1,5 @@
 ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ 
-³                          Tournament GAMENAME (tm)                         ³ 
+³                          Tournament FreeCell (tm)                         ³ 
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
    Please read these doc files before attempting to install this program.
@@ -8,14 +8,20 @@
 ³                              Description                                  ³ 
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
    
-   Includes both 16 bit DOS and 32 bit WIN95/NT versions (GAC_BJ32.EXE)!
-
-   Tournament GAMENAME is an impressive addition to any BBS.  This game is
+   Tournament FreeCell is an impressive addition to any BBS.  This game is
    especially well suited to multinode BBS systems, since it allows players
    on multiple nodes to participate in the game at the same time.  
 
-   
-   
+   FreeCell is an addictive solitare card game, the object is to move all
+   of your cards from the columns to the 4 Home Cells.  The trick is that
+   the cards in the Home Cells must be in order by suit.  See the
+   instructions inside of FreeCell for more information.
+
+   Since the games can be long, a save option is available for the user.
+   This will allow the user to continue a game at a later date in case they
+   run out of time on your system or just need to stop.  This option also
+   protects the user's game if they are disconnected from the system.
+
    This BBS game also supports Inter-BBS playing through the fidonet
    technology.  This game uses a routing system identical to Inter-LORD and
    very similiar to BREs HOST routing system.  All routing is handled by
@@ -64,11 +70,11 @@
 	  and enjoy the game.
 	- The league coordinator can automatically update all other systems by
 	  placing the files that have changed into the OUT directory under the
-	  GAC_ID directory.
+	  GAC_FC directory.
 	- Automatically does maintenance when the first player enters the game
-	  or when the GAC_ID MAINTAIN parameter is used (only does it once/day)
+	  or when the GAC_FC MAINTAIN parameter is used (only does it once/day)
 	- Anyone in the league can develop a routing bulletin by using the 
-	  GAC_ID ROUTE command.  This will list version numbers, route times, and
+	  GAC_FC ROUTE command.  This will list version numbers, route times, and
 	  more about each BBS in the league.
 	- All player data is shared among the BBS systems, and users may send
 	  telegrams to each other from within the game using colors and a
@@ -80,7 +86,7 @@
 	- Will not import information from BBS not listed in the current
 	  INTERBBS.CFG file.
 	- The league coordinator can cause a reset of the game at any time
-	  by simply using a command line switch (GAC_ID RESET)
+	  by simply using a command line switch (GAC_FC RESET)
 	- Any SysOp in the League can use the SENDALL command line paramter
 	  to send a personal NetMail to all of the other SysOps in a League.
 	  Excellent for coordinators to keep members informed
@@ -90,8 +96,8 @@
    MISCELANEOUS:
 
 	- An easy to use configuration program built in, eliminating the need
-	  to edit configuration files by hand (GAC_ID CONFIG)
-	- Creates bulletins showing high scores (GAC_ID BULLETINS)
+	  to edit configuration files by hand (GAC_FC CONFIG)
+	- Creates bulletins showing high scores (GAC_FC BULLETINS)
 	- Support for ANSI, AVATAR, ASCII and RIP (currently only uses RIP to
 	  set a 23x80 screen font, thus insuring that the user does not have a
 	  squashed screen effect.)
@@ -145,11 +151,9 @@
 ³                  List of included files in the Archive                    ³ 
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-	GAC_ID.EXE   - The Main executable
-	GAC_ID.DOC   - This Documentation file
+	GAC_FC.EXE   - The Main executable
+	GAC_FC.DOC   - This Documentation file
 	FILE_ID.DIZ  - A short description of this program
-        WIN95NT.DOC  - Information on the Windows 32 bit version
-        WIN95NT.ZIP  - Windows 32bit specific files
 	REGISTER.DOC - A Registration form for G.A.C. Computer Services 
 			   Products.
 	INTERBBS.DOC - A Sample INTERBBS.CFG file for your viewing, also
@@ -166,49 +170,45 @@
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 	NOTE: SHARE.EXE should be loaded if you want to run this program.
-
-	A Windows 95/NT versions has been included in the archive.  To use
-	the 32bit version unpack the WIN95NT.ZIP file and read the file 
-        WIN95NT.DOC.
-		
+	
 	1 - Unpack all of these files into their own directory, a good name 
-		is GAC_ID.
+		is GAC_FC.
 
-		e.g. md c:\GAC_ID
+		e.g. md c:\gac_fc
 		
 
 	2 - change to the directory where the files were placed and execute
-		GAC_ID with the CONFIG option.
+		GAC_FC with the CONFIG option.
 
-		e.g. GAC_ID CONFIG
+		e.g. GAC_FC CONFIG
 
 	3 - Answer the questions about your system, and then exit.  Be sure
 		to save the information
 
-	4 - Setup your BBS program to run GAC_ID.BAT and pass the current node
+	4 - Setup your BBS program to run GAC_FC.BAT and pass the current node
 		number to the program as the first parameter.  If needed the path 
 		to your drop file should be the second parameter if you can not 
 		specify it in the configuration program (e.g. each node has a 
 		different path).
 
-		e.g.  GAC_ID.BAT %#     is placed on the EXEC line in Synchronet
+		e.g.  GAC_FC.BAT %#     is placed on the EXEC line in Synchronet
 
-		NOTE: The batch file must be used so auto-updating of your GAC_ID.EXE
+		NOTE: The batch file must be used so auto-updating of your GAC_FC.EXE
 		file can take place during maintenance.  Please call the batch file
-		anytime you access Tournament GAMENAME.
+		anytime you access Tournament FreeCell.
 
 		If you need batch files to run the program, pass the node number
 		to the RUN.BAT file.  The RUN.BAT file should contain the 
 		following lines of code.
 
 		@Echo off
-		REM RUN.BAT for GAC_ID
+		REM RUN.BAT for GAC_FC
 		REM
-		REM Change to the GAC_ID directory
+		REM Change to the GAC_FC directory
 		c:
-		cd\GAC_ID
-		REM Run GAC_ID passing the node number
-		call GAC_ID %1
+		cd\gac_fc
+		REM Run GAC_FC passing the node number
+		call gac_fc %1
 		REM
 		REM Change back to your bbs directory
 		cd\bbs
@@ -219,13 +219,13 @@
 		time a user logs into the game.
 
 		e.g.   c:
-		   cd\GAC_ID
-		   GAC_ID MAINTAIN
+		   cd\GAC_FC
+		   GAC_FC MAINTAIN
 	
 	6 - Test the game locally and remotely.  If you encounter a problem,
 		please notify us, so we may help.
 
-		e.g. GAC_ID 3 local     will cause local playing on node 3
+		e.g. GAC_FC 3 local     will cause local playing on node 3
 
 	NOTE: For Inter-BBS play, see the next section
 
@@ -233,7 +233,7 @@
 ³                              Inter-BBS Setup                              ³
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-	First thing you need to do is find a Tournament GAMENAME league to
+	First thing you need to do is find a Tournament FreeCell league to
 	join and apply or find some boards who want to start a new league.
 	
 	If you are starting a new league, then someone must be the League 
@@ -260,18 +260,18 @@
 
 	3 - Get the INTERBBS.CFG file from your league coordinator, it will
 		have to be file attached to you the first time and you will place
-		it in your GAC_ID directory.  All future updates to that file will
+		it in your GAC_FC directory.  All future updates to that file will
 		be handled automatically by the league coordinator.
 
-	4 - You can have your mailer run GAC_ID INBOUND whenever 
+	4 - You can have your mailer run GAC_FC INBOUND whenever 
 		mail is received to immediately import the incoming Inter-BBS 
 		files.  Otherwise, the inbound files will be processed during the
 		automaintenance.
 		
 		e.g.  c:
-		  cd\GAC_ID
-		  call GAC_ID.bat INBOUND
-		  call GAC_ID.bat OUTBOUND
+		  cd\gac_fc
+		  call gac_fc.bat INBOUND
+		  call gac_fc.bat OUTBOUND
 
 	5 - Enjoy your Inter-BBS game!
 
@@ -353,6 +353,5 @@
 
 
 
-Tournament GAMENAME is a trademark of G.A.C. Computer Services and may
+Tournament FreeCell is a trademark of G.A.C. Computer Services and may
 not be used for any reason without prior written permission.
-
