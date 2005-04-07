@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.24 2005/04/19 09:25:09 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.23 2005/02/09 08:18:11 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -268,7 +268,7 @@ zmodem_tx_hex_header(zmodem_t* zm, unsigned char * p)
 	 */
 
 	zmodem_tx_raw(zm, '\r');
-	zmodem_tx_raw(zm, '\n');	/* FDSZ sends 0x8a instead of 0x0a */
+	zmodem_tx_raw(zm, '\n'|0x80);	/* FDSZ sends 0x8a instead of 0x0a */
 
 	if(type!=ZACK && type!=ZFIN)
 		zmodem_tx_raw(zm, XON);
@@ -1204,9 +1204,7 @@ void zmodem_parse_zrinit(zmodem_t* zm)
 
 int zmodem_get_zrinit(zmodem_t* zm)
 {
-	unsigned char zrqinit_header[] = { ZRQINIT, /* ZF3: */0, 0, 0, /* ZF0: */0 };
-	/* Note: sz/dsz/fdsz sends 0x80 in ZF3 because it supports var-length headers. */
-	/* We do not, so we send 0x00, resulting in a CRC-16 value of 0x0000 as well. */
+	unsigned char zrqinit_header[] = { ZRQINIT, 0, 0, 0, 0 };
 
 	zmodem_tx_raw(zm,'r');
 	zmodem_tx_raw(zm,'z');
@@ -1850,7 +1848,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.24 $", "%*s %s", buf);
+	sscanf("$Revision: 1.23 $", "%*s %s", buf);
 
 	return(buf);
 }

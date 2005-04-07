@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.384 2005/05/07 18:19:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.378 2005/03/26 06:54:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -860,7 +860,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	}
 }
 
-bool sbbs_t::js_init(ulong* stack_frame)
+bool sbbs_t::js_init()
 {
 	char		node[128];
 
@@ -869,25 +869,22 @@ bool sbbs_t::js_init(ulong* stack_frame)
     else
     	strcpy(node,client_name);
 
-	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
-
 	lprintf(LOG_DEBUG,"%s JavaScript: Creating runtime: %lu bytes"
-		,node,startup->js.max_bytes);
+		,node,startup->js_max_bytes);
 
-	if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
+	if((js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL)
 		return(false);
 
 	lprintf(LOG_DEBUG,"%s JavaScript: Initializing context (stack: %lu bytes)"
-		,node,startup->js.cx_stack);
+		,node,startup->js_cx_stack);
 
-    if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
+    if((js_cx = JS_NewContext(js_runtime, startup->js_cx_stack))==NULL)
 		return(false);
 	
 	memset(&js_branch,0,sizeof(js_branch));
-	js_branch.limit = startup->js.branch_limit;
-	js_branch.gc_interval = startup->js.gc_interval;
-	js_branch.yield_interval = startup->js.yield_interval;
+	js_branch.limit = startup->js_branch_limit;
+	js_branch.gc_interval = startup->js_gc_interval;
+	js_branch.yield_interval = startup->js_yield_interval;
 	js_branch.terminated = &terminated;
 	js_branch.auto_terminate = TRUE;
 
@@ -921,20 +918,6 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		/* Console Object */
 		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
 			break;
-
-		if(startup->js.thread_stack) {
-			ulong stack_limit;
-
-#if JS_STACK_GROWTH_DIRECTION > 0
-			stack_limit=((ulong)stack_frame)+startup->js.thread_stack;
-#else
-			stack_limit=((ulong)stack_frame)-startup->js.thread_stack;
-#endif
-			JS_SetThreadStackLimit(js_cx, stack_limit);
-
-			lprintf(LOG_DEBUG,"%s JavaScript: Thread stack limit: %lu bytes"
-				,node, startup->js.thread_stack);
-		}
 
 		success=true;
 
@@ -1550,7 +1533,6 @@ void output_thread(void* arg)
 
 void event_thread(void* arg)
 {
-	ulong		stack_frame;
 	char		str[MAX_PATH+1];
 	char		bat_list[MAX_PATH+1];
 	char		semfile[MAX_PATH+1];
@@ -1581,7 +1563,7 @@ void event_thread(void* arg)
 
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
-		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the event thread */
+		if(!sbbs->js_init())	/* This must be done in the context of the node thread */
 			lprintf(LOG_ERR,"!JavaScript Initialization FAILURE");
 	}
 #endif
@@ -3286,7 +3268,6 @@ void sbbs_t::logoffstats()
 
 void node_thread(void* arg)
 {
-	ulong			stack_frame;
 	char			str[128];
 	char			uname[LEN_ALIAS+1];
 	int				file;
@@ -3310,7 +3291,7 @@ void node_thread(void* arg)
 
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
-		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the node thread */
+		if(!sbbs->js_init())	/* This must be done in the context of the node thread */
 			lprintf(LOG_ERR,"!Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
 	}
 #endif
@@ -3769,12 +3750,15 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
 	if(startup->rlogin_port==0)				startup->rlogin_port=513;
 	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
+#ifdef JAVASCRIPT
+	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+#endif
 	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 	if(startup->temp_dir[0])				backslash(startup->temp_dir);
 
-	ZERO_VAR(js_server_props);
-	SAFEPRINTF3(js_server_props.version,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
+	sprintf(js_server_props.version,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
 	js_server_props.version_detail=bbs_ver();
 	js_server_props.clients=&node_threads_running;
 	js_server_props.options=&startup->options;

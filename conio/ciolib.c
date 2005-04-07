@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.38 2005/04/18 02:58:16 deuce Exp $ */
+/* $Id: ciolib.c,v 1.35 2005/02/21 03:39:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,12 +356,12 @@ char *ciolib_cgets(char *str)
 	CIOLIB_INIT();
 	
 	maxlen=*(unsigned char *)str;
-	while((ch=ciolib_getche())!='\n' && ch !='\r') {
+	while((ch=ciolib_getche())!='\n') {
 		switch(ch) {
 			case 0:	/* Skip extended keys */
 				ciolib_getche();
 				break;
-			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
+			case '\r':	/* Skip \r (ToDo: Should this be treeated as a \n? */
 				break;
 			case '\b':
 				if(len==0) {
@@ -698,7 +698,7 @@ int ciolib_cprintf(char *fmat, ...)
 		ciolib_cputs(str);
 	else
 		ret=EOF;
-#ifndef _MSC_VER
+#ifndef _WIN32
 	free(str);
 #endif
     return(ret);
@@ -729,30 +729,26 @@ int ciolib_cputs(char *str)
 void ciolib_textbackground(int colour)
 {
 	unsigned char attr;
-	unsigned char col;
 
 	CIOLIB_INIT();
 	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr&=143;
-	col=(colour & 0x07);
-	attr|=(col<<4);
+	attr|=(colour<<4);
 	ciolib_textattr(attr);
 }
 
 void ciolib_textcolor(int colour)
 {
 	unsigned char attr;
-	unsigned char col;
 
 	CIOLIB_INIT();
 	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr&=240;
-	col=colour&0x0f;
-	attr|=col;
+	attr|=(colour*0x0f);
 	ciolib_textattr(attr);
 }
 
