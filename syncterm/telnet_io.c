@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.5 2005/02/05 21:42:30 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.10 2005/04/06 15:14:14 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +11,7 @@
 #include "gen_defs.h"
 #include "bbslist.h"
 #include "conn.h"
+#include "uifcinit.h"
 
 #define TELNET_TERM_MAXLEN	40
 
@@ -53,7 +54,7 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 {
 	BYTE	command;
 	BYTE	option;
-	BYTE*   first_iac=NULL;
+	BYTE*   first_iac;
 	int 	i;
 
 	if(inlen<1) {
@@ -110,8 +111,20 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
             else if(telnet_cmdlen>=3) {	/* telnet option negotiation */
 				if(command==TELNET_DO || command==TELNET_DONT) {	/* local options */
 					if(telnet_local_option[option]!=command) {
-						telnet_local_option[option]=command;
-						send_telnet_cmd(telnet_opt_ack(command),option);
+						switch(option) {
+							case TELNET_BINARY_TX:
+							case TELNET_ECHO:
+							case TELNET_TERM_TYPE:
+							case TELNET_SUP_GA:
+							case TELNET_NEGOTIATE_WINDOW_SIZE:
+								telnet_local_option[option]=command;
+								send_telnet_cmd(telnet_opt_ack(command),option);
+								break;
+							default: /* unsupported local options */
+								if(command==TELNET_DO) /* NAK */
+									send_telnet_cmd(telnet_opt_nak(command),option);
+								break;
+						}
 					}
 
 					if(command==TELNET_DO && option==TELNET_NEGOTIATE_WINDOW_SIZE) {
@@ -135,7 +148,6 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 							case TELNET_BINARY_TX:
 							case TELNET_ECHO:
 							case TELNET_TERM_TYPE:
-							case TELNET_TERM_SPEED:
 							case TELNET_SUP_GA:
 							case TELNET_NEGOTIATE_WINDOW_SIZE:
 								telnet_remote_option[option]=command;
@@ -295,6 +307,8 @@ int telnet_connect(char *addr, int port, char *ruser, char *passwd)
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(port);
 	
+	memset(telnet_local_option,0,sizeof(telnet_local_option));
+	memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 	if(connect(conn_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];
 
