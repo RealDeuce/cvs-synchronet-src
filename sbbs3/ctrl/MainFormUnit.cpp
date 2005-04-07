@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.148 2005/05/01 06:15:28 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.145 2005/02/18 10:04:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -954,16 +954,16 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
         hSCManager = openSCManager(
                             NULL,                   // machine (NULL == local)
                             NULL,                   // database (NULL == default)
-                            SC_MANAGER_CONNECT		// access required
+                            SC_MANAGER_ALL_ACCESS   // access required
                             );
 
 	/* Open Synchronet Services */
     if(hSCManager!=NULL) {
-		bbs_svc =  openService(hSCManager, NTSVC_NAME_BBS, GENERIC_READ|GENERIC_EXECUTE);
-		ftp_svc =  openService(hSCManager, NTSVC_NAME_FTP, GENERIC_READ|GENERIC_EXECUTE);
-		web_svc =  openService(hSCManager, NTSVC_NAME_WEB, GENERIC_READ|GENERIC_EXECUTE);        
-		mail_svc =  openService(hSCManager, NTSVC_NAME_MAIL, GENERIC_READ|GENERIC_EXECUTE);
-		services_svc =  openService(hSCManager, NTSVC_NAME_SERVICES, GENERIC_READ|GENERIC_EXECUTE);
+		bbs_svc =  openService(hSCManager, NTSVC_NAME_BBS, SERVICE_ALL_ACCESS);
+		ftp_svc =  openService(hSCManager, NTSVC_NAME_FTP, SERVICE_ALL_ACCESS);
+		web_svc =  openService(hSCManager, NTSVC_NAME_WEB, SERVICE_ALL_ACCESS);        
+		mail_svc =  openService(hSCManager, NTSVC_NAME_MAIL, SERVICE_ALL_ACCESS);
+		services_svc =  openService(hSCManager, NTSVC_NAME_SERVICES, SERVICE_ALL_ACCESS);
     }
 }
 //---------------------------------------------------------------------------
@@ -2494,12 +2494,6 @@ bool __fastcall TMainForm::SaveIniSettings(TObject* Sender)
         );
     fclose(fp);
 
-	if(!success) {
-		char err[MAX_PATH*2];
-        SAFEPRINTF(err,"Failure writing initialization file: %s",ini_file);
-        Application->MessageBox(err,"ERROR",MB_OK|MB_ICONEXCLAMATION);
-	}
-
     return(success);
 }
 
@@ -3069,7 +3063,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->PasswordEdit->Text=Password;
     PropertiesDlg->JS_MaxBytesEdit->Text=IntToStr(global.js.max_bytes);
     PropertiesDlg->JS_ContextStackEdit->Text=IntToStr(global.js.cx_stack);
-    PropertiesDlg->JS_ThreadStackEdit->Text=IntToStr(global.js.thread_stack);    
     PropertiesDlg->JS_BranchLimitEdit->Text=IntToStr(global.js.branch_limit);
     PropertiesDlg->JS_GcIntervalEdit->Text=IntToStr(global.js.gc_interval);
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
@@ -3084,63 +3077,23 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         SAFECOPY(global.host_name,PropertiesDlg->HostnameEdit->Text.c_str());
         SAFECOPY(global.ctrl_dir,PropertiesDlg->CtrlDirEdit->Text.c_str());
         SAFECOPY(global.temp_dir,PropertiesDlg->TempDirEdit->Text.c_str());
-        global.sem_chk_freq=PropertiesDlg->SemFreqUpDown->Position;
-
-        /* Copy global values to server startup structs */
-        /* We don't support per-server unique values here (yet) */
-        SAFECOPY(bbs_startup.host_name,global.host_name);
-        SAFECOPY(bbs_startup.ctrl_dir,global.ctrl_dir);
-        SAFECOPY(bbs_startup.temp_dir,global.temp_dir);
-        bbs_startup.sem_chk_freq=global.sem_chk_freq;
-
-        SAFECOPY(ftp_startup.host_name,global.host_name);
-        SAFECOPY(ftp_startup.ctrl_dir,global.ctrl_dir);
-        SAFECOPY(ftp_startup.temp_dir,global.temp_dir);
-        ftp_startup.sem_chk_freq=global.sem_chk_freq;
-
-        SAFECOPY(web_startup.host_name,global.host_name);
-        SAFECOPY(web_startup.ctrl_dir,global.ctrl_dir);
-        SAFECOPY(web_startup.temp_dir,global.temp_dir);
-        web_startup.sem_chk_freq=global.sem_chk_freq;
-
-        SAFECOPY(mail_startup.host_name,global.host_name);
-        SAFECOPY(mail_startup.ctrl_dir,global.ctrl_dir);
-        SAFECOPY(mail_startup.temp_dir,global.temp_dir);
-        mail_startup.sem_chk_freq=global.sem_chk_freq;
-
-        SAFECOPY(services_startup.host_name,global.host_name);
-        SAFECOPY(services_startup.ctrl_dir,global.ctrl_dir);
-        SAFECOPY(services_startup.temp_dir,global.temp_dir);
-        services_startup.sem_chk_freq=global.sem_chk_freq;
-
         Password=PropertiesDlg->PasswordEdit->Text;
         NodeForm->Timer->Interval=PropertiesDlg->NodeIntUpDown->Position*1000;
         ClientForm->Timer->Interval=PropertiesDlg->ClientIntUpDown->Position*1000;
+        global.sem_chk_freq=PropertiesDlg->SemFreqUpDown->Position;
         MinimizeToSysTray=PropertiesDlg->TrayIconCheckBox->Checked;
         UndockableForms=PropertiesDlg->UndockableCheckBox->Checked;
         UseFileAssociations=PropertiesDlg->FileAssociationsCheckBox->Checked;
-
-        /* JavaScript operating parameters */
-        js_startup_t js=global.js; // save for later comparison
         global.js.max_bytes
         	=PropertiesDlg->JS_MaxBytesEdit->Text.ToIntDef(JAVASCRIPT_MAX_BYTES);
         global.js.cx_stack
         	=PropertiesDlg->JS_ContextStackEdit->Text.ToIntDef(JAVASCRIPT_CONTEXT_STACK);
-        global.js.thread_stack
-        	=PropertiesDlg->JS_ThreadStackEdit->Text.ToIntDef(JAVASCRIPT_THREAD_STACK);
         global.js.branch_limit
         	=PropertiesDlg->JS_BranchLimitEdit->Text.ToIntDef(JAVASCRIPT_BRANCH_LIMIT);
         global.js.gc_interval
         	=PropertiesDlg->JS_GcIntervalEdit->Text.ToIntDef(JAVASCRIPT_GC_INTERVAL);
         global.js.yield_interval
         	=PropertiesDlg->JS_YieldIntervalEdit->Text.ToIntDef(JAVASCRIPT_YIELD_INTERVAL);
-
-        /* Copy global settings, if appropriate (not unique) */
-        if(memcmp(&bbs_startup.js,&js,sizeof(js))==0)       bbs_startup.js=global.js;
-        if(memcmp(&ftp_startup.js,&js,sizeof(js))==0)       ftp_startup.js=global.js;
-        if(memcmp(&web_startup.js,&js,sizeof(js))==0)       web_startup.js=global.js;
-        if(memcmp(&mail_startup.js,&js,sizeof(js))==0)      mail_startup.js=global.js;
-        if(memcmp(&services_startup.js,&js,sizeof(js))==0)  services_startup.js=global.js;
 
         MaxLogLen
         	=PropertiesDlg->MaxLogLenEdit->Text.ToIntDef(0);
