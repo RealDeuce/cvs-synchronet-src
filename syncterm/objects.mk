@@ -9,7 +9,4 @@ OBJS = \
                         $(MTOBJODIR)$(DIRSEP)term$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)window$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)menu$(OFILE) \
-                        $(MTOBJODIR)$(DIRSEP)crc16$(OFILE) \
-                        $(MTOBJODIR)$(DIRSEP)crc32$(OFILE) \
-                        $(MTOBJODIR)$(DIRSEP)zmodem$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)syncterm$(OFILE)
