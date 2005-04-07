@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.180 2005/04/16 21:50:42 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.178 2005/03/26 16:11:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1589,12 +1589,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		input_thread_mutex_locked=true;
 	}
 
-#ifdef XTERN_LOG_STDERR
 	if(pipe(err_pipe)!=0) {
 		errormsg(WHERE,ERR_CREATE,"err_pipe",0);
 		return(-1);
-}
-#endif
+	}
 
 	if((mode&EX_INR) && (mode&EX_OUTR))  {
 		struct winsize winsize;
@@ -1696,9 +1694,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		if(mode&EX_OUTR && !(mode&EX_INR)) {
 			close(out_pipe[0]);		/* close read-end of pipe */
 			dup2(out_pipe[1],1);	/* stdout */
-#ifndef XTERN_LOG_STDERR
-			dup2(out_pipe[1],2);	/* stderr */
-#endif
+			/* dup2(out_pipe[1],2);	stderr */
 			close(out_pipe[1]);		/* close excess file descriptor */
 		}
 
@@ -1708,10 +1704,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			daemon(TRUE,FALSE);
    	    }
 
-#ifdef XTERN_LOG_STDERR
 		close(err_pipe[0]);		/* close read-end of pipe */
 		dup2(err_pipe[1],2);	/* stderr */
-#endif
 	
 		execvp(argv[0],argv);
 		sprintf(str,"!ERROR %d executing %s",errno,argv[0]);
@@ -1726,9 +1720,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(!(mode&EX_OFFLINE))
 		rio_abortable=false;
 	
-#ifdef XTERN_LOG_STDERR
 	close(err_pipe[1]);	/* close write-end of pipe */
-#endif
 
 	if(mode&EX_OUTR) {
 		if(!(mode&EX_INR))
@@ -1754,24 +1746,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				
 			/* Error Output */
 			FD_ZERO(&ibits);
-#ifdef XTERN_LOG_STDERR
 			FD_SET(err_pipe[0],&ibits);
 			high_fd=err_pipe[0];
-#endif
 			FD_SET(out_pipe[0],&ibits);
-#ifdef XTERN_LOG_STDERR
 			if(out_pipe[0]>err_pipe[0])
 				high_fd=out_pipe[0];
-#else
-			high_fd=out_pipe[0];
-#endif
 			timeout.tv_sec=0;
 			timeout.tv_usec=1000;
 			bp=buf;
 			i=0;
-#ifndef XTERN_LOG_STDERR
-			select(high_fd+1,&ibits,NULL,NULL,&timeout);
-#else
 			while ((select(high_fd+1,&ibits,NULL,NULL,&timeout)>0) && FD_ISSET(err_pipe[0],&ibits) && (i<(int)sizeof(buf)-1))  {
 				if((rd=read(err_pipe[0],bp,1))>0)  {
 					i+=rd;
@@ -1795,9 +1778,17 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				bp=buf;
 				i=0;
 			}
-#endif
 
+#if 0
+			/* Output */
+			FD_ZERO(&ibits);
+			FD_SET(out_pipe[0],&ibits);
+			timeout.tv_sec=0;
+			timeout.tv_usec=1000;
+			data_waiting=(select(out_pipe[0]+1,&ibits,NULL,NULL,&timeout)!=0);
+#else
 			data_waiting=FD_ISSET(out_pipe[0],&ibits);
+#endif
 			if(i==0 && data_waiting==0)
 				continue;
 
@@ -1868,14 +1859,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			close(in_pipe[1]);
 		close(out_pipe[0]);
 	}
-#if 0
 	else {
 		/* Enable the Nagle algorithm */
 		int nodelay=FALSE;
 		setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 	}
-#endif
-#ifdef XTERN_LOG_STDERR
+
 	while(waitpid(pid, &i, WNOHANG)==0)  {
 		FD_ZERO(&ibits);
 		FD_SET(err_pipe[0],&ibits);
@@ -1900,9 +1889,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		if(i)
 			lprintf(LOG_NOTICE,"%.*s",i,buf);
 	}
-#else
-	waitpid(pid, &i, 0)==0;
-#endif
 
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
 
@@ -1923,9 +1909,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
 	}
 
-#ifdef XTERN_LOG_STDERR
 	close(err_pipe[0]);
-#endif
 
 	if(input_thread_mutex_locked && input_thread_running) {
 		if(pthread_mutex_unlock(&input_thread_mutex)!=0)

@@ -1,5 +1,5 @@
 ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ 
-³                          Tournament Blackjack TM                          ³ 
+³                          Tournament FreeCell (tm)                         ³ 
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
    Please read these doc files before attempting to install this program.
@@ -7,16 +7,20 @@
 ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿ 
 ³                              Description                                  ³ 
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-   Includes both 16 bit DOS and 32 bit WIN95/NT versions (GAC_BJ32.EXE)!
    
-   Tournament Blackjack is an impressive addition to any BBS.  This game is
+   Tournament FreeCell is an impressive addition to any BBS.  This game is
    especially well suited to multinode BBS systems, since it allows players
-   on multiple nodes to participate in the SAME blackjack game with cards
-   from the same deck.  The players may even chat with each other while they
-   wait their turn to play.  There are many SysOp configurable items, such
-   as the amount of starting money, money per day, number of decks in the
-   card shoe, etc.  All of these can be configured via the CONFIG
-   command line parameter.
+   on multiple nodes to participate in the game at the same time.  
+
+   FreeCell is an addictive solitare card game, the object is to move all
+   of your cards from the columns to the 4 Home Cells.  The trick is that
+   the cards in the Home Cells must be in order by suit.  See the
+   instructions inside of FreeCell for more information.
+
+   Since the games can be long, a save option is available for the user.
+   This will allow the user to continue a game at a later date in case they
+   run out of time on your system or just need to stop.  This option also
+   protects the user's game if they are disconnected from the system.
 
    This BBS game also supports Inter-BBS playing through the fidonet
    technology.  This game uses a routing system identical to Inter-LORD and
@@ -61,16 +65,16 @@
 
 	- Extremely simple for Sysops to set up, and extremely simple for 
 	  the League Coodinator to maintain the league.
-NEW!- The League Coordinator handles all of the routing in the INTERBBS.CFG
+	- The League Coordinator handles all of the routing in the INTERBBS.CFG
 	  file (see INTERBBS.DOC for info).  All other sysops simply sit back
 	  and enjoy the game.
-NEW!- The league coordinator can automatically update all other systems by
+	- The league coordinator can automatically update all other systems by
 	  placing the files that have changed into the OUT directory under the
-	  GAC_BJ directory.
-NEW!- Automatically does maintenance when the first player enters the game
-	  or when the GAC_BJ MAINTAIN parameter is used (only does it once/day)
-NEW!- Anyone in the league can develop a routing bulletin by using the 
-	  GAC_BJ ROUTE command.  This will list version numbers, route times, and
+	  GAC_FC directory.
+	- Automatically does maintenance when the first player enters the game
+	  or when the GAC_FC MAINTAIN parameter is used (only does it once/day)
+	- Anyone in the league can develop a routing bulletin by using the 
+	  GAC_FC ROUTE command.  This will list version numbers, route times, and
 	  more about each BBS in the league.
 	- All player data is shared among the BBS systems, and users may send
 	  telegrams to each other from within the game using colors and a
@@ -82,7 +86,7 @@ NEW!- Anyone in the league can develop a routing bulletin by using the
 	- Will not import information from BBS not listed in the current
 	  INTERBBS.CFG file.
 	- The league coordinator can cause a reset of the game at any time
-	  by simply using a command line switch (GAC_BJ RESET)
+	  by simply using a command line switch (GAC_FC RESET)
 	- Any SysOp in the League can use the SENDALL command line paramter
 	  to send a personal NetMail to all of the other SysOps in a League.
 	  Excellent for coordinators to keep members informed
@@ -91,15 +95,13 @@ NEW!- Anyone in the league can develop a routing bulletin by using the
 
    MISCELANEOUS:
 
-NEW!- Full sized ANSI Cards for the dealer's and player's hands!
-NEW!- full capability editor for message sending.
 	- An easy to use configuration program built in, eliminating the need
-	  to edit configuration files by hand (GAC_BJ CONFIG)
-	- Creates bulletins showing high scores (GAC_BJ BULLETINS)
+	  to edit configuration files by hand (GAC_FC CONFIG)
+	- Creates bulletins showing high scores (GAC_FC BULLETINS)
 	- Support for ANSI, AVATAR, ASCII and RIP (currently only uses RIP to
 	  set a 23x80 screen font, thus insuring that the user does not have a
 	  squashed screen effect.)
-NEW!- All artwork is now in .ART files to save disk space!
+	- All artwork is now in .ART files to save disk space!
 	- Written in C/C++ for the fastest, smallest code possible
 	- Extensively tested both internally and through betas.
 	- Reasonable prices
@@ -149,21 +151,15 @@ NEW!- All artwork is now in .ART files to save disk space!
 ³                  List of included files in the Archive                    ³ 
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-	GAC_BJ.EXE   - The Main executable
-	GAC_BJ.DOC   - This Documentation file
+	GAC_FC.EXE   - The Main executable
+	GAC_FC.DOC   - This Documentation file
 	FILE_ID.DIZ  - A short description of this program
 	REGISTER.DOC - A Registration form for G.A.C. Computer Services 
-			   Products and information on obtaining technical support.
-        WIN95NT.DOC  - Information on the Windows 32 bit version
-        WIN95NT.ZIP  - Windows 32bit specific files
+			   Products.
 	INTERBBS.DOC - A Sample INTERBBS.CFG file for your viewing, also
 			   contains all of the documentation for listing the
 			   BBS's in a league.
-	LEAGUES.DOC  - A list of Inter-BBS Blackjack Leagues
 	HISTORY.DOC  - Details about the corrections in official releases
-	UPGRADE.DOC  - Information on upgrading from a previous version
-	BUG_RPRT.DOC - A bug report and comment file.  Fill it out and send it
-				   so we can fix any bugs you might find.
 	*.ART        - Artwork files (ASCII, ANSI, and RIP files)
 
 	NOTE: Other data files may be created in support of the software,
@@ -174,48 +170,45 @@ NEW!- All artwork is now in .ART files to save disk space!
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
 	NOTE: SHARE.EXE should be loaded if you want to run this program.
-
-	A Windows 95/NT versions has been included in the archive.  To use
-	the 32bit version unpack the WIN95NT.ZIP file and read the file 
-        WIN95NT.DOC.
 	
 	1 - Unpack all of these files into their own directory, a good name 
-		is GAC_BJ.
+		is GAC_FC.
 
-		e.g. md c:\gac_bj
+		e.g. md c:\gac_fc
+		
 
 	2 - change to the directory where the files were placed and execute
-		GAC_BJ with the CONFIG option.
+		GAC_FC with the CONFIG option.
 
-		e.g. GAC_BJ CONFIG
+		e.g. GAC_FC CONFIG
 
 	3 - Answer the questions about your system, and then exit.  Be sure
 		to save the information
 
-	4 - Setup your BBS program to run GAC_BJ.BAT and pass the current node
+	4 - Setup your BBS program to run GAC_FC.BAT and pass the current node
 		number to the program as the first parameter.  If needed the path 
 		to your drop file should be the second parameter if you can not 
 		specify it in the configuration program (e.g. each node has a 
 		different path).
 
-		e.g.  GAC_BJ.BAT /N %#     is placed on the EXEC line in Synchronet
+		e.g.  GAC_FC.BAT %#     is placed on the EXEC line in Synchronet
 
-		NOTE: The batch file must be used so auto-updating of your GAC_BJ.EXE
+		NOTE: The batch file must be used so auto-updating of your GAC_FC.EXE
 		file can take place during maintenance.  Please call the batch file
-		anytime you access Tournament Blackjack.
+		anytime you access Tournament FreeCell.
 
 		If you need batch files to run the program, pass the node number
 		to the RUN.BAT file.  The RUN.BAT file should contain the 
 		following lines of code.
 
 		@Echo off
-		REM RUN.BAT for GAC_BJ
+		REM RUN.BAT for GAC_FC
 		REM
-		REM Change to the GAC_BJ directory
+		REM Change to the GAC_FC directory
 		c:
-		cd\gac_bj
-		REM Run GAC_BJ passing the node number
-		call gac_bj.bat /N %1
+		cd\gac_fc
+		REM Run GAC_FC passing the node number
+		call gac_fc %1
 		REM
 		REM Change back to your bbs directory
 		cd\bbs
@@ -226,13 +219,13 @@ NEW!- All artwork is now in .ART files to save disk space!
 		time a user logs into the game.
 
 		e.g.   c:
-		   cd\GAC_BJ
-		   GAC_BJ MAINTAIN
-
+		   cd\GAC_FC
+		   GAC_FC MAINTAIN
+	
 	6 - Test the game locally and remotely.  If you encounter a problem,
 		please notify us, so we may help.
 
-		e.g. GAC_BJ /N 3 /L     will cause local playing on node 3
+		e.g. GAC_FC 3 local     will cause local playing on node 3
 
 	NOTE: For Inter-BBS play, see the next section
 
@@ -240,7 +233,7 @@ NEW!- All artwork is now in .ART files to save disk space!
 ³                              Inter-BBS Setup                              ³
 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-	First thing you need to do is find a Tournament Blackjack league to
+	First thing you need to do is find a Tournament FreeCell league to
 	join and apply or find some boards who want to start a new league.
 	
 	If you are starting a new league, then someone must be the League 
@@ -267,25 +260,21 @@ NEW!- All artwork is now in .ART files to save disk space!
 
 	3 - Get the INTERBBS.CFG file from your league coordinator, it will
 		have to be file attached to you the first time and you will place
-		it in your GAC_BJ directory.  All future updates to that file will
+		it in your GAC_FC directory.  All future updates to that file will
 		be handled automatically by the league coordinator.
 
-	4 - You can have your mailer run GAC_BJ INBOUND whenever 
+	4 - You can have your mailer run GAC_FC INBOUND whenever 
 		mail is received to immediately import the incoming Inter-BBS 
 		files.  Otherwise, the inbound files will be processed during the
-		auto-maintenance.
+		automaintenance.
 		
 		e.g.  c:
-		  cd\gac_bj
-		  call gac_bj.bat INBOUND
-		  call gac_bj.bat OUTBOUND
+		  cd\gac_fc
+		  call gac_fc.bat INBOUND
+		  call gac_fc.bat OUTBOUND
 
 	5 - Enjoy your Inter-BBS game!
 
-	NOTE: Files sent have the format "BJxxyyyy.zzz" where xx is the "to bbs"
-		  number (two digits), yyyy is a time stamp, and zzz is the league 
-		  tag.
-				e.g.  BJ014558.GSC would be a file for BBS 1 in league GSC
 
 
 ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
@@ -296,8 +285,8 @@ NEW!- All artwork is now in .ART files to save disk space!
 
    Parameter 1:
 
-	/N x      - The current node number should be passed to the program
-			when it is being run as a door or in local mode. (x is node)
+	[Node #]  - The current node number should be passed to the program
+			when it is being run as a door or in local mode.
 	
 	CONFIG    - Invoke the internal configuration program for specifying
 			sysop configurable options.
@@ -313,7 +302,7 @@ NEW!- All artwork is now in .ART files to save disk space!
 
 	RESET     - Used by the League Coodinator (BBS #1) to immediately
 			reset all BBS's in the League.  May also be used to 
-			reset a local BJ game.
+			reset a local game.
 	
 	INBOUND   - Process inbound Inter-BBS packages immediately
 
@@ -323,20 +312,17 @@ NEW!- All artwork is now in .ART files to save disk space!
 
 	DELETE    - Remove a player from the database
 
+	Parameter 2:
 
-	Parameter 2 (optional):
+	LOCAL     - Forces the door to run in local mode, you will be prompted
+			for the name to use in the game.
 
 	BINKLEY   - Used to make sure Binkley Terminal sysops have the outbound
 				files deleted correctly.
 
-	Optional Parameters:
-
-	/L        - Forces the door to run in local mode, you will be prompted
-				for the name to use in the game.
-	/D <path> - The path to your drop file may be passed as the second 
-				parameter.  This will override anything in the config
-				file.
-	/?        - Detailed list of all other optional parameters
+	[Path]    - The path to your drop file may be passed as the second 
+			parameter.  This will override anything in the config
+			file.
 
 
 
@@ -362,15 +348,10 @@ NEW!- All artwork is now in .ART files to save disk space!
 		supporting BBS Gaming through Linear-Net.  For more information
 		about Linear-Net send him a note at 1:124/7013.
 
-	Rob Swindell - For creating a Synchronet Blackjack game, that I fell
-		in love with and just had to share my own rendition with
-		all BBSs.  Besides, I needed more competition, thus Inter-BBS
-
 	Brian Pirie - For creating the Open Doors library of functions,
 		distributing and selling it as shareware.
 
 
 
-Tournament Blackjack is a trademark of G.A.C. Computer Services and may
+Tournament FreeCell is a trademark of G.A.C. Computer Services and may
 not be used for any reason without prior written permission.
-

@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.253 2005/04/21 10:39:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.252 2005/03/26 08:52:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,7 +207,7 @@ public:
 	JSObject*	js_glob;
 	js_branch_t	js_branch;
 	long		js_execfile(const char *fname);
-	bool		js_init(ulong* stack_frame);
+	bool		js_init(void);
 	void		js_create_user_objects(void);
 
 #endif
