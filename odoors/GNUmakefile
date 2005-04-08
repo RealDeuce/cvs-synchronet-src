@@ -11,7 +11,7 @@
 #
 #    Revisions: Date          Ver   Who  Change
 #               ---------------------------------------------------------------
-#               Aug 09, 2003  6.23  SH   *nix port
+#               Aug 09, 2003  6.3  SH   *nix port
 #
 ###############################################################################
 #
@@ -49,9 +49,6 @@ CC	:=	gcc
 # Get OS name
 OS      :=      $(shell uname)
 os	:=	$(shell echo $(OS) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
-OBJDIR	:=	objs-$(OS)/
-LIBDIR	:=	libs-$(OS)/
-EXEDIR	:=	exe-$(OS)/
 
 LD	:=	gcc
 
@@ -66,7 +63,7 @@ endif
 #
 # Compiler command-line flags.
 #
-CFLAGS	+=	-O2 -L${LIBDIR} -I../xpdev
+CFLAGS	+=	-O2 -L. -I../xpdev
 ifeq ($(OS),Darwin)
  CFLAGS		+=	-D__unix__
  LDFLAGS	+=	$(CFLAGS) -dynamiclib -single_module
@@ -105,9 +102,7 @@ endif
 #
 # Define primary target.
 #
-all: ${OBJDIR} ${LIBDIR} $(EXEDIR) ${LIBDIR}libODoors${SHLIB} \
-    ${LIBDIR}libODoors${STATICLIB} $(EXEDIR)ex_chat $(EXEDIR)ex_diag \
-    $(EXEDIR)ex_hello $(EXEDIR)ex_music $(EXEDIR)ex_ski $(EXEDIR)ex_vote
+all: ${LIBDIR}libODoors${SHLIB} ${LIBDIR}libODoors${STATICLIB} ex_chat ex_diag ex_hello ex_music ex_ski ex_vote
 #
 #------------------------------------------------------------------------------
 #
@@ -167,43 +162,31 @@ OBJECTS := ${OBJDIR}ODAuto${OBJFILE}\
 #         ${OBJDIR}ODoor.res
 #         ${OBJDIR}odsys${OBJFILE}\	this file is missing
 
-${OBJDIR}:
-	mkdir ${OBJDIR}
-
-${LIBDIR}:
-	mkdir ${LIBDIR}
-
-${EXEDIR}:
-	mkdir ${EXEDIR}
-
-$(OBJDIR)%$(OBJFILE) : %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
-
 ${LIBDIR}libODoors${SHLIB} : ${OBJECTS}
 	$(LD) $(LDFLAGS) -o ${LIBDIR}libODoors${SHLIB}.6.2 ${OBJECTS}
-	ln -fs libODoors${SHLIB}.6.2 ${LIBDIR}libODoors${SHLIB}
+	ln -fs ${LIBDIR}libODoors${SHLIB}.6.2 ${LIBDIR}libODoors${SHLIB}
 
 ${LIBDIR}libODoors${STATICLIB} : ${OBJECTS}
 	ar -r ${LIBDIR}libODoors${STATICLIB} ${OBJECTS}
 	ranlib ${LIBDIR}libODoors${STATICLIB}
 	
-${EXEDIR}ex_chat: ex_chat.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_chat.c -o $@ -lODoors
+ex_chat: ex_chat.c ${LIBDIR}libODoors${SHLIB}
+	$(CC) $(CFLAGS) ex_chat.c -o ex_chat -lODoors
 
-${EXEDIR}ex_diag: ex_diag.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_diag.c -o $@ -lODoors
+ex_diag: ex_diag.c ${LIBDIR}libODoors${SHLIB}
+	$(CC) $(CFLAGS) ex_diag.c -o ex_diag -lODoors
 
-${EXEDIR}ex_hello: ex_hello.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_hello.c -o $@ -lODoors
+ex_hello: ex_hello.c ${LIBDIR}libODoors${SHLIB}
+	$(CC) $(CFLAGS) ex_hello.c -o ex_hello -lODoors
 
-${EXEDIR}ex_music: ex_music.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_music.c -o $@ -lODoors
+ex_music: ex_music.c ${LIBDIR}libODoors${SHLIB}
+	$(CC) $(CFLAGS) ex_music.c -o ex_music -lODoors
 
-${EXEDIR}ex_ski: ex_ski.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(LDFLAGS) ex_ski.c -o $@ -lODoors -lxpdev
+ex_ski: ex_ski.c ${LIBDIR}libODoors${SHLIB}
+	$(CC) $(LDFLAGS) ex_ski.c -o ex_ski -lODoors -lxpdev
 
-${EXEDIR}ex_vote: ex_vote.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o $@ -lODoors -DMULTINODE_AWARE
+ex_vote: ex_vote.c ${LIBDIR}libODoors${SHLIB}
+	$(CC) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o ex_vote -lODoors -DMULTINODE_AWARE
 
 #
 #------------------------------------------------------------------------------
