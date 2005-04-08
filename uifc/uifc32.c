@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.116 2005/02/10 07:42:46 deuce Exp $ */
+/* $Id: uifc32.c,v 1.117 2005/04/08 21:00:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2321,7 +2321,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	k=0;
 	for(j=0;j<len;j++) {
 		k++;
-		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n'))) {
+		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n' && hbuf[j+1]!='\r'))) {
 			k=0;
 			lines++;
 		}
