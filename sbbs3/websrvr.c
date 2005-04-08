@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.300 2005/03/30 08:02:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.306 2005/04/07 23:18:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,13 +37,6 @@
 
 /*
  * General notes: (ToDo stuff)
- * strtok() is used a LOT in here... notice that there is a strtok_r() for reentrant...
- * this may imply that strtok() is NOT thread-safe... if in fact it isn't this HAS
- * to be fixed before any real production-level quality is achieved with this web server
- * however, strtok_r() may not be a standard function.
- *
- * RE: not sending the headers if an nph scrpit is detected.  (The headers buffer could
- * just be free()ed and NULLed)
  *
  * Currently, all SSJS requests for a session are ran in the same context without clearing the context in
  * any way.  This behaviour should not be relied on as it may disappear in the future... this will require
@@ -54,32 +47,10 @@
  *
  * Should support RFC2617 Digest auth.
  *
- * Fix up all the logging stuff.
+ * Support the ident protocol... the standard log format supports it.
  *
- * SSJS stuff could work using three different methods:
- * 1) Temporary file as happens currently
- *		Advantages:
- *			Allows to keep current connection (keep-alive works)
- *			write() doesn't need to be "special"
- *		Disadvantages:
- *			Depends on the temp dir being writable and capable of holding
- *				the full reply
- *			Everything goes throug the disk, so probobly some performance
- *				penalty is involved
- *			No way of sending directly to the remote system
- * 2) nph- style
- *		Advantages:
- *			No file I/O involved
- *			Can do magic tricks (ala my perl web wrapper)
- *		Disadvantages:
- *			Pretty much everything needs to be handled by the script.
- * 3) Return body in http_reply object
- *		All the advantages of 1)
- *		Could use a special write() to make everything just great.
- *		Still doesn't allow page to be sent until fully composed (ie: long
- *			delays)
- * 4) Type three with a callback that sends the header and current body, then
- *		converts write() to send directly to remote.
+ * SSJS stuff should support chunked transfer for HTTP/1.1 and fast mode.
+ *		(Would allow keep-alives to stay erm... alive)
  *
  * Add in support to pass connections through to a different webserver...
  *      probobly in access.ars... with like a simplified mod_rewrite.
@@ -555,9 +526,7 @@ static void init_enviro(http_session_t *session)  {
 
 /*
  * Sends string str to socket sock... returns number of bytes written, or 0 on an error
- * (Should it be -1 on an error?)
  * Can not close the socket since it can not set it to INVALID_SOCKET
- * ToDo - Decide error behaviour, should a SOCKET * be passed around rather than a socket?
  */
 static int sockprint(SOCKET sock, const char *str)
 {
@@ -1400,7 +1369,6 @@ int recvbufsocket(int sock, char *buf, long count)
 	return(0);
 }
 
-/* Wasn't this done up as a JS thing too?  ToDo */
 static void unescape(char *p)
 {
 	char *	dst;
@@ -1774,6 +1742,11 @@ static BOOL get_request_headers(http_session_t * session)
 			}
 		}
 	}
+
+	if(!(session->req.vhost[0]))
+		SAFECOPY(session->req.vhost, startup->host_name);
+	if(!(session->req.host[0]))
+		SAFECOPY(session->req.host, startup->host_name);
 	return TRUE;
 }
 
@@ -1781,9 +1754,7 @@ static BOOL get_fullpath(http_session_t * session)
 {
 	char	str[MAX_PATH+1];
 
-	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
-		session->req.vhost[0]=0;
-	if(session->req.vhost[0]) {
+	if(session->req.vhost[0] && startup->options&WEB_OPT_VIRTUAL_HOSTS) {
 		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.vhost);
 		if(isdir(str))
 			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.vhost,session->req.physical_path);
@@ -1821,15 +1792,13 @@ static BOOL get_req(http_session_t * session, char *request_line)
 			return(FALSE);
 		if(req_line[0])
 			lprintf(LOG_DEBUG,"%04d Request: %s",session->socket,req_line);
+		if(session->req.ld!=NULL && session->req.ld->request==NULL)
+			session->req.ld->request=strdup(req_line);
 	}
 	else {
 		lprintf(LOG_DEBUG,"%04d Handling Internal Redirect to: %s",session->socket,request_line);
 		SAFECOPY(req_line,request_line);
 		is_redir=1;
-	}
-	if(session->req.ld!=NULL) {
-		FREE_AND_NULL(session->req.ld->request);
-		session->req.ld->request=strdup(req_line);
 	}
 	if(req_line[0]) {
 		p=NULL;
@@ -1845,10 +1814,8 @@ static BOOL get_req(http_session_t * session, char *request_line)
 				send_error(session,error_500);
 				return(FALSE);
 			}
-			if(session->req.ld!=NULL) {
-				FREE_AND_NULL(session->req.ld->vhost);
+			if(session->req.ld!=NULL && session->req.ld->vhost==NULL)
 				session->req.ld->vhost=strdup(session->req.vhost);
-			}
 			session->req.dynamic=is_dynamic_req(session);
 			if(session->req.query_str[0])  {
 				switch(session->req.dynamic) {
@@ -3096,6 +3063,7 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 	js_add_request_prop(session,"ars",session->req.ars);
 	js_add_request_prop(session,"request_string",session->req.request_line);
 	js_add_request_prop(session,"host",session->req.host);
+	js_add_request_prop(session,"vhost",session->req.vhost);
 	js_add_request_prop(session,"http_ver",http_vers[session->http_ver]);
 	js_add_request_prop(session,"remote_ip",session->host_ip);
 	js_add_request_prop(session,"remote_host",session->host_name);
@@ -3401,7 +3369,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.300 $", "%*s %s", revision);
+	sscanf("$Revision: 1.306 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
