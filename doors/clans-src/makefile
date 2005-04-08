@@ -9,7 +9,7 @@ FLAGS	+=	-D__unix__
 endif
 # Somebody make this compile under gcc. :-)  I'll get you started:
 CC = gcc
-FLAGS += -O2 -Wall -I../../odoors -L../../odoors/libs-`uname`
+FLAGS += -O2 -Wall -I/usr/bbs/sbbs/src/src/odoors -L../libs.${OS}
 ifdef PROFILE
 FLAGS	+=	-pg
 endif
