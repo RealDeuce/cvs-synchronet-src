@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.39 2005/04/18 08:11:58 deuce Exp $
+# $Id: Common.gmake,v 1.37 2005/03/21 20:22:05 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -286,10 +286,10 @@ SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
 
 # Pull in lib-specific flags
--include		$(CIOLIB_SRC)$(DIRSEP)Common.make
--include		$(UIFC_SRC)$(DIRSEP)Common.make
--include		$(SMBLIB_SRC)$(DIRSEP)Common.make
--include		$(XPDEV_SRC)$(DIRSEP)Common.make
+include		$(CIOLIB_SRC)$(DIRSEP)Common.make
+include		$(UIFC_SRC)$(DIRSEP)Common.make
+include		$(SMBLIB_SRC)$(DIRSEP)Common.make
+include		$(XPDEV_SRC)$(DIRSEP)Common.make
 -include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
 -include		$(UIFC_SRC)$(DIRSEP)Common.gmake
 -include		$(SMBLIB_SRC)$(DIRSEP)Common.gmake
