@@ -2,7 +2,7 @@
 
 /* DOS's kbhit and getch functions for Unix - Casey Martin 2000 */
 
-/* $Id: conwrap.c,v 1.12 2005/04/29 22:41:55 deuce Exp $ */
+/* $Id: conwrap.c,v 1.11 2004/11/02 22:48:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,12 @@
 #include <string.h>	/* memcpy */
 #include <unistd.h>
 #include <termios.h>
+
+#if defined(__FreeBSD__)
+	#include <sys/kbio.h>
+#elif defined(__linux__)
+	#include <sys/kd.h>
+#endif
 
 #include <sys/time.h>
 #include <sys/types.h>

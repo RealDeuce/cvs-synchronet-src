@@ -8,20 +8,13 @@
 #include "term.h"
 #include "uifcinit.h"
 #include "menu.h"
-#include "dirwrap.h"
-#include "zmodem.h"
 
 #define	BUFSIZE	2048
-
-#define DUMP
 
 int backlines=2000;
 
 struct terminal term;
 
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
 void mousedrag(unsigned char *scrollback)
 {
 	int	key;
@@ -122,8 +115,8 @@ void update_status(struct bbslist *bbs)
 	timeon=now - bbs->connected;
     gettextinfo(&txtinfo);
 	oldscroll=_wscroll;
-	olddmc=hold_update;
-	hold_update=TRUE;
+	olddmc=dont_move_cursor;
+	dont_move_cursor=TRUE;
 	textattr(YELLOW|(BLUE<<4));
 	/* Move to status line thinger */
 	window(term.x-1,term.y+term.height-1,term.x+term.width-2,term.y+term.height-1);
@@ -136,7 +129,7 @@ void update_status(struct bbslist *bbs)
 			if(timeon>359999)
 				cprintf(" %-29.29s \263 %-6.6s \263 Connected: Too Long \263 CTRL-S for menu ",bbs->name,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-29.29s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 CTRL-S for menu ",bbs->name,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
+				cprintf(" %-29.29s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 CTRL-S for menu ",bbs->name,conn_types[bbs->conn_type],timeon/3600,(timeon-(timeon/3600))/60,timeon%60);
 			break;
 		default:
 			if(timeon>359999)
@@ -148,295 +141,9 @@ void update_status(struct bbslist *bbs)
 	_wscroll=oldscroll;
 	textattr(txtinfo.attribute);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
-	hold_update=olddmc;
+	dont_move_cursor=olddmc;
 	gotoxy(txtinfo.curx,txtinfo.cury);
 }
-
-#if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
-void dump(BYTE* buf, int len)
-{
-	char str[128];
-	int i,j;
-	size_t slen=0;
-
-	slen=sprintf(str,"RX: ");
-	for(i=0;i<len;i+=j) {
-		for(j=0;i+j<len && j<32;j++)
-			slen+=sprintf(str+slen,"%02X ",buf[i+j]);
-		OutputDebugString(str);
-		slen=sprintf(str,"RX: ");
-	}
-}
-#endif
-
-/* Zmodem Stuff */
-int log_level = LOG_INFO;
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-static int lputs(void* unused, int level, const char* str)
-{
-	char msg[512];
-#if defined(_WIN32) && defined(_DEBUG) && 0
-
-	if(level==LOG_DEBUG) {
-		sprintf(msg,"SyncTerm: %s",str);
-		OutputDebugString(msg);
-		return 0;
-	}
-#endif
-
-	if(level>log_level)
-		return 0;
-
-	if(wherex()>1)
-		cputs("\r\n");
-
-	switch(level) {
-		case LOG_INFO:
-		case LOG_DEBUG:
-		case LOG_NOTICE:
-			textcolor(WHITE);
-			SAFEPRINTF(msg,"%s\r\n",str);
-			break;
-		case LOG_WARNING:
-			textcolor(LIGHTMAGENTA);
-			SAFEPRINTF(msg,"Warning: %s\r\n",str);
-			break;
-		default:
-			textcolor(LIGHTRED);
-			SAFEPRINTF(msg,"!ERROR: %s\r\n",str);
-			break;
-	}
-	return cputs(msg);
-}
-
-static int lprintf(int level, const char *fmt, ...)
-{
-	char sbuf[1024];
-	va_list argptr;
-
-    va_start(argptr,fmt);
-    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
-    return(lputs(NULL,level,sbuf));
-}
-
-static void zmodem_check_abort(zmodem_t* zm)
-{
-	if(kbhit()) {
-		switch(getch()) {
-			case ESC:
-			case CTRL_C:
-			case CTRL_X:
-				zm->cancelled=TRUE;
-				zm->local_abort=TRUE;
-				break;
-		}
-	}
-}
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-void zmodem_progress(void* cbdata, ulong start_pos, ulong current_pos
-					 ,ulong fsize, time_t start)
-{
-	char		orig[128];
-	unsigned	cps;
-	long		l;
-	long		t;
-	time_t		now;
-	static time_t last_progress;
-
-	zmodem_check_abort((zmodem_t*)cbdata);
-
-	now=time(NULL);
-	if(now-last_progress>0 || current_pos >= fsize || wherex()<=1) {
-		t=now-start;
-		if(t<=0)
-			t=1;
-		if(start_pos>current_pos)
-			start_pos=0;
-		if((cps=(current_pos-start_pos)/t)==0)
-			cps=1;		/* cps so far */
-		l=fsize/cps;	/* total transfer est time */
-		l-=t;			/* now, it's est time left */
-		if(l<0) l=0;
-		if(start_pos)
-			sprintf(orig,"From: %lu  ", start_pos);
-		else
-			orig[0]=0;
-		cprintf("\r%sKByte: %lu/%lu  "
-			"Time: %lu:%02lu/%lu:%02lu  CPS: %u  %lu%% "
-			,orig
-			,current_pos/1024
-			,fsize/1024
-			,t/60L
-			,t%60L
-			,l/60L
-			,l%60L
-			,cps
-			,(long)(((float)current_pos/(float)fsize)*100.0)
-			);
-		clreol();
-		last_progress=now;
-	}
-}
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-static int send_byte(void* unused, uchar ch, unsigned timeout)
-{
-	return conn_send(&ch,sizeof(char),timeout*1000);
-}
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-static int recv_byte(void* unused, unsigned timeout)
-{
-	BYTE	ch;
-	int		i;
-	time_t start=time(NULL);
-	static	BYTE	buf[2048];
-	static	ulong	bufbot;
-	static	ulong	buftop;
-
-	if(bufbot==buftop) {
-		if((i=conn_recv(buf,sizeof(buf),timeout*1000))<1) {
-			if(timeout)
-				lprintf(LOG_ERR,"RECEIVE ERROR %d (after %u seconds)"
-					,i, time(NULL)-start);
-			return(-1);
-		}
-		buftop=i;
-		bufbot=0;
-	}
-	ch=buf[bufbot++];
-//	lprintf(LOG_DEBUG,"RX: %02X", ch);
-	return(ch);
-}
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-static BOOL is_connected(void* unused)
-{
-	return socket_check(conn_socket,NULL,NULL,0);
-}
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-BOOL data_waiting(void* unused)
-{
-	BOOL rd;
-
-	if(!socket_check(conn_socket,&rd,NULL,0))
-		return(FALSE);
-	return(rd);
-}
-
-void zmodem_receive(void)
-{
-	char		fpath[MAX_PATH+1];
-	char*		fname;
-	char		str[MAX_PATH*2];
-	FILE*		fp;
-	long		l;
-	ulong		bytes;
-	ulong		kbytes;
-	ulong		total_files;
-	ulong		total_bytes;
-	time_t		ftime;
-	unsigned	timeout;
-	unsigned	errors=0;
-	zmodem_t	zm;
-	char*		download_dir=".";
-
-	zmodem_init(&zm
-		,/* cbdata */&zm
-		,lputs, zmodem_progress
-		,send_byte,recv_byte,is_connected,data_waiting);
-
-	while(zmodem_recv_init(&zm
-			,fpath,sizeof(fpath)
-			,&bytes
-			,&ftime
-			,NULL
-			,NULL
-			,&total_files
-			,&total_bytes)==ZFILE) {
-		lprintf(LOG_DEBUG,"fpath=%s",fpath);
-		fname=getfname(fpath);
-		lprintf(LOG_DEBUG,"fname=%s",fname);
-		kbytes=bytes/1024;
-		if(kbytes<1) kbytes=0;
-		lprintf(LOG_INFO,"Downloading %s (%lu KBytes) via Zmodem", fname, kbytes);
-
-		do {	/* try */
-			//sprintf(fpath,"./%s",fname);
-			strcpy(fpath,fname);
-			lprintf(LOG_DEBUG,"fpath=%s",fpath);
-			if(fexist(fpath) && flength(fpath)>=(long)bytes) {
-				lprintf(LOG_WARNING,"%s already exists, skipping file",fpath);
-				zmodem_send_zskip(&zm);
-				break;
-			}
-
-			if(flength(fpath)>0)
-				lprintf(LOG_INFO,"Resuming download of %s",fpath);
-
-			if((fp=fopen(fpath,"ab"))==NULL) {
-				lprintf(LOG_ERR,"Error %d opening %s, skipping file",errno,fpath);
-				zmodem_send_zskip(&zm);
-				break;
-			}
-
-			errors=zmodem_recv_file_data(&zm,fp,flength(fpath),bytes, /* start time */0);
-
-			for(;errors<=zm.max_errors && !zm.cancelled; errors++) {
-				if(zmodem_recv_header_and_check(&zm))
-					break;
-			}
-			fclose(fp);
-			l=flength(fpath);
-			if(errors && l==0)	{	/* aborted/failed download */
-				if(remove(fpath))	/* don't save 0-byte file */
-					lprintf(LOG_ERR,"Error %d removing %s",errno,fpath);
-				else
-					lprintf(LOG_INFO,"Deleted 0-byte file %s",fpath);
-			}
-			else {
-				if(l!=(long)bytes) {
-					lprintf(LOG_WARNING,"Incomplete download (%ld bytes received, expected %lu)"
-						,l,bytes);
-				} else
-					lprintf(LOG_INFO,"Received %lu bytes successfully",bytes);
-				if(ftime)
-					setfdate(fpath,ftime);
-			}
-
-		} while(0);
-		/* finally */
-	}
-	if(zm.local_abort)
-		zmodem_abort_receive(&zm);
-
-	/* wait for "over-and-out" */
-	timeout=zm.recv_timeout;
-	zm.recv_timeout=2;
-	if(zmodem_rx(&zm)=='O')
-		zmodem_rx(&zm);
-	zm.recv_timeout=timeout;
-
-	cputs("\r\n");
-}
-/* End of Zmodem Stuff */
 
 void doterm(struct bbslist *bbs)
 {
@@ -446,9 +153,7 @@ void doterm(struct bbslist *bbs)
 	int	key;
 	int i,j,k;
 	unsigned char *scrollback;
-	unsigned char *p;
-	char zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };
-	char zrqbuf[5];
+	char *p;
 
 	ciomouse_setevents(0);
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
@@ -460,13 +165,11 @@ void doterm(struct bbslist *bbs)
 	memset(scrollback,0,term.width*2*backlines);
 	cterm_init(term.height,term.width,term.x-1,term.y-1,backlines,scrollback);
 	ch[1]=0;
-	zrqbuf[0]=0;
 
 	/* Main input loop */
 	for(;;) {
 		/* Get remote input */
-		i=conn_recv(buf,sizeof(buf),0);
-
+		i=conn_recv(buf,sizeof(buf));
 		if(!term.nostatus)
 			update_status(bbs);
 		switch(i) {
@@ -479,47 +182,8 @@ void doterm(struct bbslist *bbs)
 			case 0:
 				break;
 			default:
-#if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
-				dump(buf,i);
-#endif
-				buf[i]=0;
-				p=buf;
-				if(!zrqbuf[0]) {
-					p=memchr(buf, zrqinit[0], i);
-					if(p!=NULL) {
-						cterm_write(buf, p-buf, prn, sizeof(prn));
-						if(prn[0])
-							conn_send(prn,strlen(prn),0);
-						zrqbuf[0]=*(p++);
-						zrqbuf[1]=0;
-					}
-					else
-						p=buf;
-				}
-				if(zrqbuf[0]) {	/* Already have the start of the sequence */
-					j=strlen(zrqbuf);
-					while(j<4 /* strlen(zrqinit) */ && p<buf+i) {
-						if(*p==zrqinit[j]) {
-							zrqbuf[j++]=zrqinit[j];
-							zrqbuf[j]=0;
-							p++;
-						}
-						else
-							break;
-					}
-					if(j==4 /* strlen(zrqinit) */) {	/* Have full sequence */
-						zmodem_receive();
-						zrqbuf[0]=0;
-					}
-					else if(p<=buf+i-(4 /* strlen(zrqinit */ - j)) {	/* Not a real zrqinit */
-						cterm_write(zrqbuf, j, prn, sizeof(prn));
-						if(prn[0])
-							conn_send(prn,strlen(prn),0);
-					}
-				}
-				cterm_write(p,(buf+i)-p,prn,sizeof(prn));
-				if(prn[0])
-					conn_send(prn,strlen(prn),0);
+				cterm_write(buf,i,prn,sizeof(prn));
+				conn_send(prn,strlen(prn),0);
 				break;
 		}
 
