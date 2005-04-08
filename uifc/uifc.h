@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.60 2005/06/04 02:09:02 deuce Exp $ */
+/* $Id: uifc.h,v 1.57 2005/02/10 06:21:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -211,7 +211,7 @@
 #define K_NOCRLF	(1L<<9) 	/* Don't print CRLF after string input      */
 #define K_ALPHA 	(1L<<10)	/* Only allow alphabetic characters 		*/
 #define K_SCANNING	(1L<<11)	/* UPC Scanner is active... return on '%'	*/
-#define K_TABEXIT	(1L<<12)	/* Return on TAB or BACKTAB			    	*/
+#define K_TABEXIT	(1L<<12)	/* Return on TAB					    	*/
 #define K_DECIMAL	(1L<<13)	/* Allow floating point numbers only		*/
 #define K_DEUCEEXIT	(1L<<13)	/* Return whenever Deuce wants to exit		*/
 								/* Define this behaviour better - ToDo		*/
@@ -356,12 +356,6 @@ typedef struct {
 /* List height for WIN_FIXEDHEIGHT lists.									*/
 /****************************************************************************/
 	int		list_height;
-
-/****************************************************************************/
-/* Colours for the various bits												*/
-/****************************************************************************/
-	char	hclr,lclr,bclr,cclr,lbclr;
-
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
@@ -436,11 +430,6 @@ typedef struct {
 /* String input/exit box at a specified position							*/
 /****************************************************************************/
 	int (*getstrxy)(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
-
-/****************************************************************************/
-/* Formatted print with attribute											*/
-/****************************************************************************/
-	int (*printf)(int x, int y, unsigned char attr, char *fmat, ...);
 } uifcapi_t;
 
 /****************************************************************************/
