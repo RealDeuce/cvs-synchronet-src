@@ -13,8 +13,3 @@
   void Game_Settings ( void );
 
   void Game_Start ( void );
-
-  void Game_Write ( void );
-   /* 
-    * Writes out the game data.
-    */
