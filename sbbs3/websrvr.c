@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.303 2005/03/31 01:17:32 deuce Exp $ */
+/* $Id: websrvr.c,v 1.306 2005/04/07 23:18:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1742,6 +1742,11 @@ static BOOL get_request_headers(http_session_t * session)
 			}
 		}
 	}
+
+	if(!(session->req.vhost[0]))
+		SAFECOPY(session->req.vhost, startup->host_name);
+	if(!(session->req.host[0]))
+		SAFECOPY(session->req.host, startup->host_name);
 	return TRUE;
 }
 
@@ -1749,9 +1754,7 @@ static BOOL get_fullpath(http_session_t * session)
 {
 	char	str[MAX_PATH+1];
 
-	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
-		session->req.vhost[0]=0;
-	if(session->req.vhost[0]) {
+	if(session->req.vhost[0] && startup->options&WEB_OPT_VIRTUAL_HOSTS) {
 		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.vhost);
 		if(isdir(str))
 			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.vhost,session->req.physical_path);
@@ -3060,6 +3063,7 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 	js_add_request_prop(session,"ars",session->req.ars);
 	js_add_request_prop(session,"request_string",session->req.request_line);
 	js_add_request_prop(session,"host",session->req.host);
+	js_add_request_prop(session,"vhost",session->req.vhost);
 	js_add_request_prop(session,"http_ver",http_vers[session->http_ver]);
 	js_add_request_prop(session,"remote_ip",session->host_ip);
 	js_add_request_prop(session,"remote_host",session->host_name);
@@ -3365,7 +3369,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.303 $", "%*s %s", revision);
+	sscanf("$Revision: 1.306 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
