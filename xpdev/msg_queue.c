@@ -2,13 +2,13 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.11 2005/05/09 09:01:28 rswindell Exp $ */
+/* $Id: msg_queue.c,v 1.10 2004/11/19 00:51:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -173,38 +173,23 @@ static BOOL list_wait(link_list_t* list, long timeout)
 
 BOOL msgQueueWait(msg_queue_t* q, long timeout)
 {
-	BOOL			result;
-	link_list_t*	list = msgQueueReadList(q);
-
-	if((result=list_wait(list,timeout))==TRUE)
-#if defined(LINK_LIST_THREADSAFE)
-		listSemPost(list)	/* Replace the semaphore we just cleared */
-#endif
-		;
-
-	return(result);
+	return(list_wait(msgQueueReadList(q),timeout));
 }
 
 void* msgQueueRead(msg_queue_t* q, long timeout)
 {
-	link_list_t*	list = msgQueueReadList(q);
+	if(!list_wait(msgQueueReadList(q),timeout))
+		return(NULL);
 
-	list_wait(list,timeout);
-
-	return listShiftNode(list);
+	return listShiftNode(msgQueueReadList(q));
 }
 
 void* msgQueuePeek(msg_queue_t* q, long timeout)
 {
-	link_list_t*	list = msgQueueReadList(q);
+	if(!list_wait(msgQueueReadList(q),timeout))
+		return(NULL);
 
-	if(list_wait(list,timeout))
-#if defined(LINK_LIST_THREADSAFE)
-		listSemPost(list)	/* Replace the semaphore we just cleared */
-#endif
-		;
-
-	return listNodeData(listFirstNode(list));
+	return listNodeData(listFirstNode(msgQueueReadList(q)));
 }
 
 void* msgQueueFind(msg_queue_t* q, const void* data, size_t length)
