@@ -80,7 +80,7 @@
 /* ========================================================================= */
 
 /* OpenDoors API version number. */
-#define OD_VERSION 0x624
+#define OD_VERSION 0x621
 
 #define DIRSEP		'\\'
 #define DIRSEP_STR	"\\"
@@ -178,18 +178,10 @@
 
 /* Portable types that are the same size across all platforms */
 #ifndef ODPLAT_WIN32
-#ifndef BYTE
 typedef unsigned char      BYTE;                        /* Unsigned, 8 bits. */
-#endif
-#ifndef WORD
 typedef unsigned short     WORD;                       /* Unsigned, 16 bits. */
-#endif
-#ifndef DWORD
 typedef unsigned long      DWORD;                      /* Unsigned, 32 bits. */
-#endif
-#ifndef CHAR
 typedef char               CHAR;         /* Native character representation. */
-#endif
 #define DWORD_DEFINED
 #define WORD_DEFINED
 #endif /* !ODPLAT_WIN32 */
@@ -553,14 +545,15 @@ typedef void OD_PERSONALITY_PROC;
 /* ========================================================================= */
 
 /* Force byte alignment, if possible */
-#ifdef __TURBOC__
-#if(__TURBOC__ >= 0x295)
-#pragma option -a-
-#endif /* __TURBOC__ >= 0x295 */
-#endif /* __TURBOC__ */
-#ifdef _MSC_VER
-#pragma pack(1)
-#endif /* _MSC_VER */
+/* 04/05 Why do this?  It's not like you write structs to disk!
+/* #ifdef __TURBOC__ */
+/* #if(__TURBOC__ >= 0x295) */
+/* #pragma option -a- */
+/* #endif /* __TURBOC__ >= 0x295 */
+/* #endif /* __TURBOC__ */
+/* #ifdef _MSC_VER */
+/* #pragma pack(1) */
+/* #endif /* _MSC_VER */
 
 typedef struct
 {
@@ -923,7 +916,6 @@ od_control;
  *    od_edit_str()           - Fancy formatted string input function (ANS/AVT)
  *    od_clear_keybuffer()    - Removes any waiting keys in keyboard buffer
  *    od_multiline_edit()     - Edits text that spans multiple lines  (ANS/AVT)
- *    od_key_pending()        - Returns TRUE if a key is waiting to be processed
  *
  * COMMON DOOR ACTIVITY FUNCTIONS
  *    od_page()               - Allows user to page sysop
@@ -971,7 +963,6 @@ ODAPIDEF char ODCALL   od_get_answer(char *pszOptions);
 ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
-ODAPIDEF BOOL ODCALL   od_key_pending(void);
 ODAPIDEF char ODCALL   od_get_key(BOOL bWait);
 ODAPIDEF BOOL ODCALL   od_gettext(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, void *pBlock);
