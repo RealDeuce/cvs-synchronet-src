@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.116 2005/02/10 07:42:46 deuce Exp $ */
+/* $Id: uifc32.c,v 1.122 2005/04/08 21:39:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2320,8 +2320,12 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	lines=0;
 	k=0;
 	for(j=0;j<len;j++) {
+		if(mode&WIN_HLP && (hbuf[j]==2 || hbuf[j]=='~' || hbuf[j]==1 || hbuf[j]=='`'))
+			continue;
+		if(hbuf[j]==CR)
+			continue;
 		k++;
-		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n'))) {
+		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n' && hbuf[j+1]!='\r'))) {
 			k=0;
 			lines++;
 		}
@@ -2360,9 +2364,11 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			textbuf[i]=hbuf[j];
 			textbuf[i+1]=inverse ? (bclr|(cclr<<4))
 				: high ? (hclr|(bclr<<4)) : (lclr|(bclr<<4));
-			if((i+2)%((width-2-pad-pad)*2)==0 && (hbuf[j+1]==LF) || (hbuf[j+1]==CR && hbuf[j+1]==LF))
+			if((i+2)%((width-2-pad-pad)*2)==0 && (hbuf[j+1]==LF) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
 				i-=2;
 		}
+		else
+			i-=2;
 	}
 	i=0;
 	p=textbuf;
