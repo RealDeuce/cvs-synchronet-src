@@ -494,7 +494,7 @@ tODResult ODSemaphoreDown(tODSemaphoreHandle hSemaphore, tODMilliSec Timeout)
    ASSERT(hSemaphore != NULL);
 
 #ifdef ODPLAT_WIN32
-   if(WaitForSingleObject(hSemaphore, Timeout) != WAIT_OBJECT_0)
+   if(WaitForSingleObject(hSemaphore, Timeout) == WAIT_FAILED)
    {
       return(kODRCTimeout);
    }
@@ -573,7 +573,7 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
 
 #ifdef ODPLAT_WIN32
    /* Store timer start time now. */
-   pTimer->Start = GetTickCount();
+   pTimer->Start = GetCurrentTime();
    pTimer->Duration = Duration;
 #endif /* ODPLAT_WIN32 */
 
@@ -610,7 +610,8 @@ BOOL ODTimerElapsed(tODTimer *pTimer)
 #endif /* ODPLAT_DOS */
 
 #ifdef ODPLAT_WIN32
-   return(ODTimerLeft(pTimer)==0);
+   return(GetCurrentTime() > pTimer->Start + pTimer->Duration
+      || GetCurrentTime() < pTimer->Start);
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
@@ -672,7 +673,7 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
 {
 #ifdef ODPLAT_NIX
    struct timeval tv;
-   long long int nowtick;
+   tODMilliSec left=0;
 #endif
    ASSERT(pTimer != NULL);
 
@@ -694,16 +695,16 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
    }
 #elif defined(ODPLAT_NIX)
    gettimeofday(&tv,NULL);
-   nowtick=(long long)tv.tv_sec*1000+(tv.tv_usec/1000);
-   if((long long)pTimer->Start+pTimer->Duration <= nowtick)
-      return(0);
-   return((tODMilliSec)((long long)pTimer->Start + pTimer->Duration - nowtick));
+   left=pTimer->Start+pTimer->Duration-(long long)tv.tv_sec*1000-tv.tv_usec/1000;
+   if(left<0)
+      left=0;
+   return(left);
 #else /* !ODPLAT_DOS */
    {
       tODMilliSec Now;
 
 #ifdef ODPLAT_WIN32      
-      Now = GetTickCount();
+      Now = GetCurrentTime();
 #endif /* ODPLAT_WIN32 */
 
       /* If timer has elapsed, return 0. */
@@ -774,7 +775,7 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
    if(Milliseconds==0)  {
       /* Prevent 100% CPU *only* no delay is actually required here */
       tv.tv_sec=0;
-      tv.tv_usec=1000;
+      tv.tv_usec=1;
       select(0,NULL,NULL,NULL,&tv);
    }
    else  {
