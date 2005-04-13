@@ -119,9 +119,9 @@
 /* For DLL versions, definitions of function or data that is exported from */
 /* a module or imported into a module.                                     */
 #ifdef OD_DLL
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__BORLANDC__)
 #define OD_EXPORT __declspec(dllexport)
-#else /* !_MSC_VER */
+#else /* !_MSC_VER || __BORLANDC__ */
 #define OD_EXPORT _export
 #endif /* !_MSC_VER */
 #define OD_IMPORT DECLSPEC_IMPORT

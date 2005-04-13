@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.9 2005/04/06 15:08:50 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.10 2005/04/06 15:14:14 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -307,6 +307,8 @@ int telnet_connect(char *addr, int port, char *ruser, char *passwd)
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons(port);
 	
+	memset(telnet_local_option,0,sizeof(telnet_local_option));
+	memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 	if(connect(conn_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];
 
