@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.48 2005/05/19 23:54:16 deuce Exp $ */
+/* $Id: win32cio.c,v 1.47 2005/01/23 22:21:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -470,7 +470,7 @@ void win32_gotoxy(int x, int y)
 	ypos=y;
 	cp.X=x-1;
 	cp.Y=y-1;
-	if(!hold_update)
+	if(!dont_move_cursor)
 		SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),cp);
 }
 
