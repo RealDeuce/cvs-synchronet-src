@@ -153,7 +153,6 @@ static BOOL bTimerActive = FALSE;
 static int ODGetCodeIfLongest(WORD wFlags);
 static int ODHaveStartOfSequence(WORD wFlags);
 static int ODLongestFullCode(WORD wFlags);
-static void ODShiftSeq(int chars);
 
 /* ----------------------------------------------------------------------------
  * od_get_input()
@@ -212,27 +211,24 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
    }
 
    /* If no pending input string, wait for the first keystroke */
-   if((!szCurrentSequence[0]) && (!bDoorwaySequence)) {
+   if(!szCurrentSequence[0] && !bDoorwaySequence) {
       if(ODInQueueGetNextEvent(hODInputQueue, &LastInputEvent, TimeToWait)
             != kODRCSuccess) {
          OD_API_EXIT();
          return(FALSE);
       }
 
-      /* If you have a *local* char, send it immediately */
-      if((!LastInputEvent.bFromRemote) && (LastInputEvent.chKeyPress != 0)
-#if 0
-            && (LastInputEvent.EventType == EVENT_EXTENDED_KEY)) {
-#else
-            ) {
-#endif
+      /* If you have a *local* char, and it's not a \x00, send it immediately
+       * since local chars are all doorway mode or regular.
+       */
+      if((!LastInputEvent.bFromRemote) && (LastInputEvent.chKeyPress != 0)) {
          memcpy(pInputEvent, &LastInputEvent, sizeof(tODInputEvent));
          OD_API_EXIT();
          return(TRUE);
       }
 
-      /* IF the received char is a NULL, this is the start of a doorway char */
-      if(!LastInputEvent.chKeyPress)
+      /* IF the received char is a NULL, this is the start of a doorway char
+	if(!LastInputEvent.chKeyPress)
          bDoorwaySequence = TRUE;
       else {
          szCurrentSequence[0]=LastInputEvent.chKeyPress;
@@ -240,19 +236,19 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
       }
    }
 
-   nSequenceLen=strlen(szCurrentSequence);
-
-   CALL_KERNEL_IF_NEEDED();
-
    /* If you don't have the start of a sequence, and it's not doorway mode, you have
     * a char.  It's that simple.
+    */
+   /* Further, at this point, it HAS to be a remote char.  Since local chars don't
+    * EVER go into the sequence buffer (Thanks to the fact that there's no inter-key
+    * delay for local extended chars, and local chars are returned before remote ones
     */
    if((!bDoorwaySequence) && (!ODHaveStartOfSequence(wFlags))) {
       pInputEvent->chKeyPress = szCurrentSequence[0];
       pInputEvent->EventType = EVENT_CHARACTER;
       pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
       /* Shift the sequence buffer over one */
-      ODShiftSeq(1);
+      memcpy(szCurrentSequence, szCurrentSequence+1, strlen(szCurrentSequence));
       OD_API_EXIT();
       return(TRUE);
    }
@@ -266,17 +262,18 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
       pInputEvent->chKeyPress = aKeySequences[nSequence].chExtendedKey;
       pInputEvent->EventType = EVENT_EXTENDED_KEY;
       pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
+      nSequenceLen=strlen(aKeySequences[pInputEvent->chKeyPress].pszSequence);
       /* Shift the sequence buffer... being sure to copy the terminator */
-      ODShiftSeq(strlen(aKeySequences[nSequence].pszSequence));
+      memcpy(szCurrentSequence, szCurrentSequence+nSequenceLen, strlen(szCurrentSequence)-nSequenceLen+1);
       OD_API_EXIT();
       return(TRUE);
    }
 
    /* Now, continue adding chars, waiting at MOST MAX_CHARACTER_LATENCY between them */
-   CALL_KERNEL_IF_NEEDED();
+   nSequenceLen=strlen(szCurrentSequence);
    while((!bDoorwaySequencePending)
-            && (ODInQueueGetNextEvent(hODInputQueue, &LastInputEvent, MAX_CHARACTER_LATENCY)
-            == kODRCSuccess)) {
+            && ODInQueueGetNextEvent(hODInputQueue, &LastInputEvent, MAX_CHARACTER_LATENCY)
+            == kODRCSuccess) {
       /* If you are looking for a doorway sequence, any char completes it (honest!) */
       /* Further, thanks to some lack of planning, it's EXACTLY THE SAME as the char,
        * only it's extended.
@@ -297,13 +294,10 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
          break;
       }
 
-      /* If you have a *local* char, send it immediately */
-      if((!LastInputEvent.bFromRemote) && (LastInputEvent.chKeyPress != 0)
-#if 0
-            && (LastInputEvent.EventType == EVENT_EXTENDED_KEY)) {
-#else
-            ) {
-#endif
+      /* If you have a *local* char, and it's not a \x00, send it immediately
+       * since local chars are all doorway mode or regular.
+       */
+      if((!LastInputEvent.bFromRemote) && (LastInputEvent.chKeyPress != 0)) {
          memcpy(pInputEvent, &LastInputEvent, sizeof(tODInputEvent));
          OD_API_EXIT();
          return(TRUE);
@@ -318,12 +312,12 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
          pInputEvent->chKeyPress = aKeySequences[nSequence].chExtendedKey;
          pInputEvent->EventType = EVENT_EXTENDED_KEY;
          pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
+         nSequenceLen=strlen(aKeySequences[pInputEvent->chKeyPress].pszSequence);
          /* Shift the sequence buffer... being sure to copy the terminator */
-         ODShiftSeq(strlen(aKeySequences[nSequence].pszSequence));
+         memcpy(szCurrentSequence, szCurrentSequence+nSequenceLen, strlen(szCurrentSequence)-nSequenceLen+1);
          OD_API_EXIT();
          return(TRUE);
       }
-      CALL_KERNEL_IF_NEEDED();
    }
 
    /* If we were looking for a doorway sequence, tough, we didn't get it. */
@@ -336,28 +330,26 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
       return(TRUE);
    }
 
-   /* Now, if we have any kind of sequence, we'll settle for it. */
-   if((nSequence = ODLongestFullCode(wFlags)) != NO_MATCH) {
+   /* Now, if we have any kind of sequence, we'll settle for it.
+   if((nSequence = ODLongestFullCode()) != NO_MATCH) {
       pInputEvent->chKeyPress = aKeySequences[nSequence].chExtendedKey;
       pInputEvent->EventType = EVENT_EXTENDED_KEY;
       pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
+      nSequenceLen=strlen(aKeySequences[pInputEvent->chKeyPress].pszSequence);
       /* Shift the sequence buffer... being sure to copy the terminator */
-      ODShiftSeq(strlen(aKeySequences[nSequence].pszSequence));
+      memcpy(szCurrentSequence, szCurrentSequence+nSequenceLen, strlen(szCurrentSequence)-nSequenceLen+1);
       OD_API_EXIT();
       return(TRUE);
    }
 
    /* If we don't have a complete sequence, send a single char */
    pInputEvent->chKeyPress = szCurrentSequence[0];
-   if(szCurrentSequence[0]) {
-      pInputEvent->EventType = EVENT_CHARACTER;
-      pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
-      /* Shift the sequence buffer over one */
-      ODShiftSeq(1);
-   }
+   pInputEvent->EventType = EVENT_CHARACTER;
+   pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
+   /* Shift the sequence buffer over one */
+   memcpy(szCurrentSequence, szCurrentSequence+1, strlen(szCurrentSequence));
    OD_API_EXIT();
-   /* Return false if something broke */
-   return(pInputEvent->chKeyPress);
+   return(TRUE);
 }
 
 /* ----------------------------------------------------------------------------
@@ -377,17 +369,20 @@ static int ODLongestFullCode(WORD wFlags)
    int i;
    int retval=NO_MATCH;;
 
-   if(wFlags & GETIN_RAW)
+   if(!(wFlags & GETIN_RAW))
       return(NO_MATCH);
-   for(i = 0; i < DIM(aKeySequences); ++i) {
-      if((wFlags & GETIN_RAWCTRL) && aKeySequences[i].bIsControlKey) {
+   for(i = 0; i < DIM(aKeySequences);
+         ++i) {
+      if((wFlags & GETIN_RAWCTRL)
+            && aKeySequences[i].bIsControlKey)
+      {
          continue;
       }
       seqlen=strlen(aKeySequences[i].pszSequence);
       if(seqlen>CurrLen) {
          if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen)==0) {
             retval=i;
-            CurrLen=seqlen;
+            CurrLen=strlen(aKeySequences[i].pszSequence);
          }
       }
    }
@@ -407,22 +402,21 @@ static int ODLongestFullCode(WORD wFlags)
 static int ODHaveStartOfSequence(WORD wFlags)
 {
    int CurrLen=0;
-   int seqlen1;
-   int seqlen2;
+   int seqlen;
    int i;
    int retval=NO_MATCH;;
 
-   if(wFlags & GETIN_RAW)
+   if(!(wFlags & GETIN_RAW))
       return(FALSE);
-   seqlen1=strlen(szCurrentSequence);
-   for(i = 0; i < DIM(aKeySequences); ++i) {
-      if((wFlags & GETIN_RAWCTRL) && aKeySequences[i].bIsControlKey) {
+   seqlen=strlen(szCurrentSequence);
+   for(i = 0; i < DIM(aKeySequences);
+         ++i) {
+      if((wFlags & GETIN_RAWCTRL)
+            && aKeySequences[i].bIsControlKey)
+      {
          continue;
       }
-      seqlen2=strlen(aKeySequences[i].pszSequence);
-      if(seqlen1<seqlen2)
-         seqlen2=seqlen1;
-      if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen2)==0) {
+      if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen)==0) {
          return(TRUE);
       }
    }
@@ -443,61 +437,32 @@ static int ODHaveStartOfSequence(WORD wFlags)
 static int ODGetCodeIfLongest(WORD wFlags)
 {
    int CurrLen=0;
-   int seqlen1;
-   int seqlen2;
+   int seqlen;
    int i;
    int retval=NO_MATCH;;
 
-   if(wFlags & GETIN_RAW)
+   if(!(wFlags & GETIN_RAW))
       return(NO_MATCH);
-   seqlen1=strlen(szCurrentSequence);
-   for(i = 0; i < DIM(aKeySequences); ++i) {
-      if((wFlags & GETIN_RAWCTRL) && aKeySequences[i].bIsControlKey) {
+   for(i = 0; i < DIM(aKeySequences);
+         ++i) {
+      if((wFlags & GETIN_RAWCTRL)
+            && aKeySequences[i].bIsControlKey)
+      {
          continue;
       }
-      seqlen2=strlen(aKeySequences[i].pszSequence);
-      if(seqlen2>CurrLen) {
-         if(seqlen2<=seqlen1) {	/* The sequence would be completed in buffer */
-            if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen2)==0) {
+      seqlen=strlen(aKeySequences[i].pszSequence);
+      if(seqlen>CurrLen) {
+         if(CurrLen==0) {
+            if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen)==0) {
                retval=i;
-               CurrLen=seqlen2;
+               CurrLen=strlen(aKeySequences[i].pszSequence);
             }
          }
-         else {		/* Possible partial sequence */
-            if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen1)==0) {
-               return(NO_MATCH);
-            }
+         else {
+            return(NO_MATCH);
          }
       }
    }
 
    return(retval);
 }
-
-/* ----------------------------------------------------------------------------
- * ODShiftSeq()                                        *** PRIVATE FUNCTION ***
- *
- * Shifts szCurrentSequence left the specified number of chars
- *
- * Parameters: int chars to shift
- *
- *     Return: void
- */
-static void ODShiftSeq(int chars)
-{
-   char *in;
-   char *out;
-
-   if(!chars)
-      return;
-   out=szCurrentSequence;
-   in=out+chars;
-
-   if(in>strchr(szCurrentSequence,0))
-      return;
-   while(*in) {
-      *(out++)=*(in++);
-   }
-   *out=*in;
-}
-

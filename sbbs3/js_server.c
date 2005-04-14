@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.3 2005/05/07 18:10:32 rswindell Exp $ */
+/* $Id: js_server.c,v 1.2 2003/10/27 20:48:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,6 @@ enum {
 
 static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	char*		ip;
     jsint       tiny;
 	struct in_addr in_addr;
 	js_server_props_t*	p;
@@ -60,8 +59,7 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case SERVER_PROP_VER:
-			if(p->version!=NULL)
-				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p->version));
+			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p->version));
 			break;
 		case SERVER_PROP_VER_DETAIL:
 			if(p->version_detail!=NULL)
@@ -71,8 +69,7 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(p->interface_addr!=NULL) {
 				in_addr.s_addr=*(p->interface_addr);
 				in_addr.s_addr=htonl(in_addr.s_addr);
-				if((ip=inet_ntoa(in_addr))!=NULL)
-					*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,ip));
+				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,inet_ntoa(in_addr)));
 			}
 			break;
 		case SERVER_PROP_OPTIONS:
