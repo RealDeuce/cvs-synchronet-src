@@ -219,13 +219,9 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
          return(FALSE);
       }
 
-      /* If you have a *local* char, send it immediately */
+      /* If you have a *local* extended char, send it immediately */
       if((!LastInputEvent.bFromRemote) && (LastInputEvent.chKeyPress != 0)
-#if 0
             && (LastInputEvent.EventType == EVENT_EXTENDED_KEY)) {
-#else
-            ) {
-#endif
          memcpy(pInputEvent, &LastInputEvent, sizeof(tODInputEvent));
          OD_API_EXIT();
          return(TRUE);
@@ -297,13 +293,9 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
          break;
       }
 
-      /* If you have a *local* char, send it immediately */
+      /* If you have a *local* extended char, send it immediately */
       if((!LastInputEvent.bFromRemote) && (LastInputEvent.chKeyPress != 0)
-#if 0
             && (LastInputEvent.EventType == EVENT_EXTENDED_KEY)) {
-#else
-            ) {
-#endif
          memcpy(pInputEvent, &LastInputEvent, sizeof(tODInputEvent));
          OD_API_EXIT();
          return(TRUE);
@@ -443,30 +435,26 @@ static int ODHaveStartOfSequence(WORD wFlags)
 static int ODGetCodeIfLongest(WORD wFlags)
 {
    int CurrLen=0;
-   int seqlen1;
-   int seqlen2;
+   int seqlen;
    int i;
    int retval=NO_MATCH;;
 
    if(wFlags & GETIN_RAW)
       return(NO_MATCH);
-   seqlen1=strlen(szCurrentSequence);
    for(i = 0; i < DIM(aKeySequences); ++i) {
       if((wFlags & GETIN_RAWCTRL) && aKeySequences[i].bIsControlKey) {
          continue;
       }
-      seqlen2=strlen(aKeySequences[i].pszSequence);
-      if(seqlen2>CurrLen) {
-         if(seqlen2<=seqlen1) {	/* The sequence would be completed in buffer */
-            if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen2)==0) {
+      seqlen=strlen(aKeySequences[i].pszSequence);
+      if(seqlen>CurrLen) {
+         if(CurrLen==0) {
+            if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen)==0) {
                retval=i;
-               CurrLen=seqlen2;
+               CurrLen=seqlen;
             }
          }
-         else {		/* Possible partial sequence */
-            if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen1)==0) {
-               return(NO_MATCH);
-            }
+         else {
+            return(NO_MATCH);
          }
       }
    }
