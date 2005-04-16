@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.66 2005/03/27 09:07:55 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.67 2005/04/16 01:22:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1019,11 +1019,11 @@ ulong iniGetBitField(str_list_t* list, const char* section, const char* key,
 	return(parseBitField(value,bitdesc));
 }
 
-FILE* iniOpenFile(const char* fname)
+FILE* iniOpenFile(const char* fname, BOOL create)
 {
 	char* mode="r+";
 
-	if(!fexist(fname))
+	if(create && !fexist(fname))
 		mode="w+";
 
 	return(fopen(fname,mode));
