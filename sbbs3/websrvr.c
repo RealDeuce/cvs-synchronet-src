@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.310 2005/04/16 01:26:26 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.311 2005/04/16 18:29:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1272,7 +1272,8 @@ static BOOL check_ars(http_session_t * session)
 	return(FALSE);
 }
 
-static named_string_t** read_ini_list(char* fname, named_string_t** list)
+static named_string_t** read_ini_list(char* fname, char* section, char* desc
+									  ,named_string_t** list)
 {
 	char	path[MAX_PATH+1];
 	size_t	i;
@@ -1282,14 +1283,12 @@ static named_string_t** read_ini_list(char* fname, named_string_t** list)
 
 	iniFileName(path,sizeof(path),scfg.ctrl_dir,fname);
 
-	lprintf(LOG_DEBUG,"Reading %s",path);
-	if((fp=iniOpenFile(path, /* create? */FALSE))==NULL)
-		lprintf(LOG_WARNING,"Error %d opening %s",errno,path);
-	else {
-		list=iniReadNamedStringList(fp,NULL /* root section */);
+	if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
+		list=iniReadNamedStringList(fp,section);
 		iniCloseFile(fp);
 		COUNT_LIST_ITEMS(list,i);
-		lprintf(LOG_DEBUG,"Read %u items from %s",i,path);
+		if(i)
+			lprintf(LOG_DEBUG,"Read %u %s from %s",i,desc,path);
 	}
 
 	return(list);
@@ -3409,7 +3408,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.310 $", "%*s %s", revision);
+	sscanf("$Revision: 1.311 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3663,9 +3662,12 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		mime_types=read_ini_list("mime_types.ini",mime_types);
-		cgi_handlers=read_ini_list("cgi_handler.ini",cgi_handlers);
-		xjs_handlers=read_ini_list("xjs_handler.ini",xjs_handlers);
+		mime_types=read_ini_list("mime_types.ini",NULL /* root section */,"MIME types"
+			,mime_types);
+		cgi_handlers=read_ini_list("web_handler.ini","CGI","CGI content handlers"
+			,cgi_handlers);
+		xjs_handlers=read_ini_list("web_handler.ini","JavaScript","JavaScript content handlers"
+			,xjs_handlers);
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
