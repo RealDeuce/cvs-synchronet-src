@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.43 2005/05/07 01:15:33 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.41 2004/11/06 02:13:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,10 +49,9 @@ typedef struct {
 	WORD	qwk_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
     DWORD   interface_addr;
-	DWORD	pasv_ip_addr;
-	WORD	pasv_port_low;
-	WORD	pasv_port_high;
     DWORD	options;			/* See FTP_OPT definitions */
+    DWORD	js_max_bytes;
+	DWORD	js_cx_stack;
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
@@ -86,9 +85,6 @@ typedef struct {
 	DWORD	log_mask;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
-
-	/* JavaScript operating parameters */
-	js_startup_t js;
 
 } ftp_startup_t;
 
