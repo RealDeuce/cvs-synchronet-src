@@ -11,7 +11,7 @@ include ${SRC_ROOT}/build/Common.gmake
 CFLAGS	+=	$(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS)
 LDFLAGS	+=	$(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 CFLAGS	+=	-I$(SRC_ROOT)/odoors -I$(SRC_ROOT)/conio -I.
-LDFLAGS	+=	-L$(SRC_ROOT)/odoors/libs-`uname`
+LDFLAGS	+=	-L$(SRC_ROOT)/odoors
 
 $(SMURF): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
@@ -23,7 +23,6 @@ dist:: $(SMURF)
 	-mkdir dist
 	cp install.sh dist
 	cp $(SMURF) dist/smurf.`uname`
-	cp $(SRC_ROOT)/odoors/libs-`uname`/libODoors.so.6.2 dist/libODoors.so.`uname`
 	cp *.d0* dist
 	cp *.doc dist
 	cp *.txt dist
