@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.36 2005/04/10 08:41:59 deuce Exp $ */
+/* $Id: ciolib.c,v 1.37 2005/04/18 00:12:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,12 +356,12 @@ char *ciolib_cgets(char *str)
 	CIOLIB_INIT();
 	
 	maxlen=*(unsigned char *)str;
-	while((ch=ciolib_getche())!='\n') {
+	while((ch=ciolib_getche())!='\n' && ch !='\r') {
 		switch(ch) {
 			case 0:	/* Skip extended keys */
 				ciolib_getche();
 				break;
-			case '\r':	/* Skip \r (ToDo: Should this be treeated as a \n? */
+			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
 				break;
 			case '\b':
 				if(len==0) {
