@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.304 2005/04/06 13:30:13 deuce Exp $ */
+/* $Id: websrvr.c,v 1.311 2005/04/16 18:29:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,6 +124,8 @@ static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
 
 static named_string_t** mime_types;
+static named_string_t** cgi_handlers;
+static named_string_t** xjs_handlers;
 
 /* Logging stuff */
 sem_t	log_sem;
@@ -160,6 +162,7 @@ typedef struct  {
 	char *		post_data;
 	size_t		post_len;
 	int			dynamic;
+	char		xjs_handler[MAX_PATH+1];
 	struct log_data	*ld;
 	char		request_line[MAX_REQUEST_LINE+1];
 	BOOL		finished;				/* Done processing request. */
@@ -295,7 +298,7 @@ static void respond(http_session_t * session);
 static BOOL js_setup(http_session_t* session);
 static char *find_last_slash(char *str);
 static BOOL check_extra_path(http_session_t * session);
-static BOOL exec_ssjs(http_session_t* session, char *script);
+static BOOL exec_ssjs(http_session_t* session, char* script);
 static BOOL ssjs_send_headers(http_session_t* session);
 
 static time_t
@@ -783,14 +786,52 @@ static const char* get_mime_type(char *ext)
 {
 	uint i;
 
-	if(ext==NULL)
+	if(ext==NULL || mime_types==NULL)
 		return(unknown_mime_type);
 
 	for(i=0;mime_types[i]!=NULL;i++)
-		if(!stricmp(ext+1,mime_types[i]->name))
+		if(stricmp(ext+1,mime_types[i]->name)==0)
 			return(mime_types[i]->value);
 
 	return(unknown_mime_type);
+}
+
+static BOOL get_cgi_handler(char* cmdline, size_t maxlen)
+{
+	char	fname[MAX_PATH+1];
+	char*	ext;
+	size_t	i;
+
+	if(cgi_handlers==NULL || (ext=getfext(cmdline))==NULL)
+		return(FALSE);
+
+	for(i=0;cgi_handlers[i]!=NULL;i++) {
+		if(stricmp(cgi_handlers[i]->name, ext+1)==0) {
+			SAFECOPY(fname,cmdline);
+			safe_snprintf(cmdline,maxlen,"%s %s",cgi_handlers[i]->value,fname);
+			return(TRUE);
+		}
+	}
+	return(FALSE);
+}
+
+static BOOL get_xjs_handler(char* ext, http_session_t* session)
+{
+	size_t	i;
+
+	if(ext==NULL || xjs_handlers==NULL)
+		return(FALSE);
+
+	for(i=0;xjs_handlers[i]!=NULL;i++) {
+		if(stricmp(xjs_handlers[i]->name, ext+1)==0) {
+			if(getfname(xjs_handlers[i]->value)==xjs_handlers[i]->value)	/* no path specified */
+				SAFEPRINTF2(session->req.xjs_handler,"%s%s",scfg.exec_dir,xjs_handlers[i]->value);
+			else
+				SAFECOPY(session->req.xjs_handler,xjs_handlers[i]->value);
+			return(TRUE);
+		}
+	}
+	return(FALSE);
 }
 
 /* This function appends append plus a newline IF the final dst string would have a length less than maxlen */
@@ -982,7 +1023,7 @@ static void send_error(http_session_t * session, const char* message)
 		 * ie: Don't "upgrade" to a 500 error
 		 */
 
-		sprintf(sbuf,"%s%s.ssjs",error_dir,error_code);
+		sprintf(sbuf,"%s%s%s",error_dir,error_code,startup->ssjs_ext);
 		if(!stat(sbuf,&sb)) {
 			lprintf(LOG_INFO,"%04d Using SSJS error page",session->socket);
 			session->req.dynamic=IS_SSJS;
@@ -1231,24 +1272,26 @@ static BOOL check_ars(http_session_t * session)
 	return(FALSE);
 }
 
-static BOOL read_mime_types(char* fname)
+static named_string_t** read_ini_list(char* fname, char* section, char* desc
+									  ,named_string_t** list)
 {
-	int		mime_count;
+	char	path[MAX_PATH+1];
+	size_t	i;
 	FILE*	fp;
 
-	mime_types=iniFreeNamedStringList(mime_types);
+	list=iniFreeNamedStringList(list);
 
-	lprintf(LOG_DEBUG,"Reading %s",fname);
-	if((fp=iniOpenFile(fname))==NULL) {
-		lprintf(LOG_WARNING,"Error %d opening %s",errno,fname);
-		return(FALSE);
+	iniFileName(path,sizeof(path),scfg.ctrl_dir,fname);
+
+	if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
+		list=iniReadNamedStringList(fp,section);
+		iniCloseFile(fp);
+		COUNT_LIST_ITEMS(list,i);
+		if(i)
+			lprintf(LOG_DEBUG,"Read %u %s from %s",i,desc,path);
 	}
-	mime_types=iniReadNamedStringList(fp,NULL /* root section */);
-	iniCloseFile(fp);
 
-	COUNT_LIST_ITEMS(mime_types,mime_count);
-	lprintf(LOG_DEBUG,"Loaded %d mime types", mime_count);
-	return(mime_count>0);
+	return(list);
 }
 
 static int sockreadline(http_session_t * session, char *buf, size_t length)
@@ -1610,6 +1653,8 @@ static int is_dynamic_req(http_session_t* session)
 
 	if(stricmp(ext,startup->ssjs_ext)==0)
 		i=IS_SSJS;
+	else if(get_xjs_handler(ext,session))
+		i=IS_SSJS;
 	else if(stricmp(ext,startup->js_ext)==0)
 		i=IS_JS;
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT) && i)  {
@@ -1742,6 +1787,11 @@ static BOOL get_request_headers(http_session_t * session)
 			}
 		}
 	}
+
+	if(!(session->req.vhost[0]))
+		SAFECOPY(session->req.vhost, startup->host_name);
+	if(!(session->req.host[0]))
+		SAFECOPY(session->req.host, startup->host_name);
 	return TRUE;
 }
 
@@ -1749,9 +1799,7 @@ static BOOL get_fullpath(http_session_t * session)
 {
 	char	str[MAX_PATH+1];
 
-	if(!(startup->options&WEB_OPT_VIRTUAL_HOSTS))
-		session->req.vhost[0]=0;
-	if(session->req.vhost[0]) {
+	if(session->req.vhost[0] && startup->options&WEB_OPT_VIRTUAL_HOSTS) {
 		safe_snprintf(str,sizeof(str),"%s/%s",root_dir,session->req.vhost);
 		if(isdir(str))
 			safe_snprintf(str,sizeof(str),"%s/%s%s",root_dir,session->req.vhost,session->req.physical_path);
@@ -2045,25 +2093,6 @@ static BOOL check_request(http_session_t * session)
 	return(TRUE);
 }
 
-static void get_cgi_handler(char* cmdline, size_t maxlen)
-{
-	char	path[MAX_PATH+1];
-	char	fname[MAX_PATH+1];
-	char	value[INI_MAX_VALUE_LEN+1];
-	char*	ext;
-	FILE*	fp;
-
-	if((fp=iniOpenFile(iniFileName(path,sizeof(path),scfg.ctrl_dir,"cgi_handler.ini")))==NULL)
-		return;
-
-	ext=getfext(cmdline);
-	if(ext!=NULL && iniReadString(fp, ROOT_SECTION, ext+1, NULL, value)!=NULL) {
-		SAFECOPY(fname,cmdline);
-		safe_snprintf(cmdline,maxlen,"%s %s",value,fname);
-	}
-	fclose(fp);
-}
-
 static str_list_t get_cgi_env(http_session_t *session)
 {
 	char		path[MAX_PATH+1];
@@ -2085,7 +2114,7 @@ static str_list_t get_cgi_env(http_session_t *session)
 
 	strListPush(&env_list,"REDIRECT_STATUS=200");	/* Kludge for php-cgi */
 
-	if((fp=iniOpenFile(iniFileName(path,sizeof(path),scfg.ctrl_dir,"cgi_env.ini")))==NULL)
+	if((fp=iniOpenFile(iniFileName(path,sizeof(path),scfg.ctrl_dir,"cgi_env.ini"),/* create? */FALSE))==NULL)
 		return(env_list);
 
 	if((add_list=iniReadSectionList(fp,NULL))!=NULL) {
@@ -3042,11 +3071,16 @@ static BOOL ssjs_send_headers(http_session_t* session)
 	return(send_headers(session,session->req.status));
 }
 
-static BOOL exec_ssjs(http_session_t* session, char *script)  {
+static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	JSScript*	js_script;
 	jsval		rval;
 	char		path[MAX_PATH+1];
 	BOOL		retval=TRUE;
+	clock_t		start;
+
+	/* External JavaScript handler? */
+	if(script == session->req.physical_path && session->req.xjs_handler[0])
+		script = session->req.xjs_handler;
 
 	sprintf(path,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
 	if((session->req.fp=fopen(path,"wb"))==NULL) {
@@ -3071,6 +3105,7 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 
 		session->js_branch.counter=0;
 
+		lprintf(LOG_DEBUG,"%04d JavaScript: Compiling script: %s",session->socket,script);
 		if((js_script=JS_CompileFile(session->js_cx, session->js_glob
 			,script))==NULL) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)"
@@ -3078,7 +3113,11 @@ static BOOL exec_ssjs(http_session_t* session, char *script)  {
 			return(FALSE);
 		}
 
+		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
+		start=msclock();
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
+		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%ld ms)"
+			,session->socket,script,msclock()-start);
 	} while(0);
 
 	SAFECOPY(session->req.physical_path, path);
@@ -3335,6 +3374,9 @@ static void cleanup(int code)
 
 	mime_types=iniFreeNamedStringList(mime_types);
 
+	cgi_handlers=iniFreeNamedStringList(cgi_handlers);
+	xjs_handlers=iniFreeNamedStringList(xjs_handlers);
+
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 
@@ -3366,7 +3408,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.304 $", "%*s %s", revision);
+	sscanf("$Revision: 1.311 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3620,11 +3662,12 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		iniFileName(path,sizeof(path),scfg.ctrl_dir,"mime_types.ini");
-		if(!read_mime_types(path)) {
-			cleanup(1);
-			return;
-		}
+		mime_types=read_ini_list("mime_types.ini",NULL /* root section */,"MIME types"
+			,mime_types);
+		cgi_handlers=read_ini_list("web_handler.ini","CGI","CGI content handlers"
+			,cgi_handlers);
+		xjs_handlers=read_ini_list("web_handler.ini","JavaScript","JavaScript content handlers"
+			,xjs_handlers);
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
