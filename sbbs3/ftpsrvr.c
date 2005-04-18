@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.290 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.291 2005/04/18 22:50:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,7 @@
 #define BBS_VIRTUAL_PATH		"bbs:/""/"	/* this is actually bbs:<slash><slash> */
 #define LOCAL_FSYS_DIR			"local:"
 #define BBS_FSYS_DIR			"bbs:"
+#define BBS_HIDDEN_ALIAS		"hidden"
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 
@@ -807,6 +808,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 					dp=tp+1;	/* description pointer */
 					while(*dp && *dp<=' ') dp++;
 					truncsp(dp);
+
+					if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
+						continue;
 
 					alias_dir=FALSE;
 
@@ -2278,6 +2282,7 @@ static void ctrl_thread(void* arg)
 	char*		p;
 	char*		np;
 	char*		tp;
+	char*		dp;
 	char		password[64];
 	char		fname[MAX_PATH+1];
 	char		qwkfile[MAX_PATH+1];
@@ -3398,6 +3403,13 @@ static void ctrl_thread(void* arg)
 						while(*tp && *tp>' ') tp++;
 						if(*tp) *tp=0;
 
+						dp=tp+1;	/* description pointer */
+						while(*dp && *dp<=' ') dp++;
+						truncsp(dp);
+
+						if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
+							continue;
+
 						/* Virtual Path? */
 						if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
 							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user))<0)
@@ -4458,7 +4470,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.290 $", "%*s %s", revision);
+	sscanf("$Revision: 1.291 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
