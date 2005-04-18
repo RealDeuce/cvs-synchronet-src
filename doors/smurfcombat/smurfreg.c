@@ -29,11 +29,8 @@ __REG__main(void)
     char            code[40], name[80], cod;
     FILE           *stream;
     printf("\n\r");
-
-#if TODO_REGISTRATION
     printf("Enter Registration Code: ");
     gets(code);
-#endif
     printf("Enter Registration Name: ");
     gets(name);
     /* printf("Enter Intermediate Code: "); cin >> name[0];cod=atoi(name[0]);
@@ -42,9 +39,7 @@ __REG__main(void)
      * if(cod>1)for(cyc=1;cyc<cod;cyc++)    fprintf(stream," %s",name[cyc]); */
     stream = fopen("smurfreg.nfo", "w+");
     fprintf(stream, "%s", name);
-#if TODO_REGISTRATION
     fprintf(stream, "\n\r%s\n\r", code);
-#endif
     fclose(stream);
 }
 
@@ -66,7 +61,7 @@ mustregister(void)
 	od_printf("Sorry to interrupt your fun like this but your Sysop didn't\n\r");
 	od_printf("register this version of SMURF COMBAT yet!               \n\n\r");
 	od_printf("In order for this function to be orperative, your Sysop has\n\r");
-	od_printf("to pay the one time, VERY low registration cost of NOTHING!!!\n\n\r");
+	od_printf("to pay the one time, VERY low registration cost of $9!!! \n\n\r");
 	od_printf("Consider the advantages,  plain out no more waits,  and ALL\n\r");
 	od_printf("the functions work 100 percent!\n\n\r");
 	/* sleep(5); */
@@ -87,6 +82,10 @@ registerme(void)
 	od_printf("like to take .21 minutes to remind you that it took 10,000+\n\r");
 	od_printf("minutes of day-in-day-out work to complete this game.\n\n\r");
 	od_set_colour(11, 0);
+	/* cyc=0; do{ cyc++;od_printf("                 *** $9
+	 * ***\r");od_sleep(200); cyc++;od_printf("                ONLY $9!
+	 * \r");od_sleep(200); cyc++;od_printf("registration is only $9!
+	 * \r");od_sleep(200); }while(cyc<3); // sleep(1); */
 	od_set_colour(10, 0);
 	od_printf("\n\n\rThanks for your time, I hope you appreciate mine.\n\n\r");
 	/* sleep(2); */
@@ -104,12 +103,7 @@ checkkey(void)
 	fgets(registered_name, 200, fp);	/* read name from file */
 	if (registered_name[strlen(registered_name) - 1] == '\n')
 	    registered_name[strlen(registered_name) - 1] = '\0';
-	if (registered_name[strlen(registered_name) - 1] == '\r')
-	    registered_name[strlen(registered_name) - 1] = '\0';
-	if (registered_name[strlen(registered_name) - 1] == '\n')
-	    registered_name[strlen(registered_name) - 1] = '\0';
 
-#if TODO_REGISTRATION
 	fscanf(fp, "%lu", &supplied_key);	/* read key from file */
 
 	fclose(fp);		       /* Close file */
@@ -122,9 +116,6 @@ checkkey(void)
 	    registeredxx = 1;	       /* Then switch program into registered
 				        * mode */
 	}
-#else
-	registeredxx = 1;
-#endif
     }
     if (registeredxx == 1)
 	statis = 1;		       /* If registered mode */

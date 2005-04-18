@@ -13,7 +13,6 @@
 /* */
 /***************************************************************************/
 
-#include"sockwrap.h"
 #include"smurfdef.h"
 #include"smurfdat.h"
 #include"smurfver.h"
@@ -34,7 +33,9 @@ protov(void)
     od_set_color(3, 0);
     od_printf("OMBAT ");
     od_set_color(11, 0);
-    od_printf("v%s ", __version);
+    od_printf("2.xx %s ", __version);
+    od_set_color(3, 0);
+    od_printf("(Trial Release) ");
     od_set_color(11, 0);
     od_printf("**********!\n\r");
     od_set_color(15, 0);
@@ -58,23 +59,21 @@ protov(void)
     od_set_color(7, 0);
     od_printf("aar\n\n\r");
 
-    od_set_color(7,0); od_printf("Program:    ");
-      
-     if(statis) od_printf("Registered\n\r"); else
-     od_printf("Unregistered\n\r");
-      
-     od_printf("Interbbs:   n/a (Local Game Only)\n\r");
-     
-     od_printf("Synchronet: n/a (Project Discontinued)\n\n\r");
+    /* od_set_color(7,0); od_printf("Program:    ");
+     * 
+     * if(statis) od_printf("Registered\n\r"); else
+     * od_printf("Unregistered\n\r");
+     * 
+     * od_printf("Interbbs:   n/a (Local Game Only)\n\r");
+     * 
+     * od_printf("Synchronet: n/a (Project Discontinued)\n\n\r"); */
 
-/*
     od_set_color(7, 0);
     od_printf("This version is intended to be run SysOps who wish to participate in the M.E.\n\r");
     od_printf("game testing program. You will be automatically listed as an OFFICIAL site in\n\r");
     od_printf("our next release upon report of ANY program malfunction.    Simply report the\n\r");
     od_printf("nature and location of the error. Not only will your BBS be advertised nation\n\r");
     od_printf("wide, but you will be able to enjoy error free games!\n\r");
-*/
 
     od_set_color(15, 0);
     od_printf("Laurence Maar (909)861-1616.   1415 Valeview Dr.   Diamond Bar, CA 91765-4337\n\n\r");
@@ -136,42 +135,12 @@ char*   argv[100];
 	__CNV__main();
 	exit(0);
     }
-    if (argc > 1) {
-	int arg=1;
-
-	if(strnicmp(argv[arg], "LOCAL", 5) == 0) {
-		od_control.od_force_local=TRUE;
-		arg++;
-	}
-	if(argc > arg) {
-		strcpy(od_control.info_path,argv[arg]);
-		if(isdir(argv[arg]))
-			strcat(od_control.info_path, DIRSEP_STR);
-		arg++;
-	}
-	if(argc > arg) {
-		int type,len,got;
-		SOCKET sock;
-#ifdef _WIN32
-		WSADATA crap;
-		WSAStartup(0x0202, &crap);
-#endif
-
-		od_control.od_open_handle=atoi(argv[arg]);
-		sock=od_control.od_open_handle;
-		len=sizeof(type);
-		if((got=getsockopt(sock, SOL_SOCKET, SO_TYPE, (void *)&type, &len))==0 && type==SOCK_STREAM)
-			od_control.od_use_socket=TRUE;
-	}
-    }
 #ifdef TODO_LOCAL_DISPLAY
     __mess(5);
 #endif
     od_init();
-#ifdef TODO_STATUS_LINE
     od_control.od_status_on = FALSE;
     od_set_statusline(STATUS_NONE);
-#endif
 #ifdef TODO_LOCAL_DISPLAY
     window(1, 1, 80, 25);
     clrscr();
@@ -252,11 +221,9 @@ getcommand(void)
 	    enterpointer = 0;
 	    what();
 	    newplayer(2);
-#ifdef ALLOW_CHEATING
 	} else if (bbsinkey == '$' && enterpointer == 1) {
 	    what();
 	    smurfmoney[thisuserno] += 1000000;
-#endif
 	} else if (bbsinkey == 'S' && enterpointer == 1 && od_control.user_num == 1) {
 	    enterpointer = 0;
 	    maint(2);
@@ -727,7 +694,7 @@ void            checkstatus(void){
 	smurffights[thisuserno] = 0;
 	roundsleft = 0;
     }
-    sprintf(logname, "smurf.%03i", thisuserno);
+    sprintf(logname, "SMURF.%03i", thisuserno);
     od_control.user_screen_length = 23;
     __mess(3);			       /* Update Bulletins */
     __mess(1);			       /* Smurf Times */

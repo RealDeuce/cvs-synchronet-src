@@ -31,11 +31,9 @@ maint(int level)
     /* fclose(stream); */
     do {
 	od_clr_scr();
-#ifdef TODO_LOCAL_DISPLAY
 	gotoxy(1, 20);
 	printf("Local ECho Only: Press Alt-C To Chat!");
 	gotoxy(1, 1);
-#endif
 	od_set_colour(L_YELLOW, D_BLACK);
 	od_printf("\n\rLevel %d (%s) ", level, leveln[level]);
 	od_set_colour(L_RED, D_BLACK);
@@ -43,9 +41,7 @@ maint(int level)
 	od_set_colour(L_GREEN, D_BLACK);
 	od_printf("[1] Cycle thru Status of All Players\n\r");
 	od_printf("[2] Cycle thru and Rename Players\n\r");
-#ifdef TODO_LOCAL_DISPLAY
 	od_printf("[3] Reroll Current Game\n\r");
-#endif
 	if (level == 1) {
 	    od_set_colour(L_CYAN, D_BLACK);
 	    od_printf("[A] Display: Smurf Player Records\n\r");
@@ -113,13 +109,11 @@ maint(int level)
 		    }
 		}
 		break;
-#ifdef TODO_LOCAL_DISPLAY
 	    case '3':
 		__NEW__main();
 		smurf_pause();
 		od_exit(10, FALSE);
 		break;
-#endif
 	    case 'A':
 	    case 'a':
 		if (level == 1) {
