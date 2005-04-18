@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.42 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: ciolib.c,v 1.37 2005/04/18 00:12:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,7 @@ static struct text_info cio_textinfo;
 static int lastmode=3;
 int _wscroll=1;
 int directvideo=0;
-int hold_update=0;
+int dont_move_cursor=0;
 static int initialized=0;
 
 int ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
@@ -503,7 +503,7 @@ void ciolib_wscroll(void)
 	if(!_wscroll)
 		return;
 	ciolib_movetext(ti.winleft,ti.wintop+1,ti.winright,ti.winbottom,ti.winleft,ti.wintop);
-	ciolib_gotoxy(1,ti.winbottom-ti.wintop+1);
+	ciolib_gotoxy(1,ti.winbottom-ti.winleft+1);
 	os=_wscroll;
 	_wscroll=0;
 	/* ciolib_cprintf("%*s",ti.winright-ti.winleft+1,""); */
@@ -553,7 +553,7 @@ void ciolib_gotoxy(int x, int y)
 	cio_api.gotoxy(nx,ny);
 }
 
-void ciolib_textmode(int mode)
+void ciolib_textmode(mode)
 {
 	CIOLIB_INIT();
 	
@@ -712,8 +712,8 @@ int ciolib_cputs(char *str)
 
 	CIOLIB_INIT();
 
-	olddmc=hold_update;
-	hold_update=1;
+	olddmc=dont_move_cursor;
+	dont_move_cursor=1;
 	for(pos=0;str[pos];pos++)
 	{
 		ret=str[pos];
@@ -721,7 +721,7 @@ int ciolib_cputs(char *str)
 			ciolib_putch('\r');
 		ciolib_putch(str[pos]);
 	}
-	hold_update=olddmc;
+	dont_move_cursor=olddmc;
 	ciolib_gotoxy(ciolib_wherex(),ciolib_wherey());
 	return(ret);
 }
@@ -729,30 +729,26 @@ int ciolib_cputs(char *str)
 void ciolib_textbackground(int colour)
 {
 	unsigned char attr;
-	unsigned char col;
 
 	CIOLIB_INIT();
 	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr&=143;
-	col=(colour & 0x07);
-	attr|=(col<<4);
+	attr|=(colour<<4);
 	ciolib_textattr(attr);
 }
 
 void ciolib_textcolor(int colour)
 {
 	unsigned char attr;
-	unsigned char col;
 
 	CIOLIB_INIT();
 	
 	ciolib_gettextinfo(&cio_textinfo);
 	attr=cio_textinfo.attribute;
 	attr&=240;
-	col=colour&0x0f;
-	attr|=col;
+	attr|=(colour*0x0f);
 	ciolib_textattr(attr);
 }
 
