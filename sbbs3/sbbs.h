@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.254 2005/06/04 09:40:26 deuce Exp $ */
+/* $Id: sbbs.h,v 1.252 2005/03/26 08:52:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,7 +207,7 @@ public:
 	JSObject*	js_glob;
 	js_branch_t	js_branch;
 	long		js_execfile(const char *fname);
-	bool		js_init(ulong* stack_frame);
+	bool		js_init(void);
 	void		js_create_user_objects(void);
 
 #endif
@@ -219,7 +219,6 @@ public:
 	node_t	thisnode;		/* Node information */
 	smb_t	smb;			/* Currently open message base */
 	char	rlogin_name[LEN_ALIAS+1];
-	char	rlogin_pass[LEN_PASS+1];
 
 	uint	temp_dirnum;
 
