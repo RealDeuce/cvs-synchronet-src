@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.392 2005/06/10 02:04:03 deuce Exp $ */
+/* $Id: main.cpp,v 1.378 2005/03/26 06:54:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -569,6 +569,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
+	*rval = JSVAL_VOID;
+
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
@@ -593,6 +595,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
+
+	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -714,6 +718,7 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	sbbs->attr(LIGHTGRAY);
 	sbbs->bputs(crlf);
 
+	*rval = JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -855,7 +860,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	}
 }
 
-bool sbbs_t::js_init(ulong* stack_frame)
+bool sbbs_t::js_init()
 {
 	char		node[128];
 
@@ -864,25 +869,22 @@ bool sbbs_t::js_init(ulong* stack_frame)
     else
     	strcpy(node,client_name);
 
-	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
-
 	lprintf(LOG_DEBUG,"%s JavaScript: Creating runtime: %lu bytes"
-		,node,startup->js.max_bytes);
+		,node,startup->js_max_bytes);
 
-	if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
+	if((js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL)
 		return(false);
 
 	lprintf(LOG_DEBUG,"%s JavaScript: Initializing context (stack: %lu bytes)"
-		,node,startup->js.cx_stack);
+		,node,startup->js_cx_stack);
 
-    if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
+    if((js_cx = JS_NewContext(js_runtime, startup->js_cx_stack))==NULL)
 		return(false);
 	
 	memset(&js_branch,0,sizeof(js_branch));
-	js_branch.limit = startup->js.branch_limit;
-	js_branch.gc_interval = startup->js.gc_interval;
-	js_branch.yield_interval = startup->js.yield_interval;
+	js_branch.limit = startup->js_branch_limit;
+	js_branch.gc_interval = startup->js_gc_interval;
+	js_branch.yield_interval = startup->js_yield_interval;
 	js_branch.terminated = &terminated;
 	js_branch.auto_terminate = TRUE;
 
@@ -916,20 +918,6 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		/* Console Object */
 		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
 			break;
-
-		if(startup->js.thread_stack) {
-			ulong stack_limit;
-
-#if JS_STACK_GROWTH_DIRECTION > 0
-			stack_limit=((ulong)stack_frame)+startup->js.thread_stack;
-#else
-			stack_limit=((ulong)stack_frame)-startup->js.thread_stack;
-#endif
-			JS_SetThreadStackLimit(js_cx, stack_limit);
-
-			lprintf(LOG_DEBUG,"%s JavaScript: Thread stack limit: %lu bytes"
-				,node, startup->js.thread_stack);
-		}
 
 		success=true;
 
@@ -1238,37 +1226,38 @@ void input_thread(void *arg)
 			if(sbbs->client_socket==INVALID_SOCKET)
 				break;
 
-	       	if(ERROR_VALUE == ENOTSOCK)
-    	        lprintf(LOG_NOTICE,"Node %d socket closed by peer on input->select", sbbs->cfg.node_num);
-			else if(ERROR_VALUE==ESHUTDOWN)
-				lprintf(LOG_NOTICE,"Node %d socket shutdown on input->select", sbbs->cfg.node_num);
-			else if(ERROR_VALUE==EINTR)
-				lprintf(LOG_NOTICE,"Node %d input thread interrupted",sbbs->cfg.node_num);
-            else if(ERROR_VALUE==ECONNRESET) 
-				lprintf(LOG_NOTICE,"Node %d connection reset by peer on input->select", sbbs->cfg.node_num);
-	        else if(ERROR_VALUE==ECONNABORTED) 
-				lprintf(LOG_NOTICE,"Node %d connection aborted by peer on input->select", sbbs->cfg.node_num);
-			else
-				lprintf(LOG_WARNING,"Node %d !ERROR %d input->select socket %d"
-               		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
-			break;
+			if(FD_ISSET(sbbs->client_socket,&socket_set))  {
+	        	if(ERROR_VALUE == ENOTSOCK)
+    	            lprintf(LOG_NOTICE,"Node %d socket closed by peer on input->select", sbbs->cfg.node_num);
+				else if(ERROR_VALUE==ESHUTDOWN)
+					lprintf(LOG_NOTICE,"Node %d socket shutdown on input->select", sbbs->cfg.node_num);
+				else if(ERROR_VALUE==EINTR)
+					lprintf(LOG_NOTICE,"Node %d input thread interrupted",sbbs->cfg.node_num);
+        	    else if(ERROR_VALUE==ECONNRESET) 
+					lprintf(LOG_NOTICE,"Node %d connection reset by peer on input->select", sbbs->cfg.node_num);
+	            else if(ERROR_VALUE==ECONNABORTED) 
+					lprintf(LOG_NOTICE,"Node %d connection aborted by peer on input->select", sbbs->cfg.node_num);
+				else
+					lprintf(LOG_WARNING,"Node %d !ERROR %d input->select socket %d"
+                		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
+				break;
+			}
+#ifdef __unix__
+			else if(uspy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET && 
+					FD_ISSET(uspy_socket[sbbs->cfg.node_num-1],&socket_set))  {
+				if(ERROR_VALUE != EAGAIN)  {
+					lprintf(LOG_ERR,"Node %d !ERROR %d on local spy socket %d input->select"
+						, sbbs->cfg.node_num, errno, uspy_socket[sbbs->cfg.node_num-1]);
+					close_socket(uspy_socket[sbbs->cfg.node_num-1]);
+					uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
+				}
+				continue;
+			}
+#endif
 		}
 
-		if(sbbs->client_socket==INVALID_SOCKET) {
-			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+		if(sbbs->client_socket==INVALID_SOCKET)
 			break;
-		}
-
-/*		\______    ______/
- *       \  0 \   / 0   /
- *        -----   ------           /----\
- *              ||               -< Boo! |
- *             /_\                 \----/
- *      \_______________/
- *       \/\/\/\/\/\/\//
- *        -------------
- */
 
 		if(FD_ISSET(sbbs->client_socket,&socket_set))
 			sock=sbbs->client_socket;
@@ -1279,17 +1268,18 @@ void input_thread(void *arg)
 				close_socket(uspy_socket[sbbs->cfg.node_num-1]);
 				lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
 				uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
-				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				continue;
 			}
 			sock=uspy_socket[sbbs->cfg.node_num-1];
 		}
 #endif
-		else {
+		else
+			continue;
+
+		if(sbbs->client_socket==INVALID_SOCKET) {
 			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
-			continue;
+			break;
 		}
 
     	rd=RingBufFree(&sbbs->inbuf);
@@ -1301,8 +1291,6 @@ void input_thread(void *arg)
             while((rd=RingBufFree(&sbbs->inbuf))==0) {
             	if(time(NULL)-start>=5) {
                 	rd=1;
-					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
                 	break;
                 }
                 YIELD();
@@ -1545,7 +1533,6 @@ void output_thread(void* arg)
 
 void event_thread(void* arg)
 {
-	ulong		stack_frame;
 	char		str[MAX_PATH+1];
 	char		bat_list[MAX_PATH+1];
 	char		semfile[MAX_PATH+1];
@@ -1576,7 +1563,7 @@ void event_thread(void* arg)
 
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
-		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the event thread */
+		if(!sbbs->js_init())	/* This must be done in the context of the node thread */
 			lprintf(LOG_ERR,"!JavaScript Initialization FAILURE");
 	}
 #endif
@@ -3281,7 +3268,6 @@ void sbbs_t::logoffstats()
 
 void node_thread(void* arg)
 {
-	ulong			stack_frame;
 	char			str[128];
 	char			uname[LEN_ALIAS+1];
 	int				file;
@@ -3305,7 +3291,7 @@ void node_thread(void* arg)
 
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
-		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the node thread */
+		if(!sbbs->js_init())	/* This must be done in the context of the node thread */
 			lprintf(LOG_ERR,"!Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
 	}
 #endif
@@ -3653,7 +3639,7 @@ long DLLCALL bbs_ver_num(void)
 
 void DLLCALL bbs_terminate(void)
 {
-   	lprintf(LOG_DEBUG,"BBS Server terminate");
+   	lprintf(LOG_DEBUG,"BBS Server terminate",telnet_socket);
 	terminate_server=true;
 }
 
@@ -3764,12 +3750,15 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
 	if(startup->rlogin_port==0)				startup->rlogin_port=513;
 	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
+#ifdef JAVASCRIPT
+	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+#endif
 	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 	if(startup->temp_dir[0])				backslash(startup->temp_dir);
 
-	ZERO_VAR(js_server_props);
-	SAFEPRINTF3(js_server_props.version,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
+	sprintf(js_server_props.version,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
 	js_server_props.version_detail=bbs_ver();
 	js_server_props.clients=&node_threads_running;
 	js_server_props.options=&startup->options;
@@ -4128,8 +4117,7 @@ void DLLCALL bbs_thread(void* arg)
             lprintf(LOG_INFO,"Node %d local spy socket %d bound to %s"
                 , i, uspy_listen_socket[i-1], uspy_addr.sun_path);
 	        if(listen(uspy_listen_socket[i-1],1))  {
-	            lprintf(LOG_ERR,"Node %d !ERROR %d listening local spy socket %d"
-					,i, errno, uspy_listen_socket[i-1]);
+	            lprintf(LOG_ERR,"Node %d !ERROR %d listening local spy socket %d", i, errno);
 	            close_socket(uspy_listen_socket[i-1]);
 				uspy_listen_socket[i-1]=INVALID_SOCKET;
 	            continue;

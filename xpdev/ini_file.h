@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.29 2005/05/01 09:03:22 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.28 2005/04/16 01:22:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,27 +103,26 @@ BOOL		iniWriteFile(FILE*, const str_list_t);
 BOOL		iniCloseFile(FILE*);
 
 /* StringList functions */
-str_list_t	iniGetSectionList(str_list_t list, const char* prefix);
-size_t		iniGetSectionCount(str_list_t list, const char* prefix);
-str_list_t	iniGetKeyList(str_list_t list, const char* section);
+str_list_t	iniGetSectionList(str_list_t* list, const char* prefix);
+str_list_t	iniGetKeyList(str_list_t* list, const char* section);
 named_string_t**
-			iniGetNamedStringList(str_list_t list, const char* section);
+			iniGetNamedStringList(str_list_t* list, const char* section);
 
-char*		iniGetString(str_list_t, const char* section, const char* key
+char*		iniGetString(str_list_t*, const char* section, const char* key
 					,const char* deflt, char* value);
-str_list_t	iniGetStringList(str_list_t, const char* section, const char* key
+str_list_t	iniGetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, const char* deflt);
-long		iniGetInteger(str_list_t, const char* section, const char* key
+long		iniGetInteger(str_list_t*, const char* section, const char* key
 					,long deflt);
-ushort		iniGetShortInt(str_list_t, const char* section, const char* key
+ushort		iniGetShortInt(str_list_t*, const char* section, const char* key
 					,ushort deflt);
-ulong		iniGetIpAddress(str_list_t, const char* section, const char* key
+ulong		iniGetIpAddress(str_list_t*, const char* section, const char* key
 					,ulong deflt);
-double		iniGetFloat(str_list_t, const char* section, const char* key
+double		iniGetFloat(str_list_t*, const char* section, const char* key
 					,double deflt);
-BOOL		iniGetBool(str_list_t, const char* section, const char* key
+BOOL		iniGetBool(str_list_t*, const char* section, const char* key
 					,BOOL deflt);
-ulong		iniGetBitField(str_list_t, const char* section, const char* key
+ulong		iniGetBitField(str_list_t*, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
 
 
@@ -149,9 +148,9 @@ char*		iniSetStringList(str_list_t*, const char* section, const char* key
 size_t		iniAddSection(str_list_t*, const char* section
 					,ini_style_t*);
 
-BOOL		iniSectionExists(str_list_t, const char* section);
-BOOL		iniKeyExists(str_list_t, const char* section, const char* key);
-BOOL		iniValueExists(str_list_t, const char* section, const char* key);
+BOOL		iniSectionExists(str_list_t*, const char* section);
+BOOL		iniKeyExists(str_list_t*, const char* section, const char* key);
+BOOL		iniValueExists(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveSection(str_list_t*, const char* section);
