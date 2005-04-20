@@ -14,6 +14,9 @@
 /***************************************************************************/
 
 #include "smurfext.h"
+#ifndef TODO_WRAPPERS
+#define strset(x,y)	memset(x,y,sizeof(x));
+#endif
 
 
 
@@ -73,13 +76,8 @@ userarena(void)
     numba--;
     enemyhp = smurfhpm[numba];
 
-#ifdef TODO_WRAPPERS
     strset(eweapon, 0);
     strset(earmor, 0);
-#else
-    memset(eweapon, 0, sizeof(eweapon));
-    memset(earmor, 0, sizeof(earmor));
-#endif
     sprintf(eweapon, "%s", smurfweap[numba]);
     sprintf(earmor, "%s", smurfarmr[numba]);
 
@@ -251,17 +249,9 @@ userarena(void)
 	    tw = 1;
 	    sprintf(eweapon, "%s", smurfweap[numba]);
 	    ew = smurfweapno[numba];
-#ifdef TODO_WRAPPERS
 	    strset(smurfweap[numba], 0);
-#else
-	    memset(smurfweap[numba], 0, sizeof(smurfweap[numba]));
-#endif
 	    sprintf(smurfweap[numba], "%s", smurfweap[thisuserno]);
-#ifdef TODO_WRAPPERS
 	    strset(smurfweap[thisuserno], 0);
-#else
-	    memset(smurfweap[thisuserno], 0, sizeof(smurfweap[thisuserno]));
-#endif
 	    sprintf(smurfweap[thisuserno], "%s", defweapon[smurfweapno[numba]]);
 	    smurfweapno[numba] = smurfweapno[thisuserno];
 	    smurfweapno[thisuserno] = ew;
@@ -271,17 +261,9 @@ userarena(void)
 	    ta = 1;
 	    sprintf(earmor, "%s", smurfarmr[numba]);
 	    ew = smurfarmrno[numba];
-#ifdef TODO_WRAPPERS
 	    strset(smurfarmr[numba], 0);
-#else
-	    memset(smurfarmr[numba], 0, sizeof(smurfarmr[numba]));
-#endif
 	    sprintf(smurfarmr[numba], "%s", smurfarmr[thisuserno]);
-#ifdef TODO_WRAPPERS
 	    strset(smurfarmr[thisuserno], 0);
-#else
-	    memset(smurfarmr[thisuserno], 0, sizeof(smurfarmr[thisuserno]));
-#endif
 	    sprintf(smurfarmr[thisuserno], "%s", defarmor[smurfarmrno[numba]]);
 	    smurfarmrno[numba] = smurfarmrno[thisuserno];
 	    smurfarmrno[thisuserno] = ew;
@@ -357,17 +339,9 @@ userarena(void)
 	smurfexper[thisuserno] = (smurfexper[thisuserno] + ef);
 	if (smurfweapno[thisuserno] < smurfweapno[numba]) {
 	    tw = 1;
-#ifdef TODO_WRAPPERS
 	    strset(smurfweap[thisuserno], 0);
-#else
-	    memset(smurfweap[thisuserno], 0, sizeof(smurfweap[thisuserno]));
-#endif
 	    sprintf(smurfweap[thisuserno], "%s", eweapon);
-#ifdef TODO_WRAPPERS
 	    strset(smurfweap[numba], 0);
-#else
-	    memset(smurfweap[numba], 0, sizeof(smurfweap[numba]));
-#endif
 	    sprintf(smurfweap[numba], "%s", defweapon[smurfweapno[thisuserno]]);
 	    smurfweapno[numba] = smurfweapno[thisuserno];
 	    smurfweapno[thisuserno] = ew / 5;
@@ -375,17 +349,9 @@ userarena(void)
 	}
 	if (smurfarmrno[thisuserno] < smurfarmrno[numba]) {
 	    ta = 1;
-#ifdef TODO_WRAPPERS
 	    strset(smurfarmr[thisuserno], 0);
-#else
-	    memset(smurfarmr[thisuserno], 0, sizeof(smurfarmr[thisuserno]));
-#endif
 	    sprintf(smurfarmr[thisuserno], "%s", earmor);
-#ifdef TODO_WRAPPERS
 	    strset(smurfarmr[numba], 0);
-#else
-	    memset(smurfarmr[numba], 0, sizeof(smurfarmr[numba]));
-#endif
 	    sprintf(smurfarmr[numba], "%s", defarmor[smurfarmrno[thisuserno]]);
 	    smurfarmrno[numba] = smurfarmrno[thisuserno];
 	    smurfarmrno[thisuserno] = aw / 4;
