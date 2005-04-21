@@ -1,14 +1,14 @@
 /* dat_file.c */
 
-/* Functions to deal with comma (CSV) and tab-delimited files and lists */
+/* Functions that deal with line-based (text) data files and lists */
 
-/* $Id: dat_file.c,v 1.4 2005/05/05 01:57:17 rswindell Exp $ */
+/* $Id: dat_file.c,v 1.2 2004/09/11 09:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -85,7 +85,7 @@ static char* csvEncode(char* field)
 	return(buf);
 }
 
-char* csvLineCreator(const str_list_t columns)
+char* csvLineCreator(str_list_t columns)
 {
 	char*	str=NULL;
 	char*	p;
@@ -113,7 +113,7 @@ char* csvLineCreator(const str_list_t columns)
 	return(str);
 }
 
-str_list_t csvLineParser(const char* line)
+str_list_t csvLineParser(char* line)
 {
 	char*		p;
 	char*		buf;
@@ -142,7 +142,7 @@ str_list_t csvLineParser(const char* line)
 /* Tab-Delimited API */
 /*********************/
 
-char* tabLineCreator(const str_list_t columns)
+char* tabLineCreator(str_list_t columns)
 {
 	char*	str=NULL;
 	char*	p;
@@ -166,7 +166,7 @@ char* tabLineCreator(const str_list_t columns)
 	return(str);
 }
 
-str_list_t tabLineParser(const char* line)
+str_list_t tabLineParser(char* line)
 {
 	char*		p;
 	char*		buf;
@@ -191,7 +191,7 @@ str_list_t tabLineParser(const char* line)
 
 /* Generic API */
 
-str_list_t dataCreateList(const str_list_t records[], const str_list_t columns, dataLineCreator_t lineCreator)
+str_list_t dataCreateList(str_list_t records[], str_list_t columns, dataLineCreator_t lineCreator)
 {
 	char*		p;
 	str_list_t	list;
@@ -217,8 +217,7 @@ str_list_t dataCreateList(const str_list_t records[], const str_list_t columns, 
 	return(list);
 }
 
-BOOL dataWriteFile(FILE* fp, const str_list_t records[], const str_list_t columns, const char* separator
-				   ,dataLineCreator_t lineCreator)
+BOOL dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, dataLineCreator_t lineCreator)
 {
 	size_t		count,total;
 	str_list_t	list;
@@ -232,13 +231,13 @@ BOOL dataWriteFile(FILE* fp, const str_list_t records[], const str_list_t column
 		return(FALSE);
 
 	total = strListCount(list);
-	count = strListWriteFile(fp,list,separator);
+	count = strListWriteFile(fp,list,"\n");
 	strListFree(&list);
 
 	return(count == total);
 }
 
-str_list_t* dataParseList(const str_list_t records, str_list_t* columns, dataLineParser_t lineParser)
+str_list_t* dataParseList(str_list_t records, str_list_t* columns, dataLineParser_t lineParser)
 {
 	size_t		ri=0;
 	size_t		li=0;

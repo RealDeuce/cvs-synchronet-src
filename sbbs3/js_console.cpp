@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.59 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.58 2004/12/31 02:39:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -546,6 +546,7 @@ js_ungetstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	while(p && *p)
 		sbbs->ungetkey(*(p++));
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -594,6 +595,7 @@ js_mnemonics(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	
 	sbbs->mnemonics(JS_GetStringBytes(js_str));
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -606,6 +608,7 @@ js_clear(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->CLS;
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -618,6 +621,7 @@ js_clearline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->clearline();
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -630,6 +634,7 @@ js_cleartoeol(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 
 	sbbs->cleartoeol();
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -643,6 +648,7 @@ js_crlf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	sbbs->outchar(CR);
 	sbbs->outchar(LF);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -655,6 +661,7 @@ js_pause(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->pause();
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -673,6 +680,7 @@ js_beep(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	for(i=0;i<count;i++)
 		sbbs->outchar('\a');
 	
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -690,6 +698,7 @@ js_print(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->bputs(JS_GetStringBytes(str));
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -719,6 +728,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->rputs(JS_GetStringBytes(str));
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -740,6 +750,7 @@ js_putmsg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[1],(int32*)&mode);
 
 	sbbs->putmsg(JS_GetStringBytes(str),mode);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -761,6 +772,7 @@ js_printfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[1],(int32*)&mode);
 
 	sbbs->printfile(JS_GetStringBytes(str),mode);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -793,6 +805,7 @@ js_printtail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		lines=5;
 
 	sbbs->printtail(JS_GetStringBytes(js_str),lines,mode);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -809,6 +822,7 @@ js_editfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->editfile(JS_GetStringBytes(str));
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -869,6 +883,7 @@ js_center(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->center(JS_GetStringBytes(str));
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -884,6 +899,7 @@ js_saveline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	sprintf(sbbs->slbuf[sbbs->slcnt<SAVE_LINES ? sbbs->slcnt++ : sbbs->slcnt] 
 			,"%.*s",sbbs->lbuflen,sbbs->lbuf); 
 	sbbs->lbuflen=0; 
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -899,6 +915,7 @@ js_restoreline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	sbbs->attr(sbbs->slatr[--sbbs->slcnt]);
 	sbbs->rputs(sbbs->slbuf[sbbs->slcnt]); 
 	sbbs->curatr=LIGHTGRAY;
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -930,6 +947,7 @@ js_pushxy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->ANSI_SAVE();
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -942,6 +960,7 @@ js_popxy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->ANSI_RESTORE();
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -966,6 +985,7 @@ js_gotoxy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	sbbs->GOTOXY(x,y);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1003,6 +1023,7 @@ js_cursor_home(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 
 	sbbs->cursor_home();
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1018,6 +1039,7 @@ js_cursor_up(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_up(val);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1033,6 +1055,7 @@ js_cursor_down(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_down(val);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1048,6 +1071,7 @@ js_cursor_right(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_right(val);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1063,6 +1087,7 @@ js_cursor_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&val);
 	sbbs->cursor_left(val);
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1075,6 +1100,7 @@ js_getlines(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	sbbs->ansi_getlines();
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1098,6 +1124,7 @@ js_lock_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		sbbs->input_thread_mutex_locked=false;
 	}
 
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -1115,6 +1142,7 @@ js_telnet_cmd(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 
 	sbbs->send_telnet_cmd((uchar)cmd,(uchar)opt);
 
+	*rval=JSVAL_VOID;
     return(JS_TRUE);
 }
 
