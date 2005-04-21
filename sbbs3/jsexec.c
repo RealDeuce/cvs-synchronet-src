@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.85 2005/04/14 10:50:24 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.86 2005/04/21 01:47:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@
 
 #define DEFAULT_LOG_MASK	0xff	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
-#define DEFAULT_STACK_LIMIT	(32*1024)
 
 JSRuntime*	js_runtime;
 JSContext*	js_cx;
@@ -56,7 +55,7 @@ js_branch_t	branch;
 scfg_t		scfg;
 ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
-ulong		stack_limit=DEFAULT_STACK_LIMIT;
+ulong		stack_limit=JAVASCRIPT_THREAD_STACK;
 FILE*		confp;
 FILE*		errfp;
 FILE*		nulfp;
@@ -115,7 +114,7 @@ void usage(FILE* fp)
 		"\t-!             wait for keypress (pause) on error\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
-		,DEFAULT_STACK_LIMIT
+		,JAVASCRIPT_THREAD_STACK
 		,JAVASCRIPT_BRANCH_LIMIT
 		,JAVASCRIPT_YIELD_INTERVAL
 		,JAVASCRIPT_GC_INTERVAL
@@ -780,7 +779,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.85 $", "%*s %s", revision);
+	sscanf("$Revision: 1.86 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
