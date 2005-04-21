@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.89 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.87 2005/04/21 07:28:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,7 @@ void usage(FILE* fp)
 #endif
 		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
-		"\t-S<bytes>      set thread stack limit (default=%u, 0=unlimited)\n"
+		"\t-S<bytes>      set thread stack size limit (default=%u, 0=unlimited)\n"
 		"\t-b<limit>      set branch limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
@@ -275,6 +275,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int		rd;
 	int32	len=128;
 
+	*rval = JSVAL_VOID;
+
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	if((buf=malloc(len))==NULL)
@@ -295,6 +297,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*	buf;
 	char*	p;
 	int32	len=128;
+
+	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -390,6 +394,7 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	fprintf(confp,"!%s\n",JS_GetStringBytes(str));
 
+	*rval = JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -427,8 +432,10 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	} else
 		instr[0]=0;
 
-	if(!fgets(instr,sizeof(instr),stdin))
+	if(!fgets(instr,sizeof(instr),stdin)) {
+		*rval = JSVAL_VOID;
 		return(JS_TRUE);
+	}
 
 	if((str=JS_NewStringCopyZ(cx, instr))==NULL)
 	    return(JS_FALSE);
@@ -782,7 +789,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.89 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
