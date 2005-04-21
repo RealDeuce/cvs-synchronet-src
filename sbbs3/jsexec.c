@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.89 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.86 2005/04/21 01:47:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,6 @@ FILE*		errfp;
 FILE*		nulfp;
 FILE*		statfp;
 char		revision[16];
-char		compiler[32];
 char*		host_name=NULL;
 char		host_name_buf[128];
 BOOL		pause_on_exit=FALSE;
@@ -76,20 +75,12 @@ BOOL		daemonize=FALSE;
 
 void banner(FILE* fp)
 {
-	fprintf(fp,"\nJSexec v%s%c-%s (rev %s)%s - "
+	fprintf(fp,"\nJSexec v%s%c-%s (rev %s) - "
 		"Execute Synchronet JavaScript Module\n"
 		,VERSION,REVISION
 		,PLATFORM_DESC
 		,revision
-#ifdef _DEBUG
-		," Debug"
-#else
-		,""
-#endif
 		);
-
-	fprintf(fp, "Compiled %s %s with %s\n"
-		,__DATE__, __TIME__, compiler);
 }
 
 void usage(FILE* fp)
@@ -104,7 +95,7 @@ void usage(FILE* fp)
 #endif
 		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
-		"\t-S<bytes>      set thread stack limit (default=%u, 0=unlimited)\n"
+		"\t-S<bytes>      set thread stack size limit (default=%u, 0=unlimited)\n"
 		"\t-b<limit>      set branch limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
@@ -275,6 +266,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int		rd;
 	int32	len=128;
 
+	*rval = JSVAL_VOID;
+
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	if((buf=malloc(len))==NULL)
@@ -295,6 +288,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*	buf;
 	char*	p;
 	int32	len=128;
+
+	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -390,6 +385,7 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	fprintf(confp,"!%s\n",JS_GetStringBytes(str));
 
+	*rval = JSVAL_VOID;
     return(JS_TRUE);
 }
 
@@ -427,8 +423,10 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	} else
 		instr[0]=0;
 
-	if(!fgets(instr,sizeof(instr),stdin))
+	if(!fgets(instr,sizeof(instr),stdin)) {
+		*rval = JSVAL_VOID;
 		return(JS_TRUE);
+	}
 
 	if((str=JS_NewStringCopyZ(cx, instr))==NULL)
 	    return(JS_FALSE);
@@ -566,10 +564,6 @@ static BOOL js_init(char** environ)
     if((js_cx = JS_NewContext(js_runtime, js_cx_stack))==NULL)
 		return(FALSE);
 
-	if(stack_limit)
-		fprintf(statfp,"JavaScript: Thread stack limit: %lu bytes\n"
-			,stack_limit);
-
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
@@ -602,6 +596,7 @@ long js_exec(const char *fname, char** args)
 	uint		line_no;
 	char		path[MAX_PATH+1];
 	char		line[1024];
+	char		compiler[32];
 	char		rev_detail[256];
 	size_t		len;
 	char*		js_buf=NULL;
@@ -661,6 +656,8 @@ long js_exec(const char *fname, char** args)
 	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
+
+	DESCRIBE_COMPILER(compiler);
 
 	sprintf(rev_detail,"JSexec %s%s  "
 		"Compiled %s %s with %s"
@@ -782,8 +779,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.89 $", "%*s %s", revision);
-	DESCRIBE_COMPILER(compiler);
+	sscanf("$Revision: 1.86 $", "%*s %s", revision);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
