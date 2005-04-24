@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.380 2005/04/21 10:39:57 rswindell Exp $ */
+/* $Id: main.cpp,v 1.381 2005/04/24 05:02:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3158,7 +3158,7 @@ void sbbs_t::reset_logon_vars(void)
     for(i=0;i<cfg.total_grps;i++)
         cursub[i]=0;
 	cur_cps=3000;
-    cur_rate=30000;
+    cur_rate=38400;
     dte_rate=38400;
 	main_cmds=xfer_cmds=posts_read=0;
 	lastnodemsg=0;
