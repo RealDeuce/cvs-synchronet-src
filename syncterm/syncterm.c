@@ -65,7 +65,6 @@ int main(int argc, char **argv)
 	char	listpath[MAX_PATH+1];
 	char	*home=NULL;
 	char	*inpath=NULL;
-	BOOL	exit_now=FALSE;
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
@@ -281,11 +280,11 @@ int main(int argc, char **argv)
 			term.nostatus=bbs->nostatus;
 			if(drawwin())
 				return(1);
-			exit_now=doterm(bbs);
+			doterm(bbs);
 			textmode(txtinfo.currmode);
 			settitle("SyncTERM");
 		}
-		if(exit_now || url[0]) {
+		if(url[0]) {
 			if(bbs->id==-1) {
 				char	*YesNo[3]={"Yes","No",""};
 				/* Started from the command-line with a URL */

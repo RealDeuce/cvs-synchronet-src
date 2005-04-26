@@ -1,7 +1,6 @@
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
 
-#include "gen_defs.h"
 #include <time.h>
 
 #define LIST_NAME_MAX	30
