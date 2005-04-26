@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.290 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.292 2005/04/21 06:44:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,7 @@
 #define BBS_VIRTUAL_PATH		"bbs:/""/"	/* this is actually bbs:<slash><slash> */
 #define LOCAL_FSYS_DIR			"local:"
 #define BBS_FSYS_DIR			"bbs:"
+#define BBS_HIDDEN_ALIAS		"hidden"
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 
@@ -482,9 +483,9 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	BOOL		success=FALSE;
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)"
-		,sock,startup->js_cx_stack);
+		,sock,startup->js.cx_stack);
 
-    if((js_cx = JS_NewContext(runtime, startup->js_cx_stack))==NULL)
+    if((js_cx = JS_NewContext(runtime, startup->js.cx_stack))==NULL)
 		return(NULL);
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Context created",sock);
@@ -807,6 +808,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 					dp=tp+1;	/* description pointer */
 					while(*dp && *dp<=' ') dp++;
 					truncsp(dp);
+
+					if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
+						continue;
 
 					alias_dir=FALSE;
 
@@ -2278,6 +2282,7 @@ static void ctrl_thread(void* arg)
 	char*		p;
 	char*		np;
 	char*		tp;
+	char*		dp;
 	char		password[64];
 	char		fname[MAX_PATH+1];
 	char		qwkfile[MAX_PATH+1];
@@ -3398,6 +3403,13 @@ static void ctrl_thread(void* arg)
 						while(*tp && *tp>' ') tp++;
 						if(*tp) *tp=0;
 
+						dp=tp+1;	/* description pointer */
+						while(*dp && *dp<=' ') dp++;
+						truncsp(dp);
+
+						if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
+							continue;
+
 						/* Virtual Path? */
 						if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
 							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user))<0)
@@ -3782,9 +3794,9 @@ static void ctrl_thread(void* arg)
 				}
 				if(js_runtime == NULL) {
 					lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
-						,sock,startup->js_max_bytes);
+						,sock,startup->js.max_bytes);
 
-					if((js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL) {
+					if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL) {
 						lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
 						sockprintf(sock,"451 Error creating JavaScript runtime");
 						filepos=0;
@@ -4458,7 +4470,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.290 $", "%*s %s", revision);
+	sscanf("$Revision: 1.292 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4531,8 +4543,8 @@ void DLLCALL ftp_server(void* arg)
 	else
 		startup->options|=FTP_OPT_NO_JAVASCRIPT;
 #ifdef JAVASCRIPT
-	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
 	sprintf(js_server_props.version,"%s %s",FTP_SERVER,revision);
 	js_server_props.version_detail=ftp_ver();

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.362 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.364 2005/04/21 06:44:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1504,15 +1504,15 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes\n"
-			,sock, startup->js_max_bytes);
+			,sock, startup->js.max_bytes);
 
-		if((js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL)
+		if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)\n"
-			,sock, startup->js_cx_stack);
+			,sock, startup->js.cx_stack);
 
-		if((js_cx = JS_NewContext(js_runtime, startup->js_cx_stack))==NULL)
+		if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
 			break;
 
 		JS_SetErrorReporter(js_cx, js_ErrorReporter);
@@ -3916,7 +3916,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.362 $", "%*s %s", revision);
+	sscanf("$Revision: 1.364 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3991,8 +3991,8 @@ void DLLCALL mail_server(void* arg)
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 
 #ifdef JAVASCRIPT
-	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 #endif
 
 	uptime=0;
@@ -4064,7 +4064,7 @@ void DLLCALL mail_server(void* arg)
 		mailproc_list=NULL;
 		mailproc_count=0;
 		iniFileName(path,sizeof(path),scfg.ctrl_dir,"mailproc.ini");
-		if((fp=iniOpenFile(path))!=NULL) {
+		if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
 			lprintf(LOG_DEBUG,"Reading %s",path);
 			sec_list = iniReadSectionList(fp,/* prefix */NULL);
 			if((mailproc_count=strListCount(sec_list))!=0
