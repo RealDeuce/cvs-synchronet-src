@@ -1,14 +1,14 @@
 /* dat_file.c */
 
-/* Functions that deal with line-based (text) data files and lists */
+/* Functions to deal with comma (CSV) and tab-delimited files and lists */
 
-/* $Id: dat_file.c,v 1.2 2004/09/11 09:24:55 rswindell Exp $ */
+/* $Id: dat_file.c,v 1.3 2005/04/29 04:59:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -217,7 +217,8 @@ str_list_t dataCreateList(str_list_t records[], str_list_t columns, dataLineCrea
 	return(list);
 }
 
-BOOL dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, dataLineCreator_t lineCreator)
+BOOL dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, const char* separator
+				   ,dataLineCreator_t lineCreator)
 {
 	size_t		count,total;
 	str_list_t	list;
@@ -231,7 +232,7 @@ BOOL dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, dataLineC
 		return(FALSE);
 
 	total = strListCount(list);
-	count = strListWriteFile(fp,list,"\n");
+	count = strListWriteFile(fp,list,separator);
 	strListFree(&list);
 
 	return(count == total);
