@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.6 2005/05/05 02:01:16 rswindell Exp $ */
+/* $Id: v4upgrade.c,v 1.1 2005/04/29 03:15:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,6 @@
 
 #include "sbbs.h"
 #include "sbbs4defs.h"
-#include "ini_file.h"
-#include "dat_file.h"
 
 scfg_t scfg;
 BOOL overwrite_existing_files=TRUE;
@@ -54,6 +52,7 @@ BOOL overwrite(const char* path)
 
 	return(TRUE);
 }
+
 
 BOOL upgrade_users(void)
 {
@@ -75,8 +74,6 @@ BOOL upgrade_users(void)
 		return(FALSE);
 	}
 
-	fprintf(out,"%-*.*s\r\n",USER_REC_LEN,USER_REC_LEN,tabLineCreator(user_dat_columns));
-
 	total=lastuser(&scfg);
 	for(i=1;i<=total;i++) {
 		printf("\b\b\b\b\b%5u",i);
@@ -84,7 +81,7 @@ BOOL upgrade_users(void)
 		user.number=i;
 		if((ret=getuserdat(&scfg,&user))!=0) {
 			printf("\nError %d reading user.dat\n",ret);
-			return(FALSE);
+			continue;
 		}
 		/******************************************/
 		/* personal info */
@@ -196,477 +193,15 @@ BOOL upgrade_users(void)
 			,user.curdir
 			,user.curxtrn
 			);
-		//printf("reclen=%u\n",len);
-		if((ret=fprintf(out,"%-*.*s\r\n",USER_REC_LEN,USER_REC_LEN,rec))!=USER_REC_LINE_LEN) {
-			printf("!Error %d (errno: %d) writing %u bytes to user.tab\n"
-				,ret, errno, USER_REC_LINE_LEN);
-			return(FALSE);
-		}
+		printf("reclen=%u\n",len);
+		fprintf(out,"%s%*s\r\n",rec,USER_REC_LEN-len,"");
 	}
 	fclose(out);
 
-	printf("\n\tdata/user/user.dat -> %s (%u users)\n", outpath,total);
+	printf("\n%u user records converted\n",total);
 
 	return(TRUE);
 }
-
-typedef struct {
-	time_t	time;
-	ulong	ltoday;
-	ulong	ttoday;
-	ulong	uls;
-	ulong	ulb;
-	ulong	dls;
-	ulong	dlb;
-	ulong	ptoday;
-	ulong	etoday;
-	ulong	ftoday;
-} csts_t;
-
-BOOL upgrade_stats(void)
-{
-	char	inpath[MAX_PATH+1];
-	char	outpath[MAX_PATH+1];
-	BOOL	success;
-	ulong	count;
-	time_t	t;
-	stats_t	stats;
-	FILE*	in;
-	FILE*	out;
-	csts_t	csts;
-	str_list_t	list;
-
-	printf("Upgrading statistics data...\n");
-
-    sprintf(inpath,"%sdsts.dab",scfg.ctrl_dir);
-	printf("\t%s ",inpath);
-	if((in=fopen(inpath,"rb"))==NULL) {
-		perror(inpath);
-		return(FALSE);
-	}
-	fread(&t,sizeof(t),1,in);
-    fread(&stats,sizeof(stats),1,in);
-    fclose(in);
-
-	sprintf(outpath,"%sstats.dat",scfg.ctrl_dir);
-	if(!overwrite(outpath))
-		return(TRUE);
-	if((out=fopen(outpath,"w"))==NULL) {
-		perror(outpath);
-		return(FALSE);
-	}
-
-	if((list = strListInit())==NULL) {
-		printf("!malloc failure\n");
-		return(FALSE);
-	}
-
-	iniSetHexInt(&list,  ROOT_SECTION	,"TimeStamp"	,t				,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Logons"		,stats.logons	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"LogonsToday"	,stats.ltoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Timeon"		,stats.timeon	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"TimeonToday"	,stats.ttoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Uploads"		,stats.uls		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"UploadBytes"	,stats.ulb		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Downloads"	,stats.dls		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"DownloadBytes",stats.dlb		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"PostsToday"	,stats.ptoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"EmailToday"	,stats.etoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"FeedbackToday",stats.ftoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"NewUsersToday",stats.nusers	,NULL);
-
-	success=iniWriteFile(out, list);
-
-	fclose(out);
-	strListFree(&list);
-	printf("-> %s\n", outpath);
-
-	if(!success) {
-		printf("!iniWriteFile failure\n");
-		return(FALSE);
-	}
-
-    sprintf(inpath,"%scsts.dab",scfg.ctrl_dir);
-	printf("\t%s ",inpath);
-	if((in=fopen(inpath,"rb"))==NULL) {
-		perror(inpath);
-		return(FALSE);
-	}
-
-	sprintf(outpath,"%sstats.tab",scfg.ctrl_dir);
-	if(!overwrite(outpath))
-		return(TRUE);
-	if((out=fopen(outpath,"w"))==NULL) {
-		perror(outpath);
-		return(FALSE);
-	}
-#if 0
-	fprintf(out,"Time Stamp\tLogons\tTimeon\tUploaded Files\tUploaded Bytes\t"
-				"Downloaded Files\tDownloaded Bytes\tPosts\tEmail Sent\tFeedback Sent\r\n");
-#else
-	fprintf(out,"%s\n",tabLineCreator(stats_dat_columns));
-#endif
-
-	count=0;
-	while(!feof(in)) {
-		if(fread(&csts,1,sizeof(csts),in)!=sizeof(csts))
-			break;
-		fprintf(out,"%lx\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t\n"
-			,csts.time
-			,csts.ltoday
-			,csts.ttoday
-			,csts.uls
-			,csts.ulb
-			,csts.dls
-			,csts.dlb
-			,csts.ptoday
-			,csts.etoday
-			,csts.ftoday
-			);
-		count++;
-	}
-	fclose(in);
-	fclose(out);
-	printf("-> %s (%u days)\n", outpath, count);
-
-	return(success);
-}
-
-BOOL upgrade_event_data(void)
-{
-	char	inpath[MAX_PATH+1];
-	char	outpath[MAX_PATH+1];
-	BOOL	success;
-	FILE*	in;
-	FILE*	out;
-	size_t	i;
-	time_t	t;
-	str_list_t	list;
-
-	printf("Upgrading event data...\n");
-
-	sprintf(outpath,"%sevent.dat",scfg.ctrl_dir);
-	if(!overwrite(outpath))
-		return(TRUE);
-	if((out=fopen(outpath,"w"))==NULL) {
-		perror(outpath);
-		return(FALSE);
-	}
-
-	if((list = strListInit())==NULL) {
-		printf("!malloc failure\n");
-		return(FALSE);
-	}
-
-	// Read TIME.DAB
-	sprintf(inpath,"%stime.dab",scfg.ctrl_dir);
-	printf("\t%s ",inpath);
-	if((in=fopen(inpath,"rb"))==NULL) {
-		perror("open failure");
-		return(FALSE);
-	}
-	for(i=0;i<scfg.total_events;i++) {
-		t=0;
-		fread(&t,1,sizeof(t),in);
-		iniSetHexInt(&list, "Events", scfg.event[i]->code, t, NULL);
-	}
-	t=0;
-	fread(&t,1,sizeof(t),in);
-	iniSetHexInt(&list,ROOT_SECTION,"QWKPrePack",t,NULL);
-	fclose(in);
-
-	printf("-> %s (%u timed events)\n", outpath, i);
-
-	// Read QNET.DAB
-	sprintf(inpath,"%sqnet.dab",scfg.ctrl_dir);
-	printf("\t%s ",inpath);
-	i=0;
-	if((in=fopen(inpath,"rb"))==NULL)
-		perror("open failure");
-	else {
-		for(i=0;i<scfg.total_qhubs;i++) {
-			t=0;
-			fread(&t,1,sizeof(t),in);
-			iniSetHexInt(&list,"QWKNetworkHubs",scfg.qhub[i]->id,t,NULL);
-		}
-		fclose(in);
-	}
-	printf("-> %s (%u QWKnet hubs)\n", outpath, i);
-
-	success=iniWriteFile(out, list);
-
-	fclose(out);
-	strListFree(&list);
-
-	if(!success) {
-		printf("!iniWriteFile failure\n");
-		return(FALSE);
-	}
-
-	return(success);
-}
-
-BOOL upgrade_ip_filters(void)
-{
-	char	inpath[MAX_PATH+1];
-	char	outpath[MAX_PATH+1];
-	char	msgpath[MAX_PATH+1];
-	char	str[INI_MAX_VALUE_LEN];
-	char	estr[INI_MAX_VALUE_LEN];
-	char*	p;
-	FILE*	in;
-	FILE*	out;
-	BOOL	success;
-	size_t	i;
-	size_t	total;
-	str_list_t	inlist;
-	str_list_t	outlist;
-
-	printf("Upgrading IP Address filters...\n");
-
-	sprintf(outpath,"%sip-filter.ini",scfg.ctrl_dir);
-	if(!overwrite(outpath))
-		return(TRUE);
-	if((out=fopen(outpath,"w"))==NULL) {
-		perror(outpath);
-		return(FALSE);
-	}
-
-	if((outlist = strListInit())==NULL) {
-		printf("!malloc failure\n");
-		return(FALSE);
-	}
-
-	/* Read the message file (if present) */
-	sprintf(msgpath,"%sbadip.msg",scfg.text_dir);
-	if(fexist(msgpath)) {
-		printf("\t%s ",msgpath);
-
-		if((in=fopen(msgpath,"r"))==NULL) {
-			perror("open failure");
-			return(FALSE);
-		}
-
-		i=fread(str,1,INI_MAX_VALUE_LEN,in);
-		str[i]=0;
-		truncsp(str);
-		fclose(in);
-
-		if(strlen(str)) {
-			c_escape_str(str,estr,sizeof(estr),/* ctrl_only? */TRUE);
-			iniSetString(&outlist,ROOT_SECTION,"Message",estr,NULL);
-		}
-
-		printf("-> %s\n", outpath);
-	}
-
-	sprintf(inpath,"%sip.can",scfg.text_dir);
-	printf("\t%s ",inpath);
-	if((in=fopen(inpath,"r"))==NULL) {
-		perror("open failure");
-		return(FALSE);
-	}
-
-	if((inlist = strListReadFile(in,NULL,4096))==NULL) {
-		printf("!failure reading %s\n",inpath);
-		return(FALSE);
-	}
-
-	total=0;
-	for(i=0;inlist[i]!=NULL;i++) {
-		p=truncsp(inlist[i]);
-		SKIP_WHITESPACE(p);
-		if(*p==';')
-			strListPush(&outlist,p);
-		else if(*p) {
-			iniAddSection(&outlist,p,NULL);
-			total++;
-		}
-	}
-
-	printf("-> %s (%u IP Addresses)\n", outpath, total);
-	fclose(in);
-	strListFreeStrings(inlist);
-
-	sprintf(inpath,"%sip-silent.can",scfg.text_dir);
-	printf("\t%s ",inpath);
-	if((in=fopen(inpath,"r"))==NULL) {
-		perror("open failure");
-		return(FALSE);
-	}
-
-	if((inlist = strListReadFile(in,NULL,4096))==NULL) {
-		printf("!failure reading %s\n",inpath);
-		return(FALSE);
-	}
-
-	total=0;
-	for(i=0;inlist[i]!=NULL;i++) {
-		p=truncsp(inlist[i]);
-		SKIP_WHITESPACE(p);
-		if(*p==';')
-			strListPush(&outlist,p);
-		else if(*p) {
-			iniSetBool(&outlist,p,"Silent",TRUE,NULL);
-			total++;
-		}
-	}
-
-	printf("-> %s (%u IP Addresses)\n", outpath, total);
-	fclose(in);
-	strListFree(&inlist);
-
-	success=iniWriteFile(out, outlist);
-
-	fclose(out);
-
-	if(!success) {
-		printf("!iniWriteFile failure\n");
-		return(FALSE);
-	}
-
-	printf("\tFiltering %u total IP Addresses\n", iniGetSectionCount(outlist,NULL));
-
-	strListFree(&outlist);
-
-	return(success);
-}
-
-BOOL upgrade_filter(const char* desc, const char* inpath, const char* msgpath, const char* outpath)
-{
-	char*	p;
-	char	str[INI_MAX_VALUE_LEN];
-	char	estr[INI_MAX_VALUE_LEN];
-	FILE*	in;
-	FILE*	out;
-	BOOL	success;
-	size_t	i;
-	size_t	total;
-	str_list_t	inlist;
-	str_list_t	outlist;
-
-	printf("Upgrading %s filters...\n",desc);
-
-	if(!overwrite(outpath))
-		return(TRUE);
-	if((out=fopen(outpath,"w"))==NULL) {
-		perror(outpath);
-		return(FALSE);
-	}
-
-	if((outlist = strListInit())==NULL) {
-		printf("!malloc failure\n");
-		return(FALSE);
-	}
-
-	/* Read the message file (if present) */
-	if(msgpath!=NULL && fexist(msgpath)) {
-		printf("\t%s ",msgpath);
-
-		if((in=fopen(msgpath,"r"))==NULL) {
-			perror("open failure");
-			return(FALSE);
-		}
-
-		i=fread(str,1,INI_MAX_VALUE_LEN,in);
-		str[i]=0;
-		truncsp(str);
-		fclose(in);
-
-		if(strlen(str)) {
-			c_escape_str(str,estr,sizeof(estr),/* ctrl_only? */TRUE);
-			iniSetString(&outlist,ROOT_SECTION,"Message",estr,NULL);
-		}
-
-		printf("-> %s\n", outpath);
-	}
-
-	printf("\t%s ",inpath);
-	if((in=fopen(inpath,"r"))==NULL) {
-		perror("open failure");
-		return(FALSE);
-	}
-
-	if((inlist = strListReadFile(in,NULL,4096))==NULL) {
-		printf("!failure reading %s\n",inpath);
-		return(FALSE);
-	}
-
-	total=0;
-	for(i=0;inlist[i]!=NULL;i++) {
-		p=truncsp(inlist[i]);
-		SKIP_WHITESPACE(p);
-		if(*p==';')
-			strListPush(&outlist,p);
-		else if(*p) {
-			iniAddSection(&outlist,p,NULL);
-			total++;
-		}
-	}
-
-	printf("-> %s (%u %ss)\n", outpath, total, desc);
-	fclose(in);
-	strListFree(&inlist);
-
-	success=iniWriteFile(out, outlist);
-
-	fclose(out);
-
-	if(!success) {
-		printf("!iniWriteFile failure\n");
-		return(FALSE);
-	}
-
-	printf("\tFiltering %u total %ss\n", iniGetSectionCount(outlist,NULL),desc);
-
-	strListFree(&outlist);
-
-	return(success);
-}
-
-
-BOOL upgrade_filters()
-{
-	char	inpath[MAX_PATH+1];
-	char	outpath[MAX_PATH+1];
-	char	msgpath[MAX_PATH+1];
-
-	if(!upgrade_ip_filters())
-		return(FALSE);
-
-	sprintf(inpath,"%shost.can",scfg.text_dir);
-	sprintf(msgpath,"%sbadhost.msg",scfg.text_dir);
-	sprintf(outpath,"%shost-filter.ini",scfg.ctrl_dir);
-	if(!upgrade_filter("Hostname",inpath,msgpath,outpath))
-		return(FALSE);
-
-	sprintf(inpath,"%semail.can",scfg.text_dir);
-	sprintf(msgpath,"%sbademail.msg",scfg.text_dir);
-	sprintf(outpath,"%semail-filter.ini",scfg.ctrl_dir);
-	if(!upgrade_filter("E-mail Address",inpath,msgpath,outpath))
-		return(FALSE);
-
-	sprintf(inpath,"%sname.can",scfg.text_dir);
-	sprintf(msgpath,"%sbadname.msg",scfg.text_dir);
-	sprintf(outpath,"%sname-filter.ini",scfg.ctrl_dir);
-	if(!upgrade_filter("User Name",inpath,msgpath,outpath))
-		return(FALSE);
-
-	sprintf(inpath,"%sphone.can",scfg.text_dir);
-	sprintf(msgpath,"%sbadphone.msg",scfg.text_dir);
-	sprintf(outpath,"%sphone-filter.ini",scfg.ctrl_dir);
-	if(!upgrade_filter("Phone Number",inpath,msgpath,outpath))
-		return(FALSE);
-
-	sprintf(inpath,"%ssubject.can",scfg.text_dir);
-	sprintf(msgpath,"%sbadsubject.msg",scfg.text_dir);
-	sprintf(outpath,"%ssubject-filter.ini",scfg.ctrl_dir);
-	if(!upgrade_filter("Message Subject",inpath,msgpath,outpath))
-		return(FALSE);
-
-	return(TRUE);
-}
-
 
 char *usage="\nusage: v4upgrade [ctrl_dir]\n";
 
@@ -677,7 +212,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.1 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
@@ -710,19 +245,5 @@ int main(int argc, char** argv)
 	if(!upgrade_users())
 		return(1);
 
-	if(!upgrade_stats())
-		return(2);
-
-	if(!upgrade_event_data())
-		return(3);
-
-	if(!upgrade_filters())
-		return(4);
-	
-	// alias.cfg
-	// domains.cfg
-	// ftpalias.cfg
-
-	printf("Upgrade successful.\n");
     return(0);
 }
