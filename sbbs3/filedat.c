@@ -2,13 +2,13 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.25 2005/05/13 07:41:17 rswindell Exp $ */
+/* $Id: filedat.c,v 1.23 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,11 +44,11 @@
 /****************************************************************************/
 BOOL DLLCALL getfiledat(scfg_t* cfg, file_t* f)
 {
-	char buf[F_LEN+1],str[MAX_PATH+1];
+	char buf[F_LEN+1],str[256];
 	int file;
 	long length;
 
-	SAFEPRINTF2(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_RDONLY|O_BINARY,SH_DENYWR))==-1) {
 		return(FALSE); 
 	}
@@ -109,7 +109,7 @@ BOOL DLLCALL getfiledat(scfg_t* cfg, file_t* f)
 /****************************************************************************/
 BOOL DLLCALL putfiledat(scfg_t* cfg, file_t* f)
 {
-    char buf[F_LEN+1],str[MAX_PATH+1],tmp[128];
+    char buf[F_LEN+1],str[256],tmp[128];
     int file;
     long length;
 
@@ -125,7 +125,7 @@ BOOL DLLCALL putfiledat(scfg_t* cfg, file_t* f)
 	buf[F_MISC]=f->misc+' ';
 	putrec(buf,F_ALTPATH,2,hexplus(f->altpath,tmp));
 	putrec(buf,F_ALTPATH+2,2,crlf);
-	SAFEPRINTF2(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_WRONLY|O_BINARY,SH_DENYRW))==-1) {
 		return(FALSE); 
 	}
@@ -158,7 +158,7 @@ BOOL DLLCALL putfiledat(scfg_t* cfg, file_t* f)
 /****************************************************************************/
 BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 {
-	char	str[MAX_PATH+1],fname[13],c,fdat[F_LEN+1];
+	char	str[256],fname[13],c,fdat[F_LEN+1];
 	char	tmp[128];
 	uchar	HUGE16 *ixbbuf,idx[3];
     int		i,file;
@@ -169,7 +169,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	/************************/
 	/* Add data to DAT File */
 	/************************/
-	SAFEPRINTF2(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_RDWR|O_BINARY|O_CREAT,SH_DENYRW,S_IREAD|S_IWRITE))==-1) {
 		return(FALSE); 
 	}
@@ -221,7 +221,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	/*******************************************/
 	/* Update last upload date/time stamp file */
 	/*******************************************/
-	SAFEPRINTF2(str,"%s%s.dab",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.dab",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_WRONLY|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))!=-1) {
 		now=time(NULL);
 		write(file,&now,4);
@@ -231,10 +231,10 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	/************************/
 	/* Add data to IXB File */
 	/************************/
-	SAFECOPY(fname,f->name);
+	strcpy(fname,f->name);
 	for(i=8;i<12;i++)   /* Turn FILENAME.EXT into FILENAMEEXT */
 		fname[i]=fname[i+1];
-	SAFEPRINTF2(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))==-1) {
 		return(FALSE); 
 	}
@@ -325,12 +325,12 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 /****************************************************************************/
 BOOL DLLCALL getfileixb(scfg_t* cfg, file_t* f)
 {
-	char			str[MAX_PATH+1],fname[13];
+	char			str[256],fname[13];
 	uchar HUGE16 *	ixbbuf;
 	int				file;
 	long			l,length;
 
-	SAFEPRINTF2(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_RDONLY|O_BINARY,SH_DENYWR))==-1) {
 		return(FALSE); 
 	}
@@ -349,11 +349,11 @@ BOOL DLLCALL getfileixb(scfg_t* cfg, file_t* f)
 		return(FALSE); 
 	}
 	close(file);
-	SAFECOPY(fname,f->name);
+	strcpy(fname,f->name);
 	for(l=8;l<12;l++)	/* Turn FILENAME.EXT into FILENAMEEXT */
 		fname[l]=fname[l+1];
 	for(l=0;l<length;l+=F_IXBSIZE) {
-		SAFEPRINTF(str,"%11.11s",ixbbuf+l);
+		sprintf(str,"%11.11s",ixbbuf+l);
 		if(!stricmp(str,fname))
 			break; 
 	}
@@ -376,14 +376,14 @@ BOOL DLLCALL getfileixb(scfg_t* cfg, file_t* f)
 /****************************************************************************/
 BOOL DLLCALL removefiledat(scfg_t* cfg, file_t* f)
 {
-	char	c,str[MAX_PATH+1],ixbname[12],HUGE16 *ixbbuf,fname[13];
+	char	c,str[256],ixbname[12],HUGE16 *ixbbuf,fname[13];
     int		i,file;
 	long	l,length;
 
-	SAFECOPY(fname,f->name);
+	strcpy(fname,f->name);
 	for(i=8;i<12;i++)   /* Turn FILENAME.EXT into FILENAMEEXT */
 		fname[i]=fname[i+1];
-	SAFEPRINTF2(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_RDONLY|O_BINARY,SH_DENYWR))==-1) {
 		return(FALSE); 
 	}
@@ -418,7 +418,7 @@ BOOL DLLCALL removefiledat(scfg_t* cfg, file_t* f)
 	}
 	FREE((char *)ixbbuf);
 	close(file);
-	SAFEPRINTF2(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_WRONLY|O_BINARY,SH_DENYRW))==-1) {
 		return(FALSE); 
 	}
@@ -441,15 +441,15 @@ BOOL DLLCALL removefiledat(scfg_t* cfg, file_t* f)
 /****************************************************************************/
 BOOL DLLCALL findfile(scfg_t* cfg, uint dirnum, char *filename)
 {
-	char str[MAX_PATH+1],fname[13],HUGE16 *ixbbuf;
+	char str[256],fname[13],HUGE16 *ixbbuf;
     int i,file;
     long length,l;
 
-	SAFECOPY(fname,filename);
+	sprintf(fname,"%.12s",filename);
 	strupr(fname);
 	for(i=8;i<12;i++)   /* Turn FILENAME.EXT into FILENAMEEXT */
 		fname[i]=fname[i+1];
-	SAFEPRINTF2(str,"%s%s.ixb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
+	sprintf(str,"%s%s.ixb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
 	if((file=sopen(str,O_RDONLY|O_BINARY,SH_DENYWR))==-1) return(FALSE);
 	length=filelength(file);
 	if(!length) {
@@ -519,11 +519,11 @@ char* DLLCALL unpadfname(char *filename, char *str)
 /****************************************************************************/
 BOOL DLLCALL rmuserxfers(scfg_t* cfg, int fromuser, int destuser, char *fname)
 {
-    char str[MAX_PATH+1],*ixtbuf;
+    char str[256],*ixtbuf;
     int file;
     long l,length;
 
-	SAFEPRINTF(str,"%sxfer.ixt", cfg->data_dir);
+	sprintf(str,"%sxfer.ixt", cfg->data_dir);
 	if(!fexist(str))
 		return(FALSE);
 	if(!flength(str)) {
@@ -577,11 +577,11 @@ BOOL DLLCALL rmuserxfers(scfg_t* cfg, int fromuser, int destuser, char *fname)
 
 void DLLCALL getextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext)
 {
-	char str[MAX_PATH+1];
+	char str[256];
 	int file;
 
 	memset(ext,0,F_EXBSIZE+1);
-	SAFEPRINTF2(str,"%s%s.exb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
+	sprintf(str,"%s%s.exb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
 	if((file=nopen(str,O_RDONLY))==-1)
 		return;
 	lseek(file,(datoffset/F_LEN)*F_EXBSIZE,SEEK_SET);
@@ -591,12 +591,12 @@ void DLLCALL getextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext)
 
 void DLLCALL putextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext)
 {
-	char str[MAX_PATH+1],nulbuf[F_EXBSIZE];
+	char str[256],nulbuf[F_EXBSIZE];
 	int file;
 
 	strip_invalid_attr(ext);	/* eliminate bogus ctrl-a codes */
 	memset(nulbuf,0,sizeof(nulbuf));
-	SAFEPRINTF2(str,"%s%s.exb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
+	sprintf(str,"%s%s.exb",cfg->dir[dirnum]->data_dir,cfg->dir[dirnum]->code);
 	if((file=nopen(str,O_WRONLY|O_CREAT))==-1)
 		return;
 	lseek(file,0L,SEEK_END);
@@ -612,14 +612,14 @@ void DLLCALL putextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext)
 /****************************************************************************/
 int DLLCALL update_uldate(scfg_t* cfg, file_t* f)
 {
-	char str[MAX_PATH+1],fname[13];
+	char str[256],fname[13];
 	int i,file;
 	long l,length;
 
 	/*******************/
 	/* Update IXB File */
 	/*******************/
-	SAFEPRINTF2(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=nopen(str,O_RDWR))==-1)
 		return(errno); 
 	length=filelength(file);
@@ -627,7 +627,7 @@ int DLLCALL update_uldate(scfg_t* cfg, file_t* f)
 		close(file);
 		return(-1); 
 	}
-	SAFECOPY(fname,f->name);
+	strcpy(fname,f->name);
 	for(i=8;i<12;i++)   /* Turn FILENAME.EXT into FILENAMEEXT */
 		fname[i]=fname[i+1];
 	for(l=0;l<length;l+=F_IXBSIZE) {
@@ -645,7 +645,7 @@ int DLLCALL update_uldate(scfg_t* cfg, file_t* f)
 	/*******************************************/
 	/* Update last upload date/time stamp file */
 	/*******************************************/
-	SAFEPRINTF2(str,"%s%s.dab",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
+	sprintf(str,"%s%s.dab",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=nopen(str,O_WRONLY|O_CREAT))==-1)
 		return(errno);
 
@@ -663,9 +663,9 @@ char* DLLCALL getfilepath(scfg_t* cfg, file_t* f, char* path)
 
 	unpadfname(f->name,fname);
 	if(f->dir>=cfg->total_dirs)
-		safe_snprintf(path,MAX_PATH,"%s%s",cfg->temp_dir,fname);
+		sprintf(path,"%s%s",cfg->temp_dir,fname);
 	else
-		safe_snprintf(path,MAX_PATH,"%s%s",f->altpath>0 && f->altpath<=cfg->altpaths 
+		sprintf(path,"%s%s",f->altpath>0 && f->altpath<=cfg->altpaths 
 			? cfg->altpath[f->altpath-1] : cfg->dir[f->dir]->path
 			,fname);
 
