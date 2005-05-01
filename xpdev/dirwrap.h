@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.31 2005/05/20 01:11:59 deuce Exp $ */
+/* $Id: dirwrap.h,v 1.30 2004/10/28 22:00:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,8 +62,6 @@ extern "C" {
 #if defined(__unix__)
 
 	#define ALLFILES "*"	/* matches all files in a directory */
-	#include <sys/types.h>
-	#include <sys/stat.h>
 	#include <glob.h>		/* POSIX.2 directory pattern matching function */
 	#define MKDIR(dir)		mkdir(dir,0777)
 
