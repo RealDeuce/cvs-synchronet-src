@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.312 2005/04/21 06:44:38 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.313 2005/05/01 04:10:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1221,7 +1221,7 @@ static BOOL check_ars(http_session_t * session)
 		/* Should go to the hack log? */
 		if(scfg.sys_misc&SM_ECHO_PW)
 			lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s: '%s' expected '%s'"
-				,session->socket,username,password,session->user.pass);
+				,session->socket,username,password,thisuser.pass);
 		else
 			lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s"
 				,session->socket,username);
@@ -3408,7 +3408,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.312 $", "%*s %s", revision);
+	sscanf("$Revision: 1.313 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
