@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.108 2005/05/01 06:12:14 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.109 2005/05/02 22:06:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,6 +107,13 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 	iniFileName(ini_file,MAX_PATH,ctrl_dir,"startup.ini");
 }
 
+static sbbs_fix_js_settings(js_startup_t* js)
+{
+	/* Some sanity checking here */
+	if(js->max_bytes==0)	js->max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(js->cx_stack==0)		js->cx_stack=JAVASCRIPT_CONTEXT_STACK;
+}
+
 void sbbs_read_js_settings(
 	 FILE* fp
 	,const char* section
@@ -119,6 +126,8 @@ void sbbs_read_js_settings(
 	js->branch_limit	= iniReadInteger(fp,section,strJavaScriptBranchLimit	,defaults->branch_limit);
 	js->gc_interval		= iniReadInteger(fp,section,strJavaScriptGcInterval		,defaults->gc_interval);
 	js->yield_interval	= iniReadInteger(fp,section,strJavaScriptYieldInterval	,defaults->yield_interval);
+
+	sbbs_fix_js_settings(js);
 }
 
 BOOL sbbs_set_js_settings(
@@ -140,6 +149,8 @@ BOOL sbbs_set_js_settings(
 
 	if(defaults==NULL)
 		defaults=&global_defaults;
+
+	sbbs_fix_js_settings(js);
 
 	if(js->max_bytes==defaults->max_bytes)
 		iniRemoveValue(lp,section,strJavaScriptMaxBytes);
