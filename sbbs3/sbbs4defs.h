@@ -2,7 +2,7 @@
 
 /* Synchronet v4 constants, macros, and structure definitions */
 
-/* $Id: sbbs4defs.h,v 1.2 2005/04/29 10:33:31 rswindell Exp $ */
+/* $Id: sbbs4defs.h,v 1.3 2005/05/03 02:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #ifndef _SBBS4DEFS_H
 #define _SBBS4DEFS_H
 
-#define USER_REC_LEN		998					/* does not include CRLF terminator */
-#define USER_REC_LINE_LEN	(USER_REC_LEN+2)	/* includes CRLF terminator */
+#define USER_REC_LINE_LEN	1000					/* includes CRLF terminator */
+#define USER_REC_LEN		(USER_REC_LINE_LEN-2)	/* does not include CRLF */
 
 #endif /* Don't add anything after this #endif statement */
