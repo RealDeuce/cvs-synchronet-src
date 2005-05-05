@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.5 2005/05/03 09:21:44 rswindell Exp $ */
+/* $Id: v4upgrade.c,v 1.6 2005/05/05 02:01:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
 #include "sbbs.h"
 #include "sbbs4defs.h"
 #include "ini_file.h"
+#include "dat_file.h"
 
 scfg_t scfg;
 BOOL overwrite_existing_files=TRUE;
@@ -53,7 +54,6 @@ BOOL overwrite(const char* path)
 
 	return(TRUE);
 }
-
 
 BOOL upgrade_users(void)
 {
@@ -74,6 +74,8 @@ BOOL upgrade_users(void)
 		perror(outpath);
 		return(FALSE);
 	}
+
+	fprintf(out,"%-*.*s\r\n",USER_REC_LEN,USER_REC_LEN,tabLineCreator(user_dat_columns));
 
 	total=lastuser(&scfg);
 	for(i=1;i<=total;i++) {
@@ -195,7 +197,7 @@ BOOL upgrade_users(void)
 			,user.curxtrn
 			);
 		//printf("reclen=%u\n",len);
-		if((ret=fprintf(out,"%*s\r\n",USER_REC_LEN,rec))!=USER_REC_LINE_LEN) {
+		if((ret=fprintf(out,"%-*.*s\r\n",USER_REC_LEN,USER_REC_LEN,rec))!=USER_REC_LINE_LEN) {
 			printf("!Error %d (errno: %d) writing %u bytes to user.tab\n"
 				,ret, errno, USER_REC_LINE_LEN);
 			return(FALSE);
@@ -298,14 +300,18 @@ BOOL upgrade_stats(void)
 		perror(outpath);
 		return(FALSE);
 	}
+#if 0
 	fprintf(out,"Time Stamp\tLogons\tTimeon\tUploaded Files\tUploaded Bytes\t"
 				"Downloaded Files\tDownloaded Bytes\tPosts\tEmail Sent\tFeedback Sent\r\n");
+#else
+	fprintf(out,"%s\n",tabLineCreator(stats_dat_columns));
+#endif
 
 	count=0;
 	while(!feof(in)) {
 		if(fread(&csts,1,sizeof(csts),in)!=sizeof(csts))
 			break;
-		fprintf(out,"%lx\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t\r\n"
+		fprintf(out,"%lx\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t\n"
 			,csts.time
 			,csts.ltoday
 			,csts.ttoday
@@ -671,7 +677,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.5 $", "%*s %s", revision);
+	sscanf("$Revision: 1.6 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
