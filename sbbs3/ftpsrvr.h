@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.43 2005/05/07 01:15:33 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.42 2005/04/21 06:44:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,9 +49,6 @@ typedef struct {
 	WORD	qwk_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
     DWORD   interface_addr;
-	DWORD	pasv_ip_addr;
-	WORD	pasv_port_low;
-	WORD	pasv_port_high;
     DWORD	options;			/* See FTP_OPT definitions */
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
