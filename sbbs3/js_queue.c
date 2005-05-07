@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.9 2004/12/30 10:59:16 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.11 2005/05/07 18:09:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -247,6 +247,7 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 					break;
 			}
 			v=js_encode_value(cx,JSVAL_VOID,NULL,v,count);	/* terminate object */
+			JS_DestroyIdArray(cx,id_array);
 			break;
 		default:
 			if(JSVAL_IS_NUMBER(val)) {
@@ -410,11 +411,13 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 
 	*rval = JSVAL_VOID;
 
+#if 0	/* This doesn't appear to be doing anything but leaking memory */
 	if((q=(msg_queue_t*)malloc(sizeof(msg_queue_t)))==NULL) {
 		JS_ReportError(cx,"malloc failed");
 		return(JS_FALSE);
 	}
 	memset(q,0,sizeof(msg_queue_t));
+#endif
 
 	if(argn<argc && JSVAL_IS_STRING(argv[argn]))
 		name=JS_GetStringBytes(JS_ValueToString(cx,argv[argn++]));
