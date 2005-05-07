@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.293 2005/05/07 01:15:33 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.294 2005/05/07 03:37:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2338,6 +2338,7 @@ static void ctrl_thread(void* arg)
 	BOOL		local_fsys=FALSE;
 	BOOL		alias_dir;
 	BOOL		append;
+	BOOL		reuseaddr;
 	FILE*		fp;
 	FILE*		alias_fp;
 	SOCKET		sock;
@@ -2873,6 +2874,14 @@ static void ctrl_thread(void* arg)
 			if((pasv_sock=ftp_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
 				lprintf(LOG_WARNING,"%04d !PASV ERROR %d opening socket", sock,ERROR_VALUE);
 				sockprintf(sock,"425 Error %d opening PASV data socket", ERROR_VALUE);
+				continue;
+			}
+
+			reuseaddr=FALSE;
+			if((result=setsockopt(pasv_sock,SOL_SOCKET,SO_REUSEADDR,(char*)&reuseaddr,sizeof(reuseaddr)))!=0) {
+				lprintf(LOG_WARNING,"%04d !PASV ERROR %d disabling REUSEADDR socket option"
+					,sock,ERROR_VALUE);
+				sockprintf(sock,"425 Error %d disabling REUSEADDR socket option", ERROR_VALUE);
 				continue;
 			}
 
@@ -4498,7 +4507,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.293 $", "%*s %s", revision);
+	sscanf("$Revision: 1.294 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
