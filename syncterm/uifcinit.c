@@ -1,5 +1,3 @@
-/* $Id: uifcinit.c,v 1.12 2005/06/13 00:28:15 rswindell Exp $ */
-
 #include <gen_defs.h>
 #include <stdio.h>
 
