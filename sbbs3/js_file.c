@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.81 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: js_file.c,v 1.80 2005/05/06 08:09:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,6 +187,8 @@ js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
+
+	*rval = JSVAL_VOID;
 
 	if(p->fp==NULL)
 		return(JS_TRUE);
@@ -455,6 +457,8 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	jsval	dflt=argv[2];
 	private_t*	p;
 	JSObject*	array;
+
+	*rval = JSVAL_VOID;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
