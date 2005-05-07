@@ -192,16 +192,16 @@ object FtpCfgDlg: TFtpCfgDlg
         Width = 96
         Height = 25
         AutoSize = False
-        Caption = 'Port Range'
+        Caption = 'Data Port'
       end
       object PasvPortThroughLabel: TLabel
-        Left = 152
+        Left = 160
         Top = 44
-        Width = 17
+        Width = 81
         Height = 25
         Alignment = taCenter
         AutoSize = False
-        Caption = '-'
+        Caption = 'through'
       end
       object PasvIpAddrEdit: TEdit
         Left = 105
@@ -226,7 +226,7 @@ object FtpCfgDlg: TFtpCfgDlg
         TabOrder = 1
       end
       object PasvPortHighEdit: TEdit
-        Left = 169
+        Left = 249
         Top = 44
         Width = 48
         Height = 24
