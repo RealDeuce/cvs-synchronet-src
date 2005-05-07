@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.182 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: services.c,v 1.180 2005/04/21 10:39:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,6 +281,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
+	*rval = JSVAL_VOID;
+
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	
@@ -306,6 +308,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
+
+	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -844,7 +848,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 #else
 
 		if(service_client->service->js_server_props.version[0]==0) {
-			SAFEPRINTF(service_client->service->js_server_props.version
+			sprintf(service_client->service->js_server_props.version
 				,"Synchronet Services %s",revision);
 			service_client->service->js_server_props.version_detail=
 				services_ver();
@@ -1523,7 +1527,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.182 $", "%*s %s", revision);
+	sscanf("$Revision: 1.180 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
