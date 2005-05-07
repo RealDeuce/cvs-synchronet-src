@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.294 2005/05/07 03:37:31 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.295 2005/05/07 08:17:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4507,7 +4507,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.294 $", "%*s %s", revision);
+	sscanf("$Revision: 1.295 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4678,6 +4678,21 @@ void DLLCALL ftp_server(void* arg)
 				startup->max_clients=10;
 		}
 		lprintf(LOG_DEBUG,"Maximum clients: %d",startup->max_clients);
+
+		/* Sanity-check the passive port range */
+		if(startup->pasv_port_low || startup->pasv_port_high) {
+			if(startup->pasv_port_low > startup->pasv_port_high
+				|| startup->pasv_port_high-startup->pasv_port_low < (startup->max_clients-1)) {
+				lprintf(LOG_WARNING,"!Correcting Passive Port Range (Low: %u, High: %u)"
+					,startup->pasv_port_low,startup->pasv_port_high);
+				if(startup->pasv_port_low)
+					startup->pasv_port_high = startup->pasv_port_low+(startup->max_clients-1);
+				else
+					startup->pasv_port_low = startup->pasv_port_high-(startup->max_clients-1);
+			}
+			lprintf(LOG_DEBUG,"Passive Port Low: %u",startup->pasv_port_low);
+			lprintf(LOG_DEBUG,"Passive Port High: %u",startup->pasv_port_high);
+		}
 
 		lprintf(LOG_DEBUG,"Maximum inactivity: %d seconds",startup->max_inactivity);
 
