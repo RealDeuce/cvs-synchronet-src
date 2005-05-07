@@ -1,10 +1,6 @@
-/* $Id: bbslist.h,v 1.15 2005/06/17 06:50:17 rswindell Exp $ */
-
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
 
-#include "gen_defs.h"
-#include "dirwrap.h"	/* MAX_PATH */
 #include <time.h>
 
 #define LIST_NAME_MAX	30
@@ -47,14 +43,10 @@ struct bbslist {
 	int				reversed;
 	int				screen_mode;
 	int				nostatus;
-	char			dldir[MAX_PATH];
-	char			uldir[MAX_PATH];
-	int				loglevel;
-	int				bpsrate;
 };
 
-struct bbslist *show_bbslist(char* listpath, int mode, char *home);
-void read_list(char *listpath, struct bbslist **list, int *i, int type, char* home);
+struct bbslist *show_bbslist(int mode,char *path);
+void read_list(char *listpath, struct bbslist **list, int *i, int type);
 void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
 

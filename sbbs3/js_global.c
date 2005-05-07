@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.149 2005/05/25 22:20:35 rswindell Exp $ */
+/* $Id: js_global.c,v 1.143 2005/03/13 05:43:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -52,7 +52,6 @@
 enum {
 	 GLOB_PROP_ERRNO
 	,GLOB_PROP_ERRNO_STR
-	,GLOB_PROP_SOCKET_ERRNO
 };
 
 static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -63,9 +62,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
-		case GLOB_PROP_SOCKET_ERRNO:
-			JS_NewNumberValue(cx,ERROR_VALUE,vp);
-			break;
 		case GLOB_PROP_ERRNO:
 			JS_NewNumberValue(cx,errno,vp);
 			break;
@@ -83,9 +79,8 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static struct JSPropertySpec js_global_properties[] = {
 /*		 name,		tinyid,				flags */
 
-	{	"errno"			,GLOB_PROP_ERRNO		,GLOBOBJ_FLAGS },
-	{	"errno_str"		,GLOB_PROP_ERRNO_STR	,GLOBOBJ_FLAGS },
-	{	"socket_errno"	,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS },
+	{	"errno",	GLOB_PROP_ERRNO,	GLOBOBJ_FLAGS },
+	{	"errno_str",GLOB_PROP_ERRNO_STR,GLOBOBJ_FLAGS },
 	{0}
 };
 
@@ -104,14 +99,11 @@ static void background_thread(void* arg)
 {
 	background_data_t* bg = (background_data_t*)arg;
 	jsval result=JSVAL_VOID;
-	jsval exit_code;
 
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
-	if(!JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result)
-		&& JS_GetProperty(bg->cx, bg->obj, "exit_code", &exit_code))
-		result=exit_code;
-	js_enqueue_value(bg->cx, bg->msg_queue, result, NULL);
+	if(JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result) && result!=JSVAL_VOID)
+		js_enqueue_value(bg->cx, bg->msg_queue, result, NULL);
 	JS_DestroyScript(bg->cx, bg->script);
 	JS_DestroyContext(bg->cx);
 	JS_DestroyRuntime(bg->runtime);
@@ -334,6 +326,7 @@ js_yield(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		MAYBE_YIELD();
 	}
 
+	*rval = JSVAL_VOID;
 	return(JS_TRUE);
 }
 
@@ -346,6 +339,7 @@ js_mswait(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[0],&val);
 	mswait(val);
 
+	*rval = JSVAL_VOID;
 	return(JS_TRUE);
 }
 
@@ -381,12 +375,14 @@ js_beep(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[1],&dur);
 
 	sbbs_beep(freq,dur);
+	*rval = JSVAL_VOID;
 	return(JS_TRUE);
 }
 
 static JSBool
 js_exit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	*rval = JSVAL_VOID;
 	if(argc)
 		JS_DefineProperty(cx, obj, "exit_code", argv[0]
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -1921,6 +1917,8 @@ js_getfext(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
 
+	*rval = JSVAL_VOID;
+
 	if((p=getfext(str))==NULL)
 		return(JS_TRUE);
 
@@ -1944,6 +1942,8 @@ js_getfcase(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((str=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_FALSE);
+
+	*rval = JSVAL_VOID;
 
 	SAFECOPY(path,str);
 	if(fexistcase(path)) {
@@ -2291,6 +2291,8 @@ js_freediskspace(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
+	*rval = JSVAL_VOID;
+
 	if((p=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
 		return(JS_TRUE);
 
@@ -2516,36 +2518,6 @@ js_list_named_queues(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 
     return(JS_TRUE);
 }
-
-static JSBool
-js_flags_str(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		p;
-	char		str[64];
-	jsdouble	d;
-	JSString*	js_str;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if(JSVAL_IS_STRING(argv[0])) {	/* string to long */
-
-		if((p=JS_GetStringBytes(JSVAL_TO_STRING(argv[0])))==NULL) 
-			return(JS_FALSE);
-
-		JS_NewNumberValue(cx,aftol(p),rval);
-		return(JS_TRUE);
-	}
-
-	/* number to string */
-	JS_ValueToNumber(cx,argv[0],&d);
-
-	if((js_str = JS_NewStringCopyZ(cx, ltoaf((long)d,str)))==NULL)
-		return(JS_FALSE);
-
-	*rval = STRING_TO_JSVAL(js_str);
-	return(JS_TRUE);
-}
 	
 static JSClass js_global_class = {
      "Global"				/* name			*/
@@ -2561,7 +2533,7 @@ static JSClass js_global_class = {
 };
 
 static jsSyncMethodSpec js_global_functions[] = {
-	{"exit",			js_exit,			0,	JSTYPE_VOID,	"[exit_code]"
+	{"exit",			js_exit,			0,	JSTYPE_VOID,	"[number exit_code]"
 	,JSDOCSTR("stop script execution, "
 		"optionally setting the global property <tt>exit_code</tt> to the specified numeric value")
 	,311
@@ -2578,10 +2550,9 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"(in a child thread) but may communicate with the parent "
 		"script/thread by reading from and/or writing to the <i>parent_queue</i> "
 		"(an automatically created <i>Queue</i> object). " 
-		"The result (last executed statement) of the executed script "
-		"(or the optional <i>exit_code</i> passed to the <i>exit()/<i> function) "
-		"will be automatically written to the <i>parent_queue</i> "
-		"which may be read later by the parent script (using <i>load_result.read()</i>, for example).")
+		"The result (last executed statement) of the executed script will also be automatically "
+		"written to the <i>parent_queue</i> "
+		"which may be read later by the parent script.")
 	,312
 	},		
 	{"sleep",			js_mswait,			0,	JSTYPE_ALIAS },
@@ -2617,7 +2588,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,311
 	},
 	{"ascii",			js_ascii,			1,	JSTYPE_UNDEF,	JSDOCSTR("[string text] or [number value]")
-	,JSDOCSTR("convert single character to numeric ASCII value or vice-versa (returns number OR string)")
+	,JSDOCSTR("convert string to ASCII value or vice-versa (returns number OR string)")
 	,310
 	},		
 	{"ascii_str",		js_ascii_str,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
@@ -2824,11 +2795,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("returns an array of <i>named queues</i> (created with the <i>Queue</i> constructor)")
 	,312
 	},
-	{"flags_str",		js_flags_str,		1,	JSTYPE_UNDEF,	JSDOCSTR("[string text] or [number value]")
-	,JSDOCSTR("convert a string of security flags (letters) into their numeric value or vice-versa "
-	"(returns number OR string) - (added in v3.12b)")
-	,312
-	},
+
 	{0}
 };
 
