@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for xpdel wrappers
 
-# $Id: targets.mk,v 1.8 2005/04/29 22:41:55 deuce Exp $
+# $Id: targets.mk,v 1.9 2005/05/07 18:38:30 deuce Exp $
 
 # ODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -13,6 +13,8 @@ XPDEV_SHLIB_BUILD	= $(LIBODIR)$(DIRSEP)$(LIBPREFIX)xpdev$(SOFILE)
 XPDEV-MT_SHLIB_BUILD	= $(LIBODIR)$(DIRSEP)$(LIBPREFIX)xpdev_mt$(SOFILE)
 
 all: lib mtlib
+
+tests: $(WRAPTEST)
 
 dl: dl-lib dl-mtlib
 
