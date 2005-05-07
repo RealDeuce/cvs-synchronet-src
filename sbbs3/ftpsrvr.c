@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.295 2005/05/07 08:17:33 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.296 2005/05/07 08:51:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2866,7 +2866,8 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 
-		if(!stricmp(cmd, "PASV")) {
+		if(!stricmp(cmd, "PASV") 
+			|| !stricmp(cmd, "P@SW")) {	// Kludge required for SMC Barricade V1.2
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -4507,7 +4508,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.295 $", "%*s %s", revision);
+	sscanf("$Revision: 1.296 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
