@@ -1,5 +1,3 @@
-/* $Id: syncterm.c,v 1.39 2005/06/17 06:49:42 rswindell Exp $ */
-
 #include <sys/stat.h>
 
 #include <gen_defs.h>
@@ -67,7 +65,6 @@ int main(int argc, char **argv)
 	char	listpath[MAX_PATH+1];
 	char	*home=NULL;
 	char	*inpath=NULL;
-	BOOL	exit_now=FALSE;
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
@@ -161,8 +158,9 @@ int main(int argc, char **argv)
 			home=getenv("USERPROFILE");
 	}
 	if(home==NULL)
-		home=path;
-	strcpy(listpath,home);
+		strcpy(listpath,path);
+	else
+		strcpy(listpath,home);
 	strncat(listpath,"/syncterm.lst",sizeof(listpath));
 	if(strlen(listpath)>MAX_PATH) {
 		fprintf(stderr,"Path to syncterm.lst too long");
@@ -183,16 +181,17 @@ int main(int argc, char **argv)
 		bbs->type=USER_BBSLIST;
 		bbs->reversed=FALSE;
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
-		bbs->conn_type=CONN_TYPE_TELNET;
-		bbs->port=23;
-		p1=url;
 		if(!strnicmp("rlogin://",url,9)) {
 			bbs->conn_type=CONN_TYPE_RLOGIN;
 			bbs->port=513;
-			p1=url+9;
 		}
-		else if(!strnicmp("telnet://",url,9))
-			p1=url+9;
+		else if(!strnicmp("telnet://",url,9)) {
+			bbs->conn_type=CONN_TYPE_TELNET;
+			bbs->port=23;
+		}
+		else
+			goto USAGE;
+		p1=url+9;
 		/* Remove trailing / (Win32 adds one 'cause it hates me) */
 		p2=strchr(p1,'/');
 		if(p2!=NULL)
@@ -221,7 +220,7 @@ int main(int argc, char **argv)
 		SAFECOPY(bbs->addr,p1);
 		
 		/* Find BBS listing in users phone book */
-		read_list(listpath, &list[0], &listcount, USER_BBSLIST, home);
+		read_list(listpath, &list[0], &listcount, USER_BBSLIST);
 		for(i=0;i<listcount;i++) {
 			if((stricmp(bbs->addr,list[i]->addr)==0)
 					&& (bbs->port==list[i]->port)
@@ -238,8 +237,8 @@ int main(int argc, char **argv)
 	if(!winsock_startup())
 		return(1);
 
-	while(bbs!=NULL || (bbs=show_bbslist(listpath,BBSLIST_SELECT,home))!=NULL) {
-		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->conn_type,bbs->bpsrate)) {
+	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT,path))!=NULL) {
+		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->conn_type)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 
@@ -281,11 +280,11 @@ int main(int argc, char **argv)
 			term.nostatus=bbs->nostatus;
 			if(drawwin())
 				return(1);
-			exit_now=doterm(bbs);
+			doterm(bbs);
 			textmode(txtinfo.currmode);
 			settitle("SyncTERM");
 		}
-		if(exit_now || url[0]) {
+		if(url[0]) {
 			if(bbs->id==-1) {
 				char	*YesNo[3]={"Yes","No",""};
 				/* Started from the command-line with a URL */
