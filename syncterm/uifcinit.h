@@ -1,5 +1,3 @@
-/* $Id: uifcinit.h,v 1.4 2005/06/13 00:28:15 rswindell Exp $ */
-
 #ifndef _UIFCINIT_H_
 #define _UIFCINIT_H_
 
