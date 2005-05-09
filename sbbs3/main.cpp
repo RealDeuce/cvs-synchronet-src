@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.384 2005/05/07 18:19:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.385 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -569,8 +569,6 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	*rval = JSVAL_VOID;
-
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
@@ -595,8 +593,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
-
-	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -718,7 +714,6 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	sbbs->attr(LIGHTGRAY);
 	sbbs->bputs(crlf);
 
-	*rval = JSVAL_VOID;
     return(JS_TRUE);
 }
 
