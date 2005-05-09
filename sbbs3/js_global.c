@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.143 2005/03/13 05:43:16 rswindell Exp $ */
+/* $Id: js_global.c,v 1.144 2005/05/09 04:55:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ static void background_thread(void* arg)
 
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
-	if(JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result) && result!=JSVAL_VOID)
+	if(JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result) /* && result!=JSVAL_VOID */)
 		js_enqueue_value(bg->cx, bg->msg_queue, result, NULL);
 	JS_DestroyScript(bg->cx, bg->script);
 	JS_DestroyContext(bg->cx);
