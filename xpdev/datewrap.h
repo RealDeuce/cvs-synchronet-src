@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.3 2005/06/14 05:56:02 deuce Exp $ */
+/* $Id: datewrap.h,v 1.2 2005/04/06 08:51:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,8 +61,7 @@ struct time {
 extern "C" {
 #endif
 
-#define getdate(x)	xp_getdate(x)
-void xp_getdate(struct date*);
+void getdate(struct date*);
 void gettime(struct time*);
 
 #if defined(__cplusplus)

@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.24 2005/06/17 07:14:26 rswindell Exp $ */
+/* $Id: uifc.c,v 1.23 2004/07/20 01:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,16 +316,15 @@ else
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-static void timedisplay(BOOL force)
+static void timedisplay(void)
 {
 	static time_t savetime;
 	time_t now;
 
-	now=time(NULL);
-	if(force || difftime(now,savetime)>=60) {
-		uprintf(55,1,bclr|(cclr<<4),utimestr(&now));
-		savetime=now; 
-	}
+now=time(NULL);
+if(difftime(now,savetime)>=60) {
+	uprintf(55,1,bclr|(cclr<<4),utimestr(&now));
+	savetime=now; }
 }
 
 /****************************************************************************/
@@ -606,7 +605,7 @@ while(1) {
 		,y,height,*cur,bar ? *bar :0xff,api->savdepth,opts);
 #endif
 	if(!show_free_mem)
-		timedisplay(FALSE);
+		timedisplay();
 #ifndef __FLAT__
 	if(api->mode&UIFC_MOUSE) {
 
