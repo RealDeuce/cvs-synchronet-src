@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.317 2005/05/12 16:10:17 deuce Exp $ */
+/* $Id: websrvr.c,v 1.318 2005/05/12 16:58:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2211,15 +2211,12 @@ static BOOL exec_cgi(http_session_t *session)
 
 	if((child=fork())==0)  {
 		str_list_t  env_list;
-		char*   env_block;
 
 		/* Do a full suid thing. */
 		if(startup->setuid!=NULL)
 			startup->setuid(TRUE);
 
 		env_list=get_cgi_env(session);
-		env_block = strListCreateBlock(env_list);
-		strListFree(&env_list);
 
 		/* Set up STDIO */
 		dup2(session->socket,0);		/* redirect stdin */
@@ -2238,12 +2235,15 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 
 		/* Execute command */
-		if(get_cgi_handler(cgipath, sizeof(cgipath)))
-			execle(cgipath,cgipath,cmdline,NULL,env_block);
-		else
-			execle(cmdline,cmdline,NULL,env_block);
+		if(get_cgi_handler(cgipath, sizeof(cgipath))) {
+			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,cgipath,cmdline);
+			execle(cgipath,cgipath,cmdline,NULL,env_list);
+		}
+		else {
+			execle(cmdline,cmdline,NULL,env_list);
+		}
 
-		lprintf(LOG_ERR,"%04d !FAILED! execl()",session->socket);
+		lprintf(LOG_ERR,"%04d !FAILED! execle() (%d)",session->socket,errno);
 		exit(EXIT_FAILURE); /* Should never happen */
 	}
 
@@ -3472,7 +3472,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.317 $", "%*s %s", revision);
+	sscanf("$Revision: 1.318 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
