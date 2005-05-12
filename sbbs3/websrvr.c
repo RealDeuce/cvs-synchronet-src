@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.315 2005/05/12 05:02:40 deuce Exp $ */
+/* $Id: websrvr.c,v 1.316 2005/05/12 16:06:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2343,7 +2343,7 @@ static BOOL exec_cgi(http_session_t *session)
 									strListPush(&session->req.dynamic_heads,buf);
 							}
 						}
-						if(directive == NULL || value == NULL) {
+						if(*buf && (directive == NULL || value == NULL)) {
 							/* Invalid header line... send 'er all as plain-text */
 							char    content_type[MAX_REQUEST_LINE+1];
 
@@ -3472,7 +3472,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.315 $", "%*s %s", revision);
+	sscanf("$Revision: 1.316 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
