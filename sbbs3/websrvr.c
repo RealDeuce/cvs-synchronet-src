@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.318 2005/05/12 16:58:29 deuce Exp $ */
+/* $Id: websrvr.c,v 1.319 2005/05/12 21:28:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2344,8 +2344,21 @@ static BOOL exec_cgi(http_session_t *session)
 							}
 						}
 						if(directive == NULL || value == NULL) {
-							/* Invalid header line... send 'er all as plain-text */
+							/* Invalid header line */
+							done_parsing_headers=TRUE;
+						}
+					}
+					else  {
+						if(got_valid_headers)  {
+							session->req.dynamic=IS_CGI;
+							if(cgi_status[0]==0)
+								SAFECOPY(cgi_status,session->req.status);
+							send_headers(session,cgi_status);
+						}
+						else {
+							/* Invalid headers... send 'er all as plain-text */
 							char    content_type[MAX_REQUEST_LINE+1];
+							int snt;
 
 							/* free() the non-headers so they don't get sent, then recreate the list */
 							strListFreeStrings(session->req.dynamic_heads);
@@ -2363,23 +2376,16 @@ static BOOL exec_cgi(http_session_t *session)
 
 							/* Now send the tmpbuf */
 							for(i=0; tmpbuf != NULL && tmpbuf[i] != NULL; i++) {
-								int snt;
-
 								snt=write(session->socket,tmpbuf[i],strlen(tmpbuf[i]));
 								if(session->req.ld!=NULL && snt>0) {
 									session->req.ld->size+=snt;
 								}
 							}
-							done_parsing_headers=TRUE;
+							snt=write(session->socket,fbuf,strlen(fbuf));
+							if(session->req.ld!=NULL && snt>0) {
+								session->req.ld->size+=snt;
+							}
 							got_valid_headers=TRUE;
-						}
-					}
-					else  {
-						if(got_valid_headers)  {
-							session->req.dynamic=IS_CGI;
-							if(cgi_status[0]==0)
-								SAFECOPY(cgi_status,session->req.status);
-							send_headers(session,cgi_status);
 						}
 						done_parsing_headers=TRUE;
 					}
@@ -3472,7 +3478,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.318 $", "%*s %s", revision);
+	sscanf("$Revision: 1.319 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
