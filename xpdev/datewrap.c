@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.4 2005/06/14 05:56:02 deuce Exp $ */
+/* $Id: datewrap.c,v 1.3 2005/04/07 00:23:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 
 #include "datewrap.h"	/* struct defs, verify prototypes */
 
-void xp_getdate(struct date* nyd)
+void getdate(struct date* nyd)
 {
 	time_t tim;
 	struct tm *dte;
