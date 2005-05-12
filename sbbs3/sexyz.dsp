@@ -93,10 +93,6 @@ SOURCE=..\smblib\crc32.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\nopen.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ringbuf.c
 # End Source File
 # Begin Source File
