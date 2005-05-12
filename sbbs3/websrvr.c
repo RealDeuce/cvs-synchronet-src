@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.323 2005/06/10 22:17:51 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.318 2005/05/12 16:58:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -507,7 +507,6 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 		lprintf(LOG_WARNING,"%04d Cannot allocate memory for string", session->socket);
 		return;
 	}
-	lprintf(LOG_DEBUG,"%04d Adding CGI environment variable %s=%s",session->socket,newname,value);
 	sprintf(p,"%s=%s",newname,value);
 	strListPush(&session->req.cgi_env,p);
 	free(p);
@@ -808,8 +807,12 @@ static BOOL get_cgi_handler(char* cmdline, size_t maxlen)
 
 	for(i=0;cgi_handlers[i]!=NULL;i++) {
 		if(stricmp(cgi_handlers[i]->name, ext+1)==0) {
+#ifdef _WIN32
 			SAFECOPY(fname,cmdline);
 			safe_snprintf(cmdline,maxlen,"%s %s",cgi_handlers[i]->value,fname);
+#else
+			SAFECOPY(cmdline, cgi_handlers[i]->value);
+#endif
 			return(TRUE);
 		}
 	}
@@ -1252,9 +1255,11 @@ static BOOL check_ars(http_session_t * session)
 		FREE_AND_NULL(ar);
 
 	if(authorized)  {
-		add_env(session,"AUTH_TYPE","Basic");
-		/* Should use real name if set to do so somewhere ToDo */
-		add_env(session,"REMOTE_USER",session->user.alias);
+		if(session->req.dynamic==IS_CGI)  {
+			add_env(session,"AUTH_TYPE","Basic");
+			/* Should use real name if set to do so somewhere ToDo */
+			add_env(session,"REMOTE_USER",session->user.alias);
+		}
 
 		return(TRUE);
 	}
@@ -1571,11 +1576,13 @@ static BOOL parse_headers(http_session_t * session)
 					b64_decode(session->req.auth,sizeof(session->req.auth),p,strlen(p));
 					break;
 				case HEAD_LENGTH:
-					add_env(session,"CONTENT_LENGTH",value);
+					if(session->req.dynamic==IS_CGI)
+						add_env(session,"CONTENT_LENGTH",value);
 					content_len=atoi(value);
 					break;
 				case HEAD_TYPE:
-					add_env(session,"CONTENT_TYPE",value);
+					if(session->req.dynamic==IS_CGI)
+						add_env(session,"CONTENT_TYPE",value);
 					break;
 				case HEAD_IFMODIFIED:
 					session->req.if_modified_since=decode_date(value);
@@ -1603,13 +1610,33 @@ static BOOL parse_headers(http_session_t * session)
 				default:
 					break;
 			}
-			sprintf(env_name,"HTTP_%s",head_line);
-			add_env(session,env_name,value);
+			if(session->req.dynamic==IS_CGI)  {
+				sprintf(env_name,"HTTP_%s",head_line);
+				add_env(session,env_name,value);
+			}
 		}
 	}
-	if(content_len)
-		session->req.post_len = content_len;
-	add_env(session,"SERVER_NAME",session->req.host[0] ? session->req.host : startup->host_name );
+	if(content_len && session->req.dynamic != IS_CGI)  {
+		if(content_len < (MAX_POST_LEN+1) && (session->req.post_data=malloc(content_len+1)) != NULL)  {
+			session->req.post_len=recvbufsocket(session->socket,session->req.post_data,content_len);
+			if(session->req.post_len != content_len)
+				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,content_len,session->req.post_len);
+			if(session->req.post_len > content_len)
+				session->req.post_len = content_len;
+			session->req.post_data[session->req.post_len]=0;
+			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
+				js_add_request_prop(session,"post_data",session->req.post_data);
+				js_parse_query(session,session->req.post_data);
+			}
+		}
+		else  {
+			lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,content_len);
+			send_error(session,"413 Request entity too large");
+			return(FALSE);
+		}
+	}
+	if(session->req.dynamic==IS_CGI)
+		add_env(session,"SERVER_NAME",session->req.host[0] ? session->req.host : startup->host_name );
 	return TRUE;
 }
 
@@ -2066,13 +2093,15 @@ static BOOL check_request(http_session_t * session)
 		return(FALSE);
 	}
 	SAFECOPY(session->req.physical_path,path);
-	add_env(session,"SCRIPT_NAME",session->req.virtual_path);
-	add_env(session,"SCRIPT_FILENAME",session->req.physical_path);
+	if(session->req.dynamic==IS_CGI)  {
+		add_env(session,"SCRIPT_NAME",session->req.virtual_path);
+		add_env(session,"SCRIPT_FILENAME",session->req.physical_path);
+	}
 	SAFECOPY(str,session->req.virtual_path);
 	last_slash=find_last_slash(str);
 	if(last_slash!=NULL)
 		*(last_slash+1)=0;
-	if(*(session->req.extra_path_info))
+	if(session->req.dynamic==IS_CGI && *(session->req.extra_path_info))
 	{
 		sprintf(str,"%s%s",startup->root_dir,session->req.extra_path_info);
 		add_env(session,"PATH_TRANSLATED",str);
@@ -2171,12 +2200,12 @@ static BOOL exec_cgi(http_session_t *session)
 	/* Set up I/O pipes */
 
 	if(pipe(out_pipe)!=0) {
-		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket);
+		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket,buf);
 		return(FALSE);
 	}
 
 	if(pipe(err_pipe)!=0) {
-		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket);
+		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket,buf);
 		return(FALSE);
 	}
 
@@ -2207,16 +2236,8 @@ static BOOL exec_cgi(http_session_t *session)
 
 		/* Execute command */
 		if(get_cgi_handler(cgipath, sizeof(cgipath))) {
-			char *comspec;
-			comspec=getenv("SHELL");
-			if(comspec==NULL)
-#ifdef _PATH_BSHELL
-				comspec=_PATH_BSHELL;
-#else
-				comspec="/bin/sh";
-#endif
 			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,cgipath,cmdline);
-			execle(comspec,comspec,"-c",cgipath,NULL,env_list);
+			execle(cgipath,cgipath,cmdline,NULL,env_list);
 		}
 		else {
 			execle(cmdline,cmdline,NULL,env_list);
@@ -2323,23 +2344,8 @@ static BOOL exec_cgi(http_session_t *session)
 							}
 						}
 						if(directive == NULL || value == NULL) {
-							/* Invalid header line */
-							done_parsing_headers=TRUE;
-						}
-					}
-					else  {
-						if(got_valid_headers)  {
-							session->req.dynamic=IS_CGI;
-							if(cgi_status[0]==0)
-								SAFECOPY(cgi_status,session->req.status);
-							send_headers(session,cgi_status);
-						}
-						else {
-							/* Invalid headers... send 'er all as plain-text */
+							/* Invalid header line... send 'er all as plain-text */
 							char    content_type[MAX_REQUEST_LINE+1];
-							int snt;
-
-							lprintf(LOG_DEBUG,"%04d Recieved invalid CGI headers, sending result as plain-text",session->socket);
 
 							/* free() the non-headers so they don't get sent, then recreate the list */
 							strListFreeStrings(session->req.dynamic_heads);
@@ -2357,16 +2363,23 @@ static BOOL exec_cgi(http_session_t *session)
 
 							/* Now send the tmpbuf */
 							for(i=0; tmpbuf != NULL && tmpbuf[i] != NULL; i++) {
+								int snt;
+
 								snt=write(session->socket,tmpbuf[i],strlen(tmpbuf[i]));
 								if(session->req.ld!=NULL && snt>0) {
 									session->req.ld->size+=snt;
 								}
 							}
-							snt=write(session->socket,fbuf,strlen(fbuf));
-							if(session->req.ld!=NULL && snt>0) {
-								session->req.ld->size+=snt;
-							}
+							done_parsing_headers=TRUE;
 							got_valid_headers=TRUE;
+						}
+					}
+					else  {
+						if(got_valid_headers)  {
+							session->req.dynamic=IS_CGI;
+							if(cgi_status[0]==0)
+								SAFECOPY(cgi_status,session->req.status);
+							send_headers(session,cgi_status);
 						}
 						done_parsing_headers=TRUE;
 					}
@@ -3236,33 +3249,6 @@ static void respond(http_session_t * session)
 	session->req.finished=TRUE;
 }
 
-int read_post_data(http_session_t * session)
-{
-	unsigned i;
-
-	if(session->req.dynamic!=IS_CGI && session->req.post_len)  {
-		i = session->req.post_len;
-		if(i < (MAX_POST_LEN+1) && (session->req.post_data=malloc(i+1)) != NULL)  {
-			session->req.post_len=recvbufsocket(session->socket,session->req.post_data,i);
-			if(session->req.post_len != i)
-				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,i,session->req.post_len);
-			if(session->req.post_len > i)
-				session->req.post_len = i;
-			session->req.post_data[session->req.post_len]=0;
-			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
-				js_add_request_prop(session,"post_data",session->req.post_data);
-				js_parse_query(session,session->req.post_data);
-			}
-		}
-		else  {
-			lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,i);
-			send_error(session,"413 Request entity too large");
-			return(FALSE);
-		}
-	}
-	return(TRUE);
-}
-
 void http_session_thread(void* arg)
 {
 	int				i;
@@ -3390,8 +3376,7 @@ void http_session_thread(void* arg)
 				if((session.http_ver<HTTP_1_0)||redirp!=NULL||parse_headers(&session)) {
 					if(check_request(&session)) {
 						if(session.req.send_location < MOVED_TEMP || session.req.virtual_path[0]!='/' || loop_count++ >= MAX_REDIR_LOOPS) {
-							if(read_post_data(&session))
-								respond(&session);
+							respond(&session);
 						}
 						else {
 							safe_snprintf(redir_req,sizeof(redir_req),"%s %s%s%s",methods[session.req.method]
@@ -3487,7 +3472,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.323 $", "%*s %s", revision);
+	sscanf("$Revision: 1.318 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
