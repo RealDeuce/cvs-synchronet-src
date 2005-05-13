@@ -3,7 +3,7 @@
 
 #include "bbslist.h"
 
-int syncmenu(struct bbslist *, int *speed);
+int syncmenu(struct bbslist *);
 void viewscroll(void);
 
 #endif
