@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for xpdev "wrappers"
 
-# $Id: objects.mk,v 1.8 2005/01/20 06:17:10 deuce Exp $
+# $Id: objects.mk,v 1.9 2005/05/07 18:43:01 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -32,3 +32,7 @@ MTOBJS	= \
 	$(MTOBJODIR)$(DIRSEP)str_list$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)threadwrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpbeep$(OFILE)
+
+TESTOBJS = \
+	$(MTOBJODIR)$(DIRSEP)wraptest$(OFILE)
+
