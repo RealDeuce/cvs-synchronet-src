@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.368 2005/06/06 22:19:28 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.365 2005/05/14 06:08:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -583,7 +583,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 			endmime(socket,boundary);
 			if(msg->hdr.auxattr&MSG_KILLFILE)
 				if(remove(filepath)!=0)
-					lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,errno,filepath);
+					lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,filepath);
 		}
     }
     sockprintf(socket,".");	/* End of text */
@@ -1781,7 +1781,6 @@ static void smtp_thread(void* arg)
 	char		name_alias_buf[128];
 	char		reverse_path[128];
 	char		date[64];
-	char		qwkid[32];
 	char		rcpt_name[128];
 	char		rcpt_addr[128];
 	char		sender[128];
@@ -3056,22 +3055,20 @@ static void smtp_thread(void* arg)
 			usernum=0;	/* unknown user at this point */
 
 			if(routed) {
-				SAFECOPY(qwkid,p);
-				truncstr(qwkid,"/");
 				/* Search QWKnet hub-IDs for route destination */
 				for(i=0;i<scfg.total_qhubs;i++) {
-					if(!stricmp(qwkid,scfg.qhub[i]->id))
+					if(!stricmp(p,scfg.qhub[i]->id))
 						break;
 				}
 				if(i<scfg.total_qhubs) {	/* found matching QWKnet Hub */
 
-					lprintf(LOG_INFO,"%04d SMTP Routing mail for %s <%s> to QWKnet Hub: %s"
-						,socket, rcpt_addr, p, scfg.qhub[i]->id);
+					lprintf(LOG_INFO,"%04d SMTP Routing mail for %s to QWKnet Hub: %s"
+						,socket, rcpt_addr, scfg.qhub[i]->id);
 
 					fprintf(rcptlst,"[%u]\n",rcpt_count++);
 					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 					fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_QWK);
-					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),p);
+					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),scfg.qhub[i]->id);
 
 					sockprintf(socket,ok_rsp);
 					state=SMTP_STATE_RCPT_TO;
@@ -3689,11 +3686,7 @@ static void sendmail_thread(void* arg)
 				bounce(&smb,&msg,err,buf[0]=='5');
 				continue;
 			}
-			if(startup->options&MAIL_OPT_RELAY_TX 
-				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0)	/* Requires ESMTP */
-				sockprintf(sock,"EHLO %s",startup->host_name);
-			else
-				sockprintf(sock,"HELO %s",startup->host_name);
+			sockprintf(sock,"HELO %s",startup->host_name);
 			if(!sockgetrsp(sock,"250", buf, sizeof(buf))) {
 				remove_msg_intransit(&smb,&msg);
 				SAFEPRINTF3(err,badrsp_err,server,buf,"250");
@@ -3925,7 +3918,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.368 $", "%*s %s", revision);
+	sscanf("$Revision: 1.365 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
