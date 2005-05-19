@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.38 2005/04/18 02:58:16 deuce Exp $ */
+/* $Id: ciolib.c,v 1.39 2005/05/19 23:33:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,7 @@ static int lastmode=3;
 int _wscroll=1;
 int directvideo=0;
 int dont_move_cursor=0;
+int hold_refresh=0;
 static int initialized=0;
 
 int ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
