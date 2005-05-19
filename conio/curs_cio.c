@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.17 2005/05/19 23:33:21 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.18 2005/05/19 23:54:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +133,7 @@ int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
 	}
 	textattr(orig_attr);
 	move(oldy, oldx);
-	if(!hold_refresh)
+	if(!hold_update)
 		refresh();
 	return(1);
 }
@@ -633,7 +633,7 @@ int _putch(unsigned char ch, BOOL refresh_now)
 	else
 		ret=addch(cha);
 
-	if(!hold_refresh) {
+	if(!hold_update) {
 		if(refresh_now)
 			refresh();
 	}
@@ -644,7 +644,7 @@ int _putch(unsigned char ch, BOOL refresh_now)
 void curs_gotoxy(int x, int y)
 {
 	move(y-1,x-1);
-	if(!hold_refresh)
+	if(!hold_update)
 		refresh();
 }
 
@@ -729,7 +729,7 @@ void curs_setcursortype(int type) {
 			break;
 
 	}
-	if(!hold_refresh)
+	if(!hold_update)
 		refresh();
 }
 
