@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.22 2005/01/23 23:30:04 deuce Exp $ */
+/* $Id: ciolib.h,v 1.23 2005/05/19 23:33:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,6 +202,7 @@ extern cioapi_t cio_api;
 extern int _wscroll;
 extern int directvideo;
 extern int dont_move_cursor;
+extern int hold_refresh;
 
 #define _conio_kbhit()		kbhit()
 
