@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.35 2004/09/11 03:36:18 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.36 2005/05/25 22:21:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -844,13 +844,12 @@ char *readline(long *offset, char *outstr, int maxlen, FILE *instream)
 /****************************************************************************/
 long aftol(char *str)
 {
-	int		c=0;
+	size_t	c=0;
 	ulong	l=0UL;
 
-	strupr(str);
 	while(str[c]) {
-		if(str[c]>='A' && str[c]<='Z')
-			l|=FLAG(str[c]);
+		if(toupper(str[c])>='A' && toupper(str[c])<='Z')
+			l|=FLAG(toupper(str[c]));
 		c++; 
 	}
 	return(l);
@@ -861,7 +860,7 @@ long aftol(char *str)
 /*****************************************************************************/
 char *ltoaf(long l,char *str)
 {
-	int		c=0;
+	size_t	c=0;
 
 	while(c<26) {
 		if(l&(long)(1L<<c))
