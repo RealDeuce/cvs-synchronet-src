@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.26 2005/05/31 01:55:00 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.27 2005/06/01 02:42:28 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1352,7 +1352,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong fsize, ulong* sent
 		 * check out that header
 		 */
 
-		while(zmodem_rx_poll(zm)) {
+		while(zmodem_rx_poll(zm) && !zm->cancelled) {
 			int type;
 			int c;
 			if((c = zmodem_rx_raw(zm, zm->send_timeout)) < 0)
@@ -1363,10 +1363,9 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong fsize, ulong* sent
 					return type;
 				}
 			}
-			if(zm->cancelled)
-				return(-1);
 		}
-
+		if(zm->cancelled)
+			return(-1);
 	}
 
 	/*
@@ -1862,7 +1861,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.26 $", "%*s %s", buf);
+	sscanf("$Revision: 1.27 $", "%*s %s", buf);
 
 	return(buf);
 }
