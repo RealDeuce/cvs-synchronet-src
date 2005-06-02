@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.6 2005/06/28 22:45:34 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.2 2005/04/06 08:51:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,41 +38,6 @@
 #ifndef _DATEWRAP_H_
 #define _DATEWRAP_H_
 
-#include "genwrap.h"	/* time_t */
-
-/**********************************************/
-/* Decimal-coded ISO-8601 date/time functions */
-/**********************************************/
-
-typedef long	isoDate_t;	/* CCYYMMDD (decimal) */
-typedef int		isoTime_t;	/* HHMMSS   (decimal) */
-
-typedef struct {
-	isoDate_t	date;	
-	isoTime_t	time;	
-} isoDateTime_t;
-
-#define isoDate_year(date)		((date)/10000)
-#define isoDate_month(date)		(((date)/100)%100)
-#define isoDate_day(date)		((date)%100)
-
-#define isoTime_hour(time)		((time)/10000)
-#define isoTime_minute(time)	(((time)/100)%100)
-#define isoTime_second(time)	((time)%100)
-
-isoDateTime_t	isoDateTime_create(unsigned year, unsigned month, unsigned day
-								   ,unsigned hour, unsigned minute, unsigned second);
-isoDate_t		time_to_isoDate(time_t);
-isoTime_t		time_to_isoTime(time_t);
-isoDateTime_t	time_to_isoDateTime(time_t);
-time_t			isoDate_to_time(isoDate_t date, isoTime_t time);
-time_t			isoDateTime_to_time(isoDateTime_t);
-
-
-/***********************************/
-/* Borland DOS date/time functions */
-/***********************************/
-
 #if defined(__BORLANDC__)
 
 #include <dos.h>
@@ -96,8 +61,7 @@ struct time {
 extern "C" {
 #endif
 
-#define getdate(x)	xp_getdate(x)
-void xp_getdate(struct date*);
+void getdate(struct date*);
 void gettime(struct time*);
 
 #if defined(__cplusplus)
