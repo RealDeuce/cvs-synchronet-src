@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.7 2005/06/28 08:44:38 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.3 2005/04/07 00:23:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,81 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "genwrap.h"
-#include "datewrap.h"	/* isoDateTime_t */
-
-/**********************************************/
-/* Decimal-coded ISO-8601 date/time functions */
-/**********************************************/
-isoDateTime_t time_to_isoDateTime(time_t time)
-{
-	struct tm tm;
-	isoDateTime_t	isoDateTime = {0,0};
-
-	if(time==0)
-		return(isoDateTime);
-
-	ZERO_VAR(tm);
-	if(gmtime_r(&time,&tm)==NULL)
-		return(isoDateTime);
-
-	isoDateTime.date=((tm.tm_year+1900)*10000)+((tm.tm_mon+1)*100)+tm.tm_mday;
-	isoDateTime.time=(tm.tm_hour*10000)+(tm.tm_min*100)+tm.tm_sec;
-
-	return(isoDateTime);
-}
-
-long time_to_isoDate(time_t time)
-{
-	isoDateTime_t	isoDateTime = time_to_isoDateTime(time);
-
-	return(isoDateTime.date);
-}
-
-long time_to_isoTime(time_t time)
-{
-	isoDateTime_t	isoDateTime = time_to_isoDateTime(time);
-
-	return(isoDateTime.time);
-}
-
-time_t isoDate_to_time(long date, long time)
-{
-	struct tm tm;
-
-	ZERO_VAR(tm);
-
-	if(date==0)
-		return(0);
-
-	tm.tm_year=date/10000;
-	tm.tm_mon=(date/100)%100;
-	tm.tm_mday=date%100;
-
-	tm.tm_hour=time/10000;
-	tm.tm_min=(time/100)%100;
-	tm.tm_sec=time%100;
-
-	/* correct for tm-weirdness */
-	if(tm.tm_year>=1900)
-		tm.tm_year-=1900;
-	if(tm.tm_mon)
-		tm.tm_mon--;
-	tm.tm_isdst=-1;	/* Auto-adjust for DST */
-
-	return(mktime(&tm));
-}
-
-time_t isoDateTime_to_time(isoDateTime_t iso)
-{
-	return(isoDate_to_time(iso.date,iso.time));
-}
-
-/***********************************/
-/* Borland DOS date/time functions */
-/***********************************/
-
 #if !defined(__BORLANDC__)
+
+#include <time.h>	/* time(), time_t, struct tm, localtime() */
 
 #if defined(_WIN32)
 	#include <windows.h>	/* SYSTEMTIME and GetLocalTime() */
@@ -119,7 +47,7 @@ time_t isoDateTime_to_time(isoDateTime_t iso)
 
 #include "datewrap.h"	/* struct defs, verify prototypes */
 
-void xp_getdate(struct date* nyd)
+void getdate(struct date* nyd)
 {
 	time_t tim;
 	struct tm *dte;
@@ -137,9 +65,9 @@ void gettime(struct time* nyt)
 	SYSTEMTIME systime;
 
 	GetLocalTime(&systime);
-	nyt->ti_hour=(unsigned char)systime.wHour;
-	nyt->ti_min=(unsigned char)systime.wMinute;
-	nyt->ti_sec=(unsigned char)systime.wSecond;
+	nyt->ti_hour=systime.wHour;
+	nyt->ti_min=systime.wMinute;
+	nyt->ti_sec=systime.wSecond;
 	nyt->ti_hund=systime.wMilliseconds/10;
 #else	/* !Win32 (e.g. Unix) */
 	struct tm *dte;
