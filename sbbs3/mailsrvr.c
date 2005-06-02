@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.368 2005/06/06 22:19:28 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.367 2005/06/02 20:51:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -583,7 +583,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 			endmime(socket,boundary);
 			if(msg->hdr.auxattr&MSG_KILLFILE)
 				if(remove(filepath)!=0)
-					lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,errno,filepath);
+					lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,filepath);
 		}
     }
     sockprintf(socket,".");	/* End of text */
@@ -3925,7 +3925,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.368 $", "%*s %s", revision);
+	sscanf("$Revision: 1.367 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
