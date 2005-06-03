@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.10 2005/04/06 15:14:14 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.11 2005/06/03 03:21:05 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -170,14 +170,14 @@ static BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
     return(outbuf);
 }
 
-int telnet_recv(char *buffer, size_t buflen)
+int telnet_recv(char *buffer, size_t buflen, unsigned timeout)
 {
 	int	r;
 	int	avail;
 	int rd;
 	BYTE *inbuf;
 
-	if(!socket_check(conn_socket, NULL, NULL, 0))
+	if(!socket_check(conn_socket, NULL, NULL, timeout))
 		return(-1);
 
 	if((inbuf=(BYTE *)malloc(buflen))==NULL)
