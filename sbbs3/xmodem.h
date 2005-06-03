@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.13 2005/05/26 07:07:24 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.14 2005/06/03 08:44:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
