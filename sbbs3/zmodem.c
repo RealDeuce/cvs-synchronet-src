@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.37 2005/06/03 19:49:55 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.38 2005/06/03 23:27:43 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1518,10 +1518,11 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		if(sent!=NULL)
 			*sent+=sent_bytes;
 
-		if(type == ZFERR || type == ZABORT || zm->cancelled)
+		if(type == ZFERR || type == ZABORT || type == TIMEOUT || zm->cancelled)
 			return(FALSE);
 
 	} while(type == ZRPOS || type == ZNAK);
+
 
 	lprintf(zm,LOG_INFO,"Finishing transfer on rx of header type: %s", chr((uchar)type));
 
@@ -1769,7 +1770,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.37 $", "%*s %s", buf);
+	sscanf("$Revision: 1.38 $", "%*s %s", buf);
 
 	return(buf);
 }
