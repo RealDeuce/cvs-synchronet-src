@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.29 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: bat_xfer.cpp,v 1.30 2005/06/01 02:41:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -584,8 +584,9 @@ bool sbbs_t::create_bimodem_pth()
 /****************************************************************************/
 void sbbs_t::batch_upload()
 {
-    char	str1[256],str2[256];
-	char 	tmp[512];
+    char	str1[MAX_PATH+1],str2[MAX_PATH+1];
+	char	path[MAX_PATH+1];
+	char 	tmp[MAX_PATH+1];
 	uint	i,j,x,y;
     file_t	f;
 	DIR*	dir;
@@ -631,7 +632,13 @@ void sbbs_t::batch_upload()
 			continue;
 		memset(&f,0,sizeof(file_t));
 		f.dir=cfg.upload_dir;
-		padfname(dirent->d_name,f.name);
+
+		SAFECOPY(path,str1);
+#ifdef _WIN32
+		GetShortPathName(str1, path, sizeof(path));
+#endif
+		padfname(getfname(path),f.name);
+
 		for(x=0;x<usrlibs;x++) {
 			for(y=0;y<usrdirs[x];y++)
 				if(cfg.dir[usrdir[x][y]]->misc&DIR_DUPES
