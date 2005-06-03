@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.144 2005/08/02 20:13:32 deuce Exp $ */
+/* $Id: uifc32.c,v 1.128 2005/06/03 22:21:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,11 @@
 #include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
+							/* Bottom line elements */
+#define BL_INS      (1<<0)  /* INS key */
+#define BL_DEL      (1<<1)  /* DEL key */
+#define BL_GET      (1<<2)  /* Get key */
+#define BL_PUT      (1<<3)  /* Put key */
 
 #define BLINK	128
 
@@ -71,7 +76,7 @@ static void  bottomline(int line);
 static char  *utimestr(time_t *intime);
 static void  help(void);
 static int   ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
-static void  timedisplay(BOOL force);
+static void  timedisplay(void);
 
 /* API routines */
 static void uifcbail(void);
@@ -91,14 +96,12 @@ static int *last_menu_cur=NULL;
 static int *last_menu_bar=NULL;
 static int save_menu_cur=-1;
 static int save_menu_bar=-1;
-static int save_menu_opts=-1;
 
 static void reset_dynamic(void) {
 	last_menu_cur=NULL;
 	last_menu_bar=NULL;
 	save_menu_cur=-1;
 	save_menu_bar=-1;
-	save_menu_opts=-1;
 }
 
 /****************************************************************************/
@@ -165,7 +168,6 @@ int uifcini32(uifcapi_t* uifcapi)
     api->showhelp=help;
 	api->showbuf=showbuf;
 	api->timedisplay=timedisplay;
-	api->bottomline=bottomline;
 	api->getstrxy=ugetstr;
 	api->printf=uprintf;
 
@@ -207,9 +209,7 @@ int uifcini32(uifcapi_t* uifcapi)
         }
     }
 
-#if 0
     clrscr();
-#endif
 
     gettextinfo(&txtinfo);
     /* unsupported mode? */
@@ -452,13 +452,13 @@ static void scroll_text(int x1, int y1, int x2, int y2, int down)
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-static void timedisplay(BOOL force)
+static void timedisplay()
 {
 	static time_t savetime;
 	time_t now;
 
 	now=time(NULL);
-	if(force || difftime(now,savetime)>=60) {
+	if(difftime(now,savetime)>=60) {
 		uprintf(api->scrn_width-25,1,api->bclr|(api->cclr<<4),utimestr(&now));
 		savetime=now; 
 	}
@@ -531,9 +531,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	if(mode&WIN_DEL) bline|=BL_DEL;
 	if(mode&WIN_GET) bline|=BL_GET;
 	if(mode&WIN_PUT) bline|=BL_PUT;
-	if(mode&WIN_EDIT) bline|=BL_EDIT;
-	if(api->bottomline != NULL)
-		api->bottomline(bline);
+	bottomline(bline);
 	while(opts<MAX_OPTS)
 		if(option[opts]==NULL || option[opts][0]==0)
 			break;
@@ -587,8 +585,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			&& last_menu_cur==cur
 			&& last_menu_bar==bar
 			&& save_menu_cur==*cur
-			&& save_menu_bar==*bar
-			&& save_menu_opts==opts)
+			&& save_menu_bar==*bar)
 		is_redraw=1;
 	if(mode&WIN_DYN && mode&WIN_REDRAW)
 		is_redraw=1;
@@ -601,7 +598,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
-				uifc_mouse_enable();
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -624,7 +620,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
-				uifc_mouse_enable();
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -879,15 +874,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	last_menu_cur=cur;
 	last_menu_bar=bar;
-	uifc_mouse_enable();
-
 	if(mode&WIN_IMM)
 		return(-2);
 
-	if(mode&WIN_ORG) {
-		if(api->timedisplay != NULL)
-			api->timedisplay(/* force? */TRUE);
-	}
+	uifc_mouse_enable();
 
 	while(1) {
 	#if 0					/* debug */
@@ -895,8 +885,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		cprintf("y=%2d h=%2d c=%2d b=%2d s=%2d o=%2d"
 			,y,height,*cur,bar ? *bar :0xff,api->savdepth,opts);
 	#endif
-		if(api->timedisplay != NULL)
-			api->timedisplay(/* force? */FALSE);
+		timedisplay();
 		i=0;
 		if(kbwait()) {
 			i=inkey();
@@ -968,15 +957,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							|| mevnt.starty<s_top+top
 							|| mevnt.starty>s_top+top+height-1)
 							&& (mevnt.event==CIOLIB_BUTTON_1_CLICK
-							|| mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
-						if(mode&WIN_UNGETMOUSE) {
-							ungetmouse(&mevnt);
-							i=CIO_KEY_MOUSE;
-						}
-						else {
-							i=ESC;
-						}
-					}
+							|| mevnt.event==CIOLIB_BUTTON_3_CLICK))
+						i=ESC;
 				}
 			}
 			/* For compatibility with terminals lacking special keys */
@@ -1292,32 +1274,14 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								,line);
 						}
 						break;
-					case CIO_KEY_F(1):	/* F1 - Help */
+					case CIO_KEY_F(1):	/* F1 */
 						api->showhelp();
 						break;
-					case CIO_KEY_F(2):	/* F2 - Edit */
-						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't edit */
-							break;							/* extra line */
-						if(mode&WIN_EDIT) {
-							if(mode&WIN_EDITACT) {
-								gettext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-								for(i=1;i<(width*height*2);i+=2)
-									tmp_buffer[i]=api->lclr|(api->cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									tmp_buffer[i]=api->hclr|(api->cclr<<4);
-								puttext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
-							return((*cur)|MSK_EDIT); 
-						}
-						break;
-					case CIO_KEY_F(5):	/* F5 - Copy */
+					case CIO_KEY_F(5):	/* F5 */
 						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur)==opts-1))
 							return((*cur)|MSK_GET);
 						break;
-					case CIO_KEY_F(6):	/* F6 - Paste */
+					case CIO_KEY_F(6):	/* F6 */
 						if(mode&WIN_PUT && !(mode&WIN_XTR && (*cur)==opts-1))
 							return((*cur)|MSK_PUT);
 						break;
@@ -1517,7 +1481,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(mode&WIN_DYN) {
 			save_menu_cur=*cur;
 			save_menu_bar=*bar;
-			save_menu_opts=opts;
 			return(-2-i);
 		}
 	}
@@ -1782,16 +1745,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		f=inkey();
 		if(f==CIO_KEY_MOUSE) {
 			if((f=uifc_getmouse(&mevnt))==0) {
-				if(mode & K_MOUSEEXIT
-						&& (mevnt.starty != top
-							|| mevnt.startx > left+width
-						    || mevnt.startx < left)
-						&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-					if(lastkey)
-						*lastkey=CIO_KEY_MOUSE;
-					ungetmouse(&mevnt);
-					return(j);
-				}
 				if(mevnt.startx>=left
 						&& mevnt.startx<=left+width
 						&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
@@ -1799,8 +1752,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					if(i>j)
 						i=j;
 				}
-				if(mevnt.starty == top
-						&& mevnt.startx>=left
+				if(mevnt.startx>=left
 						&& mevnt.startx<=left+width
 						&& (mevnt.event==CIOLIB_BUTTON_2_CLICK
 						|| mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
@@ -1857,27 +1809,14 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			}
 			if(ch==CIO_KEY_MOUSE) {
 				if((ch=uifc_getmouse(&mevnt))==0) {
-					if(mode & K_MOUSEEXIT 
-							&& (mevnt.starty != top
-								|| mevnt.startx > left+width
-						    	|| mevnt.startx < left)
-							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-						if(lastkey)
-							*lastkey=CIO_KEY_MOUSE;
-						ungetmouse(&mevnt);
-						ch=CR;
-						continue;
-					}
-					if(mevnt.starty == top
-							&& mevnt.startx>=left
+					if(mevnt.startx>=left
 							&& mevnt.startx<=left+width
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 						i=mevnt.startx-left+soffset;
 						if(i>j)
 							i=j;
 					}
-					if(mevnt.starty == top
-							&& mevnt.startx>=left
+					if(mevnt.startx>=left
 							&& mevnt.startx<=left+width
 							&& (mevnt.event==CIOLIB_BUTTON_2_CLICK
 							|| mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
@@ -1971,8 +1910,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					}
 				case CR:
 					break;
-				case 3840:	/* Backtab */
-				case '\t':
+				case '\t':	/* '%' indicates that a UPC is coming next */
 					if(mode&K_TABEXIT)
 						ch=CR;
 					break;
@@ -2084,12 +2022,6 @@ void bottomline(int line)
 	i+=3;
 	uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Help  ");
 	i+=6;
-	if(line&BL_EDIT) {
-		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F2 ");
-		i+=3;
-		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Edit Item  ");
-		i+=11; 
-	}
 	if(line&BL_GET) {
 		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F5 ");
 		i+=3;
@@ -2411,7 +2343,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		if(hbuf[j]==CR)
 			continue;
 		k++;
-		if((hbuf[j]==LF) || (k>=width-2-pad-pad && (hbuf[j+1]!='\n' && hbuf[j+1]!='\r'))) {
+		if((hbuf[j]==LF) || (k>width-2-pad-pad && (hbuf[j+1]!='\n' && hbuf[j+1]!='\r'))) {
 			k=0;
 			lines++;
 		}
