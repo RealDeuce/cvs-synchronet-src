@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.21 2005/06/02 23:33:13 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.22 2005/06/03 00:09:36 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -301,7 +301,7 @@ BOOL		zmodem_recv_file_info(zmodem_t* zm
 									,ulong* total_bytes);
 unsigned	zmodem_recv_file_data(zmodem_t*, FILE*, ulong offset, ulong fsize, time_t start);
 int			zmodem_recv_file_frame(zmodem_t* zm, FILE* fp, ulong offset, ulong fsize, time_t start);
-int			zmodem_recv_header_and_check(zmodem_t* zm, int timeout);
+int			zmodem_recv_header_and_check(zmodem_t* zm);
 #endif
 
 

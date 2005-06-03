@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.43 2005/06/02 23:35:15 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.44 2005/06/03 00:09:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1079,7 +1079,7 @@ static int receive_files(char** fname_list, int fnames)
 			 */
 
 			for(;errors<=zm.max_errors && !success && !zm.cancelled; errors++) {
-				if(zmodem_recv_header_and_check(&zm,zm.recv_timeout))
+				if(zmodem_recv_header_and_check(&zm))
 					success=TRUE;
 			} 
 
@@ -1261,7 +1261,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.43 $", "%*s %s", revision);
+	sscanf("$Revision: 1.44 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
