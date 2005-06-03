@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.25 2005/06/03 09:42:44 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.26 2005/06/03 18:28:23 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -246,6 +246,7 @@ typedef struct {
 	BOOL		cancelled;
 	BOOL		file_skipped;
 	BOOL		no_streaming;
+	unsigned	recv_bufsize;	/* Receiver specified buffer size */
 
 	/* Configuration */
 	long*		mode;
@@ -260,6 +261,7 @@ typedef struct {
 	int			(*recv_byte)(void*, unsigned timeout);
 	void		(*progress)(void*, ulong start_pos, ulong current_pos, ulong fsize, time_t start);
 	BOOL		(*is_connected)(void*);
+	BOOL		(*data_waiting)(void*);
 
 } zmodem_t;
 
@@ -269,6 +271,7 @@ void		zmodem_init(zmodem_t*, void* cbdata
 						,int	(*send_byte)(void*, BYTE ch, unsigned timeout)
 						,int	(*recv_byte)(void*, unsigned timeout)
 						,BOOL	(*is_connected)(void*)
+						,BOOL	(*data_waiting)(void*)
 						);
 char*		zmodem_ver(char *buf);
 const char* zmodem_source(void);
