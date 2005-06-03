@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.26 2005/06/03 18:28:23 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.27 2005/06/03 18:55:14 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -244,6 +244,7 @@ typedef struct {
 
 	/* Status */
 	BOOL		cancelled;
+	BOOL		local_abort;
 	BOOL		file_skipped;
 	BOOL		no_streaming;
 	unsigned	recv_bufsize;	/* Receiver specified buffer size */
