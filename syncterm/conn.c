@@ -1,7 +1,3 @@
-/* $Id: conn.c,v 1.13 2005/06/24 04:29:20 deuce Exp $ */
-
-#include <stdlib.h>
-
 #include "gen_defs.h"
 #include "genwrap.h"
 #include "sockwrap.h"
@@ -9,11 +5,10 @@
 #include "bbslist.h"
 #include "telnet_io.h"
 #include "conn.h"
-#include "uifcinit.h"
 
 static int	con_type=CONN_TYPE_UNKNOWN;
 SOCKET conn_socket=INVALID_SOCKET;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw",NULL};
+char *conn_types[]={"Unknown","RLogin","Telnet","Raw",""};
 
 int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 {
@@ -22,7 +17,7 @@ int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 	BYTE	*p;
 	BOOL	data_waiting;
 	static BYTE	*telnet_buf=NULL;
-	static size_t tbsize=0;
+	static int tbsize=0;
 
 	if(con_type == CONN_TYPE_TELNET) {
 		if(tbsize < buflen) {
@@ -65,33 +60,26 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	int sent=0;
 	int	ret;
 	int	i;
+	BYTE *outbuf=NULL;
 	BYTE *sendbuf;
-	BYTE *p;
-	static BYTE *outbuf=NULL;
-	static size_t obsize=0;
 
 	if(con_type == CONN_TYPE_TELNET) {
-		if(obsize < buflen*2) {
-			p=realloc(outbuf, buflen*2);
-			if(p!=NULL) {
-				outbuf=p;
-				obsize = 2 * buflen;
-			}
-			else
-				return(-1);
-		}
+		if((outbuf=(BYTE *)malloc(buflen*2))==NULL)
+			return(-1);
 		sendbuf=telnet_expand(buffer, buflen, outbuf, &buflen);
 	}
-	else
+	else {
 		sendbuf = buffer;
-
+	}
 	while(sent<(int)buflen) {
-		if(!socket_check(conn_socket, NULL, &i, timeout))
+		if(!socket_check(conn_socket, NULL, &i, timeout)) {
+			FREE_AND_NULL(outbuf);
 			return(-1);
-
-		if(!i)
+		}
+		if(!i) {
+			FREE_AND_NULL(outbuf);
 			return(-1);
-
+		}			
 		ret=send(conn_socket,sendbuf+sent,buflen-sent,0);
 		if(ret==-1) {
 			switch(errno) {
@@ -100,16 +88,18 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 					SLEEP(1);
 					break;
 				default:
+					FREE_AND_NULL(outbuf);
 					return(-1);
 			}
 		}
 		else
 			sent+=ret;
 	}
+	FREE_AND_NULL(outbuf);
 	return(0);
 }
 
-int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass, int conn_type, int speed)
+int conn_connect(char *addr, int port, char *ruser, char *passwd, int conn_type)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
@@ -159,23 +149,16 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 	}
 
 	switch(con_type) {
-		case CONN_TYPE_TELNET:
+		CONN_TYPE_TELNET:
 			memset(telnet_local_option,0,sizeof(telnet_local_option));
 			memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 			break;
 
-		case CONN_TYPE_RLOGIN:
+		CONN_TYPE_RLOGIN:
 			conn_send("",1,1000);
 			conn_send(passwd,strlen(passwd)+1,1000);
 			conn_send(ruser,strlen(ruser)+1,1000);
-			if(speed) {
-				char	sbuf[30];
-				sprintf(sbuf, "ansi-bbs/%d", speed);
-
-				conn_send(sbuf, strlen(sbuf)+1,1000);
-			}
-			else
-				conn_send("ansi-bbs/115200",15,1000);
+			conn_send("ansi-bbs/9600",14,1000);
 			break;
 	}
 
