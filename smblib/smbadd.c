@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.15 2005/07/03 03:56:33 deuce Exp $ */
+/* $Id: smbadd.c,v 1.14 2005/01/15 21:52:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include <time.h>
-#include <string.h>	/* strlen(), memset() */
 #include "smblib.h"
 #include "genwrap.h"
 #include "crc32.h"
