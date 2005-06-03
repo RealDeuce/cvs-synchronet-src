@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.34 2005/06/03 08:43:54 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.35 2005/06/03 09:43:18 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1503,7 +1503,8 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 
 		if(type == ZRPOS) {
 			pos = zm->rxd_header[ZP0] | (zm->rxd_header[ZP1] << 8) | (zm->rxd_header[ZP2] << 16) | (zm->rxd_header[ZP3] << 24);
-			lprintf(zm,LOG_INFO,"Resuming transfer from offset: %lu", pos);
+			if(pos)
+				lprintf(zm,LOG_INFO,"Resuming transfer from offset: %lu", pos);
 		}
 
 		/*
@@ -1767,7 +1768,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.34 $", "%*s %s", buf);
+	sscanf("$Revision: 1.35 $", "%*s %s", buf);
 
 	return(buf);
 }
