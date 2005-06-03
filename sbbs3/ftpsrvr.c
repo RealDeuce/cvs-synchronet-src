@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.298 2005/06/30 20:45:45 runderwo Exp $ */
+/* $Id: ftpsrvr.c,v 1.297 2005/05/07 18:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4508,7 +4508,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.298 $", "%*s %s", revision);
+	sscanf("$Revision: 1.297 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4847,7 +4847,7 @@ void DLLCALL ftp_server(void* arg)
 			}
 
 			if(active_clients>=startup->max_clients) {
-				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
+				lprintf(LOG_WARNING,"%04d !MAXMIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				sockprintf(client_socket,"421 Maximum active clients reached, please try again later.");
 				mswait(3000);
