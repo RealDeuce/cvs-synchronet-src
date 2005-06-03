@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.57 2005/02/10 06:21:45 deuce Exp $ */
+/* $Id: uifc.h,v 1.58 2005/06/03 03:59:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,6 +356,12 @@ typedef struct {
 /* List height for WIN_FIXEDHEIGHT lists.									*/
 /****************************************************************************/
 	int		list_height;
+
+/****************************************************************************/
+/* Colours for the various bits												*/
+/****************************************************************************/
+	char	hclr,lclr,bclr,cclr,lbclr;
+
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
@@ -430,6 +436,7 @@ typedef struct {
 /* String input/exit box at a specified position							*/
 /****************************************************************************/
 	int (*getstrxy)(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
+
 } uifcapi_t;
 
 /****************************************************************************/
