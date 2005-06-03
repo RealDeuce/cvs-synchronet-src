@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.15 2005/06/13 01:38:54 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.14 2005/06/03 08:44:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ typedef struct {
 	unsigned	byte_timeout;
 	unsigned	send_timeout;
 	unsigned	recv_timeout;
-	unsigned	errors;
 	unsigned	max_errors;
 	unsigned	g_delay;
 	unsigned	total_files;
