@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.22 2005/06/03 00:09:36 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.23 2005/06/03 03:23:05 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -263,7 +263,7 @@ typedef struct {
 
 } zmodem_t;
 
-void		zmodem_init(zmodem_t*, void* cbdata, long* mode
+void		zmodem_init(zmodem_t*, void* cbdata
 						,int	(*lputs)(void*, int level, const char* str)
 						,void	(*progress)(void*, ulong, ulong, ulong, time_t)
 						,int	(*send_byte)(void*, uchar ch, unsigned timeout)
