@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.32 2005/01/13 23:45:35 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.33 2005/04/21 07:06:20 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -128,7 +128,8 @@ WEB_OBJS	= $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE) \
 			
 
 # Must add new additions to MONO_OBJS too!
-SERVICE_OBJS	= $(MTOBJODIR)$(DIRSEP)services$(OFILE)
+SERVICE_OBJS	= $(MTOBJODIR)$(DIRSEP)services$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)sbbs_ini$(OFILE)
 
 MONO_OBJS	= \
 			$(MTOBJODIR)$(DIRSEP)ftpsrvr$(OFILE) \
