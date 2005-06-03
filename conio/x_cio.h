@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.8 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: x_cio.h,v 1.7 2005/01/23 22:21:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,7 +33,6 @@
 
 #ifdef __unix__
 #include "ciolib.h"
-#include "console.h"
 
 #ifdef __cplusplus
 extern "C" {
