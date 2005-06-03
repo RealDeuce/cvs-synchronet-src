@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.45 2005/06/03 08:45:03 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.46 2005/06/03 18:28:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -590,6 +590,15 @@ static void output_thread(void* arg)
 BOOL is_connected(void* unused)
 {
 	return socket_check(sock,NULL,NULL,0);
+}
+
+BOOL data_waiting(void* unused)
+{
+	BOOL rd;
+
+	if(!socket_check(sock,&rd,NULL,0))
+		return(FALSE);
+	return(rd);
 }
 
 /****************************************************************************/
@@ -1261,7 +1270,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.45 $", "%*s %s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1272,7 +1281,7 @@ int main(int argc, char **argv)
 	RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
 
 	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected);
-	zmodem_init(&zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected);
+	zmodem_init(&zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected,data_waiting);
 
 	/* Generate path/sexyz[.host].ini from path/sexyz[.exe] */
 	SAFECOPY(str,argv[0]);
