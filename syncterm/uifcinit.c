@@ -1,5 +1,3 @@
-/* $Id: uifcinit.c,v 1.16 2005/06/24 06:10:33 deuce Exp $ */
-
 #include <gen_defs.h>
 #include <stdio.h>
 
@@ -7,55 +5,28 @@
 #include <uifc.h>
 
 #include "uifcinit.h"
-#include "syncterm.h"
 
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 static int uifc_initialized=0;
 
-#define UIFC_INIT	(1<<0)
-#define WITH_SCRN	(1<<1)
-#define WITH_BOT	(1<<2)
-
-static void (*bottomfunc)(int);
-
-int	init_uifc(BOOL scrn, BOOL bottom) {
+int	init_uifc(void) {
 	int	i;
 	struct	text_info txtinfo;
 
     gettextinfo(&txtinfo);
-	if(!uifc_initialized) {
-		uifc.scrn_len=txtinfo.screenheight;
-		if((i=uifcini32(&uifc))!=0) {
-			fprintf(stderr,"uifc library init returned error %d\n",i);
-			return(-1);
-		}
-		bottomfunc=uifc.bottomline;
-		uifc_initialized=UIFC_INIT;
+	if(uifc_initialized)
+		return(0);
+	uifc.scrn_len=txtinfo.screenheight;
+	if((i=uifcini32(&uifc))!=0) {
+		fprintf(stderr,"uifc library init returned error %d\n",i);
+		return(-1);
 	}
+	uifc_initialized=1;
 
-	if(scrn) {
-		if(uifc.scrn(syncterm_version)) {
-			printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
-			uifc_initialized=0;
-			uifc.bail();
-		}
-		uifc_initialized |= (WITH_SCRN|WITH_BOT);
-	}
-	else {
-		uifc.timedisplay=NULL;
-		uifc_initialized &= ~WITH_SCRN;
-	}
-
-	if(bottom) {
-		uifc.bottomline=bottomfunc;
-		uifc_initialized |= WITH_BOT;
-		gotoxy(1, txtinfo.screenheight);
-		textattr(uifc.bclr|(uifc.cclr<<4));
-		clreol();
-	}
-	else {
-		uifc.bottomline=NULL;
-		uifc_initialized &= ~WITH_BOT;
+	if(uifc.scrn("SyncTERM")) {
+		printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
+		uifc_initialized=0;
+		uifc.bail();
 	}
 
 	return(0);
@@ -81,7 +52,7 @@ void uifcmsg(char *msg, char *helpbuf)
 		buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
-	init_uifc(FALSE, FALSE);
+	init_uifc();
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
 		uifc.msg(msg);
