@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.27 2005/07/03 03:59:31 deuce Exp $ */
+/* $Id: mouse.c,v 1.24 2005/02/18 08:48:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include <stdlib.h>
-#include <string.h>
 
 #include <genwrap.h>
 #include <semwrap.h>
@@ -98,7 +97,7 @@ struct mouse_state {
 
 struct mouse_state state;
 int mouse_events=0;
-static int mouse_initialized=0;
+static mouse_initialized=0;
 
 void init_mouse(void)
 {
@@ -462,5 +461,5 @@ int ciolib_ungetmouse(struct mouse_event *mevent)
 	if((me=(struct mouse_event *)malloc(sizeof(struct mouse_event)))==NULL)
 		return(-1);
 	memcpy(me,mevent,sizeof(struct mouse_event));
-	return(listInsertNode(&state.output,me)==NULL);
+	return(listAddNode(&state.output,me,FIRST_NODE)==NULL);
 }
