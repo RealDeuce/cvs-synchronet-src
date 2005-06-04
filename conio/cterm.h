@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.7 2005/08/06 01:32:15 deuce Exp $ */
+/* $Id: cterm.h,v 1.5 2005/01/19 23:59:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,18 +34,10 @@
 #ifndef _CTERM_H_
 #define _CTERM_H_
 
-#include <stdio.h>	/* FILE* */
-
 enum {
 	 CTERM_MUSIC_NORMAL
 	,CTERM_MUSIC_LEGATO
 	,CTERM_MUSIC_STACATTO
-};
-
-enum {
-	 LOG_NONE
-	,LOG_ASCII
-	,LOG_RAW
 };
 
 struct cterminal {
@@ -71,8 +63,6 @@ struct cterminal {
 	int backlines;
 	int	xpos;
 	int ypos;
-	int log;
-	FILE* logfile;
 };
 
 #ifdef __cplusplus
@@ -82,7 +72,7 @@ extern "C" {
 extern struct cterminal cterm;
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback);
-char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int *speed);
+char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize);
 void cterm_end(void);
 #ifdef __cplusplus
 }

@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.91 2005/08/06 01:57:24 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.89 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -713,8 +713,6 @@ long js_exec(const char *fname, char** args)
 	}
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 
-	js_EvalOnExit(js_cx, js_glob, &branch);
-
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
 	if(rval!=JSVAL_VOID) {
@@ -765,7 +763,6 @@ int main(int argc, char **argv, char** environ)
 	char*	omode="w";
 	int		argn;
 	long	result;
-	ulong	exec_count=0;
 	BOOL	loop=FALSE;
 	BOOL	nonbuffered_con=FALSE;
 
@@ -785,7 +782,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.89 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -961,9 +958,6 @@ int main(int argc, char **argv, char** environ)
 
 	do {
 
-		if(exec_count++)
-			fprintf(statfp,"\nRe-running: %s\n", module);
-
 		recycled=FALSE;
 
 		if(!js_init(environ)) {
@@ -973,9 +967,6 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"\n");
 
 		result=js_exec(module,&argv[argn]);
-
-		if(result)
-			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
 
 		fprintf(statfp,"\n");
 		fprintf(statfp,"JavaScript: Destroying context\n");
