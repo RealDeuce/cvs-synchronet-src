@@ -80,7 +80,7 @@
 /* ========================================================================= */
 
 /* OpenDoors API version number. */
-#define OD_VERSION 0x621
+#define OD_VERSION 0x624
 
 #define DIRSEP		'\\'
 #define DIRSEP_STR	"\\"
@@ -119,9 +119,9 @@
 /* For DLL versions, definitions of function or data that is exported from */
 /* a module or imported into a module.                                     */
 #ifdef OD_DLL
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__BORLANDC__)
 #define OD_EXPORT __declspec(dllexport)
-#else /* !_MSC_VER */
+#else /* !_MSC_VER || __BORLANDC__ */
 #define OD_EXPORT _export
 #endif /* !_MSC_VER */
 #define OD_IMPORT DECLSPEC_IMPORT
@@ -178,10 +178,18 @@
 
 /* Portable types that are the same size across all platforms */
 #ifndef ODPLAT_WIN32
+#ifndef BYTE
 typedef unsigned char      BYTE;                        /* Unsigned, 8 bits. */
+#endif
+#ifndef WORD
 typedef unsigned short     WORD;                       /* Unsigned, 16 bits. */
+#endif
+#ifndef DWORD
 typedef unsigned long      DWORD;                      /* Unsigned, 32 bits. */
+#endif
+#ifndef CHAR
 typedef char               CHAR;         /* Native character representation. */
+#endif
 #define DWORD_DEFINED
 #define WORD_DEFINED
 #endif /* !ODPLAT_WIN32 */
@@ -915,6 +923,7 @@ od_control;
  *    od_edit_str()           - Fancy formatted string input function (ANS/AVT)
  *    od_clear_keybuffer()    - Removes any waiting keys in keyboard buffer
  *    od_multiline_edit()     - Edits text that spans multiple lines  (ANS/AVT)
+ *    od_key_pending()        - Returns TRUE if a key is waiting to be processed
  *
  * COMMON DOOR ACTIVITY FUNCTIONS
  *    od_page()               - Allows user to page sysop
@@ -962,6 +971,7 @@ ODAPIDEF char ODCALL   od_get_answer(char *pszOptions);
 ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
+ODAPIDEF BOOL ODCALL   od_key_pending(void);
 ODAPIDEF char ODCALL   od_get_key(BOOL bWait);
 ODAPIDEF BOOL ODCALL   od_gettext(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, void *pBlock);
