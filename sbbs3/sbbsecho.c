@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.165 2005/06/06 22:28:53 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.164 2005/02/11 02:13:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1024,7 +1024,7 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 		return; }
 	if((cfgfile=fopen(cfg.cfgfile,"r"))==NULL) {
 		printf("\7ERROR couldn't open %s.\n",cfg.cfgfile);
-		logprintf("ERROR line %d opening %s %s",__LINE__,cfg.cfgfile
+		logprintf("ERROR line %d opening %s",__LINE__,cfg.cfgfile
 			,strerror(errno));
 		fclose(outfile);
 		free(outname);
@@ -2261,7 +2261,7 @@ char* getfmsg(FILE *stream, ulong *outlen)
 
 	if(outlen)
 		*outlen=length;
-	return((char*)fbuf);
+	return(fbuf);
 }
 
 #define MAX_TAILLEN 1024
@@ -3949,7 +3949,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.165 $", "%*s %s", revision);
+	sscanf("$Revision: 1.164 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

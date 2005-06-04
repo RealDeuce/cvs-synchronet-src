@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.11 2005/06/04 01:54:48 deuce Exp $
+# $Id: GNUmakefile,v 1.10 2004/09/20 02:57:25 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -31,6 +31,6 @@ $(UIFCLIB-MT_BUILD): $(MT_OBJS)
 	$(QUIET)$(AR) rc $@ $(MT_OBJS)
 	$(QUIET)$(RANLIB) $@
 
-$(UIFCTEST): $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE) $(MTOBJODIR)$(DIRSEP)filepick$(OFILE)
+$(UIFCTEST): $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE)
 	@echo Creating $@ ...
-	$(QUIET)$(CC) $(MT_LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(LDFLAGS) -o $@ $(MTOBJODIR)$(DIRSEP)filepick$(OFILE) $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(MT_LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(LDFLAGS) -o $@ $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
