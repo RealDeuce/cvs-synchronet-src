@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.129 2005/08/01 23:49:30 rswindell Exp $ */
+/* $Id: smblib.c,v 1.128 2005/02/17 22:54:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -53,7 +53,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.41"      /* SMB library version */
+#define SMBLIB_VERSION		"2.40"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
