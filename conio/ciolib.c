@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.42 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: ciolib.c,v 1.41 2005/05/20 01:38:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -553,7 +553,7 @@ void ciolib_gotoxy(int x, int y)
 	cio_api.gotoxy(nx,ny);
 }
 
-void ciolib_textmode(int mode)
+void ciolib_textmode(mode)
 {
 	CIOLIB_INIT();
 	
