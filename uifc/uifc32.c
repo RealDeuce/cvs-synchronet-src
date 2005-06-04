@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.130 2005/06/04 19:02:23 deuce Exp $ */
+/* $Id: uifc32.c,v 1.131 2005/06/04 19:15:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -959,7 +959,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							&& (mevnt.event==CIOLIB_BUTTON_1_CLICK
 							|| mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
 						if(mode&WIN_UNGETMOUSE) {
-							ungetmouse(mevnt);
+							ungetmouse(&mevnt);
 						}
 						else {
 							i=ESC;
