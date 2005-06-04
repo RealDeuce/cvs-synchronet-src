@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.290 2005/03/26 06:54:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.297 2005/05/07 18:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,7 @@
 #define BBS_VIRTUAL_PATH		"bbs:/""/"	/* this is actually bbs:<slash><slash> */
 #define LOCAL_FSYS_DIR			"local:"
 #define BBS_FSYS_DIR			"bbs:"
+#define BBS_HIDDEN_ALIAS		"hidden"
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 
@@ -482,9 +483,9 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	BOOL		success=FALSE;
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)"
-		,sock,startup->js_cx_stack);
+		,sock,startup->js.cx_stack);
 
-    if((js_cx = JS_NewContext(runtime, startup->js_cx_stack))==NULL)
+    if((js_cx = JS_NewContext(runtime, startup->js.cx_stack))==NULL)
 		return(NULL);
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Context created",sock);
@@ -807,6 +808,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 					dp=tp+1;	/* description pointer */
 					while(*dp && *dp<=' ') dp++;
 					truncsp(dp);
+
+					if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
+						continue;
 
 					alias_dir=FALSE;
 
@@ -1941,9 +1945,15 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 
 	} else {	/* PASV */
 
-		if(startup->options&FTP_OPT_DEBUG_DATA)
-			lprintf(LOG_DEBUG,"%04d PASV DATA socket %d listening on %s port %u"
+		if(startup->options&FTP_OPT_DEBUG_DATA) {
+			addr_len=sizeof(SOCKADDR_IN);
+			if((result=getsockname(pasv_sock, (struct sockaddr *)addr,&addr_len))!=0)
+				lprintf(LOG_ERR,"%04d !ERROR %d (%d) getting address/port of passive socket (%u)"
+					,ctrl_sock,result,ERROR_VALUE,pasv_sock);
+			else
+				lprintf(LOG_DEBUG,"%04d PASV DATA socket %d listening on %s port %u"
 					,ctrl_sock,pasv_sock,inet_ntoa(addr->sin_addr),ntohs(addr->sin_port));
+		}
 
 		/* Setup for select() */
 		tv.tv_sec=TIMEOUT_SOCKET_LISTEN;
@@ -2278,6 +2288,8 @@ static void ctrl_thread(void* arg)
 	char*		p;
 	char*		np;
 	char*		tp;
+	char*		dp;
+	char*		mode="active";
 	char		password[64];
 	char		fname[MAX_PATH+1];
 	char		qwkfile[MAX_PATH+1];
@@ -2326,6 +2338,7 @@ static void ctrl_thread(void* arg)
 	BOOL		local_fsys=FALSE;
 	BOOL		alias_dir;
 	BOOL		append;
+	BOOL		reuseaddr;
 	FILE*		fp;
 	FILE*		alias_fp;
 	SOCKET		sock;
@@ -2826,12 +2839,16 @@ static void ctrl_thread(void* arg)
 #endif
 
 		if(!strnicmp(cmd, "PORT ",5)) {
+
+			if(pasv_sock!=INVALID_SOCKET) 
+				ftp_close_socket(&pasv_sock,__LINE__);
+
 			p=cmd+5;
 			while(*p && *p<=' ') p++;
 			sscanf(p,"%ld,%ld,%ld,%ld,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
 			data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
 			data_addr.sin_port=(u_short)((p1<<8)|p2);
-			if(data_addr.sin_port<1024) {	
+			if(data_addr.sin_port< IPPORT_RESERVED) {	
 				lprintf(LOG_WARNING,"%04d !SUSPECTED BOUNCE ATTACK ATTEMPT by %s to %s port %u"
 					,sock,user.alias
 					,inet_ntoa(data_addr.sin_addr),data_addr.sin_port);
@@ -2845,10 +2862,12 @@ static void ctrl_thread(void* arg)
 			}
 			data_addr.sin_port=htons(data_addr.sin_port);
 			sockprintf(sock,"200 PORT Command successful.");
+			mode="active";
 			continue;
 		}
 
-		if(!stricmp(cmd, "PASV")) {
+		if(!stricmp(cmd, "PASV") 
+			|| !stricmp(cmd, "P@SW")) {	// Kludge required for SMC Barricade V1.2
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -2859,35 +2878,57 @@ static void ctrl_thread(void* arg)
 				continue;
 			}
 
+			reuseaddr=FALSE;
+			if((result=setsockopt(pasv_sock,SOL_SOCKET,SO_REUSEADDR,(char*)&reuseaddr,sizeof(reuseaddr)))!=0) {
+				lprintf(LOG_WARNING,"%04d !PASV ERROR %d disabling REUSEADDR socket option"
+					,sock,ERROR_VALUE);
+				sockprintf(sock,"425 Error %d disabling REUSEADDR socket option", ERROR_VALUE);
+				continue;
+			}
+
 			if(startup->options&FTP_OPT_DEBUG_DATA)
 				lprintf(LOG_DEBUG,"%04d PASV DATA socket %d opened",sock,pasv_sock);
 
-			pasv_addr.sin_port = 0;
+			for(port=startup->pasv_port_low; port<=startup->pasv_port_high; port++) {
 
-			result=bind(pasv_sock, (struct sockaddr *) &pasv_addr,sizeof(pasv_addr));
+				if(startup->options&FTP_OPT_DEBUG_DATA)
+					lprintf(LOG_DEBUG,"%04d PASV DATA trying to bind socket to port %u"
+						,sock,port);
+
+				pasv_addr.sin_port = htons(port);
+
+				if((result=bind(pasv_sock, (struct sockaddr *) &pasv_addr,sizeof(pasv_addr)))==0)
+					break;
+			}
 			if(result!= 0) {
-				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) binding socket", sock, result, ERROR_VALUE);
+				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) binding socket to port %u"
+					,sock, result, ERROR_VALUE, port);
 				sockprintf(sock,"425 Error %d binding data socket",ERROR_VALUE);
 				ftp_close_socket(&pasv_sock,__LINE__);
 				continue;
 			}
+			if(startup->options&FTP_OPT_DEBUG_DATA)
+				lprintf(LOG_DEBUG,"%04d PASV DATA socket %d bound to port %u",sock,pasv_sock,port);
 
 			addr_len=sizeof(addr);
 			if((result=getsockname(pasv_sock, (struct sockaddr *)&addr,&addr_len))!=0) {
-				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) getting address/port", sock, result, ERROR_VALUE);
+				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) getting address/port"
+					,sock, result, ERROR_VALUE);
 				sockprintf(sock,"425 Error %d getting address/port",ERROR_VALUE);
 				ftp_close_socket(&pasv_sock,__LINE__);
 				continue;
 			} 
 
 			if((result=listen(pasv_sock, 1))!= 0) {
-				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) listening on socket", sock, result, ERROR_VALUE);
+				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) listening on port %u"
+					,sock, result, ERROR_VALUE,port);
 				sockprintf(sock,"425 Error %d listening on data socket",ERROR_VALUE);
 				ftp_close_socket(&pasv_sock,__LINE__);
 				continue;
 			}
 
-			ip_addr=ntohl(pasv_addr.sin_addr.s_addr);
+			if((ip_addr=startup->pasv_ip_addr)==0)
+				ip_addr=ntohl(pasv_addr.sin_addr.s_addr);
 			port=ntohs(addr.sin_port);
 			sockprintf(sock,"227 Entering Passive Mode (%d,%d,%d,%d,%hd,%hd)"
 				,(ip_addr>>24)&0xff
@@ -2897,6 +2938,7 @@ static void ctrl_thread(void* arg)
 				,(port>>8)&0xff
 				,port&0xff
 				);
+			mode="passive";
 			continue;
 		}
 
@@ -3024,7 +3066,7 @@ static void ctrl_thread(void* arg)
 				}
 
 				SAFEPRINTF2(path,"%s%s",local_dir, *p ? p : "*");
-				lprintf(LOG_INFO,"%04d %s listing: %s", sock, user.alias, path);
+				lprintf(LOG_INFO,"%04d %s listing: %s in %s mode", sock, user.alias, path, mode);
 				sockprintf(sock, "150 Directory of %s%s", local_dir, p);
 
 				now=time(NULL);
@@ -3242,7 +3284,7 @@ static void ctrl_thread(void* arg)
 				/* RETR */
 				lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
 					,sock,user.alias,fname,flength(fname)
-					,pasv_sock==INVALID_SOCKET ? "active":"passive");
+					,mode);
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
 				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 					,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
@@ -3265,7 +3307,7 @@ static void ctrl_thread(void* arg)
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 
 				lprintf(LOG_INFO,"%04d %s uploading: %s in %s mode", sock,user.alias,fname
-					,pasv_sock==INVALID_SOCKET ? "active":"passive");
+					,mode);
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
 				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 					,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
@@ -3346,7 +3388,7 @@ static void ctrl_thread(void* arg)
 			} 
 
 			if(lib<0) { /* Root dir */
-				lprintf(LOG_INFO,"%04d %s listing: root",sock,user.alias);
+				lprintf(LOG_INFO,"%04d %s listing: root in %s mode",sock,user.alias, mode);
 
 				/* QWK Packet */
 				if(startup->options&FTP_OPT_ALLOW_QWK/* && fexist(qwkfile)*/) {
@@ -3397,6 +3439,13 @@ static void ctrl_thread(void* arg)
 						tp=np;		/* terminator pointer */
 						while(*tp && *tp>' ') tp++;
 						if(*tp) *tp=0;
+
+						dp=tp+1;	/* description pointer */
+						while(*dp && *dp<=' ') dp++;
+						truncsp(dp);
+
+						if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
+							continue;
 
 						/* Virtual Path? */
 						if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
@@ -3464,7 +3513,8 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%s\r\n",scfg.lib[i]->sname);
 				}
 			} else if(dir<0) {
-				lprintf(LOG_INFO,"%04d %s listing: %s library",sock,user.alias,scfg.lib[lib]->sname);
+				lprintf(LOG_INFO,"%04d %s listing: %s library in %s mode"
+					,sock,user.alias,scfg.lib[lib]->sname,mode);
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
 						continue;
@@ -3483,8 +3533,8 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%s\r\n",scfg.dir[i]->code_suffix);
 				}
 			} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user)) {
-				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory"
-					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix);
+				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode"
+					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,*p ? p : "*");
 				glob(path,0,NULL,&g);
@@ -3533,8 +3583,8 @@ static void ctrl_thread(void* arg)
 				}
 				globfree(&g);
 			} else 
-				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory (empty - no access)"
-					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix);
+				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode (empty - no access)"
+					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 			fclose(fp);
 			filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,0L
@@ -3661,7 +3711,7 @@ static void ctrl_thread(void* arg)
 				if(!getsize && !getdate)
 					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
 						,sock,user.alias,flength(fname)
-						,pasv_sock==INVALID_SOCKET ? "active":"passive");
+						,mode);
 			/* ASCII Index File */
 			} else if(startup->options&FTP_OPT_INDEX_FILE 
 				&& !stricmp(p,startup->index_file_name)
@@ -3675,7 +3725,7 @@ static void ctrl_thread(void* arg)
 				if(!getsize && !getdate)
 					lprintf(LOG_INFO,"%04d %s downloading index for %s in %s mode"
 						,sock,user.alias,vpath(lib,dir,str)
-						,pasv_sock==INVALID_SOCKET ? "active":"passive");
+						,mode);
 				success=TRUE;
 				credits=FALSE;
 				tmpfile=TRUE;
@@ -3782,9 +3832,9 @@ static void ctrl_thread(void* arg)
 				}
 				if(js_runtime == NULL) {
 					lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
-						,sock,startup->js_max_bytes);
+						,sock,startup->js.max_bytes);
 
-					if((js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL) {
+					if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL) {
 						lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
 						sockprintf(sock,"451 Error creating JavaScript runtime");
 						filepos=0;
@@ -3868,7 +3918,7 @@ static void ctrl_thread(void* arg)
 				if(!getsize && !getdate)
 					lprintf(LOG_INFO,"%04d %s downloading HTML index for %s in %s mode"
 						,sock,user.alias,vpath(lib,dir,str)
-						,pasv_sock==INVALID_SOCKET ? "active":"passive");
+						,mode);
 				success=TRUE;
 				credits=FALSE;
 				tmpfile=TRUE;
@@ -3965,7 +4015,7 @@ static void ctrl_thread(void* arg)
 						if(!getsize && !getdate && !delecmd)
 							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
 								,sock,user.alias,fname,flength(fname)
-								,pasv_sock==INVALID_SOCKET ? "active":"passive");
+								,mode);
 					} 
 				}
 			}
@@ -4100,7 +4150,7 @@ static void ctrl_thread(void* arg)
 				sprintf(fname,"%sfile/%04d.rep",scfg.data_dir,user.number);
 				lprintf(LOG_INFO,"%04d %s uploading: %s in %s mode"
 					,sock,user.alias,fname
-					,pasv_sock==INVALID_SOCKET ? "active":"passive");
+					,mode);
 			} else {
 
 				append=(strnicmp(cmd,"APPE",4)==0);
@@ -4170,7 +4220,7 @@ static void ctrl_thread(void* arg)
 					,p						/* filename */
 					,vpath(lib,dir,str)		/* virtual path */
 					,scfg.dir[dir]->path	/* actual path */
-					,pasv_sock==INVALID_SOCKET ? "active":"passive");
+					,mode);
 			}
 			sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
 			filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
@@ -4458,7 +4508,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.290 $", "%*s %s", revision);
+	sscanf("$Revision: 1.297 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4531,10 +4581,11 @@ void DLLCALL ftp_server(void* arg)
 	else
 		startup->options|=FTP_OPT_NO_JAVASCRIPT;
 #ifdef JAVASCRIPT
-	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
-	sprintf(js_server_props.version,"%s %s",FTP_SERVER,revision);
+	ZERO_VAR(js_server_props);
+	SAFEPRINTF2(js_server_props.version,"%s %s",FTP_SERVER,revision);
 	js_server_props.version_detail=ftp_ver();
 	js_server_props.clients=&active_clients;
 	js_server_props.options=&startup->options;
@@ -4629,6 +4680,21 @@ void DLLCALL ftp_server(void* arg)
 				startup->max_clients=10;
 		}
 		lprintf(LOG_DEBUG,"Maximum clients: %d",startup->max_clients);
+
+		/* Sanity-check the passive port range */
+		if(startup->pasv_port_low || startup->pasv_port_high) {
+			if(startup->pasv_port_low > startup->pasv_port_high
+				|| startup->pasv_port_high-startup->pasv_port_low < (startup->max_clients-1)) {
+				lprintf(LOG_WARNING,"!Correcting Passive Port Range (Low: %u, High: %u)"
+					,startup->pasv_port_low,startup->pasv_port_high);
+				if(startup->pasv_port_low)
+					startup->pasv_port_high = startup->pasv_port_low+(startup->max_clients-1);
+				else
+					startup->pasv_port_low = startup->pasv_port_high-(startup->max_clients-1);
+			}
+			lprintf(LOG_DEBUG,"Passive Port Low: %u",startup->pasv_port_low);
+			lprintf(LOG_DEBUG,"Passive Port High: %u",startup->pasv_port_high);
+		}
 
 		lprintf(LOG_DEBUG,"Maximum inactivity: %d seconds",startup->max_inactivity);
 
