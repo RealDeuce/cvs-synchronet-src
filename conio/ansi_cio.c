@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.41 2005/04/05 17:02:23 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.42 2005/04/08 10:15:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -362,7 +362,6 @@ static void ansi_keyparse(void *par)
 	char	*p;
 	int		timeout=0;
 	int		timedout=0;
-	int		sval;
 	int		unknown=0;
 
 	seq[0]=0;
