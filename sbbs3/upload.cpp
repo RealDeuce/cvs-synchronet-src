@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.43 2005/06/20 08:54:41 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.42 2004/10/21 08:43:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,12 +199,8 @@ bool sbbs_t::uploadfile(file_t *f)
 	f->opencount=0;
 	strcpy(f->uler,useron.alias);
 	bprintf(text[FileNBytesReceived],f->name,ultoac(length,tmp));
-	if(!f->desc[0]) {
-		if(stricmp(f->name,getfname(path)))
-			SAFECOPY(f->desc,getfname(path));
-		else
-			sprintf(f->desc,"%.*s",LEN_FDESC,text[NoDescription]);
-	}
+	if(!f->desc[0])
+		sprintf(f->desc,"%.*s",LEN_FDESC,text[NoDescription]);
 	if(!addfiledat(&cfg,f))
 		return(0);
 

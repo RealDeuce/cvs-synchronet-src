@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.12 2005/07/12 17:45:03 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.11 2004/10/27 22:02:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,6 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 	uchar	exatr=0;
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
-	long	col=0;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -240,13 +239,8 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 				if(i)					/* if valid string, go to top */
 					continue; 
 			}
-			if(str[l]!=CTRL_Z) {
+			if(str[l]!=CTRL_Z)
 				outchar(str[l]);
-				if(!exatr && !outchar_esc && lncntr && lbuflen && cols && ++col==cols)
-					lncntr++;
-				else
-					col=0;
-			}
 			l++; 
 		} 
 	}
