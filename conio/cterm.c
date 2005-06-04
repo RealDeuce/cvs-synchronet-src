@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.19 2005/02/18 08:48:06 deuce Exp $ */
+/* $Id: cterm.c,v 1.21 2005/05/19 23:54:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -381,17 +381,11 @@ void clear2bol(void)
 
 void clear2eol(void)
 {
-	char *buf;
-	int i,j;
-
 	clreol();
 }
 
 void clearscreen(char attr)
 {
-	char *buf;
-	int x,y,j;
-
 	if(cterm.scrollback!=NULL) {
 		cterm.backpos+=cterm.height;
 		if(cterm.backpos>cterm.backlines) {
@@ -811,7 +805,6 @@ void ctputs(char *buf)
 {
 	char *outp;
 	char *p;
-	char outline[80];
 	int		oldscroll;
 	int		cx;
 	int		cy;
@@ -893,14 +886,12 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 {
 	unsigned char ch[2];
 	unsigned char prn[BUFSIZE];
-	int	key;
-	int i,j,k;
-	char	*ret;
+	int j,k;
 	struct text_info	ti;
 	int	olddmc;
 
-	olddmc=dont_move_cursor;
-	dont_move_cursor=1;
+	olddmc=hold_update;
+	hold_update=1;
 	if(retbuf!=NULL)
 		retbuf[0]=0;
 	gettextinfo(&ti);
@@ -986,7 +977,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 	textattr(ti.attribute);
 #endif
 
-	dont_move_cursor=olddmc;
+	hold_update=olddmc;
 	gotoxy(wherex(),wherey());
 	return(retbuf);
 }

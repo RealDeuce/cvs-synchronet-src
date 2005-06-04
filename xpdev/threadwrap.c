@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.18 2003/04/26 21:47:55 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.20 2005/04/28 00:35:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,7 @@ ulong _beginthread(void( *start_address )( void * )
 {
 	pthread_t	thread;
 	pthread_attr_t attr;
+	size_t		default_stack;
 
 	pthread_attr_init(&attr);     /* initialize attribute structure */
 
@@ -64,10 +65,12 @@ ulong _beginthread(void( *start_address )( void * )
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	/* Default stack size in BSD is too small for JS stuff */
-#ifdef BSD
-	if(stack_size==0)
-		stack_size=1<<17;
-#endif
+	/* Force to at least 256k */
+#define XPDEV_MIN_THREAD_STACK_SIZE	(256*1024)
+	if(stack_size==0 && pthread_attr_getstacksize(&attr, &default_stack)==0
+		&& default_stack < XPDEV_MIN_THREAD_STACK_SIZE)
+		stack_size=XPDEV_MIN_THREAD_STACK_SIZE;
+
 	if(stack_size!=0)
 		pthread_attr_setstacksize(&attr, stack_size);
 
