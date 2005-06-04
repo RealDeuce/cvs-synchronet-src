@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.135 2005/06/04 20:27:16 deuce Exp $ */
+/* $Id: uifc32.c,v 1.136 2005/06/04 21:12:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1837,7 +1837,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						if(lastkey)
 							*lastkey=CIO_KEY_MOUSE;
 						ungetmouse(&mevnt);
-						return(j);
+						ch=CR;
+						continue;
 					}
 					if(mevnt.starty == top
 							&& mevnt.startx>=left
