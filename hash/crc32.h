@@ -2,7 +2,7 @@
 
 /* 32-bit CRC table and calculation macro */
 
-/* $Id: crc32.h,v 1.6 2005/06/07 08:41:56 rswindell Exp $ */
+/* $Id: crc32.h,v 1.5 2003/10/15 02:51:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,8 +38,6 @@
 #ifndef _CRC32_H_
 #define _CRC32_H_
 
-#include <stdio.h>	/* FILE */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,7 +45,6 @@ extern "C" {
 extern long crc32tbl[];
 
 unsigned long crc32(char* buf, unsigned long len);
-unsigned long fcrc32(FILE* fp, unsigned long len);
 
 #ifdef __cplusplus
 }
