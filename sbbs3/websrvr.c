@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.310 2005/04/16 01:26:26 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.321 2005/06/06 22:28:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1221,7 +1221,7 @@ static BOOL check_ars(http_session_t * session)
 		/* Should go to the hack log? */
 		if(scfg.sys_misc&SM_ECHO_PW)
 			lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s: '%s' expected '%s'"
-				,session->socket,username,password,session->user.pass);
+				,session->socket,username,password,thisuser.pass);
 		else
 			lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s"
 				,session->socket,username);
@@ -1272,7 +1272,8 @@ static BOOL check_ars(http_session_t * session)
 	return(FALSE);
 }
 
-static named_string_t** read_ini_list(char* fname, named_string_t** list)
+static named_string_t** read_ini_list(char* fname, char* section, char* desc
+									  ,named_string_t** list)
 {
 	char	path[MAX_PATH+1];
 	size_t	i;
@@ -1282,14 +1283,12 @@ static named_string_t** read_ini_list(char* fname, named_string_t** list)
 
 	iniFileName(path,sizeof(path),scfg.ctrl_dir,fname);
 
-	lprintf(LOG_DEBUG,"Reading %s",path);
-	if((fp=iniOpenFile(path, /* create? */FALSE))==NULL)
-		lprintf(LOG_WARNING,"Error %d opening %s",errno,path);
-	else {
-		list=iniReadNamedStringList(fp,NULL /* root section */);
+	if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
+		list=iniReadNamedStringList(fp,section);
 		iniCloseFile(fp);
 		COUNT_LIST_ITEMS(list,i);
-		lprintf(LOG_DEBUG,"Read %u items from %s",i,path);
+		if(i)
+			lprintf(LOG_DEBUG,"Read %u %s from %s",i,desc,path);
 	}
 
 	return(list);
@@ -1337,9 +1336,9 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 }
 
 #if defined(_WIN32)
-static int pipereadline(HANDLE pipe, char *buf, size_t length)
+static int pipereadline(HANDLE pipe, char *buf, size_t length, char *fullbuf, size_t fullbuf_len)
 #else
-static int pipereadline(int pipe, char *buf, size_t length)
+static int pipereadline(int pipe, char *buf, size_t length, char *fullbuf, size_t fullbuf_len)
 #endif
 {
 	char	ch;
@@ -1348,6 +1347,11 @@ static int pipereadline(int pipe, char *buf, size_t length)
 	int		ret=0;
 
 	start=time(NULL);
+	/* Terminate buffers */
+	if(buf != NULL)
+		buf[0]=0;
+	if(fullbuf != NULL)
+		fullbuf[0]=0;
 	for(i=0;TRUE;) {
 		if(time(NULL)-start>startup->max_cgi_inactivity)
 			return(-1);
@@ -1361,11 +1365,18 @@ static int pipereadline(int pipe, char *buf, size_t length)
 		if(ret==1)  {
 			start=time(NULL);
 
+			if(fullbuf != NULL && i < (fullbuf_len-1)) {
+				fullbuf[i]=ch;
+				fullbuf[i+1]=0;
+			}
+
 			if(ch=='\n')
 				break;
 
-			if(i<length)
-				buf[i++]=ch;
+			if(buf != NULL && i<length)
+				buf[i]=ch;
+
+			i++;
 		}
 		else
 			return(-1);
@@ -1375,10 +1386,12 @@ static int pipereadline(int pipe, char *buf, size_t length)
 	if(i>length)
 		i=length;
 
-	if(i>0 && buf[i-1]=='\r')
+	if(i>0 && buf != NULL && buf[i-1]=='\r')
 		buf[--i]=0;
-	else
-		buf[i]=0;
+	else {
+		if(buf != NULL)
+			buf[i]=0;
+	}
 
 	return(i);
 }
@@ -2155,6 +2168,7 @@ static BOOL exec_cgi(http_session_t *session)
 	fd_set	write_set;
 	int		high_fd=0;
 	char	buf[1024];
+	char	fbuf[1026];
 	BOOL	done_parsing_headers=FALSE;
 	BOOL	done_reading=FALSE;
 	char	cgi_status[MAX_REQUEST_LINE+1];
@@ -2169,6 +2183,8 @@ static BOOL exec_cgi(http_session_t *session)
 	char	ch;
 	BOOL	orig_keep=FALSE;
 	size_t	idx;
+	str_list_t	tmpbuf;
+	size_t	tmpbuflen=0;
 
 	SAFECOPY(cmdline,session->req.physical_path);
 
@@ -2180,23 +2196,23 @@ static BOOL exec_cgi(http_session_t *session)
 	/* Set up I/O pipes */
 
 	if(pipe(out_pipe)!=0) {
-		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket,buf);
+		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket);
 		return(FALSE);
 	}
 
 	if(pipe(err_pipe)!=0) {
-		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket,buf);
+		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket);
 		return(FALSE);
 	}
 
 	if((child=fork())==0)  {
+		str_list_t  env_list;
+
 		/* Do a full suid thing. */
 		if(startup->setuid!=NULL)
 			startup->setuid(TRUE);
 
-		/* Set up environment */
-		for(idx=0;session->req.cgi_env[idx]!=NULL;idx++)
-			putenv(session->req.cgi_env[idx]);
+		env_list=get_cgi_env(session);
 
 		/* Set up STDIO */
 		dup2(session->socket,0);		/* redirect stdin */
@@ -2215,8 +2231,23 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 
 		/* Execute command */
-		execl(cmdline,cmdline,NULL);
-		lprintf(LOG_ERR,"%04d !FAILED! execl()",session->socket);
+		if(get_cgi_handler(cgipath, sizeof(cgipath))) {
+			char *comspec;
+			comspec=getenv("SHELL");
+			if(comspec==NULL)
+#ifdef _PATH_BSHELL
+				comspec=_PATH_BSHELL;
+#else
+				comspec="/bin/sh";
+#endif
+			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,cgipath,cmdline);
+			execle(comspec,comspec,"-c",cgipath,NULL,env_list);
+		}
+		else {
+			execle(cmdline,cmdline,NULL,env_list);
+		}
+
+		lprintf(LOG_ERR,"%04d !FAILED! execle() (%d)",session->socket,errno);
 		exit(EXIT_FAILURE); /* Should never happen */
 	}
 
@@ -2240,6 +2271,7 @@ static BOOL exec_cgi(http_session_t *session)
 
 	/* ToDo: Magically set done_parsing_headers for nph-* scripts */
 	cgi_status[0]=0;
+	tmpbuf=strListInit();
 	while(!done_reading)  {
 		tv.tv_sec=startup->max_cgi_inactivity;
 		tv.tv_usec=0;
@@ -2268,7 +2300,7 @@ static BOOL exec_cgi(http_session_t *session)
 				}
 				else  {
 					/* This is the tricky part */
-					i=pipereadline(out_pipe[0],buf,sizeof(buf));
+					i=pipereadline(out_pipe[0],buf,sizeof(buf), fbuf, sizeof(fbuf));
 					if(i<0)  {
 						done_reading=TRUE;
 						got_valid_headers=FALSE;
@@ -2277,6 +2309,8 @@ static BOOL exec_cgi(http_session_t *session)
 						start=time(NULL);
 
 					if(!done_parsing_headers && *buf)  {
+						if(tmpbuf != NULL)
+							strListPush(&tmpbuf, fbuf);
 						SAFECOPY(header,buf);
 						directive=strtok(header,":");
 						if(directive != NULL)  {
@@ -2313,6 +2347,10 @@ static BOOL exec_cgi(http_session_t *session)
 									strListPush(&session->req.dynamic_heads,buf);
 							}
 						}
+						if(directive == NULL || value == NULL) {
+							/* Invalid header line */
+							done_parsing_headers=TRUE;
+						}
 					}
 					else  {
 						if(got_valid_headers)  {
@@ -2320,6 +2358,38 @@ static BOOL exec_cgi(http_session_t *session)
 							if(cgi_status[0]==0)
 								SAFECOPY(cgi_status,session->req.status);
 							send_headers(session,cgi_status);
+						}
+						else {
+							/* Invalid headers... send 'er all as plain-text */
+							char    content_type[MAX_REQUEST_LINE+1];
+							int snt;
+
+							/* free() the non-headers so they don't get sent, then recreate the list */
+							strListFreeStrings(session->req.dynamic_heads);
+
+							/* Force connection close */
+							session->req.keep_alive=0;
+
+							/* Copy current status */
+							SAFECOPY(cgi_status,session->req.status);
+
+							/* Add the content-type header (REQUIRED) */
+							SAFEPRINTF2(content_type,"%s: %s",get_header(HEAD_TYPE),startup->default_cgi_content);
+							strListPush(&session->req.dynamic_heads,content_type);
+							send_headers(session,cgi_status);
+
+							/* Now send the tmpbuf */
+							for(i=0; tmpbuf != NULL && tmpbuf[i] != NULL; i++) {
+								snt=write(session->socket,tmpbuf[i],strlen(tmpbuf[i]));
+								if(session->req.ld!=NULL && snt>0) {
+									session->req.ld->size+=snt;
+								}
+							}
+							snt=write(session->socket,fbuf,strlen(fbuf));
+							if(session->req.ld!=NULL && snt>0) {
+								session->req.ld->size+=snt;
+							}
+							got_valid_headers=TRUE;
 						}
 						done_parsing_headers=TRUE;
 					}
@@ -2345,6 +2415,9 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 	}
 
+	if(tmpbuf != NULL)
+		strListFree(&tmpbuf);
+
 	/* Drain STDERR */	
 	tv.tv_sec=1;
 	tv.tv_usec=0;
@@ -2352,7 +2425,7 @@ static BOOL exec_cgi(http_session_t *session)
 	FD_SET(err_pipe[0],&read_set);
 	if(select(high_fd+1,&read_set,&write_set,NULL,&tv)>0)
 	if(FD_ISSET(err_pipe[0],&read_set)) {
-		while(pipereadline(err_pipe[0],buf,sizeof(buf))!=-1)
+		while(pipereadline(err_pipe[0],buf,sizeof(buf),NULL,0)!=-1)
 			lprintf(LOG_ERR,"%s",buf);
 	}
 
@@ -2532,7 +2605,7 @@ static BOOL exec_cgi(http_session_t *session)
 			else  {
 				/* This is the tricky part */
 				buf[0]=0;
-				i=pipereadline(rdpipe,buf,sizeof(buf));
+				i=pipereadline(rdpipe,buf,sizeof(buf),NULL,0);
 				if(i<0)  {
 					got_valid_headers=FALSE;
 					break;
@@ -2960,9 +3033,9 @@ js_initcx(http_session_t *session)
 	JSContext*	js_cx;
 
 	lprintf(LOG_INFO,"%04d JavaScript: Initializing context (stack: %lu bytes)"
-		,session->socket,startup->js_cx_stack);
+		,session->socket,startup->js.cx_stack);
 
-    if((js_cx = JS_NewContext(session->js_runtime, startup->js_cx_stack))==NULL)
+    if((js_cx = JS_NewContext(session->js_runtime, startup->js.cx_stack))==NULL)
 		return(NULL);
 
 	lprintf(LOG_INFO,"%04d JavaScript: Context created",session->socket);
@@ -2996,9 +3069,9 @@ static BOOL js_setup(http_session_t* session)
 
 	if(session->js_runtime == NULL) {
 		lprintf(LOG_INFO,"%04d JavaScript: Creating runtime: %lu bytes"
-			,session->socket,startup->js_max_bytes);
+			,session->socket,startup->js.max_bytes);
 
-		if((session->js_runtime=JS_NewRuntime(startup->js_max_bytes))==NULL) {
+		if((session->js_runtime=JS_NewRuntime(startup->js.max_bytes))==NULL) {
 			lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",session->socket);
 			return(FALSE);
 		}
@@ -3409,7 +3482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.310 $", "%*s %s", revision);
+	sscanf("$Revision: 1.321 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3570,12 +3643,13 @@ void DLLCALL web_server(void* arg)
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
 	if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=120; /* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
-	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 	if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,".ssjs");
 	if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,".bbs");
 
-	sprintf(js_server_props.version,"%s %s",server_name,revision);
+	ZERO_VAR(js_server_props);
+	SAFEPRINTF2(js_server_props.version,"%s %s",server_name,revision);
 	js_server_props.version_detail=web_ver();
 	js_server_props.clients=&active_clients;
 	js_server_props.options=&startup->options;
@@ -3663,9 +3737,12 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		mime_types=read_ini_list("mime_types.ini",mime_types);
-		cgi_handlers=read_ini_list("cgi_handler.ini",cgi_handlers);
-		xjs_handlers=read_ini_list("xjs_handler.ini",xjs_handlers);
+		mime_types=read_ini_list("mime_types.ini",NULL /* root section */,"MIME types"
+			,mime_types);
+		cgi_handlers=read_ini_list("web_handler.ini","CGI","CGI content handlers"
+			,cgi_handlers);
+		xjs_handlers=read_ini_list("web_handler.ini","JavaScript","JavaScript content handlers"
+			,xjs_handlers);
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
@@ -3874,9 +3951,9 @@ void DLLCALL web_server(void* arg)
    			session->socket=client_socket;
 			session->js_branch.auto_terminate=TRUE;
 			session->js_branch.terminated=&terminate_server;
-			session->js_branch.limit=startup->js_branch_limit;
-			session->js_branch.gc_interval=startup->js_gc_interval;
-			session->js_branch.yield_interval=startup->js_yield_interval;
+			session->js_branch.limit=startup->js.branch_limit;
+			session->js_branch.gc_interval=startup->js.gc_interval;
+			session->js_branch.yield_interval=startup->js.yield_interval;
 
 			_beginthread(http_session_thread, 0, session);
 			served++;
