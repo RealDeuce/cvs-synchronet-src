@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.191 2005/08/11 00:03:04 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.189 2005/02/23 04:17:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,6 +73,9 @@
 	#define	NO_SERVICES
 #endif
 
+/* Constants */
+#define SBBS_PID_FILE	"/var/run/sbbs.pid"
+
 /* Global variables */
 BOOL				terminated=FALSE;
 
@@ -121,7 +124,6 @@ char				log_facility[2];
 char				log_ident[128];
 BOOL				std_facilities=FALSE;
 FILE *				pidf;
-char				pid_fname[MAX_PATH+1];
 #endif
 
 static const char* prompt;
@@ -197,7 +199,6 @@ static int lputs(int level, char *str)
 {
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
-	char	*p;
 
 #ifdef __unix__
 
@@ -218,15 +219,8 @@ static int lputs(int level, char *str)
 	pthread_mutex_lock(&mutex);
 	/* erase prompt */
 	printf("\r%*s\r",prompt_len,"");
-	if(str!=NULL) {
-		for(p=str; *p; p++) {
-			if(iscntrl(*p))
-				printf("^%c",'@'+*p);
-			else
-				printf("%c",*p);
-		}
-		puts("");
-	}
+	if(str!=NULL)
+		printf("%s\n",str);
 	/* re-display prompt with current stats */
 	if(prompt!=NULL)
 		prompt_len = printf(prompt, thread_count, socket_count, client_count, served);
@@ -808,15 +802,13 @@ static void read_startup_ini(BOOL recycle
 #if defined(__unix__)
 	{
 		char	value[INI_MAX_VALUE_LEN];
-		char*	section="UNIX";
-		SAFECOPY(new_uid_name,iniReadString(fp,section,"User","",value));
-		SAFECOPY(new_gid_name,iniReadString(fp,section,"Group","",value));
+		SAFECOPY(new_uid_name,iniReadString(fp,"UNIX","User","",value));
+		SAFECOPY(new_gid_name,iniReadString(fp,"UNIX","Group","",value));
 		if(!recycle)
-			is_daemon=iniReadBool(fp,section,"Daemonize",FALSE);
-		SAFECOPY(log_facility,iniReadString(fp,section,"LogFacility","U",value));
-		SAFECOPY(log_ident,iniReadString(fp,section,"LogIdent","synchronet",value));
-		SAFECOPY(pid_fname,iniReadString(fp,section,PidFile","/var/run/sbbs.pid",value));
-		umask(iniReadInteger(fp,section,"umask",077));
+			is_daemon=iniReadBool(fp,"UNIX","Daemonize",FALSE);
+		SAFECOPY(log_facility,iniReadString(fp,"UNIX","LogFacility","U",value));
+		SAFECOPY(log_ident,iniReadString(fp,"UNIX","LogIdent","synchronet",value));
+		umask(iniReadInteger(fp,"UNIX","umask",077));
 	}
 #endif
 	/* close .ini file here */
@@ -850,7 +842,7 @@ void recycle(void* cbdata)
 void cleanup(void)
 {
 #ifdef __unix__
-	unlink(pid_fname);
+	unlink(SBBS_PID_FILE);
 #endif
 }
 
@@ -910,7 +902,6 @@ static void handle_sigs(void)
 		if(pidf!=NULL) {
 			fprintf(pidf,"%d",getpid());
 			fclose(pidf);
-			pidf=NULL;
 		}
 	}
 
@@ -1544,7 +1535,7 @@ int main(int argc, char** argv)
 		}
 
 		/* Open here to use startup permissions to create the file */
-		pidf=fopen(pid_fname,"w");
+		pidf=fopen(SBBS_PID_FILE,"w");
 	}
 	old_uid = getuid();
 	if((pw_entry=getpwnam(new_uid_name))!=0)
