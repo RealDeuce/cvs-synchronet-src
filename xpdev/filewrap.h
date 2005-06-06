@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.22 2005/07/01 20:44:04 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.21 2004/08/31 08:21:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,10 +80,8 @@
 		#include <share.h>
 		#define L_SET	SEEK_SET
 	#else
-		#ifndef O_TEXT
 		#define O_TEXT		0		/* all files in binary mode on Unix */
 		#define O_BINARY	0		/* all files in binary mode on Unix */
-		#endif
 		#undef	O_DENYNONE
 		#define O_DENYNONE  (1<<31)	/* req'd for Baja/nopen compatibility */
 
