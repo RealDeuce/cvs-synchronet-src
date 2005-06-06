@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.394 2005/08/11 22:24:47 rswindell Exp $ */
+/* $Id: main.cpp,v 1.386 2005/06/06 22:19:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -539,7 +539,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+	if(JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
     for(; i<argc; i++) {
@@ -1237,47 +1237,39 @@ void input_thread(void *arg)
 
 			if(sbbs->client_socket==INVALID_SOCKET)
 				break;
+
+			if(FD_ISSET(sbbs->client_socket,&socket_set))  {
+	        	if(ERROR_VALUE == ENOTSOCK)
+    	            lprintf(LOG_NOTICE,"Node %d socket closed by peer on input->select", sbbs->cfg.node_num);
+				else if(ERROR_VALUE==ESHUTDOWN)
+					lprintf(LOG_NOTICE,"Node %d socket shutdown on input->select", sbbs->cfg.node_num);
+				else if(ERROR_VALUE==EINTR)
+					lprintf(LOG_NOTICE,"Node %d input thread interrupted",sbbs->cfg.node_num);
+        	    else if(ERROR_VALUE==ECONNRESET) 
+					lprintf(LOG_NOTICE,"Node %d connection reset by peer on input->select", sbbs->cfg.node_num);
+	            else if(ERROR_VALUE==ECONNABORTED) 
+					lprintf(LOG_NOTICE,"Node %d connection aborted by peer on input->select", sbbs->cfg.node_num);
+				else
+					lprintf(LOG_WARNING,"Node %d !ERROR %d input->select socket %d"
+                		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
+				break;
+			}
 #ifdef __unix__
-			if(uspy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) {
-				if(!socket_check(uspy_socket[sbbs->cfg.node_num-1],NULL,NULL,0)) {
+			else if(uspy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET && 
+					FD_ISSET(uspy_socket[sbbs->cfg.node_num-1],&socket_set))  {
+				if(ERROR_VALUE != EAGAIN)  {
+					lprintf(LOG_ERR,"Node %d !ERROR %d on local spy socket %d input->select"
+						, sbbs->cfg.node_num, errno, uspy_socket[sbbs->cfg.node_num-1]);
 					close_socket(uspy_socket[sbbs->cfg.node_num-1]);
-					lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
 					uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
-					continue;
 				}
+				continue;
 			}
 #endif
-	       	if(ERROR_VALUE == ENOTSOCK)
-    	        lprintf(LOG_NOTICE,"Node %d socket closed by peer on input->select", sbbs->cfg.node_num);
-			else if(ERROR_VALUE==ESHUTDOWN)
-				lprintf(LOG_NOTICE,"Node %d socket shutdown on input->select", sbbs->cfg.node_num);
-			else if(ERROR_VALUE==EINTR)
-				lprintf(LOG_NOTICE,"Node %d input thread interrupted",sbbs->cfg.node_num);
-            else if(ERROR_VALUE==ECONNRESET) 
-				lprintf(LOG_NOTICE,"Node %d connection reset by peer on input->select", sbbs->cfg.node_num);
-	        else if(ERROR_VALUE==ECONNABORTED) 
-				lprintf(LOG_NOTICE,"Node %d connection aborted by peer on input->select", sbbs->cfg.node_num);
-			else
-				lprintf(LOG_WARNING,"Node %d !ERROR %d input->select socket %d"
-               		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
-			break;
 		}
 
-		if(sbbs->client_socket==INVALID_SOCKET) {
-			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+		if(sbbs->client_socket==INVALID_SOCKET)
 			break;
-		}
-
-/*		\______    ______/
- *       \  0 \   / 0   /
- *        -----   ------           /----\
- *              ||               -< Boo! |
- *             /_\                 \----/
- *      \_______________/
- *       \/\/\/\/\/\/\//
- *        -------------
- */
 
 		if(FD_ISSET(sbbs->client_socket,&socket_set))
 			sock=sbbs->client_socket;
@@ -1288,17 +1280,18 @@ void input_thread(void *arg)
 				close_socket(uspy_socket[sbbs->cfg.node_num-1]);
 				lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
 				uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
-				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				continue;
 			}
 			sock=uspy_socket[sbbs->cfg.node_num-1];
 		}
 #endif
-		else {
+		else
+			continue;
+
+		if(sbbs->client_socket==INVALID_SOCKET) {
 			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
-			continue;
+			break;
 		}
 
     	rd=RingBufFree(&sbbs->inbuf);
@@ -1310,8 +1303,6 @@ void input_thread(void *arg)
             while((rd=RingBufFree(&sbbs->inbuf))==0) {
             	if(time(NULL)-start>=5) {
                 	rd=1;
-					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
                 	break;
                 }
                 YIELD();
