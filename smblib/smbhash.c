@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.13 2005/08/01 23:21:12 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.11 2005/01/14 02:46:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,7 +163,7 @@ static char* strip_chars(uchar* dst, const uchar* src, uchar* set)
 	}
 	*dst=0;
 
-	return((char *)dst);
+	return(dst);
 }
 
 /* Allocates and calculates hashes of data (based on flags)					*/
@@ -198,7 +198,7 @@ hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 hash_t* SMBCALL smb_hashstr(ulong msgnum, ulong t, unsigned source, unsigned flags
 							,const char* str)
 {
-	char*	p=(char *)str;
+	char*	p=(uchar*)str;
 	hash_t*	hash;
 
 	if(flags&SMB_HASH_PROC_MASK) {	/* string pre-processing */
@@ -256,9 +256,6 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	int			retval=SMB_SUCCESS;
 	hash_t		found;
 	hash_t**	hashes;	/* This is a NULL-terminated list of hashes */
-
-	if(smb->status.attr&SMB_EMAIL)
-		return(SMB_SUCCESS);
 
 	hashes=smb_msghashes(msg,text);
 

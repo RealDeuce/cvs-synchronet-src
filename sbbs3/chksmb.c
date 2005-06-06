@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.39 2005/08/01 23:22:02 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.38 2005/03/11 00:20:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	hash_t**	hashes;
 	char		revision[16];
 
-	sscanf("$Revision: 1.39 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.20-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -340,11 +340,10 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if(!(smb.status.attr&SMB_EMAIL) && chkhash) {
+		if(chkhash) {
 			/* Look-up the message hashes */
 			hashes=smb_msghashes(&msg,body);
-			if(hashes!=NULL 
-				&& hashes[0]!=NULL 
+			if(hashes[0]!=NULL 
 				&& (i=smb_findhash(&smb,hashes,NULL,SMB_HASH_SOURCE_ALL,/* mark */TRUE ))
 					!=SMB_SUCCESS) {
 				for(h=0;hashes[h]!=NULL;h++) {
