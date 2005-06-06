@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.18 2005/03/26 08:54:01 rswindell Exp $ */
+/* $Id: str_list.h,v 1.19 2005/04/18 05:12:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #define _STR_LIST_H
 
 #include <stdio.h>			/* FILE */
+#include <stddef.h>         /* size_t */
 #include "gen_defs.h"
 
 #if defined(__cplusplus)
