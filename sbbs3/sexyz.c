@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.47 2005/06/06 20:47:25 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.48 2005/06/06 22:00:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -928,7 +928,7 @@ static int receive_files(char** fname_list, int fnames)
 	outbuf.highwater_mark=0;	/* don't delay ACK/NAK transmits */
 
 	/* Purge input buffer */
-	while((i=recv_byte(NULL,0))!=NOINP)
+	while(is_connected(NULL) && (i=recv_byte(NULL,0))!=NOINP)
 		lprintf(LOG_WARNING,"Throwing out received: %s",chr((uchar)i));
 
 	while(is_connected(NULL)) {
@@ -1269,7 +1269,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.47 $", "%*s %s", revision);
+	sscanf("$Revision: 1.48 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"

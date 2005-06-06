@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.38 2005/06/03 23:27:43 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.39 2005/06/06 22:00:56 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1565,7 +1565,7 @@ int zmodem_recv_init(zmodem_t* zm
 
 	lprintf(zm,LOG_DEBUG,"zmodem_recv_init");
 
-	while(!zm->cancelled && (ch=zm->recv_byte(zm,0))!=NOINP)
+	while(is_connected(zm) && !zm->cancelled && (ch=zm->recv_byte(zm,0))!=NOINP)
 		lprintf(zm,LOG_DEBUG,"Throwing out received: %s",chr((uchar)ch));
 
 	for(errors=0; errors<=zm->max_errors && !zm->cancelled && is_connected(zm); errors++) {
@@ -1770,7 +1770,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.38 $", "%*s %s", buf);
+	sscanf("$Revision: 1.39 $", "%*s %s", buf);
 
 	return(buf);
 }
