@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.20 2005/04/08 09:57:40 rswindell Exp $ */
+/* $Id: cterm.c,v 1.22 2005/06/06 23:00:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,6 +31,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -890,8 +891,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 	struct text_info	ti;
 	int	olddmc;
 
-	olddmc=dont_move_cursor;
-	dont_move_cursor=1;
+	olddmc=hold_update;
+	hold_update=1;
 	if(retbuf!=NULL)
 		retbuf[0]=0;
 	gettextinfo(&ti);
@@ -977,7 +978,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 	textattr(ti.attribute);
 #endif
 
-	dont_move_cursor=olddmc;
+	hold_update=olddmc;
 	gotoxy(wherex(),wherey());
 	return(retbuf);
 }
