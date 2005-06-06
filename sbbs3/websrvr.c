@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.320 2005/05/12 21:58:55 deuce Exp $ */
+/* $Id: websrvr.c,v 1.321 2005/06/06 22:28:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2196,12 +2196,12 @@ static BOOL exec_cgi(http_session_t *session)
 	/* Set up I/O pipes */
 
 	if(pipe(out_pipe)!=0) {
-		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket,buf);
+		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket);
 		return(FALSE);
 	}
 
 	if(pipe(err_pipe)!=0) {
-		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket,buf);
+		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket);
 		return(FALSE);
 	}
 
@@ -3482,7 +3482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.320 $", "%*s %s", revision);
+	sscanf("$Revision: 1.321 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
