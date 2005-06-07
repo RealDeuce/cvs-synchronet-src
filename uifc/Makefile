@@ -2,7 +2,7 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 !include $(SRC_ROOT)\build\Common.bmake	# defines clean and output directory rules
 
-CFLAGS = -w-par -w-aus -w-csu $(CFLAGS) $(XPDEV-MT_CFLAGS) $(CIOLIB-MT_CFLAGS)
+CFLAGS = -w-par -w-aus -w-csu -DWRAPPER_IMPORTS $(CFLAGS) $(XPDEV-MT_CFLAGS) $(CIOLIB-MT_CFLAGS)
 
 $(UIFCLIB_BUILD): $(OBJS)
 	@echo Creating $< ...
@@ -16,6 +16,6 @@ $(UIFCLIB-MT_BUILD): $(MT_OBJS)
 
 $(UIFCTEST): $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE) $(MTOBJODIR)$(DIRSEP)filepick$(OFILE)
 	@echo Creating $@ ...
-	$(QUIET)$(CC) $(MT_LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(LDFLAGS) -e$@ $(MTOBJODIR)$(DIRSEP)filepick$(OFILE) $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(MT_LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(LDFLAGS) -o $@ $(MTOBJODIR)$(DIRSEP)filepick$(OFILE) $(MTOBJODIR)$(DIRSEP)uifctest$(OFILE) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 
 
