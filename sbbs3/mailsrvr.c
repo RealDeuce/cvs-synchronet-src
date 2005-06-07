@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.373 2005/08/17 16:10:15 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.368 2005/06/06 22:19:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1493,7 +1493,6 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 
-	ZERO_VAR(js_branch);
 
 	SAFECOPY(fname,cmdline);
 	truncstr(fname," \t");
@@ -1610,8 +1609,6 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 			break;
 
 		success=JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
-
-		js_EvalOnExit(js_cx, js_glob, &js_branch);
 
 	} while(0);
 
@@ -2152,9 +2149,9 @@ static void smtp_thread(void* arg)
 							,socket, str);
 
 						if(mailproc_list[i].native) {
-							if((j=system(str))!=0)
+							if((i=system(str))!=0)
 								lprintf(LOG_WARNING,"%04d !SMTP system(%s) returned %d (errno: %d)"
-									,socket, str, j, errno);
+									,socket, str, i, errno);
 						} else  /* JavaScript */
 							js_mailproc(socket, &client, &relay_user, str /* cmdline */
 								,msgtxt_fname, rcptlst_fname, proc_err_fname
@@ -3426,8 +3423,6 @@ static void sendmail_thread(void* arg)
 	char		secret[64];
 	char		md5_data[384];
 	char		digest[MD5_DIGEST_SIZE];
-	char		numeric_ip[16];
-	char		domain_list[MAX_PATH+1];
 	char*		server;
 	char*		msgtxt=NULL;
 	char*		p;
@@ -3550,7 +3545,6 @@ static void sendmail_thread(void* arg)
 				smb_unlockmsghdr(&smb,&msg);
 				continue;
 			}
-
 			if(!(startup->options&MAIL_OPT_SEND_INTRANSIT) && msg.hdr.netattr&MSG_INTRANSIT) {
 				smb_unlockmsghdr(&smb,&msg);
 				lprintf(LOG_ERR,"0000 SEND Message #%lu from %s to %s - in transit"
@@ -3579,84 +3573,49 @@ static void sendmail_thread(void* arg)
 			}
 
 			port=0;
-
-			/* Check if this is a local email ToDo */
-			SAFECOPY(to,(char*)msg.to_net.addr);
-			truncstr(to,"> ");
-
-			p=strrchr(to,'@');
-			if(p==NULL) {
-				remove_msg_intransit(&smb,&msg);
-				lprintf(LOG_WARNING,"0000 !SEND INVALID destination address: %s", to);
-				SAFEPRINTF(err,"Invalid destination address: %s", to);
-				bounce(&smb,&msg,err,TRUE);
-				continue;
-			}
-			p++;
-			sprintf(domain_list,"%sdomains.cfg",scfg.ctrl_dir);
-			if(stricmp(p,scfg.sys_inetaddr)==0
-					|| stricmp(p,startup->host_name)==0
-					|| findstr(p,domain_list)) {
-				/* This is a local message... no need to send to remote */
-				port = startup->smtp_port;
-				if(startup->interface_addr==0)
-					server="127.0.0.1";
-				else {
-					sprintf(numeric_ip, "%u.%u.%u.%u"
-							, startup->interface_addr >> 24
-							, (startup->interface_addr >> 16) & 0xff
-							, (startup->interface_addr >> 8) & 0xff
-							, startup->interface_addr & 0xff);
-					server = numeric_ip;
+			if(startup->options&MAIL_OPT_RELAY_TX) { 
+				server=startup->relay_server;
+				port=startup->relay_port;
+			} else {
+				p=strrchr((char*)msg.to_net.addr,':');	/* non-standard SMTP port */
+				if(p!=NULL) {
+					*p=0;
+					port=atoi(p+1);
 				}
-			}
-			else {
-				if(startup->options&MAIL_OPT_RELAY_TX) { 
-					server=startup->relay_server;
-					port=startup->relay_port;
-				} else {
-					p=strrchr((char*)msg.to_net.addr,':');	/* non-standard SMTP port */
-					if(p!=NULL) {
-						*p=0;
-						port=atoi(p+1);
-					}
-#if 0	/* Already done */
-					SAFECOPY(to,(char*)msg.to_net.addr);
-					truncstr(to,"> ");
-#endif
-					p=strrchr(to,'@');
-#if 0	/* Already done */
-					if(p==NULL) {
-						remove_msg_intransit(&smb,&msg);
-						lprintf(LOG_WARNING,"0000 !SEND INVALID destination address: %s", to);
-						SAFEPRINTF(err,"Invalid destination address: %s", to);
-						bounce(&smb,&msg,err,TRUE);
-						continue;
-					}
-#endif
-					if((dns=resolve_ip(startup->dns_server))==INADDR_NONE) {
-						remove_msg_intransit(&smb,&msg);
-						lprintf(LOG_WARNING,"0000 !SEND INVALID DNS server address: %s"
-							,startup->dns_server);
-						continue;
-					}
-					p++;
-					lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,startup->dns_server);
-					if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
-						,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
-						,TIMEOUT_THREAD_WAIT/2))!=0) {
-						remove_msg_intransit(&smb,&msg);
-						lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
-							,i,p,startup->dns_server);
-						SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
-						bounce(&smb,&msg,err,FALSE);
-						continue;
-					}
-					server=mx;
+				SAFECOPY(to,(char*)msg.to_net.addr);
+				truncstr(to,"> ");
+
+				p=strrchr(to,'@');
+				if(p==NULL) {
+					remove_msg_intransit(&smb,&msg);
+					lprintf(LOG_WARNING,"0000 !SEND INVALID destination address: %s", to);
+					SAFEPRINTF(err,"Invalid destination address: %s", to);
+					bounce(&smb,&msg,err,TRUE);
+					continue;
 				}
+				if((dns=resolve_ip(startup->dns_server))==INADDR_NONE) {
+					remove_msg_intransit(&smb,&msg);
+					lprintf(LOG_WARNING,"0000 !SEND INVALID DNS server address: %s"
+						,startup->dns_server);
+					continue;
+				}
+				p++;
+				lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,startup->dns_server);
+				if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
+					,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
+					,TIMEOUT_THREAD_WAIT/2))!=0) {
+					remove_msg_intransit(&smb,&msg);
+					lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
+						,i,p,startup->dns_server);
+					SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
+					bounce(&smb,&msg,err,FALSE);
+					continue;
+				}
+				server=mx;
 			}
 			if(!port)
 				port=IPPORT_SMTP;
+
 
 			if((sock=mail_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
 				remove_msg_intransit(&smb,&msg);
@@ -3966,7 +3925,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.373 $", "%*s %s", revision);
+	sscanf("$Revision: 1.368 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4370,7 +4329,7 @@ void DLLCALL mail_server(void* arg)
 				}
 
 				if(active_clients>=startup->max_clients) {
-					lprintf(LOG_WARNING,"%04d SMTP !MAXIMUM CLIENTS (%u) reached, access denied"
+					lprintf(LOG_WARNING,"%04d SMTP !MAXMIMUM CLIENTS (%u) reached, access denied"
 						,client_socket, startup->max_clients);
 					sockprintf(client_socket,"421 Maximum active clients reached, please try again later.");
 					mswait(3000);
@@ -4433,7 +4392,7 @@ void DLLCALL mail_server(void* arg)
 				}
 
 				if(active_clients>=startup->max_clients) {
-					lprintf(LOG_WARNING,"%04d POP3 !MAXIMUM CLIENTS (%u) reached, access denied"
+					lprintf(LOG_WARNING,"%04d POP3 !MAXMIMUM CLIENTS (%u) reached, access denied"
 						,client_socket, startup->max_clients);
 					sockprintf(client_socket,"-ERR Maximum active clients reached, please try again later.");
 					mswait(3000);
