@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.326 2005/08/11 22:24:47 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.321 2005/06/06 22:28:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -507,7 +507,6 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 		lprintf(LOG_WARNING,"%04d Cannot allocate memory for string", session->socket);
 		return;
 	}
-	lprintf(LOG_DEBUG,"%04d Adding CGI environment variable %s=%s",session->socket,newname,value);
 	sprintf(p,"%s=%s",newname,value);
 	strListPush(&session->req.cgi_env,p);
 	free(p);
@@ -1252,9 +1251,11 @@ static BOOL check_ars(http_session_t * session)
 		FREE_AND_NULL(ar);
 
 	if(authorized)  {
-		add_env(session,"AUTH_TYPE","Basic");
-		/* Should use real name if set to do so somewhere ToDo */
-		add_env(session,"REMOTE_USER",session->user.alias);
+		if(session->req.dynamic==IS_CGI)  {
+			add_env(session,"AUTH_TYPE","Basic");
+			/* Should use real name if set to do so somewhere ToDo */
+			add_env(session,"REMOTE_USER",session->user.alias);
+		}
 
 		return(TRUE);
 	}
@@ -1571,11 +1572,13 @@ static BOOL parse_headers(http_session_t * session)
 					b64_decode(session->req.auth,sizeof(session->req.auth),p,strlen(p));
 					break;
 				case HEAD_LENGTH:
-					add_env(session,"CONTENT_LENGTH",value);
+					if(session->req.dynamic==IS_CGI)
+						add_env(session,"CONTENT_LENGTH",value);
 					content_len=atoi(value);
 					break;
 				case HEAD_TYPE:
-					add_env(session,"CONTENT_TYPE",value);
+					if(session->req.dynamic==IS_CGI)
+						add_env(session,"CONTENT_TYPE",value);
 					break;
 				case HEAD_IFMODIFIED:
 					session->req.if_modified_since=decode_date(value);
@@ -1603,13 +1606,33 @@ static BOOL parse_headers(http_session_t * session)
 				default:
 					break;
 			}
-			sprintf(env_name,"HTTP_%s",head_line);
-			add_env(session,env_name,value);
+			if(session->req.dynamic==IS_CGI)  {
+				sprintf(env_name,"HTTP_%s",head_line);
+				add_env(session,env_name,value);
+			}
 		}
 	}
-	if(content_len)
-		session->req.post_len = content_len;
-	add_env(session,"SERVER_NAME",session->req.host[0] ? session->req.host : startup->host_name );
+	if(content_len && session->req.dynamic != IS_CGI)  {
+		if(content_len < (MAX_POST_LEN+1) && (session->req.post_data=malloc(content_len+1)) != NULL)  {
+			session->req.post_len=recvbufsocket(session->socket,session->req.post_data,content_len);
+			if(session->req.post_len != content_len)
+				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,content_len,session->req.post_len);
+			if(session->req.post_len > content_len)
+				session->req.post_len = content_len;
+			session->req.post_data[session->req.post_len]=0;
+			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
+				js_add_request_prop(session,"post_data",session->req.post_data);
+				js_parse_query(session,session->req.post_data);
+			}
+		}
+		else  {
+			lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,content_len);
+			send_error(session,"413 Request entity too large");
+			return(FALSE);
+		}
+	}
+	if(session->req.dynamic==IS_CGI)
+		add_env(session,"SERVER_NAME",session->req.host[0] ? session->req.host : startup->host_name );
 	return TRUE;
 }
 
@@ -2066,13 +2089,15 @@ static BOOL check_request(http_session_t * session)
 		return(FALSE);
 	}
 	SAFECOPY(session->req.physical_path,path);
-	add_env(session,"SCRIPT_NAME",session->req.virtual_path);
-	add_env(session,"SCRIPT_FILENAME",session->req.physical_path);
+	if(session->req.dynamic==IS_CGI)  {
+		add_env(session,"SCRIPT_NAME",session->req.virtual_path);
+		add_env(session,"SCRIPT_FILENAME",session->req.physical_path);
+	}
 	SAFECOPY(str,session->req.virtual_path);
 	last_slash=find_last_slash(str);
 	if(last_slash!=NULL)
 		*(last_slash+1)=0;
-	if(*(session->req.extra_path_info))
+	if(session->req.dynamic==IS_CGI && *(session->req.extra_path_info))
 	{
 		sprintf(str,"%s%s",startup->root_dir,session->req.extra_path_info);
 		add_env(session,"PATH_TRANSLATED",str);
@@ -2338,8 +2363,6 @@ static BOOL exec_cgi(http_session_t *session)
 							/* Invalid headers... send 'er all as plain-text */
 							char    content_type[MAX_REQUEST_LINE+1];
 							int snt;
-
-							lprintf(LOG_DEBUG,"%04d Recieved invalid CGI headers, sending result as plain-text",session->socket);
 
 							/* free() the non-headers so they don't get sent, then recreate the list */
 							strListFreeStrings(session->req.dynamic_heads);
@@ -2888,7 +2911,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     if(startup==NULL || startup->lputs==NULL)
         return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+	if(JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
 	str[0]=0;
@@ -3167,7 +3190,6 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=msclock();
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
-		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%ld ms)"
 			,session->socket,script,msclock()-start);
 	} while(0);
@@ -3235,33 +3257,6 @@ static void respond(http_session_t * session)
 				,session->socket, session->req.physical_path, snt);
 	}
 	session->req.finished=TRUE;
-}
-
-int read_post_data(http_session_t * session)
-{
-	unsigned i;
-
-	if(session->req.dynamic!=IS_CGI && session->req.post_len)  {
-		i = session->req.post_len;
-		if(i < (MAX_POST_LEN+1) && (session->req.post_data=malloc(i+1)) != NULL)  {
-			session->req.post_len=recvbufsocket(session->socket,session->req.post_data,i);
-			if(session->req.post_len != i)
-				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,i,session->req.post_len);
-			if(session->req.post_len > i)
-				session->req.post_len = i;
-			session->req.post_data[session->req.post_len]=0;
-			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)  {
-				js_add_request_prop(session,"post_data",session->req.post_data);
-				js_parse_query(session,session->req.post_data);
-			}
-		}
-		else  {
-			lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,i);
-			send_error(session,"413 Request entity too large");
-			return(FALSE);
-		}
-	}
-	return(TRUE);
 }
 
 void http_session_thread(void* arg)
@@ -3391,8 +3386,7 @@ void http_session_thread(void* arg)
 				if((session.http_ver<HTTP_1_0)||redirp!=NULL||parse_headers(&session)) {
 					if(check_request(&session)) {
 						if(session.req.send_location < MOVED_TEMP || session.req.virtual_path[0]!='/' || loop_count++ >= MAX_REDIR_LOOPS) {
-							if(read_post_data(&session))
-								respond(&session);
+							respond(&session);
 						}
 						else {
 							safe_snprintf(redir_req,sizeof(redir_req),"%s %s%s%s",methods[session.req.method]
@@ -3488,7 +3482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.326 $", "%*s %s", revision);
+	sscanf("$Revision: 1.321 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3930,7 +3924,7 @@ void DLLCALL web_server(void* arg)
 			}
 
 			if(startup->max_clients && active_clients>=startup->max_clients) {
-				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
+				lprintf(LOG_WARNING,"%04d !MAXMIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				mswait(3000);
 				close_socket(client_socket);
