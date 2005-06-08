@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.388 2005/06/08 21:48:59 deuce Exp $ */
+/* $Id: main.cpp,v 1.389 2005/06/08 21:56:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1267,9 +1267,6 @@ void input_thread(void *arg)
 			}
 #endif
 		}
-
-		if(sbbs->client_socket==INVALID_SOCKET)
-			break;
 
 		if(sbbs->client_socket==INVALID_SOCKET) {
 			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
