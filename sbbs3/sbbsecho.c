@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.166 2005/08/31 22:58:44 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.165 2005/06/06 22:28:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,13 +232,18 @@ char *mycmdstr(scfg_t* cfg, char *instr, char *fpath, char *fspec)
 					strcat(cmd,fspec);
 					break;
 				case '!':   /* EXEC Directory */
-					strcat(cmd,cfg->exec_dir);
+					if(cfg->exec_dir[0]!='\\' 
+						&& cfg->exec_dir[0]!='/' 
+						&& cfg->exec_dir[1]!=':') {
+						strcpy(str,cfg->node_dir);
+						strcat(str,cfg->exec_dir);
+						if(FULLPATH(str2,str,40))
+							strcpy(str,str2);
+						backslash(str);
+						strcat(cmd,str); }
+					else
+						strcat(cmd,cfg->exec_dir);
 					break;
-                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-                    strcat(cmd,cfg->exec_dir);
-#endif
-                    break;
 				case '#':   /* Node number (same as SBBSNNUM environment var) */
 					sprintf(str,"%d",cfg->node_num);
 					strcat(cmd,str);
@@ -249,20 +254,6 @@ char *mycmdstr(scfg_t* cfg, char *instr, char *fpath, char *fspec)
 					break;
 				case '%':   /* %% for percent sign */
 					strcat(cmd,"%");
-					break;
-				case '.':	/* .exe for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-					strcat(cmd,".exe");
-#endif
-					break;
-				case '?':	/* Platform */
-#ifdef __OS2__
-					strcpy(str,"OS2");
-#else
-					strcpy(str,PLATFORM_DESC);
-#endif
-					strlwr(str);
-					strcat(cmd,str);
 					break;
 				default:    /* unknown specification */
 					printf("ERROR Checking Command Line '%s'\n",instr);
@@ -3958,7 +3949,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.166 $", "%*s %s", revision);
+	sscanf("$Revision: 1.165 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
