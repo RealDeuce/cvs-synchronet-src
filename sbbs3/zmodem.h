@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.29 2005/06/08 18:29:26 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.30 2005/06/08 22:54:32 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -195,6 +195,7 @@ typedef struct {
 
 	BYTE rxd_header[ZMAXHLEN];								/* last received header */
 	int rxd_header_len;										/* last received header size */
+	long rxd_header_pos;									/* last received header position value */
 
 	/*
 	 * receiver capability flags
