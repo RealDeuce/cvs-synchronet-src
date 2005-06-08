@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.84 2005/06/24 10:22:04 rswindell Exp $ */
+/* $Id: js_file.c,v 1.81 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,8 +43,6 @@
 #include "ini_file.h"
 
 #ifdef JAVASCRIPT
-
-#include "jsdate.h"	/* Yes, I know this is a private header file */
 
 typedef struct
 {
@@ -457,8 +455,6 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	jsval	dflt=argv[2];
 	private_t*	p;
 	JSObject*	array;
-	JSObject*	dflt_obj;
-	JSObject*	date_obj;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -487,15 +483,6 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				,iniReadFloat(p->fp,section,key,*JSVAL_TO_DOUBLE(dflt)),rval);
 			break;
 		case JSVAL_OBJECT:
-			if((dflt_obj = JSVAL_TO_OBJECT(dflt))!=NULL && js_DateIsValid(cx, dflt_obj)) {
-				date_obj = js_NewDateObjectMsec(cx
-					,(jsdouble)iniReadDateTime(p->fp,section,key
-						,(time_t)(js_DateGetMsecSinceEpoch(cx,dflt_obj)/1000.0))
-					*1000.0);
-				if(date_obj!=NULL)
-					*rval = OBJECT_TO_JSVAL(date_obj);
-				break;
-			}
 		    array = JS_NewArrayObject(cx, 0, NULL);
 			list=iniReadStringList(p->fp,section,key,",",JS_GetStringBytes(JS_ValueToString(cx,dflt)));
 			for(i=0;list && list[i];i++) {
@@ -529,7 +516,6 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	jsval	value=argv[2];
 	private_t*	p;
 	str_list_t	list;
-	JSObject*	value_obj;
 
 	*rval = JSVAL_FALSE;
 
@@ -563,16 +549,9 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				if(JSVAL_IS_NUMBER(value)) {
 					JS_ValueToInt32(cx,value,&i);
 					result = iniSetInteger(&list,section,key,i,NULL);
-				} else {
-					if(JSVAL_IS_OBJECT(value) 
-						&& (value_obj = JSVAL_TO_OBJECT(value))!=NULL
-						&& js_DateIsValid(cx, value_obj)) {
-						result = iniSetDateTime(&list,section,key,/* include_time */TRUE
-									,(time_t)(js_DateGetMsecSinceEpoch(cx,value_obj)/1000.0),NULL);
-					} else
-						result = iniSetString(&list,section,key
-									,JS_GetStringBytes(JS_ValueToString(cx,value)),NULL);
-				}
+				} else
+					result = iniSetString(&list,section,key
+								,JS_GetStringBytes(JS_ValueToString(cx,value)),NULL);
 				break;
 		}
 	}
@@ -1581,11 +1560,6 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>a+</tt> open for reading and appending<br>"
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
 		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.12)</i><br>"
-		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
-		"the file must be opened for both reading and writing.<br>"
-		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing, "
-		"use the <i>file_exists</i> function like so:<br>"
-		"<tt>file.open(file_exists(file.name) ? 'r+':'w+');</tt>"
 		)
 	,310
 	},		
