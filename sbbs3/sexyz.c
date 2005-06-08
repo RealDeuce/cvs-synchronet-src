@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.49 2005/06/06 23:16:46 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.50 2005/06/08 18:40:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1270,7 +1270,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.49 $", "%*s %s", revision);
+	sscanf("$Revision: 1.50 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1480,6 +1480,9 @@ int main(int argc, char **argv)
 			strListAppend(&fname_list,argv[i],fnames++);
 		} 
 	}
+
+	if(telnet)
+		zm.escape_telnet_iac = TRUE;
 
 	if(sock==INVALID_SOCKET || sock<1) {
 #ifdef __unix__
