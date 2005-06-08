@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.28 2005/06/07 08:41:04 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.29 2005/06/08 18:29:26 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -251,6 +251,7 @@ typedef struct {
 	long		crc_request;
 
 	/* Configuration */
+	BOOL		escape_telnet_iac;
 	unsigned	send_timeout;
 	unsigned	recv_timeout;
 	unsigned	max_errors;
