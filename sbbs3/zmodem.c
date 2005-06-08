@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.45 2005/06/08 22:54:32 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.46 2005/06/08 23:20:54 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1387,15 +1387,13 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong fsize, ulong* sent
 			int type;
 			while(is_connected(zm) && !zm->cancelled) {
 				type = zmodem_recv_header(zm);
-				if(type == ZNAK || type == ZRPOS || type == TIMEOUT) {
-					return type;
-				}
-				if(type == ZACK) {
-					if(zm->rxd_header_pos == ftell(fp))
-						break;
-					lprintf(zm,LOG_WARNING,"ZACK for incorrect offset (%lu vs %lu)"
-						,zm->rxd_header_pos, ftell(fp));
-				}
+				if(type != ZACK)
+					return(type);
+
+				if(zm->rxd_header_pos == ftell(fp))
+					break;
+				lprintf(zm,LOG_WARNING,"ZACK for incorrect offset (%lu vs %lu)"
+					,zm->rxd_header_pos, ftell(fp));
 			} 
 
 			if((ulong)ftell(fp) >= fsize) {
@@ -1461,6 +1459,9 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		*start=time(NULL);
 
 	zm->file_skipped=FALSE;
+
+	if(zm->no_streaming)
+		lprintf(zm,LOG_WARNING,"Streaming disabled");
 
 	if(request_init) {
 		for(errors=0; errors<=zm->max_errors && !zm->cancelled && is_connected(zm); errors++) {
@@ -1852,7 +1853,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.45 $", "%*s %s", buf);
+	sscanf("$Revision: 1.46 $", "%*s %s", buf);
 
 	return(buf);
 }
