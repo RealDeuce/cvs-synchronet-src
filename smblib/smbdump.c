@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.3 2004/09/11 09:26:23 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.4 2005/06/06 23:08:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,7 @@ static char *binstr(uchar *buf, ushort length)
 			&& buf[i]!='\r' && buf[i]!='\n' && buf[i]!='\t')
 			break;
 	if(i==length)		/* not binary */
-		return(buf);
+		return((char*)buf);
 	for(i=0;i<length;i++) {
 		sprintf(tmp,"%02X ",buf[i]);
 		strcat(str,tmp); 
