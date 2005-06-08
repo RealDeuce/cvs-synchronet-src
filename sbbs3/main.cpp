@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.389 2005/06/08 21:56:28 deuce Exp $ */
+/* $Id: main.cpp,v 1.390 2005/06/08 22:08:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1305,6 +1305,8 @@ void input_thread(void *arg)
             while((rd=RingBufFree(&sbbs->inbuf))==0) {
             	if(time(NULL)-start>=5) {
                 	rd=1;
+					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
                 	break;
                 }
                 YIELD();
