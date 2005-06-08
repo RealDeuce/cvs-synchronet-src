@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.395 2005/08/15 21:32:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.391 2005/06/08 22:39:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -539,7 +539,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+	if(JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
     for(; i<argc; i++) {
@@ -1237,16 +1237,7 @@ void input_thread(void *arg)
 
 			if(sbbs->client_socket==INVALID_SOCKET)
 				break;
-#ifdef __unix__
-			if(uspy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) {
-				if(!socket_check(uspy_socket[sbbs->cfg.node_num-1],NULL,NULL,0)) {
-					close_socket(uspy_socket[sbbs->cfg.node_num-1]);
-					lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
-					uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
-					continue;
-				}
-			}
-#endif
+
 	       	if(ERROR_VALUE == ENOTSOCK)
     	        lprintf(LOG_NOTICE,"Node %d socket closed by peer on input->select", sbbs->cfg.node_num);
 			else if(ERROR_VALUE==ESHUTDOWN)
@@ -1268,17 +1259,6 @@ void input_thread(void *arg)
 				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 			break;
 		}
-
-/*         ^          ^
- *		\______    ______/
- *       \  * \   / *   /
- *        -----   ------           /----\
- *              ||               -< Boo! |
- *             /_\                 \----/
- *       \______________/
- *        \/\/\/\/\/\/\/
- *         ------------
- */
 
 		if(FD_ISSET(sbbs->client_socket,&socket_set))
 			sock=sbbs->client_socket;
@@ -2275,7 +2255,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	errorlog_inside = false;
 	errormsg_inside = false;
 	gettimeleft_inside = false;
-	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
 	uselect_total = 0;
 	lbuflen = 0;
 	connection="Telnet";
