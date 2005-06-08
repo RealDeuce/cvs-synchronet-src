@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.387 2005/06/08 21:29:27 deuce Exp $ */
+/* $Id: main.cpp,v 1.388 2005/06/08 21:48:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1286,13 +1286,18 @@ void input_thread(void *arg)
 				close_socket(uspy_socket[sbbs->cfg.node_num-1]);
 				lprintf(LOG_NOTICE,"Closing local spy socket: %d",uspy_socket[sbbs->cfg.node_num-1]);
 				uspy_socket[sbbs->cfg.node_num-1]=INVALID_SOCKET;
+				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				continue;
 			}
 			sock=uspy_socket[sbbs->cfg.node_num-1];
 		}
 #endif
-		else
+		else {
+			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 			continue;
+		}
 
     	rd=RingBufFree(&sbbs->inbuf);
 
