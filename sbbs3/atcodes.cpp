@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.43 2005/08/31 20:34:34 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.42 2004/09/08 03:34:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -594,11 +594,6 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strncmp(sp,"TYPE:",5)) {
 		printfile(cmdstr(sp+5,nulstr,nulstr,str),0);
-		return(nulstr);
-	}
-
-	if(!strncmp(sp,"INCLUDE:",5)) {
-		printfile(cmdstr(sp+8,nulstr,nulstr,str),P_NOCRLF);
 		return(nulstr);
 	}
 
