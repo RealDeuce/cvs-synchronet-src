@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.386 2005/06/06 22:19:28 rswindell Exp $ */
+/* $Id: main.cpp,v 1.387 2005/06/08 21:29:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1271,6 +1271,12 @@ void input_thread(void *arg)
 		if(sbbs->client_socket==INVALID_SOCKET)
 			break;
 
+		if(sbbs->client_socket==INVALID_SOCKET) {
+			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+			break;
+		}
+
 		if(FD_ISSET(sbbs->client_socket,&socket_set))
 			sock=sbbs->client_socket;
 #ifdef __unix__
@@ -1287,12 +1293,6 @@ void input_thread(void *arg)
 #endif
 		else
 			continue;
-
-		if(sbbs->client_socket==INVALID_SOCKET) {
-			if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-				sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
-			break;
-		}
 
     	rd=RingBufFree(&sbbs->inbuf);
 
