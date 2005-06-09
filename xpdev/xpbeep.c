@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.24 2005/07/01 20:44:04 rswindell Exp $ */
+/* $Id: xpbeep.c,v 1.22 2005/03/07 23:35:14 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -8,11 +8,11 @@
 	#include <mmsystem.h>
 #elif defined(__unix__)
 	#include <fcntl.h>
-	#if SOUNDCARD_H_IN==1
+	#if SOUNDCARD_H_IN==SYS
 		#include <sys/soundcard.h>
-	#elif SOUNDCARD_H_IN==2
+	#elif SOUNDCARD_H_IN==INCLUDE
 		#include <soundcard.h>
-	#elif SOUNDCARD_H_IN==3
+	#elif SOUNDCARD_H_IN==LINUX
 		#include <linux/soundcard.h>
 	#else
 		#warning Cannot find soundcard.h
@@ -259,7 +259,7 @@ void DLLCALL unix_beep(int freq, int dur)
 	}
 #endif
 
-#if !defined(__GNU__) && !defined(__QNX__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__APPLE__) && !defined(__CYGWIN__)
+#if !defined(__GNU__) && !defined(__QNX__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__APPLE__)
 	if(console_fd == -1) 
   		console_fd = open("/dev/console", O_NOCTTY);
 	
