@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.41 2005/09/12 17:39:46 deuce Exp $
+# $Id: Common.gmake,v 1.39 2005/04/18 08:11:58 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -100,7 +100,7 @@
 
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.13
+ VERSION	:=	3.12
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -269,8 +269,6 @@ else
       XP_SEM :=    1
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      # This makes ctime_r() be the correct one.
-      CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
      else            # Linux / Other UNIX
       XP_SEM :=    1
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES

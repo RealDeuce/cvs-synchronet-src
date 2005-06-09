@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.70 2005/09/10 03:37:50 deuce Exp $
+# $Id: Makefile,v 1.66 2004/11/19 01:31:13 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -118,11 +118,6 @@ $(BAJA): $(BAJA_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS)
 
-# UnBaja Utility
-$(UNBAJA): $(UNBAJA_OBJS)
-	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV_LIBS) $(WILDARGS)
-
 # Node Utility
 $(NODE): $(NODE_OBJS)
 	@echo Linking $@
@@ -200,9 +195,4 @@ $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE): websrvr.c
 $(MTOBJODIR)$(DIRSEP)services$(OFILE): services.c
         $(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -DSERVICES_EXPORTS -DSMB_IMPORTS -USBBS_EXPORTS \
 			-n$(MTOBJODIR) $(MT_CFLAGS) -c $** $(OUTPUT)$@
-
-# QWKNodes
-$(QWKNODES): $(QWKNODES_OBJS)
-	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS)
 
