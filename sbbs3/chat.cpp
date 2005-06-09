@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.44 2005/09/02 18:49:39 deuce Exp $ */
+/* $Id: chat.cpp,v 1.42 2005/03/18 01:47:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -789,8 +789,6 @@ void sbbs_t::privchat(bool local)
 		}
 	}
 
-	gettimeleft();
-
 	if(getnodedat(cfg.node_num,&thisnode,true)==0) {
 		thisnode.action=action=NODE_PCHT;
 		thisnode.aux=n;
@@ -906,7 +904,7 @@ void sbbs_t::privchat(bool local)
 			if(ch==BS || ch==DEL) {
 				if(localchar) {
 					if(echo)
-						backspace();
+						bputs("\b \b");
 					localchar--;
 					localbuf[localline][localchar]=0; } }
 			else if(ch==TAB) {
@@ -1022,11 +1020,11 @@ void sbbs_t::privchat(bool local)
 			}
 			attr(cfg.color[clr_chatremote]);
 			if(sys_status&SS_SPLITP && !remote_activity)
-				backspace();             /* Delete fake cursor */
+				bputs("\b \b");             /* Delete fake cursor */
 			remote_activity=1;
 			if(ch==BS || ch==DEL) {
 				if(remotechar) {
-					backspace();
+					bputs("\b \b");
 					remotechar--;
 					remotebuf[remoteline][remotechar]=0; } }
 			else if(ch==TAB) {
@@ -1644,7 +1642,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 						if(sbbs_random(100)) {
 							mswait(100+sbbs_random(300));
 							while(c) {
-								backspace();
+								bputs("\b \b");
 								mswait(50+sbbs_random(50));
 								c--; } } }
 					outchar(theanswer[i]);
