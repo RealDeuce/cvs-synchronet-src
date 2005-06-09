@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.h,v 1.4 2001/07/21 01:47:17 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.h,v 1.5 2005/05/07 07:44:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,6 +96,13 @@ __published:
     TLabel *HackAttemptSoundLabel;
     TEdit *HackAttemptSoundEdit;
     TButton *HackAttemptSoundButton;
+    TTabSheet *PasvTabSheet;
+    TLabel *PasvIpLabel;
+    TEdit *PasvIpAddrEdit;
+    TLabel *PasvPortLabel;
+    TEdit *PasvPortLowEdit;
+    TEdit *PasvPortHighEdit;
+    TLabel *PasvPortThroughLabel;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
