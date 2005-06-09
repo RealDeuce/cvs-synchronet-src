@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.47 2005/06/09 02:21:29 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.48 2005/06/09 02:31:50 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1379,7 +1379,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong fsize, ulong* sent
 		/*
 		 * at end of file wait for an ACK - can't use feof() here!
 		 */
-		if((ulong)ftell(fp) >= fsize)
+		if((ulong)ftell(fp) >= fsize || n==0)
 			type = ZCRCW;
 
 		zmodem_send_data(zm, type, zm->tx_data_subpacket, n);
@@ -1407,6 +1407,11 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong fsize, ulong* sent
 				lprintf(zm,LOG_DEBUG,"zmodem_send_from: end of file (%ld)", fsize );
 				return ZACK;
 			}
+			if(n==0) {
+				lprintf(zm,LOG_DEBUG,"zmodem_send_from: read error at offset %lu", ftell(fp) );
+				return ZACK;
+			}
+
 		}
 
 		/* 
@@ -1865,7 +1870,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.47 $", "%*s %s", buf);
+	sscanf("$Revision: 1.48 $", "%*s %s", buf);
 
 	return(buf);
 }
