@@ -20,7 +20,6 @@ This module contains the code to load and process TOP.CFG.
 ******************************************************************************/
 
 #include "top.h"
-#include "strwrap.h"
 
 /* Shorthand macro to save typing. */
 #define chkkeyword(kwd) (!stricmp(keyword, kwd))
