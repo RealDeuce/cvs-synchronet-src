@@ -1,6 +1,6 @@
 /* md5.c - RSA Data Security, Inc., MD5 Message-Digest Algorithm */
 
-/* $Id: md5.c,v 1.3 2004/09/23 19:09:53 rswindell Exp $ */
+/* $Id: md5.c,v 1.4 2005/06/06 23:08:21 deuce Exp $ */
 
 /* NOTE: Numerous changes have been made; the following notice is
 included to satisfy legal requirements.
@@ -275,7 +275,7 @@ BYTE* MD5CALL MD5_hex(BYTE* to, const BYTE digest[MD5_DIGEST_SIZE])
 	BYTE const* from = digest;
     static char *hexdigits = "0123456789abcdef";
     const BYTE *end = digest + MD5_DIGEST_SIZE;
-    char *d = to;
+    char *d = (char *)to;
 
     while (from < end) {
 		*d++ = hexdigits[(*from >> 4)];
