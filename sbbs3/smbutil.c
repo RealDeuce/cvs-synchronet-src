@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.87 2005/01/11 08:42:18 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.88 2005/06/06 22:26:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -490,7 +490,7 @@ char *binstr(uchar *buf, ushort length)
 			&& buf[i]!='\r' && buf[i]!='\n' && buf[i]!='\t')
 			break;
 	if(i==length)		/* not binary */
-		return(buf);
+		return((char*)buf);
 	for(i=0;i<length;i++) {
 		sprintf(tmp,"%02X ",buf[i]);
 		strcat(str,tmp); 
@@ -1447,7 +1447,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.87 $", "%*s %s", revision);
+	sscanf("$Revision: 1.88 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
