@@ -298,8 +298,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	int		filecur=0;
 	int		filebar=0;
 	int		listwidth;
-	char	**dir_list=NULL;
-	char	**file_list=NULL;
+	char	**dir_list;
+	char	**file_list;
 	int		currfield=DIR_LIST;
 	int		lastfield=DIR_LIST;
 	int		i;
@@ -386,7 +386,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 #else
 //#error Need to do something about root paths (in get_file_opt_list() too!)
 #endif
-		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0 && !isdir(cpath)) {
+		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0) {
 			if(lastpath==NULL) {
 				fp->files=0;
 				retval=-1;
@@ -486,8 +486,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 						api->msg("No such path/file!");
 						continue;
 					}
-					if(isdir(cfile))
-						backslash(cfile);
 					_splitpath(cfile, drive, tdir, fname, ext);
 					sprintf(cpath,"%s%s",drive,tdir);
 					if(!isdir(cpath)) {
@@ -506,7 +504,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					sprintf(cfile,"%s%s%s%s",drive,tdir,fname,ext);
 					if(strchr(fname,'*') !=NULL || strchr(fname,'?') !=NULL
 						|| strchr(ext,'*') !=NULL || strchr(ext,'?') !=NULL
-						|| (isdir(cfile) && !(opts & UIFC_FP_DIRSEL) && (i=='\r' || i=='\n'))
 						|| (!isdir(cfile) && i!='\r' && i!='\n')) {
 						if(opts & UIFC_FP_MSKNOCHG) {
 							sprintf(cfile,"%s%s%s",drive,tdir,cmsk);
@@ -515,8 +512,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 							continue;
 						}
 						else {
-							if(!isdir(cfile))
-								sprintf(cmsk, "%s%s", fname, ext);
+							sprintf(cmsk, "%s%s", fname, ext);
 							reread=TRUE;
 						}
 						break;
