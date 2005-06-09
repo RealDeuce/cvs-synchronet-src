@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.169 2005/09/01 23:30:57 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.165 2005/06/06 22:28:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -232,13 +232,18 @@ char *mycmdstr(scfg_t* cfg, char *instr, char *fpath, char *fspec)
 					strcat(cmd,fspec);
 					break;
 				case '!':   /* EXEC Directory */
-					strcat(cmd,cfg->exec_dir);
+					if(cfg->exec_dir[0]!='\\' 
+						&& cfg->exec_dir[0]!='/' 
+						&& cfg->exec_dir[1]!=':') {
+						strcpy(str,cfg->node_dir);
+						strcat(str,cfg->exec_dir);
+						if(FULLPATH(str2,str,40))
+							strcpy(str,str2);
+						backslash(str);
+						strcat(cmd,str); }
+					else
+						strcat(cmd,cfg->exec_dir);
 					break;
-                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-                    strcat(cmd,cfg->exec_dir);
-#endif
-                    break;
 				case '#':   /* Node number (same as SBBSNNUM environment var) */
 					sprintf(str,"%d",cfg->node_num);
 					strcat(cmd,str);
@@ -249,20 +254,6 @@ char *mycmdstr(scfg_t* cfg, char *instr, char *fpath, char *fspec)
 					break;
 				case '%':   /* %% for percent sign */
 					strcat(cmd,"%");
-					break;
-				case '.':	/* .exe for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-					strcat(cmd,".exe");
-#endif
-					break;
-				case '?':	/* Platform */
-#ifdef __OS2__
-					strcpy(str,"OS2");
-#else
-					strcpy(str,PLATFORM_DESC);
-#endif
-					strlwr(str);
-					strcat(cmd,str);
 					break;
 				default:    /* unknown specification */
 					printf("ERROR Checking Command Line '%s'\n",instr);
@@ -1953,7 +1944,6 @@ ulong getlastmsg(uint subnum, ulong *ptr, time_t *t)
 	int i;
 	smb_t smbfile;
 
-	ZERO_VAR(smbfile);
 	if(subnum>=scfg.total_subs) {
 		printf("\nERROR getlastmsg, subnum=%d\n",subnum);
 		logprintf("ERROR line %d getlastmsg %d",__LINE__,subnum);
@@ -2562,18 +2552,11 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		smbfile->status.max_crcs = scfg.sub[subnum]->maxcrcs;
 		smbfile->status.max_msgs = scfg.sub[subnum]->maxmsgs;
 		if(scfg.sub[subnum]->misc&SUB_HYPER)
-			storage = smbfile->status.attr = SMB_HYPERALLOC;
+			storage = smb->status.attr = SMB_HYPERALLOC;
 		else if(scfg.sub[subnum]->misc&SUB_FAST)
 			storage = SMB_FASTALLOC;
 		if(scfg.sub[subnum]->misc&SUB_LZH)
 			xlat=XLAT_LZH;
-
-		msg.idx.time=msg.hdr.when_imported.time;	/* needed for MSG-ID generation */
-		msg.idx.number=smbfile->status.last_msg+1;		/* needed for MSG-ID generation */
-
-		/* Generate default (RFC822) message-id (always) */
-		SAFECOPY(msg_id,get_msgid(&scfg,subnum,&msg));
-		smb_hfield_str(&msg,RFC822MSGID,msg_id);
 	}
 	if(smbfile->status.max_crcs==0)
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
@@ -3751,8 +3734,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 				else if(msg.hdr.thread_back) {	/* generate REPLYID */
 					memset(&orig_msg,0,sizeof(orig_msg));
 					orig_msg.hdr.number=msg.hdr.thread_back;
-					if(smb_getmsgidx(&smb[cur_smb], &orig_msg))
-						f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb[cur_smb].last_error);
+					if(smb_getmsgidx(smb, &orig_msg))
+						f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb->last_error);
 					else {
 						smb_lockmsghdr(&smb[cur_smb],&orig_msg);
 						smb_getmsghdr(&smb[cur_smb],&orig_msg);
@@ -3966,7 +3949,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.169 $", "%*s %s", revision);
+	sscanf("$Revision: 1.165 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
