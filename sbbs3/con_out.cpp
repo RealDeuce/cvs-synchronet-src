@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.36 2005/09/01 22:30:28 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.32 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -197,7 +197,7 @@ void sbbs_t::outchar(char ch)
 #endif
 #if 0 
 	if(console&CON_L_ECHO) {
-		if(console&CON_L_ECHOX && (uchar)ch>=' ')
+		if(console&CON_L_ECHOX && (uchar)ch>' ')
 			putch(password_char);
 		else if(cfg.node_misc&NM_NOBEEP && ch==BEL);	 /* Do nothing if beep */
 		else if(ch==BEL) {
@@ -209,9 +209,7 @@ void sbbs_t::outchar(char ch)
 #endif
 
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
-		/* TODO: If this replaces spaces, destructive backspace won't work */
-		/* if it doesn't, a space is displayed as a space */
-		if(console&CON_R_ECHOX && (uchar)ch>=' ') {
+		if(console&CON_R_ECHOX && (uchar)ch>' ') {
 			ch=text[YN][3];
 			if(text[YN][2]==0 || ch==0) ch='X';
 		}
@@ -269,7 +267,7 @@ void sbbs_t::center(char *instr)
 	SAFECOPY(str,instr);
 	truncsp(str);
 	j=bstrlen(str);
-	for(i=0;i<(cols-j)/2;i++)
+	for(i=0;i<(80-j)/2;i++)
 		outchar(' ');
 	bputs(str);
 	CRLF;
@@ -380,7 +378,8 @@ void sbbs_t::ctrl_a(char x)
 		return; 
 	}
 	if((uchar)x>0x7f) {
-		cursor_right((uchar)x-0x7f);
+		if(useron.misc&ANSI)
+			cursor_right((uchar)x-0x7f);
 		return; 
 	}
 	switch(toupper(x)) {
