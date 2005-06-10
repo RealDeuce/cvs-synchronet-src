@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.363 2005/04/16 01:22:57 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.368 2005/06/06 22:19:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,12 +446,14 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 	if((p=smb_get_hfield(msg,RFC822FROM,NULL))!=NULL)
 		s=sockprintf(socket,"From: %s",p);	/* use original RFC822 header field */
 	else {
-		if(msg->from_net.type==NET_INTERNET && msg->from_net.addr!=NULL)
-			SAFECOPY(fromaddr,(char*)msg->from_net.addr);
-		else if(msg->from_net.type==NET_QWK && msg->from_net.addr!=NULL)
+		if(msg->from_net.type==NET_QWK && msg->from_net.addr!=NULL)
 			SAFEPRINTF2(fromaddr,"%s!%s"
 				,(char*)msg->from_net.addr
 				,usermailaddr(&scfg,fromhost,msg->from));
+		else if(msg->from_net.type==NET_FIDO && msg->from_net.addr!=NULL)
+			SAFECOPY(fromaddr,smb_faddrtoa((faddr_t *)msg->from_net.addr,NULL));
+		else if(msg->from_net.type!=NET_NONE && msg->from_net.addr!=NULL)
+			SAFECOPY(fromaddr,(char*)msg->from_net.addr);
 		else 
 			usermailaddr(&scfg,fromaddr,msg->from);
 		if(fromaddr[0]=='<')
@@ -581,7 +583,7 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 			endmime(socket,boundary);
 			if(msg->hdr.auxattr&MSG_KILLFILE)
 				if(remove(filepath)!=0)
-					lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,filepath);
+					lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,errno,filepath);
 		}
     }
     sockprintf(socket,".");	/* End of text */
@@ -1504,15 +1506,15 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes\n"
-			,sock, startup->js_max_bytes);
+			,sock, startup->js.max_bytes);
 
-		if((js_runtime = JS_NewRuntime(startup->js_max_bytes))==NULL)
+		if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)\n"
-			,sock, startup->js_cx_stack);
+			,sock, startup->js.cx_stack);
 
-		if((js_cx = JS_NewContext(js_runtime, startup->js_cx_stack))==NULL)
+		if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
 			break;
 
 		JS_SetErrorReporter(js_cx, js_ErrorReporter);
@@ -1779,6 +1781,7 @@ static void smtp_thread(void* arg)
 	char		name_alias_buf[128];
 	char		reverse_path[128];
 	char		date[64];
+	char		qwkid[32];
 	char		rcpt_name[128];
 	char		rcpt_addr[128];
 	char		sender[128];
@@ -3053,20 +3056,22 @@ static void smtp_thread(void* arg)
 			usernum=0;	/* unknown user at this point */
 
 			if(routed) {
+				SAFECOPY(qwkid,p);
+				truncstr(qwkid,"/");
 				/* Search QWKnet hub-IDs for route destination */
 				for(i=0;i<scfg.total_qhubs;i++) {
-					if(!stricmp(p,scfg.qhub[i]->id))
+					if(!stricmp(qwkid,scfg.qhub[i]->id))
 						break;
 				}
 				if(i<scfg.total_qhubs) {	/* found matching QWKnet Hub */
 
-					lprintf(LOG_INFO,"%04d SMTP Routing mail for %s to QWKnet Hub: %s"
-						,socket, rcpt_addr, scfg.qhub[i]->id);
+					lprintf(LOG_INFO,"%04d SMTP Routing mail for %s <%s> to QWKnet Hub: %s"
+						,socket, rcpt_addr, p, scfg.qhub[i]->id);
 
 					fprintf(rcptlst,"[%u]\n",rcpt_count++);
 					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 					fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_QWK);
-					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),scfg.qhub[i]->id);
+					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),p);
 
 					sockprintf(socket,ok_rsp);
 					state=SMTP_STATE_RCPT_TO;
@@ -3684,7 +3689,11 @@ static void sendmail_thread(void* arg)
 				bounce(&smb,&msg,err,buf[0]=='5');
 				continue;
 			}
-			sockprintf(sock,"HELO %s",startup->host_name);
+			if(startup->options&MAIL_OPT_RELAY_TX 
+				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0)	/* Requires ESMTP */
+				sockprintf(sock,"EHLO %s",startup->host_name);
+			else
+				sockprintf(sock,"HELO %s",startup->host_name);
 			if(!sockgetrsp(sock,"250", buf, sizeof(buf))) {
 				remove_msg_intransit(&smb,&msg);
 				SAFEPRINTF3(err,badrsp_err,server,buf,"250");
@@ -3916,7 +3925,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.363 $", "%*s %s", revision);
+	sscanf("$Revision: 1.368 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -3991,8 +4000,8 @@ void DLLCALL mail_server(void* arg)
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 
 #ifdef JAVASCRIPT
-	if(startup->js_max_bytes==0)			startup->js_max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js_cx_stack==0)				startup->js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 #endif
 
 	uptime=0;
