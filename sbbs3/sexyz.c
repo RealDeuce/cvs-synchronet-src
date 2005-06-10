@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.60 2005/06/10 18:31:54 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.61 2005/06/10 19:32:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,12 +412,13 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		flows++;
 		result=WaitForEvent(outbuf_empty,timeout*1000);
 		fprintf(statfp,"\b\b\b\b    \b\b\b\b");
-		if(result!=WAIT_OBJECT_0 && RingBufFree(&outbuf)<len) {
+		if(result!=WAIT_OBJECT_0) {
 			fprintf(statfp
 				,"\n!TIMEOUT (%d) waiting for output buffer to flush (%u seconds, %u bytes)\n"
 				,result, timeout, RingBufFull(&outbuf));
 			newline=TRUE;
-			return(-1);
+			if(RingBufFree(&outbuf)<len)
+				return(-1);
 		}
 	}
 
@@ -1276,7 +1277,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.60 $", "%*s %s", revision);
+	sscanf("$Revision: 1.61 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
