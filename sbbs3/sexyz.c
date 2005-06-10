@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.62 2005/06/10 21:43:29 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.63 2005/06/10 23:02:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1279,7 +1279,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.62 $", "%*s %s", revision);
+	sscanf("$Revision: 1.63 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1308,6 +1308,7 @@ int main(int argc, char **argv)
 	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
 		log_level=LOG_DEBUG;
 
+	telnet					=iniReadBool(fp,ROOT_SECTION,"Telnet",TRUE);
 	debug_tx				=iniReadBool(fp,ROOT_SECTION,"DebugTx",FALSE);
 	debug_rx				=iniReadBool(fp,ROOT_SECTION,"DebugRx",FALSE);
 	debug_telnet			=iniReadBool(fp,ROOT_SECTION,"DebugTelnet",FALSE);
