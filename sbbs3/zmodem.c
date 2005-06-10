@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.53 2005/06/10 03:13:46 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.54 2005/06/10 07:07:59 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1467,7 +1467,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, time_t* start, ulong* sent)
 {
 	BOOL	success=FALSE;
-	long	pos=0;
+	ulong	pos=0;
 	ulong	sent_bytes;
 	struct	stat s;
 	unsigned char * p;
@@ -1637,8 +1637,10 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 
 		if(type == ZRPOS) {
 			if(zm->rxd_header_pos <= zm->current_file_size) {
-				pos = zm->rxd_header_pos;
-				lprintf(zm,LOG_INFO,"Resuming transfer from offset: %lu", pos);
+				if(pos != zm->rxd_header_pos) {
+					pos = zm->rxd_header_pos;
+					lprintf(zm,LOG_INFO,"Resuming transfer from offset: %lu", pos);
+				}
 			} else
 				lprintf(zm,LOG_WARNING,"Invalid ZRPOS offset: %lu", zm->rxd_header_pos);
 		}
@@ -1974,7 +1976,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.53 $", "%*s %s", buf);
+	sscanf("$Revision: 1.54 $", "%*s %s", buf);
 
 	return(buf);
 }
