@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.25 2005/06/13 01:38:54 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.24 2005/06/06 23:57:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -421,6 +421,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 	size_t		rd;
 	time_t		startfile;
 	struct		stat st;
+	unsigned	errors;
 
 	if(sent!=NULL)	
 		*sent=0;
@@ -454,12 +455,12 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			lprintf(xm,LOG_INFO,"Sending Ymodem header block: '%s'",block+strlen(block)+1);
 			
 			block_len=strlen(block)+1+i;
-			for(xm->errors=0;xm->errors<=xm->max_errors && !xm->cancelled && is_connected(xm);xm->errors++) {
+			for(errors=0;errors<=xm->max_errors && !xm->cancelled && is_connected(xm);errors++) {
 				xmodem_put_block(xm, block, block_len <=128 ? 128:1024, 0  /* block_num */);
 				if(xmodem_get_ack(xm,1,0))
 					break; 
 			}
-			if(xm->errors>=xm->max_errors || xm->cancelled) {
+			if(errors>=xm->max_errors || xm->cancelled) {
 				lprintf(xm,LOG_ERR,"Failed to send header block");
 				break;
 			}
@@ -473,8 +474,8 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			*start=startfile;
 
 		block_num=1;
-		xm->errors=0;
-		while(sent_bytes < (ulong)st.st_size && xm->errors<=xm->max_errors && !xm->cancelled
+		errors=0;
+		while(sent_bytes < (ulong)st.st_size && errors<=xm->max_errors && !xm->cancelled
 			&& is_connected(xm)) {
 			fseek(fp,sent_bytes,SEEK_SET);
 			memset(block,CPMEOF,xm->block_size);
@@ -482,16 +483,16 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 				&& (long)(block_num*xm->block_size) < st.st_size) {
 				lprintf(xm,LOG_ERR,"READ ERROR %d instead of %d at offset %lu"
 					,rd,xm->block_size,(block_num-1)*(long)xm->block_size);
-				xm->errors++;
+				errors++;
 				continue;
 			}
 			if(xm->progress!=NULL)
 				xm->progress(xm->cbdata,block_num,ftell(fp),st.st_size,startfile);
 			xmodem_put_block(xm, block, xm->block_size, block_num);
 			if(!xmodem_get_ack(xm,5,block_num)) {
-				xm->errors++;
+				errors++;
 				lprintf(xm,LOG_WARNING,"Error #%d at offset %ld"
-					,xm->errors,ftell(fp)-xm->block_size);
+					,errors,ftell(fp)-xm->block_size);
 			} else {
 				block_num++; 
 				sent_bytes+=rd;
@@ -527,7 +528,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.25 $", "%*s %s", buf);
+	sscanf("$Revision: 1.24 $", "%*s %s", buf);
 
 	return(buf);
 }
