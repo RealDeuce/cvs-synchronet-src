@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.260 2005/09/02 21:07:04 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.254 2005/06/04 09:40:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,7 +137,6 @@
 #include "crc16.h"
 #include "crc32.h"
 #include "telnet.h"
-#include "nopen.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -255,6 +254,8 @@ public:
 	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
+	int		keybuftop,keybufbot;	/* Keyboard input buffer pointers */
+	char 	keybuf[KEY_BUFSIZE];	/* Keyboard input buffer */
 	char *	connection;		/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
@@ -478,7 +479,6 @@ public:
 	int		rputs(char *str);				/* BBS raw puts function */
 	int		bprintf(char *fmt, ...);		/* BBS printf function */
 	int		rprintf(char *fmt, ...);		/* BBS raw printf function */
-	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
 	void	clearline(void);
@@ -966,9 +966,8 @@ extern "C" {
 													);
 
 	/* js_internal.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t* branch);
-	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
-	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
+	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
+	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext *cx, js_branch_t*);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -1002,7 +1001,6 @@ extern "C" {
 
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
-	DLLEXPORT BOOL		DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* hdrobj, smbmsg_t*);
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
@@ -1036,6 +1034,12 @@ char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
 uint	hptoi(char *str);
 int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
 int		strsame(char *str1, char *str2);	/* Compares number of same chars */
+
+/* nopen.c */
+int		nopen(const char* str, int access);
+FILE *	fnopen(int* file, const char* str, int access);
+BOOL	ftouch(const char* fname);
+BOOL	fmutex(const char* fname, const char* text);
 
 /* load_cfg.c */
 BOOL 	md(char *path);
