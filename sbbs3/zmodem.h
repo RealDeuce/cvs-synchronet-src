@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.32 2005/06/10 02:00:05 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.33 2005/06/10 03:13:46 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -202,13 +202,13 @@ typedef struct {
 	 * extracted from the ZRINIT frame as received
 	 */
 
-	int can_full_duplex;
-	int can_overlap_io;
-	int can_break;
-	int can_fcs_32;
-	int want_fcs_16;
-	int escape_all_control_characters;						/* guess */
-	int escape_8th_bit;
+	BOOL can_full_duplex;
+	BOOL can_overlap_io;
+	BOOL can_break;
+	BOOL can_fcs_32;
+	BOOL want_fcs_16;
+	BOOL escape_all_control_characters;						/* guess */
+	BOOL escape_8th_bit;
 
 	/*
 	 * file management options.
