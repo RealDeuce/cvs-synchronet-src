@@ -1,5 +1,3 @@
-/* $Id: syncterm.c,v 1.54 2005/08/30 20:41:09 deuce Exp $ */
-
 #include <sys/stat.h>
 
 #include <gen_defs.h>
@@ -14,12 +12,6 @@
 #include "term.h"
 #include "uifcinit.h"
 #include "window.h"
-
-char* syncterm_version = "SyncTERM 0.03"
-#ifdef _DEBUG
-	" Debug ("__DATE__")"
-#endif
-	;
 
 char *inpath=NULL;
 
@@ -50,90 +42,6 @@ static BOOL winsock_startup(void)
 
 #endif
 
-void parse_url(char *url, struct bbslist *bbs)
-{
-	char *p1, *p2, *p3;
-	struct	bbslist	*list[MAX_OPTS+1];
-	char	*home=NULL;
-	char	path[MAX_PATH];
-	char	listpath[MAX_PATH+1];
-	int		listcount=0, i;
-
-	/* User BBS list path */
-	if(inpath==NULL) {
-		home=getenv("HOME");
-		if(home==NULL)
-			home=getenv("USERPROFILE");
-	}
-	if(home==NULL)
-		home=path;
-	strcpy(listpath,home);
-	strncat(listpath,"/syncterm.lst",sizeof(listpath));
-	if(strlen(listpath)>MAX_PATH) {
-		fprintf(stderr,"Path to syncterm.lst too long");
-	}
-
-	bbs->id=-1;
-	bbs->added=time(NULL);
-	bbs->calls=0;
-	bbs->user[0]=0;
-	bbs->password[0]=0;
-	bbs->type=USER_BBSLIST;
-	bbs->reversed=FALSE;
-	bbs->screen_mode=SCREEN_MODE_CURRENT;
-	bbs->conn_type=CONN_TYPE_TELNET;
-	bbs->port=23;
-	bbs->loglevel=LOG_INFO;
-	p1=url;
-	if(!strnicmp("rlogin://",url,9)) {
-		bbs->conn_type=CONN_TYPE_RLOGIN;
-		bbs->port=513;
-		p1=url+9;
-	}
-	else if(!strnicmp("telnet://",url,9))
-		p1=url+9;
-	/* Remove trailing / (Win32 adds one 'cause it hates me) */
-	p2=strchr(p1,'/');
-	if(p2!=NULL)
-		*p2=0;
-	p3=strchr(p1,'@');
-	if(p3!=NULL) {
-		*p3=0;
-		p2=strchr(p1,':');
-		if(p2!=NULL) {
-			*p2=0;
-			p2++;
-			SAFECOPY(bbs->password,p2);
-		}
-		SAFECOPY(bbs->user,p1);
-		p1=p3+1;
-	}
-	SAFECOPY(bbs->name,p1);
-	p2=strchr(p1,':');
-	if(p2!=NULL) {
-		*p2=0;
-		p2++;
-		bbs->port=atoi(p2);
-	}
-	SAFECOPY(bbs->addr,p1);
-
-	/* Find BBS listing in users phone book */
-	if(listpath != NULL) {
-		read_list(listpath, &list[0], &listcount, USER_BBSLIST, home);
-		for(i=0;i<listcount;i++) {
-			if((stricmp(bbs->addr,list[i]->addr)==0)
-					&& (bbs->port==list[i]->port)
-					&& (bbs->conn_type==list[i]->conn_type)
-					&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
-					&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
-				memcpy(bbs,list[i],sizeof(struct bbslist));
-				break;
-			}
-		}
-	}
-	free_list(&list[0],listcount);
-}
-
 int main(int argc, char **argv)
 {
 	struct bbslist *bbs=NULL;
@@ -150,12 +58,13 @@ int main(int argc, char **argv)
 	char	*p3;
 	int		i;
 	int	ciolib_mode=CIOLIB_MODE_AUTO;
+	struct	bbslist	*list[MAX_OPTS+1];
+	int		listcount=0;
 	str_list_t	inifile;
 	FILE *listfile;
 	char	listpath[MAX_PATH+1];
 	char	*home=NULL;
 	char	*inpath=NULL;
-	BOOL	exit_now=FALSE;
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
@@ -249,8 +158,9 @@ int main(int argc, char **argv)
 			home=getenv("USERPROFILE");
 	}
 	if(home==NULL)
-		home=path;
-	strcpy(listpath,home);
+		strcpy(listpath,path);
+	else
+		strcpy(listpath,home);
 	strncat(listpath,"/syncterm.lst",sizeof(listpath));
 	if(strlen(listpath)>MAX_PATH) {
 		fprintf(stderr,"Path to syncterm.lst too long");
@@ -263,25 +173,82 @@ int main(int argc, char **argv)
 			uifcmsg("Unable to allocate memory","The system was unable to allocate memory.");
 			return(1);
 		}
-		parse_url(url, bbs);
-		if(bbs->port==0)
+		bbs->id=-1;
+		bbs->added=time(NULL);
+		bbs->calls=0;
+		bbs->user[0]=0;
+		bbs->password[0]=0;
+		bbs->type=USER_BBSLIST;
+		bbs->reversed=FALSE;
+		bbs->screen_mode=SCREEN_MODE_CURRENT;
+		if(!strnicmp("rlogin://",url,9)) {
+			bbs->conn_type=CONN_TYPE_RLOGIN;
+			bbs->port=513;
+		}
+		else if(!strnicmp("telnet://",url,9)) {
+			bbs->conn_type=CONN_TYPE_TELNET;
+			bbs->port=23;
+		}
+		else
 			goto USAGE;
+		p1=url+9;
+		/* Remove trailing / (Win32 adds one 'cause it hates me) */
+		p2=strchr(p1,'/');
+		if(p2!=NULL)
+			*p2=0;
+		p3=strchr(p1,'@');
+		if(p3!=NULL) {
+			*p3=0;
+			p2=strchr(p1,':');
+			if(p2!=NULL) {
+				*p2=0;
+				p2++;
+				SAFECOPY(bbs->password,p2);
+			}
+			SAFECOPY(bbs->user,p1);
+			p1=p3+1;
+		}
+		SAFECOPY(bbs->name,p1);
+		p2=strchr(p1,':');
+		if(p2!=NULL) {
+			*p2=0;
+			p2++;
+			bbs->port=atoi(p2);
+			if(bbs->port==0)
+				goto USAGE;
+		}
+		SAFECOPY(bbs->addr,p1);
+		
+		/* Find BBS listing in users phone book */
+		read_list(listpath, &list[0], &listcount, USER_BBSLIST);
+		for(i=0;i<listcount;i++) {
+			if((stricmp(bbs->addr,list[i]->addr)==0)
+					&& (bbs->port==list[i]->port)
+					&& (bbs->conn_type==list[i]->conn_type)
+					&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
+					&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
+				memcpy(bbs,list[i],sizeof(struct bbslist));
+				break;
+			}
+		}
+		free_list(&list[0],listcount);
 	}
 
 	if(!winsock_startup())
 		return(1);
 
-	while(bbs!=NULL || (bbs=show_bbslist(listpath,BBSLIST_SELECT,home))!=NULL) {
-		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->syspass,bbs->conn_type,bbs->bpsrate)) {
+	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT,path))!=NULL) {
+		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->conn_type)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
+
 			bbs->connected=time(NULL);
 			bbs->calls++;
 			if(bbs->id != -1) {
 				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
-					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,NULL);
+					iniSetInteger(&inifile,bbs->name,"LastConnected",bbs->connected,NULL);
 					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
 					if((listfile=fopen(listpath,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
@@ -313,15 +280,15 @@ int main(int argc, char **argv)
 			term.nostatus=bbs->nostatus;
 			if(drawwin())
 				return(1);
-			exit_now=doterm(bbs);
+			doterm(bbs);
 			textmode(txtinfo.currmode);
 			settitle("SyncTERM");
 		}
-		if(exit_now || url[0]) {
-			if(bbs != NULL && bbs->id==-1) {
+		if(url[0]) {
+			if(bbs->id==-1) {
 				char	*YesNo[3]={"Yes","No",""};
 				/* Started from the command-line with a URL */
-				init_uifc(TRUE, TRUE);
+				init_uifc();
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 					case 0:	/* Yes */
 						add_bbs(path,bbs);
@@ -329,8 +296,8 @@ int main(int argc, char **argv)
 					default: /* ESC/No */
 						break;
 				}
-				free(bbs);
 			}
+			free(bbs);
 			bbs=NULL;
 			break;
 		}
