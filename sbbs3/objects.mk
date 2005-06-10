@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.39 2005/09/14 19:11:22 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.33 2005/04/21 07:06:20 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -145,9 +145,6 @@ BAJA_OBJS = \
 			$(OBJODIR)$(DIRSEP)baja$(OFILE) \
 			$(OBJODIR)$(DIRSEP)ars$(OFILE)
 
-UNBAJA_OBJS = \
-			$(OBJODIR)$(DIRSEP)unbaja$(OFILE)
-
 NODE_OBJS = $(OBJODIR)$(DIRSEP)node$(OFILE)
 
 FIXSMB_OBJS = \
@@ -228,35 +225,4 @@ SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)xmodem$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)zmodem$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)telnet$(OFILE)
-
-QWKNODES_OBJS = \
-			$(OBJODIR)$(DIRSEP)qwknodes$(OFILE)\
-			$(OBJODIR)$(DIRSEP)date_str$(OFILE)\
-			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
-			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
-			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
-			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
-			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
-			$(OBJODIR)$(DIRSEP)ars$(OFILE)
-
-SLOG_OBJS = \
-			$(OBJODIR)$(DIRSEP)slog$(OFILE) \
-			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
-
-ALLUSERS_OBJS = \
-			$(OBJODIR)$(DIRSEP)allusers$(OFILE) \
-			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
-			$(OBJODIR)$(DIRSEP)ars$(OFILE)
-
-DELFILES_OBJS = \
-			$(OBJODIR)$(DIRSEP)delfiles$(OFILE) \
-			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
-			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
-			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
-			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
-			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
-			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
-			$(OBJODIR)$(DIRSEP)filedat$(OFILE) \
-			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE)\
