@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.15 2005/07/03 03:59:31 deuce Exp $ */
+/* $Id: x_cio.c,v 1.14 2005/06/06 23:00:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,7 +33,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 #include <threadwrap.h>

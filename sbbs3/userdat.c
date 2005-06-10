@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.93 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: userdat.c,v 1.91 2005/02/09 21:35:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -349,18 +349,18 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	if(strcmp(str,tmp) && user->ltoday) 
 		resetdailyuserdat(cfg,user);
 
-#if 0 /* removed 01/19/00 Why?  ToDo */
+#if 0 // removed 01/19/00
 	if(useron.number==user->number) {
 		if(user!=&useron)
 			useron=*user;
 
 		if(online) {
 
-	#if 0	/* legacy? ToDo */
+	#if 0	/* legacy? */
 			getusrdirs();
 			getusrsubs();
 	#endif
-			if(user->misc&AUTOTERM) {			/* was useron.misc (01/19/00) */
+			if(user->misc&AUTOTERM) {			// was useron.misc (01/19/00)
 				user->misc&=~(ANSI|RIP|WIP|HTML);
 				user->misc|=autoterm; 
 			}
@@ -1226,7 +1226,7 @@ int DLLCALL putnmsg(scfg_t* cfg, int num, char *strin)
 	sprintf(str,"%smsgs/n%3.3u.msg",cfg->data_dir,num);
 	if((file=nopen(str,O_WRONLY|O_CREAT))==-1)
 		return(errno); 
-	lseek(file,0L,SEEK_END);	/* Instead of opening with O_APPEND */
+	lseek(file,0L,SEEK_END);	// Instead of opening with O_APPEND
 	i=strlen(strin);
 	if(write(file,strin,i)!=i) {
 		close(file);
@@ -1300,8 +1300,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 			case AR_LOCAL:
 			case AR_EXPERT:
 			case AR_SYSOP:
-			case AR_GUEST:
-			case AR_QNODE:
 			case AR_QUIET:
 			case AR_OS2:
 			case AR_DOS:
@@ -1394,16 +1392,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				break;
 			case AR_SYSOP:
 				if(user==NULL || user->level<SYSOP_LEVEL)
-					result=not;
-				else result=!not;
-				break;
-			case AR_GUEST:
-				if(user==NULL || !(user->rest&FLAG('G')))
-					result=not;
-				else result=!not;
-				break;
-			case AR_QNODE:
-				if(user==NULL || !(user->rest&FLAG('Q')))
 					result=not;
 				else result=!not;
 				break;
