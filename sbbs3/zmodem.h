@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.35 2005/06/10 10:01:44 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.36 2005/06/10 18:38:51 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -258,8 +258,10 @@ typedef struct {
 
 	/* Configuration */
 	BOOL		escape_telnet_iac;
+	unsigned	init_timeout;
 	unsigned	send_timeout;
 	unsigned	recv_timeout;
+	unsigned	crc_timeout;
 	unsigned	max_errors;
 	unsigned	block_size;
 	unsigned	max_block_size;
