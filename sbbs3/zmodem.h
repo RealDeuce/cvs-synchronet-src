@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.38 2005/06/13 01:38:54 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.34 2005/06/10 09:35:59 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -209,7 +209,7 @@ typedef struct {
 	BOOL can_break;
 	BOOL can_fcs_32;
 	BOOL want_fcs_16;
-	BOOL escape_ctrl_chars;	
+	BOOL escape_all_control_characters;						/* guess */
 	BOOL escape_8th_bit;
 
 	/*
@@ -255,18 +255,15 @@ typedef struct {
 	BOOL		no_streaming;
 	unsigned	recv_bufsize;	/* Receiver specified buffer size */
 	long		crc_request;
-	unsigned	errors;
-	unsigned	consecutive_errors;
 
 	/* Configuration */
 	BOOL		escape_telnet_iac;
-	unsigned	init_timeout;
 	unsigned	send_timeout;
 	unsigned	recv_timeout;
-	unsigned	crc_timeout;
 	unsigned	max_errors;
 	unsigned	block_size;
 	unsigned	max_block_size;
+	unsigned	consecutive_errors;
 
 	/* Callbacks */
 	void*		cbdata;
@@ -275,7 +272,7 @@ typedef struct {
 	int			(*recv_byte)(void*, unsigned timeout);
 	void		(*progress)(void*, ulong current_pos);
 	BOOL		(*is_connected)(void*);
-	BOOL		(*data_waiting)(void*, unsigned timeout);
+	BOOL		(*data_waiting)(void*);
 
 } zmodem_t;
 
@@ -285,7 +282,7 @@ void		zmodem_init(zmodem_t*, void* cbdata
 						,int	(*send_byte)(void*, BYTE ch, unsigned timeout)
 						,int	(*recv_byte)(void*, unsigned timeout)
 						,BOOL	(*is_connected)(void*)
-						,BOOL	(*data_waiting)(void*, unsigned timeout)
+						,BOOL	(*data_waiting)(void*)
 						);
 char*		zmodem_ver(char *buf);
 const char* zmodem_source(void);
