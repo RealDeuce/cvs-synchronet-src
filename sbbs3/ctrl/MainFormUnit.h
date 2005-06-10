@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.70 2004/12/22 02:39:44 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.71 2005/04/26 08:47:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -296,6 +296,8 @@ __published:	// IDE-managed Components
     TAction *ViewServices;
     TMenuItem *ViewServicesMenuItem;
     TMenuItem *BBSEditTwitList;
+    TMenuItem *WebEditHandlersMenuItem;
+    TMenuItem *WebEditCgiEnvMenuItem;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
