@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.54 2005/06/10 02:00:05 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.55 2005/06/10 03:15:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1225,7 +1225,8 @@ static const char* usage=
 	"socket = TCP socket descriptor\n"
 #endif
 	"\n"
-	"opts   = -o  to overwrite files when receiving\n"
+	"opts   = -y  to overwrite files when receiving\n"
+	"         -o  disable Zmodem CRC-32 mode (use CRC-16)\n"
 	"         -s  disable Zmodem streaming (Slow Zmodem)\n"
 	"         -4  transmit with 4K Zmodem blocks\n"
 	"         -8  transmit with 8K Zmodem blocks (ZedZap)\n"
@@ -1274,7 +1275,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.55 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1332,6 +1333,7 @@ int main(int argc, char **argv)
 	zm.block_size			=iniReadInteger(fp,"Zmodem","BlockSize",zm.block_size);		/* 1024 or 8192 */
 	zm.max_errors			=iniReadInteger(fp,"Zmodem","MaxErrors",zm.max_errors);
 	zm.escape_telnet_iac	=iniReadBool(fp,"Zmodem","EscapeTelnetIAC",TRUE);
+	zm.want_fcs_16			=iniReadBool(fp,"Zmodem","CRC16",FALSE);
 
 	if(fp!=NULL)
 		fclose(fp);
@@ -1432,11 +1434,17 @@ int main(int argc, char **argv)
 					case 'K':	/* sz/rz compatible */
 						xm.block_size=1024;
 						break;
+					case 'C':	/* sz/rz compatible */
+						mode|=CRC;
+						break;
 					case '4':
 						zm.block_size=4096;
 						break;
 					case '8':
 						zm.block_size=8192;
+						break;
+					case 'O':	/* disable Zmodem CRC-32 */
+						zm.want_fcs_16=TRUE;
 						break;
 					case 'S':	/* disable Zmodem streaming */
 						zm.no_streaming=TRUE;
@@ -1444,7 +1452,7 @@ int main(int argc, char **argv)
 					case 'G':	/* Ymodem-G */
 						mode|=GMODE;
 						break;
-					case 'O':
+					case 'Y':
 						mode|=OVERWRITE;
 						break;
 					case '!':
