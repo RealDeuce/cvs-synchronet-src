@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.322 2005/06/08 06:13:37 deuce Exp $ */
+/* $Id: websrvr.c,v 1.323 2005/06/10 22:17:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3238,7 +3238,7 @@ static void respond(http_session_t * session)
 
 int read_post_data(http_session_t * session)
 {
-	int i;
+	unsigned i;
 
 	if(session->req.dynamic!=IS_CGI && session->req.post_len)  {
 		i = session->req.post_len;
@@ -3487,7 +3487,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.322 $", "%*s %s", revision);
+	sscanf("$Revision: 1.323 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
