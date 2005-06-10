@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.58 2005/06/10 18:38:51 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.59 2005/06/10 19:34:47 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1098,7 +1098,9 @@ int zmodem_recv_header_raw(zmodem_t* zm, int errors)
 		do {
 			if((c = zmodem_recv_raw(zm)) < 0)
 				return(c);
-		} while(c != ZPAD && !zm->cancelled);
+			if(zm->cancelled)
+				return(ZCAN);
+		} while(c != ZPAD);
 
 		if((c = zmodem_recv_raw(zm)) < 0)
 			return(c);
@@ -1788,13 +1790,14 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, ulong* bytes_recei
 				}
 				setvbuf(fp,NULL,_IOFBF,0x10000);
 
-				lprintf(zm,LOG_INFO,"Calculating CRC of %s", fpath);
+				lprintf(zm,LOG_INFO,"Calculating CRC of: %s", fpath);
 				crc=fcrc32(fp,l);
 				fclose(fp);
 				lprintf(zm,LOG_INFO,"CRC of %s (%lu bytes): %08lX"
-					,fpath, l, crc);
+					,getfname(fpath), l, crc);
+				lprintf(zm,LOG_INFO,"Requesting CRC of remote file: %s", zm->current_file_name);
 				if(!zmodem_get_crc(zm,l,&rcrc)) {
-					lprintf(zm,LOG_ERR,"Failed to get CRC of remote file: %s", fpath);
+					lprintf(zm,LOG_ERR,"Failed to get CRC of remote file");
 					break;
 				}
 				if(crc!=rcrc) {
@@ -2035,7 +2038,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.58 $", "%*s %s", buf);
+	sscanf("$Revision: 1.59 $", "%*s %s", buf);
 
 	return(buf);
 }
