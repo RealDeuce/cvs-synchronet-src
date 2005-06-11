@@ -82,10 +82,6 @@ LIB32=link.exe -lib
 # Name "xpdev_mt - Win32 Debug"
 # Begin Source File
 
-SOURCE=.\datewrap.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\dirwrap.c
 # End Source File
 # Begin Source File
