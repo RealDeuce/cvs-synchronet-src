@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.69 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: sexyz.c,v 1.64 2005/06/11 00:16:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,10 +48,8 @@
 #include <stdarg.h>
 #include <ctype.h>		/* isdigit */
 #include <sys/stat.h>
-
 #ifdef __unix__
-	#include <termios.h>
-	#include <signal.h>
+#include <termios.h>
 #endif
 
 /* xpdev */
@@ -69,7 +67,6 @@
 /* sbbs */
 #include "ringbuf.h"
 #include "telnet.h"
-#include "nopen.h"
 
 /* sexyz */
 #include "sexyz.h"
@@ -384,8 +381,7 @@ int recv_byte(void* unused, unsigned timeout)
 				telnet_cmd=ch;
 				if((telnet_cmdlen==2 && ch<TELNET_WILL) || telnet_cmdlen>2) {
 					telnet_cmdlen=0;
-					/* Code disabled.  Why?  ToDo */
-					/* break; */
+//					break;
 				}
 				continue;
 			}
@@ -546,7 +542,7 @@ static void output_thread(void* arg)
 			continue;
 		}
 
-        if(bufbot==buftop) { /* linear buf empty, read from ring buf */
+        if(bufbot==buftop) { // linear buf empty, read from ring buf
             if(avail>sizeof(buf)) {
                 lprintf(LOG_ERR,"Insufficient linear output buffer (%lu > %lu)"
 					,avail, sizeof(buf));
@@ -804,8 +800,7 @@ static int send_files(char** fname, uint fnames)
 			if(isdir(path))
 				continue;
 
-			if((fp=fnopen(NULL,path,O_RDONLY|O_BINARY))==NULL
-				&& (fp=fopen(path,"rb"))==NULL) {
+			if((fp=fopen(path,"rb"))==NULL) {
 				lprintf(LOG_ERR,"Error %d opening %s for read",errno,path);
 				continue;
 			}
@@ -859,7 +854,7 @@ static int send_files(char** fname, uint fnames)
 					,sent_bytes
 					,115200 /* baud */
 					,cps
-					,mode&ZMODEM ? zm.errors : xm.errors
+					,errors
 					,flows
 					,mode&ZMODEM ? zm.block_size : xm.block_size
 					,path); 
@@ -1066,8 +1061,7 @@ static int receive_files(char** fname_list, int fnames)
 			xmodem_cancel(&xm);
 			return(1); 
 		}
-		if((fp=fnopen(NULL,str,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY))==NULL
-			&& (fp=fopen(str,"wb"))==NULL) {
+		if((fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
 			if(mode&ZMODEM) {
 				zmodem_send_zskip(&zm);
@@ -1285,7 +1279,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.69 $", "%*s %s", revision);
+	sscanf("$Revision: 1.64 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1326,7 +1320,7 @@ int main(int argc, char **argv)
 
 	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
-	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",16*1024);
+	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",8192);
 
 	progress_interval		=iniReadInteger(fp,ROOT_SECTION,"ProgressInterval",1);
 
@@ -1349,8 +1343,6 @@ int main(int argc, char **argv)
 	zm.no_streaming			=!iniReadBool(fp,"Zmodem","Streaming",TRUE);
 	zm.want_fcs_16			=!iniReadBool(fp,"Zmodem","CRC32",TRUE);
 	zm.escape_telnet_iac	=iniReadBool(fp,"Zmodem","EscapeTelnetIAC",TRUE);
-	zm.escape_8th_bit		=iniReadBool(fp,"Zmodem","Escape8thBit",FALSE);
-	zm.escape_ctrl_chars	=iniReadBool(fp,"Zmodem","EscapeCtrlChars",FALSE);
 
 	if(fp!=NULL)
 		fclose(fp);
@@ -1585,9 +1577,8 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	/* Code disabled.  Why?  ToDo */
-/*	if(mode&RECVDIR)
-		backslash(fname[0]); */
+//	if(mode&RECVDIR)
+//		backslash(fname[0]);
 
 	if(!winsock_startup())
 		return(-1);
@@ -1644,9 +1635,8 @@ int main(int argc, char **argv)
 #endif
 
 	terminate=TRUE;	/* stop output thread */
-	/* Code disabled.  Why?  ToDo */
-/*	sem_post(outbuf.sem);
-	sem_post(outbuf.highwater_sem); */
+//	sem_post(outbuf.sem);
+//	sem_post(outbuf.highwater_sem);
 
 	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);
