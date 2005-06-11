@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.63 2005/06/10 23:02:06 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.64 2005/06/11 00:16:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1279,7 +1279,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.63 $", "%*s %s", revision);
+	sscanf("$Revision: 1.64 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1339,13 +1339,18 @@ int main(int argc, char **argv)
 	zm.block_size			=iniReadInteger(fp,"Zmodem","BlockSize",zm.block_size);			/* 1024  */
 	zm.max_block_size		=iniReadInteger(fp,"Zmodem","MaxBlockSize",zm.max_block_size);	/* 1024 or 8192 */
 	zm.max_errors			=iniReadInteger(fp,"Zmodem","MaxErrors",zm.max_errors);
+	zm.recv_bufsize			=iniReadInteger(fp,"Zmodem","RecvBufSize",0);
+	zm.no_streaming			=!iniReadBool(fp,"Zmodem","Streaming",TRUE);
+	zm.want_fcs_16			=!iniReadBool(fp,"Zmodem","CRC32",TRUE);
 	zm.escape_telnet_iac	=iniReadBool(fp,"Zmodem","EscapeTelnetIAC",TRUE);
-	zm.want_fcs_16			=iniReadBool(fp,"Zmodem","CRC16",FALSE);
 
 	if(fp!=NULL)
 		fclose(fp);
 
 	atexit(exiting);
+
+	if(zm.recv_bufsize > 0xffff)
+		zm.recv_bufsize = 0xffff;
 
 	if(outbuf_size < MIN_OUTBUF_SIZE)
 		outbuf_size = MIN_OUTBUF_SIZE;
