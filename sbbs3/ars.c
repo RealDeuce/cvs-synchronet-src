@@ -2,13 +2,13 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.10 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: ars.c,v 1.8 2004/10/17 06:46:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-const uchar* nular="";	/* AR_NULL */
+const uchar* nular="";	// AR_NULL
 
 /* Converts ASCII ARS string into binary ARS buffer */
 
@@ -366,20 +366,6 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 				i+=5; }
 			else if(!strnicmp(str+i,"SYSOP",5)) {
 				artype=AR_SYSOP;
-				if(not)
-					ar[j++]=AR_NOT;
-				not=0;
-				ar[j++]=artype;
-				i+=4; }
-			else if(!strnicmp(str+i,"GUEST",5)) {
-				artype=AR_GUEST;
-				if(not)
-					ar[j++]=AR_NOT;
-				not=0;
-				ar[j++]=artype;
-				i+=4; }
-			else if(!strnicmp(str+i,"QNODE",5)) {
-				artype=AR_QNODE;
 				if(not)
 					ar[j++]=AR_NOT;
 				not=0;

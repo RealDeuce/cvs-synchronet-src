@@ -109,17 +109,17 @@ sub parse_defs
 		next if($line =~ /^\s*$/);
 		if($line =~ m/^\s*((?:char)|(?:INT16)|(?:WORD)|(?:INT32)|(?:DWORD)|(?:float))\s+([^\s]+)\s*;\s*$/) {
 			my ($type, $name) = ($1, $2);
-			($p, $u, @newvars) = parse_line(\%sizes, $type, $name, 0);
+			($p, $n, @newvars) = parse_line(\%sizes, $type, $name, 0);
 		}
 		elsif($line =~ m/^\s*struct\s+([^\s]+)\s+([^\s]+)\s*;\s*$/) {
 			my ($struct, $name) = ($1, $2);
-			($p, $u, @newvars) = parse_line(\%sizes, $struct, $name, 1);
+			($p, $n, @newvars) = parse_line(\%sizes, $struct, $name, 1);
 		}
 		else {
 			print "Cannot parse: $line\n";
 			return();
 		}
-		if(!defined $u) {
+		if(!defined $n) {
 			return();
 		}
 		@vars{@newvars}=@newvars;
