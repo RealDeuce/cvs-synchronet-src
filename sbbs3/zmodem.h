@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.38 2005/06/13 01:38:54 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.37 2005/06/11 02:22:10 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -255,8 +255,6 @@ typedef struct {
 	BOOL		no_streaming;
 	unsigned	recv_bufsize;	/* Receiver specified buffer size */
 	long		crc_request;
-	unsigned	errors;
-	unsigned	consecutive_errors;
 
 	/* Configuration */
 	BOOL		escape_telnet_iac;
@@ -267,6 +265,7 @@ typedef struct {
 	unsigned	max_errors;
 	unsigned	block_size;
 	unsigned	max_block_size;
+	unsigned	consecutive_errors;
 
 	/* Callbacks */
 	void*		cbdata;
