@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.179 2005/04/21 06:44:38 rswindell Exp $ */
+/* $Id: services.c,v 1.182 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,8 +281,6 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	*rval = JSVAL_VOID;
-
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	
@@ -308,8 +306,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
-
-	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -767,6 +763,7 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 static JSContext* 
 js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, JSObject** glob)
 {
+	ulong		stack_frame;
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	JSObject*	server;
@@ -847,7 +844,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 #else
 
 		if(service_client->service->js_server_props.version[0]==0) {
-			sprintf(service_client->service->js_server_props.version
+			SAFEPRINTF(service_client->service->js_server_props.version
 				,"Synchronet Services %s",revision);
 			service_client->service->js_server_props.version_detail=
 				services_ver();
@@ -875,6 +872,15 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		if(glob!=NULL)
 			*glob=js_glob;
+
+		if(service_client->service->js.thread_stack) {
+#if JS_STACK_GROWTH_DIRECTION > 0
+			stack_frame=((ulong)&stack_frame)+service_client->service->js.thread_stack;
+#else
+			stack_frame=((ulong)&stack_frame)-service_client->service->js.thread_stack;
+#endif
+			JS_SetThreadStackLimit(js_cx, stack_frame);
+		}
 
 		success=TRUE;
 
@@ -1517,7 +1523,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.179 $", "%*s %s", revision);
+	sscanf("$Revision: 1.182 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
