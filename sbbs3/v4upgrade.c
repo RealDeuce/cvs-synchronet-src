@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.10 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: v4upgrade.c,v 1.6 2005/05/05 02:01:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,6 @@
 #include "sbbs4defs.h"
 #include "ini_file.h"
 #include "dat_file.h"
-#include "datewrap.h"
 
 scfg_t scfg;
 BOOL overwrite_existing_files=TRUE;
@@ -55,52 +54,6 @@ BOOL overwrite(const char* path)
 
 	return(TRUE);
 }
-
-/****************************************************************************/
-/* Converts a date string in format MM/DD/YY into unix time format			*/
-/****************************************************************************/
-long DLLCALL dstrtodate(scfg_t* cfg, char *instr)
-{
-	char*	p;
-	char*	day;
-	char	str[16];
-	struct tm tm;
-
-	if(!instr[0] || !strncmp(instr,"00/00/00",8))
-		return(0);
-
-	if(isdigit(instr[0]) && isdigit(instr[1])
-		&& isdigit(instr[3]) && isdigit(instr[4])
-		&& isdigit(instr[6]) && isdigit(instr[7]))
-		p=instr;	/* correctly formatted */
-	else {
-		p=instr;	/* incorrectly formatted */
-		while(*p && isdigit(*p)) p++;
-		if(*p==0)
-			return(0);
-		p++;
-		day=p;
-		while(*p && isdigit(*p)) p++;
-		if(*p==0)
-			return(0);
-		p++;
-		sprintf(str,"%02u/%02u/%02u"
-			,atoi(instr)%100,atoi(day)%100,atoi(p)%100);
-		p=str;
-	}
-
-	memset(&tm,0,sizeof(tm));
-	tm.tm_year=((p[6]&0xf)*10)+(p[7]&0xf);
-	if(cfg->sys_misc&SM_EURODATE) {
-		tm.tm_mon=((p[3]&0xf)*10)+(p[4]&0xf);
-		tm.tm_mday=((p[0]&0xf)*10)+(p[1]&0xf); }
-	else {
-		tm.tm_mon=((p[0]&0xf)*10)+(p[1]&0xf);
-		tm.tm_mday=((p[3]&0xf)*10)+(p[4]&0xf); }
-
-	return(((tm.tm_year+1900)*10000)+(tm.tm_mon*100)+tm.tm_mday);
-}
-
 
 BOOL upgrade_users(void)
 {
@@ -148,14 +101,14 @@ BOOL upgrade_users(void)
 
 		/******************************************/
 		/* very personal info */
-		len+=sprintf(rec+len,"%s\t%s\t%s\t%s\t%s\t%s\t%lu\t%c\t%s\t"
+		len+=sprintf(rec+len,"%s\t%s\t%s\t%s\t%s\t%s\t%s\t%c\t%s\t"
 			,user.netmail
 			,user.address
 			,user.location
 			,user.zipcode
 			,user.pass
 			,user.phone
-			,dstrtodate(&scfg,user.birth)
+			,user.birth
 			,user.sex
 			,user.modem
 			);
@@ -164,19 +117,13 @@ BOOL upgrade_users(void)
 
 		/******************************************/
 		/* date/times */
-		len+=sprintf(rec+len,"%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t"
-			,time_to_isoDate(user.laston)
-			,time_to_isoTime(user.laston)
-			,time_to_isoDate(user.firston)
-			,time_to_isoTime(user.firston)
-			,time_to_isoDate(user.expire)
-			,time_to_isoTime(user.expire)
-			,time_to_isoDate(user.pwmod)
-			,time_to_isoTime(user.pwmod)
-			,time_to_isoDate(user.ns_time)
-			,time_to_isoTime(user.ns_time)
-			,time_to_isoDate(user.logontime)
-			,time_to_isoTime(user.logontime)
+		len+=sprintf(rec+len,"%lx\t%lx\t%lx\t%lx\t%lx\t%lx\t"
+			,user.laston
+			,user.firston
+			,user.expire
+			,user.pwmod
+			,user.ns_time
+			,user.logontime
 			);
 		/* some unused records for future expansion */
 		len+=sprintf(rec+len,"\t\t\t\t");	
@@ -249,8 +196,7 @@ BOOL upgrade_users(void)
 			,user.curdir
 			,user.curxtrn
 			);
-		/* Message disabled.  Why?  ToDo */
-		/* printf("reclen=%u\n",len); */
+		//printf("reclen=%u\n",len);
 		if((ret=fprintf(out,"%-*.*s\r\n",USER_REC_LEN,USER_REC_LEN,rec))!=USER_REC_LINE_LEN) {
 			printf("!Error %d (errno: %d) writing %u bytes to user.tab\n"
 				,ret, errno, USER_REC_LINE_LEN);
@@ -315,19 +261,19 @@ BOOL upgrade_stats(void)
 		return(FALSE);
 	}
 
-	iniSetDateTime(&list,	ROOT_SECTION	,"TimeStamp"	,TRUE, t		,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"Logons"		,stats.logons	,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"LogonsToday"	,stats.ltoday	,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"Timeon"		,stats.timeon	,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"TimeonToday"	,stats.ttoday	,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"Uploads"		,stats.uls		,NULL);
-	iniSetLongInt(&list,	ROOT_SECTION	,"UploadBytes"	,stats.ulb		,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"Downloads"	,stats.dls		,NULL);
-	iniSetLongInt(&list,	ROOT_SECTION	,"DownloadBytes",stats.dlb		,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"PostsToday"	,stats.ptoday	,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"EmailToday"	,stats.etoday	,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"FeedbackToday",stats.ftoday	,NULL);
-	iniSetInteger(&list,	ROOT_SECTION	,"NewUsersToday",stats.nusers	,NULL);
+	iniSetHexInt(&list,  ROOT_SECTION	,"TimeStamp"	,t				,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"Logons"		,stats.logons	,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"LogonsToday"	,stats.ltoday	,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"Timeon"		,stats.timeon	,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"TimeonToday"	,stats.ttoday	,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"Uploads"		,stats.uls		,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"UploadBytes"	,stats.ulb		,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"Downloads"	,stats.dls		,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"DownloadBytes",stats.dlb		,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"PostsToday"	,stats.ptoday	,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"EmailToday"	,stats.etoday	,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"FeedbackToday",stats.ftoday	,NULL);
+	iniSetInteger(&list, ROOT_SECTION	,"NewUsersToday",stats.nusers	,NULL);
 
 	success=iniWriteFile(out, list);
 
@@ -365,8 +311,8 @@ BOOL upgrade_stats(void)
 	while(!feof(in)) {
 		if(fread(&csts,1,sizeof(csts),in)!=sizeof(csts))
 			break;
-		fprintf(out,"%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t\n"
-			,time_to_isoDate(csts.time)
+		fprintf(out,"%lx\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t\n"
+			,csts.time
 			,csts.ltoday
 			,csts.ttoday
 			,csts.uls
@@ -412,7 +358,7 @@ BOOL upgrade_event_data(void)
 		return(FALSE);
 	}
 
-	/* Read TIME.DAB */
+	// Read TIME.DAB
 	sprintf(inpath,"%stime.dab",scfg.ctrl_dir);
 	printf("\t%s ",inpath);
 	if((in=fopen(inpath,"rb"))==NULL) {
@@ -431,7 +377,7 @@ BOOL upgrade_event_data(void)
 
 	printf("-> %s (%u timed events)\n", outpath, i);
 
-	/* Read QNET.DAB */
+	// Read QNET.DAB
 	sprintf(inpath,"%sqnet.dab",scfg.ctrl_dir);
 	printf("\t%s ",inpath);
 	i=0;
@@ -731,7 +677,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.10 $", "%*s %s", revision);
+	sscanf("$Revision: 1.6 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
@@ -773,9 +719,9 @@ int main(int argc, char** argv)
 	if(!upgrade_filters())
 		return(4);
 	
-	/* alias.cfg */
-	/* domains.cfg */
-	/* ftpalias.cfg */
+	// alias.cfg
+	// domains.cfg
+	// ftpalias.cfg
 
 	printf("Upgrade successful.\n");
     return(0);

@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.28 2005/09/16 22:50:56 rswindell Exp $ */
+/* $Id: str_list.c,v 1.26 2005/03/26 08:54:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,7 +248,7 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 
 	if(lp==NULL) {
 		if((list = strListInit())==NULL)
-			return(NULL);
+			return(0);
 		lp=&list;
 		count=0;
 	} else
@@ -263,23 +263,19 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 
 str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delimit)
 {
-	char*		buf;
-	str_list_t	new_list;
+	char*	buf;
 
-	if(str==NULL || delimit==NULL)
+	if(str==NULL)
 		return(NULL);
 
 	if((buf=strdup(str))==NULL)
 		return(NULL);
 
-	new_list=strListSplit(list,buf,delimit);
+	*list=strListSplit(list,buf,delimit);
 
 	free(buf);
 
-	if(list!=NULL)
-		*list = new_list;
-
-	return(new_list);
+	return(*list);
 }
 
 size_t	strListMerge(str_list_t* list, str_list_t add_list)
@@ -477,6 +473,5 @@ char* strListCreateBlock(str_list_t list)
 
 void strListFreeBlock(char* block)
 {
-	if(block!=NULL)
-		free(block);	/* this must be done here for Windows-DLL reasons */
+	FREE_AND_NULL(block);	/* this must be done here for Windows-DLL reasons */
 }

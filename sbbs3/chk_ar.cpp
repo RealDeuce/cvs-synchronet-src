@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.14 2005/09/05 18:16:33 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.13 2004/12/01 03:06:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,8 +88,6 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 			case AR_LOCAL:
 			case AR_EXPERT:
 			case AR_SYSOP:
-			case AR_GUEST:
-			case AR_QNODE:
 			case AR_QUIET:
 			case AR_OS2:
 			case AR_DOS:
@@ -190,16 +188,6 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				break;
 			case AR_SYSOP:
 				if(!SYSOP)
-					result=_not;
-				else result=!_not;
-				break;
-			case AR_GUEST:
-				if(!(user->rest&FLAG('G')))
-					result=_not;
-				else result=!_not;
-				break;
-			case AR_QNODE:
-				if(!(user->rest&FLAG('Q')))
 					result=_not;
 				else result=!_not;
 				break;
