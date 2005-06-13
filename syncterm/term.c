@@ -1,3 +1,5 @@
+/* $Id: term.c,v 1.77 2005/06/13 00:28:15 rswindell Exp $ */
+
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>

@@ -1,3 +1,5 @@
+/* $Id: menu.c,v 1.18 2005/06/13 00:28:15 rswindell Exp $ */
+
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>

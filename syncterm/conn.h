@@ -1,3 +1,5 @@
+/* $Id: conn.h,v 1.3 2005/06/13 00:28:15 rswindell Exp $ */
+
 #ifndef _CONN_H_
 #define _CONN_H_
 
