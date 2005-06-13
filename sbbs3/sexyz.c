@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.65 2005/06/11 02:23:07 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.66 2005/06/13 01:39:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -854,7 +854,7 @@ static int send_files(char** fname, uint fnames)
 					,sent_bytes
 					,115200 /* baud */
 					,cps
-					,errors
+					,mode&ZMODEM ? zm.errors : xm.errors
 					,flows
 					,mode&ZMODEM ? zm.block_size : xm.block_size
 					,path); 
@@ -1279,7 +1279,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.65 $", "%*s %s", revision);
+	sscanf("$Revision: 1.66 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1320,7 +1320,7 @@ int main(int argc, char **argv)
 
 	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
-	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",8192);
+	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",16*1024);
 
 	progress_interval		=iniReadInteger(fp,ROOT_SECTION,"ProgressInterval",1);
 
