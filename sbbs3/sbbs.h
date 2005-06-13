@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.253 2005/04/21 10:39:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.254 2005/06/04 09:40:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -219,6 +219,7 @@ public:
 	node_t	thisnode;		/* Node information */
 	smb_t	smb;			/* Currently open message base */
 	char	rlogin_name[LEN_ALIAS+1];
+	char	rlogin_pass[LEN_PASS+1];
 
 	uint	temp_dirnum;
 
