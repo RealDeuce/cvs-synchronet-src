@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.66 2005/06/13 01:39:59 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.67 2005/06/13 02:35:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,7 @@
 /* sbbs */
 #include "ringbuf.h"
 #include "telnet.h"
+#include "nopen.h"
 
 /* sexyz */
 #include "sexyz.h"
@@ -800,7 +801,8 @@ static int send_files(char** fname, uint fnames)
 			if(isdir(path))
 				continue;
 
-			if((fp=fopen(path,"rb"))==NULL) {
+			if((fp=fnopen(NULL,path,O_RDONLY|O_BINARY))==NULL
+				&& (fp=fopen(path,"rb"))==NULL) {
 				lprintf(LOG_ERR,"Error %d opening %s for read",errno,path);
 				continue;
 			}
@@ -1061,7 +1063,8 @@ static int receive_files(char** fname_list, int fnames)
 			xmodem_cancel(&xm);
 			return(1); 
 		}
-		if((fp=fopen(str,"wb"))==NULL) {
+		if((fp=fnopen(NULL,str,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY))==NULL
+			&& (fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
 			if(mode&ZMODEM) {
 				zmodem_send_zskip(&zm);
@@ -1279,7 +1282,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.66 $", "%*s %s", revision);
+	sscanf("$Revision: 1.67 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
