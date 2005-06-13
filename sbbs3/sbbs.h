@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.254 2005/06/04 09:40:26 deuce Exp $ */
+/* $Id: sbbs.h,v 1.255 2005/06/13 02:33:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,6 +137,7 @@
 #include "crc16.h"
 #include "crc32.h"
 #include "telnet.h"
+#include "nopen.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -584,7 +585,6 @@ public:
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
-	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
 	bool	chksyspass(void);
 	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
@@ -1034,12 +1034,6 @@ char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
 uint	hptoi(char *str);
 int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
 int		strsame(char *str1, char *str2);	/* Compares number of same chars */
-
-/* nopen.c */
-int		nopen(const char* str, int access);
-FILE *	fnopen(int* file, const char* str, int access);
-BOOL	ftouch(const char* fname);
-BOOL	fmutex(const char* fname, const char* text);
 
 /* load_cfg.c */
 BOOL 	md(char *path);
