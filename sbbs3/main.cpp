@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.402 2005/09/19 21:48:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.393 2005/06/11 11:33:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,18 +265,7 @@ static BOOL winsock_startup(void)
 
 DLLEXPORT void DLLCALL sbbs_srand()
 {
-	DWORD seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
-
-#if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
-	int     rf;
-
-	if((rf=open(RANDOM_DEV, O_RDONLY))!=-1) {
-		read(rf, &seed, sizeof(seed));
-		close(rf);
-	}
-#endif
-
- 	srand(seed);
+	srand(msclock());
 	sbbs_random(10);	/* Throw away first number */
 }
 
@@ -377,8 +366,6 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
-	"null",
-	"xml object",
 	"array",
 	"alias",
 	"undefined"
@@ -552,7 +539,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+	if(JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
     for(; i<argc; i++) {
@@ -1282,15 +1269,14 @@ void input_thread(void *arg)
 			break;
 		}
 
-/*         ^          ^
- *		\______    ______/
- *       \  * \   / *   /
+/*		\______    ______/
+ *       \  0 \   / 0   /
  *        -----   ------           /----\
  *              ||               -< Boo! |
  *             /_\                 \----/
- *       \______________/
- *        \/\/\/\/\/\/\/
- *         ------------
+ *      \_______________/
+ *       \/\/\/\/\/\/\//
+ *        -------------
  */
 
 		if(FD_ISSET(sbbs->client_socket,&socket_set))
@@ -1713,13 +1699,10 @@ void event_thread(void* arg)
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
-				eprintf(LOG_DEBUG,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				sprintf(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
-				if(!fmutex(semfile,startup->host_name)) {
-					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
+				if(!fmutex(semfile,startup->host_name))
 					continue;
-				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
@@ -2291,7 +2274,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	errorlog_inside = false;
 	errormsg_inside = false;
 	gettimeleft_inside = false;
-	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
 	uselect_total = 0;
 	lbuflen = 0;
 	connection="Telnet";
@@ -2303,7 +2285,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	telnet_mode=0;
 	telnet_last_rxch=0;
 
-	sys_status=lncntr=tos=criterrs=lbuflen=slcnt=0L;
+	sys_status=lncntr=tos=criterrs=keybufbot=keybuftop=lbuflen=slcnt=0L;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -3169,7 +3151,7 @@ void sbbs_t::reset_logon_vars(void)
 	cols=80;
     lncntr=0;
     autoterm=0;
-    lbuflen=0;
+    keybufbot=keybuftop=lbuflen=0;
     slcnt=0;
     altul=0;
     timeleft_warn=0;
@@ -3333,7 +3315,7 @@ void node_thread(void* arg)
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
 		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the node thread */
-			lprintf(LOG_ERR,"Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
+			lprintf(LOG_ERR,"!Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
 	}
 #endif
 
@@ -4146,7 +4128,7 @@ void DLLCALL bbs_thread(void* arg)
 	    if(uspy_listen_socket[i-1]!=INVALID_SOCKET) {
 	        uspy_addr_len=SUN_LEN(&uspy_addr);
 	        if(bind(uspy_listen_socket[i-1], (struct sockaddr *) &uspy_addr, uspy_addr_len)) {
-	            lprintf(LOG_ERR,"Node %d !ERROR %d binding local spy socket %d to %s"
+	            lprintf(LOG_ERR,"!Node %d !ERROR %d binding local spy socket %d to %s"
 	                , i, errno, uspy_listen_socket[i-1], uspy_addr.sun_path);
 	            close_socket(uspy_listen_socket[i-1]);
 				uspy_listen_socket[i-1]=INVALID_SOCKET;
