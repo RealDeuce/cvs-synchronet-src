@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.48 2005/06/03 23:35:29 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.49 2005/06/14 01:52:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -799,6 +799,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 			else if(*(out+1)=='.' && *(out+2)=='.' && (*(out+3)=='/' || *(out+3)==0))  {
 				*out=0;
 				p=strrchr(target,'/');
+				if(p==NULL)
+					p=target;
 				memmove(p,out+3,strlen(out+3)+1);
 				out=p;
 			}
