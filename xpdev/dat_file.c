@@ -2,7 +2,7 @@
 
 /* Functions to deal with comma (CSV) and tab-delimited files and lists */
 
-/* $Id: dat_file.c,v 1.3 2005/04/29 04:59:04 rswindell Exp $ */
+/* $Id: dat_file.c,v 1.4 2005/05/05 01:57:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,7 @@ static char* csvEncode(char* field)
 	return(buf);
 }
 
-char* csvLineCreator(str_list_t columns)
+char* csvLineCreator(const str_list_t columns)
 {
 	char*	str=NULL;
 	char*	p;
@@ -113,7 +113,7 @@ char* csvLineCreator(str_list_t columns)
 	return(str);
 }
 
-str_list_t csvLineParser(char* line)
+str_list_t csvLineParser(const char* line)
 {
 	char*		p;
 	char*		buf;
@@ -142,7 +142,7 @@ str_list_t csvLineParser(char* line)
 /* Tab-Delimited API */
 /*********************/
 
-char* tabLineCreator(str_list_t columns)
+char* tabLineCreator(const str_list_t columns)
 {
 	char*	str=NULL;
 	char*	p;
@@ -166,7 +166,7 @@ char* tabLineCreator(str_list_t columns)
 	return(str);
 }
 
-str_list_t tabLineParser(char* line)
+str_list_t tabLineParser(const char* line)
 {
 	char*		p;
 	char*		buf;
@@ -191,7 +191,7 @@ str_list_t tabLineParser(char* line)
 
 /* Generic API */
 
-str_list_t dataCreateList(str_list_t records[], str_list_t columns, dataLineCreator_t lineCreator)
+str_list_t dataCreateList(const str_list_t records[], const str_list_t columns, dataLineCreator_t lineCreator)
 {
 	char*		p;
 	str_list_t	list;
@@ -217,7 +217,7 @@ str_list_t dataCreateList(str_list_t records[], str_list_t columns, dataLineCrea
 	return(list);
 }
 
-BOOL dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, const char* separator
+BOOL dataWriteFile(FILE* fp, const str_list_t records[], const str_list_t columns, const char* separator
 				   ,dataLineCreator_t lineCreator)
 {
 	size_t		count,total;
@@ -238,7 +238,7 @@ BOOL dataWriteFile(FILE* fp, str_list_t records[], str_list_t columns, const cha
 	return(count == total);
 }
 
-str_list_t* dataParseList(str_list_t records, str_list_t* columns, dataLineParser_t lineParser)
+str_list_t* dataParseList(const str_list_t records, str_list_t* columns, dataLineParser_t lineParser)
 {
 	size_t		ri=0;
 	size_t		li=0;

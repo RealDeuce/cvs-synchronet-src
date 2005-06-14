@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Program */
 
-/* $Id: sexyz.h,v 1.8 2005/01/21 11:21:38 rswindell Exp $ */
+/* $Id: sexyz.h,v 1.9 2005/06/01 10:34:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,6 @@
 #define CRC 			(1<<5)	/* Use CRC error correction 				*/
 #define GMODE			(1<<6)	/* For Qmodem-G and Ymodem-G				*/
 #define RECVDIR 		(1<<7)	/* Directory specified to download to		*/
-#define DEBUG			(1<<8)	/* Debug output 							*/
 #define OVERWRITE		(1<<9)	/* Overwrite receiving files				*/
 
 							/* Zmodem mode bits 						*/
