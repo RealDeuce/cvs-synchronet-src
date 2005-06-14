@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.47 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: console.c,v 1.48 2005/06/14 06:09:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,7 +98,6 @@
 #endif
 #include <fcntl.h>
 #include <limits.h>
-#include <paths.h>
 #include <stdio.h>
 #include <unistd.h>	/* sysconf() */
 
