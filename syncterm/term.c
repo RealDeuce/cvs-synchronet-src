@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.77 2005/06/13 00:28:15 rswindell Exp $ */
+/* $Id: term.c,v 1.78 2005/06/14 02:29:34 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -609,6 +609,7 @@ BOOL doterm(struct bbslist *bbs)
 	cterm_init(term.height,term.width,term.x-1,term.y-1,backlines,scrollback);
 	ch[1]=0;
 	zrqbuf[0]=0;
+	zrbuf[0]=0;
 
 	/* Main input loop */
 	for(;;) {
