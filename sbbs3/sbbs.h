@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.255 2005/06/13 02:33:42 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.256 2005/06/14 02:00:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -585,6 +585,7 @@ public:
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
+	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
 	bool	chksyspass(void);
 	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
