@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.8 2005/06/13 00:28:15 rswindell Exp $ */
+/* $Id: conn.c,v 1.9 2005/06/16 02:39:37 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -65,26 +65,33 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	int sent=0;
 	int	ret;
 	int	i;
-	BYTE *outbuf=NULL;
 	BYTE *sendbuf;
+	BYTE *p;
+	static BYTE *outbuf=NULL;
+	static size_t obsize=0;
 
 	if(con_type == CONN_TYPE_TELNET) {
-		if((outbuf=(BYTE *)malloc(buflen*2))==NULL)
-			return(-1);
+		if(obsize < buflen*2) {
+			p=realloc(outbuf, buflen*2);
+			if(p!=NULL) {
+				outbuf=p;
+				obsize = 2 * buflen;
+			}
+			else
+				return(-1);
+		}
 		sendbuf=telnet_expand(buffer, buflen, outbuf, &buflen);
 	}
-	else {
+	else
 		sendbuf = buffer;
-	}
+
 	while(sent<(int)buflen) {
-		if(!socket_check(conn_socket, NULL, &i, timeout)) {
-			FREE_AND_NULL(outbuf);
+		if(!socket_check(conn_socket, NULL, &i, timeout))
 			return(-1);
-		}
-		if(!i) {
-			FREE_AND_NULL(outbuf);
+
+		if(!i)
 			return(-1);
-		}			
+
 		ret=send(conn_socket,sendbuf+sent,buflen-sent,0);
 		if(ret==-1) {
 			switch(errno) {
@@ -93,14 +100,12 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 					SLEEP(1);
 					break;
 				default:
-					FREE_AND_NULL(outbuf);
 					return(-1);
 			}
 		}
 		else
 			sent+=ret;
 	}
-	FREE_AND_NULL(outbuf);
 	return(0);
 }
 
