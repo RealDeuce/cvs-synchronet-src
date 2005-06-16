@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.68 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: zmodem.c,v 1.65 2005/06/14 04:31:51 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -24,7 +24,6 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdarg.h>	/* va_list */
 #include <sys/stat.h>	/* struct stat */
 
@@ -485,7 +484,7 @@ int zmodem_send_data16(zmodem_t* zm, uchar subpkt_type,unsigned char * p, size_t
  * send a data subpacket using crc 16 or crc 32 as desired by the receiver
  */
 
-int zmodem_send_data(zmodem_t* zm, uchar subpkt_type, unsigned char * p, size_t l)
+int zmodem_send_data(zmodem_t* zm, uchar subpkt_type, unsigned char * p, int l)
 {
 	int result;
 
@@ -1204,7 +1203,7 @@ int zmodem_recv_header_raw(zmodem_t* zm, int errors)
 			break;
 	}
 
-#if 0 /*def _DEBUG */
+#if 0 //def _DEBUG
 	lprintf(zm,LOG_DEBUG,"recv_header_raw received header type: %s"
 		,frame_desc(frame_type));
 #endif
@@ -1362,7 +1361,7 @@ int zmodem_get_zfin(zmodem_t* zm)
 
 int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 {
-	size_t n;
+	int n;
 	uchar type;
 	unsigned buf_sent=0;
 
@@ -1441,8 +1440,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 			return ZACK;
 		}
 		if(n==0) {
-			lprintf(zm,LOG_ERR,"send_from: read error %d at offset %lu"
-				,ferror(fp), ftell(fp) );
+			lprintf(zm,LOG_DEBUG,"send_from: read error at offset %lu", ftell(fp) );
 			return ZACK;
 		}
 
@@ -2052,7 +2050,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.68 $", "%*s %s", buf);
+	sscanf("$Revision: 1.65 $", "%*s %s", buf);
 
 	return(buf);
 }
