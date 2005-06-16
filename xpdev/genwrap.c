@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.55 2005/06/16 23:31:37 deuce Exp $ */
+/* $Id: genwrap.c,v 1.56 2005/06/16 23:33:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,7 +467,7 @@ int DLLCALL	get_errno(void)
 /****************************************************************************/
 long double	DLLCALL	xp_timer(void)
 {
-	double ret=0;
+	long double ret=0;
 #ifdef __unix__
 	struct timeval tv;
 	if(gettimeofday(&tv,NULL)==1)
@@ -480,8 +480,8 @@ long double	DLLCALL	xp_timer(void)
 	LARGE_INTEGER	freq;
 	LARGE_INTEGER	tick;
 	if(QueryPerformanceFrequency(&freq) && QueryPerformanceCounter(&tick)) {
-		ret=((double)tick.HighPart*4294967296)+((double)tick.LowPart);
-		ret /= ((double)freq.HighPart*4294967296)+((double)freq.LowPart);
+		ret=((long double)tick.HighPart*4294967296)+((long double)tick.LowPart);
+		ret /= ((long double)freq.HighPart*4294967296)+((long double)freq.LowPart);
 	}
 	else {
 		ret=GetTickCount();
