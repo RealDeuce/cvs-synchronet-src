@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.80 2005/06/16 03:14:05 deuce Exp $ */
+/* $Id: term.c,v 1.81 2005/06/16 03:22:55 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -379,8 +379,6 @@ static int recv_byte(void* unused, unsigned timeout)
 #endif
 static BOOL is_connected(void* unused)
 {
-	if(bufbot < buftop);
-		return(TRUE);
 	return socket_check(conn_socket,NULL,NULL,0);
 }
 
