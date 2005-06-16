@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.14 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: prntfile.cpp,v 1.11 2004/10/27 21:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,11 +75,11 @@ void sbbs_t::printfile(char *str, long mode)
 		sys_status&=~SS_ABORT; 
 	}
 
-	if(!(mode&P_NOCRLF) && !tos && !wip && !rip && !html)
+	if(!tos && !wip && !rip && !html)
 		CRLF;
 
 	if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
-		lprintf(LOG_NOTICE,"Node %d !File not found: %s",cfg.node_num,str);
+		lprintf(LOG_NOTICE,"File not found: %s",str);
 		bputs(text[FileNotFound]);
 		if(SYSOP) bputs(str);
 		CRLF;
@@ -92,7 +92,7 @@ void sbbs_t::printfile(char *str, long mode)
 		errormsg(WHERE,ERR_CHK,str,length);
 		return;
 	}
-	if((buf=(char*)malloc(length+1L))==NULL) {
+	if((buf=(char*)MALLOC(length+1L))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
 		return; 
@@ -105,7 +105,7 @@ void sbbs_t::printfile(char *str, long mode)
 		buf[l]=0;
 		putmsg(buf,mode);
 	}
-	free(buf); 
+	FREE(buf); 
 
 	if((mode&P_NOABORT || wip || rip || html) && online==ON_REMOTE) {
 		SYNC;
@@ -134,7 +134,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		CRLF; 
 	}
 	if((file=nopen(str,O_RDONLY))==-1) {
-		lprintf(LOG_NOTICE,"Node %d !File not found: %s",cfg.node_num,str);
+		lprintf(LOG_NOTICE,"File not found: %s",str);
 		bputs(text[FileNotFound]);
 		if(SYSOP) bputs(str);
 		CRLF;
@@ -146,7 +146,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		errormsg(WHERE,ERR_CHK,str,length);
 		return;
 	}
-	if((buf=(char*)malloc(length+1L))==NULL) {
+	if((buf=(char*)MALLOC(length+1L))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
 		return; 
@@ -174,7 +174,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		SYNC;
 		rioctl(IOSM|ABORT); 
 	}
-	free(buf);
+	FREE(buf);
 }
 
 /****************************************************************************/
