@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.52 2005/05/03 09:20:46 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.55 2005/06/16 23:31:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -459,4 +459,37 @@ char* DLLCALL truncnl(char* str)
 int DLLCALL	get_errno(void)
 {
 	return(errno);
+}
+
+/****************************************************************************/
+/* Returns the current value of the systems best timer (in SECONDS)			*/
+/* Any value < 0 indicates an error											*/
+/****************************************************************************/
+long double	DLLCALL	xp_timer(void)
+{
+	double ret=0;
+#ifdef __unix__
+	struct timeval tv;
+	if(gettimeofday(&tv,NULL)==1)
+		return(-1);
+	ret=tv.tv_usec;
+	ret /= 1000000;
+	ret += tv.tv_sec;
+#else
+#ifdef _WIN32
+	LARGE_INTEGER	freq;
+	LARGE_INTEGER	tick;
+	if(QueryPerformanceFrequency(&freq) && QueryPerformanceCounter(&tick)) {
+		ret=((double)tick.HighPart*4294967296)+((double)tick.LowPart);
+		ret /= ((double)freq.HighPart*4294967296)+((double)freq.LowPart);
+	}
+	else {
+		ret=GetTickCount();
+		ret /= 1000;
+	}
+#else
+#error Need xp_timer implementation!
+#endif
+#endif
+	return(ret);
 }
