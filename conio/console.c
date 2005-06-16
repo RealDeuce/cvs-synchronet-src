@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.46 2005/04/18 00:41:27 deuce Exp $ */
+/* $Id: console.c,v 1.48 2005/06/14 06:09:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,7 +98,6 @@
 #endif
 #include <fcntl.h>
 #include <limits.h>
-#include <paths.h>
 #include <stdio.h>
 #include <unistd.h>	/* sysconf() */
 
@@ -109,6 +108,7 @@
 
 #define CONSOLE_CLIPBOARD	XA_PRIMARY
 
+#include <threadwrap.h>
 #include <genwrap.h>
 
 #include "console.h"
@@ -377,6 +377,8 @@ struct {
 
 #define	HWM	16
 void resize_window(void);
+int KbdEmpty(void);
+int load_font(char *filename, int width, int height, int scale);
 
 void tty_pause()
 {
@@ -513,7 +515,7 @@ void
 video_update()
 {
 	static clock_t	lastupd=-1;
-	static clock_started=0;
+	static int clock_started=0;
 	clock_t upd;
 
 	upd=msclock();
@@ -1671,7 +1673,7 @@ KbdRead()
 }
 
 int
-KbdEmpty()
+KbdEmpty(void)
 {
 	return(K_NEXT == K_FREE);
 }

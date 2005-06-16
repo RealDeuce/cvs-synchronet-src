@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.293 2005/05/07 01:15:33 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.297 2005/05/07 18:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2338,6 +2338,7 @@ static void ctrl_thread(void* arg)
 	BOOL		local_fsys=FALSE;
 	BOOL		alias_dir;
 	BOOL		append;
+	BOOL		reuseaddr;
 	FILE*		fp;
 	FILE*		alias_fp;
 	SOCKET		sock;
@@ -2865,7 +2866,8 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 
-		if(!stricmp(cmd, "PASV")) {
+		if(!stricmp(cmd, "PASV") 
+			|| !stricmp(cmd, "P@SW")) {	// Kludge required for SMC Barricade V1.2
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -2873,6 +2875,14 @@ static void ctrl_thread(void* arg)
 			if((pasv_sock=ftp_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
 				lprintf(LOG_WARNING,"%04d !PASV ERROR %d opening socket", sock,ERROR_VALUE);
 				sockprintf(sock,"425 Error %d opening PASV data socket", ERROR_VALUE);
+				continue;
+			}
+
+			reuseaddr=FALSE;
+			if((result=setsockopt(pasv_sock,SOL_SOCKET,SO_REUSEADDR,(char*)&reuseaddr,sizeof(reuseaddr)))!=0) {
+				lprintf(LOG_WARNING,"%04d !PASV ERROR %d disabling REUSEADDR socket option"
+					,sock,ERROR_VALUE);
+				sockprintf(sock,"425 Error %d disabling REUSEADDR socket option", ERROR_VALUE);
 				continue;
 			}
 
@@ -4498,7 +4508,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.293 $", "%*s %s", revision);
+	sscanf("$Revision: 1.297 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4574,7 +4584,8 @@ void DLLCALL ftp_server(void* arg)
 	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
-	sprintf(js_server_props.version,"%s %s",FTP_SERVER,revision);
+	ZERO_VAR(js_server_props);
+	SAFEPRINTF2(js_server_props.version,"%s %s",FTP_SERVER,revision);
 	js_server_props.version_detail=ftp_ver();
 	js_server_props.clients=&active_clients;
 	js_server_props.options=&startup->options;
@@ -4669,6 +4680,21 @@ void DLLCALL ftp_server(void* arg)
 				startup->max_clients=10;
 		}
 		lprintf(LOG_DEBUG,"Maximum clients: %d",startup->max_clients);
+
+		/* Sanity-check the passive port range */
+		if(startup->pasv_port_low || startup->pasv_port_high) {
+			if(startup->pasv_port_low > startup->pasv_port_high
+				|| startup->pasv_port_high-startup->pasv_port_low < (startup->max_clients-1)) {
+				lprintf(LOG_WARNING,"!Correcting Passive Port Range (Low: %u, High: %u)"
+					,startup->pasv_port_low,startup->pasv_port_high);
+				if(startup->pasv_port_low)
+					startup->pasv_port_high = startup->pasv_port_low+(startup->max_clients-1);
+				else
+					startup->pasv_port_low = startup->pasv_port_high-(startup->max_clients-1);
+			}
+			lprintf(LOG_DEBUG,"Passive Port Low: %u",startup->pasv_port_low);
+			lprintf(LOG_DEBUG,"Passive Port High: %u",startup->pasv_port_high);
+		}
 
 		lprintf(LOG_DEBUG,"Maximum inactivity: %d seconds",startup->max_inactivity);
 
