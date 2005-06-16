@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.23 2005/06/16 21:42:03 deuce Exp $ */
+/* $Id: cterm.c,v 1.24 2005/06/16 22:41:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -762,11 +762,11 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 						int newspeed=0;
 
 						*(--p)=0;
-						if(cterm.escbuf[2]) {
-							p=strtok(cterm.escbuf+2,";");
+						if(cterm.escbuf[1]) {
+							p=strtok(cterm.escbuf+1,";");
 							if(p!=NULL) {
 								if(!atoi(p)) {
-									p=strtok(NULL,":");
+									p=strtok(NULL,";");
 									if(p!=NULL) {
 										switch(atoi(p)) {
 											case 0:
