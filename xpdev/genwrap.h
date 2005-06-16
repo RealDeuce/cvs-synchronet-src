@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.71 2005/05/03 09:20:46 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.72 2005/06/16 04:42:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,6 +284,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 DLLEXPORT int		DLLCALL	xp_random(int);
+DLLEXPORT double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
