@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.57 2005/06/23 01:32:24 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.54 2005/06/16 06:32:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,9 +465,9 @@ int DLLCALL	get_errno(void)
 /* Returns the current value of the systems best timer (in SECONDS)			*/
 /* Any value < 0 indicates an error											*/
 /****************************************************************************/
-long double	DLLCALL	xp_timer(void)
+double	DLLCALL	xp_timer(void)
 {
-	long double ret;
+	double ret=0;
 #ifdef __unix__
 	struct timeval tv;
 	if(gettimeofday(&tv,NULL)==1)
@@ -480,8 +480,8 @@ long double	DLLCALL	xp_timer(void)
 	LARGE_INTEGER	freq;
 	LARGE_INTEGER	tick;
 	if(QueryPerformanceFrequency(&freq) && QueryPerformanceCounter(&tick)) {
-		ret=((long double)tick.HighPart*4294967296)+((long double)tick.LowPart);
-		ret /= ((long double)freq.HighPart*4294967296)+((long double)freq.LowPart);
+		ret=((double)tick.HighPart*4294967296)+((double)tick.LowPart);
+		ret /= ((double)freq.HighPart*4294967296)+((double)freq.LowPart);
 	}
 	else {
 		ret=GetTickCount();
