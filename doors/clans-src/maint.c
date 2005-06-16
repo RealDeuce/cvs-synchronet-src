@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "pawn.h"
 #include "npc.h"
 #include "mail.h"
+#include "game.h"
 
 extern struct game Game;
 extern struct system System;
@@ -106,6 +107,8 @@ extern struct ibbs IBBS;
     unlink("disband.dat");
 
     Alliance_Maint();
+
+    Game_Write();
 
     DisplayStr("Done.\n");
 
