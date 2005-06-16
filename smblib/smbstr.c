@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.9 2005/07/03 03:56:33 deuce Exp $ */
+/* $Id: smbstr.c,v 1.8 2005/06/06 22:49:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include <ctype.h>		/* is*() */
-#include <string.h>		/* strcpy, strcat, memset, strchr */
 #include <genwrap.h> 		/* stricmp */
 #include "smblib.h"
 
