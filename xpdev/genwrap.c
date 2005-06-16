@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.54 2005/06/16 06:32:52 deuce Exp $ */
+/* $Id: genwrap.c,v 1.55 2005/06/16 23:31:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,7 +465,7 @@ int DLLCALL	get_errno(void)
 /* Returns the current value of the systems best timer (in SECONDS)			*/
 /* Any value < 0 indicates an error											*/
 /****************************************************************************/
-double	DLLCALL	xp_timer(void)
+long double	DLLCALL	xp_timer(void)
 {
 	double ret=0;
 #ifdef __unix__
