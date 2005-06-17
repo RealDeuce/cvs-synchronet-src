@@ -1,3 +1,5 @@
+/* $Id: uifcinit.c,v 1.13 2005/06/17 07:12:22 rswindell Exp $ */
+
 #include <gen_defs.h>
 #include <stdio.h>
 
@@ -5,6 +7,8 @@
 #include <uifc.h>
 
 #include "uifcinit.h"
+
+extern char* syncterm_version;
 
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 static int uifc_initialized=0;
@@ -23,7 +27,7 @@ int	init_uifc(void) {
 	}
 	uifc_initialized=1;
 
-	if(uifc.scrn("SyncTERM")) {
+	if(uifc.scrn(syncterm_version)) {
 		printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
 		uifc_initialized=0;
 		uifc.bail();
