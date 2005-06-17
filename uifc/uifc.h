@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.62 2005/06/04 20:24:33 deuce Exp $ */
+/* $Id: uifc.h,v 1.63 2005/06/17 07:14:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -435,7 +435,7 @@ typedef struct {
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-	void (*timedisplay)(void);
+	void (*timedisplay)(BOOL force);
 
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
