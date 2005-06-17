@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.89 2005/06/17 18:36:48 deuce Exp $ */
+/* $Id: term.c,v 1.90 2005/06/17 18:59:23 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -846,7 +846,7 @@ BOOL doterm(struct bbslist *bbs)
 				case 0x2c00:		/* ALT-Z */
 					i=wherex();
 					j=wherey();
-					switch(syncmenu(bbs)) {
+					switch(syncmenu(bbs, &speed)) {
 						case -1:
 							cterm_end();
 							free(scrollback);
@@ -858,7 +858,7 @@ BOOL doterm(struct bbslist *bbs)
 						case 4:
 							zmodem_download(bbs->dldir);
 							break;
-						case 5:
+						case 6:
 							cterm_end();
 							free(scrollback);
 							conn_close();
