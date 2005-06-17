@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.181 2005/05/07 18:19:33 rswindell Exp $ */
+/* $Id: services.c,v 1.182 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,8 +281,6 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	*rval = JSVAL_VOID;
-
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	
@@ -308,8 +306,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
-
-	*rval = JSVAL_VOID;
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
@@ -1527,7 +1523,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.181 $", "%*s %s", revision);
+	sscanf("$Revision: 1.182 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
