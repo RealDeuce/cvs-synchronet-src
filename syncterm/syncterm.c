@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.39 2005/06/17 06:49:42 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.40 2005/06/17 07:13:01 rswindell Exp $ */
 
 #include <sys/stat.h>
 
@@ -22,6 +22,12 @@ char *inpath=NULL;
 static WSADATA WSAData;
 #define SOCKLIB_DESC WSAData.szDescription
 static BOOL WSAInitialized=FALSE;
+
+char* syncterm_version = "SyncTERM 0.00"
+#ifdef _DEBUG
+	" Debug ("__DATE__")"
+#endif
+	;
 
 static BOOL winsock_startup(void)
 {
