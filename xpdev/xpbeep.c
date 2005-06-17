@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.22 2005/03/07 23:35:14 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.23 2005/06/14 06:08:37 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -8,11 +8,11 @@
 	#include <mmsystem.h>
 #elif defined(__unix__)
 	#include <fcntl.h>
-	#if SOUNDCARD_H_IN==SYS
+	#if SOUNDCARD_H_IN==1
 		#include <sys/soundcard.h>
-	#elif SOUNDCARD_H_IN==INCLUDE
+	#elif SOUNDCARD_H_IN==2
 		#include <soundcard.h>
-	#elif SOUNDCARD_H_IN==LINUX
+	#elif SOUNDCARD_H_IN==3
 		#include <linux/soundcard.h>
 	#else
 		#warning Cannot find soundcard.h
