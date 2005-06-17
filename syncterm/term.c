@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.88 2005/06/17 18:12:30 deuce Exp $ */
+/* $Id: term.c,v 1.89 2005/06/17 18:36:48 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -865,6 +865,19 @@ BOOL doterm(struct bbslist *bbs)
 							return(TRUE);
 					}
 					gotoxy(i,j);
+					break;
+				case 0x9800:	/* ALT-Up */
+					if(speed)
+						speed=rates[get_rate_num(speed)+1];
+					else
+						speed=rates[0];
+					break;
+				case 0xa000:	/* ALT-Down */
+					i=get_rate_num(speed);
+					if(i==0)
+						speed=0;
+					else
+						speed=rates[i-1];
 					break;
 				case '\b':
 					key='\b';
