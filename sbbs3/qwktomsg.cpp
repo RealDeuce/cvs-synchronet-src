@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.36 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: qwktomsg.cpp,v 1.35 2004/12/29 10:17:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,17 +149,17 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 
 	bodylen=0;
-	if((body=(char *)malloc((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
-		free(header);
+	if((body=(char *)LMALLOC((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
+		LFREE(header);
 		smb_freemsgmem(&msg);
 		errormsg(WHERE,ERR_ALLOC,"QWK msg body",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
 	}
 
 	taillen=0;
-	if((tail=(char *)malloc((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
-		free(header);
-		free(body);
+	if((tail=(char *)LMALLOC((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
+		LFREE(header);
+		LFREE(body);
 		smb_freemsgmem(&msg);
 		errormsg(WHERE,ERR_ALLOC,"QWK msg tail",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
@@ -380,8 +380,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 
 	smb_freemsgmem(&msg);
 
-	free(body);
-	free(tail);
+	LFREE(body);
+	LFREE(tail);
 
 	return(success);
 }

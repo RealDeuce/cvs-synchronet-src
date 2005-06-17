@@ -4,7 +4,7 @@
 #include "config.h"
 #include "effekt.h"
 #include "fonts.h"
-#include "syncdraw.h"
+#include "mdraw.h"
 
 /*
  * Version      4 Byte Color        1 Byte TABPos      80 Byte Outline      1
