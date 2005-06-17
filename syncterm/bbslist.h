@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.18 2005/06/24 04:29:20 deuce Exp $ */
+/* $Id: bbslist.h,v 1.15 2005/06/17 06:50:17 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -11,7 +11,6 @@
 #define LIST_ADDR_MAX	30
 #define MAX_USER_LEN	30
 #define MAX_PASSWD_LEN	16
-#define MAX_SYSPASS_LEN	16
 
 enum {
 	 USER_BBSLIST
@@ -42,7 +41,6 @@ struct bbslist {
 	unsigned int	calls;
 	char			user[MAX_USER_LEN+1];
 	char			password[MAX_PASSWD_LEN+1];
-	char			syspass[MAX_SYSPASS_LEN+1];
 	int				type;
 	int				conn_type;
 	int				id;
@@ -56,12 +54,8 @@ struct bbslist {
 };
 
 struct bbslist *show_bbslist(char* listpath, int mode, char *home);
-extern char *log_levels[];
-extern char *rate_names[];
-extern int rates[];
 void read_list(char *listpath, struct bbslist **list, int *i, int type, char* home);
 void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
-int  get_rate_num(int rate);
 
 #endif
