@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.47 2005/04/20 07:48:56 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.49 2005/06/14 01:52:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -799,6 +799,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 			else if(*(out+1)=='.' && *(out+2)=='.' && (*(out+3)=='/' || *(out+3)==0))  {
 				*out=0;
 				p=strrchr(target,'/');
+				if(p==NULL)
+					p=target;
 				memmove(p,out+3,strlen(out+3)+1);
 				out=p;
 			}
@@ -823,7 +825,9 @@ char* DLLCALL backslash(char* path)
 	if(!IS_PATH_DELIM(*p)) {
 #if defined(__unix__)
 		/* Convert trailing backslash to forwardslash on *nix */
-		if(*p!='\\')
+		if(*p!='\\' && *p)
+#else
+		if(*p)
 #endif
 			p++;
 		*p=PATH_DELIM;
