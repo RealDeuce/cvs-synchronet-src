@@ -1,3 +1,5 @@
+/* $Id: menu.c,v 1.22 2005/06/18 21:44:06 deuce Exp $ */
+
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
@@ -101,15 +103,20 @@ void viewscroll(void)
 	return;
 }
 
-int syncmenu(struct bbslist *bbs)
+int syncmenu(struct bbslist *bbs, int *speed)
 {
-	char	*opts[4]={
-						 "Scrollback (ALT-S)"
-						,"Disconnect (CTRL-Q)"
-						,"Send Login (ALT-L)"
+	char	*opts[]={
+						 "Scrollback (Alt-B)"
+						,"Disconnect (Ctrl-Q)"
+						,"Send Login (Alt-L)"
+						,"Zmodem Upload (Alt-U)"
+						,"Zmodem Download (Alt-D)"
+						,"Change Output Rate (Alt-Up/Alt-Down)"
+						,"Change Log Level"
+						,"Exit (Alt-X)"
 						,""};
 	int		opt=0;
-	int		i;
+	int		i,j;
 	struct	text_info txtinfo;
 	char	*buf;
 	int		ret;
@@ -121,7 +128,7 @@ int syncmenu(struct bbslist *bbs)
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
 			&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
 			&& cio_api.mode!=CIOLIB_MODE_ANSI) {
-		opts[1]="Disconnect (ALT-H)";
+		opts[1]="Disconnect (Alt-H)";
 	}
 
 	for(ret=0;!ret;) {
@@ -146,6 +153,29 @@ int syncmenu(struct bbslist *bbs)
 				SLEEP(10);
 				conn_send(bbs->password,strlen(bbs->password),0);
 				conn_send("\r",1,0);
+				break;
+			case 5:		/* Output rate */
+				if(speed != NULL) {
+					j=get_rate_num(*speed);
+					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Output Rate",rate_names);
+					if(i>=0)
+						*speed = rates[i];
+				}
+				ret=5;
+				break;
+			case 6:		/* Change log level (temporarily) */
+				j=log_level;
+				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Log Level",log_levels);
+				if(i>=0)
+					log_level = j;
+				ret=6;
+				break;
+			default:
+				ret=i;
+				uifcbail();
+				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+				free(buf);
+				return(ret);
 		}
 	}
 
