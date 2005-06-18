@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id: spyon.c,v 1.3 2004/08/10 03:49:03 deuce Exp $ */
+/* $Id: spyon.c,v 1.4 2005/06/16 21:43:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,7 @@ int spyon(char *sockname)  {
 					telnet_strip++;
 					if(buf==255 && telnet_strip==2) {
 						telnet_strip=0;
-						cterm_write(&buf,1,NULL,0);
+						cterm_write(&buf,1,NULL,0,NULL);
 					}
 					if(telnet_strip==3)
 						telnet_strip=0;
@@ -120,7 +120,7 @@ int spyon(char *sockname)  {
 					if(buf==255)
 						telnet_strip=1;
 					else
-						cterm_write(&buf,1,NULL,0);
+						cterm_write(&buf,1,NULL,0,NULL);
 			}
 			else if(i<0) {
 				close(spy_sock);
