@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.92 2005/06/18 23:26:20 deuce Exp $ */
+/* $Id: term.c,v 1.93 2005/06/20 21:25:46 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -160,7 +160,7 @@ void update_status(struct bbslist *bbs, int speed)
 			if(timeon>359999)
 				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon-(timeon/3600))/60,timeon%60);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break;
 	}
 	_wscroll=oldscroll;
