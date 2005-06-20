@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.29 2005/05/01 09:03:22 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.30 2005/06/20 21:12:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,6 +85,8 @@ double		iniReadFloat(FILE*, const char* section, const char* key
 					,double deflt);
 BOOL		iniReadBool(FILE*, const char* section, const char* key
 					,BOOL deflt);
+unsigned	iniReadEnum(FILE*, const char* section, const char* key
+					,str_list_t names, unsigned deflt);
 ulong		iniReadBitField(FILE*, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
 
@@ -123,6 +125,8 @@ double		iniGetFloat(str_list_t, const char* section, const char* key
 					,double deflt);
 BOOL		iniGetBool(str_list_t, const char* section, const char* key
 					,BOOL deflt);
+unsigned	iniGetEnum(str_list_t, const char* section, const char* key
+					,str_list_t names, unsigned deflt);
 ulong		iniGetBitField(str_list_t, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
 
@@ -141,6 +145,8 @@ char*		iniSetIpAddress(str_list_t*, const char* section, const char* key, ulong 
 					,ini_style_t*);
 char*		iniSetBool(str_list_t*, const char* section, const char* key, BOOL value
 					,ini_style_t*);
+char*		iniSetEnum(str_list_t*, const char* section, const char* key, str_list_t names
+					,unsigned value, ini_style_t*);
 char*		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bitdesc_t*, ulong value
 					,ini_style_t*);
 char*		iniSetStringList(str_list_t*, const char* section, const char* key

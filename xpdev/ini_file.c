@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.68 2005/05/01 09:03:22 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.69 2005/06/20 21:12:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -419,6 +419,18 @@ char* iniSetBool(str_list_t* list, const char* section, const char* key, BOOL va
 					,ini_style_t* style)
 {
 	return iniSetString(list, section, key, value ? "true":"false", style);
+}
+
+char* iniSetEnum(str_list_t* list, const char* section, const char* key, str_list_t names, unsigned value
+					,ini_style_t* style)
+{
+	char	str[INI_MAX_VALUE_LEN];
+
+	if(value < strListCount(names))
+		return iniSetString(list, section, key, names[value], style);
+
+	SAFEPRINTF(str,"%u",value);
+	return iniSetString(list, section, key, str, style);
 }
 
 char* iniSetBitField(str_list_t* list, const char* section, const char* key
@@ -983,6 +995,43 @@ BOOL iniGetBool(str_list_t list, const char* section, const char* key, BOOL defl
 		return(deflt);
 
 	return(parseBool(value));
+}
+
+static unsigned parseEnum(const char* value, str_list_t names)
+{
+	unsigned i;
+
+	for(i=0;names[i]!=NULL;i++)
+		if(stricmp(names[i],value)==0)
+			return(i);
+
+	return(strtoul(value,NULL,0));
+}
+
+unsigned iniReadEnum(FILE* fp, const char* section, const char* key, str_list_t names, unsigned deflt)
+{
+	char	buf[INI_MAX_VALUE_LEN];
+	char*	value;
+
+	if((value=read_value(fp,section,key,buf))==NULL)
+		return(deflt);
+
+	if(*value==0)		/* blank value */
+		return(deflt);
+
+	return(parseEnum(value,names));
+}
+
+unsigned iniGetEnum(str_list_t list, const char* section, const char* key, str_list_t names, unsigned deflt)
+{
+	char	value[INI_MAX_VALUE_LEN];
+
+	get_value(list, section, key, value);
+
+	if(*value==0)		/* blank value or missing key */
+		return(deflt);
+
+	return(parseEnum(value,names));
 }
 
 static ulong parseBitField(char* value, ini_bitdesc_t* bitdesc)
