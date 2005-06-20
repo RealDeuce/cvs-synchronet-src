@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.65 2005/06/14 04:31:51 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.66 2005/06/20 08:53:29 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -484,7 +484,7 @@ int zmodem_send_data16(zmodem_t* zm, uchar subpkt_type,unsigned char * p, size_t
  * send a data subpacket using crc 16 or crc 32 as desired by the receiver
  */
 
-int zmodem_send_data(zmodem_t* zm, uchar subpkt_type, unsigned char * p, int l)
+int zmodem_send_data(zmodem_t* zm, uchar subpkt_type, unsigned char * p, size_t l)
 {
 	int result;
 
@@ -1361,7 +1361,7 @@ int zmodem_get_zfin(zmodem_t* zm)
 
 int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 {
-	int n;
+	size_t n;
 	uchar type;
 	unsigned buf_sent=0;
 
@@ -1440,7 +1440,8 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 			return ZACK;
 		}
 		if(n==0) {
-			lprintf(zm,LOG_DEBUG,"send_from: read error at offset %lu", ftell(fp) );
+			lprintf(zm,LOG_ERR,"send_from: read error %d at offset %lu"
+				,ferror(fp), ftell(fp) );
 			return ZACK;
 		}
 
@@ -2050,7 +2051,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.65 $", "%*s %s", buf);
+	sscanf("$Revision: 1.66 $", "%*s %s", buf);
 
 	return(buf);
 }
