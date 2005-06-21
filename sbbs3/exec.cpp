@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.55 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: exec.cpp,v 1.50 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -475,15 +475,15 @@ void sbbs_t::freevars(csi_t *bin)
 	if(bin->str_var) {
 		for(i=0;i<bin->str_vars;i++)
 			if(bin->str_var[i])
-				free(bin->str_var[i]);
-		free(bin->str_var); 
+				FREE(bin->str_var[i]);
+		FREE(bin->str_var); 
 	}
 	if(bin->int_var)
-		free(bin->int_var);
+		FREE(bin->int_var);
 	if(bin->str_var_name)
-		free(bin->str_var_name);
+		FREE(bin->str_var_name);
 	if(bin->int_var_name)
-		free(bin->int_var_name);
+		FREE(bin->int_var_name);
 	for(i=0;i<bin->files;i++) {
 		if(bin->file[i]) {
 			fclose((FILE *)bin->file[i]);
@@ -513,7 +513,7 @@ char * sbbs_t::copystrvar(csi_t *csi, char *p, char *str)
 				if(p==sysvar_p[i])
 					break;
 		if(!p || i==MAX_SYSVARS) {		/* Not system variable */
-			if((np=(char*)realloc(p,strlen(str)+1))==NULL)
+			if((np=(char*)REALLOC(p,strlen(str)+1))==NULL)
 				errormsg(WHERE,ERR_ALLOC,"variable",strlen(str)+1);
 			else
 				p=np; } }
@@ -532,13 +532,28 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
-		JS_ReportError(cx,"Disconnected");
+	sbbs->js_branch.counter++;
+
+	/* Terminated? */
+	if(sbbs->js_branch.auto_terminate && sbbs->terminated) {
+		JS_ReportError(cx,"Terminated");
 		sbbs->js_branch.counter=0;
 		return(JS_FALSE);
 	}
+	/* Infinite loop? */
+	if(sbbs->js_branch.limit && sbbs->js_branch.counter>sbbs->js_branch.limit) {
+		JS_ReportError(cx,"Infinite loop (%lu branches) detected",sbbs->js_branch.counter);
+		sbbs->js_branch.counter=0;
+		return(JS_FALSE);
+	}
+	/* Give up timeslices every once in a while */
+	if(sbbs->js_branch.yield_interval && (sbbs->js_branch.counter%sbbs->js_branch.yield_interval)==0)
+		YIELD();
 
-	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
+	if(sbbs->js_branch.gc_interval && (sbbs->js_branch.counter%sbbs->js_branch.gc_interval)==0)
+		JS_MaybeGC(cx), sbbs->js_branch.gc_attempts++;
+
+    return(JS_TRUE);
 }
 
 static const char* js_ext(const char* fname)
@@ -633,8 +648,6 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
 
-	js_EvalOnExit(js_cx, js_glob, &js_branch);
-
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
 	JS_DestroyScript(js_cx, js_script);
@@ -687,7 +700,7 @@ long sbbs_t::exec_bin(char *mod, csi_t *csi)
 	}
 
 	bin.length=filelength(file);
-	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
+	if((bin.cs=(uchar *)MALLOC(bin.length))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,bin.length);
 		return(-1); 
@@ -695,7 +708,7 @@ long sbbs_t::exec_bin(char *mod, csi_t *csi)
 	if(lread(file,bin.cs,bin.length)!=bin.length) {
 		close(file);
 		errormsg(WHERE,ERR_READ,str,bin.length);
-		free(bin.cs);
+		FREE(bin.cs);
 		return(-1); 
 	}
 	close(file);
@@ -713,7 +726,7 @@ long sbbs_t::exec_bin(char *mod, csi_t *csi)
 		}
 
 	freevars(&bin);
-	free(bin.cs);
+	FREE(bin.cs);
 	csi->logic=bin.logic;
 	return(bin.retval);
 }
@@ -1064,7 +1077,7 @@ int sbbs_t::exec(csi_t *csi)
 						for(i=0;i<TOTAL_TEXT;i++)
 							if(text[i]!=text_sav[i]) {
 								if(text[i]!=nulstr)
-									free(text[i]);
+									FREE(text[i]);
 								text[i]=text_sav[i]; }
 						sprintf(str,"%s%s.dat"
 							,cfg.ctrl_dir,cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
@@ -1076,10 +1089,10 @@ int sbbs_t::exec(csi_t *csi)
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */
-								free(text[i]);					/* Don't alloc */
+								FREE(text[i]);					/* Don't alloc */
 								text[i]=text_sav[i]; }
 							else if(text[i][0]==0) {
-								free(text[i]);
+								FREE(text[i]);
 								text[i]=nulstr; } }
 						if(i<TOTAL_TEXT) {
 							fclose(stream);
@@ -1326,7 +1339,7 @@ int sbbs_t::exec(csi_t *csi)
 				if((ushort)i==0xffff) {
 					for(i=0;i<TOTAL_TEXT;i++) {
 						if(text[i]!=text_sav[i] && text[i]!=nulstr)
-							free(text[i]);
+							FREE(text[i]);
 						text[i]=text_sav[i]; }
 					return(0); }
 				i--;
@@ -1334,7 +1347,7 @@ int sbbs_t::exec(csi_t *csi)
 					errormsg(WHERE,ERR_CHK,"revert text #",i);
 					return(0); }
 				if(text[i]!=text_sav[i] && text[i]!=nulstr)
-					free(text[i]);
+					FREE(text[i]);
 				text[i]=text_sav[i];
 				return(0);
 			default:
@@ -1766,7 +1779,7 @@ int sbbs_t::exec(csi_t *csi)
 				outchar(csi->cmd&0x7f);
 			return(0);
 		case CS_PRINTSTR:
-			putmsg(csi->str,P_SAVEATR|P_NOABORT|P_NOATCODES);
+			putmsg(csi->str,P_SAVEATR|P_NOABORT);
 			return(0);
 		case CS_CMD_HOME:
 			if(csi->cmdrets<MAX_CMDRETS)
