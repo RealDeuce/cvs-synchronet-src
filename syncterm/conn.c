@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.10 2005/06/16 06:40:38 deuce Exp $ */
+/* $Id: conn.c,v 1.11 2005/06/21 05:09:28 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -13,7 +13,7 @@
 
 static int	con_type=CONN_TYPE_UNKNOWN;
 SOCKET conn_socket=INVALID_SOCKET;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw",""};
+char *conn_types[]={"Unknown","RLogin","Telnet","Raw",NULL};
 
 int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 {
