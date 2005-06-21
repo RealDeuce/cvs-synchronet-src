@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.45 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.43 2005/04/24 20:40:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,13 +58,13 @@ int sbbs_t::xtrn_sec()
 		return(1); 
 	}
 
-	if((usrxtrn=(uint *)malloc(cfg.total_xtrns*sizeof(int)))==NULL) {
+	if((usrxtrn=(uint *)MALLOC(cfg.total_xtrns*sizeof(int)))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_xtrns);
 		return(1); 
 	}
-	if((usrxsec=(uint *)malloc(cfg.total_xtrnsecs*sizeof(int)))==NULL) {
+	if((usrxsec=(uint *)MALLOC(cfg.total_xtrnsecs*sizeof(int)))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_xtrnsecs);
-		free(usrxtrn);
+		FREE(usrxtrn);
 		return(1); 
 	}
 
@@ -74,8 +74,8 @@ int sbbs_t::xtrn_sec()
 				usrxsec[usrxsecs++]=i;
 		if(!usrxsecs) {
 			bputs(text[NoXtrnPrograms]);
-			free(usrxtrn);
-			free(usrxsec);
+			FREE(usrxtrn);
+			FREE(usrxsec);
 			return(1); 
 		}
 		if(usrxsecs>1) {
@@ -105,8 +105,8 @@ int sbbs_t::xtrn_sec()
 
 		if(xsec>=cfg.total_xtrnsecs) {
 			bputs(text[NoXtrnPrograms]);
-			free(usrxtrn);
-			free(usrxsec);
+			FREE(usrxtrn);
+			FREE(usrxsec);
 			return(1); 
 		}
 
@@ -187,8 +187,8 @@ int sbbs_t::xtrn_sec()
 		if(usrxsecs<2)
 			break; 
 	}
-	free(usrxtrn);
-	free(usrxsec);
+	FREE(usrxtrn);
+	FREE(usrxsec);
 	return(0);
 }
 
@@ -465,7 +465,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(str,"%lu\n%s\n%u\n%lu\n%u\n%u\n%u\n%u\n%u\n"
 			,useron.cdt+useron.freecdt			/* Gold */
 			,unixtodstr(&cfg,useron.laston,tmp)	/* User last on date */
-			,cols 								/* User screen width */
+			,80 								/* User screen width */
 			,rows								/* User screen length */
 			,useron.level						/* User SL */
 			,0									/* Cosysop? */
