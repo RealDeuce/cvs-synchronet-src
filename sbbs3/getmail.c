@@ -2,7 +2,7 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.5 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: getmail.c,v 1.4 2005/01/05 01:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,7 +151,7 @@ mail_t* DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 			continue;					
 		if(mode&LM_UNREAD && idx.attr&MSG_READ)
 			continue;
-		if((mail=(mail_t *)realloc(mail,sizeof(mail_t)*(l+1)))
+		if((mail=(mail_t *)REALLOC(mail,sizeof(mail_t)*(l+1)))
 			==NULL) {
 			smb_unlocksmbhdr(smb);
 			return(NULL); 
@@ -166,5 +166,5 @@ mail_t* DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 
 void DLLCALL freemail(mail_t* mail)
 {
-	free(mail);
+	FREE(mail);
 }
