@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.14 2005/06/18 23:26:20 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.15 2005/06/21 05:42:35 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -7,8 +7,7 @@
 #include <uifc.h>
 
 #include "uifcinit.h"
-
-extern char* syncterm_version;
+#include "syncterm.h"
 
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 static int uifc_initialized=0;
