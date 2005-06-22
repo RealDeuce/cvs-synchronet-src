@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.57 2005/06/23 01:32:24 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.56 2005/06/16 23:33:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,7 +467,7 @@ int DLLCALL	get_errno(void)
 /****************************************************************************/
 long double	DLLCALL	xp_timer(void)
 {
-	long double ret;
+	long double ret=0;
 #ifdef __unix__
 	struct timeval tv;
 	if(gettimeofday(&tv,NULL)==1)
