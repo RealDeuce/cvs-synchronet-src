@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.34 2005/09/28 02:07:08 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.31 2005/06/21 17:40:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,9 +70,6 @@ str_list_t	iniReadKeyList(FILE*, const char* section);
 named_string_t**
 			iniReadNamedStringList(FILE*, const char* section);
 
-/* Return the supported Log Levels in a string list - for *LogLevel macros */
-str_list_t	iniLogLevelStringList(void);
-
 /* These functions read a single key of the specified type */
 char*		iniReadString(FILE*, const char* section, const char* key
 					,const char* deflt, char* value);
@@ -84,16 +81,12 @@ ushort		iniReadShortInt(FILE*, const char* section, const char* key
 					,ushort deflt);
 ulong		iniReadLongInt(FILE*, const char* section, const char* key
 					,ulong deflt);
-ulong		iniReadBytes(FILE*, const char* section, const char* key
-					,ulong unit, ulong deflt);
 ulong		iniReadIpAddress(FILE*, const char* section, const char* key
 					,ulong deflt);
 double		iniReadFloat(FILE*, const char* section, const char* key
 					,double deflt);
 BOOL		iniReadBool(FILE*, const char* section, const char* key
 					,BOOL deflt);
-time_t		iniReadDateTime(FILE*, const char* section, const char* key
-					,time_t deflt);
 unsigned	iniReadEnum(FILE*, const char* section, const char* key
 					,str_list_t names, unsigned deflt);
 long		iniReadNamedInt(FILE*, const char* section, const char* key
@@ -102,7 +95,6 @@ double		iniReadNamedFloat(FILE*, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniReadBitField(FILE*, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
-#define		iniReadLogLevel(f,s,k,d) iniReadEnum(f,s,k,iniLogLevelStringList(),d)
 
 /* Free string list returned from iniRead*List functions */
 void*		iniFreeStringList(str_list_t list);
@@ -135,16 +127,12 @@ ushort		iniGetShortInt(str_list_t, const char* section, const char* key
 					,ushort deflt);
 ulong		iniGetLongInt(str_list_t, const char* section, const char* key
 					,ulong deflt);
-ulong		iniGetBytes(str_list_t, const char* section, const char* key
-					,ulong unit, ulong deflt);
 ulong		iniGetIpAddress(str_list_t, const char* section, const char* key
 					,ulong deflt);
 double		iniGetFloat(str_list_t, const char* section, const char* key
 					,double deflt);
 BOOL		iniGetBool(str_list_t, const char* section, const char* key
 					,BOOL deflt);
-time_t		iniGetDateTime(str_list_t, const char* section, const char* key
-					,time_t deflt);
 unsigned	iniGetEnum(str_list_t, const char* section, const char* key
 					,str_list_t names, unsigned deflt);
 long		iniGetNamedInt(str_list_t, const char* section, const char* key
@@ -153,9 +141,6 @@ double		iniGetNamedFloat(str_list_t, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniGetBitField(str_list_t, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
-#define		iniGetLogLevel(l,s,k,d) iniGetEnum(l,s,k,iniLogLevelStringList(),d)
-
-void		iniSetDefaultStyle(ini_style_t);
 
 char*		iniSetString(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
@@ -165,8 +150,6 @@ char*		iniSetShortInt(str_list_t*, const char* section, const char* key, ushort 
 					,ini_style_t*);
 char*		iniSetLongInt(str_list_t*, const char* section, const char* key, ulong value
 					,ini_style_t*);
-char*		iniSetBytes(str_list_t*, const char* section, const char* key, ulong unit, ulong value
-					,ini_style_t*);
 char*		iniSetHexInt(str_list_t*, const char* section, const char* key, ulong value
 					,ini_style_t*);
 char*		iniSetFloat(str_list_t*, const char* section, const char* key, double value
@@ -174,8 +157,6 @@ char*		iniSetFloat(str_list_t*, const char* section, const char* key, double val
 char*		iniSetIpAddress(str_list_t*, const char* section, const char* key, ulong value
 					,ini_style_t*);
 char*		iniSetBool(str_list_t*, const char* section, const char* key, BOOL value
-					,ini_style_t*);
-char*		iniSetDateTime(str_list_t*, const char* section, const char* key, BOOL include_time, time_t
 					,ini_style_t*);
 char*		iniSetEnum(str_list_t*, const char* section, const char* key, str_list_t names
 					,unsigned value, ini_style_t*);
@@ -187,12 +168,8 @@ char*		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bit
 					,ini_style_t*);
 char*		iniSetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, str_list_t value, ini_style_t*);
-#define		iniSetLogLevel(l,s,k,v,style) iniSetEnum(l,s,k,iniLogLevelStringList(),v,style)
 
 size_t		iniAddSection(str_list_t*, const char* section
-					,ini_style_t*);
-
-size_t		iniAppendSection(str_list_t*, const char* section
 					,ini_style_t*);
 
 BOOL		iniSectionExists(str_list_t, const char* section);
