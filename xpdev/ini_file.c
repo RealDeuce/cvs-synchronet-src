@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.71 2005/06/22 09:04:20 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.72 2005/06/22 18:58:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -420,6 +420,8 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 	char	str[INI_MAX_VALUE_LEN];
 	double	bytes;
 
+	if(unit<1)
+		unit=1;
 	bytes=value*unit;
 
 	if(bytes>=(1024*1024*1024))
@@ -967,7 +969,7 @@ static ulong parseBytes(const char* value, ulong unit)
 				break;
 		}
 	}
-	return((ulong)(bytes/unit));
+	return((ulong)(unit>1 ? (bytes/unit):bytes));
 }
 
 ulong iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, ulong deflt)
