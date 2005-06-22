@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.19 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: mail.cpp,v 1.18 2005/01/05 01:43:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 int sbbs_t::delmail(uint usernumber, int which)
 {
 	ulong	 i,l,now;
-	idxrec_t *idxbuf;
+	idxrec_t HUGE16 *idxbuf;
 	smbmsg_t msg;
 
 	now=time(NULL);
@@ -53,17 +53,17 @@ int sbbs_t::delmail(uint usernumber, int which)
 		return(2); }
 	if(!smb.status.total_msgs)
 		return(0);
-	if((idxbuf=(idxrec_t *)malloc(smb.status.total_msgs*sizeof(idxrec_t)))==NULL) {
+	if((idxbuf=(idxrec_t *)LMALLOC(smb.status.total_msgs*sizeof(idxrec_t)))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,smb.file,smb.status.total_msgs*sizeof(idxrec_t));
 		return(-1); }
 	if((i=smb_open_da(&smb))!=0) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		free(idxbuf);
+		LFREE(idxbuf);
 		return(i); }
 	if((i=smb_open_ha(&smb))!=0) {
 		smb_close_da(&smb);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		free(idxbuf);
+		LFREE(idxbuf);
 		return(i); }
 	smb_rewind(smb.sid_fp);
 	for(l=0;l<smb.status.total_msgs;) {
@@ -101,7 +101,7 @@ int sbbs_t::delmail(uint usernumber, int which)
 	smb_fsetlength(smb.sid_fp,0);
 	for(i=0;i<l;i++)
 		smb_fwrite(&smb,&idxbuf[i],sizeof(idxrec_t),smb.sid_fp);
-	free(idxbuf);
+	LFREE(idxbuf);
 	smb.status.total_msgs=l;
 	smb_putstatus(&smb);
 	smb_fflush(smb.sid_fp);
@@ -174,7 +174,7 @@ void sbbs_t::delallmail(uint usernumber)
 	if((i=smb_locksmbhdr(&smb))!=0) {			/* Lock the base, so nobody */
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
-		free(mail);
+		FREE(mail);
 		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);	/* messes with the index */
 		return; }
 	for(l=0;l<msgs;l++) {
@@ -191,7 +191,7 @@ void sbbs_t::delallmail(uint usernumber)
 			smb_unlockmsghdr(&smb,&msg); } }
 
 	if(msgs)
-		free(mail);
+		FREE(mail);
 	if(deleted && cfg.sys_misc&SM_DELEMAIL)
 		delmail(usernumber,MAIL_ANY);
 	smb_unlocksmbhdr(&smb);

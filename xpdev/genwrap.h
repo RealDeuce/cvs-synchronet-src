@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.75 2005/09/12 17:39:55 deuce Exp $ */
+/* $Id: genwrap.h,v 1.73 2005/06/16 23:31:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
