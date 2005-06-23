@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.9 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: text_sec.cpp,v 1.8 2005/06/11 03:22:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,7 @@ int sbbs_t::text_sec()
 					if(!fgets(str,81,stream))
 						break;
 					str[strlen(str)-2]=0;   /* chop off CRLF */
-					if((file[j]=(char *)malloc(strlen(str)+1))==NULL) {
+					if((file[j]=(char *)MALLOC(strlen(str)+1))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,strlen(str)+1);
 						continue; }
 					strcpy(file[j],str);
@@ -115,14 +115,14 @@ int sbbs_t::text_sec()
 			i=getkeys(str,j);
 			if(!(i&0x80000000L)) {		  /* no file number */
 				for(l=0;l<j;l++)
-					free(file[l]);
+					FREE(file[l]);
 				if((i=='E' || i=='R') && !j)
 					continue; }
 			if(i=='Q' || !i)
 				break;
 			if(i==-1) {  /* ctrl-c */
 				for(i=0;i<j;i++)
-					free(file[i]);
+					FREE(file[i]);
 				return(0); }
 			if(i=='?')  /* ? means re-list */
 				continue;
@@ -163,7 +163,7 @@ int sbbs_t::text_sec()
 					fgets(tmp,81,stream);
 					fgets(tmp,81,stream); }
 				l=ftell(stream);
-				if((buf=(char *)malloc(length-l))==NULL) {
+				if((buf=(char *)MALLOC(length-l))==NULL) {
 					fclose(stream);
 					errormsg(WHERE,ERR_ALLOC,str,length-l);
 					return(0); }
@@ -173,7 +173,7 @@ int sbbs_t::text_sec()
 				fputs(addstr,stream);
 				fwrite(buf,1,length-l,stream);
 				fclose(stream);
-				free(buf);
+				FREE(buf);
 				continue; }
 			if(i=='R' || i=='E') {   /* Remove or Edit text file */
 				ch=(char)i;
@@ -227,7 +227,7 @@ int sbbs_t::text_sec()
 			pause();
 			sys_status&=~SS_ABORT;
 			for(i=0;i<j;i++)
-				free(file[i]); } }
+				FREE(file[i]); } }
 	return(0);
 }
 
