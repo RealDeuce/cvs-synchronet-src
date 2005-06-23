@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.92 2005/09/27 09:37:13 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.88 2005/06/06 22:26:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,6 @@ char *usage=
 "cmd:\n"
 "       l[n] = list msgs starting at number n\n"
 "       r[n] = read msgs starting at number n\n"
-"       x[n] = dump msg index at number n\n"
 "       v[n] = view msg headers starting at number n\n"
 "       i[f] = import msg from text file f (or use stdin)\n"
 "       e[f] = import e-mail from text file f (or use stdin)\n"
@@ -153,7 +152,7 @@ void bail(int code)
 }
 
 /*****************************************************************************/
-/* Expands Unix LF to CRLF													 */
+// Expands Unix LF to CRLF
 /*****************************************************************************/
 ulong lf_expand(BYTE* inbuf, BYTE* outbuf)
 {
@@ -183,7 +182,6 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	int 		i;
 	ushort		agent=AGENT_SMBUTIL;
 	smbmsg_t	msg;
-	long		dupechk_hashes=SMB_HASH_SOURCE_ALL;
 
 	/* Read message text from stream (file or stdin) */
 	msgtxtlen=0;
@@ -328,11 +326,9 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		bail(1); 
 	}
 
-	if(mode&NOCRC || smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
-		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
-
 	if((i=smb_addmsg(&smb,&msg,smb.status.attr&SMB_HYPERALLOC
-		,dupechk_hashes,xlat,msgtxt,NULL))!=SMB_SUCCESS) {
+		,mode&NOCRC ? SMB_HASH_SOURCE_NONE : SMB_HASH_SOURCE_ALL
+		,xlat,msgtxt,NULL))!=SMB_SUCCESS) {
 		fprintf(errfp,"\n%s!smb_addmsg returned %d: %s\n"
 			,beep,i,smb.last_error);
 		bail(1); 
@@ -482,29 +478,6 @@ void listmsgs(ulong start, ulong count)
 	}
 }
 
-/****************************************************************************/
-/****************************************************************************/
-void dumpindex(ulong start, ulong count)
-{
-	ulong l=0;
-	idxrec_t idx;
-
-	if(!start)
-		start=1;
-	if(!count)
-		count=~0;
-	fseek(smb.sid_fp,(start-1L)*sizeof(idxrec_t),SEEK_SET);
-	while(l<count) {
-		if(!fread(&idx,1,sizeof(idx),smb.sid_fp))
-			break;
-
-		printf("%4lu %04hX %04hX %04Xh %04Xh %06X %.24s\n"
-			,idx.number,idx.from,idx.to,idx.subj,idx.attr
-			,idx.offset,ctime(&idx.time));
-		l++; 
-	}
-}
-
 char *binstr(uchar *buf, ushort length)
 {
 	static char str[512];
@@ -648,7 +621,7 @@ void maint(void)
 	ulong l,m,n,f,flagged=0;
 	time_t now;
 	smbmsg_t msg;
-	idxrec_t *idx;
+	idxrec_t HUGE16 *idx;
 
 	printf("Maintaining %s\r\n",smb.file);
 	now=time(NULL);
@@ -671,7 +644,7 @@ void maint(void)
 		return; 
 	}
 	printf("Loading index...\n");
-	if((idx=(idxrec_t *)malloc(sizeof(idxrec_t)*smb.status.total_msgs))
+	if((idx=(idxrec_t *)LMALLOC(sizeof(idxrec_t)*smb.status.total_msgs))
 		==NULL) {
 		smb_unlocksmbhdr(&smb);
 		fprintf(errfp,"\n%s!Error allocating %lu bytes of memory\n"
@@ -738,7 +711,7 @@ void maint(void)
 	}
 
 	if(!flagged) {				/* No messages to delete */
-		free(idx);
+		LFREE(idx);
 		smb_unlocksmbhdr(&smb);
 		return; 
 	}
@@ -822,7 +795,7 @@ void maint(void)
 	printf("\nDone.\n\n");
 	fflush(smb.sid_fp);
 
-	free(idx);
+	LFREE(idx);
 	smb.status.total_msgs-=flagged;
 	smb_putstatus(&smb);
 	smb_unlocksmbhdr(&smb);
@@ -1024,7 +997,7 @@ void packmsgs(ulong packable)
 	setvbuf(tmp_shd,NULL,_IOFBF,2*1024);
 	setvbuf(tmp_sid,NULL,_IOFBF,2*1024);
 	if(!(smb.status.attr&SMB_HYPERALLOC)
-		&& (datoffset=(datoffset_t *)malloc(sizeof(datoffset_t)*smb.status.total_msgs))
+		&& (datoffset=(datoffset_t *)LMALLOC(sizeof(datoffset_t)*smb.status.total_msgs))
 		==NULL) {
 		smb_unlocksmbhdr(&smb);
 		smb_close_ha(&smb);
@@ -1171,7 +1144,7 @@ void packmsgs(ulong packable)
 	}
 
 	if(datoffset)
-		free(datoffset);
+		LFREE(datoffset);
 	if(!(smb.status.attr&SMB_HYPERALLOC)) {
 		smb_close_ha(&smb);
 		smb_close_da(&smb); 
@@ -1301,7 +1274,7 @@ void delmsgs(void)
 /****************************************************************************/
 void readmsgs(ulong start)
 {
-	char	*inbuf;
+	char	HUGE16 *inbuf;
 	int 	i,done=0,domsg=1;
 	smbmsg_t msg;
 
@@ -1343,7 +1316,7 @@ void readmsgs(ulong start)
 
 			if((inbuf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL))!=NULL) {
 				printf("%s",inbuf);
-				free(inbuf); 
+				FREE(inbuf); 
 			}
 
 			i=smb_unlockmsghdr(&smb,&msg);
@@ -1474,7 +1447,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.92 $", "%*s %s", revision);
+	sscanf("$Revision: 1.88 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1641,10 +1614,6 @@ int main(int argc, char **argv)
 							break;
 						case 'L':
 							listmsgs(atol(cmd+1),count);
-							y=strlen(cmd)-1;
-							break;
-						case 'X':
-							dumpindex(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'P':

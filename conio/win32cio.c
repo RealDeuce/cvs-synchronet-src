@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.54 2005/09/25 23:08:04 deuce Exp $ */
+/* $Id: win32cio.c,v 1.48 2005/05/19 23:54:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -210,14 +210,8 @@ int win32_getchcode(WORD code, DWORD state)
 				return(keyval[i].ALT);
 			if(state & (RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED))
 				return(keyval[i].CTRL);
-			if((state & (CAPSLOCK_ON)) && isalpha(keyval[i].Key)) {
-				if(!(state & SHIFT_PRESSED))
-					return(keyval[i].Shift);
-			}
-			else {
-				if(state & (SHIFT_PRESSED))
-					return(keyval[i].Shift);
-			}
+			if(state & (SHIFT_PRESSED))
+				return(keyval[i].Shift);
 			return(keyval[i].Key);
 		}
 	}
@@ -262,15 +256,8 @@ int win32_keyboardio(int isgetch)
 
 		switch(input.EventType) {
 			case KEY_EVENT:
-				if(input.Event.KeyEvent.bKeyDown) {
-					if((input.Event.KeyEvent.dwControlKeyState & (RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED|RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED|ENHANCED_KEY))
-							|| (input.Event.KeyEvent.wVirtualKeyCode >= VK_F1 && input.Event.KeyEvent.wVirtualKeyCode <= VK_F24)
-							|| !input.Event.KeyEvent.uChar.AsciiChar
-							|| (!(input.Event.KeyEvent.dwControlKeyState & NUMLOCK_ON) && (input.Event.KeyEvent.uChar.AsciiChar >= '0' && input.Event.KeyEvent.uChar.AsciiChar <= '9')))
-						lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
-					else
-						lastch=input.Event.KeyEvent.uChar.AsciiChar;
-				}
+				if(input.Event.KeyEvent.bKeyDown)
+					lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {

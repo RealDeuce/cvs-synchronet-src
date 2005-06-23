@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.300 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.297 2005/05/07 18:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,14 +103,14 @@ static str_list_t shutdown_semfiles;
 #ifdef _DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
 
-	#define	SOCKET_DEBUG_CTRL		(1<<0)	/* 0x01 */
-	#define SOCKET_DEBUG_SEND		(1<<1)	/* 0x02 */
-	#define SOCKET_DEBUG_READLINE	(1<<2)	/* 0x04 */
-	#define SOCKET_DEBUG_ACCEPT		(1<<3)	/* 0x08 */
-	#define SOCKET_DEBUG_SENDTHREAD	(1<<4)	/* 0x10 */
-	#define SOCKET_DEBUG_TERMINATE	(1<<5)	/* 0x20 */
-	#define SOCKET_DEBUG_RECV_CHAR	(1<<6)	/* 0x40 */
-	#define SOCKET_DEBUG_FILEXFER	(1<<7)	/* 0x80 */
+	#define	SOCKET_DEBUG_CTRL		(1<<0)	// 0x01
+	#define SOCKET_DEBUG_SEND		(1<<1)	// 0x02
+	#define SOCKET_DEBUG_READLINE	(1<<2)	// 0x04
+	#define SOCKET_DEBUG_ACCEPT		(1<<3)	// 0x08
+	#define SOCKET_DEBUG_SENDTHREAD	(1<<4)	// 0x10
+	#define SOCKET_DEBUG_TERMINATE	(1<<5)	// 0x20
+	#define SOCKET_DEBUG_RECV_CHAR	(1<<6)	// 0x40
+	#define SOCKET_DEBUG_FILEXFER	(1<<7)	// 0x80
 #endif
 
 
@@ -120,7 +120,7 @@ typedef struct {
 } ftp_t;
 
 
-static const char *ftp_mon[]={"Jan","Feb","Mar","Apr","May","Jun"
+static const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
             ,"Jul","Aug","Sep","Oct","Nov","Dec"};
 
 BOOL direxist(char *dir)
@@ -2867,7 +2867,7 @@ static void ctrl_thread(void* arg)
 		}
 
 		if(!stricmp(cmd, "PASV") 
-			|| !stricmp(cmd, "P@SW")) {	/* Kludge required for SMC Barricade V1.2 */
+			|| !stricmp(cmd, "P@SW")) {	// Kludge required for SMC Barricade V1.2
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -3084,7 +3084,7 @@ static void ctrl_thread(void* arg)
 							,isdir(g.gl_pathv[i]) ? 'd':'-'
 							,scfg.sys_id
 							,f.size
-							,ftp_mon[tm.tm_mon],tm.tm_mday);
+							,mon[tm.tm_mon],tm.tm_mday);
 						if(tm.tm_year==cur_tm.tm_year)
 							fprintf(fp,"%02d:%02d %s\r\n"
 								,tm.tm_hour,tm.tm_min
@@ -3366,7 +3366,7 @@ static void ctrl_thread(void* arg)
 						,lib<0 ? scfg.sys_id : dir<0 
 							? scfg.lib[lib]->sname : scfg.dir[dir]->code_suffix
 						,512L
-						,ftp_mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
+						,mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
 						,startup->index_file_name);
 				else
 					fprintf(fp,"%s\r\n",startup->index_file_name);
@@ -3381,7 +3381,7 @@ static void ctrl_thread(void* arg)
 						,lib<0 ? scfg.sys_id : dir<0 
 							? scfg.lib[lib]->sname : scfg.dir[dir]->code_suffix
 						,512L
-						,ftp_mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
+						,mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
 						,startup->html_index_file);
 				else
 					fprintf(fp,"%s\r\n",startup->html_index_file);
@@ -3407,7 +3407,7 @@ static void ctrl_thread(void* arg)
 							,scfg.sys_id
 							,scfg.sys_id
 							,l
-							,ftp_mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
+							,mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
 							,scfg.sys_id);
 					} else
 						fprintf(fp,"%s.qwk\r\n",scfg.sys_id);
@@ -3474,7 +3474,7 @@ static void ctrl_thread(void* arg)
 									,scfg.sys_id
 									,scfg.lib[scfg.dir[dir]->lib]->sname
 									,512L
-									,ftp_mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
+									,mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
 									,p);
 							}
 							else {
@@ -3486,7 +3486,7 @@ static void ctrl_thread(void* arg)
 									,scfg.sys_id
 									,scfg.sys_id
 									,flength(np)
-									,ftp_mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
+									,mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
 									,p);
 							}
 						} else
@@ -3507,7 +3507,7 @@ static void ctrl_thread(void* arg)
 							,scfg.sys_id
 							,scfg.sys_id
 							,512L
-							,ftp_mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
+							,mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
 							,scfg.lib[i]->sname);
 					else
 						fprintf(fp,"%s\r\n",scfg.lib[i]->sname);
@@ -3527,7 +3527,7 @@ static void ctrl_thread(void* arg)
 							,scfg.sys_id
 							,scfg.lib[lib]->sname
 							,512L
-							,ftp_mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
+							,mon[cur_tm.tm_mon],cur_tm.tm_mday,cur_tm.tm_hour,cur_tm.tm_min
 							,scfg.dir[i]->code_suffix);
 					else
 						fprintf(fp,"%s\r\n",scfg.dir[i]->code_suffix);
@@ -3569,7 +3569,7 @@ static void ctrl_thread(void* arg)
 							,str
 							,scfg.dir[dir]->code_suffix
 							,f.size
-							,ftp_mon[tm.tm_mon],tm.tm_mday);
+							,mon[tm.tm_mon],tm.tm_mday);
 						if(tm.tm_year==cur_tm.tm_year)
 							fprintf(fp,"%02d:%02d %s\r\n"
 								,tm.tm_hour,tm.tm_min
@@ -4508,7 +4508,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.300 $", "%*s %s", revision);
+	sscanf("$Revision: 1.297 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4847,7 +4847,7 @@ void DLLCALL ftp_server(void* arg)
 			}
 
 			if(active_clients>=startup->max_clients) {
-				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
+				lprintf(LOG_WARNING,"%04d !MAXMIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				sockprintf(client_socket,"421 Maximum active clients reached, please try again later.");
 				mswait(3000);
