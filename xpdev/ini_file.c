@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.74 2005/06/23 02:30:53 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.75 2005/06/23 09:15:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -445,7 +445,7 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 			else if(fmod(bytes,1024)==0)
 				SAFEPRINTF(str,"%gK",bytes/1024);
 			else
-				SAFEPRINTF(str,"%g",bytes);
+				SAFEPRINTF(str,"%lu",(ulong)bytes);
 	}
 
 	return iniSetString(list, section, key, str, style);
