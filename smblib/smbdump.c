@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.5 2005/07/03 03:56:33 deuce Exp $ */
+/* $Id: smbdump.c,v 1.4 2005/06/06 23:08:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include <time.h>		/* ctime */
-#include <string.h>		/* strcat */
 #include "smblib.h"
 
 static char *binstr(uchar *buf, ushort length)
