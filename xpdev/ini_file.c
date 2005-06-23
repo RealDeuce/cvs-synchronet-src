@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.72 2005/06/22 18:58:06 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.73 2005/06/23 01:33:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,7 @@
 #include <stdlib.h>		/* strtol */
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
+#include <math.h>		/* fmod */
 #if !defined(NO_SOCKET_SUPPORT)
 	#include "sockwrap.h"	/* inet_addr */
 #endif
@@ -420,18 +421,32 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 	char	str[INI_MAX_VALUE_LEN];
 	double	bytes;
 
-	if(unit<1)
-		unit=1;
-	bytes=value*unit;
+	switch(unit) {
+		case 1024*1024*1024:
+			SAFEPRINTF(str,"%luG",value);
+			break;
+		case 1024*1024:
+			SAFEPRINTF(str,"%luM",value);
+			break;
+		case 1024:
+			SAFEPRINTF(str,"%luK",value);
+			break;
+		default:
+			if(unit<1)
+				unit=1;
+			bytes=value*unit;
 
-	if(bytes>=(1024*1024*1024))
-		SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
-	else if(bytes>=(1024*1024))
-		SAFEPRINTF(str,"%gM",bytes/(1024*1024));
-	else if(bytes>=(100*1024) || ((ulong)bytes%(1024))==0)
-		SAFEPRINTF(str,"%gK",bytes/1024);
-	else
-		SAFEPRINTF(str,"%g",bytes);
+			if(fmod(bytes,1024*1024*1024*1024)==0)
+				SAFEPRINTF(str,"%gT",bytes/(1024*1024*1024*1024));
+			else if(fmod(bytes,1024*1024*1024)==0)
+				SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
+			else if(fmod(bytes,1024*1024)==0)
+				SAFEPRINTF(str,"%gM",bytes/(1024*1024));
+			else if(fmod(bytes,1024)==0)
+				SAFEPRINTF(str,"%gK",bytes/1024);
+			else
+				SAFEPRINTF(str,"%g",bytes);
+	}
 
 	return iniSetString(list, section, key, str, style);
 }
