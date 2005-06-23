@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.4 2005/06/14 05:56:02 deuce Exp $ */
+/* $Id: datewrap.c,v 1.5 2005/06/23 07:17:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,9 +65,9 @@ void gettime(struct time* nyt)
 	SYSTEMTIME systime;
 
 	GetLocalTime(&systime);
-	nyt->ti_hour=systime.wHour;
-	nyt->ti_min=systime.wMinute;
-	nyt->ti_sec=systime.wSecond;
+	nyt->ti_hour=(unsigned char)systime.wHour;
+	nyt->ti_min=(unsigned char)systime.wMinute;
+	nyt->ti_sec=(unsigned char)systime.wSecond;
 	nyt->ti_hund=systime.wMilliseconds/10;
 #else	/* !Win32 (e.g. Unix) */
 	struct tm *dte;
