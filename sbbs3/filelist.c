@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.12 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: filelist.c,v 1.11 2005/02/18 08:54:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 	time_t	uld,dld;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.12 $", "%*s %s", revision);
+	sscanf("$Revision: 1.11 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
 			close(file);
 			if(misc&AUTO) fclose(out);
 			continue; }
-		if((ixbbuf=(char *)malloc(l))==NULL) {
+		if((ixbbuf=(char *)MALLOC(l))==NULL) {
 			close(file);
 			if(misc&AUTO) fclose(out);
 			printf("\7ERR_ALLOC %s %lu\n",str,l);
@@ -311,27 +311,27 @@ int main(int argc, char **argv)
 			close(file);
 			if(misc&AUTO) fclose(out);
 			printf("\7ERR_READ %s %lu\n",str,l);
-			free((char *)ixbbuf);
+			FREE((char *)ixbbuf);
 			continue; }
 		close(file);
 		sprintf(str,"%s%s.dat",scfg.dir[i]->data_dir,scfg.dir[i]->code);
 		if((file=nopen(str,O_RDONLY))==-1) {
 			printf("\7ERR_OPEN %s %u\n",str,O_RDONLY);
-			free((char *)ixbbuf);
+			FREE((char *)ixbbuf);
 			if(misc&AUTO) fclose(out);
 			continue; }
 		datbuflen=filelength(file);
-		if((datbuf=malloc(datbuflen))==NULL) {
+		if((datbuf=MALLOC(datbuflen))==NULL) {
 			close(file);
 			printf("\7ERR_ALLOC %s %lu\n",str,datbuflen);
-			free((char *)ixbbuf);
+			FREE((char *)ixbbuf);
 			if(misc&AUTO) fclose(out);
 			continue; }
 		if(read(file,datbuf,datbuflen)!=(int)datbuflen) {
 			close(file);
 			printf("\7ERR_READ %s %lu\n",str,datbuflen);
-			free((char *)datbuf);
-			free((char *)ixbbuf);
+			FREE((char *)datbuf);
+			FREE((char *)ixbbuf);
 			if(misc&AUTO) fclose(out);
 			continue; }
 		close(file);
@@ -447,8 +447,8 @@ int main(int argc, char **argv)
 					lines++; }
 				fclose(in); }
 			fprintf(out,"\r\n"); }
-		free((char *)datbuf);
-		free((char *)ixbbuf);
+		FREE((char *)datbuf);
+		FREE((char *)ixbbuf);
 		fprintf(out,"\r\n"); /* blank line at end of dir */
 		if(misc&AUTO) fclose(out); }
 

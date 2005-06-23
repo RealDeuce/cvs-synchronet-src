@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.17 2005/08/05 19:27:33 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.15 2005/06/21 05:42:35 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -24,8 +24,7 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 
     gettextinfo(&txtinfo);
 	if(!uifc_initialized) {
-		/* Set scrn_len to 0 to prevent textmode() call */
-		uifc.scrn_len=0;
+		uifc.scrn_len=txtinfo.screenheight;
 		if((i=uifcini32(&uifc))!=0) {
 			fprintf(stderr,"uifc library init returned error %d\n",i);
 			return(-1);
@@ -44,19 +43,17 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 	}
 	else {
 		uifc.timedisplay=NULL;
-		uifc_initialized &= ~WITH_SCRN;
-	}
-
-	if(bottom) {
-		uifc.bottomline=bottomfunc;
-		uifc_initialized |= WITH_BOT;
-		gotoxy(1, txtinfo.screenheight);
-		textattr(uifc.bclr|(uifc.cclr<<4));
-		clreol();
-	}
-	else {
-		uifc.bottomline=NULL;
-		uifc_initialized &= ~WITH_BOT;
+		if(!bottom) {
+			uifc.bottomline=NULL;
+			uifc_initialized &= ~WITH_BOT;
+		}
+		else {
+			uifc.bottomline=bottomfunc;
+			uifc_initialized |= WITH_BOT;
+			gotoxy(1, txtinfo.screenheight);
+			textattr(uifc.bclr|(uifc.cclr<<4));
+			clreol();
+		}
 	}
 
 	return(0);
