@@ -1,37 +1,3 @@
-# Find SDL headers!
-ifndef WITHOUT_SDL
- ifndef SDL_CONFIG
-  ifeq ($(shell sdl12-config --cflags > /dev/null && echo YES),YES)
-   SDL_CONFIG := sdl12-config
-   WITH_SDL	:=	1
-  else
-   ifeq ($(shell sdl11-config --cflags > /dev/null && echo YES),YES)
-    SDL_CONFIG := sdl11-config
-    WITH_SDL	:=	1
-   else
-    ifeq ($(shell sdl-config --cflags > /dev/null && echo YES),YES)
-     SDL_CONFIG := sdl-config
-     WITH_SDL	:=	1
-    endif
-   endif
-  endif
-
-  ifdef WITH_SDL
-   ifdef SDL_CONFIG
-    ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null && echo YES),YES)
-     CIOLIB-MT_CFLAGS	+=	-DWITH_SDL
-     CIOLIB-MT_CFLAGS	+=	$(shell $(SDL_CONFIG) --cflags)
-     ifdef STATIC_SDL
-      CIOLIB-MT_LIBS	+=	$(shell $(SDL_CONFIG) --static-libs)
-     else
-      CIOLIB-MT_LIBS	+=	$(shell $(SDL_CONFIG) --libs)
-     endif
-    endif
-   endif
-  endif
- endif
-endif
-
 ifeq ($(os),sunos)
  X_PATH	?=	/usr/X
 else
@@ -42,12 +8,6 @@ X_PRESENT	= $(shell if [ ! \( -f $(X_HEADERS)$(DIRSEP)X11$(DIRSEP)Xlib.h -a -f $
 ifeq ($(X_PRESENT),NO)
  NO_X=1
 else
- ifeq ($(os),darwin)	# No X11 for OSX
-  ifndef HAS_DLOPEN
-   NO_X=1
-   $(shell echo Define HAS_DLOPEN for 10.3 and higher, or if dlcompat is installed \(http://www.opendarwin.org/projects/dlcompat/\))
-  endif
- endif
 endif
 
 ifeq ($(os),sunos)
@@ -59,9 +19,6 @@ ifndef NO_X
  ifdef STATIC
   CIOLIB-MT_LIBS		+=	-L$(X_PATH)$(DIRSEP)lib -lX11
  else
-  ifeq ($(os),darwin)
-   CIOLIB-MT_LIBS		+=  $(UL_PRE)dl$(UL_SUF)
-  endif
   ifeq ($(os),linux)
    CIOLIB-MT_LIBS		+=  $(UL_PRE)dl$(UL_SUF)
   endif
