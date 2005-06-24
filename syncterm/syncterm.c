@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.48 2005/06/24 06:02:12 deuce Exp $ */
+/* $Id: syncterm.c,v 1.49 2005/06/24 06:10:33 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -309,7 +309,6 @@ int main(int argc, char **argv)
 		}
 		else
 			bbs=NULL;
-		init_uifc(TRUE, TRUE);
 	}
 	uifcbail();
 #ifdef _WINSOCKAPI_
