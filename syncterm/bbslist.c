@@ -17,13 +17,6 @@ char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notic
 char *rate_names[]={"300bps", "600bps", "1200bps", "2400bps", "4800bps", "9600bps", "19.2Kbps", "38.4Kbps", "57.6Kbps", "76.8Kbps", "115.2Kbps", "Unlimited", NULL};
 int rates[]={300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 76800, 115200, 0};
 
-ini_style_t ini_style = {
-	/* key_len */ 15, 
-	/* key_prefix */ "\t", 
-	/* section_separator */ "\n", 
-	/* value_separarator */NULL, 
-	/* bit_separator */ NULL };
-
 int get_rate_num(int rate)
 {
 	int i;
@@ -183,7 +176,7 @@ int edit_list(struct bbslist *item,char *listpath)
 								"Enter the domain name of the system to connect to ie:\n"
 								"nix.synchro.net";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Address",item->addr,LIST_ADDR_MAX,K_EDIT);
-				iniSetString(&inifile,item->name,"Address",item->addr,&ini_style);
+				iniSetString(&inifile,item->name,"Address",item->addr,NULL);
 				break;
 			case 2:
 				i=item->port;
@@ -196,7 +189,7 @@ int edit_list(struct bbslist *item,char *listpath)
 				if(j<1 || j>65535)
 					j=513;
 				item->port=j;
-				iniSetShortInt(&inifile,item->name,"Port",item->port,&ini_style);
+				iniSetShortInt(&inifile,item->name,"Port",item->port,NULL);
 				if(i!=j)
 					uifc.changes=1;
 				else
@@ -206,13 +199,13 @@ int edit_list(struct bbslist *item,char *listpath)
 				uifc.helpbuf=	"`Username`\n\n"
 								"Enter the username to attempt auto-login to the remote with.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Username",item->user,MAX_USER_LEN,K_EDIT);
-				iniSetString(&inifile,item->name,"UserName",item->user,&ini_style);
+				iniSetString(&inifile,item->name,"UserName",item->user,NULL);
 				break;
 			case 4:
 				uifc.helpbuf=	"`Password`\n\n"
 								"Enter your password for auto-login.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Password",item->password,MAX_PASSWD_LEN,K_EDIT);
-				iniSetString(&inifile,item->name,"Password",item->password,&ini_style);
+				iniSetString(&inifile,item->name,"Password",item->password,NULL);
 				break;
 			case 5:
 				uifc.helpbuf=	"`System Password`\n\n"
@@ -220,65 +213,55 @@ int edit_list(struct bbslist *item,char *listpath)
 								"For non-Synchronet systems, or non-SysOp accounts,"
 								"this can be used for simple scripting.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"System Password",item->syspass,MAX_SYSPASS_LEN,K_EDIT);
-				iniSetString(&inifile,item->name,"SystemPassword",item->syspass,&ini_style);
+				iniSetString(&inifile,item->name,"SystemPassword",item->syspass,NULL);
 				break;
 			case 6:
-				item->conn_type--;
-				uifc.helpbuf=	"`Connection Type`\n\n"
-								"Select the type of connection you wish to make:\n"
-								"~ RLogin:~ Auto-login with RLogin protocol\n"
-								"~ Telnet:~ Use more common Telnet protocol (experimental)\n"
-								"~ Raw:   ~ Make a raw socket connection (experimental)\n";
-				uifc.list(WIN_SAV,0,0,0,&(item->conn_type),NULL,"Connection Type",&(conn_types[1]));
 				item->conn_type++;
-				iniSetEnum(&inifile,item->name,"ConnectionType",conn_types,item->conn_type,&ini_style);
+				if(item->conn_type==CONN_TYPE_TERMINATOR)
+					item->conn_type=CONN_TYPE_RLOGIN;
 				changed=1;
+				iniSetEnum(&inifile,item->name,"ConnectionType",conn_types,item->conn_type,NULL);
 				break;
 			case 7:
 				item->reversed=!item->reversed;
 				changed=1;
-				iniSetBool(&inifile,item->name,"Reversed",item->reversed,&ini_style);
+				iniSetBool(&inifile,item->name,"Reversed",item->reversed,NULL);
 				break;
 			case 8:
-				uifc.helpbuf=	"`Screen Mode`\n\n"
-								"Select the screen size for this connection\n";
-				uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),NULL,"Screen Mode",screen_modes);
-				iniSetEnum(&inifile,item->name,"ScreenMode",screen_modes,item->screen_mode,&ini_style);
+				item->screen_mode++;
+				if(item->screen_mode==SCREEN_MODE_TERMINATOR)
+					item->screen_mode=0;
 				changed=1;
+				iniSetEnum(&inifile,item->name,"ScreenMode",screen_modes,item->screen_mode,NULL);
 				break;
 			case 9:
 				item->nostatus=!item->nostatus;
 				changed=1;
-				iniSetBool(&inifile,item->name,"NoStatus",item->nostatus,&ini_style);
+				iniSetBool(&inifile,item->name,"NoStatus",item->nostatus,NULL);
 				break;
 			case 10:
 				uifc.helpbuf=	"`Download Path`\n\n"
 								"Enter the path where downloads will be placed.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Download Path",item->dldir,MAX_PATH,K_EDIT);
-				iniSetString(&inifile,item->name,"DownloadPath",item->dldir,&ini_style);
+				iniSetString(&inifile,item->name,"DownloadPath",item->dldir,NULL);
 				break;
 			case 11:
 				uifc.helpbuf=	"`Upload Path`\n\n"
 								"Enter the path where uploads will be browsed for.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Upload Path",item->uldir,MAX_PATH,K_EDIT);
-				iniSetString(&inifile,item->name,"UploadPath",item->uldir,&ini_style);
+				iniSetString(&inifile,item->name,"UploadPath",item->uldir,NULL);
 				break;
 			case 12:
-				uifc.helpbuf=	"`Log Level`\n\n"
-								"Set the level of verbosity for file transfer info.\n\n";
-				uifc.list(WIN_SAV,0,0,0,&(item->loglevel),NULL,"Log Level",log_levels);
-				iniSetInteger(&inifile,item->name,"LogLevel",item->loglevel,&ini_style);
+				item->loglevel++;
+				if(item->loglevel>LOG_DEBUG)
+					item->loglevel=0;
 				changed=1;
+				iniSetInteger(&inifile,item->name,"LogLevel",item->loglevel,NULL);
 				break;
 			case 13:
-				uifc.helpbuf=	"`Simulated BPS Rate`\n\n"
-								"Select the rate which recieved characters will be displayed.\n\n"
-								"This allows ANSImation to work as intended.";
-				i=get_rate_num(item->bpsrate);
-				uifc.list(WIN_SAV,0,0,0,&i,NULL,"Simulated BPS Rate",rate_names);
-				item->bpsrate=rates[i];
-				iniSetInteger(&inifile,item->name,"BPSRate",item->bpsrate,&ini_style);
+				item->bpsrate=get_next_rate(item->bpsrate);
 				changed=1;
+				iniSetInteger(&inifile,item->name,"BPSRate",item->bpsrate,NULL);
 				break;
 		}
 		if(uifc.changes)
@@ -302,21 +285,21 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	 * Redundant:
 	 * iniAddSection(&inifile,bbs->name,NULL);
 	 */
-	iniSetString(&inifile,bbs->name,"Address",bbs->addr,&ini_style);
-	iniSetShortInt(&inifile,bbs->name,"Port",bbs->port,&ini_style);
-	iniSetDateTime(&inifile,bbs->name,"Added",/* include time */TRUE,time(NULL),&ini_style);
-	iniSetDateTime(&inifile,bbs->name,"LastConnected",/* include time */TRUE,bbs->connected,&ini_style);
-	iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,&ini_style);
-	iniSetString(&inifile,bbs->name,"UserName",bbs->user,&ini_style);
-	iniSetString(&inifile,bbs->name,"Password",bbs->password,&ini_style);
-	iniSetString(&inifile,bbs->name,"SystemPassword",bbs->syspass,&ini_style);
-	iniSetEnum(&inifile,bbs->name,"ConnectionType",conn_types,bbs->conn_type,&ini_style);
-	iniSetBool(&inifile,bbs->name,"Reversed",bbs->reversed,&ini_style);
-	iniSetEnum(&inifile,bbs->name,"ScreenMode",screen_modes,bbs->screen_mode,&ini_style);
-	iniSetString(&inifile,bbs->name,"DownloadPath",bbs->dldir,&ini_style);
-	iniSetString(&inifile,bbs->name,"UploadPath",bbs->uldir,&ini_style);
-	iniSetInteger(&inifile,bbs->name,"LogLevel",bbs->loglevel,&ini_style);
-	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,&ini_style);
+	iniSetString(&inifile,bbs->name,"Address",bbs->addr,NULL);
+	iniSetShortInt(&inifile,bbs->name,"Port",bbs->port,NULL);
+	iniSetDateTime(&inifile,bbs->name,"Added",/* include time */TRUE,time(NULL),NULL);
+	iniSetDateTime(&inifile,bbs->name,"LastConnected",/* include time */TRUE,bbs->connected,NULL);
+	iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
+	iniSetString(&inifile,bbs->name,"UserName",bbs->user,NULL);
+	iniSetString(&inifile,bbs->name,"Password",bbs->password,NULL);
+	iniSetString(&inifile,bbs->name,"SystemPassword",bbs->syspass,NULL);
+	iniSetEnum(&inifile,bbs->name,"ConnectionType",conn_types,bbs->conn_type,NULL);
+	iniSetBool(&inifile,bbs->name,"Reversed",bbs->reversed,NULL);
+	iniSetEnum(&inifile,bbs->name,"ScreenMode",screen_modes,bbs->screen_mode,NULL);
+	iniSetString(&inifile,bbs->name,"DownloadPath",bbs->dldir,NULL);
+	iniSetString(&inifile,bbs->name,"UploadPath",bbs->uldir,NULL);
+	iniSetInteger(&inifile,bbs->name,"LogLevel",bbs->loglevel,NULL);
+	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,NULL);
 	if((listfile=fopen(listpath,"w"))!=NULL) {
 		iniWriteFile(listfile,inifile);
 		fclose(listfile);
@@ -358,7 +341,6 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 	char	title[1024];
 	char	currtitle[1024];
 	char	*p;
-	char	addy[LIST_ADDR_MAX+1];
 
 	if(init_uifc(TRUE, TRUE))
 		return(NULL);
@@ -376,19 +358,13 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 	for(;;) {
 		uifc.helpbuf=	"`SyncTERM Dialing Directory`\n\n"
 						"Commands:\n\n"
-						"~ CTRL-D ~ Quick-dial a URL\n"
 						"~ CTRL-E ~ to edit the selected entry\n"
 						" ~ ENTER ~ to dial the selected entry";
-		if(opt != oldopt) {
-			if(list[opt]!=NULL && list[opt]->name[0]) {
-				sprintf(title, "%s - %s (%d calls / Last: %s", syncterm_version, (char *)(list[opt]), list[opt]->calls, list[opt]->connected?ctime(&list[opt]->connected):"Never\n");
-				p=strrchr(title, '\n');
-				if(p!=NULL)
-					*p=')';
-			}
-			else
-				strcpy(title,syncterm_version);
-			settitle(title);
+		if(list[opt]!=NULL && list[opt]->name[0]) {
+			sprintf(title, "%s - %s (%d calls / Last: %s", syncterm_version, (char *)(list[opt]), list[opt]->calls, list[opt]->connected?ctime(&list[opt]->connected):"Never\n");
+			p=strrchr(title, '\n');
+			if(p!=NULL)
+				*p=')';
 		}
 		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 			|WIN_ORG|WIN_ACT|WIN_INSACT|WIN_DELACT
@@ -399,6 +375,10 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 		if(val<0) {
 			switch(val) {
 				case -7:		/* CTRL-E */
+#if 0	/* Don't to the two list "mode" anymore */
+					mode=BBSLIST_EDIT;
+					break;
+#else
 					i=list[opt]->id;
 					if(edit_list(list[opt],listpath)) {
 						sort_list(list);
@@ -409,16 +389,9 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 						oldopt=-1;
 					}
 					break;
+#endif
 				case -6:		/* CTRL-D */
-					uifc.changes=0;
-					uifc.helpbuf=	"`SyncTERM QuickDial`\n\n"
-									"Enter a URL in the format [(rlogin|telnet)://][user[:password]@]domainname[:port]\n";
-					uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Address",addy,LIST_ADDR_MAX,0);
-					if(uifc.changes) {
-						parse_url(addy,&retlist);
-						free_list(&list[0],listcount);
-						return(&retlist);
-					}
+					mode=BBSLIST_SELECT;
 					break;
 				case -1:		/* ESC */
 					free_list(&list[0],listcount);
@@ -511,7 +484,7 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 										"an extra line to the display (May cause problems with some BBS software)\n";
 						list[listcount-1]->nostatus=1;
 						uifc.list(WIN_MID|WIN_SAV,0,0,0,&list[listcount-1]->nostatus,NULL,"Hide Status Lines",YesNo);
-						list[listcount-1]->nostatus=!list[listcount-1]->nostatus;
+						list[listcount-1]->nostatus=!list[listcount-1];
 						add_bbs(listpath,list[listcount-1]);
 						sort_list(list);
 						for(j=0;list[j]->name[0];j++) {
