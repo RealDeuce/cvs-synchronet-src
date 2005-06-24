@@ -12,7 +12,7 @@
 
 #include "key.h"
 #include "options.h"
-#include "syncdraw.h"
+#include "mdraw.h"
 #include "miscfunctions.h"
 #include "sauce.h"
 

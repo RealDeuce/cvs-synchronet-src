@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.65 2005/10/02 23:33:45 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.63 2004/12/22 10:51:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -309,6 +309,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	/* using the idx records here is not technically necessary, just for convenience */
+	msg.idx.attr=msg.hdr.attr;
+	msg.idx.time=msg.hdr.when_imported.time;
 	msg.idx.number=smb.status.last_msg+1; /* this *should* be the new message number */
 
 	smb_hfield_str(&msg,FIDOPID,program_id(pid));
@@ -355,10 +357,12 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	smb_hfield_str(&msg,RECIPIENT,touser);
 	strlwr(touser);
+	msg.idx.to=crc16(touser,0);
 
 	strcpy(str,cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
 	smb_hfield_str(&msg,SENDER,str);
 	strlwr(str);
+	msg.idx.from=crc16(str,0);
 
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
@@ -367,6 +371,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
+	msg.idx.subj=smb_subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -503,6 +508,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	if(msg->hdr.when_written.time==0)	/* Uninitialized */
 		msg->hdr.when_written = msg->hdr.when_imported;
 
+	msg->idx.time=msg->hdr.when_imported.time;	/* needed for MSG-ID generation */
 	msg->idx.number=smb->status.last_msg+1;		/* needed for MSG-ID generation */
 
 	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
