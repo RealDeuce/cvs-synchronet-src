@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.41 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: chksmb.c,v 1.38 2005/03/11 00:20:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	hash_t**	hashes;
 	char		revision[16];
 
-	sscanf("$Revision: 1.41 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.20-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 	}
 
 	if((length/SHD_BLOCK_LEN)*sizeof(ulong)) {
-		if((number=(ulong *)malloc(((length/SHD_BLOCK_LEN)+2)*sizeof(ulong)))
+		if((number=(ulong *)MALLOC(((length/SHD_BLOCK_LEN)+2)*sizeof(ulong)))
 			==NULL) {
 			printf("Error allocating %lu bytes of memory\n"
 				,(length/SHD_BLOCK_LEN)*sizeof(ulong));
@@ -340,11 +340,10 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if(!(smb.status.attr&SMB_EMAIL) && chkhash) {
+		if(chkhash) {
 			/* Look-up the message hashes */
 			hashes=smb_msghashes(&msg,body);
-			if(hashes!=NULL 
-				&& hashes[0]!=NULL 
+			if(hashes[0]!=NULL 
 				&& (i=smb_findhash(&smb,hashes,NULL,SMB_HASH_SOURCE_ALL,/* mark */TRUE ))
 					!=SMB_SUCCESS) {
 				for(h=0;hashes[h]!=NULL;h++) {
@@ -662,11 +661,11 @@ int main(int argc, char **argv)
 
 	fprintf(stderr,"\nChecking %s Index\n\n",smb.file);
 
-	if((offset=(ulong *)malloc(total*sizeof(ulong)))==NULL) {
+	if((offset=(ulong *)MALLOC(total*sizeof(ulong)))==NULL) {
 		printf("Error allocating %lu bytes of memory\n",total*sizeof(ulong));
 		return(++errors); 
 	}
-	if((number=(ulong *)malloc(total*sizeof(ulong)))==NULL) {
+	if((number=(ulong *)MALLOC(total*sizeof(ulong)))==NULL) {
 		printf("Error allocating %lu bytes of memory\n",total*sizeof(ulong));
 		return(++errors); 
 	}
@@ -678,8 +677,7 @@ int main(int argc, char **argv)
 			break;
 		fprintf(stderr,"#%-5lu (%06lX) 1st Pass ",idx.number,idx.offset);
 		if(idx.attr&MSG_DELETE) {
-			/* Message Disabled... why?  ToDo */
-			/* fprintf(stderr,"%sMarked for deletion\n",beep); */
+	//		fprintf(stderr,"%sMarked for deletion\n",beep);
 			delidx++; 
 		}
 		for(m=0;m<l;m++)
