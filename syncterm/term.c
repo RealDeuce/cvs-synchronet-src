@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.94 2005/06/24 04:29:20 deuce Exp $ */
+/* $Id: term.c,v 1.95 2005/06/24 07:23:31 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -617,6 +617,7 @@ BOOL doterm(struct bbslist *bbs)
 	long double lastchar=0;
 	long double thischar=0;
 	int	speed;
+	int	oldmc;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->loglevel;
@@ -632,9 +633,11 @@ BOOL doterm(struct bbslist *bbs)
 	ch[1]=0;
 	zrqbuf[0]=0;
 	zrbuf[0]=0;
+	oldmc=hold_update;
 
 	/* Main input loop */
 	for(;;) {
+		hold_update=TRUE;
 		if(!speed && bbs->bpsrate)
 			speed = bbs->bpsrate;
 		if(speed)
@@ -720,6 +723,8 @@ BOOL doterm(struct bbslist *bbs)
 					continue;
 			}
 		}
+		hold_update=FALSE;
+		gotoxy(wherex(), wherey());
 
 		/* Get local input */
 		while(kbhit()) {
