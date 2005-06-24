@@ -27,7 +27,7 @@ endif
 # Executable Build Rule
 $(WRAPTEST): $(OBJODIR)/wraptest.o $(DEPS)
 	@echo Linking $@
-	$(QUIET)$(CC) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $^ $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $^ $(LIBS)
 
 $(XPDEV_LIB_BUILD): $(OBJODIR) $(OBJS)
 	@echo Creating $@
