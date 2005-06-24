@@ -9,8 +9,31 @@
 #include "bbslist.h"
 #include "uifcinit.h"
 #include "conn.h"
+#include "ciolib.h"
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", ""};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", NULL};
+char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
+
+char *rate_names[]={"300bps", "600bps", "1200bps", "2400bps", "4800bps", "9600bps", "19.2Kbps", "38.4Kbps", "57.6Kbps", "76.8Kbps", "115.2Kbps", "Unlimited", NULL};
+int rates[]={300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 76800, 115200, 0};
+
+int get_rate_num(int rate)
+{
+	int i;
+
+	for(i=0; rates[i] && (!rate || rate > rates[i]); i++);
+	return(i);
+}
+
+int get_next_rate(int curr_rate) {
+	int i;
+
+	if(curr_rate == 0)
+		i=0;
+	else
+		i=get_rate_num(curr_rate)+1;
+	return(rates[i]);
+}
 
 void sort_list(struct bbslist **list)  {
 	struct bbslist *tmp;
@@ -43,7 +66,7 @@ void free_list(struct bbslist **list, int listcount)
  * Reads in a BBS list from listpath using *i as the counter into bbslist
  * first BBS read goes into list[i]
  */
-void read_list(char *listpath, struct bbslist **list, int *i, int type)
+void read_list(char *listpath, struct bbslist **list, int *i, int type, char* home)
 {
 	FILE	*listfile;
 	char	*bbsname;
@@ -58,18 +81,23 @@ void read_list(char *listpath, struct bbslist **list, int *i, int type)
 			strcpy(list[*i]->name,bbsname);
 			iniReadString(listfile,bbsname,"Address","",list[*i]->addr);
 			list[*i]->port=iniReadShortInt(listfile,bbsname,"Port",513);
-			list[*i]->added=iniReadInteger(listfile,bbsname,"Added",0);
-			list[*i]->connected=iniReadInteger(listfile,bbsname,"LastConnected",0);
+			list[*i]->added=iniReadDateTime(listfile,bbsname,"Added",0);
+			list[*i]->connected=iniReadDateTime(listfile,bbsname,"LastConnected",0);
 			list[*i]->calls=iniReadInteger(listfile,bbsname,"TotalCalls",0);
 			iniReadString(listfile,bbsname,"UserName","",list[*i]->user);
 			iniReadString(listfile,bbsname,"Password","",list[*i]->password);
-			list[*i]->conn_type=iniReadInteger(listfile,bbsname,"ConnectionType",CONN_TYPE_RLOGIN);
+			iniReadString(listfile,bbsname,"SystemPassword","",list[*i]->syspass);
+			list[*i]->conn_type=iniReadEnum(listfile,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
 			dumb=iniReadBool(listfile,bbsname,"BeDumb",0);
 			if(dumb)
 				list[*i]->conn_type=CONN_TYPE_RAW;
 			list[*i]->reversed=iniReadBool(listfile,bbsname,"Reversed",0);
-			list[*i]->screen_mode=iniReadInteger(listfile,bbsname,"ScreenMode",SCREEN_MODE_CURRENT);
+			list[*i]->screen_mode=iniReadEnum(listfile,bbsname,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
 			list[*i]->nostatus=iniReadBool(listfile,bbsname,"NoStatus",0);
+			iniReadString(listfile,bbsname,"DownloadPath",home,list[*i]->dldir);
+			iniReadString(listfile,bbsname,"UploadPath",home,list[*i]->uldir);
+			list[*i]->loglevel=iniReadInteger(listfile,bbsname,"LogLevel",LOG_INFO);
+			list[*i]->bpsrate=iniReadInteger(listfile,bbsname,"BPSRate",0);
 			list[*i]->type=type;
 			list[*i]->id=*i;
 			(*i)++;
@@ -84,8 +112,8 @@ void read_list(char *listpath, struct bbslist **list, int *i, int type)
 
 int edit_list(struct bbslist *item,char *listpath)
 {
-	char	opt[10][80];
-	char	*opts[10];
+	char	opt[15][80];
+	char	*opts[15];
 	int		changed=0;
 	int		copt=0,i,j;
 	char	str[6];
@@ -93,7 +121,7 @@ int edit_list(struct bbslist *item,char *listpath)
 	str_list_t	inifile;
 	char	tmp[LIST_NAME_MAX+1];
 
-	for(i=0;i<10;i++)
+	for(i=0;i<15;i++)
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
 		uifc.helpbuf=	"`Cannot edit system BBS list`\n\n"
@@ -102,7 +130,7 @@ int edit_list(struct bbslist *item,char *listpath)
 		uifc.msg("Cannot edit system BBS list");
 		return(0);
 	}
-	opt[9][0]=0;
+	opt[14][0]=0;
 	if((listfile=fopen(listpath,"r"))!=NULL) {
 		inifile=iniReadFile(listfile);
 		fclose(listfile);
@@ -110,20 +138,25 @@ int edit_list(struct bbslist *item,char *listpath)
 	else
 		return(0);
 	for(;;) {
-		sprintf(opt[0],"BBS Name:         %s",item->name);
-		sprintf(opt[1],"Address:          %s",item->addr);
-		sprintf(opt[2],"Port:             %hu",item->port);
-		sprintf(opt[3],"Username:         %s",item->user);
-		sprintf(opt[4],"Password");
-		sprintf(opt[5],"Connection:       %s",conn_types[item->conn_type]);
-		sprintf(opt[6],"Reversed:         %s",item->reversed?"Yes":"No");
-		sprintf(opt[7],"Screen Mode:      %s",screen_modes[item->screen_mode]);
-		sprintf(opt[8],"Hide Status Line: %s",item->nostatus?"Yes":"No");
+		sprintf(opt[0], "BBS Name          %s",item->name);
+		sprintf(opt[1], "Address           %s",item->addr);
+		sprintf(opt[2], "Port              %hu",item->port);
+		sprintf(opt[3], "Username          %s",item->user);
+		sprintf(opt[4], "Password          ********");
+		sprintf(opt[5], "System Password   %s",item->syspass[0]?"********":"<none>");
+		sprintf(opt[6], "Connection        %s",conn_types[item->conn_type]);
+		sprintf(opt[7], "Reversed          %s",item->reversed?"Yes":"No");
+		sprintf(opt[8], "Screen Mode       %s",screen_modes[item->screen_mode]);
+		sprintf(opt[9], "Hide Status Line  %s",item->nostatus?"Yes":"No");
+		sprintf(opt[10], "Download Path     %s",item->dldir);
+		sprintf(opt[11],"Upload Path       %s",item->uldir);
+		sprintf(opt[12],"Log Level         %s",log_levels[item->loglevel]);
+		sprintf(opt[13],"Simulated BPS     %s",rate_names[get_rate_num(item->bpsrate)]);
 		uifc.changes=0;
 
 		uifc.helpbuf=	"`Edit BBS`\n\n"
 						"Select item to edit.";
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,"Edit Entry",opts)) {
+		switch(uifc.list(WIN_MID|WIN_ACT,0,0,0,&copt,NULL,"Edit Entry",opts)) {
 			case -1:
 				if((listfile=fopen(listpath,"w"))!=NULL) {
 					iniWriteFile(listfile,inifile);
@@ -175,28 +208,60 @@ int edit_list(struct bbslist *item,char *listpath)
 				iniSetString(&inifile,item->name,"Password",item->password,NULL);
 				break;
 			case 5:
+				uifc.helpbuf=	"`System Password`\n\n"
+								"Enter your System password for auto-login."
+								"For non-Synchronet systems, or non-SysOp accounts,"
+								"this can be used for simple scripting.";
+				uifc.input(WIN_MID|WIN_SAV,0,0,"System Password",item->syspass,MAX_SYSPASS_LEN,K_EDIT);
+				iniSetString(&inifile,item->name,"SystemPassword",item->syspass,NULL);
+				break;
+			case 6:
 				item->conn_type++;
 				if(item->conn_type==CONN_TYPE_TERMINATOR)
 					item->conn_type=CONN_TYPE_RLOGIN;
 				changed=1;
-				iniSetInteger(&inifile,item->name,"ConnectionType",item->conn_type,NULL);
+				iniSetEnum(&inifile,item->name,"ConnectionType",conn_types,item->conn_type,NULL);
 				break;
-			case 6:
+			case 7:
 				item->reversed=!item->reversed;
 				changed=1;
 				iniSetBool(&inifile,item->name,"Reversed",item->reversed,NULL);
 				break;
-			case 7:
+			case 8:
 				item->screen_mode++;
 				if(item->screen_mode==SCREEN_MODE_TERMINATOR)
 					item->screen_mode=0;
 				changed=1;
-				iniSetInteger(&inifile,item->name,"ScreenMode",item->screen_mode,NULL);
+				iniSetEnum(&inifile,item->name,"ScreenMode",screen_modes,item->screen_mode,NULL);
 				break;
-			case 8:
+			case 9:
 				item->nostatus=!item->nostatus;
 				changed=1;
 				iniSetBool(&inifile,item->name,"NoStatus",item->nostatus,NULL);
+				break;
+			case 10:
+				uifc.helpbuf=	"`Download Path`\n\n"
+								"Enter the path where downloads will be placed.";
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Download Path",item->dldir,MAX_PATH,K_EDIT);
+				iniSetString(&inifile,item->name,"DownloadPath",item->dldir,NULL);
+				break;
+			case 11:
+				uifc.helpbuf=	"`Upload Path`\n\n"
+								"Enter the path where uploads will be browsed for.";
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Upload Path",item->uldir,MAX_PATH,K_EDIT);
+				iniSetString(&inifile,item->name,"UploadPath",item->uldir,NULL);
+				break;
+			case 12:
+				item->loglevel++;
+				if(item->loglevel>LOG_DEBUG)
+					item->loglevel=0;
+				changed=1;
+				iniSetInteger(&inifile,item->name,"LogLevel",item->loglevel,NULL);
+				break;
+			case 13:
+				item->bpsrate=get_next_rate(item->bpsrate);
+				changed=1;
+				iniSetInteger(&inifile,item->name,"BPSRate",item->bpsrate,NULL);
 				break;
 		}
 		if(uifc.changes)
@@ -222,14 +287,19 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	 */
 	iniSetString(&inifile,bbs->name,"Address",bbs->addr,NULL);
 	iniSetShortInt(&inifile,bbs->name,"Port",bbs->port,NULL);
-	iniSetInteger(&inifile,bbs->name,"Added",time(NULL),NULL);
-	iniSetInteger(&inifile,bbs->name,"LastConnected",bbs->connected,NULL);
+	iniSetDateTime(&inifile,bbs->name,"Added",/* include time */TRUE,time(NULL),NULL);
+	iniSetDateTime(&inifile,bbs->name,"LastConnected",/* include time */TRUE,bbs->connected,NULL);
 	iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
 	iniSetString(&inifile,bbs->name,"UserName",bbs->user,NULL);
 	iniSetString(&inifile,bbs->name,"Password",bbs->password,NULL);
-	iniSetInteger(&inifile,bbs->name,"ConnectionType",bbs->conn_type,NULL);
+	iniSetString(&inifile,bbs->name,"SystemPassword",bbs->syspass,NULL);
+	iniSetEnum(&inifile,bbs->name,"ConnectionType",conn_types,bbs->conn_type,NULL);
 	iniSetBool(&inifile,bbs->name,"Reversed",bbs->reversed,NULL);
-	iniSetInteger(&inifile,bbs->name,"ScreenMode",bbs->screen_mode,NULL);
+	iniSetEnum(&inifile,bbs->name,"ScreenMode",screen_modes,bbs->screen_mode,NULL);
+	iniSetString(&inifile,bbs->name,"DownloadPath",bbs->dldir,NULL);
+	iniSetString(&inifile,bbs->name,"UploadPath",bbs->uldir,NULL);
+	iniSetInteger(&inifile,bbs->name,"LogLevel",bbs->loglevel,NULL);
+	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,NULL);
 	if((listfile=fopen(listpath,"w"))!=NULL) {
 		iniWriteFile(listfile,inifile);
 		fclose(listfile);
@@ -258,61 +328,68 @@ void del_bbs(char *listpath, struct bbslist *bbs)
  * Displays the BBS list and allows edits to user BBS list
  * Mode is one of BBSLIST_SELECT or BBSLIST_EDIT
  */
-struct bbslist *show_bbslist(int mode, char *path)
+struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 {
-	char	*home=NULL;
-	char	listpath[MAX_PATH+1];
 	struct	bbslist	*list[MAX_OPTS+1];
 	int		i,j;
-	int		opt=0,bar=0;
+	int		opt=0,bar=0,oldopt=-1;
 	static struct bbslist retlist;
 	int		val;
 	int		listcount=0;
-	char	str[6];
+	char	str[128];
 	char	*YesNo[3]={"Yes","No",""};
+	char	title[1024];
+	char	currtitle[1024];
+	char	*p;
 
-	if(init_uifc())
+	if(init_uifc(TRUE, TRUE))
 		return(NULL);
 
-	/* User BBS list */
-	if(inpath==NULL) {
-		home=getenv("HOME");
-		if(home==NULL)
-			home=getenv("USERPROFILE");
-	}
-	if(home==NULL)
-		strcpy(listpath,path);
-	else
-		strcpy(listpath,home);
-	strncat(listpath,"/syncterm.lst",sizeof(listpath));
-	if(strlen(listpath)>MAX_PATH) {
-		fprintf(stderr,"Path to syncterm.lst too long");
-		return(NULL);
-	}
-	read_list(listpath, &list[0], &listcount, USER_BBSLIST);
+	read_list(listpath, &list[0], &listcount, USER_BBSLIST, home);
 
 	/* System BBS List */
 #ifdef PREFIX
 	strcpy(listpath,PREFIX"/etc/syncterm.lst");
 
-	read_list(listpath, list, &listcount, SYSTEM_BBSLIST);
+	read_list(listpath, list, &listcount, SYSTEM_BBSLIST, home);
 #endif
 	sort_list(list);
 
 	for(;;) {
-		uifc.helpbuf=	"`SyncTERM Dialing List`\n\n"
-						"Commands:\n"
-						"~ CTRL-E ~ Switch listing to Edit mode\n"
-						"~ CTRL-D ~ Switch listing to Dial mode\n"
-						"Select a bbs to edit/dial an entry.";
-		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)|WIN_SAV|WIN_MID|WIN_INS|WIN_DEL|WIN_EXTKEYS|WIN_INSACT,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Select BBS":"Edit BBS",(char **)list);
+		uifc.helpbuf=	"`SyncTERM Dialing Directory`\n\n"
+						"Commands:\n\n"
+						"~ CTRL-E ~ to edit the selected entry\n"
+						" ~ ENTER ~ to dial the selected entry";
+		if(list[opt]!=NULL && list[opt]->name[0]) {
+			sprintf(title, "%s - %s (%d calls / Last: %s", syncterm_version, (char *)(list[opt]), list[opt]->calls, list[opt]->connected?ctime(&list[opt]->connected):"Never\n");
+			p=strrchr(title, '\n');
+			if(p!=NULL)
+				*p=')';
+		}
+		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
+			|WIN_ORG|WIN_ACT|WIN_INSACT|WIN_DELACT
+			|WIN_MID|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+			,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 		if(val==listcount)
 			val=listcount|MSK_INS;
 		if(val<0) {
 			switch(val) {
 				case -7:		/* CTRL-E */
+#if 0	/* Don't to the two list "mode" anymore */
 					mode=BBSLIST_EDIT;
 					break;
+#else
+					i=list[opt]->id;
+					if(edit_list(list[opt],listpath)) {
+						sort_list(list);
+						for(j=0;list[j]->name[0];j++) {
+							if(list[j]->id==i)
+								opt=j;
+						}
+						oldopt=-1;
+					}
+					break;
+#endif
 				case -6:		/* CTRL-D */
 					mode=BBSLIST_SELECT;
 					break;
@@ -335,6 +412,7 @@ struct bbslist *show_bbslist(int mode, char *path)
 					list[listcount]=list[listcount-1];
 					list[listcount-1]=(struct bbslist *)malloc(sizeof(struct bbslist));
 					memset(list[listcount-1],0,sizeof(struct bbslist));
+					list[listcount-1]->loglevel=LOG_INFO;
 					list[listcount-1]->id=listcount-1;
 					uifc.changes=0;
 					uifc.helpbuf=	"`BBS Name`\n\n"
@@ -383,13 +461,20 @@ struct bbslist *show_bbslist(int mode, char *path)
 						uifc.helpbuf=	"`Password`\n\n"
 										"Enter your password for auto-login.";
 						uifc.input(WIN_MID|WIN_SAV,0,0,"Password",list[listcount-1]->password,MAX_PASSWD_LEN,K_EDIT);
-						uifc.helpbuf=	"`Reversed`\n\n"
-										"Select this option if you wish to send the username and password in the wrong\n"
-										"order (usefull for connecting to v3.11 and lower systems with the default"
-										"config)";
-						list[listcount-1]->reversed=1;
-						uifc.list(WIN_MID|WIN_SAV,0,0,0,&list[listcount-1]->reversed,NULL,"Reversed",YesNo);
-						list[listcount-1]->reversed=!list[listcount-1]->reversed;
+						uifc.helpbuf=	"`System Password`\n\n"
+										"Enter your System password for auto-login."
+										"For non-Synchronet systems, or non-SysOp accounts,"
+										"this can be used for simple scripting.";
+						uifc.input(WIN_MID|WIN_SAV,0,0,"System Password",list[listcount-1]->syspass,MAX_SYSPASS_LEN,K_EDIT);
+						if(list[listcount-1]->conn_type==CONN_TYPE_RLOGIN) {
+							uifc.helpbuf=	"`Reversed`\n\n"
+											"Select this option if you wish to send the username and password in the wrong\n"
+											"order (useful for connecting to v3.11 and lower systems with the default"
+											"config)";
+							list[listcount-1]->reversed=1;
+							uifc.list(WIN_MID|WIN_SAV,0,0,0,&list[listcount-1]->reversed,NULL,"Reversed",YesNo);
+							list[listcount-1]->reversed=!list[listcount-1]->reversed;
+						}
 						uifc.helpbuf=	"`Screen Mode`\n\n"
 										"Select the screen size for this connection\n";
 						list[listcount-1]->screen_mode=SCREEN_MODE_CURRENT;
@@ -406,6 +491,7 @@ struct bbslist *show_bbslist(int mode, char *path)
 							if(list[j]->id==listcount-1)
 								opt=j;
 						}
+						oldopt=-1;
 					}
 					break;
 				case MSK_DEL:
@@ -425,6 +511,10 @@ struct bbslist *show_bbslist(int mode, char *path)
 						uifc.msg("It's gone, calm down man!");
 						break;
 					}
+					sprintf(str,"Delete %s?",list[opt]->name);
+					i=1;
+					if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,str,YesNo)!=0)
+						break;
 					del_bbs(listpath,list[opt]);
 					free(list[opt]);
 					for(i=opt;list[i]->name[0];i++) {
@@ -434,6 +524,18 @@ struct bbslist *show_bbslist(int mode, char *path)
 						list[i]->id=i;
 					}
 					listcount--;
+					oldopt=-1;
+					break;
+				case MSK_EDIT:
+					i=list[opt]->id;
+					if(edit_list(list[opt],listpath)) {
+						sort_list(list);
+						for(j=0;list[j]->name[0];j++) {
+							if(list[j]->id==i)
+								opt=j;
+						}
+						oldopt=-1;
+					}
 					break;
 			}
 		}
@@ -446,6 +548,7 @@ struct bbslist *show_bbslist(int mode, char *path)
 						if(list[j]->id==i)
 							opt=j;
 					}
+					oldopt=-1;
 				}
 			}
 			else {
