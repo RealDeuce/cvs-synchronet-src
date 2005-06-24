@@ -1,3 +1,5 @@
+/* $Id: conn.h,v 1.5 2005/06/24 04:29:20 deuce Exp $ */
+
 #ifndef _CONN_H_
 #define _CONN_H_
 
@@ -14,9 +16,9 @@ enum {
 	,CONN_TYPE_TERMINATOR
 };
 
-int conn_recv(char *buffer, size_t buflen);
+int conn_recv(char *buffer, size_t buflen, unsigned int timeout);
 int conn_send(char *buffer, size_t buflen, unsigned int timeout);
-int conn_connect(char *addr, int port, char *ruser, char *passwd, int conn_type);
+int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass, int conn_type, int speed);
 int conn_close(void);
 void conn_settype(int type);
 

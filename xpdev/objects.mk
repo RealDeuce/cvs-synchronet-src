@@ -2,13 +2,14 @@
 
 # Make 'include file' listing object files for xpdev "wrappers"
 
-# $Id: objects.mk,v 1.9 2005/05/07 18:43:01 deuce Exp $
+# $Id: objects.mk,v 1.10 2005/06/02 23:29:07 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
 OBJS	= \
 	$(OBJODIR)$(DIRSEP)conwrap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)dat_file$(OFILE) \
+	$(OBJODIR)$(DIRSEP)datewrap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)dirwrap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)filewrap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)genwrap$(OFILE) \
@@ -18,9 +19,11 @@ OBJS	= \
 	$(OBJODIR)$(DIRSEP)str_list$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpbeep$(OFILE)
 
+
 MTOBJS	= \
 	$(MTOBJODIR)$(DIRSEP)conwrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)dat_file$(OFILE) \
+	$(MTOBJODIR)$(DIRSEP)datewrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)dirwrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)filewrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)genwrap$(OFILE) \
