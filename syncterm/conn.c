@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.13 2005/06/24 04:29:20 deuce Exp $ */
+/* $Id: conn.c,v 1.12 2005/06/21 05:47:46 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -109,7 +109,7 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass, int conn_type, int speed)
+int conn_connect(char *addr, int port, char *ruser, char *passwd, int conn_type, int speed)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
