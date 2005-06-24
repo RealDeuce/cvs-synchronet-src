@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.37 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: addfiles.c,v 1.36 2005/02/18 08:54:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -555,14 +555,14 @@ void synclist(char *inpath, int dirnum)
 		printf("ERR_LEN (%ld) of %s\n",length,str);
 		return; 
 	}
-	if((ixbbuf=(uchar *)malloc(length))==NULL) {
+	if((ixbbuf=(uchar HUGE16 *)MALLOC(length))==NULL) {
 		close(file);
 		printf("ERR_ALLOC %s\n",str);
 		return; 
 	}
 	if(lread(file,ixbbuf,length)!=length) {
 		close(file);
-		free((char *)ixbbuf);
+		FREE((char *)ixbbuf);
 		printf("ERR_READ %s\n",str);
 		return; 
 	}
@@ -669,7 +669,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.36 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
