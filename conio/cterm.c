@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.26 2005/06/16 23:01:54 deuce Exp $ */
+/* $Id: cterm.c,v 1.27 2005/06/24 01:53:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -938,11 +938,14 @@ void ctputs(char *buf)
 			default:
 				if(cy==cterm.height
 						&& cx==cterm.width) {
-						*p=0;
-						cputs(outp);
-						outp=p+1;
-						scrollup();
-						cx=1;
+					char ch;
+					ch=*p;
+					*p=0;
+					cputs(outp);
+					*p=ch;
+					outp=p;
+					scrollup();
+					cx=1;
 				}
 				else {
 					if(cx==cterm.width) {
