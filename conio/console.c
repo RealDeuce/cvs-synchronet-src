@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.54 2005/10/02 11:24:06 deuce Exp $ */
+/* $Id: console.c,v 1.49 2005/06/18 09:24:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,6 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>	/* malloc */
 #include <unistd.h>	/* sysconf() */
 
 #include <X11/Xlib.h>
@@ -117,6 +116,7 @@
 
 #include "keys.h"
 #include "mouse.h"
+#include "vgafont.h"
 
 #define CONSOLE_MAX_ROWS	61
 #define CONSOLE_MAX_COLS	81
@@ -137,7 +137,7 @@ sem_t	x11_title;
 int InitCS;
 int InitCE;
 int FW, FH;
-int FontScale=1;
+int FS=1;
 #define MAX_SCALE	2
 WORD DpyCols;
 BYTE DpyRows;
@@ -151,6 +151,7 @@ BYTE CursCol=0;
 typedef struct TextLine {
     WORD	*data;
     u_char	max_length;	/* Not used, but here for future use */
+    u_char	changed;
 	u_char	*exposed;
 } TextLine;
 TextLine *lines = NULL;
@@ -449,20 +450,35 @@ video_update_text()
 	pthread_mutex_lock(&lines_mutex);
 	memcpy(vmemc, vmem, DpyCols*(DpyRows+1)*sizeof(WORD));
 	for (r = 0; r < (DpyRows+1); ++r) {
-		for (c = 0; c < DpyCols; ++c) {
-			if ((lines[r].data[c] != vmemc[r * DpyCols + c]) 
-					|| (lines[r].data[c] & 0x8000 && show != os)
-					|| (lines[r].exposed[c])
-					|| (((r == or && c==oc) || (r == cursrow && c==curscol)) && (or != cursrow || oc !=curscol))) {
-				setgc(vmemc[r * DpyCols + c]  & 0xff00);
-				x11.XCopyPlane(dpy,pfnt,win,gc,0,FH*(vmemc[r * DpyCols + c]&0xff),FW,FH,c*FW+2,r*FH+2,1);
-				lines[r].exposed[c]=0;
-				lines[r].data[c]=vmemc[r * DpyCols + c];
-				flush=1;
+	    if (!lines[r].changed) {
+			for (c = 0; c < DpyCols; ++c) {
+				if ((lines[r].data[c] != vmemc[r * DpyCols + c]) 
+						|| (lines[r].data[c] & 0x8000 && show != os)
+						|| (lines[r].exposed[c])
+						|| (((r == or && c==oc) || (r == cursrow && c==curscol)) && (or != cursrow || oc !=curscol))) {
+					setgc(vmemc[r * DpyCols + c]  & 0xff00);
+					x11.XCopyPlane(dpy,pfnt,win,gc,0,FH*(vmemc[r * DpyCols + c]&0xff),FW,FH,c*FW+2,r*FH+2,1);
+					lines[r].changed = 2;
+					flush=1;
+				}
 			}
-		}
+	    }
+
+	    if (!lines[r].changed)
+			continue;
 
 		reset_poll();
+		memcpy(lines[r].data,
+			&vmemc[r * DpyCols], sizeof(WORD) * DpyCols);
+
+		if(lines[r].changed==1) {
+			for (c = 0; c < DpyCols; ++c) {
+				setgc(vmemc[r * DpyCols + c]  & 0xff00);
+				x11.XCopyPlane(dpy,pfnt,win,gc,0,FH*(vmemc[r * DpyCols + c]&0xff),FW,FH,c*FW+2,r*FH+2,1);
+			}
+		}
+		lines[r].changed = 0;
+		memset(lines[r].exposed,0,CONSOLE_MAX_COLS * sizeof(u_char));
 	}
 	pthread_mutex_unlock(&lines_mutex);
 
@@ -481,8 +497,8 @@ video_update_text()
 	    x11.XChangeGC(dpy, cgc, GCForeground | GCFunction, &v);
 	    x11.XFillRectangle(dpy, win, cgc,
 			   2 +curscol * FW,
-			   2 + cursrow * FH + CursStart * FontScale,
-			   FW, (CursEnd + 1)*FontScale - (CursStart*FontScale));
+			   2 + cursrow * FH + CursStart * FS,
+			   FW, (CursEnd + 1)*FS - (CursStart*FS));
 		flush=1;
 	}
 
@@ -542,7 +558,8 @@ get_lines()
 				fprintf(stderr, "Could not allocate data structure for text lines\n");
 				exit(1);
 			}
-			memset(lines[i].exposed,1,CONSOLE_MAX_COLS * sizeof(u_char));
+			memset(lines[i].exposed,0,CONSOLE_MAX_COLS * sizeof(u_char));
+			lines[i].changed = 1;
 		}
 		pthread_mutex_unlock(&lines_mutex);
 	}
@@ -613,13 +630,13 @@ video_event(XEvent *ev)
 				int	oldFS;
 				int r;
 
-				oldFS=FontScale;
+				oldFS=FS;
 				if((ev->xconfigure.width == FW * DpyCols + 4)
 						&& (ev->xconfigure.height == FH * (DpyRows+1) + 4))
 					break;
 						
-				FW=FW/FontScale;
-				FH=FH/FontScale;
+				FW=FW/FS;
+				FH=FH/FS;
 				newFSH=(ev->xconfigure.width+(FW*DpyCols)/2)/(FW*DpyCols);
 				newFSW=(ev->xconfigure.height+(FH*(DpyRows+1))/2)/(FH*(DpyRows+1));
 				if(newFSW<1)
@@ -631,10 +648,10 @@ video_event(XEvent *ev)
 				if(newFSH>MAX_SCALE)
 					newFSH=MAX_SCALE;
 				if(newFSH<newFSW)
-					FontScale=newFSH;
+					FS=newFSH;
 				else
-					FontScale=newFSW;
-				load_font(NULL,FW,FH,FontScale);
+					FS=newFSW;
+				load_font(NULL,FW,FH,FS);
 				resize_window();
 				break;
 		}
@@ -1170,10 +1187,10 @@ resize_window()
 	sh->base_width = FW * DpyCols + 4;
 	sh->base_height = FH * (DpyRows+1) + 4;
 
-    sh->min_width = (FW/FontScale) * DpyCols + 4;
-	sh->max_width = (FW/FontScale) * MAX_SCALE * DpyCols + 4;
-    sh->min_height = (FH/FontScale) * (DpyRows+1) +4;
-	sh->max_height = (FH/FontScale) * MAX_SCALE * (DpyRows+1) +4;
+    sh->min_width = (FW/FS) * DpyCols + 4;
+	sh->max_width = (FW/FS) * MAX_SCALE * DpyCols + 4;
+    sh->min_height = (FH/FS) * (DpyRows+1) +4;
+	sh->max_height = (FH/FS) * MAX_SCALE * (DpyRows+1) +4;
     sh->flags = USSize | PMinSize | PMaxSize | PSize;
 
     x11.XSetWMNormalHints(dpy, win, sh);
@@ -1185,7 +1202,7 @@ resize_window()
 	if(lines != NULL) {
 		pthread_mutex_lock(&lines_mutex);
 		for (r = 0; r < (CONSOLE_MAX_ROWS+1); ++r) {
-			memset(lines[r].exposed,1,CONSOLE_MAX_COLS * sizeof(u_char));
+			lines[r].changed = 1;
 		}
 		pthread_mutex_unlock(&lines_mutex);
 	}
@@ -1311,7 +1328,7 @@ load_font(char *filename, int width, int height, int scale)
 
 	if(pfnt!=0)
 		x11.XFreePixmap(dpy,pfnt);
-	scaledfont=scale_bitmap(font, FW, FH*256, &FontScale);
+	scaledfont=scale_bitmap(font, FW, FH*256, &FS);
 	if(scaledfont==NULL)
 		pfnt=x11.XCreateBitmapFromData(dpy, win, font, FW, FH*256);
 	else {
@@ -1382,7 +1399,7 @@ init_mode(int mode)
     update_pixels();
 
     /* Update font. */
-    if(load_font(NULL,vmode.charwidth,vmode.charheight,FontScale)) {
+    if(load_font(NULL,vmode.charwidth,vmode.charheight,FS)) {
 		sem_post(&console_mode_changed);
 		return(-1);
 	}
@@ -1490,11 +1507,7 @@ console_init()
 	x11.XSendEvent=XSendEvent;
 	x11.XSetSelectionOwner=XSetSelectionOwner;
 #else
-#if defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
-	if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))==NULL)
-#else
 	if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
-#endif
 		return(-1);
 	if((x11.XChangeGC=dlsym(dl,"XChangeGC"))==NULL) {
 		dlclose(dl);
