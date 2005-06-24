@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.46 2005/06/24 04:29:20 deuce Exp $ */
+/* $Id: syncterm.c,v 1.47 2005/06/24 05:52:34 rswindell Exp $ */
 
 #include <sys/stat.h>
 
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
-					iniSetInteger(&inifile,bbs->name,"LastConnected",bbs->connected,NULL);
+					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,NULL);
 					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
 					if((listfile=fopen(listpath,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
