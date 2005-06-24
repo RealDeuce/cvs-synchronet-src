@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.95 2005/06/24 07:23:31 deuce Exp $ */
+/* $Id: term.c,v 1.96 2005/06/24 07:24:15 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -723,7 +723,7 @@ BOOL doterm(struct bbslist *bbs)
 					continue;
 			}
 		}
-		hold_update=FALSE;
+		hold_update=oldmc;
 		gotoxy(wherex(), wherey());
 
 		/* Get local input */
