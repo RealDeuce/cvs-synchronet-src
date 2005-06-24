@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.24 2005/06/18 23:26:20 deuce Exp $ */
+/* $Id: menu.c,v 1.25 2005/06/24 03:07:48 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -32,12 +32,17 @@ void viewscroll(void)
 	drawwin();
 	top=cterm.backpos;
 	gotoxy(1,1);
+	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
 	for(i=0;!i;) {
 		if(top<1)
 			top=1;
 		if(top>cterm.backpos)
 			top=cterm.backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
+		cputs("Scrollback");
+		gotoxy(71,1);
+		cputs("Scrollback");
+		gotoxy(1,1);
 		key=getch();
 		switch(key) {
 			case 0xff:
