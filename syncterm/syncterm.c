@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.47 2005/06/24 05:52:34 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.48 2005/06/24 06:02:12 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -248,7 +248,6 @@ int main(int argc, char **argv)
 		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->syspass,bbs->conn_type,bbs->bpsrate)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
-			init_uifc(TRUE, TRUE);
 			bbs->connected=time(NULL);
 			bbs->calls++;
 			if(bbs->id != -1) {
@@ -310,6 +309,7 @@ int main(int argc, char **argv)
 		}
 		else
 			bbs=NULL;
+		init_uifc(TRUE, TRUE);
 	}
 	uifcbail();
 #ifdef _WINSOCKAPI_
