@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.77 2005/06/24 09:18:08 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.78 2005/06/25 01:37:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -474,7 +474,9 @@ char* iniSetDateTime(str_list_t* list, const char* section, const char* key
 	char	tstr[32];
 	char*	p;
 
-	if((p=ctime_r(&value,tstr))==NULL)
+	if(value==0)
+		SAFECOPY(str,"Never");
+	else if((p=ctime_r(&value,tstr))==NULL)
 		SAFEPRINTF(str,"0x%lx",value);
 	else if(!include_time)	/* reformat into "Mon DD YYYY" */
 		safe_snprintf(str,sizeof(str),"%.3s %.2s %.4s"		,p+4,p+8,p+20);
