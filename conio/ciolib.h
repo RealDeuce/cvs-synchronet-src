@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.25 2005/10/02 11:24:06 deuce Exp $ */
+/* $Id: ciolib.h,v 1.24 2005/05/19 23:54:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@ enum {
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
-	,CIOLIB_MODE_SDL
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
