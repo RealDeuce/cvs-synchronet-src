@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.44 2005/10/02 11:24:06 deuce Exp $ */
+/* $Id: ciolib.c,v 1.42 2005/06/06 23:00:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,9 +40,6 @@
 #define CIOLIB_NO_MACROS
 #include "ciolib.h"
 
-#ifdef WITH_SDL
- #include "sdl_con.h"
-#endif
 #ifdef _WIN32
  #include "win32cio.h"
 #else
@@ -101,37 +98,6 @@ void ciolib_copytext(const char *text, size_t buflen);
 char *ciolib_getcliptext(void);
 
 #define CIOLIB_INIT()		{ if(!initialized) initciolib(CIOLIB_MODE_AUTO); }
-
-#ifdef WITH_SDL
-int try_sdl_init(int mode)
-{
-	if(!sdl_init()) {
-		cio_api.mode=CIOLIB_MODE_SDL;
-		cio_api.mouse=1;
-		cio_api.puttext=sdl_puttext;
-		cio_api.gettext=sdl_gettext;
-		cio_api.textattr=sdl_textattr;
-		cio_api.kbhit=sdl_kbhit;
-		cio_api.delay=sdl_delay;
-		cio_api.wherey=sdl_wherey;
-		cio_api.wherex=sdl_wherex;
-		cio_api.putch=sdl_putch;
-		cio_api.gotoxy=sdl_gotoxy;
-		cio_api.gettextinfo=sdl_gettextinfo;
-		cio_api.setcursortype=sdl_setcursortype;
-		cio_api.getch=sdl_getch;
-		cio_api.getche=sdl_getche;
-		cio_api.textmode=sdl_textmode;
-		cio_api.showmouse=sdl_showmouse;
-		cio_api.hidemouse=sdl_hidemouse;
-		cio_api.settitle=sdl_settitle;
-		cio_api.copytext=NULL;
-		cio_api.getcliptext=NULL;
-		return(1);
-	}
-	return(0);
-}
-#endif
 
 #ifndef _WIN32
  #ifndef NO_X
@@ -261,19 +227,15 @@ int initciolib(int mode)
 {
 	switch(mode) {
 		case CIOLIB_MODE_AUTO:
-#ifdef WITH_SDL
-			if(!try_sdl_init(mode))
-
-#endif
 #ifdef _WIN32
-				if(!try_conio_init(mode))
+			if(!try_conio_init(mode))
 #else
 #ifndef NO_X
-				if(!try_x_init(mode))
+			if(!try_x_init(mode))
 #endif
-					if(!try_curses_init(mode))
+				if(!try_curses_init(mode))
 #endif
-						try_ansi_init(mode);
+					try_ansi_init(mode);
 			break;
 #ifdef _WIN32
 		case CIOLIB_MODE_CONIO:
@@ -436,7 +398,7 @@ int vsscanf( const char *buffer, const char *format, va_list arg_ptr )
 	int i, ret;
 	void *arg_arr[25];
 
-	/* Do exception handling in case we go too far // */
+	// Do exception handling in case we go too far //
 	__try
 	{
 		for ( i = 0; i < 25; i++ )
