@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.2 2005/04/06 08:51:48 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.5 2005/06/28 08:44:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,28 @@
 #ifndef _DATEWRAP_H_
 #define _DATEWRAP_H_
 
+#include "genwrap.h"	/* time_t */
+
+/**********************************************/
+/* Decimal-coded ISO-8601 date/time functions */
+/**********************************************/
+
+typedef struct {
+	long	date;	/* CCYYMMDD (decimal) */
+	long	time;	/* HHMMSS   (decimal) */
+} isoDateTime_t;
+
+long			time_to_isoDate(time_t);
+long			time_to_isoTime(time_t);
+isoDateTime_t	time_to_isoDateTime(time_t);
+time_t			isoDate_to_time(long date, long time);
+time_t			isoDateTime_to_time(isoDateTime_t);
+
+
+/***********************************/
+/* Borland DOS date/time functions */
+/***********************************/
+
 #if defined(__BORLANDC__)
 
 #include <dos.h>
@@ -61,7 +83,8 @@ struct time {
 extern "C" {
 #endif
 
-void getdate(struct date*);
+#define getdate(x)	xp_getdate(x)
+void xp_getdate(struct date*);
 void gettime(struct time*);
 
 #if defined(__cplusplus)
