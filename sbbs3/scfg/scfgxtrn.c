@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.33 2004/07/28 00:00:18 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.34 2005/06/06 22:30:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2260,7 +2260,7 @@ hot key event. Hot key events are control characters that are used to
 execute an external program or module anywhere in the BBS.
 */
 		uifc.savnum=1;
-		sprintf(str,"Ctrl-%C Hot Key Event",cfg.hotkey[i]->key+'@');
+		sprintf(str,"Ctrl-%c Hot Key Event",cfg.hotkey[i]->key+'@');
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,60,&dfltopt,0
 			,str,opt)) {
 			case -1:
