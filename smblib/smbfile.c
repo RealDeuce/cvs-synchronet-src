@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.9 2005/09/29 08:49:06 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.7 2004/12/29 04:27:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -184,12 +184,7 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 		close(file);
 		return(SMB_ERR_OPEN); 
 	}
-#if 0	/* This causes a noticeable performance hit when new-scanning subs */
-	if(fp==&smb->sid_fp)
-		setvbuf(*fp,NULL,_IONBF,0);	/* no buffering (cause of *.sid corruption?) */
-	else
-#endif
-		setvbuf(*fp,NULL,_IOFBF,2*1024);
+	setvbuf(*fp,NULL,_IOFBF,2*1024);
 	return(SMB_SUCCESS);
 }
 
