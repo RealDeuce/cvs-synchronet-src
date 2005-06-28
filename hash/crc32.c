@@ -2,7 +2,7 @@
 
 /* 32-bit CRC table  */
 
-/* $Id: crc32.c,v 1.3 2004/02/26 21:26:46 rswindell Exp $ */
+/* $Id: crc32.c,v 1.4 2005/06/07 08:41:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,5 +89,18 @@ unsigned long crc32(char *buf, unsigned long len)
 	return(~crc);
 }
 
+unsigned long fcrc32(FILE* fp, unsigned long len)
+{
+	int	ch;
+	unsigned long l,crc=0xffffffff;
+
+	rewind(fp);
+	for(l=0;(len==0 || l<len) && !feof(fp);l++) {
+		if((ch=fgetc(fp))==EOF)
+			break;
+		crc=ucrc32(ch,crc);
+	}
+	return(~crc);
+}
 
 
