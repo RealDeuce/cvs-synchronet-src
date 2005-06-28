@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.8 2005/06/28 09:29:51 rswindell Exp $ */
+/* $Id: v4upgrade.c,v 1.9 2005/06/28 09:34:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,7 +164,7 @@ BOOL upgrade_users(void)
 
 		/******************************************/
 		/* date/times */
-		len+=sprintf(rec+len,"%lu%06u\t%lu%06u\t%lu%06u\t%lu%06u\t%lu%06u\t%lu%06u\t"
+		len+=sprintf(rec+len,"%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t"
 			,time_to_isoDate(user.laston)
 			,time_to_isoTime(user.laston)
 			,time_to_isoDate(user.firston)
@@ -730,7 +730,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.8 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
