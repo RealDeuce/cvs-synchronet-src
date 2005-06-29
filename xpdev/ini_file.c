@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.79 2005/06/28 08:45:36 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.80 2005/06/29 20:37:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1204,7 +1204,8 @@ static time_t parseDateTime(const char* value)
 	time_t	t;
 	struct tm tm;
 	struct tm curr_tm;
-	isoDateTime_t iso;
+	isoDate_t	isoDate;
+	isoTime_t	isoTime;
 
 	ZERO_VAR(tm);
 	tstr[0]=0;
@@ -1218,8 +1219,8 @@ static time_t parseDateTime(const char* value)
 
 	/* CCYYMMDDTHHMMSS <--- ISO-8601 date and time format */
 	if(sscanf(value,"%uT%u"
-		,&iso.date,&iso.time)>=2)
-		return(isoDateTime_to_time(iso));
+		,&isoDate,&isoTime)>=2)
+		return(isoDateTime_to_time(isoDate,isoTime));
 
 	/* DD.MM.[CC]YY [time] [p] <-- Euro/Canadian numeric date format */
 	if(sscanf(value,"%u.%u.%u %s %c"
