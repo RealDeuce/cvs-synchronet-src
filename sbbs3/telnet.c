@@ -2,7 +2,7 @@
 
 /* Synchronet telnet command/option functions */
 
-/* $Id: telnet.c,v 1.4 2004/10/14 03:28:22 rswindell Exp $ */
+/* $Id: telnet.c,v 1.5 2005/06/06 22:06:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ const char* DLLCALL telnet_opt_desc(uchar opt)
     return(unknown);
 }
 
-const uchar DLLCALL telnet_opt_ack(uchar cmd)
+uchar DLLCALL telnet_opt_ack(uchar cmd)
 {
 	switch(cmd) {
 		case TELNET_DO:		return TELNET_WILL;
@@ -137,7 +137,7 @@ const uchar DLLCALL telnet_opt_ack(uchar cmd)
 	return 0;
 }
 
-const uchar DLLCALL telnet_opt_nak(uchar cmd)
+uchar DLLCALL telnet_opt_nak(uchar cmd)
 {
 	switch(cmd) {
 		case TELNET_DO:		return TELNET_WONT;
