@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.15 2005/06/29 09:06:06 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.16 2005/06/29 09:08:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,7 +278,7 @@ isoDateTime_t isoDateTime_parse(const char* str)
 		,&xpDateTime.time.hour
 		,&xpDateTime.time.minute
 		,&xpDateTime.time.second
-		,zone)>=2
+		,zone)>=1
 		) && isoTimeZone_parse(zone,&xpDateTime.zone))
 		return xpDateTime_to_isoDateTime(xpDateTime);
 
