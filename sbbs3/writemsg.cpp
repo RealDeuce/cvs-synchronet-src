@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.61 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.58 2004/10/21 08:14:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -254,7 +254,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 				c=25;
 			bputs(text[SubjectPrompt]); 
 		}
-		if(!getstr(title,c,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
+		if(!getstr(title,c,mode&WM_FILE ? K_LINE|K_UPPER : K_LINE|K_EDIT|K_AUTODEL)
 			&& useron_level && useron.logons) {
 			free(buf);
 			return(false); 
@@ -528,7 +528,7 @@ void sbbs_t::removeline(char *str, char *str2, char num, char skip)
 	}
 	flen=filelength(file);
 	slen=strlen(str2);
-	if((buf=(char *)malloc(flen))==NULL) {
+	if((buf=(char *)MALLOC(flen))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,flen);
 		return; 
@@ -586,7 +586,7 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 
 	maxlines=cfg.level_linespermsg[useron.level];
 
-	if((str=(char **)malloc(sizeof(char *)*(maxlines+1)))==NULL) {
+	if((str=(char **)MALLOC(sizeof(char *)*(maxlines+1)))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,"msgeditor",sizeof(char *)*(maxlines+1));
 		return(0); 
 	}
@@ -594,7 +594,7 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 	l=0;
 	while(l<m && lines<maxlines) {
 		msgabort(); /* to allow pausing */
-		if((str[lines]=(char *)malloc(MAX_LINE_LEN))==NULL) {
+		if((str[lines]=(char *)MALLOC(MAX_LINE_LEN))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN);
 			for(i=0;i<lines;i++)
 				free(str[i]);
@@ -654,7 +654,7 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 	while(online && !done) {
 		checkline();
 		if(line==lines) {
-			if((str[line]=(char *)malloc(MAX_LINE_LEN))==NULL) {
+			if((str[line]=(char *)MALLOC(MAX_LINE_LEN))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN);
 				for(i=0;i<lines;i++)
 					free(str[i]);
@@ -731,7 +731,7 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 				else {
 					for(line=lines;line>i;line--)   /* move the pointers */
 						str[line]=str[line-1];
-					if((str[i]=(char *)malloc(MAX_LINE_LEN))==NULL) {
+					if((str[i]=(char *)MALLOC(MAX_LINE_LEN))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN);
 						for(i=0;i<lines;i++)
 							free(str[i]);
@@ -875,12 +875,10 @@ void sbbs_t::editfile(char *str)
 	sprintf(str2,"%sQUOTES.TXT",cfg.node_dir);
 	fexistcase(str2);
 	remove(str2);
-#if 0	/* no such thing as local logon */
 	if(cfg.node_editor[0] && online==ON_LOCAL) {
 		external(cmdstr(cfg.node_editor,str,nulstr,NULL),0,cfg.node_dir);
 		return; 
 	}
-#endif
 	if(useron.xedit) {
 		editor_inf(useron.xedit,nulstr,nulstr,0,INVALID_SUB);
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
@@ -892,12 +890,9 @@ void sbbs_t::editfile(char *str)
 			if(cfg.xedit[useron.xedit-1]->misc&WWIVCOLOR)
 				mode|=EX_WWIV; 
 		}
-#if 0	/* no such thing as local logon */
 		if(online==ON_LOCAL)
 			external(cmdstr(cfg.xedit[useron.xedit-1]->lcmd,str,nulstr,NULL),mode,cfg.node_dir);
-		else 
-#endif
-		{
+		else {
 			CLS;
 			rioctl(IOCM|PAUSE|ABORT);
 			external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,str,nulstr,NULL),mode,cfg.node_dir);
@@ -905,7 +900,7 @@ void sbbs_t::editfile(char *str)
 		}
 		return; 
 	}
-	if((buf=(char *)malloc(maxlines*MAX_LINE_LEN))==NULL) {
+	if((buf=(char *)MALLOC(maxlines*MAX_LINE_LEN))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,nulstr,maxlines*MAX_LINE_LEN);
 		return; 
 	}
@@ -1281,7 +1276,7 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 	newsub=usrsub[newgrp][newsub];
 
 	length=smb_getmsgdatlen(msg);
-	if((buf=(char *)malloc(length))==NULL) {
+	if((buf=(char *)MALLOC(length))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,smb.file,length);
 		return(false); 
 	}
