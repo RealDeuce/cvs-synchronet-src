@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.13 2005/06/29 09:00:37 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.14 2005/06/29 09:04:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,7 +255,7 @@ isoDateTime_t isoDateTime_parse(const char* str)
 	ZERO_VAR(xpDateTime);
 	ZERO_VAR(isoDateTime);
 
-	if((sscanf(str,"%4u%-%2u%-%2uT%2u:%2u:%f%6s"	/* CCYY-MM-DDThh:MM:ss±hhmm */
+	if((sscanf(str,"%4u%-%2u-%2uT%2u:%2u:%f%6s"	/* CCYY-MM-DDThh:MM:ss±hhmm */
 		,&xpDateTime.date.year
 		,&xpDateTime.date.month
 		,&xpDateTime.date.day
