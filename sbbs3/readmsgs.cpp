@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.32 2005/09/30 09:17:51 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.29 2004/10/27 21:16:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,7 +43,7 @@ int sbbs_t::sub_op(uint subnum)
 }
 
 
-void sbbs_t::listmsgs(int subnum, post_t *post, long i, long posts)
+void sbbs_t::listmsgs(int subnum, post_t HUGE16 *post, long i, long posts)
 {
 	char ch;
 	smbmsg_t msg;
@@ -161,7 +161,7 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 /****************************************************************************/
 /****************************************************************************/
-post_t * sbbs_t::loadposts(long *posts, uint subnum, ulong ptr, long mode)
+post_t HUGE16 * sbbs_t::loadposts(long *posts, uint subnum, ulong ptr, long mode)
 {
 	char name[128];
 	ushort aliascrc,namecrc,sysop;
@@ -169,7 +169,7 @@ post_t * sbbs_t::loadposts(long *posts, uint subnum, ulong ptr, long mode)
 	ulong l=0,total,alloc_len;
 	smbmsg_t msg;
 	idxrec_t idx;
-	post_t *post;
+	post_t HUGE16 *post;
 
 	if(posts==NULL)
 		return(NULL);
@@ -203,7 +203,7 @@ post_t * sbbs_t::loadposts(long *posts, uint subnum, ulong ptr, long mode)
 		while(alloc_len%4096)
 			alloc_len++;
 	#endif
-	if((post=(post_t *)malloc(alloc_len))==NULL) {	/* alloc for max */
+	if((post=(post_t HUGE16 *)LMALLOC(alloc_len))==NULL) {	/* alloc for max */
 		smb_unlocksmbhdr(&smb);
 		errormsg(WHERE,ERR_ALLOC,smb.file,sizeof(post_t *)*cfg.sub[subnum]->maxmsgs);
 		return(NULL); 
@@ -333,7 +333,7 @@ static int get_start_msg(sbbs_t* sbbs, smb_t* smb)
 int sbbs_t::scanposts(uint subnum, long mode, char *find)
 {
 	char	str[256],str2[256],do_find=true,mismatches=0
-			,done=0,domsg=1,*buf,*p;
+			,done=0,domsg=1,HUGE16 *buf,*p;
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
@@ -341,7 +341,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 	uint	lp=0;
 	long	org_mode=mode;
 	ulong	msgs,last,l;
-	post_t	*post;
+	post_t	HUGE16 *post;
 	smbmsg_t	msg;
 
 	cursubnum=subnum;	/* for ARS */
@@ -403,7 +403,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 		if(smb.curmsg==smb.msgs) {  /* no new messages */
 			if(!(mode&SCAN_BACK)) {
 				if(post)
-					free(post);
+					LFREE(post);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
 				return(0); 
@@ -512,7 +512,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 		if(smb.status.last_msg!=last) { 	/* New messages */
 			last=smb.status.last_msg;
 			if(post) {
-				free((void *)post); 
+				LFREE((void *)post); 
 			}
 			post=loadposts(&smb.msgs,subnum,0,lp);   /* So re-load */
 			if(!smb.msgs)
@@ -535,7 +535,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				break; 
 			}
 			if(post)
-				free(post);
+				LFREE(post);
 			post=loadposts(&smb.msgs,subnum,0,lp);
 			if(!smb.msgs)
 				break;
@@ -563,7 +563,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				}
 				strupr((char *)buf);
 				if(!strstr((char *)buf,find) && !strstr(msg.subj,find)) {
-					free(buf);
+					FREE(buf);
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
 					else if(org_mode&SCAN_FIND) 
@@ -572,7 +572,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 							domsg=0;
 					continue; 
 				}
-				free(buf); 
+				FREE(buf); 
 			}
 
 			if(mode&SCAN_CONST)
@@ -640,7 +640,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				if(msg.total_hfields)
 					smb_freemsgmem(&msg);
 				if(post)
-					free(post);
+					LFREE(post);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
 				return(1); 
@@ -674,7 +674,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				if(msg.total_hfields)
 					smb_freemsgmem(&msg);
 				if(post)
-					free(post);
+					LFREE(post);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
 				return(0);
@@ -716,25 +716,22 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 					smb_freemsgmem(&msg);
 				msg.total_hfields=0;
 				msg.idx.offset=0;
-				if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-					if(loadmsg(&msg,msg.idx.number)) {
-						msg.idx.attr^=MSG_DELETE;
-						msg.hdr.attr=msg.idx.attr;
-						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i);
-						smb_unlockmsghdr(&smb,&msg);
-						if(i==0 && msg.idx.attr&MSG_DELETE) {
-							sprintf(str,"%s removed post from %s %s"
-								,useron.alias
-								,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
-							logline("P-",str);
-							if(!stricmp(cfg.sub[subnum]->misc&SUB_NAME
-								? useron.name : useron.alias, msg.from))
-								useron.posts=(ushort)adjustuserrec(&cfg,useron.number
-									,U_POSTS,5,-1); 
-						} 
-					}
-					smb_unlocksmbhdr(&smb);
+				if(loadmsg(&msg,msg.idx.number)) {
+					msg.idx.attr^=MSG_DELETE;
+					msg.hdr.attr=msg.idx.attr;
+					if((i=smb_putmsg(&smb,&msg))!=0)
+						errormsg(WHERE,ERR_WRITE,smb.file,i);
+					smb_unlockmsghdr(&smb,&msg);
+					if(i==0 && msg.idx.attr&MSG_DELETE) {
+						sprintf(str,"%s removed post from %s %s"
+							,useron.alias
+							,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
+						logline("P-",str);
+						if(!stricmp(cfg.sub[subnum]->misc&SUB_NAME
+							? useron.name : useron.alias, msg.from))
+							useron.posts=(ushort)adjustuserrec(&cfg,useron.number
+								,U_POSTS,5,-1); 
+					} 
 				}
 				domsg=1;
 				if((cfg.sys_misc&SM_SYSVDELM		// anyone can view delete msgs
@@ -855,7 +852,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 				if(msg.total_hfields)
 					smb_freemsgmem(&msg);
 				if(post)
-					free(post);
+					LFREE(post);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
 				return(1);
@@ -909,14 +906,11 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 								smb_freemsgmem(&msg);
 							msg.total_hfields=0;
 							msg.idx.offset=0;
-							if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-								if(loadmsg(&msg,msg.idx.number)) {
-									msg.hdr.attr=msg.idx.attr=i;
-									if((i=smb_putmsg(&smb,&msg))!=0)
-										errormsg(WHERE,ERR_WRITE,smb.file,i);
-									smb_unlockmsghdr(&smb,&msg); 
-								}
-								smb_unlocksmbhdr(&smb);
+							if(loadmsg(&msg,msg.idx.number)) {
+								msg.hdr.attr=msg.idx.attr=i;
+								if((i=smb_putmsg(&smb,&msg))!=0)
+									errormsg(WHERE,ERR_WRITE,smb.file,i);
+								smb_unlockmsghdr(&smb,&msg); 
 							}
 							break;
 						case 'E':   /* edit last post */
@@ -934,21 +928,18 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 								smb_freemsgmem(&msg);
 							msg.total_hfields=0;
 							msg.idx.offset=0;
-							if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-								if(!loadmsg(&msg,msg.idx.number)) {
-									errormsg(WHERE,ERR_READ,smb.file,msg.idx.number);
-									break; 
-								}
-								sprintf(str,text[DeletePostQ],msg.hdr.number,msg.subj);
-								if(movemsg(&msg,subnum) && yesno(str)) {
-									msg.idx.attr|=MSG_DELETE;
-									msg.hdr.attr=msg.idx.attr;
-									if((i=smb_putmsg(&smb,&msg))!=0)
-										errormsg(WHERE,ERR_WRITE,smb.file,i); 
-								}
-								smb_unlockmsghdr(&smb,&msg);
+							if(!loadmsg(&msg,msg.idx.number)) {
+								errormsg(WHERE,ERR_READ,smb.file,msg.idx.number);
+								break; 
 							}
-							smb_unlocksmbhdr(&smb);
+							sprintf(str,text[DeletePostQ],msg.hdr.number,msg.subj);
+							if(movemsg(&msg,subnum) && yesno(str)) {
+								msg.idx.attr|=MSG_DELETE;
+								msg.hdr.attr=msg.idx.attr;
+								if((i=smb_putmsg(&smb,&msg))!=0)
+									errormsg(WHERE,ERR_WRITE,smb.file,i); 
+							}
+							smb_unlockmsghdr(&smb,&msg);
 							break;
 
 						case 'Q':
@@ -959,7 +950,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 								break;
 	*/
 							bputs(text[FileToWriteTo]);
-							if(getstr(str,40,K_LINE))
+							if(getstr(str,40,K_LINE|K_UPPER))
 								msgtotxt(&msg,str,1,1);
 							break;
 						case 'U':   /* User edit */
@@ -972,15 +963,12 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 								smb_freemsgmem(&msg);
 							msg.total_hfields=0;
 							msg.idx.offset=0;
-							if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-								if(loadmsg(&msg,msg.idx.number)) {
-									msg.idx.attr|=MSG_VALIDATED;
-									msg.hdr.attr=msg.idx.attr;
-									if((i=smb_putmsg(&smb,&msg))!=0)
-										errormsg(WHERE,ERR_WRITE,smb.file,i);
-									smb_unlockmsghdr(&smb,&msg); 
-								}
-								smb_unlocksmbhdr(&smb);
+							if(loadmsg(&msg,msg.idx.number)) {
+								msg.idx.attr|=MSG_VALIDATED;
+								msg.hdr.attr=msg.idx.attr;
+								if((i=smb_putmsg(&smb,&msg))!=0)
+									errormsg(WHERE,ERR_WRITE,smb.file,i);
+								smb_unlockmsghdr(&smb,&msg); 
 							}
 							break;
 						default:
@@ -1091,7 +1079,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 	if(msg.total_hfields)
 		smb_freemsgmem(&msg);
 	if(post)
-		free(post);
+		LFREE(post);
 	if(!(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
 		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron)
 		&& !(useron.rest&FLAG('P'))) {
@@ -1115,7 +1103,7 @@ int sbbs_t::searchsub(uint subnum, char *search)
 	int 	i,found;
 	long	posts;
 	ulong	total;
-	post_t	*post;
+	post_t	HUGE16 *post;
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i);
@@ -1135,7 +1123,7 @@ int sbbs_t::searchsub(uint subnum, char *search)
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,posts,total);
 	found=searchposts(subnum,post,0,posts,search);
 	if(posts)
-		free(post);
+		LFREE(post);
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
 	return(found);
@@ -1147,10 +1135,10 @@ int sbbs_t::searchsub(uint subnum, char *search)
 /* title). 'msgs' is the total number of valid messages.                    */
 /* Returns number of messages found.                                        */
 /****************************************************************************/
-int sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
+int sbbs_t::searchposts(uint subnum, post_t HUGE16 *post, long start, long posts
 	, char *search)
 {
-	char	*buf,ch;
+	char	HUGE16 *buf,ch;
 	long	l,found=0;
 	smbmsg_t msg;
 
@@ -1186,7 +1174,7 @@ int sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 				,msg.subj);
 			found++; 
 		}
-		free(buf);
+		FREE(buf);
 		smb_freemsgmem(&msg); 
 	}
 
@@ -1197,7 +1185,7 @@ int sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 /* Will search the messages pointed to by 'msg' for message to the user on  */
 /* Returns number of messages found.                                        */
 /****************************************************************************/
-void sbbs_t::showposts_toyou(post_t *post, ulong start, long posts)
+void sbbs_t::showposts_toyou(post_t HUGE16 *post, ulong start, long posts)
 {
 	char	str[128];
 	ushort	namecrc,aliascrc,sysop;
@@ -1253,7 +1241,7 @@ int sbbs_t::searchsub_toyou(uint subnum)
 	int 	i;
 	long	posts;
 	ulong	total;
-	post_t	*post;
+	post_t	HUGE16 *post;
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i);
@@ -1273,12 +1261,12 @@ int sbbs_t::searchsub_toyou(uint subnum)
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,total);
 	if(posts) {
 		if(post)
-			free(post);
+			LFREE(post);
 		post=loadposts(&posts,subnum,0,LP_BYSELF|LP_OTHERS);
 		showposts_toyou(post,0,posts); 
 	}
 	if(post)
-		free(post);
+		LFREE(post);
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
 	return(posts);
