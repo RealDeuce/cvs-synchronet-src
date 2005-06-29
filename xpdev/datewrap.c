@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.11 2005/06/29 03:22:14 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.12 2005/06/29 04:20:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,8 +86,8 @@ xpDateTime_t xpDateTime_now(void)
 	gettimeofday(&tv,NULL);
 	localtime_r(&tv.tv_sec,&tm);
 
-	return xpDateTime_create(1900+tm->tm_year,1+tm->tm_mon,tm->tm_mday
-		,tm->tm_hour,tm->tm_min,(float)tm->tm_sec+(tv.tv_usec*0.00001),0);
+	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
+		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec+(tv.tv_usec*0.00001),0);
 #endif
 
 }
