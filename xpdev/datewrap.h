@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.17 2005/09/28 02:09:54 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.14 2005/06/30 16:18:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,13 @@
 /* Compensates for struct tm "weirdness" */
 time_t sane_mktime(struct tm*);
 
+#if defined(__BORLANDC__)
+	#define timezone _timezone
+#endif
+
+/* Converts timezone from seconds west of UTC to minutes east of UTC */
+#define LOCAL_UTC_DIFF	(-timezone/60)
+
 /**************************************/
 /* Cross-platform date/time functions */
 /**************************************/
@@ -73,14 +80,13 @@ xpDateTime_t	xpDateTime_create(unsigned year, unsigned month, unsigned day
 xpDateTime_t	xpDateTime_now(void);
 time_t			xpDateTime_to_time(xpDateTime_t);
 xpDateTime_t	time_to_xpDateTime(time_t);
-xpTimeZone_t	xpTimeZone_local(void);
 
 /**********************************************/
 /* Decimal-coded ISO-8601 date/time functions */
 /**********************************************/
 
 typedef ulong	isoDate_t;	/* CCYYMMDD (decimal) */
-typedef ulong	isoTime_t;	/* HHMMSS   (decimal) */
+typedef uint	isoTime_t;	/* HHMMSS   (decimal) */
 
 #define			isoDate_create(year,mon,day)	(((year)*10000)+((mon)*100)+(day))
 #define			isoTime_create(hour,min,sec)	(((hour)*10000)+((min)*100)+((unsigned)sec))
