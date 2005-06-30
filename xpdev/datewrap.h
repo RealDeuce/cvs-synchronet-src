@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.13 2005/06/30 16:16:48 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.14 2005/06/30 16:18:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,8 +43,12 @@
 /* Compensates for struct tm "weirdness" */
 time_t sane_mktime(struct tm*);
 
+#if defined(__BORLANDC__)
+	#define timezone _timezone
+#endif
+
 /* Converts timezone from seconds west of UTC to minutes east of UTC */
-#define LOCAL_UTC_DIFF	(-_timezone/60)
+#define LOCAL_UTC_DIFF	(-timezone/60)
 
 /**************************************/
 /* Cross-platform date/time functions */
