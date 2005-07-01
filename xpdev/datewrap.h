@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.14 2005/06/30 16:18:18 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.15 2005/07/01 20:44:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 /* Compensates for struct tm "weirdness" */
 time_t sane_mktime(struct tm*);
 
-#if defined(__BORLANDC__)
+#if defined(__BORLANDC__) || defined(__CYGWIN__)
 	#define timezone _timezone
 #endif
 
