@@ -1,5 +1,5 @@
 /*
- * $Id: xpsem.c,v 1.10 2005/09/12 23:24:38 deuce Exp $
+ * $Id: xpsem.c,v 1.9 2005/01/25 08:18:59 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -57,7 +57,7 @@ xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
 		goto RETURN;
 	}
 
-	if (value > XP_SEM_VALUE_MAX) {
+	if (value > SEM_VALUE_MAX) {
 		errno = EINVAL;
 		retval = -1;
 		goto RETURN;
@@ -90,7 +90,7 @@ xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
 	
 	(*sem)->count = (u_int32_t)value;
 	(*sem)->nwaiters = 0;
-	(*sem)->magic = XP_SEM_MAGIC;
+	(*sem)->magic = SEM_MAGIC;
 
 	retval = 0;
   RETURN:
@@ -129,7 +129,7 @@ xp_sem_t *
 xp_sem_open(const char *name, int oflag, ...)
 {
 	errno = ENOSYS;
-	return XP_SEM_FAILED;
+	return SEM_FAILED;
 }
 
 int
