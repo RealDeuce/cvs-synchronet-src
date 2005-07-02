@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.99 2005/06/24 07:53:41 deuce Exp $ */
+/* $Id: term.c,v 1.100 2005/07/02 18:48:59 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -727,6 +727,8 @@ BOOL doterm(struct bbslist *bbs)
 					continue;
 			}
 		}
+		else if (speed)
+			updated=FALSE;
 		hold_update=oldmc;
 		if(updated)
 			gotoxy(wherex(), wherey());
@@ -735,6 +737,8 @@ BOOL doterm(struct bbslist *bbs)
 		/* Get local input */
 		while(kbhit()) {
 			struct mouse_event mevent;
+
+			gotoxy(wherex(), wherey());
 			key=getch();
 			if(key==0 || key==0xff)
 				key|=getch()<<8;
