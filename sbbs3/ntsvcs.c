@@ -2,13 +2,13 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.31 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: ntsvcs.c,v 1.27 2005/03/15 11:55:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,11 +50,7 @@
 #define NTSVC_TIMEOUT_STARTUP	30000	/* Milliseconds */
 #define NTSVC_TIMEOUT_TERMINATE	30000	/* Milliseconds */
 
-#define STRLEN_MAX_DISPLAY_NAME	35
-
 #define STRLEN_SYNCHRONET		10		/* this number ain't change'n */
-
-#define SERVICE_NOT_INSTALLED	(SERVICE_DISABLED+1)
 
 static void WINAPI bbs_ctrl_handler(DWORD dwCtrlCode);
 static void WINAPI ftp_ctrl_handler(DWORD dwCtrlCode);
@@ -303,13 +299,13 @@ static int svc_lputs(void* p, int level, char* str)
 	if(svc->log_handle == INVALID_HANDLE_VALUE) {
 		sprintf(fname,"\\\\.\\mailslot\\%s.log",svc->name);
 		svc->log_handle = CreateFile(
-			fname,					/* pointer to name of the file */
-			GENERIC_WRITE,			/* access (read-write) mode */
-			FILE_SHARE_READ,		/* share mode */
-			NULL,					/* pointer to security attributes */
-			OPEN_EXISTING,			/* how to create */
-			FILE_ATTRIBUTE_NORMAL,  /* file attributes */
-			NULL					/* handle to file with attributes to copy */
+			fname,					// pointer to name of the file
+			GENERIC_WRITE,			// access (read-write) mode
+			FILE_SHARE_READ,		// share mode
+			NULL,					// pointer to security attributes
+			OPEN_EXISTING,			// how to create
+			FILE_ATTRIBUTE_NORMAL,  // file attributes
+			NULL					// handle to file with attributes to copy
 			);
 	}
 	if(svc->log_handle != INVALID_HANDLE_VALUE) {
@@ -328,19 +324,19 @@ static int svc_lputs(void* p, int level, char* str)
 	if((*svc->log_mask)&(1<<level)) {
 		if(svc->event_handle == NULL)
 			svc->event_handle = RegisterEventSource(
-				NULL,		/* server name for source (NULL = local computer) */
-				svc->name   /* source name for registered handle */
+				NULL,		// server name for source (NULL = local computer)
+				svc->name   // source name for registered handle
 				);
 		if(svc->event_handle != NULL)
-			ReportEvent(svc->event_handle,  /* event log handle */
-				event_type(level),		/* event type */
-				0,						/* category zero */
-				0,						/* event identifier */
-				NULL,					/* no user security identifier */
-				1,						/* one string */
-				0,						/* no data */
-				&str,					/* pointer to string array */
-				NULL);					/* pointer to data */
+			ReportEvent(svc->event_handle,  // event log handle
+				event_type(level),		// event type
+				0,						// category zero
+				0,						// event identifier
+				NULL,					// no user security identifier
+				1,						// one string
+				0,						// no data
+				&str,					// pointer to string array
+				NULL);					// pointer to data
 	}
 
     return(0);
@@ -552,15 +548,15 @@ static BOOL register_event_source(char* name, char* path)
 	sprintf(keyname,"system\\CurrentControlSet\\services\\eventlog\\application\\%s",name);
 
 	retval=RegCreateKeyEx(
-		HKEY_LOCAL_MACHINE,			/* handle to an open key */
-		keyname,			/* address of subkey name */
-		0,				/* reserved */
-		"",				/* address of class string */
-		0,				/* special options flag */
-		KEY_ALL_ACCESS, /* desired security access */
-		NULL,           /* address of key security structure */
-		&hKey,			/* address of buffer for opened handle */
-		&disp			/* address of disposition value buffer */
+		HKEY_LOCAL_MACHINE,			// handle to an open key
+		keyname,			// address of subkey name
+		0,				// reserved
+		"",				// address of class string
+		0,				// special options flag
+		KEY_ALL_ACCESS, // desired security access
+		NULL,           // address of key security structure
+		&hKey,			// address of buffer for opened handle
+		&disp			// address of disposition value buffer
 		);
 
 	if(retval!=ERROR_SUCCESS) {
@@ -571,12 +567,12 @@ static BOOL register_event_source(char* name, char* path)
 
 	value="EventMessageFile";
 	retval=RegSetValueEx(
-		hKey,			/* handle to key to set value for */
-		value,			/* name of the value to set */
-		0,				/* reserved */
-		REG_SZ,			/* flag for value type */
-		path,			/* address of value data */
-		strlen(path)	/* size of value data */
+		hKey,			// handle to key to set value for
+		value,			// name of the value to set
+		0,				// reserved
+		REG_SZ,			// flag for value type
+		path,			// address of value data
+		strlen(path)	// size of value data
 		);
 
 	if(retval!=ERROR_SUCCESS) {
@@ -589,12 +585,12 @@ static BOOL register_event_source(char* name, char* path)
 	value="TypesSupported";
 	type=EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
 	retval=RegSetValueEx(
-		hKey,			/* handle to key to set value for */
-		value,			/* name of the value to set */
-		0,				/* reserved */
-		REG_DWORD,		/* flag for value type */
-		(BYTE*)&type,	/* address of value data */
-		sizeof(type)	/* size of value data */
+		hKey,			// handle to key to set value for
+		value,			// name of the value to set
+		0,				// reserved
+		REG_DWORD,		// flag for value type
+		(BYTE*)&type,	// address of value data
+		sizeof(type)	// size of value data
 		);
 
 	RegCloseKey(hKey);
@@ -608,124 +604,6 @@ static BOOL register_event_source(char* name, char* path)
 	return(TRUE);
 }
 
-static const char* start_type_desc(DWORD start_type)
-{
-	static char str[128];
-
-	switch(start_type) {
-		case SERVICE_AUTO_START:			return("Startup: Automatic");
-		case SERVICE_DEMAND_START:			return("Startup: Manual");
-		case SERVICE_DISABLED:				return("Disabled");
-		case SERVICE_NOT_INSTALLED:			return("Not installed");
-	}
-
-	sprintf(str,"Start_type: %d", start_type);
-	return(str);
-}
-
-static const char* state_desc(DWORD state)
-{
-	static char str[128];
-
-	switch(state) {
-		case SERVICE_STOPPED:				return("Stopped");
-		case SERVICE_START_PENDING:			return("Start Pending");
-		case SERVICE_STOP_PENDING:			return("Stop Pending");
-		case SERVICE_RUNNING:				return("Running");
-		case SERVICE_CONTINUE_PENDING:		return("Continue Pending");
-		case SERVICE_PAUSE_PENDING:			return("Pause Pending");
-		case SERVICE_PAUSED:				return("Paused");
-	}
-
-	sprintf(str,"State: %d", state);
-	return(str);
-}
-
-static const char* control_desc(DWORD ctrl)
-{
-	static char str[128];
-
-	switch(ctrl) {
-		case SERVICE_CONTROL_STOP:
-			return("Stopping");
-		case SERVICE_CONTROL_PAUSE:
-			return("Pausing");
-		case SERVICE_CONTROL_CONTINUE:
-			return("Continuing");
-		case SERVICE_CONTROL_INTERROGATE:
-			return("Interrogating");
-		case SERVICE_CONTROL_SHUTDOWN:
-			return("Shutting-down");
-
-		/* Synchronet-specific */
-		case SERVICE_CONTROL_RECYCLE:
-			return("Recycling");
-		case SERVICE_CONTROL_MUTE:
-			return("Muting");
-		case SERVICE_CONTROL_UNMUTE:
-			return("Un-muting");
-		case SERVICE_CONTROL_SYSOP_AVAILABLE:
-			return("Sysop Available");
-		case SERVICE_CONTROL_SYSOP_UNAVAILABLE:	
-			return("Sysop Unavailable");
-	}
-	sprintf(str,"Control: %d", ctrl);
-	return(str);
-}
-
-/****************************************************************************/
-/* Utility function to detect if a service is currently disabled			*/
-/****************************************************************************/
-static DWORD get_service_info(SC_HANDLE hSCManager, char* name, DWORD* state)
-{
-    SC_HANDLE		hService;
-	DWORD			size;
-	DWORD			err;
-	SERVICE_STATUS	status;
-	LPQUERY_SERVICE_CONFIG service_config;
-
-	if(state!=NULL)
-		*state=SERVICE_STOPPED;
-
-	if((hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS))==NULL) {
-		if((err=GetLastError())==ERROR_SERVICE_DOES_NOT_EXIST)
-			return(SERVICE_NOT_INSTALLED);
-		printf("\n!ERROR %d opening service: %s\n",err,name);
-		return(-1);
-	}
-
-	if(QueryServiceConfig(
-		hService,		/* handle of service */
-		NULL,			/* address of service config. structure */
-		0,				/* size of service configuration buffer */
-		&size			/* address of variable for bytes needed */
-		) || GetLastError()!=ERROR_INSUFFICIENT_BUFFER) {
-		printf("\n!Unexpected QueryServiceConfig ERROR %u\n",err=GetLastError());
-		return(-1);
-	}
-
-	if(state!=NULL && QueryServiceStatus(hService,&status))
-		*state=status.dwCurrentState;
-
-	if((service_config=alloca(size))==NULL) {
-		printf("\n!ERROR allocating %u bytes of memory\n", size);
-		return(-1);
-	}
-
-	if(!QueryServiceConfig(
-		hService,		/* handle of service */
-		service_config,	/* address of service config. structure */
-		size,			/* size of service configuration buffer */
-		&size			/* address of variable for bytes needed */
-		)) {
-		printf("\n!QueryServiceConfig ERROR %u\n",GetLastError());
-		return(-1);
-	}
-    CloseServiceHandle(hService);
-
-	return(service_config->dwStartType);
-}
-
 /****************************************************************************/
 /* Utility function to create a service with description (on Win2K+)		*/
 /****************************************************************************/
@@ -734,36 +612,31 @@ static SC_HANDLE create_service(HANDLE hSCMlib, SC_HANDLE hSCManager
 								,BOOL autostart)
 {
     SC_HANDLE   hService;
-	DWORD		err;
-	DWORD		start_type = autostart ? SERVICE_AUTO_START : SERVICE_DEMAND_START;
 
-	printf("Installing service: %-*s ... ", STRLEN_MAX_DISPLAY_NAME, display_name);
+	printf("Installing service: %-40s ... ", display_name);
 
     hService = CreateService(
-        hSCManager,						/* SCManager database */
-        name,							/* name of service */
-        display_name,					/* name to display */
-        SERVICE_ALL_ACCESS,				/* desired access */
-        SERVICE_WIN32_SHARE_PROCESS,	/* service type */
-		start_type,						/* start type (auto or manual) */
-        SERVICE_ERROR_NORMAL,			/* error control type */
-        path,							/* service's binary */
-        NULL,							/* no load ordering group */
-        NULL,							/* no tag identifier */
-        "",								/* dependencies */
-        NULL,							/* LocalSystem account */
-        NULL);							/* no password */
+        hSCManager,						// SCManager database
+        name,							// name of service
+        display_name,					// name to display
+        SERVICE_ALL_ACCESS,				// desired access
+        SERVICE_WIN32_SHARE_PROCESS,	// service type
+		autostart						// start type (auto or manual)
+			? SERVICE_AUTO_START : SERVICE_DEMAND_START,				
+        SERVICE_ERROR_NORMAL,			// error control type
+        path,							// service's binary
+        NULL,							// no load ordering group
+        NULL,							// no tag identifier
+        "",								// dependencies
+        NULL,							// LocalSystem account
+        NULL);							// no password
 
-	if(hService==NULL) {
-		if((err=GetLastError())==ERROR_SERVICE_EXISTS)
-			printf("Already installed\n");
-		else
-			printf("!ERROR %d\n",err);
-	}
+	if(hService==NULL)
+		printf("!ERROR %d\n",GetLastError());
 	else {
 		describe_service(hSCMlib, hService,description);
 		CloseServiceHandle(hService);
-		printf("%s\n", start_type_desc(start_type));
+		printf("Successful\n");
 
 		register_event_source(name,path);
 	}
@@ -792,9 +665,9 @@ static int install(const char* svc_name)
     }
 
     hSCManager = OpenSCManager(
-                        NULL,                   /* machine (NULL == local) */
-                        NULL,                   /* database (NULL == default) */
-                        SC_MANAGER_ALL_ACCESS   /* access required */
+                        NULL,                   // machine (NULL == local)
+                        NULL,                   // database (NULL == default)
+                        SC_MANAGER_ALL_ACCESS   // access required
                         );
     if(hSCManager==NULL) {
 		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
@@ -821,22 +694,6 @@ static int install(const char* svc_name)
 	return(0);
 }
 
-static SC_HANDLE open_service(SC_HANDLE hSCManager, char* name)
-{
-	SC_HANDLE	hService;
-	DWORD		err;
-
-	if((hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS))==NULL) {
-		if((err=GetLastError())==ERROR_SERVICE_DOES_NOT_EXIST)
-			printf("Not installed\n");
-		else
-			printf("\n!ERROR %d opening service: %s\n",err,name);
-		return(NULL);
-	}
-
-	return(hService);
-}
-
 /****************************************************************************/
 /* Utility function to remove a service cleanly (stopping if necessary)		*/
 /****************************************************************************/
@@ -845,28 +702,32 @@ static void remove_service(SC_HANDLE hSCManager, char* name, char* disp_name)
     SC_HANDLE		hService;
 	SERVICE_STATUS	status;
 
-	printf("Removing: %-*s ... ", STRLEN_MAX_DISPLAY_NAME, disp_name);
+	printf("Removing service: %-40s ... ", disp_name);
 
-    if((hService=open_service(hSCManager, name))==NULL)
+    hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS);
+
+	if(hService==NULL) {
+		printf("\n!ERROR %d opening service: %s\n",GetLastError(),name);
 		return;
+	}
 
-    /* try to stop the service */
+    // try to stop the service
     if(ControlService( hService, SERVICE_CONTROL_STOP, &status))
     {
-        printf("\nStopping: %-*s ... ", STRLEN_MAX_DISPLAY_NAME, disp_name);
+        printf("\nStopping: %s ... ",name);
 
         while(QueryServiceStatus(hService, &status) && status.dwCurrentState == SERVICE_STOP_PENDING)
 			Sleep(1000);
 
         if(status.dwCurrentState == SERVICE_STOPPED)
-            printf("Stopped, ");
+            printf("Stopped.\n");
         else
-            printf("FAILED!, ");
+            printf("FAILED!\n");
     }
 
-    /* now remove the service */
+    // now remove the service
     if(DeleteService(hService))
-		printf("Removed\n");
+		printf("Successful\n");
 	else
 		printf("!ERROR %d\n",GetLastError());
     CloseServiceHandle(hService);
@@ -880,98 +741,28 @@ static void stop_service(SC_HANDLE hSCManager, char* name, char* disp_name)
     SC_HANDLE		hService;
 	SERVICE_STATUS	status;
 
-    printf("Stopping service: %-*s ... ", STRLEN_MAX_DISPLAY_NAME, disp_name);
-    if((hService=open_service(hSCManager, name))==NULL)
-		return;
+    printf("Stopping service: %-40s ... ",disp_name);
+    hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS);
 
-    /* try to stop the service */
+	if(hService==NULL) {
+		printf("\n!ERROR %d opening service: %s\n",GetLastError(),name);
+		return;
+	}
+
+    // try to stop the service
     if(ControlService( hService, SERVICE_CONTROL_STOP, &status))
     {
         while(QueryServiceStatus(hService, &status) && status.dwCurrentState == SERVICE_STOP_PENDING)
 			Sleep(1000);
 
         if(status.dwCurrentState == SERVICE_STOPPED)
-            printf("Stopped\n");
+            printf("Stopped.\n");
         else
             printf("FAILED!\n");
     } else
-		printf("Already stopped\n");
+		printf("Already Stopped.\n");
 
     CloseServiceHandle(hService);
-}
-
-/****************************************************************************/
-/* Utility function to stop a service										*/
-/****************************************************************************/
-static void control_service(SC_HANDLE hSCManager, char* name, char* disp_name, DWORD ctrl)
-{
-    SC_HANDLE		hService;
-	SERVICE_STATUS	status;
-	DWORD			err;
-
-    printf("%s service: %-*s ... ", control_desc(ctrl), STRLEN_MAX_DISPLAY_NAME, disp_name);
-    if((hService=open_service(hSCManager, name))==NULL)
-		return;
-
-    /* try to stop the service */
-    if(!ControlService( hService, SERVICE_CONTROL_STOP, &status)) {
-		if((err=GetLastError())==ERROR_SERVICE_NOT_ACTIVE)
-			printf("Not active\n");
-		else
-			printf("!ERROR %d\n",err);
-    } else
-		printf("Successful\n");
-
-    CloseServiceHandle(hService);
-}
-
-
-
-/****************************************************************************/
-/* Control one or all services												*/
-/****************************************************************************/
-static int control(const char* svc_name, DWORD ctrl)
-{
-	int			i;
-    SC_HANDLE   hSCManager;
-
-    hSCManager = OpenSCManager(
-                        NULL,                   /* machine (NULL == local) */
-                        NULL,                   /* database (NULL == default) */
-                        SC_MANAGER_ALL_ACCESS   /* access required */
-                        );
-    if(hSCManager==NULL) {
-		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
-		return(-1);
-	}
-
-	for(i=0;ntsvc_list[i]!=NULL;i++) {
-#if 0
-		if(svc_name==NULL 
-			&& get_service_info(hSCManager, ntsvc_list[i]->name,NULL)==SERVICE_DISABLED)
-			continue;
-#endif
-		if(svc_name==NULL	/* All? */
-			|| !stricmp(ntsvc_list[i]->name, svc_name)
-			|| !stricmp(ntsvc_list[i]->name+STRLEN_SYNCHRONET, svc_name))
-			switch(ctrl) {
-				case SERVICE_CONTROL_STOP:
-					stop_service(hSCManager
-						,ntsvc_list[i]->name
-						,ntsvc_list[i]->display_name);
-					break;
-				default:
-					control_service(hSCManager
-						,ntsvc_list[i]->name
-						,ntsvc_list[i]->display_name
-						,ctrl);
-					break;
-		}
-	}
-
-	CloseServiceHandle(hSCManager);
-
-	return(0);
 }
 
 /****************************************************************************/
@@ -983,21 +774,26 @@ static void start_service(SC_HANDLE hSCManager, char* name, char* disp_name
     SC_HANDLE		hService;
 	SERVICE_STATUS	status;
 
-    printf("Starting service: %-*s ... ", STRLEN_MAX_DISPLAY_NAME, disp_name);
-    if((hService=open_service(hSCManager, name))==NULL)
+    printf("Starting service: %-40s ... ",disp_name);
+    hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS);
+
+	if(hService==NULL) {
+		printf("\n!ERROR %d opening service: %s\n",GetLastError(),name);
 		return;
+	}
 
 	if(QueryServiceStatus(hService, &status) && status.dwCurrentState == SERVICE_RUNNING)
-		printf("Already running\n");
+		printf("Already Running.\n");
 	else {
-		/* Start the service */
+		// Start the service
 		if(StartService( hService, argc, argv))
 		{
+
 			while(QueryServiceStatus(hService, &status) && status.dwCurrentState == SERVICE_START_PENDING)
 				Sleep(1000);
 
 			if(status.dwCurrentState == SERVICE_RUNNING)
-				printf("Started\n");
+				printf("Started.\n");
 			else
 				printf("FAILED!\n");
 		} else
@@ -1006,6 +802,7 @@ static void start_service(SC_HANDLE hSCManager, char* name, char* disp_name
 
     CloseServiceHandle(hService);
 }
+
 
 /****************************************************************************/
 /* Uninstall one or all services											*/
@@ -1016,9 +813,9 @@ static int uninstall(const char* svc_name)
     SC_HANDLE   hSCManager;
 
     hSCManager = OpenSCManager(
-                        NULL,                   /* machine (NULL == local) */
-                        NULL,                   /* database (NULL == default) */
-                        SC_MANAGER_ALL_ACCESS   /* access required */
+                        NULL,                   // machine (NULL == local)
+                        NULL,                   // database (NULL == default)
+                        SC_MANAGER_ALL_ACCESS   // access required
                         );
     if(hSCManager==NULL) {
 		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
@@ -1046,32 +843,81 @@ static void set_service_start_type(SC_HANDLE hSCManager, char* name
 {
     SC_HANDLE		hService;
 
-	printf("%s service: %-*s ... "
-		,start_type==SERVICE_DISABLED ? "Disabling" : "Enabling"
-		,STRLEN_MAX_DISPLAY_NAME, disp_name);
+	printf("%s service: %-40s ... "
+		,start_type==SERVICE_DISABLED ? "Disabling" : "Enabling", disp_name);
 
-    if((hService=open_service(hSCManager, name))==NULL)
+    hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS);
+
+	if(hService==NULL) {
+		printf("\n!ERROR %d opening service: %s\n",GetLastError(),name);
 		return;
+	}
 
 	if(!ChangeServiceConfig(
-		hService,				/* handle to service */
-		SERVICE_NO_CHANGE,		/* type of service */
-		start_type,				/* when to start service */
-		SERVICE_NO_CHANGE,		/* severity if service fails to start */
-		NULL,					/* pointer to service binary file name */
-		NULL,					/* pointer to load ordering group name */
-		NULL,					/* pointer to variable to get tag identifier */
-		NULL,					/* pointer to array of dependency names */
-		NULL,					/* pointer to account name of service */
-		NULL,					/* pointer to password for service account */
-		NULL					/* pointer to display name */
+		hService,				// handle to service
+		SERVICE_NO_CHANGE,		// type of service
+		start_type,				// when to start service
+		SERVICE_NO_CHANGE,		// severity if service fails to start
+		NULL,					// pointer to service binary file name
+		NULL,					// pointer to load ordering group name
+		NULL,					// pointer to variable to get tag identifier
+		NULL,					// pointer to array of dependency names
+		NULL,					// pointer to account name of service
+		NULL,					// pointer to password for service account
+		NULL					// pointer to display name
 		))
 		printf("\n!ERROR %d changing service config for: %s\n",GetLastError(),name);
 	else
-		printf("%s\n", start_type_desc(start_type));
+		printf("Successful\n");
 
     CloseServiceHandle(hService);
 }
+
+/****************************************************************************/
+/* Utility function to detect if a service is currently disabled			*/
+/****************************************************************************/
+static BOOL service_disabled(SC_HANDLE hSCManager, char* name)
+{
+    SC_HANDLE		hService;
+	DWORD			size;
+	LPQUERY_SERVICE_CONFIG service_config;
+
+    hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS);
+
+	if(hService==NULL) {
+		printf("\n!ERROR %d opening service: %s\n",GetLastError(),name);
+		return(TRUE);
+	}
+
+	if(QueryServiceConfig(
+		hService,		// handle of service
+		NULL,			// address of service config. structure
+		0,				// size of service configuration buffer
+		&size			// address of variable for bytes needed
+		) || GetLastError()!=ERROR_INSUFFICIENT_BUFFER) {
+		printf("\n!Unexpected QueryServiceConfig ERROR %u\n",GetLastError());
+		return(TRUE);
+	}
+
+	if((service_config=alloca(size))==NULL) {
+		printf("\n!ERROR allocating %u bytes of memory\n", size);
+		return(TRUE);
+	}
+
+	if(!QueryServiceConfig(
+		hService,		// handle of service
+		service_config,	// address of service config. structure
+		size,			// size of service configuration buffer
+		&size			// address of variable for bytes needed
+		)) {
+		printf("\n!QueryServiceConfig ERROR %u\n",GetLastError());
+		return(TRUE);
+	}
+    CloseServiceHandle(hService);
+
+	return(service_config->dwStartType == SERVICE_DISABLED);
+}
+
 
 /****************************************************************************/
 /* Enable (set to auto-start) or disable one or all services				*/
@@ -1082,9 +928,9 @@ static int enable(const char* svc_name, BOOL enabled)
     SC_HANDLE   hSCManager;
 
     hSCManager = OpenSCManager(
-                        NULL,                   /* machine (NULL == local) */
-                        NULL,                   /* database (NULL == default) */
-                        SC_MANAGER_ALL_ACCESS   /* access required */
+                        NULL,                   // machine (NULL == local)
+                        NULL,                   // database (NULL == default)
+                        SC_MANAGER_ALL_ACCESS   // access required
                         );
     if(hSCManager==NULL) {
 		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
@@ -1107,19 +953,17 @@ static int enable(const char* svc_name, BOOL enabled)
 }
 
 /****************************************************************************/
-/* List one or all services													*/
+/* Stop one or all services													*/
 /****************************************************************************/
-static int list(const char* svc_name)
+static int stop(const char* svc_name)
 {
 	int			i;
     SC_HANDLE   hSCManager;
-	DWORD		state;
-	DWORD		start_type;
 
     hSCManager = OpenSCManager(
-                        NULL,                   /* machine (NULL == local) */
-                        NULL,                   /* database (NULL == default) */
-                        SC_MANAGER_ALL_ACCESS   /* access required */
+                        NULL,                   // machine (NULL == local)
+                        NULL,                   // database (NULL == default)
+                        SC_MANAGER_ALL_ACCESS   // access required
                         );
     if(hSCManager==NULL) {
 		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
@@ -1127,15 +971,11 @@ static int list(const char* svc_name)
 	}
 
 	for(i=0;ntsvc_list[i]!=NULL;i++) {
-		if(svc_name==NULL 
-			|| !stricmp(ntsvc_list[i]->name, svc_name)
-			|| !stricmp(ntsvc_list[i]->name+STRLEN_SYNCHRONET, svc_name)) {
-			start_type = get_service_info(hSCManager, ntsvc_list[i]->name, &state);
-			printf("%-*s ... %s, %s\n"
-				,STRLEN_MAX_DISPLAY_NAME, ntsvc_list[i]->display_name
-				,start_type_desc(start_type)
-				,state_desc(state));
-		}
+		if(svc_name!=NULL 
+			&& (stricmp(ntsvc_list[i]->name, svc_name)
+			||  stricmp(ntsvc_list[i]->name+STRLEN_SYNCHRONET, svc_name)))
+			continue;
+		stop_service(hSCManager,ntsvc_list[i]->name,ntsvc_list[i]->display_name);
 	}
 
 	CloseServiceHandle(hSCManager);
@@ -1144,7 +984,7 @@ static int list(const char* svc_name)
 }
 
 /****************************************************************************/
-/* Start one or all services												*/
+/* Start one or all services													*/
 /****************************************************************************/
 static int start(const char* svc_name, int argc, char** argv)
 {
@@ -1152,9 +992,9 @@ static int start(const char* svc_name, int argc, char** argv)
     SC_HANDLE   hSCManager;
 
     hSCManager = OpenSCManager(
-                        NULL,                   /* machine (NULL == local) */
-                        NULL,                   /* database (NULL == default) */
-                        SC_MANAGER_ALL_ACCESS   /* access required */
+                        NULL,                   // machine (NULL == local)
+                        NULL,                   // database (NULL == default)
+                        SC_MANAGER_ALL_ACCESS   // access required
                         );
     if(hSCManager==NULL) {
 		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
@@ -1162,13 +1002,13 @@ static int start(const char* svc_name, int argc, char** argv)
 	}
 
 	for(i=0;ntsvc_list[i]!=NULL;i++) {
-		if(svc_name==NULL 
-			&& get_service_info(hSCManager, ntsvc_list[i]->name,NULL)==SERVICE_DISABLED)
+		if(svc_name==NULL && service_disabled(hSCManager, ntsvc_list[i]->name))
 			continue;
-		if(svc_name==NULL 
-			|| !stricmp(ntsvc_list[i]->name, svc_name)
-			|| !stricmp(ntsvc_list[i]->name+STRLEN_SYNCHRONET, svc_name))
-			start_service(hSCManager,ntsvc_list[i]->name,ntsvc_list[i]->display_name
+		if(svc_name!=NULL 
+			&& (stricmp(ntsvc_list[i]->name, svc_name)
+			||  stricmp(ntsvc_list[i]->name+STRLEN_SYNCHRONET, svc_name)))
+			continue;
+		start_service(hSCManager,ntsvc_list[i]->name,ntsvc_list[i]->display_name
 				,argc,argv);
 	}
 
@@ -1300,9 +1140,6 @@ int main(int argc, char** argv)
 		if(!stricmp(arg,"help") || *arg=='?')
 			start_services=FALSE;
 
-		if(!stricmp(arg,"list"))
-			return list(argv[i+1]);
-
 		if(!stricmp(arg,"install"))
 			return install(argv[i+1]);
 
@@ -1316,19 +1153,10 @@ int main(int argc, char** argv)
 			return enable(argv[i+1], TRUE);
 
 		if(!stricmp(arg,"stop"))
-			return control(argv[i+1],SERVICE_CONTROL_STOP);
+			return stop(argv[i+1]);
 
 		if(!stricmp(arg,"start"))
 			return start(argv[i+1],argc,argv);
-
-		if(!stricmp(arg,"recycle"))
-			return control(argv[i+1],SERVICE_CONTROL_RECYCLE);
-
-		if(!stricmp(arg,"mute"))
-			return control(argv[i+1],SERVICE_CONTROL_MUTE);
-
-		if(!stricmp(arg,"unmute"))
-			return control(argv[i+1],SERVICE_CONTROL_UNMUTE);
 	}
 
 	if(start_services) {
@@ -1352,16 +1180,12 @@ int main(int argc, char** argv)
 	printf("\nIf service name not specified, default is ALL services.\n");
 
 	printf("\nAvailable Commands:\n\n");
-	printf("%-20s %s\n","list","to list services");
     printf("%-20s %s\n","install","to install services");
     printf("%-20s %s\n","remove","to remove serivces");
     printf("%-20s %s\n","disable","to disable services");
     printf("%-20s %s\n","enable","to re-enable disabled services");
     printf("%-20s %s\n","start","to start services");
     printf("%-20s %s\n","stop","to stop services");
-	printf("%-20s %s\n","recycle","to recycle services");
-	printf("%-20s %s\n","mute","to mute (sounds of) services");
-	printf("%-20s %s\n","unmute","to unmute (sounds of) services");
 
 	printf("\nAvailable Services:\n\n");
 	printf("%-20s %s\n","Name","Description");
