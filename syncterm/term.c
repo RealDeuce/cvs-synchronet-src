@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.100 2005/07/02 18:48:59 deuce Exp $ */
+/* $Id: term.c,v 1.101 2005/07/03 00:02:49 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -909,7 +909,7 @@ BOOL doterm(struct bbslist *bbs)
 					}
 			}
 		}
-		SLEEP(1);
+		MAYBE_YIELD();
 	}
 
 	return(FALSE);
