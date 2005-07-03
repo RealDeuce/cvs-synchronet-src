@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.182 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: services.c,v 1.183 2005/06/30 20:45:45 runderwo Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1523,7 +1523,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.182 $", "%*s %s", revision);
+	sscanf("$Revision: 1.183 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1983,7 +1983,7 @@ void DLLCALL services_thread(void* arg)
 					,service[i].protocol, host_ip, ntohs(client_addr.sin_port));
 
 				if(service[i].max_clients && service[i].clients+1>service[i].max_clients) {
-					lprintf(LOG_WARNING,"%04d !%s MAXMIMUM CLIENTS (%u) reached, access denied"
+					lprintf(LOG_WARNING,"%04d !%s MAXIMUM CLIENTS (%u) reached, access denied"
 						,client_socket, service[i].protocol, service[i].max_clients);
 					mswait(3000);
 					close_socket(client_socket);
