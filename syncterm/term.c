@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.104 2005/07/03 07:16:06 deuce Exp $ */
+/* $Id: term.c,v 1.105 2005/07/03 07:17:40 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -730,13 +730,11 @@ BOOL doterm(struct bbslist *bbs)
 			}
 		}
 		else if (speed) {
-			updated=FALSE;
 			sleep=FALSE;
 		}
 		hold_update=oldmc;
-		if(updated)
+		if(updated && sleep)
 			gotoxy(wherex(), wherey());
-		updated=FALSE;
 
 		/* Get local input */
 		while(kbhit()) {
@@ -914,7 +912,7 @@ BOOL doterm(struct bbslist *bbs)
 					}
 			}
 		}
-		if(!updated)
+		if(sleep)
 			SLEEP(1);
 		else
 			MAYBE_YIELD();
