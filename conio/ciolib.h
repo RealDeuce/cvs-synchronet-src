@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.27 2005/10/05 20:38:09 deuce Exp $ */
+/* $Id: ciolib.h,v 1.24 2005/05/19 23:54:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,8 +44,6 @@ enum {
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
-	,CIOLIB_MODE_SDL
-	,CIOLIB_MODE_SDL_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -295,11 +293,6 @@ char *ciolib_getcliptext(void);
 	#define settitle(a)				ciolib_settitle(a)
 	#define copytext(a,b)			ciolib_copytext(a,b)
 	#define getcliptext()		ciolib_getcliptext()
-#endif
-
-/* Special hackery for SDL */
-#ifdef WITH_SDL
-	#define	main	CIOLIB_main
 #endif
 
 #endif	/* Do not add anything after this line */

@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.50 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: pack_qwk.cpp,v 1.49 2005/06/24 17:34:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	time_t	start;
 	node_t	node;
 	mail_t	*mail;
-	post_t	*post;
+	post_t	HUGE16 *post;
 	glob_t	g;
 	FILE	*stream,*qwk,*personal,*ndx;
 	DIR*	dir;
@@ -272,7 +272,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						fclose(personal);
 					smb_close(&smb);
 					errormsg(WHERE,ERR_OPEN,str,0);
-					free(mail);
+					FREE(mail);
 					return(false); 
 				}
 			}
@@ -326,7 +326,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		}
 		smb_close(&smb);					/* Close the e-mail */
 		if(mailmsgs)
-			free(mail);
+			FREE(mail);
 		}
 
 	/*********************/
@@ -394,7 +394,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 							fclose(personal);
 						smb_close(&smb);
 						errormsg(WHERE,ERR_OPEN,str,0);
-						free(post);
+						LFREE(post);
 						return(false); 
 					}
 				}
@@ -471,7 +471,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						remove(str); 
 				}
 				smb_close(&smb);
-				free(post);
+				LFREE(post);
 				if(l<posts)
 					break; 
 				YIELD();	/* yield */
