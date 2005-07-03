@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id: spyon.c,v 1.5 2005/07/03 04:25:23 deuce Exp $ */
+/* $Id: spyon.c,v 1.4 2005/06/16 21:43:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include <unistd.h>
-#include <stdlib.h>
 #include "sockwrap.h"	/* Must go before <sys/un.h> */
 #include <sys/un.h>
 #include <stdio.h>
