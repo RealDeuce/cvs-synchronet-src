@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.25 2005/07/14 07:30:47 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.22 2005/07/03 04:05:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,8 +86,7 @@ xpDateTime_t xpDateTime_now(void)
 	struct timeval tv;
 	time_t	t;
 
-	gettimeofday(&tv, NULL);
-	t=tv.tv_sec;
+	t=time(NULL);
 	localtime_r(&t,&tm);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
@@ -98,7 +97,7 @@ xpDateTime_t xpDateTime_now(void)
 
 xpTimeZone_t xpTimeZone_local(void)
 {
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
 	struct tm tm;
 	time_t t;
 
@@ -324,13 +323,11 @@ void gettime(struct time* nyt)
 	nyt->ti_sec=(unsigned char)systime.wSecond;
 	nyt->ti_hund=systime.wMilliseconds/10;
 #else	/* !Win32 (e.g. Unix) */
-	struct tm dte;
-	time_t t;
 	struct timeval tim;
+	time_t dte;
 
-	gettimeofday(&tim, NULL);
-	t=tim.tv_sec;
-	localtime_r(&t,&dte);
+	dte=time(NULL);
+	localtime_r(&dte,&dte);
 	nyt->ti_min=dte.tm_min;
 	nyt->ti_hour=dte.tm_hour;
 	nyt->ti_sec=dte.tm_sec;
