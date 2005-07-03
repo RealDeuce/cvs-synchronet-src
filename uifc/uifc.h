@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.57 2005/02/10 06:21:45 deuce Exp $ */
+/* $Id: uifc.h,v 1.65 2005/06/18 23:04:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,7 @@
 	#define MSK_DEL 	0x20000000
 	#define MSK_GET 	0x30000000
 	#define MSK_PUT 	0x40000000
+	#define MSK_EDIT 	0x50000000
 	/* Dont forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
 #else
 	#define MAX_OPTS	500 	/* Maximum number of options per menu call */
@@ -143,6 +144,7 @@
 	#define MSK_DEL 	0x2000
 	#define MSK_GET 	0x3000
 	#define MSK_PUT 	0x4000
+	#define MSK_EDIT 	0x5000
 #endif
 #define MAX_OPLN	75		/* Maximum length of each option per menu call */
 #define MAX_BUFS	7		/* Maximum number of screen buffers to save */
@@ -191,6 +193,10 @@
 							 * Return value is -2 - keyvalue */
 #define WIN_NOBRDR	(1<<24)	/* Do not draw a border around the window */
 #define WIN_FIXEDHEIGHT	(1<<25)	/* Use list_height from uifc struct */
+#define WIN_UNGETMOUSE  (1<<26) /* If the mouse is clicked outside the window, */
+								/* Put the mouse event back into the event queue */
+#define WIN_EDIT	(1<<27)	/* Allow F2 to edit a menu item */
+#define WIN_EDITACT	(1<<28)	/* Remain active after edit key */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -211,10 +217,26 @@
 #define K_NOCRLF	(1L<<9) 	/* Don't print CRLF after string input      */
 #define K_ALPHA 	(1L<<10)	/* Only allow alphabetic characters 		*/
 #define K_SCANNING	(1L<<11)	/* UPC Scanner is active... return on '%'	*/
-#define K_TABEXIT	(1L<<12)	/* Return on TAB					    	*/
+#define K_TABEXIT	(1L<<12)	/* Return on TAB or BACKTAB			    	*/
 #define K_DECIMAL	(1L<<13)	/* Allow floating point numbers only		*/
-#define K_DEUCEEXIT	(1L<<13)	/* Return whenever Deuce wants to exit		*/
-								/* Define this behaviour better - ToDo		*/
+#define K_DEUCEEXIT	(1L<<14)	/* Return whenever Deuce wants to exit		*/
+								/* Returns on up/down/F2					*/
+#define K_MOUSEEXIT	(1L<<15)	/* Returns when mouse is clicked outside of */
+								/* Input area (NOT outside of window!)		*/
+								/* And ungets the mouse event.				*/
+
+						/* Bottom line elements */
+#define BL_INS      (1<<0)  /* INS key */
+#define BL_DEL      (1<<1)  /* DEL key */
+#define BL_GET      (1<<2)  /* Get key */
+#define BL_PUT      (1<<3)  /* Put key */
+
+#define BL_INS      (1<<0)  /* INS key */
+#define BL_DEL      (1<<1)  /* DEL key */
+#define BL_GET      (1<<2)  /* Get key */
+#define BL_PUT      (1<<3)  /* Put key */
+#define BL_EDIT     (1<<4)  /* Edit key */
+
 
 #define HELPBUF_SIZE 4000
 
@@ -356,6 +378,12 @@ typedef struct {
 /* List height for WIN_FIXEDHEIGHT lists.									*/
 /****************************************************************************/
 	int		list_height;
+
+/****************************************************************************/
+/* Colours for the various bits												*/
+/****************************************************************************/
+	char	hclr,lclr,bclr,cclr,lbclr;
+
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
@@ -388,7 +416,7 @@ typedef struct {
 /* option is an array of char arrays, first element of last char array		*/
 /* must be NULL.															*/
 /* Returns the 0-based selected option number, -1 for ESC, or the selected	*/
-/* option number OR'd with MSK_INS, MSK_DEL, MSK_GET, or MSK_PUT.			*/
+/* option number OR'd with MSK_INS, MSK_DEL, MSK_GET, MSK_PUT, or MSK_EDIT.	*/
 /****************************************************************************/
     int     (*list) (int mode, int left, int top, int width, int* dflt
                         ,int* bar, char *title, char** option);
@@ -424,12 +452,22 @@ typedef struct {
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-	void (*timedisplay)(void);
+	void (*timedisplay)(BOOL force);
+
+/****************************************************************************/
+/* Displays the bottom line using the BL_* macros							*/
+/****************************************************************************/
+    void (*bottomline)(int line);
 
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
 /****************************************************************************/
 	int (*getstrxy)(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
+
+/****************************************************************************/
+/* Formatted print with attribute											*/
+/****************************************************************************/
+	int (*printf)(int x, int y, unsigned char attr, char *fmat, ...);
 } uifcapi_t;
 
 /****************************************************************************/
