@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.6 2005/01/14 19:25:55 deuce Exp $ */
+/* $Id: xpevent.c,v 1.7 2005/07/03 04:05:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include <stdio.h>		/* NULL */
+#include <stdlib.h>		/* malloc() */
 #include "xpevent.h"
 
 xpevent_t
