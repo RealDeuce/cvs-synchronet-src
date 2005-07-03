@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.31 2005/10/04 06:10:18 deuce Exp $ */
+/* $Id: mouse.c,v 1.27 2005/07/03 03:59:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,8 @@ enum {
 	,MOUSE_DRAGSTARTED
 };
 
+sem_t in_sem;
+
 struct in_mouse_event {
 	int	event;
 	int	x;
@@ -103,8 +105,9 @@ void init_mouse(void)
 	memset(&state,0,sizeof(state));
 	state.click_timeout=0;
 	state.multi_timeout=300;
-	listInit(&state.input,LINK_LIST_SEMAPHORE);
-	listInit(&state.output,LINK_LIST_SEMAPHORE);
+	listInit(&state.input,0);
+	listInit(&state.output,0);
+	sem_init(&in_sem,0,0);
 	mouse_initialized=1;
 }
 
@@ -152,6 +155,7 @@ void ciomouse_gotevent(int event, int x, int y)
 	ime->nextevent=NULL;
 
 	listPushNode(&state.input,ime);
+	sem_post(&in_sem);
 }
 
 void add_outevent(int event, int x, int y)
@@ -179,9 +183,6 @@ void add_outevent(int event, int x, int y)
 int more_multies(int button, int clicks)
 {
 	switch(clicks) {
-		case 0:
-			if(mouse_events & (1<<CIOLIB_BUTTON_CLICK(button)))
-				return(1);
 		case 1:
 			if(mouse_events & (1<<CIOLIB_BUTTON_DBL_CLICK(button)))
 				return(1);
@@ -212,11 +213,11 @@ void ciolib_mouse_thread(void *data)
 				timedout=1;
 			}
 			else {
-				timedout=listSemTryWaitBlock(&state.input,delay);
+				timedout=sem_trywait_block(&in_sem,delay);
 			}
 		}
 		else {
-			listSemWait(&state.input);
+			sem_wait(&in_sem);
 		}
 		if(timedout) {
 			state.timeout[timeout_button-1]=0;
@@ -335,11 +336,6 @@ void ciolib_mouse_thread(void *data)
 								state.timeout[but-1]=1;
 							if(state.click_timeout==0)
 								state.timeout[but-1]=0;
-							if(!more_multies(but,0)) {
-								add_outevent(CIOLIB_BUTTON_PRESS(but),state.button_x[but-1],state.button_y[but-1]);
-								state.button_state[but-1]=MOUSE_NOSTATE;
-								state.timeout[but-1]=0;
-							}
 							break;
 						case MOUSE_CLICKED:
 							state.button_state[but-1]=MOUSE_DOUBLEPRESSED;
@@ -423,20 +419,6 @@ void ciolib_mouse_thread(void *data)
 			}
 		}
 	}
-}
-
-int mouse_trywait(void)
-{
-	while(!mouse_initialized)
-		SLEEP(1);
-	return(listSemTryWait(&state.output));
-}
-
-int mouse_wait(void)
-{
-	while(!mouse_initialized)
-		SLEEP(1);
-	return(listSemWait(&state.output));
 }
 
 int mouse_pending(void)
