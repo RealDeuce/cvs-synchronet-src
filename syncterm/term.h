@@ -1,3 +1,5 @@
+/* $Id: term.h,v 1.13 2005/06/18 21:44:06 deuce Exp $ */
+
 #ifndef _TERM_H_
 #define _TERM_H_
 
@@ -13,8 +15,9 @@ struct terminal {
 
 extern struct terminal term;
 extern int backlines;
+extern int log_level;
 
-void doterm(struct bbslist *);
+BOOL doterm(struct bbslist *);
 void mousedrag(unsigned char *scrollback);
 
 #endif
