@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.32 2005/09/02 21:07:04 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.30 2004/10/21 08:13:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -64,7 +64,7 @@ char sbbs_t::getkey(long mode)
 	do {
 		if(sys_status&SS_ABORT) {
 			if(mode&K_SPIN) /* back space once if on spinning cursor */
-				backspace();
+				bputs("\b \b");
 			return(0); 
 		}
 
@@ -219,7 +219,7 @@ char sbbs_t::getkey(long mode)
 			if(mode&K_NOEXASC && ch&0x80)
 				continue;
 			if(mode&K_SPIN)
-				backspace();
+				bputs("\b \b");
 			if(mode&K_COLD && ch>' ' && useron.misc&COLDKEYS) {
 				if(mode&K_UPPER)
 					outchar(toupper(ch));
@@ -227,7 +227,7 @@ char sbbs_t::getkey(long mode)
 					outchar(ch);
 				while((coldkey=inkey(mode,1000))==0 && online && !(sys_status&SS_ABORT))
 					;
-				backspace();
+				bputs("\b \b");
 				if(coldkey==BS || coldkey==DEL)
 					continue;
 				if(coldkey>' ')
@@ -461,7 +461,7 @@ long sbbs_t::getkeys(char *keys, ulong max)
 					return(-1); 
 				}
 				if(c==BS || c==DEL) {
-					backspace();
+					bputs("\b \b");
 					continue; 
 				} 
 			}
@@ -479,7 +479,7 @@ long sbbs_t::getkeys(char *keys, ulong max)
 			return(0); 
 		}
 		if((ch==BS || ch==DEL) && n) {
-			backspace();
+			bputs("\b \b");
 			i/=10;
 			n--; 
 		}
@@ -527,7 +527,7 @@ void sbbs_t::pause()
 		lncntr=rows-2;
 	if(text[Pause][0]!='@')
 		for(i=0;i<j;i++)
-			backspace();
+			bputs("\b \b");
 	getnodedat(cfg.node_num,&thisnode,0);
 	nodesync();
 	attr(tempattrs);
@@ -538,5 +538,8 @@ void sbbs_t::pause()
 /****************************************************************************/
 void sbbs_t::ungetkey(char ch)
 {
-	RingBufWrite(&inbuf,(uchar*)&ch,sizeof(uchar));
+
+	keybuf[keybuftop++]=ch;
+	if(keybuftop==KEY_BUFSIZE)
+		keybuftop=0;
 }
