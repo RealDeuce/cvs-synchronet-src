@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.369 2005/06/30 20:45:45 runderwo Exp $ */
+/* $Id: mailsrvr.c,v 1.370 2005/07/06 22:06:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2149,9 +2149,9 @@ static void smtp_thread(void* arg)
 							,socket, str);
 
 						if(mailproc_list[i].native) {
-							if((i=system(str))!=0)
+							if((j=system(str))!=0)
 								lprintf(LOG_WARNING,"%04d !SMTP system(%s) returned %d (errno: %d)"
-									,socket, str, i, errno);
+									,socket, str, j, errno);
 						} else  /* JavaScript */
 							js_mailproc(socket, &client, &relay_user, str /* cmdline */
 								,msgtxt_fname, rcptlst_fname, proc_err_fname
@@ -3925,7 +3925,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.369 $", "%*s %s", revision);
+	sscanf("$Revision: 1.370 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
