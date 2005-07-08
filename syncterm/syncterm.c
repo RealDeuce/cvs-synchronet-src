@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.57 2005/10/05 20:54:24 deuce Exp $ */
+/* $Id: syncterm.c,v 1.50 2005/07/08 05:15:05 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -9,14 +9,13 @@
 #include <ini_file.h>
 #include <dirwrap.h>
 
-#include "ciolib.h"
 #include "bbslist.h"
 #include "conn.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.4"
+char* syncterm_version = "SyncTERM 0.00"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -84,7 +83,6 @@ void parse_url(char *url, struct bbslist *bbs)
 	bbs->screen_mode=SCREEN_MODE_CURRENT;
 	bbs->conn_type=CONN_TYPE_TELNET;
 	bbs->port=23;
-	bbs->loglevel=LOG_INFO;
 	p1=url;
 	if(!strnicmp("rlogin://",url,9)) {
 		bbs->conn_type=CONN_TYPE_RLOGIN;
@@ -223,8 +221,7 @@ int main(int argc, char **argv)
 			SAFECOPY(url,argv[i]);
     }
 
-	if(initciolib(ciolib_mode))
-		return(1);
+	initciolib(ciolib_mode);
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
