@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.21 2005/05/19 23:54:16 deuce Exp $ */
+/* $Id: cterm.c,v 1.28 2005/06/24 06:53:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,6 +31,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -397,7 +398,7 @@ void clearscreen(char attr)
 	clrscr();
 }
 
-void do_ansi(char *retbuf, int retsize)
+void do_ansi(char *retbuf, int retsize, int *speed)
 {
 	char	*p;
 	char	*p2;
@@ -741,6 +742,83 @@ void do_ansi(char *retbuf, int retsize)
 				case 'q': /* ToDo?  VT100 keyboard lights */
 					break;
 				case 'r': /* ToDo?  Scrolling reigon */
+					/* Set communication speed (if has a * before it) */
+					if(*(p-1) == '*' && speed != NULL) {
+						/*
+						 * Ps1 			Comm Line 		Ps2 		Communication Speed
+						 * none, 0, 1 	Host Transmit 	none, 0 	Use default speed.
+						 * 2		 	Host Receive 	1 			300
+						 * 3 			Printer 		2 			600
+						 * 4		 	Modem Hi 		3 			1200
+						 * 5		 	Modem Lo 		4 			2400
+						 * 								5 			4800
+						 * 								6 			9600
+						 * 								7 			19200
+						 * 								8 			38400
+						 * 								9 			57600
+						 * 								10 			76800
+						 * 								11 			115200
+						 */
+						int newspeed=0;
+
+						*(--p)=0;
+						if(cterm.escbuf[1]) {
+							p=strtok(cterm.escbuf+1,";");
+							if(p!=NULL) {
+								if(p!=cterm.escbuf+1 || atoi(p)<2) {
+									if(p==cterm.escbuf+1)
+										p=strtok(NULL,";");
+									if(p!=NULL) {
+										switch(atoi(p)) {
+											case 0:
+												newspeed=0;
+												break;
+											case 1:
+												newspeed=300;
+												break;
+											case 2:
+												newspeed=600;
+												break;
+											case 3:
+												newspeed=1200;
+												break;
+											case 4:
+												newspeed=2400;
+												break;
+											case 5:
+												newspeed=4800;
+												break;
+											case 6:
+												newspeed=9600;
+												break;
+											case 7:
+												newspeed=19200;
+												break;
+											case 8:
+												newspeed=38400;
+												break;
+											case 9:
+												newspeed=57600;
+												break;
+											case 10:
+												newspeed=76800;
+												break;
+											case 11:
+												newspeed=115200;
+												break;
+											default:
+												newspeed=-1;
+												break;
+										}
+									}
+								}
+								else
+									newspeed = -1;
+							}
+						}
+						if(newspeed >= 0)
+							*speed = newspeed;
+					}
 					break;
 				case 's':
 					cterm.save_xpos=wherex();
@@ -826,6 +904,7 @@ void ctputs(char *buf)
 					cputs(outp);
 					outp=p+1;
 					scrollup();
+					gotoxy(cx,cy);
 				}
 				else
 					cy++;
@@ -852,6 +931,7 @@ void ctputs(char *buf)
 						cputs(outp);
 						outp=p+1;
 						scrollup();
+						gotoxy(cx,cy);
 					}
 					else
 						cy++;
@@ -860,11 +940,15 @@ void ctputs(char *buf)
 			default:
 				if(cy==cterm.height
 						&& cx==cterm.width) {
-						*p=0;
-						cputs(outp);
-						outp=p+1;
-						scrollup();
-						cx=1;
+					char ch;
+					ch=*p;
+					*p=0;
+					cputs(outp);
+					*p=ch;
+					outp=p;
+					scrollup();
+					cx=1;
+					gotoxy(cx,cy);
 				}
 				else {
 					if(cx==cterm.width) {
@@ -882,7 +966,7 @@ void ctputs(char *buf)
 	_wscroll=oldscroll;
 }
 
-char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
+char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int *speed)
 {
 	unsigned char ch[2];
 	unsigned char prn[BUFSIZE];
@@ -910,7 +994,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize)
 					strcat(cterm.escbuf,ch);
 					if((ch[0]>='@' && ch[0]<='Z')
 							|| (ch[0]>='a' && ch[0]<='z')) {
-						do_ansi(retbuf, retsize);
+						do_ansi(retbuf, retsize, speed);
 					}
 				}
 				else if (cterm.music) {
