@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.16 2004/11/18 00:59:21 rswindell Exp $ */
+/* $Id: link_list.h,v 1.17 2005/06/04 19:57:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,7 +164,7 @@ BOOL			listSwapNodes(list_node_t* node1, list_node_t* node2);
 
 /* Convenience macros for pushing, popping, and inserting nodes */
 #define	listPushNode(list, data)				listAddNode(list, data, listLastNode(list))
-#define listInsertNode(link, data)				listAddNode(list, data, FIRST_NODE)
+#define listInsertNode(list, data)				listAddNode(list, data, FIRST_NODE)
 #define listPushNodeData(list, data, length)	listAddNodeData(list, data, length, listLastNode(list))
 #define	listInsertNodeData(list, data, length)	listAddNodeData(list, data, length, FIRST_NODE)
 #define	listPushNodeString(list, str)			listAddNodeString(list, str, listLastNode(list))
