@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.189 2005/02/23 04:17:37 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.190 2005/07/03 08:24:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,6 +199,7 @@ static int lputs(int level, char *str)
 {
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
+	char	*p;
 
 #ifdef __unix__
 
@@ -219,8 +220,15 @@ static int lputs(int level, char *str)
 	pthread_mutex_lock(&mutex);
 	/* erase prompt */
 	printf("\r%*s\r",prompt_len,"");
-	if(str!=NULL)
-		printf("%s\n",str);
+	if(str!=NULL) {
+		for(p=str; *p; p++) {
+			if(iscntrl(*p))
+				printf("^%c",'@'+*p);
+			else
+				printf("%c",*p);
+		}
+		puts("");
+	}
 	/* re-display prompt with current stats */
 	if(prompt!=NULL)
 		prompt_len = printf(prompt, thread_count, socket_count, client_count, served);
