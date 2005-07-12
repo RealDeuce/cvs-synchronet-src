@@ -2,13 +2,13 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.34 2005/09/25 22:56:57 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.32 2005/03/12 00:34:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,7 +51,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	long	l,msgcnt,submsgs,posts,packedmail,netfiles=0,deleted;
 	long	mailmsgs;
 	ulong	last,msgs;
-	post_t	*post;
+	post_t	HUGE16 *post;
 	mail_t	*mail;
 	FILE*	rep;
 	DIR*	dir;
@@ -126,7 +126,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	}
 	smb_close(&smb);					/* Close the e-mail */
 	if(mailmsgs)
-		free(mail);
+		FREE(mail);
 
 	for(i=0;i<cfg.qhub[hubnum]->subs;i++) {
 		j=cfg.qhub[hubnum]->sub[i]; 			/* j now equals the real sub num */
@@ -195,7 +195,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 				YIELD(); /* yield */
 		}
 		eprintf(LOG_INFO,remove_ctrl_a(text[QWKPackedSubboard],tmp),submsgs,msgcnt);
-		free(post);
+		LFREE(post);
 		smb_close(&smb); 
 		YIELD();	/* yield */
 	}
@@ -256,14 +256,14 @@ bool sbbs_t::pack_rep(uint hubnum)
 
 		if((i=smb_locksmbhdr(&smb))!=0) {			  /* Lock the base, so nobody */
 			if(mailmsgs)
-				free(mail);
+				FREE(mail);
 			smb_close(&smb);
 			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);	/* messes with the index */
 			return(true); }
 
 		if((i=smb_getstatus(&smb))!=0) {
 			if(mailmsgs)
-				free(mail);
+				FREE(mail);
 			smb_close(&smb);
 			errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
 			return(true); }
@@ -300,7 +300,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			delmail(0,MAIL_YOUR);
 		smb_close(&smb);
 		if(mailmsgs)
-			free(mail); 
+			FREE(mail); 
 		eprintf(LOG_INFO,"Deleted %d sent NetMail messages",deleted); 
 	}
 
