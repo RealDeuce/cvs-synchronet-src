@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.10 2004/10/14 23:56:35 rswindell Exp $ */
+/* $Id: telnet.h,v 1.11 2005/06/06 22:06:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,8 +148,8 @@ extern "C" {
 
 DLLEXPORT const char* DLLCALL telnet_cmd_desc(uchar cmd);   
 DLLEXPORT const char* DLLCALL telnet_opt_desc(uchar opt);
-DLLEXPORT const uchar DLLCALL telnet_opt_ack(uchar cmd);
-DLLEXPORT const uchar DLLCALL telnet_opt_nak(uchar cmd);
+DLLEXPORT		uchar DLLCALL telnet_opt_ack(uchar cmd);
+DLLEXPORT		uchar DLLCALL telnet_opt_nak(uchar cmd);
 
 #ifdef __cplusplus
 }
