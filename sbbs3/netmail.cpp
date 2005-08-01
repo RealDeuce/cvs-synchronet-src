@@ -2,13 +2,13 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.34 2005/10/02 23:33:45 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.32 2004/10/21 08:58:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -103,7 +103,6 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 			bputs(text[FileAlreadyThere]);
 			remove(msgpath);
 			return(false); }
-#if 0	/* no such thing as local logon */
 		if(online==ON_LOCAL) {		/* Local upload */
 			bputs(text[EnterPath]);
 			if(!getstr(str,60,K_LINE|K_UPPER)) {
@@ -113,9 +112,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 			backslash(str);
 			strcat(str,title);
 			mv(str,str2,1); }
-		else 
-#endif
-		{ /* Remote */
+		else { /* Remote */
 			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
@@ -232,6 +229,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 
 	net=NET_INTERNET;
 	smb_hfield_str(&msg,RECIPIENT,name);
+	msg.idx.to=0;	/* Out-bound NetMail set to 0 */
 	smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net);
 	smb_hfield_str(&msg,RECIPIENTNETADDR,addr);
 
@@ -240,6 +238,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
+	msg.idx.from=useron.number;
 
 	/*
 	smb_hfield(&msg,SENDERNETTYPE,sizeof(net),&net);
@@ -251,6 +250,7 @@ bool sbbs_t::inetmail(char *into, char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 	strcpy(str,title);
+	msg.idx.subj=smb_subject_crc(str);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -425,8 +425,7 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 
 	net=NET_QWK;
 	smb_hfield_str(&msg,RECIPIENT,to);
-	sprintf(str,"%u",touser);
-	smb_hfield_str(&msg,RECIPIENTEXT,str);
+	msg.idx.to=touser;
 	smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net);
 	smb_hfield_str(&msg,RECIPIENTNETADDR,fulladdr);
 
@@ -434,11 +433,13 @@ bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
+	msg.idx.from=useron.number;
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
+	msg.idx.subj=smb_subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
