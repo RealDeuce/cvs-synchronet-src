@@ -2,7 +2,7 @@
 
 /* Synchronet X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: stp.c,v 1.7 2005/09/05 21:54:11 deuce Exp $ */
+/* $Id: stp.c,v 1.6 2005/01/20 06:19:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -654,13 +654,13 @@ void putzhhdr(char type)
 	else
 		putcom(ZHEX);
 	putzhex(type);
-/*	crc=ucrc16(type,crc); */
+//	crc=ucrc16(type,crc);
 	for(i=0;i<4;i++) {
 		putzhex(Txhdr[i]);
 		crc=ucrc16(Txhdr[i],crc); 
 	}
-/*	crc=ucrc16(0,crc); */
-/*	crc=ucrc16(0,crc); */
+//	crc=ucrc16(0,crc);
+//	crc=ucrc16(0,crc);
 	putzhex(crc>>8);
 	putzhex(crc&0xff);
 	putcom(CR);
@@ -1459,7 +1459,7 @@ void receive_files(char** fname, uint fnames, FILE* log)
 				newline();
 				fprintf(statfp,"Block number %u instead of %u\n"
 					,hdr_block_num,(block_num+1)&0xff);
-				/* dump_block(); */
+				// dump_block();
 				errors++; 
 			}
 			t=time(NULL)-startfile;
