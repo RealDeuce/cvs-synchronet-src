@@ -1,23 +1,26 @@
+#include <ctype.h>
+
 #include "dirwrap.h"
 #include "uifc.h"
 #include "ciolib.h"
+#include "mouse.h"
+#include "keys.h"
 
 #include "filepick.h"
 
 enum {
 	 DIR_LIST
 	,FILE_LIST
-	,CURRENT_PATH
 	,MASK_FIELD
+	,CURRENT_PATH
 	,FIELD_LIST_TERM
 };
 
-int drawfpwindow(uifcapi_t *api)
+void drawfpwindow(uifcapi_t *api)
 {
 	char lbuf[1024];
 	int i;
 	int j;
-	int y;
 	int listheight=0;
 	int height;
 	int width;
@@ -25,12 +28,12 @@ int drawfpwindow(uifcapi_t *api)
 
 	width=SCRN_RIGHT-SCRN_LEFT+1;
 
-	height=api->scrn_len-4;
+	height=api->scrn_len-3;
 	/* Make sure it's odd */
 	if(!(width%2))
 		width--;
 
-	listheight=height-8;
+	listheight=height-7;
 
         i=0;
 	lbuf[i++]='\xc9';
@@ -86,8 +89,6 @@ int drawfpwindow(uifcapi_t *api)
 		SCRN_LEFT+width-1,SCRN_TOP+height-2,lbuf);
 	puttext(SCRN_LEFT,SCRN_TOP+height-3,
 		SCRN_LEFT+width-1,SCRN_TOP+height-3,lbuf);
-	puttext(SCRN_LEFT,SCRN_TOP+height-4,
-		SCRN_LEFT+width-1,SCRN_TOP+height-4,lbuf);
 	lbuf[width-1]='\xba';
 	for(j=0;j<listheight;j++)
 		puttext(SCRN_LEFT,SCRN_TOP+3+j
@@ -111,27 +112,74 @@ int drawfpwindow(uifcapi_t *api)
 	}
 }
 
-void free_opt_list(char **opts)
+void free_opt_list(char ***opts)
 {
 	char **p;
 
-	for(p=opts; *p[0]; p++) {
-		free(*p);
+	if(*opts==NULL)
+		return;
+	for(p=*opts; *p && (*p)[0]; p++) {
+		if(*p)
+			FREE_AND_NULL((*p));
 	}
-	free(opts);
+	FREE_AND_NULL(*opts);
+}
+
+char *insensitive_mask(char *mask)
+{
+#ifdef __unix__
+	char *in;
+	char *out;
+	static char nmask[MAX_PATH*4+1];
+
+	out=nmask;
+	for(in=mask; *in; in++) {
+		if(isalpha(*in)) {
+			*(out++)='[';
+			*(out++)=tolower(*in);
+			*(out++)=toupper(*in);
+			*(out++)=']';
+		}
+		else
+			*(out++)=*in;
+	}
+	*out=0;
+	return(nmask);
+#else
+	return(mask);
+#endif
+}
+
+char *getdirname(char *path)
+{
+	char *p1;
+	char *p2;
+
+	p1=strrchr(path,'/');
+#ifdef _WIN32
+	p2=strrchr(path,'\\');
+	if(p2 > p1)
+		p1=p2;
+#endif
+	p2 = path;
+	if(p1 > path) {
+		for(p2=p1-1; p2>=path && !IS_PATH_DELIM(*p2); p2--);
+		if(IS_PATH_DELIM(*p2) && *(p2+1))
+			p2++;
+	}
+	return(p2);
 }
 
 char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 {
 	char **opts;
-	char *opt;
-	char *p;
 	int  i;
 	int  j=0;
 
 	opts=(char **)malloc((files+2)*sizeof(char *));
 	if(opts==NULL)
 		return(NULL);
+	memset(opts, 0, (files+2)*sizeof(char *));
 	if(dirsonly) {
 		if(!root)
 			opts[j++]=strdup("..");
@@ -139,7 +187,7 @@ char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 	for(i=0;i<files;i++) {
 		if(isdir(fns[i])) {
 			if(dirsonly)
-				opts[j++]=strdup(getfname(fns[i]));
+				opts[j++]=strdup(getdirname(fns[i]));
 		}
 		else {
 			if(!dirsonly)
@@ -153,12 +201,11 @@ char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 void display_current_path(uifcapi_t *api, char *path)
 {
 	char	dpath[MAX_PATH+2];
-	int i,j;
-	char *p;
 	int width;
 	int height;
+	char	*p;
 
-	height=api->scrn_len-4;
+	height=api->scrn_len-3;
 	width=SCRN_RIGHT-SCRN_LEFT-3;
 	SAFECOPY(dpath, path);
 	while(strlen(dpath) > width) {
@@ -176,40 +223,102 @@ void display_current_path(uifcapi_t *api, char *path)
 	}
 #endif
 
-	api->printf(SCRN_LEFT+2, SCRN_TOP+height-4, api->lclr|(api->bclr<<4), "%-*s", width, dpath);
+	api->printf(SCRN_LEFT+2, SCRN_TOP+height-2, api->lclr|(api->bclr<<4), "%-*s", width, dpath);
+}
+
+int mousetofield(int currfield, int opts, int height, int width, int listheight, int listwidth, int *dcur, int *dbar, int *fcur, int *fbar)
+{
+	int newfield;
+	int nbar;
+	int bardif;
+	struct mouse_event mevnt;
+
+	newfield=currfield;
+	if(getmouse(&mevnt)==0) {
+		if(mevnt.endx >= SCRN_LEFT + 1
+				&& mevnt.endx <= SCRN_LEFT + listwidth
+				&& mevnt.endy >= SCRN_TOP + 3
+				&& mevnt.endy <= SCRN_TOP + 2 + listheight) {
+			newfield = DIR_LIST;
+			if(mevnt.endx == SCRN_LEFT + 1)
+				ungetmouse(&mevnt);
+			else {
+				bardif = (mevnt.starty - SCRN_TOP - 3) - *dbar;
+				*dbar += bardif;
+				*dcur += bardif;
+			}
+		}
+		if(mevnt.endx >= SCRN_LEFT + 1 + listwidth + 1
+				&& mevnt.endx <= SCRN_LEFT + 1 + listwidth * 2
+				&& mevnt.endy >= SCRN_TOP + 3
+				&& mevnt.endy <= SCRN_TOP + 2 + listheight) {
+			newfield = FILE_LIST;
+			if(mevnt.endx == SCRN_LEFT + 1 + listwidth + 1)
+				ungetmouse(&mevnt);
+			else {
+				bardif = (mevnt.starty - SCRN_TOP - 3) - *fbar;
+				*fbar += bardif;
+				*fcur += bardif;
+			}
+		}
+		if(!(opts & UIFC_FP_MSKNOCHG)
+				&& (mevnt.endx >= SCRN_LEFT + 1
+					&& mevnt.endx <= SCRN_LEFT + width - 2
+					&& mevnt.endy == SCRN_TOP + height - 3)) {
+			newfield = MASK_FIELD;
+			ungetmouse(&mevnt);
+		}
+		if(opts & UIFC_FP_ALLOWENTRY
+				&& mevnt.endx >= SCRN_LEFT + 1
+				&& mevnt.endx <= SCRN_LEFT + width - 2
+				&& mevnt.endy == SCRN_TOP + height - 2) {
+			newfield = CURRENT_PATH;
+			ungetmouse(&mevnt);
+		}
+	}
+	return(newfield);
 }
 
 int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char *msk, int opts)
 {
-	char	cpath[MAX_PATH+1];
-	char	cmsk[MAX_PATH*4+1];
-	char	cglob[MAX_PATH*4+1];
-	char	dglob[MAX_PATH*4+1];
-	char	*p1;
-	char	*p2;
-	glob_t	fgl;
-	glob_t	dgl;
+	char	cfile[MAX_PATH*5+1];		/* Current full path to file */
+	char	cpath[MAX_PATH+1];			/* Current path */
+	char	drive[3];
+	char	tdir[MAX_PATH+1];
+	char	fname[MAX_PATH+1];
+	char	ext[MAX_PATH+1];
+	char	cmsk[MAX_PATH*4+1];			/* Current file mask */
+	char	cglob[MAX_PATH*4+1];		/* File glob patter */
+	char	dglob[MAX_PATH*4+1];		/* Directory glob pattern */
+	char	*p;
+	glob_t	fgl;						/* Files */
+	glob_t	dgl;						/* Directories */
 	int		dircur=0;
 	int		dirbar=0;
 	int		filecur=0;
 	int		filebar=0;
 	int		listwidth;
-	int	listheight;
 	char	**dir_list;
 	char	**file_list;
 	int		currfield=DIR_LIST;
 	int		lastfield=DIR_LIST;
 	int		i;
-	int		root=0;
+	int		root=0;						/* Is this the root of the file system? */
+										/* On *nix, this just means no .. on Win32,
+										 * Something should be done about drive letters. */
 	int		reread=FALSE;
 	int		lbclr;
 	char	*lastpath=NULL;
 	char	*tmplastpath=NULL;
 	char	*tmppath=NULL;
-	int width;
-	int height;
+	int		width;
+	int		height;
+	char	*YesNo[]={"Yes", "No", ""};
+	int		finished=FALSE;
+	int		retval=0;
+	int		fieldmove;
 
-	height=api->scrn_len-4;
+	height=api->scrn_len-3;
 	width=SCRN_RIGHT-SCRN_LEFT-3;
 
 	lbclr=api->lbclr;
@@ -219,14 +328,18 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		return(-1);
 
 	/* Illegal options */
-	if((opts & UIFC_FP_MULTI) && (opts & (UIFC_FP_ALLOWENTRY|UIFC_FP_OVERPROMPT|UIFC_FP_CREATPROMPT)))
+	if((opts & UIFC_FP_MULTI)==UIFC_FP_MULTI && (opts & (UIFC_FP_ALLOWENTRY|UIFC_FP_OVERPROMPT|UIFC_FP_CREATPROMPT)))
 		return(-1);
+
+	fp->files=0;
+	fp->selected=NULL;
 
 	/* No initial path specified */
 	if(dir==NULL || !dir[0])
 		SAFECOPY(cpath,".");
 
 	FULLPATH(cpath,((dir==NULL||dir[0]==0)?".":dir),sizeof(cpath));
+	backslash(cpath);
 
 	if(msk==NULL || msk[0]==0) {
 		SAFECOPY(cmsk,"*");
@@ -239,33 +352,47 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	listwidth-=3;
 	listwidth/=2;
 	/* Draw the file picker itself... */
+	hold_update = TRUE;
 	drawfpwindow(api);
 	/* Display the title centered */
 	i=strlen(title);
 	if(i>width-4)
 		i=width-4;
 	api->printf(SCRN_LEFT+2, SCRN_TOP+1, api->hclr|(api->bclr<<4), "%*s%-*s", (width-i)/2-2, "", i, title);
-	api->printf(SCRN_LEFT+2, SCRN_TOP+height-2, api->hclr|(api->bclr<<4), "Mask: ");
-	api->printf(SCRN_LEFT+8, SCRN_TOP+height-2, api->lclr|(api->bclr<<4), "%-*s", width-7, msk);
-	while(1) {
+	api->printf(SCRN_LEFT+2, SCRN_TOP+height-3, api->hclr|(api->bclr<<4), "Mask: ");
+	while(!finished) {
+		hold_update = TRUE;
+		api->printf(SCRN_LEFT+8, SCRN_TOP+height-3, api->lclr|(api->bclr<<4), "%-*s", width-7, cmsk);
 		tmppath=strdup(cpath);
 		if(tmppath != NULL)
 			FULLPATH(cpath,tmppath,sizeof(cpath));
 		FREE_AND_NULL(tmppath);
 
-		sprintf(cglob,"%s/%s",cpath,cmsk);
-		sprintf(dglob,"%s/*",cpath,cmsk);
+		backslash(cpath);
+		sprintf(cglob,"%s%s",cpath,(opts&UIFC_FP_MSKCASE)?cmsk:insensitive_mask(cmsk));
+		sprintf(dglob,"%s*",cpath);
+		switch(currfield) {
+			case DIR_LIST:
+				if(lastfield==DIR_LIST)
+					sprintf(cfile,"%s%s",cpath,cmsk);
+				break;
+		}
+
 #ifdef __unix__
 		if(cpath[1]==0)
 			root=TRUE;
 		else
 			root=FALSE;
 #else
-#error Need to do something about root paths (in get_file_opt_list() too!)
+//#error Need to do something about root paths (in get_file_opt_list() too!)
 #endif
-		if(glob(dglob, 0, NULL, &dgl)!=0) {
-			if(lastpath==NULL)
-				return(-1);
+		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0) {
+			if(lastpath==NULL) {
+				fp->files=0;
+				retval=-1;
+				goto cleanup;
+			}
+			hold_update=FALSE;
 			api->msg("Cannot read directory!");
 			SAFECOPY(cpath, lastpath);
 			FREE_AND_NULL(lastpath);
@@ -274,63 +401,152 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		}
 		if(glob(cglob, 0, NULL, &fgl)!=0)
 			fgl.gl_pathc=0;
-		api->list_height=api->scrn_len-4-8;
+		api->list_height=api->scrn_len-3-7;
 		dir_list=get_file_opt_list(dgl.gl_pathv, dgl.gl_pathc, TRUE, root);
 		file_list=get_file_opt_list(fgl.gl_pathv, fgl.gl_pathc, FALSE, root);
 		globfree(&dgl);
 		globfree(&fgl);
 		reread=FALSE;
-		dircur=dirbar=filecur=filecur=0;
-		display_current_path(api, cpath);
+		dircur=dirbar=filecur=filebar=0;
 		while(!reread) {
+			hold_update=TRUE;
+			display_current_path(api, cfile);
 			api->lbclr=api->lclr|(api->bclr<<4);
 			api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_IMM|WIN_REDRAW,1,3,listwidth,&dircur,&dirbar,NULL,dir_list);
 			api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_IMM|WIN_REDRAW,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
 			api->lbclr=lbclr;
 			lastfield=currfield;
+			fieldmove=0;
+			hold_update = FALSE;
 			switch(currfield) {
 				case DIR_LIST:
-					i=api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS,1,3,listwidth,&dircur,&dirbar,NULL,dir_list);
-					if(i==-2-'\t')
-						currfield++;
-					if(i==0 && !root) {	/* Previous Dir */
-						FREE_AND_NULL(lastpath);
-						lastpath=strdup(cpath);
-						p1=strrchr(cpath,'/');
-#ifdef _WIN32
-						p2=strrchr(cpath,'\\');
-						if(p2>p1)
-							p1=p2;
-#endif
-						*p1=0;
-#ifdef __unix__
-						if(!cpath[0])
-							strcpy(cpath,"/");
-#endif
-						reread=TRUE;
-						break;
+					i=api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE,1,3,listwidth,&dircur,&dirbar,NULL,dir_list);
+					if(i==-1) {		/* ESC */
+						retval=fp->files=0;
+						goto cleanup;
 					}
+					if(i==-2-'\t')	/* TAB */
+						fieldmove=1;
+					if(i==-3842)	/* Backtab */
+						fieldmove=-1;
+					if(i==-2-CIO_KEY_MOUSE)
+						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
 					if(i>=0) {
 						FREE_AND_NULL(lastpath);
 						lastpath=strdup(cpath);
-						strcat(cpath,"/");
 						strcat(cpath,dir_list[i]);
 						reread=TRUE;
+						sprintf(cfile,"%s%s",cpath,cmsk);
 					}
 					break;
 				case FILE_LIST:
-					api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
-					if(i==-2-'\t')	/* This is only until the text fields are here */
-						currfield++;
+					i=api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
+					if(i==-1) {
+						retval=fp->files=0;
+						goto cleanup;
+					}
+					if(i>=0) {
+						sprintf(cfile,"%s%s",cpath,file_list[i]);
+						if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI) {
+							retval=fp->files=1;
+							fp->selected=(char **)malloc(sizeof(char *));
+							if(fp->selected==NULL) {
+								fp->files=0;
+								retval=-1;
+								goto cleanup;
+							}
+							fp->selected[0]=strdup(cfile);
+							if(fp->selected[0]==NULL) {
+								FREE_AND_NULL(fp->selected);
+								fp->files=0;
+								retval=-1;
+								goto cleanup;
+							}
+							api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_IMM|WIN_REDRAW,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
+							finished=reread=TRUE;
+						}
+					}
+					if(i==-2-'\t')
+						fieldmove=1;
+					if(i==-3842)	/* Backtab */
+						fieldmove=-1;
+					if(i==-2-CIO_KEY_MOUSE)
+						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
 					break;
 				case CURRENT_PATH:
 					FREE_AND_NULL(tmplastpath);
 					tmplastpath=strdup(cpath);
-					api->getstrxy(SCRN_LEFT+2, SCRN_TOP+height-4, width-1, cpath, sizeof(cpath)-1, K_EDIT|K_TABEXIT, &i);
-					tmppath=strdup(cpath);
-					if(tmppath != NULL)
-						FULLPATH(cpath,tmppath,sizeof(cpath));
-					FREE_AND_NULL(tmppath);
+					api->getstrxy(SCRN_LEFT+2, SCRN_TOP+height-2, width-1, cfile, sizeof(cfile)-1, K_EDIT|K_TABEXIT|K_MOUSEEXIT, &i);
+					if(i==ESC) {
+						retval=fp->files=0;
+						goto cleanup;
+					}
+					if((opts & (UIFC_FP_FILEEXIST|UIFC_FP_PATHEXIST)) && !fexist(cfile)) {
+						FREE_AND_NULL(tmplastpath);
+						api->msg("No such path/file!");
+						continue;
+					}
+					_splitpath(cfile, drive, tdir, fname, ext);
+					sprintf(cpath,"%s%s",drive,tdir);
+					if(!isdir(cpath)) {
+						FREE_AND_NULL(tmplastpath);
+						api->msg("No such path!");
+						continue;
+					}
+					if(i==CIO_KEY_MOUSE)
+						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
+					if(i==3840)
+						fieldmove=-1;
+					else {
+						if(currfield == CURRENT_PATH)
+							fieldmove=1;
+					}
+					sprintf(cfile,"%s%s%s%s",drive,tdir,fname,ext);
+					if(strchr(fname,'*') !=NULL || strchr(fname,'?') !=NULL
+						|| strchr(ext,'*') !=NULL || strchr(ext,'?') !=NULL
+						|| (!isdir(cfile) && i!='\r' && i!='\n')) {
+						if(opts & UIFC_FP_MSKNOCHG) {
+							sprintf(cfile,"%s%s%s",drive,tdir,cmsk);
+							FREE_AND_NULL(tmplastpath);
+							api->msg("File mask cannot be changed");
+							continue;
+						}
+						else {
+							sprintf(cmsk, "%s%s", fname, ext);
+							reread=TRUE;
+						}
+						break;
+					}
+					else {
+						if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && (i=='\r' || i!='\n'))
+						fieldmove=0;
+					}
+					if((currfield != CURRENT_PATH) || fieldmove)
+						break;
+					if(isdir(cfile)) {
+						if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && i!='\t' && i != 3840) {
+							if(opts & UIFC_FP_DIRSEL) {
+								finished=reread=TRUE;
+								retval=fp->files=1;
+								fp->selected=(char **)malloc(sizeof(char *));
+								if(fp->selected==NULL) {
+									fp->files=0;
+									retval=-1;
+									goto cleanup;
+								}
+								fp->selected[0]=strdup(cfile);
+								if(fp->selected[0]==NULL) {
+									free(fp->selected);
+									fp->files=0;
+									retval=-1;
+									goto cleanup;
+								}
+							}
+						}
+						SAFECOPY(cpath, cfile);
+						backslash(cfile);
+						strcat(cfile,cmsk);
+					}
 					if(tmplastpath != NULL) {
 						if(strcmp(tmplastpath, cpath)) {
 							reread=TRUE;
@@ -338,28 +554,93 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 							lastpath=tmplastpath;
 							tmplastpath=NULL;
 						}
-						else
-							display_current_path(api, cpath);
 					}
 					FREE_AND_NULL(tmplastpath);
-					currfield++;
+					if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && i!='\t' && i!=3840) {
+						retval=fp->files=1;
+						fp->selected=(char **)malloc(sizeof(char *));
+						if(fp->selected==NULL) {
+							fp->files=0;
+							retval=-1;
+							goto cleanup;
+						}
+						fp->selected[0]=strdup(cfile);
+						if(fp->selected[0]==NULL) {
+							FREE_AND_NULL(fp->selected);
+							fp->files=0;
+							retval=-1;
+							goto cleanup;
+						}
+						finished=reread=TRUE;
+					}
 					break;
 				case MASK_FIELD:
-					api->getstrxy(SCRN_LEFT+8, SCRN_TOP+height-2, width-7, cmsk, sizeof(cmsk)-1, K_EDIT|K_TABEXIT, &i);
-					reread=TRUE;
-					currfield++;
+					p=strdup(cmsk);
+					api->getstrxy(SCRN_LEFT+8, SCRN_TOP+height-3, width-7, cmsk, sizeof(cmsk)-1, K_EDIT|K_TABEXIT|K_MOUSEEXIT, &i);
+					if(i==CIO_KEY_MOUSE)
+						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
+					if(i==ESC) {
+						retval=fp->files=0;
+						goto cleanup;
+					}
+					if(strcmp(cmsk, p)) {
+						sprintf(cfile,"%s%s",cpath,cmsk);
+						reread=TRUE;
+					}
+					FREE_AND_NULL(p);
+					if(i==3840)
+						fieldmove=-1;
+					else
+						fieldmove=1;
 					break;
+			}
+			currfield+=fieldmove;
+			if(currfield<0)
+				currfield=FIELD_LIST_TERM-1;
+			while(1) {
+				if(currfield==MASK_FIELD && (opts & UIFC_FP_MSKNOCHG)) {
+					currfield+=fieldmove;
+					continue;
+				}
+				if(currfield==CURRENT_PATH && !(opts & UIFC_FP_ALLOWENTRY)) {
+					currfield+=fieldmove;
+					continue;
+				}
+				break;
 			}
 			if(currfield==FIELD_LIST_TERM)
 				currfield=DIR_LIST;
 		}
+		free_opt_list(&file_list);
+		free_opt_list(&dir_list);
+		if(finished) {
+			if((opts & UIFC_FP_OVERPROMPT) && fexist(cfile)) {
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File exists, overwrite?", YesNo)!=0)
+					finished=FALSE;
+			}
+			if((opts & UIFC_FP_CREATPROMPT) && !fexist(cfile)) {
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File does not exist, create?", YesNo)!=0)
+					finished=FALSE;
+			}
+		}
 	}
 
+cleanup:		/* Cleans up allocated variables returns from function */
 	FREE_AND_NULL(lastpath);
-	return(0);
+	FREE_AND_NULL(tmppath);
+	FREE_AND_NULL(tmplastpath);
+	free_opt_list(&file_list);
+	free_opt_list(&dir_list);
+	return(retval);
 }
 
 int filepick_free(struct file_pick *fp)
 {
+	int i;
+
+	for(i=0; i<fp->files; i++) {
+		FREE_AND_NULL(fp->selected[i]);
+	}
+	FREE_AND_NULL(fp->selected);
 	return(0);
 }
