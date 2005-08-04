@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.5 2005/01/19 23:59:07 deuce Exp $ */
+/* $Id: cterm.h,v 1.6 2005/06/16 21:42:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ extern "C" {
 extern struct cterminal cterm;
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback);
-char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize);
+char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int *speed);
 void cterm_end(void);
 #ifdef __cplusplus
 }

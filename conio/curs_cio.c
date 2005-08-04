@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.18 2005/05/19 23:54:16 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.19 2005/06/06 23:00:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1125,6 +1125,7 @@ int curs_hidemouse(void)
 		return(-1);
 	#endif
 */
+	return(-1);
 }
 
 int curs_showmouse(void)
@@ -1136,4 +1137,5 @@ int curs_showmouse(void)
 	#endif
 	return(-1);
 */
+	return(-1);
 }
