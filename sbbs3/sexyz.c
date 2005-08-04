@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.71 2005/09/24 20:31:20 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.67 2005/06/13 02:35:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,10 +48,8 @@
 #include <stdarg.h>
 #include <ctype.h>		/* isdigit */
 #include <sys/stat.h>
-
 #ifdef __unix__
-	#include <termios.h>
-	#include <signal.h>
+#include <termios.h>
 #endif
 
 /* xpdev */
@@ -110,7 +108,6 @@ BOOL	debug_tx=FALSE;
 BOOL	debug_rx=FALSE;
 BOOL	debug_telnet=FALSE;
 BOOL	pause_on_exit=FALSE;
-BOOL	pause_on_abend=FALSE;
 BOOL	newline=TRUE;
 
 time_t		progress_interval;
@@ -136,8 +133,8 @@ void resetterm(void)
 
 #ifdef _WINSOCKAPI_
 
-/* Note: Don't call WSACleanup() or TCP session will close! */
-WSADATA WSAData;	
+WSADATA WSAData;
+static BOOL WSAInitialized=FALSE;
 
 static BOOL winsock_startup(void)
 {
@@ -145,6 +142,7 @@ static BOOL winsock_startup(void)
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
 		fprintf(statfp,"%s %s\n",WSAData.szDescription, WSAData.szSystemStatus);
+		WSAInitialized=TRUE;
 		return(TRUE);
 	}
 
@@ -384,8 +382,7 @@ int recv_byte(void* unused, unsigned timeout)
 				telnet_cmd=ch;
 				if((telnet_cmdlen==2 && ch<TELNET_WILL) || telnet_cmdlen>2) {
 					telnet_cmdlen=0;
-					/* Code disabled.  Why?  ToDo */
-					/* break; */
+//					break;
 				}
 				continue;
 			}
@@ -546,7 +543,7 @@ static void output_thread(void* arg)
 			continue;
 		}
 
-        if(bufbot==buftop) { /* linear buf empty, read from ring buf */
+        if(bufbot==buftop) { // linear buf empty, read from ring buf
             if(avail>sizeof(buf)) {
                 lprintf(LOG_ERR,"Insufficient linear output buffer (%lu > %lu)"
 					,avail, sizeof(buf));
@@ -1217,15 +1214,12 @@ static int receive_files(char** fname_list, int fnames)
 	return(!success);	/* 0=success */
 }
 
-void bail(int code)
+void exiting(void)
 {
-	if(logfp!=NULL)
-		fclose(logfp);
-	if(pause_on_exit || (pause_on_abend && code!=0)) {
+	if(pause_on_exit) {
 		printf("Hit enter to continue...");
 		getchar();
 	}
-	exit(code);
 }
 
 static const char* usage=
@@ -1273,6 +1267,7 @@ int main(int argc, char **argv)
 	uint	fnames=0;
 	FILE*	fp;
 	BOOL	tcp_nodelay;
+	BOOL	pause_on_abend=FALSE;
 	char	compiler[32];
 	str_list_t fname_list;
 
@@ -1287,7 +1282,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.71 $", "%*s %s", revision);
+	sscanf("$Revision: 1.67 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1357,6 +1352,8 @@ int main(int argc, char **argv)
 	if(fp!=NULL)
 		fclose(fp);
 
+	atexit(exiting);
+
 	if(zm.recv_bufsize > 0xffff)
 		zm.recv_bufsize = 0xffff;
 
@@ -1424,7 +1421,7 @@ int main(int argc, char **argv)
 					default:
 						fprintf(statfp,"Unrecognized command '%s'\n\n",argv[i]);
 						fprintf(statfp,usage);
-						bail(1); 
+						exit(1); 
 				} 
 				continue;
 			}
@@ -1439,7 +1436,7 @@ int main(int argc, char **argv)
 #endif
 				fprintf(statfp,"Compiled %s %.5s with %s\n",__DATE__,__TIME__,compiler);
 				fprintf(statfp,"%s\n",os_version(str));
-				bail(0);
+				exit(1);
 			}
 
 			arg=argv[i];
@@ -1496,12 +1493,12 @@ int main(int argc, char **argv)
 		else if((argv[i][0]=='+' || argv[i][0]=='@') && fexist(argv[i]+1)) {
 			if(mode&RECVDIR) {
 				fprintf(statfp,"!Cannot specify both directory and filename\n");
-				bail(1); 
+				exit(1); 
 			}
 			sprintf(str,"%s",argv[i]+1);
 			if((fp=fopen(str,"r"))==NULL) {
 				fprintf(statfp,"!Error %d opening filelist: %s\n",errno,str);
-				bail(1); 
+				exit(1); 
 			}
 			while(!feof(fp) && !ferror(fp)) {
 				if(!fgets(str,sizeof(str),fp))
@@ -1516,15 +1513,15 @@ int main(int argc, char **argv)
 			if(isdir(argv[i])) { /* is a directory */
 				if(mode&RECVDIR) {
 					fprintf(statfp,"!Only one directory can be specified\n");
-					bail(1); 
+					exit(1); 
 				}
 				if(fnames) {
 					fprintf(statfp,"!Cannot specify both directory and filename\n");
-					bail(1); 
+					exit(1); 
 				}
 				if(mode&SEND) {
 					fprintf(statfp,"!Cannot send directory '%s'\n",argv[i]);
-					bail(1);
+					exit(1);
 				}
 				mode|=RECVDIR; 
 			}
@@ -1548,7 +1545,7 @@ int main(int argc, char **argv)
 #else
 		fprintf(statfp,"!No socket descriptor specified\n\n");
 		fprintf(errfp,usage);
-		bail(1);
+		exit(1);
 #endif
 	}
 #ifdef __unix__
@@ -1559,13 +1556,13 @@ int main(int argc, char **argv)
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
 		fprintf(statfp,usage);
-		bail(1); 
+		exit(1); 
 	}
 
 	if(mode&(SEND|XMODEM) && !fnames) { /* Sending with any or recv w/Xmodem */
 		fprintf(statfp,"!Must specify filename or filelist\n\n");
 		fprintf(statfp,usage);
-		bail(1); 
+		exit(1); 
 	}
 
 #ifdef __unix__
@@ -1585,12 +1582,11 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	/* Code disabled.  Why?  ToDo */
-/*	if(mode&RECVDIR)
-		backslash(fname[0]); */
+//	if(mode&RECVDIR)
+//		backslash(fname[0]);
 
 	if(!winsock_startup())
-		bail(-1);
+		return(-1);
 
 	/* Enable the Nagle Algorithm */
 #ifdef __unix__
@@ -1604,13 +1600,13 @@ int main(int argc, char **argv)
 
 	if(!socket_check(sock, NULL, NULL, 0)) {
 		lprintf(LOG_WARNING,"No socket connection");
-		bail(-1); 
+		return(-1); 
 	}
 
 	if((dszlog=getenv("DSZLOG"))!=NULL) {
 		if((logfp=fopen(dszlog,"w"))==NULL) {
 			lprintf(LOG_WARNING,"Error %d opening DSZLOG file: %s",errno,dszlog);
-			bail(-1); 
+			return(-1); 
 		}
 	}
 
@@ -1644,14 +1640,22 @@ int main(int argc, char **argv)
 #endif
 
 	terminate=TRUE;	/* stop output thread */
-	/* Code disabled.  Why?  ToDo */
-/*	sem_post(outbuf.sem);
-	sem_post(outbuf.highwater_sem); */
+//	sem_post(outbuf.sem);
+//	sem_post(outbuf.highwater_sem);
 
 	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);
 	fprintf(statfp,"\n");
 
-	bail(retval);
+	if(logfp!=NULL)
+		fclose(logfp);
+
+	if(retval && pause_on_abend) {
+		printf("Hit enter to continue...");
+		getchar();
+		pause_on_exit=FALSE;
+	}
+
+	return(retval);
 }
 
