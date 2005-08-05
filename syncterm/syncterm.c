@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.50 2005/07/08 05:15:05 deuce Exp $ */
+/* $Id: syncterm.c,v 1.51 2005/08/05 18:32:08 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -15,7 +15,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.00"
+char* syncterm_version = "SyncTERM 0.01"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
