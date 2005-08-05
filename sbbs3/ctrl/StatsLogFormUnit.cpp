@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: StatsLogFormUnit.cpp,v 1.3 2005/09/20 03:40:18 deuce Exp $ */
+/* $Id: StatsLogFormUnit.cpp,v 1.2 2004/05/28 23:48:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,7 @@ void __fastcall TStatsLogForm::FormShow(TObject *Sender)
         close(file);
         return;
     }
-    if((buf=(char *)malloc(length))==NULL) {
+    if((buf=(char *)MALLOC(length))==NULL) {
         close(file);
         sprintf(str,"!Error allocating %lu bytes",length);
         Log->Lines->Add(AnsiString(str));
