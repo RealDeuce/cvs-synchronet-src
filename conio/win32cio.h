@@ -1,4 +1,4 @@
-/* $Id: win32cio.h,v 1.9 2005/10/05 02:23:43 deuce Exp $ */
+/* $Id: win32cio.h,v 1.8 2005/01/23 22:21:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void win32_delay(long msec);
 int win32_kbhit(void);
 int win32_getch(void);
 int win32_getche(void);
