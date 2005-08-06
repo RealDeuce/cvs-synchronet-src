@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.7 2004/11/16 21:10:03 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.9 2005/07/03 03:56:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <ctype.h>		/* is*() */
+#include <string.h>		/* strcpy, strcat, memset, strchr */
 #include <genwrap.h> 		/* stricmp */
 #include "smblib.h"
 

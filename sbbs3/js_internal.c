@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.22 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.23 2005/08/06 01:04:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -301,6 +301,16 @@ js_gc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool
+js_report_error(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	JS_ReportError(cx,"%s",JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
+
+	if(argc>1 && argv[1]==JSVAL_TRUE)
+		return(JS_FALSE);	/* fatal */
+
+	return(JS_TRUE);
+}
 
 static JSClass js_internal_class = {
      "JsInternal"				/* name			*/
@@ -325,7 +335,13 @@ static jsSyncMethodSpec js_functions[] = {
 		"if <i>forced</i> is <i>true</i> (the default) a garbage collection is always performed, "
 		"otherwise it is only performed if deemed appropriate by the JavaScript engine")
 	,311
-	},		
+	},
+	{"report_error",	js_report_error,	1,	JSTYPE_VOID,	JSDOCSTR("error [, bool fatal]")
+	,JSDOCSTR("report an error using the standard JavaScript error reporting mechanism "
+	"(including script filename and line number), "
+	"if <i>fatal</i> is <i>true</i>, terminates script - (added in v3.12b)")
+	,312
+	},
 	{0}
 };
 
