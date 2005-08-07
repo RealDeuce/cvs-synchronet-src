@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.32 2005/09/20 08:28:14 deuce Exp $ */
+/* $Id: cterm.c,v 1.30 2005/08/06 02:20:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -895,7 +895,7 @@ void ctputs(char *buf)
 	_wscroll=0;
 	cx=wherex();
 	cy=wherey();
-	if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+	if(cterm.log==CTERM_LOG_ASCII)
 		fputs(buf, cterm.logfile);
 	for(p=buf;*p;p++) {
 		switch(*p) {
@@ -903,14 +903,15 @@ void ctputs(char *buf)
 				cx=1;
 				break;
 			case '\n':
-				*p=0;
-				cputs(outp);
-				outp=p+1;
-				if(cy==cterm.height)
+				if(cy==cterm.height) {
+					*p=0;
+					cputs(outp);
+					outp=p+1;
 					scrollup();
+					gotoxy(cx,cy);
+				}
 				else
 					cy++;
-				gotoxy(cx,cy);
 				break;
 			case '\b':
 				if(cx>0)
@@ -990,7 +991,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int
 		case 0:
 			break;
 		default:
-			if(cterm.log==CTERM_LOG_RAW && cterm.logfile != NULL)
+			if(cterm.log==CTERM_LOG_RAW)
 				fwrite(buf, buflen, 1, cterm.logfile);
 			prn[0]=0;
 			for(j=0;j<buflen;j++) {
@@ -1022,7 +1023,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int
 						case 7:			/* Beep */
 							ctputs(prn);
 							prn[0]=0;
-							if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+							if(cterm.log==CTERM_LOG_ASCII)
 								fputs("\t", cterm.logfile);
 							#ifdef __unix__
 								putch(7);
@@ -1033,7 +1034,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int
 						case 12:		/* ^L - Clear screen */
 							ctputs(prn);
 							prn[0]=0;
-							if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+							if(cterm.log==CTERM_LOG_ASCII)
 								fputs("\t", cterm.logfile);
 							clearscreen(cterm.attr);
 							gotoxy(1,1);
@@ -1046,7 +1047,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int
 						case '\t':
 							ctputs(prn);
 							prn[0]=0;
-							if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+							if(cterm.log==CTERM_LOG_ASCII)
 								fputs("\t", cterm.logfile);
 							for(k=0;k<11;k++) {
 								if(cterm_tabs[k]>wherex()) {
