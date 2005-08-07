@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.28 2005/08/08 21:22:43 deuce Exp $ */
+/* $Id: menu.c,v 1.27 2005/08/06 02:43:15 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -200,6 +200,9 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				if(i>=0)
 					log_level = j;
 				ret=6;
+				break;
+			case 7:		/* Capture control */
+				ret=i;
 				break;
 			default:
 				ret=i;
