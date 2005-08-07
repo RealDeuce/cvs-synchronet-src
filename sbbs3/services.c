@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.182 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: services.c,v 1.185 2005/08/06 01:57:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1094,6 +1094,7 @@ static void js_service_thread(void* arg)
 	else  {
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
 	}
 	JS_DestroyContext(js_cx);	/* Free Context */
@@ -1193,6 +1194,7 @@ static void js_static_service_thread(void* arg)
 		}
 
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
 
 		JS_DestroyContext(js_cx);	/* Free Context */
@@ -1324,7 +1326,7 @@ static void native_service_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
-		lprintf(LOG_WARNING,"%04d !%s CLIENT BLOCKED in host.can: %s"
+		lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in host.can: %s"
 			,socket, service->protocol, host_name);
 		close_socket(socket);
 		if(service->clients)
@@ -1523,7 +1525,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.182 $", "%*s %s", revision);
+	sscanf("$Revision: 1.185 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1983,7 +1985,7 @@ void DLLCALL services_thread(void* arg)
 					,service[i].protocol, host_ip, ntohs(client_addr.sin_port));
 
 				if(service[i].max_clients && service[i].clients+1>service[i].max_clients) {
-					lprintf(LOG_WARNING,"%04d !%s MAXMIMUM CLIENTS (%u) reached, access denied"
+					lprintf(LOG_WARNING,"%04d !%s MAXIMUM CLIENTS (%u) reached, access denied"
 						,client_socket, service[i].protocol, service[i].max_clients);
 					mswait(3000);
 					close_socket(client_socket);
