@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.301 2005/10/07 08:09:16 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.299 2005/07/03 04:21:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,14 +103,14 @@ static str_list_t shutdown_semfiles;
 #ifdef _DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
 
-	#define	SOCKET_DEBUG_CTRL		(1<<0)	/* 0x01 */
-	#define SOCKET_DEBUG_SEND		(1<<1)	/* 0x02 */
-	#define SOCKET_DEBUG_READLINE	(1<<2)	/* 0x04 */
-	#define SOCKET_DEBUG_ACCEPT		(1<<3)	/* 0x08 */
-	#define SOCKET_DEBUG_SENDTHREAD	(1<<4)	/* 0x10 */
-	#define SOCKET_DEBUG_TERMINATE	(1<<5)	/* 0x20 */
-	#define SOCKET_DEBUG_RECV_CHAR	(1<<6)	/* 0x40 */
-	#define SOCKET_DEBUG_FILEXFER	(1<<7)	/* 0x80 */
+	#define	SOCKET_DEBUG_CTRL		(1<<0)	// 0x01
+	#define SOCKET_DEBUG_SEND		(1<<1)	// 0x02
+	#define SOCKET_DEBUG_READLINE	(1<<2)	// 0x04
+	#define SOCKET_DEBUG_ACCEPT		(1<<3)	// 0x08
+	#define SOCKET_DEBUG_SENDTHREAD	(1<<4)	// 0x10
+	#define SOCKET_DEBUG_TERMINATE	(1<<5)	// 0x20
+	#define SOCKET_DEBUG_RECV_CHAR	(1<<6)	// 0x40
+	#define SOCKET_DEBUG_FILEXFER	(1<<7)	// 0x80
 #endif
 
 
@@ -2867,7 +2867,7 @@ static void ctrl_thread(void* arg)
 		}
 
 		if(!stricmp(cmd, "PASV") 
-			|| !stricmp(cmd, "P@SW")) {	/* Kludge required for SMC Barricade V1.2 */
+			|| !stricmp(cmd, "P@SW")) {	// Kludge required for SMC Barricade V1.2
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -4508,7 +4508,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.301 $", "%*s %s", revision);
+	sscanf("$Revision: 1.299 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4808,9 +4808,9 @@ void DLLCALL ftp_server(void* arg)
 				if(ERROR_VALUE==EINTR)
 					lprintf(LOG_NOTICE,"%04d FTP Server listening interrupted", server_socket);
 				else if(ERROR_VALUE == ENOTSOCK)
-            		lprintf(LOG_NOTICE,"%04d FTP Server socket closed", server_socket);
+            		lprintf(LOG_NOTICE,"%04d FTP Server sockets closed", server_socket);
 				else
-					lprintf(LOG_WARNING,"%04d !ERROR %d selecting socket",server_socket, ERROR_VALUE);
+					lprintf(LOG_WARNING,"%04d !ERROR %d selecting sockets",server_socket, ERROR_VALUE);
 				continue;
 			}
 
