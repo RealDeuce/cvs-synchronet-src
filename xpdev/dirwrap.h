@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.31 2005/05/20 01:11:59 deuce Exp $ */
+/* $Id: dirwrap.h,v 1.32 2005/07/01 20:44:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,10 @@ extern "C" {
 	#include <sys/stat.h>
 	#include <glob.h>		/* POSIX.2 directory pattern matching function */
 	#define MKDIR(dir)		mkdir(dir,0777)
+
+	#if defined(__CYGWIN__)
+		#define DLLEXPORT	/* CygWin's glob.h #undef's DLLEXPORT */
+	#endif
 
 #else	
 
