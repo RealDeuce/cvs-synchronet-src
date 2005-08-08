@@ -2,7 +2,7 @@
 
 /* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.110 2005/05/07 01:15:33 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.111 2005/07/03 04:20:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,8 @@
  ****************************************************************************/
 
 #define STARTUP_INI_BITDESC_TABLES
+
+#include <string.h>	/* strchr, memset */
 
 #include "dirwrap.h"	/* backslash */
 #include "sbbs_ini.h"
