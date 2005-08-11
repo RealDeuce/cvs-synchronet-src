@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.191 2005/08/11 00:03:04 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.192 2005/08/11 00:04:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -815,7 +815,7 @@ static void read_startup_ini(BOOL recycle
 			is_daemon=iniReadBool(fp,section,"Daemonize",FALSE);
 		SAFECOPY(log_facility,iniReadString(fp,section,"LogFacility","U",value));
 		SAFECOPY(log_ident,iniReadString(fp,section,"LogIdent","synchronet",value));
-		SAFECOPY(pid_fname,iniReadString(fp,section,PidFile","/var/run/sbbs.pid",value));
+		SAFECOPY(pid_fname,iniReadString(fp,section,"PidFile","/var/run/sbbs.pid",value));
 		umask(iniReadInteger(fp,section,"umask",077));
 	}
 #endif
