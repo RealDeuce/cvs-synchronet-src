@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.325 2005/08/06 01:57:24 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.326 2005/08/11 22:24:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2888,7 +2888,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     if(startup==NULL || startup->lputs==NULL)
         return(JS_FALSE);
 
-	if(JSVAL_IS_NUMBER(argv[i]))
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
 	str[0]=0;
@@ -3488,7 +3488,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.325 $", "%*s %s", revision);
+	sscanf("$Revision: 1.326 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
