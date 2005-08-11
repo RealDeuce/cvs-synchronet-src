@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.50 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: exec.cpp,v 1.51 2005/08/06 01:57:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -647,6 +647,8 @@ long sbbs_t::js_execfile(const char *cmd)
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
+
+	js_EvalOnExit(js_cx, js_glob, &js_branch);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 

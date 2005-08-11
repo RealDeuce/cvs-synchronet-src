@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.25 2005/06/05 02:10:48 deuce Exp $ */
+/* $Id: mouse.c,v 1.27 2005/07/03 03:59:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <genwrap.h>
 #include <semwrap.h>
@@ -97,7 +98,7 @@ struct mouse_state {
 
 struct mouse_state state;
 int mouse_events=0;
-static mouse_initialized=0;
+static int mouse_initialized=0;
 
 void init_mouse(void)
 {

@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.254 2005/06/04 09:40:26 deuce Exp $ */
+/* $Id: sbbs.h,v 1.257 2005/08/06 01:57:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,6 +137,7 @@
 #include "crc16.h"
 #include "crc32.h"
 #include "telnet.h"
+#include "nopen.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -966,8 +967,9 @@ extern "C" {
 													);
 
 	/* js_internal.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch);
-	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext *cx, js_branch_t*);
+	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t* branch);
+	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
+	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -1034,12 +1036,6 @@ char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
 uint	hptoi(char *str);
 int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
 int		strsame(char *str1, char *str2);	/* Compares number of same chars */
-
-/* nopen.c */
-int		nopen(const char* str, int access);
-FILE *	fnopen(int* file, const char* str, int access);
-BOOL	ftouch(const char* fname);
-BOOL	fmutex(const char* fname, const char* text);
 
 /* load_cfg.c */
 BOOL 	md(char *path);
