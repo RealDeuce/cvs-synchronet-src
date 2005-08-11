@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.52 2005/08/11 22:27:21 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.53 2005/08/11 22:44:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -531,6 +531,12 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
+
+	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
+		JS_ReportError(cx,"Disconnected");
+		sbbs->js_branch.counter=0;
+		return(JS_FALSE);
+	}
 
 	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
 }
