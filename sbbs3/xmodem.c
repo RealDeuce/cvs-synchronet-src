@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.22 2005/06/02 22:00:46 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.25 2005/06/13 01:38:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,14 +98,14 @@ static char *chr(uchar ch)
 
 int xmodem_put_ack(xmodem_t* xm)
 {
-	while(getcom(0)!=NOINP)
+	while(getcom(0)!=NOINP && is_connected(xm))
 		;				/* wait for any trailing data */
 	return putcom(ACK);
 }
 
 int xmodem_put_nak(xmodem_t* xm, unsigned block_num)
 {
-	while(getcom(0)!=NOINP)
+	while(getcom(0)!=NOINP && is_connected(xm))
 		;				/* wait for any trailing data */
 
 	if(block_num<=1) {
@@ -191,18 +191,15 @@ int xmodem_get_block(xmodem_t* xm, uchar* block, unsigned expected_block_num)
 					return(EOT);
 				return(NOINP);
 		}
-		i=getcom(xm->byte_timeout);
-		if(i==NOINP)
+		if((i=getcom(xm->byte_timeout))==NOINP)
 			break; 
 		block_num=i;
-		i=getcom(xm->byte_timeout);
-		if(i==NOINP)
+		if((i=getcom(xm->byte_timeout))==NOINP)
 			break; 
 		block_inv=i;
 		calc_crc=calc_chksum=0;
 		for(b=0;b<xm->block_size && is_connected(xm);b++) {
-			i=getcom(xm->byte_timeout);
-			if(i==NOINP)
+			if((i=getcom(xm->byte_timeout))==NOINP)
 				break;
 			block[b]=i;
 			if((*xm->mode)&CRC)
@@ -394,7 +391,7 @@ BOOL xmodem_put_eot(xmodem_t* xm)
 
 		lprintf(xm,LOG_INFO,"Sending End-of-Text (EOT) indicator (%d)",errors+1);
 
-		while((ch=getcom(0))!=NOINP)
+		while((ch=getcom(0))!=NOINP && is_connected(xm))
 			lprintf(xm,LOG_INFO,"Throwing out received: %s",chr((uchar)ch));
 
 		putcom(EOT);
@@ -424,7 +421,6 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 	size_t		rd;
 	time_t		startfile;
 	struct		stat st;
-	unsigned	errors;
 
 	if(sent!=NULL)	
 		*sent=0;
@@ -450,7 +446,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			memset(block,0,sizeof(block));
 			SAFECOPY(block,getfname(fname));
 			i=sprintf(block+strlen(block)+1,"%lu %lo 0 0 %d %ld"
-				,st.st_size
+				,(ulong)st.st_size
 				,st.st_mtime
 				,xm->total_files-xm->sent_files
 				,xm->total_bytes-xm->sent_bytes);
@@ -458,12 +454,12 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			lprintf(xm,LOG_INFO,"Sending Ymodem header block: '%s'",block+strlen(block)+1);
 			
 			block_len=strlen(block)+1+i;
-			for(errors=0;errors<=xm->max_errors && !xm->cancelled && is_connected(xm);errors++) {
+			for(xm->errors=0;xm->errors<=xm->max_errors && !xm->cancelled && is_connected(xm);xm->errors++) {
 				xmodem_put_block(xm, block, block_len <=128 ? 128:1024, 0  /* block_num */);
 				if(xmodem_get_ack(xm,1,0))
 					break; 
 			}
-			if(errors>=xm->max_errors || xm->cancelled) {
+			if(xm->errors>=xm->max_errors || xm->cancelled) {
 				lprintf(xm,LOG_ERR,"Failed to send header block");
 				break;
 			}
@@ -477,8 +473,8 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			*start=startfile;
 
 		block_num=1;
-		errors=0;
-		while(sent_bytes < (ulong)st.st_size && errors<=xm->max_errors && !xm->cancelled
+		xm->errors=0;
+		while(sent_bytes < (ulong)st.st_size && xm->errors<=xm->max_errors && !xm->cancelled
 			&& is_connected(xm)) {
 			fseek(fp,sent_bytes,SEEK_SET);
 			memset(block,CPMEOF,xm->block_size);
@@ -486,16 +482,16 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 				&& (long)(block_num*xm->block_size) < st.st_size) {
 				lprintf(xm,LOG_ERR,"READ ERROR %d instead of %d at offset %lu"
 					,rd,xm->block_size,(block_num-1)*(long)xm->block_size);
-				errors++;
+				xm->errors++;
 				continue;
 			}
 			if(xm->progress!=NULL)
 				xm->progress(xm->cbdata,block_num,ftell(fp),st.st_size,startfile);
 			xmodem_put_block(xm, block, xm->block_size, block_num);
 			if(!xmodem_get_ack(xm,5,block_num)) {
-				errors++;
+				xm->errors++;
 				lprintf(xm,LOG_WARNING,"Error #%d at offset %ld"
-					,errors,ftell(fp)-xm->block_size);
+					,xm->errors,ftell(fp)-xm->block_size);
 			} else {
 				block_num++; 
 				sent_bytes+=rd;
@@ -531,7 +527,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.22 $", "%*s %s", buf);
+	sscanf("$Revision: 1.25 $", "%*s %s", buf);
 
 	return(buf);
 }
