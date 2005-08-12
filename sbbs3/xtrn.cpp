@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.188 2005/10/13 01:44:53 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.181 2005/06/03 20:22:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,14 +312,6 @@ BYTE* cr_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
-static void add_env_var(str_list_t* list, const char* var, const char* val)
-{
-	char	str[MAX_PATH*2];
-	SetEnvironmentVariable(var,NULL);	/* Delete in current process env */
-	SAFEPRINTF2(str,"%s=%s",var,val);
-	strListPush(list,str);
-}
-
 /* Clean-up resources while preserving current LastError value */
 #define XTRN_CLEANUP												\
 	last_error=GetLastError();										\
@@ -386,8 +378,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
-	else
-		lprintf(LOG_INFO,"Node %d Executing external: %s",cfg.node_num,cmdline);
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -444,23 +434,18 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 
 		// Current environment passed to child process
-		sprintf(str,"%sprotocol.log",cfg.node_dir);			
-		add_env_var(&env_list,"DSZLOG",str);
-		add_env_var(&env_list,"SBBSNODE",cfg.node_dir);
-		add_env_var(&env_list,"SBBSCTRL",cfg.ctrl_dir);
-		add_env_var(&env_list,"SBBSDATA",cfg.data_dir);
-		add_env_var(&env_list,"SBBSEXEC",cfg.exec_dir);
-		sprintf(str,"%d",cfg.node_num);
-		add_env_var(&env_list,"SBBSNNUM",str);
+		sprintf(str,"DSZLOG=%sPROTOCOL.LOG",cfg.node_dir);		strListPush(&env_list,str);
+		sprintf(str,"SBBSNODE=%s",cfg.node_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSCTRL=%s",cfg.ctrl_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSDATA=%s",cfg.data_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSEXEC=%s",cfg.exec_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSNNUM=%d",cfg.node_num);				strListPush(&env_list,str);
 		/* date/time env vars */
-		sprintf(str,"%02u",tm.tm_mday);	
-		add_env_var(&env_list,"DAY",str);
-		add_env_var(&env_list,"WEEKDAY",wday[tm.tm_wday]);
-		add_env_var(&env_list,"MONTHNAME",mon[tm.tm_mon]);
-		sprintf(str,"%02u",tm.tm_mon+1);
-		add_env_var(&env_list,"MONTH",str);
-		sprintf(str,"%u",1900+tm.tm_year);
-		add_env_var(&env_list,"YEAR",str);
+		sprintf(str,"DAY=%02u",tm.tm_mday);						strListPush(&env_list,str);
+		sprintf(str,"WEEKDAY=%s",wday[tm.tm_wday]);				strListPush(&env_list,str);
+		sprintf(str,"MONTHNAME=%s",mon[tm.tm_mon]);				strListPush(&env_list,str);
+		sprintf(str,"MONTH=%02u",tm.tm_mon+1);					strListPush(&env_list,str);
+		sprintf(str,"YEAR=%u",1900+tm.tm_year);					strListPush(&env_list,str);
 
 		env_strings=GetEnvironmentStrings();
 		env_block=strListCopyBlock(env_strings);
@@ -1039,7 +1024,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			ioctlsocket(client_socket, FIONBIO, &l);
 
 			/* Re-set socket options */
-			if(set_socket_options(&cfg, client_socket, "bbs", str, sizeof(str)))
+			if(set_socket_options(&cfg, client_socket, str))
 				lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 			if(input_thread_mutex_locked && input_thread_running) {
@@ -1928,7 +1913,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		ioctlsocket(client_socket, FIONBIO, &l);
 
 		/* Re-set socket options */
-		if(set_socket_options(&cfg, client_socket, "bbs", str, sizeof(str)))
+		if(set_socket_options(&cfg, client_socket, str))
 			lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 		curatr=~0;			// Can't guarantee current attributes
@@ -1957,23 +1942,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 uint fakeriobp=0xffff;
 
-const char* quoted_string(const char* str, char* buf, size_t maxlen)
-{
-	if(strchr(str,' ')==NULL)
-		return(str);
-	safe_snprintf(buf,maxlen,"\"%s\"",str);
-	return(buf);
-}
-
-#define QUOTED_STRING(ch, str, buf, maxlen) \
-	((isalpha(ch) && isupper(ch)) ? str : quoted_string(str,buf,maxlen))
-	
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
 char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 {
-	char	str[MAX_PATH+1],*cmd;
+	char	str[256],*cmd;
     int		i,j,len;
 
     if(outstr==NULL)
@@ -1990,7 +1964,7 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 				ch=toupper(ch);
             switch(ch) {
                 case 'A':   /* User alias */
-                    strcat(cmd,QUOTED_STRING(instr[i],useron.alias,str,sizeof(str)));
+                    strcat(cmd,useron.alias);
                     break;
                 case 'B':   /* Baud (DTE) Rate */
                     strcat(cmd,ultoa(dte_rate,str,10));
@@ -2005,7 +1979,7 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,ultoa((ulong)cur_cps*10,str,10));
                     break;
                 case 'F':   /* File path */
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,fpath);
                     break;
                 case 'G':   /* Temp directory */
                     strcat(cmd,cfg.temp_dir);
@@ -2036,7 +2010,7 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,cfg.node_dir);
                     break;
                 case 'O':   /* SysOp */
-                    strcat(cmd,QUOTED_STRING(instr[i],cfg.sys_op,str,sizeof(str)));
+                    strcat(cmd,cfg.sys_op);
                     break;
                 case 'P':   /* Client protocol */
                     strcat(cmd,client.protocol);
@@ -2047,7 +2021,7 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case 'R':   /* Rows */
                     strcat(cmd,ultoa(rows,str,10));
                     break;
-                case 'S':   /* File Spec (or Baja command str) */
+                case 'S':   /* File Spec */
                     strcat(cmd,fspec);
                     break;
                 case 'T':   /* Time left in seconds */
@@ -2085,18 +2059,12 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
 					strcat(cmd,sfpath);
 #else
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,fpath);
 #endif			
 					break;
                 case '!':   /* EXEC Directory */
                     strcat(cmd,cfg.exec_dir);
                     break;
-                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-                    strcat(cmd,cfg.exec_dir);
-#endif
-                    break;
-
                 case '#':   /* Node number (same as SBBSNNUM environment var) */
                     sprintf(str,"%d",cfg.node_num);
                     strcat(cmd,str);
@@ -2146,7 +2114,7 @@ extern "C"
 char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* fpath
 						,const char* fspec, char* cmd)
 {
-	char	str[MAX_PATH+1];
+	char	str[256];
     int		i,j,len;
 
     len=strlen(instr);
@@ -2160,7 +2128,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
             switch(ch) {
                 case 'A':   /* User alias */
 					if(user!=NULL)
-						strcat(cmd,QUOTED_STRING(instr[i],user->alias,str,sizeof(str)));
+						strcat(cmd,user->alias);
                     break;
                 case 'B':   /* Baud (DTE) Rate */
                     break;
@@ -2171,7 +2139,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'E':   /* Estimated Rate */
                     break;
                 case 'F':   /* File path */
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,fpath);
                     break;
                 case 'G':   /* Temp directory */
                     strcat(cmd,cfg->temp_dir);
@@ -2198,7 +2166,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                     strcat(cmd,cfg->node_dir);
                     break;
                 case 'O':   /* SysOp */
-                    strcat(cmd,QUOTED_STRING(instr[i],cfg->sys_op,str,sizeof(str)));
+                    strcat(cmd,cfg->sys_op);
                     break;
                 case 'P':   /* Client protocol */
                     break;
@@ -2245,18 +2213,12 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
 					strcat(cmd,sfpath);
 #else
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,fpath);
 #endif			
 					break;
                 case '!':   /* EXEC Directory */
                     strcat(cmd,cfg->exec_dir);
                     break;
-                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-                    strcat(cmd,cfg->exec_dir);
-#endif
-                    break;
-
                 case '#':   /* Node number (same as SBBSNNUM environment var) */
                     sprintf(str,"%d",cfg->node_num);
                     strcat(cmd,str);
