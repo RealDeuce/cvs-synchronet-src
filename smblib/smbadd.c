@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.14 2005/01/15 21:52:52 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.16 2005/08/01 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include <time.h>
+#include <string.h>	/* strlen(), memset() */
 #include "smblib.h"
 #include "genwrap.h"
 #include "crc32.h"
@@ -82,16 +83,19 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			break;
 
 		msg->hdr.number=smb->status.last_msg+1;
-		hashes=smb_msghashes(msg,body);
+		if(!(smb->status.attr&SMB_EMAIL)) {
 
-		if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
-			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"duplicate %s: %s found in message #%lu"
-				,smb_hashsourcetype(found.source)
-				,smb_hashsource(msg,found.source)
-				,found.number);
-			retval=SMB_DUPE_MSG;
-			break;
+			hashes=smb_msghashes(msg,body);
+
+			if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
+				safe_snprintf(smb->last_error,sizeof(smb->last_error)
+					,"duplicate %s: %s found in message #%lu"
+					,smb_hashsourcetype(found.source)
+					,smb_hashsource(msg,found.source)
+					,found.number);
+				retval=SMB_DUPE_MSG;
+				break;
+			}
 		}
 
 		if(tail!=NULL && (taillen=strlen(tail))>0)
@@ -289,7 +293,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 		}
 
-		if(smb_addhashes(smb,hashes,/* skip_marked? */FALSE)==SMB_SUCCESS)
+		if(!(smb->status.attr&SMB_EMAIL)
+			&& smb_addhashes(smb,hashes,/* skip_marked? */FALSE)==SMB_SUCCESS)
 			msg->flags|=MSG_FLAG_HASHED;
 		if(msg->to==NULL)	/* no recipient, don't add header (required for bulkmail) */
 			break;
