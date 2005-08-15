@@ -150,6 +150,26 @@ char *insensitive_mask(char *mask)
 #endif
 }
 
+char *getdirname(char *path)
+{
+	char *p1;
+	char *p2;
+
+	p1=strrchr(path,'/');
+#ifdef _WIN32
+	p2=strrchr(path,'\\');
+	if(p2 > p1)
+		p1=p2;
+#endif
+	p2 = path;
+	if(p1 > path) {
+		for(p2=p1-1; p2>=path && !IS_PATH_DELIM(*p2); p2--);
+		if(IS_PATH_DELIM(*p2) && *(p2+1))
+			p2++;
+	}
+	return(p2);
+}
+
 char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 {
 	char **opts;
@@ -167,7 +187,7 @@ char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 	for(i=0;i<files;i++) {
 		if(isdir(fns[i])) {
 			if(dirsonly)
-				opts[j++]=strdup(getfname(fns[i]));
+				opts[j++]=strdup(getdirname(fns[i]));
 		}
 		else {
 			if(!dirsonly)
@@ -183,6 +203,7 @@ void display_current_path(uifcapi_t *api, char *path)
 	char	dpath[MAX_PATH+2];
 	int width;
 	int height;
+	char	*p;
 
 	height=api->scrn_len-3;
 	width=SCRN_RIGHT-SCRN_LEFT-3;
@@ -277,8 +298,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	int		filecur=0;
 	int		filebar=0;
 	int		listwidth;
-	char	**dir_list;
-	char	**file_list;
+	char	**dir_list=NULL;
+	char	**file_list=NULL;
 	int		currfield=DIR_LIST;
 	int		lastfield=DIR_LIST;
 	int		i;
@@ -363,9 +384,9 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		else
 			root=FALSE;
 #else
-#error Need to do something about root paths (in get_file_opt_list() too!)
+//#error Need to do something about root paths (in get_file_opt_list() too!)
 #endif
-		if(glob(dglob, 0, NULL, &dgl)!=0) {
+		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0 && !isdir(cpath)) {
 			if(lastpath==NULL) {
 				fp->files=0;
 				retval=-1;
@@ -483,7 +504,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					sprintf(cfile,"%s%s%s%s",drive,tdir,fname,ext);
 					if(strchr(fname,'*') !=NULL || strchr(fname,'?') !=NULL
 						|| strchr(ext,'*') !=NULL || strchr(ext,'?') !=NULL
-						|| !isdir(cfile)) {
+						|| (!isdir(cfile) && i!='\r' && i!='\n')) {
 						if(opts & UIFC_FP_MSKNOCHG) {
 							sprintf(cfile,"%s%s%s",drive,tdir,cmsk);
 							FREE_AND_NULL(tmplastpath);
@@ -495,6 +516,10 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 							reread=TRUE;
 						}
 						break;
+					}
+					else {
+						if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && (i=='\r' || i!='\n'))
+						fieldmove=0;
 					}
 					if((currfield != CURRENT_PATH) || fieldmove)
 						break;
