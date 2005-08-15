@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.394 2005/08/11 22:24:47 rswindell Exp $ */
+/* $Id: main.cpp,v 1.395 2005/08/15 21:32:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1269,14 +1269,15 @@ void input_thread(void *arg)
 			break;
 		}
 
-/*		\______    ______/
- *       \  0 \   / 0   /
+/*         ^          ^
+ *		\______    ______/
+ *       \  * \   / *   /
  *        -----   ------           /----\
  *              ||               -< Boo! |
  *             /_\                 \----/
- *      \_______________/
- *       \/\/\/\/\/\/\//
- *        -------------
+ *       \______________/
+ *        \/\/\/\/\/\/\/
+ *         ------------
  */
 
 		if(FD_ISSET(sbbs->client_socket,&socket_set))
@@ -2274,6 +2275,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	errorlog_inside = false;
 	errormsg_inside = false;
 	gettimeleft_inside = false;
+	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
 	uselect_total = 0;
 	lbuflen = 0;
 	connection="Telnet";
