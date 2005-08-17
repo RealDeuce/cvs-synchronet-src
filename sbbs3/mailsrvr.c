@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.372 2005/08/06 01:57:24 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.373 2005/08/17 16:10:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1493,6 +1493,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 
+	ZERO_VAR(js_branch);
 
 	SAFECOPY(fname,cmdline);
 	truncstr(fname," \t");
@@ -3965,7 +3966,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.372 $", "%*s %s", revision);
+	sscanf("$Revision: 1.373 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
