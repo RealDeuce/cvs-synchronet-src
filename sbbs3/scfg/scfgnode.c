@@ -1,6 +1,6 @@
 /* scfgnode.c */
 
-/* $Id: scfgnode.c,v 1.24 2005/09/20 03:40:47 deuce Exp $ */
+/* $Id: scfgnode.c,v 1.23 2004/12/21 01:40:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +92,7 @@ select No or hit  ESC .
 		i=uifc.list(WIN_MID,0,0,0,&i,0,str,opt);
 		if(!i) {
 			--cfg.sys_nodes;
-/*			free(cfg.node_path[cfg.sys_nodes]); */
+/*			FREE(cfg.node_path[cfg.sys_nodes]); */
 			cfg.new_install=new_install;
 			write_main_cfg(&cfg,backup_level);
             refresh_cfg(&cfg);

@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.58 2005/10/12 21:25:39 deuce Exp $ */
+/* $Id: genwrap.c,v 1.57 2005/06/23 01:32:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -480,12 +480,8 @@ long double	DLLCALL	xp_timer(void)
 	LARGE_INTEGER	freq;
 	LARGE_INTEGER	tick;
 	if(QueryPerformanceFrequency(&freq) && QueryPerformanceCounter(&tick)) {
-#if 0
 		ret=((long double)tick.HighPart*4294967296)+((long double)tick.LowPart);
 		ret /= ((long double)freq.HighPart*4294967296)+((long double)freq.LowPart);
-#else
-		ret=((long double)tick.QuadPart)/freq.QuadPart;
-#endif
 	}
 	else {
 		ret=GetTickCount();
