@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.88 2005/06/06 22:26:23 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.89 2005/07/26 23:53:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,6 +182,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	int 		i;
 	ushort		agent=AGENT_SMBUTIL;
 	smbmsg_t	msg;
+	long		dupechk_hashes=SMB_HASH_SOURCE_ALL;
 
 	/* Read message text from stream (file or stdin) */
 	msgtxtlen=0;
@@ -326,9 +327,11 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 		bail(1); 
 	}
 
+	if(mode&NOCRC || smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
+		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+
 	if((i=smb_addmsg(&smb,&msg,smb.status.attr&SMB_HYPERALLOC
-		,mode&NOCRC ? SMB_HASH_SOURCE_NONE : SMB_HASH_SOURCE_ALL
-		,xlat,msgtxt,NULL))!=SMB_SUCCESS) {
+		,dupechk_hashes,xlat,msgtxt,NULL))!=SMB_SUCCESS) {
 		fprintf(errfp,"\n%s!smb_addmsg returned %d: %s\n"
 			,beep,i,smb.last_error);
 		bail(1); 
@@ -1447,7 +1450,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.88 $", "%*s %s", revision);
+	sscanf("$Revision: 1.89 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
