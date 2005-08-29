@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.67 2005/06/13 02:35:07 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.68 2005/08/29 23:20:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,10 @@
 #include <stdarg.h>
 #include <ctype.h>		/* isdigit */
 #include <sys/stat.h>
+
 #ifdef __unix__
-#include <termios.h>
+	#include <termios.h>
+	#include <signal.h>
 #endif
 
 /* xpdev */
@@ -1282,7 +1284,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.67 $", "%*s %s", revision);
+	sscanf("$Revision: 1.68 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
