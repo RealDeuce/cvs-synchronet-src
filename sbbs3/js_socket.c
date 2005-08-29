@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.107 2005/10/13 07:34:30 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.104 2005/08/05 02:22:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -358,8 +358,8 @@ js_send(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	*rval = JSVAL_FALSE;
 
 	str = JS_ValueToString(cx, argv[0]);
-	cp	= JS_GetStringBytes(str);
-	len	= JS_GetStringLength(str);
+	cp=JS_GetStringBytes(str);
+	len=strlen(cp);
 
 	if(sendsocket(p->sock,cp,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
@@ -394,7 +394,7 @@ js_sendto(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	/* data */
 	data_str = JS_ValueToString(cx, argv[0]);
 	cp = JS_GetStringBytes(data_str);
-	len = JS_GetStringLength(data_str);
+	len = strlen(cp);
 
 	/* address */
 	ip_str = JS_ValueToString(cx, argv[1]);
@@ -566,7 +566,7 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 	buf[len]=0;
 
-	str = JS_NewStringCopyN(cx, buf, len);
+	str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
@@ -659,7 +659,7 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 		buf[len]=0;
 
-		str = JS_NewStringCopyN(cx, buf, len);
+		str = JS_NewStringCopyZ(cx, buf);
 		free(buf);
 
 		if(str==NULL)
@@ -730,7 +730,7 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 	buf[len]=0;
 
-	str = JS_NewStringCopyN(cx, buf, len);
+	str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
@@ -878,7 +878,7 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 	}
 
-	opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
+	opt = sockopt(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
 	len = sizeof(val);
 
 	if(opt!=-1 && getsockopt(p->sock, level, opt, (void*)&val, &len)==0) {
@@ -908,7 +908,7 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 	}
 
-	opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
+	opt = sockopt(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
 	JS_ValueToInt32(cx,argv[1],&val);
 
 	*rval = BOOLEAN_TO_JSVAL(
@@ -1307,24 +1307,18 @@ static JSBool
 js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32	type=SOCK_STREAM;	/* default = TCP */
-	uintN	i;
 	private_t* p;
-	char*	sock_service=NULL;
 
-	for(i=0;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
-			JS_ValueToInt32(cx,argv[i],&type);
-		else if(sock_service==NULL)
-			sock_service=JS_GetStringBytes(JS_ValueToString(cx,argv[i]));
-	}
-		
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&type);
+
 	if((p=(private_t*)malloc(sizeof(private_t)))==NULL) {
 		JS_ReportError(cx,"malloc failed");
 		return(JS_FALSE);
 	}
 	memset(p,0,sizeof(private_t));
 
-	if((p->sock=open_socket(type,sock_service))==INVALID_SOCKET) {
+	if((p->sock=open_socket(type))==INVALID_SOCKET) {
 		JS_ReportError(cx,"open_socket failed with error %d",ERROR_VALUE);
 		return(JS_FALSE);
 	}
