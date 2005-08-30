@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.7 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: text_sec.cpp,v 1.8 2005/06/11 03:22:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,7 +137,7 @@ int sbbs_t::text_sec()
 					i=0;
 				bprintf(text[AddTextFilePath]
 					,cfg.data_dir,cfg.txtsec[usrsec[cursec]]->code);
-				if(!getstr(addpath,80,K_UPPER))
+				if(!getstr(addpath,80,0))
 					continue;
 				strcat(addpath,crlf);
 				bputs(text[AddTextFileDesc]);
