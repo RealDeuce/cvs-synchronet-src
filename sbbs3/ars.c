@@ -2,13 +2,13 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.11 2005/10/02 21:56:29 rswindell Exp $ */
+/* $Id: ars.c,v 1.8 2004/10/17 06:46:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-const uchar* nular="";	/* AR_NULL */
+const uchar* nular="";	// AR_NULL
 
 /* Converts ASCII ARS string into binary ARS buffer */
 
@@ -270,28 +270,28 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 					ar[j++]=AR_NOT;
 				not=0;
 				ar[j++]=artype;
-				i+=4; }
+				i+=2; }
 			else if(!strnicmp(str+i,"UNIX",4)) {
 				artype=AR_UNIX;
 				if(not)
 					ar[j++]=AR_NOT;
 				not=0;
 				ar[j++]=artype;
-				i+=3; }
+				i+=2; }
 			else if(!strnicmp(str+i,"LINUX",5)) {
 				artype=AR_LINUX;
 				if(not)
 					ar[j++]=AR_NOT;
 				not=0;
 				ar[j++]=artype;
-				i+=4; }
+				i+=2; }
 			else if(!strnicmp(str+i,"PROT",4)) {
 				artype=AR_PROT;
 				if(not)
 					ar[j++]=AR_NOT;
 				not=0;
 				ar[j++]=artype;
-				i+=3; }
+				i+=2; }
 			else if(!strnicmp(str+i,"SUBCODE",7)) {
 				artype=AR_SUBCODE;
 				i+=6; }
@@ -366,20 +366,6 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 				i+=5; }
 			else if(!strnicmp(str+i,"SYSOP",5)) {
 				artype=AR_SYSOP;
-				if(not)
-					ar[j++]=AR_NOT;
-				not=0;
-				ar[j++]=artype;
-				i+=4; }
-			else if(!strnicmp(str+i,"GUEST",5)) {
-				artype=AR_GUEST;
-				if(not)
-					ar[j++]=AR_NOT;
-				not=0;
-				ar[j++]=artype;
-				i+=4; }
-			else if(!strnicmp(str+i,"QNODE",5)) {
-				artype=AR_QNODE;
 				if(not)
 					ar[j++]=AR_NOT;
 				not=0;
@@ -498,7 +484,7 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 			while(isdigit(str[i+1])) i++;
 			continue; }
 		if(artype==AR_SUBCODE || artype==AR_DIRCODE || artype==AR_SHELL) {
-			for(n=0;n<LEN_EXTCODE
+			for(n=0;n<8
 				&& str[i]
 				&& str[i]!=' '
 				&& str[i]!='('
@@ -508,9 +494,7 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 				;n++)
 				ar[j++]=toupper(str[i++]);
 			ar[j++]=0;
-			i--;
-			continue; 
-		}
+			continue; }
 		switch(artype) {
 			case AR_FLAG1:
 			case AR_FLAG2:
