@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.111 2005/08/08 21:34:40 deuce Exp $ */
+/* $Id: term.c,v 1.112 2005/08/30 19:57:22 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -541,6 +541,7 @@ void begin_upload(char *uldir)
 	
 	if(result==-1 || fpick.files<1) {
 		filepick_free(&fpick);
+		uifcbail();
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -549,6 +550,7 @@ void begin_upload(char *uldir)
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
+		uifcbail();
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
