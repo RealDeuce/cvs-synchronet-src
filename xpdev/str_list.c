@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.29 2005/10/12 22:46:36 rswindell Exp $ */
+/* $Id: str_list.c,v 1.27 2005/06/23 01:32:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,7 +248,7 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 
 	if(lp==NULL) {
 		if((list = strListInit())==NULL)
-			return(NULL);
+			return(0);
 		lp=&list;
 		count=0;
 	} else
@@ -263,23 +263,19 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 
 str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delimit)
 {
-	char*		buf;
-	str_list_t	new_list;
+	char*	buf;
 
-	if(str==NULL || delimit==NULL)
+	if(str==NULL)
 		return(NULL);
 
 	if((buf=strdup(str))==NULL)
 		return(NULL);
 
-	new_list=strListSplit(list,buf,delimit);
+	*list=strListSplit(list,buf,delimit);
 
 	free(buf);
 
-	if(list!=NULL)
-		*list = new_list;
-
-	return(new_list);
+	return(*list);
 }
 
 size_t	strListMerge(str_list_t* list, str_list_t add_list)
@@ -349,7 +345,7 @@ void strListFree(str_list_t* list)
 	}
 }
 
-static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_len)
+str_list_t strListReadFile(FILE* fp, str_list_t* lp, size_t max_line_len)
 {
 	char*		buf=NULL;
 	size_t		count;
@@ -364,7 +360,7 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 		lp=&list;
 	}
 
-	count=strListCount(*lp);
+	count = strListCount(*lp);
 	while(!feof(fp)) {
 		if(buf==NULL && (buf=(char*)malloc(max_line_len+1))==NULL)
 			return(NULL);
@@ -378,26 +374,6 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 		free(buf);
 
 	return(*lp);
-}
-
-size_t strListInsertFile(FILE* fp, str_list_t* lp, size_t index, size_t max_line_len)
-{
-	str_list_t	list;
-	size_t		count;
-
-	if((list=str_list_read_file(fp, NULL, max_line_len)) == NULL)
-		return(0);
-
-	count = strListInsertList(lp, list, index);
-
-	strListFree(&list);
-
-	return(count);
-}
-
-str_list_t strListReadFile(FILE* fp, str_list_t* lp, size_t max_line_len)
-{
-	return str_list_read_file(fp,lp,max_line_len);
 }
 
 size_t strListWriteFile(FILE* fp, const str_list_t list, const char* separator)
