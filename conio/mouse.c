@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.26 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: mouse.c,v 1.27 2005/07/03 03:59:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <genwrap.h>
 #include <semwrap.h>
