@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.16 2005/10/13 17:31:36 deuce Exp $ */
+/* $Id: x_cio.c,v 1.15 2005/07/03 03:59:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -267,11 +267,6 @@ void x_textmode(int mode)
 {
 	console_new_mode=mode;
 	sem_wait(&console_mode_changed);
-}
-
-void x_setname(const char *name)
-{
-	x_win_name(name);
 }
 
 void x_settitle(const char *title)

@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.9 2005/10/13 17:31:36 deuce Exp $ */
+/* $Id: x_cio.h,v 1.8 2005/06/06 23:00:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,6 @@ int x_getch(void);
 int x_getche(void);
 int x_beep(void);
 void x_textmode(int mode);
-void x_setname(const char *name);
 void x_settitle(const char *title);
 void x_copytext(const char *text, size_t buflen);
 char *x_getcliptext(void);
