@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.68 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: zmodem.c,v 1.67 2005/07/03 04:39:09 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1204,7 +1204,7 @@ int zmodem_recv_header_raw(zmodem_t* zm, int errors)
 			break;
 	}
 
-#if 0 /*def _DEBUG */
+#if 0 //def _DEBUG
 	lprintf(zm,LOG_DEBUG,"recv_header_raw received header type: %s"
 		,frame_desc(frame_type));
 #endif
@@ -2052,7 +2052,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.68 $", "%*s %s", buf);
+	sscanf("$Revision: 1.67 $", "%*s %s", buf);
 
 	return(buf);
 }
