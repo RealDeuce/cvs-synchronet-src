@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.101 2005/10/12 21:33:35 rswindell Exp $ */
+/* $Id: js_system.c,v 1.99 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,7 +100,6 @@ enum {
 	/* msclock() access */
 	,SYS_PROP_CLOCK
 	,SYS_PROP_CLOCK_PER_SEC
-	,SYS_PROP_TIMER
 
 	/* filenames */
 	,SYS_PROP_DEVNULL
@@ -292,9 +291,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case SYS_PROP_CLOCK_PER_SEC:
 			JS_NewNumberValue(cx,MSCLOCKS_PER_SEC,vp);
 			break;
-		case SYS_PROP_TIMER:
-			JS_NewNumberValue(cx,xp_timer(),vp);
-			break;
 
 		case SYS_PROP_LOCAL_HOSTNAME:
 			gethostname(str,sizeof(str));
@@ -400,7 +396,6 @@ static jsSyncPropertySpec js_system_properties[] = {
 	/* clock access */
 	{	"clock_ticks",				SYS_PROP_CLOCK			,SYSOBJ_FLAGS,	311  },
 	{	"clock_ticks_per_second",	SYS_PROP_CLOCK_PER_SEC	,SYSOBJ_FLAGS,	311  },
-	{	"timer",					SYS_PROP_TIMER			,SYSOBJ_FLAGS,	313	 },
 
 	/* last */
 	{	"local_host_name",			SYS_PROP_LOCAL_HOSTNAME	,SYSOBJ_FLAGS,	311  },
@@ -472,7 +467,6 @@ static char* sys_prop_desc[] = {
 	/* clock */
 	,"amount of elapsed processor time in clock 'ticks'"
 	,"number of clock ticks per second"
-	,"high-resolution timer, in seconds (fractional seconds supported)"
 
 	/* INSERT new tabled properties here */
 	,"private host name that uniquely identifies this system on the local network"
@@ -823,7 +817,7 @@ js_trashcan(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(trashcan(cfg,str,can));	/* user args are reversed */
+	*rval = BOOLEAN_TO_JSVAL(trashcan(cfg,str,can));	// user args are reversed
 	return(JS_TRUE);
 }
 
@@ -855,7 +849,7 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(findstr(str,fname));	/* user args are reversed */
+	*rval = BOOLEAN_TO_JSVAL(findstr(str,fname));	// user args are reversed
 	return(JS_TRUE);
 }
 
@@ -885,7 +879,7 @@ js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-/* Returns a ctime()-like string in the system-preferred time format */
+// Returns a ctime()-like string in the system-preferred time format
 static JSBool
 js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -912,7 +906,7 @@ js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 
-/* Returns a mm/dd/yy or dd/mm/yy formated string */
+// Returns a mm/dd/yy or dd/mm/yy formated string
 static JSBool
 js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
