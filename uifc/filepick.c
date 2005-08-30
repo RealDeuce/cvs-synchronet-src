@@ -150,6 +150,26 @@ char *insensitive_mask(char *mask)
 #endif
 }
 
+char *getdirname(char *path)
+{
+	char *p1;
+	char *p2;
+
+	p1=strrchr(path,'/');
+#ifdef _WIN32
+	p2=strrchr(path,'\\');
+	if(p2 > p1)
+		p1=p2;
+#endif
+	p2 = path;
+	if(p1 > path) {
+		for(p2=p1-1; p2>=path && !IS_PATH_DELIM(*p2); p2--);
+		if(IS_PATH_DELIM(*p2) && *(p2+1))
+			p2++;
+	}
+	return(p2);
+}
+
 char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 {
 	char **opts;
@@ -167,7 +187,7 @@ char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 	for(i=0;i<files;i++) {
 		if(isdir(fns[i])) {
 			if(dirsonly)
-				opts[j++]=strdup(getfname(fns[i]));
+				opts[j++]=strdup(getdirname(fns[i]));
 		}
 		else {
 			if(!dirsonly)
@@ -278,8 +298,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	int		filecur=0;
 	int		filebar=0;
 	int		listwidth;
-	char	**dir_list;
-	char	**file_list;
+	char	**dir_list=NULL;
+	char	**file_list=NULL;
 	int		currfield=DIR_LIST;
 	int		lastfield=DIR_LIST;
 	int		i;
@@ -366,7 +386,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 #else
 //#error Need to do something about root paths (in get_file_opt_list() too!)
 #endif
-		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0) {
+		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0 && !isdir(cpath)) {
 			if(lastpath==NULL) {
 				fp->files=0;
 				retval=-1;
@@ -466,6 +486,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 						api->msg("No such path/file!");
 						continue;
 					}
+					if(isdir(cfile))
+						backslash(cfile);
 					_splitpath(cfile, drive, tdir, fname, ext);
 					sprintf(cpath,"%s%s",drive,tdir);
 					if(!isdir(cpath)) {
@@ -484,7 +506,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					sprintf(cfile,"%s%s%s%s",drive,tdir,fname,ext);
 					if(strchr(fname,'*') !=NULL || strchr(fname,'?') !=NULL
 						|| strchr(ext,'*') !=NULL || strchr(ext,'?') !=NULL
-						|| !isdir(cfile)) {
+						|| (isdir(cfile) && !(opts & UIFC_FP_DIRSEL) && (i=='\r' || i=='\n'))
+						|| (!isdir(cfile) && i!='\r' && i!='\n')) {
 						if(opts & UIFC_FP_MSKNOCHG) {
 							sprintf(cfile,"%s%s%s",drive,tdir,cmsk);
 							FREE_AND_NULL(tmplastpath);
@@ -492,10 +515,15 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 							continue;
 						}
 						else {
-							sprintf(cmsk, "%s%s", fname, ext);
+							if(!isdir(cfile))
+								sprintf(cmsk, "%s%s", fname, ext);
 							reread=TRUE;
 						}
 						break;
+					}
+					else {
+						if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && (i=='\r' || i!='\n'))
+						fieldmove=0;
 					}
 					if((currfield != CURRENT_PATH) || fieldmove)
 						break;
