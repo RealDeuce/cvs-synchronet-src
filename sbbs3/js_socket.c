@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.103 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.104 2005/08/05 02:22:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1184,6 +1184,7 @@ static jsSyncPropertySpec js_socket_properties[] = {
 	{	"last_error"		,SOCK_PROP_LAST_ERROR	,JSPROP_READONLY,	310 },	/* alias */
 	{	"is_connected"		,SOCK_PROP_IS_CONNECTED	,SOCK_PROP_FLAGS,	310 },
 	{	"is_writeable"		,SOCK_PROP_IS_WRITEABLE	,SOCK_PROP_FLAGS,	311 },
+	{	"is_writable"		,SOCK_PROP_IS_WRITEABLE	,JSPROP_READONLY,	312 },	/* alias */
 	{	"data_waiting"		,SOCK_PROP_DATA_WAITING	,SOCK_PROP_FLAGS,	310 },
 	{	"nread"				,SOCK_PROP_NREAD		,SOCK_PROP_FLAGS,	310 },
 	{	"debug"				,SOCK_PROP_DEBUG		,JSPROP_ENUMERATE,	310 },
