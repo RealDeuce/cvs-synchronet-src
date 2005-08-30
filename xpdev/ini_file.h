@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.35 2005/10/13 07:33:15 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.32 2005/06/22 09:04:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,9 +40,6 @@
 
 #include "genwrap.h"
 #include "str_list.h"	/* strList_t */
-#if !defined(NO_SOCKET_SUPPORT)
-	#include "sockwrap.h"	/* inet_addr, SOCKET */
-#endif
 
 #define INI_MAX_VALUE_LEN	1024		/* Maximum value length, includes '\0' */
 #define ROOT_SECTION		NULL
@@ -73,9 +70,6 @@ str_list_t	iniReadKeyList(FILE*, const char* section);
 named_string_t**
 			iniReadNamedStringList(FILE*, const char* section);
 
-/* Return the supported Log Levels in a string list - for *LogLevel macros */
-str_list_t	iniLogLevelStringList(void);
-
 /* These functions read a single key of the specified type */
 char*		iniReadString(FILE*, const char* section, const char* key
 					,const char* deflt, char* value);
@@ -105,7 +99,6 @@ double		iniReadNamedFloat(FILE*, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniReadBitField(FILE*, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
-#define		iniReadLogLevel(f,s,k,d) iniReadEnum(f,s,k,iniLogLevelStringList(),d)
 
 /* Free string list returned from iniRead*List functions */
 void*		iniFreeStringList(str_list_t list);
@@ -156,11 +149,6 @@ double		iniGetNamedFloat(str_list_t, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniGetBitField(str_list_t, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
-#define		iniGetLogLevel(l,s,k,d) iniGetEnum(l,s,k,iniLogLevelStringList(),d)
-int			iniGetSocketOptions(str_list_t, const char* section
-					,SOCKET sock, char* error, size_t errlen);
-
-void		iniSetDefaultStyle(ini_style_t);
 
 char*		iniSetString(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
@@ -192,12 +180,8 @@ char*		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bit
 					,ini_style_t*);
 char*		iniSetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, str_list_t value, ini_style_t*);
-#define		iniSetLogLevel(l,s,k,v,style) iniSetEnum(l,s,k,iniLogLevelStringList(),v,style)
 
 size_t		iniAddSection(str_list_t*, const char* section
-					,ini_style_t*);
-
-size_t		iniAppendSection(str_list_t*, const char* section
 					,ini_style_t*);
 
 BOOL		iniSectionExists(str_list_t, const char* section);
