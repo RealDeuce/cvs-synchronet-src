@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.42 2004/10/21 08:43:33 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.44 2005/08/30 01:08:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -100,16 +100,18 @@ bool sbbs_t::uploadfile(file_t *f)
 				fclose(stream); 
 			}
 			if(external(cmdstr(cfg.ftest[i]->cmd,path,f->desc,NULL),EX_OFFLINE)) {
-				bprintf(text[FileHadErrors],f->name,cfg.ftest[i]->ext);
-				if(SYSOP) {
-					if(!yesno(text[DeleteFileQ])) return(0); 
-				}
-				remove(path);
 				sprintf(str,"%s attempted to upload %s to %s %s (%s Errors)"
 					,useron.alias
 					,f->name
 					,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname,cfg.ftest[i]->ext);
 				logline("U!",str);
+#if 0
+				sprintf(str,"Failed test: %s", cmdstr(cfg.ftest[i]->cmd,path,f->desc,NULL));
+				logline("  ",str);
+#endif
+				bprintf(text[FileHadErrors],f->name,cfg.ftest[i]->ext);
+				if(!SYSOP || yesno(text[DeleteFileQ]))
+					remove(path);
 				return(0); 
 			} else {
 				sprintf(str,"%ssbbsfile.nam",cfg.node_dir);
@@ -199,8 +201,12 @@ bool sbbs_t::uploadfile(file_t *f)
 	f->opencount=0;
 	strcpy(f->uler,useron.alias);
 	bprintf(text[FileNBytesReceived],f->name,ultoac(length,tmp));
-	if(!f->desc[0])
-		sprintf(f->desc,"%.*s",LEN_FDESC,text[NoDescription]);
+	if(!f->desc[0]) {
+		if(stricmp(f->name,getfname(path)))
+			SAFECOPY(f->desc,getfname(path));
+		else
+			sprintf(f->desc,"%.*s",LEN_FDESC,text[NoDescription]);
+	}
 	if(!addfiledat(&cfg,f))
 		return(0);
 
