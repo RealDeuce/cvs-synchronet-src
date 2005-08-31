@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.115 2005/10/06 15:59:21 deuce Exp $ */
+/* $Id: term.c,v 1.113 2005/08/30 20:13:34 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -378,7 +378,7 @@ static int recv_byte(void* unused, unsigned timeout)
 			buftop+=i;
 	}
 	ch=recvbuf[bufbot++];
-/*	lprintf(LOG_DEBUG,"RX: %02X", ch); */
+//	lprintf(LOG_DEBUG,"RX: %02X", ch);
 	return(ch);
 }
 
@@ -437,8 +437,8 @@ void draw_transfer_window(char* title)
 	for(i=2;i < sizeof(outline) - 2; i+=2) {
 		outline[i] = 0xc4;	/* Single horizontal line */
 	}
-	outline[0] = 0xc7;	/* 0xcc */
-	outline[sizeof(outline)-2]=0xb6;	/* 0xb6 */
+	outline[0] = 0xc7;	// 0xcc
+	outline[sizeof(outline)-2]=0xb6;	// 0xb6
 	puttext(left, top+6, left + TRANSFER_WIN_WIDTH - 1, top+6, outline);
 
 	for(i=2;i < sizeof(outline) - 2; i+=2) {
@@ -455,9 +455,9 @@ void draw_transfer_window(char* title)
 	for(i=1; i<6; i++) {
 		puttext(left, top + i, left + TRANSFER_WIN_WIDTH - 1, top+i, outline);
 	}
-/*	for(i=3;i < sizeof(outline) - 2; i+=2) { */
-/*		outline[i] = LIGHTGRAY | (BLACK << 8); */
-/*	} */
+//	for(i=3;i < sizeof(outline) - 2; i+=2) {
+//		outline[i] = LIGHTGRAY | (BLACK << 8);
+//	}
 	for(i=7; i<TRANSFER_WIN_HEIGHT-1; i++) {
 		puttext(left, top + i, left + TRANSFER_WIN_WIDTH - 1, top+i, outline);
 	}
@@ -790,7 +790,6 @@ BOOL doterm(struct bbslist *bbs)
 
 	/* Main input loop */
 	oldmc=hold_update;
-	showmouse();
 	for(;;) {
 		hold_update=TRUE;
 		sleep=TRUE;
@@ -811,7 +810,6 @@ BOOL doterm(struct bbslist *bbs)
 						cterm_end();
 						conn_close();
 						uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
-						hidemouse();
 						return(FALSE);
 					}
 					break;
@@ -1005,7 +1003,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
-							hidemouse();
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
@@ -1033,7 +1030,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
-							hidemouse();
 							return(FALSE);
 						case 3:
 							begin_upload(bbs->uldir, FALSE);
@@ -1048,7 +1044,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
-							hidemouse();
 							return(TRUE);
 					}
 					gotoxy(i,j);
@@ -1082,6 +1077,5 @@ BOOL doterm(struct bbslist *bbs)
 			MAYBE_YIELD();
 	}
 
-	hidemouse();
 	return(FALSE);
 }

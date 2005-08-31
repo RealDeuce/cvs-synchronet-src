@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.28 2005/10/13 17:31:36 deuce Exp $ */
+/* $Id: ciolib.h,v 1.24 2005/05/19 23:54:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,8 +44,6 @@ enum {
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
-	,CIOLIB_MODE_SDL
-	,CIOLIB_MODE_SDL_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -196,7 +194,6 @@ typedef struct {
 	int		(*hidemouse)	(void);
 	int		(*showmouse)	(void);
 	void	(*settitle)		(const char *);
-	void	(*setname)		(const char *);
 	void	(*copytext)		(const char *, size_t);
 	char 	*(*getcliptext)	(void);
 } cioapi_t;
@@ -245,10 +242,10 @@ void ciolib_window(int sx, int sy, int ex, int ey);
 void ciolib_delline(void);
 void ciolib_insline(void);
 char *ciolib_getpass(const char *prompt);
-void ciolib_settitle(const char *title);
-void ciolib_setname(const char *title);
+void settitle(const char *title);
 int ciolib_showmouse(void);
 int ciolib_hidemouse(void);
+void ciolib_settitle(const char *title);
 void ciolib_copytext(const char *text, size_t buflen);
 char *ciolib_getcliptext(void);
 #ifdef __cplusplus
@@ -293,15 +290,9 @@ char *ciolib_getcliptext(void);
 	#define ungetmouse(a)			ciolib_ungetmouse(a)
 	#define	hidemouse()				ciolib_hidemouse()
 	#define showmouse()				ciolib_showmouse()
-	#define setname(a)				ciolib_setname(a)
 	#define settitle(a)				ciolib_settitle(a)
 	#define copytext(a,b)			ciolib_copytext(a,b)
 	#define getcliptext()		ciolib_getcliptext()
-#endif
-
-/* Special hackery for SDL */
-#ifdef WITH_SDL
-	#define	main	CIOLIB_main
 #endif
 
 #endif	/* Do not add anything after this line */

@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.45 2005/09/01 09:44:14 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.44 2005/08/31 22:57:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ int sbbs_t::show_atcode(char *instr)
 {
 	char	str[128],str2[128],*p,*tp,*sp;
     int     len;
-	int		disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
 
@@ -67,25 +66,21 @@ int sbbs_t::show_atcode(char *instr)
 	(*tp)=0;
 	sp=(str+1);
 
-	disp_len=len;
 	if((p=strstr(sp,"-L"))!=NULL)
 		padded_left=true;
 	else if((p=strstr(sp,"-R"))!=NULL)
 		padded_right=true;
-	if(p!=NULL) {
-		if(*(p+2) && isdigit(*(p+2)))
-			disp_len=atoi(p+2);
+	if(p!=NULL)
 		*p=0;
-	}
 
 	p=atcode(sp,str2);
 	if(p==NULL)
 		return(0);
 
 	if(padded_left)
-		rprintf("%-*.*s",disp_len,disp_len,p);
+		rprintf("%-*.*s",len,len,p);
 	else if(padded_right)
-		rprintf("%*.*s",disp_len,disp_len,p);
+		rprintf("%*.*s",len,len,p);
 	else
 		rputs(p);
 
