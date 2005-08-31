@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.322 2005/06/08 06:13:37 deuce Exp $ */
+/* $Id: websrvr.c,v 1.327 2005/08/30 18:17:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,12 +223,15 @@ static char* http_vers[] = {
 enum { 
 	 HTTP_HEAD
 	,HTTP_GET
+	,HTTP_POST
+	,HTTP_OPTIONS
 };
 
 static char* methods[] = {
 	 "HEAD"
 	,"GET"
 	,"POST"
+	,"OPTIONS"
 	,NULL	/* terminator */
 };
 
@@ -874,6 +877,8 @@ static BOOL send_headers(http_session_t *session, const char *status)
 
 	status_line=status;
 	ret=stat(session->req.physical_path,&stats);
+	if(session->req.method==HTTP_OPTIONS)
+		ret=-1;
 	if(!ret && session->req.if_modified_since && (stats.st_mtime <= session->req.if_modified_since) && !session->req.dynamic) {
 		status_line="304 Not Modified";
 		ret=-1;
@@ -930,11 +935,11 @@ static BOOL send_headers(http_session_t *session, const char *status)
 	
 	/* Entity Headers */
 	if(session->req.dynamic) {
-		safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_ALLOW),"GET, HEAD, POST");
+		safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_ALLOW),"GET, HEAD, POST, OPTIONS");
 		safecat(headers,header,MAX_HEADERS_SIZE);
 	}
 	else {
-		safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_ALLOW),"GET, HEAD");
+		safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_ALLOW),"GET, HEAD, OPTIONS");
 		safecat(headers,header,MAX_HEADERS_SIZE);
 	}
 
@@ -2060,10 +2065,13 @@ static BOOL check_request(http_session_t * session)
 	}
 
 	if(stat(path,&sb) || IS_PATH_DELIM(*(lastchar(path))) || send404) {
-		if(startup->options&WEB_OPT_DEBUG_TX)
-			lprintf(LOG_DEBUG,"%04d 404 - %s does not exist",session->socket,path);
-		send_error(session,error_404);
-		return(FALSE);
+		/* OPTIONS requests never return 404 errors (ala Apache) */
+		if(session->req.method!=HTTP_OPTIONS) {
+			if(startup->options&WEB_OPT_DEBUG_TX)
+				lprintf(LOG_DEBUG,"%04d 404 - %s does not exist",session->socket,path);
+			send_error(session,error_404);
+			return(FALSE);
+		}
 	}
 	SAFECOPY(session->req.physical_path,path);
 	add_env(session,"SCRIPT_NAME",session->req.virtual_path);
@@ -2837,7 +2845,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			continue;
 		if(session->req.sent_headers) {
-			if(session->req.method!=HTTP_HEAD)
+			if(session->req.method!=HTTP_HEAD && session->req.method!=HTTP_OPTIONS)
 				sendsocket(session->socket, JS_GetStringBytes(str), JS_GetStringLength(str));
 		}
 		else
@@ -2864,7 +2872,7 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	/* Should this do the whole \r\n thing for Win32 *shudder* */
 	if(session->req.sent_headers) {
-		if(session->req.method!=HTTP_HEAD)
+		if(session->req.method!=HTTP_HEAD && session->req.method!=HTTP_OPTIONS)
 			sendsocket(session->socket, "\n", 1);
 	}
 	else
@@ -2888,7 +2896,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     if(startup==NULL || startup->lputs==NULL)
         return(JS_FALSE);
 
-	if(JSVAL_IS_NUMBER(argv[i]))
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
 	str[0]=0;
@@ -3167,6 +3175,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=msclock();
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
+		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%ld ms)"
 			,session->socket,script,msclock()-start);
 	} while(0);
@@ -3196,28 +3205,33 @@ static void respond(http_session_t * session)
 {
 	BOOL		send_file=TRUE;
 
-	if(session->req.dynamic==IS_CGI)  {
-		if(!exec_cgi(session))  {
-			send_error(session,error_500);
-			return;
-		}
-		session->req.finished=TRUE;
-		return;
-	}
-
-	if(session->req.dynamic==IS_SSJS) {	/* Server-Side JavaScript */
-		if(!exec_ssjs(session,session->req.physical_path))  {
-			send_error(session,error_500);
-			return;
-		}
-		sprintf(session->req.physical_path
-			,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
+	if(session->req.method==HTTP_OPTIONS) {
+		send_headers(session,session->req.status);
 	}
 	else {
-		session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
-		send_file=send_headers(session,session->req.status);
+		if(session->req.dynamic==IS_CGI)  {
+			if(!exec_cgi(session))  {
+				send_error(session,error_500);
+				return;
+			}
+			session->req.finished=TRUE;
+			return;
+		}
+
+		if(session->req.dynamic==IS_SSJS) {	/* Server-Side JavaScript */
+			if(!exec_ssjs(session,session->req.physical_path))  {
+				send_error(session,error_500);
+				return;
+			}
+			sprintf(session->req.physical_path
+				,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
+		}
+		else {
+			session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
+			send_file=send_headers(session,session->req.status);
+		}
 	}
-	if(session->req.method==HTTP_HEAD)
+	if(session->req.method==HTTP_HEAD || session->req.method==HTTP_OPTIONS)
 		send_file=FALSE;
 	if(send_file)  {
 		int snt=0;
@@ -3238,7 +3252,7 @@ static void respond(http_session_t * session)
 
 int read_post_data(http_session_t * session)
 {
-	int i;
+	unsigned i;
 
 	if(session->req.dynamic!=IS_CGI && session->req.post_len)  {
 		i = session->req.post_len;
@@ -3487,7 +3501,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.322 $", "%*s %s", revision);
+	sscanf("$Revision: 1.327 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -3929,7 +3943,7 @@ void DLLCALL web_server(void* arg)
 			}
 
 			if(startup->max_clients && active_clients>=startup->max_clients) {
-				lprintf(LOG_WARNING,"%04d !MAXMIMUM CLIENTS (%d) reached, access denied"
+				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				mswait(3000);
 				close_socket(client_socket);
