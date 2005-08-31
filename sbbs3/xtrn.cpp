@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.183 2005/08/30 01:07:15 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.184 2005/08/31 20:37:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2067,10 +2067,8 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case '!':   /* EXEC Directory */
                     strcat(cmd,cfg.exec_dir);
                     break;
-                case '@':   /* EXEC Directory (on Win32) or /usr/bin (on Unix) */
-#ifdef __unix__
-					strcat(cmd,"/usr/bin/");
-#else
+                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
+#ifndef __unix__
                     strcat(cmd,cfg.exec_dir);
 #endif
                     break;
