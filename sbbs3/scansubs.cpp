@@ -2,13 +2,13 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.10 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: scansubs.cpp,v 1.11 2005/06/24 17:36:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -370,7 +370,7 @@ void sbbs_t::new_scan_cfg(ulong misc)
 				continue; }
 			j=(s&~0x80000000L)-1;
 			if(misc&SUB_CFG_NSCAN && !(subscan[usrsub[i][j]].cfg&misc)) {
-				if(!(useron.misc&FLAG('Q')) && !noyes("Messages to you only"))
+				if(!(useron.rest&FLAG('Q')) && !noyes("Messages to you only"))
 					subscan[usrsub[i][j]].cfg|=SUB_CFG_YSCAN;
 				else
 					subscan[usrsub[i][j]].cfg&=~SUB_CFG_YSCAN; }
