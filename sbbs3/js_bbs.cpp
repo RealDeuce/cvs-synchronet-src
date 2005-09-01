@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.70 2005/05/09 09:27:33 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.72 2005/08/23 02:08:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -999,7 +999,7 @@ js_exec_xtrn(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[0],&i);
 
 	if(i>=sbbs->cfg.total_xtrns) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -1104,14 +1104,14 @@ js_replace_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	len=strlen(p);
 	if(!len) {
 		sbbs->text[i]=nulstr;
-		*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+		*rval = JSVAL_TRUE;
 	} else {
 		sbbs->text[i]=(char *)MALLOC(len+1);
 		if(sbbs->text[i]==NULL) {
 			sbbs->text[i]=sbbs->text_sav[i];
 		} else {
 			strcpy(sbbs->text[i],p);
-			*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+			*rval = JSVAL_TRUE;
 		}
 	}
 
@@ -1142,7 +1142,7 @@ js_revert_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		sbbs->text[i]=sbbs->text_sav[i];
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+	*rval = JSVAL_TRUE;
 
 	return(JS_TRUE);
 }
@@ -1160,7 +1160,7 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -1175,7 +1175,7 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		,sbbs->cfg.ctrl_dir,JS_GetStringBytes(js_str));
 
 	if((stream=fnopen(NULL,path,O_RDONLY))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 	for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
@@ -1193,9 +1193,9 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		} 
 	}
 	if(i<TOTAL_TEXT) 
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 	else
-		*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+		*rval = JSVAL_TRUE;
 
 	fclose(stream);
 
@@ -1240,7 +1240,7 @@ js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -1248,7 +1248,7 @@ js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		comma=JS_ValueToBoolean(cx,argv[1],&comma);
 
 	if((p=JS_GetStringBytes(js_str))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -1256,7 +1256,7 @@ js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		,comma ? true:false	// This is a dumb bool conversion to make BC++ happy
 		);
 
-	*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+	*rval = JSVAL_TRUE;
 	return(JS_TRUE);
 }
 
@@ -1271,18 +1271,18 @@ js_logstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
 	if((p=JS_GetStringBytes(js_str))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
 	sbbs->log(p);
 
-	*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+	*rval = JSVAL_TRUE;
 	return(JS_TRUE);
 }
 
@@ -1323,22 +1323,22 @@ js_trashcan(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	if((js_can=JS_ValueToString(cx, argv[0]))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
 	if((js_str=JS_ValueToString(cx, argv[1]))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
 	if((can=JS_GetStringBytes(js_can))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
 	if((str=JS_GetStringBytes(js_str))==NULL) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -1907,7 +1907,7 @@ js_upload_file(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	dirnum=get_dirnum(cx,sbbs,argv[0]);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -1928,7 +1928,7 @@ js_bulkupload(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	dirnum=get_dirnum(cx,sbbs,argv[0]);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -1948,13 +1948,13 @@ js_resort_dir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	dirnum=get_dirnum(cx,sbbs,argv[0]);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
 	sbbs->resort(dirnum);
 
-	*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+	*rval = JSVAL_TRUE;
 	return(JS_TRUE);
 }
 
@@ -2262,22 +2262,39 @@ js_postmsg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	long		mode=0;
 	uint		subnum;
+	uintN		n;
+	JSObject*	hdrobj;
 	sbbs_t*		sbbs;
+	smbmsg_t*	remsg=NULL;
+	smbmsg_t	msg;
+
+	*rval = JSVAL_FALSE;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	subnum=get_subnum(cx,sbbs,argv[0]);
 
-	if(subnum>=sbbs->cfg.total_subs) {	// invalid sub-board
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+	if(subnum>=sbbs->cfg.total_subs) 	// invalid sub-board
 		return(JS_TRUE);
+
+	ZERO_VAR(msg);
+
+	for(n=1; n<argc; n++) {
+		if(JSVAL_IS_NUMBER(argv[n]))
+			JS_ValueToInt32(cx,argv[n],(int32*)&mode);
+		else if(JSVAL_IS_OBJECT(argv[n])) {
+			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
+				return(JS_TRUE);
+			remsg=&msg;
+			if(!js_ParseMsgHeaderObject(cx,hdrobj,remsg))
+				return(JS_TRUE);
+		}
 	}
 
-	if(argc>1 && JSVAL_IS_NUMBER(argv[1]))
-		JS_ValueToInt32(cx,argv[1],(int32*)&mode);
+	*rval = BOOLEAN_TO_JSVAL(sbbs->postmsg(subnum,remsg,mode));
+	smb_freemsgmem(&msg);
 
-	*rval = BOOLEAN_TO_JSVAL(sbbs->postmsg(subnum,NULL,mode));
 	return(JS_TRUE);
 }
 
@@ -2393,7 +2410,7 @@ js_scanposts(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	subnum=get_subnum(cx,sbbs,argv[0]);
 
 	if(subnum>=sbbs->cfg.total_subs) {	// invalid sub-board
-		*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		*rval = JSVAL_FALSE;
 		return(JS_TRUE);
 	}
 
@@ -2635,9 +2652,11 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("list extended file information for files in the specified file directory")
 	,310
 	},		
-	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("sub-board [,number mode]")
+	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("sub-board [,number mode] [,object reply_header]")
 	,JSDOCSTR("post a message in the specified message sub-board (number or internal code) "
-		"with optinal <i>mode</i> (bitfield)")
+		"with optinal <i>mode</i> (bitfield)<br>"
+		"If <i>reply_header</i> is specified (a header object returned from <i>MsgBase.get_msg_header()</i>), that header "
+		"will be used for the in-reply-to header fields (added in v3.13)")
 	,310
 	},		
 	{"cfg_msg_scan",	js_msgscan_cfg,		0,	JSTYPE_VOID,	JSDOCSTR("[number type]")
