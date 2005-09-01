@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.172 2005/09/20 05:50:45 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.166 2005/08/31 22:58:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -66,7 +66,6 @@
 #include "scfglib.h"
 #include "lzh.h"
 #include "sbbsecho.h"
-#include "genwrap.h"		/* PLATFORM_DESC */
 
 smb_t *smb,*email;
 long misc=(IMPORT_PACKETS|IMPORT_NETMAIL|IMPORT_ECHOMAIL|EXPORT_ECHOMAIL
@@ -529,7 +528,7 @@ void file_to_netmail(FILE *infile,char *title,faddr_t addr,char *to)
 	if(len>8192L)
 		len=8192L;
 	rewind(infile);
-	if((buf=(char *)malloc(len+1))==NULL) {
+	if((buf=(char *)MALLOC(len+1))==NULL) {
 		printf("ERROR allocating %lu bytes for file to netmail buffer.\n",len);
 		logprintf("ERROR line %d allocating %lu for file to netmail buf",__LINE__
 			,len);
@@ -549,7 +548,7 @@ void file_to_netmail(FILE *infile,char *title,faddr_t addr,char *to)
 			strcat(buf,"\r\nContinued in next message...\r\n");
 		create_netmail(to,title,buf,addr,FALSE); 
 	}
-	free(buf);
+	FREE(buf);
 }
 /******************************************************************************
  This function sends a notify list to applicable nodes, this list includes the
@@ -843,7 +842,7 @@ void alter_areas(area_t* add_area,area_t* del_area,faddr_t addr)
 							FREE_AND_NULL(cfg.area[i].uplink);
 						} else
 							if((cfg.area[i].uplink=(faddr_t *)
-								realloc(cfg.area[i].uplink,sizeof(faddr_t)
+								REALLOC(cfg.area[i].uplink,sizeof(faddr_t)
 								*(cfg.area[i].uplinks)))==NULL) {
 								printf("ERROR allocating memory for area #%u "
 									"uplinks.\n",i+1);
@@ -895,7 +894,7 @@ void alter_areas(area_t* add_area,area_t* del_area,faddr_t addr)
 
 						++cfg.area[i].uplinks;
 						if((cfg.area[i].uplink=(faddr_t *)
-							realloc(cfg.area[i].uplink,sizeof(faddr_t)
+							REALLOC(cfg.area[i].uplink,sizeof(faddr_t)
 							*(cfg.area[i].uplinks)))==NULL) {
 							printf("ERROR allocating memory for area #%u "
 								"uplinks.\n",i+1);
@@ -1272,7 +1271,7 @@ void command(char *instr,faddr_t addr)
 	if((p=strstr(instr,"FROM"))!=NULL);
 
 	if((p=strstr(instr,"+ALL"))!=NULL) {
-		if((add_area.tag=(char **)realloc(add_area.tag
+		if((add_area.tag=(char **)REALLOC(add_area.tag
 			,sizeof(char *)*add_area.tags+1))==NULL) {
 			printf("ERROR allocating memory for add area tag #%u.\n"
 				,add_area.tags+1);
@@ -1295,7 +1294,7 @@ void command(char *instr,faddr_t addr)
 	}
 
 	if((p=strstr(instr,"-ALL"))!=NULL) {
-		if((del_area.tag=(char **)realloc(del_area.tag
+		if((del_area.tag=(char **)REALLOC(del_area.tag
 			,sizeof(char *)*del_area.tags+1))==NULL) {
 			printf("ERROR allocating memory for del area tag #%u.\n"
 				,del_area.tags+1);
@@ -1391,7 +1390,7 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 		truncstr(str,"\r\n");
 		switch(action) {
 			case '+':                       /* Add Area */
-				if((add_area.tag=(char **)realloc(add_area.tag
+				if((add_area.tag=(char **)REALLOC(add_area.tag
 					,sizeof(char *)*add_area.tags+1))==NULL) {
 					printf("ERROR allocating memory for add area tag #%u.\n"
 						,add_area.tags+1);
@@ -1409,7 +1408,7 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 				add_area.tags++;
 				break;
 			case '-':                       /* Remove Area */
-				if((del_area.tag=(char **)realloc(del_area.tag
+				if((del_area.tag=(char **)REALLOC(del_area.tag
 					,sizeof(char *)*del_area.tags+1))==NULL) {
 					printf("ERROR allocating memory for del area tag #%u.\n"
 						,del_area.tags+1);
@@ -1608,7 +1607,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 				continue;
 			num_mfncrc++;
 			p=getfname(hdr.subj);
-			if((mfncrc=(long *)realloc(mfncrc,num_mfncrc*sizeof(long)))==NULL) {
+			if((mfncrc=(long *)REALLOC(mfncrc,num_mfncrc*sizeof(long)))==NULL) {
 				printf("ERROR allocating %lu bytes for bundle name crc.\n"
 					,num_mfncrc*sizeof(long));
 				logprintf("ERROR line %d allocating %lu for bundle name crc"
@@ -1639,7 +1638,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 		if(!error)			/* remove bundles.sbe if no error occurred */		
 			remove(fname);	/* used to truncate here, August-20-2002 */
 		if(num_mfncrc)
-			free(mfncrc);
+			FREE(mfncrc);
 		return(0); 
 	}
 
@@ -1954,7 +1953,6 @@ ulong getlastmsg(uint subnum, ulong *ptr, time_t *t)
 	int i;
 	smb_t smbfile;
 
-	ZERO_VAR(smbfile);
 	if(subnum>=scfg.total_subs) {
 		printf("\nERROR getlastmsg, subnum=%d\n",subnum);
 		logprintf("ERROR line %d getlastmsg %d",__LINE__,subnum);
@@ -2069,7 +2067,7 @@ ulong matchname(char *inname)
 		last_user=filelength(userdat)/U_LEN;
 		for(total_users=0;total_users<last_user;total_users++) {
 			printf("%5ld\b\b\b\b\b",total_users);
-			if((username=(username_t *)realloc(username
+			if((username=(username_t *)REALLOC(username
 				,(total_users+1L)*sizeof(username_t)))==NULL)
 				break;
 			username[total_users].alias=0;
@@ -2105,7 +2103,7 @@ ulong matchname(char *inname)
 			username[total_users].alias=crc32(alias,0);
 			username[total_users].real=crc32(name,0); }
 		close(userdat);
-		fprintf(stderr,"     \b\b\b\b\b");  /* Clear counter */
+		fprintf(stderr,"     \b\b\b\b\b");  // Clear counter
 		fprintf(stderr,
 			"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
 			"%25s"
@@ -2563,18 +2561,11 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		smbfile->status.max_crcs = scfg.sub[subnum]->maxcrcs;
 		smbfile->status.max_msgs = scfg.sub[subnum]->maxmsgs;
 		if(scfg.sub[subnum]->misc&SUB_HYPER)
-			storage = smbfile->status.attr = SMB_HYPERALLOC;
+			storage = smb->status.attr = SMB_HYPERALLOC;
 		else if(scfg.sub[subnum]->misc&SUB_FAST)
 			storage = SMB_FASTALLOC;
 		if(scfg.sub[subnum]->misc&SUB_LZH)
 			xlat=XLAT_LZH;
-
-		msg.idx.time=msg.hdr.when_imported.time;	/* needed for MSG-ID generation */
-		msg.idx.number=smbfile->status.last_msg+1;		/* needed for MSG-ID generation */
-
-		/* Generate default (RFC822) message-id (always) */
-		SAFECOPY(msg_id,get_msgid(&scfg,subnum,&msg));
-		smb_hfield_str(&msg,RFC822MSGID,msg_id);
 	}
 	if(smbfile->status.max_crcs==0)
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
@@ -2862,7 +2853,7 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 	if(!fbuf)
 		fbuf=inbuf;
 	if(seenbys->addr) {
-		free(seenbys->addr);
+		FREE(seenbys->addr);
 		seenbys->addr=0;
 		seenbys->addrs=0; }
 	addr.zone=addr.net=addr.node=addr.point=seenbys->addrs=0;
@@ -2896,7 +2887,7 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 					addr.point=atoi(p2+1);
 				if(!addr.zone)
 					addr.zone=zone; 		/* Was 1 */
-				if((seenbys->addr=(faddr_t *)realloc(seenbys->addr
+				if((seenbys->addr=(faddr_t *)REALLOC(seenbys->addr
 					,sizeof(faddr_t)*(seenbys->addrs+1)))==NULL) {
 					printf("ERROR allocating memory for seenbys\n");
 					logprintf("ERROR line %d allocating memory for message "
@@ -2912,7 +2903,7 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 				break;
 			p=p1; } }
 	else {
-		if((seenbys->addr=(faddr_t *)realloc(seenbys->addr
+		if((seenbys->addr=(faddr_t *)REALLOC(seenbys->addr
 			,sizeof(faddr_t)))==NULL) {
 			printf("ERROR allocating memory for seenbys\n");
 			logprintf("ERROR line %d allocating memory for message seenbys."
@@ -2921,7 +2912,7 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 		memset(&seenbys->addr[0],0,sizeof(faddr_t)); }
 
 	if(paths->addr) {
-		free(paths->addr);
+		FREE(paths->addr);
 		paths->addr=0;
 		paths->addrs=0; }
 	addr.zone=addr.net=addr.node=addr.point=paths->addrs=0;
@@ -2953,7 +2944,7 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 					addr.point=atoi(p2+1);
 				if(!addr.zone)
 					addr.zone=zone; 		/* Was 1 */
-				if((paths->addr=(faddr_t *)realloc(paths->addr
+				if((paths->addr=(faddr_t *)REALLOC(paths->addr
 					,sizeof(faddr_t)*(paths->addrs+1)))==NULL) {
 					printf("ERROR allocating memory for paths\n");
 					logprintf("ERROR line %d allocating memory for message "
@@ -2966,7 +2957,7 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 				break;
 			p=p1; } }
 	else {
-		if((paths->addr=(faddr_t *)realloc(paths->addr
+		if((paths->addr=(faddr_t *)REALLOC(paths->addr
 			,sizeof(faddr_t)))==NULL) {
 			printf("ERROR allocating memory for paths\n");
 			logprintf("ERROR line %d allocating memory for message paths."
@@ -3112,8 +3103,7 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				fputc(0,outpkt[i].stream);
 				fputc(0,outpkt[i].stream);
 				fclose(outpkt[i].stream); }
-			  /* pack_nundle() disabled.  Why?  ToDo */
-			  /* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
+	//		  pack_bundle(outpkt[i].filename,outpkt[i].uplink);
 			memset(&outpkt[i],0,sizeof(outpkt_t)); }
 		totalpkts=openpkts=0;
 		attach_bundles();
@@ -3172,8 +3162,7 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 					fputc(0,outpkt[i].stream);
 					fputc(0,outpkt[i].stream);
 					fclose(outpkt[i].stream);
-					/* pack_bundle() disabled.  Why?  ToDo */
-					/* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
+	//				  pack_bundle(outpkt[i].filename,outpkt[i].uplink);
 					outpkt[i].stream=outpkt[totalpkts-1].stream;
 					memcpy(&outpkt[i],&outpkt[totalpkts-1],sizeof(outpkt_t));
 					memset(&outpkt[totalpkts-1],0,sizeof(outpkt_t));
@@ -3263,9 +3252,8 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 			++totalpkts;
 			if(totalpkts>=MAX_TOTAL_PKTS) {
 				fclose(outpkt[totalpkts-1].stream);
-				/* pack_bundle() disabled.  Why?  ToDo */
-				/* pack_bundle(outpkt[totalpkts-1].filename
-					  ,outpkt[totalpkts-1].uplink); */
+//				  pack_bundle(outpkt[totalpkts-1].filename
+//					  ,outpkt[totalpkts-1].uplink);
 				--totalpkts;
 				--openpkts; 
 			}
@@ -3311,7 +3299,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 		printf("%s", path);
 		logprintf("%s Exported to %s",info,path);
 	}
-	free(fmsgbuf); 
+	FREE(fmsgbuf); 
 
 	return(0);
 }
@@ -3440,7 +3428,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 				putsmsg(&scfg,cfg.notify,str); 
 			}
 		if(fmsgbuf)
-			free(fmsgbuf);
+			FREE(fmsgbuf);
 		if(cfg.log&LOG_AREAFIX)
 			logprintf(info);
 		return(-2); 
@@ -3493,7 +3481,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	}
 	if(i) {
 		if(fmsgbuf)
-			free(fmsgbuf);
+			FREE(fmsgbuf);
 		return(0);
 	}
 
@@ -3528,7 +3516,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	netmail++;
 
 	if(fmsgbuf)
-		free(fmsgbuf);
+		FREE(fmsgbuf);
 
 	/***************************/
 	/* Updating message header */
@@ -3721,7 +3709,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					continue; 
 				}
 				fmsgbuflen=strlen((char *)buf)+4096; /* over alloc for kludge lines */
-				fmsgbuf=malloc(fmsgbuflen);
+				fmsgbuf=MALLOC(fmsgbuflen);
 				if(!fmsgbuf) {
 					printf("ERROR allocating %lu bytes for fmsgbuf\n",fmsgbuflen);
 					logprintf("ERROR line %d allocating %lu bytes for fmsgbuf"
@@ -3755,8 +3743,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 				else if(msg.hdr.thread_back) {	/* generate REPLYID */
 					memset(&orig_msg,0,sizeof(orig_msg));
 					orig_msg.hdr.number=msg.hdr.thread_back;
-					if(smb_getmsgidx(&smb[cur_smb], &orig_msg))
-						f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb[cur_smb].last_error);
+					if(smb_getmsgidx(smb, &orig_msg))
+						f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb->last_error);
 					else {
 						smb_lockmsghdr(&smb[cur_smb],&orig_msg);
 						smb_getmsghdr(&smb[cur_smb],&orig_msg);
@@ -3954,11 +3942,11 @@ int main(int argc, char **argv)
 	"s: import private echomail override (strip private status)\n"
 	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n";
 
-	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
+	if((email=(smb_t *)MALLOC(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
 		bail(1); }
 	memset(email,0,sizeof(smb_t));
-	if((smb=(smb_t *)malloc(MAX_OPEN_SMBS*sizeof(smb_t)))==NULL) {
+	if((smb=(smb_t *)MALLOC(MAX_OPEN_SMBS*sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for smbs.\n");
 		bail(1); }
 	for(i=0;i<MAX_OPEN_SMBS;i++)
@@ -3970,14 +3958,28 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.172 $", "%*s %s", revision);
+	sscanf("$Revision: 1.166 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
 	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
 		,SBBSECHO_VER
+#ifdef PLATFORM_DESC
 		,PLATFORM_DESC
+#else
+	#if defined(__OS2__)
+		,"OS/2"
+	#elif defined(__NT__)
+		,"Win32"
+	#elif defined(__DOS4G__)
+		,"DOS4G"
+	#elif defined(__FLAT__)
+		,"DOS32"
+	#else
+		,"DOS16"
+	#endif
+#endif
 		,revision
 		);
 
@@ -4136,7 +4138,7 @@ int main(int argc, char **argv)
 		SKIP_WHITESPACE(p);	/* Find first printable char */
 		if(*p==';' || !*p)          /* Ignore blank lines or start with ; */
 			continue;
-		if((cfg.area=(areasbbs_t *)realloc(cfg.area,sizeof(areasbbs_t)*
+		if((cfg.area=(areasbbs_t *)REALLOC(cfg.area,sizeof(areasbbs_t)*
 			(cfg.areas+1)))==NULL) {
 			printf("ERROR allocating memory for area #%u.\n",cfg.areas+1);
 			bail(1); }
@@ -4164,7 +4166,7 @@ int main(int argc, char **argv)
 		strupr(tmp);
 		if(tmp[0]=='*')         /* UNKNOWN-ECHO area */
 			cfg.badecho=cfg.areas;
-		if((cfg.area[cfg.areas].name=(char *)malloc(strlen(tmp)+1))==NULL) {
+		if((cfg.area[cfg.areas].name=(char *)MALLOC(strlen(tmp)+1))==NULL) {
 			printf("ERROR allocating memory for area #%u tag name.\n"
 				,cfg.areas+1);
 			bail(1); }
@@ -4177,7 +4179,7 @@ int main(int argc, char **argv)
 
 		while(*p && *p!=';') {
 			if((cfg.area[cfg.areas].uplink=(faddr_t *)
-				realloc(cfg.area[cfg.areas].uplink
+				REALLOC(cfg.area[cfg.areas].uplink
 				,sizeof(faddr_t)*(cfg.area[cfg.areas].uplinks+1)))==NULL) {
 				printf("ERROR allocating memory for area #%u uplinks.\n"
 					,cfg.areas+1);
@@ -4400,7 +4402,7 @@ int main(int argc, char **argv)
 				start_tick=msclock();
 
 				if(fmsgbuf) {
-					free(fmsgbuf);
+					FREE(fmsgbuf);
 					fmsgbuf=0; 
 				}
 
@@ -4756,7 +4758,7 @@ int main(int argc, char **argv)
 				printf("(%.1f/min) ",(float)echomail/(import_time/60.0));
 			printf("(%.1f/sec)\n",(float)echomail/import_time); }
 		if(fmsgbuf) {
-			free(fmsgbuf);
+			FREE(fmsgbuf);
 			fmsgbuf=0; }
 
 		}
@@ -4982,7 +4984,7 @@ int main(int argc, char **argv)
 
 			putfmsg(stream,fmsgbuf,hdr,fakearea,msg_seen,msg_path);
 
-			free(fmsgbuf);
+			FREE(fmsgbuf);
 			fclose(stream);
 			/**************************************/
 			/* Delete source netmail if specified */
@@ -5050,8 +5052,8 @@ int main(int argc, char **argv)
 	if(email->shd_fp)
 		smb_close(email);
 
-	free(smb);
-	free(email);
+	FREE(smb);
+	FREE(email);
 
 	bail(0);
 	return(0);

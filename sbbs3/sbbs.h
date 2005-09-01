@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.265 2005/10/13 22:46:56 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.258 2005/08/23 02:06:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,6 +255,8 @@ public:
 	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
+	int		keybuftop,keybufbot;	/* Keyboard input buffer pointers */
+	char 	keybuf[KEY_BUFSIZE];	/* Keyboard input buffer */
 	char *	connection;		/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
@@ -435,7 +437,7 @@ public:
 	void	automsg(void);
 	bool	writemsg(char *str, char *top, char *title, long mode, int subnum
 				,char *dest);
-	char	putmsg(char *str, long mode);
+	char	putmsg(char HUGE16 *str, long mode);
 	bool	msgabort(void);
 	bool	email(int usernumber, char *top, char *title, long mode);
 	void	forwardmail(smbmsg_t* msg, int usernum);
@@ -478,7 +480,6 @@ public:
 	int		rputs(char *str);				/* BBS raw puts function */
 	int		bprintf(char *fmt, ...);		/* BBS printf function */
 	int		rprintf(char *fmt, ...);		/* BBS raw printf function */
-	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
 	void	clearline(void);
@@ -618,11 +619,11 @@ public:
 	bool	addtobatdl(file_t* f);
 
 	/* listfile.cpp */
-	bool	listfile(char *fname, char *buf, uint dirnum
+	bool	listfile(char *fname, char HUGE16 *buf, uint dirnum
 				,char *search, char letter, ulong datoffset);
 	int		listfiles(uint dirnum, char *filespec, int tofile, long mode);
 	int		listfileinfo(uint dirnum, char *filespec, long mode);
-	void	listfiletofile(char *fname, char *buf, uint dirnum, int file);
+	void	listfiletofile(char *fname, char HUGE16 *buf, uint dirnum, int file);
 	int		batchflagprompt(uint dirnum, file_t bf[], uint total, long totalfiles);
 
 	/* bat_xfer.cpp */
@@ -873,8 +874,8 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
 
 	/* sockopt.c */
-	DLLEXPORT int		DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* section
-		,char* error, size_t errlen);
+	DLLEXPORT int		DLLCALL sockopt(char* str, int* level);
+	DLLEXPORT int		DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, char* error);
 
 	/* xtrn.cpp */
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
@@ -1046,7 +1047,7 @@ BOOL 	md(char *path);
 	int 	lputs(int level, char *);			/* log output */
 	int 	lprintf(int level, char *fmt, ...);	/* log output */
 	int 	eprintf(int level, char *fmt, ...);	/* event log */
-	SOCKET	open_socket(int type, const char* protocol);
+	SOCKET	open_socket(int type);
 	SOCKET	accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
@@ -1088,11 +1089,15 @@ extern
 
 /* Global data */
 
-/* ToDo: These should be hunted down and killed */
+#if defined(__FLAT__) || defined(_WIN32)
+
 #define lread(f,b,l) read(f,b,l)
 #define lfread(b,l,f) fread(b,l,f)
 #define lwrite(f,b,l) write(f,b,l)
 #define lfwrite(b,l,f) fwrite(b,l,f)
+
 #define lkbrd(x)	0
+
+#endif
 
 #endif	/* Don't add anything after this line */
