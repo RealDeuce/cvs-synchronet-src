@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.373 2005/08/17 16:10:15 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.374 2005/09/01 20:00:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3699,6 +3699,12 @@ static void sendmail_thread(void* arg)
 				server_addr.sin_addr.s_addr = ip_addr;
 				server_addr.sin_family = AF_INET;
 				server_addr.sin_port = htons(port);
+
+				if((server==mx || server==mx2) && (ip_addr&0xff)==127) {
+					SAFEPRINTF2(err,"Bad IP address (%s) for MX server: %s"
+						,inet_ntoa(server_addr.sin_addr),server);
+					continue;
+				}
 				
 				lprintf(LOG_INFO,"%04d SEND connecting to port %u on %s [%s]"
 					,sock
@@ -3966,7 +3972,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.373 $", "%*s %s", revision);
+	sscanf("$Revision: 1.374 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
