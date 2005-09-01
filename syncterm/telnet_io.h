@@ -1,3 +1,5 @@
+/* $Id: telnet_io.h,v 1.4 2005/06/13 00:28:15 rswindell Exp $ */
+
 #ifndef _TELNET_IO_H_
 #define _TELNET_IO_H_
 

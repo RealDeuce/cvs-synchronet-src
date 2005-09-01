@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.11 2004/10/27 21:19:55 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.12 2005/08/31 20:32:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +75,7 @@ void sbbs_t::printfile(char *str, long mode)
 		sys_status&=~SS_ABORT; 
 	}
 
-	if(!tos && !wip && !rip && !html)
+	if(!(mode&P_NOCRLF) && !tos && !wip && !rip && !html)
 		CRLF;
 
 	if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
