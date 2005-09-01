@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.26 2005/03/26 08:54:01 rswindell Exp $ */
+/* $Id: str_list.c,v 1.27 2005/06/23 01:32:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -473,5 +473,6 @@ char* strListCreateBlock(str_list_t list)
 
 void strListFreeBlock(char* block)
 {
-	FREE_AND_NULL(block);	/* this must be done here for Windows-DLL reasons */
+	if(block!=NULL)
+		free(block);	/* this must be done here for Windows-DLL reasons */
 }
