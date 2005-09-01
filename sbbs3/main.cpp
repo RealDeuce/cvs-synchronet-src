@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.395 2005/08/15 21:32:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.396 2005/09/01 18:30:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1700,10 +1700,13 @@ void event_thread(void* arg)
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
+				eprintf(LOG_DEBUG,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				sprintf(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
-				if(!fmutex(semfile,startup->host_name))
+				if(!fmutex(semfile,startup->host_name)) {
+					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
 					continue;
+				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
