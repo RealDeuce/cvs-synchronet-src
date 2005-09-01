@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.327 2005/08/30 18:17:35 deuce Exp $ */
+/* $Id: websrvr.c,v 1.328 2005/09/01 18:41:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,9 +85,6 @@ static const char*	error_302="302 Moved Temporarily";
 static const char*	error_404="404 Not Found";
 static const char*	error_500="500 Internal Server Error";
 static const char*	unknown="<unknown>";
-
-/* Is this not in a header somewhere? */
-extern const uchar* nular;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 #define MAX_REQUEST_LINE		1024	/* NOT including terminator */
@@ -3501,7 +3498,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.327 $", "%*s %s", revision);
+	sscanf("$Revision: 1.328 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
