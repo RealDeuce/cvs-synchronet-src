@@ -2,7 +2,7 @@
 
 /* Synchronet v4 constants, macros, and structure definitions */
 
-/* $Id: sbbs4defs.h,v 1.4 2005/05/05 02:00:23 rswindell Exp $ */
+/* $Id: sbbs4defs.h,v 1.5 2005/06/23 09:18:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +133,7 @@ char* user_dat_columns[] = {
 };
 
 char* stats_dat_columns[] = {
-	 "TimeStamp"
+	 "Date"
 	,"Logons"
 	,"Timeon"
 	,"FilesUploaded"

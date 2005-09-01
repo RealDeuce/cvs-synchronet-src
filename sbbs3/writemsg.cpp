@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.58 2004/10/21 08:14:28 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.60 2005/08/12 08:48:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -254,7 +254,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 				c=25;
 			bputs(text[SubjectPrompt]); 
 		}
-		if(!getstr(title,c,mode&WM_FILE ? K_LINE|K_UPPER : K_LINE|K_EDIT|K_AUTODEL)
+		if(!getstr(title,c,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
 			&& useron_level && useron.logons) {
 			free(buf);
 			return(false); 
@@ -875,10 +875,12 @@ void sbbs_t::editfile(char *str)
 	sprintf(str2,"%sQUOTES.TXT",cfg.node_dir);
 	fexistcase(str2);
 	remove(str2);
+#if 0	/* no such thing as local logon */
 	if(cfg.node_editor[0] && online==ON_LOCAL) {
 		external(cmdstr(cfg.node_editor,str,nulstr,NULL),0,cfg.node_dir);
 		return; 
 	}
+#endif
 	if(useron.xedit) {
 		editor_inf(useron.xedit,nulstr,nulstr,0,INVALID_SUB);
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
@@ -890,9 +892,12 @@ void sbbs_t::editfile(char *str)
 			if(cfg.xedit[useron.xedit-1]->misc&WWIVCOLOR)
 				mode|=EX_WWIV; 
 		}
+#if 0	/* no such thing as local logon */
 		if(online==ON_LOCAL)
 			external(cmdstr(cfg.xedit[useron.xedit-1]->lcmd,str,nulstr,NULL),mode,cfg.node_dir);
-		else {
+		else 
+#endif
+		{
 			CLS;
 			rioctl(IOCM|PAUSE|ABORT);
 			external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,str,nulstr,NULL),mode,cfg.node_dir);
