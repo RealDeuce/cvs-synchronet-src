@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.128 2005/02/17 22:54:09 rswindell Exp $ */
+/* $Id: smblib.c,v 1.130 2005/08/23 01:57:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -53,7 +53,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.40"      /* SMB library version */
+#define SMBLIB_VERSION		"2.41"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
@@ -1683,9 +1683,16 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 	smbmsg_t	nextmsg;
 
 	if(!remsg->hdr.thread_first) {	/* New msg is first reply */
-		remsg->hdr.thread_first=newmsgnum;
+		if(remsg->idx.offset==0		/* index not read? */
+			&& (retval=smb_getmsgidx(smb,remsg))!=SMB_SUCCESS)
+			return(retval);
 		if((retval=smb_lockmsghdr(smb,remsg))!=SMB_SUCCESS)
 			return(retval);
+		if(!remsg->hdr.length		/* header not read? */
+			&& (retval=smb_getmsghdr(smb,remsg))!=SMB_SUCCESS)
+			return(retval);
+
+		remsg->hdr.thread_first=newmsgnum;
 		retval=smb_putmsghdr(smb,remsg);
 		smb_unlockmsghdr(smb,remsg);
 		return(retval);

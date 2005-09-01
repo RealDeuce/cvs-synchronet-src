@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.181 2005/06/03 20:22:42 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.184 2005/08/31 20:37:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,6 +378,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	if(online==ON_LOCAL)
 		eprintf(LOG_INFO,"Executing external: %s",cmdline);
+	else
+		lprintf(LOG_INFO,"Node %d Executing external: %s",cfg.node_num,cmdline);
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -2065,6 +2067,12 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case '!':   /* EXEC Directory */
                     strcat(cmd,cfg.exec_dir);
                     break;
+                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
+#ifndef __unix__
+                    strcat(cmd,cfg.exec_dir);
+#endif
+                    break;
+
                 case '#':   /* Node number (same as SBBSNNUM environment var) */
                     sprintf(str,"%d",cfg.node_num);
                     strcat(cmd,str);
