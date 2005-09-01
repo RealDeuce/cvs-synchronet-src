@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.38 2005/09/02 18:49:39 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.36 2005/09/01 22:30:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,21 +157,6 @@ int sbbs_t::rprintf(char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
 	va_end(argptr);
 	return(rputs(sbuf));
-}
-
-/****************************************************************************/
-/* Outputs destructive backspace locally and remotely (if applicable),		*/
-/****************************************************************************/
-void sbbs_t::backspace(void)
-{
-	int		oldconsole;
-
-	oldconsole=console;
-	console &= ~(CON_R_ECHOX|CON_L_ECHOX);
-	outchar('\b');
-	outchar(' ');
-	outchar('\b');
-	console=oldconsole;
 }
 
 /****************************************************************************/
