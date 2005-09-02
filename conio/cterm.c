@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.33 2005/10/14 06:21:15 deuce Exp $ */
+/* $Id: cterm.c,v 1.31 2005/08/08 20:59:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,17 +36,9 @@
 #include <string.h>
 
 #include <genwrap.h>
+#include <ciolib.h>
 #include <xpbeep.h>
-
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
-
-#include "ciolib.h"
-#include "keys.h"
+#include <keys.h>
 
 #include "cterm.h"
 
@@ -911,14 +903,15 @@ void ctputs(char *buf)
 				cx=1;
 				break;
 			case '\n':
-				*p=0;
-				cputs(outp);
-				outp=p+1;
-				if(cy==cterm.height)
+				if(cy==cterm.height) {
+					*p=0;
+					cputs(outp);
+					outp=p+1;
 					scrollup();
+					gotoxy(cx,cy);
+				}
 				else
 					cy++;
-				gotoxy(cx,cy);
 				break;
 			case '\b':
 				if(cx>0)
