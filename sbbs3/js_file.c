@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.86 2005/10/12 00:22:15 rswindell Exp $ */
+/* $Id: js_file.c,v 1.84 2005/06/24 10:22:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,6 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->etx) {
 		cp=strchr(buf,p->etx);
 		if(cp) *cp=0; 
-		len=strlen(buf);
 	}
 
 	if(p->rot13)
@@ -265,12 +264,11 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(uulen>=0) {
 			free(buf);
 			buf=uubuf;
-			len=uulen;
 		} else
 			free(uubuf);
 	}
 
-	str = JS_NewStringCopyN(cx, buf, len);
+	str = JS_NewStringCopyZ(cx, buf);
 
 	free(buf);
 
@@ -320,8 +318,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 		if(p->rot13)
 			rot13(buf);
-		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	/* exception here Feb-12-2005 */
-			*rval = STRING_TO_JSVAL(js_str);			/* _CrtDbgBreak from _heap_alloc_dbg */
+		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	// exception here Feb-12-2005
+			*rval = STRING_TO_JSVAL(js_str);			// _CrtDbgBreak from _heap_alloc_dbg
 	}
 
 	free(buf);
@@ -843,7 +841,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		uubuf=NULL;
 	int			len;	/* string length */
 	int			tlen;	/* total length to write (may be greater than len) */
-	JSString*	str;
 	private_t*	p;
 
 	*rval = JSVAL_FALSE;
@@ -856,9 +853,8 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	str = JS_ValueToString(cx, argv[0]);
-	cp	= JS_GetStringBytes(str);
-	len	= JS_GetStringLength(str);
+	cp=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+	len=strlen(cp);
 
 	if((p->uuencoded || p->b64encoded || p->yencoded)
 		&& len && (uubuf=malloc(len))!=NULL) {

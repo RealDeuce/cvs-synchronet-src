@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.189 2005/10/13 06:49:14 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.185 2005/09/02 23:19:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,14 +312,6 @@ BYTE* cr_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
-static void add_env_var(str_list_t* list, const char* var, const char* val)
-{
-	char	str[MAX_PATH*2];
-	SetEnvironmentVariable(var,NULL);	/* Delete in current process env */
-	SAFEPRINTF2(str,"%s=%s",var,val);
-	strListPush(list,str);
-}
-
 /* Clean-up resources while preserving current LastError value */
 #define XTRN_CLEANUP												\
 	last_error=GetLastError();										\
@@ -444,23 +436,18 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 
 		// Current environment passed to child process
-		sprintf(str,"%sprotocol.log",cfg.node_dir);			
-		add_env_var(&env_list,"DSZLOG",str);
-		add_env_var(&env_list,"SBBSNODE",cfg.node_dir);
-		add_env_var(&env_list,"SBBSCTRL",cfg.ctrl_dir);
-		add_env_var(&env_list,"SBBSDATA",cfg.data_dir);
-		add_env_var(&env_list,"SBBSEXEC",cfg.exec_dir);
-		sprintf(str,"%d",cfg.node_num);
-		add_env_var(&env_list,"SBBSNNUM",str);
+		sprintf(str,"DSZLOG=%sPROTOCOL.LOG",cfg.node_dir);		strListPush(&env_list,str);
+		sprintf(str,"SBBSNODE=%s",cfg.node_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSCTRL=%s",cfg.ctrl_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSDATA=%s",cfg.data_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSEXEC=%s",cfg.exec_dir);				strListPush(&env_list,str);
+		sprintf(str,"SBBSNNUM=%d",cfg.node_num);				strListPush(&env_list,str);
 		/* date/time env vars */
-		sprintf(str,"%02u",tm.tm_mday);	
-		add_env_var(&env_list,"DAY",str);
-		add_env_var(&env_list,"WEEKDAY",wday[tm.tm_wday]);
-		add_env_var(&env_list,"MONTHNAME",mon[tm.tm_mon]);
-		sprintf(str,"%02u",tm.tm_mon+1);
-		add_env_var(&env_list,"MONTH",str);
-		sprintf(str,"%u",1900+tm.tm_year);
-		add_env_var(&env_list,"YEAR",str);
+		sprintf(str,"DAY=%02u",tm.tm_mday);						strListPush(&env_list,str);
+		sprintf(str,"WEEKDAY=%s",wday[tm.tm_wday]);				strListPush(&env_list,str);
+		sprintf(str,"MONTHNAME=%s",mon[tm.tm_mon]);				strListPush(&env_list,str);
+		sprintf(str,"MONTH=%02u",tm.tm_mon+1);					strListPush(&env_list,str);
+		sprintf(str,"YEAR=%u",1900+tm.tm_year);					strListPush(&env_list,str);
 
 		env_strings=GetEnvironmentStrings();
 		env_block=strListCopyBlock(env_strings);
@@ -1039,7 +1026,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			ioctlsocket(client_socket, FIONBIO, &l);
 
 			/* Re-set socket options */
-			if(set_socket_options(&cfg, client_socket, client.protocol, str, sizeof(str)))
+			if(set_socket_options(&cfg, client_socket, str))
 				lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 			if(input_thread_mutex_locked && input_thread_running) {
@@ -1928,7 +1915,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		ioctlsocket(client_socket, FIONBIO, &l);
 
 		/* Re-set socket options */
-		if(set_socket_options(&cfg, client_socket, client.protocol, str, sizeof(str)))
+		if(set_socket_options(&cfg, client_socket, str))
 			lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 		curatr=~0;			// Can't guarantee current attributes
@@ -1965,9 +1952,6 @@ const char* quoted_string(const char* str, char* buf, size_t maxlen)
 	return(buf);
 }
 
-#define QUOTED_STRING(ch, str, buf, maxlen) \
-	((isalpha(ch) && isupper(ch)) ? str : quoted_string(str,buf,maxlen))
-	
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
@@ -1990,7 +1974,7 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 				ch=toupper(ch);
             switch(ch) {
                 case 'A':   /* User alias */
-                    strcat(cmd,QUOTED_STRING(instr[i],useron.alias,str,sizeof(str)));
+                    strcat(cmd,quoted_string(useron.alias,str,sizeof(str)));
                     break;
                 case 'B':   /* Baud (DTE) Rate */
                     strcat(cmd,ultoa(dte_rate,str,10));
@@ -2005,10 +1989,10 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,ultoa((ulong)cur_cps*10,str,10));
                     break;
                 case 'F':   /* File path */
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,quoted_string(fpath,str,sizeof(str)));
                     break;
                 case 'G':   /* Temp directory */
-                    strcat(cmd,cfg.temp_dir);
+                    strcat(cmd,quoted_string(cfg.temp_dir,str,sizeof(str)));
                     break;
                 case 'H':   /* Port Handle or Hardware Flow Control */
 #if defined(__unix__)
@@ -2021,10 +2005,10 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,cid);
                     break;
                 case 'J':
-                    strcat(cmd,cfg.data_dir);
+                    strcat(cmd,quoted_string(cfg.data_dir,str,sizeof(str)));
                     break;
                 case 'K':
-                    strcat(cmd,cfg.ctrl_dir);
+                    strcat(cmd,quoted_string(cfg.ctrl_dir,str,sizeof(str)));
                     break;
                 case 'L':   /* Lines per message */
                     strcat(cmd,ultoa(cfg.level_linespermsg[useron.level],str,10));
@@ -2033,10 +2017,10 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,ultoa(useron.min,str,10));
                     break;
                 case 'N':   /* Node Directory (same as SBBSNODE environment var) */
-                    strcat(cmd,cfg.node_dir);
+                    strcat(cmd,quoted_string(cfg.node_dir,str,sizeof(str)));
                     break;
                 case 'O':   /* SysOp */
-                    strcat(cmd,QUOTED_STRING(instr[i],cfg.sys_op,str,sizeof(str)));
+                    strcat(cmd,quoted_string(cfg.sys_op,str,sizeof(str)));
                     break;
                 case 'P':   /* Client protocol */
                     strcat(cmd,client.protocol);
@@ -2047,8 +2031,8 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                 case 'R':   /* Rows */
                     strcat(cmd,ultoa(rows,str,10));
                     break;
-                case 'S':   /* File Spec (or Baja command str) */
-                    strcat(cmd,fspec);
+                case 'S':   /* File Spec */
+                    strcat(cmd,quoted_string(fspec,str,sizeof(str)));
                     break;
                 case 'T':   /* Time left in seconds */
                     gettimeleft();
@@ -2073,10 +2057,10 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,str);
                     break;
                 case 'Y':
-                    strcat(cmd,comspec);
+                    strcat(cmd,quoted_string(comspec,str,sizeof(str)));
                     break;
                 case 'Z':
-                    strcat(cmd,cfg.text_dir);
+                    strcat(cmd,quoted_string(cfg.text_dir,str,sizeof(str)));
                     break;
 				case '~':	/* DOS-compatible (8.3) filename */
 #ifdef _WIN32
@@ -2085,15 +2069,15 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
 					strcat(cmd,sfpath);
 #else
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,quoted_string(fpath,str,sizeof(str)));
 #endif			
 					break;
                 case '!':   /* EXEC Directory */
-                    strcat(cmd,cfg.exec_dir);
+                    strcat(cmd,quoted_string(cfg.exec_dir,str,sizeof(str)));
                     break;
                 case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
 #ifndef __unix__
-                    strcat(cmd,cfg.exec_dir);
+                    strcat(cmd,quoted_string(cfg.exec_dir,str,sizeof(str)));
 #endif
                     break;
 
@@ -2160,7 +2144,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
             switch(ch) {
                 case 'A':   /* User alias */
 					if(user!=NULL)
-						strcat(cmd,QUOTED_STRING(instr[i],user->alias,str,sizeof(str)));
+						strcat(cmd,quoted_string(user->alias,str,sizeof(str)));
                     break;
                 case 'B':   /* Baud (DTE) Rate */
                     break;
@@ -2171,20 +2155,20 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'E':   /* Estimated Rate */
                     break;
                 case 'F':   /* File path */
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,quoted_string(fpath,str,sizeof(str)));
                     break;
                 case 'G':   /* Temp directory */
-                    strcat(cmd,cfg->temp_dir);
+                    strcat(cmd,quoted_string(cfg->temp_dir,str,sizeof(str)));
                     break;
                 case 'H':   /* Port Handle or Hardware Flow Control */
                     break;
                 case 'I':   /* IP address */
                     break;
                 case 'J':
-                    strcat(cmd,cfg->data_dir);
+                    strcat(cmd,quoted_string(cfg->data_dir,str,sizeof(str)));
                     break;
                 case 'K':
-                    strcat(cmd,cfg->ctrl_dir);
+                    strcat(cmd,quoted_string(cfg->ctrl_dir,str,sizeof(str)));
                     break;
                 case 'L':   /* Lines per message */
 					if(user!=NULL)
@@ -2195,10 +2179,10 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 						strcat(cmd,ultoa(user->min,str,10));
                     break;
                 case 'N':   /* Node Directory (same as SBBSNODE environment var) */
-                    strcat(cmd,cfg->node_dir);
+                    strcat(cmd,quoted_string(cfg->node_dir,str,sizeof(str)));
                     break;
                 case 'O':   /* SysOp */
-                    strcat(cmd,QUOTED_STRING(instr[i],cfg->sys_op,str,sizeof(str)));
+                    strcat(cmd,quoted_string(cfg->sys_op,str,sizeof(str)));
                     break;
                 case 'P':   /* Client protocol */
                     break;
@@ -2210,7 +2194,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 						strcat(cmd,ultoa(user->rows,str,10));
                     break;
                 case 'S':   /* File Spec */
-                    strcat(cmd,fspec);
+                    strcat(cmd,quoted_string(fspec,str,sizeof(str)));
                     break;
                 case 'T':   /* Time left in seconds */
                     break;
@@ -2236,7 +2220,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'Y':
                     break;
                 case 'Z':
-                    strcat(cmd,cfg->text_dir);
+                    strcat(cmd,quoted_string(cfg->text_dir,str,sizeof(str)));
                     break;
 				case '~':	/* DOS-compatible (8.3) filename */
 #ifdef _WIN32
@@ -2245,15 +2229,15 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
 					strcat(cmd,sfpath);
 #else
-                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strcat(cmd,quoted_string(fpath,str,sizeof(str)));
 #endif			
 					break;
                 case '!':   /* EXEC Directory */
-                    strcat(cmd,cfg->exec_dir);
+                    strcat(cmd,quoted_string(cfg->exec_dir,str,sizeof(str)));
                     break;
                 case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
 #ifndef __unix__
-                    strcat(cmd,cfg->exec_dir);
+                    strcat(cmd,quoted_string(cfg->exec_dir,str,sizeof(str)));
 #endif
                     break;
 
