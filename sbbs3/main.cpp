@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.396 2005/09/01 18:30:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.397 2005/09/02 21:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2290,7 +2290,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	telnet_mode=0;
 	telnet_last_rxch=0;
 
-	sys_status=lncntr=tos=criterrs=keybufbot=keybuftop=lbuflen=slcnt=0L;
+	sys_status=lncntr=tos=criterrs=lbuflen=slcnt=0L;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -3156,7 +3156,7 @@ void sbbs_t::reset_logon_vars(void)
 	cols=80;
     lncntr=0;
     autoterm=0;
-    keybufbot=keybuftop=lbuflen=0;
+    lbuflen=0;
     slcnt=0;
     altul=0;
     timeleft_warn=0;
