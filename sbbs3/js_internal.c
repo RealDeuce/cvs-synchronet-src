@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.27 2005/10/14 07:33:36 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.25 2005/08/12 01:03:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,8 +231,6 @@ static JSBool
 js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*			buf;
-	size_t			buflen;
-	JSString*		str;
     JSScript*		script;
 	JSContext*		cx;
 	JSObject*		obj;
@@ -244,11 +242,8 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 	if(argc<1)
 		return(JS_TRUE);
 
-	if((str=JS_ValueToString(parent_cx, argv[0]))==NULL)
+	if((buf=JS_GetStringBytes(JS_ValueToString(parent_cx, argv[0])))==NULL)
 		return(JS_FALSE);
-	if((buf=JS_GetStringBytes(str))==NULL)
-		return(JS_FALSE);
-	buflen=JS_GetStringLength(str);
 
 	if((cx=JS_NewContext(JS_GetRuntime(parent_cx),JAVASCRIPT_CONTEXT_STACK))==NULL)
 		return(JS_FALSE);
@@ -274,7 +269,7 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 		return(JS_FALSE);
 	}
 
-	if((script=JS_CompileScript(cx, obj, buf, buflen, NULL, 0))!=NULL) {
+	if((script=JS_CompileScript(cx, obj, buf, strlen(buf), NULL, 0))!=NULL) {
 		JS_ExecuteScript(cx, obj, script, rval);
 		JS_DestroyScript(cx, script);
 	}
@@ -333,20 +328,6 @@ js_on_exit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSBool
-js_get_parent(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	JSObject* child=NULL;
-	JSObject* parent;
-
-	if(JS_ValueToObject(cx, argv[0], &child)
-		&& child!=NULL
-		&& (parent=JS_GetParent(cx,child))!=NULL)
-		*rval = OBJECT_TO_JSVAL(parent);
-
-	return(JS_TRUE);
-}
-
 static JSClass js_internal_class = {
      "JsInternal"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
@@ -379,10 +360,6 @@ static jsSyncMethodSpec js_functions[] = {
 	,JSDOCSTR("report an error using the standard JavaScript error reporting mechanism "
 	"(including script filename and line number), "
 	"if <i>fatal</i> is <i>true</i>, immediately terminates script")
-	,313
-	},
-	{"get_parent",		js_get_parent,		1,	JSTYPE_OBJECT,	JSDOCSTR("object child")
-	,JSDOCSTR("return the parent of the specified object")
 	,313
 	},
 	{0}
