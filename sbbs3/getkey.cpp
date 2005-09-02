@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.30 2004/10/21 08:13:27 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.31 2005/09/02 18:49:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ char sbbs_t::getkey(long mode)
 	do {
 		if(sys_status&SS_ABORT) {
 			if(mode&K_SPIN) /* back space once if on spinning cursor */
-				bputs("\b \b");
+				backspace();
 			return(0); 
 		}
 
@@ -219,7 +219,7 @@ char sbbs_t::getkey(long mode)
 			if(mode&K_NOEXASC && ch&0x80)
 				continue;
 			if(mode&K_SPIN)
-				bputs("\b \b");
+				backspace();
 			if(mode&K_COLD && ch>' ' && useron.misc&COLDKEYS) {
 				if(mode&K_UPPER)
 					outchar(toupper(ch));
@@ -227,7 +227,7 @@ char sbbs_t::getkey(long mode)
 					outchar(ch);
 				while((coldkey=inkey(mode,1000))==0 && online && !(sys_status&SS_ABORT))
 					;
-				bputs("\b \b");
+				backspace();
 				if(coldkey==BS || coldkey==DEL)
 					continue;
 				if(coldkey>' ')
@@ -461,7 +461,7 @@ long sbbs_t::getkeys(char *keys, ulong max)
 					return(-1); 
 				}
 				if(c==BS || c==DEL) {
-					bputs("\b \b");
+					backspace();
 					continue; 
 				} 
 			}
@@ -479,7 +479,7 @@ long sbbs_t::getkeys(char *keys, ulong max)
 			return(0); 
 		}
 		if((ch==BS || ch==DEL) && n) {
-			bputs("\b \b");
+			backspace();
 			i/=10;
 			n--; 
 		}
@@ -527,7 +527,7 @@ void sbbs_t::pause()
 		lncntr=rows-2;
 	if(text[Pause][0]!='@')
 		for(i=0;i<j;i++)
-			bputs("\b \b");
+			backspace();
 	getnodedat(cfg.node_num,&thisnode,0);
 	nodesync();
 	attr(tempattrs);

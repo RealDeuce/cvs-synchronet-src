@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.23 2003/10/24 21:46:55 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.24 2005/09/02 18:49:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 	if(ch==CTRL_C) {  /* Ctrl-C Abort */
 		sys_status|=SS_ABORT;
 		if(mode&K_SPIN) /* back space once if on spinning cursor */
-			bputs("\b \b");
+			backspace();
 		return(0); 
 	}
 	if(ch==CTRL_Z && !(mode&K_MSG)
