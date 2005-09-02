@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.329 2005/09/02 22:25:23 deuce Exp $ */
+/* $Id: websrvr.c,v 1.330 2005/09/02 22:57:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1344,23 +1344,28 @@ static int pipereadline(int pipe, char *buf, size_t length, char *fullbuf, size_
 {
 	char	ch;
 	DWORD	i;
-	time_t	start;
 	int		ret=0;
+#ifndef _WIN32
+	struct timeval tv={0,0};
+	fd_set  read_set;
+#endif
 
-	start=time(NULL);
 	/* Terminate buffers */
 	if(buf != NULL)
 		buf[0]=0;
 	if(fullbuf != NULL)
 		fullbuf[0]=0;
 	for(i=0;TRUE;) {
-		if(time(NULL)-start>startup->max_cgi_inactivity)
-			return(-1);
-
 #if defined(_WIN32)
 		ret=0;
 		ReadFile(pipe, &ch, 1, (DWORD*)&ret, NULL);
 #else
+		tv.tv_sec=startup->max_cgi_inactivity;
+		tv.tv_usec=0;
+		FD_ZERO(&read_set);
+		FD_SET(pipe, &read_set);
+		if(select(pipe+1, &read_set, NULL, NULL, &tv)<1)
+			return(-1);
 		ret=read(pipe, &ch, 1);
 #endif
 		if(ret==1)  {
@@ -3511,7 +3516,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.329 $", "%*s %s", revision);
+	sscanf("$Revision: 1.330 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
