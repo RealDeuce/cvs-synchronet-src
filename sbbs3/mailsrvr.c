@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.375 2005/09/02 23:22:20 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.376 2005/09/03 01:33:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -608,10 +608,10 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 				for(i=0;split[i];i++) {
 					if(msg->idx.to!=0)
 						SAFEPRINTF3(filepath,"%sfile/%04u.in/%s"
-							,scfg.data_dir,msg->idx.to,truncsp(split[i]));
+							,scfg.data_dir,msg->idx.to,getfname(truncsp(split[i])));
 					else
 						SAFEPRINTF3(filepath,"%sfile/%04u.out/%s"
-							,scfg.data_dir,msg->idx.from,truncsp(split[i]));
+							,scfg.data_dir,msg->idx.from,getfname(truncsp(split[i])));
 					strListPush(&file_list,filepath);
 				}
 				strListFree(&split);
@@ -4010,7 +4010,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.375 $", "%*s %s", revision);
+	sscanf("$Revision: 1.376 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
