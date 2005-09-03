@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.80 2005/10/07 01:45:29 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.72 2005/08/23 02:08:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,7 +135,6 @@ enum {
 	,BBS_PROP_BATCH_UPLOAD_TOTAL
 	,BBS_PROP_BATCH_DNLOAD_TOTAL
 
-	,BBS_PROP_COMMAND_STR
 };
 
 #ifdef _DEBUG
@@ -231,7 +230,6 @@ enum {
 	,"number of files in batch upload queue"
 	,"number of files in batch download queue"
 
-	,"current command shell/module <i>command string</i> value"
 	,NULL
 	};
 #endif
@@ -584,10 +582,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			val=sbbs->batdn_total;
 			break;
 
-		case BBS_PROP_COMMAND_STR:
-			p=sbbs->main_csi.str;
-			break;
-
 		default:
 			return(JS_TRUE);
 	}
@@ -757,11 +751,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(val<sbbs->cfg.altpaths)
 				sbbs->altul=(ushort)val;
 			break;
-
-		case BBS_PROP_COMMAND_STR:
-			sprintf(sbbs->main_csi.str, "%.*s", 1024, p);
-			break;
-
 		default:
 			return(JS_TRUE);
 	}
@@ -867,8 +856,6 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 
 	{	"batch_upload_total",BBS_PROP_BATCH_UPLOAD_TOTAL,PROP_READONLY	,310},
 	{	"batch_dnload_total",BBS_PROP_BATCH_DNLOAD_TOTAL,PROP_READONLY	,310},
-
-	{	"command_str"		,BBS_PROP_COMMAND_STR		,JSPROP_ENUMERATE, 313},	/* 3.13b */
 	{0}
 };
 
@@ -1106,7 +1093,7 @@ js_replace_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		return(JS_TRUE);
 
 	if(sbbs->text[i]!=sbbs->text_sav[i] && sbbs->text[i]!=nulstr)
-		free(sbbs->text[i]);
+		FREE(sbbs->text[i]);
 
 	if((js_str=JS_ValueToString(cx, argv[1]))==NULL)
 		return(JS_TRUE);
@@ -1119,7 +1106,7 @@ js_replace_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		sbbs->text[i]=nulstr;
 		*rval = JSVAL_TRUE;
 	} else {
-		sbbs->text[i]=(char *)malloc(len+1);
+		sbbs->text[i]=(char *)MALLOC(len+1);
 		if(sbbs->text[i]==NULL) {
 			sbbs->text[i]=sbbs->text_sav[i];
 		} else {
@@ -1146,12 +1133,12 @@ js_revert_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if(i<0 || i>=TOTAL_TEXT) {
 		for(i=0;i<TOTAL_TEXT;i++) {
 			if(sbbs->text[i]!=sbbs->text_sav[i] && sbbs->text[i]!=nulstr)
-				free(sbbs->text[i]);
+				FREE(sbbs->text[i]);
 			sbbs->text[i]=sbbs->text_sav[i]; 
 		}
 	} else {
 		if(sbbs->text[i]!=sbbs->text_sav[i] && sbbs->text[i]!=nulstr)
-			free(sbbs->text[i]);
+			FREE(sbbs->text[i]);
 		sbbs->text[i]=sbbs->text_sav[i];
 	}
 
@@ -1180,7 +1167,7 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	for(i=0;i<TOTAL_TEXT;i++) {
 		if(sbbs->text[i]!=sbbs->text_sav[i]) {
 			if(sbbs->text[i]!=nulstr)
-				free(sbbs->text[i]);
+				FREE(sbbs->text[i]);
 			sbbs->text[i]=sbbs->text_sav[i]; 
 		}
 	}
@@ -1197,11 +1184,11 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			continue; 
 		}
 		if(!strcmp(sbbs->text[i],sbbs->text_sav[i])) {	/* If identical */
-			free(sbbs->text[i]);					/* Don't alloc */
+			FREE(sbbs->text[i]);					/* Don't alloc */
 			sbbs->text[i]=sbbs->text_sav[i]; 
 		}
 		else if(sbbs->text[i][0]==0) {
-			free(sbbs->text[i]);
+			FREE(sbbs->text[i]);
 			sbbs->text[i]=nulstr; 
 		} 
 	}
@@ -1903,7 +1890,7 @@ js_bulkmail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 	sbbs->bulkmail(ar);
 	if(ar && ar[0])
-		free(ar);
+		FREE(ar);
 
 	return(JS_TRUE);
 }
@@ -2607,16 +2594,15 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("display system statistics")
 	,310
 	},		
-	{"node_stats",		js_node_stats,		0,	JSTYPE_VOID,	JSDOCSTR("[node_number]")
-	,JSDOCSTR("display current (or specified) node statistics")
+	{"node_stats",		js_node_stats,		0,	JSTYPE_VOID,	""
+	,JSDOCSTR("display current node statistics")
 	,310
 	},		
-	{"list_users",		js_userlist,		0,	JSTYPE_VOID,	JSDOCSTR("[mode]")
-	,JSDOCSTR("display user list"
-	"(see <tt>UL_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> values)")
+	{"list_users",		js_userlist,		0,	JSTYPE_VOID,	""
+	,JSDOCSTR("display user list")
 	,310
 	},		
-	{"edit_user",		js_useredit,		0,	JSTYPE_VOID,	JSDOCSTR("[user_number]")
+	{"edit_user",		js_useredit,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the user editor")
 	,310
 	},		
@@ -2628,9 +2614,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("display the logon list")
 	,310
 	},		
-	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which [,user_number]]")
-	,JSDOCSTR("read private e-mail"
-	"(see <tt>MAIL_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>which</i> values)")
+	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	""
+	,JSDOCSTR("read private e-mail")
 	,310
 	},		
 	{"email",			js_email,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("number user [,number mode] [,string top] [,string subject]")
@@ -2671,16 +2656,17 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("post a message in the specified message sub-board (number or internal code) "
 		"with optinal <i>mode</i> (bitfield)<br>"
 		"If <i>reply_header</i> is specified (a header object returned from <i>MsgBase.get_msg_header()</i>), that header "
-		"will be used for the in-reply-to header fields (this argument added in v3.13)")
-	,313
+		"will be used for the in-reply-to header fields (added in v3.13)")
+	,310
 	},		
 	{"cfg_msg_scan",	js_msgscan_cfg,		0,	JSTYPE_VOID,	JSDOCSTR("[number type]")
 	,JSDOCSTR("configure message scan "
 		"(<i>type</i> is either <tt>SCAN_CFG_NEW</tt> or <tt>SCAN_CFG_TOYOU</tt>)")
 	,310
 	},		
-	{"cfg_msg_ptrs",	js_msgscan_ptrs,	0,	JSTYPE_VOID,	""
-	,JSDOCSTR("change message scan pointer values")
+	{"cfg_msg_ptrs",	js_msgscan_ptrs,	0,	JSTYPE_VOID,	JSDOCSTR("[number type]")
+	,JSDOCSTR("change message scan pointer values "
+		"(<i>type</i> is either <tt>SCAN_CFG_NEW</tt> or <tt>SCAN_CFG_TOYOU</tt>)")
 	,310
 	},		
 	{"reinit_msg_ptrs",	js_msgscan_reinit,	0,	JSTYPE_VOID,	""
