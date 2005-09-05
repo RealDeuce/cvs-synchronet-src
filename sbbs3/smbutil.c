@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.89 2005/07/26 23:53:45 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.90 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ void bail(int code)
 }
 
 /*****************************************************************************/
-// Expands Unix LF to CRLF
+/* Expands Unix LF to CRLF													 */
 /*****************************************************************************/
 ulong lf_expand(BYTE* inbuf, BYTE* outbuf)
 {
@@ -1450,7 +1450,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.89 $", "%*s %s", revision);
+	sscanf("$Revision: 1.90 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

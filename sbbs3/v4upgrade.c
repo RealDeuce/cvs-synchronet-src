@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.9 2005/06/28 09:34:18 rswindell Exp $ */
+/* $Id: v4upgrade.c,v 1.10 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -249,7 +249,8 @@ BOOL upgrade_users(void)
 			,user.curdir
 			,user.curxtrn
 			);
-		//printf("reclen=%u\n",len);
+		/* Message disabled.  Why?  ToDo */
+		/* printf("reclen=%u\n",len); */
 		if((ret=fprintf(out,"%-*.*s\r\n",USER_REC_LEN,USER_REC_LEN,rec))!=USER_REC_LINE_LEN) {
 			printf("!Error %d (errno: %d) writing %u bytes to user.tab\n"
 				,ret, errno, USER_REC_LINE_LEN);
@@ -411,7 +412,7 @@ BOOL upgrade_event_data(void)
 		return(FALSE);
 	}
 
-	// Read TIME.DAB
+	/* Read TIME.DAB */
 	sprintf(inpath,"%stime.dab",scfg.ctrl_dir);
 	printf("\t%s ",inpath);
 	if((in=fopen(inpath,"rb"))==NULL) {
@@ -430,7 +431,7 @@ BOOL upgrade_event_data(void)
 
 	printf("-> %s (%u timed events)\n", outpath, i);
 
-	// Read QNET.DAB
+	/* Read QNET.DAB */
 	sprintf(inpath,"%sqnet.dab",scfg.ctrl_dir);
 	printf("\t%s ",inpath);
 	i=0;
@@ -730,7 +731,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.9 $", "%*s %s", revision);
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
@@ -772,9 +773,9 @@ int main(int argc, char** argv)
 	if(!upgrade_filters())
 		return(4);
 	
-	// alias.cfg
-	// domains.cfg
-	// ftpalias.cfg
+	/* alias.cfg */
+	/* domains.cfg */
+	/* ftpalias.cfg */
 
 	printf("Upgrade successful.\n");
     return(0);

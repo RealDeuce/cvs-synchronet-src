@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.117 2005/08/23 02:06:54 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.118 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1499,16 +1499,16 @@ enum {
 	,SMB_PROP_DEBUG		
 	,SMB_PROP_RETRY_TIME
 	,SMB_PROP_RETRY_DELAY
-	,SMB_PROP_FIRST_MSG		// first message number
-	,SMB_PROP_LAST_MSG		// last message number
-	,SMB_PROP_TOTAL_MSGS 	// total messages
-	,SMB_PROP_MAX_CRCS		// Maximum number of CRCs to keep in history
-    ,SMB_PROP_MAX_MSGS      // Maximum number of message to keep in sub
-    ,SMB_PROP_MAX_AGE       // Maximum age of message to keep in sub (in days)
-	,SMB_PROP_ATTR			// Attributes for this message base (SMB_HYPER,etc)
-	,SMB_PROP_SUBNUM		// sub-board number
+	,SMB_PROP_FIRST_MSG		/* first message number */
+	,SMB_PROP_LAST_MSG		/* last message number */
+	,SMB_PROP_TOTAL_MSGS 	/* total messages */
+	,SMB_PROP_MAX_CRCS		/* Maximum number of CRCs to keep in history */
+    ,SMB_PROP_MAX_MSGS      /* Maximum number of message to keep in sub */
+    ,SMB_PROP_MAX_AGE       /* Maximum age of message to keep in sub (in days) */
+	,SMB_PROP_ATTR			/* Attributes for this message base (SMB_HYPER,etc) */
+	,SMB_PROP_SUBNUM		/* sub-board number */
 	,SMB_PROP_IS_OPEN
-	,SMB_PROP_STATUS		// Last SMBLIB returned status value (e.g. retval)
+	,SMB_PROP_STATUS		/* Last SMBLIB returned status value (e.g. retval) */
 };
 
 static JSBool js_msgbase_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -1875,8 +1875,8 @@ JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t*
 		,&js_msgbase_class
 		,js_msgbase_constructor
 		,1	/* number of constructor args */
-		,NULL //js_msgbase_properties
-		,NULL //js_msgbase_functions
+		,NULL /* js_msgbase_properties */
+		,NULL /* js_msgbase_functions */
 		,NULL,NULL);
 
 	return(obj);

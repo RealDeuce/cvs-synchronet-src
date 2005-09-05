@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.169 2005/09/01 23:30:57 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.170 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2104,7 +2104,7 @@ ulong matchname(char *inname)
 			username[total_users].alias=crc32(alias,0);
 			username[total_users].real=crc32(name,0); }
 		close(userdat);
-		fprintf(stderr,"     \b\b\b\b\b");  // Clear counter
+		fprintf(stderr,"     \b\b\b\b\b");  /* Clear counter */
 		fprintf(stderr,
 			"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
 			"%25s"
@@ -3111,7 +3111,8 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				fputc(0,outpkt[i].stream);
 				fputc(0,outpkt[i].stream);
 				fclose(outpkt[i].stream); }
-	//		  pack_bundle(outpkt[i].filename,outpkt[i].uplink);
+			  /* pack_nundle() disabled.  Why?  ToDo */
+			  /* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
 			memset(&outpkt[i],0,sizeof(outpkt_t)); }
 		totalpkts=openpkts=0;
 		attach_bundles();
@@ -3170,7 +3171,8 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 					fputc(0,outpkt[i].stream);
 					fputc(0,outpkt[i].stream);
 					fclose(outpkt[i].stream);
-	//				  pack_bundle(outpkt[i].filename,outpkt[i].uplink);
+					/* pack_bundle() disabled.  Why?  ToDo */
+					/* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
 					outpkt[i].stream=outpkt[totalpkts-1].stream;
 					memcpy(&outpkt[i],&outpkt[totalpkts-1],sizeof(outpkt_t));
 					memset(&outpkt[totalpkts-1],0,sizeof(outpkt_t));
@@ -3260,8 +3262,9 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 			++totalpkts;
 			if(totalpkts>=MAX_TOTAL_PKTS) {
 				fclose(outpkt[totalpkts-1].stream);
-//				  pack_bundle(outpkt[totalpkts-1].filename
-//					  ,outpkt[totalpkts-1].uplink);
+				/* pack_bundle() disabled.  Why?  ToDo */
+				/* pack_bundle(outpkt[totalpkts-1].filename
+					  ,outpkt[totalpkts-1].uplink); */
 				--totalpkts;
 				--openpkts; 
 			}
@@ -3966,7 +3969,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.169 $", "%*s %s", revision);
+	sscanf("$Revision: 1.170 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

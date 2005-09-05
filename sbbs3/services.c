@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.186 2005/08/11 22:24:47 rswindell Exp $ */
+/* $Id: services.c,v 1.187 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -973,9 +973,9 @@ static void js_service_thread(void* arg)
 	jsval					val;
 	jsval					rval;
 
-	// Copy service_client arg
+	/* Copy service_client arg */
 	service_client=*(service_client_t*)arg;
-	// Free original
+	/* Free original */
 	free(arg);
 
 	socket=service_client.socket;
@@ -1140,7 +1140,7 @@ static void js_static_service_thread(void* arg)
 	jsval					val;
 	jsval					rval;
 
-	// Copy service_client arg
+	/* Copy service_client arg */
 	service=(service_t*)arg;
 
 	service->running=TRUE;
@@ -1245,7 +1245,7 @@ static void native_static_service_thread(void* arg)
 		GetCurrentProcess(),
 		(HANDLE*)&socket_dup,
 		0,
-		TRUE, // Inheritable
+		TRUE, /* Inheritable */
 		DUPLICATE_SAME_ACCESS)) {
 		lprintf(LOG_ERR,"%04d !%s ERROR %d duplicating socket descriptor"
 			,socket,service->protocol,GetLastError());
@@ -1365,7 +1365,7 @@ static void native_service_thread(void* arg)
 		GetCurrentProcess(),
 		(HANDLE*)&socket_dup,
 		0,
-		TRUE, // Inheritable
+		TRUE, /* Inheritable */
 		DUPLICATE_SAME_ACCESS)) {
 		lprintf(LOG_ERR,"%04d !%s ERROR %d duplicating socket descriptor"
 			,socket,service->protocol,GetLastError());
@@ -1525,7 +1525,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.186 $", "%*s %s", revision);
+	sscanf("$Revision: 1.187 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

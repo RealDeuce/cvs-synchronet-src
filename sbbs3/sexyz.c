@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.68 2005/08/29 23:20:31 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.69 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -384,7 +384,8 @@ int recv_byte(void* unused, unsigned timeout)
 				telnet_cmd=ch;
 				if((telnet_cmdlen==2 && ch<TELNET_WILL) || telnet_cmdlen>2) {
 					telnet_cmdlen=0;
-//					break;
+					/* Code disabled.  Why?  ToDo */
+					/* break; */
 				}
 				continue;
 			}
@@ -545,7 +546,7 @@ static void output_thread(void* arg)
 			continue;
 		}
 
-        if(bufbot==buftop) { // linear buf empty, read from ring buf
+        if(bufbot==buftop) { /* linear buf empty, read from ring buf */
             if(avail>sizeof(buf)) {
                 lprintf(LOG_ERR,"Insufficient linear output buffer (%lu > %lu)"
 					,avail, sizeof(buf));
@@ -1284,7 +1285,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.68 $", "%*s %s", revision);
+	sscanf("$Revision: 1.69 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1584,8 +1585,9 @@ int main(int argc, char **argv)
 	}
 #endif
 
-//	if(mode&RECVDIR)
-//		backslash(fname[0]);
+	/* Code disabled.  Why?  ToDo */
+/*	if(mode&RECVDIR)
+		backslash(fname[0]); */
 
 	if(!winsock_startup())
 		return(-1);
@@ -1642,8 +1644,9 @@ int main(int argc, char **argv)
 #endif
 
 	terminate=TRUE;	/* stop output thread */
-//	sem_post(outbuf.sem);
-//	sem_post(outbuf.highwater_sem);
+	/* Code disabled.  Why?  ToDo */
+/*	sem_post(outbuf.sem);
+	sem_post(outbuf.highwater_sem); */
 
 	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);

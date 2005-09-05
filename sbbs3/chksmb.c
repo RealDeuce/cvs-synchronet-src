@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.39 2005/08/01 23:22:02 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.40 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	hash_t**	hashes;
 	char		revision[16];
 
-	sscanf("$Revision: 1.39 $", "%*s %s", revision);
+	sscanf("$Revision: 1.40 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.20-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -678,7 +678,8 @@ int main(int argc, char **argv)
 			break;
 		fprintf(stderr,"#%-5lu (%06lX) 1st Pass ",idx.number,idx.offset);
 		if(idx.attr&MSG_DELETE) {
-	//		fprintf(stderr,"%sMarked for deletion\n",beep);
+			/* Message Disabled... why?  ToDo */
+			/* fprintf(stderr,"%sMarked for deletion\n",beep); */
 			delidx++; 
 		}
 		for(m=0;m<l;m++)

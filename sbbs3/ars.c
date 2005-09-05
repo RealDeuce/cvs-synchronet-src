@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.9 2005/09/05 18:16:33 rswindell Exp $ */
+/* $Id: ars.c,v 1.10 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-const uchar* nular="";	// AR_NULL
+const uchar* nular="";	/* AR_NULL */
 
 /* Converts ASCII ARS string into binary ARS buffer */
 
