@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.27 2005/08/08 00:27:38 deuce Exp $ */
+/* $Id: uifc.c,v 1.28 2005/09/05 21:54:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -517,7 +517,7 @@ else {
 	if((*cur)<(*bar))
 		(*cur)=(*bar);
 	i=(*cur)-(*bar);
-//
+
 	if(i+(height-5)>=opts) {
 		i=opts-(height-4);
 		(*cur)=i+(*bar);
