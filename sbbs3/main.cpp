@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.397 2005/09/02 21:07:04 rswindell Exp $ */
+/* $Id: main.cpp,v 1.398 2005/09/05 23:38:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -366,6 +366,8 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
+	"null",
+	"xml object",
 	"array",
 	"alias",
 	"undefined"
