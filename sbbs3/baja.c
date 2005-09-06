@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.40 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: baja.c,v 1.33 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -125,8 +125,6 @@ ulong ahtoul(char *str)
 uchar cesc(char ch)
 {
 	switch(ch) {
-		case 'e':
-			return(ESC);
 		case 'r':
 			return(CR);
 		case 'n':
@@ -164,7 +162,7 @@ long val(char *src, char *p)
 	else if(*p=='.')    /* Bit */
 		l=1L<<strtol(p+1,&p,0);
 	else {
-		printf("!SYNTAX ERROR (expecting integer constant):\n");
+		printf("SYNTAX ERROR (expecting integer constant):\n");
 		printf(linestr,src,line,*p ? p : "<end of line>");
 		bail(1);
 		return(0); }
@@ -250,9 +248,6 @@ void writecstr(uchar *p)
 						tmp[2]=0; }
 					str[j]=(char)ahtoul(tmp);
 					break;
-				case 'e':
-					str[j]=ESC;
-					break;
 				case 'r':
 					str[j]=CR;
 					break;
@@ -309,31 +304,21 @@ void cvttab(char *str)
 			str[i]=' ';
 }
 
-void newvar(uchar* src, uchar *in)
+void newvar(uchar *in)
 {
 	uchar name[128];
 	long i,l;
 
-	if(isdigit(*in)) {
-		printf("!SYNTAX ERROR (illegal variable name):\n");
-		printf(linestr,src,line,(char*)in);
-		bail(1); 
-	}
-
 	sprintf(name,"%.80s",in);
-	if(strncmp(name,"var_",4)==0)	/* decompiled source? */
-		l=strtoul(name+4,NULL,16);
-	else {
-		if(!case_sens)
-			strupr(name);
-		l=crc32(name,0);
-		for(i=0;i<vars;i++)
-			if(var_name[i]==l)
-				break;
-		if(i<vars)
-			return;
-	}
-	if((var_name=(ulong *)realloc(var_name,sizeof(long)*(vars+1)))==NULL) {
+	if(!case_sens)
+		strupr(name);
+	l=crc32(name,0);
+	for(i=0;i<vars;i++)
+		if(var_name[i]==l)
+			break;
+	if(i<vars)
+		return;
+	if((var_name=(ulong *)REALLOC(var_name,sizeof(long)*(vars+1)))==NULL) {
 		printf("Too many (%lu) variables!\n",vars);
 		bail(1); }
 	var_name[vars]=l;
@@ -353,20 +338,18 @@ void writecrc(uchar *src, uchar *in)
 	p=strchr(name,' ');
 	if(p) *p=0;
 
+	if(!case_sens)
+		strupr(name);
 	if(!stricmp(name,"STR") || !name[0])
 		l=0;
-	else if(strncmp(name,"var_",4)==0)	/* decompiled source? */
-		l=strtoul(name+4,NULL,16);
 	else {
-		if(!case_sens)
-			strupr(name);
 		l=crc32(name,0);
 
 		for(i=0;i<vars;i++)
 			if(var_name[i]==l)
 				break;
 		if(i==vars) {
-			printf("!SYNTAX ERROR (expecting variable name):\n");
+			printf("SYNTAX ERROR (expecting variable name):\n");
 			printf(linestr,src,line,*in ? (char*)in : "<end of line>");
 			bail(1); 
 		}
@@ -379,14 +362,12 @@ long isvar(uchar *arg)
 	uchar name[128],*p;
 	long i,l;
 
-	if(!arg || !(*arg) || isdigit(*arg))
+	if(!arg || !(*arg))
 		return(0);
 
 	sprintf(name,"%.80s",arg);
 	if((p=strchr(name,' '))!=NULL)	/* Truncate at first space */
 		*p=0;
-	if(strncmp(name,"var_",4)==0)	/* decompiled source? */
-		return(strtoul(name+4,NULL,16));
 	if(!case_sens)
 		strupr(name);
 	l=crc32(name,0);
@@ -532,18 +513,18 @@ void compile(char *src)
 			if(sp)
 				*sp=0;
 			truncsp(arg2);
-			if((define_str=(char **)realloc(define_str,sizeof(char *)*(defines+1)))
+			if((define_str=(char **)REALLOC(define_str,sizeof(char *)*(defines+1)))
 				==NULL) {
 				printf("Too many defines.\n");
 				bail(1); }
-			if((define_str[defines]=(char *)malloc(strlen(arg)+1))==NULL) {
+			if((define_str[defines]=(char *)MALLOC(strlen(arg)+1))==NULL) {
 				printf("Too many defines.\n");
 				bail(1); }
-			if((define_val=(char **)realloc(define_val,sizeof(char *)*(defines+1)))
+			if((define_val=(char **)REALLOC(define_val,sizeof(char *)*(defines+1)))
 				==NULL) {
 				printf("Too many defines.\n");
 				bail(1); }
-			if((define_val[defines]=(char *)malloc(strlen(arg2)+1))==NULL) {
+			if((define_val[defines]=(char *)MALLOC(strlen(arg2)+1))==NULL) {
 				printf("Too many defines.\n");
 				bail(1); }
 			strcpy(define_str[defines],arg);
@@ -556,7 +537,7 @@ void compile(char *src)
 			for(p=arg;*p && *p!='#';) {
 				sp=strchr(p,' ');
 				if(sp) *sp=0;
-				newvar(src,p);
+				newvar(p);
 				if(!sp)
 					break;
 				p=sp+1;
@@ -725,18 +706,18 @@ void compile(char *src)
 				if(!stricmp(label_name[i],p))
 					break;
 			if(i<labels) {
-				printf("!SYNTAX ERROR (duplicate label name):\n");
+				printf("SYNTAX ERROR (duplicate label name):\n");
 				printf(linestr,src,line,p);
 				bail(1); }
-			if((label_name=(char **)realloc(label_name,sizeof(char *)*(labels+1)))
+			if((label_name=(char **)REALLOC(label_name,sizeof(char *)*(labels+1)))
 				==NULL) {
 				printf("Too many labels.\n");
 				bail(1); }
-			if((label_indx=(uint *)realloc(label_indx,sizeof(int)*(labels+1)))
+			if((label_indx=(uint *)REALLOC(label_indx,sizeof(int)*(labels+1)))
 				==NULL) {
 				printf("Too many labels.\n");
 				bail(1); }
-			if((label_name[labels]=(char *)malloc(strlen(p)+1))==NULL) {
+			if((label_name[labels]=(char *)MALLOC(strlen(p)+1))==NULL) {
 				printf("Too many labels.\n");
 				bail(1); }
 			strcpy(label_name[labels],p);
@@ -748,26 +729,26 @@ void compile(char *src)
 			sp=strchr(arg,' ');
 			if(sp)
 				*sp=0;
-			if((goto_label=(char **)realloc(goto_label,sizeof(char *)*(gotos+1)))
+			if((goto_label=(char **)REALLOC(goto_label,sizeof(char *)*(gotos+1)))
 				==NULL) {
 				printf("Too many gotos.\n");
 				bail(1); }
-			if((goto_file=(char **)realloc(goto_file,sizeof(char *)*(gotos+1)))
+			if((goto_file=(char **)REALLOC(goto_file,sizeof(char *)*(gotos+1)))
 				==NULL) {
 				printf("Too many gotos.\n");
 				bail(1); }
-			if((goto_indx=(uint *)realloc(goto_indx,sizeof(int)*(gotos+1)))
+			if((goto_indx=(uint *)REALLOC(goto_indx,sizeof(int)*(gotos+1)))
 				==NULL) {
 				printf("Too many gotos.\n");
 				bail(1); }
-			if((goto_line=(uint *)realloc(goto_line,sizeof(int)*(gotos+1)))
+			if((goto_line=(uint *)REALLOC(goto_line,sizeof(int)*(gotos+1)))
 				==NULL) {
 				printf("Too many gotos.\n");
 				bail(1); }
-			if((goto_label[gotos]=(char *)malloc(strlen(arg)+1))==NULL) {
+			if((goto_label[gotos]=(char *)MALLOC(strlen(arg)+1))==NULL) {
 				printf("Too many gotos.\n");
 				bail(1); }
-			if((goto_file[gotos]=(char *)malloc(strlen(str)+1))==NULL) {
+			if((goto_file[gotos]=(char *)MALLOC(strlen(str)+1))==NULL) {
 				printf("Too many gotos.\n");
 				bail(1); }
 			strcpy(goto_label[gotos],arg);
@@ -782,26 +763,26 @@ void compile(char *src)
 			sp=strchr(arg,' ');
 			if(sp)
 				*sp=0;
-			if((call_label=(char **)realloc(call_label,sizeof(char *)*(calls+1)))
+			if((call_label=(char **)REALLOC(call_label,sizeof(char *)*(calls+1)))
 				==NULL) {
 				printf("Too many calls.\n");
 				bail(1); }
-			if((call_file=(char **)realloc(call_file,sizeof(char *)*(calls+1)))
+			if((call_file=(char **)REALLOC(call_file,sizeof(char *)*(calls+1)))
 				==NULL) {
 				printf("Too many calls.\n");
 				bail(1); }
-			if((call_indx=(uint *)realloc(call_indx,sizeof(int)*(calls+1)))
+			if((call_indx=(uint *)REALLOC(call_indx,sizeof(int)*(calls+1)))
 				==NULL) {
 				printf("Too many calls.\n");
 				bail(1); }
-			if((call_line=(uint *)realloc(call_line,sizeof(int)*(calls+1)))
+			if((call_line=(uint *)REALLOC(call_line,sizeof(int)*(calls+1)))
 				==NULL) {
 				printf("Too many calls.\n");
 				bail(1); }
-			if((call_label[calls]=(char *)malloc(strlen(arg)+1))==NULL) {
+			if((call_label[calls]=(char *)MALLOC(strlen(arg)+1))==NULL) {
 				printf("Too many calls.\n");
 				bail(1); }
-			if((call_file[calls]=(char *)malloc(strlen(src)+1))==NULL) {
+			if((call_file[calls]=(char *)MALLOC(strlen(src)+1))==NULL) {
 				printf("Too many calls.\n");
 				bail(1); }
 
@@ -861,7 +842,7 @@ void compile(char *src)
 				if(sp) *sp=0;
 				fputc(CS_VAR_INSTRUCTION,out);
 				fputc(DEFINE_STR_VAR,out);
-				newvar(src,p);
+				newvar(p);
 				writecrc(src,p);
 				if(!sp)
 					break;
@@ -876,7 +857,7 @@ void compile(char *src)
 				if(sp) *sp=0;
 				fputc(CS_VAR_INSTRUCTION,out);
 				fputc(DEFINE_INT_VAR,out);
-				newvar(src,p);
+				newvar(p);
 				writecrc(src,p);
 				if(!sp)
 					break;
@@ -891,7 +872,7 @@ void compile(char *src)
 				if(sp) *sp=0;
 				fputc(CS_VAR_INSTRUCTION,out);
 				fputc(DEFINE_GLOBAL_STR_VAR,out);
-				newvar(src,p);
+				newvar(p);
 				writecrc(src,p);
 				if(!sp)
 					break;
@@ -906,7 +887,7 @@ void compile(char *src)
 				if(sp) *sp=0;
 				fputc(CS_VAR_INSTRUCTION,out);
 				fputc(DEFINE_GLOBAL_INT_VAR,out);
-				newvar(src,p);
+				newvar(p);
 				writecrc(src,p);
 				if(!sp)
 					break;
@@ -1993,8 +1974,6 @@ void compile(char *src)
 			continue; }
 		if(!stricmp(p,"CHDIR") || !stricmp(p,"CHANGE_DIR")) {
 			if(!(*arg)) break;
-			printf("!WARNING: CHANGE_DIR deprecated in Synchronet v3+\n");
-			printf(linestr,src,line,save);
 			fputc(CS_FIO_FUNCTION,out);
 			fputc(CHANGE_DIR,out);
 			writecrc(src,arg);			/* Str var */
@@ -2265,10 +2244,6 @@ void compile(char *src)
 		if(!stricmp(p,"PRINT")) {
 			if(!(*arg)) break;
 			fprintf(out,"%c",CS_PRINT);
-			if(strstr(arg,"%s")!=NULL) {
-				printf("!WARNING: PRINT \"%%s\" is a security hole if STR contains unvalidated input\n");
-				printf(linestr,src,line,save);
-			}
 			writecstr(arg);
 			continue; }
 		if(!stricmp(p,"PRINT_LOCAL")) {
@@ -3377,7 +3352,7 @@ void compile(char *src)
 
 
 	if(!feof(in)) {
-		printf("!SYNTAX ERROR:\n");
+		printf("SYNTAX ERROR:\n");
 		printf(linestr,src,line,save);
 		bail(1); }
 	fclose(in);
@@ -3386,7 +3361,8 @@ void compile(char *src)
 }
 
 char *banner=	"\n"
-				"BAJA v2.34-%s (rev %s) - Synchronet Shell/Module Compiler\n";
+				"BAJA v2.33 - Synchronet Shell/Module Compiler - "
+				"Copyright 2003 Rob Swindell\n";
 
 char *usage=	"\n"
 				"usage: baja [-opts] file[.src]\n"
@@ -3401,12 +3377,9 @@ char *usage=	"\n"
 
 int main(int argc, char **argv)
 {
-	uchar	str[128],src[128]="",*p;
-	int		i,j;
-	int		show_banner=1;
-	char	revision[16];
-
-	sscanf("$Revision: 1.40 $", "%*s %s", revision);
+	uchar str[128],src[128]="",*p;
+	int i,j;
+	int show_banner=1;
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
@@ -3436,14 +3409,14 @@ int main(int argc, char **argv)
 					show_banner=0;
 					break;
 				default:
-					printf(banner,PLATFORM_DESC,revision);
+					printf(banner);
 					printf(usage);
 					bail(1); }
 		else
 			strcpy(src,argv[i]);
 
 	if(show_banner)
-		printf(banner,PLATFORM_DESC,revision);
+		printf(banner);
 
 	if(!src[0]) {
 		printf(usage);
