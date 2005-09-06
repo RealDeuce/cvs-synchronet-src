@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.11 2005/09/06 19:46:25 deuce Exp $ */
+/* $Id: unbaja.c,v 1.12 2005/09/06 19:49:47 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -1464,9 +1464,9 @@ void decompile(FILE *bin, FILE *src)
 					case COPY_CHAR:
 						VAR("COPY_CHAR");
 					case SHIFT_TO_FIRST_CHAR:
-						MVARCH("SHIFT_TO_FIRST_CHAR");
+						MVARUCH("SHIFT_TO_FIRST_CHAR");
 					case SHIFT_TO_LAST_CHAR:
-						MVARCH("SHIFT_TO_LAST_CHAR");
+						MVARUCH("SHIFT_TO_LAST_CHAR");
 					case MATCHUSER:
 						VARVAR("MATCHUSER");
 					default:
