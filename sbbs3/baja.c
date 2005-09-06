@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.34 2005/09/06 19:31:27 rswindell Exp $ */
+/* $Id: baja.c,v 1.35 2005/09/06 23:19:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,6 +125,8 @@ ulong ahtoul(char *str)
 uchar cesc(char ch)
 {
 	switch(ch) {
+		case 'e':
+			return(ESC);
 		case 'r':
 			return(CR);
 		case 'n':
@@ -247,6 +249,9 @@ void writecstr(uchar *p)
 						tmp[1]=*(p++);
 						tmp[2]=0; }
 					str[j]=(char)ahtoul(tmp);
+					break;
+				case 'e':
+					str[j]=ESC;
 					break;
 				case 'r':
 					str[j]=CR;
