@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.10 2005/09/06 19:44:53 deuce Exp $ */
+/* $Id: unbaja.c,v 1.11 2005/09/06 19:46:25 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -1784,7 +1784,7 @@ void decompile(FILE *bin, FILE *src)
 					case CS_FTP_CWD:
 						VARVAR("FTP_CWD");
 					case CS_FTP_DIR:
-						VARVAR("FTD_DIR");
+						VARVAR("FTP_DIR");
 					case CS_FTP_PUT:
 						VARVARVAR("FTP_PUT");
 					case CS_FTP_GET:
