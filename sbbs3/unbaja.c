@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.17 2005/09/06 20:43:00 deuce Exp $ */
+/* $Id: unbaja.c,v 1.18 2005/09/06 20:49:46 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -586,6 +586,19 @@ void eol(FILE *src)
 							fread(buf,4,1,bin); \
 						} else {				 \
 							write_lng(bin,src);  \
+						}					 \
+						eol(src);			 \
+						break
+
+#define MVARSHTUCH(name)	WRITE_NAME(name); \
+						write_var(bin,src);  \
+						write_short(bin,src);  \
+						if(usevar) {		 \
+							fprintf(src,"%s ",getvar(var)); \
+							usevar=FALSE;	 \
+							fread(buf,1,1,bin); \
+						} else {				 \
+							write_uchar(bin,src);		 \
 						}					 \
 						eol(src);			 \
 						break
@@ -1429,7 +1442,7 @@ void decompile(FILE *bin, FILE *src)
 					case PRINTFILE_VAR_MODE:
 						MVARSHT("PRINTFILE");
 					case PRINTTAIL_VAR_MODE:
-						MVARSHT("PRINTTAIL");
+						MVARSHTUCH("PRINTTAIL");
 					case CHKSUM_TO_INT:
 						VARVAR("CHKSUM");
 					case STRIP_CTRL_STR_VAR:
