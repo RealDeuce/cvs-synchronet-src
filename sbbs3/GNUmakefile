@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.174 2005/09/06 05:31:57 deuce Exp $
+# $Id: GNUmakefile,v 1.175 2005/09/06 23:17:47 rswindell Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -149,7 +149,7 @@ $(BAJA): $(BAJA_OBJS)
 # UnBaja Utility
 $(UNBAJA): $(UNBAJA_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(UNBAJA_OBJS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(UNBAJA_OBJS) $(XPDEV_LIBS)
 
 # Node Utility
 $(NODE): $(NODE_OBJS)
