@@ -1,3 +1,11 @@
+/* $Id: unbaja.c,v 1.2 2005/09/06 05:33:59 deuce Exp $ */
+
+/* 
+ * Stuff left ToDo:
+ * Add ARS decompilation
+ * Add label pre-resolution so only used labels are inserted
+ */
+
 #include <stdio.h>
 #include <string.h>
 
