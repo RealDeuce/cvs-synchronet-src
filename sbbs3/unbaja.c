@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.13 2005/09/06 19:51:01 deuce Exp $ */
+/* $Id: unbaja.c,v 1.14 2005/09/06 19:56:02 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -511,6 +511,12 @@ void eol(FILE *src)
 #define VARVAR(name)	WRITE_NAME(name); \
 						write_var(bin,src);  \
 						write_var(bin,src);  \
+						eol(src);			 \
+						break
+						
+#define VARUCH(name)	WRITE_NAME(name); \
+						write_var(bin,src);  \
+						write_uchar(bin,src);  \
 						eol(src);			 \
 						break
 						
@@ -1460,7 +1466,7 @@ void decompile(FILE *bin, FILE *src)
 					case COPY_FIRST_CHAR:
 						VARVAR("COPY_FIRST_CHAR");
 					case COMPARE_FIRST_CHAR:
-						VARCH("COMPARE_FIRST_CHAR");
+						VARUCH("COMPARE_FIRST_CHAR");
 					case COPY_CHAR:
 						VAR("COPY_CHAR");
 					case SHIFT_TO_FIRST_CHAR:
