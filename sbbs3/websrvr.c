@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.333 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: websrvr.c,v 1.334 2005/09/06 02:09:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -507,7 +507,9 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 		lprintf(LOG_WARNING,"%04d Cannot allocate memory for string", session->socket);
 		return;
 	}
+#if 0	/* this is way too verbose for every request */
 	lprintf(LOG_DEBUG,"%04d Adding CGI environment variable %s=%s",session->socket,newname,value);
+#endif
 	sprintf(p,"%s=%s",newname,value);
 	strListPush(&session->req.cgi_env,p);
 	free(p);
@@ -3514,7 +3516,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.333 $", "%*s %s", revision);
+	sscanf("$Revision: 1.334 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
