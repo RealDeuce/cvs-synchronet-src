@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.14 2005/09/06 19:56:02 deuce Exp $ */
+/* $Id: unbaja.c,v 1.15 2005/09/06 20:05:40 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -344,7 +344,7 @@ void write_cstr(FILE *bin, FILE *src)
 	while(fread(&ch,1,1,bin)==1) {
 		if(ch==0)
 			break;
-		if(ch<' ' || ch > 126 || ch == '"') {
+		if(ch<' ' || ch > 126 || ch == '"' || ch=='\\') {
 			fprintf(src, "\\%03d", ch);
 		}
 		else
