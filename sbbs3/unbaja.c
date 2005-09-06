@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.6 2005/09/06 18:53:26 rswindell Exp $ */
+/* $Id: unbaja.c,v 1.7 2005/09/06 18:57:37 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -2166,10 +2166,7 @@ int main(int argc, char **argv)
 			else {
 				printf("Decompiling %s to %s\n",argv[f],newname);
 				fputs("!include sbbsdefs.inc\n",src);
-				fputs("!include userdefs.inc\n",src);
-				fputs("!include nodedefs.inc\n",src);
 				fputs("!include file_io.inc\n",src);
-				fputs("!include errno.inc\n",src);
 				fputs("!include dir_attr.inc\n\n",src);
 				decompile(bin, src);
 				fclose(src);
