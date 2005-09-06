@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.16 2005/09/06 20:30:17 deuce Exp $ */
+/* $Id: unbaja.c,v 1.17 2005/09/06 20:43:00 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -1649,6 +1649,15 @@ void decompile(FILE *bin, FILE *src)
 				CH("COMPARE_CHAR");
 			case CS_MULTINODE_CHAT:
 				MUCH("MULTINODE_CHAT");
+			case CS_TWO_MORE_BYTES:
+				fread(&uch,1,1,bin);
+				switch(uch) {
+					case CS_USER_EVENT:
+						MUCH("USER_EVENT");
+					default:
+						printf("ERROR!  Unknown two-byte instruction: %02x%02X\n",CS_ONE_MORE_BYTE,uch);
+				}
+				break;
 			case CS_GOTO:
 				fread(&ush,2,1,bin);
 				fprintf(src,"GOTO label_%04x ",ush);
