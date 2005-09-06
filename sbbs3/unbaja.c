@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.8 2005/09/06 19:11:47 deuce Exp $ */
+/* $Id: unbaja.c,v 1.9 2005/09/06 19:33:52 rswindell Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -1824,7 +1824,7 @@ void decompile(FILE *bin, FILE *src)
 					case FIO_SET_LENGTH:
 						VARLNG("FSET_LENGTH");
 					case FIO_SET_LENGTH_VAR:
-						VARVAR("FIO_SET_LENGTH_VAR");
+						VARVAR("FSET_LENGTH");
 					case FIO_PRINTF:
 						fprintf(src,"FPRINTF ");
 						write_var(bin,src);
