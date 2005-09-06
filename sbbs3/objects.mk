@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.34 2005/08/29 23:22:52 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.35 2005/09/06 05:31:57 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -144,6 +144,9 @@ MONO_OBJS	= \
 BAJA_OBJS = \
 			$(OBJODIR)$(DIRSEP)baja$(OFILE) \
 			$(OBJODIR)$(DIRSEP)ars$(OFILE)
+
+UNBAJA_OBJS = \
+			$(OBJODIR)$(DIRSEP)unbaja$(OFILE)
 
 NODE_OBJS = $(OBJODIR)$(DIRSEP)node$(OFILE)
 

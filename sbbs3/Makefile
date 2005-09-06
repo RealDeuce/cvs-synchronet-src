@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.66 2004/11/19 01:31:13 rswindell Exp $
+# $Id: Makefile,v 1.67 2005/09/06 05:31:57 deuce Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -117,6 +117,11 @@ $(SBBSCON): $(CON_OBJS) $(SBBS) $(FTPSRVR) $(WEBSRVR) $(MAILSRVR) $(SERVICES)
 $(BAJA): $(BAJA_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS)
+
+# UnBaja Utility
+$(UNBAJA): $(UNBAJA_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $**
 
 # Node Utility
 $(NODE): $(NODE_OBJS)
