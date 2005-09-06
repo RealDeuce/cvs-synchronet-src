@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.7 2005/09/06 18:57:37 deuce Exp $ */
+/* $Id: unbaja.c,v 1.8 2005/09/06 19:11:47 deuce Exp $ */
 
 /* 
  * Stuff left ToDo:
@@ -1243,7 +1243,8 @@ void decompile(FILE *bin, FILE *src)
 		ush=ftell(bin);
 		fprintf(src,":label_%04x\n",ush);
 
-		fread(&uch,1,1,bin);
+		if(fread(&uch,1,1,bin)!=1)
+			break;
 		switch(uch) {
 			case CS_USE_INT_VAR:
 				usevar=TRUE;
