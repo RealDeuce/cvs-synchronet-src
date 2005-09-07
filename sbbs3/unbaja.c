@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.22 2005/09/07 01:38:43 deuce Exp $ */
+/* $Id: unbaja.c,v 1.23 2005/09/07 01:48:51 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -1547,6 +1547,7 @@ void decompile(FILE *bin, FILE *srcfile)
 				indenteol=1;
 				NONE("IF_FALSE");
 			case CS_ELSE:
+				indent--;
 				indenteol=1;
 				NONE("ELSE");
 			case CS_ENDIF:
