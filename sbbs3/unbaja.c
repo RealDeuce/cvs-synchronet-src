@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.26 2005/09/07 08:54:23 rswindell Exp $ */
+/* $Id: unbaja.c,v 1.27 2005/09/07 09:28:53 rswindell Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -2289,9 +2289,9 @@ int main(int argc, char **argv)
 	char	*p;
 	char	revision[16];
 
-	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+	sscanf("$Revision: 1.27 $", "%*s %s", revision);
 
-	printf("\nUNBAJA %s-%s - Synchronet Baja Shell/Module De-compiler\n"
+	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
 
 	for(f=1; f<argc; f++) {
@@ -2308,7 +2308,7 @@ int main(int argc, char **argv)
 			if(src == NULL) 
 				perror(newname);
 			else {
-				printf("Decompiling %s to %s\n",argv[f],newname);
+				printf("\nDecompiling %s to %s\n",argv[f],newname);
 				fputs("!include sbbsdefs.inc\n",src);
 				fputs("!include file_io.inc\n",src);
 				fputs("!include dir_attr.inc\n\n",src);
