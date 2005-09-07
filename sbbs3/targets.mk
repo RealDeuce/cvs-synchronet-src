@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.24 2005/09/06 05:31:57 deuce Exp $
+# $Id: targets.mk,v 1.25 2005/09/07 01:23:54 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -66,7 +66,7 @@ $(SBBSMONO): $(XPDEV-MT_LIB) $(SMBLIB)
 $(JSEXEC): $(XPDEV-MT_LIB) $(SMBLIB)
 $(NODE): $(XPDEV_LIB)
 $(BAJA): $(XPDEV_LIB) $(SMBLIB)
-$(UNBAJA):
+$(UNBAJA): $(XPDEV_LIB)
 $(FIXSMB): $(XPDEV_LIB) $(SMBLIB)
 $(CHKSMB): $(XPDEV_LIB) $(SMBLIB)
 $(SMBUTIL): $(XPDEV_LIB) $(SMBLIB)
