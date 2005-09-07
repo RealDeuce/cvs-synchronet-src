@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.17 2005/09/28 02:09:54 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.16 2005/07/02 09:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ xpTimeZone_t	xpTimeZone_local(void);
 /**********************************************/
 
 typedef ulong	isoDate_t;	/* CCYYMMDD (decimal) */
-typedef ulong	isoTime_t;	/* HHMMSS   (decimal) */
+typedef uint	isoTime_t;	/* HHMMSS   (decimal) */
 
 #define			isoDate_create(year,mon,day)	(((year)*10000)+((mon)*100)+(day))
 #define			isoTime_create(hour,min,sec)	(((hour)*10000)+((min)*100)+((unsigned)sec))
