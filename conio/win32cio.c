@@ -1,10 +1,10 @@
-/* $Id: win32cio.c,v 1.62 2005/10/14 06:21:15 deuce Exp $ */
+/* $Id: win32cio.c,v 1.48 2005/05/19 23:54:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -34,13 +34,6 @@
 #include <windows.h>	/* INPUT_RECORD, etc. */
 #include <genwrap.h>
 #include <stdio.h>		/* stdin */
-
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
 
 #include "ciolib.h"
 #include "keys.h"
@@ -151,6 +144,7 @@ const struct keyvals keyval[] =
 	{0, 0, 0, 0, 0}	/** END **/
 };
 
+static int lastch=0;
 static int domouse=1;
 static DWORD last_state=0;
 static int LastX=-1, LastY=-1;
@@ -159,20 +153,6 @@ static int ypos=1;
 
 static int currattr=7;
 static int modeidx=3;
-
-static void dprintf(const char* fmt, ...)
-{
-#if defined(_DEBUG)
-	va_list argptr;
-	char sbuf[1024];
-
-    va_start(argptr,fmt);
-    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
-    OutputDebugString(sbuf);
-#endif /* _DEBUG */
-}
 
 WORD DOStoWinAttr(int newattr)
 {
@@ -230,14 +210,8 @@ int win32_getchcode(WORD code, DWORD state)
 				return(keyval[i].ALT);
 			if(state & (RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED))
 				return(keyval[i].CTRL);
-			if((state & (CAPSLOCK_ON)) && isalpha(keyval[i].Key)) {
-				if(!(state & SHIFT_PRESSED))
-					return(keyval[i].Shift);
-			}
-			else {
-				if(state & (SHIFT_PRESSED))
-					return(keyval[i].Shift);
-			}
+			if(state & (SHIFT_PRESSED))
+				return(keyval[i].Shift);
 			return(keyval[i].Key);
 		}
 	}
@@ -248,12 +222,11 @@ int win32_keyboardio(int isgetch)
 {
 	INPUT_RECORD input;
 	DWORD num=0;
-	static WORD lastch;
 
 	while(1) {
 		if(lastch) {
 			if(isgetch) {
-				BYTE ch;
+				int ch;
 				ch=lastch&0xff;
 				lastch>>=8;
 				return(ch);
@@ -264,20 +237,18 @@ int win32_keyboardio(int isgetch)
 
 		while(1) {
 			GetNumberOfConsoleInputEvents(GetStdHandle(STD_INPUT_HANDLE), &num);
-			if(num)
+			if(num || mouse_pending())
 				break;
-			if(mouse_trywait()) {
-				lastch=CIO_KEY_MOUSE;
-				break;
-			}
 			if(isgetch)
 				SLEEP(1);
 			else
 				return(FALSE);
 		}
 
-		if(lastch)
+		if(mouse_pending()) {
+			lastch=CIO_KEY_MOUSE;
 			continue;
+		}
 
 		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 				|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
@@ -285,37 +256,8 @@ int win32_keyboardio(int isgetch)
 
 		switch(input.EventType) {
 			case KEY_EVENT:
-
-				dprintf("KEY_EVENT: KeyDown=%u"
-					,input.Event.KeyEvent.bKeyDown);
-				dprintf("           RepeatCount=%u"
-					,input.Event.KeyEvent.wRepeatCount);
-				dprintf("           VirtualKeyCode=0x%04hX"
-					,input.Event.KeyEvent.wVirtualKeyCode);
-				dprintf("           VirtualScanCode=0x%04hX"
-					,input.Event.KeyEvent.wVirtualScanCode);
-				dprintf("           uChar.AsciiChar=0x%02X (%u)"
-					,(BYTE)input.Event.KeyEvent.uChar.AsciiChar
-					,(BYTE)input.Event.KeyEvent.uChar.AsciiChar);
-				dprintf("           ControlKeyState=0x%08lX"
-					,input.Event.KeyEvent.dwControlKeyState); 
-
-				if(input.Event.KeyEvent.bKeyDown) {
-					if((input.Event.KeyEvent.dwControlKeyState & (RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED|RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED|ENHANCED_KEY))
-							|| (input.Event.KeyEvent.wVirtualKeyCode >= VK_F1 && input.Event.KeyEvent.wVirtualKeyCode <= VK_F24)
-							|| !input.Event.KeyEvent.uChar.AsciiChar
-							|| (!(input.Event.KeyEvent.dwControlKeyState & NUMLOCK_ON) && (input.Event.KeyEvent.uChar.AsciiChar >= '0' && input.Event.KeyEvent.uChar.AsciiChar <= '9')))
-						if((input.Event.KeyEvent.dwControlKeyState & RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED)
-								&& (input.Event.KeyEvent.dwControlKeyState & RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED)
-								&& (BYTE)input.Event.KeyEvent.uChar.AsciiChar)
-							lastch=(BYTE)input.Event.KeyEvent.uChar.AsciiChar;
-						else
-							lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
-					else
-						lastch=(BYTE)input.Event.KeyEvent.uChar.AsciiChar;
-				} else if(input.Event.KeyEvent.wVirtualKeyCode == VK_MENU)
-					lastch=(BYTE)input.Event.KeyEvent.uChar.AsciiChar;
-
+				if(input.Event.KeyEvent.bKeyDown)
+					lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {
@@ -359,9 +301,7 @@ int win32_kbhit(void)
 
 int win32_getch(void)
 {
-	int ret=win32_keyboardio(TRUE);
-	dprintf("win32_getch = 0x%02X (%u)", (BYTE)ret, (BYTE)ret);
-	return(ret);
+	return(win32_keyboardio(TRUE));
 }
 
 int win32_getche(void)
@@ -387,11 +327,8 @@ int win32_initciolib(long inmode)
 	int	i,j;
 	CONSOLE_SCREEN_BUFFER_INFO	sbuff;
 
-	if(!isatty(fileno(stdin))) {
-		if(!AllocConsole())
-			return(0);
-	}
-
+	if(!isatty(fileno(stdin)))
+		return(0);
 	if(!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
 		return(0);
 	conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
@@ -751,9 +688,4 @@ char *win32_getcliptext(void)
 	CloseClipboard();
 	
 	return(ret);
-}
-
-void win32_delay(long msec)
-{
-	SLEEP(msec);
 }
