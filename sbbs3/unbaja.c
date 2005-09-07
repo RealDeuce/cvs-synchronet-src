@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.23 2005/09/07 01:48:51 deuce Exp $ */
+/* $Id: unbaja.c,v 1.24 2005/09/07 02:08:09 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -1299,7 +1299,8 @@ void decompile(FILE *bin, FILE *srcfile)
 	char	*labels;
 	size_t	currpos=0;
 
-	labels=(char *)calloc(1,filelength(fileno(srcfile)));
+	currpos=filelength(fileno(bin));
+	labels=(char *)calloc(1,filelength(fileno(bin)));
 	if(labels==NULL) {
 		printf("ERROR allocating memory for labels\n");
 		return;
