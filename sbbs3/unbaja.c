@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.25 2005/09/07 08:41:37 rswindell Exp $ */
+/* $Id: unbaja.c,v 1.26 2005/09/07 08:54:23 rswindell Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -2287,6 +2287,12 @@ int main(int argc, char **argv)
 	FILE	*src;
 	char 	newname[MAX_PATH+1];
 	char	*p;
+	char	revision[16];
+
+	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+
+	printf("\nUNBAJA %s-%s - Synchronet Baja Shell/Module De-compiler\n"
+		,revision, PLATFORM_DESC);
 
 	for(f=1; f<argc; f++) {
 		bin=fopen(argv[f],"rb");
