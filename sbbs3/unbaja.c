@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.28 2005/09/16 17:23:32 deuce Exp $ */
+/* $Id: unbaja.c,v 1.27 2005/09/07 09:28:53 rswindell Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -1737,7 +1737,7 @@ void decompile(FILE *bin, FILE *srcfile)
 			case CS_GETNUM:
 				MSHT("GETNUM");
 			case CS_COMPARE_NODE_MISC:
-				MSHT("COMPARE_NODE_MISC");
+				MSHT("COMPARE_MODE_MISC");
 			case CS_MSWAIT:
 				MSHT("MSWAIT");
 			case CS_ADJUST_USER_MINUTES:
@@ -2289,7 +2289,7 @@ int main(int argc, char **argv)
 	char	*p;
 	char	revision[16];
 
-	sscanf("$Revision: 1.28 $", "%*s %s", revision);
+	sscanf("$Revision: 1.27 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
