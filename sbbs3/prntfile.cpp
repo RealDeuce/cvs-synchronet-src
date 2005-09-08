@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.12 2005/08/31 20:32:27 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.13 2005/09/08 02:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ void sbbs_t::printfile(char *str, long mode)
 		CRLF;
 
 	if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
-		lprintf(LOG_NOTICE,"File not found: %s",str);
+		lprintf(LOG_NOTICE,"Node %d !File not found: %s",cfg.node_num,str);
 		bputs(text[FileNotFound]);
 		if(SYSOP) bputs(str);
 		CRLF;
@@ -134,7 +134,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		CRLF; 
 	}
 	if((file=nopen(str,O_RDONLY))==-1) {
-		lprintf(LOG_NOTICE,"File not found: %s",str);
+		lprintf(LOG_NOTICE,"Node %d !File not found: %s",cfg.node_num,str);
 		bputs(text[FileNotFound]);
 		if(SYSOP) bputs(str);
 		CRLF;
