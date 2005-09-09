@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.38 2005/09/08 05:53:05 rswindell Exp $ */
+/* $Id: baja.c,v 1.39 2005/09/09 21:26:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2265,6 +2265,10 @@ void compile(char *src)
 		if(!stricmp(p,"PRINT")) {
 			if(!(*arg)) break;
 			fprintf(out,"%c",CS_PRINT);
+			if(strstr(arg,"%s")!=NULL) {
+				printf("!WARNING: PRINT \"%%s\" is a security hole if STR contains unvalidated input\n");
+				printf(linestr,src,line,save);
+			}
 			writecstr(arg);
 			continue; }
 		if(!stricmp(p,"PRINT_LOCAL")) {
@@ -3402,7 +3406,7 @@ int main(int argc, char **argv)
 	int		show_banner=1;
 	char	revision[16];
 
-	sscanf("$Revision: 1.38 $", "%*s %s", revision);
+	sscanf("$Revision: 1.39 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
