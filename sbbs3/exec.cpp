@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.53 2005/08/11 22:44:47 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.54 2005/09/09 00:44:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1766,7 +1766,7 @@ int sbbs_t::exec(csi_t *csi)
 				outchar(csi->cmd&0x7f);
 			return(0);
 		case CS_PRINTSTR:
-			putmsg(csi->str,P_SAVEATR|P_NOABORT);
+			putmsg(csi->str,P_SAVEATR|P_NOABORT|P_NOATCODES);
 			return(0);
 		case CS_CMD_HOME:
 			if(csi->cmdrets<MAX_CMDRETS)
