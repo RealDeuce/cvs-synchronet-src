@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.69 2005/09/06 23:17:47 rswindell Exp $
+# $Id: Makefile,v 1.70 2005/09/10 03:37:50 deuce Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -200,4 +200,9 @@ $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE): websrvr.c
 $(MTOBJODIR)$(DIRSEP)services$(OFILE): services.c
         $(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -DSERVICES_EXPORTS -DSMB_IMPORTS -USBBS_EXPORTS \
 			-n$(MTOBJODIR) $(MT_CFLAGS) -c $** $(OUTPUT)$@
+
+# QWKNodes
+$(QWKNODES): $(QWKNODES_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS)
 

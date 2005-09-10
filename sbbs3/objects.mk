@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.35 2005/09/06 05:31:57 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.36 2005/09/10 03:37:50 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -230,3 +230,13 @@ SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)telnet$(OFILE)
+
+QWKNODES_OBJS = \
+			$(OBJODIR)$(DIRSEP)qwknodes$(OFILE)\
+			$(OBJODIR)$(DIRSEP)date_str$(OFILE)\
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
+			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
+			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
+			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
+			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
+			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
