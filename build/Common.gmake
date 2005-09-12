@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.46 2005/10/13 02:11:02 deuce Exp $
+# $Id: Common.gmake,v 1.41 2005/09/12 17:39:46 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -221,18 +221,12 @@ ifeq ($(os),openbsd)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
-  CFLAGS +=	-Wno-long-double
-  RANLIB +=	-s
  endif
 endif
 
 # OS Specific Flags
 ifeq ($(os),sunos)    # Solaris
- CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_CFMAKERAW
- # Solaris 10 provides setenv()
- ifeq ($(shell if [ `uname -r | sed 's/\.//'` -lt 510 ] ; then echo "Yes" ; else echo "No" ; fi),Yes)
-  CFLAGS += -DNEEDS_SETENV
- endif
+ CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_SETENV -DNEEDS_CFMAKERAW
  LDFLAGS	+=	-L/opt/sfw/lib
 endif
 ifeq ($(os),netbsd)	# NetBSD
@@ -284,22 +278,6 @@ else
     endif
    endif
   endif
- endif
-endif
-
-SHLIBOPTS   :=  -shared
-ifeq ($(os),darwin)
- MKSHLIB        :=  libtool -dynamic -framework System -lcc_dynamic
- MKSHPPLIB      :=  libtool -dynamic -framework System -lcc_dynamic -lstdc++
- SHLIBOPTS  :=
-else
- ifeq ($(os),sunos)
-  MKSHLIB       :=  /usr/ccs/bin/ld -G
-  MKSHPPLIB     :=  /usr/ccs/bin/ld -G
-  SHLIBOPTS :=
- else
-  MKSHLIB       :=  $(CC)
-  MKSHPPLIB     :=  $(CXX)
  endif
 endif
 
