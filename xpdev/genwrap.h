@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.74 2005/09/11 22:33:48 deuce Exp $ */
+/* $Id: genwrap.h,v 1.75 2005/09/12 17:39:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -277,13 +277,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 #if defined(__solaris__)
-	/*
-	 * Solaris actually does have TWO ctime_r() implementations.
-	 * there is proboble a CORRECT way of selecting one, but I don't
-	 * have time to look it up right now.
-	 * This is therefore, a Kludge.  ToDo 
-	 */
-	#define CTIME_R(x,y)	__posix_ctime_r(x,y)
+	#define CTIME_R(x,y)	ctime_r(x,y)
 	/* #define CTIME_R(x,y)	ctime_r(x,y,sizeof y) */
 #else
 	#define CTIME_R(x,y)	ctime_r(x,y)
