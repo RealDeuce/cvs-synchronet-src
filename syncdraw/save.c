@@ -6,7 +6,7 @@
 #include <genwrap.h>
 #include <gen_defs.h>
 
-#include "syncdraw.h"
+#include "mdraw.h"
 #include "miscfunctions.h"
 #include "options.h"
 #include "sauce.h"
