@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.71 2005/05/03 09:20:46 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.74 2005/09/11 22:33:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -277,13 +277,20 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 #if defined(__solaris__)
-	#define CTIME_R(x,y)	ctime_r(x,y)
+	/*
+	 * Solaris actually does have TWO ctime_r() implementations.
+	 * there is proboble a CORRECT way of selecting one, but I don't
+	 * have time to look it up right now.
+	 * This is therefore, a Kludge.  ToDo 
+	 */
+	#define CTIME_R(x,y)	__posix_ctime_r(x,y)
 	/* #define CTIME_R(x,y)	ctime_r(x,y,sizeof y) */
 #else
 	#define CTIME_R(x,y)	ctime_r(x,y)
 #endif
 
 DLLEXPORT int		DLLCALL	xp_random(int);
+DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
