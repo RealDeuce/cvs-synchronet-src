@@ -2,13 +2,13 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.15 2005/09/25 22:56:57 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.13 2005/09/08 02:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -92,7 +92,7 @@ void sbbs_t::printfile(char *str, long mode)
 		errormsg(WHERE,ERR_CHK,str,length);
 		return;
 	}
-	if((buf=(char*)malloc(length+1L))==NULL) {
+	if((buf=(char*)MALLOC(length+1L))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
 		return; 
@@ -105,7 +105,7 @@ void sbbs_t::printfile(char *str, long mode)
 		buf[l]=0;
 		putmsg(buf,mode);
 	}
-	free(buf); 
+	FREE(buf); 
 
 	if((mode&P_NOABORT || wip || rip || html) && online==ON_REMOTE) {
 		SYNC;
@@ -146,7 +146,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		errormsg(WHERE,ERR_CHK,str,length);
 		return;
 	}
-	if((buf=(char*)malloc(length+1L))==NULL) {
+	if((buf=(char*)MALLOC(length+1L))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
 		return; 
@@ -174,7 +174,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		SYNC;
 		rioctl(IOSM|ABORT); 
 	}
-	free(buf);
+	FREE(buf);
 }
 
 /****************************************************************************/

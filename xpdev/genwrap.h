@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.79 2005/10/15 02:25:35 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.74 2005/09/11 22:33:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -48,16 +48,11 @@
 	#include <sys/time.h>	/* struct timeval */
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
-
-	/* Simple Win32 function equivalents */
-	#define GetCurrentProcessId()		getpid()
-
 	#ifdef _THREAD_SAFE
 		#include <pthread.h>/* Check for GNU PTH libs */
 		#ifdef _PTH_PTHREAD_H_
 			#include <pth.h>
 		#endif
-		#define GetCurrentThreadId()	pthread_self()
 	#endif
 #elif defined(_WIN32)
 	#include <process.h>	/* getpid() */
@@ -282,16 +277,19 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 #if defined(__solaris__)
-	#define CTIME_R(x,y)	ctime_r(x,y)
+	/*
+	 * Solaris actually does have TWO ctime_r() implementations.
+	 * there is proboble a CORRECT way of selecting one, but I don't
+	 * have time to look it up right now.
+	 * This is therefore, a Kludge.  ToDo 
+	 */
+	#define CTIME_R(x,y)	__posix_ctime_r(x,y)
 	/* #define CTIME_R(x,y)	ctime_r(x,y,sizeof y) */
 #else
 	#define CTIME_R(x,y)	ctime_r(x,y)
 #endif
 
-/* Mimic the Borland randomize() and random() CRTL functions */
-DLLEXPORT unsigned	DLLCALL xp_randomize(void);
 DLLEXPORT int		DLLCALL	xp_random(int);
-
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
@@ -304,14 +302,12 @@ DLLEXPORT char*		DLLCALL c_unescape_str(char* str);
 DLLEXPORT char		DLLCALL c_unescape_char_ptr(const char* str, char** endptr);
 DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 
-/* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
-typedef		clock_t				msclock_t;
-#if defined(_WIN32)
-	#define		MSCLOCKS_PER_SEC	CLOCKS_PER_SEC	/* e.g. 18.2 on DOS, 1000.0 on Win32 */
+#if !defined(__unix__)
 	#define		msclock()			clock()
+	#define		MSCLOCKS_PER_SEC	CLOCKS_PER_SEC
 #else
 	#define		MSCLOCKS_PER_SEC	1000
-	msclock_t	msclock(void);
+	clock_t		msclock(void);
 #endif
 
 #if defined(__cplusplus)
