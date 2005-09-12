@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.42 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: ciolib.c,v 1.43 2005/09/05 21:53:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,7 +398,7 @@ int vsscanf( const char *buffer, const char *format, va_list arg_ptr )
 	int i, ret;
 	void *arg_arr[25];
 
-	// Do exception handling in case we go too far //
+	/* Do exception handling in case we go too far // */
 	__try
 	{
 		for ( i = 0; i < 25; i++ )

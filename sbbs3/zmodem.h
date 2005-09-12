@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.32 2005/06/10 02:00:05 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.38 2005/06/13 01:38:54 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -35,6 +35,8 @@
 /*
  * zmodem constants
  */
+
+#define ZBLOCKLEN	1024		/* "true" Zmodem max subpacket length */
 
 #define ZMAXHLEN    0x10		/* maximum header information length */
 #define ZMAXSPLEN	0x400		/* maximum subpacket length */
@@ -202,13 +204,13 @@ typedef struct {
 	 * extracted from the ZRINIT frame as received
 	 */
 
-	int can_full_duplex;
-	int can_overlap_io;
-	int can_break;
-	int can_fcs_32;
-	int want_fcs_16;
-	int escape_all_control_characters;						/* guess */
-	int escape_8th_bit;
+	BOOL can_full_duplex;
+	BOOL can_overlap_io;
+	BOOL can_break;
+	BOOL can_fcs_32;
+	BOOL want_fcs_16;
+	BOOL escape_ctrl_chars;	
+	BOOL escape_8th_bit;
 
 	/*
 	 * file management options.
@@ -232,7 +234,8 @@ typedef struct {
 	ulong		total_bytes;
 	unsigned	files_remaining;
 	unsigned	bytes_remaining;
-	time_t		transfer_start;
+	ulong		transfer_start_pos;
+	time_t		transfer_start_time;
 
 	int receive_32bit_data;
 	int use_crc16;
@@ -252,32 +255,37 @@ typedef struct {
 	BOOL		no_streaming;
 	unsigned	recv_bufsize;	/* Receiver specified buffer size */
 	long		crc_request;
+	unsigned	errors;
+	unsigned	consecutive_errors;
 
 	/* Configuration */
 	BOOL		escape_telnet_iac;
+	unsigned	init_timeout;
 	unsigned	send_timeout;
 	unsigned	recv_timeout;
+	unsigned	crc_timeout;
 	unsigned	max_errors;
 	unsigned	block_size;
+	unsigned	max_block_size;
 
 	/* Callbacks */
 	void*		cbdata;
 	int			(*lputs)(void*, int level, const char* str);
 	int			(*send_byte)(void*, BYTE ch, unsigned timeout);
 	int			(*recv_byte)(void*, unsigned timeout);
-	void		(*progress)(void*, ulong start_pos, ulong current_pos);
+	void		(*progress)(void*, ulong current_pos);
 	BOOL		(*is_connected)(void*);
-	BOOL		(*data_waiting)(void*);
+	BOOL		(*data_waiting)(void*, unsigned timeout);
 
 } zmodem_t;
 
 void		zmodem_init(zmodem_t*, void* cbdata
 						,int	(*lputs)(void*, int level, const char* str)
-						,void	(*progress)(void*, ulong, ulong)
+						,void	(*progress)(void*, ulong current_pos)
 						,int	(*send_byte)(void*, BYTE ch, unsigned timeout)
 						,int	(*recv_byte)(void*, unsigned timeout)
 						,BOOL	(*is_connected)(void*)
-						,BOOL	(*data_waiting)(void*)
+						,BOOL	(*data_waiting)(void*, unsigned timeout)
 						);
 char*		zmodem_ver(char *buf);
 const char* zmodem_source(void);
@@ -299,7 +307,7 @@ BOOL		zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init, time_
 int			zmodem_recv_files(zmodem_t* zm, const char* download_dir, ulong* bytes_received);
 int			zmodem_recv_init(zmodem_t* zm);
 unsigned	zmodem_recv_file_data(zmodem_t*, FILE*, ulong offset);
-int			zmodem_recv_file_frame(zmodem_t* zm, FILE* fp, ulong offset);
+int			zmodem_recv_file_frame(zmodem_t* zm, FILE* fp);
 int			zmodem_recv_header_and_check(zmodem_t* zm);
 #endif
 
