@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.35 2005/10/18 03:51:20 deuce Exp $ */
+/* $Id: cterm.c,v 1.31 2005/08/08 20:59:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,17 +36,9 @@
 #include <string.h>
 
 #include <genwrap.h>
+#include <ciolib.h>
 #include <xpbeep.h>
-
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
-
-#include "ciolib.h"
-#include "keys.h"
+#include <keys.h>
 
 #include "cterm.h"
 
@@ -411,7 +403,7 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 	char	*p;
 	char	*p2;
 	char	tmp[1024];
-	int		i,j,k,l;
+	int		i,j,k;
 	int		row,col;
 
 	switch(cterm.escbuf[0]) {
@@ -573,26 +565,8 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 					}
 					free(p2);
 					break;
-				case 'M':	/* ANSI music and also supposed to be delete line! */
+				case 'M':
 					cterm.music=1;
-					break;
-				case 'Y':	/* BananaCom Delete Line */
-					/* i == number of lines to delete */
-					i=atoi(cterm.escbuf+1);
-					if(i==0)
-						i=1;
-					/* j == number of lines to scroll */
-					j=cterm.height-wherey()-i+1;
-					p2=(char *)malloc(cterm.width*(j>i?j:i)*2);
-					gettext(cterm.x,cterm.y+wherey()+i,cterm.x+cterm.width-1,cterm.y+cterm.height-1,p2);
-					puttext(cterm.x,cterm.y+wherey(),cterm.x+cterm.width-1,cterm.y+cterm.height-1-i,p2);
-					l=0;
-					for(k=0;k<cterm.width*j;k++) {
-						p2[l++]=' ';
-						p2[l++]=cterm.attr;
-					}
-					puttext(cterm.x,cterm.y+cterm.height-1-i,cterm.x+cterm.width-1,cterm.y+cterm.height-1,p2);
-					free(p2);
 					break;
 				case 'N':
 					/* BananANSI style... does NOT start with MF or MB */
@@ -610,7 +584,6 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 					for(i=(cterm.width-wherex())*2-2;i>=wherex();i-=2)
 						p2[i]=' ';
 					puttext(cterm.x+wherex(),cterm.y+wherey(),cterm.x+cterm.width,cterm.y+wherey(),p2);
-					free(p2);
 					break;
 				case 'S':
 					scrollup();
@@ -621,6 +594,8 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 				case 'U':
 					clearscreen(7);
 					gotoxy(1,1);
+					break;
+				case 'Y':	/* ToDo? BananaCom Clear Line */
 					break;
 				case 'Z':
 					for(j=10;j>=0;j--) {
@@ -928,14 +903,15 @@ void ctputs(char *buf)
 				cx=1;
 				break;
 			case '\n':
-				*p=0;
-				cputs(outp);
-				outp=p+1;
-				if(cy==cterm.height)
+				if(cy==cterm.height) {
+					*p=0;
+					cputs(outp);
+					outp=p+1;
 					scrollup();
+					gotoxy(cx,cy);
+				}
 				else
 					cy++;
-				gotoxy(cx,cy);
 				break;
 			case '\b':
 				if(cx>0)
