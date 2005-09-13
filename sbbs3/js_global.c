@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.149 2005/05/25 22:20:35 rswindell Exp $ */
+/* $Id: js_global.c,v 1.153 2005/09/01 10:10:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,6 +111,7 @@ static void background_thread(void* arg)
 	if(!JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result)
 		&& JS_GetProperty(bg->cx, bg->obj, "exit_code", &exit_code))
 		result=exit_code;
+	js_EvalOnExit(bg->cx, bg->obj, &bg->branch);
 	js_enqueue_value(bg->cx, bg->msg_queue, result, NULL);
 	JS_DestroyScript(bg->cx, bg->script);
 	JS_DestroyContext(bg->cx);
@@ -341,10 +342,13 @@ static JSBool
 js_mswait(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32 val=1;
+	clock_t start=msclock();
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&val);
 	mswait(val);
+
+	JS_NewNumberValue(cx,msclock()-start,rval);
 
 	return(JS_TRUE);
 }
@@ -1561,6 +1565,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 							lastcolor=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | fg;
 							j+=sprintf(outbuf+j,"%s%s%s",HTML_COLOR_PREFIX,htmlansi[lastcolor],HTML_COLOR_SUFFIX);
 						}
+						/* ToDo: Fix hard-coded terminal window width (80) */
 						if(hpos>=80 && tmpbuf[i+1] != '\r' && tmpbuf[i+1] != '\n' && tmpbuf[i+1] != ESC)
 						{
 							wrapvpos=-2;
@@ -2585,9 +2590,9 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,312
 	},		
 	{"sleep",			js_mswait,			0,	JSTYPE_ALIAS },
-	{"mswait",			js_mswait,			0,	JSTYPE_VOID,	JSDOCSTR("[number milliseconds]")
-	,JSDOCSTR("millisecond wait/sleep routine (AKA sleep)")
-	,310
+	{"mswait",			js_mswait,			0,	JSTYPE_NUMBER,	JSDOCSTR("[number milliseconds]")
+	,JSDOCSTR("millisecond wait/sleep routine (AKA sleep), returns number of elapsed clock ticks (in v3.13)")
+	,313
 	},
 	{"yield",			js_yield,			0,	JSTYPE_VOID,	JSDOCSTR("[bool forced]")
 	,JSDOCSTR("release current thread time-slice, "
@@ -2826,8 +2831,8 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"flags_str",		js_flags_str,		1,	JSTYPE_UNDEF,	JSDOCSTR("[string text] or [number value]")
 	,JSDOCSTR("convert a string of security flags (letters) into their numeric value or vice-versa "
-	"(returns number OR string) - (added in v3.12b)")
-	,312
+	"(returns number OR string) - (added in v3.13)")
+	,313
 	},
 	{0}
 };

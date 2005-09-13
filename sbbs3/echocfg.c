@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.15 2004/11/19 03:22:12 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.16 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,8 @@
 
 char **opt;
 
-// void uifc.bail(int code);
+/* Declaration removed... why?  ToDo */
+/* void uifc.bail(int code); */
 int main();
 
 uchar node_swap=1;

@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.54 2005/06/10 02:00:05 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.69 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,10 @@
 #include <stdarg.h>
 #include <ctype.h>		/* isdigit */
 #include <sys/stat.h>
+
 #ifdef __unix__
-#include <termios.h>
+	#include <termios.h>
+	#include <signal.h>
 #endif
 
 /* xpdev */
@@ -67,12 +69,14 @@
 /* sbbs */
 #include "ringbuf.h"
 #include "telnet.h"
+#include "nopen.h"
 
 /* sexyz */
 #include "sexyz.h"
 
 #define SINGLE_THREADED		FALSE
-#define IO_THREAD_BUF_SIZE	4096
+#define MIN_OUTBUF_SIZE		1024
+#define MAX_OUTBUF_SIZE		(64*1024)
 
 /***************/
 /* Global Vars */
@@ -117,11 +121,10 @@ RingBuf		outbuf;
 	xpevent_t	outbuf_empty;
 #endif
 unsigned	outbuf_drain_timeout;
+long		outbuf_size;
 
 unsigned	flows=0;
 unsigned	select_errors=0;
-
-#define putcom(ch)	send_byte(NULL,ch,10)
 
 #ifdef __unix__
 void resetterm(void)
@@ -381,7 +384,8 @@ int recv_byte(void* unused, unsigned timeout)
 				telnet_cmd=ch;
 				if((telnet_cmdlen==2 && ch<TELNET_WILL) || telnet_cmdlen>2) {
 					telnet_cmdlen=0;
-//					break;
+					/* Code disabled.  Why?  ToDo */
+					/* break; */
 				}
 				continue;
 			}
@@ -402,6 +406,7 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 {
 	uchar		buf[2] = { TELNET_IAC, TELNET_IAC };
 	unsigned	len=1;
+	DWORD		result;
 
 	if(telnet && ch==TELNET_IAC)	/* escape IAC char */
 		len=2;
@@ -411,12 +416,16 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 	if(RingBufFree(&outbuf)<len) {
 		fprintf(statfp,"FLOW");
 		flows++;
-		if(WaitForEvent(outbuf_empty,timeout*1000)!=WAIT_OBJECT_0) {
-			fprintf(statfp,"\n!ERROR Waiting for output buffer to flush\n");
-			newline=TRUE;
-			return(-1);
-		}
+		result=WaitForEvent(outbuf_empty,timeout*1000);
 		fprintf(statfp,"\b\b\b\b    \b\b\b\b");
+		if(result!=WAIT_OBJECT_0) {
+			fprintf(statfp
+				,"\n!TIMEOUT (%d) waiting for output buffer to flush (%u seconds, %u bytes)\n"
+				,result, timeout, RingBufFull(&outbuf));
+			newline=TRUE;
+			if(RingBufFree(&outbuf)<len)
+				return(-1);
+		}
 	}
 
 	RingBufWrite(&outbuf,buf,len);
@@ -482,7 +491,7 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 static void output_thread(void* arg)
 {
 	char		stats[128];
-    BYTE		buf[IO_THREAD_BUF_SIZE];
+    BYTE		buf[MAX_OUTBUF_SIZE];
 	int			i;
     ulong		avail;
 	ulong		total_sent=0;
@@ -537,7 +546,7 @@ static void output_thread(void* arg)
 			continue;
 		}
 
-        if(bufbot==buftop) { // linear buf empty, read from ring buf
+        if(bufbot==buftop) { /* linear buf empty, read from ring buf */
             if(avail>sizeof(buf)) {
                 lprintf(LOG_ERR,"Insufficient linear output buffer (%lu > %lu)"
 					,avail, sizeof(buf));
@@ -592,11 +601,11 @@ BOOL is_connected(void* unused)
 	return socket_check(sock,NULL,NULL,0);
 }
 
-BOOL data_waiting(void* unused)
+BOOL data_waiting(void* unused, unsigned timeout)
 {
 	BOOL rd;
 
-	if(!socket_check(sock,&rd,NULL,0))
+	if(!socket_check(sock,&rd,NULL,timeout))
 		return(FALSE);
 	return(rd);
 }
@@ -648,7 +657,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 		if(mode&SEND) {
 			total_blocks=num_blocks(fsize,xm.block_size);
 			fprintf(statfp,"\rBlock (%lu%s): %lu/%lu  Byte: %lu  "
-				"Time: %lu:%02lu/%lu:%02lu  CPS: %u  %lu%% "
+				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
 				,block_num
@@ -663,7 +672,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				);
 		} else if(mode&YMODEM) {
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
-				"Time: %lu:%02lu/%lu:%02lu  CPS: %u  %lu%% "
+				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
 				,block_num
@@ -677,7 +686,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				);
 		} else { /* XModem receive */
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
-				"Time: %lu:%02lu  CPS: %u "
+				"Time: %lu:%02lu  %u cps "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
 				,block_num
@@ -696,9 +705,8 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
  * show the progress of the transfer like this:
  * zmtx: sending file "garbage" 4096 bytes ( 20%)
  */
-void zmodem_progress(void* cbdata, ulong start_pos, ulong current_pos)
+void zmodem_progress(void* cbdata, ulong current_pos)
 {
-	char		orig[128];
 	unsigned	cps;
 	long		l;
 	long		t;
@@ -707,25 +715,23 @@ void zmodem_progress(void* cbdata, ulong start_pos, ulong current_pos)
 
 	now=time(NULL);
 	if(now-last_progress>=progress_interval || current_pos >= zm.current_file_size || newline) {
-		t=now-zm.transfer_start;
+		t=now-zm.transfer_start_time;
 		if(t<=0)
 			t=1;
-		if(start_pos>current_pos)
-			start_pos=0;
-		if((cps=(current_pos-start_pos)/t)==0)
+		if(zm.transfer_start_pos>current_pos)
+			zm.transfer_start_pos=0;
+		if((cps=(current_pos-zm.transfer_start_pos)/t)==0)
 			cps=1;		/* cps so far */
 		l=zm.current_file_size/cps;	/* total transfer est time */
 		l-=t;			/* now, it's est time left */
 		if(l<0) l=0;
-		if(start_pos)
-			sprintf(orig,"From: %lu  ", start_pos);
-		else
-			orig[0]=0;
-		fprintf(statfp,"\r%sKByte: %lu/%lu  "
-			"Time: %lu:%02lu/%lu:%02lu  CPS: %u  %lu%% "
-			,orig
+		fprintf(statfp,"\rKByte: %lu/%lu  %u/CRC-%u  "
+			"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 			,current_pos/1024
 			,zm.current_file_size/1024
+			,zm.block_size
+			,mode&RECV ? (zm.receive_32bit_data ? 32:16) : 
+				(zm.can_fcs_32 && !zm.want_fcs_16) ? 32:16
 			,t/60L
 			,t%60L
 			,l/60L
@@ -798,10 +804,12 @@ static int send_files(char** fname, uint fnames)
 			if(isdir(path))
 				continue;
 
-			if((fp=fopen(path,"rb"))==NULL) {
+			if((fp=fnopen(NULL,path,O_RDONLY|O_BINARY))==NULL
+				&& (fp=fopen(path,"rb"))==NULL) {
 				lprintf(LOG_ERR,"Error %d opening %s for read",errno,path);
 				continue;
 			}
+			setvbuf(fp,NULL,_IOFBF,0x10000);
 
 			fsize=filelength(fileno(fp));
 
@@ -851,9 +859,9 @@ static int send_files(char** fname, uint fnames)
 					,sent_bytes
 					,115200 /* baud */
 					,cps
-					,errors
+					,mode&ZMODEM ? zm.errors : xm.errors
 					,flows
-					,xm.block_size
+					,mode&ZMODEM ? zm.block_size : xm.block_size
 					,path); 
 				fflush(logfp);
 			}
@@ -948,7 +956,7 @@ static int receive_files(char** fname_list, int fnames)
 						mode&=~CRC;
 					xmodem_put_nak(&xm, /* expected_block: */ 0);
 					if(xmodem_get_block(&xm, block, /* expected_block: */ 0) == 0) {
-						putcom(ACK);
+						send_byte(NULL,ACK,10);
 						break; 
 					} 
 				}
@@ -1058,7 +1066,8 @@ static int receive_files(char** fname_list, int fnames)
 			xmodem_cancel(&xm);
 			return(1); 
 		}
-		if((fp=fopen(str,"wb"))==NULL) {
+		if((fp=fnopen(NULL,str,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY))==NULL
+			&& (fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
 			if(mode&ZMODEM) {
 				zmodem_send_zskip(&zm);
@@ -1127,7 +1136,7 @@ static int receive_files(char** fname_list, int fnames)
 					continue;
 				}
 				if(!(mode&GMODE))
-					putcom(ACK);
+					send_byte(NULL,ACK,10);
 				if(file_bytes_left<=0L)  { /* No more bytes to send */
 					lprintf(LOG_WARNING,"Attempt to send more byte specified in header");
 					break; 
@@ -1176,7 +1185,7 @@ static int receive_files(char** fname_list, int fnames)
 				,file_bytes/t
 				,errors
 				,flows
-				,xm.block_size
+				,mode&ZMODEM ? zm.block_size : xm.block_size
 				,str
 				,serial_num); 
 			fflush(logfp);
@@ -1225,10 +1234,12 @@ static const char* usage=
 	"socket = TCP socket descriptor\n"
 #endif
 	"\n"
-	"opts   = -o  to overwrite files when receiving\n"
+	"opts   = -y  to overwrite files when receiving\n"
+	"         -o  disable Zmodem CRC-32 mode (use CRC-16)\n"
 	"         -s  disable Zmodem streaming (Slow Zmodem)\n"
-	"         -4  transmit with 4K Zmodem blocks\n"
-	"         -8  transmit with 8K Zmodem blocks (ZedZap)\n"
+	"         -2  set maximum Zmodem block size to 2K\n"
+	"         -4  set maximum Zmodem block size to 4K\n"
+	"         -8  set maximum Zmodem block size to 8K (ZedZap)\n"
 	"         -!  to pause after abnormal exit (error)\n"
 	"         -telnet to enable Telnet mode (the default)\n"
 	"         -rlogin to enable RLogin (pass-through) mode\n"
@@ -1274,15 +1285,13 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.69 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
 		,revision
 		,PLATFORM_DESC
 		);
-
-	RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
 
 	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected);
 	zmodem_init(&zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected,data_waiting);
@@ -1305,6 +1314,7 @@ int main(int argc, char **argv)
 	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
 		log_level=LOG_DEBUG;
 
+	telnet					=iniReadBool(fp,ROOT_SECTION,"Telnet",TRUE);
 	debug_tx				=iniReadBool(fp,ROOT_SECTION,"DebugTx",FALSE);
 	debug_rx				=iniReadBool(fp,ROOT_SECTION,"DebugRx",FALSE);
 	debug_telnet			=iniReadBool(fp,ROOT_SECTION,"DebugTelnet",FALSE);
@@ -1316,6 +1326,7 @@ int main(int argc, char **argv)
 
 	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
+	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",16*1024);
 
 	progress_interval		=iniReadInteger(fp,ROOT_SECTION,"ProgressInterval",1);
 
@@ -1327,16 +1338,35 @@ int main(int argc, char **argv)
 	xm.max_errors			=iniReadInteger(fp,"Xmodem","MaxErrors",xm.max_errors);
 	xm.g_delay				=iniReadInteger(fp,"Xmodem","G_Delay",xm.g_delay);
 
+	zm.init_timeout			=iniReadInteger(fp,"Zmodem","InitTimeout",zm.init_timeout);	/* seconds */
 	zm.send_timeout			=iniReadInteger(fp,"Zmodem","SendTimeout",zm.send_timeout);	/* seconds */
 	zm.recv_timeout			=iniReadInteger(fp,"Zmodem","RecvTimeout",zm.recv_timeout);	/* seconds */
-	zm.block_size			=iniReadInteger(fp,"Zmodem","BlockSize",zm.block_size);		/* 1024 or 8192 */
+	zm.crc_timeout			=iniReadInteger(fp,"Zmodem","CrcTimeout",zm.crc_timeout);	/* seconds */
+	zm.block_size			=iniReadInteger(fp,"Zmodem","BlockSize",zm.block_size);			/* 1024  */
+	zm.max_block_size		=iniReadInteger(fp,"Zmodem","MaxBlockSize",zm.max_block_size);	/* 1024 or 8192 */
 	zm.max_errors			=iniReadInteger(fp,"Zmodem","MaxErrors",zm.max_errors);
+	zm.recv_bufsize			=iniReadInteger(fp,"Zmodem","RecvBufSize",0);
+	zm.no_streaming			=!iniReadBool(fp,"Zmodem","Streaming",TRUE);
+	zm.want_fcs_16			=!iniReadBool(fp,"Zmodem","CRC32",TRUE);
 	zm.escape_telnet_iac	=iniReadBool(fp,"Zmodem","EscapeTelnetIAC",TRUE);
+	zm.escape_8th_bit		=iniReadBool(fp,"Zmodem","Escape8thBit",FALSE);
+	zm.escape_ctrl_chars	=iniReadBool(fp,"Zmodem","EscapeCtrlChars",FALSE);
 
 	if(fp!=NULL)
 		fclose(fp);
 
 	atexit(exiting);
+
+	if(zm.recv_bufsize > 0xffff)
+		zm.recv_bufsize = 0xffff;
+
+	if(outbuf_size < MIN_OUTBUF_SIZE)
+		outbuf_size = MIN_OUTBUF_SIZE;
+	else if(outbuf_size > MAX_OUTBUF_SIZE)
+		outbuf_size = MAX_OUTBUF_SIZE;
+	
+	fprintf(statfp,"Output buffer size: %u\n", outbuf_size);
+	RingBufInit(&outbuf, outbuf_size);
 
 #if !defined(RINGBUF_EVENT)
 	outbuf_empty=CreateEvent(NULL,/* ManualReset */TRUE, /*InitialState */TRUE,NULL);
@@ -1432,11 +1462,20 @@ int main(int argc, char **argv)
 					case 'K':	/* sz/rz compatible */
 						xm.block_size=1024;
 						break;
-					case '4':
-						zm.block_size=4096;
+					case 'C':	/* sz/rz compatible */
+						mode|=CRC;
 						break;
-					case '8':
-						zm.block_size=8192;
+					case '2':
+						zm.max_block_size=2048;
+						break;
+					case '4':
+						zm.max_block_size=4096;
+						break;
+					case '8':	/* ZedZap */
+						zm.max_block_size=8192;
+						break;
+					case 'O':	/* disable Zmodem CRC-32 */
+						zm.want_fcs_16=TRUE;
 						break;
 					case 'S':	/* disable Zmodem streaming */
 						zm.no_streaming=TRUE;
@@ -1444,7 +1483,7 @@ int main(int argc, char **argv)
 					case 'G':	/* Ymodem-G */
 						mode|=GMODE;
 						break;
-					case 'O':
+					case 'Y':
 						mode|=OVERWRITE;
 						break;
 					case '!':
@@ -1546,8 +1585,9 @@ int main(int argc, char **argv)
 	}
 #endif
 
-//	if(mode&RECVDIR)
-//		backslash(fname[0]);
+	/* Code disabled.  Why?  ToDo */
+/*	if(mode&RECVDIR)
+		backslash(fname[0]); */
 
 	if(!winsock_startup())
 		return(-1);
@@ -1604,8 +1644,9 @@ int main(int argc, char **argv)
 #endif
 
 	terminate=TRUE;	/* stop output thread */
-//	sem_post(outbuf.sem);
-//	sem_post(outbuf.highwater_sem);
+	/* Code disabled.  Why?  ToDo */
+/*	sem_post(outbuf.sem);
+	sem_post(outbuf.highwater_sem); */
 
 	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);
