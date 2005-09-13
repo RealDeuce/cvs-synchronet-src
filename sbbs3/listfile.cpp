@@ -2,13 +2,13 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.40 2005/01/26 20:58:00 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.41 2005/08/12 08:48:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1242,6 +1242,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 						&& chk_ar(cfg.prot[i]->ar,&useron))
 						break;
 				if(i<cfg.total_prots) {
+#if 0	/* no such thing as local logon */
 					if(online==ON_LOCAL) {
 						bputs(text[EnterPath]);
 						if(getstr(path,60,K_LINE)) {
@@ -1259,7 +1260,9 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 										,EX_OUTL);
 									CRLF; }
 								} }
-					else {
+					else 
+#endif
+					{
 						delfiles(cfg.temp_dir,ALLFILES);
 						if(cfg.dir[f.dir]->seqdev) {
 							lncntr=0;
