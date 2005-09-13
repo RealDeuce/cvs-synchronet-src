@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.177 2005/09/13 18:56:27 deuce Exp $
+# $Id: GNUmakefile,v 1.178 2005/09/13 23:08:24 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -139,7 +139,7 @@ $(SERVICES): $(SERVICE_OBJS)
 # Synchronet Console Build Rule
 $(SBBSCON): $(CON_OBJS) $(SBBS) $(FTPSRVR) $(WEBSRVR) $(MAILSRVR) $(SERVICES)
 	@echo Linking $@
-	$(QUIET)$(CC) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(CON_OBJS) $(CON_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(CON_OBJS) $(CON_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # Baja Utility
 $(BAJA): $(BAJA_OBJS)
