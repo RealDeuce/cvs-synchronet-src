@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.50 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: exec.cpp,v 1.54 2005/09/09 00:44:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -532,28 +532,13 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	sbbs->js_branch.counter++;
-
-	/* Terminated? */
-	if(sbbs->js_branch.auto_terminate && sbbs->terminated) {
-		JS_ReportError(cx,"Terminated");
+	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
+		JS_ReportError(cx,"Disconnected");
 		sbbs->js_branch.counter=0;
 		return(JS_FALSE);
 	}
-	/* Infinite loop? */
-	if(sbbs->js_branch.limit && sbbs->js_branch.counter>sbbs->js_branch.limit) {
-		JS_ReportError(cx,"Infinite loop (%lu branches) detected",sbbs->js_branch.counter);
-		sbbs->js_branch.counter=0;
-		return(JS_FALSE);
-	}
-	/* Give up timeslices every once in a while */
-	if(sbbs->js_branch.yield_interval && (sbbs->js_branch.counter%sbbs->js_branch.yield_interval)==0)
-		YIELD();
 
-	if(sbbs->js_branch.gc_interval && (sbbs->js_branch.counter%sbbs->js_branch.gc_interval)==0)
-		JS_MaybeGC(cx), sbbs->js_branch.gc_attempts++;
-
-    return(JS_TRUE);
+	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
 }
 
 static const char* js_ext(const char* fname)
@@ -647,6 +632,8 @@ long sbbs_t::js_execfile(const char *cmd)
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
+
+	js_EvalOnExit(js_cx, js_glob, &js_branch);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
@@ -1779,7 +1766,7 @@ int sbbs_t::exec(csi_t *csi)
 				outchar(csi->cmd&0x7f);
 			return(0);
 		case CS_PRINTSTR:
-			putmsg(csi->str,P_SAVEATR|P_NOABORT);
+			putmsg(csi->str,P_SAVEATR|P_NOABORT|P_NOATCODES);
 			return(0);
 		case CS_CMD_HOME:
 			if(csi->cmdrets<MAX_CMDRETS)
