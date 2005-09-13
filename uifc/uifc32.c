@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.150 2005/10/22 01:11:58 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.145 2005/08/08 00:27:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -66,7 +66,7 @@ static win_t sav[MAX_BUFS];
 static uifcapi_t* api;
 
 /* Prototypes */
-static int   uprintf(int x, int y, unsigned attr, char *fmt,...);
+static int   uprintf(int x, int y, unsigned char attr, char *fmt,...);
 static void  bottomline(int line);
 static char  *utimestr(time_t *intime);
 static void  help(void);
@@ -146,7 +146,7 @@ int inkey(void)
 
 int uifcini32(uifcapi_t* uifcapi)
 {
-	unsigned	i;
+	int 	i;
 	struct	text_info txtinfo;
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
@@ -260,17 +260,17 @@ int uifcini32(uifcapi_t* uifcapi)
     }
 
 	blk_scrn_len=api->scrn_width*api->scrn_len*2;
-	if((blk_scrn=(char *)malloc(blk_scrn_len))==NULL)  {
+	if((blk_scrn=(char *)MALLOC(blk_scrn_len))==NULL)  {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,blk_scrn_len);
 				return(-1);
 	}
-	if((tmp_buffer=(uchar *)malloc(blk_scrn_len))==NULL)  {
+	if((tmp_buffer=(uchar *)MALLOC(blk_scrn_len))==NULL)  {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,blk_scrn_len);
 				return(-1);
 	}
-	if((tmp_buffer2=(uchar *)malloc(blk_scrn_len))==NULL)  {
+	if((tmp_buffer2=(uchar *)MALLOC(blk_scrn_len))==NULL)  {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,blk_scrn_len);
 				return(-1);
@@ -411,7 +411,7 @@ void uifcbail(void)
 	_setcursortype(_NORMALCURSOR);
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
-	suspendciolib();
+	clrscr();
 	FREE_AND_NULL(blk_scrn);
 	FREE_AND_NULL(tmp_buffer);
 	FREE_AND_NULL(tmp_buffer2);
@@ -433,7 +433,7 @@ int uscrn(char *str)
     gotoxy(1,api->scrn_len+1);
     clreol();
 	reset_dynamic();
-	setname(str);
+	settitle(str);
     return(0);
 }
 
@@ -498,7 +498,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int vbrdrsize=4;
 	int tbrdrwidth=3;
 	int bbrdrwidth=1;
-	int title_len;
+	uint title_len;
 	struct mouse_event mevnt;
 	char	*title=NULL;
 	int	a,b,c,longopt;
@@ -527,7 +527,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	if(mode&WIN_SAV && api->savnum>=MAX_BUFS-1)
 		putch(7);
-	if(api->helpbuf!=NULL || api->helpixbfile[0]!=0) bline|=BL_HELP;
 	if(mode&WIN_INS) bline|=BL_INS;
 	if(mode&WIN_DEL) bline|=BL_DEL;
 	if(mode&WIN_GET) bline|=BL_GET;
@@ -598,7 +597,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	if(!is_redraw) {
 		if(mode&WIN_SAV && api->savdepth==api->savnum) {
-			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+			if((sav[api->savnum].buf=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
@@ -620,8 +619,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			|| sav[api->savnum].bot!=s_top+top+height)) { /* dimensions have changed */
 			puttext(sav[api->savnum].left,sav[api->savnum].top,sav[api->savnum].right,sav[api->savnum].bot
 				,sav[api->savnum].buf);	/* put original window back */
-			free(sav[api->savnum].buf);
-			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+			FREE(sav[api->savnum].buf);
+			if((sav[api->savnum].buf=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
@@ -641,7 +640,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(mode&WIN_ORG) { /* Clear around menu */
 			if(top)
 				puttext(1,2,api->scrn_width,s_top+top-1,blk_scrn);
-			if((unsigned)(s_top+height+top)<=api->scrn_len)
+			if(s_top+height+top<=api->scrn_len)
 				puttext(1,s_top+height+top,api->scrn_width,api->scrn_len,blk_scrn);
 			if(left)
 				puttext(1,s_top+top,s_left+left-1,s_top+height+top
@@ -920,7 +919,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 						if(mode&WIN_ACT) {
 							uifc_mouse_disable();
-							if((win=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+							if((win=(char *)MALLOC((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
 								return(-1);
@@ -1387,7 +1386,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						if(a==1 && !s)
 							break;
-						if(strlen(option[j])>(size_t)b
+						if(strlen(option[j])>b
 							&& ((!a && s && !strnicmp(option[j]+b,search,s+1))
 							|| ((a || !s) && toupper(option[j][b])==toupper(i)))) {
 							if(a) s=0;
@@ -1482,7 +1481,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								puttext(sav[api->savnum].left,sav[api->savnum].top
 									,sav[api->savnum].right,sav[api->savnum].bot
 									,sav[api->savnum].buf);
-								free(sav[api->savnum].buf);
+								FREE(sav[api->savnum].buf);
 								api->savdepth--; 
 							}
 							if(mode&WIN_XTR && (*cur)==opts-1)
@@ -1503,7 +1502,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								puttext(sav[api->savnum].left,sav[api->savnum].top
 									,sav[api->savnum].right,sav[api->savnum].bot
 									,sav[api->savnum].buf);
-								free(sav[api->savnum].buf);
+								FREE(sav[api->savnum].buf);
 								api->savdepth--; 
 							}
 							return(-1);
@@ -1768,7 +1767,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		textattr(api->lbclr);
 		getstrupd(left, top, width, outstr, i, &soffset);
 		textattr(api->lclr|(api->bclr<<4));
-		if(strlen(outstr)<(size_t)width) {
+		if(strlen(outstr)<width) {
 			k=wherex();
 			f=wherey();
 			cprintf("%*s",width-strlen(outstr),"");
@@ -2056,7 +2055,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 /****************************************************************************/
 /* Performs printf() through puttext() routine								*/
 /****************************************************************************/
-static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
+static int uprintf(int x, int y, unsigned char attr, char *fmat, ...)
 {
 	va_list argptr;
 	char str[256],buf[512];
@@ -2083,12 +2082,10 @@ void bottomline(int line)
 
 	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"    ");
 	i+=4;
-	if(line&BL_HELP) {
-		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F1 ");
-		i+=3;
-		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Help  ");
-		i+=6;
-	}
+	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F1 ");
+	i+=3;
+	uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Help  ");
+	i+=6;
 	if(line&BL_EDIT) {
 		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F2 ");
 		i+=3;
@@ -2293,11 +2290,11 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	if(api->mode&UIFC_MOUSE)
 		title_len+=6;
 
-	if((unsigned)(top+height)>api->scrn_len-3)
+	if(top+height>api->scrn_len-3)
 		height=(api->scrn_len-3)-top;
-	if(!width || (unsigned)width<title_len+6)
+	if(!width || width<title_len+6)
 		width=title_len+6;
-	if((unsigned)width>api->scrn_width)
+	if(width>api->scrn_width)
 		width=api->scrn_width;
 	if(mode&WIN_L2R)
 		left=(api->scrn_width-width+2)/2;
@@ -2426,7 +2423,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	if(lines < height-2-pad-pad)
 		lines=height-2-pad-pad;
 
-	if((textbuf=(char *)malloc((width-2-pad-pad)*lines*2))==NULL) {
+	if((textbuf=(char *)MALLOC((width-2-pad-pad)*lines*2))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(width-2-pad-pad)*lines*2);
 		_setcursortype(cursor);
@@ -2541,7 +2538,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	}
 	if(is_redraw)			/* Force redraw of menu also. */
 		reset_dynamic();
-	free(textbuf);
+	FREE(textbuf);
 	_setcursortype(cursor);
 }
 
@@ -2556,16 +2553,11 @@ static void help(void)
 	long l;
 	FILE *fp;
 
-	if(api->helpbuf==NULL && api->helpixbfile[0]==0)
-		return;
-
 	_setcursortype(_NOCURSOR);
 
-	if(api->helpbuf!=NULL)
-		strcpy(hbuf,api->helpbuf);
-	else {
+	if(!api->helpbuf) {
 		if((fp=fopen(api->helpixbfile,"rb"))==NULL) {
-			sprintf(hbuf,"\2 ERROR \2 Cannot open help index:\r\n          %s"
+			sprintf(hbuf," ERROR  Cannot open help index:\r\n          %s"
 				,api->helpixbfile);
 		}
 		else {
@@ -2591,11 +2583,11 @@ static void help(void)
 			}
 			fclose(fp);
 			if(l==-1L)
-				sprintf(hbuf,"\2 ERROR \2 Cannot locate help key (%s:%u) in:\r\n"
+				sprintf(hbuf," ERROR  Cannot locate help key (%s:%u) in:\r\n"
 					"         %s",p,helpline,api->helpixbfile);
 			else {
 				if((fp=fopen(api->helpdatfile,"rb"))==NULL)
-					sprintf(hbuf,"\2 ERROR \2 Cannot open help file:\r\n          %s"
+					sprintf(hbuf," ERROR  Cannot open help file:\r\n          %s"
 						,api->helpdatfile);
 				else {
 					fseek(fp,l,SEEK_SET);
@@ -2605,6 +2597,8 @@ static void help(void)
 			}
 		}
 	}
+	else
+		strcpy(hbuf,api->helpbuf);
 
 	showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", hbuf, NULL, NULL);
 }
