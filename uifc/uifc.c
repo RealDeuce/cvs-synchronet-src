@@ -2,7 +2,7 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.23 2004/07/20 01:13:04 rswindell Exp $ */
+/* $Id: uifc.c,v 1.28 2005/09/05 21:54:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,12 +55,6 @@ DosSleep(msec ? msec : 1);
 #elif defined(__FLAT__)
     #define mswait(x) delay(x)
 #endif
-
-							/* Bottom line elements */
-#define BL_INS      (1<<0)  /* INS key */
-#define BL_DEL      (1<<1)  /* DEL key */
-#define BL_GET      (1<<2)  /* Get key */
-#define BL_PUT      (1<<3)  /* Put key */
 
 static char hclr,lclr,bclr,cclr,show_free_mem=0;
 static int cursor;
@@ -142,6 +136,7 @@ int uifcini(uifcapi_t* uifcapi)
     api->showhelp=help;
 	api->showbuf=NULL;
 	api->timedisplay=timedisplay;
+	api->bottomline=bottomline;
 
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
@@ -181,6 +176,7 @@ int uifcini(uifcapi_t* uifcapi)
         textmode(C80);  /* set mode to 80x25*/
         gettextinfo(&txtinfo);
     }
+	window(1,1,txtinfo.screenwidth,txtinfo.screenheight);
 
     api->scrn_len=txtinfo.screenheight;
     if(api->scrn_len<MIN_LINES || api->scrn_len>MAX_LINES) {
@@ -316,15 +312,16 @@ else
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-static void timedisplay(void)
+static void timedisplay(BOOL force)
 {
 	static time_t savetime;
 	time_t now;
 
-now=time(NULL);
-if(difftime(now,savetime)>=60) {
-	uprintf(55,1,bclr|(cclr<<4),utimestr(&now));
-	savetime=now; }
+	now=time(NULL);
+	if(force || difftime(now,savetime)>=60) {
+		uprintf(55,1,bclr|(cclr<<4),utimestr(&now));
+		savetime=now; 
+	}
 }
 
 /****************************************************************************/
@@ -372,7 +369,8 @@ if(mode&WIN_INS) bline|=BL_INS;
 if(mode&WIN_DEL) bline|=BL_DEL;
 if(mode&WIN_GET) bline|=BL_GET;
 if(mode&WIN_PUT) bline|=BL_PUT;
-bottomline(bline);
+if(api->bottomline != NULL)
+	api->bottomline(bline);
 while(opts<max_opts && opts<MAX_OPTS)
 	if(option[opts]==NULL || option[opts][0]==0)
 		break;
@@ -519,7 +517,7 @@ else {
 	if((*cur)<(*bar))
 		(*cur)=(*bar);
 	i=(*cur)-(*bar);
-//
+
 	if(i+(height-5)>=opts) {
 		i=opts-(height-4);
 		(*cur)=i+(*bar);
@@ -604,8 +602,10 @@ while(1) {
 	cprintf("y=%2d h=%2d c=%2d b=%2d s=%2d o=%2d"
 		,y,height,*cur,bar ? *bar :0xff,api->savdepth,opts);
 #endif
-	if(!show_free_mem)
-		timedisplay();
+	if(!show_free_mem) {
+		if(api->timedisplay != NULL)
+			api->timedisplay(FALSE);
+	}
 #ifndef __FLAT__
 	if(api->mode&UIFC_MOUSE) {
 
@@ -1490,7 +1490,9 @@ static int uprintf(int x, int y, char attr, char *fmat, ...)
 /****************************************************************************/
 void bottomline(int line)
 {
-	int i=4;
+	int i=0;
+uprintf(i,api->scrn_len+1,bclr|(cclr<<4),"    ");
+i+=4;
 uprintf(i,api->scrn_len+1,bclr|(cclr<<4),"F1 ");
 i+=3;
 uprintf(i,api->scrn_len+1,BLACK|(cclr<<4),"Help  ");
