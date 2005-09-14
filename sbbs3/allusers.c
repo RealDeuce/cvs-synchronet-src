@@ -13,8 +13,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#include "dirwrap.h"
-
 #include "sbbsdefs.h"
 
 int  min=0,max=99;
@@ -191,8 +189,8 @@ for(i=1;i<argc;i++) {
 				for(;argv[i][j];j++)
                     if(isalpha(argv[i][j]))
                         flags|=FLAG(toupper(argv[i][j]));
-				sprintf(str,"%suser.dat",dir);
-				if(!fexistcase(str) || (file=sopen(str,O_RDWR|O_BINARY,SH_DENYNO))==-1) {
+				sprintf(str,"%sUSER.DAT",dir);
+				if((file=sopen(str,O_RDWR|O_BINARY,SH_DENYNO))==-1) {
 					printf("Error opening %s\n",str);
 					exit(1); }
 				if((stream=fdopen(file,"w+b"))==NULL) {
@@ -248,8 +246,8 @@ for(i=1;i<argc;i++) {
 				for(;argv[i][j];j++)
                     if(isalpha(argv[i][j]))
                         flags|=FLAG(toupper(argv[i][j]));
-				sprintf(str,"%suser.dat",dir);
-				if(!fexistcase(str) || (file=sopen(str,O_RDWR|O_BINARY,SH_DENYNO))==-1) {
+				sprintf(str,"%sUSER.DAT",dir);
+				if((file=sopen(str,O_RDWR|O_BINARY,SH_DENYNO))==-1) {
 					printf("Error opening %s\n",str);
 					exit(1); }
 				if((stream=fdopen(file,"w+b"))==NULL) {
@@ -297,8 +295,8 @@ for(i=1;i<argc;i++) {
 					j=99;
 				if(j<0)
 					j=0;
-				sprintf(str,"%suser.dat",dir);
-				if(!fexistcase(str) || (file=sopen(str,O_RDWR|O_BINARY,SH_DENYNO))==-1) {
+				sprintf(str,"%sUSER.DAT",dir);
+				if((file=sopen(str,O_RDWR|O_BINARY,SH_DENYNO))==-1) {
 					printf("Error opening %s\n",str);
 					exit(1); }
 				if((stream=fdopen(file,"w+b"))==NULL) {
@@ -336,6 +334,7 @@ for(i=1;i<argc;i++) {
 				exit(1); }
 	else {
 		strcpy(dir,argv[i]);
-		backslash(dir); } }
+		if(dir[strlen(dir)-1]!='\\' && dir[strlen(dir)-1]!=':')
+			strcat(dir,"\\"); } }
 return(0);
 }
