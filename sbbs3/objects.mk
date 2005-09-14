@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.43 2005/10/25 03:02:53 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.39 2005/09/14 19:11:22 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -221,8 +221,7 @@ MAKEUSER_OBJS = \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE)
 
 JSEXEC_OBJS = \
-			$(MTOBJODIR)$(DIRSEP)jsexec$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE)
+			$(OBJODIR)$(DIRSEP)jsexec$(OFILE)
 
 SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)sexyz$(OFILE) \
@@ -260,22 +259,4 @@ DELFILES_OBJS = \
 			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(OBJODIR)$(DIRSEP)filedat$(OFILE) \
-			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE)
-
-DUPEFIND_OBJS = \
-			$(OBJODIR)$(DIRSEP)dupefind$(OFILE) \
-			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
-			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
-			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
-			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
-			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
-			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
-
-SMBACTIV_OBJS = \
-			$(OBJODIR)$(DIRSEP)smbactiv$(OFILE)\
-			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
-			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
-			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
-			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
-			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
-			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE)\
