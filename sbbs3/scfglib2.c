@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.37 2005/05/25 22:37:51 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.38 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1013,7 +1013,7 @@ void free_file_cfg(scfg_t* cfg)
 
 	if(cfg->dir!=NULL) {
 		for(i=0;i<cfg->total_dirs;i++) {
-#if 0 //ndef SCFG
+#if 0 /*ndef SCFG */
 			if(cfg->dir[i]->data_dir!=cfg->data_dir_dirs) 
 				FREE_AND_NULL(cfg->dir[i]->data_dir);
 #endif
