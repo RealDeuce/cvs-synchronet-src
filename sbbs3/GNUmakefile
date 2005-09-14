@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.173 2005/02/20 19:03:00 deuce Exp $
+# $Id: GNUmakefile,v 1.179 2005/09/14 17:32:43 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -139,12 +139,17 @@ $(SERVICES): $(SERVICE_OBJS)
 # Synchronet Console Build Rule
 $(SBBSCON): $(CON_OBJS) $(SBBS) $(FTPSRVR) $(WEBSRVR) $(MAILSRVR) $(SERVICES)
 	@echo Linking $@
-	$(QUIET)$(CC) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(CON_OBJS) $(CON_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(CON_OBJS) $(CON_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # Baja Utility
 $(BAJA): $(BAJA_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(BAJA_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS)
+
+# UnBaja Utility
+$(UNBAJA): $(OBJODIR) $(EXEODIR) $(UNBAJA_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(UNBAJA_OBJS) $(XPDEV_LIBS)
 
 # Node Utility
 $(NODE): $(NODE_OBJS)
@@ -210,3 +215,18 @@ $(ASC2ANS): $(OBJODIR)/asc2ans.o
 $(SEXYZ): $(SEXYZ_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(SEXYZ_OBJS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+
+# QWKNODES
+$(QWKNODES): $(QWKNODES_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(QWKNODES_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS)
+
+# SLOG
+$(SLOG): $(SLOG_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(SLOG_OBJS) $(XPDEV_LIBS)
+
+# ALLUSERS
+$(ALLUSERS): $(ALLUSERS_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(ALLUSERS_OBJS) $(XPDEV_LIBS)
