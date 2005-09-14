@@ -24,7 +24,7 @@ if(smb_getmsgidx(&smb,&msg))			/* Get first message index */
 return(msg.idx.number);
 }
 
-long lputs(char *str)
+long lputs(char FAR16 *str)
 {
     char tmp[256];
     int i,j,k;
@@ -127,7 +127,7 @@ fprintf(stderr,"\nSMBACTIV Version %s (%s) - Synchronet Message Base Activity "
 	if(glob(str, GLOB_MARK, NULL, &gl)) {
 		lprintf("Unable to find any user pointer files.\n");
 		globfree(&gl);
-		free(sub_status);
+		FREE(sub_status);
 		return(1); }
 
 	j=0;
