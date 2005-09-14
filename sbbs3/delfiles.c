@@ -21,7 +21,7 @@ void bail(int code)
 exit(code);
 }
 
-long lputs(char *str)
+long lputs(char FAR16 *str)
 {
     char tmp[256];
 	int i,j,k;
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 	file_t workfile;
 	scfg_t cfg;
 	glob_t gl;
-	uchar *ixbbuf;
+	uchar HUGE16 *ixbbuf;
 
 putenv("TZ=UCT0");
 setvbuf(stdout,NULL,_IONBF,0);
@@ -106,7 +106,7 @@ chdir(cfg.ctrl_dir);
 dirnum=libnum=-1;
 if(argv[1][0]=='*')
 	misc|=ALL;
-else if(argv[1][0]!='/' && argv[1][0]!='-') {
+else if(argv[1][0]!='/') {
 	strupr(argv[1]);
 	for(i=0;i<cfg.total_dirs;i++)
 		if(!stricmp(argv[1],cfg.dir[i]->code))
@@ -116,7 +116,7 @@ else if(argv[1][0]!='/' && argv[1][0]!='-') {
 		return(1); }
 	dirnum=i; }
 for(i=1;i<argc;i++) {
-	if(!stricmp(argv[i]+1,"LIB")) {
+	if(!stricmp(argv[i],"/LIB")) {
 		if(dirnum!=-1) {
 			printf("\nBoth directory code and /LIB parameters were used.\n");
 			return(1); }
@@ -132,7 +132,7 @@ for(i=1;i<argc;i++) {
 			printf("\nLibrary short name '%s' not found.\n",argv[i]);
 			return(1); }
 		libnum=j; }
-	else if(!stricmp(argv[i]+1,"NOT")) {
+	else if(!stricmp(argv[i],"/NOT")) {
 		if(nots>=MAX_NOTS) {
 			printf("\nMaximum number of /NOT options (%u) exceeded.\n"
 				,MAX_NOTS);
@@ -142,13 +142,13 @@ for(i=1;i<argc;i++) {
 			printf("\nDirectory internal code must follow /NOT parameter.\n");
             return(1); }
 		sprintf(not[nots++],"%.8s",argv[i]); }
-	else if(!stricmp(argv[i]+1,"OFF"))
+	else if(!stricmp(argv[i],"/OFF"))
 		misc|=OFFLINE;
-	else if(!stricmp(argv[i]+1,"NOL"))
+	else if(!stricmp(argv[i],"/NOL"))
 		misc|=NO_LINK;
-	else if(!stricmp(argv[i]+1,"RPT"))
+	else if(!stricmp(argv[i],"/RPT"))
 		misc|=REPORT;
-	else if(!stricmp(argv[i]+1,"ALL")) {
+	else if(!stricmp(argv[i],"/ALL")) {
 		if(dirnum!=-1) {
 			printf("\nBoth directory code and /ALL parameters were used.\n");
             return(1); }
@@ -199,14 +199,14 @@ for(i=0;i<cfg.total_dirs;i++) {
 	if(!l) {
 		close(file);
 		continue; }
-	if((ixbbuf=(char *)malloc(l))==NULL) {
+	if((ixbbuf=(char *)MALLOC(l))==NULL) {
 		close(file);
 		printf("\7ERR_ALLOC %s %lu\n",str,l);
         continue; }
 	if(read(file,ixbbuf,l)!=l) {
 		close(file);
 		printf("\7ERR_READ %s %lu\n",str,l);
-		free((char *)ixbbuf);
+		FREE((char *)ixbbuf);
 		continue; }
     close(file);
 
@@ -259,5 +259,5 @@ for(i=0;i<cfg.total_dirs;i++) {
 				if(!(misc&REPORT))
 					removefiledat(&cfg, &workfile); } }
 
-	free((char *)ixbbuf); }
+	FREE((char *)ixbbuf); }
 }
