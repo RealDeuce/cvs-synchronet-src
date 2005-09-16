@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.376 2005/09/03 01:33:33 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.377 2005/09/16 22:59:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -770,7 +770,7 @@ static void pop3_thread(void* arg)
 		memset(&user,0,sizeof(user));
 		password[0]=0;
 
-		srand(time(NULL));	/* seed random number generator */
+		srand(time(NULL) ^ GetCurrentThreadId());	/* seed random number generator */
 		rand();	/* throw-away first result */
 		safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%.128s>"
 			,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
@@ -2039,7 +2039,7 @@ static void smtp_thread(void* arg)
 		return;
 	}
 
-	srand(time(NULL));	/* seed random number generator */
+	srand(time(NULL) ^ GetCurrentThreadId());	/* seed random number generator */
 	rand();	/* throw-away first result */
 	SAFEPRINTF3(session_id,"%x%x%lx",socket,rand(),clock());
 
@@ -4010,7 +4010,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.376 $", "%*s %s", revision);
+	sscanf("$Revision: 1.377 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
