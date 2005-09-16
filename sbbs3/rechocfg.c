@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.18 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.19 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -617,7 +617,8 @@ void read_echo_cfg()
 					sprintf(cfg.listcfg[cfg.listcfgs-1].flag[j].flag,"%.4s",tp); }
 				while(*p && *p<=' ') p++; } }
 
-	//    printf("Unrecognized line in SBBSECHO.CFG file.\n");
+		/* Message disabled why?  ToDo */
+		/* printf("Unrecognized line in SBBSECHO.CFG file.\n"); */
 	}
 	fclose(stream);
 	printf("\n");
