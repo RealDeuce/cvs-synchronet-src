@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.15 2005/09/30 09:05:16 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.14 2004/12/17 11:23:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
