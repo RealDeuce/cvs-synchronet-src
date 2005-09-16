@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.15 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: qwknodes.c,v 1.14 2005/09/10 21:19:22 rswindell Exp $ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -110,7 +110,7 @@ char *loadmsgtail(smbmsg_t msg)
 		if(xlat!=XLAT_NONE) 		/* no translations supported */
 			continue;
 		length=msg.dfield[i].length-2;
-		if((buf=realloc(buf,l+msg.dfield[i].length+1))==NULL)
+		if((buf=REALLOC(buf,l+msg.dfield[i].length+1))==NULL)
 			return(buf);
 		l+=fread(buf+l,1,length,smb.sdt_fp);
 		buf[l]=0; 
@@ -138,7 +138,7 @@ void gettag(smbmsg_t msg, char *tag)
 		p+=16;
 	while(*p && *p<=' ') p++;
 	strcpy(tag,p);
-	free(buf);
+	FREE(buf);
 }
 
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.15 $", "%*s %s", revision);
+	sscanf("$Revision: 1.14 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
 						break;
 				if(l==total_crcs) {
 					total_crcs++;
-					if((crc=(ulong *)realloc(crc
+					if((crc=(ulong *)REALLOC(crc
 						,sizeof(ulong)*total_crcs))==NULL) {
 						printf("Error allocating %lu bytes\n"
 							,sizeof(ulong)*total_crcs);
