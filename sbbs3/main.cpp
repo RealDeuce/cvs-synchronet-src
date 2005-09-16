@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.399 2005/09/08 02:19:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.400 2005/09/16 23:01:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,7 +265,7 @@ static BOOL winsock_startup(void)
 
 DLLEXPORT void DLLCALL sbbs_srand()
 {
-	srand(msclock());
+	srand(time(NULL) ^ GetCurrentThreadId());
 	sbbs_random(10);	/* Throw away first number */
 }
 
