@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.136 2005/09/25 20:10:27 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.134 2005/08/31 20:32:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@
 /*************/
 
 #define VERSION 	"3.13"  /* Version: Major.minor  */
-#define REVISION	'b'     /* Revision: lowercase letter */
+#define REVISION	'a'     /* Revision: lowercase letter */
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -87,6 +87,10 @@ typedef struct {
 } js_branch_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
+
+#ifndef __FLAT__
+#define __FLAT__	/* 32-bit "flat" memory model */
+#endif
 
 /************/
 /* Maximums */
