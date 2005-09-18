@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.24 2005/11/01 00:30:06 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.23 2005/08/15 19:15:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,15 +51,13 @@
 	#include <io.h>
 #endif
 
-#include <fcntl.h>		/* O_RDONLY, O_CREAT, etc. */
-
 /**********/
 /* Macros */
 /**********/
 
 #if defined(_WIN32)
 
-	
+	#include <fcntl.h>			/* O_BINARY */
 	#include <windows.h>		/* OF_SHARE_ */
 	#include <share.h>			/* SH_DENY */
 
@@ -75,6 +73,7 @@
 
 #elif defined(__unix__)
 
+	#include <fcntl.h>
 	#ifdef __solaris__
 		#define LOCK_NB	1
 		#define LOCK_SH 2

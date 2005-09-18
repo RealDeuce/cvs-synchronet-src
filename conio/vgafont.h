@@ -1,265 +1,292 @@
-/* $Id: vidmodes.c,v 1.3 2005/10/22 00:08:04 rswindell Exp $ */
+/* $Id: vgafont.h,v 1.7 2004/09/22 04:03:06 deuce Exp $ */
 
-#include <stdlib.h>
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
 
-#include "vidmodes.h"
-
-#define B_00000000_B	'\x00'
-#define B_10000000_B	'\x01'
-#define B_01000000_B	'\x02'
-#define B_11000000_B	'\x03'
-#define B_00100000_B	'\x04'
-#define B_10100000_B	'\x05'
-#define B_01100000_B	'\x06'
-#define B_11100000_B	'\x07'
-#define B_00010000_B	'\x08'
-#define B_10010000_B	'\x09'
-#define B_01010000_B	'\x0a'
-#define B_11010000_B	'\x0b'
-#define B_00110000_B	'\x0c'
-#define B_10110000_B	'\x0d'
-#define B_01110000_B	'\x0e'
-#define B_11110000_B	'\x0f'
-#define B_00001000_B	'\x10'
-#define B_10001000_B	'\x11'
-#define B_01001000_B	'\x12'
-#define B_11001000_B	'\x13'
-#define B_00101000_B	'\x14'
-#define B_10101000_B	'\x15'
-#define B_01101000_B	'\x16'
-#define B_11101000_B	'\x17'
-#define B_00011000_B	'\x18'
-#define B_10011000_B	'\x19'
-#define B_01011000_B	'\x1a'
-#define B_11011000_B	'\x1b'
-#define B_00111000_B	'\x1c'
-#define B_10111000_B	'\x1d'
-#define B_01111000_B	'\x1e'
-#define B_11111000_B	'\x1f'
-#define B_00000100_B	'\x20'
-#define B_10000100_B	'\x21'
-#define B_01000100_B	'\x22'
-#define B_11000100_B	'\x23'
-#define B_00100100_B	'\x24'
-#define B_10100100_B	'\x25'
-#define B_01100100_B	'\x26'
-#define B_11100100_B	'\x27'
-#define B_00010100_B	'\x28'
-#define B_10010100_B	'\x29'
-#define B_01010100_B	'\x2a'
-#define B_11010100_B	'\x2b'
-#define B_00110100_B	'\x2c'
-#define B_10110100_B	'\x2d'
-#define B_01110100_B	'\x2e'
-#define B_11110100_B	'\x2f'
-#define B_00001100_B	'\x30'
-#define B_10001100_B	'\x31'
-#define B_01001100_B	'\x32'
-#define B_11001100_B	'\x33'
-#define B_00101100_B	'\x34'
-#define B_10101100_B	'\x35'
-#define B_01101100_B	'\x36'
-#define B_11101100_B	'\x37'
-#define B_00011100_B	'\x38'
-#define B_10011100_B	'\x39'
-#define B_01011100_B	'\x3a'
-#define B_11011100_B	'\x3b'
-#define B_00111100_B	'\x3c'
-#define B_10111100_B	'\x3d'
-#define B_01111100_B	'\x3e'
-#define B_11111100_B	'\x3f'
-#define B_00000010_B	'\x40'
-#define B_10000010_B	'\x41'
-#define B_01000010_B	'\x42'
-#define B_11000010_B	'\x43'
-#define B_00100010_B	'\x44'
-#define B_10100010_B	'\x45'
-#define B_01100010_B	'\x46'
-#define B_11100010_B	'\x47'
-#define B_00010010_B	'\x48'
-#define B_10010010_B	'\x49'
-#define B_01010010_B	'\x4a'
-#define B_11010010_B	'\x4b'
-#define B_00110010_B	'\x4c'
-#define B_10110010_B	'\x4d'
-#define B_01110010_B	'\x4e'
-#define B_11110010_B	'\x4f'
-#define B_00001010_B	'\x50'
-#define B_10001010_B	'\x51'
-#define B_01001010_B	'\x52'
-#define B_11001010_B	'\x53'
-#define B_00101010_B	'\x54'
-#define B_10101010_B	'\x55'
-#define B_01101010_B	'\x56'
-#define B_11101010_B	'\x57'
-#define B_00011010_B	'\x58'
-#define B_10011010_B	'\x59'
-#define B_01011010_B	'\x5a'
-#define B_11011010_B	'\x5b'
-#define B_00111010_B	'\x5c'
-#define B_10111010_B	'\x5d'
-#define B_01111010_B	'\x5e'
-#define B_11111010_B	'\x5f'
-#define B_00000110_B	'\x60'
-#define B_10000110_B	'\x61'
-#define B_01000110_B	'\x62'
-#define B_11000110_B	'\x63'
-#define B_00100110_B	'\x64'
-#define B_10100110_B	'\x65'
-#define B_01100110_B	'\x66'
-#define B_11100110_B	'\x67'
-#define B_00010110_B	'\x68'
-#define B_10010110_B	'\x69'
-#define B_01010110_B	'\x6a'
-#define B_11010110_B	'\x6b'
-#define B_00110110_B	'\x6c'
-#define B_10110110_B	'\x6d'
-#define B_01110110_B	'\x6e'
-#define B_11110110_B	'\x6f'
-#define B_00001110_B	'\x70'
-#define B_10001110_B	'\x71'
-#define B_01001110_B	'\x72'
-#define B_11001110_B	'\x73'
-#define B_00101110_B	'\x74'
-#define B_10101110_B	'\x75'
-#define B_01101110_B	'\x76'
-#define B_11101110_B	'\x77'
-#define B_00011110_B	'\x78'
-#define B_10011110_B	'\x79'
-#define B_01011110_B	'\x7a'
-#define B_11011110_B	'\x7b'
-#define B_00111110_B	'\x7c'
-#define B_10111110_B	'\x7d'
-#define B_01111110_B	'\x7e'
-#define B_11111110_B	'\x7f'
-#define B_00000001_B	'\x80'
-#define B_10000001_B	'\x81'
-#define B_01000001_B	'\x82'
-#define B_11000001_B	'\x83'
-#define B_00100001_B	'\x84'
-#define B_10100001_B	'\x85'
-#define B_01100001_B	'\x86'
-#define B_11100001_B	'\x87'
-#define B_00010001_B	'\x88'
-#define B_10010001_B	'\x89'
-#define B_01010001_B	'\x8a'
-#define B_11010001_B	'\x8b'
-#define B_00110001_B	'\x8c'
-#define B_10110001_B	'\x8d'
-#define B_01110001_B	'\x8e'
-#define B_11110001_B	'\x8f'
-#define B_00001001_B	'\x90'
-#define B_10001001_B	'\x91'
-#define B_01001001_B	'\x92'
-#define B_11001001_B	'\x93'
-#define B_00101001_B	'\x94'
-#define B_10101001_B	'\x95'
-#define B_01101001_B	'\x96'
-#define B_11101001_B	'\x97'
-#define B_00011001_B	'\x98'
-#define B_10011001_B	'\x99'
-#define B_01011001_B	'\x9a'
-#define B_11011001_B	'\x9b'
-#define B_00111001_B	'\x9c'
-#define B_10111001_B	'\x9d'
-#define B_01111001_B	'\x9e'
-#define B_11111001_B	'\x9f'
-#define B_00000101_B	'\xa0'
-#define B_10000101_B	'\xa1'
-#define B_01000101_B	'\xa2'
-#define B_11000101_B	'\xa3'
-#define B_00100101_B	'\xa4'
-#define B_10100101_B	'\xa5'
-#define B_01100101_B	'\xa6'
-#define B_11100101_B	'\xa7'
-#define B_00010101_B	'\xa8'
-#define B_10010101_B	'\xa9'
-#define B_01010101_B	'\xaa'
-#define B_11010101_B	'\xab'
-#define B_00110101_B	'\xac'
-#define B_10110101_B	'\xad'
-#define B_01110101_B	'\xae'
-#define B_11110101_B	'\xaf'
-#define B_00001101_B	'\xb0'
-#define B_10001101_B	'\xb1'
-#define B_01001101_B	'\xb2'
-#define B_11001101_B	'\xb3'
-#define B_00101101_B	'\xb4'
-#define B_10101101_B	'\xb5'
-#define B_01101101_B	'\xb6'
-#define B_11101101_B	'\xb7'
-#define B_00011101_B	'\xb8'
-#define B_10011101_B	'\xb9'
-#define B_01011101_B	'\xba'
-#define B_11011101_B	'\xbb'
-#define B_00111101_B	'\xbc'
-#define B_10111101_B	'\xbd'
-#define B_01111101_B	'\xbe'
-#define B_11111101_B	'\xbf'
-#define B_00000011_B	'\xc0'
-#define B_10000011_B	'\xc1'
-#define B_01000011_B	'\xc2'
-#define B_11000011_B	'\xc3'
-#define B_00100011_B	'\xc4'
-#define B_10100011_B	'\xc5'
-#define B_01100011_B	'\xc6'
-#define B_11100011_B	'\xc7'
-#define B_00010011_B	'\xc8'
-#define B_10010011_B	'\xc9'
-#define B_01010011_B	'\xca'
-#define B_11010011_B	'\xcb'
-#define B_00110011_B	'\xcc'
-#define B_10110011_B	'\xcd'
-#define B_01110011_B	'\xce'
-#define B_11110011_B	'\xcf'
-#define B_00001011_B	'\xd0'
-#define B_10001011_B	'\xd1'
-#define B_01001011_B	'\xd2'
-#define B_11001011_B	'\xd3'
-#define B_00101011_B	'\xd4'
-#define B_10101011_B	'\xd5'
-#define B_01101011_B	'\xd6'
-#define B_11101011_B	'\xd7'
-#define B_00011011_B	'\xd8'
-#define B_10011011_B	'\xd9'
-#define B_01011011_B	'\xda'
-#define B_11011011_B	'\xdb'
-#define B_00111011_B	'\xdc'
-#define B_10111011_B	'\xdd'
-#define B_01111011_B	'\xde'
-#define B_11111011_B	'\xdf'
-#define B_00000111_B	'\xe0'
-#define B_10000111_B	'\xe1'
-#define B_01000111_B	'\xe2'
-#define B_11000111_B	'\xe3'
-#define B_00100111_B	'\xe4'
-#define B_10100111_B	'\xe5'
-#define B_01100111_B	'\xe6'
-#define B_11100111_B	'\xe7'
-#define B_00010111_B	'\xe8'
-#define B_10010111_B	'\xe9'
-#define B_01010111_B	'\xea'
-#define B_11010111_B	'\xeb'
-#define B_00110111_B	'\xec'
-#define B_10110111_B	'\xed'
-#define B_01110111_B	'\xee'
-#define B_11110111_B	'\xef'
-#define B_00001111_B	'\xf0'
-#define B_10001111_B	'\xf1'
-#define B_01001111_B	'\xf2'
-#define B_11001111_B	'\xf3'
-#define B_00101111_B	'\xf4'
-#define B_10101111_B	'\xf5'
-#define B_01101111_B	'\xf6'
-#define B_11101111_B	'\xf7'
-#define B_00011111_B	'\xf8'
-#define B_10011111_B	'\xf9'
-#define B_01011111_B	'\xfa'
-#define B_11011111_B	'\xfb'
-#define B_00111111_B	'\xfc'
-#define B_10111111_B	'\xfd'
-#define B_01111111_B	'\xfe'
-#define B_11111111_B	'\xff'
+#define B_00000000_B	0x00
+#define B_10000000_B	0x01
+#define B_01000000_B	0x02
+#define B_11000000_B	0x03
+#define B_00100000_B	0x04
+#define B_10100000_B	0x05
+#define B_01100000_B	0x06
+#define B_11100000_B	0x07
+#define B_00010000_B	0x08
+#define B_10010000_B	0x09
+#define B_01010000_B	0x0a
+#define B_11010000_B	0x0b
+#define B_00110000_B	0x0c
+#define B_10110000_B	0x0d
+#define B_01110000_B	0x0e
+#define B_11110000_B	0x0f
+#define B_00001000_B	0x10
+#define B_10001000_B	0x11
+#define B_01001000_B	0x12
+#define B_11001000_B	0x13
+#define B_00101000_B	0x14
+#define B_10101000_B	0x15
+#define B_01101000_B	0x16
+#define B_11101000_B	0x17
+#define B_00011000_B	0x18
+#define B_10011000_B	0x19
+#define B_01011000_B	0x1a
+#define B_11011000_B	0x1b
+#define B_00111000_B	0x1c
+#define B_10111000_B	0x1d
+#define B_01111000_B	0x1e
+#define B_11111000_B	0x1f
+#define B_00000100_B	0x20
+#define B_10000100_B	0x21
+#define B_01000100_B	0x22
+#define B_11000100_B	0x23
+#define B_00100100_B	0x24
+#define B_10100100_B	0x25
+#define B_01100100_B	0x26
+#define B_11100100_B	0x27
+#define B_00010100_B	0x28
+#define B_10010100_B	0x29
+#define B_01010100_B	0x2a
+#define B_11010100_B	0x2b
+#define B_00110100_B	0x2c
+#define B_10110100_B	0x2d
+#define B_01110100_B	0x2e
+#define B_11110100_B	0x2f
+#define B_00001100_B	0x30
+#define B_10001100_B	0x31
+#define B_01001100_B	0x32
+#define B_11001100_B	0x33
+#define B_00101100_B	0x34
+#define B_10101100_B	0x35
+#define B_01101100_B	0x36
+#define B_11101100_B	0x37
+#define B_00011100_B	0x38
+#define B_10011100_B	0x39
+#define B_01011100_B	0x3a
+#define B_11011100_B	0x3b
+#define B_00111100_B	0x3c
+#define B_10111100_B	0x3d
+#define B_01111100_B	0x3e
+#define B_11111100_B	0x3f
+#define B_00000010_B	0x40
+#define B_10000010_B	0x41
+#define B_01000010_B	0x42
+#define B_11000010_B	0x43
+#define B_00100010_B	0x44
+#define B_10100010_B	0x45
+#define B_01100010_B	0x46
+#define B_11100010_B	0x47
+#define B_00010010_B	0x48
+#define B_10010010_B	0x49
+#define B_01010010_B	0x4a
+#define B_11010010_B	0x4b
+#define B_00110010_B	0x4c
+#define B_10110010_B	0x4d
+#define B_01110010_B	0x4e
+#define B_11110010_B	0x4f
+#define B_00001010_B	0x50
+#define B_10001010_B	0x51
+#define B_01001010_B	0x52
+#define B_11001010_B	0x53
+#define B_00101010_B	0x54
+#define B_10101010_B	0x55
+#define B_01101010_B	0x56
+#define B_11101010_B	0x57
+#define B_00011010_B	0x58
+#define B_10011010_B	0x59
+#define B_01011010_B	0x5a
+#define B_11011010_B	0x5b
+#define B_00111010_B	0x5c
+#define B_10111010_B	0x5d
+#define B_01111010_B	0x5e
+#define B_11111010_B	0x5f
+#define B_00000110_B	0x60
+#define B_10000110_B	0x61
+#define B_01000110_B	0x62
+#define B_11000110_B	0x63
+#define B_00100110_B	0x64
+#define B_10100110_B	0x65
+#define B_01100110_B	0x66
+#define B_11100110_B	0x67
+#define B_00010110_B	0x68
+#define B_10010110_B	0x69
+#define B_01010110_B	0x6a
+#define B_11010110_B	0x6b
+#define B_00110110_B	0x6c
+#define B_10110110_B	0x6d
+#define B_01110110_B	0x6e
+#define B_11110110_B	0x6f
+#define B_00001110_B	0x70
+#define B_10001110_B	0x71
+#define B_01001110_B	0x72
+#define B_11001110_B	0x73
+#define B_00101110_B	0x74
+#define B_10101110_B	0x75
+#define B_01101110_B	0x76
+#define B_11101110_B	0x77
+#define B_00011110_B	0x78
+#define B_10011110_B	0x79
+#define B_01011110_B	0x7a
+#define B_11011110_B	0x7b
+#define B_00111110_B	0x7c
+#define B_10111110_B	0x7d
+#define B_01111110_B	0x7e
+#define B_11111110_B	0x7f
+#define B_00000001_B	0x80
+#define B_10000001_B	0x81
+#define B_01000001_B	0x82
+#define B_11000001_B	0x83
+#define B_00100001_B	0x84
+#define B_10100001_B	0x85
+#define B_01100001_B	0x86
+#define B_11100001_B	0x87
+#define B_00010001_B	0x88
+#define B_10010001_B	0x89
+#define B_01010001_B	0x8a
+#define B_11010001_B	0x8b
+#define B_00110001_B	0x8c
+#define B_10110001_B	0x8d
+#define B_01110001_B	0x8e
+#define B_11110001_B	0x8f
+#define B_00001001_B	0x90
+#define B_10001001_B	0x91
+#define B_01001001_B	0x92
+#define B_11001001_B	0x93
+#define B_00101001_B	0x94
+#define B_10101001_B	0x95
+#define B_01101001_B	0x96
+#define B_11101001_B	0x97
+#define B_00011001_B	0x98
+#define B_10011001_B	0x99
+#define B_01011001_B	0x9a
+#define B_11011001_B	0x9b
+#define B_00111001_B	0x9c
+#define B_10111001_B	0x9d
+#define B_01111001_B	0x9e
+#define B_11111001_B	0x9f
+#define B_00000101_B	0xa0
+#define B_10000101_B	0xa1
+#define B_01000101_B	0xa2
+#define B_11000101_B	0xa3
+#define B_00100101_B	0xa4
+#define B_10100101_B	0xa5
+#define B_01100101_B	0xa6
+#define B_11100101_B	0xa7
+#define B_00010101_B	0xa8
+#define B_10010101_B	0xa9
+#define B_01010101_B	0xaa
+#define B_11010101_B	0xab
+#define B_00110101_B	0xac
+#define B_10110101_B	0xad
+#define B_01110101_B	0xae
+#define B_11110101_B	0xaf
+#define B_00001101_B	0xb0
+#define B_10001101_B	0xb1
+#define B_01001101_B	0xb2
+#define B_11001101_B	0xb3
+#define B_00101101_B	0xb4
+#define B_10101101_B	0xb5
+#define B_01101101_B	0xb6
+#define B_11101101_B	0xb7
+#define B_00011101_B	0xb8
+#define B_10011101_B	0xb9
+#define B_01011101_B	0xba
+#define B_11011101_B	0xbb
+#define B_00111101_B	0xbc
+#define B_10111101_B	0xbd
+#define B_01111101_B	0xbe
+#define B_11111101_B	0xbf
+#define B_00000011_B	0xc0
+#define B_10000011_B	0xc1
+#define B_01000011_B	0xc2
+#define B_11000011_B	0xc3
+#define B_00100011_B	0xc4
+#define B_10100011_B	0xc5
+#define B_01100011_B	0xc6
+#define B_11100011_B	0xc7
+#define B_00010011_B	0xc8
+#define B_10010011_B	0xc9
+#define B_01010011_B	0xca
+#define B_11010011_B	0xcb
+#define B_00110011_B	0xcc
+#define B_10110011_B	0xcd
+#define B_01110011_B	0xce
+#define B_11110011_B	0xcf
+#define B_00001011_B	0xd0
+#define B_10001011_B	0xd1
+#define B_01001011_B	0xd2
+#define B_11001011_B	0xd3
+#define B_00101011_B	0xd4
+#define B_10101011_B	0xd5
+#define B_01101011_B	0xd6
+#define B_11101011_B	0xd7
+#define B_00011011_B	0xd8
+#define B_10011011_B	0xd9
+#define B_01011011_B	0xda
+#define B_11011011_B	0xdb
+#define B_00111011_B	0xdc
+#define B_10111011_B	0xdd
+#define B_01111011_B	0xde
+#define B_11111011_B	0xdf
+#define B_00000111_B	0xe0
+#define B_10000111_B	0xe1
+#define B_01000111_B	0xe2
+#define B_11000111_B	0xe3
+#define B_00100111_B	0xe4
+#define B_10100111_B	0xe5
+#define B_01100111_B	0xe6
+#define B_11100111_B	0xe7
+#define B_00010111_B	0xe8
+#define B_10010111_B	0xe9
+#define B_01010111_B	0xea
+#define B_11010111_B	0xeb
+#define B_00110111_B	0xec
+#define B_10110111_B	0xed
+#define B_01110111_B	0xee
+#define B_11110111_B	0xef
+#define B_00001111_B	0xf0
+#define B_10001111_B	0xf1
+#define B_01001111_B	0xf2
+#define B_11001111_B	0xf3
+#define B_00101111_B	0xf4
+#define B_10101111_B	0xf5
+#define B_01101111_B	0xf6
+#define B_11101111_B	0xf7
+#define B_00011111_B	0xf8
+#define B_10011111_B	0xf9
+#define B_01011111_B	0xfa
+#define B_11011111_B	0xfb
+#define B_00111111_B	0xfc
+#define B_10111111_B	0xfd
+#define B_01111111_B	0xfe
+#define B_11111111_B	0xff
 
 char vga_font_bitmap[4096]={
 	 B_00000000_B
@@ -10765,151 +10792,3 @@ char vga_font_bitmap8[2048]={
 	,B_00000000_B
 
 };
-
-struct video_params vparams[36] = {
-	/* BW 40x25 */
-	{BW40, GREYSCALE_PALETTE, 40, 25, 14, 15, 16, 8},
-	/* CO 40x25 */
-	{C40, COLOUR_PALETTE, 40, 25, 14, 15, 16, 8},
-	/* BW 80x25 */
-	{BW80, GREYSCALE_PALETTE, 80, 25, 14, 15, 16, 8},
-	/* CO 80x25 */
-	{C80, COLOUR_PALETTE, 80, 25, 14, 15, 16, 8},
-	/* MONO */
-	{MONO, 0, 80, 25, 14, 15, 16, 8},
-	/* CO 40x14 */
-	{C40X14, COLOUR_PALETTE, 40, 14, 14, 15, 16, 8},
-	/* CO 40x21 */
-	{C40X21, COLOUR_PALETTE, 40, 21, 14, 15, 16, 8},
-	/* CO 40x28 */
-	{C40X28, COLOUR_PALETTE, 40, 28, 12, 13, 14, 8},
-	/* CO 40x43 */
-	{C40X43, COLOUR_PALETTE, 40, 43, 7, 7, 8, 8},
-	/* CO 40x50 */
-	{C40X50, COLOUR_PALETTE, 40, 50, 7, 7, 8, 8},
-	/* CO 40x60 */
-	{C40X60, COLOUR_PALETTE, 40, 60, 7, 7, 8, 8},
-	/* CO 80x14 */
-	{C80X14, COLOUR_PALETTE, 80, 14, 14, 15, 16, 8},
-	/* CO 80x21 */
-	{C80X21, COLOUR_PALETTE, 80, 21, 14, 15, 16, 8},
-	/* CO 80x28 */
-	{C80X28, COLOUR_PALETTE, 80, 28, 12, 13, 14, 8},
-	/* CO 80x43 */
-	{C80X43, COLOUR_PALETTE, 80, 43, 7, 7, 8, 8},
-	/* CO 80x50 */
-	{C80X50, COLOUR_PALETTE, 80, 50, 7, 7, 8, 8},
-	/* CO 80x60 */
-	{C80X60, COLOUR_PALETTE, 80, 60, 7, 7, 8, 8},
-	/* B 40x14 */
-	{BW40X14, GREYSCALE_PALETTE, 40, 14, 14, 15, 16, 8},
-	/* BW 40x21 */
-	{BW40X21, GREYSCALE_PALETTE, 40, 21, 14, 15, 16, 8},
-	/* BW 40x28 */
-	{BW40X28, GREYSCALE_PALETTE, 40, 28, 12, 13, 14, 8},
-	/* BW 40x43 */
-	{BW40X43, GREYSCALE_PALETTE, 40, 43, 7, 7, 8, 8},
-	/* BW 40x50 */
-	{BW40X50, GREYSCALE_PALETTE, 40, 50, 7, 7, 8, 8},
-	/* BW 40x60 */
-	{BW40X60, GREYSCALE_PALETTE, 40, 60, 7, 7, 8, 8},
-	/* BW 80x14 */
-	{BW80X14, GREYSCALE_PALETTE, 80, 14, 14, 15, 16, 8},
-	/* BW 80x21 */
-	{BW80X21, GREYSCALE_PALETTE, 80, 21, 14, 15, 16, 8},
-	/* BW 80x28 */
-	{BW80X28, GREYSCALE_PALETTE, 80, 28, 12, 13, 14, 8},
-	/* BW 80x43 */
-	{BW80X43, GREYSCALE_PALETTE, 80, 43, 7, 7, 8, 8},
-	/* BW 80x50 */
-	{BW80X50, GREYSCALE_PALETTE, 80, 50, 7, 7, 8, 8},
-	/* BW 80x60 */
-	{BW80X60, GREYSCALE_PALETTE, 80, 60, 7, 7, 8, 8},
-	/* MONO 80x14 */
-	{MONO14, MONO_PALETTE, 80, 14, 14, 15, 16, 8},
-	/* MONO 80x21 */
-	{MONO21, MONO_PALETTE, 80, 21, 14, 15, 16, 8},
-	/* MONO 80x28 */
-	{MONO28, MONO_PALETTE, 80, 28, 12, 13, 14, 8},
-	/* MONO 80x43 */
-	{MONO43, MONO_PALETTE, 80, 43, 7, 7, 8, 8},
-	/* MONO 80x50 */
-	{MONO50, MONO_PALETTE, 80, 50, 7, 7, 8, 8},
-	/* MONO 80x60 */
-	{MONO60, MONO_PALETTE, 80, 60, 7, 7, 8, 8},
-	/* Magical C4350 Mode */
-	{C4350, COLOUR_PALETTE, 80, 50, 7, 7, 8, 8},
-};
-
-unsigned char palettes[3][16] = {
-	/* Mono */
-	{ 0x00, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
-	  0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07
-	},
-	/* Black and White */
-	{ 0x00, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
-	  0x08, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f
-	},
-	/* Colour */
-	{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
-	  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
-	}
-};
-
-struct dac_colors dac_default16[16] = {
-	{0, 0, 0},    {0, 0, 42},   {0, 42, 0},   {0, 42, 42},
-	{42, 0, 0},   {42, 0, 42},  {42, 21, 0},  {42, 42, 42},
-	{21, 21, 21}, {21, 21, 63}, {21, 63, 21}, {21, 63, 63},
-	{63, 21, 21}, {63, 21, 63}, {63, 63, 21}, {63, 63, 63}
-};
-
-struct dac_colors dac_default256[16] = {
-	{0, 0, 0},    {0, 0, 168},   {0, 168, 0},   {0, 168, 168},
-	{168, 0, 0},   {168, 0, 168},  {168, 84, 0},  {168, 168, 168},
-	{84, 84, 84}, {84, 84, 255}, {84, 255, 84}, {84, 255, 255},
-	{255, 84, 84}, {255, 84, 255}, {255, 255, 84}, {255, 255, 255}
-};
-
-int find_vmode(int mode)
-{
-    unsigned i;
-
-	for (i = 0; i < NUMMODES; i++)
-		if (vparams[i].mode == mode)
-			return i;
-
-	return -1;
-}
-
-int load_vmode(struct video_stats *vs, int mode)
-{
-	int i;
-	unsigned short *newvmem;
-
-	i=find_vmode(mode);
-	if(i==-1)
-		return(-1);
-	newvmem=(unsigned short *)realloc(vs->vmem, vparams[i].cols*vparams[i].rows*sizeof(unsigned short));
-	if(newvmem==NULL)
-		return(-1);
-	vs->vmem=newvmem;
-	vs->rows=vparams[i].rows;
-	vs->cols=vparams[i].cols;
-	vs->curs_start=vparams[i].curs_start;
-	vs->curs_end=vparams[i].curs_end;
-	vs->default_curs_start=vparams[i].curs_start;
-	vs->default_curs_end=vparams[i].curs_end;
-	if(vs->curs_row < 0)
-		vs->curs_row=0;
-	if(vs->curs_row >= vparams[i].rows)
-		vs->curs_row=vparams[i].rows-1;
-	if(vs->curs_col < 0)
-		vs->curs_col=0;
-	if(vs->curs_col >= vparams[i].cols)
-		vs->curs_col=vparams[i].cols-1;
-	vs->palette=palettes[vparams[i].palette];
-	vs->charheight=vparams[i].charheight;
-	vs->charwidth=vparams[i].charwidth;
-	vs->mode=mode;
-	return(0);
-}

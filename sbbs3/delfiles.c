@@ -21,7 +21,7 @@ void bail(int code)
 exit(code);
 }
 
-long lputs(char *str)
+long lputs(char FAR16 *str)
 {
     char tmp[256];
 	int i,j,k;
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 	file_t workfile;
 	scfg_t cfg;
 	glob_t gl;
-	uchar *ixbbuf;
+	uchar HUGE16 *ixbbuf;
 
 putenv("TZ=UCT0");
 setvbuf(stdout,NULL,_IONBF,0);
@@ -199,14 +199,14 @@ for(i=0;i<cfg.total_dirs;i++) {
 	if(!l) {
 		close(file);
 		continue; }
-	if((ixbbuf=(char *)malloc(l))==NULL) {
+	if((ixbbuf=(char *)MALLOC(l))==NULL) {
 		close(file);
 		printf("\7ERR_ALLOC %s %lu\n",str,l);
         continue; }
 	if(read(file,ixbbuf,l)!=l) {
 		close(file);
 		printf("\7ERR_READ %s %lu\n",str,l);
-		free((char *)ixbbuf);
+		FREE((char *)ixbbuf);
 		continue; }
     close(file);
 
@@ -259,5 +259,5 @@ for(i=0;i<cfg.total_dirs;i++) {
 				if(!(misc&REPORT))
 					removefiledat(&cfg, &workfile); } }
 
-	free((char *)ixbbuf); }
+	FREE((char *)ixbbuf); }
 }
