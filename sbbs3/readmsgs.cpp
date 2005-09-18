@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.29 2004/10/27 21:16:59 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.30 2005/08/12 08:38:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -950,7 +950,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 								break;
 	*/
 							bputs(text[FileToWriteTo]);
-							if(getstr(str,40,K_LINE|K_UPPER))
+							if(getstr(str,40,K_LINE))
 								msgtotxt(&msg,str,1,1);
 							break;
 						case 'U':   /* User edit */

@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.62 2005/06/12 10:10:30 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.68 2005/09/05 21:53:24 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -24,6 +24,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdarg.h>	/* va_list */
 #include <sys/stat.h>	/* struct stat */
 
@@ -484,7 +485,7 @@ int zmodem_send_data16(zmodem_t* zm, uchar subpkt_type,unsigned char * p, size_t
  * send a data subpacket using crc 16 or crc 32 as desired by the receiver
  */
 
-int zmodem_send_data(zmodem_t* zm, uchar subpkt_type, unsigned char * p, int l)
+int zmodem_send_data(zmodem_t* zm, uchar subpkt_type, unsigned char * p, size_t l)
 {
 	int result;
 
@@ -550,6 +551,12 @@ int zmodem_send_zskip(zmodem_t* zm)
 {
 	return zmodem_send_pos_header(zm, ZSKIP, 0L, /* Hex? */ TRUE);
 }
+
+int zmodem_send_zeof(zmodem_t* zm)
+{
+	return zmodem_send_pos_header(zm, ZEOF, zm->current_file_size, /* Hex? */ TRUE);
+}
+
 
 /*
  * rx_raw ; receive a single byte from the line.
@@ -1197,7 +1204,7 @@ int zmodem_recv_header_raw(zmodem_t* zm, int errors)
 			break;
 	}
 
-#if 0 //def _DEBUG
+#if 0 /*def _DEBUG */
 	lprintf(zm,LOG_DEBUG,"recv_header_raw received header type: %s"
 		,frame_desc(frame_type));
 #endif
@@ -1355,7 +1362,7 @@ int zmodem_get_zfin(zmodem_t* zm)
 
 int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 {
-	int n;
+	size_t n;
 	uchar type;
 	unsigned buf_sent=0;
 
@@ -1370,7 +1377,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 	 * send the data in the file
 	 */
 
-	while(!feof(fp) && is_connected(zm)) {
+	while(is_connected(zm)) {
 
 		/*
 		 * read a block from the file
@@ -1378,15 +1385,6 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 
 		n = fread(zm->tx_data_subpacket,sizeof(BYTE),zm->block_size,fp);
 
-#if 0
-		if(n == 0) {
-			lprintf(zm,LOG_DEBUG,"send_from: read 0 bytes from offset %lu!", ftell(fp));
-			/*
-			 * nothing to send ?
-			 */
-			break;
-		}
-#endif
 		if(zm->progress!=NULL)
 			zm->progress(zm->cbdata, ftell(fp));
 
@@ -1417,25 +1415,35 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 			if(type==ZCRCW) {	/* ZACK expected */
 
 				lprintf(zm,LOG_DEBUG,"Waiting for ZACK");
-				while(is_connected(zm) && !zm->cancelled) {
+				while(is_connected(zm)) {
 					if((ack = zmodem_recv_header(zm)) != ZACK)
 						return(ack);
+
+					if(zm->cancelled)
+						return(ZCAN);
 
 					if(zm->rxd_header_pos == (ulong)ftell(fp))
 						break;
 					lprintf(zm,LOG_WARNING,"ZACK for incorrect offset (%lu vs %lu)"
 						,zm->rxd_header_pos, ftell(fp));
 				} 
-			}
 
-			if((ulong)ftell(fp) >= zm->current_file_size) {
-				lprintf(zm,LOG_DEBUG,"send_from: end of file (%ld)", zm->current_file_size );
-				return ZACK;
 			}
-			if(n==0) {
-				lprintf(zm,LOG_DEBUG,"send_from: read error at offset %lu", ftell(fp) );
-				return ZACK;
-			}
+		}
+
+		if(sent!=NULL)
+			*sent+=n;
+
+		buf_sent+=n;
+
+		if((ulong)ftell(fp) >= zm->current_file_size) {
+			lprintf(zm,LOG_DEBUG,"send_from: end of file (%ld)", zm->current_file_size );
+			return ZACK;
+		}
+		if(n==0) {
+			lprintf(zm,LOG_ERR,"send_from: read error %d at offset %lu"
+				,ferror(fp), ftell(fp) );
+			return ZACK;
 		}
 
 		/* 
@@ -1459,12 +1467,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 				lprintf(zm,LOG_DEBUG,"Received: %s",chr(c));
 		}
 		if(zm->cancelled)
-			return(-1);
-
-		if(sent!=NULL)
-			*sent+=n;
-		
-		buf_sent+=n;
+			return(ZCAN);
 
 		zm->consecutive_errors = 0;
 
@@ -1474,7 +1477,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, ulong pos, ulong* sent)
 				zm->block_size = zm->max_block_size;
 		}
 
-		if(type == ZCRCW)	/* end-of-frame */
+		if(type == ZCRCW || type == ZCRCE)	/* end-of-frame */
 			zmodem_send_pos_header(zm, ZDATA, ftell(fp), /* Hex? */ FALSE);
 	}
 
@@ -1501,10 +1504,9 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 	struct	stat s;
 	unsigned char * p;
 	uchar	zfile_frame[] = { ZFILE, 0, 0, 0, 0 };
-	uchar	zeof_frame[] = { ZEOF, 0, 0, 0, 0 };
 	int		type;
 	int		i;
-	unsigned errors;
+	unsigned attempts;
 
 	if(zm->block_size == 0)
 		zm->block_size = ZBLOCKLEN;	
@@ -1533,9 +1535,9 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		lprintf(zm,LOG_WARNING,"Streaming disabled");
 
 	if(request_init) {
-		for(errors=0; errors<=zm->max_errors && !zm->cancelled && is_connected(zm); errors++) {
+		for(zm->errors=0; zm->errors<=zm->max_errors && !zm->cancelled && is_connected(zm); zm->errors++) {
 			lprintf(zm,LOG_INFO,"Sending ZRQINIT (%u of %u)"
-				,errors+1,zm->max_errors+1);
+				,zm->errors+1,zm->max_errors+1);
 			i = zmodem_get_zrinit(zm);
 			if(i == ZRINIT) {
 				zmodem_parse_zrinit(zm);
@@ -1544,7 +1546,7 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 			lprintf(zm,LOG_WARNING,"send_file: received header type %s"
 				,frame_desc(i));
 		}
-		if(errors>=zm->max_errors || zm->cancelled)
+		if(zm->errors>=zm->max_errors || zm->cancelled)
 			return(FALSE);
 	}
 
@@ -1679,6 +1681,7 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		*start=zm->transfer_start_time;
 
 	rewind(fp);
+	zm->errors = 0;
 	zm->consecutive_errors = 0;
 	do {
 		/*
@@ -1709,6 +1712,7 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		if(zm->block_size > 128)
 			zm->block_size /= 2; 
 
+		zm->errors++;
 		if(++zm->consecutive_errors > zm->max_errors)
 			return(FALSE);
 
@@ -1739,15 +1743,10 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		 * and wait for zrinit. if it doesnt come then try again
 		 */
 
-		zeof_frame[ZP0] = (uchar) (zm->current_file_size        & 0xff);
-		zeof_frame[ZP1] = (uchar)((zm->current_file_size >> 8)  & 0xff);
-		zeof_frame[ZP2] = (uchar)((zm->current_file_size >> 16) & 0xff);
-		zeof_frame[ZP3] = (uchar)((zm->current_file_size >> 24) & 0xff);
-
-		for(errors=0;errors<=zm->max_errors && !zm->cancelled && is_connected(zm);errors++) {
+		for(attempts=0;attempts<=zm->max_errors && !zm->cancelled && is_connected(zm);attempts++) {
 			lprintf(zm,LOG_INFO,"Sending End-of-File (ZEOF) frame (%u of %u)"
-				,errors+1, zm->max_errors+1);
-			zmodem_send_hex_header(zm,zeof_frame);
+				,attempts+1, zm->max_errors+1);
+			zmodem_send_zeof(zm);
 			if(zmodem_recv_header(zm)==ZRINIT) {
 				success=TRUE;
 				break;
@@ -2053,7 +2052,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.62 $", "%*s %s", buf);
+	sscanf("$Revision: 1.68 $", "%*s %s", buf);
 
 	return(buf);
 }
