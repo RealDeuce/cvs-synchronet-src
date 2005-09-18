@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.54 2005/09/28 20:03:50 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.52 2005/09/05 21:54:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -858,46 +858,4 @@ BOOL DLLCALL isfullpath(const char* filename)
 		|| filename[0]=='\\' || filename[1]==':'
 #endif
 		);
-}
-
-/****************************************************************************/
-/* Matches file name against filespec										*/
-/* Optionally not allowing * to match PATH_DELIM (for paths)				*/
-/****************************************************************************/
-BOOL DLLCALL wildmatch(const char *fname, const char *spec, BOOL path)
-{
-	char *specp;
-	char *fnamep;
-
-	specp=(char *)spec;
-	fnamep=(char *)fname;
-	for(;;specp++, fnamep++) {
-		switch(*specp) {
-			case '?':
-				if(!(*fnamep))
-					return(FALSE);
-				break;
-			case 0:
-				if(!*fnamep)
-					return(TRUE);
-				break;
-			case '*':
-				while(*specp=='*')
-					specp++;
-				for(;*fnamep!=*specp && *fnamep;fnamep++) {
-					if(path && IS_PATH_DELIM(*fnamep))
-						return(FALSE);
-				}
-			default:
-				if(*specp != *fnamep)
-					return(FALSE);
-		}
-		if(!(*specp && *fnamep))
-			break;
-	}
-	while(*specp=='*')
-		specp++;
-	if(*specp==*fnamep)
-		return(TRUE);
-	return(FALSE);
 }
