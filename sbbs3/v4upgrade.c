@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.6 2005/05/05 02:01:16 rswindell Exp $ */
+/* $Id: v4upgrade.c,v 1.11 2005/09/18 01:26:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,9 +37,11 @@
 #include "sbbs4defs.h"
 #include "ini_file.h"
 #include "dat_file.h"
+#include "datewrap.h"
 
 scfg_t scfg;
 BOOL overwrite_existing_files=TRUE;
+ini_style_t style = { 25, NULL, NULL, " = ", NULL };
 
 BOOL overwrite(const char* path)
 {
@@ -54,6 +56,52 @@ BOOL overwrite(const char* path)
 
 	return(TRUE);
 }
+
+/****************************************************************************/
+/* Converts a date string in format MM/DD/YY into unix time format			*/
+/****************************************************************************/
+long DLLCALL dstrtodate(scfg_t* cfg, char *instr)
+{
+	char*	p;
+	char*	day;
+	char	str[16];
+	struct tm tm;
+
+	if(!instr[0] || !strncmp(instr,"00/00/00",8))
+		return(0);
+
+	if(isdigit(instr[0]) && isdigit(instr[1])
+		&& isdigit(instr[3]) && isdigit(instr[4])
+		&& isdigit(instr[6]) && isdigit(instr[7]))
+		p=instr;	/* correctly formatted */
+	else {
+		p=instr;	/* incorrectly formatted */
+		while(*p && isdigit(*p)) p++;
+		if(*p==0)
+			return(0);
+		p++;
+		day=p;
+		while(*p && isdigit(*p)) p++;
+		if(*p==0)
+			return(0);
+		p++;
+		sprintf(str,"%02u/%02u/%02u"
+			,atoi(instr)%100,atoi(day)%100,atoi(p)%100);
+		p=str;
+	}
+
+	memset(&tm,0,sizeof(tm));
+	tm.tm_year=((p[6]&0xf)*10)+(p[7]&0xf);
+	if(cfg->sys_misc&SM_EURODATE) {
+		tm.tm_mon=((p[3]&0xf)*10)+(p[4]&0xf);
+		tm.tm_mday=((p[0]&0xf)*10)+(p[1]&0xf); }
+	else {
+		tm.tm_mon=((p[0]&0xf)*10)+(p[1]&0xf);
+		tm.tm_mday=((p[3]&0xf)*10)+(p[4]&0xf); }
+
+	return(((tm.tm_year+1900)*10000)+(tm.tm_mon*100)+tm.tm_mday);
+}
+
 
 BOOL upgrade_users(void)
 {
@@ -79,7 +127,7 @@ BOOL upgrade_users(void)
 
 	total=lastuser(&scfg);
 	for(i=1;i<=total;i++) {
-		printf("\b\b\b\b\b%5u",i);
+		printf("\b\b\b\b\b%5u",total-i);
 		memset(&user,0,sizeof(user));
 		user.number=i;
 		if((ret=getuserdat(&scfg,&user))!=0) {
@@ -101,14 +149,14 @@ BOOL upgrade_users(void)
 
 		/******************************************/
 		/* very personal info */
-		len+=sprintf(rec+len,"%s\t%s\t%s\t%s\t%s\t%s\t%s\t%c\t%s\t"
+		len+=sprintf(rec+len,"%s\t%s\t%s\t%s\t%s\t%s\t%lu\t%c\t%s\t"
 			,user.netmail
 			,user.address
 			,user.location
 			,user.zipcode
 			,user.pass
 			,user.phone
-			,user.birth
+			,dstrtodate(&scfg,user.birth)
 			,user.sex
 			,user.modem
 			);
@@ -117,13 +165,19 @@ BOOL upgrade_users(void)
 
 		/******************************************/
 		/* date/times */
-		len+=sprintf(rec+len,"%lx\t%lx\t%lx\t%lx\t%lx\t%lx\t"
-			,user.laston
-			,user.firston
-			,user.expire
-			,user.pwmod
-			,user.ns_time
-			,user.logontime
+		len+=sprintf(rec+len,"%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t%08lu%06u\t"
+			,time_to_isoDate(user.laston)
+			,time_to_isoTime(user.laston)
+			,time_to_isoDate(user.firston)
+			,time_to_isoTime(user.firston)
+			,time_to_isoDate(user.expire)
+			,time_to_isoTime(user.expire)
+			,time_to_isoDate(user.pwmod)
+			,time_to_isoTime(user.pwmod)
+			,time_to_isoDate(user.ns_time)
+			,time_to_isoTime(user.ns_time)
+			,time_to_isoDate(user.logontime)
+			,time_to_isoTime(user.logontime)
 			);
 		/* some unused records for future expansion */
 		len+=sprintf(rec+len,"\t\t\t\t");	
@@ -196,7 +250,8 @@ BOOL upgrade_users(void)
 			,user.curdir
 			,user.curxtrn
 			);
-		//printf("reclen=%u\n",len);
+		/* Message disabled.  Why?  ToDo */
+		/* printf("reclen=%u\n",len); */
 		if((ret=fprintf(out,"%-*.*s\r\n",USER_REC_LEN,USER_REC_LEN,rec))!=USER_REC_LINE_LEN) {
 			printf("!Error %d (errno: %d) writing %u bytes to user.tab\n"
 				,ret, errno, USER_REC_LINE_LEN);
@@ -261,19 +316,19 @@ BOOL upgrade_stats(void)
 		return(FALSE);
 	}
 
-	iniSetHexInt(&list,  ROOT_SECTION	,"TimeStamp"	,t				,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Logons"		,stats.logons	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"LogonsToday"	,stats.ltoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Timeon"		,stats.timeon	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"TimeonToday"	,stats.ttoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Uploads"		,stats.uls		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"UploadBytes"	,stats.ulb		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"Downloads"	,stats.dls		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"DownloadBytes",stats.dlb		,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"PostsToday"	,stats.ptoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"EmailToday"	,stats.etoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"FeedbackToday",stats.ftoday	,NULL);
-	iniSetInteger(&list, ROOT_SECTION	,"NewUsersToday",stats.nusers	,NULL);
+	iniSetDateTime(&list,	ROOT_SECTION	,"TimeStamp"	,TRUE, t		,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"Logons"		,stats.logons	,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"LogonsToday"	,stats.ltoday	,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"Timeon"		,stats.timeon	,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"TimeonToday"	,stats.ttoday	,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"Uploads"		,stats.uls		,NULL);
+	iniSetLongInt(&list,	ROOT_SECTION	,"UploadBytes"	,stats.ulb		,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"Downloads"	,stats.dls		,NULL);
+	iniSetLongInt(&list,	ROOT_SECTION	,"DownloadBytes",stats.dlb		,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"PostsToday"	,stats.ptoday	,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"EmailToday"	,stats.etoday	,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"FeedbackToday",stats.ftoday	,NULL);
+	iniSetInteger(&list,	ROOT_SECTION	,"NewUsersToday",stats.nusers	,NULL);
 
 	success=iniWriteFile(out, list);
 
@@ -311,8 +366,8 @@ BOOL upgrade_stats(void)
 	while(!feof(in)) {
 		if(fread(&csts,1,sizeof(csts),in)!=sizeof(csts))
 			break;
-		fprintf(out,"%lx\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t\n"
-			,csts.time
+		fprintf(out,"%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t\n"
+			,time_to_isoDate(csts.time)
 			,csts.ltoday
 			,csts.ttoday
 			,csts.uls
@@ -358,7 +413,7 @@ BOOL upgrade_event_data(void)
 		return(FALSE);
 	}
 
-	// Read TIME.DAB
+	/* Read TIME.DAB */
 	sprintf(inpath,"%stime.dab",scfg.ctrl_dir);
 	printf("\t%s ",inpath);
 	if((in=fopen(inpath,"rb"))==NULL) {
@@ -377,7 +432,7 @@ BOOL upgrade_event_data(void)
 
 	printf("-> %s (%u timed events)\n", outpath, i);
 
-	// Read QNET.DAB
+	/* Read QNET.DAB */
 	sprintf(inpath,"%sqnet.dab",scfg.ctrl_dir);
 	printf("\t%s ",inpath);
 	i=0;
@@ -421,6 +476,9 @@ BOOL upgrade_ip_filters(void)
 	size_t	total;
 	str_list_t	inlist;
 	str_list_t	outlist;
+
+	style.section_separator = NULL;
+	iniSetDefaultStyle(style);
 
 	printf("Upgrading IP Address filters...\n");
 
@@ -479,7 +537,7 @@ BOOL upgrade_ip_filters(void)
 		if(*p==';')
 			strListPush(&outlist,p);
 		else if(*p) {
-			iniAddSection(&outlist,p,NULL);
+			iniAppendSection(&outlist,p,NULL);
 			total++;
 		}
 	}
@@ -545,6 +603,9 @@ BOOL upgrade_filter(const char* desc, const char* inpath, const char* msgpath, c
 	str_list_t	inlist;
 	str_list_t	outlist;
 
+	style.section_separator = NULL;
+	iniSetDefaultStyle(style);
+
 	printf("Upgrading %s filters...\n",desc);
 
 	if(!overwrite(outpath))
@@ -599,7 +660,7 @@ BOOL upgrade_filter(const char* desc, const char* inpath, const char* msgpath, c
 		if(*p==';')
 			strListPush(&outlist,p);
 		else if(*p) {
-			iniAddSection(&outlist,p,NULL);
+			iniAppendSection(&outlist,p,NULL);
 			total++;
 		}
 	}
@@ -618,6 +679,97 @@ BOOL upgrade_filter(const char* desc, const char* inpath, const char* msgpath, c
 	}
 
 	printf("\tFiltering %u total %ss\n", iniGetSectionCount(outlist,NULL),desc);
+
+	strListFree(&outlist);
+
+	return(success);
+}
+
+BOOL upgrade_list(const char* desc, const char* infile, const char* outfile
+				  ,BOOL section_list, const char* key)
+{
+	char*	p;
+	char*	vp;
+	char	inpath[MAX_PATH+1];
+	char	outpath[MAX_PATH+1];
+	FILE*	in;
+	FILE*	out;
+	BOOL	success;
+	size_t	i;
+	size_t	total;
+	str_list_t	inlist;
+	str_list_t	outlist;
+
+	style.section_separator = (section_list && key==NULL) ? NULL : "";
+	iniSetDefaultStyle(style);
+
+	SAFEPRINTF2(inpath,"%s%s",scfg.ctrl_dir,infile);
+	SAFEPRINTF2(outpath,"%s%s",scfg.ctrl_dir,outfile);
+
+	if(!fexistcase(inpath))
+		return(TRUE);
+
+	printf("Upgrading %s...\n",desc);
+
+	if(!overwrite(outpath))
+		return(TRUE);
+	if((out=fopen(outpath,"w"))==NULL) {
+		perror(outpath);
+		return(FALSE);
+	}
+
+	if((outlist = strListInit())==NULL) {
+		printf("!malloc failure\n");
+		return(FALSE);
+	}
+	printf("\t%s ",inpath);
+	if((in=fopen(inpath,"r"))==NULL) {
+		perror("open failure");
+		return(FALSE);
+	}
+
+	if((inlist = strListReadFile(in,NULL,4096))==NULL) {
+		printf("!failure reading %s\n",inpath);
+		return(FALSE);
+	}
+
+	total=0;
+	for(i=0;inlist[i]!=NULL;i++) {
+		p=truncsp(inlist[i]);
+		SKIP_WHITESPACE(p);
+		if(*p==';')
+			strListPush(&outlist,p);
+		else if(*p) {
+			vp=NULL;
+			if((!section_list || key!=NULL)
+				&& ((vp=strchr(p,' '))!=NULL || ((vp=strchr(p,'\t'))!=NULL))) {
+				*(vp++) = 0;
+				SKIP_WHITESPACE(vp);
+			}
+			if(section_list) {
+				iniAppendSection(&outlist,p,NULL);
+				if(vp!=NULL && *vp)
+					iniSetString(&outlist,p,key,vp,NULL);
+			} else
+				iniSetString(&outlist,ROOT_SECTION,p,vp,NULL);
+			total++;
+		}
+	}
+
+	printf("-> %s (%u %ss)\n", outpath, total, desc);
+	fclose(in);
+	strListFree(&inlist);
+
+	success=iniWriteFile(out, outlist);
+
+	fclose(out);
+
+	if(!success) {
+		printf("!iniWriteFile failure\n");
+		return(FALSE);
+	}
+
+	printf("\tWrote %u total %s\n", iniGetSectionCount(outlist,NULL),desc);
 
 	strListFree(&outlist);
 
@@ -677,7 +829,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.11 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
@@ -707,6 +859,8 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
+	iniSetDefaultStyle(style);
+
 	if(!upgrade_users())
 		return(1);
 
@@ -718,10 +872,35 @@ int main(int argc, char** argv)
 
 	if(!upgrade_filters())
 		return(4);
+
+	if(!upgrade_list("Twit list", "twitlist.cfg", "twitlist.ini", TRUE, NULL))
+		return(5);
+
+	if(!upgrade_list("RLogin allow", "rlogin.cfg", "rlogin.ini", TRUE, NULL))
+		return(5);
+
+	if(!upgrade_list("Mail alias", "alias.cfg", "alias.ini", FALSE, NULL))
+		return(5);
 	
-	// alias.cfg
-	// domains.cfg
-	// ftpalias.cfg
+	if(!upgrade_list("Mail domain", "domains.cfg", "domains.ini", TRUE, NULL))
+		return(5);
+
+	if(!upgrade_list("Allowed relay", "relay.cfg", "relay.ini", TRUE, NULL))
+		return(5);
+
+	if(!upgrade_list("SPAM bait", "spambait.cfg", "spambait.ini", TRUE, NULL))
+		return(5);
+
+	if(!upgrade_list("SPAM block", "spamblock.cfg", "spamblock.ini", TRUE, NULL))
+		return(5);
+
+	if(!upgrade_list("DNS blacklist", "dns_blacklist.cfg", "dns_blacklist.ini", TRUE, "notice"))
+		return(5);
+
+	if(!upgrade_list("DNS blacklist exemptions", "dnsbl_exempt.cfg", "dnsbl_exempt.ini", TRUE, NULL))
+		return(5);
+
+	/* ftpalias.cfg */
 
 	printf("Upgrade successful.\n");
     return(0);
