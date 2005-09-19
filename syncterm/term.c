@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.116 2005/11/08 06:37:48 deuce Exp $ */
+/* $Id: term.c,v 1.114 2005/09/05 21:54:28 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -761,8 +761,9 @@ BOOL doterm(struct bbslist *bbs)
 	unsigned char *scrollback;
 	unsigned char *p;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
-	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
 	BYTE zrqbuf[5];
+	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
+	BYTE zrbuf[5];
 	int	inch;
 	long double nextchar=0;
 	long double lastchar=0;
@@ -785,10 +786,10 @@ BOOL doterm(struct bbslist *bbs)
 	cterm_init(term.height,term.width,term.x-1,term.y-1,backlines,scrollback);
 	ch[1]=0;
 	zrqbuf[0]=0;
+	zrbuf[0]=0;
 
 	/* Main input loop */
 	oldmc=hold_update;
-	showmouse();
 	for(;;) {
 		hold_update=TRUE;
 		sleep=TRUE;
@@ -809,7 +810,6 @@ BOOL doterm(struct bbslist *bbs)
 						cterm_end();
 						conn_close();
 						uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
-						hidemouse();
 						return(FALSE);
 					}
 					break;
@@ -819,7 +819,7 @@ BOOL doterm(struct bbslist *bbs)
 						nextchar = lastchar + 1/(long double)(speed/10);
 					}
 					if(!zrqbuf[0]) {
-						if(inch == zrqinit[0] || inch == zrinit[0]) {
+						if(inch == zrqinit[0]) {
 							zrqbuf[0]=inch;
 							zrqbuf[1]=0;
 							continue;
@@ -827,19 +827,16 @@ BOOL doterm(struct bbslist *bbs)
 					}
 					else {	/* Already have the start of the sequence */
 						j=strlen(zrqbuf);
-						if(inch == zrqinit[j] || inch == zrinit[j]) {
-							zrqbuf[j]=inch;
+						if(inch == zrqinit[j]) {
+							zrqbuf[j]=zrqinit[j];
 							zrqbuf[++j]=0;
-							if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
-								if(strcmp(zrqbuf, zrqinit))
-									zmodem_download(bbs->dldir);
-								else
-									begin_upload(bbs->uldir, TRUE);
+							if(j==sizeof(zrqinit)-1) {	/* Have full sequence */
+								zmodem_download(bbs->dldir);
 								zrqbuf[0]=0;
 							}
 						}
 						else {	/* Not a real zrqinit */
-							zrqbuf[j++]=inch;
+							zrqbuf[j]=inch;
 							cterm_write(zrqbuf, j, prn, sizeof(prn), &speed);
 							if(prn[0])
 								conn_send(prn,strlen(prn),0);
@@ -849,6 +846,33 @@ BOOL doterm(struct bbslist *bbs)
 						continue;
 					}
 
+					if(!zrbuf[0]) {
+						if(inch == zrinit[0]) {
+							zrbuf[0]=inch;
+							zrbuf[1]=0;
+							continue;
+						}
+					}
+					else {	/* Already have the start of the sequence */
+						j=strlen(zrbuf);
+						if(inch == zrinit[j]) {
+							zrbuf[j]=zrinit[j];
+							zrbuf[++j]=0;
+							if(j==sizeof(zrinit)-1) {	/* Have full sequence */
+								begin_upload(bbs->uldir, TRUE);
+								zrbuf[0]=0;
+							}
+						}
+						else {	/* Not a real zrinit */
+							zrbuf[j]=inch;
+							cterm_write(zrbuf, j, prn, sizeof(prn), &speed);
+							if(prn[0])
+								conn_send(prn,strlen(prn),0);
+							updated=TRUE;
+							zrbuf[0]=0;
+						}
+						continue;
+					}
 					ch[0]=inch;
 					cterm_write(ch, 1, prn, sizeof(prn), &speed);
 					if(prn[0])
@@ -979,7 +1003,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
-							hidemouse();
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
@@ -1007,7 +1030,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
-							hidemouse();
 							return(FALSE);
 						case 3:
 							begin_upload(bbs->uldir, FALSE);
@@ -1022,7 +1044,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
-							hidemouse();
 							return(TRUE);
 					}
 					gotoxy(i,j);
@@ -1056,6 +1077,5 @@ BOOL doterm(struct bbslist *bbs)
 			MAYBE_YIELD();
 	}
 
-	hidemouse();
 	return(FALSE);
 }
