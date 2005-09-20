@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.21 2005/09/20 05:50:45 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.20 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,9 @@
     #define O_DENYNONE SH_DENYNO
 #endif
 
+#ifdef __MSDOS__
+extern uchar node_swap;
+#endif
 extern long misc;
 extern config_t cfg;
 
@@ -280,6 +283,9 @@ void read_echo_cfg()
 			continue; }
 
 		if(!stricmp(tmp,"NOSWAP")) {
+	#ifdef __MSDOS__
+			node_swap=0;
+	#endif
 			continue; }
 
 		if(!stricmp(tmp,"SECURE_ECHOMAIL")) {

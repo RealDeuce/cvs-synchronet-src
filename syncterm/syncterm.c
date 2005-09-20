@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.61 2005/11/15 17:55:03 deuce Exp $ */
+/* $Id: syncterm.c,v 1.54 2005/08/30 20:41:09 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -9,14 +9,13 @@
 #include <ini_file.h>
 #include <dirwrap.h>
 
-#include "ciolib.h"
 #include "bbslist.h"
 #include "conn.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.5"
+char* syncterm_version = "SyncTERM 0.03"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -325,7 +324,7 @@ int main(int argc, char **argv)
 				init_uifc(TRUE, TRUE);
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 					case 0:	/* Yes */
-						add_bbs(listpath,bbs);
+						add_bbs(path,bbs);
 						break;
 					default: /* ESC/No */
 						break;
@@ -333,6 +332,7 @@ int main(int argc, char **argv)
 				free(bbs);
 			}
 			bbs=NULL;
+			break;
 		}
 		else
 			bbs=NULL;
