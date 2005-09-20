@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.62 2005/06/04 20:24:33 deuce Exp $ */
+/* $Id: uifc.h,v 1.68 2005/09/20 05:39:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,60 +52,14 @@
 #if defined(__unix__)
 	#include <sys/param.h>	/* PATH_MAX */
 #endif
-#if (defined(__unix__) || defined(_WIN32)) && !defined(__FLAT__)
-    #define __FLAT__
-#endif
-
-#if defined(__FLAT__)
-	#define far
-#endif
-
-#if !defined(__FLAT__)
-    #include <bios.h>
-#endif
 
 #if defined(__unix__) && !defined(stricmp)
     #define stricmp strcasecmp
 	#define strnicmp strncasecmp
 #endif
 
-/****************************************************************************/
-/* MALLOC/FREE Macros for various compilers and environments				*/
-/* MALLOC is used for allocations of 64k or less							*/
-/* FREE is used to free buffers allocated with MALLOC						*/
-/* LMALLOC is used for allocations of possibly larger than 64k				*/
-/* LFREE is used to free buffers allocated with LMALLOC 					*/
-/* REALLOC is used to re-size a previously MALLOCed or LMALLOCed buffer 	*/
-/****************************************************************************/
-#if defined(__COMPACT__) || defined(__LARGE__) || defined(__HUGE__)
-	#if defined(__TURBOC__)
-		#define REALLOC(x,y) farrealloc(x,y)
-		#define LMALLOC(x) farmalloc(x)
-		#define MALLOC(x) farmalloc(x)
-		#define LFREE(x) farfree(x)
-		#define FREE(x) farfree(x)
-	#elif defined(__WATCOMC__)
-		#define REALLOC realloc
-		#define LMALLOC(x) halloc(x,1)	/* far heap, but slow */
-		#define MALLOC malloc			/* far heap, but 64k max */
-		#define LFREE hfree
-		#define FREE free
-	#else	/* Other 16-bit Compiler */
-		#define REALLOC realloc
-		#define LMALLOC malloc
-		#define MALLOC malloc
-		#define LFREE free
-		#define FREE free
-	#endif
-#else		/* 32-bit Compiler or Small Memory Model */
-	#define REALLOC realloc
-	#define LMALLOC malloc
-	#define MALLOC malloc
-	#define LFREE free
-	#define FREE free
-#endif
 #if !defined(FREE_AND_NULL)
-	#define FREE_AND_NULL(x)			if(x!=NULL) { FREE(x); x=NULL; }
+	#define FREE_AND_NULL(x)			if(x!=NULL) { free(x); x=NULL; }
 #endif
 
 #if !defined(MAX_PATH)	/* maximum path length */
@@ -126,24 +80,15 @@
 	#define INT_86(i,j,k) int86(i,j,k)
 #endif
 
-#ifdef __FLAT__
-	#define MAX_OPTS	10000
-	#define MSK_ON		0xf0000000
-	#define MSK_OFF 	0x0fffffff
-	#define MSK_INS 	0x10000000
-	#define MSK_DEL 	0x20000000
-	#define MSK_GET 	0x30000000
-	#define MSK_PUT 	0x40000000
-	/* Dont forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
-#else
-	#define MAX_OPTS	500 	/* Maximum number of options per menu call */
-	#define MSK_ON		0xf000
-	#define MSK_OFF 	0x0fff
-	#define MSK_INS 	0x1000
-	#define MSK_DEL 	0x2000
-	#define MSK_GET 	0x3000
-	#define MSK_PUT 	0x4000
-#endif
+#define MAX_OPTS	10000
+#define MSK_ON		0xf0000000
+#define MSK_OFF 	0x0fffffff
+#define MSK_INS 	0x10000000
+#define MSK_DEL 	0x20000000
+#define MSK_GET 	0x30000000
+#define MSK_PUT 	0x40000000
+#define MSK_EDIT 	0x50000000
+/* Dont forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
 #define MAX_OPLN	75		/* Maximum length of each option per menu call */
 #define MAX_BUFS	7		/* Maximum number of screen buffers to save */
 #define MIN_LINES   14      /* Minimum number of screen lines supported */
@@ -193,6 +138,8 @@
 #define WIN_FIXEDHEIGHT	(1<<25)	/* Use list_height from uifc struct */
 #define WIN_UNGETMOUSE  (1<<26) /* If the mouse is clicked outside the window, */
 								/* Put the mouse event back into the event queue */
+#define WIN_EDIT	(1<<27)	/* Allow F2 to edit a menu item */
+#define WIN_EDITACT	(1<<28)	/* Remain active after edit key */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -220,6 +167,19 @@
 #define K_MOUSEEXIT	(1L<<15)	/* Returns when mouse is clicked outside of */
 								/* Input area (NOT outside of window!)		*/
 								/* And ungets the mouse event.				*/
+
+						/* Bottom line elements */
+#define BL_INS      (1<<0)  /* INS key */
+#define BL_DEL      (1<<1)  /* DEL key */
+#define BL_GET      (1<<2)  /* Get key */
+#define BL_PUT      (1<<3)  /* Put key */
+
+#define BL_INS      (1<<0)  /* INS key */
+#define BL_DEL      (1<<1)  /* DEL key */
+#define BL_GET      (1<<2)  /* Get key */
+#define BL_PUT      (1<<3)  /* Put key */
+#define BL_EDIT     (1<<4)  /* Edit key */
+
 
 #define HELPBUF_SIZE 4000
 
@@ -291,18 +251,7 @@ typedef struct {
     uchar   *buf;
 } win_t;
 
-#if !defined(__FLAT__)
-    /* LCLOLL.ASM */
-    int lclini(int);
-    void lclxy(int,int);
-    int lclwx(void);
-    int lclwy(void);
-    int lclatr(int);
-    void lputc(int);
-    long lputs(char far *);
-#endif    
-
-#if defined(__OS2__) || !defined(__FLAT__)
+#if defined(__OS2__)
 void mswait(int msecs);
 extern mswtyp;
 #endif
@@ -399,7 +348,7 @@ typedef struct {
 /* option is an array of char arrays, first element of last char array		*/
 /* must be NULL.															*/
 /* Returns the 0-based selected option number, -1 for ESC, or the selected	*/
-/* option number OR'd with MSK_INS, MSK_DEL, MSK_GET, or MSK_PUT.			*/
+/* option number OR'd with MSK_INS, MSK_DEL, MSK_GET, MSK_PUT, or MSK_EDIT.	*/
 /****************************************************************************/
     int     (*list) (int mode, int left, int top, int width, int* dflt
                         ,int* bar, char *title, char** option);
@@ -435,7 +384,12 @@ typedef struct {
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-	void (*timedisplay)(void);
+	void (*timedisplay)(BOOL force);
+
+/****************************************************************************/
+/* Displays the bottom line using the BL_* macros							*/
+/****************************************************************************/
+    void (*bottomline)(int line);
 
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
@@ -454,13 +408,7 @@ typedef struct {
 /****************************************************************************/
 int uifcini(uifcapi_t*);	/* Original implementation based on conio		*/
 int uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
-int uifcinic(uifcapi_t*);	/* Unix curses implementation (by Deuce)		*/
-int uifcinid(uifcapi_t*);	/* Unix libdialog implementation (by Deuce)		*/
 int uifcini32(uifcapi_t*);	/* conio/curses implementation					*/
-#ifdef __cplusplus
-extern "C"
-#endif
-int uifcinifltk(uifcapi_t*);	/* FLTK implementation (by Deuce)			*/
 /****************************************************************************/
 
 #endif /* Don't add anything after this line! */

@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.48 2005/06/14 06:09:57 deuce Exp $ */
+/* $Id: console.c,v 1.52 2005/09/12 22:27:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>	/* malloc */
 #include <unistd.h>	/* sysconf() */
 
 #include <X11/Xlib.h>
@@ -137,7 +138,7 @@ sem_t	x11_title;
 int InitCS;
 int InitCE;
 int FW, FH;
-int FS=1;
+int FontScale=1;
 #define MAX_SCALE	2
 WORD DpyCols;
 BYTE DpyRows;
@@ -151,7 +152,6 @@ BYTE CursCol=0;
 typedef struct TextLine {
     WORD	*data;
     u_char	max_length;	/* Not used, but here for future use */
-    u_char	changed;
 	u_char	*exposed;
 } TextLine;
 TextLine *lines = NULL;
@@ -356,7 +356,7 @@ struct {
     {	0xffff, 0xffff, 0xffff, 0xffff }, /* key 69 - num-lock - */
     {	0xffff, 0xffff, 0xffff, 0xffff }, /* key 70 - scroll-lock -  */
     {	0x4700, 0x4737, 0x7700, 0xffff }, /* key 71 - home */
-    {	0x4800, 0x4838, 0xffff, 0xffff }, /* key 72 - cursor up */
+    {	0x4800, 0x4838, 0x8d00, 0x9800 }, /* key 72 - cursor up */
     {	0x4900, 0x4939, 0x8400, 0xffff }, /* key 73 - page up */
     {	0x4a2d, 0x4a2d, 0xffff, 0xffff }, /* key 74 - minus sign */
     {	0x4b00, 0x4b34, 0x7300, 0xffff }, /* key 75 - cursor left */
@@ -364,7 +364,7 @@ struct {
     {	0x4d00, 0x4d36, 0x7400, 0xffff }, /* key 77 - cursor right */
     {	0x4e2b, 0x4e2b, 0xffff, 0xffff }, /* key 78 - plus sign */
     {	0x4f00, 0x4f31, 0x7500, 0xffff }, /* key 79 - end */
-    {	0x5000, 0x5032, 0xffff, 0xffff }, /* key 80 - cursor down */
+    {	0x5000, 0x5032, 0x9100, 0xa000 }, /* key 80 - cursor down */
     {	0x5100, 0x5133, 0x7600, 0xffff }, /* key 81 - page down */
     {	0x5200, 0x5230, 0xffff, 0xffff }, /* key 82 - insert */
     {	0x5300, 0x532e, 0xffff, 0xffff }, /* key 83 - delete */
@@ -450,35 +450,20 @@ video_update_text()
 	pthread_mutex_lock(&lines_mutex);
 	memcpy(vmemc, vmem, DpyCols*(DpyRows+1)*sizeof(WORD));
 	for (r = 0; r < (DpyRows+1); ++r) {
-	    if (!lines[r].changed) {
-			for (c = 0; c < DpyCols; ++c) {
-				if ((lines[r].data[c] != vmemc[r * DpyCols + c]) 
-						|| (lines[r].data[c] & 0x8000 && show != os)
-						|| (lines[r].exposed[c])
-						|| (((r == or && c==oc) || (r == cursrow && c==curscol)) && (or != cursrow || oc !=curscol))) {
-					setgc(vmemc[r * DpyCols + c]  & 0xff00);
-					x11.XCopyPlane(dpy,pfnt,win,gc,0,FH*(vmemc[r * DpyCols + c]&0xff),FW,FH,c*FW+2,r*FH+2,1);
-					lines[r].changed = 2;
-					flush=1;
-				}
-			}
-	    }
-
-	    if (!lines[r].changed)
-			continue;
-
-		reset_poll();
-		memcpy(lines[r].data,
-			&vmemc[r * DpyCols], sizeof(WORD) * DpyCols);
-
-		if(lines[r].changed==1) {
-			for (c = 0; c < DpyCols; ++c) {
+		for (c = 0; c < DpyCols; ++c) {
+			if ((lines[r].data[c] != vmemc[r * DpyCols + c]) 
+					|| (lines[r].data[c] & 0x8000 && show != os)
+					|| (lines[r].exposed[c])
+					|| (((r == or && c==oc) || (r == cursrow && c==curscol)) && (or != cursrow || oc !=curscol))) {
 				setgc(vmemc[r * DpyCols + c]  & 0xff00);
 				x11.XCopyPlane(dpy,pfnt,win,gc,0,FH*(vmemc[r * DpyCols + c]&0xff),FW,FH,c*FW+2,r*FH+2,1);
+				lines[r].exposed[c]=0;
+				lines[r].data[c]=vmemc[r * DpyCols + c];
+				flush=1;
 			}
 		}
-		lines[r].changed = 0;
-		memset(lines[r].exposed,0,CONSOLE_MAX_COLS * sizeof(u_char));
+
+		reset_poll();
 	}
 	pthread_mutex_unlock(&lines_mutex);
 
@@ -497,8 +482,8 @@ video_update_text()
 	    x11.XChangeGC(dpy, cgc, GCForeground | GCFunction, &v);
 	    x11.XFillRectangle(dpy, win, cgc,
 			   2 +curscol * FW,
-			   2 + cursrow * FH + CursStart * FS,
-			   FW, (CursEnd + 1)*FS - (CursStart*FS));
+			   2 + cursrow * FH + CursStart * FontScale,
+			   FW, (CursEnd + 1)*FontScale - (CursStart*FontScale));
 		flush=1;
 	}
 
@@ -558,8 +543,7 @@ get_lines()
 				fprintf(stderr, "Could not allocate data structure for text lines\n");
 				exit(1);
 			}
-			memset(lines[i].exposed,0,CONSOLE_MAX_COLS * sizeof(u_char));
-			lines[i].changed = 1;
+			memset(lines[i].exposed,1,CONSOLE_MAX_COLS * sizeof(u_char));
 		}
 		pthread_mutex_unlock(&lines_mutex);
 	}
@@ -630,13 +614,13 @@ video_event(XEvent *ev)
 				int	oldFS;
 				int r;
 
-				oldFS=FS;
+				oldFS=FontScale;
 				if((ev->xconfigure.width == FW * DpyCols + 4)
 						&& (ev->xconfigure.height == FH * (DpyRows+1) + 4))
 					break;
 						
-				FW=FW/FS;
-				FH=FH/FS;
+				FW=FW/FontScale;
+				FH=FH/FontScale;
 				newFSH=(ev->xconfigure.width+(FW*DpyCols)/2)/(FW*DpyCols);
 				newFSW=(ev->xconfigure.height+(FH*(DpyRows+1))/2)/(FH*(DpyRows+1));
 				if(newFSW<1)
@@ -648,10 +632,10 @@ video_event(XEvent *ev)
 				if(newFSH>MAX_SCALE)
 					newFSH=MAX_SCALE;
 				if(newFSH<newFSW)
-					FS=newFSH;
+					FontScale=newFSH;
 				else
-					FS=newFSW;
-				load_font(NULL,FW,FH,FS);
+					FontScale=newFSW;
+				load_font(NULL,FW,FH,FontScale);
 				resize_window();
 				break;
 		}
@@ -1187,10 +1171,10 @@ resize_window()
 	sh->base_width = FW * DpyCols + 4;
 	sh->base_height = FH * (DpyRows+1) + 4;
 
-    sh->min_width = (FW/FS) * DpyCols + 4;
-	sh->max_width = (FW/FS) * MAX_SCALE * DpyCols + 4;
-    sh->min_height = (FH/FS) * (DpyRows+1) +4;
-	sh->max_height = (FH/FS) * MAX_SCALE * (DpyRows+1) +4;
+    sh->min_width = (FW/FontScale) * DpyCols + 4;
+	sh->max_width = (FW/FontScale) * MAX_SCALE * DpyCols + 4;
+    sh->min_height = (FH/FontScale) * (DpyRows+1) +4;
+	sh->max_height = (FH/FontScale) * MAX_SCALE * (DpyRows+1) +4;
     sh->flags = USSize | PMinSize | PMaxSize | PSize;
 
     x11.XSetWMNormalHints(dpy, win, sh);
@@ -1202,7 +1186,7 @@ resize_window()
 	if(lines != NULL) {
 		pthread_mutex_lock(&lines_mutex);
 		for (r = 0; r < (CONSOLE_MAX_ROWS+1); ++r) {
-			lines[r].changed = 1;
+			memset(lines[r].exposed,1,CONSOLE_MAX_COLS * sizeof(u_char));
 		}
 		pthread_mutex_unlock(&lines_mutex);
 	}
@@ -1328,7 +1312,7 @@ load_font(char *filename, int width, int height, int scale)
 
 	if(pfnt!=0)
 		x11.XFreePixmap(dpy,pfnt);
-	scaledfont=scale_bitmap(font, FW, FH*256, &FS);
+	scaledfont=scale_bitmap(font, FW, FH*256, &FontScale);
 	if(scaledfont==NULL)
 		pfnt=x11.XCreateBitmapFromData(dpy, win, font, FW, FH*256);
 	else {
@@ -1399,7 +1383,7 @@ init_mode(int mode)
     update_pixels();
 
     /* Update font. */
-    if(load_font(NULL,vmode.charwidth,vmode.charheight,FS)) {
+    if(load_font(NULL,vmode.charwidth,vmode.charheight,FontScale)) {
 		sem_post(&console_mode_changed);
 		return(-1);
 	}
