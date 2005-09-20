@@ -2,13 +2,13 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.71 2005/10/22 01:11:58 rswindell Exp $ */
+/* $Id: uifc.h,v 1.67 2005/09/20 03:51:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -52,12 +52,28 @@
 #if defined(__unix__)
 	#include <sys/param.h>	/* PATH_MAX */
 #endif
+#if (defined(__unix__) || defined(_WIN32)) && !defined(__FLAT__)
+    #define __FLAT__
+#endif
+
+#if defined(__FLAT__)
+	#define far
+#endif
+
+#if !defined(__FLAT__)
+    #include <bios.h>
+#endif
 
 #if defined(__unix__) && !defined(stricmp)
     #define stricmp strcasecmp
 	#define strnicmp strncasecmp
 #endif
 
+#define REALLOC realloc
+#define LMALLOC malloc
+#define MALLOC malloc
+#define LFREE free
+#define FREE free
 #if !defined(FREE_AND_NULL)
 	#define FREE_AND_NULL(x)			if(x!=NULL) { free(x); x=NULL; }
 #endif
@@ -74,15 +90,32 @@
 	#endif
 #endif
 
-#define MAX_OPTS	10000
-#define MSK_ON		0xf0000000
-#define MSK_OFF 	0x0fffffff
-#define MSK_INS 	0x10000000
-#define MSK_DEL 	0x20000000
-#define MSK_GET 	0x30000000
-#define MSK_PUT 	0x40000000
-#define MSK_EDIT 	0x50000000
-/* Dont forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
+#ifdef __DPMI32__
+	#define INT_86(i,j,k) int386(i,j,k)
+#else
+	#define INT_86(i,j,k) int86(i,j,k)
+#endif
+
+#ifdef __FLAT__
+	#define MAX_OPTS	10000
+	#define MSK_ON		0xf0000000
+	#define MSK_OFF 	0x0fffffff
+	#define MSK_INS 	0x10000000
+	#define MSK_DEL 	0x20000000
+	#define MSK_GET 	0x30000000
+	#define MSK_PUT 	0x40000000
+	#define MSK_EDIT 	0x50000000
+	/* Dont forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
+#else
+	#define MAX_OPTS	500 	/* Maximum number of options per menu call */
+	#define MSK_ON		0xf000
+	#define MSK_OFF 	0x0fff
+	#define MSK_INS 	0x1000
+	#define MSK_DEL 	0x2000
+	#define MSK_GET 	0x3000
+	#define MSK_PUT 	0x4000
+	#define MSK_EDIT 	0x5000
+#endif
 #define MAX_OPLN	75		/* Maximum length of each option per menu call */
 #define MAX_BUFS	7		/* Maximum number of screen buffers to save */
 #define MIN_LINES   14      /* Minimum number of screen lines supported */
@@ -93,9 +126,7 @@
 #define uint unsigned int
 #endif
 
-							/**************************/
                             /* Bits in uifcapi_t.mode */
-							/**************************/
 #define UIFC_INMSG	(1<<0)	/* Currently in Message Routine non-recursive */
 #define UIFC_MOUSE	(1<<1)	/* Mouse installed and available */
 #define UIFC_MONO	(1<<2)	/* Force monochrome mode */
@@ -103,10 +134,8 @@
 #define UIFC_IBM	(1<<4)	/* Force use of IBM charset	*/
 #define UIFC_NOCTRL	(1<<5)	/* Don't allow useage of CTRL keys for movement 
 							 * etc in menus (Still available in text boxes) */
-
-							/*******************************/
                             /* Bits in uifcapi_t.list mode */
-							/*******************************/
+
 #define WIN_ORG 	(1<<0)	/* Original menu - destroy valid screen area */
 #define WIN_SAV 	(1<<1)	/* Save existing text and replace when finished */
 #define WIN_ACT 	(1<<2)	/* Menu remains active after a selection */
@@ -171,8 +200,13 @@
 #define BL_DEL      (1<<1)  /* DEL key */
 #define BL_GET      (1<<2)  /* Get key */
 #define BL_PUT      (1<<3)  /* Put key */
+
+#define BL_INS      (1<<0)  /* INS key */
+#define BL_DEL      (1<<1)  /* DEL key */
+#define BL_GET      (1<<2)  /* Get key */
+#define BL_PUT      (1<<3)  /* Put key */
 #define BL_EDIT     (1<<4)  /* Edit key */
-#define BL_HELP     (1<<5)  /* Help key */
+
 
 #define HELPBUF_SIZE 4000
 
@@ -240,9 +274,25 @@ enum {
 #endif
 
 typedef struct {
-	int		left,top,right,bot;
-    uchar*	buf;
+	uint    left,top,right,bot;
+    uchar   *buf;
 } win_t;
+
+#if !defined(__FLAT__)
+    /* LCLOLL.ASM */
+    int lclini(int);
+    void lclxy(int,int);
+    int lclwx(void);
+    int lclwy(void);
+    int lclatr(int);
+    void lputc(int);
+    long lputs(char far *);
+#endif    
+
+#if defined(__OS2__) || !defined(__FLAT__)
+void mswait(int msecs);
+extern mswtyp;
+#endif
 
 typedef struct {
 /****************************************************************************/
@@ -302,7 +352,7 @@ typedef struct {
 /****************************************************************************/
 /* Colours for the various bits												*/
 /****************************************************************************/
-	uchar	hclr,lclr,bclr,cclr,lbclr;
+	char	hclr,lclr,bclr,cclr,lbclr;
 
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
@@ -366,31 +416,28 @@ typedef struct {
 /****************************************************************************/
 /* Shows a scrollable text buffer - optionally parsing "help markup codes"	*/
 /****************************************************************************/
-	void	(*showbuf)(int mode, int left, int top, int width, int height
-							,char *title, char *hbuf, int *curp, int *barp);
+	void (*showbuf)(int mode, int left, int top, int width, int height, char *title, char *hbuf, int *curp, int *barp);
 
 /****************************************************************************/
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-	void	(*timedisplay)(BOOL force);
+	void (*timedisplay)(BOOL force);
 
 /****************************************************************************/
 /* Displays the bottom line using the BL_* macros							*/
 /****************************************************************************/
-    void	(*bottomline)(int line);
+    void (*bottomline)(int line);
 
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
 /****************************************************************************/
-	int		(*getstrxy)(int left, int top, int width, char *outstr, int max
-							,long mode, int *lastkey);
+	int (*getstrxy)(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
 
 /****************************************************************************/
 /* Formatted print with attribute											*/
 /****************************************************************************/
-	int		(*printf)(int x, int y, unsigned attr, char *fmat, ...);
-
+	int (*printf)(int x, int y, unsigned char attr, char *fmat, ...);
 } uifcapi_t;
 
 /****************************************************************************/
