@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.58 2005/11/18 19:27:05 deuce Exp $ */
+/* $Id: console.c,v 1.52 2005/09/12 22:27:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,6 +117,7 @@
 
 #include "keys.h"
 #include "mouse.h"
+#include "vgafont.h"
 
 #define CONSOLE_MAX_ROWS	61
 #define CONSOLE_MAX_COLS	81
@@ -134,7 +135,6 @@ char *copybuf=NULL;
 char *pastebuf=NULL;
 sem_t	x11_beep;
 sem_t	x11_title;
-sem_t	x11_name;
 int InitCS;
 int InitCE;
 int FW, FH;
@@ -169,7 +169,6 @@ GC gc;
 GC cgc;
 int xfd;
 char window_title[81];
-char window_name[81];
 
 /* X functions */
 struct x11 {
@@ -199,7 +198,6 @@ struct x11 {
 	int		(*XChangeProperty)		(Display*, Window, Atom, Atom, int, int, _Xconst unsigned char*, int);
 	Status	(*XSendEvent)	(Display*, Window, Bool, long, XEvent*);
 	int		(*XSetSelectionOwner)	(Display*, Atom, Window, Time);	
-	int		(*XSetIconName)	(Display*, Window, _Xconst char *);
 };
 struct x11 x11;
 
@@ -1069,15 +1067,6 @@ video_event(XEvent *ev)
 }
 
 void
-mouse_event(void *crap)
-{
-	while(1) {
-		if(mouse_wait())
-			KbdWrite(CIO_KEY_MOUSE);
-	}
-}
-
-void
 video_async_event(void *crap)
 {
 	int x;
@@ -1118,8 +1107,6 @@ video_async_event(void *crap)
 					init_mode(console_new_mode);
 				while(!sem_trywait(&x11_beep))
 					x11.XBell(dpy, 0);
-				if(!sem_trywait(&x11_name))
-					x11.XSetIconName(dpy, win, window_name);
 				if(!sem_trywait(&x11_title))
 					x11.XStoreName(dpy, win, window_title);
 				if(!sem_trywait(&copybuf_set)) {
@@ -1295,8 +1282,6 @@ load_font(char *filename, int width, int height, int scale)
     XGCValues gcv;
 	char *font;
 	char *scaledfont;
-	char fontdata[256*16];
-	int	i,j;
 
 	/* I don't actually do this yet! */
 	if(filename != NULL) {
@@ -1324,21 +1309,6 @@ load_font(char *filename, int width, int height, int scale)
 	}
 	FW = width;
     FH = height;
-	memcpy(fontdata, font, height*256);
-	/* Swap bit order... leftmost bit is most significant, X11 wants it the
-	 * other way. */
-	for(i=0; i<256; i++) {
-		for(j=0; j<height; j++) {
-			fontdata[i*height+j]=		((fontdata[i*height+j] & 0x80) >> 7)
-						| ((fontdata[i*height+j] & 0x40) >> 5)
-						| ((fontdata[i*height+j] & 0x20) >> 3)
-						| ((fontdata[i*height+j] & 0x10) >> 1)
-						| ((fontdata[i*height+j] & 0x08) << 1)
-						| ((fontdata[i*height+j] & 0x04) << 3)
-						| ((fontdata[i*height+j] & 0x02) << 5)
-						| ((fontdata[i*height+j] & 0x01) << 7);
-		}
-	}
 
 	if(pfnt!=0)
 		x11.XFreePixmap(dpy,pfnt);
@@ -1520,13 +1490,8 @@ console_init()
 	x11.XChangeProperty=XChangeProperty;
 	x11.XSendEvent=XSendEvent;
 	x11.XSetSelectionOwner=XSetSelectionOwner;
-	x11.XSetIconName=XSetIconName;
-#else
-#if defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
-	if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))==NULL)
 #else
 	if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
-#endif
 		return(-1);
 	if((x11.XChangeGC=dlsym(dl,"XChangeGC"))==NULL) {
 		dlclose(dl);
@@ -1632,10 +1597,6 @@ console_init()
 		dlclose(dl);
 		return(-1);
 	}
-	if((x11.XSetIconName=dlsym(dl,"XSetIconName"))==NULL) {
-		dlclose(dl);
-		return(-1);
-	}
 #endif
 
 	sem_init(&console_mode_changed,0,0);
@@ -1644,7 +1605,6 @@ console_init()
 	sem_init(&pastebuf_set,0,0);
 	sem_init(&x11_beep,0,0);
 	sem_init(&x11_title,0,0);
-	sem_init(&x11_name,0,0);
 	pthread_mutex_init(&copybuf_mutex, NULL);
 	pthread_mutex_init(&lines_mutex, NULL);
 
@@ -1657,7 +1617,6 @@ console_init()
 	}
 
 	_beginthread(video_async_event,1<<16,NULL);
-	_beginthread(mouse_event,1<<16,NULL);
 	return(0);
 }
 
@@ -1715,20 +1674,26 @@ tty_read(int flag)
 		return(r & 0xff);
 	}
 
-	if (KbdEmpty()) {
+	if (KbdEmpty() && !mouse_pending()) {
 		if (flag & TTYF_BLOCK) {
-			while (KbdEmpty())
+			while (KbdEmpty() && !mouse_pending())
 			tty_pause();
 		} else {
 			return(-1);
 		}
     }
 
-   	r = KbdRead();
-   	if ((r & 0xff) == 0 || (r & 0xff) == 0xff)
-		x_nextchar = r >> 8;
-   	r &= 0xff;
-   	return(r & 0xff);
+	if(mouse_pending()) {
+		x_nextchar=CIO_KEY_MOUSE>>8;
+		return(CIO_KEY_MOUSE&0xff);
+	}
+	else {
+    	r = KbdRead();
+    	if ((r & 0xff) == 0)
+			x_nextchar = r >> 8;
+    	r &= 0xff;
+    	return(r & 0xff);
+	}
 }
 
 int
@@ -1766,10 +1731,4 @@ void x_win_title(const char *title)
 {
 	SAFECOPY(window_title,title);
 	sem_post(&x11_title);
-}
-
-void x_win_name(const char *name)
-{
-	SAFECOPY(window_name,name);
-	sem_post(&x11_name);
 }

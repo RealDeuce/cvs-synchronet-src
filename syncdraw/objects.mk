@@ -1,5 +1,4 @@
 OBJS = \
-			$(MTOBJODIR)$(DIRSEP)homedir$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)block$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)effekt$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)load$(OFILE) \
@@ -18,12 +17,10 @@ OBJS = \
 			$(MTOBJODIR)$(DIRSEP)key$(OFILE)
 
 FU-OBJS = \
-			$(MTOBJODIR)$(DIRSEP)homedir$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)fonts$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)fontutil$(OFILE)
 
 BF-OBJS	= \
-			$(MTOBJODIR)$(DIRSEP)homedir$(OFILE) \
 			$(OBJODIR)$(DIRSEP)fonts$(OFILE) \
 			$(OBJODIR)$(DIRSEP)buildfont$(OFILE)
 
