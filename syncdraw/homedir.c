@@ -1,8 +1,5 @@
 #include "dirwrap.h"
-
-#if defined(_WIN32)
 #include "shlobj.h"
-#endif
 
 char	HomeDir[MAX_PATH+1];
 
