@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.10 2005/06/16 06:40:38 deuce Exp $ */
+/* $Id: conn.c,v 1.13 2005/06/24 04:29:20 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -13,7 +13,7 @@
 
 static int	con_type=CONN_TYPE_UNKNOWN;
 SOCKET conn_socket=INVALID_SOCKET;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw",""};
+char *conn_types[]={"Unknown","RLogin","Telnet","Raw",NULL};
 
 int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 {
@@ -22,7 +22,7 @@ int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 	BYTE	*p;
 	BOOL	data_waiting;
 	static BYTE	*telnet_buf=NULL;
-	static int tbsize=0;
+	static size_t tbsize=0;
 
 	if(con_type == CONN_TYPE_TELNET) {
 		if(tbsize < buflen) {
@@ -109,7 +109,7 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int conn_connect(char *addr, int port, char *ruser, char *passwd, int conn_type, int speed)
+int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass, int conn_type, int speed)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
