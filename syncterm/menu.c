@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.21 2005/06/17 19:02:03 deuce Exp $ */
+/* $Id: menu.c,v 1.28 2005/08/08 21:22:43 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -32,12 +32,17 @@ void viewscroll(void)
 	drawwin();
 	top=cterm.backpos;
 	gotoxy(1,1);
+	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
 	for(i=0;!i;) {
 		if(top<1)
 			top=1;
 		if(top>cterm.backpos)
 			top=cterm.backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
+		cputs("Scrollback");
+		gotoxy(71,1);
+		cputs("Scrollback");
+		gotoxy(1,1);
 		key=getch();
 		switch(key) {
 			case 0xff:
@@ -64,7 +69,7 @@ void viewscroll(void)
 						top+=term.height;
 						break;
 					case CIO_KEY_F(1):
-						init_uifc();
+						init_uifc(FALSE, FALSE);
 						uifc.helpbuf=	"`Scrollback Buffer`\n\n"
 										"~ J ~ or ~ Up Arrow ~   Scrolls up one line\n"
 										"~ K ~ or ~ Down Arrow ~ Scrolls down one line\n"
@@ -112,6 +117,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"Zmodem Upload (Alt-U)"
 						,"Zmodem Download (Alt-D)"
 						,"Change Output Rate (Alt-Up/Alt-Down)"
+						,"Change Log Level"
+						,"Capture Control (Alt-C)"
 						,"Exit (Alt-X)"
 						,""};
 	int		opt=0;
@@ -131,7 +138,19 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	}
 
 	for(ret=0;!ret;) {
-		init_uifc();
+		init_uifc(FALSE, !(bbs->nostatus));
+		uifc.helpbuf=	"`Online Menu`\n\n"
+						"~ Scrollback ~         allows to you to view the scrollback buffer\n"
+						"~ Disconnect ~         disconnects the current session and returns to the\n"
+						"                     dialing list\n"
+						"~ Send Login ~         Sends the configured user and password pair separated\n"
+						"                     by a \\r\n"
+						"~ Zmodem Upload ~      Initiates a ZModem upload\n"
+						"~ Zmodem Download ~    Initiates a ZModem download\n"
+						"~ Change Output Rate ~ Changes the speed charaters are output to the screen\n"
+						"~ Change Log Level ~   Changes the minimum log leve for ZModem information\n"
+						"~ Capture Control ~    Enables/Disables screen capture\n"
+						"~ Exit ~               Disconnects and closes the Syncterm";
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
 			case -1:	/* Cancel */
@@ -152,15 +171,35 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				SLEEP(10);
 				conn_send(bbs->password,strlen(bbs->password),0);
 				conn_send("\r",1,0);
+				if(bbs->syspass[0]) {
+					SLEEP(10);
+					conn_send(bbs->syspass,strlen(bbs->syspass),0);
+					conn_send("\r",1,0);
+				}
 				break;
 			case 5:		/* Output rate */
 				if(speed != NULL) {
 					j=get_rate_num(*speed);
+					uifc.helpbuf="`Output Rate`\n\n"
+							"The output rate is the rate in emulated \"bits per second\" to draw incoming\n"
+							"data on the screen.  This rate is a maximum, not guaranteed to be attained\n"
+							"In general, you will only use this option for ANSI animations.";
 					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Output Rate",rate_names);
 					if(i>=0)
 						*speed = rates[i];
 				}
 				ret=5;
+				break;
+			case 6:		/* Change log level (temporarily) */
+				j=log_level;
+				uifc.helpbuf="`Log Level\n\n"
+						"The log level changes the verbosity of messages shown in the transfer\n"
+						"window.  For the selected log level, messages of that level and those above\n"
+						"it will be displayed.";
+				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Log Level",log_levels);
+				if(i>=0)
+					log_level = j;
+				ret=6;
 				break;
 			default:
 				ret=i;
