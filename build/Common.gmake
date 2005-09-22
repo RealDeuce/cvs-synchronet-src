@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.46 2005/10/13 02:11:02 deuce Exp $
+# $Id: Common.gmake,v 1.43 2005/09/12 23:16:01 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -221,8 +221,6 @@ ifeq ($(os),openbsd)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
-  CFLAGS +=	-Wno-long-double
-  RANLIB +=	-s
  endif
 endif
 
@@ -284,22 +282,6 @@ else
     endif
    endif
   endif
- endif
-endif
-
-SHLIBOPTS   :=  -shared
-ifeq ($(os),darwin)
- MKSHLIB        :=  libtool -dynamic -framework System -lcc_dynamic
- MKSHPPLIB      :=  libtool -dynamic -framework System -lcc_dynamic -lstdc++
- SHLIBOPTS  :=
-else
- ifeq ($(os),sunos)
-  MKSHLIB       :=  /usr/ccs/bin/ld -G
-  MKSHPPLIB     :=  /usr/ccs/bin/ld -G
-  SHLIBOPTS :=
- else
-  MKSHLIB       :=  $(CC)
-  MKSHPPLIB     :=  $(CXX)
  endif
 endif
 
