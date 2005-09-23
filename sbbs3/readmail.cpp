@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.34 2005/01/05 01:43:50 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.37 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -131,7 +131,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			if((long)(smb.curmsg=getnum(smb.msgs))>0)
 				smb.curmsg--;
 			else if((long)smb.curmsg==-1) {
-				FREE(mail);
+				free(mail);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
 				return; } }
@@ -179,7 +179,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 		if(smb.status.last_msg!=last) { 	/* New messages */
 			last=smb.status.last_msg;
-			FREE(mail);
+			free(mail);
 			mail=loadmail(&smb,&smb.msgs,usernumber,which,lm_mode);   /* So re-load */
 			if(!smb.msgs)
 				break;
@@ -194,7 +194,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			if(mismatches>5) {	/* We can't do this too many times in a row */
 				errormsg(WHERE,ERR_CHK,"message number",mail[smb.curmsg].number);
 				break; }
-			FREE(mail);
+			free(mail);
 			mail=loadmail(&smb,&smb.msgs,usernumber,which,lm_mode);
 			if(!smb.msgs)
 				break;
@@ -237,9 +237,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 						sprintf(str3,text[DownloadAttachedFileQ]
 							,tp,ultoac(length,tmp));
 						if(length>0L && yesno(str3)) {
+#if 0	/* no such thing as local logon */
 							if(online==ON_LOCAL) {
 								bputs(text[EnterPath]);
-								if(getstr(str3,60,K_LINE|K_UPPER)) {
+								if(getstr(str3,60,K_LINE)) {
 									backslashcolon(str3);
 									sprintf(tmp,"%s%s",str3,tp);
 									if(!mv(str2,tmp,which!=MAIL_YOUR)) {
@@ -252,7 +253,9 @@ void sbbs_t::readmail(uint usernumber, int which)
 										bprintf(text[FileNBytesSent]
 											,fd.name,ultoac(length,tmp)); } } }
 
-							else {	/* Remote User */
+							else 
+#endif
+							{	/* Remote User */
 								xfer_prot_menu(XFER_DOWNLOAD);
 								mnemonics(text[ProtocolOrQuit]);
 								strcpy(str3,"Q");
@@ -608,7 +611,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					break;
 	*/
 				bputs(text[FileToWriteTo]);
-				if(getstr(str,40,K_LINE|K_UPPER))
+				if(getstr(str,40,K_LINE))
 					msgtotxt(&msg,str,1,1);
 				break;
 			case 'E':
@@ -685,7 +688,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 		smb_freemsgmem(&msg);
 
 	if(smb.msgs)
-		FREE(mail);
+		free(mail);
 
 	/***************************************/
 	/* Delete messages marked for deletion */

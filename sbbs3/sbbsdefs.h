@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.129 2005/04/28 00:19:37 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.135 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,19 +44,20 @@
 #include "nodedefs.h"	/* node_t */
 #include "fidodefs.h"	/* fmsghdr_t, fpkthdr_t, FIDO_*, etc. */
 #include "xpbeep.h"		/* BEEP() */
+#include "str_list.h"	/* str_list_t */
 
 /*************/
 /* Constants */
 /*************/
 
-#define VERSION 	"3.12"  /* Version: Major.minor  */
-#define REVISION	'b'     /* Revision: lowercase letter */
+#define VERSION 	"3.13"  /* Version: Major.minor  */
+#define REVISION	'a'     /* Revision: lowercase letter */
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2004 Rob Swindell"
-#define COPYRIGHT_CRC		0x0004A86C
+#define COPYRIGHT_NOTICE	"Copyright 2005 Rob Swindell"
+#define COPYRIGHT_CRC		0x9D0B491A
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -82,13 +83,10 @@ typedef struct {
 	ulong	gc_attempts;
 	BOOL	auto_terminate;
 	BOOL*	terminated;
+	str_list_t	exit_func;
 } js_branch_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
-
-#ifndef __FLAT__
-#define __FLAT__	/* 32-bit "flat" memory model */
-#endif
 
 /************/
 /* Maximums */
@@ -684,6 +682,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_OPENCLOSE (1<<3)		/* Open and close the file					*/
 #define P_NOPAUSE	(1<<4)		/* Disable screen pause						*/
 #define P_HTML		(1<<5)		/* Message is HTML							*/
+#define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
 								
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
