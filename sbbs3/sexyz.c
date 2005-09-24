@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.70 2005/09/18 18:56:42 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.71 2005/09/24 20:31:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -136,8 +136,8 @@ void resetterm(void)
 
 #ifdef _WINSOCKAPI_
 
-WSADATA WSAData;
-static BOOL WSAInitialized=FALSE;
+/* Note: Don't call WSACleanup() or TCP session will close! */
+WSADATA WSAData;	
 
 static BOOL winsock_startup(void)
 {
@@ -145,7 +145,6 @@ static BOOL winsock_startup(void)
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
 		fprintf(statfp,"%s %s\n",WSAData.szDescription, WSAData.szSystemStatus);
-		WSAInitialized=TRUE;
 		return(TRUE);
 	}
 
@@ -1220,11 +1219,6 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
-#if defined(_WINSOCKAPI_)
-	if(WSAInitialized && WSACleanup()!=0) 
-		lprintf(LOG_ERR,"WSACleanup ERROR: %d",ERROR_VALUE);
-#endif
-
 	if(logfp!=NULL)
 		fclose(logfp);
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
@@ -1293,7 +1287,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.70 $", "%*s %s", revision);
+	sscanf("$Revision: 1.71 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
