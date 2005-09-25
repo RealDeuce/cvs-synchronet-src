@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.48 2005/05/19 23:54:16 deuce Exp $ */
+/* $Id: win32cio.c,v 1.49 2005/09/25 21:01:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,6 +212,8 @@ int win32_getchcode(WORD code, DWORD state)
 				return(keyval[i].CTRL);
 			if(state & (SHIFT_PRESSED))
 				return(keyval[i].Shift);
+			if((state & (CAPSLOCK_ON)) && isalpha(keyval[i].Key))
+				return(keyval[i].Shift);
 			return(keyval[i].Key);
 		}
 	}
@@ -256,8 +258,12 @@ int win32_keyboardio(int isgetch)
 
 		switch(input.EventType) {
 			case KEY_EVENT:
-				if(input.Event.KeyEvent.bKeyDown)
-					lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
+				if(input.Event.KeyEvent.bKeyDown) {
+					if(state & (RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED|RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED|ENHANCED_KEY))
+						lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
+					else
+						lastch=input.Event.KeyEvent.uChar.AsciiChar;
+				}
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {
