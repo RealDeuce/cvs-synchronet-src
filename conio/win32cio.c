@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.51 2005/09/25 21:10:36 deuce Exp $ */
+/* $Id: win32cio.c,v 1.52 2005/09/25 21:21:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -210,10 +210,14 @@ int win32_getchcode(WORD code, DWORD state)
 				return(keyval[i].ALT);
 			if(state & (RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED))
 				return(keyval[i].CTRL);
-			if(state & (SHIFT_PRESSED))
-				return(keyval[i].Shift);
-			if((state & (CAPSLOCK_ON)) && isalpha(keyval[i].Key))
-				return(keyval[i].Shift);
+			if((state & (CAPSLOCK_ON)) && isalpha(keyval[i].Key)) {
+				if(!(state & (SHIFT_PRESSED))
+					return(keyval[i].Shift);
+			}
+			else {
+				if(state & (SHIFT_PRESSED))
+					return(keyval[i].Shift);
+			}
 			return(keyval[i].Key);
 		}
 	}
