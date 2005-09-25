@@ -1,5 +1,5 @@
 /*
- * $Id: xpsem.c,v 1.12 2005/10/21 21:44:23 deuce Exp $
+ * $Id: xpsem.c,v 1.10 2005/09/12 23:24:38 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -37,7 +37,6 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include "gen_defs.h"
-#include "genwrap.h"
 
 int
 xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
@@ -82,8 +81,7 @@ xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
 	}
 
 	if (pthread_cond_init(&(*sem)->gtzero, NULL) != 0) {
-		while(pthread_mutex_destroy(&(*sem)->lock)==EBUSY)
-			SLEEP(1);
+		pthread_mutex_destroy(&(*sem)->lock);
 		free(*sem);
 		errno = ENOSPC;
 		retval = -1;
@@ -116,10 +114,8 @@ xp_sem_destroy(xp_sem_t *sem)
 	}
 	pthread_mutex_unlock(&(*sem)->lock);
 	
-	while(pthread_mutex_destroy(&(*sem)->lock)==EBUSY)
-		SLEEP(1);
-	while(pthread_cond_destroy(&(*sem)->gtzero)==EBUSY)
-		SLEEP(1);
+	pthread_mutex_destroy(&(*sem)->lock);
+	pthread_cond_destroy(&(*sem)->gtzero);
 	(*sem)->magic = 0;
 
 	free(*sem);
