@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.15 2005/06/03 17:55:12 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.16 2005/09/05 21:54:28 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -59,14 +59,14 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 
 	if(inlen<1) {
 		*outlen=0;
-		return(inbuf);	// no length? No interpretation
+		return(inbuf);	/* no length? No interpretation */
 	}
 
     first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
 
     if(!telnet_cmdlen	&& first_iac==NULL) {
         *outlen=inlen;
-        return(inbuf);	// no interpretation needed
+        return(inbuf);	/* no interpretation needed */
     }
 
     if(first_iac!=NULL) {
