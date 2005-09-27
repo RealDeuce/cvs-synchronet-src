@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.340 2005/09/27 16:13:04 deuce Exp $ */
+/* $Id: websrvr.c,v 1.341 2005/09/27 18:22:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -866,17 +866,26 @@ static BOOL send_headers(http_session_t *session, const char *status)
 	char	*headers;
 	char	header[MAX_REQUEST_LINE+1];
 
-	if(session->socket==INVALID_SOCKET)
+	if(session->socket==INVALID_SOCKET) {
+		session->req.sent_headers=TRUE;
 		return(FALSE);
+	}
 	lprintf(LOG_DEBUG,"%04d Request resolved to: %s"
 		,session->socket,session->req.physical_path);
 	if(session->http_ver <= HTTP_0_9) {
+		session->req.sent_headers=TRUE;
 		if(session->req.ld != NULL)
 			session->req.ld->status=atoi(status);
 		return(TRUE);
 	}
-
+	headers=malloc(MAX_HEADERS_SIZE);
+	if(headers==NULL)  {
+		lprintf(LOG_CRIT,"Could not allocate memory for response headers.");
+		return(FALSE);
+	}
+	*headers=0;
 	if(!session->req.sent_headers) {
+		session->req.sent_headers=TRUE;
 		status_line=status;
 		ret=stat(session->req.physical_path,&stats);
 		if(session->req.method==HTTP_OPTIONS)
@@ -900,12 +909,6 @@ static BOOL send_headers(http_session_t *session, const char *status)
 		if(session->req.ld!=NULL)
 			session->req.ld->status=atoi(status_line);
 
-		headers=malloc(MAX_HEADERS_SIZE);
-		if(headers==NULL)  {
-			lprintf(LOG_CRIT,"Could not allocate memory for response headers.");
-			return(FALSE);
-		}
-		*headers=0;
 		/* Status-Line */
 		safe_snprintf(header,sizeof(header),"%s %s",http_vers[session->http_ver],status_line);
 
@@ -1621,7 +1624,6 @@ static BOOL parse_headers(http_session_t * session)
 					}
 					break;
 				case HEAD_TRANSFER_ENCODING:
-					/* don't actuallty support it yet... */
 					if(!stricmp(value,"chunked"))
 						session->req.read_chunked=TRUE;
 					else
@@ -3226,17 +3228,18 @@ static BOOL ssjs_send_headers(http_session_t* session)
 	SAFECOPY(session->req.status,JS_GetStringBytes(JSVAL_TO_STRING(val)));
 	JS_GetProperty(session->js_cx,reply,"header",&val);
 	headers = JSVAL_TO_OBJECT(val);
-	heads=JS_Enumerate(session->js_cx,headers);
-	for(i=0;i<heads->length;i++)  {
-		JS_IdToValue(session->js_cx,heads->vector[i],&val);
-		js_str=JSVAL_TO_STRING(val);
-		JS_GetProperty(session->js_cx,headers,JS_GetStringBytes(js_str),&val);
-		safe_snprintf(str,sizeof(str),"%s: %s"
-			,JS_GetStringBytes(js_str),JS_GetStringBytes(JSVAL_TO_STRING(val)));
-		strListPush(&session->req.dynamic_heads,str);
+	if(JS_IsArrayObject(session->js_cx, headers)) {
+		heads=JS_Enumerate(session->js_cx,headers);
+		for(i=0;i<heads->length;i++)  {
+			JS_IdToValue(session->js_cx,heads->vector[i],&val);
+			js_str=JSVAL_TO_STRING(val);
+			JS_GetProperty(session->js_cx,headers,JS_GetStringBytes(js_str),&val);
+			safe_snprintf(str,sizeof(str),"%s: %s"
+				,JS_GetStringBytes(js_str),JS_GetStringBytes(JSVAL_TO_STRING(val)));
+			strListPush(&session->req.dynamic_heads,str);
+		}
+		JS_SetArrayLength(session->js_cx, headers, 0);
 	}
-	JS_DestroyIdArray(session->js_cx, heads);
-	session->req.sent_headers=TRUE;
 	return(send_headers(session,session->req.status));
 }
 
@@ -3658,7 +3661,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.340 $", "%*s %s", revision);
+	sscanf("$Revision: 1.341 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
