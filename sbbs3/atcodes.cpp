@@ -2,13 +2,13 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.42 2004/09/08 03:34:56 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.45 2005/09/01 09:44:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -52,6 +52,7 @@ int sbbs_t::show_atcode(char *instr)
 {
 	char	str[128],str2[128],*p,*tp,*sp;
     int     len;
+	int		disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
 
@@ -66,21 +67,25 @@ int sbbs_t::show_atcode(char *instr)
 	(*tp)=0;
 	sp=(str+1);
 
+	disp_len=len;
 	if((p=strstr(sp,"-L"))!=NULL)
 		padded_left=true;
 	else if((p=strstr(sp,"-R"))!=NULL)
 		padded_right=true;
-	if(p!=NULL)
+	if(p!=NULL) {
+		if(*(p+2) && isdigit(*(p+2)))
+			disp_len=atoi(p+2);
 		*p=0;
+	}
 
 	p=atcode(sp,str2);
 	if(p==NULL)
 		return(0);
 
 	if(padded_left)
-		rprintf("%-*.*s",len,len,p);
+		rprintf("%-*.*s",disp_len,disp_len,p);
 	else if(padded_right)
-		rprintf("%*.*s",len,len,p);
+		rprintf("%*.*s",disp_len,disp_len,p);
 	else
 		rputs(p);
 
@@ -594,6 +599,11 @@ char* sbbs_t::atcode(char* sp, char* str)
 
 	if(!strncmp(sp,"TYPE:",5)) {
 		printfile(cmdstr(sp+5,nulstr,nulstr,str),0);
+		return(nulstr);
+	}
+
+	if(!strncmp(sp,"INCLUDE:",5)) {
+		printfile(cmdstr(sp+8,nulstr,nulstr,str),P_NOCRLF|P_SAVEATR);
 		return(nulstr);
 	}
 
