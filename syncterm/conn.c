@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.11 2005/06/21 05:09:28 deuce Exp $ */
+/* $Id: conn.c,v 1.13 2005/06/24 04:29:20 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -22,7 +22,7 @@ int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 	BYTE	*p;
 	BOOL	data_waiting;
 	static BYTE	*telnet_buf=NULL;
-	static int tbsize=0;
+	static size_t tbsize=0;
 
 	if(con_type == CONN_TYPE_TELNET) {
 		if(tbsize < buflen) {
@@ -109,7 +109,7 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int conn_connect(char *addr, int port, char *ruser, char *passwd, int conn_type, int speed)
+int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass, int conn_type, int speed)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
