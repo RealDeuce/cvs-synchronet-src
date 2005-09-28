@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.83 2005/09/28 02:07:08 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.84 2005/09/28 08:25:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,11 +61,13 @@ void iniSetDefaultStyle(ini_style_t style)
 	default_style = style;
 }
 
-char* log_levels[] = {"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
+/* These correlate with the LOG_* definitions in syslog.h/gen_defs.h */
+static char* logLevelStringList[] 
+	= {"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Informational", "Debugging", NULL};
 
 str_list_t iniLogLevelStringList(void)
 {
-	return(log_levels);
+	return(logLevelStringList);
 }
 
 static char* section_name(char* p)
@@ -1329,8 +1331,14 @@ static unsigned parseEnum(const char* value, str_list_t names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i]!=NULL;i++)
 		if(stricmp(names[i],value)==0)
+			return(i);
+
+	/* Look for partial matches second */
+	for(i=0;names[i]!=NULL;i++)
+		if(strnicmp(names[i],value,strlen(value))==0)
 			return(i);
 
 	return(strtoul(value,NULL,0));
@@ -1366,8 +1374,14 @@ static long parseNamedInt(const char* value, named_long_t* names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i].name!=NULL;i++)
 		if(stricmp(names[i].name,value)==0)
+			return(names[i].value);
+
+	/* Look for partial matches second */
+	for(i=0;names[i].name!=NULL;i++)
+		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
 	return(strtol(value,NULL,0));
@@ -1405,8 +1419,14 @@ static double parseNamedFloat(const char* value, named_double_t* names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i].name!=NULL;i++)
 		if(stricmp(names[i].name,value)==0)
+			return(names[i].value);
+
+	/* Look for partial matches second */
+	for(i=0;names[i].name!=NULL;i++)
+		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
 	return(atof(value));
