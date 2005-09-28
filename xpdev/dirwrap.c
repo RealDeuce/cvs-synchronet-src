@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.53 2005/09/28 20:02:11 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.54 2005/09/28 20:03:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -882,7 +882,8 @@ BOOL DLLCALL wildmatch(const char *fname, const char *spec, BOOL path)
 					return(TRUE);
 				break;
 			case '*':
-				specp++;
+				while(*specp=='*')
+					specp++;
 				for(;*fnamep!=*specp && *fnamep;fnamep++) {
 					if(path && IS_PATH_DELIM(*fnamep))
 						return(FALSE);
