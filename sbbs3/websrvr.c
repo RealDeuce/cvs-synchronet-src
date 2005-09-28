@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.343 2005/09/28 22:20:16 deuce Exp $ */
+/* $Id: websrvr.c,v 1.344 2005/09/28 22:22:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2102,18 +2102,18 @@ static BOOL check_request(http_session_t * session)
 			/* Truncate at \r or \n - can use last_slash since I'm done with it.*/
 			truncsp(session->req.ars);
 		}
-		sprintf(str,"%swebcontrol.ini",curdir);
+		sprintf(str,"%swebctrl.ini",curdir);
 		if(!stat(str,&sb)) {
-			/* NEVER serve up a webcontrol.ini file */
+			/* NEVER serve up a webctrl.ini file */
 			if(!strcmp(path,str)) {
 				send_error(session,"403 Forbidden");
 				return(FALSE);
 			}
-			/* Read webcontrol.ars file */
+			/* Read webctrl.ars file */
 			if((file=fopen(str,"r"))!=NULL) {
 				specs=iniReadSectionList(file,NULL);
 				/* Read in globals */
-				if(iniReadString(file, NULL, "ARS", session->req.ars,str)==str)
+				if(iniReadString(file, NULL, "AccessRequirements", session->req.ars,str)==str)
 					SAFECOPY(session->req.ars,str);
 				if(iniReadString(file, NULL, "Realm", scfg.sys_name,str)==str)
 					session->req.realm=strdup(str);
@@ -2129,7 +2129,7 @@ static BOOL check_request(http_session_t * session)
 				/* Read in per-filespec */
 				while((spec=strListPop(&specs))!=NULL) {
 					if(wildmatch(filename,spec,TRUE)) {
-						if(iniReadString(file, spec, "ARS", session->req.ars,str)==str)
+						if(iniReadString(file, spec, "AccessRequirements", session->req.ars,str)==str)
 							SAFECOPY(session->req.ars,str);
 						if(iniReadString(file, spec, "Realm", scfg.sys_name,str)==str)
 							session->req.realm=strdup(str);
@@ -2148,7 +2148,7 @@ static BOOL check_request(http_session_t * session)
 				fclose(file);
 			}
 			else  {
-				/* If cannot open webcontrol.ars, only allow sysop access */
+				/* If cannot open webctrl.ars, only allow sysop access */
 				SAFECOPY(session->req.ars,"LEVEL 90");
 				break;
 			}
@@ -3736,7 +3736,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.343 $", "%*s %s", revision);
+	sscanf("$Revision: 1.344 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
