@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.82 2005/09/18 00:54:45 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.83 2005/09/28 02:07:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,13 @@ static ini_style_t default_style;
 void iniSetDefaultStyle(ini_style_t style)
 {
 	default_style = style;
+}
+
+char* log_levels[] = {"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
+
+str_list_t iniLogLevelStringList(void)
+{
+	return(log_levels);
 }
 
 static char* section_name(char* p)
