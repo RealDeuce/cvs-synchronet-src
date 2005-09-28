@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.50 2005/06/22 06:52:41 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.52 2005/09/05 21:54:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -453,16 +453,16 @@ BOOL DLLCALL fexist(const char *filespec)
 	if(access(filespec,0)==-1 && !strchr(filespec,'*') && !strchr(filespec,'?'))
 		return(FALSE);
 
-    // start the search
+    /* start the search */
     glob(filespec, GLOB_MARK | GLOB_NOSORT, NULL, &g);
 
     if (!g.gl_pathc) {
-	    // no results
+	    /* no results */
     	globfree(&g);
     	return FALSE;
     }
 
-    // make sure it's not a directory
+    /* make sure it's not a directory */
 	c = g.gl_pathc;
     while (c--) {
     	if (*lastchar(g.gl_pathv[c]) != '/') {
@@ -575,7 +575,11 @@ BOOL DLLCALL isdir(const char *filename)
 			*p=0;
 	}
 
+#if defined(__BORLANDC__) && !defined(__unix__)	/* stat() doesn't work right */
+	if(stat(path, &st)!=0 || strchr(path,'*')!=NULL || strchr(path,'?')!=NULL)
+#else
 	if(stat(path, &st)!=0)
+#endif
 		return(FALSE);
 
 	return(S_ISDIR(st.st_mode) ? TRUE : FALSE);
@@ -628,7 +632,7 @@ ulong DLLCALL delfiles(char *inpath, char *spec)
 	for(i=0;i<g.gl_pathc;i++) {
 		if(isdir(g.gl_pathv[i]))
 			continue;
-		CHMOD(g.gl_pathv[i],S_IWRITE);	// Incase it's been marked RDONLY
+		CHMOD(g.gl_pathv[i],S_IWRITE);	/* Incase it's been marked RDONLY */
 		if(remove(g.gl_pathv[i])==0)
 			files++;
 	}
@@ -676,10 +680,10 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
  
 	if (GetDiskFreeSpaceEx!=NULL) {	/* Windows 95-OSR2 or later */
 		if(!GetDiskFreeSpaceEx(
-			path,		// pointer to the directory name
-			&avail,		// receives the number of bytes on disk avail to the caller
-			&size,		// receives the number of bytes on disk
-			NULL))		// receives the free bytes on disk
+			path,		/* pointer to the directory name */
+			&avail,		/* receives the number of bytes on disk avail to the caller */
+			&size,		/* receives the number of bytes on disk */
+			NULL))		/* receives the free bytes on disk */
 			return(0);
 
 		if(unit>1)
@@ -702,11 +706,11 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 	/* Windows 95 (old way), limited to 2GB */
 	sprintf(root,"%.3s",path);
 	if(!GetDiskFreeSpace(
-		root,					// pointer to root path
-		&SectorsPerCluster,		// pointer to sectors per cluster
-		&BytesPerSector,		// pointer to bytes per sector
-		&NumberOfFreeClusters,	// pointer to number of free clusters
-		&TotalNumberOfClusters  // pointer to total number of clusters
+		root,					/* pointer to root path */
+		&SectorsPerCluster,		/* pointer to sectors per cluster */
+		&BytesPerSector,		/* pointer to bytes per sector */
+		&NumberOfFreeClusters,	/* pointer to number of free clusters */
+		&TotalNumberOfClusters  /* pointer to total number of clusters */
 		))
 		return(0);
 

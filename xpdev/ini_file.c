@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.71 2005/06/22 09:04:20 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.84 2005/09/28 08:25:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,9 +38,11 @@
 #include <stdlib.h>		/* strtol */
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
+#include <math.h>		/* fmod */
 #if !defined(NO_SOCKET_SUPPORT)
 	#include "sockwrap.h"	/* inet_addr */
 #endif
+#include "datewrap.h"	/* isoDateTime_t */
 #include "dirwrap.h"	/* fexist */
 #include "filewrap.h"	/* chsize */
 #include "ini_file.h"
@@ -53,6 +55,20 @@
 #define INI_NEW_SECTION			((char*)~0)
 
 static ini_style_t default_style;
+
+void iniSetDefaultStyle(ini_style_t style)
+{
+	default_style = style;
+}
+
+/* These correlate with the LOG_* definitions in syslog.h/gen_defs.h */
+static char* logLevelStringList[] 
+	= {"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Informational", "Debugging", NULL};
+
+str_list_t iniLogLevelStringList(void)
+{
+	return(logLevelStringList);
+}
 
 static char* section_name(char* p)
 {
@@ -313,26 +329,41 @@ BOOL iniRenameSection(str_list_t* list, const char* section, const char* newname
 	return(strListReplace(*list, i, str)!=NULL);
 }
 
-size_t iniAddSection(str_list_t* list, const char* section
-					,ini_style_t* style)
+static size_t ini_add_section(str_list_t* list, const char* section
+					,ini_style_t* style, size_t index)
 {
 	char	str[INI_MAX_LINE_LEN];
-	size_t	i;
 
 	if(section==ROOT_SECTION)
 		return(0);
 
-	i=find_section_index(*list, section);
-	if((*list)[i]==NULL) {
-		if(style==NULL)
-			style=&default_style;
-		if(style->section_separator!=NULL)
-			strListAppend(list, style->section_separator, i++);
-		SAFEPRINTF(str,"[%s]",section);
-		strListAppend(list, str, i);
-	}
+	if((*list)[index]!=NULL)
+		return(index);
 
-	return(i);
+	if(style==NULL)
+		style=&default_style;
+	if(index > 0 && style->section_separator!=NULL)
+		strListAppend(list, style->section_separator, index++);
+	SAFEPRINTF(str,"[%s]",section);
+	strListAppend(list, str, index);
+
+	return(index);
+}
+
+size_t iniAddSection(str_list_t* list, const char* section, ini_style_t* style)
+{
+	if(section==ROOT_SECTION)
+		return(0);
+
+	return ini_add_section(list,section,style,find_section_index(*list, section));
+}
+
+size_t iniAppendSection(str_list_t* list, const char* section, ini_style_t* style)
+{
+	if(section==ROOT_SECTION)
+		return(0);
+
+	return ini_add_section(list,section,style,strListCount(*list));
 }
 
 char* iniSetString(str_list_t* list, const char* section, const char* key, const char* value
@@ -420,16 +451,32 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 	char	str[INI_MAX_VALUE_LEN];
 	double	bytes;
 
-	bytes=value*unit;
+	switch(unit) {
+		case 1024*1024*1024:
+			SAFEPRINTF(str,"%luG",value);
+			break;
+		case 1024*1024:
+			SAFEPRINTF(str,"%luM",value);
+			break;
+		case 1024:
+			SAFEPRINTF(str,"%luK",value);
+			break;
+		default:
+			if(unit<1)
+				unit=1;
+			bytes=value*unit;
 
-	if(bytes>=(1024*1024*1024))
-		SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
-	else if(bytes>=(1024*1024))
-		SAFEPRINTF(str,"%gM",bytes/(1024*1024));
-	else if(bytes>=(100*1024) || ((ulong)bytes%(1024))==0)
-		SAFEPRINTF(str,"%gK",bytes/1024);
-	else
-		SAFEPRINTF(str,"%g",bytes);
+			if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
+				SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+			else if(fmod(bytes,1024*1024*1024)==0)
+				SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
+			else if(fmod(bytes,1024*1024)==0)
+				SAFEPRINTF(str,"%gM",bytes/(1024*1024));
+			else if(fmod(bytes,1024)==0)
+				SAFEPRINTF(str,"%gK",bytes/1024);
+			else
+				SAFEPRINTF(str,"%lu",(ulong)bytes);
+	}
 
 	return iniSetString(list, section, key, str, style);
 }
@@ -454,9 +501,12 @@ char* iniSetDateTime(str_list_t* list, const char* section, const char* key
 					 ,BOOL include_time, time_t value, ini_style_t* style)
 {
 	char	str[INI_MAX_VALUE_LEN];
+	char	tstr[32];
 	char*	p;
 
-	if((p=ctime(&value))==NULL)
+	if(value==0)
+		SAFECOPY(str,"Never");
+	else if((p=CTIME_R(&value,tstr))==NULL)
 		SAFEPRINTF(str,"0x%lx",value);
 	else if(!include_time)	/* reformat into "Mon DD YYYY" */
 		safe_snprintf(str,sizeof(str),"%.3s %.2s %.4s"		,p+4,p+8,p+20);
@@ -781,7 +831,7 @@ str_list_t iniGetKeyList(str_list_t list, const char* section)
 	if(list==NULL)
 		return(lp);
 
-	for(i=find_section(list,section);list[i]==NULL;i++) {
+	for(i=find_section(list,section);list[i]!=NULL;i++) {
 		SAFECOPY(str,list[i]);
 		if((p=key_name(str,&vp))==NULL)
 			continue;
@@ -967,7 +1017,7 @@ static ulong parseBytes(const char* value, ulong unit)
 				break;
 		}
 	}
-	return((ulong)(bytes/unit));
+	return((ulong)(unit>1 ? (bytes/unit):bytes));
 }
 
 ulong iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, ulong deflt)
@@ -1137,10 +1187,18 @@ BOOL iniGetBool(str_list_t list, const char* section, const char* key, BOOL defl
 	return(parseBool(value));
 }
 
+static BOOL validDate(struct tm* tm)
+{
+	return(tm->tm_mon && tm->tm_mon<=12 
+		&& tm->tm_mday && tm->tm_mday<=31);
+}
+
 static time_t fixedDateTime(struct tm* tm, const char* tstr, char pm)
 {
 	if(tm->tm_year<70)
 		tm->tm_year+=100;	/* 05 == 2005 (not 1905) and 70 == 1970 (not 2070) */
+	else if(tm->tm_year>1900)
+		tm->tm_year-=1900;
 	if(tm->tm_mon)
 		tm->tm_mon--;		/* zero-based month field */
 
@@ -1148,6 +1206,8 @@ static time_t fixedDateTime(struct tm* tm, const char* tstr, char pm)
 	sscanf(tstr,"%u:%u:%u",&tm->tm_hour,&tm->tm_min,&tm->tm_sec);
 	if(tm->tm_hour < 12 && (toupper(pm)=='P' || strchr(tstr,'p') || strchr(tstr,'P')))
 		tm->tm_hour += 12;	/* pm, correct for 24 hour clock */
+
+	tm->tm_isdst=-1;	/* auto-detect */
 
 	return(mktime(tm));
 }
@@ -1162,7 +1222,7 @@ static int getMonth(const char* month)
 		if(strnicmp(month,mon[i],3)==0)
 			return(i+1);
 
-	return(0);
+	return(atoi(month));
 }
 
 static time_t parseDateTime(const char* value)
@@ -1172,39 +1232,71 @@ static time_t parseDateTime(const char* value)
 	char	pm=0;
 	time_t	t;
 	struct tm tm;
-	struct tm* curr_tm;
+	struct tm curr_tm;
+	isoDate_t	isoDate;
+	isoTime_t	isoTime;
 
 	ZERO_VAR(tm);
 	tstr[0]=0;
 
 	/* Use current month and year as default */
 	t=time(NULL);
-	if((curr_tm=gmtime(&t))!=NULL) {	
-		tm.tm_mon=curr_tm->tm_mon+1;	/* convert to one-based (reversed later) */
-		tm.tm_year=curr_tm->tm_year;
+	if(localtime_r(&t,&curr_tm)!=NULL) {	
+		tm.tm_mon=curr_tm.tm_mon+1;	/* convert to one-based (reversed later) */
+		tm.tm_year=curr_tm.tm_year;
 	}
 
-	/* DD.MM.[CC]YY [time] [p] */
+	/* CCYYMMDDTHHMMSS <--- ISO-8601 date and time format */
+	if(sscanf(value,"%uT%u"
+		,&isoDate,&isoTime)>=2)
+		return(isoDateTime_to_time(isoDate,isoTime));
+
+	/* DD.MM.[CC]YY [time] [p] <-- Euro/Canadian numeric date format */
 	if(sscanf(value,"%u.%u.%u %s %c"
-		,&tm.tm_mday,&tm.tm_mon,&tm.tm_year,tstr,&pm)>=2)
+		,&tm.tm_mday,&tm.tm_mon,&tm.tm_year,tstr,&pm)>=2
+		&& validDate(&tm))
 		return(fixedDateTime(&tm,tstr,pm));
 
-	/* MM/DD/[CC]YY [time] [p] */
+	/* MM/DD/[CC]YY [time] [p] <-- American numeric date format */
 	if(sscanf(value,"%u%*c %u%*c %u %s %c"
-		,&tm.tm_mon,&tm.tm_mday,&tm.tm_year,tstr,&pm)>=2)
+		,&tm.tm_mon,&tm.tm_mday,&tm.tm_year,tstr,&pm)>=2
+		&& validDate(&tm))
 		return(fixedDateTime(&tm,tstr,pm));
 
-	/* DD[-]Mon [CC]YY [time] [p] */
+	/* DD[-]Mon [CC]YY [time] [p] <-- Perversion of RFC822 date format */
 	if(sscanf(value,"%u%*c %s %u %s %c"
 		,&tm.tm_mday,month,&tm.tm_year,tstr,&pm)>=2
-		&& (tm.tm_mon=getMonth(month))!=0)
+		&& (tm.tm_mon=getMonth(month))!=0
+		&& validDate(&tm))
 		return(fixedDateTime(&tm,tstr,pm));
 
-	/* Mon DD[,] [CC]YY [time] [p] */
+	/* Wday, DD Mon YYYY [time] <-- IETF standard (RFC2822) date format */
+	if(sscanf(value,"%*s %u %s %u %s"
+		,&tm.tm_mday,month,&tm.tm_year,tstr)>=2
+		&& (tm.tm_mon=getMonth(month))!=0
+		&& validDate(&tm))
+		return(fixedDateTime(&tm,tstr,0));
+
+	/* Mon DD[,] [CC]YY [time] [p] <-- Preferred date format */
 	if(sscanf(value,"%s %u%*c %u %s %c"
 		,month,&tm.tm_mday,&tm.tm_year,tstr,&pm)>=2
-		&& (tm.tm_mon=getMonth(month))!=0)
+		&& (tm.tm_mon=getMonth(month))!=0
+		&& validDate(&tm))
 		return(fixedDateTime(&tm,tstr,pm));
+
+	/* Wday Mon DD YYYY [time] <-- JavaScript (SpiderMonkey) Date.toString() format */
+	if(sscanf(value,"%*s %s %u %u %s"
+		,month,&tm.tm_mday,&tm.tm_year,tstr)>=2
+		&& (tm.tm_mon=getMonth(month))!=0
+		&& validDate(&tm))
+		return(fixedDateTime(&tm,tstr,0));
+
+	/* Wday Mon DD [time] YYYY <-- ctime() format */
+	if(sscanf(value,"%*s %s %u %s %u"
+		,month,&tm.tm_mday,tstr,&tm.tm_year)>=2
+		&& (tm.tm_mon=getMonth(month))!=0
+		&& validDate(&tm))
+		return(fixedDateTime(&tm,tstr,0));
 	
 	return(strtoul(value,NULL,0));
 }
@@ -1239,8 +1331,14 @@ static unsigned parseEnum(const char* value, str_list_t names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i]!=NULL;i++)
 		if(stricmp(names[i],value)==0)
+			return(i);
+
+	/* Look for partial matches second */
+	for(i=0;names[i]!=NULL;i++)
+		if(strnicmp(names[i],value,strlen(value))==0)
 			return(i);
 
 	return(strtoul(value,NULL,0));
@@ -1276,8 +1374,14 @@ static long parseNamedInt(const char* value, named_long_t* names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i].name!=NULL;i++)
 		if(stricmp(names[i].name,value)==0)
+			return(names[i].value);
+
+	/* Look for partial matches second */
+	for(i=0;names[i].name!=NULL;i++)
+		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
 	return(strtol(value,NULL,0));
@@ -1315,8 +1419,14 @@ static double parseNamedFloat(const char* value, named_double_t* names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i].name!=NULL;i++)
 		if(stricmp(names[i].name,value)==0)
+			return(names[i].value);
+
+	/* Look for partial matches second */
+	for(i=0;names[i].name!=NULL;i++)
+		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
 	return(atof(value));

@@ -2,13 +2,13 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.31 2005/05/20 01:11:59 deuce Exp $ */
+/* $Id: dirwrap.h,v 1.33 2005/09/16 05:33:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -67,7 +67,18 @@ extern "C" {
 	#include <glob.h>		/* POSIX.2 directory pattern matching function */
 	#define MKDIR(dir)		mkdir(dir,0777)
 
-#else	
+	#if defined(__CYGWIN__)
+		#define DLLEXPORT	/* CygWin's glob.h #undef's DLLEXPORT */
+	#endif
+
+#else
+
+	/* Values for the second argument to access.
+	   These may be OR'd together.  */
+	#define R_OK    4               /* Test for read permission.  */
+	#define W_OK    2               /* Test for write permission.  */
+	#define X_OK    1               /* Test for execute permission.  */
+	#define F_OK    0               /* Test for existence.  */
 
 	#include <direct.h>		/* mkdir() */
 
