@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.47 2004/12/31 02:39:19 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.48 2005/08/23 02:08:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -311,7 +311,7 @@ static struct JSPropertySpec js_sub_properties[] = {
 
 
 static JSClass js_sub_class = {
-     "Message Sub-board"	/* name			*/
+     "MsgSub"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
