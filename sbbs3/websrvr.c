@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.345 2005/09/29 00:51:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.346 2005/09/29 01:04:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1989,16 +1989,12 @@ static BOOL check_extra_path(http_session_t * session)
 			for(i=0; startup->index_file_name!=NULL && startup->index_file_name[i]!=NULL ;i++)  {
 				*end=0;
 				strcat(rpath,startup->index_file_name[i]);
-				if(startup->options&WEB_OPT_DEBUG_TX)
-					lprintf(LOG_DEBUG,"%04d Checking for embedded %s",session->socket,rpath);
 				if(!stat(rpath,&sb)) {
 					*end=0;
 					SAFECOPY(session->req.extra_path_info,epath);
 					SAFECOPY(session->req.virtual_path,vpath);
 					strcat(session->req.virtual_path,"/");
 					SAFECOPY(session->req.physical_path,rpath);
-					if(startup->options&WEB_OPT_DEBUG_TX)
-						lprintf(LOG_DEBUG,"%04d Matched %s",session->socket,rpath);
 					return(TRUE);
 				}
 			}
@@ -3760,7 +3756,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.345 $", "%*s %s", revision);
+	sscanf("$Revision: 1.346 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
