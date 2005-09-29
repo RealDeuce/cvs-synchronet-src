@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.135 2005/10/02 23:28:57 rswindell Exp $ */
+/* $Id: smblib.c,v 1.132 2005/09/27 09:17:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.42"      /* SMB library version */
+#define SMBLIB_VERSION		"2.41"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
@@ -353,7 +353,7 @@ int SMBCALL smb_locksmbhdr(smb_t* smb)
 			SLEEP(smb->retry_delay);
 		}
 	}
-	safe_snprintf(smb->last_error,sizeof(smb->last_error),"timeout locking message base");
+	safe_snprintf(smb->last_error,sizeof(smb->last_error),"timeout locking header");
 	return(SMB_ERR_TIMEOUT);
 }
 
@@ -491,9 +491,8 @@ int SMBCALL smb_lockmsghdr(smb_t* smb, smbmsg_t* msg)
 int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 {
 	idxrec_t	idx;
-	long		byte_offset;
-	ulong		l,total,bot,top;
-	long		length;
+	ulong		byte_offset;
+	ulong		l,length,total,bot,top;
 
 	if(smb->sid_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"index not open");
@@ -502,7 +501,7 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 	clearerr(smb->sid_fp);
 
 	length=filelength(fileno(smb->sid_fp));
-	if(length<(long)sizeof(idxrec_t)) {
+	if(length<sizeof(idxrec_t)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"invalid index file length: %ld",length);
 		return(SMB_ERR_FILE_LEN);
@@ -521,7 +520,7 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 			byte_offset=msg->offset*sizeof(idxrec_t);
 		if(byte_offset>=length) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"invalid index offset: %ld, byte offset: %ld, length: %ld"
+				,"invalid index offset: %ld, byte offset: %lu, length: %lu"
 				,msg->offset, byte_offset, length);
 			return(SMB_ERR_HDR_OFFSET);
 		}
@@ -539,8 +538,6 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 				,msg->offset,byte_offset);
 			return(SMB_ERR_READ);
 		}
-		/* Save the correct offset (from the beginning of the file) */
-		msg->offset=byte_offset/sizeof(idxrec_t);
 		return(SMB_SUCCESS); 
 	}
 
@@ -1395,7 +1392,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		smb_unlocksmbhdr(smb);
 		return(i);
 	}
-	msg->hdr.number=smb->status.last_msg+1;
+	msg->idx.number=msg->hdr.number=smb->status.last_msg+1;
 
 	/* This is *not* a dupe-check */
 	if(!(msg->flags&MSG_FLAG_HASHED) /* not already hashed */
@@ -1426,6 +1423,8 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	}
 
 	msg->idx.offset=smb->status.header_offset+l;
+	msg->idx.time=msg->hdr.when_imported.time;
+	msg->idx.attr=msg->hdr.attr;
 	msg->offset=smb->status.total_msgs;
 	i=smb_putmsg(smb,msg);
 	if(i==SMB_SUCCESS) {
@@ -1437,29 +1436,6 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	return(i);
 }
 
-/****************************************************************************/
-/* Safely updates existing index and header records for msg					*/
-/* Nothing should be locked prior to calling this function and nothing		*/
-/* should (normally) be locked when it exits								*/
-/****************************************************************************/
-int SMBCALL smb_updatemsg(smb_t* smb, smbmsg_t* msg)
-{
-	int retval;
-
-	/* Insure no one else can be changing the index at this time */
-	if((retval=smb_locksmbhdr(smb))!=SMB_SUCCESS)
-		return(retval);
-	/* Get the current index record offset (for later update by smb_putmsgidx) */
-	if((retval=smb_getmsgidx(smb, msg))==SMB_SUCCESS) {
-		/* Don't let any one else read or write this header while we're updating it */
-		if((retval=smb_lockmsghdr(smb,msg))==SMB_SUCCESS) {
-			retval=smb_putmsg(smb,msg);
-			smb_unlockmsghdr(smb,msg);
-		}
-	}
-	smb_unlocksmbhdr(smb);
-	return(retval);
-}
 
 /****************************************************************************/
 /* Writes both header and index information for msg 'msg'                   */
@@ -1468,42 +1444,10 @@ int SMBCALL smb_putmsg(smb_t* smb, smbmsg_t* msg)
 {
 	int i;
 
-	smb_init_idx(smb,msg);
-
-	if((i=smb_putmsghdr(smb,msg))!=SMB_SUCCESS)
+	i=smb_putmsghdr(smb,msg);
+	if(i)
 		return(i);
-
 	return(smb_putmsgidx(smb,msg));
-}
-
-/****************************************************************************/
-/* Initializes/re-synchronizes all the fields of the message index record	*/
-/* with the values from the message header (except for the header offset)	*/
-/****************************************************************************/
-int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
-{
-	msg->idx.subj=smb_subject_crc(msg->subj);
-
-	if(smb->status.attr&SMB_EMAIL) {
-		if(msg->to_ext)
-			msg->idx.to=atoi(msg->to_ext);
-		else
-			msg->idx.to=0;
-		if(msg->from_ext)
-			msg->idx.from=atoi(msg->from_ext);
-		else
-			msg->idx.from=0; 
-	} else {
-		msg->idx.to=smb_name_crc(msg->to);
-		msg->idx.from=smb_name_crc(msg->from);
-	}
-
-	/* Make sure these index/header fields are always *nsync */
-	msg->idx.number	= msg->hdr.number;
-	msg->idx.attr	= msg->hdr.attr;	
-	msg->idx.time	= msg->hdr.when_imported.time;
-
-	return(SMB_SUCCESS);
 }
 
 /****************************************************************************/
@@ -1514,20 +1458,11 @@ int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
 /****************************************************************************/
 int SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg)
 {
-	long length;
-
 	if(smb->sid_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"index not open");
 		return(SMB_ERR_NOT_OPEN);
 	}
 	clearerr(smb->sid_fp);
-	length = filelength(fileno(smb->sid_fp));
-	if(length < (long)(msg->offset*sizeof(idxrec_t))) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"invalid index offset: %ld, byte offset: %lu, length: %lu"
-			,msg->offset, msg->offset*sizeof(idxrec_t), length);
-		return(SMB_ERR_HDR_OFFSET);
-	}
 	if(fseek(smb->sid_fp,msg->offset*sizeof(idxrec_t),SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%d '%s' seeking to %u in header"
@@ -1541,7 +1476,8 @@ int SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg)
 			,get_errno(),STRERROR(get_errno()));
 		return(SMB_ERR_WRITE);
 	}
-	return fflush(smb->sid_fp);	/* SMB_SUCCESS == 0 */
+	fflush(smb->sid_fp);
+	return(SMB_SUCCESS);
 }
 
 /****************************************************************************/
@@ -1641,7 +1577,8 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 		}
 		hdrlen++; 
 	}
-	return fflush(smb->shd_fp);	/* SMB_SUCCESS == 0 */
+	fflush(smb->shd_fp);
+	return(SMB_SUCCESS);
 }
 
 /****************************************************************************/
