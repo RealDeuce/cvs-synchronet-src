@@ -2,7 +2,7 @@
 
 /* Local sysop chat module (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.5 2003/05/16 08:26:17 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.6 2005/09/20 03:40:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -147,7 +147,7 @@ void __fastcall TMainForm::FormShow(TObject *Sender)
 		return;
     }
 
-	if((p=(char *)MALLOC(PCHAT_LEN))==NULL) {
+	if((p=(char *)malloc(PCHAT_LEN))==NULL) {
 		close(in);
 		close(out);
 		Remote->Lines->Add("!Error allocating memory");
@@ -156,7 +156,7 @@ void __fastcall TMainForm::FormShow(TObject *Sender)
 	memset(p,0,PCHAT_LEN);
 	write(in,p,PCHAT_LEN);
 	write(out,p,PCHAT_LEN);
-	FREE(p);
+	free(p);
 	lseek(in,0L,SEEK_SET);
 	lseek(out,0L,SEEK_SET);
 
