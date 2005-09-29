@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.44 2005/10/14 06:21:15 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.43 2005/09/23 03:50:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,13 +42,6 @@
 #ifdef __unix__
 	#include <termios.h>
 	struct termios tio_default;				/* Initial term settings */
-#endif
-
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
 #endif
 
 #include "ciolib.h"
