@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.11 2004/10/27 22:02:08 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.14 2005/09/25 22:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,12 +47,13 @@
 /* the attributes prior to diplaying the message are always restored.       */
 /* Ignores Ctrl-Z's                                                         */
 /****************************************************************************/
-char sbbs_t::putmsg(char HUGE16 *str, long mode)
+char sbbs_t::putmsg(char *str, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	uchar	exatr=0;
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
+	long	col=0;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -239,8 +240,13 @@ char sbbs_t::putmsg(char HUGE16 *str, long mode)
 				if(i)					/* if valid string, go to top */
 					continue; 
 			}
-			if(str[l]!=CTRL_Z)
+			if(str[l]!=CTRL_Z) {
 				outchar(str[l]);
+				if(!exatr && !outchar_esc && lncntr && lbuflen && cols && ++col==cols)
+					lncntr++;
+				else
+					col=0;
+			}
 			l++; 
 		} 
 	}
