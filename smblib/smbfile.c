@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.9 2005/09/29 08:49:06 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.8 2005/09/27 09:19:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,11 +184,9 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 		close(file);
 		return(SMB_ERR_OPEN); 
 	}
-#if 0	/* This causes a noticeable performance hit when new-scanning subs */
 	if(fp==&smb->sid_fp)
 		setvbuf(*fp,NULL,_IONBF,0);	/* no buffering (cause of *.sid corruption?) */
 	else
-#endif
 		setvbuf(*fp,NULL,_IOFBF,2*1024);
 	return(SMB_SUCCESS);
 }
