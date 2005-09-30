@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.348 2005/09/30 06:30:41 deuce Exp $ */
+/* $Id: websrvr.c,v 1.349 2005/09/30 06:33:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3333,7 +3333,7 @@ static BOOL ssjs_send_headers(http_session_t* session)
 				,JS_GetStringBytes(js_str),JS_GetStringBytes(JSVAL_TO_STRING(val)));
 			strListPush(&session->req.dynamic_heads,str);
 		}
-		JS_SetArrayLength(session->js_cx, headers, 0);
+		JS_ClearScope(session->js_cx, headers);
 	}
 	return(send_headers(session,session->req.status));
 }
@@ -3756,7 +3756,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.348 $", "%*s %s", revision);
+	sscanf("$Revision: 1.349 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
