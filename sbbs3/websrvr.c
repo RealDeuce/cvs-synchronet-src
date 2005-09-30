@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.346 2005/09/29 01:04:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.347 2005/09/30 06:29:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3323,17 +3323,18 @@ static BOOL ssjs_send_headers(http_session_t* session)
 	SAFECOPY(session->req.status,JS_GetStringBytes(JSVAL_TO_STRING(val)));
 	JS_GetProperty(session->js_cx,reply,"header",&val);
 	headers = JSVAL_TO_OBJECT(val);
-	if(JS_IsArrayObject(session->js_cx, headers)) {
-		heads=JS_Enumerate(session->js_cx,headers);
-		for(i=0;i<heads->length;i++)  {
-			JS_IdToValue(session->js_cx,heads->vector[i],&val);
-			js_str=JSVAL_TO_STRING(val);
-			JS_GetProperty(session->js_cx,headers,JS_GetStringBytes(js_str),&val);
-			safe_snprintf(str,sizeof(str),"%s: %s"
-				,JS_GetStringBytes(js_str),JS_GetStringBytes(JSVAL_TO_STRING(val)));
-			strListPush(&session->req.dynamic_heads,str);
+	heads=JS_Enumerate(session->js_cx,headers);
+		if(heads != NULL) {
+			for(i=0;i<heads->length;i++)  {
+				JS_IdToValue(session->js_cx,heads->vector[i],&val);
+				js_str=JSVAL_TO_STRING(val);
+				JS_GetProperty(session->js_cx,headers,JS_GetStringBytes(js_str),&val);
+				safe_snprintf(str,sizeof(str),"%s: %s"
+					,JS_GetStringBytes(js_str),JS_GetStringBytes(JSVAL_TO_STRING(val)));
+				strListPush(&session->req.dynamic_heads,str);
+			}
+			JS_SetArrayLength(session->js_cx, headers, 0);
 		}
-		JS_SetArrayLength(session->js_cx, headers, 0);
 	}
 	return(send_headers(session,session->req.status));
 }
@@ -3756,7 +3757,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.346 $", "%*s %s", revision);
+	sscanf("$Revision: 1.347 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
