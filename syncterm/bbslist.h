@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.17 2005/06/18 21:44:06 deuce Exp $ */
+/* $Id: bbslist.h,v 1.18 2005/06/24 04:29:20 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -11,6 +11,7 @@
 #define LIST_ADDR_MAX	30
 #define MAX_USER_LEN	30
 #define MAX_PASSWD_LEN	16
+#define MAX_SYSPASS_LEN	16
 
 enum {
 	 USER_BBSLIST
@@ -41,6 +42,7 @@ struct bbslist {
 	unsigned int	calls;
 	char			user[MAX_USER_LEN+1];
 	char			password[MAX_PASSWD_LEN+1];
+	char			syspass[MAX_SYSPASS_LEN+1];
 	int				type;
 	int				conn_type;
 	int				id;
