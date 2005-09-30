@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.12 2005/06/06 23:08:21 deuce Exp $ */
+/* $Id: smbhash.c,v 1.14 2005/09/30 09:05:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -256,6 +256,9 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	int			retval=SMB_SUCCESS;
 	hash_t		found;
 	hash_t**	hashes;	/* This is a NULL-terminated list of hashes */
+
+	if(smb->status.attr&SMB_EMAIL)
+		return(SMB_SUCCESS);
 
 	hashes=smb_msghashes(msg,text);
 
