@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.350 2005/09/30 23:40:52 deuce Exp $ */
+/* $Id: websrvr.c,v 1.351 2005/10/01 01:21:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2055,6 +2055,7 @@ static BOOL check_request(http_session_t * session)
 	char	filename[MAX_PATH+1];
 	char	*spec;
 	str_list_t	specs;
+	BOOL	recheck_dynamic=FALSE;
 
 	if(session->req.finished)
 		return(FALSE);
@@ -2169,6 +2170,7 @@ static BOOL check_request(http_session_t * session)
 				if(iniReadString(file, NULL, "CGIDirectory", cgi_dir,str)==str) {
 					prep_dir(root_dir, str, sizeof(str));
 					session->req.cgi_dir=strdup(str);
+					recheck_dynamic=TRUE;
 				}
 
 				/* Read in per-filespec */
@@ -2185,6 +2187,7 @@ static BOOL check_request(http_session_t * session)
 						if(iniReadString(file, spec, "CGIDirectory", cgi_dir,str)==str) {
 							prep_dir(root_dir, str, sizeof(str));
 							session->req.cgi_dir=strdup(str);
+							recheck_dynamic=TRUE;
 						}
 					}
 					free(spec);
@@ -2202,6 +2205,9 @@ static BOOL check_request(http_session_t * session)
 		}
 		SAFECOPY(curdir,path);
 	}
+
+	if(recheck_dynamic)
+		session->req.dynamic=is_dynamic_req(session);
 
 	if(!check_ars(session)) {
 		/* No authentication provided */
@@ -3806,7 +3812,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.350 $", "%*s %s", revision);
+	sscanf("$Revision: 1.351 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
