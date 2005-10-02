@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.352 2005/10/01 02:34:59 deuce Exp $ */
+/* $Id: websrvr.c,v 1.353 2005/10/02 05:38:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2205,6 +2205,9 @@ static BOOL check_request(http_session_t * session)
 	if(recheck_dynamic)
 		session->req.dynamic=is_dynamic_req(session);
 
+	if(!session->req.dynamic && extra_path_info[0])
+		send404=TRUE;
+
 	if(!check_ars(session)) {
 		/* No authentication provided */
 		sprintf(str,"401 Unauthorized%s%s: Basic realm=\"%s\""
@@ -3808,7 +3811,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.352 $", "%*s %s", revision);
+	sscanf("$Revision: 1.353 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
