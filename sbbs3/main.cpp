@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.415 2005/11/08 21:13:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.403 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,10 @@
 #endif
 
 //---------------------------------------------------------------------------
+
+/* Temporary */
+int	mswtyp=0;
+uint riobp;
 
 #define TELNET_SERVER "Synchronet Telnet Server"
 #define STATUS_WFC	"Listening"
@@ -170,7 +174,7 @@ int eprintf(int level, char *fmt, ...)
     return(startup->event_lputs(level,sbuf));
 }
 
-SOCKET open_socket(int type, const char* protocol)
+SOCKET open_socket(int type)
 {
 	SOCKET	sock;
 	char	error[256];
@@ -178,7 +182,7 @@ SOCKET open_socket(int type, const char* protocol)
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
-	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
+	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, error))
 		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 	return(sock);
@@ -535,20 +539,6 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 	}
 		
 	return(JS_TRUE);
-}
-
-char*
-DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len)
-{
-	JSString* str;
-	
-	if((str=JS_ValueToString(cx, val))==NULL)
-		return(NULL);
-
-	if(len!=NULL)
-		*len = JS_GetStringLength(str);
-
-	return(JS_GetStringBytes(str));
 }
 
 static JSBool
@@ -925,6 +915,12 @@ bool sbbs_t::js_init(ulong* stack_frame)
 					,&js_server_props							/* server */
 			))==NULL)
 			break;
+
+#ifdef _DEBUG
+		JS_DefineProperty(js_cx, js_glob, "_global", OBJECT_TO_JSVAL(js_glob)
+			,NULL,NULL,JSPROP_READONLY);
+#endif
+
 
 		/* BBS Object */
 		if(js_CreateBbsObject(js_cx, js_glob)==NULL)
@@ -1432,8 +1428,7 @@ void input_thread(void *arg)
 	if(node_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)	// Shutdown locally
 		sbbs->terminated = true;	// Signal JS to stop execution
 
-	while(pthread_mutex_destroy(&sbbs->input_thread_mutex)==EBUSY)
-		mswait(1);
+	pthread_mutex_destroy(&sbbs->input_thread_mutex);
 
 	thread_down();
 	lprintf(LOG_DEBUG,"Node %d input thread terminated (received %lu bytes in %lu blocks)"
@@ -1470,42 +1465,17 @@ void output_thread(void* arg)
 	sbbs->console|=CON_R_ECHO;
 
 	while(sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
-		/*
-		 * I'd like to check the linear buffer against the highwater
-		 * at this point, but it would get too clumsy imho - Deuce
-		 *
-		 * Actually, another option would just be to have the size
-		 * of the linear buffer equal to the MTU... any larger and
-		 * you could have small sends off the end.  this would
-		 * probobly be even clumbsier
-		 */
-		if(bufbot == buftop) {
-			/* Wait for something to output in the RingBuffer */
-			if(sem_trywait_block(&sbbs->outbuf.sem,1000))
-				continue;
 
-			/* Check for spurious sem post... */
-			if(!RingBufFull(&sbbs->outbuf))
-				continue;
+    	if(bufbot==buftop)
+	    	avail=RingBufFull(&sbbs->outbuf);
+        else
+        	avail=buftop-bufbot;
 
-			/* Wait for full buffer or drain timeout */
+		if(!avail) {
+			sem_wait(&sbbs->outbuf.sem);
 			if(sbbs->outbuf.highwater_mark)
 				sem_trywait_block(&sbbs->outbuf.highwater_sem,startup->outbuf_drain_timeout);
-
-			/*
-			 * At this point, there's something to send and,
-			 * if the highwater mark is set, the timeout has
-			 * passed or we've hit highwater.  Read ring buffer
-			 * into linear buffer.
-			 */
-	    	avail=RingBufFull(&sbbs->outbuf);
-           	if(avail>sizeof(buf)) {
-               	lprintf(LOG_WARNING,"!%s: Insufficient linear output buffer (%lu > %lu)"
-					,node, avail, sizeof(buf));
-               	avail=sizeof(buf);
-           	}
-           	buftop=RingBufRead(&sbbs->outbuf, buf, avail);
-           	bufbot=0;
+			continue; 
 		}
 
 		/* Check socket for writability (using select) */
@@ -1517,9 +1487,8 @@ void output_thread(void* arg)
 
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
-			if(sbbs->client_socket!=INVALID_SOCKET)
-				lprintf(LOG_ERR,"!%s: ERROR %d selecting socket %u for send"
-					,node,ERROR_VALUE,sbbs->client_socket);
+			lprintf(LOG_ERR,"!%s: ERROR %d selecting socket %u for send"
+				,node,ERROR_VALUE,sbbs->client_socket);
 			if(sbbs->cfg.node_num)	/* Only break if node output (not server) */
 				break;
 			RingBufReInit(&sbbs->outbuf);	/* Flush output buffer */
@@ -1529,6 +1498,15 @@ void output_thread(void* arg)
 			continue;
 		}
 
+        if(bufbot==buftop) { // linear buf empty, read from ring buf
+            if(avail>sizeof(buf)) {
+                lprintf(LOG_WARNING,"!%s: Insufficient linear output buffer (%lu > %lu)"
+					,node, avail, sizeof(buf));
+                avail=sizeof(buf);
+            }
+            buftop=RingBufRead(&sbbs->outbuf, buf, avail);
+            bufbot=0;
+        }
 		i=sendsocket(sbbs->client_socket, (char*)buf+bufbot, buftop-bufbot);
 		if(i==SOCKET_ERROR) {
         	if(ERROR_VALUE == ENOTSOCK)
@@ -2915,7 +2893,7 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 	int		ind,outd;
 	uint	chunk=MV_BUFLEN;
 	ulong	length,l;
-	time_t	ftime;
+	/* struct ftime ftime; */
 	FILE *inp,*outp;
 
     if(!stricmp(src,dest))	 /* source and destination are the same! */
@@ -2964,44 +2942,48 @@ int sbbs_t::mv(char *src, char *dest, char copy)
         return(-1); 
 	}
     setvbuf(outp,NULL,_IOFBF,8*1024);
-	ftime=filetime(ind);
     length=filelength(ind);
-    if(length) {	/* Something to copy */
-		if((buf=(char *)malloc(MV_BUFLEN))==NULL) {
-			fclose(inp);
-			fclose(outp);
-			errormsg(WHERE,ERR_ALLOC,nulstr,MV_BUFLEN);
-			return(-1); 
-		}
-		l=0L;
-		while(l<length) {
-			bprintf("%2lu%%",l ? (long)(100.0/((float)length/l)) : 0L);
-			if(l+chunk>length)
-				chunk=length-l;
-			if(fread(buf,1,chunk,inp)!=chunk) {
-				free(buf);
-				fclose(inp);
-				fclose(outp);
-				errormsg(WHERE,ERR_READ,src,chunk);
-				return(-1); 
-			}
-			if(fwrite(buf,1,chunk,outp)!=chunk) {
-				free(buf);
-				fclose(inp);
-				fclose(outp);
-				errormsg(WHERE,ERR_WRITE,dest,chunk);
-				return(-1); 
-			}
-			l+=chunk;
-			bputs("\b\b\b"); 
-		}
-		bputs("   \b\b\b");  /* erase it */
-		attr(atr);
-		free(buf);
+    if(!length) {
+        fclose(inp);
+        fclose(outp);
+        errormsg(WHERE,ERR_LEN,src,0);
+        return(-1); 
 	}
+    if((buf=(char *)malloc(MV_BUFLEN))==NULL) {
+        fclose(inp);
+        fclose(outp);
+        errormsg(WHERE,ERR_ALLOC,nulstr,MV_BUFLEN);
+        return(-1); 
+	}
+    l=0L;
+    while(l<length) {
+        bprintf("%2lu%%",l ? (long)(100.0/((float)length/l)) : 0L);
+        if(l+chunk>length)
+            chunk=length-l;
+        if(fread(buf,1,chunk,inp)!=chunk) {
+            free(buf);
+            fclose(inp);
+            fclose(outp);
+            errormsg(WHERE,ERR_READ,src,chunk);
+            return(-1); 
+		}
+        if(fwrite(buf,1,chunk,outp)!=chunk) {
+            free(buf);
+            fclose(inp);
+            fclose(outp);
+            errormsg(WHERE,ERR_WRITE,dest,chunk);
+            return(-1); 
+		}
+        l+=chunk;
+        bputs("\b\b\b"); 
+	}
+    bputs("   \b\b\b");  /* erase it */
+    attr(atr);
+    /* getftime(ind,&ftime);
+    setftime(outd,&ftime); */
+    free(buf);
     fclose(inp);
     fclose(outp);
-	setfdate(dest,ftime);	/* Would be nice if we could use futime() instead */
     if(!copy && remove(src)) {
         errormsg(WHERE,ERR_REMOVE,src,0);
         return(-1); 
@@ -3976,7 +3958,7 @@ void DLLCALL bbs_thread(void* arg)
 
     /* open a socket and wait for a client */
 
-    telnet_socket = open_socket(SOCK_STREAM, "telnet");
+    telnet_socket = open_socket(SOCK_STREAM);
 
 	if(telnet_socket == INVALID_SOCKET) {
 		lprintf(LOG_ERR,"!ERROR %d creating Telnet socket", ERROR_VALUE);
@@ -4020,7 +4002,7 @@ void DLLCALL bbs_thread(void* arg)
 
 		/* open a socket and wait for a client */
 
-		rlogin_socket = open_socket(SOCK_STREAM, "rlogin");
+		rlogin_socket = open_socket(SOCK_STREAM);
 
 		if(rlogin_socket == INVALID_SOCKET) {
 			lprintf(LOG_ERR,"!ERROR %d creating RLogin socket", ERROR_VALUE);
