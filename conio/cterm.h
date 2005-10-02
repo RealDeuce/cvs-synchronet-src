@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.12 2005/11/20 03:15:30 deuce Exp $ */
+/* $Id: cterm.h,v 1.9 2005/08/06 03:11:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,6 @@ struct cterminal {
 	int save_ypos;
 	char	escbuf[1024];
 	int	sequence;
-	int music_enable;
 	char	musicbuf[1024];
 	int music;
 	int	tempo;
@@ -77,12 +76,7 @@ struct cterminal {
 	int ypos;
 	int log;
 	FILE* logfile;
-	char	DA[1024];
 };
-
-#define CTERM_MUSIC_SYNCTERM	0
-#define	CTERM_MUSIC_BANSI		1
-#define	CTERM_MUSIC_ENABLED		2
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,7 +85,7 @@ extern "C" {
 extern struct cterminal cterm;
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback);
-char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed);
+char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int *speed);
 int cterm_openlog(char *logfile, int logtype);
 void cterm_closelog(void);
 void cterm_end(void);
