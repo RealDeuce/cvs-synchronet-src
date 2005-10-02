@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.83 2005/06/24 10:08:52 rswindell Exp $ */
+/* $Id: js_file.c,v 1.85 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -318,8 +318,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 		if(p->rot13)
 			rot13(buf);
-		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	// exception here Feb-12-2005
-			*rval = STRING_TO_JSVAL(js_str);			// _CrtDbgBreak from _heap_alloc_dbg
+		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	/* exception here Feb-12-2005 */
+			*rval = STRING_TO_JSVAL(js_str);			/* _CrtDbgBreak from _heap_alloc_dbg */
 	}
 
 	free(buf);
@@ -1581,6 +1581,11 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>a+</tt> open for reading and appending<br>"
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
 		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.12)</i><br>"
+		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
+		"the file must be opened for both reading and writing.<br>"
+		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing, "
+		"use the <i>file_exists</i> function like so:<br>"
+		"<tt>file.open(file_exists(file.name) ? 'r+':'w+');</tt>"
 		)
 	,310
 	},		

@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.91 2005/02/09 21:35:35 rswindell Exp $ */
+/* $Id: userdat.c,v 1.96 2005/09/27 09:36:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -198,27 +198,29 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 {
 	char userdat[U_LEN+1],str[U_LEN+1],tmp[64];
 	int i,file;
+	unsigned user_number;
 
 	if(user==NULL)
 		return(-1);
 
-	if(!VALID_CFG(cfg) || user->number<1) {
-		memset(user,0,sizeof(user_t));
+	user_number=user->number;
+	memset(user,0,sizeof(user_t));
+
+	if(!VALID_CFG(cfg) || user_number<1)
 		return(-1); 
-	}
+
 	sprintf(userdat,"%suser/user.dat",cfg->data_dir);
-	if((file=nopen(userdat,O_RDONLY|O_DENYNONE))==-1) {
-		memset(user,0,sizeof(user_t));
+	if((file=nopen(userdat,O_RDONLY|O_DENYNONE))==-1)
 		return(errno); 
-	}
-	if(user->number > (filelength(file)/U_LEN)) {
+
+	if(user_number > (unsigned)(filelength(file)/U_LEN)) {
 		close(file);
 		return(-1);	/* no such user record */
 	}
-	lseek(file,(long)((long)(user->number-1)*U_LEN),SEEK_SET);
+	lseek(file,(long)((long)(user_number-1)*U_LEN),SEEK_SET);
 	i=0;
 	while(i<LOOP_NODEDAB
-		&& lock(file,(long)((long)(user->number-1)*U_LEN),U_LEN)==-1) {
+		&& lock(file,(long)((long)(user_number-1)*U_LEN),U_LEN)==-1) {
 		if(i)
 			mswait(100);
 		i++; 
@@ -226,18 +228,16 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	if(i>=LOOP_NODEDAB) {
 		close(file);
-		memset(user,0L,sizeof(user_t));
 		return(-2); 
 	}
 
 	if(read(file,userdat,U_LEN)!=U_LEN) {
-		unlock(file,(long)((long)(user->number-1)*U_LEN),U_LEN);
+		unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
 		close(file);
-		memset(user,0L,sizeof(user_t));
 		return(-3); 
 	}
 
-	unlock(file,(long)((long)(user->number-1)*U_LEN),U_LEN);
+	unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
 	close(file);
 	/* order of these function calls is irrelevant */
 	getrec(userdat,U_ALIAS,LEN_ALIAS,user->alias);
@@ -349,24 +349,26 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	if(strcmp(str,tmp) && user->ltoday) 
 		resetdailyuserdat(cfg,user);
 
-#if 0 // removed 01/19/00
-	if(useron.number==user->number) {
+#if 0 /* removed 01/19/00 Why?  ToDo */
+	if(useron.number==user_number) {
 		if(user!=&useron)
 			useron=*user;
 
 		if(online) {
 
-	#if 0	/* legacy? */
+	#if 0	/* legacy? ToDo */
 			getusrdirs();
 			getusrsubs();
 	#endif
-			if(user->misc&AUTOTERM) {			// was useron.misc (01/19/00)
+			if(user->misc&AUTOTERM) {			/* was useron.misc (01/19/00) */
 				user->misc&=~(ANSI|RIP|WIP|HTML);
 				user->misc|=autoterm; 
 			}
 		} 
 	}
 #endif
+	user->number=user_number;	/* Signal of success */
+
 	return(0);
 }
 
@@ -1125,7 +1127,7 @@ int DLLCALL putsmsg(scfg_t* cfg, int usernumber, char *strin)
 /****************************************************************************/
 char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 {
-	char	str[MAX_PATH+1], HUGE16 *buf;
+	char	str[MAX_PATH+1], *buf;
 	int		i;
     int		file;
     long	length;
@@ -1226,7 +1228,7 @@ int DLLCALL putnmsg(scfg_t* cfg, int num, char *strin)
 	sprintf(str,"%smsgs/n%3.3u.msg",cfg->data_dir,num);
 	if((file=nopen(str,O_WRONLY|O_CREAT))==-1)
 		return(errno); 
-	lseek(file,0L,SEEK_END);	// Instead of opening with O_APPEND
+	lseek(file,0L,SEEK_END);	/* Instead of opening with O_APPEND */
 	i=strlen(strin);
 	if(write(file,strin,i)!=i) {
 		close(file);
@@ -1300,6 +1302,8 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 			case AR_LOCAL:
 			case AR_EXPERT:
 			case AR_SYSOP:
+			case AR_GUEST:
+			case AR_QNODE:
 			case AR_QUIET:
 			case AR_OS2:
 			case AR_DOS:
@@ -1358,11 +1362,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				#endif
 				break;
 			case AR_DOS:
-				#ifdef __FLAT__
-					result=not;
-				#else
-					result=!not;
-				#endif
+				result=not;
 				break;
 			case AR_WIN32:
 				#ifndef _WIN32
@@ -1392,6 +1392,16 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				break;
 			case AR_SYSOP:
 				if(user==NULL || user->level<SYSOP_LEVEL)
+					result=not;
+				else result=!not;
+				break;
+			case AR_GUEST:
+				if(user==NULL || !(user->rest&FLAG('G')))
+					result=not;
+				else result=!not;
+				break;
+			case AR_QNODE:
+				if(user==NULL || !(user->rest&FLAG('Q')))
 					result=not;
 				else result=!not;
 				break;
