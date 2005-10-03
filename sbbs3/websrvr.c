@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.354 2005/10/03 00:46:27 deuce Exp $ */
+/* $Id: websrvr.c,v 1.355 2005/10/03 20:48:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2001,8 +2001,8 @@ static BOOL check_extra_path(http_session_t * session)
 			if((rp_slash=find_last_slash(rpath))==NULL)
 				return(FALSE);
 			SAFECOPY(str,epath);
-			if(*(rp_slash+1))
-				sprintf(epath,"/%s%s",(rp_slash+1),str);
+			if(*rp_slash)
+				sprintf(epath,"%s%s",rp_slash,str);
 			*(rp_slash+1)=0;
 
 			/* Check if this contains an index */
@@ -3811,7 +3811,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.354 $", "%*s %s", revision);
+	sscanf("$Revision: 1.355 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
