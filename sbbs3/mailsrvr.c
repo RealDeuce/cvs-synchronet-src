@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.389 2005/10/21 21:37:28 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.382 2005/10/02 23:55:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,6 @@
 #include "crc32.h"
 #include "base64.h"
 #include "ini_file.h"
-#include "netwrap.h"	/* getNameServerList() */
 
 /* Constants */
 #define FORWARD			"forward:"
@@ -196,18 +195,16 @@ static void thread_down(void)
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 }
 
-SOCKET mail_open_socket(int type, const char* protocol)
+SOCKET mail_open_socket(int type)
 {
 	char	error[256];
-	char	section[128];
 	SOCKET	sock;
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET) {
-		SAFEPRINTF(section,"mail|%s",protocol);
-		if(set_socket_options(&scfg, sock, section, error, sizeof(error)))
+		if(set_socket_options(&scfg, sock,error))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 		sockets++;
@@ -3352,27 +3349,48 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		,msg->from
 		,msg->to_net.addr);
 
-	if((i=smb_updatemsg(smb,msg))!=SMB_SUCCESS) {
+	if((i=smb_locksmbhdr(smb))!=SMB_SUCCESS) {
+		lprintf(LOG_WARNING,"0000 !BOUNCE ERROR %d (%s) locking message base"
+			,i, smb->last_error);
+		return(FALSE);
+	}
+
+	if((i=smb_lockmsghdr(smb,msg))!=SMB_SUCCESS) {
+		smb_unlocksmbhdr(smb);
+		lprintf(LOG_WARNING,"0000 !BOUNCE ERROR %d (%s) locking message header #%lu"
+			,i, smb->last_error, msg->hdr.number);
+		return(FALSE);
+	}
+
+	if((i=smb_putmsg(smb,msg))!=SMB_SUCCESS) {
+		smb_unlockmsghdr(smb,msg);
+		smb_unlocksmbhdr(smb);
 		lprintf(LOG_ERR,"0000 !BOUNCE ERROR %d (%s) incrementing delivery attempt counter"
 			,i, smb->last_error);
 		return(FALSE);
 	}
 
-	if(!immediate && msg->hdr.delivery_attempts < startup->max_delivery_attempts)
+	if(!immediate && msg->hdr.delivery_attempts<startup->max_delivery_attempts) {
+		smb_unlockmsghdr(smb,msg);
+		smb_unlocksmbhdr(smb);
 		return(TRUE);
+	}
 
 	newmsg=*msg;
 	/* Mark original message as deleted */
 	msg->hdr.attr|=MSG_DELETE;
 
-	i=smb_updatemsg(smb,msg);
-	if(msg->hdr.auxattr&MSG_FILEATTACH)
-		delfattach(&scfg,msg);
+	i=smb_putmsg(smb,msg);
+
+	smb_unlockmsghdr(smb,msg);
+	smb_unlocksmbhdr(smb);
 	if(i!=SMB_SUCCESS) {
 		lprintf(LOG_ERR,"0000 !BOUNCE ERROR %d (%s) deleting message"
 			,i, smb->last_error);
 		return(FALSE);
 	}
+	if(msg->hdr.auxattr&MSG_FILEATTACH)
+		delfattach(&scfg,msg);
 
 	if(msg->from_agent!=AGENT_PERSON	/* don't bounce 'bounce messages' */
 		|| (msg->idx.from==0 && msg->from_net.type==NET_NONE)
@@ -3386,16 +3404,17 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	newmsg.hfield=NULL;
 	newmsg.hfield_dat=NULL;
 	newmsg.total_hfields=0;
+	newmsg.idx.to=newmsg.idx.from;
+	newmsg.idx.from=0;
 	newmsg.hdr.delivery_attempts=0;
 
 	SAFEPRINTF(str,"Delivery failure: %s",newmsg.subj);
 	smb_hfield_str(&newmsg, SUBJECT, str);
 	smb_hfield_str(&newmsg, RECIPIENT, newmsg.from);
-	if(newmsg.from_ext!=NULL) { /* Back to sender */
-		smb_hfield_str(&newmsg, RECIPIENTEXT, newmsg.from_ext);
-		newmsg.from_ext=NULL;	/* Clear the sender extension */
+	if(newmsg.idx.to) {
+		sprintf(str,"%u",newmsg.idx.to);
+		smb_hfield_str(&newmsg, RECIPIENTEXT, str);
 	}
-
 	if((newmsg.from_net.type==NET_QWK || newmsg.from_net.type==NET_INTERNET)
 		&& newmsg.reverse_path!=NULL) {
 		smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(newmsg.from_net.type), &newmsg.from_net.type);
@@ -3422,6 +3441,7 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	smb_hfield_str(&newmsg, SMB_COMMENT, err);
 	smb_hfield_str(&newmsg, SMB_COMMENT, "\r\nOriginal message text follows:\r\n");
 
+	smb_init_idx(smb,&newmsg);
 	if((i=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK))!=SMB_SUCCESS)
 		lprintf(LOG_ERR,"0000 !BOUNCE ERROR %d (%s) adding message header"
 			,i,smb->last_error);
@@ -3460,24 +3480,6 @@ static int remove_msg_intransit(smb_t* smb, smbmsg_t* msg)
 	return(i);
 }
 
-void get_dns_server(char* dns_server, size_t len)
-{
-	str_list_t	list;
-	size_t		count;
-
-	sprintf(dns_server,"%.*s",len,startup->dns_server);
-	if(!isalnum(dns_server[0])) {
-		if((list=getNameServerList())!=NULL) {
-			if((count=strListCount(list))>0) {
-				sprintf(dns_server,"%.*s",len,list[xp_random(count)]);
-				lprintf(LOG_DEBUG,"0000 SEND using auto-detected DNS server address: %s"
-					,dns_server);
-			}
-			freeNameServerList(list);
-		}
-	}
-}
-
 #ifdef __BORLANDC__
 #pragma argsused
 #endif
@@ -3499,7 +3501,6 @@ static void sendmail_thread(void* arg)
 	char		digest[MD5_DIGEST_SIZE];
 	char		numeric_ip[16];
 	char		domain_list[MAX_PATH+1];
-	char		dns_server[16];
 	char*		server;
 	char*		msgtxt=NULL;
 	char*		p;
@@ -3700,15 +3701,14 @@ static void sendmail_thread(void* arg)
 						continue;
 					}
 #endif
-					get_dns_server(dns_server,sizeof(dns_server));
-					if((dns=resolve_ip(dns_server))==INADDR_NONE) {
+					if((dns=resolve_ip(startup->dns_server))==INADDR_NONE) {
 						remove_msg_intransit(&smb,&msg);
 						lprintf(LOG_WARNING,"0000 !SEND INVALID DNS server address: %s"
-							,dns_server);
+							,startup->dns_server);
 						continue;
 					}
 					p++;
-					lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
+					lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,startup->dns_server);
 					if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
 						,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
 						,TIMEOUT_THREAD_WAIT/2))!=0) {
@@ -3725,7 +3725,7 @@ static void sendmail_thread(void* arg)
 			if(!port)
 				port=IPPORT_SMTP;
 
-			if((sock=mail_open_socket(SOCK_STREAM,"smtp|sendmail"))==INVALID_SOCKET) {
+			if((sock=mail_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
 				remove_msg_intransit(&smb,&msg);
 				lprintf(LOG_ERR,"0000 !SEND ERROR %d opening socket", ERROR_VALUE);
 				continue;
@@ -4036,7 +4036,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.389 $", "%*s %s", revision);
+	sscanf("$Revision: 1.382 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4235,7 +4235,7 @@ void DLLCALL mail_server(void* arg)
 
 		/* open a socket and wait for a client */
 
-		server_socket = mail_open_socket(SOCK_STREAM,"smtp");
+		server_socket = mail_open_socket(SOCK_STREAM);
 
 		if(server_socket == INVALID_SOCKET) {
 			lprintf(LOG_ERR,"!ERROR %d opening socket", ERROR_VALUE);
@@ -4282,7 +4282,7 @@ void DLLCALL mail_server(void* arg)
 
 			/* open a socket and wait for a client */
 
-			pop3_socket = mail_open_socket(SOCK_STREAM,"pop3");
+			pop3_socket = mail_open_socket(SOCK_STREAM);
 
 			if(pop3_socket == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"!ERROR %d opening POP3 socket", ERROR_VALUE);
@@ -4572,12 +4572,8 @@ void DLLCALL mail_server(void* arg)
 				mswait(500);
 			}
 		}
-		if(!sendmail_running) {
-			while(sem_destroy(&sendmail_wakeup_sem)==-1 && errno==EBUSY) {
-				mswait(1);
-				sem_post(&sendmail_wakeup_sem);
-			}
-		}
+		if(!sendmail_running)
+			sem_destroy(&sendmail_wakeup_sem);
 
 		cleanup(0);
 
