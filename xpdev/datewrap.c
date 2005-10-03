@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.12 2005/06/29 04:20:24 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.25 2005/07/14 07:30:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "string.h"	/* memset */
 #include "genwrap.h"
-#include "datewrap.h"	/* isoDateTime_t */
+#include "datewrap.h"	/* xpDateTime_t */
 
 /* Compensates for struct tm "weirdness" */
 time_t sane_mktime(struct tm* tm)
@@ -56,7 +57,7 @@ time_t sane_mktime(struct tm* tm)
 
 xpDateTime_t xpDateTime_create(unsigned year, unsigned month, unsigned day
 							  ,unsigned hour, unsigned minute, float second
-							  ,int zone)
+							  ,xpTimeZone_t zone)
 {
 	xpDateTime_t	xpDateTime;
 
@@ -78,18 +79,39 @@ xpDateTime_t xpDateTime_now(void)
 
 	GetLocalTime(&systime);
 	return(xpDateTime_create(systime.wYear,systime.wMonth,systime.wDay
-		,systime.wHour,systime.wMinute,(float)systime.wSecond+(systime.wMilliseconds*0.001F),0));
+		,systime.wHour,systime.wMinute,(float)systime.wSecond+(systime.wMilliseconds*0.001F)
+		,xpTimeZone_local()));
 #else	/* !Win32 (e.g. Unix) */
 	struct tm tm;
 	struct timeval tv;
+	time_t	t;
 
-	gettimeofday(&tv,NULL);
-	localtime_r(&tv.tv_sec,&tm);
+	gettimeofday(&tv, NULL);
+	t=tv.tv_sec;
+	localtime_r(&t,&tm);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
-		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec+(tv.tv_usec*0.00001),0);
+		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec+(tv.tv_usec*0.00001)
+		,xpTimeZone_local());
+#endif
+}
+
+xpTimeZone_t xpTimeZone_local(void)
+{
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
+	struct tm tm;
+	time_t t;
+
+	localtime_r(&t, &tm);
+	return(tm.tm_gmtoff/60);
+#else
+#if defined(__BORLANDC__) || defined(__CYGWIN__)
+	#define timezone _timezone
 #endif
 
+	/* Converts (_)timezone from seconds west of UTC to minutes east of UTC */
+	return -timezone/60;
+#endif
 }
 
 time_t xpDateTime_to_time(xpDateTime_t xpDateTime)
@@ -127,62 +149,63 @@ xpDateTime_t time_to_xpDateTime(time_t time)
 		return(never);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
-		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec,0);
+		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec,xpTimeZone_local());
 }
-
 
 /**********************************************/
 /* Decimal-coded ISO-8601 date/time functions */
 /**********************************************/
 
-isoDateTime_t isoDateTime_create(unsigned year, unsigned month, unsigned day
-								,unsigned hour, unsigned minute, unsigned second)
+isoDate_t xpDateTime_to_isoDateTime(xpDateTime_t xpDateTime, isoTime_t* isoTime)
 {
-	isoDateTime_t	isoDateTime;
+	if(isoTime!=NULL)
+		*isoTime=0;
 
-	isoDateTime.date = isoDate_create(year,month,day);
-	isoDateTime.time = isoTime_create(hour,minute,second);
+	if(xpDateTime.date.year==0)
+		return(0);
 
-	return isoDateTime;
+	if(isoTime!=NULL)
+		*isoTime=isoTime_create(xpDateTime.time.hour,xpDateTime.time.minute,xpDateTime.time.second);
+
+	return isoDate_create(xpDateTime.date.year,xpDateTime.date.month,xpDateTime.date.day);
 }
 
-isoDateTime_t isoDateTime_now(void)
+xpDateTime_t isoDateTime_to_xpDateTime(isoDate_t date, isoTime_t time)
 {
-	return time_to_isoDateTime(time(NULL));
+	return xpDateTime_create(isoDate_year(date),isoDate_month(date),isoDate_day(date)
+		,isoTime_hour(time),isoTime_minute(time),(float)isoTime_second(time),xpTimeZone_local());
 }
 
-isoDateTime_t time_to_isoDateTime(time_t time)
+isoDate_t time_to_isoDateTime(time_t time, isoTime_t* isoTime)
 {
-	isoDateTime_t	never;
 	struct tm tm;
 
-	memset(&never,0,sizeof(never));
+	if(isoTime!=NULL)
+		*isoTime=0;
+
 	if(time==0)
-		return(never);
+		return(0);
 
 	ZERO_VAR(tm);
 	if(gmtime_r(&time,&tm)==NULL)
-		return(never);
+		return(0);
 
-	return isoDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
-		,tm.tm_hour,tm.tm_min,tm.tm_sec);
-}
+	if(isoTime!=NULL)
+		*isoTime=isoTime_create(tm.tm_hour,tm.tm_min,tm.tm_sec);
 
-isoDate_t time_to_isoDate(time_t time)
-{
-	isoDateTime_t	isoDateTime = time_to_isoDateTime(time);
-
-	return isoDateTime.date;
+	return isoDate_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday);
 }
 
 isoTime_t time_to_isoTime(time_t time)
 {
-	isoDateTime_t	isoDateTime = time_to_isoDateTime(time);
+	isoTime_t isoTime;
+	
+	time_to_isoDateTime(time,&isoTime);
 
-	return isoDateTime.time;
+	return isoTime;
 }
 
-time_t isoDate_to_time(isoDate_t date, isoTime_t time)
+time_t isoDateTime_to_time(isoDate_t date, isoTime_t time)
 {
 	struct tm tm;
 
@@ -202,9 +225,66 @@ time_t isoDate_to_time(isoDate_t date, isoTime_t time)
 	return sane_mktime(&tm);
 }
 
-time_t isoDateTime_to_time(isoDateTime_t iso)
+BOOL isoTimeZone_parse(const char* str, xpTimeZone_t* zone)
 {
-	return isoDate_to_time(iso.date,iso.time);
+	unsigned hour=0,minute=0;
+
+	switch(*str) {
+		case 0:		/* local time-zone */
+			*zone = xpTimeZone_local();	
+			return TRUE;	
+		case 'Z':	/* UTC */
+			*zone = 0;		
+			return TRUE;
+		case '+':
+		case '-':	/* "+/- HH[:]MM" */
+			if(sscanf(str+1,"%2u%*s%2u",&hour,&minute)>=1) {
+				*zone = (hour*60) + minute;
+				if(*str=='-')
+					*zone = -(*zone);
+				return TRUE;
+			}
+			break;
+	}
+	return FALSE;
+}
+
+xpDateTime_t isoDateTime_parse(const char* str)
+{
+	char zone[16];
+	xpDateTime_t	xpDateTime;
+
+	zone[0]=0;
+	ZERO_VAR(xpDateTime);
+
+	if((sscanf(str,"%4u-%2u-%2uT%2u:%2u:%f%6s"		/* CCYY-MM-DDThh:MM:ss±hhmm */
+		,&xpDateTime.date.year
+		,&xpDateTime.date.month
+		,&xpDateTime.date.day
+		,&xpDateTime.time.hour
+		,&xpDateTime.time.minute
+		,&xpDateTime.time.second
+		,zone)>=2
+	||	sscanf(str,"%4u%2u%2uT%2u%2u%f%6s"			/* CCYYMMDDThhmmss±hhmm */
+		,&xpDateTime.date.year
+		,&xpDateTime.date.month
+		,&xpDateTime.date.day
+		,&xpDateTime.time.hour
+		,&xpDateTime.time.minute
+		,&xpDateTime.time.second
+		,zone)>=4
+	||	sscanf(str,"%4u%2u%2u%2u%2u%f%6s"			/* CCYYMMDDhhmmss±hhmm */
+		,&xpDateTime.date.year
+		,&xpDateTime.date.month
+		,&xpDateTime.date.day
+		,&xpDateTime.time.hour
+		,&xpDateTime.time.minute
+		,&xpDateTime.time.second
+		,zone)>=1
+		) && isoTimeZone_parse(zone,&xpDateTime.zone))
+		return xpDateTime;
+
+	return xpDateTime;
 }
 
 /***********************************/
@@ -245,10 +325,12 @@ void gettime(struct time* nyt)
 	nyt->ti_hund=systime.wMilliseconds/10;
 #else	/* !Win32 (e.g. Unix) */
 	struct tm dte;
+	time_t t;
 	struct timeval tim;
 
-	gettimeofday(&tim,NULL);
-	localtime_r(&tim.tv_sec,&dte);
+	gettimeofday(&tim, NULL);
+	t=tim.tv_sec;
+	localtime_r(&t,&dte);
 	nyt->ti_min=dte.tm_min;
 	nyt->ti_hour=dte.tm_hour;
 	nyt->ti_sec=dte.tm_sec;
