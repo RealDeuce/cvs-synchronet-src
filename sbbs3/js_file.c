@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.84 2005/06/24 10:22:04 rswindell Exp $ */
+/* $Id: js_file.c,v 1.85 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -318,8 +318,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 		if(p->rot13)
 			rot13(buf);
-		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	// exception here Feb-12-2005
-			*rval = STRING_TO_JSVAL(js_str);			// _CrtDbgBreak from _heap_alloc_dbg
+		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	/* exception here Feb-12-2005 */
+			*rval = STRING_TO_JSVAL(js_str);			/* _CrtDbgBreak from _heap_alloc_dbg */
 	}
 
 	free(buf);
