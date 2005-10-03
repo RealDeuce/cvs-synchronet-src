@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.35 2005/01/16 10:29:41 rswindell Exp $ */
+/* $Id: email.cpp,v 1.37 2005/10/02 23:32:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -116,6 +116,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 			bputs(text[FileAlreadyThere]);
 			remove(msgpath);
 			return(false); }
+#if 0	/* no such thing as local logon */
 		if(online==ON_LOCAL) {		/* Local upload */
 			bputs(text[EnterPath]);
 			if(!getstr(str,60,K_LINE|K_UPPER)) {
@@ -125,7 +126,9 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 			backslash(str);
 			strcat(str,title);
 			mv(str,str2,1); }
-		else { /* Remote */
+		else 
+#endif
+		{ /* Remote */
 			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
@@ -239,7 +242,7 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 
 	memset(&msg,0,sizeof(smbmsg_t));
 	msg.hdr.version=smb_ver();
-	msg.hdr.attr=msg.idx.attr=msgattr;
+	msg.hdr.attr=msgattr;
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
@@ -265,14 +268,12 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 
 	sprintf(str,"%u",usernumber);
 	smb_hfield_str(&msg,RECIPIENTEXT,str);
-	msg.idx.to=usernumber;
 
 	strcpy(str,useron.alias);
 	smb_hfield_str(&msg,SENDER,str);
 
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
-	msg.idx.from=useron.number;
 
 	if(useron.misc&NETMAIL) {
 		nettype=smb_netaddr_type(useron.netmail);
@@ -286,7 +287,6 @@ bool sbbs_t::email(int usernumber, char *top, char *subj, long mode)
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
-	msg.idx.subj=smb_subject_crc(title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
