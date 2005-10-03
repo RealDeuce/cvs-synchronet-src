@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.29 2005/10/03 22:21:50 deuce Exp $ */
+/* $Id: mouse.c,v 1.30 2005/10/03 23:00:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -442,7 +442,7 @@ int mouse_pending(void)
 		SLEEP(1);
 	if(listSemTryWait(&state.output))
 		return(TRUE);
-	return(FALSE);
+	return(listCountNodes(&state.output));
 }
 
 int ciolib_getmouse(struct mouse_event *mevent)
