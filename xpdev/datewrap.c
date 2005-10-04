@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.17 2005/06/29 20:37:28 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.25 2005/07/14 07:30:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "string.h"	/* memset */
 #include "genwrap.h"
 #include "datewrap.h"	/* xpDateTime_t */
 
@@ -56,7 +57,7 @@ time_t sane_mktime(struct tm* tm)
 
 xpDateTime_t xpDateTime_create(unsigned year, unsigned month, unsigned day
 							  ,unsigned hour, unsigned minute, float second
-							  ,int zone)
+							  ,xpTimeZone_t zone)
 {
 	xpDateTime_t	xpDateTime;
 
@@ -79,19 +80,38 @@ xpDateTime_t xpDateTime_now(void)
 	GetLocalTime(&systime);
 	return(xpDateTime_create(systime.wYear,systime.wMonth,systime.wDay
 		,systime.wHour,systime.wMinute,(float)systime.wSecond+(systime.wMilliseconds*0.001F)
-		,LOCAL_UTC_DIFF));
+		,xpTimeZone_local()));
 #else	/* !Win32 (e.g. Unix) */
 	struct tm tm;
 	struct timeval tv;
+	time_t	t;
 
-	gettimeofday(&tv,NULL);
-	localtime_r(&tv.tv_sec,&tm);
+	gettimeofday(&tv, NULL);
+	t=tv.tv_sec;
+	localtime_r(&t,&tm);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
 		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec+(tv.tv_usec*0.00001)
-		,LOCAL_UTC_DIFF);
+		,xpTimeZone_local());
+#endif
+}
+
+xpTimeZone_t xpTimeZone_local(void)
+{
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
+	struct tm tm;
+	time_t t;
+
+	localtime_r(&t, &tm);
+	return(tm.tm_gmtoff/60);
+#else
+#if defined(__BORLANDC__) || defined(__CYGWIN__)
+	#define timezone _timezone
 #endif
 
+	/* Converts (_)timezone from seconds west of UTC to minutes east of UTC */
+	return -timezone/60;
+#endif
 }
 
 time_t xpDateTime_to_time(xpDateTime_t xpDateTime)
@@ -129,12 +149,32 @@ xpDateTime_t time_to_xpDateTime(time_t time)
 		return(never);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
-		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec,LOCAL_UTC_DIFF);
+		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec,xpTimeZone_local());
 }
 
 /**********************************************/
 /* Decimal-coded ISO-8601 date/time functions */
 /**********************************************/
+
+isoDate_t xpDateTime_to_isoDateTime(xpDateTime_t xpDateTime, isoTime_t* isoTime)
+{
+	if(isoTime!=NULL)
+		*isoTime=0;
+
+	if(xpDateTime.date.year==0)
+		return(0);
+
+	if(isoTime!=NULL)
+		*isoTime=isoTime_create(xpDateTime.time.hour,xpDateTime.time.minute,xpDateTime.time.second);
+
+	return isoDate_create(xpDateTime.date.year,xpDateTime.date.month,xpDateTime.date.day);
+}
+
+xpDateTime_t isoDateTime_to_xpDateTime(isoDate_t date, isoTime_t time)
+{
+	return xpDateTime_create(isoDate_year(date),isoDate_month(date),isoDate_day(date)
+		,isoTime_hour(time),isoTime_minute(time),(float)isoTime_second(time),xpTimeZone_local());
+}
 
 isoDate_t time_to_isoDateTime(time_t time, isoTime_t* isoTime)
 {
@@ -185,13 +225,13 @@ time_t isoDateTime_to_time(isoDate_t date, isoTime_t time)
 	return sane_mktime(&tm);
 }
 
-BOOL isoTimeZone_parse(const char* str, int* zone)
+BOOL isoTimeZone_parse(const char* str, xpTimeZone_t* zone)
 {
 	unsigned hour=0,minute=0;
 
 	switch(*str) {
 		case 0:		/* local time-zone */
-			*zone = LOCAL_UTC_DIFF;	
+			*zone = xpTimeZone_local();	
 			return TRUE;	
 		case 'Z':	/* UTC */
 			*zone = 0;		
@@ -285,10 +325,12 @@ void gettime(struct time* nyt)
 	nyt->ti_hund=systime.wMilliseconds/10;
 #else	/* !Win32 (e.g. Unix) */
 	struct tm dte;
+	time_t t;
 	struct timeval tim;
 
-	gettimeofday(&tim,NULL);
-	localtime_r(&tim.tv_sec,&dte);
+	gettimeofday(&tim, NULL);
+	t=tim.tv_sec;
+	localtime_r(&t,&dte);
 	nyt->ti_min=dte.tm_min;
 	nyt->ti_hour=dte.tm_hour;
 	nyt->ti_sec=dte.tm_sec;
