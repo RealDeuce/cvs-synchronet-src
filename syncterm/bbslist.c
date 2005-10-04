@@ -223,11 +223,16 @@ int edit_list(struct bbslist *item,char *listpath)
 				iniSetString(&inifile,item->name,"SystemPassword",item->syspass,&ini_style);
 				break;
 			case 6:
+				item->conn_type--;
+				uifc.helpbuf=	"`Connection Type`\n\n"
+								"Select the type of connection you wish to make:\n"
+								"~ RLogin:~ Auto-login with RLogin protocol\n"
+								"~ Telnet:~ Use more common Telnet protocol (experimental)\n"
+								"~ Raw:   ~ Make a raw socket connection (experimental)\n";
+				uifc.list(WIN_SAV,0,0,0,&(item->conn_type),NULL,"Connection Type",&(conn_types[1]));
 				item->conn_type++;
-				if(item->conn_type==CONN_TYPE_TERMINATOR)
-					item->conn_type=CONN_TYPE_RLOGIN;
-				changed=1;
 				iniSetEnum(&inifile,item->name,"ConnectionType",conn_types,item->conn_type,&ini_style);
+				changed=1;
 				break;
 			case 7:
 				item->reversed=!item->reversed;
@@ -235,11 +240,11 @@ int edit_list(struct bbslist *item,char *listpath)
 				iniSetBool(&inifile,item->name,"Reversed",item->reversed,&ini_style);
 				break;
 			case 8:
-				item->screen_mode++;
-				if(item->screen_mode==SCREEN_MODE_TERMINATOR)
-					item->screen_mode=0;
-				changed=1;
+				uifc.helpbuf=	"`Screen Mode`\n\n"
+								"Select the screen size for this connection\n";
+				uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),NULL,"Screen Mode",screen_modes);
 				iniSetEnum(&inifile,item->name,"ScreenMode",screen_modes,item->screen_mode,&ini_style);
+				changed=1;
 				break;
 			case 9:
 				item->nostatus=!item->nostatus;
@@ -259,16 +264,21 @@ int edit_list(struct bbslist *item,char *listpath)
 				iniSetString(&inifile,item->name,"UploadPath",item->uldir,&ini_style);
 				break;
 			case 12:
-				item->loglevel++;
-				if(item->loglevel>LOG_DEBUG)
-					item->loglevel=0;
-				changed=1;
+				uifc.helpbuf=	"`Log Level`\n\n"
+								"Set the level of verbosity for file transfer info.\n\n";
+				uifc.list(WIN_SAV,0,0,0,&(item->loglevel),NULL,"Log Level",log_levels);
 				iniSetInteger(&inifile,item->name,"LogLevel",item->loglevel,&ini_style);
+				changed=1;
 				break;
 			case 13:
-				item->bpsrate=get_next_rate(item->bpsrate);
-				changed=1;
+				uifc.helpbuf=	"`Simulated BPS Rate`\n\n"
+								"Select the rate which recieved characters will be displayed.\n\n"
+								"This allows ANSImation to work as intended.";
+				i=get_rate_num(item->bpsrate);
+				uifc.list(WIN_SAV,0,0,0,&i,NULL,"Simulated BPS Rate",rate_names);
+				item->bpsrate=rates[i];
 				iniSetInteger(&inifile,item->name,"BPSRate",item->bpsrate,&ini_style);
+				changed=1;
 				break;
 		}
 		if(uifc.changes)
@@ -348,6 +358,7 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 	char	title[1024];
 	char	currtitle[1024];
 	char	*p;
+	char	addy[LIST_ADDR_MAX+1];
 
 	if(init_uifc(TRUE, TRUE))
 		return(NULL);
@@ -365,6 +376,7 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 	for(;;) {
 		uifc.helpbuf=	"`SyncTERM Dialing Directory`\n\n"
 						"Commands:\n\n"
+						"~ CTRL-D ~ Quick-dial a URL\n"
 						"~ CTRL-E ~ to edit the selected entry\n"
 						" ~ ENTER ~ to dial the selected entry";
 		if(opt != oldopt) {
@@ -387,10 +399,6 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 		if(val<0) {
 			switch(val) {
 				case -7:		/* CTRL-E */
-#if 0	/* Don't to the two list "mode" anymore */
-					mode=BBSLIST_EDIT;
-					break;
-#else
 					i=list[opt]->id;
 					if(edit_list(list[opt],listpath)) {
 						sort_list(list);
@@ -401,9 +409,16 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 						oldopt=-1;
 					}
 					break;
-#endif
 				case -6:		/* CTRL-D */
-					mode=BBSLIST_SELECT;
+					uifc.changes=0;
+					uifc.helpbuf=	"`SyncTERM QuickDial`\n\n"
+									"Enter a URL in the format [(rlogin|telnet)://][user[:password]@]domainname[:port]\n";
+					uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Address",addy,LIST_ADDR_MAX,0);
+					if(uifc.changes) {
+						parse_url(addy,&retlist);
+						free_list(&list[0],listcount);
+						return(&retlist);
+					}
 					break;
 				case -1:		/* ESC */
 					free_list(&list[0],listcount);
@@ -496,7 +511,7 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 										"an extra line to the display (May cause problems with some BBS software)\n";
 						list[listcount-1]->nostatus=1;
 						uifc.list(WIN_MID|WIN_SAV,0,0,0,&list[listcount-1]->nostatus,NULL,"Hide Status Lines",YesNo);
-						list[listcount-1]->nostatus=!list[listcount-1];
+						list[listcount-1]->nostatus=!list[listcount-1]->nostatus;
 						add_bbs(listpath,list[listcount-1]);
 						sort_list(list);
 						for(j=0;list[j]->name[0];j++) {
