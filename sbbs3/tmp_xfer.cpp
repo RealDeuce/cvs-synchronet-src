@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.36 2005/05/07 01:59:16 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.38 2005/10/02 23:52:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,7 @@ void sbbs_t::temp_xfer()
 	/*************************************/
 	/* Create TEMP directory information */
 	/*************************************/
-	if((cfg.dir[dirnum]=(dir_t *)MALLOC(sizeof(dir_t)))==0) {
+	if((cfg.dir[dirnum]=(dir_t *)malloc(sizeof(dir_t)))==0) {
 		errormsg(WHERE,ERR_ALLOC,"temp_dir",sizeof(dir_t));
 		return; }
 	memset(cfg.dir[dirnum],0,sizeof(dir_t));
@@ -73,6 +73,7 @@ void sbbs_t::temp_xfer()
 	SAFECOPY(cfg.dir[dirnum]->data_dir,cfg.dir[0]->data_dir);
 	cfg.dir[dirnum]->maxfiles=MAX_FILES;
 	cfg.dir[dirnum]->op_ar=(uchar *)nulstr;
+	cfg.dir[dirnum]->ex_ar=(uchar *)nulstr;
 	temp_dirnum=curdirnum=usrdir[curlib][curdir[curlib]];
 	cfg.total_dirs++;
 
@@ -261,7 +262,7 @@ void sbbs_t::temp_xfer()
 				break; }
 		if(sys_status&SS_ABORT)
 			break; }
-	FREE(cfg.dir[dirnum]);
+	free(cfg.dir[dirnum]);
 	cfg.total_dirs--;
 }
 

@@ -2,13 +2,13 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.4 2005/01/05 01:43:50 rswindell Exp $ */
+/* $Id: getmail.c,v 1.6 2005/09/29 08:44:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -151,7 +151,7 @@ mail_t* DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 			continue;					
 		if(mode&LM_UNREAD && idx.attr&MSG_READ)
 			continue;
-		if((mail=(mail_t *)REALLOC(mail,sizeof(mail_t)*(l+1)))
+		if((mail=(mail_t *)realloc(mail,sizeof(mail_t)*(l+1)))
 			==NULL) {
 			smb_unlocksmbhdr(smb);
 			return(NULL); 
@@ -166,5 +166,6 @@ mail_t* DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 
 void DLLCALL freemail(mail_t* mail)
 {
-	FREE(mail);
+	if(mail!=NULL)
+		free(mail);
 }
