@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.44 2005/10/02 11:24:06 deuce Exp $ */
+/* $Id: ciolib.c,v 1.45 2005/10/04 06:10:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -315,8 +315,6 @@ int ciolib_kbhit(void)
 {
 	CIOLIB_INIT();
 	if(ungotch)
-		return(1);
-	if(mouse_pending())
 		return(1);
 	return(cio_api.kbhit());
 }
