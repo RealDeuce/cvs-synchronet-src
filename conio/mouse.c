@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.33 2005/10/22 00:02:13 rswindell Exp $ */
+/* $Id: mouse.c,v 1.30 2005/10/03 23:00:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,8 @@ enum {
 	,MOUSE_DRAGSTARTED
 };
 
+sem_t in_sem;
+
 struct in_mouse_event {
 	int	event;
 	int	x;
@@ -96,16 +98,17 @@ struct mouse_state {
 
 struct mouse_state state;
 int mouse_events=0;
-int ciolib_mouse_initialized=0;
+static int mouse_initialized=0;
 
 void init_mouse(void)
 {
 	memset(&state,0,sizeof(state));
 	state.click_timeout=0;
 	state.multi_timeout=300;
-	listInit(&state.input,LINK_LIST_SEMAPHORE);
+	listInit(&state.input,0);
 	listInit(&state.output,LINK_LIST_SEMAPHORE);
-	ciolib_mouse_initialized=1;
+	sem_init(&in_sem,0,0);
+	mouse_initialized=1;
 }
 
 int ciomouse_setevents(int events)
@@ -142,7 +145,7 @@ void ciomouse_gotevent(int event, int x, int y)
 {
 	struct in_mouse_event *ime;
 
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	ime=(struct in_mouse_event *)malloc(sizeof(struct in_mouse_event));
 	ime->ts=MSEC_CLOCK();
@@ -152,6 +155,7 @@ void ciomouse_gotevent(int event, int x, int y)
 	ime->nextevent=NULL;
 
 	listPushNode(&state.input,ime);
+	sem_post(&in_sem);
 }
 
 void add_outevent(int event, int x, int y)
@@ -212,11 +216,11 @@ void ciolib_mouse_thread(void *data)
 				timedout=1;
 			}
 			else {
-				timedout=listSemTryWaitBlock(&state.input,delay);
+				timedout=sem_trywait_block(&in_sem,delay);
 			}
 		}
 		else {
-			listSemWait(&state.input);
+			sem_wait(&in_sem);
 		}
 		if(timedout) {
 			state.timeout[timeout_button-1]=0;
@@ -263,10 +267,8 @@ void ciolib_mouse_thread(void *data)
 			struct in_mouse_event *in;
 
 			in=listShiftNode(&state.input);
-			if(in==NULL) {
-				YIELD();
-				continue;
-			}
+			if(in==NULL)
+					continue;
 			but=CIOLIB_BUTTON_NUMBER(in->event);
 			switch(CIOLIB_BUTTON_BASE(in->event)) {
 				case CIOLIB_MOUSE_MOVE:
@@ -427,24 +429,19 @@ void ciolib_mouse_thread(void *data)
 	}
 }
 
-int mouse_trywait(void)
-{
-	while(!ciolib_mouse_initialized)
-		SLEEP(1);
-	return(listSemTryWait(&state.output));
-}
-
 int mouse_wait(void)
 {
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	return(listSemWait(&state.output));
 }
 
 int mouse_pending(void)
 {
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
+	if(listSemTryWait(&state.output))
+		return(TRUE);
 	return(listCountNodes(&state.output));
 }
 
@@ -452,7 +449,7 @@ int ciolib_getmouse(struct mouse_event *mevent)
 {
 	int retval=0;
 
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	if(listCountNodes(&state.output)) {
 		struct out_mouse_event *out;
