@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.58 2005/10/05 22:10:23 deuce Exp $ */
+/* $Id: win32cio.c,v 1.59 2005/10/05 22:43:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -375,12 +375,8 @@ int win32_initciolib(long inmode)
 	int	i,j;
 	CONSOLE_SCREEN_BUFFER_INFO	sbuff;
 
-	if(!isatty(fileno(stdin))) {
-		#ifdef WITH_SDL
-			if(!AllocConsole())
-		#endif
-				return(0);
-	}
+	if(!isatty(fileno(stdin)))
+		return(0);
 
 	if(!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
 		return(0);
