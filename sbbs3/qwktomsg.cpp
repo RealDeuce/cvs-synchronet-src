@@ -2,13 +2,13 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.35 2004/12/29 10:17:45 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.37 2005/09/25 22:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -149,17 +149,17 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	}
 
 	bodylen=0;
-	if((body=(char *)LMALLOC((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
-		LFREE(header);
+	if((body=(char *)malloc((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
+		free(header);
 		smb_freemsgmem(&msg);
 		errormsg(WHERE,ERR_ALLOC,"QWK msg body",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
 	}
 
 	taillen=0;
-	if((tail=(char *)LMALLOC((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
-		LFREE(header);
-		LFREE(body);
+	if((tail=(char *)malloc((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
+		free(header);
+		free(body);
 		smb_freemsgmem(&msg);
 		errormsg(WHERE,ERR_ALLOC,"QWK msg tail",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
@@ -380,8 +380,8 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 
 	smb_freemsgmem(&msg);
 
-	LFREE(body);
-	LFREE(tail);
+	free(body);
+	free(tail);
 
 	return(success);
 }
