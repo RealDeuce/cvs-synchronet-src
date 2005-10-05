@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.99 2005/05/09 09:30:54 rswindell Exp $ */
+/* $Id: js_system.c,v 1.100 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -817,7 +817,7 @@ js_trashcan(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(trashcan(cfg,str,can));	// user args are reversed
+	*rval = BOOLEAN_TO_JSVAL(trashcan(cfg,str,can));	/* user args are reversed */
 	return(JS_TRUE);
 }
 
@@ -849,7 +849,7 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(findstr(str,fname));	// user args are reversed
+	*rval = BOOLEAN_TO_JSVAL(findstr(str,fname));	/* user args are reversed */
 	return(JS_TRUE);
 }
 
@@ -879,7 +879,7 @@ js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-// Returns a ctime()-like string in the system-preferred time format
+/* Returns a ctime()-like string in the system-preferred time format */
 static JSBool
 js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -906,7 +906,7 @@ js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 
-// Returns a mm/dd/yy or dd/mm/yy formated string
+/* Returns a mm/dd/yy or dd/mm/yy formated string */
 static JSBool
 js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
