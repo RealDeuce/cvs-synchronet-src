@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.23 2005/07/03 04:09:45 deuce Exp $ */
+/* $Id: datewrap.c,v 1.25 2005/07/14 07:30:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,7 +86,8 @@ xpDateTime_t xpDateTime_now(void)
 	struct timeval tv;
 	time_t	t;
 
-	t=time(NULL);
+	gettimeofday(&tv, NULL);
+	t=tv.tv_sec;
 	localtime_r(&t,&tm);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
@@ -97,7 +98,7 @@ xpDateTime_t xpDateTime_now(void)
 
 xpTimeZone_t xpTimeZone_local(void)
 {
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
 	struct tm tm;
 	time_t t;
 
