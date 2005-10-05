@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.48 2005/10/05 20:38:09 deuce Exp $ */
+/* $Id: ciolib.c,v 1.49 2005/10/05 21:44:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,7 +106,6 @@ char *ciolib_getcliptext(void);
 int try_sdl_init(int mode)
 {
 	if(!sdl_init(mode)) {
-		cio_api.mode=mode;
 		cio_api.mouse=1;
 		cio_api.puttext=sdl_puttext;
 		cio_api.gettext=sdl_gettext;
