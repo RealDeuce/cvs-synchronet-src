@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.56 2005/10/04 06:26:22 deuce Exp $ */
+/* $Id: syncterm.c,v 1.57 2005/10/05 20:54:24 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -223,7 +223,8 @@ int main(int argc, char **argv)
 			SAFECOPY(url,argv[i]);
     }
 
-	initciolib(ciolib_mode);
+	if(initciolib(ciolib_mode))
+		return(1);
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
