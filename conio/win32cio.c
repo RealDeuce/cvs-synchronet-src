@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.48 2005/05/19 23:54:16 deuce Exp $ */
+/* $Id: win32cio.c,v 1.56 2005/10/05 02:23:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -210,8 +210,14 @@ int win32_getchcode(WORD code, DWORD state)
 				return(keyval[i].ALT);
 			if(state & (RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED))
 				return(keyval[i].CTRL);
-			if(state & (SHIFT_PRESSED))
-				return(keyval[i].Shift);
+			if((state & (CAPSLOCK_ON)) && isalpha(keyval[i].Key)) {
+				if(!(state & SHIFT_PRESSED))
+					return(keyval[i].Shift);
+			}
+			else {
+				if(state & (SHIFT_PRESSED))
+					return(keyval[i].Shift);
+			}
 			return(keyval[i].Key);
 		}
 	}
@@ -237,18 +243,20 @@ int win32_keyboardio(int isgetch)
 
 		while(1) {
 			GetNumberOfConsoleInputEvents(GetStdHandle(STD_INPUT_HANDLE), &num);
-			if(num || mouse_pending())
+			if(num)
 				break;
+			if(mouse_trywait()) {
+				lastch=CIO_KEY_MOUSE;
+				break;
+			}
 			if(isgetch)
 				SLEEP(1);
 			else
 				return(FALSE);
 		}
 
-		if(mouse_pending()) {
-			lastch=CIO_KEY_MOUSE;
+		if(lastch)
 			continue;
-		}
 
 		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
 				|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
@@ -256,8 +264,15 @@ int win32_keyboardio(int isgetch)
 
 		switch(input.EventType) {
 			case KEY_EVENT:
-				if(input.Event.KeyEvent.bKeyDown)
-					lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
+				if(input.Event.KeyEvent.bKeyDown) {
+					if((input.Event.KeyEvent.dwControlKeyState & (RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED|RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED|ENHANCED_KEY))
+							|| (input.Event.KeyEvent.wVirtualKeyCode >= VK_F1 && input.Event.KeyEvent.wVirtualKeyCode <= VK_F24)
+							|| !input.Event.KeyEvent.uChar.AsciiChar
+							|| (!(input.Event.KeyEvent.dwControlKeyState & NUMLOCK_ON) && (input.Event.KeyEvent.uChar.AsciiChar >= '0' && input.Event.KeyEvent.uChar.AsciiChar <= '9')))
+						lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
+					else
+						lastch=input.Event.KeyEvent.uChar.AsciiChar;
+				}
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {
@@ -688,4 +703,9 @@ char *win32_getcliptext(void)
 	CloseClipboard();
 	
 	return(ret);
+}
+
+void win32_delay(long msec)
+{
+	SLEEP(msec);
 }

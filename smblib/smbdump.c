@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.4 2005/06/06 23:08:21 deuce Exp $ */
+/* $Id: smbdump.c,v 1.6 2005/09/30 09:05:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include <time.h>		/* ctime */
+#include <string.h>		/* strcat */
 #include "smblib.h"
 
 static char *binstr(uchar *buf, ushort length)
