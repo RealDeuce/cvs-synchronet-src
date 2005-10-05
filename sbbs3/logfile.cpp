@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.36 2004/05/30 06:47:52 deuce Exp $ */
+/* $Id: logfile.cpp,v 1.37 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,13 +329,6 @@ void sbbs_t::errormsg(int line, const char *source, char action, const char *obj
 		strcat(str,tmp); 
 		errno=0;
 	}
-#if defined(__MSDOS__)
-	if(_doserrno && _doserrno!=(ulong)errno) {
-		sprintf(tmp,"\r\n  doserrno: %d",_doserrno);
-		strcat(str,tmp); 
-	}
-	_doserrno=0;
-#endif
 #if defined(_WIN32)
 	if(GetLastError()!=0) {
 		sprintf(tmp,"\r\n  WinError: %d (0x%X)",GetLastError(), GetLastError());
