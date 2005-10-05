@@ -2,13 +2,13 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.32 2005/07/01 20:44:04 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.34 2005/09/28 20:02:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -71,7 +71,14 @@ extern "C" {
 		#define DLLEXPORT	/* CygWin's glob.h #undef's DLLEXPORT */
 	#endif
 
-#else	
+#else
+
+	/* Values for the second argument to access.
+	   These may be OR'd together.  */
+	#define R_OK    4               /* Test for read permission.  */
+	#define W_OK    2               /* Test for write permission.  */
+	#define X_OK    1               /* Test for execute permission.  */
+	#define F_OK    0               /* Test for existence.  */
 
 	#include <direct.h>		/* mkdir() */
 
@@ -223,6 +230,8 @@ DLLEXPORT int		DLLCALL getfattr(const char* filename);
 DLLEXPORT ulong		DLLCALL getfreediskspace(const char* path, ulong unit);
 DLLEXPORT ulong		DLLCALL delfiles(char *inpath, char *spec);
 DLLEXPORT char*		DLLCALL backslash(char* path);
+DLLEXPORT BOOL 		DLLCALL wildmatch(const char *fname, const char *spec, BOOL path);
+
 
 #if defined(__unix__)
 DLLEXPORT void DLLCALL _splitpath(const char *path, char *drive, char *dir, 
