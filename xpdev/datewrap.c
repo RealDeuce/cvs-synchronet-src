@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.20 2005/07/02 09:30:16 deuce Exp $ */
+/* $Id: datewrap.c,v 1.25 2005/07/14 07:30:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "string.h"	/* memset */
 #include "genwrap.h"
 #include "datewrap.h"	/* xpDateTime_t */
 
@@ -83,9 +84,11 @@ xpDateTime_t xpDateTime_now(void)
 #else	/* !Win32 (e.g. Unix) */
 	struct tm tm;
 	struct timeval tv;
+	time_t	t;
 
-	gettimeofday(&tv,NULL);
-	localtime_r(&tv.tv_sec,&tm);
+	gettimeofday(&tv, NULL);
+	t=tv.tv_sec;
+	localtime_r(&t,&tm);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
 		,tm.tm_hour,tm.tm_min,(float)tm.tm_sec+(tv.tv_usec*0.00001)
@@ -95,12 +98,12 @@ xpDateTime_t xpDateTime_now(void)
 
 xpTimeZone_t xpTimeZone_local(void)
 {
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
-	struct tm t;
-	time_t i;
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
+	struct tm tm;
+	time_t t;
 
-	localtime_r(&i, &i);
-	return(t.tm_gmtoff/60);
+	localtime_r(&t, &tm);
+	return(tm.tm_gmtoff/60);
 #else
 #if defined(__BORLANDC__) || defined(__CYGWIN__)
 	#define timezone _timezone
@@ -322,10 +325,12 @@ void gettime(struct time* nyt)
 	nyt->ti_hund=systime.wMilliseconds/10;
 #else	/* !Win32 (e.g. Unix) */
 	struct tm dte;
+	time_t t;
 	struct timeval tim;
 
-	gettimeofday(&tim,NULL);
-	localtime_r(&tim.tv_sec,&dte);
+	gettimeofday(&tim, NULL);
+	t=tim.tv_sec;
+	localtime_r(&t,&dte);
 	nyt->ti_min=dte.tm_min;
 	nyt->ti_hour=dte.tm_hour;
 	nyt->ti_sec=dte.tm_sec;
