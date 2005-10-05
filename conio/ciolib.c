@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.45 2005/10/04 06:10:18 deuce Exp $ */
+/* $Id: ciolib.c,v 1.46 2005/10/05 02:23:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,6 +237,7 @@ int try_conio_init(int mode)
 		cio_api.gettext=win32_gettext;
 		cio_api.textattr=win32_textattr;
 		cio_api.kbhit=win32_kbhit;
+		cio_api.delay=win32_delay;
 		cio_api.wherey=win32_wherey;
 		cio_api.wherex=win32_wherex;
 		cio_api.putch=win32_putch;
@@ -263,7 +264,6 @@ int initciolib(int mode)
 		case CIOLIB_MODE_AUTO:
 #ifdef WITH_SDL
 			if(!try_sdl_init(mode))
-
 #endif
 #ifdef _WIN32
 				if(!try_conio_init(mode))

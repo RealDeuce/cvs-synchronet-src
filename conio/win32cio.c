@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.55 2005/10/04 06:10:18 deuce Exp $ */
+/* $Id: win32cio.c,v 1.56 2005/10/05 02:23:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -703,4 +703,9 @@ char *win32_getcliptext(void)
 	CloseClipboard();
 	
 	return(ret);
+}
+
+void win32_delay(long msec)
+{
+	SLEEP(msec);
 }

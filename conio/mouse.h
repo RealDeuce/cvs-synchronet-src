@@ -1,4 +1,4 @@
-/* $Id: mouse.h,v 1.10 2005/10/03 22:21:50 deuce Exp $ */
+/* $Id: mouse.h,v 1.11 2005/10/05 02:23:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,7 @@ enum {
 extern "C" {
 #endif
 void ciomouse_gotevent(int event, int x, int y);
+int mouse_trywait(void);
 int mouse_wait(void);
 int mouse_pending(void);
 int ciolib_getmouse(struct mouse_event *mevent);
