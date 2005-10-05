@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.13 2005/05/09 09:23:34 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.15 2005/09/05 20:21:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ static void js_finalize_queue(JSContext *cx, JSObject *obj)
 		return;
 	
 	if(msgQueueDetach(q)==0 && (n=listFindNode(&named_queues,q,/* length=0 for ptr compare */0))!=NULL)
-		listRemoveNode(&named_queues,n,TRUE);
+		listRemoveNode(&named_queues,n,FALSE);
 
 	JS_SetPrivate(cx, obj, NULL);
 }
@@ -397,13 +397,13 @@ static jsSyncMethodSpec js_queue_functions[] = {
 	{"read",		js_read,		1,	JSTYPE_UNDEF,	"[name or timeout]"
 	,JSDOCSTR("read a value from the queue, if <i>name</i> not specified, reads next value "
 		"from the bottom of the queue (waiting up to <i>timeout</i> milliseconds)")
-	,312
+	,313
 	},
 	{"peek",		js_peek,		1,	JSTYPE_UNDEF,	"[timeout]"
 	,JSDOCSTR("peek at the value at the bottom of the queue, "
 		"wait up to <i>timeout</i> milliseconds for any value to be written "
 		"(default: <i>0</i>)")
-	,312
+	,313
 	},
 	{"write",		js_write,		1,	JSTYPE_BOOLEAN,	"value [,name]"
 	,JSDOCSTR("write a value (optionally named) to the queue")
