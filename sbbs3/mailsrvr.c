@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.371 2005/07/07 03:20:23 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.382 2005/10/02 23:55:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -424,16 +424,15 @@ static BOOL sockgetrsp(SOCKET socket, char* rsp, char *buf, int len)
 
 #define MAX_LINE_LEN	1000
 
-static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlines)
+static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlines
+						  ,str_list_t file_list, char* mime_boundary)
 {
 	char		toaddr[256]="";
 	char		fromaddr[256]="";
 	char		fromhost[256];
 	char		date[64];
-	char		filepath[MAX_PATH+1]="";
 	char*		p;
 	char*		tp;
-	char*		boundary=NULL;
 	char*		content_type=NULL;
 	int			i;
 	int			s;
@@ -504,14 +503,14 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 	if(msg->reply_id!=NULL)
 		if(!sockprintf(socket,"In-Reply-To: %s",msg->reply_id))
 			return(0);
+
     for(i=0;i<msg->total_hfields;i++) { 
 		if(msg->hfield[i].type==RFC822HEADER) { 
 			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0)
 				content_type=msg->hfield_dat[i];
 			if(!sockprintf(socket,"%s",(char*)msg->hfield_dat[i]))
 				return(0);
-        } else if(msg->hdr.auxattr&MSG_FILEATTACH && msg->hfield[i].type==FILEATTACH) 
-            strncpy(filepath,(char*)msg->hfield_dat[i],sizeof(filepath)-1);
+        }
     }
 	/* Default MIME Content-Type for non-Internet messages */
 	if(msg->from_net.type!=NET_INTERNET && content_type==NULL) {
@@ -520,21 +519,12 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 		sockprintf(socket,"Content-Transfer-Encoding: 8bit");
 	}
 
-	if(msg->hdr.auxattr&MSG_FILEATTACH) {
-		if(filepath[0]==0) { /* filename stored in subject */
-			if(msg->idx.to!=0)
-				snprintf(filepath,sizeof(filepath)-1,"%sfile/%04u.in/%s"
-					,scfg.data_dir,msg->idx.to,msg->subj);
-			else
-				snprintf(filepath,sizeof(filepath)-1,"%sfile/%04u.out/%s"
-					,scfg.data_dir,msg->idx.from,msg->subj);
-		}
-        boundary=mimegetboundary();
-        mimeheaders(socket,boundary);
+	if(strListCount(file_list)) {	/* File attachments */
+        mimeheaders(socket,mime_boundary);
         sockprintf(socket,"");
-        mimeblurb(socket,boundary);
+        mimeblurb(socket,mime_boundary);
         sockprintf(socket,"");
-        mimetextpartheader(socket,boundary);
+        mimetextpartheader(socket,mime_boundary);
 	}
 	if(!sockprintf(socket,""))	/* Header Terminator */
 		return(0);
@@ -574,21 +564,69 @@ static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlin
 			&& !(lines%startup->lines_per_yield))	
 			YIELD();
 	}
-    if(msg->hdr.auxattr&MSG_FILEATTACH) { 
-	    sockprintf(socket,"");
-		lprintf(LOG_INFO,"%04u MIME Encoding and sending %s",socket,filepath);
-        if(!mimeattach(socket,boundary,filepath))
-			lprintf(LOG_ERR,"%04u !ERROR opening/encoding/sending %s",socket,filepath);
-		else {
-			endmime(socket,boundary);
-			if(msg->hdr.auxattr&MSG_KILLFILE)
-				if(remove(filepath)!=0)
-					lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,errno,filepath);
+	if(file_list!=NULL) {
+		for(i=0;file_list[i];i++) { 
+			sockprintf(socket,"");
+			lprintf(LOG_INFO,"%04u MIME Encoding and sending %s",socket,file_list[i]);
+			if(!mimeattach(socket,mime_boundary,file_list[i]))
+				lprintf(LOG_ERR,"%04u !ERROR opening/encoding/sending %s",socket,file_list[i]);
+			else {
+				endmime(socket,mime_boundary);
+				if(msg->hdr.auxattr&MSG_KILLFILE)
+					if(remove(file_list[i])!=0)
+						lprintf(LOG_WARNING,"%04u !ERROR %d removing %s",socket,errno,file_list[i]);
+			}
+		}
+	}
+    sockprintf(socket,".");	/* End of text */
+	return(lines);
+}
+
+static ulong sockmsgtxt(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxlines)
+{
+	char		filepath[MAX_PATH+1];
+	ulong		retval;
+	char*		boundary=NULL;
+	unsigned	i;
+	str_list_t	file_list=NULL;
+	str_list_t	split;
+
+	if(msg->hdr.auxattr&MSG_FILEATTACH) {
+
+		boundary = mimegetboundary();
+		file_list = strListInit();
+
+		/* Parse header fields */
+		for(i=0;i<msg->total_hfields;i++)
+	        if(msg->hfield[i].type==FILEATTACH) 
+				strListPush(&file_list,(char*)msg->hfield_dat[i]);
+
+		/* Parse subject (if necessary) */
+		if(!strListCount(file_list)) {	/* filename(s) stored in subject */
+			split=strListSplitCopy(NULL,msg->subj," ");
+			if(split!=NULL) {
+				for(i=0;split[i];i++) {
+					if(msg->idx.to!=0)
+						SAFEPRINTF3(filepath,"%sfile/%04u.in/%s"
+							,scfg.data_dir,msg->idx.to,getfname(truncsp(split[i])));
+					else
+						SAFEPRINTF3(filepath,"%sfile/%04u.out/%s"
+							,scfg.data_dir,msg->idx.from,getfname(truncsp(split[i])));
+					strListPush(&file_list,filepath);
+				}
+				strListFree(&split);
+			}
 		}
     }
-    sockprintf(socket,".");	/* End of text */
-    if(boundary) FREE(boundary);
-	return(lines);
+
+	retval = sockmimetext(socket,msg,msgtxt,maxlines,file_list,boundary);
+
+	strListFree(&file_list);
+
+	if(boundary!=NULL)
+		free(boundary);
+
+	return(retval);
 }
 
 static u_long resolve_ip(char *inaddr)
@@ -732,7 +770,7 @@ static void pop3_thread(void* arg)
 		memset(&user,0,sizeof(user));
 		password[0]=0;
 
-		srand(time(NULL));	/* seed random number generator */
+		srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
 		rand();	/* throw-away first result */
 		safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%.128s>"
 			,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
@@ -902,6 +940,12 @@ static void pop3_thread(void* arg)
 				continue;
 			}
 			if(!stricmp(buf, "RSET")) {
+				if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
+					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) locking message base"
+						,socket, i, smb.last_error);
+					sockprintf(socket,"-ERR %d locking message base",i);
+					continue;
+				}
 				for(l=0;l<msgs;l++) {
 					msg.hdr.number=mail[l].number;
 					if((i=smb_getmsgidx(&smb,&msg))!=SMB_SUCCESS) {
@@ -921,13 +965,14 @@ static void pop3_thread(void* arg)
 						break;
 					}
 					msg.hdr.attr=mail[l].attr;
-					msg.idx.attr=msg.hdr.attr;
 					if((i=smb_putmsg(&smb,&msg))!=SMB_SUCCESS)
 						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) updating message index"
 							,socket, i, smb.last_error);
 					smb_unlockmsghdr(&smb,&msg);
 					smb_freemsgmem(&msg);
 				}
+				smb_unlocksmbhdr(&smb);
+
 				if(l<msgs)
 					sockprintf(socket,"-ERR %d messages reset (ERROR: %d)",l,i);
 				else
@@ -1088,17 +1133,27 @@ static void pop3_thread(void* arg)
 					lprintf(LOG_DEBUG,"%04d POP3 message transfer complete (%lu lines)"
 						,socket,lines_sent);
 
-					msg.hdr.attr|=MSG_READ;
-					msg.idx.attr=msg.hdr.attr;
-					msg.hdr.netattr|=MSG_SENT;
+					if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
+						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) locking message base"
+							,socket, i, smb.last_error);
+					} else {
+						if((i=smb_getmsgidx(&smb,&msg))!=SMB_SUCCESS) {
+							lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message index"
+								,socket, i, smb.last_error);
+						} else {
+							msg.hdr.attr|=MSG_READ;
+							msg.hdr.netattr|=MSG_SENT;
 
-					if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) 
-						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) locking message header #%lu"
-							,socket, i, smb.last_error, msg.hdr.number);
-					if((i=smb_putmsg(&smb,&msg))!=SMB_SUCCESS)
-						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) marking message #%lu as read"
-							,socket, i, smb.last_error, msg.hdr.number);
-					smb_unlockmsghdr(&smb,&msg);
+							if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) 
+								lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) locking message header #%lu"
+									,socket, i, smb.last_error, msg.hdr.number);
+							if((i=smb_putmsg(&smb,&msg))!=SMB_SUCCESS)
+								lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) marking message #%lu as read"
+									,socket, i, smb.last_error, msg.hdr.number);
+							smb_unlockmsghdr(&smb,&msg);
+						}
+						smb_unlocksmbhdr(&smb);
+					}
 				}
 				smb_freemsgmem(&msg);
 				smb_freemsgtxt(msgtxt);
@@ -1120,13 +1175,21 @@ static void pop3_thread(void* arg)
 				lprintf(LOG_INFO,"%04d POP3 %s deleting message #%ld"
 					,socket, user.alias, msg.hdr.number);
 
+				if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
+					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) locking message base"
+						,socket, i, smb.last_error);
+					sockprintf(socket,"-ERR %d locking message base",i);
+					continue;
+				}
 				if((i=smb_getmsgidx(&smb,&msg))!=SMB_SUCCESS) {
+					smb_unlocksmbhdr(&smb);
 					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message index"
 						,socket, i, smb.last_error);
 					sockprintf(socket,"-ERR %d getting message index",i);
 					continue;
 				}
 				if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) {
+					smb_unlocksmbhdr(&smb);
 					lprintf(LOG_WARNING,"%04d !POP3 ERROR %d (%s) locking message header #%lu"
 						,socket, i, smb.last_error, msg.hdr.number);
 					sockprintf(socket,"-ERR %d locking message header",i);
@@ -1134,25 +1197,25 @@ static void pop3_thread(void* arg)
 				}
 				if((i=smb_getmsghdr(&smb,&msg))!=SMB_SUCCESS) {
 					smb_unlockmsghdr(&smb,&msg);
+					smb_unlocksmbhdr(&smb);
 					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message header #%lu"
 						,socket, i, smb.last_error, msg.hdr.number);
 					sockprintf(socket,"-ERR %d getting message header",i);
 					continue;
 				}
 				msg.hdr.attr|=MSG_DELETE;
-				msg.idx.attr=msg.hdr.attr;
-				if((i=smb_putmsg(&smb,&msg))!=SMB_SUCCESS) {
-					smb_unlockmsghdr(&smb,&msg);
-					smb_freemsgmem(&msg);
+
+				if((i=smb_putmsg(&smb,&msg))==SMB_SUCCESS && msg.hdr.auxattr&MSG_FILEATTACH)
+					delfattach(&scfg,&msg);
+				smb_unlockmsghdr(&smb,&msg);
+				smb_unlocksmbhdr(&smb);
+				smb_freemsgmem(&msg);
+				if(i!=SMB_SUCCESS) {
 					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) marking message as read"
 						, socket, i, smb.last_error);
 					sockprintf(socket,"-ERR %d marking message for deletion",i);
 					continue;
 				}
-				if(msg.hdr.auxattr&MSG_FILEATTACH)
-					delfattach(&scfg,&msg);
-				smb_unlockmsghdr(&smb,&msg);
-				smb_freemsgmem(&msg);
 				sockprintf(socket,"+OK");
 				if(startup->options&MAIL_OPT_DEBUG_POP3)
 					lprintf(LOG_INFO,"%04d POP3 message deleted", socket);
@@ -1493,6 +1556,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 
+	ZERO_VAR(js_branch);
 
 	SAFECOPY(fname,cmdline);
 	truncstr(fname," \t");
@@ -1610,6 +1674,8 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 
 		success=JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 
+		js_EvalOnExit(js_cx, js_glob, &js_branch);
+
 	} while(0);
 
 	if(js_cx!=NULL)
@@ -1692,7 +1758,7 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 	char		*p;
 	char		*p2;
 
-	fromstr=(char *)MALLOC(strlen(buf)+1);
+	fromstr=(char *)malloc(strlen(buf)+1);
 	if(fromstr==NULL)
 		return(0);
 	strcpy(fromstr,buf);
@@ -1998,7 +2064,7 @@ static void smtp_thread(void* arg)
 		return;
 	}
 
-	srand(time(NULL));	/* seed random number generator */
+	srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
 	rand();	/* throw-away first result */
 	SAFEPRINTF3(session_id,"%x%x%lx",socket,rand(),clock());
 
@@ -2416,9 +2482,9 @@ static void smtp_thread(void* arg)
 					section=sec_list[rcpt_count];
 
 					SAFECOPY(rcpt_name,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENT),"unknown",value));
-					usernum=iniReadInteger(rcptlst,section			,smb_hfieldtype(RECIPIENTEXT),0);
-					agent=iniReadShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTAGENT),AGENT_PERSON);
-					nettype=iniReadShortInt(rcptlst,section			,smb_hfieldtype(RECIPIENTNETTYPE),NET_NONE);
+					usernum=iniReadInteger(rcptlst,section				,smb_hfieldtype(RECIPIENTEXT),0);
+					agent=iniReadShortInt(rcptlst,section				,smb_hfieldtype(RECIPIENTAGENT),AGENT_PERSON);
+					nettype=iniReadShortInt(rcptlst,section				,smb_hfieldtype(RECIPIENTNETTYPE),NET_NONE);
 					sprintf(str,"#%u",usernum);
 					SAFECOPY(rcpt_addr,iniReadString(rcptlst,section	,smb_hfieldtype(RECIPIENTNETADDR),str,value));
 
@@ -2447,13 +2513,12 @@ static void smtp_thread(void* arg)
 
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
-					newmsg.idx.to=usernum;
-					if(nettype==NET_NONE) {	/* Local destination */
+					if(usernum) {	/* Local destination or QWKnet routed */
+						/* This is required for fixsmb to be able to rebuild the index */
 						sprintf(str,"%u",usernum);
 						smb_hfield_str(&newmsg, RECIPIENTEXT, str);
-					} else {
-						if(nettype!=NET_QWK)
-							newmsg.idx.to=0;
+					}
+					if(nettype!=NET_NONE) {
 						smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(nettype), &nettype);
 						smb_hfield_str(&newmsg, RECIPIENTNETADDR, rcpt_addr);
 					}
@@ -3284,37 +3349,48 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		,msg->from
 		,msg->to_net.addr);
 
+	if((i=smb_locksmbhdr(smb))!=SMB_SUCCESS) {
+		lprintf(LOG_WARNING,"0000 !BOUNCE ERROR %d (%s) locking message base"
+			,i, smb->last_error);
+		return(FALSE);
+	}
+
 	if((i=smb_lockmsghdr(smb,msg))!=SMB_SUCCESS) {
+		smb_unlocksmbhdr(smb);
 		lprintf(LOG_WARNING,"0000 !BOUNCE ERROR %d (%s) locking message header #%lu"
 			,i, smb->last_error, msg->hdr.number);
 		return(FALSE);
 	}
 
 	if((i=smb_putmsg(smb,msg))!=SMB_SUCCESS) {
+		smb_unlockmsghdr(smb,msg);
+		smb_unlocksmbhdr(smb);
 		lprintf(LOG_ERR,"0000 !BOUNCE ERROR %d (%s) incrementing delivery attempt counter"
 			,i, smb->last_error);
-		smb_unlockmsghdr(smb,msg);
 		return(FALSE);
 	}
 
 	if(!immediate && msg->hdr.delivery_attempts<startup->max_delivery_attempts) {
 		smb_unlockmsghdr(smb,msg);
+		smb_unlocksmbhdr(smb);
 		return(TRUE);
 	}
 
 	newmsg=*msg;
 	/* Mark original message as deleted */
 	msg->hdr.attr|=MSG_DELETE;
-	msg->idx.attr=msg->hdr.attr;
-	if((i=smb_putmsg(smb,msg))!=SMB_SUCCESS) {
+
+	i=smb_putmsg(smb,msg);
+
+	smb_unlockmsghdr(smb,msg);
+	smb_unlocksmbhdr(smb);
+	if(i!=SMB_SUCCESS) {
 		lprintf(LOG_ERR,"0000 !BOUNCE ERROR %d (%s) deleting message"
 			,i, smb->last_error);
-		smb_unlockmsghdr(smb,msg);
 		return(FALSE);
 	}
 	if(msg->hdr.auxattr&MSG_FILEATTACH)
 		delfattach(&scfg,msg);
-	smb_unlockmsghdr(smb,msg);
 
 	if(msg->from_agent!=AGENT_PERSON	/* don't bounce 'bounce messages' */
 		|| (msg->idx.from==0 && msg->from_net.type==NET_NONE)
@@ -3429,9 +3505,7 @@ static void sendmail_thread(void* arg)
 	char*		msgtxt=NULL;
 	char*		p;
 	ushort		port;
-	ulong		offset;
 	ulong		last_msg=0;
-	ulong		total_msgs;
 	ulong		ip_addr;
 	ulong		dns;
 	ulong		lines;
@@ -3443,6 +3517,9 @@ static void sendmail_thread(void* arg)
 	time_t		last_scan=0;
 	smb_t		smb;
 	smbmsg_t	msg;
+	mail_t*		mail;
+	long		msgs;
+	long		l;
 
 	thread_up(TRUE /* setuid */);
 
@@ -3499,10 +3576,8 @@ static void sendmail_thread(void* arg)
 			continue;
 		last_msg=smb.status.last_msg;
 		last_scan=time(NULL);
-		total_msgs=smb.status.total_msgs;
-		smb_rewind(smb.sid_fp);
-		for(offset=0;offset<total_msgs;offset++) {
-
+		mail=loadmail(&smb,&msgs,/* to network */0,MAIL_YOUR,0);
+		for(l=0; l<msgs; l++) {
 			if(active_sendmail!=0)
 				active_sendmail=0, update_clients();
 
@@ -3521,26 +3596,21 @@ static void sendmail_thread(void* arg)
 
 			smb_freemsgmem(&msg);
 
-			smb_fseek(smb.sid_fp, offset*sizeof(msg.idx), SEEK_SET);
-			if(smb_fread(&smb, &msg.idx, sizeof(msg.idx), smb.sid_fp) != sizeof(msg.idx))
+			msg.hdr.number=mail[l].number;
+			if((i=smb_getmsgidx(&smb,&msg))!=SMB_SUCCESS) {
+				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) getting message index #%lu"
+					,i, smb.last_error, mail[l].number);
 				break;
-			if(msg.idx.attr&MSG_DELETE)	/* Marked for deletion */
-				continue;
-			if(msg.idx.to)			/* Local */
-				continue;
-			if(msg.idx.number==0)	/* Invalid message number */
-				continue;
-			msg.offset=offset;
-
+			}
 			if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) {
-				lprintf(LOG_WARNING,"0000 !SEND ERROR %d (%s) locking message header #%lu (offset %lu)"
-					,i, smb.last_error, msg.idx.number, offset);
+				lprintf(LOG_WARNING,"0000 !SEND ERROR %d (%s) locking message header #%lu"
+					,i, smb.last_error, msg.idx.number);
 				continue;
 			}
 			if((i=smb_getmsghdr(&smb,&msg))!=SMB_SUCCESS) {
 				smb_unlockmsghdr(&smb,&msg);
-				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) reading message header #%lu (offset %lu)"
-					,i, smb.last_error, msg.idx.number, offset);
+				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) reading message header #%lu"
+					,i, smb.last_error, msg.idx.number);
 				continue; 
 			}
 			if(msg.to_net.type!=NET_INTERNET || msg.to_net.addr==NULL) {
@@ -3696,6 +3766,12 @@ static void sendmail_thread(void* arg)
 				server_addr.sin_addr.s_addr = ip_addr;
 				server_addr.sin_family = AF_INET;
 				server_addr.sin_port = htons(port);
+
+				if((server==mx || server==mx2) && (ip_addr&0xff)==127) {
+					SAFEPRINTF2(err,"Bad IP address (%s) for MX server: %s"
+						,inet_ntoa(server_addr.sin_addr),server);
+					continue;
+				}
 				
 				lprintf(LOG_INFO,"%04d SEND connecting to port %u on %s [%s]"
 					,sock
@@ -3870,20 +3946,14 @@ static void sendmail_thread(void* arg)
 			}
 			lprintf(LOG_DEBUG,"%04d SEND message transfer complete (%lu lines)", sock, lines);
 
+			/* Now lets mark this message for deletion without corrupting the index */
 			msg.hdr.attr|=MSG_DELETE;
-			msg.idx.attr=msg.hdr.attr;
 			msg.hdr.netattr&=~MSG_INTRANSIT;
-			if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) 
-				lprintf(LOG_ERR,"%04d !SEND ERROR %d (%s) locking message header #%lu"
-					,sock
-					,i, smb.last_error, msg.hdr.number);
-			if((i=smb_putmsg(&smb,&msg))!=SMB_SUCCESS)
+			if((i=smb_updatemsg(&smb,&msg))!=SMB_SUCCESS)
 				lprintf(LOG_ERR,"%04d !SEND ERROR %d (%s) deleting message #%lu"
-					,sock
-					,i, smb.last_error, msg.hdr.number);
+					,sock, i, smb.last_error, msg.hdr.number);
 			if(msg.hdr.auxattr&MSG_FILEATTACH)
 				delfattach(&scfg,&msg);
-			smb_unlockmsghdr(&smb,&msg);
 
 			/* QUIT */
 			sockprintf(sock,"QUIT");
@@ -3892,6 +3962,9 @@ static void sendmail_thread(void* arg)
 			sock=INVALID_SOCKET;
 		}				
 		status(STATUS_WFC);
+		/* Free up resources here */
+		if(mail!=NULL)
+			freemail(mail);
 	}
 	if(sock!=INVALID_SOCKET)
 		mail_close_socket(sock);
@@ -3963,7 +4036,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.371 $", "%*s %s", revision);
+	sscanf("$Revision: 1.382 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
