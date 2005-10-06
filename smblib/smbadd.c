@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.15 2005/07/03 03:56:33 deuce Exp $ */
+/* $Id: smbadd.c,v 1.17 2005/10/02 23:28:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -83,16 +83,19 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			break;
 
 		msg->hdr.number=smb->status.last_msg+1;
-		hashes=smb_msghashes(msg,body);
+		if(!(smb->status.attr&SMB_EMAIL)) {
 
-		if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
-			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"duplicate %s: %s found in message #%lu"
-				,smb_hashsourcetype(found.source)
-				,smb_hashsource(msg,found.source)
-				,found.number);
-			retval=SMB_DUPE_MSG;
-			break;
+			hashes=smb_msghashes(msg,body);
+
+			if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
+				safe_snprintf(smb->last_error,sizeof(smb->last_error)
+					,"duplicate %s: %s found in message #%lu"
+					,smb_hashsourcetype(found.source)
+					,smb_hashsource(msg,found.source)
+					,found.number);
+				retval=SMB_DUPE_MSG;
+				break;
+			}
 		}
 
 		if(tail!=NULL && (taillen=strlen(tail))>0)
@@ -245,7 +248,6 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		}
 		if(msg->hdr.when_written.time==0)	/* Uninitialized */
 			msg->hdr.when_written = msg->hdr.when_imported;
-		smb_init_idx(smb,msg);
 
 		/* Look-up thread_back if RFC822 Reply-ID was specified */
 		if(msg->hdr.thread_back==0 && msg->reply_id!=NULL) {
@@ -290,7 +292,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 		}
 
-		if(smb_addhashes(smb,hashes,/* skip_marked? */FALSE)==SMB_SUCCESS)
+		if(!(smb->status.attr&SMB_EMAIL)
+			&& smb_addhashes(smb,hashes,/* skip_marked? */FALSE)==SMB_SUCCESS)
 			msg->flags|=MSG_FLAG_HASHED;
 		if(msg->to==NULL)	/* no recipient, don't add header (required for bulkmail) */
 			break;
