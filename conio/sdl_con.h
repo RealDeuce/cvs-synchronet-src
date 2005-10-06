@@ -29,15 +29,13 @@ int sdl_getch(void);
 int sdl_getche(void);
 int sdl_beep(void);
 void sdl_textmode(int mode);
-void sdl_setname(const char *name);
 void sdl_settitle(const char *title);
 int sdl_hidemouse(void);
 int sdl_showmouse(void);
+#if 0
 void sdl_copytext(const char *text, size_t buflen);
 char *sdl_getcliptext(void);
-int sdl_setfont(int font, int force);
-int sdl_getfont(void);
-int sdl_loadfont(char *filename);
+#endif
 #ifdef __cplusplus
 }
 #endif

@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.33 2005/10/22 00:02:13 rswindell Exp $ */
+/* $Id: mouse.c,v 1.31 2005/10/04 06:10:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,7 @@ struct mouse_state {
 
 struct mouse_state state;
 int mouse_events=0;
-int ciolib_mouse_initialized=0;
+static int mouse_initialized=0;
 
 void init_mouse(void)
 {
@@ -105,7 +105,7 @@ void init_mouse(void)
 	state.multi_timeout=300;
 	listInit(&state.input,LINK_LIST_SEMAPHORE);
 	listInit(&state.output,LINK_LIST_SEMAPHORE);
-	ciolib_mouse_initialized=1;
+	mouse_initialized=1;
 }
 
 int ciomouse_setevents(int events)
@@ -142,7 +142,7 @@ void ciomouse_gotevent(int event, int x, int y)
 {
 	struct in_mouse_event *ime;
 
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	ime=(struct in_mouse_event *)malloc(sizeof(struct in_mouse_event));
 	ime->ts=MSEC_CLOCK();
@@ -263,10 +263,8 @@ void ciolib_mouse_thread(void *data)
 			struct in_mouse_event *in;
 
 			in=listShiftNode(&state.input);
-			if(in==NULL) {
-				YIELD();
-				continue;
-			}
+			if(in==NULL)
+					continue;
 			but=CIOLIB_BUTTON_NUMBER(in->event);
 			switch(CIOLIB_BUTTON_BASE(in->event)) {
 				case CIOLIB_MOUSE_MOVE:
@@ -429,21 +427,21 @@ void ciolib_mouse_thread(void *data)
 
 int mouse_trywait(void)
 {
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	return(listSemTryWait(&state.output));
 }
 
 int mouse_wait(void)
 {
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	return(listSemWait(&state.output));
 }
 
 int mouse_pending(void)
 {
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	return(listCountNodes(&state.output));
 }
@@ -452,7 +450,7 @@ int ciolib_getmouse(struct mouse_event *mevent)
 {
 	int retval=0;
 
-	while(!ciolib_mouse_initialized)
+	while(!mouse_initialized)
 		SLEEP(1);
 	if(listCountNodes(&state.output)) {
 		struct out_mouse_event *out;

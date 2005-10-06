@@ -2,13 +2,13 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.25 2005/11/08 07:45:00 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.23 2005/08/15 19:15:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -51,15 +51,13 @@
 	#include <io.h>
 #endif
 
-#include <fcntl.h>		/* O_RDONLY, O_CREAT, etc. */
-
 /**********/
 /* Macros */
 /**********/
 
 #if defined(_WIN32)
 
-	
+	#include <fcntl.h>			/* O_BINARY */
 	#include <windows.h>		/* OF_SHARE_ */
 	#include <share.h>			/* SH_DENY */
 
@@ -75,6 +73,7 @@
 
 #elif defined(__unix__)
 
+	#include <fcntl.h>
 	#ifdef __solaris__
 		#define LOCK_NB	1
 		#define LOCK_SH 2
@@ -111,7 +110,6 @@
 	#endif
 	#define chsize(fd,size)		ftruncate(fd,size)
 	#define tell(fd)			lseek(fd,0,SEEK_CUR)
-	#define eof(fd)				(tell(fd)==filelength(fd))
 
 #elif defined(__OS2__)
 
