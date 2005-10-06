@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.42 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: ciolib.c,v 1.50 2005/10/06 00:38:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,9 @@
 #define CIOLIB_NO_MACROS
 #include "ciolib.h"
 
+#ifdef WITH_SDL
+ #include "sdl_con.h"
+#endif
 #ifdef _WIN32
  #include "win32cio.h"
 #else
@@ -98,6 +101,41 @@ void ciolib_copytext(const char *text, size_t buflen);
 char *ciolib_getcliptext(void);
 
 #define CIOLIB_INIT()		{ if(!initialized) initciolib(CIOLIB_MODE_AUTO); }
+
+#ifdef WITH_SDL
+int try_sdl_init(int mode)
+{
+	if(!sdl_init(mode)) {
+		cio_api.mouse=1;
+		cio_api.puttext=sdl_puttext;
+		cio_api.gettext=sdl_gettext;
+		cio_api.textattr=sdl_textattr;
+		cio_api.kbhit=sdl_kbhit;
+		cio_api.delay=sdl_delay;
+		cio_api.wherey=sdl_wherey;
+		cio_api.wherex=sdl_wherex;
+		cio_api.putch=sdl_putch;
+		cio_api.gotoxy=sdl_gotoxy;
+		cio_api.gettextinfo=sdl_gettextinfo;
+		cio_api.setcursortype=sdl_setcursortype;
+		cio_api.getch=sdl_getch;
+		cio_api.getche=sdl_getche;
+		cio_api.textmode=sdl_textmode;
+		cio_api.showmouse=sdl_showmouse;
+		cio_api.hidemouse=sdl_hidemouse;
+		cio_api.settitle=sdl_settitle;
+#ifdef _WIN32
+		cio_api.copytext=win32_copytext;
+		cio_api.getcliptext=win32_getcliptext;
+#else
+		cio_api.copytext=NULL;
+		cio_api.getcliptext=NULL;
+#endif
+		return(1);
+	}
+	return(0);
+}
+#endif
 
 #ifndef _WIN32
  #ifndef NO_X
@@ -203,6 +241,7 @@ int try_conio_init(int mode)
 		cio_api.gettext=win32_gettext;
 		cio_api.textattr=win32_textattr;
 		cio_api.kbhit=win32_kbhit;
+		cio_api.delay=win32_delay;
 		cio_api.wherey=win32_wherey;
 		cio_api.wherex=win32_wherex;
 		cio_api.putch=win32_putch;
@@ -227,15 +266,18 @@ int initciolib(int mode)
 {
 	switch(mode) {
 		case CIOLIB_MODE_AUTO:
+#ifdef WITH_SDL
+			if(!try_sdl_init(mode))
+#endif
 #ifdef _WIN32
-			if(!try_conio_init(mode))
+				if(!try_conio_init(mode))
 #else
 #ifndef NO_X
-			if(!try_x_init(mode))
+				if(!try_x_init(mode))
 #endif
-				if(!try_curses_init(mode))
+					if(!try_curses_init(mode))
 #endif
-					try_ansi_init(mode);
+						try_ansi_init(mode);
 			break;
 #ifdef _WIN32
 		case CIOLIB_MODE_CONIO:
@@ -256,6 +298,13 @@ int initciolib(int mode)
 		case CIOLIB_MODE_ANSI:
 			try_ansi_init(mode);
 			break;
+
+#ifdef WITH_SDL
+		case CIOLIB_MODE_SDL:
+		case CIOLIB_MODE_SDL_FULLSCREEN:
+			try_sdl_init(mode);
+			break;
+#endif
 	}
 	if(cio_api.mode==CIOLIB_MODE_AUTO) {
 		fprintf(stderr,"CIOLIB initialization failed!\n");
@@ -277,8 +326,6 @@ int ciolib_kbhit(void)
 {
 	CIOLIB_INIT();
 	if(ungotch)
-		return(1);
-	if(mouse_pending())
 		return(1);
 	return(cio_api.kbhit());
 }
@@ -398,7 +445,7 @@ int vsscanf( const char *buffer, const char *format, va_list arg_ptr )
 	int i, ret;
 	void *arg_arr[25];
 
-	// Do exception handling in case we go too far //
+	/* Do exception handling in case we go too far // */
 	__try
 	{
 		for ( i = 0; i < 25; i++ )
