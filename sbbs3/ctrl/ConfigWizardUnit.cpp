@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.20 2005/10/07 08:05:04 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.19 2004/12/30 08:11:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,6 +41,7 @@
 #include "ConfigWizardUnit.h"
 #include <stdio.h>      // sprintf
 #include <winsock.h>    // addresses and such
+#include <iphlpapi.h>	// GetNetworkParams
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -177,14 +178,57 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
             }
 		} else if(tz.Bias<0)
 			scfg.sys_timezone=(-tz.Bias)|EASTERN_ZONE;
-#if 0
+
         /* Get DNS Server Address */
-        str_list_t dns_list = getNameServerList();
-        if(dns_list!=NULL) {
-            SAFECOPY(MainForm->mail_startup.dns_server,dns_list[0]);
-            freeNameServerList(dns_list);
+#if 0 /* Old way */
+        sprintf(str,"%s /c ipconfig /all > %sipconfig.txt"
+            ,getenv("COMSPEC"),scfg.ctrl_dir);
+        WinExec(str,SW_HIDE);   /* there's got to be a better way! */
+        Sleep(1500);	/* give ipconfig time to run */
+        sprintf(str,"%sipconfig.txt",scfg.ctrl_dir);
+        FILE*   fp=fopen(str,"r");
+        if(fp==NULL) {
+            sprintf(error,"Error %d (%s) opening %s"
+            	,errno,strerror(errno),str);
+        	Application->MessageBox(error
+            	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
+        } else {
+            char*   p;
+            if(fp!=NULL) {
+                while(!feof(fp)) {
+                    if(!fgets(str,sizeof(str),fp))
+                        break;
+    #if 0
+                    Application->MessageBox(str
+                        ,"DEBUG",MB_OK|MB_ICONEXCLAMATION);
+    #endif
+                    p=str;
+                    while(*p && *p<=' ') p++;
+                    if(!strnicmp(p,"DNS Servers",11) && (p=strchr(p,':'))!=NULL) {
+                        p++;
+                        while(*p && *p<=' ') p++;
+                        truncsp(p);
+                        if((*p)==0)
+                          continue;
+                        SAFECOPY(MainForm->mail_startup.dns_server,p);
+                        break;
+                    }
+                }
+                fclose(fp);
+            }
         }
-#endif        
+#else	/* New way (finally!) */
+		FIXED_INFO* FixedInfo=NULL;
+		ULONG    	FixedInfoLen=0;
+		if(GetNetworkParams(FixedInfo,&FixedInfoLen) == ERROR_BUFFER_OVERFLOW) {
+            FixedInfo=(FIXED_INFO*)malloc(FixedInfoLen);
+			if(GetNetworkParams(FixedInfo,&FixedInfoLen) == ERROR_SUCCESS)
+	            SAFECOPY(MainForm->mail_startup.dns_server
+		            ,FixedInfo->DnsServerList.IpAddress.String);
+            if(FixedInfo!=NULL)
+                free(FixedInfo);
+        }
+#endif
     } else {
         SystemNameEdit->Text=AnsiString(scfg.sys_name);
         SystemLocationEdit->Text=AnsiString(scfg.sys_location);
@@ -209,7 +253,7 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
     else
         DeletedEmailNoButton->Checked=true;
 
-//    DNSAddressEdit->Text=MainForm->mail_startup.dns_server;
+    DNSAddressEdit->Text=MainForm->mail_startup.dns_server;
     MaxMailUpDown->Position=MainForm->mail_startup.max_clients;
     MaxFtpUpDown->Position=MainForm->ftp_startup.max_clients;
     MaxWebUpDown->Position=MainForm->web_startup.max_clients;
@@ -264,7 +308,7 @@ void __fastcall TConfigWizard::NextButtonClick(TObject *Sender)
         MainForm->ftp_startup.max_clients=MaxFtpUpDown->Position;
         MainForm->mail_startup.max_clients=MaxMailUpDown->Position;
         MainForm->web_startup.max_clients=MaxWebUpDown->Position;
-//        strcpy(MainForm->mail_startup.dns_server,DNSAddressEdit->Text.c_str());
+        strcpy(MainForm->mail_startup.dns_server,DNSAddressEdit->Text.c_str());
 
         MainForm->SaveIniSettings(Sender);
 
@@ -503,8 +547,7 @@ void __fastcall TConfigWizard::QNetTaglineEditKeyPress(TObject *Sender,
 void __fastcall TConfigWizard::VerifyInternetAddresses(TObject *Sender)
 {
     NextButton->Enabled=(InternetAddressComboBox->Text.Length()
-//        && DNSAddressEdit->Text.Length()
-        );
+        && DNSAddressEdit->Text.Length());
 }
 //---------------------------------------------------------------------------
 void __fastcall TConfigWizard::TimeZoneComboBoxChange(TObject *Sender)
