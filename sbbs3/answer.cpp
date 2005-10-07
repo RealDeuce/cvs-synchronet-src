@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.45 2005/06/04 09:40:26 deuce Exp $ */
+/* $Id: answer.cpp,v 1.46 2005/09/08 02:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,7 @@ bool sbbs_t::answer()
 				lprintf(LOG_DEBUG,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
 		}
 		if(rlogin_name[0]==0) {
-			lprintf(LOG_DEBUG,"!Node %d RLogin: No user name received",cfg.node_num);
+			lprintf(LOG_DEBUG,"Node %d !RLogin: No user name received",cfg.node_num);
 			sys_status&=~SS_RLOGIN;
 		}
 	}
