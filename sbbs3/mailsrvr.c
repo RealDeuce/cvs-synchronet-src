@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.384 2005/10/07 07:49:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.385 2005/10/07 08:30:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3463,9 +3463,8 @@ void get_dns_server(char* dns_server, size_t len)
 	str_list_t	list;
 	size_t		count;
 
-	if(isalnum(startup->dns_server[0]))
-		sprintf(dns_server,"%.*s",len,startup->dns_server);
-	else {
+	sprintf(dns_server,"%.*s",len,startup->dns_server);
+	if(!isalnum(dns_server[0])) {
 		if((list=getNameServerList())!=NULL) {
 			if((count=strListCount(list))>0) {
 				sprintf(dns_server,"%.*s",len,list[xp_random(count)]);
@@ -4035,7 +4034,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.384 $", "%*s %s", revision);
+	sscanf("$Revision: 1.385 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
