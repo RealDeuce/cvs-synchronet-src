@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.68 2005/11/17 04:31:56 rswindell Exp $ */
+/* $Id: scfg.c,v 1.67 2005/09/20 03:40:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2005,7 +2005,7 @@ char* prep_code(char *str)
 			tmp[j++]=str[i];
 	tmp[j]=0;
 	strcpy(str,tmp);
-	if(j>LEN_CODE) {	/* Extra chars? Strip symbolic chars */
+	if(j>=LEN_CODE) {	/* Extra chars? Strip symbolic chars */
 		for(i=j=0;str[i];i++)
 			if(isalnum(str[i]))
 				tmp[j++]=str[i];
