@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.358 2005/10/04 03:14:29 deuce Exp $ */
+/* $Id: websrvr.c,v 1.359 2005/10/11 04:51:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2226,6 +2226,8 @@ static BOOL check_request(http_session_t * session)
 		if(session->req.method!=HTTP_OPTIONS) {
 			if(startup->options&WEB_OPT_DEBUG_TX)
 				lprintf(LOG_DEBUG,"%04d 404 - %s does not exist",session->socket,path);
+			strcat(session->req.physical_path,session->req.extra_path_info);
+			strcat(session->req.virtual_path,session->req.extra_path_info);
 			send_error(session,error_404);
 			return(FALSE);
 		}
@@ -3816,7 +3818,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.358 $", "%*s %s", revision);
+	sscanf("$Revision: 1.359 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
