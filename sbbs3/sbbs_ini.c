@@ -1,8 +1,8 @@
 /* sbbs_ini.c */
 
-/* Synchronet initialization (.ini) file routines */
+/* Synchronet console configuration (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.112 2005/10/12 23:18:00 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.111 2005/07/03 04:20:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,18 +123,18 @@ static void sbbs_fix_js_settings(js_startup_t* js)
 	if(js->cx_stack==0)		js->cx_stack=JAVASCRIPT_CONTEXT_STACK;
 }
 
-void sbbs_get_js_settings(
-	 str_list_t list
+void sbbs_read_js_settings(
+	 FILE* fp
 	,const char* section
 	,js_startup_t* js
 	,js_startup_t* defaults)
 {
-	js->max_bytes		= iniGetInteger(list,section,strJavaScriptMaxBytes		,defaults->max_bytes);
-	js->cx_stack		= iniGetInteger(list,section,strJavaScriptContextStack	,defaults->cx_stack);
-	js->thread_stack	= iniGetInteger(list,section,strJavaScriptThreadStack	,defaults->thread_stack);
-	js->branch_limit	= iniGetInteger(list,section,strJavaScriptBranchLimit	,defaults->branch_limit);
-	js->gc_interval		= iniGetInteger(list,section,strJavaScriptGcInterval	,defaults->gc_interval);
-	js->yield_interval	= iniGetInteger(list,section,strJavaScriptYieldInterval	,defaults->yield_interval);
+	js->max_bytes		= iniReadInteger(fp,section,strJavaScriptMaxBytes		,defaults->max_bytes);
+	js->cx_stack		= iniReadInteger(fp,section,strJavaScriptContextStack	,defaults->cx_stack);
+	js->thread_stack	= iniReadInteger(fp,section,strJavaScriptThreadStack	,defaults->thread_stack);
+	js->branch_limit	= iniReadInteger(fp,section,strJavaScriptBranchLimit	,defaults->branch_limit);
+	js->gc_interval		= iniReadInteger(fp,section,strJavaScriptGcInterval		,defaults->gc_interval);
+	js->yield_interval	= iniReadInteger(fp,section,strJavaScriptYieldInterval	,defaults->yield_interval);
 
 	sbbs_fix_js_settings(js);
 }
@@ -194,19 +194,19 @@ BOOL sbbs_set_js_settings(
 	return(!failure);
 }
 
-static void get_ini_globals(str_list_t list, global_startup_t* global)
+static void read_ini_globals(FILE* fp, global_startup_t* global)
 {
 	const char* section = "Global";
 	char		value[INI_MAX_VALUE_LEN];
 	char*		p;
 
-	p=iniGetString(list,section,strCtrlDirectory,nulstr,value);
+	p=iniReadString(fp,section,strCtrlDirectory,nulstr,value);
 	if(*p) {
 	    SAFECOPY(global->ctrl_dir,value);
 		backslash(global->ctrl_dir);
     }
 
-	p=iniGetString(list,section,strTempDirectory,nulstr,value);
+	p=iniReadString(fp,section,strTempDirectory,nulstr,value);
 #if defined(__unix__)
 	if(*p==0)
 		p=_PATH_TMP;	/* Good idea to use "/tmp" on Unix */
@@ -216,15 +216,15 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 		backslash(global->temp_dir);
     }
 
-	p=iniGetString(list,section,strHostName,nulstr,value);
+	p=iniReadString(fp,section,strHostName,nulstr,value);
 	if(*p)
         SAFECOPY(global->host_name,value);
 
-	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,0);
-	global->interface_addr=iniGetIpAddress(list,section,strInterface,INADDR_ANY);
-	global->log_mask=iniGetBitField(list,section,strLogMask,log_mask_bits,DEFAULT_LOG_MASK);
-	global->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,DEFAULT_BIND_RETRY_COUNT);
-	global->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,DEFAULT_BIND_RETRY_DELAY);
+	global->sem_chk_freq=iniReadShortInt(fp,section,strSemFileCheckFrequency,0);
+	global->interface_addr=iniReadIpAddress(fp,section,strInterface,INADDR_ANY);
+	global->log_mask=iniReadBitField(fp,section,strLogMask,log_mask_bits,DEFAULT_LOG_MASK);
+	global->bind_retry_count=iniReadInteger(fp,section,strBindRetryCount,DEFAULT_BIND_RETRY_COUNT);
+	global->bind_retry_delay=iniReadInteger(fp,section,strBindRetryDelay,DEFAULT_BIND_RETRY_DELAY);
 
 	/* Setup default values here */
 	global->js.max_bytes		= JAVASCRIPT_MAX_BYTES;
@@ -235,7 +235,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	global->js.yield_interval	= JAVASCRIPT_YIELD_INTERVAL;
 
 	/* Read .ini values here */
-	sbbs_get_js_settings(list, section, &global->js, &global->js);
+	sbbs_read_js_settings(fp, section, &global->js, &global->js);
 }
 
 
@@ -258,7 +258,6 @@ void sbbs_read_ini(
 	const char* default_term_ansi;
 	const char*	default_dosemu_path;
 	char		value[INI_MAX_VALUE_LEN];
-	str_list_t	list;
 	global_startup_t global_buf;
 
 	if(global==NULL) {
@@ -266,9 +265,7 @@ void sbbs_read_ini(
 		global=&global_buf;
 	}
 
-	list=iniReadFile(fp);
-
-	get_ini_globals(list, global);
+	read_ini_globals(fp, global);
 
 	if(global->ctrl_dir[0]) {
 		if(bbs!=NULL)		SAFECOPY(bbs->ctrl_dir,global->ctrl_dir);
@@ -289,44 +286,44 @@ void sbbs_read_ini(
 	section = "BBS";
 
 	if(run_bbs!=NULL)
-		*run_bbs=iniGetBool(list,section,strAutoStart,TRUE);
+		*run_bbs=iniReadBool(fp,section,strAutoStart,TRUE);
 
 	if(bbs!=NULL) {
 
 		bbs->telnet_interface
-			=iniGetIpAddress(list,section,"TelnetInterface",global->interface_addr);
+			=iniReadIpAddress(fp,section,"TelnetInterface",global->interface_addr);
 		bbs->telnet_port
-			=iniGetShortInt(list,section,"TelnetPort",IPPORT_TELNET);
+			=iniReadShortInt(fp,section,"TelnetPort",IPPORT_TELNET);
 
 		bbs->rlogin_interface
-			=iniGetIpAddress(list,section,"RLoginInterface",global->interface_addr);
+			=iniReadIpAddress(fp,section,"RLoginInterface",global->interface_addr);
 		bbs->rlogin_port
-			=iniGetShortInt(list,section,"RLoginPort",513);
+			=iniReadShortInt(fp,section,"RLoginPort",513);
 
 		bbs->first_node
-			=iniGetShortInt(list,section,"FirstNode",1);
+			=iniReadShortInt(fp,section,"FirstNode",1);
 		bbs->last_node
-			=iniGetShortInt(list,section,"LastNode",4);
+			=iniReadShortInt(fp,section,"LastNode",4);
 
 		bbs->outbuf_highwater_mark
-			=iniGetShortInt(list,section,"OutbufHighwaterMark",1024);
+			=iniReadShortInt(fp,section,"OutbufHighwaterMark",1024);
 		bbs->outbuf_drain_timeout
-			=iniGetShortInt(list,section,"OutbufDrainTimeout",10);
+			=iniReadShortInt(fp,section,"OutbufDrainTimeout",10);
 
 		bbs->sem_chk_freq
-			=iniGetShortInt(list,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		bbs->xtrn_polls_before_yield
-			=iniGetInteger(list,section,"ExternalYield",10);
+			=iniReadInteger(fp,section,"ExternalYield",10);
 
 		/* JavaScript operating parameters */
-		sbbs_get_js_settings(list, section, &bbs->js, &global->js);
+		sbbs_read_js_settings(fp, section, &bbs->js, &global->js);
 
 		SAFECOPY(bbs->host_name
-			,iniGetString(list,section,strHostName,global->host_name,value));
+			,iniReadString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(bbs->temp_dir
-			,iniGetString(list,section,strTempDirectory,bbs->temp_dir,value));
+			,iniReadString(fp,section,strTempDirectory,bbs->temp_dir,value));
 
 		/* Set default terminal type to "stock" termcap closest to "ansi-bbs" */
 	#if defined(__FreeBSD__)
@@ -336,9 +333,9 @@ void sbbs_read_ini(
 	#endif
 
 		SAFECOPY(bbs->xtrn_term_ansi
-			,iniGetString(list,section,"ExternalTermANSI",default_term_ansi,value));
+			,iniReadString(fp,section,"ExternalTermANSI",default_term_ansi,value));
 		SAFECOPY(bbs->xtrn_term_dumb
-			,iniGetString(list,section,"ExternalTermDumb","dumb",value));
+			,iniReadString(fp,section,"ExternalTermDumb","dumb",value));
 
 	#if defined(__FreeBSD__)
 		default_dosemu_path="/usr/bin/doscmd";
@@ -347,275 +344,273 @@ void sbbs_read_ini(
 	#endif
 
 		SAFECOPY(bbs->dosemu_path
-			,iniGetString(list,section,"DOSemuPath",default_dosemu_path,value));
+			,iniReadString(fp,section,"DOSemuPath",default_dosemu_path,value));
 
 		SAFECOPY(bbs->answer_sound
-			,iniGetString(list,section,strAnswerSound,nulstr,value));
+			,iniReadString(fp,section,strAnswerSound,nulstr,value));
 		SAFECOPY(bbs->hangup_sound
-			,iniGetString(list,section,strHangupSound,nulstr,value));
+			,iniReadString(fp,section,strHangupSound,nulstr,value));
 
 		bbs->log_mask
-			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		bbs->options
-			=iniGetBitField(list,section,strOptions,bbs_options
+			=iniReadBitField(fp,section,strOptions,bbs_options
 				,BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE);
 
-		bbs->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
-		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
+		bbs->bind_retry_count=iniReadInteger(fp,section,strBindRetryCount,global->bind_retry_count);
+		bbs->bind_retry_delay=iniReadInteger(fp,section,strBindRetryDelay,global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
 	section = "FTP";
 
 	if(run_ftp!=NULL)
-		*run_ftp=iniGetBool(list,section,strAutoStart,TRUE);
+		*run_ftp=iniReadBool(fp,section,strAutoStart,TRUE);
 
 	if(ftp!=NULL) {
 
 		ftp->interface_addr
-			=iniGetIpAddress(list,section,strInterface,global->interface_addr);
+			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
 		ftp->port
-			=iniGetShortInt(list,section,strPort,IPPORT_FTP);
+			=iniReadShortInt(fp,section,strPort,IPPORT_FTP);
 		ftp->max_clients
-			=iniGetShortInt(list,section,strMaxClients,10);
+			=iniReadShortInt(fp,section,strMaxClients,10);
 		ftp->max_inactivity
-			=iniGetShortInt(list,section,strMaxInactivity,300);	/* seconds */
+			=iniReadShortInt(fp,section,strMaxInactivity,300);	/* seconds */
 		ftp->qwk_timeout
-			=iniGetShortInt(list,section,"QwkTimeout",600);		/* seconds */
+			=iniReadShortInt(fp,section,"QwkTimeout",600);		/* seconds */
 		ftp->sem_chk_freq
-			=iniGetShortInt(list,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		/* Passive transfer settings (for stupid firewalls/NATs) */
 		ftp->pasv_ip_addr
-			=iniGetIpAddress(list,section,"PasvIpAddress",0);
+			=iniReadIpAddress(fp,section,"PasvIpAddress",0);
 		ftp->pasv_port_low
-			=iniGetShortInt(list,section,"PasvPortLow",IPPORT_RESERVED);
+			=iniReadShortInt(fp,section,"PasvPortLow",IPPORT_RESERVED);
 		ftp->pasv_port_high
-			=iniGetShortInt(list,section,"PasvPortHigh",0xffff);
+			=iniReadShortInt(fp,section,"PasvPortHigh",0xffff);
 
 
 		/* JavaScript Operating Parameters */
-		sbbs_get_js_settings(list, section, &ftp->js, &global->js);
+		sbbs_read_js_settings(fp, section, &ftp->js, &global->js);
 
 		SAFECOPY(ftp->host_name
-			,iniGetString(list,section,strHostName,global->host_name,value));
+			,iniReadString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(ftp->index_file_name
-			,iniGetString(list,section,"IndexFileName","00index",value));
+			,iniReadString(fp,section,"IndexFileName","00index",value));
 		SAFECOPY(ftp->html_index_file
-			,iniGetString(list,section,"HtmlIndexFile","00index.html",value));
+			,iniReadString(fp,section,"HtmlIndexFile","00index.html",value));
 		SAFECOPY(ftp->html_index_script
-			,iniGetString(list,section,"HtmlIndexScript","ftp-html.js",value));
+			,iniReadString(fp,section,"HtmlIndexScript","ftp-html.js",value));
 
 		SAFECOPY(ftp->answer_sound
-			,iniGetString(list,section,strAnswerSound,nulstr,value));
+			,iniReadString(fp,section,strAnswerSound,nulstr,value));
 		SAFECOPY(ftp->hangup_sound
-			,iniGetString(list,section,strHangupSound,nulstr,value));
+			,iniReadString(fp,section,strHangupSound,nulstr,value));
 		SAFECOPY(ftp->hack_sound
-			,iniGetString(list,section,strHackAttemptSound,nulstr,value));
+			,iniReadString(fp,section,strHackAttemptSound,nulstr,value));
 
 		SAFECOPY(ftp->temp_dir
-			,iniGetString(list,section,strTempDirectory,ftp->temp_dir,value));
+			,iniReadString(fp,section,strTempDirectory,ftp->temp_dir,value));
 
 		ftp->log_mask
-			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		ftp->options
-			=iniGetBitField(list,section,strOptions,ftp_options
+			=iniReadBitField(fp,section,strOptions,ftp_options
 				,FTP_OPT_INDEX_FILE|FTP_OPT_HTML_INDEX_FILE|FTP_OPT_ALLOW_QWK);
 
-		ftp->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
-		ftp->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
+		ftp->bind_retry_count=iniReadInteger(fp,section,strBindRetryCount,global->bind_retry_count);
+		ftp->bind_retry_delay=iniReadInteger(fp,section,strBindRetryDelay,global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
 	section = "Mail";
 
 	if(run_mail!=NULL)
-		*run_mail=iniGetBool(list,section,strAutoStart,TRUE);
+		*run_mail=iniReadBool(fp,section,strAutoStart,TRUE);
 
 	if(mail!=NULL) {
 
 		mail->interface_addr
-			=iniGetIpAddress(list,section,strInterface,global->interface_addr);
+			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
 		mail->smtp_port
-			=iniGetShortInt(list,section,"SMTPPort",IPPORT_SMTP);
+			=iniReadShortInt(fp,section,"SMTPPort",IPPORT_SMTP);
 		mail->pop3_port
-			=iniGetShortInt(list,section,"POP3Port",IPPORT_POP3);
+			=iniReadShortInt(fp,section,"POP3Port",IPPORT_POP3);
 		mail->relay_port
-			=iniGetShortInt(list,section,"RelayPort",IPPORT_SMTP);
+			=iniReadShortInt(fp,section,"RelayPort",IPPORT_SMTP);
 		mail->max_clients
-			=iniGetShortInt(list,section,strMaxClients,10);
+			=iniReadShortInt(fp,section,strMaxClients,10);
 		mail->max_inactivity
-			=iniGetShortInt(list,section,strMaxInactivity,120);		/* seconds */
+			=iniReadShortInt(fp,section,strMaxInactivity,120);		/* seconds */
 		mail->max_delivery_attempts
-			=iniGetShortInt(list,section,"MaxDeliveryAttempts",50);
+			=iniReadShortInt(fp,section,"MaxDeliveryAttempts",50);
 		mail->rescan_frequency
-			=iniGetShortInt(list,section,"RescanFrequency",3600);	/* 60 minutes */
+			=iniReadShortInt(fp,section,"RescanFrequency",3600);	/* 60 minutes */
 		mail->sem_chk_freq
-			=iniGetShortInt(list,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 		mail->lines_per_yield
-			=iniGetShortInt(list,section,"LinesPerYield",10);
+			=iniReadShortInt(fp,section,"LinesPerYield",10);
 		mail->max_recipients
-			=iniGetShortInt(list,section,"MaxRecipients",100);
+			=iniReadShortInt(fp,section,"MaxRecipients",100);
 		mail->max_msg_size
-			=iniGetInteger(list,section,"MaxMsgSize",DEFAULT_MAX_MSG_SIZE);
+			=iniReadInteger(fp,section,"MaxMsgSize",DEFAULT_MAX_MSG_SIZE);
 
 		SAFECOPY(mail->host_name
-			,iniGetString(list,section,strHostName,global->host_name,value));
+			,iniReadString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(mail->temp_dir
-			,iniGetString(list,section,strTempDirectory,mail->temp_dir,value));
+			,iniReadString(fp,section,strTempDirectory,mail->temp_dir,value));
 
 		SAFECOPY(mail->relay_server
-			,iniGetString(list,section,"RelayServer",mail->relay_server,value));
+			,iniReadString(fp,section,"RelayServer",mail->relay_server,value));
 		SAFECOPY(mail->relay_user
-			,iniGetString(list,section,"RelayUsername",mail->relay_user,value));
+			,iniReadString(fp,section,"RelayUsername",mail->relay_user,value));
 		SAFECOPY(mail->relay_pass
-			,iniGetString(list,section,"RelayPassword",mail->relay_pass,value));
+			,iniReadString(fp,section,"RelayPassword",mail->relay_pass,value));
 
 		SAFECOPY(mail->dns_server
-			,iniGetString(list,section,"DNSServer",mail->dns_server,value));
+			,iniReadString(fp,section,"DNSServer",mail->dns_server,value));
 
 		SAFECOPY(mail->default_user
-			,iniGetString(list,section,"DefaultUser",nulstr,value));
+			,iniReadString(fp,section,"DefaultUser",nulstr,value));
 
 		SAFECOPY(mail->dnsbl_hdr
-			,iniGetString(list,section,"DNSBlacklistHeader","X-DNSBL",value));
+			,iniReadString(fp,section,"DNSBlacklistHeader","X-DNSBL",value));
 		SAFECOPY(mail->dnsbl_tag
-			,iniGetString(list,section,"DNSBlacklistSubject","SPAM",value));
+			,iniReadString(fp,section,"DNSBlacklistSubject","SPAM",value));
 
 		SAFECOPY(mail->pop3_sound
-			,iniGetString(list,section,"POP3Sound",nulstr,value));
+			,iniReadString(fp,section,"POP3Sound",nulstr,value));
 		SAFECOPY(mail->inbound_sound
-			,iniGetString(list,section,"InboundSound",nulstr,value));
+			,iniReadString(fp,section,"InboundSound",nulstr,value));
 		SAFECOPY(mail->outbound_sound
-			,iniGetString(list,section,"OutboundSound",nulstr,value));
+			,iniReadString(fp,section,"OutboundSound",nulstr,value));
 
 		/* JavaScript Operating Parameters */
-		sbbs_get_js_settings(list, section, &mail->js, &global->js);
+		sbbs_read_js_settings(fp, section, &mail->js, &global->js);
 
 		mail->log_mask
-			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		mail->options
-			=iniGetBitField(list,section,strOptions,mail_options
+			=iniReadBitField(fp,section,strOptions,mail_options
 				,MAIL_OPT_ALLOW_POP3);
 
-		mail->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
-		mail->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
+		mail->bind_retry_count=iniReadInteger(fp,section,strBindRetryCount,global->bind_retry_count);
+		mail->bind_retry_delay=iniReadInteger(fp,section,strBindRetryDelay,global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
 	section = "Services";
 
 	if(run_services!=NULL)
-		*run_services=iniGetBool(list,section,strAutoStart,TRUE);
+		*run_services=iniReadBool(fp,section,strAutoStart,TRUE);
 
 	if(services!=NULL) {
 
 		services->interface_addr
-			=iniGetIpAddress(list,section,strInterface,global->interface_addr);
+			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
 
 		services->sem_chk_freq
-			=iniGetShortInt(list,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		/* JavaScript operating parameters */
-		sbbs_get_js_settings(list, section, &services->js, &global->js);
+		sbbs_read_js_settings(fp, section, &services->js, &global->js);
 
 		SAFECOPY(services->host_name
-			,iniGetString(list,section,strHostName,global->host_name,value));
+			,iniReadString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(services->temp_dir
-			,iniGetString(list,section,strTempDirectory,services->temp_dir,value));
+			,iniReadString(fp,section,strTempDirectory,services->temp_dir,value));
 
 		SAFECOPY(services->answer_sound
-			,iniGetString(list,section,strAnswerSound,nulstr,value));
+			,iniReadString(fp,section,strAnswerSound,nulstr,value));
 		SAFECOPY(services->hangup_sound
-			,iniGetString(list,section,strHangupSound,nulstr,value));
+			,iniReadString(fp,section,strHangupSound,nulstr,value));
 
 		services->log_mask
-			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		services->options
-			=iniGetBitField(list,section,strOptions,service_options
+			=iniReadBitField(fp,section,strOptions,service_options
 				,BBS_OPT_NO_HOST_LOOKUP);
 
-		services->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
-		services->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
+		services->bind_retry_count=iniReadInteger(fp,section,strBindRetryCount,global->bind_retry_count);
+		services->bind_retry_delay=iniReadInteger(fp,section,strBindRetryDelay,global->bind_retry_delay);
 	}
 
 	/***********************************************************************/
 	section = "Web";
 
 	if(run_web!=NULL)
-		*run_web=iniGetBool(list,section,strAutoStart,FALSE);
+		*run_web=iniReadBool(fp,section,strAutoStart,FALSE);
 
 	if(web!=NULL) {
 
 		web->interface_addr
-			=iniGetIpAddress(list,section,strInterface,global->interface_addr);
+			=iniReadIpAddress(fp,section,strInterface,global->interface_addr);
 		web->port
-			=iniGetShortInt(list,section,strPort,IPPORT_HTTP);
+			=iniReadShortInt(fp,section,strPort,IPPORT_HTTP);
 		web->max_clients
-			=iniGetShortInt(list,section,strMaxClients,10);
+			=iniReadShortInt(fp,section,strMaxClients,10);
 		web->max_inactivity
-			=iniGetShortInt(list,section,strMaxInactivity,120);		/* seconds */
+			=iniReadShortInt(fp,section,strMaxInactivity,120);		/* seconds */
 		web->sem_chk_freq
-			=iniGetShortInt(list,section,strSemFileCheckFrequency,global->sem_chk_freq);
+			=iniReadShortInt(fp,section,strSemFileCheckFrequency,global->sem_chk_freq);
 
 		/* JavaScript operating parameters */
-		sbbs_get_js_settings(list, section, &web->js, &global->js);
+		sbbs_read_js_settings(fp, section, &web->js, &global->js);
 
 		SAFECOPY(web->host_name
-			,iniGetString(list,section,strHostName,global->host_name,value));
+			,iniReadString(fp,section,strHostName,global->host_name,value));
 
 		SAFECOPY(web->temp_dir
-			,iniGetString(list,section,strTempDirectory,web->temp_dir,value));
+			,iniReadString(fp,section,strTempDirectory,web->temp_dir,value));
 
 		SAFECOPY(web->root_dir
-			,iniGetString(list,section,"RootDirectory",WEB_DEFAULT_ROOT_DIR,value));
+			,iniReadString(fp,section,"RootDirectory",WEB_DEFAULT_ROOT_DIR,value));
 		SAFECOPY(web->error_dir
-			,iniGetString(list,section,"ErrorDirectory",WEB_DEFAULT_ERROR_DIR,value));
+			,iniReadString(fp,section,"ErrorDirectory",WEB_DEFAULT_ERROR_DIR,value));
 		SAFECOPY(web->cgi_dir
-			,iniGetString(list,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
+			,iniReadString(fp,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
 		SAFECOPY(web->logfile_base
-			,iniGetString(list,section,"HttpLogFile",nulstr,value));
+			,iniReadString(fp,section,"HttpLogFile",nulstr,value));
 
 		SAFECOPY(web->default_cgi_content
-			,iniGetString(list,section,"DefaultCGIContent",WEB_DEFAULT_CGI_CONTENT,value));
+			,iniReadString(fp,section,"DefaultCGIContent",WEB_DEFAULT_CGI_CONTENT,value));
 
 		iniFreeStringList(web->index_file_name);
 		web->index_file_name
-			=iniGetStringList(list,section,"IndexFileNames", "," ,"index.html,index.ssjs");
+			=iniReadStringList(fp,section,"IndexFileNames", "," ,"index.html,index.ssjs");
 		iniFreeStringList(web->cgi_ext);
 		web->cgi_ext
-			=iniGetStringList(list,section,"CGIExtensions", "," ,".cgi");
+			=iniReadStringList(fp,section,"CGIExtensions", "," ,".cgi");
 		SAFECOPY(web->ssjs_ext
-			,iniGetString(list,section,"JavaScriptExtension",".ssjs",value));
+			,iniReadString(fp,section,"JavaScriptExtension",".ssjs",value));
 		SAFECOPY(web->js_ext
-			,iniGetString(list,section,"EmbJavaScriptExtension",".bbs",value));
+			,iniReadString(fp,section,"EmbJavaScriptExtension",".bbs",value));
 
 		web->max_inactivity
-			=iniGetShortInt(list,section,strMaxInactivity,120);		/* seconds */
+			=iniReadShortInt(fp,section,strMaxInactivity,120);		/* seconds */
 		web->max_cgi_inactivity
-			=iniGetShortInt(list,section,"MaxCgiInactivity",120);	/* seconds */
+			=iniReadShortInt(fp,section,"MaxCgiInactivity",120);	/* seconds */
 
 		SAFECOPY(web->answer_sound
-			,iniGetString(list,section,strAnswerSound,nulstr,value));
+			,iniReadString(fp,section,strAnswerSound,nulstr,value));
 		SAFECOPY(web->hangup_sound
-			,iniGetString(list,section,strHangupSound,nulstr,value));
+			,iniReadString(fp,section,strHangupSound,nulstr,value));
 		SAFECOPY(web->hack_sound
-			,iniGetString(list,section,strHackAttemptSound,nulstr,value));
+			,iniReadString(fp,section,strHackAttemptSound,nulstr,value));
 
 		web->log_mask
-			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
+			=iniReadBitField(fp,section,strLogMask,log_mask_bits,global->log_mask);
 		web->options
-			=iniGetBitField(list,section,strOptions,web_options
+			=iniReadBitField(fp,section,strOptions,web_options
 				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
 
-		web->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
-		web->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
+		web->bind_retry_count=iniReadInteger(fp,section,strBindRetryCount,global->bind_retry_count);
+		web->bind_retry_delay=iniReadInteger(fp,section,strBindRetryDelay,global->bind_retry_delay);
 	}
-
-	iniFreeStringList(list);
 }
 
 BOOL sbbs_write_ini(
@@ -641,17 +636,17 @@ BOOL sbbs_write_ini(
 	ini_style_t style;
 	global_startup_t	global_buf;
 
+	if(global==NULL) {
+		read_ini_globals(fp, &global_buf);
+		global = &global_buf;
+	}
+	
 	memset(&style, 0, sizeof(style));
 	style.key_prefix = "\t";
     style.bit_separator = " | ";
 
 	if((list=iniReadFile(fp))==NULL)
 		return(FALSE);
-
-	if(global==NULL) {
-		get_ini_globals(list, &global_buf);
-		global = &global_buf;
-	}
 	
 	lp=&list;
 
@@ -1117,7 +1112,7 @@ BOOL sbbs_write_ini(
 
 	} while(0);	/* finally */
 
-	iniFreeStringList(list);
+	strListFree(&list);
 
 	return(result);
 }
