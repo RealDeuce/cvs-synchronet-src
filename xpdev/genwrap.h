@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.76 2005/10/12 19:45:05 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.77 2005/10/12 21:45:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,11 +298,12 @@ DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 
 /* Millisecond clock */
 typedef		clock_t				msclock_t;
-#define		MSCLOCKS_PER_SEC	1000
 #if defined(_WIN32)
-	#define		msclock()		clock()
+	#define		MSCLOCKS_PER_SEC	CLOCKS_PER_SEC	/* e.g. 18.2 on DOS, 1000.0 on Win32 */
+	#define		msclock()			clock()
 #else
-	clock_t		msclock(void);
+	#define		MSCLOCKS_PER_SEC	1000
+	msclock_t	msclock(void);
 #endif
 
 #if defined(__cplusplus)
