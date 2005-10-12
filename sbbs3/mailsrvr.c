@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.389 2005/10/21 21:37:28 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.385 2005/10/07 08:30:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,18 +196,16 @@ static void thread_down(void)
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 }
 
-SOCKET mail_open_socket(int type, const char* protocol)
+SOCKET mail_open_socket(int type)
 {
 	char	error[256];
-	char	section[128];
 	SOCKET	sock;
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET) {
-		SAFEPRINTF(section,"mail|%s",protocol);
-		if(set_socket_options(&scfg, sock, section, error, sizeof(error)))
+		if(set_socket_options(&scfg, sock,error))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 		sockets++;
@@ -3725,7 +3723,7 @@ static void sendmail_thread(void* arg)
 			if(!port)
 				port=IPPORT_SMTP;
 
-			if((sock=mail_open_socket(SOCK_STREAM,"smtp|sendmail"))==INVALID_SOCKET) {
+			if((sock=mail_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
 				remove_msg_intransit(&smb,&msg);
 				lprintf(LOG_ERR,"0000 !SEND ERROR %d opening socket", ERROR_VALUE);
 				continue;
@@ -4036,7 +4034,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.389 $", "%*s %s", revision);
+	sscanf("$Revision: 1.385 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4235,7 +4233,7 @@ void DLLCALL mail_server(void* arg)
 
 		/* open a socket and wait for a client */
 
-		server_socket = mail_open_socket(SOCK_STREAM,"smtp");
+		server_socket = mail_open_socket(SOCK_STREAM);
 
 		if(server_socket == INVALID_SOCKET) {
 			lprintf(LOG_ERR,"!ERROR %d opening socket", ERROR_VALUE);
@@ -4282,7 +4280,7 @@ void DLLCALL mail_server(void* arg)
 
 			/* open a socket and wait for a client */
 
-			pop3_socket = mail_open_socket(SOCK_STREAM,"pop3");
+			pop3_socket = mail_open_socket(SOCK_STREAM);
 
 			if(pop3_socket == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"!ERROR %d opening POP3 socket", ERROR_VALUE);
@@ -4572,12 +4570,8 @@ void DLLCALL mail_server(void* arg)
 				mswait(500);
 			}
 		}
-		if(!sendmail_running) {
-			while(sem_destroy(&sendmail_wakeup_sem)==-1 && errno==EBUSY) {
-				mswait(1);
-				sem_post(&sendmail_wakeup_sem);
-			}
-		}
+		if(!sendmail_running)
+			sem_destroy(&sendmail_wakeup_sem);
 
 		cleanup(0);
 
