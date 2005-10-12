@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.7 2005/08/06 01:32:15 deuce Exp $ */
+/* $Id: cterm.h,v 1.9 2005/08/06 03:11:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,10 +43,13 @@ enum {
 };
 
 enum {
-	 LOG_NONE
-	,LOG_ASCII
-	,LOG_RAW
+	 CTERM_LOG_NONE
+	,CTERM_LOG_ASCII
+	,CTERM_LOG_RAW
 };
+
+#define CTERM_LOG_MASK	0x7f
+#define CTERM_LOG_PAUSED	0x80
 
 struct cterminal {
 	int	height;
@@ -83,6 +86,8 @@ extern struct cterminal cterm;
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback);
 char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int *speed);
+int cterm_openlog(char *logfile, int logtype);
+void cterm_closelog(void);
 void cterm_end(void);
 #ifdef __cplusplus
 }
