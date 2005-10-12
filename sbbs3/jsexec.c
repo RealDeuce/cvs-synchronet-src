@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.91 2005/08/06 01:57:24 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.94 2005/10/12 08:44:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -251,7 +251,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 
-	if(JSVAL_IS_NUMBER(argv[i]))
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
 	for(; i<argc; i++) {
@@ -352,7 +352,7 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((fmt = JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	memset(arglist,0,sizeof(arglist));	// Initialize arglist to NULLs
+	memset(arglist,0,sizeof(arglist));	/* Initialize arglist to NULLs */
 
     for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
 		if(JSVAL_IS_DOUBLE(argv[i]))
@@ -430,7 +430,7 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(!fgets(instr,sizeof(instr),stdin))
 		return(JS_TRUE);
 
-	if((str=JS_NewStringCopyZ(cx, instr))==NULL)
+	if((str=JS_NewStringCopyZ(cx, truncnl(instr)))==NULL)
 	    return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(str);
@@ -613,6 +613,8 @@ long js_exec(const char *fname, char** args)
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 	int32		result=0;
+	clock_t		start;
+	clock_t		diff;
 	
 	if(fname!=NULL) {
 		if(strcspn(fname,"/\\")==strlen(fname)) {
@@ -707,13 +709,26 @@ long js_exec(const char *fname, char** args)
 	if(fp!=NULL && fp!=stdin)
 		fclose(fp);
 
+	start=msclock();
 	if((js_script=JS_CompileScript(js_cx, js_glob, js_buf, js_buflen, fname==NULL ? NULL : path, 1))==NULL) {
 		lprintf(LOG_ERR,"!Error compiling script from %s",path);
 		return(-1);
 	}
-	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	if((diff=msclock()-start) > 0)
+		fprintf(statfp,"%s compiled in %u.%03u seconds\n"
+			,path
+			,diff/MSCLOCKS_PER_SEC
+			,diff%MSCLOCKS_PER_SEC);
 
+	start=msclock();
+	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	js_EvalOnExit(js_cx, js_glob, &branch);
+
+	if((diff=msclock()-start) > 0)
+		fprintf(statfp,"%s executed in %u.%03u seconds\n"
+			,path
+			,diff/MSCLOCKS_PER_SEC
+			,diff%MSCLOCKS_PER_SEC);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
@@ -785,7 +800,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.94 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
