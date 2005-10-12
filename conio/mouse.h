@@ -1,4 +1,4 @@
-/* $Id: mouse.h,v 1.12 2005/10/13 06:51:50 deuce Exp $ */
+/* $Id: mouse.h,v 1.11 2005/10/05 02:23:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,8 +94,6 @@ enum {
 #define CIOLIB_BUTTON_NUMBER(x)		((x+8)/9)
 
 #define CIOLIB_BUTTON_BASE(x)		(x!=CIOLIB_MOUSE_MOVE?x-9*(CIOLIB_BUTTON_NUMBER(x)-1):CIOLIB_MOUSE_MOVE)
-
-extern int ciolib_mouse_initialized;
 
 #ifdef __cplusplus
 extern "C" {
