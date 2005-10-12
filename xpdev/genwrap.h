@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.73 2005/06/16 23:31:37 deuce Exp $ */
+/* $Id: genwrap.h,v 1.76 2005/10/12 19:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -296,11 +296,12 @@ DLLEXPORT char*		DLLCALL c_unescape_str(char* str);
 DLLEXPORT char		DLLCALL c_unescape_char_ptr(const char* str, char** endptr);
 DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 
-#if !defined(__unix__)
-	#define		msclock()			clock()
-	#define		MSCLOCKS_PER_SEC	CLOCKS_PER_SEC
+/* Millisecond clock */
+typedef		clock_t				msclock_t;
+#define		MSCLOCKS_PER_SEC	1000
+#if defined(_WIN32)
+	#define		msclock()		clock()
 #else
-	#define		MSCLOCKS_PER_SEC	1000
 	clock_t		msclock(void);
 #endif
 
