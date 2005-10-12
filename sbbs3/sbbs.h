@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.257 2005/08/06 01:57:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.262 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,8 +255,6 @@ public:
 	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
-	int		keybuftop,keybufbot;	/* Keyboard input buffer pointers */
-	char 	keybuf[KEY_BUFSIZE];	/* Keyboard input buffer */
 	char *	connection;		/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
@@ -437,7 +435,7 @@ public:
 	void	automsg(void);
 	bool	writemsg(char *str, char *top, char *title, long mode, int subnum
 				,char *dest);
-	char	putmsg(char HUGE16 *str, long mode);
+	char	putmsg(char *str, long mode);
 	bool	msgabort(void);
 	bool	email(int usernumber, char *top, char *title, long mode);
 	void	forwardmail(smbmsg_t* msg, int usernum);
@@ -480,6 +478,7 @@ public:
 	int		rputs(char *str);				/* BBS raw puts function */
 	int		bprintf(char *fmt, ...);		/* BBS printf function */
 	int		rprintf(char *fmt, ...);		/* BBS raw printf function */
+	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
 	void	clearline(void);
@@ -619,11 +618,11 @@ public:
 	bool	addtobatdl(file_t* f);
 
 	/* listfile.cpp */
-	bool	listfile(char *fname, char HUGE16 *buf, uint dirnum
+	bool	listfile(char *fname, char *buf, uint dirnum
 				,char *search, char letter, ulong datoffset);
 	int		listfiles(uint dirnum, char *filespec, int tofile, long mode);
 	int		listfileinfo(uint dirnum, char *filespec, long mode);
-	void	listfiletofile(char *fname, char HUGE16 *buf, uint dirnum, int file);
+	void	listfiletofile(char *fname, char *buf, uint dirnum, int file);
 	int		batchflagprompt(uint dirnum, file_t bf[], uint total, long totalfiles);
 
 	/* bat_xfer.cpp */
@@ -1003,6 +1002,7 @@ extern "C" {
 
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
+	DLLEXPORT BOOL		DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* hdrobj, smbmsg_t*);
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
@@ -1088,15 +1088,11 @@ extern
 
 /* Global data */
 
-#if defined(__FLAT__) || defined(_WIN32)
-
+/* ToDo: These should be hunted down and killed */
 #define lread(f,b,l) read(f,b,l)
 #define lfread(b,l,f) fread(b,l,f)
 #define lwrite(f,b,l) write(f,b,l)
 #define lfwrite(b,l,f) fwrite(b,l,f)
-
 #define lkbrd(x)	0
-
-#endif
 
 #endif	/* Don't add anything after this line */
