@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.67 2005/06/13 02:35:07 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.73 2005/10/12 07:53:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,10 @@
 #include <stdarg.h>
 #include <ctype.h>		/* isdigit */
 #include <sys/stat.h>
+
 #ifdef __unix__
-#include <termios.h>
+	#include <termios.h>
+	#include <signal.h>
 #endif
 
 /* xpdev */
@@ -108,6 +110,7 @@ BOOL	debug_tx=FALSE;
 BOOL	debug_rx=FALSE;
 BOOL	debug_telnet=FALSE;
 BOOL	pause_on_exit=FALSE;
+BOOL	pause_on_abend=FALSE;
 BOOL	newline=TRUE;
 
 time_t		progress_interval;
@@ -133,8 +136,8 @@ void resetterm(void)
 
 #ifdef _WINSOCKAPI_
 
-WSADATA WSAData;
-static BOOL WSAInitialized=FALSE;
+/* Note: Don't call WSACleanup() or TCP session will close! */
+WSADATA WSAData;	
 
 static BOOL winsock_startup(void)
 {
@@ -142,7 +145,6 @@ static BOOL winsock_startup(void)
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
 		fprintf(statfp,"%s %s\n",WSAData.szDescription, WSAData.szSystemStatus);
-		WSAInitialized=TRUE;
 		return(TRUE);
 	}
 
@@ -382,7 +384,8 @@ int recv_byte(void* unused, unsigned timeout)
 				telnet_cmd=ch;
 				if((telnet_cmdlen==2 && ch<TELNET_WILL) || telnet_cmdlen>2) {
 					telnet_cmdlen=0;
-//					break;
+					/* Code disabled.  Why?  ToDo */
+					/* break; */
 				}
 				continue;
 			}
@@ -543,7 +546,7 @@ static void output_thread(void* arg)
 			continue;
 		}
 
-        if(bufbot==buftop) { // linear buf empty, read from ring buf
+        if(bufbot==buftop) { /* linear buf empty, read from ring buf */
             if(avail>sizeof(buf)) {
                 lprintf(LOG_ERR,"Insufficient linear output buffer (%lu > %lu)"
 					,avail, sizeof(buf));
@@ -1214,12 +1217,15 @@ static int receive_files(char** fname_list, int fnames)
 	return(!success);	/* 0=success */
 }
 
-void exiting(void)
+void bail(int code)
 {
-	if(pause_on_exit) {
+	if(logfp!=NULL)
+		fclose(logfp);
+	if(pause_on_exit || (pause_on_abend && code!=0)) {
 		printf("Hit enter to continue...");
 		getchar();
 	}
+	exit(code);
 }
 
 static const char* usage=
@@ -1267,7 +1273,6 @@ int main(int argc, char **argv)
 	uint	fnames=0;
 	FILE*	fp;
 	BOOL	tcp_nodelay;
-	BOOL	pause_on_abend=FALSE;
 	char	compiler[32];
 	str_list_t fname_list;
 
@@ -1282,7 +1287,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.67 $", "%*s %s", revision);
+	sscanf("$Revision: 1.73 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1308,9 +1313,6 @@ int main(int argc, char **argv)
 
 	tcp_nodelay				=iniReadBool(fp,ROOT_SECTION,"TCP_NODELAY",TRUE);
 
-	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
-		log_level=LOG_DEBUG;
-
 	telnet					=iniReadBool(fp,ROOT_SECTION,"Telnet",TRUE);
 	debug_tx				=iniReadBool(fp,ROOT_SECTION,"DebugTx",FALSE);
 	debug_rx				=iniReadBool(fp,ROOT_SECTION,"DebugRx",FALSE);
@@ -1319,13 +1321,16 @@ int main(int argc, char **argv)
 	pause_on_exit			=iniReadBool(fp,ROOT_SECTION,"PauseOnExit",FALSE);
 	pause_on_abend			=iniReadBool(fp,ROOT_SECTION,"PauseOnAbend",FALSE);
 
-	log_level				=iniReadInteger(fp,ROOT_SECTION,"LogLevel",log_level);
+	log_level				=iniReadLogLevel(fp,ROOT_SECTION,"LogLevel",log_level);
 
 	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
 	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",16*1024);
 
 	progress_interval		=iniReadInteger(fp,ROOT_SECTION,"ProgressInterval",1);
+
+	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
+		log_level=LOG_DEBUG;
 
 	xm.send_timeout			=iniReadInteger(fp,"Xmodem","SendTimeout",xm.send_timeout);	/* seconds */
 	xm.recv_timeout			=iniReadInteger(fp,"Xmodem","RecvTimeout",xm.recv_timeout);	/* seconds */
@@ -1351,8 +1356,6 @@ int main(int argc, char **argv)
 
 	if(fp!=NULL)
 		fclose(fp);
-
-	atexit(exiting);
 
 	if(zm.recv_bufsize > 0xffff)
 		zm.recv_bufsize = 0xffff;
@@ -1421,7 +1424,7 @@ int main(int argc, char **argv)
 					default:
 						fprintf(statfp,"Unrecognized command '%s'\n\n",argv[i]);
 						fprintf(statfp,usage);
-						exit(1); 
+						bail(1); 
 				} 
 				continue;
 			}
@@ -1436,7 +1439,7 @@ int main(int argc, char **argv)
 #endif
 				fprintf(statfp,"Compiled %s %.5s with %s\n",__DATE__,__TIME__,compiler);
 				fprintf(statfp,"%s\n",os_version(str));
-				exit(1);
+				bail(0);
 			}
 
 			arg=argv[i];
@@ -1493,12 +1496,12 @@ int main(int argc, char **argv)
 		else if((argv[i][0]=='+' || argv[i][0]=='@') && fexist(argv[i]+1)) {
 			if(mode&RECVDIR) {
 				fprintf(statfp,"!Cannot specify both directory and filename\n");
-				exit(1); 
+				bail(1); 
 			}
 			sprintf(str,"%s",argv[i]+1);
 			if((fp=fopen(str,"r"))==NULL) {
 				fprintf(statfp,"!Error %d opening filelist: %s\n",errno,str);
-				exit(1); 
+				bail(1); 
 			}
 			while(!feof(fp) && !ferror(fp)) {
 				if(!fgets(str,sizeof(str),fp))
@@ -1513,15 +1516,15 @@ int main(int argc, char **argv)
 			if(isdir(argv[i])) { /* is a directory */
 				if(mode&RECVDIR) {
 					fprintf(statfp,"!Only one directory can be specified\n");
-					exit(1); 
+					bail(1); 
 				}
 				if(fnames) {
 					fprintf(statfp,"!Cannot specify both directory and filename\n");
-					exit(1); 
+					bail(1); 
 				}
 				if(mode&SEND) {
 					fprintf(statfp,"!Cannot send directory '%s'\n",argv[i]);
-					exit(1);
+					bail(1);
 				}
 				mode|=RECVDIR; 
 			}
@@ -1545,7 +1548,7 @@ int main(int argc, char **argv)
 #else
 		fprintf(statfp,"!No socket descriptor specified\n\n");
 		fprintf(errfp,usage);
-		exit(1);
+		bail(1);
 #endif
 	}
 #ifdef __unix__
@@ -1556,13 +1559,13 @@ int main(int argc, char **argv)
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
 		fprintf(statfp,usage);
-		exit(1); 
+		bail(1); 
 	}
 
 	if(mode&(SEND|XMODEM) && !fnames) { /* Sending with any or recv w/Xmodem */
 		fprintf(statfp,"!Must specify filename or filelist\n\n");
 		fprintf(statfp,usage);
-		exit(1); 
+		bail(1); 
 	}
 
 #ifdef __unix__
@@ -1582,11 +1585,12 @@ int main(int argc, char **argv)
 	}
 #endif
 
-//	if(mode&RECVDIR)
-//		backslash(fname[0]);
+	/* Code disabled.  Why?  ToDo */
+/*	if(mode&RECVDIR)
+		backslash(fname[0]); */
 
 	if(!winsock_startup())
-		return(-1);
+		bail(-1);
 
 	/* Enable the Nagle Algorithm */
 #ifdef __unix__
@@ -1600,13 +1604,13 @@ int main(int argc, char **argv)
 
 	if(!socket_check(sock, NULL, NULL, 0)) {
 		lprintf(LOG_WARNING,"No socket connection");
-		return(-1); 
+		bail(-1); 
 	}
 
 	if((dszlog=getenv("DSZLOG"))!=NULL) {
 		if((logfp=fopen(dszlog,"w"))==NULL) {
 			lprintf(LOG_WARNING,"Error %d opening DSZLOG file: %s",errno,dszlog);
-			return(-1); 
+			bail(-1); 
 		}
 	}
 
@@ -1640,22 +1644,14 @@ int main(int argc, char **argv)
 #endif
 
 	terminate=TRUE;	/* stop output thread */
-//	sem_post(outbuf.sem);
-//	sem_post(outbuf.highwater_sem);
+	/* Code disabled.  Why?  ToDo */
+/*	sem_post(outbuf.sem);
+	sem_post(outbuf.highwater_sem); */
 
 	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);
 	fprintf(statfp,"\n");
 
-	if(logfp!=NULL)
-		fclose(logfp);
-
-	if(retval && pause_on_abend) {
-		printf("Hit enter to continue...");
-		getchar();
-		pause_on_exit=FALSE;
-	}
-
-	return(retval);
+	bail(retval);
 }
 
