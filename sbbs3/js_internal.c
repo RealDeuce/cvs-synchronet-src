@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.28 2005/10/14 07:50:51 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.26 2005/10/12 07:06:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,6 @@ enum {
 	,PROP_BYTES
 	,PROP_MAXBYTES
 #endif
-	,PROP_GLOBAL
 };
 
 static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -107,13 +106,6 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case PROP_MAXBYTES:
 			JS_NewNumberValue(cx,cx->runtime->gcMaxBytes,vp);
-			break;
-		case PROP_GLOBAL:
-			*vp = OBJECT_TO_JSVAL(cx->globalObject);
-			break;
-#else
-		case PROP_GLOBAL:
-			*vp = OBJECT_TO_JSVAL(JS_GetParent(cx,obj));
 			break;
 #endif
 	}
@@ -180,7 +172,6 @@ static jsSyncPropertySpec js_properties[] = {
 	{	"bytes",			PROP_BYTES,			PROP_FLAGS,			311 },
 	{	"max_bytes",		PROP_MAXBYTES,		JSPROP_ENUMERATE,	311 },
 #endif
-	{	"global",			PROP_GLOBAL,		PROP_FLAGS,			313 },
 	{0}
 };
 
@@ -200,7 +191,6 @@ static char* prop_desc[] = {
 	,"number of heap bytes currently in use - <small>READ ONLY</small>"
 	,"maximum number of bytes available for heap"
 #endif
-	,"global (top level) object - <small>READ ONLY</small>"
 	,NULL
 };
 #endif
@@ -343,20 +333,6 @@ js_on_exit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSBool
-js_get_parent(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	JSObject* child=NULL;
-	JSObject* parent;
-
-	if(JS_ValueToObject(cx, argv[0], &child)
-		&& child!=NULL
-		&& (parent=JS_GetParent(cx,child))!=NULL)
-		*rval = OBJECT_TO_JSVAL(parent);
-
-	return(JS_TRUE);
-}
-
 static JSClass js_internal_class = {
      "JsInternal"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
@@ -389,10 +365,6 @@ static jsSyncMethodSpec js_functions[] = {
 	,JSDOCSTR("report an error using the standard JavaScript error reporting mechanism "
 	"(including script filename and line number), "
 	"if <i>fatal</i> is <i>true</i>, immediately terminates script")
-	,313
-	},
-	{"get_parent",		js_get_parent,		1,	JSTYPE_OBJECT,	JSDOCSTR("object child")
-	,JSDOCSTR("return the parent of the specified object")
 	,313
 	},
 	{0}
