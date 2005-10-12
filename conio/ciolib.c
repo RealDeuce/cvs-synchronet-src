@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.53 2005/10/12 19:13:06 deuce Exp $ */
+/* $Id: ciolib.c,v 1.54 2005/10/12 19:14:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -371,7 +371,10 @@ int ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy)
 	unsigned char *buf;
 
 	CIOLIB_INIT();
-	
+
+	if(cio_api.movetext != NULL)
+		return(cio_api.movetext(int sx, int sy, int ex, int ey, int dx, int dy);
+
 	width=ex-sx;
 	height=ey-sy;
 	buf=(unsigned char *)malloc((width+1)*(height+1)*2);
