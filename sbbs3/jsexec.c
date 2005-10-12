@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.94 2005/10/12 08:44:40 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.95 2005/10/12 21:32:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -613,8 +613,8 @@ long js_exec(const char *fname, char** args)
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 	int32		result=0;
-	clock_t		start;
-	clock_t		diff;
+	double		start;
+	double		diff;
 	
 	if(fname!=NULL) {
 		if(strcspn(fname,"/\\")==strlen(fname)) {
@@ -709,26 +709,24 @@ long js_exec(const char *fname, char** args)
 	if(fp!=NULL && fp!=stdin)
 		fclose(fp);
 
-	start=msclock();
+	start=xp_timer();
 	if((js_script=JS_CompileScript(js_cx, js_glob, js_buf, js_buflen, fname==NULL ? NULL : path, 1))==NULL) {
 		lprintf(LOG_ERR,"!Error compiling script from %s",path);
 		return(-1);
 	}
-	if((diff=msclock()-start) > 0)
-		fprintf(statfp,"%s compiled in %u.%03u seconds\n"
+	if((diff=xp_timer()-start) > 0)
+		fprintf(statfp,"%s compiled in %.2f seconds\n"
 			,path
-			,diff/MSCLOCKS_PER_SEC
-			,diff%MSCLOCKS_PER_SEC);
+			,diff);
 
-	start=msclock();
+	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	js_EvalOnExit(js_cx, js_glob, &branch);
 
-	if((diff=msclock()-start) > 0)
-		fprintf(statfp,"%s executed in %u.%03u seconds\n"
+	if((diff=xp_timer()-start) > 0)
+		fprintf(statfp,"%s executed in %.2f seconds\n"
 			,path
-			,diff/MSCLOCKS_PER_SEC
-			,diff%MSCLOCKS_PER_SEC);
+			,diff);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
@@ -800,7 +798,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.94 $", "%*s %s", revision);
+	sscanf("$Revision: 1.95 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
