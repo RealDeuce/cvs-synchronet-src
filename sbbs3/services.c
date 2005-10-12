@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.185 2005/08/06 01:57:24 rswindell Exp $ */
+/* $Id: services.c,v 1.189 2005/10/12 23:18:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,6 +96,7 @@ typedef struct {
 	DWORD	max_clients;
 	DWORD	options;
 	int		listen_backlog;
+	int		log_level;
 	DWORD	stack_size;
 	js_startup_t	js;
 	js_server_props_t js_server_props;
@@ -379,7 +380,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     if(startup==NULL || startup->lputs==NULL)
         return(JS_FALSE);
 
-	if(JSVAL_IS_NUMBER(argv[i]))
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
 		JS_ValueToInt32(cx,argv[i++],&level);
 
 	str[0]=0;
@@ -392,7 +393,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(service==NULL)
 		lprintf(level,"%04d %s",client->socket,str);
-	else
+	else if(level <= client->service->log_level)
 		lprintf(level,"%04d %s %s",client->socket,client->service->protocol,str);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
@@ -973,9 +974,9 @@ static void js_service_thread(void* arg)
 	jsval					val;
 	jsval					rval;
 
-	// Copy service_client arg
+	/* Copy service_client arg */
 	service_client=*(service_client_t*)arg;
-	// Free original
+	/* Free original */
 	free(arg);
 
 	socket=service_client.socket;
@@ -1140,7 +1141,7 @@ static void js_static_service_thread(void* arg)
 	jsval					val;
 	jsval					rval;
 
-	// Copy service_client arg
+	/* Copy service_client arg */
 	service=(service_t*)arg;
 
 	service->running=TRUE;
@@ -1245,7 +1246,7 @@ static void native_static_service_thread(void* arg)
 		GetCurrentProcess(),
 		(HANDLE*)&socket_dup,
 		0,
-		TRUE, // Inheritable
+		TRUE, /* Inheritable */
 		DUPLICATE_SAME_ACCESS)) {
 		lprintf(LOG_ERR,"%04d !%s ERROR %d duplicating socket descriptor"
 			,socket,service->protocol,GetLastError());
@@ -1365,7 +1366,7 @@ static void native_service_thread(void* arg)
 		GetCurrentProcess(),
 		(HANDLE*)&socket_dup,
 		0,
-		TRUE, // Inheritable
+		TRUE, /* Inheritable */
 		DUPLICATE_SAME_ACCESS)) {
 		lprintf(LOG_ERR,"%04d !%s ERROR %d duplicating socket descriptor"
 			,socket,service->protocol,GetLastError());
@@ -1432,8 +1433,10 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 	char		prot[INI_MAX_VALUE_LEN];
 	char		services_ini[MAX_PATH+1];
 	char**		sec_list;
+	str_list_t	list;
 	service_t*	np;
 	service_t	serv;
+	int			log_level;
 
 	iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
 
@@ -1443,21 +1446,26 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 	}
 
 	lprintf(LOG_INFO,"Reading %s",services_ini);
-	sec_list = iniReadSectionList(fp,"");
+	list=iniReadFile(fp);
+	fclose(fp);
+
+	log_level = iniGetLogLevel(list,ROOT_SECTION,"LogLevel",LOG_DEBUG);
+	sec_list = iniGetSectionList(list,"");
     for(i=0; sec_list!=NULL && sec_list[i]!=NULL; i++) {
 		memset(&serv,0,sizeof(service_t));
-		SAFECOPY(serv.protocol,iniReadString(fp,sec_list[i],"Protocol",sec_list[i],prot));
+		SAFECOPY(serv.protocol,iniGetString(list,sec_list[i],"Protocol",sec_list[i],prot));
 		serv.socket=INVALID_SOCKET;
-		serv.interface_addr=iniReadIpAddress(fp,sec_list[i],"Interface",startup->interface_addr);
-		serv.port=iniReadShortInt(fp,sec_list[i],"Port",0);
-		serv.max_clients=iniReadInteger(fp,sec_list[i],"MaxClients",0);
-		serv.listen_backlog=iniReadInteger(fp,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
-		serv.stack_size=iniReadInteger(fp,sec_list[i],"StackSize",0);
-		serv.options=iniReadBitField(fp,sec_list[i],"Options",service_options,0);
-		SAFECOPY(serv.cmd,iniReadString(fp,sec_list[i],"Command","",cmd));
+		serv.interface_addr=iniGetIpAddress(list,sec_list[i],"Interface",startup->interface_addr);
+		serv.port=iniGetShortInt(list,sec_list[i],"Port",0);
+		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",0);
+		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
+		serv.stack_size=iniGetInteger(list,sec_list[i],"StackSize",0);
+		serv.options=iniGetBitField(list,sec_list[i],"Options",service_options,0);
+		serv.log_level = iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
+		SAFECOPY(serv.cmd,iniGetString(list,sec_list[i],"Command","",cmd));
 
 		/* JavaScript operating parameters */
-		sbbs_read_js_settings(fp, sec_list[i], &serv.js, &startup->js);
+		sbbs_get_js_settings(list, sec_list[i], &serv.js, &startup->js);
 
 		for(j=0;j<*services;j++)
 			if(service[j].interface_addr==serv.interface_addr && service[j].port==serv.port
@@ -1468,11 +1476,11 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 			continue;
 		}
 
-		if(stricmp(iniReadString(fp,sec_list[i],"Host",startup->host_name,host), startup->host_name)!=0) {
+		if(stricmp(iniGetString(list,sec_list[i],"Host",startup->host_name,host), startup->host_name)!=0) {
 			lprintf(LOG_NOTICE,"Ignoring service (%s) for host: %s", sec_list[i], host);
 			continue;
 		}
-		if(stricmp(iniReadString(fp,sec_list[i],"NotHost","",host), startup->host_name)==0) {
+		if(stricmp(iniGetString(list,sec_list[i],"NotHost","",host), startup->host_name)==0) {
 			lprintf(LOG_NOTICE,"Ignoring service (%s) not for host: %s", sec_list[i], host);
 			continue;
 		}
@@ -1487,8 +1495,7 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 		(*services)++;
 	}
 	iniFreeStringList(sec_list);
-
-	fclose(fp);
+	strListFree(&list);
 
 	return(service);
 }
@@ -1525,7 +1532,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.185 $", "%*s %s", revision);
+	sscanf("$Revision: 1.189 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

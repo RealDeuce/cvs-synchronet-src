@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.192 2005/08/11 00:04:46 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.196 2005/10/07 07:43:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,6 +190,13 @@ static const char* services_usage  = "Services settings:\n"
 							"\n"
 							"\tso<value>  set Services option value (advanced)\n"
 							"\ts-         disable Services (no services module)\n"
+							"\n"
+							;
+static const char* web_usage  = "Web server settings:\n"
+							"\n"
+							"\twp<port>   set HTTP server port\n"
+							"\two<value>  set Web server option value (advanced)\n"
+							"\tw-         disable Web server (no services module)\n"
 							"\n"
 							;
 
@@ -962,6 +969,8 @@ static void show_usage(char *cmd)
 		printf(mail_usage);
 	if(has_services)
 		printf(services_usage);
+	if(has_web)
+		printf(web_usage);
 }
 
 #if SBBS_MAGIC_FILENAMES
@@ -1100,31 +1109,6 @@ int main(int argc, char** argv)
 #endif
     strcpy(mail_startup.ctrl_dir,ctrl_dir);
 
-#ifdef __unix__	/* Look up DNS server address */
-	{
-		FILE*	fp;
-		char*	p;
-		char	str[128];
-
-		if((fp=fopen("/etc/resolv.conf","r"))!=NULL) {
-			while(!feof(fp)) {
-				if(fgets(str,sizeof(str),fp)==NULL)
-					break;
-				truncsp(str);
-				p=str;
-				while(*p && *p<=' ') p++;	/* skip white-space */
-				if(strnicmp(p,"nameserver",10)!=0) /* no match */
-					continue;
-				p+=10;	/* skip "nameserver" */
-				while(*p && *p<=' ') p++;	/* skip more white-space */
-				SAFECOPY(mail_startup.dns_server,p);
-				break;
-			}
-			fclose(fp);
-		}
-	}
-#endif /* __unix__ */
-
 	/* Initialize Services startup structure */
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
@@ -1195,7 +1179,8 @@ int main(int argc, char** argv)
 		run_web=has_web=TRUE;
 #endif
 	}
-
+#else
+	has_web=has_bbs=has_ftp=has_mail=has_services=TRUE;
 #endif	/* Removed broken stuff */
 
 	/* Post-INI command-line switches */
@@ -1219,6 +1204,8 @@ int main(int argc, char** argv)
 			printf("Mail POP3 server port:\t%u\n",mail_startup.pop3_port);
 			printf("Mail server options:\t0x%08lX\n",mail_startup.options);
 			printf("Services options:\t0x%08lX\n",services_startup.options);
+			printf("Web server port:\t%u\n",web_startup.port);
+			printf("Web server options:\t0x%08lX\n",web_startup.options);
 			return(0);
 		}
 		switch(toupper(*(arg++))) {
@@ -1362,6 +1349,23 @@ int main(int argc, char** argv)
 						return(1);
 				}
 				break;
+			case 'W':	/* Web server */
+				switch(toupper(*(arg++))) {
+					case '-':	
+						run_web=FALSE;
+						break;
+					case 'P':
+						web_startup.port=atoi(arg);
+						break;
+					case 'O': /* Set options */
+						web_startup.options=strtoul(arg,NULL,0);
+						break;
+					default:
+						show_usage(argv[0]);
+						return(1);
+				}
+				break;
+				break;
 			case 'G':	/* GET */
 				switch(toupper(*(arg++))) {
 					case 'I': /* Identity */
@@ -1369,6 +1373,7 @@ int main(int argc, char** argv)
 						ftp_startup.options|=BBS_OPT_GET_IDENT;
 						mail_startup.options|=BBS_OPT_GET_IDENT;
 						services_startup.options|=BBS_OPT_GET_IDENT;
+						web_startup.options|=BBS_OPT_GET_IDENT;
 						break;
 					default:
 						show_usage(argv[0]);
@@ -1383,11 +1388,13 @@ int main(int argc, char** argv)
 							SAFECOPY(ftp_startup.host_name,arg);
 							SAFECOPY(mail_startup.host_name,arg);
 							SAFECOPY(services_startup.host_name,arg);
+							SAFECOPY(web_startup.host_name,arg);
 						} else {
 							SAFECOPY(bbs_startup.host_name,host_name);
 							SAFECOPY(ftp_startup.host_name,host_name);
 							SAFECOPY(mail_startup.host_name,host_name);
 							SAFECOPY(services_startup.host_name,host_name);
+							SAFECOPY(web_startup.host_name,host_name);
 						}
 						printf("Setting hostname: %s\n",bbs_startup.host_name);
 						break;
@@ -1457,6 +1464,9 @@ int main(int argc, char** argv)
 #if defined(__unix__)
 						is_daemon=FALSE;
 #endif
+						break;
+					case 'W':	/* no web server */
+						run_web=FALSE;
 						break;
 					default:
 						show_usage(argv[0]);
@@ -1560,6 +1570,7 @@ int main(int argc, char** argv)
 	if((gr_entry=getgrnam(new_gid_name))!=0)
 		new_gid=gr_entry->gr_gid;
 	
+	do_seteuid(TRUE);
 #endif
 
 	/* Install Ctrl-C/Break signal handler here */
@@ -1677,7 +1688,8 @@ int main(int argc, char** argv)
 	}
 
 	if(!isatty(fileno(stdin)))  			/* redirected */
-		select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
+		while(1)
+			select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
 	else 								/* interactive */
 #endif
 	{
