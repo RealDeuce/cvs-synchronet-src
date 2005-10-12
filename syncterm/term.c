@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.106 2005/08/06 02:43:15 deuce Exp $ */
+/* $Id: term.c,v 1.115 2005/10/06 15:59:21 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -378,7 +378,7 @@ static int recv_byte(void* unused, unsigned timeout)
 			buftop+=i;
 	}
 	ch=recvbuf[bufbot++];
-//	lprintf(LOG_DEBUG,"RX: %02X", ch);
+/*	lprintf(LOG_DEBUG,"RX: %02X", ch); */
 	return(ch);
 }
 
@@ -437,8 +437,8 @@ void draw_transfer_window(char* title)
 	for(i=2;i < sizeof(outline) - 2; i+=2) {
 		outline[i] = 0xc4;	/* Single horizontal line */
 	}
-	outline[0] = 0xc7;	// 0xcc
-	outline[sizeof(outline)-2]=0xb6;	// 0xb6
+	outline[0] = 0xc7;	/* 0xcc */
+	outline[sizeof(outline)-2]=0xb6;	/* 0xb6 */
 	puttext(left, top+6, left + TRANSFER_WIN_WIDTH - 1, top+6, outline);
 
 	for(i=2;i < sizeof(outline) - 2; i+=2) {
@@ -455,9 +455,9 @@ void draw_transfer_window(char* title)
 	for(i=1; i<6; i++) {
 		puttext(left, top + i, left + TRANSFER_WIN_WIDTH - 1, top+i, outline);
 	}
-//	for(i=3;i < sizeof(outline) - 2; i+=2) {
-//		outline[i] = LIGHTGRAY | (BLACK << 8);
-//	}
+/*	for(i=3;i < sizeof(outline) - 2; i+=2) { */
+/*		outline[i] = LIGHTGRAY | (BLACK << 8); */
+/*	} */
 	for(i=7; i<TRANSFER_WIN_HEIGHT-1; i++) {
 		puttext(left, top + i, left + TRANSFER_WIN_WIDTH - 1, top+i, outline);
 	}
@@ -519,22 +519,29 @@ void erase_transfer_window(void) {
 	_setcursortype(_NORMALCURSOR);
 }
 
-void zmodem_upload(char *uldir)
+void ascii_upload(FILE *fp, char *path);
+void zmodem_upload(FILE *fp, char *path);
+
+void begin_upload(char *uldir, BOOL autozm)
 {
 	char	str[MAX_PATH*2];
 	char	path[MAX_PATH+1];
 	int		result;
-	ulong	fsize;
+	int i;
 	FILE*	fp;
-	zmodem_t	zm;
 	struct file_pick fpick;
+	char	*opts[3]={
+			 "Zmodem"
+			,"ASCII"
+			,""
+		};
 
 	init_uifc(FALSE, FALSE);
 	result=filepick(&uifc, "Upload", &fpick, uldir, NULL, UIFC_FP_ALLOWENTRY);
-	uifcbail();
 	
 	if(result==-1 || fpick.files<1) {
 		filepick_free(&fpick);
+		uifcbail();
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -543,9 +550,69 @@ void zmodem_upload(char *uldir)
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
+		uifcbail();
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
+
+	if(autozm) 
+		zmodem_upload(fp, path);
+	else {
+		i=0;
+		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Transfer Type",opts)) {
+			case 0:
+				zmodem_upload(fp, path);
+				break;
+			case 1:
+				ascii_upload(fp, path);
+				break;
+		}
+	}
+	uifcbail();
+}
+
+void ascii_upload(FILE *fp, char *path)
+{
+	char linebuf[1024+2];	/* One extra for terminator, one extra for added CR */
+	char *p;
+	char ch[2];
+	int  inch;
+	BOOL lastwascr=FALSE;
+
+	ch[1]=0;
+	while(!feof(fp)) {
+		if(fgets(linebuf, 1025, fp)!=NULL) {
+			if((p=strrchr(linebuf,'\n'))!=NULL) {
+				if((p==linebuf && !lastwascr) || (p>linebuf && *(p-1)!='\n')) {
+					*p='\r';
+					p++;
+					*p='\n';
+					p++;
+					*p=0;
+				}
+			}
+			lastwascr=FALSE;
+			p=strchr(p,0);
+			if(p!=NULL && p>linebuf) {
+				if(*(p-1)=='\r')
+					lastwascr=TRUE;
+			}
+			conn_send(linebuf,strlen(linebuf),0);
+		}
+		/* Note, during ASCII uploads, do NOT send ANSI responses and don't
+		 * allow speed changes. */
+		while((inch=recv_byte(NULL, 0))>=0) {
+			ch[0]=inch;
+			cterm_write(ch, 1, NULL, 0, NULL);
+		}
+	}
+	fclose(fp);
+}
+
+void zmodem_upload(FILE *fp, char *path)
+{
+	zmodem_t	zm;
+	ulong	fsize;
 
 	draw_transfer_window("Zmodem Upload");
 
@@ -723,6 +790,7 @@ BOOL doterm(struct bbslist *bbs)
 
 	/* Main input loop */
 	oldmc=hold_update;
+	showmouse();
 	for(;;) {
 		hold_update=TRUE;
 		sleep=TRUE;
@@ -743,6 +811,7 @@ BOOL doterm(struct bbslist *bbs)
 						cterm_end();
 						conn_close();
 						uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
+						hidemouse();
 						return(FALSE);
 					}
 					break;
@@ -792,7 +861,7 @@ BOOL doterm(struct bbslist *bbs)
 							zrbuf[j]=zrinit[j];
 							zrbuf[++j]=0;
 							if(j==sizeof(zrinit)-1) {	/* Have full sequence */
-								zmodem_upload(bbs->uldir);
+								begin_upload(bbs->uldir, TRUE);
 								zrbuf[0]=0;
 							}
 						}
@@ -901,8 +970,9 @@ BOOL doterm(struct bbslist *bbs)
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
 						conn_send("\r",1,0);
 					}
+					break;
 				case 0x1600:	/* ALT-U - Upload */
-					zmodem_upload(bbs->uldir);
+					begin_upload(bbs->uldir, FALSE);
 					break;
 				case 17:		/* CTRL-Q */
 					if(cio_api.mode!=CIOLIB_MODE_CURSES
@@ -935,6 +1005,7 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
+							hidemouse();
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
@@ -962,9 +1033,10 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
+							hidemouse();
 							return(FALSE);
 						case 3:
-							zmodem_upload(bbs->uldir);
+							begin_upload(bbs->uldir, FALSE);
 							break;
 						case 4:
 							zmodem_download(bbs->dldir);
@@ -976,6 +1048,7 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							free(scrollback);
 							conn_close();
+							hidemouse();
 							return(TRUE);
 					}
 					gotoxy(i,j);
@@ -1009,5 +1082,6 @@ BOOL doterm(struct bbslist *bbs)
 			MAYBE_YIELD();
 	}
 
+	hidemouse();
 	return(FALSE);
 }
