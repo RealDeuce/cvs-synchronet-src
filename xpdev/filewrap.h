@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.22 2005/07/01 20:44:04 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.23 2005/08/15 19:15:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,10 @@
 	#define SH_DENYRW			OF_SHARE_EXCLUSIVE
 	#endif
 
+	#ifndef SH_COMPAT
+	#define SH_COMPAT			0
+	#endif
+
 #elif defined(__unix__)
 
 	#include <fcntl.h>
@@ -98,6 +102,10 @@
 			#define SH_DENYWR   F_SANERDLCKNO    /* shareable lock */
 		#else
 			#define SH_DENYWR   F_RDLCK    /* shareable lock */
+		#endif
+
+		#ifndef SH_COMPAT
+			#define SH_COMPAT			0
 		#endif
 	#endif
 	#define chsize(fd,size)		ftruncate(fd,size)
