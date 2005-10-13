@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.405 2005/10/13 06:49:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.406 2005/10/13 22:43:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,14 +177,12 @@ int eprintf(int level, char *fmt, ...)
 SOCKET open_socket(int type, const char* protocol)
 {
 	SOCKET	sock;
-	char	section[128];
 	char	error[256];
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
-	SAFEPRINTF(section,"bbs|%s",protocol);
-	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, section, error, sizeof(error)))
+	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
 		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 	return(sock);
