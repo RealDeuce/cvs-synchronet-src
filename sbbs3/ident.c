@@ -2,7 +2,7 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.c,v 1.10 2003/03/21 23:39:32 rswindell Exp $ */
+/* $Id: ident.c,v 1.11 2005/10/13 01:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@ char* identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf
 		timeout=10;
 
 	do {
-		if((sock = open_socket(SOCK_STREAM)) == INVALID_SOCKET) {
+		if((sock = open_socket(SOCK_STREAM, "ident")) == INVALID_SOCKET) {
 			sprintf(buf,"ERROR %d creating socket",ERROR_VALUE);
 			break;
 		}
