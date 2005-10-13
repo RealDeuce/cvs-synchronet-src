@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.192 2005/10/19 08:26:07 rswindell Exp $ */
+/* $Id: services.c,v 1.190 2005/10/13 01:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,10 +212,9 @@ static void thread_down(void)
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 }
 
-static SOCKET open_socket(int type, const char* protocol)
+static SOCKET open_socket(int type, const char* service)
 {
 	char	error[256];
-	char	section[128];
 	SOCKET	sock;
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
@@ -223,8 +222,7 @@ static SOCKET open_socket(int type, const char* protocol)
 		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET) {
 		sockets++;
-		SAFEPRINTF(section,"services|%s", protocol);
-		if(set_socket_options(&scfg, sock, section, error, sizeof(error)))
+		if(set_socket_options(&scfg, sock, service, error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock, error);
 
 #if 0 /*def _DEBUG */
@@ -1466,11 +1464,6 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 		serv.log_level = iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
 		SAFECOPY(serv.cmd,iniGetString(list,sec_list[i],"Command","",cmd));
 
-		if(serv.cmd[0]==0) {
-			lprintf(LOG_WARNING,"Ignoring service with no command: %s",sec_list[i]);
-			continue;
-		}
-
 		/* JavaScript operating parameters */
 		sbbs_get_js_settings(list, sec_list[i], &serv.js, &startup->js);
 
@@ -1539,7 +1532,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.192 $", "%*s %s", revision);
+	sscanf("$Revision: 1.190 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

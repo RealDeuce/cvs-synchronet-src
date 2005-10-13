@@ -1,15 +1,14 @@
-/* $Id: bbslist.h,v 1.22 2005/11/28 07:31:20 deuce Exp $ */
+/* $Id: bbslist.h,v 1.18 2005/06/24 04:29:20 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
 
-#include <stdio.h>	/* FILE * */
 #include "gen_defs.h"
 #include "dirwrap.h"	/* MAX_PATH */
 #include <time.h>
 
 #define LIST_NAME_MAX	30
-#define LIST_ADDR_MAX	64
+#define LIST_ADDR_MAX	30
 #define MAX_USER_LEN	30
 #define MAX_PASSWD_LEN	16
 #define MAX_SYSPASS_LEN	16
@@ -54,16 +53,13 @@ struct bbslist {
 	char			uldir[MAX_PATH];
 	int				loglevel;
 	int				bpsrate;
-	int				music;
-	int				font;
 };
 
-struct bbslist *show_bbslist(int mode);
+struct bbslist *show_bbslist(char* listpath, int mode, char *home);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];
-void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int type);
-void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, int *i, int type);
+void read_list(char *listpath, struct bbslist **list, int *i, int type, char* home);
 void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
 int  get_rate_num(int rate);
