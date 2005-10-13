@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.395 2005/08/15 21:32:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.405 2005/10/13 06:49:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,15 +174,17 @@ int eprintf(int level, char *fmt, ...)
     return(startup->event_lputs(level,sbuf));
 }
 
-SOCKET open_socket(int type)
+SOCKET open_socket(int type, const char* protocol)
 {
 	SOCKET	sock;
+	char	section[128];
 	char	error[256];
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
-	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, error))
+	SAFEPRINTF(section,"bbs|%s",protocol);
+	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, section, error, sizeof(error)))
 		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 	return(sock);
@@ -265,7 +267,18 @@ static BOOL winsock_startup(void)
 
 DLLEXPORT void DLLCALL sbbs_srand()
 {
-	srand(msclock());
+	DWORD seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
+
+#if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
+	int     rf;
+
+	if((rf=open(RANDOM_DEV, O_RDONLY))!=-1) {
+		read(rf, &seed, sizeof(seed));
+		close(rf);
+	}
+#endif
+
+ 	srand(seed);
 	sbbs_random(10);	/* Throw away first number */
 }
 
@@ -366,6 +379,8 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
+	"null",
+	"xml object",
 	"array",
 	"alias",
 	"undefined"
@@ -1700,10 +1715,13 @@ void event_thread(void* arg)
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
+				eprintf(LOG_DEBUG,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				sprintf(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
-				if(!fmutex(semfile,startup->host_name))
+				if(!fmutex(semfile,startup->host_name)) {
+					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
 					continue;
+				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
@@ -2287,7 +2305,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	telnet_mode=0;
 	telnet_last_rxch=0;
 
-	sys_status=lncntr=tos=criterrs=keybufbot=keybuftop=lbuflen=slcnt=0L;
+	sys_status=lncntr=tos=criterrs=lbuflen=slcnt=0L;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -2497,7 +2515,7 @@ bool sbbs_t::init()
 
 	/* Reset COMMAND SHELL */
 
-	main_csi.str=(char *)MALLOC(1024);
+	main_csi.str=(char *)malloc(1024);
 	if(main_csi.str==NULL) {
 		errormsg(WHERE,ERR_ALLOC,"main_csi.str",1024);
 		return(false); 
@@ -2509,17 +2527,17 @@ bool sbbs_t::init()
 
 		usrgrp_total = cfg.total_grps;
 
-		if((cursub=(uint *)MALLOC(sizeof(uint)*usrgrp_total))==NULL) {
+		if((cursub=(uint *)malloc(sizeof(uint)*usrgrp_total))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "cursub", sizeof(uint)*usrgrp_total);
 			return(false);
 		}
 
-		if((usrgrp=(uint *)MALLOC(sizeof(uint)*usrgrp_total))==NULL) {
+		if((usrgrp=(uint *)malloc(sizeof(uint)*usrgrp_total))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "usrgrp", sizeof(uint)*usrgrp_total);
 			return(false);
 		}
 
-		if((usrsubs=(uint *)MALLOC(sizeof(uint)*usrgrp_total))==NULL) {
+		if((usrsubs=(uint *)malloc(sizeof(uint)*usrgrp_total))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "usrsubs", sizeof(uint)*usrgrp_total);
 			return(false);
 		}
@@ -2529,7 +2547,7 @@ bool sbbs_t::init()
 			return(false);
 		}
  
-		if((subscan=(subscan_t *)MALLOC(sizeof(subscan_t)*cfg.total_subs))==NULL) {
+		if((subscan=(subscan_t *)malloc(sizeof(subscan_t)*cfg.total_subs))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "subscan", sizeof(subscan_t)*cfg.total_subs);
 			return(false);
 		}
@@ -2543,7 +2561,7 @@ bool sbbs_t::init()
 	}
 	if(l)
 		for(i=0;i<cfg.total_grps;i++)
-			if((usrsub[i]=(uint *)MALLOC(sizeof(uint)*l))==NULL) {
+			if((usrsub[i]=(uint *)malloc(sizeof(uint)*l))==NULL) {
 				errormsg(WHERE, ERR_ALLOC, "usrsub[x]", sizeof(uint)*l);
 				return(false);
 			}
@@ -2552,17 +2570,17 @@ bool sbbs_t::init()
 
 		usrlib_total = cfg.total_libs;
 
-		if((curdir=(uint *)MALLOC(sizeof(uint)*usrlib_total))==NULL) {
+		if((curdir=(uint *)malloc(sizeof(uint)*usrlib_total))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "curdir", sizeof(uint)*usrlib_total);
 			return(false);
 		}
 
-		if((usrlib=(uint *)MALLOC(sizeof(uint)*usrlib_total))==NULL) {
+		if((usrlib=(uint *)malloc(sizeof(uint)*usrlib_total))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "usrlib", sizeof(uint)*usrlib_total);
 			return(false);
 		}
 
-		if((usrdirs=(uint *)MALLOC(sizeof(uint)*usrlib_total))==NULL) {
+		if((usrdirs=(uint *)malloc(sizeof(uint)*usrlib_total))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "usrdirs", sizeof(uint)*usrlib_total);
 			return(false);
 		}
@@ -2582,7 +2600,7 @@ bool sbbs_t::init()
 	if(l) {
 		l++;	/* for temp dir */
 		for(i=0;i<cfg.total_libs;i++)
-			if((usrdir[i]=(uint *)MALLOC(sizeof(uint)*l))==NULL) {
+			if((usrdir[i]=(uint *)malloc(sizeof(uint)*l))==NULL) {
 				errormsg(WHERE, ERR_ALLOC, "usrdir[x]", sizeof(uint)*l);
 				return(false);
 			}
@@ -2590,32 +2608,32 @@ bool sbbs_t::init()
  
 	if(cfg.max_batup) {
 
-		if((batup_desc=(char **)MALLOC(sizeof(char *)*cfg.max_batup))==NULL) {
+		if((batup_desc=(char **)malloc(sizeof(char *)*cfg.max_batup))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batup_desc", sizeof(char *)*cfg.max_batup);
 			return(false);
 		}
-		if((batup_name=(char **)MALLOC(sizeof(char *)*cfg.max_batup))==NULL) {
+		if((batup_name=(char **)malloc(sizeof(char *)*cfg.max_batup))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batup_name", sizeof(char *)*cfg.max_batup);
 			return(false);
 		}
-		if((batup_misc=(long *)MALLOC(sizeof(long)*cfg.max_batup))==NULL) {
+		if((batup_misc=(long *)malloc(sizeof(long)*cfg.max_batup))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batup_misc", sizeof(char *)*cfg.max_batup);
 			return(false);
 		}
-		if((batup_dir=(uint *)MALLOC(sizeof(uint)*cfg.max_batup))==NULL) {
+		if((batup_dir=(uint *)malloc(sizeof(uint)*cfg.max_batup))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batup_dir", sizeof(char *)*cfg.max_batup);
 			return(false);
 		}
-		if((batup_alt=(ushort *)MALLOC(sizeof(ushort)*cfg.max_batup))==NULL) {
+		if((batup_alt=(ushort *)malloc(sizeof(ushort)*cfg.max_batup))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batup_alt", sizeof(char *)*cfg.max_batup);
 			return(false);
 		}
 		for(i=0;i<cfg.max_batup;i++) {
-			if((batup_desc[i]=(char *)MALLOC(59))==NULL) {
+			if((batup_desc[i]=(char *)malloc(59))==NULL) {
 				errormsg(WHERE, ERR_ALLOC, "batup_desc[x]", 59);
 				return(false);
 			}
-			if((batup_name[i]=(char *)MALLOC(13))==NULL) {
+			if((batup_name[i]=(char *)malloc(13))==NULL) {
 				errormsg(WHERE, ERR_ALLOC, "batup_name[x]", 13);
 				return(false);
 			} 
@@ -2624,32 +2642,32 @@ bool sbbs_t::init()
 
 	if(cfg.max_batdn) {
 
-		if((batdn_name=(char **)MALLOC(sizeof(char *)*cfg.max_batdn))==NULL) {
+		if((batdn_name=(char **)malloc(sizeof(char *)*cfg.max_batdn))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batdn_name", sizeof(char *)*cfg.max_batdn);
 			return(false);
 		}
-		if((batdn_dir=(uint *)MALLOC(sizeof(uint)*cfg.max_batdn))==NULL)  {
+		if((batdn_dir=(uint *)malloc(sizeof(uint)*cfg.max_batdn))==NULL)  {
 			errormsg(WHERE, ERR_ALLOC, "batdn_dir", sizeof(uint)*cfg.max_batdn);
 			return(false);
 		}
-		if((batdn_offset=(long *)MALLOC(sizeof(long)*cfg.max_batdn))==NULL)  {
+		if((batdn_offset=(long *)malloc(sizeof(long)*cfg.max_batdn))==NULL)  {
 			errormsg(WHERE, ERR_ALLOC, "batdn_offset", sizeof(long)*cfg.max_batdn);
 			return(false);
 		}
-		if((batdn_size=(ulong *)MALLOC(sizeof(ulong)*cfg.max_batdn))==NULL) {
+		if((batdn_size=(ulong *)malloc(sizeof(ulong)*cfg.max_batdn))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batdn_size", sizeof(ulong)*cfg.max_batdn);
 			return(false);
 		}
-		if((batdn_cdt=(ulong *)MALLOC(sizeof(ulong)*cfg.max_batdn))==NULL) {
+		if((batdn_cdt=(ulong *)malloc(sizeof(ulong)*cfg.max_batdn))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batdn_cdt", sizeof(long)*cfg.max_batdn);
 			return(false);
 		}
-		if((batdn_alt=(ushort *)MALLOC(sizeof(ushort)*cfg.max_batdn))==NULL) {
+		if((batdn_alt=(ushort *)malloc(sizeof(ushort)*cfg.max_batdn))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "batdn_alt", sizeof(ushort)*cfg.max_batdn);
 			return(false);
 		}
 		for(i=0;i<cfg.max_batdn;i++)
-			if((batdn_name[i]=(char *)MALLOC(13))==NULL) {
+			if((batdn_name[i]=(char *)malloc(13))==NULL) {
 				errormsg(WHERE, ERR_ALLOC, "batdn_name[x]", 13);
 				return(false);
 			} 
@@ -2727,7 +2745,7 @@ sbbs_t::~sbbs_t()
 	for(i=0;i<TOTAL_TEXT && text!=NULL;i++)
 		if(text[i]!=text_sav[i]) {
 			if(text[i]!=nulstr)
-				FREE(text[i]); 
+				free(text[i]); 
 		}
 
 	/* Global command shell vars */
@@ -2933,7 +2951,7 @@ int sbbs_t::mv(char *src, char *dest, char copy)
         errormsg(WHERE,ERR_LEN,src,0);
         return(-1); 
 	}
-    if((buf=(char *)MALLOC(MV_BUFLEN))==NULL) {
+    if((buf=(char *)malloc(MV_BUFLEN))==NULL) {
         fclose(inp);
         fclose(outp);
         errormsg(WHERE,ERR_ALLOC,nulstr,MV_BUFLEN);
@@ -2945,14 +2963,14 @@ int sbbs_t::mv(char *src, char *dest, char copy)
         if(l+chunk>length)
             chunk=length-l;
         if(fread(buf,1,chunk,inp)!=chunk) {
-            FREE(buf);
+            free(buf);
             fclose(inp);
             fclose(outp);
             errormsg(WHERE,ERR_READ,src,chunk);
             return(-1); 
 		}
         if(fwrite(buf,1,chunk,outp)!=chunk) {
-            FREE(buf);
+            free(buf);
             fclose(inp);
             fclose(outp);
             errormsg(WHERE,ERR_WRITE,dest,chunk);
@@ -2965,7 +2983,7 @@ int sbbs_t::mv(char *src, char *dest, char copy)
     attr(atr);
     /* getftime(ind,&ftime);
     setftime(outd,&ftime); */
-    FREE(buf);
+    free(buf);
     fclose(inp);
     fclose(outp);
     if(!copy && remove(src)) {
@@ -3153,7 +3171,7 @@ void sbbs_t::reset_logon_vars(void)
 	cols=80;
     lncntr=0;
     autoterm=0;
-    keybufbot=keybuftop=lbuflen=0;
+    lbuflen=0;
     slcnt=0;
     altul=0;
     timeleft_warn=0;
@@ -3180,7 +3198,7 @@ void sbbs_t::reset_logon_vars(void)
 void sbbs_t::catsyslog(int crash)
 {
 	char str[MAX_PATH+1];
-	char HUGE16 *buf;
+	char *buf;
 	int  i,file;
 	long length;
 	struct tm tm;
@@ -3194,14 +3212,14 @@ void sbbs_t::catsyslog(int crash)
 	}
 	length=ftell(logfile_fp);
 	if(length) {
-		if((buf=(char HUGE16 *)LMALLOC(length))==NULL) {
+		if((buf=(char *)malloc(length))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,str,length);
 			return; 
 		}
 		rewind(logfile_fp);
 		if(fread(buf,1,length,logfile_fp)!=(size_t)length) {
 			errormsg(WHERE,ERR_READ,"log file",length);
-			FREE((char *)buf);
+			free((char *)buf);
 			return; 
 		}
 		now=time(NULL);
@@ -3210,13 +3228,13 @@ void sbbs_t::catsyslog(int crash)
 			,TM_YEAR(tm.tm_year));
 		if((file=nopen(str,O_WRONLY|O_APPEND|O_CREAT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_APPEND|O_CREAT);
-			FREE((char *)buf);
+			free((char *)buf);
 			return; 
 		}
 		if(lwrite(file,buf,length)!=length) {
 			close(file);
 			errormsg(WHERE,ERR_WRITE,str,length);
-			FREE((char *)buf);
+			free((char *)buf);
 			return; 
 		}
 		close(file);
@@ -3225,19 +3243,19 @@ void sbbs_t::catsyslog(int crash)
 				sprintf(str,"%scrash.log",i ? cfg.logs_dir : cfg.node_dir);
 				if((file=nopen(str,O_WRONLY|O_APPEND|O_CREAT))==-1) {
 					errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_APPEND|O_CREAT);
-					FREE((char *)buf);
+					free((char *)buf);
 					return; 
 				}
 				if(lwrite(file,buf,length)!=length) {
 					close(file);
 					errormsg(WHERE,ERR_WRITE,str,length);
-					FREE((char *)buf);
+					free((char *)buf);
 					return; 
 				}
 				close(file); 
 			} 
 		}
-		FREE((char *)buf); 
+		free((char *)buf); 
 	}
 
 	fclose(logfile_fp);
@@ -3317,7 +3335,7 @@ void node_thread(void* arg)
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
 		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the node thread */
-			lprintf(LOG_ERR,"!Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
+			lprintf(LOG_ERR,"Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
 	}
 #endif
 
@@ -3347,7 +3365,7 @@ void node_thread(void* arg)
 				sbbs->clearvars(&sbbs->main_csi);
 
 				sbbs->main_csi.length=filelength(file);
-				if((sbbs->main_csi.cs=(uchar *)MALLOC(sbbs->main_csi.length))==NULL) {
+				if((sbbs->main_csi.cs=(uchar *)malloc(sbbs->main_csi.length))==NULL) {
 					close(file);
 					sbbs->errormsg(WHERE,ERR_ALLOC,str,sbbs->main_csi.length);
 					sbbs->hangup();
@@ -3358,7 +3376,7 @@ void node_thread(void* arg)
 					!=(int)sbbs->main_csi.length) {
 					sbbs->errormsg(WHERE,ERR_READ,str,sbbs->main_csi.length);
 					close(file);
-					FREE(sbbs->main_csi.cs);
+					free(sbbs->main_csi.cs);
 					sbbs->main_csi.cs=NULL;
 					sbbs->hangup();
 					break; 
@@ -3942,7 +3960,7 @@ void DLLCALL bbs_thread(void* arg)
 
     /* open a socket and wait for a client */
 
-    telnet_socket = open_socket(SOCK_STREAM);
+    telnet_socket = open_socket(SOCK_STREAM, "telnet");
 
 	if(telnet_socket == INVALID_SOCKET) {
 		lprintf(LOG_ERR,"!ERROR %d creating Telnet socket", ERROR_VALUE);
@@ -3986,7 +4004,7 @@ void DLLCALL bbs_thread(void* arg)
 
 		/* open a socket and wait for a client */
 
-		rlogin_socket = open_socket(SOCK_STREAM);
+		rlogin_socket = open_socket(SOCK_STREAM, "rlogin");
 
 		if(rlogin_socket == INVALID_SOCKET) {
 			lprintf(LOG_ERR,"!ERROR %d creating RLogin socket", ERROR_VALUE);
@@ -4130,7 +4148,7 @@ void DLLCALL bbs_thread(void* arg)
 	    if(uspy_listen_socket[i-1]!=INVALID_SOCKET) {
 	        uspy_addr_len=SUN_LEN(&uspy_addr);
 	        if(bind(uspy_listen_socket[i-1], (struct sockaddr *) &uspy_addr, uspy_addr_len)) {
-	            lprintf(LOG_ERR,"!Node %d !ERROR %d binding local spy socket %d to %s"
+	            lprintf(LOG_ERR,"Node %d !ERROR %d binding local spy socket %d to %s"
 	                , i, errno, uspy_listen_socket[i-1], uspy_addr.sun_path);
 	            close_socket(uspy_listen_socket[i-1]);
 				uspy_listen_socket[i-1]=INVALID_SOCKET;
