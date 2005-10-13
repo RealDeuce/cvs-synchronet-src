@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.97 2005/11/22 23:05:19 deuce Exp $ */
+/* $Id: jsexec.c,v 1.95 2005/10/12 21:32:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,8 +42,6 @@
 #ifdef __unix__
 #include <signal.h>
 #endif
-
-#include "ciolib.h"
 
 #include "sbbs.h"
 
@@ -587,9 +585,6 @@ static BOOL js_init(char** environ)
 	if(!js_CreateEnvObject(js_cx, js_glob, environ))
 		return(FALSE);
 
-	if(js_CreateUifcObject(js_cx, js_glob)==NULL)
-		return(FALSE);
-
 	return(TRUE);
 }
 
@@ -803,7 +798,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.97 $", "%*s %s", revision);
+	sscanf("$Revision: 1.95 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
