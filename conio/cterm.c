@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.31 2005/08/08 20:59:12 deuce Exp $ */
+/* $Id: cterm.c,v 1.32 2005/09/20 08:28:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -903,15 +903,14 @@ void ctputs(char *buf)
 				cx=1;
 				break;
 			case '\n':
-				if(cy==cterm.height) {
-					*p=0;
-					cputs(outp);
-					outp=p+1;
+				*p=0;
+				cputs(outp);
+				outp=p+1;
+				if(cy==cterm.height)
 					scrollup();
-					gotoxy(cx,cy);
-				}
 				else
 					cy++;
+				gotoxy(cx,cy);
 				break;
 			case '\b':
 				if(cx>0)
