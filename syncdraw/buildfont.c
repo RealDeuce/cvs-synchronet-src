@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "dirwrap.h"
+
+#include "homedir.h"
 #include "fonts.h"
 
 FontRecord      fr[10000];
@@ -14,8 +18,10 @@ insertfont(char *Name)
 	FILE           *fp;
 	int             size, x;
 	fp = fopen(Name, "rb");
-	if (fp == NULL)
+	if (fp == NULL) {
+		printf("Cannot open %s for read\n",Name);
 		return;
+	}
 	/* get filesize */
 	fseek(fp, 0, SEEK_END);
 	size = ftell(fp);
@@ -56,24 +62,25 @@ int main(int argnum, char *args[])
 	char            filename[254];
 	int             x, y;
 	char            FontFile[255];
-	sprintf(FontFile, "%s%s", getenv("HOME")==NULL?"":getenv("HOME"), "/.mdraw/allfont.fnt");
 
+	sprintf(FontFile, "%s%s", homedir(), "allfont.fnt");
 
 	if (argnum < 2) {
 		printf("usage :\n");
-		printf("buildfont <FILENAME>\n");
+		printf("%s <FILENAME>\n",args[0]);
 		printf("FILENAME is a text file which contains a list of tdf fonts\n");
-		exit(0);
+		return(0);
 	}
+
 	FilePos = HeaderSize;
 	fp = fopen(args[1], "rb");
 	if (fp == NULL) {
-		printf("can't open inputfile\n");
-		exit(0);
+		printf("can't open %s for read\n",args[1]);
+		return(1);
 	}
 	CreateFontFile();
-	//Huh ? It 's not open!
-		// fseek(font, 0, SEEK_SET);
+	/*Huh ? It 's not open! */
+		/* fseek(font, 0, SEEK_SET); */
 	while (1) {
 		fgets(filename, 255, fp);
 		if (!feof(fp)) {
@@ -91,6 +98,10 @@ int main(int argnum, char *args[])
 	fclose(fp);
 	/* writing to FontFile */
 	font = fopen(FontFile, "wb");
+	if(font==NULL) {
+		printf("cannot open %s for write\n",FontFile);
+		return(1);
+	}
 	/* Header */
 	fwrite(&Header.sign, 1, 10, font);
 	fwrite(&Header.NumberofFonts, 2, 1, font);
