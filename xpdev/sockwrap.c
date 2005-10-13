@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.30 2005/10/14 02:25:38 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.28 2005/10/13 07:32:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -47,89 +47,62 @@
 #include "filewrap.h"	/* filelength */
 
 static socket_option_t socket_options[] = {
-	{ "TYPE",				0,				SOL_SOCKET,		SO_TYPE				},
-	{ "ERROR",				0,				SOL_SOCKET,		SO_ERROR			},
-	{ "DEBUG",				0,				SOL_SOCKET,		SO_DEBUG			},
-	{ "LINGER",				SOCK_STREAM,	SOL_SOCKET,		SO_LINGER			},
-	{ "SNDBUF",				0,				SOL_SOCKET,		SO_SNDBUF			},
-	{ "RCVBUF",				0,				SOL_SOCKET,		SO_RCVBUF			},
-
-#ifndef _WINSOCKAPI_	/* Defined, but not supported, by WinSock */
-	{ "SNDLOWAT",			0,				SOL_SOCKET,		SO_SNDLOWAT			},
-	{ "RCVLOWAT",			0,				SOL_SOCKET,		SO_RCVLOWAT			},
-	{ "SNDTIMEO",			0,				SOL_SOCKET,		SO_SNDTIMEO			},
-	{ "RCVTIMEO",			0,				SOL_SOCKET,		SO_RCVTIMEO			},
-#ifdef SO_USELOOPBACK	/* SunOS */
-	{ "USELOOPBACK",		0,				SOL_SOCKET,		SO_USELOOPBACK		},
-#endif
-#endif
-
-	{ "REUSEADDR",			0,				SOL_SOCKET,		SO_REUSEADDR		},	
-	{ "KEEPALIVE",			SOCK_STREAM,	SOL_SOCKET,		SO_KEEPALIVE		},
-	{ "DONTROUTE",			0,				SOL_SOCKET,		SO_DONTROUTE		},
-	{ "BROADCAST",			SOCK_DGRAM,		SOL_SOCKET,		SO_BROADCAST		},
-	{ "OOBINLINE",			SOCK_STREAM,	SOL_SOCKET,		SO_OOBINLINE		},
-
+	{ "TYPE",				SOL_SOCKET,		SO_TYPE				},
+	{ "DEBUG",				SOL_SOCKET,		SO_DEBUG			},
+	{ "LINGER",				SOL_SOCKET,		SO_LINGER			},
+	{ "SNDBUF",				SOL_SOCKET,		SO_SNDBUF			},
+	{ "RCVBUF",				SOL_SOCKET,		SO_RCVBUF			},
+	{ "SNDLOWAT",			SOL_SOCKET,		SO_SNDLOWAT			},
+	{ "RCVLOWAT",			SOL_SOCKET,		SO_RCVLOWAT			},
+	{ "SNDTIMEO",			SOL_SOCKET,		SO_SNDTIMEO			},
+	{ "RCVTIMEO",			SOL_SOCKET,		SO_RCVTIMEO			},
+	{ "REUSEADDR",			SOL_SOCKET,		SO_REUSEADDR		},	
+	{ "KEEPALIVE",			SOL_SOCKET,		SO_KEEPALIVE		},
+	{ "DONTROUTE",			SOL_SOCKET,		SO_DONTROUTE		},
+	{ "BROADCAST",			SOL_SOCKET,		SO_BROADCAST		},
+	{ "OOBINLINE",			SOL_SOCKET,		SO_OOBINLINE		},
 #ifdef SO_ACCEPTCONN											
-	{ "ACCEPTCONN",			SOCK_STREAM,	SOL_SOCKET,		SO_ACCEPTCONN		},
-#endif
-#ifdef SO_PRIORITY		/* Linux */
-	{ "PRIORITY",			0,				SOL_SOCKET,		SO_PRIORITY			},
-#endif
-#ifdef SO_NO_CHECK		/* Linux */
-	{ "NO_CHECK",			0,				SOL_SOCKET,		SO_NO_CHECK			},
-#endif
-#ifdef SO_PROTOTYPE		/* SunOS */
-	{ "PROTOTYPE",			0,				SOL_SOCKET,		SO_PROTOTYPE		},
-#endif
-#ifdef SO_MAX_MSG_SIZE	/* WinSock2 */
-	{ "MAX_MSG_SIZE",		SOCK_DGRAM,		SOL_SOCKET,		SO_MAX_MSG_SIZE		},
-#endif
-#ifdef SO_CONNECT_TIME	/* WinSock2 */
-	{ "CONNECT_TIME",		SOCK_STREAM,	SOL_SOCKET,		SO_CONNECT_TIME		},
+	{ "ACCEPTCONN",			SOL_SOCKET,		SO_ACCEPTCONN		},
 #endif
 
 	/* IPPROTO-level socket options */
-	{ "TCP_NODELAY",		SOCK_STREAM,	IPPROTO_TCP,	TCP_NODELAY			},
+	{ "TCP_NODELAY",		IPPROTO_TCP,	TCP_NODELAY			},
 	/* The following are platform-specific */					
 #ifdef TCP_MAXSEG											
-	{ "TCP_MAXSEG",			SOCK_STREAM,	IPPROTO_TCP,	TCP_MAXSEG			},
+	{ "TCP_MAXSEG",			IPPROTO_TCP,	TCP_MAXSEG			},
 #endif															
 #ifdef TCP_CORK													
-	{ "TCP_CORK",			SOCK_STREAM,	IPPROTO_TCP,	TCP_CORK			},
+	{ "TCP_CORK",			IPPROTO_TCP,	TCP_CORK			},
 #endif															
 #ifdef TCP_KEEPIDLE												
-	{ "TCP_KEEPIDLE",		SOCK_STREAM,	IPPROTO_TCP,	TCP_KEEPIDLE		},
+	{ "TCP_KEEPIDLE",		IPPROTO_TCP,	TCP_KEEPIDLE		},
 #endif															
 #ifdef TCP_KEEPINTVL											
-	{ "TCP_KEEPINTVL",		SOCK_STREAM,	IPPROTO_TCP,	TCP_KEEPINTVL		},
+	{ "TCP_KEEPINTVL",		IPPROTO_TCP,	TCP_KEEPINTVL		},
 #endif															
 #ifdef TCP_KEEPCNT												
-	{ "TCP_KEEPCNT",		SOCK_STREAM,	IPPROTO_TCP,	TCP_KEEPCNT			},
-#endif															
-#ifdef TCP_KEEPALIVE	/* SunOS */
-	{ "TCP_KEEPALIVE",		SOCK_STREAM,	IPPROTO_TCP,	TCP_KEEPALIVE		},
+	{ "TCP_KEEPCNT",		IPPROTO_TCP,	TCP_KEEPCNT			},
 #endif															
 #ifdef TCP_SYNCNT												
-	{ "TCP_SYNCNT",			SOCK_STREAM,	IPPROTO_TCP,	TCP_SYNCNT			},
+	{ "TCP_SYNCNT",			IPPROTO_TCP,	TCP_SYNCNT			},
 #endif															
 #ifdef TCP_LINGER2												
-	{ "TCP_LINGER2",		SOCK_STREAM,	IPPROTO_TCP,	TCP_LINGER2			},
+	{ "TCP_LINGER2",		IPPROTO_TCP,	TCP_LINGER2			},
 #endif														
 #ifdef TCP_DEFER_ACCEPT										
-	{ "TCP_DEFER_ACCEPT",	SOCK_STREAM,	IPPROTO_TCP,	TCP_DEFER_ACCEPT	},
+	{ "TCP_DEFER_ACCEPT",	IPPROTO_TCP,	TCP_DEFER_ACCEPT	},
 #endif															
 #ifdef TCP_WINDOW_CLAMP											
-	{ "TCP_WINDOW_CLAMP",	SOCK_STREAM,	IPPROTO_TCP,	TCP_WINDOW_CLAMP	},
+	{ "TCP_WINDOW_CLAMP",	IPPROTO_TCP,	TCP_WINDOW_CLAMP	},
 #endif														
 #ifdef TCP_QUICKACK											
-	{ "TCP_QUICKACK",		SOCK_STREAM,	IPPROTO_TCP,	TCP_QUICKACK		},
+	{ "TCP_QUICKACK",		IPPROTO_TCP,	TCP_QUICKACK		},
 #endif						
 #ifdef TCP_NOPUSH			
-	{ "TCP_NOPUSH",			SOCK_STREAM,	IPPROTO_TCP,	TCP_NOPUSH			},
+	{ "TCP_NOPUSH",			IPPROTO_TCP,	TCP_NOPUSH			},
 #endif						
 #ifdef TCP_NOOPT			
-	{ "TCP_NOOPT",			SOCK_STREAM,	IPPROTO_TCP,	TCP_NOOPT			},
+	{ "TCP_NOOPT",			IPPROTO_TCP,	TCP_NOOPT			},
 #endif
 	{ NULL }
 };
