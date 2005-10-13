@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.12 2004/08/09 06:27:41 deuce Exp $ */
+/* $Id: chat.c,v 1.13 2005/09/20 03:41:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 		return(-1);
     }
 
-	if((p=(char *)MALLOC(PCHAT_LEN))==NULL) {
+	if((p=(char *)malloc(PCHAT_LEN))==NULL) {
 		close(in);
 		close(out);
 		free(buf);
@@ -176,7 +176,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 	memset(p,0,PCHAT_LEN);
 	write(in,p,PCHAT_LEN);
 	write(out,p,PCHAT_LEN);
-	FREE(p);
+	free(p);
 	lseek(in,0,SEEK_SET);
 	lseek(out,0,SEEK_SET);
 
