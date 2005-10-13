@@ -204,6 +204,7 @@ tODResult ODKrnlInitialize(void)
    itv.it_value.tv_sec=0;
    itv.it_value.tv_usec=10000;
    setitimer(ITIMER_REAL,&itv,NULL);
+#endif
 
    /* Make stdin signal driven. */
 /*   act.sa_handler=sig_get_char;
@@ -218,6 +219,7 @@ tODResult ODKrnlInitialize(void)
 /*   fcntl(0,F_SETFL,fcntl(0,F_GETFL)|O_ASYNC); */
 /*/
 
+#ifdef USE_KERNEL_SIGNAL
    /* Make sure SIGHUP, SIGALRM, and SIGIO are unblocked */
    sigemptyset(&block);
    sigaddset(&block,SIGHUP);
@@ -230,7 +232,6 @@ tODResult ODKrnlInitialize(void)
    sigemptyset(&block);
    sigaddset(&block,SIGHUP);
    sigprocmask(SIG_BLOCK,&block,NULL);
-#endif
 #endif
 
    /* Initialize time of next status update and next time deduction. */
