@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.ini */
 
-/* $Id: sockopts.c,v 1.23 2005/10/19 09:06:23 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.21 2005/10/13 07:34:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "ini_file.h"	/* ini file API */
 
-int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* protocol, char* error, size_t errlen)
+int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* section, char* error, size_t errlen)
 {
 	char		cfgfile[MAX_PATH+1];
 	FILE*		fp;
@@ -47,14 +47,6 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* protocol, c
 	str_list_t	list;
 	socklen_t	len;
 
-	len = sizeof(type);
-	result=getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
-	if(result) {
-		safe_snprintf(error,errlen,"%d getting socket option type (%d)"
-			,ERROR_VALUE, SO_TYPE);
-		return(result);
-	}
-
 	/* Set user defined socket options */
 	iniFileName(cfgfile,sizeof(cfgfile),cfg->ctrl_dir,"sockopts.ini");
 	if((fp=iniOpenFile(cfgfile,FALSE))==NULL)
@@ -62,12 +54,20 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* protocol, c
 	list=iniReadFile(fp);
 	fclose(fp);
 
+	len = sizeof(type);
+	result=getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
+	if(result) {
+		sprintf(error,"%d getting socket option (TYPE, %d)"
+			,ERROR_VALUE, SO_TYPE);
+		return(result);
+	}
+
 	result=iniGetSocketOptions(list,ROOT_SECTION,sock,error,errlen);
 
 	if(result==0)
 		result=iniGetSocketOptions(list,type==SOCK_STREAM ? "tcp":"udp",sock,error,errlen);
-	if(result==0 && protocol!=NULL && *protocol!=0)
-		result=iniGetSocketOptions(list,protocol,sock,error,errlen);
+	if(result==0 && section!=NULL)
+		result=iniGetSocketOptions(list,section,sock,error,errlen);
 
 	iniFreeStringList(list);
 
