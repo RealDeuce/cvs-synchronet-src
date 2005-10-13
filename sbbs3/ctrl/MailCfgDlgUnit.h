@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.h,v 1.15 2004/08/11 10:28:30 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.h,v 1.16 2005/10/07 09:08:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,6 +49,7 @@
 #include <vcl\System.hpp>
 #include <Dialogs.hpp>
 #include <ComCtrls.hpp>
+#include <CheckLst.hpp>
 //----------------------------------------------------------------------------
 class TMailCfgDlg : public TForm
 {
@@ -139,6 +140,8 @@ __published:
     TEdit *RelayAuthNameEdit;
     TLabel *RelayAuthPassLabel;
     TEdit *RelayAuthPassEdit;
+    TTabSheet *AdvancedTabSheet;
+    TCheckListBox *AdvancedCheckListBox;
     void __fastcall InboundSoundButtonClick(TObject *Sender);
     void __fastcall OutboundSoundButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
