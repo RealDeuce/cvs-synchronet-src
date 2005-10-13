@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.34 2005/09/28 02:07:08 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.35 2005/10/13 07:33:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,9 @@
 
 #include "genwrap.h"
 #include "str_list.h"	/* strList_t */
+#if !defined(NO_SOCKET_SUPPORT)
+	#include "sockwrap.h"	/* inet_addr, SOCKET */
+#endif
 
 #define INI_MAX_VALUE_LEN	1024		/* Maximum value length, includes '\0' */
 #define ROOT_SECTION		NULL
@@ -154,6 +157,8 @@ double		iniGetNamedFloat(str_list_t, const char* section, const char* key
 ulong		iniGetBitField(str_list_t, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
 #define		iniGetLogLevel(l,s,k,d) iniGetEnum(l,s,k,iniLogLevelStringList(),d)
+int			iniGetSocketOptions(str_list_t, const char* section
+					,SOCKET sock, char* error, size_t errlen);
 
 void		iniSetDefaultStyle(ini_style_t);
 
