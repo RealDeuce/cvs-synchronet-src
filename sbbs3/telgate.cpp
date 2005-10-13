@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.26 2004/12/30 02:57:00 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.27 2005/10/13 01:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 		return;
 	}
 
-    if((remote_socket = open_socket(SOCK_STREAM)) == INVALID_SOCKET) {
+    if((remote_socket = open_socket(SOCK_STREAM, "bbs")) == INVALID_SOCKET) {
 		errormsg(WHERE,ERR_OPEN,"socket",0);
 		return;
 	}
