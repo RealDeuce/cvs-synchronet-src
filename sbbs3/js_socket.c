@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.109 2005/10/14 01:06:05 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.107 2005/10/13 07:34:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1301,33 +1301,6 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	{0}
 };
 
-static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type)
-{
-	size_t		i;
-	size_t		count=0;
-	jsval		val;
-	JSObject*	array;
-	socket_option_t* options;
-
-	if((options=getSocketOptionList())==NULL)
-		return(FALSE);
-
-	if((array=JS_NewArrayObject(cx, 0, NULL))==NULL) 
-		return(FALSE);
-
-	if(!JS_DefineProperty(cx, obj, "option_list", OBJECT_TO_JSVAL(array)
-		, NULL, NULL, JSPROP_ENUMERATE))
-		return(FALSE);
-
-	for(i=0; options[i].name!=NULL; i++) {
-		if(options[i].type && options[i].type!=type)
-			continue;
-		val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,options[i].name));
-		JS_SetElement(cx, array, count++, &val);
-	}
-	return(TRUE);
-}
-
 /* Socket Constructor (creates socket descriptor) */
 
 static JSBool
@@ -1336,13 +1309,13 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 	int32	type=SOCK_STREAM;	/* default = TCP */
 	uintN	i;
 	private_t* p;
-	char*	protocol=NULL;
+	char*	sock_service=NULL;
 
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i]))
 			JS_ValueToInt32(cx,argv[i],&type);
-		else if(protocol==NULL)
-			protocol=JS_GetStringBytes(JS_ValueToString(cx,argv[i]));
+		else if(sock_service==NULL)
+			sock_service=JS_GetStringBytes(JS_ValueToString(cx,argv[i]));
 	}
 		
 	if((p=(private_t*)malloc(sizeof(private_t)))==NULL) {
@@ -1351,7 +1324,7 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 	}
 	memset(p,0,sizeof(private_t));
 
-	if((p->sock=open_socket(type,protocol))==INVALID_SOCKET) {
+	if((p->sock=open_socket(type,sock_service))==INVALID_SOCKET) {
 		JS_ReportError(cx,"open_socket failed with error %d",ERROR_VALUE);
 		return(JS_FALSE);
 	}
@@ -1367,9 +1340,6 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 		JS_ReportError(cx,"js_DefineSyncProperties failed");
 		return(JS_FALSE);
 	}
-
-	if(!js_DefineSocketOptionsArray(cx, obj, type))
-		return(JS_FALSE);
 
 	if(!js_DefineSyncMethods(cx, obj, js_socket_functions, FALSE)) {
 		JS_ReportError(cx,"js_DefineSyncMethods failed");
@@ -1405,10 +1375,8 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 
 JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *name, SOCKET sock)
 {
-	JSObject*	obj;
+	JSObject* obj;
 	private_t*	p;
-	int			type=SOCK_STREAM;
-	socklen_t	len;
 
 	obj = JS_DefineObject(cx, parent, name, &js_socket_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -1417,12 +1385,6 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 		return(NULL);
 
 	if(!js_DefineSyncProperties(cx, obj, js_socket_properties))
-		return(NULL);
-
-	len = sizeof(type);
-	getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
-
-	if(!js_DefineSocketOptionsArray(cx, obj, type))
 		return(NULL);
 
 	if((p=(private_t*)malloc(sizeof(private_t)))==NULL)
