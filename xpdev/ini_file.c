@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.80 2005/06/29 20:37:28 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.85 2005/10/12 22:50:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,8 +53,24 @@
 #define INI_OPEN_SECTION_CHAR	'['
 #define INI_CLOSE_SECTION_CHAR	']'
 #define INI_NEW_SECTION			((char*)~0)
+#define INI_INCLUDE_DIRECTIVE	"!include"
+#define INI_INCLUDE_MAX			10000
 
 static ini_style_t default_style;
+
+void iniSetDefaultStyle(ini_style_t style)
+{
+	default_style = style;
+}
+
+/* These correlate with the LOG_* definitions in syslog.h/gen_defs.h */
+static char* logLevelStringList[] 
+	= {"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Informational", "Debugging", NULL};
+
+str_list_t iniLogLevelStringList(void)
+{
+	return(logLevelStringList);
+}
 
 static char* section_name(char* p)
 {
@@ -315,26 +331,41 @@ BOOL iniRenameSection(str_list_t* list, const char* section, const char* newname
 	return(strListReplace(*list, i, str)!=NULL);
 }
 
-size_t iniAddSection(str_list_t* list, const char* section
-					,ini_style_t* style)
+static size_t ini_add_section(str_list_t* list, const char* section
+					,ini_style_t* style, size_t index)
 {
 	char	str[INI_MAX_LINE_LEN];
-	size_t	i;
 
 	if(section==ROOT_SECTION)
 		return(0);
 
-	i=find_section_index(*list, section);
-	if((*list)[i]==NULL) {
-		if(style==NULL)
-			style=&default_style;
-		if(style->section_separator!=NULL)
-			strListAppend(list, style->section_separator, i++);
-		SAFEPRINTF(str,"[%s]",section);
-		strListAppend(list, str, i);
-	}
+	if((*list)[index]!=NULL)
+		return(index);
 
-	return(i);
+	if(style==NULL)
+		style=&default_style;
+	if(index > 0 && style->section_separator!=NULL)
+		strListAppend(list, style->section_separator, index++);
+	SAFEPRINTF(str,"[%s]",section);
+	strListAppend(list, str, index);
+
+	return(index);
+}
+
+size_t iniAddSection(str_list_t* list, const char* section, ini_style_t* style)
+{
+	if(section==ROOT_SECTION)
+		return(0);
+
+	return ini_add_section(list,section,style,find_section_index(*list, section));
+}
+
+size_t iniAppendSection(str_list_t* list, const char* section, ini_style_t* style)
+{
+	if(section==ROOT_SECTION)
+		return(0);
+
+	return ini_add_section(list,section,style,strListCount(*list));
 }
 
 char* iniSetString(str_list_t* list, const char* section, const char* key, const char* value
@@ -477,7 +508,7 @@ char* iniSetDateTime(str_list_t* list, const char* section, const char* key
 
 	if(value==0)
 		SAFECOPY(str,"Never");
-	else if((p=ctime_r(&value,tstr))==NULL)
+	else if((p=CTIME_R(&value,tstr))==NULL)
 		SAFEPRINTF(str,"0x%lx",value);
 	else if(!include_time)	/* reformat into "Mon DD YYYY" */
 		safe_snprintf(str,sizeof(str),"%.3s %.2s %.4s"		,p+4,p+8,p+20);
@@ -1302,8 +1333,14 @@ static unsigned parseEnum(const char* value, str_list_t names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i]!=NULL;i++)
 		if(stricmp(names[i],value)==0)
+			return(i);
+
+	/* Look for partial matches second */
+	for(i=0;names[i]!=NULL;i++)
+		if(strnicmp(names[i],value,strlen(value))==0)
 			return(i);
 
 	return(strtoul(value,NULL,0));
@@ -1339,8 +1376,14 @@ static long parseNamedInt(const char* value, named_long_t* names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i].name!=NULL;i++)
 		if(stricmp(names[i].name,value)==0)
+			return(names[i].value);
+
+	/* Look for partial matches second */
+	for(i=0;names[i].name!=NULL;i++)
+		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
 	return(strtol(value,NULL,0));
@@ -1378,8 +1421,14 @@ static double parseNamedFloat(const char* value, named_double_t* names)
 {
 	unsigned i;
 
+	/* Look for exact matches first */
 	for(i=0;names[i].name!=NULL;i++)
 		if(stricmp(names[i].name,value)==0)
+			return(names[i].value);
+
+	/* Look for partial matches second */
+	for(i=0;names[i].name!=NULL;i++)
+		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
 	return(atof(value));
@@ -1487,17 +1536,46 @@ BOOL iniCloseFile(FILE* fp)
 
 str_list_t iniReadFile(FILE* fp)
 {
+	char		str[INI_MAX_LINE_LEN];
+	char*		p;
 	size_t		i;
+	size_t		inc_len;
+	size_t		inc_counter=0;
 	str_list_t	list;
+	FILE*		insert_fp=NULL;
 	
 	rewind(fp);
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
-	if(list!=NULL) {
-		/* truncate new-line chars off end of strings */
-		for(i=0; list[i]!=NULL; i++)
-			truncnl(list[i]);
-	}
+	if(list==NULL)
+		return(NULL);
+
+	/* Look for !include directives */
+	inc_len=strlen(INI_INCLUDE_DIRECTIVE);
+	for(i=0; list[i]!=NULL; i++)
+		if(strnicmp(list[i],INI_INCLUDE_DIRECTIVE,inc_len)==0) {
+			p=list[i]+inc_len;
+			FIND_WHITESPACE(p);
+			SKIP_WHITESPACE(p);
+			truncsp(p);
+			if(inc_counter >= INI_INCLUDE_MAX)
+				SAFEPRINTF2(str, ";%s - MAXIMUM INCLUDES REACHED: %u", list[i], INI_INCLUDE_MAX);
+			else if((insert_fp=fopen(p,"r"))==NULL)
+				SAFEPRINTF2(str, ";%s - FAILURE: %s", list[i], STRERROR(errno));
+			else
+				SAFEPRINTF(str, ";%s", list[i]);
+			strListReplace(list, i, str);
+			if(insert_fp!=NULL) {
+				strListInsertFile(insert_fp, &list, i+1, INI_MAX_LINE_LEN);
+				fclose(insert_fp);
+				insert_fp=NULL;
+				inc_counter++;
+			}
+		}
+
+	/* truncate new-line chars off end of strings */
+	for(i=0; list[i]!=NULL; i++)
+		truncnl(list[i]);
 
 	return(list);
 }
@@ -1515,3 +1593,24 @@ BOOL iniWriteFile(FILE* fp, const str_list_t list)
 
 	return(count == strListCount(list));
 }
+
+#ifdef INI_FILE_TEST
+void main(int argc, char** argv)
+{
+	int			i;
+	size_t		l;
+	FILE*		fp;
+	str_list_t	list;
+
+	for(i=1;i<argc;i++) {
+		if((fp=iniOpenFile(argv[i],FALSE)) == NULL)
+			continue;
+		if((list=iniReadFile(fp)) != NULL) {
+			for(l=0;list[l];l++)
+				printf("%s\n", list[l]);
+			strListFree(&list);
+		}
+		fclose(fp);
+	}
+}
+#endif
