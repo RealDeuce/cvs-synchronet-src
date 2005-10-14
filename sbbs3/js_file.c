@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.87 2005/11/29 23:39:22 rswindell Exp $ */
+/* $Id: js_file.c,v 1.86 2005/10/12 00:22:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -154,10 +154,8 @@ js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			mode=JS_GetStringBytes(str);
 		} else if(JSVAL_IS_BOOLEAN(argv[i]))	/* shareable */
 			shareable=JSVAL_TO_BOOLEAN(argv[i]);
-		else if(JSVAL_IS_NUMBER(argv[i])) {	/* bufsize */
-			if(!JS_ValueToInt32(cx,argv[i],&bufsize))
-				return(JS_FALSE);
-		}
+		else if(JSVAL_IS_NUMBER(argv[i]))	/* bufsize */
+			JS_ValueToInt32(cx,argv[i],&bufsize);
 	}
 	SAFECOPY(p->mode,mode);
 
@@ -226,10 +224,9 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return(JS_FALSE);
-	} else {
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
+	else {
 		len=filelength(fileno(p->fp));
 		offset=ftell(p->fp);
 		if(offset>0)
@@ -306,10 +303,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 	
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return(JS_FALSE);
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
@@ -353,10 +348,8 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],(int32*)&size))
-			return(JS_FALSE);
-	}
+	if(argc) 
+		JS_ValueToInt32(cx,argv[0],(int32*)&size);
 
 	switch(size) {
 		case sizeof(BYTE):
@@ -517,8 +510,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			break;
 		default:
 			if(JSVAL_IS_NUMBER(dflt)) {
-				if(!JS_ValueToInt32(cx,dflt,&i))
-					return(JS_FALSE);
+				JS_ValueToInt32(cx,dflt,&i);
 				JS_NewNumberValue(cx,iniReadInteger(p->fp,section,key,i),rval);
 			} else
 				*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx
@@ -571,8 +563,7 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				break;
 			default:
 				if(JSVAL_IS_NUMBER(value)) {
-					if(!JS_ValueToInt32(cx,value,&i))
-						return(JS_FALSE);
+					JS_ValueToInt32(cx,value,&i);
 					result = iniSetInteger(&list,section,key,i,NULL);
 				} else {
 					if(JSVAL_IS_OBJECT(value) 
@@ -889,8 +880,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	tlen=len;
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&tlen))
-			return(JS_FALSE);
+		JS_ValueToInt32(cx,argv[1],(int32*)&tlen);
 		if(len>tlen)
 			len=tlen;
 	}
@@ -972,12 +962,9 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(!JS_ValueToInt32(cx,argv[0],&val))
-		return(JS_FALSE);
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
-			return(JS_FALSE);
-	}
+	JS_ValueToInt32(cx,argv[0],&val);
+	if(argc>1) 
+		JS_ValueToInt32(cx,argv[1],(int32*)&size);
 
 	switch(size) {
 		case sizeof(BYTE):
@@ -1068,16 +1055,12 @@ js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	/* offset */
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&offset))
-			return(JS_FALSE);
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&offset);
 
 	/* length */
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&len))
-			return(JS_FALSE);
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&len);
 
 	if(len==0)
 		len=filelength(fileno(p->fp))-offset;
@@ -1106,16 +1089,12 @@ js_unlock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	/* offset */
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&offset))
-			return(JS_FALSE);
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&offset);
 
 	/* length */
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&len))
-			return(JS_FALSE);
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&len);
 
 	if(len==0)
 		len=filelength(fileno(p->fp))-offset;
@@ -1322,31 +1301,26 @@ static JSBool js_file_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case FILE_PROP_POSITION:
 			if(p->fp!=NULL) {
-				if(!JS_ValueToInt32(cx,*vp,&i))
-					return(JS_FALSE);
+				JS_ValueToInt32(cx,*vp,&i);
 				fseek(p->fp,i,SEEK_SET);
 			}
 			break;
 		case FILE_PROP_DATE:
-			if(!JS_ValueToInt32(cx,*vp,&i))
-				return(JS_FALSE);
+			JS_ValueToInt32(cx,*vp,&i);
 			setfdate(p->name,i);
 			break;
 		case FILE_PROP_LENGTH:
 			if(p->fp!=NULL) {
-				if(!JS_ValueToInt32(cx,*vp,&i))
-					return(JS_FALSE);
+				JS_ValueToInt32(cx,*vp,&i);
 				chsize(fileno(p->fp),i);
 			}
 			break;
 		case FILE_PROP_ATTRIBUTES:
-			if(!JS_ValueToInt32(cx,*vp,&i))
-				return(JS_FALSE);
+			JS_ValueToInt32(cx,*vp,&i);
 			CHMOD(p->name,i);
 			break;
 		case FILE_PROP_ETX:
-			if(!JS_ValueToInt32(cx,*vp,&i))
-				return(JS_FALSE);
+			JS_ValueToInt32(cx,*vp,&i);
 			p->etx = (uchar)i;
 			break;
 	}
