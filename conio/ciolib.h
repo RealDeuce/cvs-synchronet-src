@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.29 2005/10/14 06:21:15 deuce Exp $ */
+/* $Id: ciolib.h,v 1.30 2005/10/14 19:01:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,9 +62,11 @@
 #elif defined __unix__
         #define CIOLIBCALL
         #define CIOLIBEXPORT
+        #define CIOLIBEXPORTVAR	extern
 #else
         #define CIOLIBCALL
         #define CIOLIBEXPORT
+        #define CIOLIBEXPORTVAR	extern
 #endif
 
 enum {
