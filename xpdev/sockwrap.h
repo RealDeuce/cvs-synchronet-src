@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.26 2005/10/13 07:32:07 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.27 2005/10/14 01:03:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +79,7 @@
 
 typedef struct {
 	char*	name;
+	int		type;		/* Supported socket types (or 0 for unspecified) */
 	int		level;
 	int		value;
 } socket_option_t;
