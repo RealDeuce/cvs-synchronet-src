@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.80 2005/11/01 00:32:12 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.77 2005/10/12 21:45:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,21 +48,14 @@
 	#include <sys/time.h>	/* struct timeval */
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
-
 	#ifdef _THREAD_SAFE
 		#include <pthread.h>/* Check for GNU PTH libs */
 		#ifdef _PTH_PTHREAD_H_
 			#include <pth.h>
 		#endif
-		#define GetCurrentThreadId()	pthread_self()
 	#endif
 #elif defined(_WIN32)
 	#include <process.h>	/* getpid() */
-#endif
-
-#if !defined(_WIN32)
-	/* Simple Win32 function equivalents */
-	#define GetCurrentProcessId()		getpid()
 #endif
 
 /* utime() support */
@@ -290,10 +283,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define CTIME_R(x,y)	ctime_r(x,y)
 #endif
 
-/* Mimic the Borland randomize() and random() CRTL functions */
-DLLEXPORT unsigned	DLLCALL xp_randomize(void);
 DLLEXPORT int		DLLCALL	xp_random(int);
-
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
@@ -306,9 +296,9 @@ DLLEXPORT char*		DLLCALL c_unescape_str(char* str);
 DLLEXPORT char		DLLCALL c_unescape_char_ptr(const char* str, char** endptr);
 DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 
-/* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
+/* Millisecond clock */
 typedef		clock_t				msclock_t;
-#if defined(_WIN32) || defined(__OS2__)
+#if defined(_WIN32)
 	#define		MSCLOCKS_PER_SEC	CLOCKS_PER_SEC	/* e.g. 18.2 on DOS, 1000.0 on Win32 */
 	#define		msclock()			clock()
 #else
