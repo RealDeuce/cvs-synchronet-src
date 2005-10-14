@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.390 2005/12/03 21:45:26 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.387 2005/10/13 06:49:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3503,7 +3503,6 @@ static void sendmail_thread(void* arg)
 	char*		server;
 	char*		msgtxt=NULL;
 	char*		p;
-	char*		tp;
 	ushort		port;
 	ulong		last_msg=0;
 	ulong		ip_addr;
@@ -3682,11 +3681,25 @@ static void sendmail_thread(void* arg)
 					server=startup->relay_server;
 					port=startup->relay_port;
 				} else {
-					tp=strrchr(p,':');	/* non-standard SMTP port */
-					if(tp!=NULL) {
-						*tp=0;
-						port=atoi(tp+1);
+					p=strrchr((char*)msg.to_net.addr,':');	/* non-standard SMTP port */
+					if(p!=NULL) {
+						*p=0;
+						port=atoi(p+1);
 					}
+#if 0	/* Already done */
+					SAFECOPY(to,(char*)msg.to_net.addr);
+					truncstr(to,"> ");
+#endif
+					p=strrchr(to,'@');
+#if 0	/* Already done */
+					if(p==NULL) {
+						remove_msg_intransit(&smb,&msg);
+						lprintf(LOG_WARNING,"0000 !SEND INVALID destination address: %s", to);
+						SAFEPRINTF(err,"Invalid destination address: %s", to);
+						bounce(&smb,&msg,err,TRUE);
+						continue;
+					}
+#endif
 					get_dns_server(dns_server,sizeof(dns_server));
 					if((dns=resolve_ip(dns_server))==INADDR_NONE) {
 						remove_msg_intransit(&smb,&msg);
@@ -4023,7 +4036,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.390 $", "%*s %s", revision);
+	sscanf("$Revision: 1.387 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4559,12 +4572,8 @@ void DLLCALL mail_server(void* arg)
 				mswait(500);
 			}
 		}
-		if(!sendmail_running) {
-			while(sem_destroy(&sendmail_wakeup_sem)==-1 && errno==EBUSY) {
-				mswait(1);
-				sem_post(&sendmail_wakeup_sem);
-			}
-		}
+		if(!sendmail_running)
+			sem_destroy(&sendmail_wakeup_sem);
 
 		cleanup(0);
 
