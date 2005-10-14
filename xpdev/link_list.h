@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.19 2005/10/14 06:22:27 rswindell Exp $ */
+/* $Id: link_list.h,v 1.20 2005/10/14 06:24:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #define _LINK_LIST_H
 
 #include <stddef.h>		/* size_t */
+#include "wrapdll.h"
 #include "str_list.h"	/* string list functions and types */
 
 #if defined(LINK_LIST_THREADSAFE)
