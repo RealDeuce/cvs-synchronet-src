@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.114 2005/11/28 02:48:13 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.112 2005/10/12 23:18:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -610,10 +610,6 @@ void sbbs_read_ini(
 		web->options
 			=iniGetBitField(list,section,strOptions,web_options
 				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
-		web->outbuf_highwater_mark
-			=iniGetShortInt(list,section,"OutbufHighwaterMark",1024);
-		web->outbuf_drain_timeout
-			=iniGetShortInt(list,section,"OutbufDrainTimeout",10);
 
 		web->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		web->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
@@ -1113,10 +1109,6 @@ BOOL sbbs_write_ini(
 		if(web->bind_retry_delay==global->bind_retry_delay)
 			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,web->bind_retry_delay,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"OutbufHighwaterMark",web->outbuf_highwater_mark,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"OutbufDrainTimeout",web->outbuf_drain_timeout,&style))
 			break;
 	}
 
