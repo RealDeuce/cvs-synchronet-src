@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.153 2005/09/01 10:10:47 rswindell Exp $ */
+/* $Id: js_global.c,v 1.155 2005/10/12 07:03:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1707,6 +1707,7 @@ js_b64_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 {
 	int			res;
 	size_t		len;
+	size_t		inbuf_len;
 	uchar*		inbuf;
 	uchar*		outbuf;
 	JSString*	js_str;
@@ -1716,14 +1717,17 @@ js_b64_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((inbuf=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
+	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
+	if((inbuf=JS_GetStringBytes(js_str))==NULL) 
+		return(JS_FALSE);
+	inbuf_len=JS_GetStringLength(js_str);
 
-	len=(strlen(inbuf)*10)+1;
+	len=(inbuf_len*10)+1;
 	if((outbuf=(char*)malloc(len))==NULL)
 		return(JS_FALSE);
 
-	res=b64_encode(outbuf,len,inbuf,strlen(inbuf));
+	res=b64_encode(outbuf,len,inbuf,inbuf_len);
 
 	if(res<1) {
 		free(outbuf);
@@ -1781,6 +1785,7 @@ js_md5_calc(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	BYTE		digest[MD5_DIGEST_SIZE];
 	JSBool		hex=JS_FALSE;
+	size_t		inbuf_len;
 	char*		inbuf;
 	char		outbuf[64];
 	JSString*	js_str;
@@ -1790,13 +1795,16 @@ js_md5_calc(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((inbuf=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) 
+	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
+	if((inbuf=JS_GetStringBytes(js_str))==NULL) 
+		return(JS_FALSE);
+	inbuf_len=JS_GetStringLength(js_str);
 
 	if(argc>1 && JSVAL_IS_BOOLEAN(argv[1]))
 		hex=JSVAL_TO_BOOLEAN(argv[1]);
 
-	MD5_calc(digest,inbuf,strlen(inbuf));
+	MD5_calc(digest,inbuf,inbuf_len);
 
 	if(hex)
 		MD5_hex(outbuf,digest);
@@ -2348,7 +2356,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
     if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
 		return(JS_FALSE);
 
-	if((index=(SOCKET *)MALLOC(sizeof(SOCKET)*limit))==NULL)
+	if((index=(SOCKET *)malloc(sizeof(SOCKET)*limit))==NULL)
 		return(JS_FALSE);
 
 	FD_ZERO(&socket_set);

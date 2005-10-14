@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.18 2004/05/30 06:47:53 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.21 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,9 +59,6 @@
     #define O_DENYNONE SH_DENYNO
 #endif
 
-#ifdef __MSDOS__
-extern uchar node_swap;
-#endif
 extern long misc;
 extern config_t cfg;
 
@@ -223,7 +220,7 @@ void read_echo_cfg()
 		while(*p && *p<=' ') p++;                /* Skip white space */
 
 		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
-			if((cfg.arcdef=(arcdef_t *)REALLOC(cfg.arcdef
+			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
 				printf("\nError allocating %u bytes of memory for arcdef #%u.\n"
 					,sizeof(arcdef_t)*(cfg.arcdefs+1),cfg.arcdefs+1);
@@ -283,9 +280,6 @@ void read_echo_cfg()
 			continue; }
 
 		if(!stricmp(tmp,"NOSWAP")) {
-	#ifdef __MSDOS__
-			node_swap=0;
-	#endif
 			continue; }
 
 		if(!stricmp(tmp,"SECURE_ECHOMAIL")) {
@@ -384,7 +378,7 @@ void read_echo_cfg()
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
-					if((cfg.nodecfg=(nodecfg_t *)REALLOC(cfg.nodecfg
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 						,sizeof(nodecfg_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for nodecfg #%u.\n"
 							,j+1);
@@ -402,7 +396,7 @@ void read_echo_cfg()
 			j=matchnode(addr,1);
 			if(j==cfg.nodecfgs) {
 				cfg.nodecfgs++;
-				if((cfg.nodecfg=(nodecfg_t *)REALLOC(cfg.nodecfg
+				if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 					,sizeof(nodecfg_t)*(j+1)))==NULL) {
 					printf("\nError allocating memory for nodecfg #%u.\n"
 						,j+1);
@@ -428,7 +422,7 @@ void read_echo_cfg()
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
-					if((cfg.nodecfg=(nodecfg_t *)REALLOC(cfg.nodecfg
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 						,sizeof(nodecfg_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for nodecfg #%u.\n"
 							,j+1);
@@ -452,7 +446,7 @@ void read_echo_cfg()
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
-					if((cfg.nodecfg=(nodecfg_t *)REALLOC(cfg.nodecfg
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 						,sizeof(nodecfg_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for nodecfg #%u.\n"
 							,j+1);
@@ -482,7 +476,7 @@ void read_echo_cfg()
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
-					if((cfg.nodecfg=(nodecfg_t *)REALLOC(cfg.nodecfg
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 						,sizeof(nodecfg_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for nodecfg #%u.\n"
 							,j+1);
@@ -505,7 +499,7 @@ void read_echo_cfg()
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
-					if((cfg.nodecfg=(nodecfg_t *)REALLOC(cfg.nodecfg
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 						,sizeof(nodecfg_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for nodecfg #%u.\n"
 							,j+1);
@@ -521,7 +515,7 @@ void read_echo_cfg()
 			i=matchnode(addr,1);
 			if(i==cfg.nodecfgs) {
 				cfg.nodecfgs++;
-				if((cfg.nodecfg=(nodecfg_t *)REALLOC(cfg.nodecfg
+				if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 					,sizeof(nodecfg_t)*(i+1)))==NULL) {
 					printf("\nError allocating memory for nodecfg #%u.\n"
 						,i+1);
@@ -550,7 +544,7 @@ void read_echo_cfg()
 						break;
 				if(j==cfg.nodecfg[i].numflags) {
 					if((cfg.nodecfg[i].flag=
-						(flag_t *)REALLOC(cfg.nodecfg[i].flag
+						(flag_t *)realloc(cfg.nodecfg[i].flag
 						,sizeof(flag_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for nodecfg #%u "
 							"flag #%u.\n",cfg.nodecfgs,j+1);
@@ -560,7 +554,7 @@ void read_echo_cfg()
 				while(*p && *p<=' ') p++; } }
 
 		if(!stricmp(tmp,"ECHOLIST")) {           /* Echolists go here */
-			if((cfg.listcfg=(echolist_t *)REALLOC(cfg.listcfg
+			if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
 				,sizeof(echolist_t)*(cfg.listcfgs+1)))==NULL) {
 				printf("\nError allocating memory for echolist cfg #%u.\n"
 					,cfg.listcfgs+1);
@@ -608,7 +602,7 @@ void read_echo_cfg()
 						break;
 				if(j==cfg.listcfg[cfg.listcfgs-1].numflags) {
 					if((cfg.listcfg[cfg.listcfgs-1].flag=
-						(flag_t *)REALLOC(cfg.listcfg[cfg.listcfgs-1].flag
+						(flag_t *)realloc(cfg.listcfg[cfg.listcfgs-1].flag
 						,sizeof(flag_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for listcfg #%u "
 							"flag #%u.\n",cfg.listcfgs,j+1);
@@ -617,7 +611,8 @@ void read_echo_cfg()
 					sprintf(cfg.listcfg[cfg.listcfgs-1].flag[j].flag,"%.4s",tp); }
 				while(*p && *p<=' ') p++; } }
 
-	//    printf("Unrecognized line in SBBSECHO.CFG file.\n");
+		/* Message disabled why?  ToDo */
+		/* printf("Unrecognized line in SBBSECHO.CFG file.\n"); */
 	}
 	fclose(stream);
 	printf("\n");
