@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.14 2005/11/24 03:53:58 deuce Exp $ */
+/* $Id: conn.c,v 1.13 2005/06/24 04:29:20 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -117,7 +117,6 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 	unsigned int	neta;
 	int	i;
 
-	init_uifc(TRUE, TRUE);
 	con_type=conn_type;
 	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -125,11 +124,9 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 	if(!(*p))
 		neta=inet_addr(addr);
 	else {
-		uifc.pop("Lookup up host");
 		if((ent=gethostbyname(addr))==NULL) {
 			char str[LIST_ADDR_MAX+17];
 
-			uifc.pop(NULL);
 			sprintf(str,"Cannot resolve %s!",addr);
 			uifcmsg(str,	"`Cannot Resolve Host`\n\n"
 							"The system is unable to resolve the hostname... double check the spelling.\n"
@@ -138,12 +135,9 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 			return(-1);
 		}
 		neta=*((unsigned int*)ent->h_addr_list[0]);
-		uifc.pop(NULL);
 	}
-	uifc.pop("Connecting...");
 	conn_socket=socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
 	if(conn_socket==INVALID_SOCKET) {
-		uifc.pop(NULL);
 		uifcmsg("Cannot create socket!",	"`Unable to create socket`\n\n"
 											"Your system is either dangerously low on resources, or there"
 											"is a problem with your TCP/IP stack.");
@@ -158,7 +152,6 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 		char str[LIST_ADDR_MAX+20];
 
 		conn_close();
-		uifc.pop(NULL);
 		sprintf(str,"Cannot connect to %s!",addr);
 		uifcmsg(str,	"`Unable to connect`\n\n"
 						"Cannot connect to the remote system... it is down or unreachable.");
@@ -185,7 +178,6 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 				conn_send("ansi-bbs/115200",15,1000);
 			break;
 	}
-	uifc.pop(NULL);
 
 	return(0);
 }
