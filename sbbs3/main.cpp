@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.406 2005/10/13 22:43:07 rswindell Exp $ */
+/* $Id: main.cpp,v 1.407 2005/10/14 07:51:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -915,12 +915,6 @@ bool sbbs_t::js_init(ulong* stack_frame)
 					,&js_server_props							/* server */
 			))==NULL)
 			break;
-
-#ifdef _DEBUG
-		JS_DefineProperty(js_cx, js_glob, "_global", OBJECT_TO_JSVAL(js_glob)
-			,NULL,NULL,JSPROP_READONLY);
-#endif
-
 
 		/* BBS Object */
 		if(js_CreateBbsObject(js_cx, js_glob)==NULL)
