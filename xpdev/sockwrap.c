@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.27 2005/03/14 17:58:43 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.29 2005/10/14 01:03:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -45,6 +45,92 @@
 #include "gen_defs.h"	/* BOOL/LOG_WARNING */
 #include "sockwrap.h"	/* sendsocket */
 #include "filewrap.h"	/* filelength */
+
+static socket_option_t socket_options[] = {
+	{ "TYPE",				0,				SOL_SOCKET,		SO_TYPE				},
+	{ "DEBUG",				0,				SOL_SOCKET,		SO_DEBUG			},
+	{ "LINGER",				SOCK_STREAM,	SOL_SOCKET,		SO_LINGER			},
+	{ "SNDBUF",				0,				SOL_SOCKET,		SO_SNDBUF			},
+	{ "RCVBUF",				0,				SOL_SOCKET,		SO_RCVBUF			},
+#ifndef _WINSOCKAPI_
+	{ "SNDLOWAT",			0,				SOL_SOCKET,		SO_SNDLOWAT			},
+	{ "RCVLOWAT",			0,				SOL_SOCKET,		SO_RCVLOWAT			},
+	{ "SNDTIMEO",			0,				SOL_SOCKET,		SO_SNDTIMEO			},
+	{ "RCVTIMEO",			0,				SOL_SOCKET,		SO_RCVTIMEO			},
+#endif
+	{ "REUSEADDR",			0,				SOL_SOCKET,		SO_REUSEADDR		},	
+	{ "KEEPALIVE",			SOCK_STREAM,	SOL_SOCKET,		SO_KEEPALIVE		},
+	{ "DONTROUTE",			0,				SOL_SOCKET,		SO_DONTROUTE		},
+	{ "BROADCAST",			SOCK_DGRAM,		SOL_SOCKET,		SO_BROADCAST		},
+	{ "OOBINLINE",			SOCK_STREAM,	SOL_SOCKET,		SO_OOBINLINE		},
+#ifdef SO_ACCEPTCONN											
+	{ "ACCEPTCONN",			SOCK_STREAM,	SOL_SOCKET,		SO_ACCEPTCONN		},
+#endif
+
+	/* IPPROTO-level socket options */
+	{ "TCP_NODELAY",		SOCK_STREAM,	IPPROTO_TCP,	TCP_NODELAY			},
+	/* The following are platform-specific */					
+#ifdef TCP_MAXSEG											
+	{ "TCP_MAXSEG",			SOCK_STREAM,	IPPROTO_TCP,	TCP_MAXSEG			},
+#endif															
+#ifdef TCP_CORK													
+	{ "TCP_CORK",			SOCK_STREAM,	IPPROTO_TCP,	TCP_CORK			},
+#endif															
+#ifdef TCP_KEEPIDLE												
+	{ "TCP_KEEPIDLE",		SOCK_STREAM,	IPPROTO_TCP,	TCP_KEEPIDLE		},
+#endif															
+#ifdef TCP_KEEPINTVL											
+	{ "TCP_KEEPINTVL",		SOCK_STREAM,	IPPROTO_TCP,	TCP_KEEPINTVL		},
+#endif															
+#ifdef TCP_KEEPCNT												
+	{ "TCP_KEEPCNT",		SOCK_STREAM,	IPPROTO_TCP,	TCP_KEEPCNT			},
+#endif															
+#ifdef TCP_SYNCNT												
+	{ "TCP_SYNCNT",			SOCK_STREAM,	IPPROTO_TCP,	TCP_SYNCNT			},
+#endif															
+#ifdef TCP_LINGER2												
+	{ "TCP_LINGER2",		SOCK_STREAM,	IPPROTO_TCP,	TCP_LINGER2			},
+#endif														
+#ifdef TCP_DEFER_ACCEPT										
+	{ "TCP_DEFER_ACCEPT",	SOCK_STREAM,	IPPROTO_TCP,	TCP_DEFER_ACCEPT	},
+#endif															
+#ifdef TCP_WINDOW_CLAMP											
+	{ "TCP_WINDOW_CLAMP",	SOCK_STREAM,	IPPROTO_TCP,	TCP_WINDOW_CLAMP	},
+#endif														
+#ifdef TCP_QUICKACK											
+	{ "TCP_QUICKACK",		SOCK_STREAM,	IPPROTO_TCP,	TCP_QUICKACK		},
+#endif						
+#ifdef TCP_NOPUSH			
+	{ "TCP_NOPUSH",			SOCK_STREAM,	IPPROTO_TCP,	TCP_NOPUSH			},
+#endif						
+#ifdef TCP_NOOPT			
+	{ "TCP_NOOPT",			SOCK_STREAM,	IPPROTO_TCP,	TCP_NOOPT			},
+#endif
+	{ NULL }
+};
+
+int getSocketOptionByName(const char* name, int* level)
+{
+	int i;
+
+	if(level!=NULL)
+		*level=SOL_SOCKET;	/* default option level */
+	for(i=0;socket_options[i].name;i++) {
+		if(stricmp(name,socket_options[i].name)==0) {
+			if(level!=NULL)
+				*level = socket_options[i].level;
+			return(socket_options[i].value);
+		}
+	}
+	if(!isdigit(*name))	/* unknown option name */
+		return(-1);
+	return(strtol(name,NULL,0));
+}
+
+socket_option_t* getSocketOptionList(void)
+{
+	return(socket_options);
+}
 
 int sendfilesocket(int sock, int file, long *offset, long count)
 {
