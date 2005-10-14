@@ -2,13 +2,13 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.20 2005/10/14 06:24:40 deuce Exp $ */
+/* $Id: link_list.h,v 1.18 2005/10/14 06:19:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -39,7 +39,6 @@
 #define _LINK_LIST_H
 
 #include <stddef.h>		/* size_t */
-#include "wrapdll.h"
 #include "str_list.h"	/* string list functions and types */
 
 #if defined(LINK_LIST_THREADSAFE)
@@ -117,9 +116,6 @@ str_list_t		listStringList(const link_list_t*);
 
 /* Return an allocated string list (which must be freed), subset of strings in linked list */
 str_list_t		listSubStringList(const list_node_t*, long max);
-
-/* Free a string list returned from either of the above functions */
-void*			listFreeStringList(str_list_t);
 
 /* Extract subset (up to max number of nodes) in linked list (src_node) and place into dest_list */
 /* dest_list == NULL, then allocate a return a new linked list */
