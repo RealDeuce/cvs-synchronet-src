@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.77 2005/10/07 08:08:46 rswindell Exp $
+# $Id: Makefile,v 1.78 2005/10/15 21:52:00 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -54,7 +54,7 @@ CFLAGS	=	$(CFLAGS) -DMD5_IMPORTS
 
 CON_LIBS	= $(UL_PRE)sbbs$(UL_SUF) $(UL_PRE)ftpsrvr$(UL_SUF) $(UL_PRE)websrvr$(UL_SUF) $(UL_PRE)mailsrvr$(UL_SUF) $(UL_PRE)services$(UL_SUF)
 
-CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) -DNO_SOCKET_SUPPORT
+CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) 
 LDFLAGS =	$(LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
