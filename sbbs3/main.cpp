@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.407 2005/10/14 07:51:19 rswindell Exp $ */
+/* $Id: main.cpp,v 1.408 2005/10/16 21:25:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -539,6 +539,20 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 	}
 		
 	return(JS_TRUE);
+}
+
+char*
+DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len)
+{
+	JSString* str;
+	
+	if((str=JS_ValueToString(cx, val))==NULL)
+		return(NULL);
+
+	if(len!=NULL)
+		*len = JS_GetStringLength(str);
+
+	return(JS_GetStringBytes(str));
 }
 
 static JSBool
