@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.193 2005/11/30 02:26:43 rswindell Exp $ */
+/* $Id: services.c,v 1.191 2005/10/13 06:49:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1430,7 +1430,6 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 {
 	uint		i,j;
 	FILE*		fp;
-	char*		p;
 	char		cmd[INI_MAX_VALUE_LEN];
 	char		host[INI_MAX_VALUE_LEN];
 	char		prot[INI_MAX_VALUE_LEN];
@@ -1467,11 +1466,6 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 		serv.log_level = iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
 		SAFECOPY(serv.cmd,iniGetString(list,sec_list[i],"Command","",cmd));
 
-		if(serv.cmd[0]==0) {
-			lprintf(LOG_WARNING,"Ignoring service with no command: %s",sec_list[i]);
-			continue;
-		}
-
 		/* JavaScript operating parameters */
 		sbbs_get_js_settings(list, sec_list[i], &serv.js, &startup->js);
 
@@ -1488,8 +1482,7 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 			lprintf(LOG_NOTICE,"Ignoring service (%s) for host: %s", sec_list[i], host);
 			continue;
 		}
-		p=iniGetString(list,sec_list[i],"NotHost","",host);
-		if(*p!=0 && stricmp(p, startup->host_name)==0) {
+		if(stricmp(iniGetString(list,sec_list[i],"NotHost","",host), startup->host_name)==0) {
 			lprintf(LOG_NOTICE,"Ignoring service (%s) not for host: %s", sec_list[i], host);
 			continue;
 		}
@@ -1541,7 +1534,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.193 $", "%*s %s", revision);
+	sscanf("$Revision: 1.191 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

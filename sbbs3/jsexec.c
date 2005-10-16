@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.99 2005/11/29 19:33:25 deuce Exp $ */
+/* $Id: jsexec.c,v 1.95 2005/10/12 21:32:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,8 +42,6 @@
 #ifdef __unix__
 #include <signal.h>
 #endif
-
-#include "ciolib.h"
 
 #include "sbbs.h"
 
@@ -587,9 +585,6 @@ static BOOL js_init(char** environ)
 	if(!js_CreateEnvObject(js_cx, js_glob, environ))
 		return(FALSE);
 
-	if(js_CreateUifcObject(js_cx, js_glob)==NULL)
-		return(FALSE);
-
 	return(TRUE);
 }
 
@@ -618,8 +613,8 @@ long js_exec(const char *fname, char** args)
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 	int32		result=0;
-	long double	start;
-	long double	diff;
+	double		start;
+	double		diff;
 	
 	if(fname!=NULL) {
 		if(strcspn(fname,"/\\")==strlen(fname)) {
@@ -720,7 +715,7 @@ long js_exec(const char *fname, char** args)
 		return(-1);
 	}
 	if((diff=xp_timer()-start) > 0)
-		fprintf(statfp,"%s compiled in %.2Lf seconds\n"
+		fprintf(statfp,"%s compiled in %.2f seconds\n"
 			,path
 			,diff);
 
@@ -729,7 +724,7 @@ long js_exec(const char *fname, char** args)
 	js_EvalOnExit(js_cx, js_glob, &branch);
 
 	if((diff=xp_timer()-start) > 0)
-		fprintf(statfp,"%s executed in %.2Lf seconds\n"
+		fprintf(statfp,"%s executed in %.2f seconds\n"
 			,path
 			,diff);
 
@@ -803,7 +798,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.99 $", "%*s %s", revision);
+	sscanf("$Revision: 1.95 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
