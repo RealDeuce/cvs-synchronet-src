@@ -1,10 +1,10 @@
-/* $Id: ciolib.h,v 1.35 2005/11/19 07:52:34 deuce Exp $ */
+/* $Id: ciolib.h,v 1.30 2005/10/14 19:01:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -86,9 +86,6 @@ enum {
 
 #endif
 
-#ifndef __COLORS
-#define __COLORS
-
 enum {
 	 BLACK
 	,BLUE
@@ -107,12 +104,7 @@ enum {
 	,YELLOW
 	,WHITE
 };
-
-#endif	/* __COLORS */
-
-#ifndef BLINK
 #define BLINK 128
-#endif
 
 enum text_modes
 {
@@ -239,11 +231,6 @@ typedef struct {
 	void	(*setname)		(const char *);
 	void	(*copytext)		(const char *, size_t);
 	char 	*(*getcliptext)	(void);
-	void	(*suspend)		(void);
-	void	(*resume)		(void);
-	int		(*setfont)		(int font, int force);
-	int		(*getfont)		(void);
-	int		(*loadfont)		(char *filename);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -257,7 +244,6 @@ CIOLIBEXPORTVAR int hold_update;
 extern "C" {
 #endif
 CIOLIBEXPORT int CIOLIBCALL initciolib(int mode);
-CIOLIBEXPORT void CIOLIBCALL suspendciolib(void);
 
 CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str);
@@ -297,9 +283,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_showmouse(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_hidemouse(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_copytext(const char *text, size_t buflen);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force);
-CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 #ifdef __cplusplus
 }
 #endif
@@ -345,10 +328,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 	#define setname(a)				ciolib_setname(a)
 	#define settitle(a)				ciolib_settitle(a)
 	#define copytext(a,b)			ciolib_copytext(a,b)
-	#define getcliptext()			ciolib_getcliptext()
-	#define setfont(a,b)			ciolib_setfont(a,b)
-	#define getfont()				ciolib_getfont()
-	#define loadfont(a)				ciolib_loadfont(a)
+	#define getcliptext()		ciolib_getcliptext()
 #endif
 
 /* Special hackery for SDL */
