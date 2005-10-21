@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.185 2006/01/11 02:16:00 deuce Exp $
+# $Id: GNUmakefile,v 1.184 2005/10/21 21:56:15 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -26,7 +26,7 @@ ifndef bcc
 endif
 
 ifeq ($(os),sunos)    # Solaris
- LDFLAGS += -lnsl -lrt
+ LDFLAGS += -lsocket -lnsl -lrt
 endif
 
 # So far, only QNX has sem_timedwait()
@@ -130,7 +130,7 @@ $(MAILSRVR): $(MAIL_OBJS)
 	@echo Linking $@
 	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(MAIL_OBJS) $(SHLIBOPTS) -o $@
 
-# Web Server Link Rule
+# Mail Server Link Rule
 $(WEBSRVR): $(WEB_OBJS)
 	@echo Linking $@
 	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(WEB_OBJS) $(SHLIBOPTS) -o $@

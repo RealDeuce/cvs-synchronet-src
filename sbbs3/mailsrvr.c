@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.394 2006/01/11 04:16:12 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.389 2005/10/21 21:37:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1433,11 +1433,6 @@ static char* mailcmdstr(char* instr, char* msgpath, char* lstpath, char* errpath
                     break;
                 case '!':   /* EXEC Directory */
                     strcat(cmd,scfg.exec_dir);
-                    break;
-                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-                    strcat(cmd,scfg.exec_dir);
-#endif
                     break;
                 case '%':   /* %% for percent sign */
                     strcat(cmd,"%");
@@ -3508,7 +3503,6 @@ static void sendmail_thread(void* arg)
 	char*		server;
 	char*		msgtxt=NULL;
 	char*		p;
-	char*		tp;
 	ushort		port;
 	ulong		last_msg=0;
 	ulong		ip_addr;
@@ -3687,11 +3681,25 @@ static void sendmail_thread(void* arg)
 					server=startup->relay_server;
 					port=startup->relay_port;
 				} else {
-					tp=strrchr(p,':');	/* non-standard SMTP port */
-					if(tp!=NULL) {
-						*tp=0;
-						port=atoi(tp+1);
+					p=strrchr((char*)msg.to_net.addr,':');	/* non-standard SMTP port */
+					if(p!=NULL) {
+						*p=0;
+						port=atoi(p+1);
 					}
+#if 0	/* Already done */
+					SAFECOPY(to,(char*)msg.to_net.addr);
+					truncstr(to,"> ");
+#endif
+					p=strrchr(to,'@');
+#if 0	/* Already done */
+					if(p==NULL) {
+						remove_msg_intransit(&smb,&msg);
+						lprintf(LOG_WARNING,"0000 !SEND INVALID destination address: %s", to);
+						SAFEPRINTF(err,"Invalid destination address: %s", to);
+						bounce(&smb,&msg,err,TRUE);
+						continue;
+					}
+#endif
 					get_dns_server(dns_server,sizeof(dns_server));
 					if((dns=resolve_ip(dns_server))==INADDR_NONE) {
 						remove_msg_intransit(&smb,&msg);
@@ -3699,6 +3707,7 @@ static void sendmail_thread(void* arg)
 							,dns_server);
 						continue;
 					}
+					p++;
 					lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
 					if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
 						,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
@@ -3758,8 +3767,7 @@ static void sendmail_thread(void* arg)
 				server_addr.sin_family = AF_INET;
 				server_addr.sin_port = htons(port);
 
-				if((server==mx || server==mx2) 
-					&& ((ip_addr&0xff)==127 || ip_addr==0)) {
+				if((server==mx || server==mx2) && (ip_addr&0xff)==127) {
 					SAFEPRINTF2(err,"Bad IP address (%s) for MX server: %s"
 						,inet_ntoa(server_addr.sin_addr),server);
 					continue;
@@ -3912,9 +3920,6 @@ static void sendmail_thread(void* arg)
 				p=(char*)msg.to_net.addr;
 			SAFECOPY(toaddr,p);
 			truncstr(toaddr,"> ");
-			if((p=strrchr(toaddr,'@'))!=NULL && (tp=strrchr(toaddr,':'))!=NULL
-				&& tp > p)
-				*tp=0;	/* Remove ":port" designation from envelope */
 			sockprintf(sock,"RCPT TO: <%s>", toaddr);
 			if(!sockgetrsp(sock,"25", buf, sizeof(buf))) {
 				remove_msg_intransit(&smb,&msg);
@@ -4031,7 +4036,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.394 $", "%*s %s", revision);
+	sscanf("$Revision: 1.389 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
