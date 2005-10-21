@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.35 2005/09/06 05:31:57 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.42 2005/10/21 08:26:59 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -221,7 +221,8 @@ MAKEUSER_OBJS = \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE)
 
 JSEXEC_OBJS = \
-			$(OBJODIR)$(DIRSEP)jsexec$(OFILE)
+			$(OBJODIR)$(DIRSEP)jsexec$(OFILE) \
+			$(OBJODIR)$(DIRSEP)js_uifc$(OFILE)
 
 SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)sexyz$(OFILE) \
@@ -230,3 +231,51 @@ SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)telnet$(OFILE)
+
+QWKNODES_OBJS = \
+			$(OBJODIR)$(DIRSEP)qwknodes$(OFILE)\
+			$(OBJODIR)$(DIRSEP)date_str$(OFILE)\
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
+			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
+			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
+			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
+			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
+			$(OBJODIR)$(DIRSEP)ars$(OFILE)
+
+SLOG_OBJS = \
+			$(OBJODIR)$(DIRSEP)slog$(OFILE) \
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+
+ALLUSERS_OBJS = \
+			$(OBJODIR)$(DIRSEP)allusers$(OFILE) \
+			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
+			$(OBJODIR)$(DIRSEP)ars$(OFILE)
+
+DELFILES_OBJS = \
+			$(OBJODIR)$(DIRSEP)delfiles$(OFILE) \
+			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
+			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
+			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
+			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
+			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
+			$(OBJODIR)$(DIRSEP)filedat$(OFILE) \
+			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE)
+
+DUPEFIND_OBJS = \
+			$(OBJODIR)$(DIRSEP)dupefind$(OFILE) \
+			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
+			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
+			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
+			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
+			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+
+SMBACTIV_OBJS = \
+			$(OBJODIR)$(DIRSEP)smbactiv$(OFILE)\
+			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE)\
+			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
+			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
+			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
+			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
