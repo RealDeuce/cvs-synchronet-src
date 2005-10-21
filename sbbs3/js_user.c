@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.57 2005/12/13 02:24:49 rswindell Exp $ */
+/* $Id: js_user.c,v 1.56 2005/05/25 22:18:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -597,7 +597,7 @@ static jsSyncPropertySpec js_user_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* user_prop_desc[] = {
 
 	 "record number (1-based)"
@@ -659,7 +659,7 @@ static jsSyncPropertySpec js_user_security_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* user_security_prop_desc[] = {
 
 	 "password"
@@ -698,7 +698,7 @@ static jsSyncPropertySpec js_user_limits_properties[] = {
 };
 
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* user_limits_prop_desc[] = {
 
 	 "time (in minutes) per logon"
@@ -742,7 +742,7 @@ static jsSyncPropertySpec js_user_stats_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* user_stats_prop_desc[] = {
 
 	 "date of previous logon"
@@ -988,7 +988,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		return(NULL);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,userobj
 		,"Instance of <i>User</i> class, representing current user online"
 		,310);
@@ -1016,7 +1016,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		return(NULL);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,statsobj,"User statistics (all <small>READ ONLY</small>)",310);
 	js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", user_stats_prop_desc, JSPROP_READONLY);
 #endif
@@ -1037,7 +1037,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		return(NULL);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,limitsobj,"User limitations based on security level (all <small>READ ONLY</small>)",311);
 	js_CreateArrayOfStrings(cx, limitsobj, "_property_desc_list", user_limits_prop_desc, JSPROP_READONLY);
 #endif
@@ -1059,7 +1059,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		return(NULL);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,securityobj,"User security settings",310);
 	js_CreateArrayOfStrings(cx, securityobj, "_property_desc_list", user_security_prop_desc, JSPROP_READONLY);
 #endif
