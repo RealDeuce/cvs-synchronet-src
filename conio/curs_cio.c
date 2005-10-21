@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.23 2005/10/21 23:11:50 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.24 2005/10/21 23:13:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,13 +655,6 @@ void curs_gotoxy(int x, int y)
 		refresh();
 }
 
-void call_endwin(void)
-{
-	clrscr();
-	refresh();
-	endwin();
-}
-
 void curs_suspend(void)
 {
 	refresh();
@@ -669,7 +662,7 @@ void curs_suspend(void)
 
 void curs_resume(void)
 {
-
+	endwin();
 }
 
 int curs_initciolib(long inmode)
