@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.30 2005/10/21 21:44:23 deuce Exp $ */
+/* $Id: link_list.c,v 1.29 2005/10/21 20:09:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,6 @@
 #include <stdlib.h>		/* malloc */
 #include <string.h>		/* memset */
 #include "link_list.h"
-#include "genwrap.h"
 
 #if defined(LINK_LIST_THREADSAFE)
 	#define MUTEX_INIT(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_init((pthread_mutex_t*)&list->mutex,NULL);	}
