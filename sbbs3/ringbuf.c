@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.27 2005/10/21 21:52:45 deuce Exp $ */
+/* $Id: ringbuf.c,v 1.21 2005/10/21 19:03:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@
 #endif
 
 #include "ringbuf.h"
-#include "genwrap.h"	/* SLEEP() */
 
 #ifdef RINGBUF_USE_STD_RTL
 
@@ -110,15 +109,18 @@ int RINGBUFCALL RingBufInit( RingBuf* rb, DWORD size
 
 void RINGBUFCALL RingBufDispose( RingBuf* rb)
 {
+#ifdef RINGBUF_MUTEX
+	pthread_mutex_lock(&rb->mutex);
+#endif
     if(rb->pStart!=NULL)
 		os_free(rb->pStart);
 #ifdef RINGBUF_SEM
 	sem_post(&rb->sem);			/* just incase someone's waiting */
-	while(sem_destroy(&rb->sem)==-1 && errno==EBUSY) {
+	while(sem_destroy(&rb->sem)==-1 && errno!=EINVAL) {
 		SLEEP(1);
 		sem_post(&rb->sem);
 	}
-	while(sem_destroy(&rb->highwater_sem)==-1 && errno==EBUSY) {
+	while(sem_destroy(&rb->highwater_sem)==-1 && errno!=EINVAL) {
 		SLEEP(1);
 		sem_post(&rb->highwater_sem);
 	}
@@ -128,8 +130,7 @@ void RINGBUFCALL RingBufDispose( RingBuf* rb)
 		CloseEvent(rb->empty_event);
 #endif
 #ifdef RINGBUF_MUTEX
-	while(pthread_mutex_destroy(&rb->mutex)==EBUSY)
-		SLEEP(1);
+	pthread_mutex_destroy(&rb->mutex);
 #endif
 	memset(rb,0,sizeof(RingBuf));
 }

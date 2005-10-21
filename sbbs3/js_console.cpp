@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.60 2005/12/13 02:24:49 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.59 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -271,7 +271,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* con_prop_desc[] = {
 	 "status bitfield (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current line counter (used for automatic screen pause)"
@@ -1355,7 +1355,7 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 			return(NULL);
 	}	
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Controls the user's Telnet/RLogin terminal",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", con_prop_desc, JSPROP_READONLY);
 #endif
