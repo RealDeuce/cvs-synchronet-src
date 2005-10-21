@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.23 2005/10/21 19:35:43 deuce Exp $ */
+/* $Id: ringbuf.c,v 1.24 2005/10/21 19:37:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,11 +113,11 @@ void RINGBUFCALL RingBufDispose( RingBuf* rb)
 		os_free(rb->pStart);
 #ifdef RINGBUF_SEM
 	sem_post(&rb->sem);			/* just incase someone's waiting */
-	while(sem_destroy(&rb->sem)==-1 && errno!=EINVAL) {
+	while(sem_destroy(&rb->sem)==-1 && errno==EBUSY) {
 		SLEEP(1);
 		sem_post(&rb->sem);
 	}
-	while(sem_destroy(&rb->highwater_sem)==-1 && errno!=EINVAL) {
+	while(sem_destroy(&rb->highwater_sem)==-1 && errno==EBUSY) {
 		SLEEP(1);
 		sem_post(&rb->highwater_sem);
 	}
