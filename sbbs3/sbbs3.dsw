@@ -129,7 +129,10 @@ Package=<4>
     Project_Dep_Name sbbs
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name xpdev
+    Project_Dep_Name conio
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uifc
     End Project Dependency
 }}}
 
@@ -208,6 +211,24 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name websrvr
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "qwknodes"=.\qwknodes.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name xpdev
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name smblib
     End Project Dependency
 }}}
 
