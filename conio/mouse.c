@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.33 2005/10/22 00:02:13 rswindell Exp $ */
+/* $Id: mouse.c,v 1.32 2005/10/13 06:51:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -263,10 +263,8 @@ void ciolib_mouse_thread(void *data)
 			struct in_mouse_event *in;
 
 			in=listShiftNode(&state.input);
-			if(in==NULL) {
-				YIELD();
-				continue;
-			}
+			if(in==NULL)
+					continue;
 			but=CIOLIB_BUTTON_NUMBER(in->event);
 			switch(CIOLIB_BUTTON_BASE(in->event)) {
 				case CIOLIB_MOUSE_MOVE:
