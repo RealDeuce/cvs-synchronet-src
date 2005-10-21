@@ -1,4 +1,4 @@
-/* $Id: win32cio.h,v 1.10 2005/10/21 23:08:12 deuce Exp $ */
+/* $Id: win32cio.h,v 1.9 2005/10/05 02:23:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,8 +67,6 @@ void	win32_settitle(const char *title);
 int	win32_initciolib(long inmode);
 void win32_copytext(const char *text, size_t buflen);
 char *win32_getcliptext(void);
-void	win32_suspend(void);
-void	win32_resume(void);
 
 #ifdef __cplusplus
 }
