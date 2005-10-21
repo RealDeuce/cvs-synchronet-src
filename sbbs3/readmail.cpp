@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.36 2005/08/12 08:48:09 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.38 2005/09/30 09:17:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,7 +131,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			if((long)(smb.curmsg=getnum(smb.msgs))>0)
 				smb.curmsg--;
 			else if((long)smb.curmsg==-1) {
-				FREE(mail);
+				free(mail);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
 				return; } }
@@ -179,7 +179,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 		if(smb.status.last_msg!=last) { 	/* New messages */
 			last=smb.status.last_msg;
-			FREE(mail);
+			free(mail);
 			mail=loadmail(&smb,&smb.msgs,usernumber,which,lm_mode);   /* So re-load */
 			if(!smb.msgs)
 				break;
@@ -194,7 +194,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			if(mismatches>5) {	/* We can't do this too many times in a row */
 				errormsg(WHERE,ERR_CHK,"message number",mail[smb.curmsg].number);
 				break; }
-			FREE(mail);
+			free(mail);
 			mail=loadmail(&smb,&smb.msgs,usernumber,which,lm_mode);
 			if(!smb.msgs)
 				break;
@@ -308,7 +308,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					smb_freemsgmem(&msg);
 				msg.total_hfields=0;
 				msg.idx.offset=0;						/* Search by number */
-				if(!smb_locksmbhdr(&smb)) { 			/* Lock the entire base */
+				if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
 					if(loadmsg(&msg,msg.idx.number)) {
 						msg.hdr.attr|=MSG_READ;
 						msg.idx.attr=msg.hdr.attr;
@@ -403,12 +403,16 @@ void sbbs_t::readmail(uint usernumber, int which)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
 					msg.idx.offset=0;
-					if(loadmsg(&msg,msg.idx.number)) {
-						msg.hdr.attr|=MSG_REPLIED;
-						msg.idx.attr=msg.hdr.attr;
-						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i);
-						smb_unlockmsghdr(&smb,&msg); }
+					if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
+						if(loadmsg(&msg,msg.idx.number)) {
+							msg.hdr.attr|=MSG_REPLIED;
+							msg.idx.attr=msg.hdr.attr;
+							if((i=smb_putmsg(&smb,&msg))!=0)
+								errormsg(WHERE,ERR_WRITE,smb.file,i);
+							smb_unlockmsghdr(&smb,&msg); 
+						}
+						smb_unlocksmbhdr(&smb);
+					}
 				}
 
 				if(msg.hdr.attr&MSG_DELETE || !yesno(str2)) {
@@ -425,13 +429,17 @@ void sbbs_t::readmail(uint usernumber, int which)
 					smb_freemsgmem(&msg);
 				msg.total_hfields=0;
 				msg.idx.offset=0;
-				if(loadmsg(&msg,msg.idx.number)) {
-					msg.hdr.attr^=MSG_DELETE;
-					msg.idx.attr=msg.hdr.attr;
-	//				  mail[smb.curmsg].attr=msg.hdr.attr;
-					if((i=smb_putmsg(&smb,&msg))!=0)
-						errormsg(WHERE,ERR_WRITE,smb.file,i);
-					smb_unlockmsghdr(&smb,&msg); }
+				if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
+					if(loadmsg(&msg,msg.idx.number)) {
+						msg.hdr.attr^=MSG_DELETE;
+						msg.idx.attr=msg.hdr.attr;
+		//				  mail[smb.curmsg].attr=msg.hdr.attr;
+						if((i=smb_putmsg(&smb,&msg))!=0)
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
+						smb_unlockmsghdr(&smb,&msg); 
+					}
+					smb_unlocksmbhdr(&smb);
+				}
 				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 				else done=1;
 				break;
@@ -457,13 +465,17 @@ void sbbs_t::readmail(uint usernumber, int which)
 					smb_freemsgmem(&msg);
 				msg.total_hfields=0;
 				msg.idx.offset=0;
-				if(loadmsg(&msg,msg.idx.number)) {
-					msg.hdr.attr|=MSG_DELETE;
-					msg.idx.attr=msg.hdr.attr;
-	//				  mail[smb.curmsg].attr=msg.hdr.attr;
-					if((i=smb_putmsg(&smb,&msg))!=0)
-						errormsg(WHERE,ERR_WRITE,smb.file,i);
-					smb_unlockmsghdr(&smb,&msg); }
+				if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
+					if(loadmsg(&msg,msg.idx.number)) {
+						msg.hdr.attr|=MSG_DELETE;
+						msg.idx.attr=msg.hdr.attr;
+		//				  mail[smb.curmsg].attr=msg.hdr.attr;
+						if((i=smb_putmsg(&smb,&msg))!=0)
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
+						smb_unlockmsghdr(&smb,&msg); 
+					}
+					smb_unlocksmbhdr(&smb);
+				}
 
 				break;
 			case 'H':
@@ -523,11 +535,15 @@ void sbbs_t::readmail(uint usernumber, int which)
 					smb_freemsgmem(&msg);
 				msg.total_hfields=0;
 				msg.idx.offset=0;
-				if(loadmsg(&msg,msg.idx.number)) {
-					msg.hdr.attr=msg.idx.attr=(ushort)i;
-					if((i=smb_putmsg(&smb,&msg))!=0)
-						errormsg(WHERE,ERR_WRITE,smb.file,i);
-					smb_unlockmsghdr(&smb,&msg); }
+				if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
+					if(loadmsg(&msg,msg.idx.number)) {
+						msg.hdr.attr=msg.idx.attr=(ushort)i;
+						if((i=smb_putmsg(&smb,&msg))!=0)
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
+						smb_unlockmsghdr(&smb,&msg); 
+					}
+					smb_unlocksmbhdr(&smb);
+				}
 				break;
 			case '>':
 				for(i=smb.curmsg+1;i<smb.msgs;i++)
@@ -688,7 +704,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 		smb_freemsgmem(&msg);
 
 	if(smb.msgs)
-		FREE(mail);
+		free(mail);
 
 	/***************************************/
 	/* Delete messages marked for deletion */
