@@ -1,5 +1,5 @@
 /*
- * $Id: xpsem.c,v 1.12 2005/10/21 21:44:23 deuce Exp $
+ * $Id: xpsem.c,v 1.11 2005/10/21 20:09:38 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -37,7 +37,6 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include "gen_defs.h"
-#include "genwrap.h"
 
 int
 xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
