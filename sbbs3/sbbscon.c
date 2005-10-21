@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.201 2005/11/17 06:24:45 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.196 2005/10/07 07:43:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

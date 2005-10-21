@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.30 2005/11/01 00:33:29 rswindell Exp $ */
+/* $Id: threadwrap.h,v 1.29 2005/10/21 18:06:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,6 @@ extern "C" {
 #elif defined(__OS2__)
 
 	/* POSIX mutexes */
-	typedef TID pthread_t;
 	typedef HEV pthread_mutex_t;
 
 #else
