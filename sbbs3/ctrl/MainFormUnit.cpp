@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.151 2005/12/22 08:28:38 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.149 2005/08/30 10:10:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -978,7 +978,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
 
     // Verify SBBS.DLL version
     long bbs_ver = bbs_ver_num();
-    if(bbs_ver != VERSION_HEX) {
+    if(bbs_ver < (0x31300 | 'A'-'A') || bbs_ver > (0x399<<8)) {
         char str[128];
         sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -1065,24 +1065,12 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
 #endif
 }
 //---------------------------------------------------------------------------
-BOOL NTsvcEnabled(SC_HANDLE svc, QUERY_SERVICE_CONFIG* config, DWORD config_size)
-{
-	if(svc==NULL || startService==NULL || queryServiceStatus==NULL || config==NULL)
-    	return(FALSE);
 
-	DWORD ret;
-	if(!queryServiceConfig(svc,config,config_size,&ret))
-		return(FALSE);
-	if(config->dwStartType==SERVICE_DISABLED)
-		return(FALSE);
-	return(TRUE);
-}
-//---------------------------------------------------------------------------
 void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
 {
 	CanClose=false;
 
-    if(TelnetStop->Enabled && !NTsvcEnabled(bbs_svc,bbs_svc_config,bbs_svc_config_size)) {
+    if(TelnetStop->Enabled && bbs_svc==NULL) {
      	if(TelnetForm->ProgressBar->Position
 	        && Application->MessageBox("Shut down the Telnet Server?"
         	,"Telnet Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1090,7 +1078,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         TelnetStopExecute(Sender);
 	}
 
-    if(MailStop->Enabled && !NTsvcEnabled(mail_svc,mail_svc_config,mail_svc_config_size)) {
+    if(MailStop->Enabled && mail_svc==NULL) {
     	if(MailForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Mail Server?"
         	,"Mail Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1098,7 +1086,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         MailStopExecute(Sender);
     }
 
-    if(FtpStop->Enabled && !NTsvcEnabled(ftp_svc,ftp_svc_config,ftp_svc_config_size)) {
+    if(FtpStop->Enabled && ftp_svc==NULL) {
     	if(FtpForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the FTP Server?"
 	       	,"FTP Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1106,7 +1094,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         FtpStopExecute(Sender);
     }
 
-    if(WebStop->Enabled && !NTsvcEnabled(web_svc,web_svc_config,web_svc_config_size)) {
+    if(WebStop->Enabled && web_svc==NULL) {
     	if(WebForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Web Server?"
 	       	,"Web Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1114,12 +1102,11 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         WebStopExecute(Sender);
     }
 
-    if(ServicesStop->Enabled && !NTsvcEnabled(services_svc,services_svc_config,services_svc_config_size))
+    if(ServicesStop->Enabled && services_svc==NULL)
 	    ServicesStopExecute(Sender);
 
     CanClose=true;
 }
-
 //---------------------------------------------------------------------------
 BOOL StartNTsvc(SC_HANDLE svc, SERVICE_STATUS* status, QUERY_SERVICE_CONFIG* config, DWORD config_size)
 {
@@ -2309,8 +2296,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     Initialized=true;
 
     UpTimer->Enabled=true; /* Start updating the status bar */
-    LogTimer->Enabled=true;
-    ServiceStatusTimer->Enabled=true;
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
