@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.17 2005/01/15 04:46:02 rswindell Exp $ */
+/* $Id: ringbuf.c,v 1.19 2005/10/20 22:34:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,21 +126,18 @@ void RINGBUFCALL RingBufDispose( RingBuf* rb)
 	memset(rb,0,sizeof(RingBuf));
 }
 
+#define RINGBUF_FILL_LEVEL(rb)	(rb->pHead >= rb->pTail ? (rb->pHead - rb->pTail) \
+								: (rb->size - (rb->pTail - (rb->pHead + 1))))
+
 DWORD RINGBUFCALL RingBufFull( RingBuf* rb )
 {
-	DWORD	head,tail,retval;
+	DWORD	retval;
 
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_lock(&rb->mutex);
 #endif
 
-	head = (DWORD) rb->pHead;
-	tail = (DWORD) rb->pTail;
-
-	if(head >= tail)
-		retval = head - tail;
-	else
-		retval = rb->size - (tail - (head + 1));
+	retval = RINGBUF_FILL_LEVEL(rb);
 
 #ifdef RINGBUF_EVENT
 	if(rb->empty_event!=NULL) {
@@ -210,7 +207,7 @@ DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, BYTE* src,  DWORD cnt )
 
 #ifdef RINGBUF_SEM
 	sem_post(&rb->sem);
-	if(rb->highwater_mark!=0 && RingBufFull(rb)>=rb->highwater_mark)
+	if(rb->highwater_mark!=0 && RINGBUF_FILL_LEVEL(rb)>=rb->highwater_mark)
 		sem_post(&rb->highwater_sem);
 #endif
 #ifdef RINGBUF_EVENT
