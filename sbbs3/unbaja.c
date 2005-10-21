@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.22 2005/09/07 01:38:43 deuce Exp $ */
+/* $Id: unbaja.c,v 1.28 2005/09/16 17:23:32 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -837,12 +837,10 @@ void eol(char *src)
 
 char *decompile_ars(uchar *ars, int len)
 {
-	int i;
 	static char	buf[1024];
 	char	*out;
 	uchar	*in;
 	uint	artype;
-	char	ch;
 	uint	n;
 	int		equals=0;
 	int		not=0;
@@ -1286,10 +1284,8 @@ void decompile(FILE *bin, FILE *srcfile)
 	char	ch;
 	uchar	uch;
 	ushort	ush;
-	short	sh;
 	long	lng;
 	long	lng2;
-	ulong	ulng;
 	int		usevar=FALSE;
 	long	var=0;
 	char	buf[80];
@@ -1299,7 +1295,8 @@ void decompile(FILE *bin, FILE *srcfile)
 	char	*labels;
 	size_t	currpos=0;
 
-	labels=(char *)calloc(1,filelength(fileno(srcfile)));
+	currpos=filelength(fileno(bin));
+	labels=(char *)calloc(1,filelength(fileno(bin)));
 	if(labels==NULL) {
 		printf("ERROR allocating memory for labels\n");
 		return;
@@ -1547,6 +1544,7 @@ void decompile(FILE *bin, FILE *srcfile)
 				indenteol=1;
 				NONE("IF_FALSE");
 			case CS_ELSE:
+				indent--;
 				indenteol=1;
 				NONE("ELSE");
 			case CS_ENDIF:
@@ -1739,7 +1737,7 @@ void decompile(FILE *bin, FILE *srcfile)
 			case CS_GETNUM:
 				MSHT("GETNUM");
 			case CS_COMPARE_NODE_MISC:
-				MSHT("COMPARE_MODE_MISC");
+				MSHT("COMPARE_NODE_MISC");
 			case CS_MSWAIT:
 				MSHT("MSWAIT");
 			case CS_ADJUST_USER_MINUTES:
@@ -2289,6 +2287,12 @@ int main(int argc, char **argv)
 	FILE	*src;
 	char 	newname[MAX_PATH+1];
 	char	*p;
+	char	revision[16];
+
+	sscanf("$Revision: 1.28 $", "%*s %s", revision);
+
+	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
+		,revision, PLATFORM_DESC);
 
 	for(f=1; f<argc; f++) {
 		bin=fopen(argv[f],"rb");
@@ -2304,7 +2308,7 @@ int main(int argc, char **argv)
 			if(src == NULL) 
 				perror(newname);
 			else {
-				printf("Decompiling %s to %s\n",argv[f],newname);
+				printf("\nDecompiling %s to %s\n",argv[f],newname);
 				fputs("!include sbbsdefs.inc\n",src);
 				fputs("!include file_io.inc\n",src);
 				fputs("!include dir_attr.inc\n\n",src);
