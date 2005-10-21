@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.32 2003/08/22 10:50:15 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.34 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -225,7 +225,7 @@ int sbbs_t::exec_function(csi_t *csi)
 				p=(uchar *)nulstr;
 			bulkmail(p);
 			if(p && p[0])
-				FREE(p);
+				free(p);
 			return(0);
 
 		case CS_INC_MAIN_CMDS:
@@ -265,9 +265,6 @@ int sbbs_t::exec_function(csi_t *csi)
 			change_user();
 			return(0);
 		case CS_SHOW_MEM:
-	#ifdef __MSDOS__
-			 bprintf(text[NBytesFreeMemory],farcoreleft());
-	#endif
 			return(0);
 		case CS_ERROR_LOG:
 			sprintf(str,"%serror.log", cfg.logs_dir);
