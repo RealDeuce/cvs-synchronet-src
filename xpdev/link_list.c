@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.26 2004/11/22 20:41:15 rswindell Exp $ */
+/* $Id: link_list.c,v 1.29 2005/10/21 20:09:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,7 @@
 
 #if defined(LINK_LIST_THREADSAFE)
 	#define MUTEX_INIT(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_init((pthread_mutex_t*)&list->mutex,NULL);	}
-	#define MUTEX_DESTROY(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_destroy((pthread_mutex_t*)&list->mutex);	}
+	#define MUTEX_DESTROY(list)	{ if(list->flags&LINK_LIST_MUTEX) { while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) SLEEP(1);}	}
 	#define MUTEX_LOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_lock((pthread_mutex_t*)&list->mutex);		}
 	#define MUTEX_UNLOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_unlock((pthread_mutex_t*)&list->mutex);		}
 #else
@@ -51,7 +51,7 @@
 	#define MUTEX_UNLOCK(list)
 #endif
 
-link_list_t* listInit(link_list_t* list, long flags)
+DLLEXPORT link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 {
 	if(flags&LINK_LIST_MALLOC || list==NULL) {
 		if((list=(link_list_t*)malloc(sizeof(link_list_t)))==NULL)
@@ -127,7 +127,8 @@ BOOL listFree(link_list_t* list)
 
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_SEMAPHORE) {
-		sem_destroy(&list->sem);
+		while(sem_destroy(&list->sem)==-1 && errno==EBUSY)
+			SLEEP(1);
 		list->sem=NULL;
 	}
 #endif
@@ -166,7 +167,7 @@ long listDettach(link_list_t* list)
 	return(refs);
 }
 
-void* listSetPrivateData(link_list_t* list, void* p)
+DLLEXPORT void* DLLCALL listSetPrivateData(link_list_t* list, void* p)
 {
 	void* old;
 
@@ -178,7 +179,7 @@ void* listSetPrivateData(link_list_t* list, void* p)
 	return(old);
 }
 
-void* listGetPrivateData(link_list_t* list)
+DLLEXPORT void* DLLCALL listGetPrivateData(link_list_t* list)
 {
 	if(list==NULL)
 		return(NULL);
@@ -187,7 +188,7 @@ void* listGetPrivateData(link_list_t* list)
 
 #if defined(LINK_LIST_THREADSAFE)
 
-BOOL listSemPost(link_list_t* list)
+DLLEXPORT BOOL DLLCALL listSemPost(link_list_t* list)
 {
 	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
 		return(FALSE);
@@ -195,7 +196,7 @@ BOOL listSemPost(link_list_t* list)
 	return(sem_post(&list->sem)==0);
 }
 
-BOOL listSemWait(link_list_t* list)
+DLLEXPORT BOOL DLLCALL listSemWait(link_list_t* list)
 {
 	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
 		return(FALSE);
@@ -203,7 +204,7 @@ BOOL listSemWait(link_list_t* list)
 	return(sem_wait(&list->sem)==0);
 }
 
-BOOL listSemTryWait(link_list_t* list)
+DLLEXPORT BOOL DLLCALL listSemTryWait(link_list_t* list)
 {
 	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
 		return(FALSE);
@@ -211,7 +212,7 @@ BOOL listSemTryWait(link_list_t* list)
 	return(sem_trywait(&list->sem)==0);
 }
 
-BOOL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
+DLLEXPORT BOOL DLLCALL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 {
 	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
 		return(FALSE);
@@ -224,7 +225,7 @@ BOOL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
-void listLock(const link_list_t* list)
+DLLEXPORT void DLLCALL listLock(const link_list_t* list)
 {
 	MUTEX_LOCK(list);
 }
@@ -232,12 +233,12 @@ void listLock(const link_list_t* list)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
-void listUnlock(const link_list_t* list)
+DLLEXPORT void DLLCALL listUnlock(const link_list_t* list)
 {
 	MUTEX_UNLOCK(list);
 }
 
-long listCountNodes(const link_list_t* list)
+DLLEXPORT long DLLCALL listCountNodes(const link_list_t* list)
 {
 	long			count=0;
 	list_node_t*	node;
@@ -258,7 +259,7 @@ long listCountNodes(const link_list_t* list)
 	return(count);
 }
 
-list_node_t* listFindNode(const link_list_t* list, const void* data, size_t length)
+DLLEXPORT list_node_t* DLLCALL listFindNode(const link_list_t* list, const void* data, size_t length)
 {
 	list_node_t* node;
 
@@ -327,7 +328,13 @@ str_list_t listSubStringList(const list_node_t* node, long max)
 	return(str_list);
 }
 
-list_node_t* listFirstNode(const link_list_t* list)
+void* listFreeStringList(str_list_t list)
+{
+	strListFree(&list);
+	return(list);
+}
+
+DLLEXPORT list_node_t* DLLCALL listFirstNode(const link_list_t* list)
 {
 	if(list==NULL)
 		return(NULL);
@@ -335,7 +342,7 @@ list_node_t* listFirstNode(const link_list_t* list)
 	return(list->first);
 }
 
-list_node_t* listLastNode(const link_list_t* list)
+DLLEXPORT list_node_t* DLLCALL listLastNode(const link_list_t* list)
 {
 	list_node_t* node;
 	list_node_t* last=NULL;
@@ -356,7 +363,7 @@ list_node_t* listLastNode(const link_list_t* list)
 	return(last);
 }
 
-long listNodeIndex(const link_list_t* list, list_node_t* find_node)
+DLLEXPORT long DLLCALL listNodeIndex(const link_list_t* list, list_node_t* find_node)
 {
 	long			i=0;
 	list_node_t*	node;
@@ -378,7 +385,7 @@ long listNodeIndex(const link_list_t* list, list_node_t* find_node)
 	return(i);
 }
 
-list_node_t* listNodeAt(const link_list_t* list, long index)
+DLLEXPORT list_node_t* DLLCALL listNodeAt(const link_list_t* list, long index)
 {
 	long			i=0;
 	list_node_t*	node;
@@ -396,7 +403,7 @@ list_node_t* listNodeAt(const link_list_t* list, long index)
 	return(node);
 }
 
-list_node_t* listNextNode(const list_node_t* node)
+DLLEXPORT list_node_t* DLLCALL listNextNode(const list_node_t* node)
 {
 	if(node==NULL)
 		return(NULL);
@@ -404,7 +411,7 @@ list_node_t* listNextNode(const list_node_t* node)
 	return(node->next);
 }
 
-list_node_t* listPrevNode(const list_node_t* node)
+DLLEXPORT list_node_t* DLLCALL listPrevNode(const list_node_t* node)
 {
 	if(node==NULL)
 		return(NULL);
@@ -412,7 +419,7 @@ list_node_t* listPrevNode(const list_node_t* node)
 	return(node->prev);
 }
 
-void* listNodeData(const list_node_t* node)
+DLLEXPORT void* DLLCALL listNodeData(const list_node_t* node)
 {
 	if(node==NULL)
 		return(NULL);
@@ -420,12 +427,12 @@ void* listNodeData(const list_node_t* node)
 	return(node->data);
 }
 
-BOOL listNodeIsLocked(const list_node_t* node)
+DLLEXPORT BOOL DLLCALL listNodeIsLocked(const list_node_t* node)
 {
 	return(node!=NULL && node->flags&LINK_LIST_NODE_LOCKED);
 }
 
-BOOL listLockNode(list_node_t* node)
+DLLEXPORT BOOL DLLCALL listLockNode(list_node_t* node)
 {
 	if(node==NULL || node->flags&LINK_LIST_NODE_LOCKED)
 		return(FALSE);
@@ -435,7 +442,7 @@ BOOL listLockNode(list_node_t* node)
 	return(TRUE);
 }
 
-BOOL listUnlockNode(list_node_t* node)
+DLLEXPORT BOOL DLLCALL listUnlockNode(list_node_t* node)
 {
 	if(!listNodeIsLocked(node))
 		return(FALSE);
@@ -482,7 +489,7 @@ static list_node_t* list_add_node(link_list_t* list, list_node_t* node, list_nod
 	return(node);
 }
 
-list_node_t* listAddNode(link_list_t* list, void* data, list_node_t* after)
+DLLEXPORT list_node_t* DLLCALL listAddNode(link_list_t* list, void* data, list_node_t* after)
 {
 	list_node_t* node;
 
@@ -498,7 +505,7 @@ list_node_t* listAddNode(link_list_t* list, void* data, list_node_t* after)
 	return(list_add_node(list,node,after));
 }
 
-long listAddNodes(link_list_t* list, void** data, list_node_t* after)
+DLLEXPORT long DLLCALL listAddNodes(link_list_t* list, void** data, list_node_t* after)
 {
 	long			i;
 	list_node_t*	node=NULL;
@@ -527,7 +534,7 @@ list_node_t* listAddNodeData(link_list_t* list, const void* data, size_t length,
 		return(NULL);
 	}
 	node->flags |= LINK_LIST_MALLOC;
-	
+
 	return(node);
 }
 
@@ -551,7 +558,7 @@ list_node_t* listAddNodeString(link_list_t* list, const char* str, list_node_t* 
 	return(node);
 }
 
-long listAddStringList(link_list_t* list, str_list_t str_list, list_node_t* after)
+DLLEXPORT long DLLCALL listAddStringList(link_list_t* list, str_list_t str_list, list_node_t* after)
 {
 	long			i;
 	list_node_t*	node=NULL;
@@ -566,7 +573,7 @@ long listAddStringList(link_list_t* list, str_list_t str_list, list_node_t* afte
 	return(i);
 }
 
-long listAddNodeList(link_list_t* list, const link_list_t* src, list_node_t* after)
+DLLEXPORT long DLLCALL listAddNodeList(link_list_t* list, const link_list_t* src, list_node_t* after)
 {
 	long			count=0;
 	list_node_t*	node=NULL;
@@ -584,7 +591,7 @@ long listAddNodeList(link_list_t* list, const link_list_t* src, list_node_t* aft
 	return(count);
 }
 
-long listMerge(link_list_t* list, const link_list_t* src, list_node_t* after)
+DLLEXPORT long DLLCALL listMerge(link_list_t* list, const link_list_t* src, list_node_t* after)
 {
 	long			count=0;
 	list_node_t*	node=NULL;
@@ -600,7 +607,7 @@ long listMerge(link_list_t* list, const link_list_t* src, list_node_t* after)
 	return(count);
 }
 
-link_list_t* listExtract(link_list_t* dest_list, const list_node_t* node, long max)
+DLLEXPORT link_list_t* DLLCALL listExtract(link_list_t* dest_list, const list_node_t* node, long max)
 {
 	long			count;
 	link_list_t*	list;
@@ -619,7 +626,7 @@ link_list_t* listExtract(link_list_t* dest_list, const list_node_t* node, long m
 	return(list);
 }
 
-void* listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_data)
+DLLEXPORT void* DLLCALL listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_data)
 {
 	void*	data;
 
@@ -681,7 +688,7 @@ long listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOOL free_d
 	return(count);
 }
 
-BOOL listSwapNodes(list_node_t* node1, list_node_t* node2)
+DLLEXPORT BOOL DLLCALL listSwapNodes(list_node_t* node1, list_node_t* node2)
 {
 	list_node_t	tmp;
 

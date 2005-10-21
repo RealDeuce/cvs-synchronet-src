@@ -1,5 +1,5 @@
 /*
- * $Id: xpsem.c,v 1.9 2005/01/25 08:18:59 deuce Exp $
+ * $Id: xpsem.c,v 1.11 2005/10/21 20:09:38 deuce Exp $
  *
  * Copyright (C) 2000 Jason Evans <jasone@freebsd.org>.
  * All rights reserved.
@@ -57,7 +57,7 @@ xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
 		goto RETURN;
 	}
 
-	if (value > SEM_VALUE_MAX) {
+	if (value > XP_SEM_VALUE_MAX) {
 		errno = EINVAL;
 		retval = -1;
 		goto RETURN;
@@ -81,7 +81,8 @@ xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
 	}
 
 	if (pthread_cond_init(&(*sem)->gtzero, NULL) != 0) {
-		pthread_mutex_destroy(&(*sem)->lock);
+		while(pthread_mutex_destroy(&(*sem)->lock)==EBUSY)
+			SLEEP(1);
 		free(*sem);
 		errno = ENOSPC;
 		retval = -1;
@@ -90,7 +91,7 @@ xp_sem_init(xp_sem_t *sem, int pshared, unsigned int value)
 	
 	(*sem)->count = (u_int32_t)value;
 	(*sem)->nwaiters = 0;
-	(*sem)->magic = SEM_MAGIC;
+	(*sem)->magic = XP_SEM_MAGIC;
 
 	retval = 0;
   RETURN:
@@ -114,8 +115,10 @@ xp_sem_destroy(xp_sem_t *sem)
 	}
 	pthread_mutex_unlock(&(*sem)->lock);
 	
-	pthread_mutex_destroy(&(*sem)->lock);
-	pthread_cond_destroy(&(*sem)->gtzero);
+	while(pthread_mutex_destroy(&(*sem)->lock)==EBUSY)
+		SLEEP(1);
+	while(pthread_cond_destroy(&(*sem)->gtzero)==EBUSY)
+		SLEEP(1);
 	(*sem)->magic = 0;
 
 	free(*sem);
@@ -129,7 +132,7 @@ xp_sem_t *
 xp_sem_open(const char *name, int oflag, ...)
 {
 	errno = ENOSYS;
-	return SEM_FAILED;
+	return XP_SEM_FAILED;
 }
 
 int

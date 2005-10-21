@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.7 2005/07/03 04:05:20 deuce Exp $ */
+/* $Id: xpevent.c,v 1.8 2005/10/21 20:09:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,8 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 	}
 
 	if (pthread_cond_init(&event->gtzero, NULL) != 0) {
-		pthread_mutex_destroy(&event->lock);
+		while(pthread_mutex_destroy(&event->lock)==EBUSY)
+			SLEEP(1);
 		free(event);
 		errno = ENOSPC;
 		return(NULL);
@@ -135,8 +136,10 @@ CloseEvent(xpevent_t event)
 
 	pthread_mutex_unlock(&event->lock);
 
-	pthread_mutex_destroy(&event->lock);
-	pthread_cond_destroy(&event->gtzero);
+	while(pthread_mutex_destroy(&event->lock)==EBUSY)
+		SLEEP(1);
+	while(pthread_cond_destroy(&event->gtzero)==EBUSY)
+		SLEEP(1);
 	event->magic = 0;
 
 	free(event);

@@ -1,4 +1,4 @@
-/* $Id: curs_cio.h,v 1.10 2004/10/01 01:20:11 deuce Exp $ */
+/* $Id: curs_cio.h,v 1.11 2005/10/14 06:21:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -32,6 +32,13 @@
  ****************************************************************************/
 
 #ifdef __unix__
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
+
 #include "ciolib.h"
 #undef getch
 #undef ungetch
