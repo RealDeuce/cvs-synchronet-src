@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.421 2006/01/12 04:40:15 rswindell Exp $ */
+/* $Id: main.cpp,v 1.413 2005/10/21 20:00:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,10 @@
 #endif
 
 //---------------------------------------------------------------------------
+
+/* Temporary */
+int	mswtyp=0;
+uint riobp;
 
 #define TELNET_SERVER "Synchronet Telnet Server"
 #define STATUS_WFC	"Listening"
@@ -346,7 +350,17 @@ DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char* str
 		,STRING_TO_JSVAL(js_str),NULL,NULL,JSPROP_READONLY));
 }
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
+
+#if 0
+static char* server_prop_desc[] = {
+
+	 "server name and version number"
+	,"detailed version/build information"
+	,NULL
+};
+#endif
+
 
 static const char* method_array_name = "_method_list";
 static const char* propver_array_name = "_property_ver_list";
@@ -374,7 +388,6 @@ JSBool
 DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec* props)
 {
 	uint		i;
-	long		ver;
 	jsval		val;
 	jsuint		len=0;
 	JSObject*	array;
@@ -391,9 +404,7 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
 			return(JS_FALSE);
 		if(props[i].flags&JSPROP_ENUMERATE) {	/* No need to version invisible props */
-			if((ver=props[i].ver) < 10000)		/* auto convert 313 to 31300 */
-				ver*=100;
-			val = INT_TO_JSVAL(ver);
+			val = INT_TO_JSVAL(props[i].ver);
 			if(!JS_SetElement(cx, array, len++, &val))
 				return(JS_FALSE);
 		}
@@ -407,7 +418,6 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 {
 	int			i;
 	jsuint		len=0;
-	long		ver;
 	jsval		val;
 	JSObject*	method;
 	JSObject*	method_array;
@@ -472,9 +482,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		}
 
 		if(funcs[i].ver) {
-			if((ver=funcs[i].ver<10000)		/* auto convert 313 to 31300 */
-				ver*=100;
-			val = INT_TO_JSVAL(ver);
+			val = INT_TO_JSVAL(funcs[i].ver);
 			JS_SetProperty(cx,method, "ver", &val);
 		}
 
@@ -486,7 +494,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
-#else // NON-JSDOCS
+#else // NON-DEBUG
 
 JSBool
 DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec* props)
@@ -655,26 +663,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_write_raw(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-    uintN		i;
-    char*	str=NULL;
-	size_t		len;
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-    for (i = 0; i < argc; i++) {
-		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
-		    return(JS_FALSE);
-		sbbs->putcom(str, len);
-	}
-
-    return(JS_TRUE);
-}
-
-static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
@@ -825,10 +813,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"write",			js_write,			0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
 	,JSDOCSTR("send one or more values (typically strings) to the server output")
 	,311
-	},
-	{"write_raw",			js_write_raw,			0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
-	,JSDOCSTR("send a stream of bytes (possibly containing NULLs or special control code sequences) to the server output")
-	,313
 	},
 	{"print",			js_writeln,			0,	JSTYPE_ALIAS },
     {"writeln",         js_writeln,         0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
@@ -1924,7 +1908,6 @@ void event_thread(void* arg)
 					sprintf(str,"%s%s.q%c%c",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id
 						,j>10 ? ((j-1)/10)+'0' : 'w'
 						,j ? ((j-1)%10)+'0' : 'k');
-					eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
@@ -2337,7 +2320,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
 	uselect_total = 0;
 	lbuflen = 0;
-	keybufbot=keybuftop=0;	/* initialize [unget]keybuf pointers */
 	connection="Telnet";
 
 	ZERO_VAR(telnet_local_option);
@@ -2347,7 +2329,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	telnet_mode=0;
 	telnet_last_rxch=0;
 
-	sys_status=lncntr=tos=criterrs=slcnt=0L;
+	sys_status=lncntr=tos=criterrs=lbuflen=slcnt=0L;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -2937,7 +2919,7 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 	int		ind,outd;
 	uint	chunk=MV_BUFLEN;
 	ulong	length,l;
-	time_t	ftime;
+	/* struct ftime ftime; */
 	FILE *inp,*outp;
 
     if(!stricmp(src,dest))	 /* source and destination are the same! */
@@ -2986,44 +2968,48 @@ int sbbs_t::mv(char *src, char *dest, char copy)
         return(-1); 
 	}
     setvbuf(outp,NULL,_IOFBF,8*1024);
-	ftime=filetime(ind);
     length=filelength(ind);
-    if(length) {	/* Something to copy */
-		if((buf=(char *)malloc(MV_BUFLEN))==NULL) {
-			fclose(inp);
-			fclose(outp);
-			errormsg(WHERE,ERR_ALLOC,nulstr,MV_BUFLEN);
-			return(-1); 
-		}
-		l=0L;
-		while(l<length) {
-			bprintf("%2lu%%",l ? (long)(100.0/((float)length/l)) : 0L);
-			if(l+chunk>length)
-				chunk=length-l;
-			if(fread(buf,1,chunk,inp)!=chunk) {
-				free(buf);
-				fclose(inp);
-				fclose(outp);
-				errormsg(WHERE,ERR_READ,src,chunk);
-				return(-1); 
-			}
-			if(fwrite(buf,1,chunk,outp)!=chunk) {
-				free(buf);
-				fclose(inp);
-				fclose(outp);
-				errormsg(WHERE,ERR_WRITE,dest,chunk);
-				return(-1); 
-			}
-			l+=chunk;
-			bputs("\b\b\b"); 
-		}
-		bputs("   \b\b\b");  /* erase it */
-		attr(atr);
-		free(buf);
+    if(!length) {
+        fclose(inp);
+        fclose(outp);
+        errormsg(WHERE,ERR_LEN,src,0);
+        return(-1); 
 	}
+    if((buf=(char *)malloc(MV_BUFLEN))==NULL) {
+        fclose(inp);
+        fclose(outp);
+        errormsg(WHERE,ERR_ALLOC,nulstr,MV_BUFLEN);
+        return(-1); 
+	}
+    l=0L;
+    while(l<length) {
+        bprintf("%2lu%%",l ? (long)(100.0/((float)length/l)) : 0L);
+        if(l+chunk>length)
+            chunk=length-l;
+        if(fread(buf,1,chunk,inp)!=chunk) {
+            free(buf);
+            fclose(inp);
+            fclose(outp);
+            errormsg(WHERE,ERR_READ,src,chunk);
+            return(-1); 
+		}
+        if(fwrite(buf,1,chunk,outp)!=chunk) {
+            free(buf);
+            fclose(inp);
+            fclose(outp);
+            errormsg(WHERE,ERR_WRITE,dest,chunk);
+            return(-1); 
+		}
+        l+=chunk;
+        bputs("\b\b\b"); 
+	}
+    bputs("   \b\b\b");  /* erase it */
+    attr(atr);
+    /* getftime(ind,&ftime);
+    setftime(outd,&ftime); */
+    free(buf);
     fclose(inp);
     fclose(outp);
-	setfdate(dest,ftime);	/* Would be nice if we could use futime() instead */
     if(!copy && remove(src)) {
         errormsg(WHERE,ERR_REMOVE,src,0);
         return(-1); 
@@ -3213,7 +3199,6 @@ void sbbs_t::reset_logon_vars(void)
     slcnt=0;
     altul=0;
     timeleft_warn=0;
-	keybufbot=keybuftop=0;
     logon_uls=logon_ulb=logon_dls=logon_dlb=0;
     logon_posts=logon_emails=logon_fbacks=0;
     batdn_total=batup_total=0;
@@ -3710,7 +3695,13 @@ const char* DLLCALL bbs_ver(void)
 /* Returns binary-coded version and revision (e.g. 0x31000 == 3.10a) */
 long DLLCALL bbs_ver_num(void)
 {
-	return(VERSION_HEX);
+	char*	minor;
+
+	if((minor=(char *)strchr(VERSION,'.'))==NULL)
+		return(0);
+	minor++;
+
+	return((strtoul(VERSION,NULL,16)<<16)|(strtoul(minor,NULL,16)<<8)|(REVISION-'A'));
 }
 
 void DLLCALL bbs_terminate(void)

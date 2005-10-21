@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.101 2006/01/06 00:03:11 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.96 2005/10/21 08:26:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,8 +42,6 @@
 #ifdef __unix__
 #include <signal.h>
 #endif
-
-#include "ciolib.h"
 
 #include "sbbs.h"
 
@@ -358,7 +356,7 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
     for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
 		if(JSVAL_IS_DOUBLE(argv[i]))
-			arglist[i-1]=(char*)(unsigned long)-1;//*JSVAL_TO_DOUBLE(argv[i]);
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
 		else if(JSVAL_IS_INT(argv[i]))
 			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
 		else {
@@ -391,8 +389,6 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	    return(JS_FALSE);
 
 	fprintf(confp,"!%s\n",JS_GetStringBytes(str));
-
-	*rval = argv[0];
 
     return(JS_TRUE);
 }
@@ -620,8 +616,8 @@ long js_exec(const char *fname, char** args)
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 	int32		result=0;
-	long double	start;
-	long double	diff;
+	double		start;
+	double		diff;
 	
 	if(fname!=NULL) {
 		if(strcspn(fname,"/\\")==strlen(fname)) {
@@ -722,7 +718,7 @@ long js_exec(const char *fname, char** args)
 		return(-1);
 	}
 	if((diff=xp_timer()-start) > 0)
-		fprintf(statfp,"%s compiled in %.2Lf seconds\n"
+		fprintf(statfp,"%s compiled in %.2f seconds\n"
 			,path
 			,diff);
 
@@ -731,13 +727,13 @@ long js_exec(const char *fname, char** args)
 	js_EvalOnExit(js_cx, js_glob, &branch);
 
 	if((diff=xp_timer()-start) > 0)
-		fprintf(statfp,"%s executed in %.2Lf seconds\n"
+		fprintf(statfp,"%s executed in %.2f seconds\n"
 			,path
 			,diff);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
-	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
+	if(rval!=JSVAL_VOID) {
 		fprintf(statfp,"Using JavaScript exit_code: %s\n",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
@@ -805,7 +801,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.101 $", "%*s %s", revision);
+	sscanf("$Revision: 1.96 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -964,9 +960,6 @@ int main(int argc, char **argv, char** environ)
 
 	if(nonbuffered_con)
 		setvbuf(confp,NULL,_IONBF,0);
-
-	/* Seed random number generator */
-	sbbs_srand();
 
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
