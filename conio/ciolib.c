@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.58 2005/10/14 06:21:15 deuce Exp $ */
+/* $Id: ciolib.c,v 1.59 2005/10/21 22:39:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -260,6 +260,8 @@ int try_conio_init(int mode)
 
 CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 {
+	if(initialized)
+		return(0);
 	memset(&cio_api,0,sizeof(cio_api));
 
 	switch(mode) {
