@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.410 2005/10/19 17:43:40 rswindell Exp $ */
+/* $Id: main.cpp,v 1.411 2005/10/21 08:53:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1484,7 +1484,7 @@ void output_thread(void* arg)
 		 */
 		if(bufbot == buftop) {
 			/* Wait for something to output in the RingBuffer */
-			sem_wait(&sbbs->outbuf.sem);
+			sem_trywait_block(&sbbs->outbuf.sem,1000);
 
 			/* Check for spurious sem post... */
 			if(!RingBufFull(&sbbs->outbuf))
