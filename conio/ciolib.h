@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.35 2005/11/19 07:52:34 deuce Exp $ */
+/* $Id: ciolib.h,v 1.31 2005/10/21 05:54:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,11 +239,6 @@ typedef struct {
 	void	(*setname)		(const char *);
 	void	(*copytext)		(const char *, size_t);
 	char 	*(*getcliptext)	(void);
-	void	(*suspend)		(void);
-	void	(*resume)		(void);
-	int		(*setfont)		(int font, int force);
-	int		(*getfont)		(void);
-	int		(*loadfont)		(char *filename);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -257,7 +252,6 @@ CIOLIBEXPORTVAR int hold_update;
 extern "C" {
 #endif
 CIOLIBEXPORT int CIOLIBCALL initciolib(int mode);
-CIOLIBEXPORT void CIOLIBCALL suspendciolib(void);
 
 CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str);
@@ -297,9 +291,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_showmouse(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_hidemouse(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_copytext(const char *text, size_t buflen);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force);
-CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 #ifdef __cplusplus
 }
 #endif
@@ -345,10 +336,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 	#define setname(a)				ciolib_setname(a)
 	#define settitle(a)				ciolib_settitle(a)
 	#define copytext(a,b)			ciolib_copytext(a,b)
-	#define getcliptext()			ciolib_getcliptext()
-	#define setfont(a,b)			ciolib_setfont(a,b)
-	#define getfont()				ciolib_getfont()
-	#define loadfont(a)				ciolib_loadfont(a)
+	#define getcliptext()		ciolib_getcliptext()
 #endif
 
 /* Special hackery for SDL */
