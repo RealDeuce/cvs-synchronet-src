@@ -1,6 +1,6 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.27 2005/11/27 23:34:28 deuce Exp $ */
+/* $Id: scfgsub.c,v 1.26 2005/09/20 03:40:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,7 @@ while(1) {
 	subnum[j]=cfg.total_subs;
 	opt[j][0]=0;
 	sprintf(str,"%s Sub-boards",cfg.grp[grpnum]->sname);
+	uifc.savnum=0;
 	i=WIN_SAV|WIN_ACT;
 	if(j)
 		i|=WIN_DEL|WIN_GET|WIN_DELACT;
@@ -79,6 +80,7 @@ To delete a sub-board, select it with the arrow keys and hit  DEL .
 To configure a sub-board, select it with the arrow keys and hit  ENTER .
 */
 	i=uifc.list(i,24,1,LEN_SLNAME+5,&dflt,&bar,str,opt);
+	uifc.savnum=1;
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
@@ -134,6 +136,7 @@ usually an abreviation of the sub-board's name.
 			continue;
 		if(!code_ok(code)) {
 			uifc.helpbuf=invalid_code;
+			uifc.savnum=0;
 			uifc.msg("Invalid Code");
 			uifc.helpbuf=0;
 			continue; 
@@ -273,6 +276,7 @@ If you want to delete all the messages for this sub-board, select Yes.
 		strcpy(opt[n++],"Advanced Options...");
 		opt[n][0]=0;
 		sprintf(str,"%s Sub-board",cfg.sub[i]->sname);
+		uifc.savnum=1;
 		SETHELP(WHERE);
 /*
 Sub-board Configuration:
@@ -352,22 +356,27 @@ sub-board's name and group name.
 					,cfg.sub[i]->newsgroup,sizeof(cfg.sub[i]->newsgroup)-1,K_EDIT);
                 break;
 			case 5:
+				uifc.savnum=2;
 				sprintf(str,"%s Access",cfg.sub[i]->sname);
 				getar(str,cfg.sub[i]->arstr);
 				break;
 			case 6:
+				uifc.savnum=2;
 				sprintf(str,"%s Reading",cfg.sub[i]->sname);
 				getar(str,cfg.sub[i]->read_arstr);
                 break;
 			case 7:
+				uifc.savnum=2;
 				sprintf(str,"%s Posting",cfg.sub[i]->sname);
 				getar(str,cfg.sub[i]->post_arstr);
                 break;
 			case 8:
+				uifc.savnum=2;
 				sprintf(str,"%s Operator",cfg.sub[i]->sname);
 				getar(str,cfg.sub[i]->op_arstr);
                 break;
 			case 9:
+				uifc.savnum=2;
 				sprintf(str,"%s Moderated Posting User",cfg.sub[i]->sname);
 				getar(str,cfg.sub[i]->mod_arstr);
                 break;
@@ -454,6 +463,7 @@ CRCs is reached, the oldest CRCs will be automatically purged.
 						,cfg.sub[i]->misc&SUB_LZH ? "Yes" : "No");
 
 					opt[n][0]=0;
+					uifc.savnum=2;
 					SETHELP(WHERE);
 /*
 Sub-board Toggle Options:
@@ -465,6 +475,7 @@ sub-board between two or more settings, such as Yes and No.
 						,"Toggle Options",opt);
 					if(n==-1)
 						break;
+					uifc.savnum=3;
 					switch(n) {
 						case 0:
 							if(cfg.sub[i]->misc&SUB_PONLY)
@@ -915,6 +926,7 @@ compatible mail programs you use support the LZH translation.
                         ,smb_faddrtoa(&cfg.sub[i]->faddr,tmp));
 					sprintf(opt[n++],"EchoMail Origin Line");
 					opt[n][0]=0;
+					uifc.savnum=2;
 					SETHELP(WHERE);
 /*
 Sub-board Network Options:
@@ -926,6 +938,7 @@ specifically to message networking.
 						,"Network Options",opt);
 					if(n==-1)
 						break;
+					uifc.savnum=3;
                     switch(n) {
 						case 0:
 							n=0;
@@ -1178,6 +1191,7 @@ If this option is blank, the default origin line is used.
 					sprintf(opt[n++],"%-27.27s%.40s","Semaphore File",cfg.sub[i]->post_sem);
 					sprintf(opt[n++],"%-27.27s%u","Pointer File Index",cfg.sub[i]->ptridx);
 					opt[n][0]=0;
+					uifc.savnum=2;
 					SETHELP(WHERE);
 /*
 Sub-board Advanced Options:
@@ -1189,6 +1203,7 @@ in nature.
 						,"Advanced Options",opt);
 					if(n==-1)
 						break;
+					uifc.savnum=3;
                     switch(n) {
                         case 0:
 							SETHELP(WHERE);
