@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.26 2005/10/21 21:33:30 deuce Exp $ */
+/* $Id: ringbuf.c,v 1.27 2005/10/21 21:52:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,7 @@
 #endif
 
 #include "ringbuf.h"
+#include "genwrap.h"	/* SLEEP() */
 
 #ifdef RINGBUF_USE_STD_RTL
 
