@@ -2,13 +2,13 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.66 2005/07/05 19:57:09 deuce Exp $ */
+/* $Id: uifc.h,v 1.70 2005/10/21 08:24:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -52,60 +52,14 @@
 #if defined(__unix__)
 	#include <sys/param.h>	/* PATH_MAX */
 #endif
-#if (defined(__unix__) || defined(_WIN32)) && !defined(__FLAT__)
-    #define __FLAT__
-#endif
-
-#if defined(__FLAT__)
-	#define far
-#endif
-
-#if !defined(__FLAT__)
-    #include <bios.h>
-#endif
 
 #if defined(__unix__) && !defined(stricmp)
     #define stricmp strcasecmp
 	#define strnicmp strncasecmp
 #endif
 
-/****************************************************************************/
-/* MALLOC/FREE Macros for various compilers and environments				*/
-/* MALLOC is used for allocations of 64k or less							*/
-/* FREE is used to free buffers allocated with MALLOC						*/
-/* LMALLOC is used for allocations of possibly larger than 64k				*/
-/* LFREE is used to free buffers allocated with LMALLOC 					*/
-/* REALLOC is used to re-size a previously MALLOCed or LMALLOCed buffer 	*/
-/****************************************************************************/
-#if defined(__COMPACT__) || defined(__LARGE__) || defined(__HUGE__)
-	#if defined(__TURBOC__)
-		#define REALLOC(x,y) farrealloc(x,y)
-		#define LMALLOC(x) farmalloc(x)
-		#define MALLOC(x) farmalloc(x)
-		#define LFREE(x) farfree(x)
-		#define FREE(x) farfree(x)
-	#elif defined(__WATCOMC__)
-		#define REALLOC realloc
-		#define LMALLOC(x) halloc(x,1)	/* far heap, but slow */
-		#define MALLOC malloc			/* far heap, but 64k max */
-		#define LFREE hfree
-		#define FREE free
-	#else	/* Other 16-bit Compiler */
-		#define REALLOC realloc
-		#define LMALLOC malloc
-		#define MALLOC malloc
-		#define LFREE free
-		#define FREE free
-	#endif
-#else		/* 32-bit Compiler or Small Memory Model */
-	#define REALLOC realloc
-	#define LMALLOC malloc
-	#define MALLOC malloc
-	#define LFREE free
-	#define FREE free
-#endif
 #if !defined(FREE_AND_NULL)
-	#define FREE_AND_NULL(x)			if(x!=NULL) { FREE(x); x=NULL; }
+	#define FREE_AND_NULL(x)			if(x!=NULL) { free(x); x=NULL; }
 #endif
 
 #if !defined(MAX_PATH)	/* maximum path length */
@@ -120,32 +74,15 @@
 	#endif
 #endif
 
-#ifdef __DPMI32__
-	#define INT_86(i,j,k) int386(i,j,k)
-#else
-	#define INT_86(i,j,k) int86(i,j,k)
-#endif
-
-#ifdef __FLAT__
-	#define MAX_OPTS	10000
-	#define MSK_ON		0xf0000000
-	#define MSK_OFF 	0x0fffffff
-	#define MSK_INS 	0x10000000
-	#define MSK_DEL 	0x20000000
-	#define MSK_GET 	0x30000000
-	#define MSK_PUT 	0x40000000
-	#define MSK_EDIT 	0x50000000
-	/* Dont forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
-#else
-	#define MAX_OPTS	500 	/* Maximum number of options per menu call */
-	#define MSK_ON		0xf000
-	#define MSK_OFF 	0x0fff
-	#define MSK_INS 	0x1000
-	#define MSK_DEL 	0x2000
-	#define MSK_GET 	0x3000
-	#define MSK_PUT 	0x4000
-	#define MSK_EDIT 	0x5000
-#endif
+#define MAX_OPTS	10000
+#define MSK_ON		0xf0000000
+#define MSK_OFF 	0x0fffffff
+#define MSK_INS 	0x10000000
+#define MSK_DEL 	0x20000000
+#define MSK_GET 	0x30000000
+#define MSK_PUT 	0x40000000
+#define MSK_EDIT 	0x50000000
+/* Dont forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
 #define MAX_OPLN	75		/* Maximum length of each option per menu call */
 #define MAX_BUFS	7		/* Maximum number of screen buffers to save */
 #define MIN_LINES   14      /* Minimum number of screen lines supported */
@@ -156,7 +93,9 @@
 #define uint unsigned int
 #endif
 
+							/**************************/
                             /* Bits in uifcapi_t.mode */
+							/**************************/
 #define UIFC_INMSG	(1<<0)	/* Currently in Message Routine non-recursive */
 #define UIFC_MOUSE	(1<<1)	/* Mouse installed and available */
 #define UIFC_MONO	(1<<2)	/* Force monochrome mode */
@@ -164,8 +103,10 @@
 #define UIFC_IBM	(1<<4)	/* Force use of IBM charset	*/
 #define UIFC_NOCTRL	(1<<5)	/* Don't allow useage of CTRL keys for movement 
 							 * etc in menus (Still available in text boxes) */
-                            /* Bits in uifcapi_t.list mode */
 
+							/*******************************/
+                            /* Bits in uifcapi_t.list mode */
+							/*******************************/
 #define WIN_ORG 	(1<<0)	/* Original menu - destroy valid screen area */
 #define WIN_SAV 	(1<<1)	/* Save existing text and replace when finished */
 #define WIN_ACT 	(1<<2)	/* Menu remains active after a selection */
@@ -230,13 +171,8 @@
 #define BL_DEL      (1<<1)  /* DEL key */
 #define BL_GET      (1<<2)  /* Get key */
 #define BL_PUT      (1<<3)  /* Put key */
-
-#define BL_INS      (1<<0)  /* INS key */
-#define BL_DEL      (1<<1)  /* DEL key */
-#define BL_GET      (1<<2)  /* Get key */
-#define BL_PUT      (1<<3)  /* Put key */
 #define BL_EDIT     (1<<4)  /* Edit key */
-
+#define BL_HELP     (1<<5)  /* Help key */
 
 #define HELPBUF_SIZE 4000
 
@@ -307,22 +243,6 @@ typedef struct {
 	uint    left,top,right,bot;
     uchar   *buf;
 } win_t;
-
-#if !defined(__FLAT__)
-    /* LCLOLL.ASM */
-    int lclini(int);
-    void lclxy(int,int);
-    int lclwx(void);
-    int lclwy(void);
-    int lclatr(int);
-    void lputc(int);
-    long lputs(char far *);
-#endif    
-
-#if defined(__OS2__) || !defined(__FLAT__)
-void mswait(int msecs);
-extern mswtyp;
-#endif
 
 typedef struct {
 /****************************************************************************/
@@ -446,28 +366,31 @@ typedef struct {
 /****************************************************************************/
 /* Shows a scrollable text buffer - optionally parsing "help markup codes"	*/
 /****************************************************************************/
-	void (*showbuf)(int mode, int left, int top, int width, int height, char *title, char *hbuf, int *curp, int *barp);
+	void	(*showbuf)(int mode, int left, int top, int width, int height
+							,char *title, char *hbuf, int *curp, int *barp);
 
 /****************************************************************************/
 /* Updates time in upper left corner of screen with current time in ASCII/  */
 /* Unix format																*/
 /****************************************************************************/
-	void (*timedisplay)(BOOL force);
+	void	(*timedisplay)(BOOL force);
 
 /****************************************************************************/
 /* Displays the bottom line using the BL_* macros							*/
 /****************************************************************************/
-    void (*bottomline)(int line);
+    void	(*bottomline)(int line);
 
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
 /****************************************************************************/
-	int (*getstrxy)(int left, int top, int width, char *outstr, int max, long mode, int *lastkey);
+	int		(*getstrxy)(int left, int top, int width, char *outstr, int max
+							,long mode, int *lastkey);
 
 /****************************************************************************/
 /* Formatted print with attribute											*/
 /****************************************************************************/
-	int (*printf)(int x, int y, unsigned char attr, char *fmat, ...);
+	int		(*printf)(int x, int y, unsigned char attr, char *fmat, ...);
+
 } uifcapi_t;
 
 /****************************************************************************/
