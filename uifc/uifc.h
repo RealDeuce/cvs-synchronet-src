@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.70 2005/10/21 08:24:09 rswindell Exp $ */
+/* $Id: uifc.h,v 1.71 2005/10/22 01:11:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,8 +240,8 @@ enum {
 #endif
 
 typedef struct {
-	uint    left,top,right,bot;
-    uchar   *buf;
+	int		left,top,right,bot;
+    uchar*	buf;
 } win_t;
 
 typedef struct {
@@ -302,7 +302,7 @@ typedef struct {
 /****************************************************************************/
 /* Colours for the various bits												*/
 /****************************************************************************/
-	char	hclr,lclr,bclr,cclr,lbclr;
+	uchar	hclr,lclr,bclr,cclr,lbclr;
 
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
@@ -389,7 +389,7 @@ typedef struct {
 /****************************************************************************/
 /* Formatted print with attribute											*/
 /****************************************************************************/
-	int		(*printf)(int x, int y, unsigned char attr, char *fmat, ...);
+	int		(*printf)(int x, int y, unsigned attr, char *fmat, ...);
 
 } uifcapi_t;
 
