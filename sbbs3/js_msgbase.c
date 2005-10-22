@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.121 2006/01/11 23:24:45 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.119 2005/09/10 22:39:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1148,19 +1148,33 @@ js_remove_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(!msg_specified)
 		return(JS_TRUE);
 
-	if((p->status=smb_getmsgidx(&(p->smb), &msg))==SMB_SUCCESS
-		&& (p->status=smb_getmsghdr(&(p->smb), &msg))==SMB_SUCCESS) {
+	if((p->status=smb_getmsgidx(&(p->smb), &msg))!=SMB_SUCCESS)
+		return(JS_TRUE);
+
+	if((p->status=smb_lockmsghdr(&(p->smb),&msg))!=SMB_SUCCESS)
+		return(JS_TRUE);
+
+	do {
+		if((p->status=smb_getmsghdr(&(p->smb), &msg))!=SMB_SUCCESS)
+			break;
+
+		smb_freemsghdrmem(&msg);	/* prevent duplicate header fields */
 
 		msg.hdr.attr|=MSG_DELETE;
+		msg.idx.attr=msg.hdr.attr;
 
-		if((p->status=smb_updatemsg(&(p->smb), &msg))==SMB_SUCCESS)
-			*rval = JSVAL_TRUE;
-	}
+		if((p->status=smb_putmsg(&(p->smb), &msg))!=SMB_SUCCESS)
+			break;
 
+		*rval = JSVAL_TRUE;
+	} while(0);
+
+	smb_unlockmsghdr(&(p->smb),&msg); 
 	smb_freemsgmem(&msg);
 
 	return(JS_TRUE);
 }
+
 
 static char* get_msg_text(private_t* p, smbmsg_t* msg, BOOL strip_ctrl_a, BOOL rfc822, ulong mode)
 {
@@ -1624,7 +1638,7 @@ static jsSyncPropertySpec js_msgbase_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* msgbase_prop_desc[] = {
 
 	 "last occurred message base error - <small>READ ONLY</small>"
@@ -1807,7 +1821,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 		return(JS_FALSE);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Class used for accessing message bases",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new MsgBase object: "
 		"<tt>var msgbase = new MsgBase('<i>code</i>')</tt><br>"
@@ -1828,7 +1842,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 			JS_DefineProperty(cx,cfgobj,"index",JSVAL_VOID
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 			js_CreateMsgAreaProperties(cx, scfg, cfgobj, p->smb.subnum);
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 			js_DescribeSyncObject(cx,cfgobj
 				,"Configuration parameters for this message area (<i>sub-boards only</i>) "
 				"- <small>READ ONLY</small>"
