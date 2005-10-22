@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.3 2005/10/22 00:19:51 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.4 2005/10/22 00:33:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -341,12 +341,12 @@ static JSBool
 js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		title="Title";
-	int			left=0;
-	int			top=0;
-	int			width=0;
-	int			dflt=0;
-	int			bar=0;
-	long		mode=0;
+	int32		left=0;
+	int32		top=0;
+	int32		width=0;
+	int32		dflt=0;
+	int32		bar=0;
+	int32		mode=0;
 	JSObject*	objarg;
 	uifcapi_t*	uifc;
 	uintN		argn=0;
