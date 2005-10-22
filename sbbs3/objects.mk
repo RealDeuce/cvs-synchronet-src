@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.44 2005/11/28 02:55:21 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.42 2005/10/21 08:26:59 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -124,8 +124,7 @@ MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 # Must add new additions to MONO_OBJS too!
 WEB_OBJS	= $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)base64$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE)
+			$(MTOBJODIR)$(DIRSEP)ars$(OFILE)
 			
 
 # Must add new additions to MONO_OBJS too!
@@ -222,8 +221,8 @@ MAKEUSER_OBJS = \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE)
 
 JSEXEC_OBJS = \
-			$(MTOBJODIR)$(DIRSEP)jsexec$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE)
+			$(OBJODIR)$(DIRSEP)jsexec$(OFILE) \
+			$(OBJODIR)$(DIRSEP)js_uifc$(OFILE)
 
 SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)sexyz$(OFILE) \
