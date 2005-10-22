@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.62 2005/10/21 23:16:44 deuce Exp $ */
+/* $Id: ciolib.c,v 1.63 2005/10/22 01:14:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -715,6 +715,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 		buf[i++]=ti.attribute;
 	}
 	ciolib_puttext(ti.winleft,ti.wintop,ti.winright,ti.winbottom,buf);
+	ciolib_gotoxy(1,1);
 	free(buf);
 }
 
