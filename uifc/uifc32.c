@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.150 2005/10/22 01:11:58 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.151 2005/10/22 01:55:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -535,7 +535,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	if(mode&WIN_EDIT) bline|=BL_EDIT;
 	if(api->bottomline != NULL)
 		api->bottomline(bline);
-	while(opts<MAX_OPTS)
+	while(option!=NULL && opts<MAX_OPTS)
 		if(option[opts]==NULL || option[opts][0]==0)
 			break;
 		else opts++;
