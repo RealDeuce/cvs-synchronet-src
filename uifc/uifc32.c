@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.148 2005/10/21 08:24:50 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.149 2005/10/22 00:19:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -411,7 +411,7 @@ void uifcbail(void)
 	_setcursortype(_NORMALCURSOR);
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
-	clrscr();
+	suspendciolib();
 	FREE_AND_NULL(blk_scrn);
 	FREE_AND_NULL(tmp_buffer);
 	FREE_AND_NULL(tmp_buffer2);
