@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.4 2005/10/22 00:33:11 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.5 2005/10/22 02:21:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -340,7 +340,7 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 static JSBool
 js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		title="Title";
+	char*		title=NULL;
 	int32		left=0;
 	int32		top=0;
 	int32		width=0;
