@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.178 2005/09/13 23:08:24 deuce Exp $
+# $Id: GNUmakefile,v 1.184 2005/10/21 21:56:15 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -83,7 +83,11 @@ MT_CFLAGS	+=	$(SBBSDEFS)
 
 # Set up LD_RUN_PATH for run-time locating of the .so files
 PWD	:=	$(shell pwd)
-LD_RUN_PATH	:=	.:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
+ifdef SBBSDIR
+ LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
+else
+ LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
+endif
 export LD_RUN_PATH
 
 CON_LIBS	= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
@@ -199,7 +203,7 @@ $(MAKEUSER): $(MAKEUSER_OBJS)
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 
 # ANS2ASC
 $(ANS2ASC): $(OBJODIR)/ans2asc.o
@@ -225,3 +229,23 @@ $(QWKNODES): $(QWKNODES_OBJS)
 $(SLOG): $(SLOG_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(SLOG_OBJS) $(XPDEV_LIBS)
+
+# ALLUSERS
+$(ALLUSERS): $(ALLUSERS_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(ALLUSERS_OBJS) $(XPDEV_LIBS)
+
+# DELFILES
+$(DELFILES): $(DELFILES_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(DELFILES_OBJS) $(XPDEV_LIBS)
+
+# DUPEFIND
+$(DUPEFIND): $(DUPEFIND_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(DUPEFIND_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS)
+
+# SMBACTIV
+$(SMBACTIV): $(SMBACTIV_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(SMBACTIV_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS)
