@@ -1,7 +1,6 @@
 ############################################
-# Makefile for Synchronet SBBSECHO Utility
-# For use with Watcom C/C++
-# $Id: sbbsecho.wmk,v 1.4 2005/11/01 00:26:06 rswindell Exp $                                  
+# Makefile for Synchronet SBBSECHO Utility #
+# For use with Watcom C/C++ 		   #
 ############################################
 
 !ifndef OS
@@ -15,11 +14,11 @@ CC	= *wcc386
 !endif
 
 LD	= *wlink
-INCLUDE = \watcom\h;\watcom\h\os2;..\xpdev;..\smblib
+INCLUDE = \watcom\h;\watcom\h\os2;..\xpdev
 !ifeq OS DOS
 CFLAGS	= -s -I$(INCLUDE) -bt=$(OS) -fo=$(OS)\ -ml -DLZH_DYNAMIC_BUF
 !else
-CFLAGS	= -s -I$(INCLUDE) -bt=$(OS) -fo=$(OS)\ -DNO_SOCKET_SUPPORT
+CFLAGS	= -s -I$(INCLUDE) -bt=$(OS) -fo=$(OS)\ 
 !endif
 
 # operate quietly
@@ -54,27 +53,21 @@ OBJS	= $(OS)\ars.obj &
 	  $(OS)\filewrap.obj &
 	  $(OS)\genwrap.obj &
 	  $(OS)\load_cfg.obj &
-	  $(OS)\msg_id.obj &
 	  $(OS)\lzh.obj &
           $(OS)\nopen.obj &
 	  $(OS)\rechocfg.obj &
 	  $(OS)\sbbsecho.obj &
 	  $(OS)\scfglib1.obj &
 	  $(OS)\scfglib2.obj &
-	  $(OS)\smbadd.obj &
 	  $(OS)\smblib.obj &
 	  $(OS)\smbtxt.obj &
-	  $(OS)\smbstr.obj &
-	  $(OS)\smbhash.obj &
-	  $(OS)\smbfile.obj &
-	  $(OS)\smballoc.obj &
 	  $(OS)\str_util.obj &
 	  $(OS)\userdat.obj
 
-HEADERS = ..\sbbs.h ..\sbbsdefs.h &
+HEADERS = ..\sbbs.h ..\sbbsdefs.h ..\scfgvars.c &
 	  ..\smb\smbdefs.h ..\smb\smblib.h
 
-.c: .;..\xpdev;..\smblib
+.c: .;..\xpdev
 
 # Implicit C Compile Rule
 .c.obj:
