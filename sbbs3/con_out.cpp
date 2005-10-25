@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.38 2005/09/02 18:49:39 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.39 2005/10/25 19:37:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,10 +187,8 @@ void sbbs_t::outchar(char ch)
 	if(ch==ESC)
 		outchar_esc=1;
 	else if(outchar_esc==1) {
-		if(ch=='[')
-			outchar_esc++;
-		else
-			outchar_esc=0; 
+		if((ch>='@' && ch<='Z') || (ch>='a' && ch<='z'))
+			outchar_esc=0;
 	}
 	else
 		outchar_esc=0;
