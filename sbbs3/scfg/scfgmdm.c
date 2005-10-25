@@ -1,6 +1,6 @@
 /* scfgmdm.c */
 
-/* $Id: scfgmdm.c,v 1.5 2005/11/27 23:34:28 deuce Exp $ */
+/* $Id: scfgmdm.c,v 1.4 2005/09/20 03:40:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,8 +273,9 @@ while(!feof(stream)) {
 		continue; }
 
 	sprintf(msg,"ERROR: '%.15s' in %.8s.MDM",p,fname);
+	savnum--;
 	umsg(msg);
-}
+	savnum++; }
 
 fclose(stream);
 return(1);

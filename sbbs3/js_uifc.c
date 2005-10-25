@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.9 2005/11/25 22:03:08 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.6 2005/10/25 03:05:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,10 +45,10 @@
 
 /* Properties */
 enum {
-	 PROP_INITIALIZED	/* read-only */
-	,PROP_MODE
+	 PROP_MODE
 	,PROP_CHANGES
 	,PROP_SAVNUM
+	,PROP_SAVDEPTH
 	,PROP_SCRN_LEN
     ,PROP_SCRN_WIDTH
 	,PROP_ESC_DELAY
@@ -72,9 +72,6 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
-		case PROP_INITIALIZED:
-			*vp=BOOLEAN_TO_JSVAL(uifc->initialized);
-			break;
 		case PROP_MODE:
 			JS_NewNumberValue(cx,uifc->mode,vp);
 			break;
@@ -83,6 +80,9 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case PROP_SAVNUM:
 			*vp=INT_TO_JSVAL(uifc->savnum);
+			break;
+		case PROP_SAVDEPTH:
+			*vp=INT_TO_JSVAL(uifc->savdepth);
 			break;
 		case PROP_SCRN_LEN:
 			*vp=INT_TO_JSVAL(uifc->scrn_len);
@@ -140,6 +140,9 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case PROP_SAVNUM:
 			JS_ValueToInt32(cx, *vp, (int32*)&uifc->savnum);
 			break;
+		case PROP_SAVDEPTH:
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->savdepth);
+			break;
 		case PROP_SCRN_LEN:
 			JS_ValueToInt32(cx, *vp, (int32*)&uifc->scrn_len);
 			break;
@@ -187,10 +190,10 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static jsSyncPropertySpec js_properties[] = {
 /*		 name,				tinyid,						flags,		ver	*/
 
-	{	"initialized",		PROP_INITIALIZED,	JSPROP_ENUMERATE|JSPROP_READONLY, 313 },
 	{	"mode",				PROP_MODE,			JSPROP_ENUMERATE,	313 },
 	{	"changes",			PROP_CHANGES,		JSPROP_ENUMERATE,	313 },
 	{	"save_num",			PROP_SAVNUM,		JSPROP_ENUMERATE,	313 },
+	{	"save_depth",		PROP_SAVDEPTH,		JSPROP_ENUMERATE,	313 },
 	{	"screen_length",	PROP_SCRN_LEN,		JSPROP_ENUMERATE,	313 },
 	{	"screen_width",		PROP_SCRN_WIDTH,	JSPROP_ENUMERATE,	313 },
 	{	"list_height",		PROP_LIST_HEIGHT,	JSPROP_ENUMERATE,	313 },
@@ -204,22 +207,6 @@ static jsSyncPropertySpec js_properties[] = {
 	{0}
 };
 
-/* Convenience functions */
-static uifcapi_t* get_uifc(JSContext *cx, JSObject *obj)
-{
-	uifcapi_t* uifc;
-
-	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(NULL);
-
-	if(!uifc->initialized) {
-		JS_ReportError(cx,"UIFC not initialized");
-		return(NULL);
-	}
-
-	return(uifc);
-}
-
 /* Methods */
 
 static JSBool
@@ -227,7 +214,6 @@ js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
 	char*	title="Synchronet";
-	char*	mode;
 	uifcapi_t* uifc;
 
 	*rval = JSVAL_FALSE;
@@ -238,29 +224,11 @@ js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc && (title=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
 		return(JS_FALSE);
 
-	if(argc>1 && (mode=js_ValueToStringBytes(cx, argv[1], NULL))!=NULL) {
-		if(!stricmp(mode,"STDIO"))
-			ciolib_mode=-1;
-		else if(!stricmp(mode,"AUTO"))
-			ciolib_mode=CIOLIB_MODE_AUTO;
-		else if(!stricmp(mode,"X"))
-			ciolib_mode=CIOLIB_MODE_X;
-		else if(!stricmp(mode,"ANSI"))
-			ciolib_mode=CIOLIB_MODE_ANSI;
-		else if(!stricmp(mode,"CONIO"))
-			ciolib_mode=CIOLIB_MODE_CONIO;
-	}
+	if(initciolib(ciolib_mode))
+		return(JS_TRUE);
 
-	if(ciolib_mode==-1) {
-		if(uifcinix(uifc))
-			return(JS_TRUE);
-	} else {
-		if(initciolib(ciolib_mode))
-			return(JS_TRUE);
-
-		if(uifcini32(uifc))
-			return(JS_TRUE);
-	}
+    if(uifcini32(uifc))
+		return(JS_TRUE);
 
 	*rval = JSVAL_TRUE;
 	uifc->scrn(title);
@@ -272,7 +240,7 @@ js_uifc_bail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uifcapi_t* uifc;
 
-	if((uifc=get_uifc(cx,obj))==NULL)
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	uifc->bail();
@@ -285,7 +253,7 @@ js_uifc_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		str;
 	uifcapi_t*	uifc;
 
-	if((uifc=get_uifc(cx,obj))==NULL)
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
@@ -301,7 +269,7 @@ js_uifc_pop(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		str=NULL;
 	uifcapi_t*	uifc;
 
-	if((uifc=get_uifc(cx,obj))==NULL)
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(argc)
@@ -325,7 +293,7 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	uifcapi_t*	uifc;
 	uintN		argn=0;
 
-	if((uifc=get_uifc(cx,obj))==NULL)
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
@@ -387,7 +355,7 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	jsuint		numopts;
 	str_list_t	opts=NULL;
 
-	if((uifc=get_uifc(cx,obj))==NULL)
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
