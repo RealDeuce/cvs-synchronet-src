@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.73 2005/09/14 19:11:22 deuce Exp $
+# $Id: Makefile,v 1.79 2005/10/24 18:59:27 deuce Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -30,7 +30,7 @@ CFLAGS = $(CFLAGS) -DJAVASCRIPT
 !endif
 
 !ifndef JSLIBDIR
-	JSLIBDIR = $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)win32.$(BUILDPATH)
+	JSLIBDIR = $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)win32.$(BUILD)
 !endif
 !ifndef JSLIB
 	JSLIB	=	js32omf
@@ -38,7 +38,7 @@ CFLAGS = $(CFLAGS) -DJAVASCRIPT
 !ifndef NSPRDIR
 	# There *IS* no debug build in CVS
 	# That's ok, looks like it doesn't need NSPR4
-	#NSPRDIR = $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)nspr$(DIRSEP)win32.$(BUILDPATH)
+	#NSPRDIR = $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)nspr$(DIRSEP)win32.$(BUILD)
 	#NSPRDIR = $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)nspr$(DIRSEP)win32.release
 !endif
 JS_LDFLAGS = $(JS_LDFLAGS) $(JSLIBDIR)$(DIRSEP)$(UL_PRE)$(JSLIB)$(UL_SUF)
@@ -46,7 +46,6 @@ JS_LDFLAGS = $(JS_LDFLAGS) $(JSLIBDIR)$(DIRSEP)$(UL_PRE)$(JSLIB)$(UL_SUF)
 #JS_LDFLAGS = $(JS_LDFLAGS) -L$(NSPRDIR) $(UL_PRE)nspr4$(UL_SUF)
 
 CFLAGS	=	$(CFLAGS) $(JS_CFLAGS)
-LDFLAGS	=	$(LDFLAGS) $(JS_LDFLAGS)
 
 !include sbbsdefs.mk
 MT_CFLAGS	=	$(MT_CFLAGS) $(SBBSDEFS)
@@ -54,13 +53,15 @@ CFLAGS	=	$(CFLAGS) -DMD5_IMPORTS
 
 CON_LIBS	= $(UL_PRE)sbbs$(UL_SUF) $(UL_PRE)ftpsrvr$(UL_SUF) $(UL_PRE)websrvr$(UL_SUF) $(UL_PRE)mailsrvr$(UL_SUF) $(UL_PRE)services$(UL_SUF)
 
-CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) -DNO_SOCKET_SUPPORT
+CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) 
 LDFLAGS =	$(LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS)
+# JS_LDFLAGS includes libs, so needs to be added last.
+LDFLAGS	=	$(LDFLAGS) $(JS_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(MT_LDFLAGS) -e$@ $(LDFLAGS) $(SMBLIB) $(XPDEV-MT_LIB)  @&&|
+	$(QUIET)$(CC) $(MT_LDFLAGS) -e$@ $(LDFLAGS) $(SMBLIB) $(XPDEV-MT_LIB) iphlpapi.lib @&&|
 	$** 
 |
 
@@ -85,7 +86,7 @@ $(FTPSRVR): $(FTP_OBJS)
 $(MAILSRVR): $(MAIL_OBJS)
 	@echo Linking $@
 	$(QUIET)$(MKSHLIB) $(MT_LDFLAGS) -lGi -e$@ $(LDFLAGS) $(SHLIBOPTS) \
-		$(XPDEV-MT_LIB) $(LIBODIR)$(DIRSEP)sbbs.lib @&&|
+		$(XPDEV-MT_LIB) $(LIBODIR)$(DIRSEP)sbbs.lib iphlpapi.lib @&&|
 	$**
 |
 
@@ -172,7 +173,8 @@ $(MAKEUSER): $(MAKEUSER_OBJS)
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CC) -e$@ $(LDFLAGS) $(JSEXEC_OBJS) $(XPDEV-MT_LIB) \
+	$(QUIET)$(CC) $(MT_LDFLAGS) -e$@ $(LDFLAGS) $(JSEXEC_OBJS) \
+		$(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS) \
 		$(LIBODIR)$(DIRSEP)$(UL_PRE)sbbs$(UL_SUF)
 
 # ANS2ASC
@@ -218,5 +220,15 @@ $(ALLUSERS): $(ALLUSERS_OBJS)
 
 # DELFILES
 $(DELFILES): $(DELFILES_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV_LIBS)
+
+# DUPEFIND
+$(DUPEFIND): $(DUPEFIND_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV_LIBS)
+
+# SMBACTIV
+$(SMBACTIV): $(SMBACTIV_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV_LIBS)
