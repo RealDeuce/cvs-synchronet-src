@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.44 2005/10/25 19:59:04 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.45 2005/10/25 20:29:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,6 +273,8 @@ void sbbs_t::outchar(char ch)
 		if(lbuflen<LINE_BUFSIZE)
 			lbuf[lbuflen++]=ch; 
 	}
+	if(outchar_esc==3)
+		outchar_esc=0;
 
 	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON) 
 		&& !(sys_status&SS_PAUSEOFF)) {
