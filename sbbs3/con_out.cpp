@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.40 2005/10/25 19:40:32 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.41 2005/10/25 19:42:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,6 +207,7 @@ void sbbs_t::outchar(char ch)
 			pause();
 			while(lncntr && online && !(sys_status&SS_ABORT))
 				pause(); 
+			sys_status&=~SS_ABORT;
 		}
 	}
 #if 0
