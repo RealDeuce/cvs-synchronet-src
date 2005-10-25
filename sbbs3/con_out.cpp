@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.38 2005/09/02 18:49:39 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.44 2005/10/25 19:59:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,7 +190,11 @@ void sbbs_t::outchar(char ch)
 		if(ch=='[')
 			outchar_esc++;
 		else
-			outchar_esc=0; 
+			outchar_esc=0;
+	}
+	else if(outchar_esc==2) {
+		if((ch>='@' && ch<='Z') || (ch>='a' && ch<='z'))
+			outchar_esc++;
 	}
 	else
 		outchar_esc=0;
@@ -203,6 +207,7 @@ void sbbs_t::outchar(char ch)
 			pause();
 			while(lncntr && online && !(sys_status&SS_ABORT))
 				pause(); 
+			sys_status&=~SS_ABORT;
 		}
 	}
 #if 0
@@ -226,7 +231,7 @@ void sbbs_t::outchar(char ch)
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
 		/* TODO: If this replaces spaces, destructive backspace won't work */
 		/* if it doesn't, a space is displayed as a space */
-		if(console&CON_R_ECHOX && (uchar)ch>=' ') {
+		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
 			ch=text[YN][3];
 			if(text[YN][2]==0 || ch==0) ch='X';
 		}

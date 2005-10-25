@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.21 2004/02/23 02:06:17 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.22 2005/09/20 03:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -192,13 +192,13 @@ void sbbs_t::backout()
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		return; }
 	length=filelength(file);
-	if((buf=(char *)MALLOC(length))==NULL) {
+	if((buf=(char *)malloc(length))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length);
 		return; }
 	if(read(file,buf,length)!=length) {
 		close(file);
-		FREE(buf);
+		free(buf);
 		errormsg(WHERE,ERR_READ,str,length);
 		return; }
 	close(file);
@@ -217,7 +217,7 @@ void sbbs_t::backout()
 				break;
 			default:
 				errormsg(WHERE,ERR_CHK,str,buf[l]); } }
-	FREE(buf);
+	free(buf);
 	remove(str);	/* always remove the backout file */
 }
 
