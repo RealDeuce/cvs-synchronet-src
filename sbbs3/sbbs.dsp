@@ -275,10 +275,6 @@ SOURCE=.\js_socket.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\js_sprintf.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\js_system.c
 # End Source File
 # Begin Source File
