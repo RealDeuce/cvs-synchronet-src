@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.45 2005/10/25 20:29:56 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.46 2005/10/25 20:31:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,8 +229,6 @@ void sbbs_t::outchar(char ch)
 #endif
 
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
-		/* TODO: If this replaces spaces, destructive backspace won't work */
-		/* if it doesn't, a space is displayed as a space */
 		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
 			ch=text[YN][3];
 			if(text[YN][2]==0 || ch==0) ch='X';
