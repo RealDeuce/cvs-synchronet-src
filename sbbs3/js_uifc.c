@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.5 2005/10/22 02:21:46 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.6 2005/10/25 03:05:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,7 +394,7 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-    *rval = INT_TO_JSVAL(uifc->list(mode,left,top,width,&dflt,&bar,title,opts));
+    *rval = INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)&dflt,(int*)&bar,title,opts));
 	strListFree(&opts);
 	return(JS_TRUE);
 }
