@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.63 2005/10/22 01:14:44 deuce Exp $ */
+/* $Id: ciolib.c,v 1.64 2005/10/27 22:26:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,10 +278,10 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 		case 1:
 			return(0);
 		case -1:
+			initialized=1;
 			if(cio_api.resume != NULL)
 				cio_api.resume();
 			ciolib_clrscr();
-			initialized=1;
 			return(0);
 	}
 
