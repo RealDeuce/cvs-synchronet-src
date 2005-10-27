@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.13 2005/10/14 06:21:15 deuce Exp $
+# $Id: Makefile,v 1.14 2005/10/27 22:46:37 deuce Exp $
 
 # To build a DLL, use "make [OPTIONS] DLLIBS=1 dl-mtlib"
 # You *MUST* do a clean between a static and dynamic lib on Win32!
@@ -52,3 +52,6 @@ $(CIOLIB-MT_SHLIB_BUILD): $(OBJS)
 	$**
 	cw32mt.lib
 |
+
+test:
+	$(QUIET)$(CC) $(CFLAGS) $(MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) keytest.c $(LDFLAGS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
