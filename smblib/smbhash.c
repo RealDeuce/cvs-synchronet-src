@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.13 2005/08/01 23:21:12 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.15 2005/10/02 23:28:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -371,24 +371,4 @@ ushort SMBCALL smb_name_crc(const char* name)
 	free(str);
 
 	return(crc);
-}
-
-int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
-{
-	msg->idx.subj=smb_subject_crc(msg->subj);
-	if(smb->status.attr&SMB_EMAIL) {
-		if(msg->to_ext)
-			msg->idx.to=atoi(msg->to_ext);
-		else
-			msg->idx.to=0;
-		if(msg->from_ext)
-			msg->idx.from=atoi(msg->from_ext);
-		else
-			msg->idx.from=0; 
-	} else {
-		msg->idx.to=smb_name_crc(msg->to);
-		msg->idx.from=smb_name_crc(msg->from);
-	}
-
-	return(SMB_SUCCESS);
 }
