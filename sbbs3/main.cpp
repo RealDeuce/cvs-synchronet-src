@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.427 2006/01/27 06:37:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.414 2005/10/27 19:48:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,6 +48,10 @@
 #endif
 
 //---------------------------------------------------------------------------
+
+/* Temporary */
+int	mswtyp=0;
+uint riobp;
 
 #define TELNET_SERVER "Synchronet Telnet Server"
 #define STATUS_WFC	"Listening"
@@ -346,7 +350,17 @@ DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char* str
 		,STRING_TO_JSVAL(js_str),NULL,NULL,JSPROP_READONLY));
 }
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
+
+#if 0
+static char* server_prop_desc[] = {
+
+	 "server name and version number"
+	,"detailed version/build information"
+	,NULL
+};
+#endif
+
 
 static const char* method_array_name = "_method_list";
 static const char* propver_array_name = "_property_ver_list";
@@ -374,7 +388,6 @@ JSBool
 DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec* props)
 {
 	uint		i;
-	long		ver;
 	jsval		val;
 	jsuint		len=0;
 	JSObject*	array;
@@ -391,9 +404,7 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
 			return(JS_FALSE);
 		if(props[i].flags&JSPROP_ENUMERATE) {	/* No need to version invisible props */
-			if((ver=props[i].ver) < 10000)		/* auto convert 313 to 31300 */
-				ver*=100;
-			val = INT_TO_JSVAL(ver);
+			val = INT_TO_JSVAL(props[i].ver);
 			if(!JS_SetElement(cx, array, len++, &val))
 				return(JS_FALSE);
 		}
@@ -407,7 +418,6 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 {
 	int			i;
 	jsuint		len=0;
-	long		ver;
 	jsval		val;
 	JSObject*	method;
 	JSObject*	method_array;
@@ -472,9 +482,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		}
 
 		if(funcs[i].ver) {
-			if((ver=funcs[i].ver<10000)		/* auto convert 313 to 31300 */
-				ver*=100;
-			val = INT_TO_JSVAL(ver);
+			val = INT_TO_JSVAL(funcs[i].ver);
 			JS_SetProperty(cx,method, "ver", &val);
 		}
 
@@ -486,7 +494,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
-#else // NON-JSDOCS
+#else // NON-DEBUG
 
 JSBool
 DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec* props)
@@ -655,26 +663,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_write_raw(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-    uintN		i;
-    char*	str=NULL;
-	size_t		len;
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-    for (i = 0; i < argc; i++) {
-		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
-		    return(JS_FALSE);
-		sbbs->putcom(str, len);
-	}
-
-    return(JS_TRUE);
-}
-
-static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
@@ -693,15 +681,36 @@ static JSBool
 js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
+    uintN		i;
+	JSString *	fmt;
+    JSString *	str;
 	sbbs_t*		sbbs;
+	va_list		arglist[64];
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if((p = js_sprintf(cx, 0, argc, argv))==NULL) {
-		JS_ReportError(cx,"js_sprintf failed");
+	if((fmt = JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
+
+	memset(arglist,0,sizeof(arglist));	// Initialize arglist to NULLs
+
+    for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
+		if(JSVAL_IS_DOUBLE(argv[i]))
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
+		else if(JSVAL_IS_INT(argv[i]))
+			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+				JS_ReportError(cx,"JS_ValueToString failed");
+			    return(JS_FALSE);
+			}
+			arglist[i-1]=JS_GetStringBytes(str);
+		}
 	}
+	
+	if((p=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL)
+		return(JS_FALSE);
 
 	if(sbbs->online==ON_LOCAL)
 		eprintf(LOG_INFO,"%s",p);
@@ -710,7 +719,7 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p));
 
-	js_sprintf_free(p);
+	JS_smprintf_free(p);
 
     return(JS_TRUE);
 }
@@ -804,10 +813,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"write",			js_write,			0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
 	,JSDOCSTR("send one or more values (typically strings) to the server output")
 	,311
-	},
-	{"write_raw",			js_write_raw,			0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
-	,JSDOCSTR("send a stream of bytes (possibly containing NULLs or special control code sequences) to the server output")
-	,313
 	},
 	{"print",			js_writeln,			0,	JSTYPE_ALIAS },
     {"writeln",         js_writeln,         0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
@@ -1713,7 +1718,7 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					sprintf(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,24*60*60))
+					if(!fmutex(semfile,startup->host_name))
 						continue;
 					sbbs->online=ON_LOCAL;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
@@ -1737,7 +1742,7 @@ void event_thread(void* arg)
 				eprintf(LOG_DEBUG,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				sprintf(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
-				if(!fmutex(semfile,startup->host_name,24*60*60)) {
+				if(!fmutex(semfile,startup->host_name)) {
 					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
 					continue;
 				}
@@ -1904,7 +1909,6 @@ void event_thread(void* arg)
 						,j>10 ? ((j-1)/10)+'0' : 'w'
 						,j ? ((j-1)%10)+'0' : 'k');
 					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
-						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
@@ -2316,7 +2320,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
 	uselect_total = 0;
 	lbuflen = 0;
-	keybufbot=keybuftop=0;	/* initialize [unget]keybuf pointers */
 	connection="Telnet";
 
 	ZERO_VAR(telnet_local_option);
@@ -2326,7 +2329,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	telnet_mode=0;
 	telnet_last_rxch=0;
 
-	sys_status=lncntr=tos=criterrs=slcnt=0L;
+	sys_status=lncntr=tos=criterrs=lbuflen=slcnt=0L;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -2424,8 +2427,6 @@ bool sbbs_t::init()
 			errormsg(WHERE,ERR_CREATE,"duplicate socket handle",client_socket);
 			return(false);
 		}
-#else
-		client_socket_dup = client_socket;
 #endif
 
 		addr_len=sizeof(addr);
@@ -2720,7 +2721,7 @@ sbbs_t::~sbbs_t()
 //	if(!cfg.node_num)
 //		rmdir(cfg.temp_dir);
 
-	if(client_socket_dup!=INVALID_SOCKET && client_socket_dup!=client_socket)
+	if(client_socket_dup!=INVALID_SOCKET)
 		closesocket(client_socket_dup);	/* close duplicate handle */
 
 	if(cfg.node_num>0)
@@ -3014,16 +3015,16 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 
 void sbbs_t::hangup(void)
 {
-	if(client_socket_dup!=INVALID_SOCKET && client_socket_dup!=client_socket)
-		closesocket(client_socket_dup);
-	client_socket_dup=INVALID_SOCKET;
-
 	if(client_socket!=INVALID_SOCKET) {
 		mswait(1000);	/* Give socket output buffer time to flush */
 		riosync(0);
 		client_off(client_socket);
 		close_socket(client_socket);
 		client_socket=INVALID_SOCKET;
+	}
+	if(client_socket_dup!=INVALID_SOCKET) {
+		closesocket(client_socket_dup);
+		client_socket_dup=INVALID_SOCKET;
 	}
 	sem_post(&outbuf.sem);
 	online=0;
@@ -3194,7 +3195,6 @@ void sbbs_t::reset_logon_vars(void)
     slcnt=0;
     altul=0;
     timeleft_warn=0;
-	keybufbot=keybuftop=0;
     logon_uls=logon_ulb=logon_dls=logon_dlb=0;
     logon_posts=logon_emails=logon_fbacks=0;
     batdn_total=batup_total=0;
@@ -3463,7 +3463,7 @@ void node_thread(void* arg)
 		lprintf(LOG_INFO,"Node %d Checking for inactive/expired user records..."
 			,sbbs->cfg.node_num);
 		lastusernum=lastuser(&sbbs->cfg);
-		for(usernum=1;usernum<=lastusernum;usernum++) {
+		for(usernum=2;usernum<=lastusernum;usernum++) {
 
 			sprintf(str,"%5u of %-5u",usernum,lastusernum);
 			status(str);
@@ -3486,9 +3486,6 @@ void node_thread(void* arg)
 
 			if(strcmp(user.alias,uname))
 				putusername(&sbbs->cfg,user.number,user.alias);
-
-			if(user.number==1)
-				continue;	/* skip expiration/inactivity checks for user #1 */
 
 			if(!(user.misc&(DELETED|INACTIVE))
 				&& user.expire && (ulong)user.expire<=(ulong)now) {
@@ -3694,7 +3691,13 @@ const char* DLLCALL bbs_ver(void)
 /* Returns binary-coded version and revision (e.g. 0x31000 == 3.10a) */
 long DLLCALL bbs_ver_num(void)
 {
-	return(VERSION_HEX);
+	char*	minor;
+
+	if((minor=(char *)strchr(VERSION,'.'))==NULL)
+		return(0);
+	minor++;
+
+	return((strtoul(VERSION,NULL,16)<<16)|(strtoul(minor,NULL,16)<<8)|(REVISION-'A'));
 }
 
 void DLLCALL bbs_terminate(void)
