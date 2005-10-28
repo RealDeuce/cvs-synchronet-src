@@ -2,13 +2,13 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.30 2006/01/13 01:03:40 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.29 2005/06/21 17:35:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -210,17 +210,6 @@ typedef struct {
 	char*	name;
 	BOOL	value;
 } named_bool_t;
-
-typedef struct {
-	int		key;
-	char*	value;
-} keyed_string_t;
-
-typedef struct {
-	int		key;
-	int		value;
-} keyed_int_t;
-
 
 /************************/
 /* Handy Integer Macros */
