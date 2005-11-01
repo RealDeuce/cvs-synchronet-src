@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.32 2006/01/26 04:14:10 deuce Exp $ */
+/* $Id: download.cpp,v 1.31 2005/05/14 05:12:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,8 +231,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	if(prot->misc&PROT_NATIVE)
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
-	if(!(prot->misc&PROT_SOCKET))
-		ex_mode|=(EX_INR|EX_OUTR|EX_BIN);
+	ex_mode|=(EX_INR|EX_OUTR|EX_BIN);
 #endif
 
 	i=external(cmdline,ex_mode,p);
