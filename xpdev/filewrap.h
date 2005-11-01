@@ -2,13 +2,13 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.25 2005/11/08 07:45:00 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.24 2005/11/01 00:30:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -111,7 +111,6 @@
 	#endif
 	#define chsize(fd,size)		ftruncate(fd,size)
 	#define tell(fd)			lseek(fd,0,SEEK_CUR)
-	#define eof(fd)				(tell(fd)==filelength(fd))
 
 #elif defined(__OS2__)
 
