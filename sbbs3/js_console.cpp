@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.61 2006/01/12 23:55:55 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.59 2005/05/09 09:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -271,7 +271,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* con_prop_desc[] = {
 	 "status bitfield (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current line counter (used for automatic screen pause)"
@@ -597,19 +597,6 @@ js_mnemonics(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return(JS_TRUE);
 }
 
-static void
-js_set_attr(JSContext* cx, sbbs_t* sbbs, jsval val)
-{
-	int32		attr;
-
-	if(JSVAL_IS_STRING(val))
-		attr=attrstr(js_ValueToStringBytes(cx,val,NULL));
-	else
-		JS_ValueToInt32(cx, val, &attr);
-
-	sbbs->attr(attr);
-}
-
 static JSBool
 js_clear(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -617,9 +604,6 @@ js_clear(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
-
-	if(argc)
-		js_set_attr(cx, sbbs, argv[0]);
 
 	sbbs->CLS;
     return(JS_TRUE);
@@ -633,9 +617,6 @@ js_clearline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		js_set_attr(cx, sbbs, argv[0]);
-
 	sbbs->clearline();
     return(JS_TRUE);
 }
@@ -647,9 +628,6 @@ js_cleartoeol(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
-
-	if(argc)
-		js_set_attr(cx, sbbs, argv[0]);
 
 	sbbs->cleartoeol();
     return(JS_TRUE);
@@ -1170,7 +1148,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a string based on template")
 	,310
 	},		
-	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("")
+	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		""
 	,JSDOCSTR("put a string in the keyboard buffer")
 	,310
 	},		
@@ -1186,30 +1164,27 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("print a mnemonics string")
 	,310
 	},		
-	{"clear",           js_clear,			0, JSTYPE_VOID,		JSDOCSTR("[attribute]")
-	,JSDOCSTR("clear screen and home cursor, "
-		"optionally (in v3.13b+) setting current attribute first")
+	{"clear",           js_clear,			0, JSTYPE_VOID,		""
+	,JSDOCSTR("clear screen and home cursor")
 	,310
 	},
-	{"home",            js_cursor_home,		0, JSTYPE_VOID,		JSDOCSTR("")
+	{"home",            js_cursor_home,		0, JSTYPE_VOID,		""
 	,JSDOCSTR("send cursor to home position (x,y:1,1)")
 	,311
 	},
-	{"clearline",       js_clearline,		0, JSTYPE_VOID,		JSDOCSTR("[attribute]")
-	,JSDOCSTR("clear current line, "
-		"optionally (in v3.13b+) setting current attribute first")
+	{"clearline",       js_clearline,		0, JSTYPE_VOID,		""
+	,JSDOCSTR("clear current line")
 	,310
 	},		
-	{"cleartoeol",      js_cleartoeol,		0, JSTYPE_VOID,		JSDOCSTR("[attribute]")
-	,JSDOCSTR("clear to end-of-line (ANSI), "
-		"optionally (in v3.13b+) setting current attribute first")
+	{"cleartoeol",      js_cleartoeol,		0, JSTYPE_VOID,		""
+	,JSDOCSTR("clear to end-of-line (ANSI)")
 	,311
 	},		
-	{"crlf",            js_crlf,			0, JSTYPE_VOID,		JSDOCSTR("")
+	{"crlf",            js_crlf,			0, JSTYPE_VOID,		""
 	,JSDOCSTR("output a carriage-return/line-feed pair (new-line)")
 	,310
 	},		
-	{"pause",			js_pause,			0, JSTYPE_VOID,		JSDOCSTR("")
+	{"pause",			js_pause,			0, JSTYPE_VOID,		""
 	,JSDOCSTR("display pause prompt and wait for key hit")
 	,310
 	},
@@ -1254,11 +1229,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("user selection menu, call for each item, then with no args to display select menu")
 	,312
 	},		
-	{"saveline",		js_saveline,		0, JSTYPE_VOID,		JSDOCSTR("")
+	{"saveline",		js_saveline,		0, JSTYPE_VOID,		""
 	,JSDOCSTR("save last output line")
 	,310
 	},		
-	{"restoreline",		js_restoreline,		0, JSTYPE_VOID,		JSDOCSTR("")
+	{"restoreline",		js_restoreline,		0, JSTYPE_VOID,		""
 	,JSDOCSTR("restore last output line")
 	,310
 	},		
@@ -1268,63 +1243,63 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},		
 	{"ansi_save",		js_pushxy,			0, JSTYPE_ALIAS	},
 	{"ansi_pushxy",		js_pushxy,			0, JSTYPE_ALIAS	},
-	{"pushxy",			js_pushxy,			0, JSTYPE_VOID,		JSDOCSTR("")
+	{"pushxy",			js_pushxy,			0, JSTYPE_VOID,		""
 	,JSDOCSTR("save current cursor position (AKA ansi_save)")
 	,311
 	},
 	{"ansi_restore",	js_popxy,			0, JSTYPE_ALIAS },
 	{"ansi_popxy",		js_popxy,			0, JSTYPE_ALIAS },
-	{"popxy",			js_popxy,			0, JSTYPE_VOID,		JSDOCSTR("")
+	{"popxy",			js_popxy,			0, JSTYPE_VOID,		""
 	,JSDOCSTR("restore saved cursor position (AKA ansi_restore)")
 	,311
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
 	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("number x,y")
-	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI), "
+	,JSDOCSTR("Move cursor to a specific screen coordinate (ANSI), "
 	"arguments can be separate x and y cooridinates or an object with x and y properites "
 	"(like that returned from <tt>console.getxy()</tt>)")
 	,311
 	},
 	{"ansi_up",			js_cursor_up,		0, JSTYPE_ALIAS },
 	{"up",				js_cursor_up,		0, JSTYPE_VOID,		JSDOCSTR("[number rows]")
-	,JSDOCSTR("move cursor up one or more rows (ANSI)")
+	,JSDOCSTR("Move cursor up one or more rows (ANSI)")
 	,311
 	},
 	{"ansi_down",		js_cursor_down,		0, JSTYPE_ALIAS },
 	{"down",			js_cursor_down,		0, JSTYPE_VOID,		JSDOCSTR("[number rows]")
-	,JSDOCSTR("move cursor down one or more rows (ANSI)")
+	,JSDOCSTR("Move cursor down one or more rows (ANSI)")
 	,311
 	},
 	{"ansi_right",		js_cursor_right,	0, JSTYPE_ALIAS },
 	{"right",			js_cursor_right,	0, JSTYPE_VOID,		JSDOCSTR("[number columns]")
-	,JSDOCSTR("move cursor right one or more columns (ANSI)")
+	,JSDOCSTR("Move cursor right one or more columns (ANSI)")
 	,311
 	},
 	{"ansi_left",		js_cursor_left,		0, JSTYPE_ALIAS },
 	{"left",			js_cursor_left,		0, JSTYPE_VOID,		JSDOCSTR("[number columns]")
-	,JSDOCSTR("move cursor left one or more columns (ANSI)")
+	,JSDOCSTR("Move cursor left one or more columns (ANSI)")
 	,311
 	},
 	{"ansi_getlines",	js_getlines,		0, JSTYPE_ALIAS },
-	{"getlines",		js_getlines,		0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("auto-detect the number of rows/lines on the user's terminal (ANSI)")
+	{"getlines",		js_getlines,		0, JSTYPE_VOID,		""
+	,JSDOCSTR("Auto-detect the number of rows/lines on the user's terminal (ANSI)")
 	,311
 	},
 	{"ansi_getxy",		js_getxy,			0, JSTYPE_ALIAS },
-	{"getxy",			js_getxy,			0, JSTYPE_OBJECT,	JSDOCSTR("")
-	,JSDOCSTR("returns the current cursor position as an object (with x and y properties)")
+	{"getxy",			js_getxy,			0, JSTYPE_OBJECT,	""
+	,JSDOCSTR("Returns the current cursor position as an object (with x and y properties)")
 	,311
 	},
 	{"lock_input",		js_lock_input,		1, JSTYPE_VOID,		JSDOCSTR("[boolean lock]")
-	,JSDOCSTR("lock the user input thread (allowing direct client socket access)")
+	,JSDOCSTR("Lock the user input thread (allowing direct client socket access)")
 	,310
 	},
 	{"telnet_cmd",		js_telnet_cmd,		2, JSTYPE_VOID,		JSDOCSTR("number cmd [,number option]")
-	,JSDOCSTR("send telnet command (with optional command option) to remote client")
+	,JSDOCSTR("Send telnet command (with optional command option) to remote client")
 	,310
 	},
 	{"handle_ctrlkey",	js_handle_ctrlkey,	1, JSTYPE_BOOLEAN,	JSDOCSTR("string key [,number mode]")
-	,JSDOCSTR("call internal control key handler for specified control key, returns true if handled")
+	,JSDOCSTR("Call internal control key handler for specified control key, returns true if handled")
 	,311
 	},
 	{0}
@@ -1380,7 +1355,7 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 			return(NULL);
 	}	
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Controls the user's Telnet/RLogin terminal",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", con_prop_desc, JSPROP_READONLY);
 #endif
