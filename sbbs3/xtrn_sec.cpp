@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.48 2006/01/13 02:03:40 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.46 2005/11/08 21:13:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -411,7 +411,15 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,cfg.temp_dir
 			,cfg.sys_id
 			,cfg.node_misc
+	#if defined(__OS2__)
+			,rio_handle
+	#elif defined(_WIN32)
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
+	#elif defined(__unix__)
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket
+	#else
+			,-1
+	#endif
 			);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -1701,19 +1709,22 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		remove(str);
 		hangup(); 
 	}
-	if(!online) {
-		sprintf(str,"%shungup.log",cfg.logs_dir);
-		if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
-			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
-			return(false); 
-		}
-		getnodedat(cfg.node_num,&thisnode,0);
-		now=time(NULL);
-		sprintf(str,hungupstr,useron.alias,cfg.xtrn[thisnode.aux-1]->name
-			,timestr(&now));
-		write(file,str,strlen(str));
-		close(file); 
-	} 
+	if(online==ON_REMOTE) {
+		checkline();
+		if(!online) {
+			sprintf(str,"%shungup.log",cfg.logs_dir);
+			if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
+				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
+				return(false); 
+			}
+			getnodedat(cfg.node_num,&thisnode,0);
+			now=time(NULL);
+			sprintf(str,hungupstr,useron.alias,cfg.xtrn[thisnode.aux-1]->name
+				,timestr(&now));
+			write(file,str,strlen(str));
+			close(file); 
+		} 
+	}
 	if(cfg.xtrn[xtrnnum]->misc&MODUSERDAT) 	/* Modify user data */
 		moduserdat(xtrnnum);
 
