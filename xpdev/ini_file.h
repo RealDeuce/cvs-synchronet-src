@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.h,v 1.33 2005/09/18 00:54:45 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.36 2005/10/15 21:47:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,9 @@
 
 #include "genwrap.h"
 #include "str_list.h"	/* strList_t */
+#if !defined(NO_SOCKET_SUPPORT)
+	#include "sockwrap.h"	/* inet_addr, SOCKET */
+#endif
 
 #define INI_MAX_VALUE_LEN	1024		/* Maximum value length, includes '\0' */
 #define ROOT_SECTION		NULL
@@ -70,6 +73,9 @@ str_list_t	iniReadKeyList(FILE*, const char* section);
 named_string_t**
 			iniReadNamedStringList(FILE*, const char* section);
 
+/* Return the supported Log Levels in a string list - for *LogLevel macros */
+str_list_t	iniLogLevelStringList(void);
+
 /* These functions read a single key of the specified type */
 char*		iniReadString(FILE*, const char* section, const char* key
 					,const char* deflt, char* value);
@@ -83,8 +89,6 @@ ulong		iniReadLongInt(FILE*, const char* section, const char* key
 					,ulong deflt);
 ulong		iniReadBytes(FILE*, const char* section, const char* key
 					,ulong unit, ulong deflt);
-ulong		iniReadIpAddress(FILE*, const char* section, const char* key
-					,ulong deflt);
 double		iniReadFloat(FILE*, const char* section, const char* key
 					,double deflt);
 BOOL		iniReadBool(FILE*, const char* section, const char* key
@@ -99,6 +103,7 @@ double		iniReadNamedFloat(FILE*, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniReadBitField(FILE*, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
+#define		iniReadLogLevel(f,s,k,d) iniReadEnum(f,s,k,iniLogLevelStringList(),d)
 
 /* Free string list returned from iniRead*List functions */
 void*		iniFreeStringList(str_list_t list);
@@ -133,8 +138,6 @@ ulong		iniGetLongInt(str_list_t, const char* section, const char* key
 					,ulong deflt);
 ulong		iniGetBytes(str_list_t, const char* section, const char* key
 					,ulong unit, ulong deflt);
-ulong		iniGetIpAddress(str_list_t, const char* section, const char* key
-					,ulong deflt);
 double		iniGetFloat(str_list_t, const char* section, const char* key
 					,double deflt);
 BOOL		iniGetBool(str_list_t, const char* section, const char* key
@@ -149,6 +152,18 @@ double		iniGetNamedFloat(str_list_t, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniGetBitField(str_list_t, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
+#define		iniGetLogLevel(l,s,k,d) iniGetEnum(l,s,k,iniLogLevelStringList(),d)
+
+#if !defined(NO_SOCKET_SUPPORT)
+ulong		iniReadIpAddress(FILE*, const char* section, const char* key
+					,ulong deflt);
+ulong		iniGetIpAddress(str_list_t, const char* section, const char* key
+					,ulong deflt);
+char*		iniSetIpAddress(str_list_t*, const char* section, const char* key, ulong value
+					,ini_style_t*);
+int			iniGetSocketOptions(str_list_t, const char* section
+					,SOCKET sock, char* error, size_t errlen);
+#endif
 
 void		iniSetDefaultStyle(ini_style_t);
 
@@ -166,8 +181,6 @@ char*		iniSetHexInt(str_list_t*, const char* section, const char* key, ulong val
 					,ini_style_t*);
 char*		iniSetFloat(str_list_t*, const char* section, const char* key, double value
 					,ini_style_t*);
-char*		iniSetIpAddress(str_list_t*, const char* section, const char* key, ulong value
-					,ini_style_t*);
 char*		iniSetBool(str_list_t*, const char* section, const char* key, BOOL value
 					,ini_style_t*);
 char*		iniSetDateTime(str_list_t*, const char* section, const char* key, BOOL include_time, time_t
@@ -182,6 +195,7 @@ char*		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bit
 					,ini_style_t*);
 char*		iniSetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, str_list_t value, ini_style_t*);
+#define		iniSetLogLevel(l,s,k,v,style) iniSetEnum(l,s,k,iniLogLevelStringList(),v,style)
 
 size_t		iniAddSection(str_list_t*, const char* section
 					,ini_style_t*);
