@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.84 2006/01/30 01:16:48 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.80 2005/10/07 01:45:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -138,14 +138,14 @@ enum {
 	,BBS_PROP_COMMAND_STR
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	static char* bbs_prop_desc[] = {
 	 "system status bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"answer time, in time_t format"
 	,"logon time, in time_t format"
-	,"curren file new-scan time, in time_t format"
-	,"previous file new-scan time, in time_t format"
+	,"file newscan time, in time_t format"
+	,"previous newscan time, in time_t format"
 	,"online (see <tt>ON_*</tt> in <tt>sbbsdefs.js</tt> for valid values)"
 	,"time left (in seconds)"
 	,"time of next exclusive event (in time_t format), or 0 if none"
@@ -2210,7 +2210,6 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	long		mode=0;
 	char*		fspec=ALLFILES;
-	char		buf[MAX_PATH+1];
 	uint		dirnum;
     JSString*	js_str;
 	sbbs_t*		sbbs;
@@ -2234,7 +2233,7 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-	*rval = INT_TO_JSVAL(sbbs->listfiles(dirnum,padfname(fspec,buf),0 /* tofile */,mode));
+	*rval = INT_TO_JSVAL(sbbs->listfiles(dirnum,fspec,0 /* tofile */,mode));
 	return(JS_TRUE);
 }
 
@@ -2244,7 +2243,6 @@ js_listfileinfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 {
 	long		mode=FI_INFO;
 	char*		fspec=ALLFILES;
-	char		buf[MAX_PATH+1];
 	uint		dirnum;
     JSString*	js_str;
 	sbbs_t*		sbbs;
@@ -2268,7 +2266,7 @@ js_listfileinfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		}
 	}
 
-	*rval = INT_TO_JSVAL(sbbs->listfileinfo(dirnum,padfname(fspec,buf),mode));
+	*rval = INT_TO_JSVAL(sbbs->listfileinfo(dirnum,fspec,mode));
 	return(JS_TRUE);
 }
 
@@ -2508,7 +2506,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},
 	/* procedures */
-	{"newuser",			js_newuser,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"newuser",			js_newuser,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("interactive new user procedure")
 	,310
 	},
@@ -2516,56 +2514,56 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("login with <i>username</i>, displaying <i>password_prompt</i> for password (if required)")
 	,310
 	},
-	{"logon",			js_logon,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"logon",			js_logon,			0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("interactive logon procedure")
 	,310
 	},
-	{"logoff",			js_logoff,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"logoff",			js_logoff,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("interactive logoff procedure")
 	,310
 	},
-	{"logout",			js_logout,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"logout",			js_logout,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("non-interactive logout procedure")
 	,310
 	},
-	{"hangup",			js_hangup,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"hangup",			js_hangup,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("hangup (disconnect) immediately")
 	,310
 	},
 	{"node_sync",		js_nodesync,		0,	JSTYPE_ALIAS },
-	{"nodesync",		js_nodesync,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"nodesync",		js_nodesync,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("synchronize with node database, checks for messages, interruption, etc. (AKA node_sync)")
 	,310
 	},
-	{"auto_msg",		js_automsg,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"auto_msg",		js_automsg,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("read/create system's auto-message")
 	,310
 	},		
-	{"time_bank",		js_time_bank,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"time_bank",		js_time_bank,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the time banking system")
 	,310
 	},		
-	{"qwk_sec",			js_qwk_sec,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"qwk_sec",			js_qwk_sec,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the QWK message packet upload/download/config section")
 	,310
 	},		
-	{"text_sec",		js_text_sec,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"text_sec",		js_text_sec,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the text files section")
 	,310
 	},		
-	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the external programs section")
 	,310
 	},		
-	{"xfer_policy",		js_xfer_policy,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"xfer_policy",		js_xfer_policy,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("display the file transfer policy")
 	,310
 	},		
-	{"batch_menu",		js_batchmenu,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"batch_menu",		js_batchmenu,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the batch file transfer menu")
 	,310
 	},		
-	{"batch_download",	js_batchdownload,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"batch_download",	js_batchdownload,	0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("start a batch download")
 	,310
 	},		
@@ -2573,39 +2571,39 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("add file list to batch download queue")
 	,310
 	},		
-	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the temporary file tranfer menu")
 	,310
 	},		
-	{"user_sync",		js_user_sync,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"user_sync",		js_user_sync,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("read the current user data from the database")
 	,310
 	},		
-	{"user_config",		js_user_config,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"user_config",		js_user_config,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter the user settings configuration menu")
 	,310
 	},		
-	{"sys_info",		js_sys_info,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"sys_info",		js_sys_info,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("display system information")
 	,310
 	},		
-	{"sub_info",		js_sub_info,		1,	JSTYPE_VOID,	JSDOCSTR("[sub-board]")
-	,JSDOCSTR("display message sub-board information (current <i>sub-board</i>, if unspecified)")
+	{"sub_info",		js_sub_info,		1,	JSTYPE_VOID,	JSDOCSTR("[subboard]")
+	,JSDOCSTR("display message sub-board information (current <i>subboard</i>, if unspecified)")
 	,310
 	},		
 	{"dir_info",		js_dir_info,		0,	JSTYPE_VOID,	JSDOCSTR("[directory]")
 	,JSDOCSTR("display file directory information (current <i>directory</i>, if unspecified)")
 	,310
 	},		
-	{"user_info",		js_user_info,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"user_info",		js_user_info,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("display current user information")
 	,310
 	},		
-	{"ver",				js_ver,				0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"ver",				js_ver,				0,	JSTYPE_VOID,	""
 	,JSDOCSTR("display software version information")
 	,310
 	},		
-	{"sys_stats",		js_sys_stats,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"sys_stats",		js_sys_stats,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("display system statistics")
 	,310
 	},		
@@ -2622,11 +2620,11 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("enter the user editor")
 	,310
 	},		
-	{"change_user",		js_change_user,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"change_user",		js_change_user,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("change to a different user")
 	,310
 	},		
-	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("display the logon list")
 	,310
 	},		
@@ -2647,29 +2645,29 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("send bulk private e-mail")
 	,310
 	},		
-	{"upload_file",		js_upload_file,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory]")
+	{"upload_file",		js_upload_file,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("directory")
 	,JSDOCSTR("upload file to file directory specified by number or internal code")
 	,310
 	},		
-	{"bulk_upload",		js_bulkupload,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory]")
+	{"bulk_upload",		js_bulkupload,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("directory")
 	,JSDOCSTR("add files (already in local storage path) to file directory "
 		"specified by number or internal code")
 	,310
 	},		
-	{"resort_dir",		js_resort_dir,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory]")
+	{"resort_dir",		js_resort_dir,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("directory")
 	,JSDOCSTR("re-sort the file directory specified by number or internal code)")
 	,310
 	},		
-	{"list_files",		js_listfiles,		1,	JSTYPE_NUMBER,	JSDOCSTR("[directory] [,string filespec] [,number mode]")
+	{"list_files",		js_listfiles,		1,	JSTYPE_NUMBER,	JSDOCSTR("directory [,string filespec] [,number mode]")
 	,JSDOCSTR("list files in the specified file directory, "
 		"optionally specifying a file specification (wildcards) and <i>mode</i> (bitfield)")
 	,310
 	},		
-	{"list_file_info",	js_listfileinfo,	1,	JSTYPE_NUMBER,	JSDOCSTR("[directory] [,string filespec] [,number mode]")
+	{"list_file_info",	js_listfileinfo,	1,	JSTYPE_NUMBER,	JSDOCSTR("directory [,string filespec] [,number mode]")
 	,JSDOCSTR("list extended file information for files in the specified file directory")
 	,310
 	},		
-	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board] [,number mode] [,object reply_header]")
+	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("sub-board [,number mode] [,object reply_header]")
 	,JSDOCSTR("post a message in the specified message sub-board (number or internal code) "
 		"with optinal <i>mode</i> (bitfield)<br>"
 		"If <i>reply_header</i> is specified (a header object returned from <i>MsgBase.get_msg_header()</i>), that header "
@@ -2681,11 +2679,11 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 		"(<i>type</i> is either <tt>SCAN_CFG_NEW</tt> or <tt>SCAN_CFG_TOYOU</tt>)")
 	,310
 	},		
-	{"cfg_msg_ptrs",	js_msgscan_ptrs,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"cfg_msg_ptrs",	js_msgscan_ptrs,	0,	JSTYPE_VOID,	""
 	,JSDOCSTR("change message scan pointer values")
 	,310
 	},		
-	{"reinit_msg_ptrs",	js_msgscan_reinit,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"reinit_msg_ptrs",	js_msgscan_reinit,	0,	JSTYPE_VOID,	""
 	,JSDOCSTR("re-initialize new message scan pointers")
 	,310
 	},		
@@ -2744,7 +2742,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	/* security */
-	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("prompt for and verify system password")
 	,310
 	},
@@ -2754,27 +2752,27 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},
 	/* chat/node stuff */
-	{"page_sysop",		js_pagesysop,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
-	,JSDOCSTR("page the sysop for chat, returns <i>false</i> if the sysop could not be paged")
+	{"page_sysop",		js_pagesysop,		0,	JSTYPE_BOOLEAN,	""
+	,JSDOCSTR("page the sysop for chat")
 	,310
 	},		
-	{"page_guru",		js_pageguru,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"page_guru",		js_pageguru,		0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("page the guru for chat")
 	,310
 	},		
-	{"multinode_chat",	js_multinode_chat,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"multinode_chat",	js_multinode_chat,	0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter multi-node chat")
 	,310
 	},		
-	{"private_message",	js_private_message,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"private_message",	js_private_message,	0,	JSTYPE_VOID,	""
 	,JSDOCSTR("use the private inter-node message prompt")
 	,310
 	},		
-	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	""
 	,JSDOCSTR("enter private inter-node chat")
 	,310
 	},		
-	{"get_node_message",js_get_node_message,0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"get_node_message",js_get_node_message,0,	JSTYPE_VOID,	""
 	,JSDOCSTR("receive and display an inter-node message")
 	,310
 	},		
@@ -2790,11 +2788,11 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("send a telegram to a user")
 	,310
 	},		
-	{"list_nodes",		js_nodelist,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"list_nodes",		js_nodelist,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("list all nodes")
 	,310
 	},		
-	{"whos_online",		js_whos_online,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"whos_online",		js_whos_online,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("list active nodes only (who's online)")
 	,310
 	},		
@@ -2808,19 +2806,19 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	/* input */
-	{"get_filespec",	js_getfilespec,		0,	JSTYPE_STRING,	JSDOCSTR("")	
+	{"get_filespec",	js_getfilespec,		0,	JSTYPE_STRING,	""	
 	,JSDOCSTR("returns a file specification input by the user (optionally with wildcards)")
 	,310
 	},		
 	{"get_newscantime",	js_getnstime,		1,	JSTYPE_NUMBER,	JSDOCSTR("number time")
-	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (time_t format)")
+	,JSDOCSTR("confirm or change newscan time, returns new newscan time value (time_t format)")
 	,310
 	},		
-	{"select_shell",	js_select_shell,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"select_shell",	js_select_shell,	0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("prompt user to select a new command shell")
 	,310
 	},
-	{"select_editor",	js_select_editor,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"select_editor",	js_select_editor,	0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("prompt user to select a new external message editor")
 	,310
 	},
@@ -2861,7 +2859,7 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 	if((mods=JS_DefineObject(cx, obj, "mods", NULL, NULL ,JSPROP_ENUMERATE))==NULL)
 		return(NULL);
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,mods,"Global repository for 3rd party modifications",312);
 	js_DescribeSyncObject(cx,obj,"Controls the Telnet/RLogin BBS experience",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", bbs_prop_desc, JSPROP_READONLY);
