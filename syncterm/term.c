@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.116 2005/11/08 06:37:48 deuce Exp $ */
+/* $Id: term.c,v 1.117 2005/11/11 23:59:48 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -831,7 +831,7 @@ BOOL doterm(struct bbslist *bbs)
 							zrqbuf[j]=inch;
 							zrqbuf[++j]=0;
 							if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
-								if(strcmp(zrqbuf, zrqinit))
+								if(!strcmp(zrqbuf, zrqinit))
 									zmodem_download(bbs->dldir);
 								else
 									begin_upload(bbs->uldir, TRUE);
