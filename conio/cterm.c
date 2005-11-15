@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.39 2005/11/15 18:38:26 deuce Exp $ */
+/* $Id: cterm.c,v 1.40 2005/11/15 19:13:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -388,7 +388,6 @@ void dellines(int lines)
 	}
 	puttext(cterm.x,cterm.y+cterm.height-lines,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
 	free(buf);
-	gotoxy(1,wherey());
 }
 
 void clear2bol(void)
