@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.119 2005/11/15 17:50:57 deuce Exp $ */
+/* $Id: term.c,v 1.120 2005/11/15 17:55:03 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -817,7 +817,7 @@ BOOL doterm(struct bbslist *bbs)
 	int	speed;
 	int	oldmc;
 	int	updated=FALSE;
-	BOOL	sleep=TRUE;
+	BOOL	sleep;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->loglevel;

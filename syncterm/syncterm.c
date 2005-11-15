@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.60 2005/11/11 05:40:21 deuce Exp $ */
+/* $Id: syncterm.c,v 1.61 2005/11/15 17:55:03 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -333,7 +333,6 @@ int main(int argc, char **argv)
 				free(bbs);
 			}
 			bbs=NULL;
-			break;
 		}
 		else
 			bbs=NULL;
