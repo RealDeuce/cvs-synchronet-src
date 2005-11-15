@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.34 2006/01/30 22:52:03 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.32 2005/09/02 21:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -54,7 +54,7 @@ char sbbs_t::getkey(long mode)
 		return(0);
 	}
 	sys_status&=~SS_ABORT;
-	if((sys_status&SS_USERON || action==NODE_DFLT) && !(mode&(K_GETSTR|K_NOSPIN)))
+	if((sys_status&SS_USERON || action==NODE_DFLT) && !(mode&K_GETSTR))
 		mode|=(useron.misc&SPIN);
 	lncntr=0;
 	timeout=time(NULL);
@@ -538,11 +538,5 @@ void sbbs_t::pause()
 /****************************************************************************/
 void sbbs_t::ungetkey(char ch)
 {
-#if 0	/* this way breaks ansi_getxy() */
 	RingBufWrite(&inbuf,(uchar*)&ch,sizeof(uchar));
-#else
-	keybuf[keybuftop++]=ch;   
-	if(keybuftop==KEY_BUFSIZE)   
-		keybuftop=0; 
-#endif
 }
