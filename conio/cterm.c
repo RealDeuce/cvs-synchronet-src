@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.48 2005/11/16 05:35:12 deuce Exp $ */
+/* $Id: cterm.c,v 1.49 2005/11/16 05:36:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -729,6 +729,9 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 								break;
 							case 22:
 								cterm.attr &= 0xf7;
+								break;
+							case 25:
+								cterm.attr &= 0x7f;
 								break;
 							case 30:
 								cterm.attr&=248;
