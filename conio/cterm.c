@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.42 2005/11/16 01:08:23 deuce Exp $ */
+/* $Id: cterm.c,v 1.43 2005/11/16 01:21:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -647,10 +647,18 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 					free(p2);
 					break;
 				case 'S':
-					scrollup();
+					i=atoi(cterm.escbuf+1);
+					if(i==0 && cterm.escbuf[1] != '0')
+						i=1
+					for(j=0; j<i; j++)
+						scrollup();
 					break;
 				case 'T':
-					scrolldown();
+					i=atoi(cterm.escbuf+1);
+					if(i==0 && cterm.escbuf[1] != '0')
+						i=1
+					for(j=0; j<i; j++)
+						scrolldown();
 					break;
 				case 'U':
 					clearscreen(7);
