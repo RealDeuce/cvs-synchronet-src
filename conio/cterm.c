@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.63 2005/12/06 18:06:03 deuce Exp $ */
+/* $Id: cterm.c,v 1.51 2005/11/16 05:46:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,14 +49,13 @@
 #include "keys.h"
 
 #include "cterm.h"
-#include "allfonts.h"
 
 #define	BUFSIZE	2048
 
 struct cterminal cterm;
 
 /* const int tabs[11]={1,8,16,24,32,40,48,56,64,72,80}; */
-const int cterm_tabs[11]={9,17,25,33,41,49,57,65,73,80,80};
+const int cterm_tabs[11]={9,17,25,33,41,49,57,65,73,80,80.1};
 
 const char *octave="C#D#EF#G#A#B";
 
@@ -180,10 +179,7 @@ void playnote(int notenum, int notelen, int dotted)
 			break;
 	}
 	duration-=pauselen;
-	if(notenum < 72 && notenum >= 0)
-		xpbeep(((double)note_frequency[notenum])/1000,duration);
-	else
-		SLEEP(duration);
+	xpbeep(((double)note_frequency[notenum])/1000,duration);
 	SLEEP(pauselen);
 }
 
@@ -201,30 +197,8 @@ void play_music(void)
 
 	p=cterm.musicbuf;
 	if(cterm.music==1) {
-		switch(toupper(*p)) {
-			case 'F':
-				cterm.musicfore=TRUE;
-				p++;
-				break;
-			case 'B':
-				cterm.musicfore=FALSE;
-				p++;
-				break;
-			case 'N':
-				if(!isdigit(*(p+1))) {
-					cterm.noteshape=CTERM_MUSIC_NORMAL;
-					p++;
-				}
-				break;
-			case 'L':
-				cterm.noteshape=CTERM_MUSIC_LEGATO;
-				p++;
-				break;
-			case 'S':
-				cterm.noteshape=CTERM_MUSIC_STACATTO;
-				p++;
-				break;
-		}
+		if(*p=='B' || *p=='b' || *p=='F' || *p=='f')
+			p++;
 	}
 	for(;*p;p++) {
 		notenum=0;
@@ -326,10 +300,6 @@ void play_music(void)
 						notelen=atoi(numbuf);
 						i=1;
 					}
-				}
-				if(note=='P') {
-					notenum=-1;
-					offset=0;
 				}
 				if(notenum==0) {
 					out=strchr(octave,note);
@@ -453,7 +423,7 @@ void clearscreen(char attr)
 	clrscr();
 }
 
-void do_ansi(char *retbuf, size_t retsize, int *speed)
+void do_ansi(char *retbuf, int retsize, int *speed)
 {
 	char	*p;
 	char	*p2;
@@ -466,58 +436,21 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 			/* ANSI stuff */
 			p=cterm.escbuf+strlen(cterm.escbuf)-1;
 			if(cterm.escbuf[1]>=60 && cterm.escbuf[1] <= 63) {	/* Private extenstions */
-				switch(*p) {
-					case 'M':
-						if(cterm.escbuf[1] == '=') {	/* ANSI Music setup */
-							i=atoi(cterm.escbuf+2);
-							switch(i) {
-								case 1:					/* BANSI (ESC[N) music only) */
-									cterm.music_enable=CTERM_MUSIC_BANSI;
-									break;
-								case 2:					/* ESC[M ANSI music */
-									cterm.music_enable=CTERM_MUSIC_ENABLED;
-									break;
-								default:					/* Disable ANSI Music */
-									cterm.music_enable=CTERM_MUSIC_SYNCTERM;
-									break;
-							}
-						}
-						break;
-					case '{':
-						if(cterm.escbuf[1] == '=') {	/* Font loading */
-							i=255;
-							j=0;
-							if(strlen(cterm.escbuf)>2) {
-								if((p=strtok(cterm.escbuf+2,";"))!=NULL) {
-									i=atoi(p);
-									if(!i && cterm.escbuf[2] != '0')
-										i=255;
-									if((p=strtok(NULL,";"))!=NULL) {
-										j=atoi(p);
-									}
-								}
-							}
-							if(i>255)
+				if(*p=='M') {
+					if(cterm.escbuf[1] == '=') {	/* ANSI Music setup */
+						i=atoi(cterm.escbuf+2);
+						switch(i) {
+							case 1:					/* BANSI (ESC[N) music only) */
+								cterm.music_enable=CTERM_MUSIC_BANSI;
 								break;
-							cterm.font_start_time=time(NULL);
-							cterm.font_read=0;
-							cterm.font_slot=i;
-							switch(j) {
-								case 0:
-									cterm.font_size=4096;
-									break;
-								case 1:
-									cterm.font_size=3586;
-									break;
-								case 2:
-									cterm.font_size=2048;
-									break;
-								default:
-									cterm.font_size=0;
-									break;
-							}
+							case 2:					/* ESC[M ANSI music */
+								cterm.music_enable=CTERM_MUSIC_ENABLED;
+								break;
+							default:					/* Disable ANSI Music */
+								cterm.music_enable=CTERM_MUSIC_SYNCTERM;
+								break;
 						}
-						break;
+					}
 				}
 				break;
 			}
@@ -563,31 +496,14 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						i=cterm.width;
 					gotoxy(i,wherey());
 					break;
-				case 'D':	/* Cursor Left and Font Select */
-					if(*(p-1)==' ') {	/* Font Select */
-						i=0;
-						j=0;
-						if(strlen(cterm.escbuf)>2) {
-							if((p=strtok(cterm.escbuf+1,";"))!=NULL) {
-								i=atoi(p);
-								if((p=strtok(NULL,";"))!=NULL) {
-									j=atoi(p);
-								}
-							}
-							if(i==0) {	/* Only the primary font is currently supported */
-								setfont(j,FALSE);
-							}
-						}
-					}
-					else {
-						i=atoi(cterm.escbuf+1);
-						if(i==0)
-							i=1;
-						i=wherex()-i;
-						if(i<1)
-							i=1;
-						gotoxy(i,wherey());
-					}
+				case 'D':	/* Cursor Left */
+					i=atoi(cterm.escbuf+1);
+					if(i==0)
+						i=1;
+					i=wherex()-i;
+					if(i<1)
+						i=1;
+					gotoxy(i,wherey());
 					break;
 				case 'E':
 					i=atoi(cterm.escbuf+1);
@@ -650,7 +566,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							free(p2);
 							break;
 						case 2:
-							clearscreen((char)cterm.attr);
+							clearscreen(cterm.attr);
 							gotoxy(1,1);
 							break;
 					}
@@ -765,15 +681,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					}
 					break;
 				case 'b':	/* ToDo?  Banana ANSI */
-					break;
-				case 'c':	/* Device Attributes */
-					i=atoi(cterm.escbuf+1);
-					if(!i) {
-						if(retbuf!=NULL) {
-							if(strlen(retbuf)+strlen(cterm.DA) < retsize)
-								strcat(retbuf,cterm.DA);
-						}
-					}
 					break;
 				case 'g':	/* ToDo?  VT100 Tabs */
 					break;
@@ -1022,14 +929,12 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					break;
 			}
 			break;
-#if 0
 		case 'D':
 			scrollup();
 			break;
 		case 'M':
 			scrolldown();
 			break;
-#endif
 		case 'c':
 			/* ToDo: Reset Terminal */
 			break;
@@ -1040,11 +945,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.63 $";
-	char *in;
-	char	*out;
-
-	memset(&cterm, 0, sizeof(cterm));
 	cterm.x=xpos;
 	cterm.y=ypos;
 	cterm.height=height;
@@ -1073,18 +973,6 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 	window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	clrscr();
 	gotoxy(1,1);
-	strcpy(cterm.DA,"\x1b[=67;84;101;114;109;");
-	out=strchr(cterm.DA, 0);
-	if(out != NULL) {
-		for(in=revision; *in; in++) {
-			if(isdigit(*in))
-				*(out++)=*in;
-			if(*in=='.')
-				*(out++)=';';
-		}
-		*out=0;
-	}
-	strcat(cterm.DA,"c");
 }
 
 void ctputs(char *buf)
@@ -1175,7 +1063,7 @@ void ctputs(char *buf)
 	_wscroll=oldscroll;
 }
 
-char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed)
+char *cterm_write(unsigned char *buf, int buflen, char *retbuf, int retsize, int *speed)
 {
 	unsigned char ch[2];
 	unsigned char prn[BUFSIZE];
@@ -1201,42 +1089,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 			prn[0]=0;
 			for(j=0;j<buflen;j++) {
 				ch[0]=buf[j];
-				if(cterm.font_size) {
-					cterm.fontbuf[cterm.font_read++]=ch[0];
-					if(cterm.font_read == cterm.font_size) {
-						char *buf;
-
-						if((buf=(char *)malloc(cterm.font_size))!=NULL) {
-							memcpy(buf,cterm.fontbuf,cterm.font_size);
-							if(cterm.font_slot >= CONIO_FIRST_FREE_FONT) {
-								switch(cterm.font_size) {
-									case 4096:
-										FREE_AND_NULL(conio_fontdata[cterm.font_slot].eight_by_sixteen);
-										conio_fontdata[cterm.font_slot].eight_by_sixteen=buf;
-										FREE_AND_NULL(conio_fontdata[cterm.font_slot].desc);
-										conio_fontdata[cterm.font_slot].desc=strdup("Remote Defined Font");
-										break;
-									case 3586:
-										FREE_AND_NULL(conio_fontdata[cterm.font_slot].eight_by_fourteen);
-										conio_fontdata[cterm.font_slot].eight_by_fourteen=buf;
-										FREE_AND_NULL(conio_fontdata[cterm.font_slot].desc);
-										conio_fontdata[cterm.font_slot].desc=strdup("Remote Defined Font");
-										break;
-									case 2048:
-										FREE_AND_NULL(conio_fontdata[cterm.font_slot].eight_by_eight);
-										conio_fontdata[cterm.font_slot].eight_by_eight=buf;
-										FREE_AND_NULL(conio_fontdata[cterm.font_slot].desc);
-										conio_fontdata[cterm.font_slot].desc=strdup("Remote Defined Font");
-										break;
-								}
-							}
-							else
-								FREE_AND_NULL(buf);
-						}
-						cterm.font_size=0;
-					}
-				}
-				else if(cterm.sequence) {
+				if(cterm.sequence) {
 					k=strlen(cterm.escbuf);
 					strcat(cterm.escbuf,ch);
 					if(k) {
@@ -1359,7 +1212,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 							prn[0]=0;
 							if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
 								fputs("\t", cterm.logfile);
-							clearscreen((char)cterm.attr);
+							clearscreen(cterm.attr);
 							gotoxy(1,1);
 							break;
 						case 27:		/* ESC */
@@ -1420,13 +1273,5 @@ void cterm_closelog()
 
 void cterm_end(void)
 {
-	int i;
-
 	cterm_closelog();
-	for(i=CONIO_FIRST_FREE_FONT; i < 256; i++) {
-		FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
-		FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
-		FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
-		FREE_AND_NULL(conio_fontdata[i].desc);
-	}
 }
