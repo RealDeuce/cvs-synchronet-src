@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.51 2005/11/16 05:46:58 deuce Exp $ */
+/* $Id: cterm.c,v 1.52 2005/11/16 07:02:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -436,21 +436,23 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 			/* ANSI stuff */
 			p=cterm.escbuf+strlen(cterm.escbuf)-1;
 			if(cterm.escbuf[1]>=60 && cterm.escbuf[1] <= 63) {	/* Private extenstions */
-				if(*p=='M') {
-					if(cterm.escbuf[1] == '=') {	/* ANSI Music setup */
-						i=atoi(cterm.escbuf+2);
-						switch(i) {
-							case 1:					/* BANSI (ESC[N) music only) */
-								cterm.music_enable=CTERM_MUSIC_BANSI;
-								break;
-							case 2:					/* ESC[M ANSI music */
-								cterm.music_enable=CTERM_MUSIC_ENABLED;
-								break;
-							default:					/* Disable ANSI Music */
-								cterm.music_enable=CTERM_MUSIC_SYNCTERM;
-								break;
+				switch(*p) {
+					case 'M':
+						if(cterm.escbuf[1] == '=') {	/* ANSI Music setup */
+							i=atoi(cterm.escbuf+2);
+							switch(i) {
+								case 1:					/* BANSI (ESC[N) music only) */
+									cterm.music_enable=CTERM_MUSIC_BANSI;
+									break;
+								case 2:					/* ESC[M ANSI music */
+									cterm.music_enable=CTERM_MUSIC_ENABLED;
+									break;
+								default:					/* Disable ANSI Music */
+									cterm.music_enable=CTERM_MUSIC_SYNCTERM;
+									break;
+							}
 						}
-					}
+						break;
 				}
 				break;
 			}
