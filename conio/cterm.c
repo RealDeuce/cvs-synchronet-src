@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.41 2005/11/16 00:24:22 deuce Exp $ */
+/* $Id: cterm.c,v 1.42 2005/11/16 01:08:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -625,24 +625,6 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 							i=1;
 						dellines(i);
 					}
-					break;
-				case 'Y':	/* BananaCom Delete Line */
-					/* i == number of lines to delete */
-					i=atoi(cterm.escbuf+1);
-					if(i==0)
-						i=1;
-					/* j == number of lines to scroll */
-					j=cterm.height-wherey()-i+1;
-					p2=(char *)malloc(cterm.width*(j>i?j:i)*2);
-					gettext(cterm.x,cterm.y+wherey()+i,cterm.x+cterm.width-1,cterm.y+cterm.height-1,p2);
-					puttext(cterm.x,cterm.y+wherey(),cterm.x+cterm.width-1,cterm.y+cterm.height-1-i,p2);
-					l=0;
-					for(k=0;k<cterm.width*j;k++) {
-						p2[l++]=' ';
-						p2[l++]=cterm.attr;
-					}
-					puttext(cterm.x,cterm.y+cterm.height-1-i,cterm.x+cterm.width-1,cterm.y+cterm.height-1,p2);
-					free(p2);
 					break;
 				case 'N':
 					/* BananANSI style... does NOT start with MF or MB */
