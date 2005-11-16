@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.40 2005/11/15 19:13:12 deuce Exp $ */
+/* $Id: cterm.c,v 1.41 2005/11/16 00:24:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -458,9 +458,15 @@ void do_ansi(char *retbuf, int retsize, int *speed)
 				case '@':	/* Insert Char */
 					i=wherex();
 					j=wherey();
-					gettext(cterm.x+wherex(),cterm.y+wherey(),cterm.x+cterm.width-1,cterm.y+wherey(),tmp);
-					putch(' ');
-					puttext(cterm.x+wherex()+1,cterm.y+wherey(),cterm.x+cterm.width,cterm.y+wherey(),tmp);
+					k=atoi(cterm.escbuf+1);
+					if(k<1)
+						k=1;
+					if(k>cterm.width - j)
+						k=cterm.width - j;
+					gettext(cterm.x+wherex(),cterm.y+wherey(),cterm.x+cterm.width-k,cterm.y+wherey(),tmp);
+					for(l=0; l< k; l++)
+						putch(' ');
+					puttext(cterm.x+wherex()+k,cterm.y+wherey(),cterm.x+cterm.width,cterm.y+wherey(),tmp);
 					gotoxy(i,j);
 					break;
 				case 'A':	/* Cursor Up */
