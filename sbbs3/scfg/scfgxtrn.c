@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.36 2005/11/27 23:34:28 deuce Exp $ */
+/* $Id: scfgxtrn.c,v 1.35 2005/09/20 03:40:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -219,6 +219,7 @@ while(1) {
 	sprintf(opt[i++],"%-32.32s%.40s","Logout Event",cfg.sys_logout);
 	sprintf(opt[i++],"%-32.32s%.40s","Daily Event",cfg.sys_daily);
 	opt[i][0]=0;
+	uifc.savnum=0;
 	SETHELP(WHERE);
 /*
 External Events:
@@ -288,6 +289,7 @@ while(1) {
 		sprintf(opt[i],"%-8.8s      %.50s",cfg.event[i]->code,cfg.event[i]->cmd);
 	opt[i][0]=0;
 	j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_RHT;
+	uifc.savnum=0;
 	if(cfg.total_events)
 		j|=WIN_DEL|WIN_GET;
 	if(cfg.total_events<MAX_OPTS)
@@ -400,6 +402,7 @@ If you need the BBS to swap out of memory for this event (to make more
 available memory), add the program name (first word of the command line)
 to Global Swap List from the External Programs menu.
 */
+		uifc.savnum=1;
 		sprintf(str,"%s Timed Event",cfg.event[i]->code);
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,70,&dfltopt,0
 			,str,opt)) {
@@ -458,6 +461,7 @@ This is the command line to execute upon this timed event.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 `Event Enabled:`
@@ -515,6 +519,7 @@ the month.
 					strcpy(opt[k++],"All");
 					strcpy(opt[k++],"None");
 					opt[k][0]=0;
+					uifc.savnum=2;
 					SETHELP(WHERE);
 /*
 Days of Week to Execute Event:
@@ -542,6 +547,7 @@ These are the days of the week that this event will be executed.
                 strcpy(opt[0],"Yes");
                 strcpy(opt[1],"No");
                 opt[2][0]=0;
+                uifc.savnum=2;
                 SETHELP(WHERE);
 /*
 Execute Event at a Specific Time:
@@ -596,6 +602,7 @@ per day.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Exclusive Event Execution:
@@ -617,6 +624,7 @@ option to Yes.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Force Users Off-line for Event:
@@ -639,6 +647,7 @@ execute precisely on time, set this option to Yes.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Native (32-bit) Executable:
@@ -663,6 +672,7 @@ set this option to Yes.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 `Use Shell to Execute Command:`
@@ -687,6 +697,7 @@ shell script or DOS batch file), set this option to ~Yes~.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Execute Event in Background (Asynchronously):
@@ -711,6 +722,7 @@ set this option to Yes. Exclusive events will not run in the background.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 `Always Run After Initialization or Re-initialization:`
@@ -750,6 +762,7 @@ while(1) {
 			xtrnnum[j++]=i; }
 	xtrnnum[j]=cfg.total_xtrns;
 	opt[j][0]=0;
+	uifc.savnum=2;
 	i=WIN_ACT|WIN_CHE|WIN_SAV|WIN_RHT;
 	if(j)
 		i|=WIN_DEL|WIN_GET;
@@ -911,6 +924,7 @@ online program name.
 			,cfg.xtrn[i]->misc&STARTUPDIR ? "Start-Up Directory":"Node Directory");
 		sprintf(opt[k++],"Time Options...");
 		opt[k][0]=0;
+		uifc.savnum=3;
 		SETHELP(WHERE);
 /*
 Online Program Configuration:
@@ -1007,10 +1021,12 @@ online program to be free, set this value to 0.
                 cfg.xtrn[i]->cost=atol(str);
                 break;
 			case 6:
+				uifc.savnum=4;
 				sprintf(str,"%s Access",cfg.xtrn[i]->name);
 				getar(str,cfg.xtrn[i]->arstr);
                 break;
 			case 7:
+				uifc.savnum=4;
 				sprintf(str,"%s Execution",cfg.xtrn[i]->name);
 				getar(str,cfg.xtrn[i]->run_arstr);
                 break;
@@ -1026,6 +1042,7 @@ online program to be free, set this value to 0.
 If this online program supports multiple simultaneous users (nodes),
 set this option to Yes.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Supports Multiple Users"
 					,opt);
 				if(!k && !(cfg.xtrn[i]->misc&MULTIUSER)) {
@@ -1047,6 +1064,7 @@ set this option to Yes.
 If this online program uses a FOSSIL driver or SOCKET communications,
 set this option to No.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Intercept Standard I/O"
 					,opt);
 				if(!k && !(cfg.xtrn[i]->misc&IO_INTS)) {
@@ -1067,6 +1085,7 @@ set this option to No.
 If this program was written for use exclusively under WWIV, set this
 option to Yes.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Program Uses WWIV Color Codes"
 					,opt);
@@ -1084,6 +1103,7 @@ option to Yes.
 If you want the BBS to copy ("echo") all keyboard input to the screen
 output, set this option to ~Yes~ (for native Win32 programs only).
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Echo Keyboard Input"
 					,opt);
@@ -1107,6 +1127,7 @@ output, set this option to ~Yes~ (for native Win32 programs only).
 If this online program is a native 32-bit executable,
 set this option to Yes.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Native (32-bit)",opt);
 				if(!k && !(cfg.xtrn[i]->misc&XTRN_NATIVE)) {
@@ -1128,6 +1149,7 @@ set this option to Yes.
 If this command-line requires the system command shell to execute, (Unix 
 shell script or DOS batch file), set this option to ~Yes~.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Use Shell",opt);
 				if(!k && !(cfg.xtrn[i]->misc&XTRN_SH)) {
@@ -1152,6 +1174,7 @@ If this online programs recognizes the Synchronet MODUSER.DAT format
 or the RBBS/QuickBBS EXITINFO.BBS format and you want it to be able to
 modify the data of users who run the program, set this option to Yes.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Program Can Modify User Data",opt);
 				if(!k && !(cfg.xtrn[i]->misc&MODUSERDAT)) {
@@ -1180,6 +1203,7 @@ modify the data of users who run the program, set this option to Yes.
 If you would like this online program to automatically execute on a
 specific user event, select the event. Otherwise, select No.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Execute on Event",opt);
 				if(k==-1)
@@ -1201,6 +1225,7 @@ If you would like this online program to execute as an event only
 (not available to users on the online program menu), set this option
 to Yes.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k
 					,0,"Execute as Event Only"
                     ,opt);
@@ -1226,6 +1251,7 @@ Set this option to ~Yes~ if you would like an automatic screen pause
 This can be useful if the program displays information just before exiting
 or you want to debug a program with a program not running correctly.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Pause After Execution",opt);
 				if((!k && !(cfg.xtrn[i]->misc&XTRN_PAUSE))
@@ -1258,6 +1284,7 @@ or you want to debug a program with a program not running correctly.
 If this online program requires a specific BBS data (drop) file
 format, select the file format from the list.
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"BBS Drop File Type",opt);
 				if(k==-1)
@@ -1309,6 +1336,7 @@ format, select the file format from the list.
 You can have the data file created in the current Node Directory or the
 Start-up Directory (if one is specified).
 */
+				uifc.savnum=4;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Create Drop File In"
                     ,opt);
 				if(!k && cfg.xtrn[i]->misc&STARTUPDIR) {
@@ -1343,11 +1371,13 @@ You can have the data file created in the current Node Directory or the
 This sub-menu allows you to define specific preferences regarding the
 time users spend running this program.
 */
+					uifc.savnum=4;
 					k=uifc.list(WIN_SAV|WIN_ACT|WIN_RHT|WIN_BOT,0,0,40
 						,&time_dflt,0
 						,"Online Program Time Options",opt);
 					if(k==-1)
 						break;
+					uifc.savnum=5;
 					switch(k) {
 						case 0:
 							ultoa(cfg.xtrn[i]->textra,str,10);
@@ -1444,6 +1474,7 @@ while(1) {
 		sprintf(opt[i],"%-8.8s    %.40s",cfg.xedit[i]->code,cfg.xedit[i]->rcmd);
 	opt[i][0]=0;
 	j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_RHT;
+	uifc.savnum=0;
 	if(cfg.total_xedits)
 		j|=WIN_DEL|WIN_GET;
 	if(cfg.total_xedits<MAX_OPTS)
@@ -1566,6 +1597,7 @@ popular editors include SyncEdit, WWIVedit, FEdit, GEdit, IceEdit,
 and many others.
 */
 
+		uifc.savnum=1;
 		sprintf(str,"%s Editor",cfg.xedit[i]->name);
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,70,&dfltopt,0
 			,str,opt)) {
@@ -1614,6 +1646,7 @@ This is the command line to execute when using this editor remotely.
 					,cfg.xedit[i]->rcmd,sizeof(cfg.xedit[i]->rcmd)-1,K_EDIT);
 				break;
 			case 3:
+				uifc.savnum=2;
 				sprintf(str,"%s External Editor",cfg.xedit[i]->name);
 				getar(str,cfg.xedit[i]->arstr);
 				break;
@@ -1622,6 +1655,7 @@ This is the command line to execute when using this editor remotely.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Intercept Standard I/O:
@@ -1643,6 +1677,7 @@ set this option to No.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Editor Uses WWIV Color Codes:
@@ -1670,6 +1705,7 @@ option to Yes.
 
 If this editor is a native 32-bit executable, set this option to Yes.
 */
+				uifc.savnum=2;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Native (32-bit)",opt);
 				if(!k && !(cfg.xedit[i]->misc&XTRN_NATIVE)) {
@@ -1691,6 +1727,7 @@ If this editor is a native 32-bit executable, set this option to Yes.
 If this command-line requires the system command shell to execute, (Unix 
 shell script or DOS batch file), set this option to ~Yes~.
 */
+				uifc.savnum=2;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Use Shell",opt);
 				if(!k && !(cfg.xedit[i]->misc&XTRN_SH)) {
@@ -1707,6 +1744,7 @@ shell script or DOS batch file), set this option to ~Yes~.
 				strcpy(opt[1],"None");
 				strcpy(opt[2],"Prompt User");
 				opt[3][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Quoted Text:
@@ -1740,6 +1778,7 @@ drop file (like SyncEdit v2.x).
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 QuickBBS Style (MSGTMP):
@@ -1761,6 +1800,7 @@ this option to Yes.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Expand Line Feeds to Carriage Return/Line Feed Pairs:
@@ -1782,6 +1822,7 @@ instead of a carriage return/line feed pair, set this option to Yes.
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Strip FidoNet Kludge Lines From Messages:
@@ -1823,6 +1864,7 @@ set this option to Yes to strip those lines from the message.
 If this external editor requires a specific BBS data (drop) file
 format, select the file format from the list.
 */
+				uifc.savnum=2;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"BBS Drop File Type",opt);
 				if(k==-1)
@@ -1865,6 +1907,7 @@ while(1) {
 		sprintf(opt[i],"%-12s",cfg.natvpgm[i]->name);
 	opt[i][0]=0;
 	j=WIN_ACT|WIN_CHE|WIN_L2R|WIN_SAV;
+	uifc.savnum=0;
 	if(cfg.total_natvpgms)
 		j|=WIN_DEL;
 	if(cfg.total_natvpgms<MAX_OPTS)
@@ -1949,6 +1992,7 @@ while(1) {
 		sprintf(opt[i],"%-25s",cfg.xtrnsec[i]->name);
 	opt[i][0]=0;
 	j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_BOT;
+	uifc.savnum=0;
 	if(cfg.total_xtrnsecs)
 		j|=WIN_DEL|WIN_GET;
 	if(cfg.total_xtrnsecs<MAX_OPTS)
@@ -2064,6 +2108,7 @@ abreviation of the name.
 			,cfg.xtrnsec[i]->arstr);
 		sprintf(opt[k++],"%s","Available Online Programs...");
 		opt[k][0]=0;
+		uifc.savnum=1;
 		sprintf(str,"%s Program Section",cfg.xtrnsec[i]->name);
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_MID,0,0,60,&xtrnsec_opt,0,str
 			,opt)) {
@@ -2129,6 +2174,7 @@ while(1) {
             ,cfg.hotkey[i]->cmd);
 	opt[i][0]=0;
 	j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_RHT;
+	uifc.savnum=0;
 	if(cfg.total_hotkeys)
 		j|=WIN_DEL|WIN_GET;
 	if(cfg.total_hotkeys<MAX_OPTS)
@@ -2213,6 +2259,7 @@ This menu allows you to change the settings for the selected global
 hot key event. Hot key events are control characters that are used to
 execute an external program or module anywhere in the BBS.
 */
+		uifc.savnum=1;
 		sprintf(str,"Ctrl-%c Hot Key Event",cfg.hotkey[i]->key+'@');
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,60,&dfltopt,0
 			,str,opt)) {

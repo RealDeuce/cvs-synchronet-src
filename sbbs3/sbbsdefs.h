@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.139 2006/01/30 22:52:03 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.136 2005/09/25 20:10:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,8 +52,6 @@
 
 #define VERSION 	"3.13"  /* Version: Major.minor  */
 #define REVISION	'b'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31300	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31300 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -200,7 +198,6 @@ typedef struct {
 									/* Bit values for prot[x].misc */
 #define PROT_DSZLOG		(1<<0)      /* Supports DSZ Log */
 #define PROT_NATIVE		(1<<1)		/* Native (32-bit) executable */
-#define PROT_SOCKET		(1<<2)		/* Use socket I/O, not stdio on *nix */
 
 									/* Bit values in netmail_misc */
 
@@ -676,7 +673,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_TAB		(1L<<18)	/* Treat TAB key as CR						*/
 #define K_LEFTEXIT	(1L<<19)	/* Allow exit by backspacing/arrowing left	*/
 #define K_USEOFFSET	(1L<<20)	/* Use getstr_offset for cursor	position	*/
-#define K_NOSPIN	(1L<<21)	/* Do not honor the user's spinning cursor	*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
