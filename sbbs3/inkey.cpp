@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.26 2005/11/29 01:18:55 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.25 2005/09/02 21:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,13 +49,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 {
 	uchar	ch=0;
 
-	if(keybuftop!=keybufbot) {   
-		ch=keybuf[keybufbot++];   
-		if(keybufbot==KEY_BUFSIZE)   
-			keybufbot=0;   
-	} else 
-		ch=incom(timeout);
-
+	ch=incom(timeout);
 	if(ch==0) {
 		// moved here from getkey() on AUG-29-2001
 		if(sys_status&SS_SYSPAGE) 

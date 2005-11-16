@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.175 2005/11/17 02:15:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.173 2005/11/15 03:57:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2584,7 +2584,7 @@ void seektonull(FILE *stream)
 /******************************************************************************
  This function returns a packet name - used for outgoing packets
 ******************************************************************************/
-char *pktname(BOOL temp)
+char *pktname(void)
 {
 	static char str[128];
 	int i;
@@ -2593,13 +2593,12 @@ char *pktname(BOOL temp)
 
 	now=time(NULL);
 	for(i=0;i<MAX_TOTAL_PKTS*2;i++) {
-		now++;
+		now+=i;
 		tm=localtime(&now);
-		sprintf(str,"%s%02u%02u%02u%02u.%s",cfg.outbound,tm->tm_mday,tm->tm_hour
-			,tm->tm_min,tm->tm_sec,temp ? "pk_" : "pkt");
+		sprintf(str,"%s%02u%02u%02u%02u.pk_",cfg.outbound,tm->tm_mday,tm->tm_hour
+			,tm->tm_min,tm->tm_sec);
 		if(!fexist(str))				/* Add 1 second if name exists */
-			break; 
-	}
+			break; }
 	return(str);
 }
 /******************************************************************************
@@ -2614,7 +2613,6 @@ void putfmsg(FILE *stream,uchar *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	faddr_t addr,sysaddr;
 	fpkdmsg_t pkdmsg;
 	time_t t;
-	size_t len;
 	struct tm* tm;
 
 	addr=getsysfaddr(fmsghdr.destzone);
@@ -2636,15 +2634,13 @@ void putfmsg(FILE *stream,uchar *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	fwrite(fmsghdr.from	,strlen(fmsghdr.from)+1	,1,stream);
 	fwrite(fmsghdr.subj	,strlen(fmsghdr.subj)+1	,1,stream);
 
-	len = strlen((char *)fbuf);
-
 	/* Write message body */
 	if(area.name)
 		if(strncmp((char *)fbuf,"AREA:",5))                     /* No AREA: Line */
 			fprintf(stream,"AREA:%s\r",area.name);              /* So add one */
-	fwrite(fbuf,len,1,stream);
+	fwrite(fbuf,strlen((char *)fbuf),1,stream);
 	lastlen=9;
-	if(len && fbuf[len-1]!='\r')
+	if(fbuf[strlen((char *)fbuf)-1]!='\r')
 		fputc('\r',stream);
 
 	if(area.name==NULL)	{ /* NetMail, so add FSP-1010 Via kludge line */
@@ -2778,30 +2774,7 @@ void putfmsg(FILE *stream,uchar *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 
 		fputc('\r',stream); }
 
-	fputc(FIDO_PACKED_MSG_TERMINATOR, stream);
-}
-
-size_t terminate_packet(FILE* stream)
-{
-	WORD	terminator=FIDO_PACKET_TERMINATOR;
-
-	return fwrite(&terminator, sizeof(terminator), 1, stream);
-}
-
-long find_packet_terminator(FILE* stream)
-{
-	WORD	terminator;
-	long	offset;
-
-	fseek(stream, 0, SEEK_END);
-	offset = ftell(stream);
-	if(offset >= sizeof(fpkthdr_t)+sizeof(terminator)) {
-		fseek(stream, offset-sizeof(terminator), SEEK_SET);
-		if(fread(&terminator, sizeof(terminator), 1, stream)
-			&& terminator==FIDO_PACKET_TERMINATOR)
-			offset -= sizeof(terminator);
-	}
-	return(offset);
+	fputc(0,stream);
 }
 
 /******************************************************************************
@@ -3051,7 +3024,8 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				break;
 			}
 			if(outpkt[i].curopen) {
-				terminate_packet(outpkt[i].stream);
+				fputc(0,outpkt[i].stream);
+				fputc(0,outpkt[i].stream);
 				fclose(outpkt[i].stream); }
 			else {
 				if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
@@ -3059,7 +3033,8 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 					lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__
 						,outpkt[i].filename,strerror(errno));
 					continue; }
-				terminate_packet(outpkt[i].stream);
+				fputc(0,outpkt[i].stream);
+				fputc(0,outpkt[i].stream);
 				fclose(outpkt[i].stream); }
 			  /* pack_nundle() disabled.  Why?  ToDo */
 			  /* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
@@ -3114,7 +3089,8 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 					fmsghdr.destzone=area.uplink[j].zone;
 					putfmsg(outpkt[i].stream,fbuf,fmsghdr,area,seenbys,paths); }
 				else {
-					terminate_packet(outpkt[i].stream);
+					fputc(0,outpkt[i].stream);
+					fputc(0,outpkt[i].stream);
 					fclose(outpkt[i].stream);
 					/* pack_bundle() disabled.  Why?  ToDo */
 					/* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
@@ -3136,7 +3112,7 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 						outpkt[k].curopen=0;
 						--openpkts;
 						break; } }
-			strcpy(outpkt[i].filename,pktname(/* temp? */ TRUE));
+			strcpy(outpkt[i].filename,pktname());
 			now=time(NULL);
 			tm=localtime(&now);
 			if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
@@ -3891,7 +3867,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.175 $", "%*s %s", revision);
+	sscanf("$Revision: 1.173 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4171,11 +4147,11 @@ int main(int argc, char **argv)
 			fseek(fidomsg,-3L,SEEK_END);
 			fread(str,3,1,fidomsg);
 			if(str[2])						/* No ending NULL, probably junk */
-				fputc(FIDO_PACKED_MSG_TERMINATOR,fidomsg);
+				fputc(0,fidomsg);
 			if(str[1])
-				fputc(FIDO_PACKED_MSG_TERMINATOR,fidomsg);
+				fputc(0,fidomsg);
 			if(str[0])
-				fputc(FIDO_PACKED_MSG_TERMINATOR,fidomsg);
+				fputc(0,fidomsg);
 			fclose(fidomsg);
 			pkt_faddr.zone=pkthdr.destzone;
 			pkt_faddr.net=pkthdr.destnet;
@@ -4192,7 +4168,7 @@ int main(int argc, char **argv)
 			pack_bundle(packet,pkt_faddr); }
 		else {
 			fclose(fidomsg);
-			lprintf(LOG_WARNING,"Stray Outbound Packet (%s) possibly still in use (ftime: %.24s)"
+			lprintf(LOG_WARNING,"Stray Outbound Packet (%s) possibly still in use (ftime: .%24s)"
 				,packet,ctime(&ftime)); 
 		} 
 	}
@@ -4832,19 +4808,17 @@ int main(int argc, char **argv)
 					if(write_flofile(hdr.subj,addr,FALSE /* !bundle */))
 						bail(1); }
 			else
-				strcpy(packet,pktname(/* Temp? */ FALSE));
+				strcpy(packet,pktname());
 
 			now=time(NULL);
 			tm=localtime(&now);
-			if((stream=fnopen(&file,packet,O_RDWR|O_CREAT))==NULL) {
+			if((stream=fnopen(&file,packet,O_WRONLY|O_APPEND|O_CREAT))==NULL) {
 				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,packet
 					,strerror(errno));
 				bail(1); 
 			}
 
-			if(filelength(file) < sizeof(pkthdr_t)) {
-				chsize(file,0);
-				rewind(stream);
+			if(!filelength(file)) {
 				memset(&pkthdr,0,sizeof(pkthdr));
 				pkthdr.orignode=hdr.orignode;
 				pkthdr.destnode=addr.node;
@@ -4882,13 +4856,9 @@ int main(int argc, char **argv)
 					memcpy(pkthdr.password,cfg.nodecfg[node].pktpwd,sizeof(pkthdr.password));
 				}
 				fwrite(&pkthdr,sizeof(pkthdr_t),1,stream); 
-			} else
-				fseek(stream,find_packet_terminator(stream),SEEK_SET);
+			}
 
 			putfmsg(stream,fmsgbuf,hdr,fakearea,msg_seen,msg_path);
-
-			/* Write packet terminator */
-			terminate_packet(stream);
 
 			free(fmsgbuf);
 			fclose(stream);
