@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.186 2005/09/03 21:48:29 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.190 2005/11/08 21:13:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,6 +312,14 @@ BYTE* cr_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
+static void add_env_var(str_list_t* list, const char* var, const char* val)
+{
+	char	str[MAX_PATH*2];
+	SetEnvironmentVariable(var,NULL);	/* Delete in current process env */
+	SAFEPRINTF2(str,"%s=%s",var,val);
+	strListPush(list,str);
+}
+
 /* Clean-up resources while preserving current LastError value */
 #define XTRN_CLEANUP												\
 	last_error=GetLastError();										\
@@ -436,18 +444,23 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 
 		// Current environment passed to child process
-		sprintf(str,"DSZLOG=%sPROTOCOL.LOG",cfg.node_dir);		strListPush(&env_list,str);
-		sprintf(str,"SBBSNODE=%s",cfg.node_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSCTRL=%s",cfg.ctrl_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSDATA=%s",cfg.data_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSEXEC=%s",cfg.exec_dir);				strListPush(&env_list,str);
-		sprintf(str,"SBBSNNUM=%d",cfg.node_num);				strListPush(&env_list,str);
+		sprintf(str,"%sprotocol.log",cfg.node_dir);			
+		add_env_var(&env_list,"DSZLOG",str);
+		add_env_var(&env_list,"SBBSNODE",cfg.node_dir);
+		add_env_var(&env_list,"SBBSCTRL",cfg.ctrl_dir);
+		add_env_var(&env_list,"SBBSDATA",cfg.data_dir);
+		add_env_var(&env_list,"SBBSEXEC",cfg.exec_dir);
+		sprintf(str,"%d",cfg.node_num);
+		add_env_var(&env_list,"SBBSNNUM",str);
 		/* date/time env vars */
-		sprintf(str,"DAY=%02u",tm.tm_mday);						strListPush(&env_list,str);
-		sprintf(str,"WEEKDAY=%s",wday[tm.tm_wday]);				strListPush(&env_list,str);
-		sprintf(str,"MONTHNAME=%s",mon[tm.tm_mon]);				strListPush(&env_list,str);
-		sprintf(str,"MONTH=%02u",tm.tm_mon+1);					strListPush(&env_list,str);
-		sprintf(str,"YEAR=%u",1900+tm.tm_year);					strListPush(&env_list,str);
+		sprintf(str,"%02u",tm.tm_mday);	
+		add_env_var(&env_list,"DAY",str);
+		add_env_var(&env_list,"WEEKDAY",wday[tm.tm_wday]);
+		add_env_var(&env_list,"MONTHNAME",mon[tm.tm_mon]);
+		sprintf(str,"%02u",tm.tm_mon+1);
+		add_env_var(&env_list,"MONTH",str);
+		sprintf(str,"%u",1900+tm.tm_year);
+		add_env_var(&env_list,"YEAR",str);
 
 		env_strings=GetEnvironmentStrings();
 		env_block=strListCopyBlock(env_strings);
@@ -1026,7 +1039,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			ioctlsocket(client_socket, FIONBIO, &l);
 
 			/* Re-set socket options */
-			if(set_socket_options(&cfg, client_socket, str))
+			if(set_socket_options(&cfg, client_socket, client.protocol, str, sizeof(str)))
 				lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 			if(input_thread_mutex_locked && input_thread_running) {
@@ -1915,7 +1928,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		ioctlsocket(client_socket, FIONBIO, &l);
 
 		/* Re-set socket options */
-		if(set_socket_options(&cfg, client_socket, str))
+		if(set_socket_options(&cfg, client_socket, client.protocol, str, sizeof(str)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
 
 		curatr=~0;			// Can't guarantee current attributes
@@ -1941,8 +1954,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 }
 
 #endif	/* !WIN32 */
-
-uint fakeriobp=0xffff;
 
 const char* quoted_string(const char* str, char* buf, size_t maxlen)
 {
@@ -2048,16 +2059,11 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     sprintf(str,"%s%c",VERSION,REVISION);
                     break;
                 case 'W':   /* Time-slice API type (mswtype) */
-#if 0 //ndef __FLAT__
-                    strcat(cmd,ultoa(mswtyp,str,10));
-#endif
                     break;
                 case 'X':
                     strcat(cmd,cfg.shell[useron.shell]->code);
                     break;
                 case '&':   /* Address of msr */
-                    sprintf(str,"%lu",(DWORD)&fakeriobp);
-                    strcat(cmd,str);
                     break;
                 case 'Y':
                     strcat(cmd,comspec);
@@ -2208,17 +2214,12 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                     sprintf(str,"%s%c",VERSION,REVISION);
                     break;
                 case 'W':   /* Time-slice API type (mswtype) */
-#if 0 //ndef __FLAT__
-                    strcat(cmd,ultoa(mswtyp,str,10));
-#endif
                     break;
                 case 'X':
 					if(user!=NULL)
 						strcat(cmd,cfg->shell[user->shell]->code);
                     break;
                 case '&':   /* Address of msr */
-                    sprintf(str,"%lu",(DWORD)&fakeriobp);
-                    strcat(cmd,str);
                     break;
                 case 'Y':
                     break;

@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.70 2005/09/18 18:56:42 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.73 2005/10/12 07:53:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -136,8 +136,8 @@ void resetterm(void)
 
 #ifdef _WINSOCKAPI_
 
-WSADATA WSAData;
-static BOOL WSAInitialized=FALSE;
+/* Note: Don't call WSACleanup() or TCP session will close! */
+WSADATA WSAData;	
 
 static BOOL winsock_startup(void)
 {
@@ -145,7 +145,6 @@ static BOOL winsock_startup(void)
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
 		fprintf(statfp,"%s %s\n",WSAData.szDescription, WSAData.szSystemStatus);
-		WSAInitialized=TRUE;
 		return(TRUE);
 	}
 
@@ -1220,11 +1219,6 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
-#if defined(_WINSOCKAPI_)
-	if(WSAInitialized && WSACleanup()!=0) 
-		lprintf(LOG_ERR,"WSACleanup ERROR: %d",ERROR_VALUE);
-#endif
-
 	if(logfp!=NULL)
 		fclose(logfp);
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
@@ -1293,7 +1287,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.70 $", "%*s %s", revision);
+	sscanf("$Revision: 1.73 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright 2005 Rob Swindell\n\n"
@@ -1319,9 +1313,6 @@ int main(int argc, char **argv)
 
 	tcp_nodelay				=iniReadBool(fp,ROOT_SECTION,"TCP_NODELAY",TRUE);
 
-	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
-		log_level=LOG_DEBUG;
-
 	telnet					=iniReadBool(fp,ROOT_SECTION,"Telnet",TRUE);
 	debug_tx				=iniReadBool(fp,ROOT_SECTION,"DebugTx",FALSE);
 	debug_rx				=iniReadBool(fp,ROOT_SECTION,"DebugRx",FALSE);
@@ -1330,13 +1321,16 @@ int main(int argc, char **argv)
 	pause_on_exit			=iniReadBool(fp,ROOT_SECTION,"PauseOnExit",FALSE);
 	pause_on_abend			=iniReadBool(fp,ROOT_SECTION,"PauseOnAbend",FALSE);
 
-	log_level				=iniReadInteger(fp,ROOT_SECTION,"LogLevel",log_level);
+	log_level				=iniReadLogLevel(fp,ROOT_SECTION,"LogLevel",log_level);
 
 	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
 	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",16*1024);
 
 	progress_interval		=iniReadInteger(fp,ROOT_SECTION,"ProgressInterval",1);
+
+	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
+		log_level=LOG_DEBUG;
 
 	xm.send_timeout			=iniReadInteger(fp,"Xmodem","SendTimeout",xm.send_timeout);	/* seconds */
 	xm.recv_timeout			=iniReadInteger(fp,"Xmodem","RecvTimeout",xm.recv_timeout);	/* seconds */

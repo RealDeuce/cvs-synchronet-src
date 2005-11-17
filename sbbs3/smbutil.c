@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.91 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: smbutil.c,v 1.93 2005/09/29 01:01:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,6 +108,7 @@ char *usage=
 "cmd:\n"
 "       l[n] = list msgs starting at number n\n"
 "       r[n] = read msgs starting at number n\n"
+"       x[n] = dump msg index at number n\n"
 "       v[n] = view msg headers starting at number n\n"
 "       i[f] = import msg from text file f (or use stdin)\n"
 "       e[f] = import e-mail from text file f (or use stdin)\n"
@@ -538,6 +539,29 @@ char *my_timestr(time_t *intime)
 		,wday[gm->tm_wday],mon[gm->tm_mon],gm->tm_mday,1900+gm->tm_year
 		,hour,gm->tm_min,mer);
 	return(str);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+void dumpindex(ulong start, ulong count)
+{
+	ulong l=0;
+	idxrec_t idx;
+
+	if(!start)
+		start=1;
+	if(!count)
+		count=~0;
+	fseek(smb.sid_fp,(start-1L)*sizeof(idxrec_t),SEEK_SET);
+	while(l<count) {
+		if(!fread(&idx,1,sizeof(idx),smb.sid_fp))
+			break;
+
+		printf("%4lu %04hX %04hX %04Xh %04Xh %06X %s\n"
+			,idx.number,idx.from,idx.to,idx.subj,idx.attr
+			,idx.offset,my_timestr((time_t*)&idx.time));
+		l++; 
+	}
 }
 
 /****************************************************************************/
@@ -1450,7 +1474,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.93 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1617,6 +1641,10 @@ int main(int argc, char **argv)
 							break;
 						case 'L':
 							listmsgs(atol(cmd+1),count);
+							y=strlen(cmd)-1;
+							break;
+						case 'X':
+							dumpindex(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'P':
