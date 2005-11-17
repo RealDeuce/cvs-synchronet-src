@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.55 2005/11/17 23:24:54 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.56 2005/11/17 23:30:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -924,14 +924,14 @@ int DLLCALL mkdirs(const char* path)
 
 	while(*p) {
 		SKIP_CHARSET(p,sep);
+		if(*p==0)
+			break;
 		tp=p;
 		FIND_CHARSET(tp,sep);
-		if(*p) {
-			safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
-			if(!isdir(dir)) {
-				if((result=MKDIR(dir))!=0)
-					break;
-			}
+		safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
+		if(!isdir(dir)) {
+			if((result=MKDIR(dir))!=0)
+				break;
 		}
 		p=tp;
 	}
