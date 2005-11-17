@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.54 2005/11/17 19:24:47 deuce Exp $ */
+/* $Id: cterm.c,v 1.55 2005/11/17 19:30:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -325,6 +325,10 @@ void play_music(void)
 						notelen=atoi(numbuf);
 						i=1;
 					}
+				}
+				if(note=='P') {
+					notenum=-1;
+					offset=0;
 				}
 				if(notenum==0) {
 					out=strchr(octave,note);
