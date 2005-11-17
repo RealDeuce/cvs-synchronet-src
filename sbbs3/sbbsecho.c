@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.174 2005/11/17 01:58:16 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.175 2005/11/17 02:15:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2593,12 +2593,13 @@ char *pktname(BOOL temp)
 
 	now=time(NULL);
 	for(i=0;i<MAX_TOTAL_PKTS*2;i++) {
-		now+=i;
+		now++;
 		tm=localtime(&now);
 		sprintf(str,"%s%02u%02u%02u%02u.%s",cfg.outbound,tm->tm_mday,tm->tm_hour
 			,tm->tm_min,tm->tm_sec,temp ? "pk_" : "pkt");
 		if(!fexist(str))				/* Add 1 second if name exists */
-			break; }
+			break; 
+	}
 	return(str);
 }
 /******************************************************************************
@@ -3890,7 +3891,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.174 $", "%*s %s", revision);
+	sscanf("$Revision: 1.175 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
