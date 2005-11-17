@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.52 2005/11/16 07:02:47 deuce Exp $ */
+/* $Id: cterm.c,v 1.53 2005/11/17 18:38:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,8 +197,28 @@ void play_music(void)
 
 	p=cterm.musicbuf;
 	if(cterm.music==1) {
-		if(*p=='B' || *p=='b' || *p=='F' || *p=='f')
-			p++;
+		switch(toupper(*p)) {
+			case 'F':
+				cterm.musicfore=TRUE;
+				p++;
+				break;
+			case 'B':
+				cterm.musicfore=FALSE;
+				p++;
+				break;
+			case 'N':
+				cterm.noteshape=CTERM_MUSIC_NORMAL;
+				p++;
+				break;
+			case 'L':
+				cterm.noteshape=CTERM_MUSIC_LEGATO;
+				p++;
+				break;
+			case 'S':
+				cterm.noteshape=CTERM_MUSIC_STACATTO;
+				p++;
+				break;
+		}
 	}
 	for(;*p;p++) {
 		notenum=0;
