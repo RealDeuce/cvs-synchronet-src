@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.201 2005/11/17 06:24:45 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.198 2005/11/17 04:43:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -934,6 +934,13 @@ static void handle_sigs(void)
 	while(1)  {
 		if((i=sigwait(&sigs,&sig))!=0) {   /* wait here until signaled */
 			lprintf(LOG_ERR,"     !sigwait FAILURE (%d)", i);
+			if(i==EINTR) {
+				sigset_t moresigs;
+				lprintf(LOG_ERR,"     Adding signal %d to blocked set",sig);
+				memcpy(&moresigs, &sigs, sizeof(moresigs));
+				sigaddset(&sigs, sig);
+				pthread_sigmask(SIG_BLOCK,&moresigs,NULL);
+			}
 			continue;
 		}
 		lprintf(LOG_NOTICE,"     Got signal (%d)", sig);
