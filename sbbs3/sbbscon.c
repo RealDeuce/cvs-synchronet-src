@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.199 2005/11/17 05:58:17 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.200 2005/11/17 06:13:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1582,6 +1582,10 @@ int main(int argc, char** argv)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
 #elif defined(__unix__)
 	/* Set up blocked signals */
+#ifdef _THREAD_SUID_BROKEN
+	sigfillset(&sigs);
+	sigprocmask(SIG_BLOCK,&sigs,NULL);
+#else
 	sigemptyset(&sigs);
 	sigaddset(&sigs,SIGINT);
 	sigaddset(&sigs,SIGQUIT);
@@ -1593,6 +1597,7 @@ int main(int argc, char** argv)
 	pthread_sigmask(SIG_BLOCK,&sigs,NULL);
     signal(SIGPIPE, SIG_IGN);       /* Ignore "Broken Pipe" signal (Also used for broken socket etc.) */
     signal(SIGALRM, SIG_IGN);       /* Ignore "Alarm" signal */
+#endif
 	_beginthread((void(*)(void*))handle_sigs,0,NULL);
 	if(new_uid_name[0]!=0) {        /*  check the user arg, if we have uid 0 */
 		/* Can't recycle servers (re-bind ports) as non-root user */
