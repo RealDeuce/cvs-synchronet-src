@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.54 2005/08/30 20:41:09 deuce Exp $ */
+/* $Id: syncterm.c,v 1.63 2005/11/18 02:08:57 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -9,13 +9,14 @@
 #include <ini_file.h>
 #include <dirwrap.h>
 
+#include "ciolib.h"
 #include "bbslist.h"
 #include "conn.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.03"
+char* syncterm_version = "SyncTERM 0.5"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -50,7 +51,7 @@ static BOOL winsock_startup(void)
 
 #endif
 
-void parse_url(char *url, struct bbslist *bbs)
+void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type)
 {
 	char *p1, *p2, *p3;
 	struct	bbslist	*list[MAX_OPTS+1];
@@ -81,8 +82,8 @@ void parse_url(char *url, struct bbslist *bbs)
 	bbs->type=USER_BBSLIST;
 	bbs->reversed=FALSE;
 	bbs->screen_mode=SCREEN_MODE_CURRENT;
-	bbs->conn_type=CONN_TYPE_TELNET;
-	bbs->port=23;
+	bbs->conn_type=dflt_conn_type;
+	bbs->port=(dflt_conn_type==CONN_TYPE_TELNET)?23:513;
 	bbs->loglevel=LOG_INFO;
 	p1=url;
 	if(!strnicmp("rlogin://",url,9)) {
@@ -90,8 +91,11 @@ void parse_url(char *url, struct bbslist *bbs)
 		bbs->port=513;
 		p1=url+9;
 	}
-	else if(!strnicmp("telnet://",url,9))
+	else if(!strnicmp("telnet://",url,9)) {
+		bbs->conn_type=CONN_TYPE_TELNET;
+		bbs->port=23;
 		p1=url+9;
+	}
 	/* Remove trailing / (Win32 adds one 'cause it hates me) */
 	p2=strchr(p1,'/');
 	if(p2!=NULL)
@@ -156,6 +160,7 @@ int main(int argc, char **argv)
 	char	*home=NULL;
 	char	*inpath=NULL;
 	BOOL	exit_now=FALSE;
+	int		conn_type=CONN_TYPE_TELNET;
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
@@ -170,24 +175,12 @@ int main(int argc, char **argv)
 #endif
             )
             switch(toupper(argv[i][1])) {
-		        case 'M':   /* Monochrome mode */
-        			uifc.mode|=UIFC_MONO;
-                    break;
                 case 'C':
         			uifc.mode|=UIFC_COLOR;
-                    break;
-                case 'L':
-                    uifc.scrn_len=atoi(argv[i]+2);
                     break;
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
-				case 'P':
-					if(argv[i][2]==':' && argv[i][3])
-						inpath=argv[i]+3;
-					else
-						goto USAGE;
-					break;
 				case 'I':
 					switch(toupper(argv[i][2])) {
 						case 'A':
@@ -211,6 +204,24 @@ int main(int argc, char **argv)
 						default:
 							goto USAGE;
 					}
+					break;
+                case 'L':
+                    uifc.scrn_len=atoi(argv[i]+2);
+                    break;
+		        case 'M':   /* Monochrome mode */
+        			uifc.mode|=UIFC_MONO;
+                    break;
+				case 'P':
+					if(argv[i][2]==':' && argv[i][3])
+						inpath=argv[i]+3;
+					else
+						goto USAGE;
+					break;
+				case 'R':
+					conn_type=CONN_TYPE_RLOGIN;
+					break;
+				case 'T':
+					conn_type=CONN_TYPE_TELNET;
 					break;
                 case 'V':
                     textmode(atoi(argv[i]+2));
@@ -263,7 +274,7 @@ int main(int argc, char **argv)
 			uifcmsg("Unable to allocate memory","The system was unable to allocate memory.");
 			return(1);
 		}
-		parse_url(url, bbs);
+		parse_url(url, bbs, conn_type);
 		if(bbs->port==0)
 			goto USAGE;
 	}
@@ -324,7 +335,7 @@ int main(int argc, char **argv)
 				init_uifc(TRUE, TRUE);
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 					case 0:	/* Yes */
-						add_bbs(path,bbs);
+						add_bbs(listpath,bbs);
 						break;
 					default: /* ESC/No */
 						break;
@@ -332,7 +343,6 @@ int main(int argc, char **argv)
 				free(bbs);
 			}
 			bbs=NULL;
-			break;
 		}
 		else
 			bbs=NULL;
@@ -364,10 +374,13 @@ int main(int argc, char **argv)
         "-v# =  set video mode to # (default=auto)\n"
         "-l# =  set screen lines to # (default=auto-detect)\n"
         "-p:<path> = set path to users BBS list (default=home then userprofile path\n"
+		"-t  =  use telnet mode if URL does not include the scheme\n"
+		"-r  =  use rlogin mode if URL does not include the scheme\n"
 		"\n"
-		"URL format is: (rlogin|telnet)://[user[:password]@]domainname[:port]\n"
+		"URL format is: [(rlogin|telnet)://][user[:password]@]domainname[:port]\n"
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
 		"          telnet://deuce@nix.synchro.net\n"
+		"          nix.synchro.net\n"
 		"          telnet://nix.synchro.net\n\nPress any key to exit..."
         );
 	getch();
