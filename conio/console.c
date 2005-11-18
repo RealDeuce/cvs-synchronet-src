@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.59 2005/11/18 23:00:45 deuce Exp $ */
+/* $Id: console.c,v 1.60 2005/11/18 23:38:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1312,9 +1312,9 @@ load_font(char *filename, int width, int height, int scale)
 				break;
 			}
 		}
+		if(conio_fontdata[i].desc==NULL)
+			x_current_font=0;
 	}
-	if(conio_fontdata[i].desc==NULL)
-		x_current_font=0;
 	if(conio_fontdata[x_current_font].desc==NULL)
 		return(-1);
 
