@@ -2,13 +2,13 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.19 2006/01/13 08:48:25 rswindell Exp $ */
+/* $Id: nopen.c,v 1.18 2005/09/25 22:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -118,20 +118,15 @@ BOOL ftouch(const char* fname)
 	return(TRUE);
 }
 
-BOOL fmutex(const char* fname, const char* text, long max_age)
+BOOL fmutex(const char* fname, const char* text)
 {
 	int file;
-	long t;
 #if !defined(NO_SOCKET_SUPPORT)
 	char hostname[128];
 	if(text==NULL && gethostname(hostname,sizeof(hostname))==0)
 		text=hostname;
 #endif
 
-	if(max_age && (t=fdate(fname)) >= 0 && (time(NULL)-t) > max_age) {
-		if(remove(fname)!=0)
-			return(FALSE);
-	}
 	if((file=open(fname,O_CREAT|O_WRONLY|O_EXCL,S_IREAD|S_IWRITE))<0)
 		return(FALSE);
 	if(text!=NULL)
