@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.146 2005/09/20 03:51:26 deuce Exp $ */
+/* $Id: uifc32.c,v 1.152 2005/10/22 02:20:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -66,7 +66,7 @@ static win_t sav[MAX_BUFS];
 static uifcapi_t* api;
 
 /* Prototypes */
-static int   uprintf(int x, int y, unsigned char attr, char *fmt,...);
+static int   uprintf(int x, int y, unsigned attr, char *fmt,...);
 static void  bottomline(int line);
 static char  *utimestr(time_t *intime);
 static void  help(void);
@@ -146,7 +146,7 @@ int inkey(void)
 
 int uifcini32(uifcapi_t* uifcapi)
 {
-	int 	i;
+	unsigned	i;
 	struct	text_info txtinfo;
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
@@ -411,7 +411,7 @@ void uifcbail(void)
 	_setcursortype(_NORMALCURSOR);
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
-	clrscr();
+	suspendciolib();
 	FREE_AND_NULL(blk_scrn);
 	FREE_AND_NULL(tmp_buffer);
 	FREE_AND_NULL(tmp_buffer2);
@@ -433,7 +433,7 @@ int uscrn(char *str)
     gotoxy(1,api->scrn_len+1);
     clreol();
 	reset_dynamic();
-	settitle(str);
+	setname(str);
     return(0);
 }
 
@@ -498,7 +498,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int vbrdrsize=4;
 	int tbrdrwidth=3;
 	int bbrdrwidth=1;
-	uint title_len;
+	int title_len;
 	struct mouse_event mevnt;
 	char	*title=NULL;
 	int	a,b,c,longopt;
@@ -527,6 +527,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	if(mode&WIN_SAV && api->savnum>=MAX_BUFS-1)
 		putch(7);
+	if(api->helpbuf!=NULL || api->helpixbfile[0]!=0) bline|=BL_HELP;
 	if(mode&WIN_INS) bline|=BL_INS;
 	if(mode&WIN_DEL) bline|=BL_DEL;
 	if(mode&WIN_GET) bline|=BL_GET;
@@ -534,7 +535,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	if(mode&WIN_EDIT) bline|=BL_EDIT;
 	if(api->bottomline != NULL)
 		api->bottomline(bline);
-	while(opts<MAX_OPTS)
+	while(option!=NULL && opts<MAX_OPTS)
 		if(option[opts]==NULL || option[opts][0]==0)
 			break;
 		else opts++;
@@ -557,6 +558,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				width=j;
 		}
 	}
+	if(!(mode&WIN_NOBRDR) && api->mode&UIFC_MOUSE && bline&BL_HELP && width<8)
+		width=8;
 	if(width>(s_right+1)-s_left) {
 		width=(s_right+1)-s_left;
 		if(title_len>(width-hbrdrsize-2)) {
@@ -640,7 +643,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(mode&WIN_ORG) { /* Clear around menu */
 			if(top)
 				puttext(1,2,api->scrn_width,s_top+top-1,blk_scrn);
-			if(s_top+height+top<=api->scrn_len)
+			if((unsigned)(s_top+height+top)<=api->scrn_len)
 				puttext(1,s_top+height+top,api->scrn_width,api->scrn_len,blk_scrn);
 			if(left)
 				puttext(1,s_top+top,s_left+left-1,s_top+height+top
@@ -662,13 +665,16 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				*(ptr++)=api->lclr|(api->bclr<<4);
 				*(ptr++)=']';
 				*(ptr++)=api->hclr|(api->bclr<<4);
-				*(ptr++)='[';
-				*(ptr++)=api->hclr|(api->bclr<<4);
-				*(ptr++)='?';
-				*(ptr++)=api->lclr|(api->bclr<<4);
-				*(ptr++)=']';
-				*(ptr++)=api->hclr|(api->bclr<<4);
-				i=6;
+				i=3;
+				if(bline&BL_HELP) {
+					*(ptr++)='[';
+					*(ptr++)=api->hclr|(api->bclr<<4);
+					*(ptr++)='?';
+					*(ptr++)=api->lclr|(api->bclr<<4);
+					*(ptr++)=']';
+					*(ptr++)=api->hclr|(api->bclr<<4);
+					i+=3;
+				}
 				api->buttony=s_top+top;
 				api->exitstart=s_left+left+1;
 				api->exitend=s_left+left+3;
@@ -1386,7 +1392,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						if(a==1 && !s)
 							break;
-						if(strlen(option[j])>b
+						if(strlen(option[j])>(size_t)b
 							&& ((!a && s && !strnicmp(option[j]+b,search,s+1))
 							|| ((a || !s) && toupper(option[j][b])==toupper(i)))) {
 							if(a) s=0;
@@ -1536,6 +1542,7 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 	int height=3;
 	int i,plen,slen,j;
 	int	iwidth;
+	int l;
 	char *prompt;
 	int s_top=SCRN_TOP;
 	int s_left=SCRN_LEFT;
@@ -1566,8 +1573,8 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 		height=1;
 	}
 
-	plen=strlen(inprompt);
-	prompt=strdup(inprompt);
+	prompt=strdup(inprompt==NULL ? "":inprompt);
+	plen=strlen(prompt);
 	if(!plen)
 		slen=2+hbrdrsize;
 	else
@@ -1607,24 +1614,29 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 			in_win[i++]=api->hclr|(api->bclr<<4);
 		}
 		if(api->mode&UIFC_MOUSE && width>6) {
-			in_win[2]='[';
-			in_win[3]=api->hclr|(api->bclr<<4);
+			j=2;
+			in_win[j++]='[';
+			in_win[j++]=api->hclr|(api->bclr<<4);
 			/* in_win[4]='þ'; */
-			in_win[4]=0xfe;
-			in_win[5]=api->lclr|(api->bclr<<4);
-			in_win[6]=']';
-			in_win[7]=api->hclr|(api->bclr<<4);
-			in_win[8]='[';
-			in_win[9]=api->hclr|(api->bclr<<4);
-			in_win[10]='?';
-			in_win[11]=api->lclr|(api->bclr<<4);
-			in_win[12]=']';
-			in_win[13]=api->hclr|(api->bclr<<4);
+			in_win[j++]=0xfe;
+			in_win[j++]=api->lclr|(api->bclr<<4);
+			in_win[j++]=']';
+			in_win[j++]=api->hclr|(api->bclr<<4);
+			l=3;
+			if(api->helpbuf!=NULL || api->helpixbfile[0]!=0) {
+				in_win[j++]='[';
+				in_win[j++]=api->hclr|(api->bclr<<4);
+				in_win[j++]='?';
+				in_win[j++]=api->lclr|(api->bclr<<4);
+				in_win[j++]=']';
+				in_win[j++]=api->hclr|(api->bclr<<4);
+				l+=3;
+			}
 			api->buttony=s_top+top;
 			api->exitstart=s_left+left+1;
 			api->exitend=s_left+left+3;
 			api->helpstart=s_left+left+4;
-			api->helpend=s_left+left+6;
+			api->helpend=s_left+left+l;
 		}
 
 		in_win[i++]='»';
@@ -1767,7 +1779,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		textattr(api->lbclr);
 		getstrupd(left, top, width, outstr, i, &soffset);
 		textattr(api->lclr|(api->bclr<<4));
-		if(strlen(outstr)<width) {
+		if(strlen(outstr)<(size_t)width) {
 			k=wherex();
 			f=wherey();
 			cprintf("%*s",width-strlen(outstr),"");
@@ -2055,7 +2067,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 /****************************************************************************/
 /* Performs printf() through puttext() routine								*/
 /****************************************************************************/
-static int uprintf(int x, int y, unsigned char attr, char *fmat, ...)
+static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
 {
 	va_list argptr;
 	char str[256],buf[512];
@@ -2082,10 +2094,12 @@ void bottomline(int line)
 
 	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"    ");
 	i+=4;
-	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F1 ");
-	i+=3;
-	uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Help  ");
-	i+=6;
+	if(line&BL_HELP) {
+		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F1 ");
+		i+=3;
+		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Help  ");
+		i+=6;
+	}
 	if(line&BL_EDIT) {
 		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F2 ");
 		i+=3;
@@ -2290,11 +2304,11 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	if(api->mode&UIFC_MOUSE)
 		title_len+=6;
 
-	if(top+height>api->scrn_len-3)
+	if((unsigned)(top+height)>api->scrn_len-3)
 		height=(api->scrn_len-3)-top;
-	if(!width || width<title_len+6)
+	if(!width || (unsigned)width<title_len+6)
 		width=title_len+6;
-	if(width>api->scrn_width)
+	if((unsigned)width>api->scrn_width)
 		width=api->scrn_width;
 	if(mode&WIN_L2R)
 		left=(api->scrn_width-width+2)/2;
@@ -2553,11 +2567,16 @@ static void help(void)
 	long l;
 	FILE *fp;
 
+	if(api->helpbuf==NULL && api->helpixbfile[0]==0)
+		return;
+
 	_setcursortype(_NOCURSOR);
 
-	if(!api->helpbuf) {
+	if(api->helpbuf!=NULL)
+		strcpy(hbuf,api->helpbuf);
+	else {
 		if((fp=fopen(api->helpixbfile,"rb"))==NULL) {
-			sprintf(hbuf," ERROR  Cannot open help index:\r\n          %s"
+			sprintf(hbuf,"\2 ERROR \2 Cannot open help index:\r\n          %s"
 				,api->helpixbfile);
 		}
 		else {
@@ -2583,11 +2602,11 @@ static void help(void)
 			}
 			fclose(fp);
 			if(l==-1L)
-				sprintf(hbuf," ERROR  Cannot locate help key (%s:%u) in:\r\n"
+				sprintf(hbuf,"\2 ERROR \2 Cannot locate help key (%s:%u) in:\r\n"
 					"         %s",p,helpline,api->helpixbfile);
 			else {
 				if((fp=fopen(api->helpdatfile,"rb"))==NULL)
-					sprintf(hbuf," ERROR  Cannot open help file:\r\n          %s"
+					sprintf(hbuf,"\2 ERROR \2 Cannot open help file:\r\n          %s"
 						,api->helpdatfile);
 				else {
 					fseek(fp,l,SEEK_SET);
@@ -2597,8 +2616,6 @@ static void help(void)
 			}
 		}
 	}
-	else
-		strcpy(hbuf,api->helpbuf);
 
 	showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", hbuf, NULL, NULL);
 }
