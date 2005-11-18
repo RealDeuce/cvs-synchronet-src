@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.104 2006/02/01 04:13:47 rswindell Exp $ */
+/* $Id: js_system.c,v 1.101 2005/10/12 21:33:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -407,7 +407,7 @@ static jsSyncPropertySpec js_system_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* sys_prop_desc[] = {
 	 "BBS name"
 	,"operator name"
@@ -484,8 +484,6 @@ static char* sys_prop_desc[] = {
 	,"Synchronet alpha/beta designation (e.g. ' beta')"
 	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
 	,"Synchronet version notice (includes version and platform)"
-	,"Synchronet version number in decimal (e.g. 31301 for v3.13b)"
-	,"Synchronet version number in hexadecimal (e.g. 0x31301 for v3.13b)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
 	,"socket library version information"
 	,"message base library version information"
@@ -642,7 +640,7 @@ static jsSyncPropertySpec js_sysstats_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* sysstat_prop_desc[] = {
 	 "total logons"
 	,"logons today"
@@ -1335,11 +1333,11 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("returns name of user in specified user record <i>number</i>, or empty string if not found")
 	,311
 	},
-	{"alias",			js_alias,			1,	JSTYPE_STRING,	JSDOCSTR("alias")
+	{"alias",			js_alias,			1,	JSTYPE_STRING,	JSDOCSTR("string alias")
 	,JSDOCSTR("returns name of user that matches alias (if found in <tt>ctrl/alias.cfg</tt>)")
 	,310
 	},		
-	{"matchuser",		js_matchuser,		1,	JSTYPE_NUMBER,	JSDOCSTR("username [,sysop_alias=<tt>true</tt>]")
+	{"matchuser",		js_matchuser,		1,	JSTYPE_NUMBER,	JSDOCSTR("string username [,bool sysop_alias]")
 	,JSDOCSTR("exact user name matching, returns number of user whose name/alias matches <i>username</i> "
 		" or 0 if not found, matches well-known sysop aliases by default")
 	,310
@@ -1349,24 +1347,24 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"returns first matching user record number, optional <i>usernumber</i> specifies user record to skip")
 	,310
 	},
-	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
+	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename, search")
 	,JSDOCSTR("search text/filename.can for pseudo-regexp")
 	,310
 	},		
-	{"findstr",			js_findstr,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
+	{"findstr",			js_findstr,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename, search")
 	,JSDOCSTR("search any file for pseudo-regexp")
 	,310
 	},		
-	{"zonestr",			js_zonestr,			0,	JSTYPE_STRING,	JSDOCSTR("[timezone=<i>local</i>]")
+	{"zonestr",			js_zonestr,			0,	JSTYPE_STRING,	JSDOCSTR("[timezone]")
 	,JSDOCSTR("convert time zone integer to string, defaults to system timezone if <i>timezone</i> not specified")
 	,310
 	},		
-	{"timestr",			js_timestr,			0,	JSTYPE_STRING,	JSDOCSTR("[time=<i>current</i>]")
+	{"timestr",			js_timestr,			0,	JSTYPE_STRING,	JSDOCSTR("[time]")
 	,JSDOCSTR("convert time_t integer into a time string, "
 		"defaults to current time if <i>time</i> not specified")
 	,310
 	},		
-	{"datestr",			js_datestr,			0,	JSTYPE_STRING,	JSDOCSTR("[time=<i>current</i>]")
+	{"datestr",			js_datestr,			0,	JSTYPE_STRING,	JSDOCSTR("[time]")
 	,JSDOCSTR("convert time_t integer into a date string (in either <tt>MM/DD/YY</tt> or <tt>DD/MM/YY</tt> format), "
 		"defaults to current date if <i>time</i> not specified")
 	,310
@@ -1387,19 +1385,19 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("add an IP address (with comment) to the system's IP filter file")
 	,311
 	},		
-	{"get_node_message",js_get_node_message,0,	JSTYPE_STRING,	JSDOCSTR("node_number")
+	{"get_node_message",js_get_node_message,0,	JSTYPE_STRING,	JSDOCSTR("number node")
 	,JSDOCSTR("read any messages waiting for the specified node and return in a single string")
 	,311
 	},		
-	{"put_node_message",js_put_node_message,2,	JSTYPE_BOOLEAN,	JSDOCSTR("node_number, message_text")
+	{"put_node_message",js_put_node_message,2,	JSTYPE_BOOLEAN,	JSDOCSTR("number node, string message")
 	,JSDOCSTR("send a node a short text message, delivered immediately")
 	,310
 	},		
-	{"get_telegram",	js_get_telegram,	1,	JSTYPE_STRING,	JSDOCSTR("user_number")
+	{"get_telegram",	js_get_telegram,	1,	JSTYPE_STRING,	JSDOCSTR("number user")
 	,JSDOCSTR("returns any short text messages waiting for the specified user")
 	,311
 	},		
-	{"put_telegram",	js_put_telegram,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("user_number, message_text")
+	{"put_telegram",	js_put_telegram,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("number user, string message")
 	,JSDOCSTR("sends a user a short text message, delivered immediately or during next logon")
 	,310
 	},		
@@ -1417,7 +1415,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"(<b>only functional on UNIX systems</b>)")
 	,311
 	},
-	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("password")
+	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("string password")
 	,JSDOCSTR("compares the supplied <i>password</i> against the system password and return's <i>true</i> if it matches")
 	,311
 	},
@@ -1438,7 +1436,7 @@ enum {
 	,NODE_PROP_EXTAUX
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* node_prop_desc[] = {
 	 "status (see <tt>nodedefs.js</tt> for valid values)"
 	,"error counter"
@@ -1626,7 +1624,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if (!js_DefineSyncMethods(cx, sysobj, js_system_functions, FALSE)) 
 		return(NULL);
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,sysobj,"Global system-related properties and methods",310);
 	js_CreateArrayOfStrings(cx, sysobj, "_property_desc_list", sys_prop_desc, JSPROP_READONLY);
 #endif
@@ -1676,17 +1674,6 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 		return(NULL);
 	val = STRING_TO_JSVAL(js_str);
 	if(!JS_SetProperty(cx, sysobj, "version_notice", &val))
-		return(NULL);
-
-	/* Numeric version properties */
-	if(!JS_NewNumberValue(cx, VERSION_NUM, &val))
-		return(NULL);
-	if(!JS_SetProperty(cx, sysobj, "version_num", &val))
-		return(NULL);
-
-	if(!JS_NewNumberValue(cx, VERSION_HEX, &val))
-		return(NULL);
-	if(!JS_SetProperty(cx, sysobj, "version_hex", &val))
 		return(NULL);
 
 	if((js_str=JS_NewStringCopyZ(cx, PLATFORM_DESC))==NULL)
@@ -1772,7 +1759,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if(!js_DefineSyncProperties(cx, statsobj, js_sysstats_properties))
 		return(NULL);
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,statsobj,"System statistics",310);
 	js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
 #endif
@@ -1801,7 +1788,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 		if(!js_DefineSyncProperties(cx, nodeobj, js_node_properties))
 			return(NULL);
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 		if(i==0) {
 			js_DescribeSyncObject(cx,nodeobj,"BBS node listing",310);
 			js_CreateArrayOfStrings(cx, nodeobj, "_property_desc_list", node_prop_desc, JSPROP_READONLY);
