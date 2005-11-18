@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.33 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: execfunc.cpp,v 1.34 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,9 +265,6 @@ int sbbs_t::exec_function(csi_t *csi)
 			change_user();
 			return(0);
 		case CS_SHOW_MEM:
-	#ifdef __MSDOS__
-			 bprintf(text[NBytesFreeMemory],farcoreleft());
-	#endif
 			return(0);
 		case CS_ERROR_LOG:
 			sprintf(str,"%serror.log", cfg.logs_dir);
