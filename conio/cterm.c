@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.55 2005/11/17 19:30:37 deuce Exp $ */
+/* $Id: cterm.c,v 1.56 2005/11/18 02:05:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,7 @@ void playnote(int notenum, int notelen, int dotted)
 			break;
 	}
 	duration-=pauselen;
-	if(notenum < 72 && nottenum >= 0)
+	if(notenum < 72 && notenum >= 0)
 		xpbeep(((double)note_frequency[notenum])/1000,duration);
 	else
 		SLEEP(duration);
@@ -210,7 +210,7 @@ void play_music(void)
 				p++;
 				break;
 			case 'N':
-				if(!isdigit(*(p+1)) {
+				if(!isdigit(*(p+1))) {
 					cterm.noteshape=CTERM_MUSIC_NORMAL;
 					p++;
 				}
