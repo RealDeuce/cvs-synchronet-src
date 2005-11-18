@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.69 2005/11/25 22:03:10 deuce Exp $ */
+/* $Id: scfg.c,v 1.68 2005/11/17 04:31:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -588,6 +588,8 @@ int save_changes(int mode)
 	strcpy(opt[0],"Yes");
 	strcpy(opt[1],"No");
 	opt[2][0]=0;
+	if(mode&WIN_SAV && uifc.savdepth)
+		uifc.savnum++;
 	SETHELP(WHERE);
 /*
 Save uifc.changes:
@@ -598,6 +600,8 @@ these uifc.changes, select No. If you are not sure and want to review the
 configuration before deciding, hit  ESC .
 */
 	i=uifc.list(mode|WIN_ACT,0,0,0,&i,0,"Save Changes",opt);
+	if(mode&WIN_SAV && uifc.savdepth && uifc.savnum)
+		uifc.savnum--;
 	if(i!=-1)
 		uifc.changes=0;
 	return(i);
@@ -968,6 +972,8 @@ strcpy(opt[1],"Equal");
 strcpy(opt[2],"Not Equal");
 strcpy(opt[3],"Less than");
 opt[4][0]=0;
+if(uifc.savdepth)
+	uifc.savnum++;
 SETHELP(WHERE);
 /*
 Select Logic for Requirement:
@@ -983,6 +989,8 @@ must have any level BUT 50. And if you select Less than from this
 menu and level 50, the user must have a level below 50.
 */
 i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Select Logic",opt);
+if(uifc.savdepth && uifc.savnum)
+	uifc.savnum--;
 return(i);
 }
 
@@ -994,6 +1002,8 @@ i=0;
 strcpy(opt[0],"AND (Both/All)");
 strcpy(opt[1],"OR  (Either/Any)");
 opt[2][0]=0;
+if(uifc.savdepth)
+	uifc.savnum++;
 SETHELP(WHERE);
 /*
 Select Logic for Multiple Requirements:
@@ -1007,6 +1017,8 @@ parameter requirements aren't met, select OR to specify that either
 or any of the parameter requirements must be met.
 */
 i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Multiple Requirement Logic",opt);
+if(uifc.savdepth && uifc.savnum)
+	uifc.savnum--;
 return(i);
 }
 
@@ -1249,6 +1261,8 @@ USER		  $U		User's number (1-xxxx)
 			strcpy(opt[0],"Yes");
 			strcpy(opt[1],"No");
 			opt[2][0]=0;
+			if(uifc.savdepth)
+				uifc.savnum++;
 			SETHELP(WHERE);
 /*
 Clear Requirements:
@@ -1257,6 +1271,8 @@ If you wish to clear the current requirement string, select Yes.
 Otherwise, select No.
 */
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Are You Sure",opt);
+			if(uifc.savdepth && uifc.savnum)
+                uifc.savnum--;
 			if(!i) {
 				ar[0]=0;
 				uifc.changes=1; }
@@ -1309,7 +1325,11 @@ requirement evaluation. The valid range is 0 (zero) through 99.
 				sprintf(opt[i],"Flag Set #%d",i+1);
 			opt[i][0]=0;
 			i=0;
+			if(uifc.savdepth)
+				uifc.savnum++;
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Select Flag Set",opt);
+			if(uifc.savdepth && uifc.savnum)
+				uifc.savnum--;
 			if(i==-1)
                 break;
 			str[0]=0;
@@ -1620,7 +1640,11 @@ divided by the number of files downloaded.
 			strcpy(opt[0],"Before");
 			strcpy(opt[1],"After");
 			opt[2][0]=0;
+			if(uifc.savdepth)
+				uifc.savnum++;
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Time Relationship",opt);
+			if(uifc.savdepth && uifc.savnum)
+				uifc.savnum--;
 			if(i==-1)
 				break;
 			str[0]=0;
@@ -1666,7 +1690,11 @@ requirement value.
 				strcpy(opt[n],wday[n]);
 			opt[n][0]=0;
 			n=0;
+			if(uifc.savdepth)
+				uifc.savnum++;
 			n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0,"Select Day of Week",opt);
+			if(uifc.savdepth && uifc.savnum)
+				uifc.savnum--;
 			if(n==-1)
                 break;
 			strcpy(str,wday[n]);
