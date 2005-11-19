@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.49 2006/02/14 22:43:48 deuce Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.47 2005/11/09 20:47:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -411,7 +411,15 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,cfg.temp_dir
 			,cfg.sys_id
 			,cfg.node_misc
+	#if defined(__OS2__)
+			,rio_handle
+	#elif defined(_WIN32)
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
+	#elif defined(__unix__)
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket
+	#else
+			,-1
+	#endif
 			);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -492,31 +500,6 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		if(tleft>0x7fff)	/* Reduce time-left for broken 16-bit doors		*/
 			tleft=0x7fff;	/* That interpret this value as a signed short	*/
 
-#if 0
-		if(misc&XTRN_NATIVE) {
-			if(misc&IO_INTS) {
-				strcpy(str,"COM0:STDIO\n");
-			}
-			else {
-				sprintf(str,"COM0:SOCKET%d\n",
-#ifdef __unix__
-					client_socket
-#else
-					client_socket_dup
-#endif
-				);
-			}
-		}
-		else {
-			sprintf(str,"COM%d:\n"
-				,online==ON_REMOTE ? cfg.com_port:0);	/* 01: COM port - 0 if Local */
-		}
-#else
-		sprintf(str,"COM%d:\n"
-			,online==ON_REMOTE ? cfg.com_port:0);	/* 01: COM port - 0 if Local */
-#endif
-		lfexpand(str,misc);
-		write(file,str,strlen(str));
 		/* Note about door.sys, line 2 (April-24-2005):
 		   It *should* be the DCE rate (any number, including the popular modem
 		   DCE rates of 14400, 28800, and 33600).  However, according to Deuce,
@@ -525,7 +508,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		   changing this value to the DTE rate until/unless some other doors
 		   have an issue with that. <sigh>
 		*/
-		sprintf(str,"%lu\n%u\n%u\n%lu\n%c\n%c\n%c\n%c\n"
+		sprintf(str,"COM%d:\n%lu\n%u\n%u\n%lu\n%c\n%c\n%c\n%c\n"
+			,online==ON_REMOTE ? cfg.com_port:0	/* 01: COM port - 0 if Local */
 			,dte_rate /* was cur_rate */		/* 02: DCE rate, see note above */
 			,8									/* 03: Data bits */
 			,cfg.node_num						/* 04: Node number */
