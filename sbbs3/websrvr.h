@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.38 2006/01/31 23:11:24 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.36 2005/04/21 06:44:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -90,8 +90,6 @@ typedef struct {
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 	char	default_cgi_content[128];
-	WORD	outbuf_highwater_mark;	/* output block size control */
-	WORD	outbuf_drain_timeout;
 
 	/* JavaScript operating parameters */
 	js_startup_t js;
@@ -145,7 +143,7 @@ static ini_bitdesc_t web_options[] = {
 };
 #endif
 
-#define WEB_DEFAULT_ROOT_DIR		"../web/root"
+#define WEB_DEFAULT_ROOT_DIR		"../web/html"
 #define WEB_DEFAULT_ERROR_DIR		"error"
 #define WEB_DEFAULT_CGI_DIR			"cgi-bin"
 #define WEB_DEFAULT_CGI_CONTENT		"text/plain"

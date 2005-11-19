@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.h,v 1.7 2006/01/30 04:16:20 deuce Exp $ */
+/* $Id: ansi_cio.h,v 1.6 2005/10/14 06:21:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,6 @@
 #endif
 
 #include "ciolib.h"
-extern int	CIOLIB_ANSI_TIMEOUT;
 
 #ifdef __cplusplus
 extern "C" {
