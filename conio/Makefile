@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.18 2005/11/28 05:44:46 deuce Exp $
+# $Id: Makefile,v 1.16 2005/11/18 23:00:45 deuce Exp $
 
 # To build a DLL, use "make [OPTIONS] DLLIBS=1 dl-mtlib"
 # You *MUST* do a clean between a static and dynamic lib on Win32!
@@ -23,6 +23,7 @@ SRC_ROOT = ..
 !ifdef USE_SDL
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE) $(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
+OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)allfonts$(OFILE)
 !endif
 
 #The following is necessary only when DLL-exporting wrapper functions

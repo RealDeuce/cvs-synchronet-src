@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.33 2006/02/24 20:09:29 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.30 2005/11/01 00:33:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,19 +96,7 @@ extern "C" {
 
 pthread_mutex_t pthread_mutex_initializer(void);
 
-#if defined(_POSIX_THREADS)
-
-#ifdef _DEBUG
-#if defined (__FreeBSD__) || defined (__OpenBSD__)
-#include <pthread_np.h>
-#define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
-#else
-#define SetThreadName(c)
-#else
-#define SetThreadName(c)
-#endif
-
-#else
+#if !defined(_POSIX_THREADS)
 
 int pthread_mutex_init(pthread_mutex_t*, void* attr);
 int pthread_mutex_lock(pthread_mutex_t*);
@@ -117,7 +105,6 @@ int pthread_mutex_unlock(pthread_mutex_t*);
 int pthread_mutex_destroy(pthread_mutex_t*);
 
 #define PTHREAD_MUTEX_INITIALIZER	pthread_mutex_initializer()
-#define SetThreadName(c)
 
 #endif
 
