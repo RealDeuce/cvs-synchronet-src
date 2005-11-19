@@ -1,16 +1,14 @@
-/* $Id: bbslist.h,v 1.27 2006/02/25 09:13:44 rswindell Exp $ */
+/* $Id: bbslist.h,v 1.20 2005/11/19 06:25:50 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
 
-#include <stdio.h>	/* FILE * */
 #include "gen_defs.h"
 #include "dirwrap.h"	/* MAX_PATH */
-#include "ini_file.h"
 #include <time.h>
 
 #define LIST_NAME_MAX	30
-#define LIST_ADDR_MAX	64
+#define LIST_ADDR_MAX	30
 #define MAX_USER_LEN	30
 #define MAX_PASSWD_LEN	16
 #define MAX_SYSPASS_LEN	16
@@ -51,23 +49,19 @@ struct bbslist {
 	int				reversed;
 	int				screen_mode;
 	int				nostatus;
-	char			dldir[MAX_PATH+1];
-	char			uldir[MAX_PATH+1];
-	char			logfile[MAX_PATH+1];
-	int				xfer_loglevel;
-	int				telnet_loglevel;
+	char			dldir[MAX_PATH];
+	char			uldir[MAX_PATH];
+	int				loglevel;
 	int				bpsrate;
 	int				music;
-	char			font[80];
+	int				font;
 };
 
-struct bbslist *show_bbslist(int mode);
+struct bbslist *show_bbslist(char* listpath, int mode, char *home);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];
-extern ini_style_t ini_style;
-void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int type);
-void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, int *i, int type);
+void read_list(char *listpath, struct bbslist **list, int *i, int type, char* home);
 void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
 int  get_rate_num(int rate);
