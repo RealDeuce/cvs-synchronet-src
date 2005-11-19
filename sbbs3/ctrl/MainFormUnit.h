@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.73 2006/01/27 10:20:34 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.71 2005/04/26 08:47:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -298,10 +298,6 @@ __published:	// IDE-managed Components
     TMenuItem *BBSEditTwitList;
     TMenuItem *WebEditHandlersMenuItem;
     TMenuItem *WebEditCgiEnvMenuItem;
-    TMenuItem *FtpEditBadLoginMessage;
-    TMenuItem *ConfigureWebTrayMenuItem;
-    TMenuItem *ConfigureServicesTrayMenuItem;
-    TMenuItem *HelpTechnicalSupportMenuItem;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -436,11 +432,6 @@ public:		// User declarations
     void __fastcall WriteFont(AnsiString, TFont*);
     void __fastcall EditFile(AnsiString filename, AnsiString Caption="Edit");
     void __fastcall ViewFile(AnsiString filename, AnsiString Caption);
-    BOOL __fastcall bbsServiceEnabled(void);
-    BOOL __fastcall ftpServiceEnabled(void);
-    BOOL __fastcall webServiceEnabled(void);
-    BOOL __fastcall mailServiceEnabled(void);
-    BOOL __fastcall servicesServiceEnabled(void);
 };
 
 //---------------------------------------------------------------------------
