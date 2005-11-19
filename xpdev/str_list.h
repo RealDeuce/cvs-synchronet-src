@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.19 2005/04/18 05:12:12 rswindell Exp $ */
+/* $Id: str_list.h,v 1.20 2005/10/12 22:46:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,6 +124,7 @@ void		strListFreeBlock(char*);
 /* Read lines from file appending each line to string list */
 /* Pass NULL list to have list allocated for you */
 str_list_t	strListReadFile(FILE*, str_list_t*, size_t max_line_len);
+size_t		strListInsertFile(FILE*, str_list_t*, size_t index, size_t max_line_len);
 
 /* Write to file (fp) each string in the list, optionally separated by separator (e.g. "\n") */
 size_t		strListWriteFile(FILE*, const str_list_t, const char* separator);
