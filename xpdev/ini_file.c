@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.84 2005/09/28 08:25:59 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.94 2005/10/19 07:18:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,6 @@
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
 #include <math.h>		/* fmod */
-#if !defined(NO_SOCKET_SUPPORT)
-	#include "sockwrap.h"	/* inet_addr */
-#endif
 #include "datewrap.h"	/* isoDateTime_t */
 #include "dirwrap.h"	/* fexist */
 #include "filewrap.h"	/* chsize */
@@ -52,7 +49,12 @@
 #define INI_COMMENT_CHAR		';'
 #define INI_OPEN_SECTION_CHAR	'['
 #define INI_CLOSE_SECTION_CHAR	']'
+#define INI_SECTION_NAME_SEP	"|"
+#define INI_BIT_SEP				'|'
 #define INI_NEW_SECTION			((char*)~0)
+#define INI_EOF_DIRECTIVE		"!eof"
+#define INI_INCLUDE_DIRECTIVE	"!include"
+#define INI_INCLUDE_MAX			10000
 
 static ini_style_t default_style;
 
@@ -68,6 +70,11 @@ static char* logLevelStringList[]
 str_list_t iniLogLevelStringList(void)
 {
 	return(logLevelStringList);
+}
+
+static BOOL is_eof(char* str)
+{
+	return(*str=='!' && stricmp(truncsp(str),INI_EOF_DIRECTIVE)==0);
 }
 
 static char* section_name(char* p)
@@ -88,6 +95,38 @@ static char* section_name(char* p)
 	return(p);
 }
 
+static BOOL section_match(const char* name, const char* compare)
+{
+	BOOL found=FALSE;
+	str_list_t names=strListSplitCopy(NULL,name,INI_SECTION_NAME_SEP);
+	str_list_t comps=strListSplitCopy(NULL,compare,INI_SECTION_NAME_SEP);
+	size_t	i,j;
+	char*	n;
+	char*	c;
+
+	/* Ignore trailing whitepsace */
+	for(i=0; names[i]!=NULL; i++)
+		truncsp(names[i]);
+	for(i=0; comps[i]!=NULL; i++)
+		truncsp(comps[i]);
+
+	/* Search for matches */
+	for(i=0; names[i]!=NULL && !found; i++)
+		for(j=0; comps[j]!=NULL && !found; j++) {
+			n=names[i];
+			SKIP_WHITESPACE(n);
+			c=comps[j];
+			SKIP_WHITESPACE(c);
+			if(stricmp(n,c)==0)
+				found=TRUE;
+		}
+
+	strListFree(&names);
+	strListFree(&comps);
+
+	return(found);
+}
+
 static BOOL seek_section(FILE* fp, const char* section)
 {
 	char*	p;
@@ -101,9 +140,11 @@ static BOOL seek_section(FILE* fp, const char* section)
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
+		if(is_eof(str))
+			break;
 		if((p=section_name(str))==NULL)
 			continue;
-		if(stricmp(p,section)==0)
+		if(section_match(p,section))
 			return(TRUE);
 	}
 	return(FALSE);
@@ -117,7 +158,9 @@ static size_t find_section_index(str_list_t list, const char* section)
 
 	for(i=0; list[i]!=NULL; i++) {
 		SAFECOPY(str,list[i]);
-		if((p=section_name(str))!=NULL && stricmp(p,section)==0)
+		if(is_eof(str))
+			return(strListCount(list));
+		if((p=section_name(str))!=NULL && section_match(p,section))
 			return(i);
 	}
 
@@ -193,6 +236,8 @@ static char* read_value(FILE* fp, const char* section, const char* key, char* va
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
+		if(is_eof(str))
+			break;
 		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
@@ -219,6 +264,8 @@ static size_t get_value(str_list_t list, const char* section, const char* key, c
 	value[0]=0;
 	for(i=find_section(list, section); list[i]!=NULL; i++) {
 		SAFECOPY(str, list[i]);
+		if(is_eof(str))
+			break;
 		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
@@ -666,17 +713,17 @@ str_list_t iniReadStringList(FILE* fp, const char* section, const char* key
 str_list_t iniGetStringList(str_list_t list, const char* section, const char* key
 						 ,const char* sep, const char* deflt)
 {
-	char	buf[INI_MAX_VALUE_LEN];
-	char*	value=buf;
+	char	value[INI_MAX_VALUE_LEN];
 
 	get_value(list, section, key, value);
 
-	if(*value==0 /* blank value or missing key */)
-		value=(char*)deflt;
+	if(*value==0 /* blank value or missing key */) {
+		if(deflt==NULL)
+			return(NULL);
+		SAFECOPY(value,deflt);
+	}
 
-	SAFECOPY(buf,value);
-
-	return(splitList(buf,sep));
+	return(splitList(value,sep));
 }
 
 void* iniFreeStringList(str_list_t list)
@@ -722,6 +769,8 @@ str_list_t iniReadSectionList(FILE* fp, const char* prefix)
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
+		if(is_eof(str))
+			break;
 		if((p=section_name(str))==NULL)
 			continue;
 		if(prefix!=NULL)
@@ -747,8 +796,10 @@ str_list_t iniGetSectionList(str_list_t list, const char* prefix)
 	if(list==NULL)
 		return(lp);
 
-	for(i=0;list[i];i++) {
+	for(i=0; list[i]!=NULL; i++) {
 		SAFECOPY(str,list[i]);
+		if(is_eof(str))
+			break;
 		if((p=section_name(str))==NULL)
 			continue;
 		if(prefix!=NULL)
@@ -770,8 +821,10 @@ size_t iniGetSectionCount(str_list_t list, const char* prefix)
 	if(list==NULL)
 		return(0);
 
-	for(i=0;list[i];i++) {
+	for(i=0; list[i]!=NULL; i++) {
 		SAFECOPY(str,list[i]);
+		if(is_eof(str))
+			break;
 		if((p=section_name(str))==NULL)
 			continue;
 		if(prefix!=NULL)
@@ -806,6 +859,8 @@ str_list_t iniReadKeyList(FILE* fp, const char* section)
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
+		if(is_eof(str))
+			break;
 		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
@@ -833,6 +888,8 @@ str_list_t iniGetKeyList(str_list_t list, const char* section)
 
 	for(i=find_section(list,section);list[i]!=NULL;i++) {
 		SAFECOPY(str,list[i]);
+		if(is_eof(str))
+			break;
 		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
@@ -870,6 +927,8 @@ iniReadNamedStringList(FILE* fp, const char* section)
 
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
+			break;
+		if(is_eof(str))
 			break;
 		if((name=key_name(str,&value))==NULL)
 			continue;
@@ -912,6 +971,8 @@ iniGetNamedStringList(str_list_t list, const char* section)
 
 	for(i=find_section(list,section);list[i]!=NULL;i++) {
 		SAFECOPY(str,list[i]);
+		if(is_eof(str))
+			break;
 		if((name=key_name(str,&value))==NULL)
 			continue;
 		if(name==INI_NEW_SECTION)
@@ -936,6 +997,32 @@ iniGetNamedStringList(str_list_t list, const char* section)
 
 /* These functions read a single key of the specified type */
 
+static BOOL isTrue(const char* value)
+{
+	return(stricmp(value,"TRUE")==0 || stricmp(value,"YES")==0 || stricmp(value,"ON")==0);
+}
+
+static long parseInteger(const char* value)
+{
+	if(isTrue(value))
+		return(TRUE);
+
+	return(strtol(value,NULL,0));
+}
+
+static ulong parseLongInteger(const char* value)
+{
+	if(isTrue(value))
+		return(TRUE);
+
+	return(strtoul(value,NULL,0));
+}
+
+static BOOL parseBool(const char* value)
+{
+	return(INT_TO_BOOL(parseInteger(value)));
+}
+
 long iniReadInteger(FILE* fp, const char* section, const char* key, long deflt)
 {
 	char*	value;
@@ -947,7 +1034,7 @@ long iniReadInteger(FILE* fp, const char* section, const char* key, long deflt)
 	if(*value==0)		/* blank value */
 		return(deflt);
 
-	return(strtol(value,NULL,0));
+	return(parseInteger(value));
 }
 
 long iniGetInteger(str_list_t list, const char* section, const char* key, long deflt)
@@ -959,7 +1046,7 @@ long iniGetInteger(str_list_t list, const char* section, const char* key, long d
 	if(*value==0)	/* blank value or missing key */
 		return(deflt);
 
-	return(strtol(value,NULL,0));
+	return(parseInteger(value));
 }
 
 ushort iniReadShortInt(FILE* fp, const char* section, const char* key, ushort deflt)
@@ -983,7 +1070,7 @@ ulong iniReadLongInt(FILE* fp, const char* section, const char* key, ulong deflt
 	if(*value==0)		/* blank value */
 		return(deflt);
 
-	return(strtoul(value,NULL,0));
+	return(parseLongInteger(value));
 }
 
 ulong iniGetLongInt(str_list_t list, const char* section, const char* key, ulong deflt)
@@ -995,7 +1082,7 @@ ulong iniGetLongInt(str_list_t list, const char* section, const char* key, ulong
 	if(*value==0)	/* blank value or missing key */
 		return(deflt);
 
-	return(strtoul(value,NULL,0));
+	return(parseLongInteger(value));
 }
 
 static ulong parseBytes(const char* value, ulong unit)
@@ -1047,6 +1134,53 @@ ulong iniGetBytes(str_list_t list, const char* section, const char* key, ulong u
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
+
+int iniGetSocketOptions(str_list_t list, const char* section, SOCKET sock
+						 ,char* error, size_t errlen)
+{
+	int			i;
+	int			result;
+	char*		name;
+	BYTE*		vp;
+	socklen_t	len;
+	int			option;
+	int			level;
+	int			value;
+	LINGER		linger;
+	socket_option_t* socket_options=getSocketOptionList();
+
+	for(i=0;socket_options[i].name!=NULL;i++) {
+		name = socket_options[i].name;
+		if(!iniValueExists(list, section, name))
+			continue;
+		value=iniGetInteger(list, section, name, 0);
+
+		vp=(BYTE*)&value;
+		len=sizeof(value);
+
+		level	= socket_options[i].level;
+		option	= socket_options[i].value;
+
+		if(option == SO_LINGER) {
+			if(value) {
+				linger.l_onoff = TRUE;
+				linger.l_linger = value;
+			} else {
+				ZERO_VAR(linger);
+			}
+			vp=(BYTE*)&linger;
+			len=sizeof(linger);
+		}
+
+		if((result=setsockopt(sock,level,option,vp,len)) != 0) {
+			safe_snprintf(error,errlen,"%d setting socket option (%s, %d) to %d"
+				,ERROR_VALUE, name, option, value);
+			return(result);
+		}
+	}
+
+	return(0);
+}
 
 static ulong parseIpAddress(const char* value)
 {
@@ -1151,14 +1285,6 @@ double iniGetFloat(str_list_t list, const char* section, const char* key, double
 		return(deflt);
 
 	return(atof(value));
-}
-
-static BOOL parseBool(const char* value)
-{
-	if(stricmp(value,"TRUE")==0 || stricmp(value,"YES")==0 || stricmp(value,"ON")==0)
-		return(TRUE);
-
-	return(INT_TO_BOOL(strtol(value,NULL,0)));
 }
 
 BOOL iniReadBool(FILE* fp, const char* section, const char* key, BOOL deflt)
@@ -1332,12 +1458,12 @@ static unsigned parseEnum(const char* value, str_list_t names)
 	unsigned i;
 
 	/* Look for exact matches first */
-	for(i=0;names[i]!=NULL;i++)
+	for(i=0; names[i]!=NULL; i++)
 		if(stricmp(names[i],value)==0)
 			return(i);
 
 	/* Look for partial matches second */
-	for(i=0;names[i]!=NULL;i++)
+	for(i=0; names[i]!=NULL; i++)
 		if(strnicmp(names[i],value,strlen(value))==0)
 			return(i);
 
@@ -1375,16 +1501,16 @@ static long parseNamedInt(const char* value, named_long_t* names)
 	unsigned i;
 
 	/* Look for exact matches first */
-	for(i=0;names[i].name!=NULL;i++)
+	for(i=0; names[i].name!=NULL; i++)
 		if(stricmp(names[i].name,value)==0)
 			return(names[i].value);
 
 	/* Look for partial matches second */
-	for(i=0;names[i].name!=NULL;i++)
+	for(i=0; names[i].name!=NULL; i++)
 		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
-	return(strtol(value,NULL,0));
+	return(parseInteger(value));
 }
 
 long iniReadNamedInt(FILE* fp, const char* section, const char* key
@@ -1420,12 +1546,12 @@ static double parseNamedFloat(const char* value, named_double_t* names)
 	unsigned i;
 
 	/* Look for exact matches first */
-	for(i=0;names[i].name!=NULL;i++)
+	for(i=0; names[i].name!=NULL; i++)
 		if(stricmp(names[i].name,value)==0)
 			return(names[i].value);
 
 	/* Look for partial matches second */
-	for(i=0;names[i].name!=NULL;i++)
+	for(i=0; names[i].name!=NULL; i++)
 		if(strnicmp(names[i].name,value,strlen(value))==0)
 			return(names[i].value);
 
@@ -1468,7 +1594,7 @@ static ulong parseBitField(char* value, ini_bitdesc_t* bitdesc)
 	ulong	v=0;
 
 	for(p=value;*p;) {
-		tp=strchr(p,'|');
+		tp=strchr(p,INI_BIT_SEP);
 		if(tp!=NULL)
 			*tp=0;
 		truncsp(p);
@@ -1534,17 +1660,47 @@ BOOL iniCloseFile(FILE* fp)
 
 str_list_t iniReadFile(FILE* fp)
 {
+	char		str[INI_MAX_LINE_LEN];
+	char*		p;
 	size_t		i;
+	size_t		inc_len;
+	size_t		inc_counter=0;
 	str_list_t	list;
+	FILE*		insert_fp=NULL;
 	
 	rewind(fp);
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
-	if(list!=NULL) {
-		/* truncate new-line chars off end of strings */
-		for(i=0; list[i]!=NULL; i++)
-			truncnl(list[i]);
+	if(list==NULL)
+		return(NULL);
+
+	/* Look for !include directives */
+	inc_len=strlen(INI_INCLUDE_DIRECTIVE);
+	for(i=0; list[i]!=NULL; i++) {
+		if(strnicmp(list[i],INI_INCLUDE_DIRECTIVE,inc_len)==0) {
+			p=list[i]+inc_len;
+			FIND_WHITESPACE(p);
+			SKIP_WHITESPACE(p);
+			truncsp(p);
+			if(inc_counter >= INI_INCLUDE_MAX)
+				SAFEPRINTF2(str, ";%s - MAXIMUM INCLUDES REACHED: %u", list[i], INI_INCLUDE_MAX);
+			else if((insert_fp=fopen(p,"r"))==NULL)
+				SAFEPRINTF2(str, ";%s - FAILURE: %s", list[i], STRERROR(errno));
+			else
+				SAFEPRINTF(str, ";%s", list[i]);
+			strListReplace(list, i, str);
+			if(insert_fp!=NULL) {
+				strListInsertFile(insert_fp, &list, i+1, INI_MAX_LINE_LEN);
+				fclose(insert_fp);
+				insert_fp=NULL;
+				inc_counter++;
+			}
+		}
 	}
+
+	/* truncate new-line chars off end of strings */
+	for(i=0; list[i]!=NULL; i++)
+		truncnl(list[i]);
 
 	return(list);
 }
@@ -1562,3 +1718,24 @@ BOOL iniWriteFile(FILE* fp, const str_list_t list)
 
 	return(count == strListCount(list));
 }
+
+#ifdef INI_FILE_TEST
+void main(int argc, char** argv)
+{
+	int			i;
+	size_t		l;
+	char		str[128];
+	FILE*		fp;
+	str_list_t	list;
+
+	for(i=1;i<argc;i++) {
+		if((fp=iniOpenFile(argv[i],FALSE)) == NULL)
+			continue;
+		if((list=iniReadFile(fp)) != NULL) {
+			printf("%s\n",iniGetString(list," test | bogus ","key","default",str));
+			strListFree(&list);
+		}
+		fclose(fp);
+	}
+}
+#endif
