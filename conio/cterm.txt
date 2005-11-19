@@ -14,7 +14,7 @@ CR:
 	Move cursor position to column 1 of the current line
 
 LF:
-	Move cursor position to same column of the next row.
+	Move cursor position to same row of the next column.
 	If current row is the last row, scrolls the screen up
 	and fills the new row with the current attribute.
 
@@ -45,12 +45,12 @@ ESC {SPACE to '/'}{'0' (ZERO) to '~'}
 
 	Legal combinations which are not handled are silently dropped.
 
-ESC D	(Disabled in current code)
+ESC D
 	Scrolls window up one line filling the bottom line with the
 	current attribute.
 	SOURCE: BANSI.TXT
 
-ESC M	(Disabled in current code)
+ESC M
 	Scrolls window down one line filling the top line with the
 	current attribute
 	SOURCE: BANSI.TXT
@@ -72,7 +72,7 @@ CSI {'0' (ZERO) to '?'}{SPACE to '/'}{'@' to '~'}
 Sequence Parameters:
 	Parameters are expressed by the {'0' (ZERO) to '?'} character set.
 	Sequences which use parameters use decimal parameters separated by
-	a ';'.  The use of a ':' from the set is reserved.
+	a ';'.  The use of a ':' from the set is reserver.
 	If the parameter string begins with '<', '=', '>', or '?' then
 	this is a non-standard extension to the ANSI spec.
 
@@ -89,21 +89,6 @@ CSI = [p1] M
 	    In this mode, Delete Line will not be available.
 
 	SOURCE: CTerm only.
-
-CSI = [ p1 [ ; p2 ] ] {
-	NON-STANDARD EXTENSION.
-	Defaults:  p1 = 255  p2 = 0
-	Indicates that a font block is following.
-	p1 indicates the font slot to place the loaded font into.  This must
-	be higher than the last default defined font (See CSI sp D for list
-	of predefined fonts)  p2 indicates font size according to the
-	following table:
-		0 - 8x16 font, 4096 bytes.
-		1 - 8x14 font, 3586 bytes.
-		2 - 8x8 font, 2048 bytes.
-
-	SOURCE: CTerm only.
-
 
 CSI [ p1 [ ; p2 ] ] * r
 	NON-STANDARD EXTENSION.
@@ -175,51 +160,6 @@ CSI [ p1 ] D
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI [ p1 [ ; p2 ] ] sp D
-	Font Selection
-	Defaults: p1 = 0  p2 = 0
-	"sp" indicates a single space character.
-	Sets font p1 to be the one indicated bu p2.  Currently only the primary
-	font (Font zero) is supported.  p2 must be between 0 and 255.  Not all
-	output types support font selection.  Only X11 and SDL currently do.
-	Currently included fonts are:
-		0  - Codepage 437 English
-		1  - Codepage 1251 Cyrillic, (swiss)
-		2  - Russian koi8-r
-		3  - ISO-8859-2 Central European
-		4  - ISO-8859-4 Baltic wide (VGA 9bit mapped)
-		5  - Codepage 866 (c) Russian
-		6  - ISO-8859-9 Turkish
-		7  - haik8 codepage (use only with armscii8 screenmap)
-		8  - ISO-8859-8 Hebrew
-		9  - Ukrainian font koi8-u
-		10 - ISO-8859-15 West European, (thin)
-		11 - ISO-8859-4 Baltic (VGA 9bit mapped)
-		12 - Russian koi8-r (b)
-		13 - ISO-8859-4 Baltic wide
-		14 - ISO-8859-5 Cyrillic
-		15 - ARMSCII-8 Character set
-		16 - ISO-8859-15 West European
-		17 - Codepage 850 Multilingual Latin I, (thin)
-		18 - Codepage 850 Multilingual Latin I
-		19 - Codepage 885 Norwegian, (thin)
-		20 - Codepage 1251 Cyrillic
-		21 - ISO-8859-7 Greek
-		22 - Russian koi8-r (c)
-		23 - ISO-8859-4 Baltic
-		24 - ISO-8859-1 West European
-		25 - Codepage 866 Russian
-		26 - Codepage 437 English, (thin)
-		27 - Codepage 866 (b) Russian
-		28 - Codepage 885 Norwegian
-		29 - Ukrainian font cp866u
-		30 - ISO-8859-1 West European, (thin)
-		31 - Codepage 1131 Belarusian, (swiss)
-	Not all fonts are supported in all modes.  If a font is not supported in
-	the current mode, no action is taken.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
 CSI [ p1 ] E
 	Cursor Next Line
 	Defaults: p1 = 1
@@ -285,9 +225,8 @@ CSI [ p1 ] M
 
 CSI N
 	"ANSI" Music / Not implemented.
-	If "ANSI" Music is set to BananaCom (CSI = 1 M) or fully enabled
-	(CSI = 2 M) performs "ANSI" muisic.  See "ANSI" MUSIC section for more
-	details.
+	If "ANSI" Music is set to BananaCom (CSI = 1 M) or fully enabled (CSI = 2 M)
+	performs "ANSI" muisic.  See "ANSI" MUSIC section for more details.
 
 	SOURCE: BANSI.TXT
 
@@ -326,30 +265,16 @@ CSI U
 
 CSI [ p1 ] Z
 	Cursor Backward Tabulation
-	Defaults: p1 = 1
-	Move the cursor to the p1th preceeding tab stop.  Will not go past the
+	Defailts: p1 = 1
+	Move the cursor to the p1th preceeding tab stop.  Will no go past the
 	start of the line.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI [ p1 ] c
-	Device Attributes
-	Defaults: p1 = 0
-	If p1 is 0, CTerm will reply with the sequence:
-	CSI [ = 67;84;101;114;109;pN... c
-	64;84;101;114;109 is the ASCII values of the "CTerm" string.  pN is the
-	CVS revision ID of CTerm with dots converted to semi-colons.
-	Use the CVS revision to detect if a specific feature is available.  If
-	you are adding features to a forked version of cterm, please do so by
-	adding an extra parameter to the end, not by incrementing any existing
-	one!
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI [ p1 [ ; pX ... ] ] m
 	Select Graphic Rendition
 	Defaults: p1 = 0
-	Sets or clears one or more text attributes.  Unlimited parameters are
+	Sets or clears one or text attributes.  Unlimited parameters are
 	supported and are applied in received order.  The following are
 	supoprted:
 	                                        Blink Bold FG BG (Modified)
@@ -395,7 +320,7 @@ CSI [ p1 [ ; pX ... ] ] m
 CSI [ p1 ] n
 	Device Status Report
 	Defaults: p1 = 0
-	A request for a status report.  CTerm handles the following three
+	A request for a status report.  CTerm handles the following two
 	requests:
 	5	- Request a DSR
 		  CTerm will always reply with CSI 0 n indicating 
@@ -419,11 +344,11 @@ CSI s
 	Saves the current cursor position for later restoring with CSI u
 	although this is non-standard, it's so widely used in the BBS world that
 	any terminal program MUST implement it.
-
+	
 	SOURCE: ANSI.SYS
 
 CSI u
-	NON-STANDARD EXTENSION
+	NON-STANDARD EXTENSION (Legal)
 	Restore Cursor Position
 	Move the cursor to the last position saved by CSI s.  If no position has
 	been saved, the cursor is not moved.
@@ -481,7 +406,7 @@ Mx sets misc music parameters where x is one of the following:
 	N - "Normal" not legato, not stacatto
 	L - Play notes legato
 	S - Play notes stacatto
-T### Sets the tempo of the music where ### is one or more decimal digits.
+T### Sets the tempo of the musix where ### is one or more decimal digits.
 	If the decimal number is greater than 255, it is forced to 255.
 	If it is less than 32, it is forced to 32.  The number signifies
 	quarter notes per minute.
