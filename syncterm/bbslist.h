@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.19 2005/11/15 17:50:57 deuce Exp $ */
+/* $Id: bbslist.h,v 1.20 2005/11/19 06:25:50 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -54,6 +54,7 @@ struct bbslist {
 	int				loglevel;
 	int				bpsrate;
 	int				music;
+	int				font;
 };
 
 struct bbslist *show_bbslist(char* listpath, int mode, char *home);
