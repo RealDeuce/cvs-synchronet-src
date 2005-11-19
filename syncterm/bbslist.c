@@ -10,12 +10,15 @@
 #include "uifcinit.h"
 #include "conn.h"
 #include "ciolib.h"
+#include "cterm.h"
 
 char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 
 char *rate_names[]={"300bps", "600bps", "1200bps", "2400bps", "4800bps", "9600bps", "19.2Kbps", "38.4Kbps", "57.6Kbps", "76.8Kbps", "115.2Kbps", "Unlimited", NULL};
 int rates[]={300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 76800, 115200, 0};
+
+char *music_names[]={"ESC [ | only", "BANSI Style", "All ANSI Music enabled", NULL};
 
 ini_style_t ini_style = {
 	/* key_len */ 15, 
@@ -105,6 +108,8 @@ void read_list(char *listpath, struct bbslist **list, int *i, int type, char* ho
 			iniReadString(listfile,bbsname,"UploadPath",home,list[*i]->uldir);
 			list[*i]->loglevel=iniReadInteger(listfile,bbsname,"LogLevel",LOG_INFO);
 			list[*i]->bpsrate=iniReadInteger(listfile,bbsname,"BPSRate",0);
+			list[*i]->music=iniReadInteger(listfile,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
+			list[*i]->font=iniReadInteger(listfile,bbsname,"Font",default_font);
 			list[*i]->type=type;
 			list[*i]->id=*i;
 			(*i)++;
@@ -119,8 +124,8 @@ void read_list(char *listpath, struct bbslist **list, int *i, int type, char* ho
 
 int edit_list(struct bbslist *item,char *listpath)
 {
-	char	opt[15][80];
-	char	*opts[15];
+	char	opt[17][80];
+	char	*opts[17];
 	int		changed=0;
 	int		copt=0,i,j;
 	char	str[6];
@@ -128,7 +133,7 @@ int edit_list(struct bbslist *item,char *listpath)
 	str_list_t	inifile;
 	char	tmp[LIST_NAME_MAX+1];
 
-	for(i=0;i<15;i++)
+	for(i=0;i<17;i++)
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
 		uifc.helpbuf=	"`Cannot edit system BBS list`\n\n"
@@ -137,7 +142,7 @@ int edit_list(struct bbslist *item,char *listpath)
 		uifc.msg("Cannot edit system BBS list");
 		return(0);
 	}
-	opt[14][0]=0;
+	opt[16][0]=0;
 	if((listfile=fopen(listpath,"r"))!=NULL) {
 		inifile=iniReadFile(listfile);
 		fclose(listfile);
@@ -159,6 +164,8 @@ int edit_list(struct bbslist *item,char *listpath)
 		sprintf(opt[11],"Upload Path       %s",item->uldir);
 		sprintf(opt[12],"Log Level         %s",log_levels[item->loglevel]);
 		sprintf(opt[13],"Simulated BPS     %s",rate_names[get_rate_num(item->bpsrate)]);
+		sprintf(opt[14],"ANSI Music        %s",music_names[item->music]);
+		sprintf(opt[15],"Font              %s",font_names[item->font]);
 		uifc.changes=0;
 
 		uifc.helpbuf=	"`Edit BBS`\n\n"
@@ -227,8 +234,8 @@ int edit_list(struct bbslist *item,char *listpath)
 				uifc.helpbuf=	"`Connection Type`\n\n"
 								"Select the type of connection you wish to make:\n"
 								"~ RLogin:~ Auto-login with RLogin protocol\n"
-								"~ Telnet:~ Use more common Telnet protocol (experimental)\n"
-								"~ Raw:   ~ Make a raw socket connection (experimental)\n";
+								"~ Telnet:~ Use more common Telnet protocol\n"
+								"~ Raw:   ~ Make a raw socket connection\n";
 				uifc.list(WIN_SAV,0,0,0,&(item->conn_type),NULL,"Connection Type",&(conn_types[1]));
 				item->conn_type++;
 				iniSetEnum(&inifile,item->name,"ConnectionType",conn_types,item->conn_type,&ini_style);
@@ -280,6 +287,47 @@ int edit_list(struct bbslist *item,char *listpath)
 				iniSetInteger(&inifile,item->name,"BPSRate",item->bpsrate,&ini_style);
 				changed=1;
 				break;
+			case 14:
+				uifc.helpbuf="`ANSI Music Setup`\n\n"
+						"~ ANSI Music Disabled ~ Completely disables ANSI music\n"
+						"                      Enables Delete Line\n"
+						"~ ESC[N ~               Enables BANSI-Style ANSI music\n"
+						"                      Enables Delete Line\n"
+						"~ ANSI Music Enabled ~  Enables both ESC[M and ESC[N ANSI music.\n"
+						"                      Delete Line is disabled.\n"
+						"\n"
+						"So-Called ANSI Music has a long and troubled history.  Although the\n"
+						"original ANSI standard has well defined ways to provide private\n"
+						"extensions to the spec, none of these methods were used.  Instead,\n"
+						"so-called ANSI music replaced the Delete Line ANSI sequence.  Many\n"
+						"full-screen editors use DL, and to this day, some programs (Such as\n"
+						"BitchX) require it to run.\n\n"
+						"To deal with this, BananaCom decided to use what *they* though was an\n"
+						"unspecified escape code ESC[N for ANSI music.  Unfortunately, this is\n"
+						"broken also.  Although rarely implemented in BBS clients, ESC[N is\n"
+						"the erase field sequence.\n\n"
+						"SyncTERM has now defined a third ANSI music sequence which *IS* legal\n"
+						"according to the ANSI spec.  Specifically ESC[|.";
+				i=item->music;
+				if(uifc.list(WIN_SAV,0,0,0,&i,NULL,"ANSI Music Setup",music_names)!=-1) {
+					item->music=i;
+					iniSetInteger(&inifile,item->name,"ANSIMusic",item->music,&ini_style);
+					changed=1;
+				}
+				break;
+			case 15:
+				uifc.helpbuf=	"`Font`\n\n"
+								"Select the desired font for this connection.\n\n"
+								"Some fonts do not allow some modes.  When this is the case, 80x25 will be"
+								"forced.\n";
+				i=item->font;
+				uifc.list(WIN_SAV,0,0,0,&i,NULL,"Font",font_names);
+				if(i != item->font) {
+					item->font=i;
+					iniSetInteger(&inifile,item->name,"Font",item->font,&ini_style);
+					changed=1;
+				}
+				break;
 		}
 		if(uifc.changes)
 			changed=1;
@@ -317,6 +365,8 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	iniSetString(&inifile,bbs->name,"UploadPath",bbs->uldir,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"LogLevel",bbs->loglevel,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,&ini_style);
+	iniSetInteger(&inifile,bbs->name,"ANSIMusic",bbs->music,&ini_style);
+	iniSetInteger(&inifile,bbs->name,"Font",bbs->font,&ini_style);
 	if((listfile=fopen(listpath,"w"))!=NULL) {
 		iniWriteFile(listfile,inifile);
 		fclose(listfile);
@@ -390,6 +440,7 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 				strcpy(title,syncterm_version);
 			settitle(title);
 		}
+		oldopt=opt;
 		val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 			|WIN_ORG|WIN_ACT|WIN_INSACT|WIN_DELACT
 			|WIN_MID|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
@@ -473,8 +524,8 @@ struct bbslist *show_bbslist(char* listpath, int mode, char *home)
 						uifc.helpbuf=	"`Connection Type`\n\n"
 										"Select the type of connection you wish to make:\n"
 										"~ RLogin:~ Auto-login with RLogin protocol\n"
-										"~ Telnet:~ Use more common Telnet protocol (experimental)\n"
-										"~ Raw:   ~ Make a raw socket connection (experimental)\n";
+										"~ Telnet:~ Use more common Telnet protocol\n"
+										"~ Raw:   ~ Make a raw socket connection\n";
 						list[listcount-1]->conn_type=list[listcount-1]->port==513
 												?CONN_TYPE_RLOGIN-1
 												:(list[listcount-1]->port==23
