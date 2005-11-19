@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.37 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.38 2005/10/02 23:52:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,6 +73,7 @@ void sbbs_t::temp_xfer()
 	SAFECOPY(cfg.dir[dirnum]->data_dir,cfg.dir[0]->data_dir);
 	cfg.dir[dirnum]->maxfiles=MAX_FILES;
 	cfg.dir[dirnum]->op_ar=(uchar *)nulstr;
+	cfg.dir[dirnum]->ex_ar=(uchar *)nulstr;
 	temp_dirnum=curdirnum=usrdir[curlib][curdir[curlib]];
 	cfg.total_dirs++;
 

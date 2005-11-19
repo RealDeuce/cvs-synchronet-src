@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.38 2004/09/23 18:12:04 rswindell Exp $
+# $Id: Common.bmake,v 1.43 2005/11/18 09:18:54 deuce Exp $
 #
 #############################################################################
 #																			#
@@ -71,7 +71,7 @@
 # Macros
 # Set VERSION
 !ifndef VERSION
- VERSION	=	3.12
+ VERSION	=	3.13
 !endif
 
 # Set DEBUG
@@ -132,6 +132,7 @@ MT_LDFLAGS = -WM
  CFLAGS	=	$(CFLAGS) -v
 !endif
 !endif
+MKSHLIB =       $(CC) -WD
 
 # Common compiler flags
 !ifdef DEBUG
@@ -140,9 +141,12 @@ CFLAGS	=	$(CFLAGS) -Od -D_DEBUG
 
 # Debug or release build?
 !ifdef DEBUG
-BUILDPATH	=	debug
+BUILD	=	debug
 !else
-BUILDPATH	=	release
+BUILD	=	release
+!endif
+!ifndef BUILDPATH
+BUILDPATH	=	$(BUILD)
 !endif
 
 OBJODIR =	$(CCPRE).win32.obj.$(BUILDPATH)
@@ -158,6 +162,7 @@ UIFC_SRC	=	$(SRC_ROOT)$(DIRSEP)uifc
 
 # Pull in lib-specific flags
 !include     $(CIOLIB_SRC)$(DIRSEP)Common.make
+!include     $(CIOLIB_SRC)$(DIRSEP)Common.bmake
 !include     $(UIFC_SRC)$(DIRSEP)Common.make
 !include     $(SMBLIB_SRC)$(DIRSEP)Common.make
 !include     $(XPDEV_SRC)$(DIRSEP)Common.make
@@ -194,6 +199,7 @@ xpdev:
 	set DEBUG=$(DEBUG)
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
+	set BUILDPATH=$(BUILDPATH)
 	cd $(XPDEV_SRC)
 	$(MAKE) -$(MAKEFLAGS) lib
 	exit
@@ -206,6 +212,7 @@ xpdev-mt:
 	set DEBUG=$(DEBUG)
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
+	set BUILDPATH=$(BUILDPATH)
 	cd $(XPDEV_SRC)
 	$(MAKE) -$(MAKEFLAGS) mtlib
 	exit
@@ -218,6 +225,7 @@ smblib:
 	set DEBUG=$(DEBUG)
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
+	set BUILDPATH=$(BUILDPATH)
 	cd $(SMBLIB_SRC)
 	$(MAKE) -$(MAKEFLAGS) lib
 	exit
@@ -230,6 +238,9 @@ ciolib-mt:
 	set DEBUG=$(DEBUG)
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
+	set BUILDPATH=$(BUILDPATH)
+	set USE_SDL=$(USE_SDL)
+	set STATIC_SDL=$(STATIC_SDL)
 	cd $(CIOLIB_SRC)
 	$(MAKE) -$(MAKEFLAGS) mtlib
 	exit
@@ -242,6 +253,7 @@ uifc:
 	set DEBUG=$(DEBUG)
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
+	set BUILDPATH=$(BUILDPATH)
 	cd $(UIFC_SRC)
 	$(MAKE) -$(MAKEFLAGS) lib
 	exit
@@ -254,6 +266,9 @@ uifc-mt:
 	set DEBUG=$(DEBUG)
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
+	set BUILDPATH=$(BUILDPATH)
+	set USE_SDL=$(USE_SDL)
+	set STATIC_SDL=$(STATIC_SDL)
 	cd $(UIFC_SRC)
 	$(MAKE) -$(MAKEFLAGS) mtlib
 	exit
