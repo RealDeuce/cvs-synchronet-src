@@ -1,10 +1,10 @@
-/* $Id: win32cio.c,v 1.54 2005/09/25 23:08:04 deuce Exp $ */
+/* $Id: win32cio.c,v 1.70 2005/10/27 22:46:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -34,6 +34,13 @@
 #include <windows.h>	/* INPUT_RECORD, etc. */
 #include <genwrap.h>
 #include <stdio.h>		/* stdin */
+
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
 
 #include "ciolib.h"
 #include "keys.h"
@@ -144,7 +151,6 @@ const struct keyvals keyval[] =
 	{0, 0, 0, 0, 0}	/** END **/
 };
 
-static int lastch=0;
 static int domouse=1;
 static DWORD last_state=0;
 static int LastX=-1, LastY=-1;
@@ -153,6 +159,20 @@ static int ypos=1;
 
 static int currattr=7;
 static int modeidx=3;
+
+static void dprintf(const char* fmt, ...)
+{
+#if defined(_DEBUG)
+	va_list argptr;
+	char sbuf[1024];
+
+    va_start(argptr,fmt);
+    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
+    va_end(argptr);
+    OutputDebugString(sbuf);
+#endif /* _DEBUG */
+}
 
 WORD DOStoWinAttr(int newattr)
 {
@@ -228,11 +248,16 @@ int win32_keyboardio(int isgetch)
 {
 	INPUT_RECORD input;
 	DWORD num=0;
+	HANDLE h;
+	static WORD lastch;
+
+	if((h=GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE)
+		return(0);
 
 	while(1) {
 		if(lastch) {
 			if(isgetch) {
-				int ch;
+				BYTE ch;
 				ch=lastch&0xff;
 				lastch>>=8;
 				return(ch);
@@ -242,35 +267,62 @@ int win32_keyboardio(int isgetch)
 		}
 
 		while(1) {
-			GetNumberOfConsoleInputEvents(GetStdHandle(STD_INPUT_HANDLE), &num);
-			if(num || mouse_pending())
+			GetNumberOfConsoleInputEvents(h, &num);
+			if(num)
 				break;
+			if(mouse_trywait()) {
+				lastch=CIO_KEY_MOUSE;
+				break;
+			}
 			if(isgetch)
 				SLEEP(1);
 			else
 				return(FALSE);
 		}
 
-		if(mouse_pending()) {
-			lastch=CIO_KEY_MOUSE;
+		if(lastch)
 			continue;
-		}
 
-		if(!ReadConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &num)
+		if(!ReadConsoleInput(h, &input, 1, &num)
 				|| !num || (input.EventType!=KEY_EVENT && input.EventType!=MOUSE_EVENT))
 			continue;
 
 		switch(input.EventType) {
 			case KEY_EVENT:
+
+				dprintf("KEY_EVENT: KeyDown=%u"
+					,input.Event.KeyEvent.bKeyDown);
+				dprintf("           RepeatCount=%u"
+					,input.Event.KeyEvent.wRepeatCount);
+				dprintf("           VirtualKeyCode=0x%04hX"
+					,input.Event.KeyEvent.wVirtualKeyCode);
+				dprintf("           VirtualScanCode=0x%04hX"
+					,input.Event.KeyEvent.wVirtualScanCode);
+				dprintf("           uChar.AsciiChar=0x%02X (%u)"
+					,(BYTE)input.Event.KeyEvent.uChar.AsciiChar
+					,(BYTE)input.Event.KeyEvent.uChar.AsciiChar);
+				dprintf("           ControlKeyState=0x%08lX"
+					,input.Event.KeyEvent.dwControlKeyState); 
+
 				if(input.Event.KeyEvent.bKeyDown) {
-					if((input.Event.KeyEvent.dwControlKeyState & (RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED|RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED|ENHANCED_KEY))
+					/* Is this an AltGr key? */
+					if(((input.Event.KeyEvent.dwControlKeyState & (RIGHT_ALT_PRESSED|LEFT_CTRL_PRESSED)) == (RIGHT_ALT_PRESSED|LEFT_CTRL_PRESSED))
+							&& (BYTE)input.Event.KeyEvent.uChar.AsciiChar) {
+						lastch=(BYTE)input.Event.KeyEvent.uChar.AsciiChar;
+					}
+					/* Is this a modified char? */
+					else if((input.Event.KeyEvent.dwControlKeyState & (RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED|RIGHT_CTRL_PRESSED|LEFT_CTRL_PRESSED|ENHANCED_KEY))
 							|| (input.Event.KeyEvent.wVirtualKeyCode >= VK_F1 && input.Event.KeyEvent.wVirtualKeyCode <= VK_F24)
-							|| !input.Event.KeyEvent.uChar.AsciiChar
-							|| (!(input.Event.KeyEvent.dwControlKeyState & NUMLOCK_ON) && (input.Event.KeyEvent.uChar.AsciiChar >= '0' && input.Event.KeyEvent.uChar.AsciiChar <= '9')))
+							|| !input.Event.KeyEvent.uChar.AsciiChar) {
 						lastch=win32_getchcode(input.Event.KeyEvent.wVirtualKeyCode, input.Event.KeyEvent.dwControlKeyState);
-					else
-						lastch=input.Event.KeyEvent.uChar.AsciiChar;
-				}
+					}
+					/* Must be a normal char then! */
+					else {
+						lastch=(BYTE)input.Event.KeyEvent.uChar.AsciiChar;
+					}
+				} else if(input.Event.KeyEvent.wVirtualKeyCode == VK_MENU)
+					lastch=(BYTE)input.Event.KeyEvent.uChar.AsciiChar;
+
 				break;
 			case MOUSE_EVENT:
 				if(domouse) {
@@ -314,7 +366,9 @@ int win32_kbhit(void)
 
 int win32_getch(void)
 {
-	return(win32_keyboardio(TRUE));
+	int ret=win32_keyboardio(TRUE);
+	dprintf("win32_getch = 0x%02X (%u)", (BYTE)ret, (BYTE)ret);
+	return(ret);
 }
 
 int win32_getche(void)
@@ -334,29 +388,69 @@ int win32_getche(void)
 #define ENABLE_AUTO_POSITION	0x0100
 #endif
 
+static DWORD	orig_in_conmode=0;
+static DWORD	orig_out_conmode=0;
+static void *	win32_suspendbuf=NULL;
+
+void win32_suspend(void)
+{
+	HANDLE h;
+
+	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleMode(h, orig_in_conmode);
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleMode(h, orig_out_conmode);
+}
+
+void win32_resume(void)
+{
+	DWORD	conmode;
+	HANDLE	h;
+
+    conmode=orig_in_conmode;
+    conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
+    conmode|=ENABLE_MOUSE_INPUT;
+	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleMode(h, conmode);
+
+    conmode=orig_out_conmode;
+    conmode&=~ENABLE_PROCESSED_OUTPUT;
+    conmode&=~ENABLE_WRAP_AT_EOL_OUTPUT;
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleMode(h, conmode);
+}
+
 int win32_initciolib(long inmode)
 {
-	DWORD conmode;
-	int	i,j;
+	DWORD	conmode;
+	int		i,j;
+	HANDLE	h;
 	CONSOLE_SCREEN_BUFFER_INFO	sbuff;
 
-	if(!isatty(fileno(stdin)))
+	if(!isatty(fileno(stdin))) {
+		if(!AllocConsole())
+			return(0);
+	}
+
+	if((h=GetStdHandle(STD_INPUT_HANDLE))==INVALID_HANDLE_VALUE
+		|| !GetConsoleMode(h, &orig_in_conmode))
 		return(0);
-	if(!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &conmode))
-		return(0);
+	conmode=orig_in_conmode;
 	conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
 	conmode|=ENABLE_MOUSE_INPUT;
-	if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), conmode))
+	if(!SetConsoleMode(h, conmode))
 		return(0);
 
-	if(!GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &conmode))
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE))==INVALID_HANDLE_VALUE
+		|| !GetConsoleMode(h, &orig_out_conmode))
 		return(0);
+	conmode=orig_out_conmode;
 	conmode&=~ENABLE_PROCESSED_OUTPUT;
 	conmode&=~ENABLE_WRAP_AT_EOL_OUTPUT;
-	if(!SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), conmode))
+	if(!SetConsoleMode(h, conmode))
 		return(0);
 
-	if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &sbuff)==0) {
+	if(GetConsoleScreenBufferInfo(h, &sbuff)==0) {
 		win32_textmode(C80);
 	}
 	else {
@@ -415,7 +509,8 @@ int win32_showmouse(void)
 
 void win32_textmode(int mode)
 {
-	int i;
+	int		i;
+	HANDLE	h;
 	COORD	sz;
 	SMALL_RECT	rc;
 
@@ -429,9 +524,12 @@ void win32_textmode(int mode)
 	rc.Right=vparams[modeidx].cols-1;
 	rc.Top=0;
 	rc.Bottom=vparams[modeidx].rows-1;
-	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
-	SetConsoleWindowInfo(GetStdHandle(STD_OUTPUT_HANDLE),TRUE,&rc);
-	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE),sz);
+
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE) {
+		SetConsoleScreenBufferSize(h,sz);
+		SetConsoleWindowInfo(h,TRUE,&rc);
+		SetConsoleScreenBufferSize(h,sz);
+	}
 }
 
 int win32_gettext(int left, int top, int right, int bottom, void* buf)
@@ -441,6 +539,7 @@ int win32_gettext(int left, int top, int right, int bottom, void* buf)
 	int	y;
 	COORD	bs;
 	COORD	bc;
+	HANDLE	h;
 	SMALL_RECT	reg;
 	unsigned char	*bu;
 
@@ -454,7 +553,8 @@ int win32_gettext(int left, int top, int right, int bottom, void* buf)
 	reg.Top=top-1;
 	reg.Bottom=bottom-1;
 	ci=(CHAR_INFO *)malloc(sizeof(CHAR_INFO)*(bs.X*bs.Y));
-	ReadConsoleOutput(GetStdHandle(STD_OUTPUT_HANDLE),ci,bs,bc,&reg);
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		ReadConsoleOutput(h,ci,bs,bc,&reg);
 	for(y=0;y<=(bottom-top);y++) {
 		for(x=0;x<=(right-left);x++) {
 			bu[((y*bs.X)+x)*2]=ci[(y*bs.X)+x].Char.AsciiChar;
@@ -478,13 +578,14 @@ void win32_gettextinfo(struct text_info* info)
 void win32_gotoxy(int x, int y)
 {
 	COORD	cp;
+	HANDLE	h;
 
 	xpos=x;
 	ypos=y;
 	cp.X=x-1;
 	cp.Y=y-1;
-	if(!hold_update)
-		SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),cp);
+	if(!hold_update && (h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleCursorPosition(h,cp);
 }
 
 void win32_highvideo(void)
@@ -509,6 +610,7 @@ int win32_puttext(int left, int top, int right, int bottom, void* buf)
 	CHAR_INFO *ci;
 	int	x;
 	int	y;
+	HANDLE	h;
 	COORD	bs;
 	COORD	bc;
 	SMALL_RECT	reg;
@@ -530,7 +632,8 @@ int win32_puttext(int left, int top, int right, int bottom, void* buf)
 			ci[(y*bs.X)+x].Attributes=DOStoWinAttr(bu[(((y*bs.X)+x)*2)+1]);
 		}
 	}
-	WriteConsoleOutput(GetStdHandle(STD_OUTPUT_HANDLE),ci,bs,bc,&reg);
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		WriteConsoleOutput(h,ci,bs,bc,&reg);
 	free(ci);
 	return 1;
 }
@@ -555,6 +658,7 @@ void win32_textcolor(int newcolor)
 
 void win32_setcursortype(int type)
 {
+	HANDLE h;
 	CONSOLE_CURSOR_INFO	ci;
 
 	switch(type) {
@@ -573,7 +677,8 @@ void win32_setcursortype(int type)
 			ci.dwSize=13;
 			break;
 	}
-	SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE),&ci);
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleCursorInfo(h,&ci);
 }
 
 int win32_wherex(void)
@@ -701,4 +806,9 @@ char *win32_getcliptext(void)
 	CloseClipboard();
 	
 	return(ret);
+}
+
+void win32_delay(long msec)
+{
+	SLEEP(msec);
 }
