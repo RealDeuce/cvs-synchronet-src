@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.25 2004/11/03 06:05:49 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.29 2005/11/01 00:32:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -43,13 +43,13 @@
 /***************/
 /* OS-specific */
 /***************/
-#if defined(_WIN32)		/* Use WinSock */
+#if defined(_WIN32)	/* Use WinSock */
 
-#include <winsock.h>	/* socket/bind/etc. */
-
-/* Let's agree on a standard WinSock symbol here, people */
 #ifndef _WINSOCKAPI_
-#define _WINSOCKAPI_	
+	#include <winsock2.h>	/* socket/bind/etc. */
+	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
+	/* Let's agree on a standard WinSock symbol here, people */
+	#define _WINSOCKAPI_	
 #endif
 
 #elif defined __unix__		/* Unix-variant */
@@ -76,6 +76,13 @@
 #endif
 
 #include <errno.h>		/* errno */
+
+typedef struct {
+	char*	name;
+	int		type;		/* Supported socket types (or 0 for unspecified) */
+	int		level;
+	int		value;
+} socket_option_t;
 
 /**********************************/
 /* Socket Implementation-specific */
@@ -146,11 +153,19 @@ static  wsa_error;
 #define ERROR_VALUE		errno
 #define sendsocket		write		/* FreeBSD send() is broken */
 
+#ifdef __WATCOMC__
+	#define socklen_t		int
+#endif
+
 #endif	/* __unix__ */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+socket_option_t*
+		getSocketOptionList(void);
+int		getSocketOptionByName(const char* name, int* level);
 
 int		sendfilesocket(int sock, int file, long *offset, long count);
 int		recvfilesocket(int sock, int file, long *offset, long count);
