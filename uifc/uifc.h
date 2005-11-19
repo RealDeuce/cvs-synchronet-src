@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.71 2005/10/22 01:11:58 rswindell Exp $ */
+/* $Id: uifc.h,v 1.72 2005/11/19 02:32:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,6 +303,11 @@ typedef struct {
 /* Colours for the various bits												*/
 /****************************************************************************/
 	uchar	hclr,lclr,bclr,cclr,lbclr;
+
+/****************************************************************************/
+/* Have we initialized successfully?										*/
+/****************************************************************************/
+	BOOL	initialized;
 
 /****************************************************************************/
 /* Exit/uninitialize function.												*/

@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.152 2005/10/22 02:20:10 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.153 2005/11/19 02:32:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,6 +288,8 @@ int uifcini32(uifcapi_t* uifcapi)
 		uifc_mouse_enable();
 	}
 
+	api->initialized=TRUE;
+
     return(0);
 }
 
@@ -415,6 +417,7 @@ void uifcbail(void)
 	FREE_AND_NULL(blk_scrn);
 	FREE_AND_NULL(tmp_buffer);
 	FREE_AND_NULL(tmp_buffer2);
+	api->initialized=FALSE;
 }
 
 /****************************************************************************/
