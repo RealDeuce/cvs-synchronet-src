@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.17 2006/02/01 04:13:47 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.15 2005/09/05 20:21:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -322,7 +322,7 @@ enum {
 	,QUEUE_PROP_WRITE_LEVEL
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* queue_prop_desc[] = {
 	 "name of the queue (if it has one)"
 	,"<i>true</i> if data is waiting to be read from queue"
@@ -388,24 +388,24 @@ static JSClass js_queue_class = {
 };
 
 static jsSyncMethodSpec js_queue_functions[] = {
-	{"poll",		js_poll,		1,	JSTYPE_UNDEF,	"[timeout=<tt>0</tt>]"
+	{"poll",		js_poll,		1,	JSTYPE_UNDEF,	"[timeout]"
 	,JSDOCSTR("wait for any value to be written to the queue for up to <i>timeout</i> milliseconds "
 		"(default: <i>0</i>), returns <i>true</i> or the <i>name</i> (string) of "
 		"the value waiting (if it has one), or <i>false</i> if no values are waiting")
 	,312
 	},
-	{"read",		js_read,		1,	JSTYPE_UNDEF,	"[string name] or [timeout=<tt>0</tt>]"
+	{"read",		js_read,		1,	JSTYPE_UNDEF,	"[name or timeout]"
 	,JSDOCSTR("read a value from the queue, if <i>name</i> not specified, reads next value "
 		"from the bottom of the queue (waiting up to <i>timeout</i> milliseconds)")
 	,313
 	},
-	{"peek",		js_peek,		1,	JSTYPE_UNDEF,	"[timeout=<tt>0</tt>]"
+	{"peek",		js_peek,		1,	JSTYPE_UNDEF,	"[timeout]"
 	,JSDOCSTR("peek at the value at the bottom of the queue, "
 		"wait up to <i>timeout</i> milliseconds for any value to be written "
 		"(default: <i>0</i>)")
 	,313
 	},
-	{"write",		js_write,		1,	JSTYPE_BOOLEAN,	"value [,name=<i>none</i>]"
+	{"write",		js_write,		1,	JSTYPE_BOOLEAN,	"value [,name]"
 	,JSDOCSTR("write a value (optionally named) to the queue")
 	,312
 	},
@@ -470,7 +470,7 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 		return(JS_FALSE);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Class for bi-directional message queues. "
 		"Used for inter-thread/module communications.", 312);
 	js_DescribeSyncConstructor(cx,obj,"To create a new (named) Queue object: "
