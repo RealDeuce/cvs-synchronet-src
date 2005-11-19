@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.66 2005/12/06 17:48:41 deuce Exp $ */
+/* $Id: console.c,v 1.64 2005/11/19 08:19:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,7 +391,7 @@ struct {
 #define	HWM	16
 void resize_window(void);
 int KbdEmpty(void);
-int load_font(char *filename, int width, int height, int scale, int *newmode);
+int load_font(char *filename, int width, int height, int scale);
 
 void tty_pause()
 {
@@ -631,7 +631,7 @@ video_event(XEvent *ev)
 				if((ev->xconfigure.width == FW * DpyCols + 4)
 						&& (ev->xconfigure.height == FH * (DpyRows+1) + 4))
 					break;
-
+						
 				FW=FW/FontScale;
 				FH=FH/FontScale;
 				newFSH=(ev->xconfigure.width+(FW*DpyCols)/2)/(FW*DpyCols);
@@ -648,7 +648,7 @@ video_event(XEvent *ev)
 					FontScale=newFSH;
 				else
 					FontScale=newFSW;
-				load_font(NULL,FW,FH,FontScale,NULL);
+				load_font(NULL,FW,FH,FontScale);
 				resize_window();
 				break;
 		}
@@ -1129,18 +1129,15 @@ video_async_event(void *crap)
 					init_mode(console_new_mode);
 				if(x_current_font!=new_font) {
 					int oldfont=x_current_font;
-					int newmode=0;
-
 					x_current_font=new_font;
-					if(load_font(NULL,FW/FontScale,FH/FontScale,FontScale,&newmode)) {
-						if(font_force && newmode) {
-							init_mode(newmode);
+					if(load_font(NULL,FW,FH,FontScale)) {
+						if(font_force) {
+							init_mode(3);
 							sem_wait(&console_mode_changed);
-							if(load_font(NULL,FW/FontScale,FH/FontScale,FontScale,NULL)) {
+							if(load_font(NULL,FW,FH,FontScale)) {
 								setfont_return=-1;
 								x_current_font=oldfont;
-								new_font=oldfont;
-								load_font(NULL,FW/FontScale,FH/FontScale,FontScale,NULL);
+								load_font(NULL,FW,FH,FontScale);
 							}
 							else
 								setfont_return=0;
@@ -1148,8 +1145,7 @@ video_async_event(void *crap)
 						else {
 							setfont_return=-1;
 							x_current_font=oldfont;
-							new_font=oldfont;
-							load_font(NULL,FW/FontScale,FH/FontScale,FontScale,NULL);
+							load_font(NULL,FW,FH,FontScale);
 						}
 					}
 					else
@@ -1162,11 +1158,7 @@ video_async_event(void *crap)
 				if(!sem_trywait(&x11_name))
 					x11.XSetIconName(dpy, win, window_name);
 				if(!sem_trywait(&x11_loadfont)) {
-					int oldfont=x_current_font;
-					x_load_font_ret=load_font(font_filename,FW/FontScale,FH/FontScale,FontScale,NULL);
-					if(x_load_font_ret)
-						x_current_font=oldfont;
-					new_font=x_current_font;
+					x_load_font_ret=load_font(font_filename,FW,FH,FontScale);
 					resize_window();
 					sem_post(&x11_fontloaded);
 				}
@@ -1340,7 +1332,7 @@ scale_bitmap(char *bitmap, int width, int height, int *multiplier)
 
 /* No longer uses X fonts - pass NULL to use VGA 8x16 font */
 int
-load_font(char *filename, int width, int height, int scale, int *newmode)
+load_font(char *filename, int width, int height, int scale)
 {
     XGCValues gcv;
 	char *font;
@@ -1349,7 +1341,7 @@ load_font(char *filename, int width, int height, int scale, int *newmode)
 	int	i,j;
 	static char current_filename[MAX_PATH];
 	FILE	*fontfile;
-
+	
 	if(height > 16)
 		return(-1);
 
@@ -1370,22 +1362,7 @@ load_font(char *filename, int width, int height, int scale, int *newmode)
 		return(-1);
 
 	if(filename != NULL) {
-		int fl=flength(filename);
-
-		if(newmode != NULL) {
-			switch(fl/256) {
-				case 8:
-					*newmode=C80X50;
-					break;
-				case 14:
-					*newmode=C80X28;
-					break;
-				case 16:
-					*newmode=C80;
-					break;
-			}
-		}
-		if(fl!=height*256)
+		if(flength(filename)!=height*256)
 			return(-1);
 		if((fontfile=fopen(filename,"rb"))==NULL)
 			return(-1);
@@ -1399,14 +1376,6 @@ load_font(char *filename, int width, int height, int scale, int *newmode)
 			SAFECOPY(current_filename,filename);
 	}
 	else {
-		if(newmode != NULL) {
-			if(conio_fontdata[x_current_font].eight_by_sixteen!=NULL)
-				*newmode=C80;
-			else if(conio_fontdata[x_current_font].eight_by_fourteen!=NULL)
-				*newmode=C80X28;
-			else if(conio_fontdata[x_current_font].eight_by_eight!=NULL)
-				*newmode=C80X50;
-		}
 		switch(width) {
 			case 8:
 				switch(height) {
@@ -1519,7 +1488,7 @@ init_mode(int mode)
     update_pixels();
 
     /* Update font. */
-    if(load_font(NULL,vmode.charwidth,vmode.charheight,FontScale,NULL)) {
+    if(load_font(NULL,vmode.charwidth,vmode.charheight,FontScale)) {
 		sem_post(&console_mode_changed);
 		return(-1);
 	}
