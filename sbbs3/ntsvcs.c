@@ -1,14 +1,14 @@
-/* ntsvcs.c */
+/* ntsrvcs.c */
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.32 2006/02/21 23:50:07 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.31 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -766,7 +766,6 @@ static SC_HANDLE create_service(HANDLE hSCMlib, SC_HANDLE hSCManager
 		printf("%s\n", start_type_desc(start_type));
 
 		register_event_source(name,path);
-		register_event_source(NTSVC_NAME_EVENT,path);	/* Create SynchronetEvent event source */
 	}
 
 	return(hService);

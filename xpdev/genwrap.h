@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.81 2006/01/12 19:17:19 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.80 2005/11/01 00:32:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,8 +178,8 @@ extern "C" {
 	DLLEXPORT char*	DLLCALL strlwr(char* str);
 	DLLEXPORT char* DLLCALL	strrev(char* str);
 	#if !defined(stricmp)
-		#define stricmp			strcasecmp
-		#define strnicmp		strncasecmp
+		#define stricmp(x,y)		strcasecmp(x,y)
+		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#endif
 #endif
 

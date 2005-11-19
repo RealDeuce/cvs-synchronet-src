@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.13 2005/11/19 07:52:34 deuce Exp $ */
+/* $Id: x_cio.h,v 1.12 2005/11/19 06:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,6 @@ void x_copytext(const char *text, size_t buflen);
 char *x_getcliptext(void);
 int x_setfont(int font, int force);
 int x_getfont(void);
-int x_loadfont(char *filename);
 #ifdef __cplusplus
 }
 #endif
