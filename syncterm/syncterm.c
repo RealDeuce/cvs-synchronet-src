@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.65 2005/11/19 08:46:17 deuce Exp $ */
+/* $Id: syncterm.c,v 1.66 2005/11/19 22:24:32 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -89,6 +89,8 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type)
 	bbs->conn_type=dflt_conn_type;
 	bbs->port=(dflt_conn_type==CONN_TYPE_TELNET)?23:513;
 	bbs->loglevel=LOG_INFO;
+	bbs->music=CTERM_MUSIC_BANSI;
+	bbs->font=default_font;
 	p1=url;
 	if(!strnicmp("rlogin://",url,9)) {
 		bbs->conn_type=CONN_TYPE_RLOGIN;
