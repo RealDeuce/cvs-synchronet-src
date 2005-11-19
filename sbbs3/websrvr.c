@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.353 2005/10/02 05:38:42 deuce Exp $ */
+/* $Id: websrvr.c,v 1.365 2005/10/19 09:52:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -698,7 +698,7 @@ static SOCKET open_socket(int type)
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET) {
-		if(set_socket_options(&scfg, sock,error))
+		if(set_socket_options(&scfg, sock, "web|http", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 		sockets++;
@@ -2001,24 +2001,29 @@ static BOOL check_extra_path(http_session_t * session)
 			if((rp_slash=find_last_slash(rpath))==NULL)
 				return(FALSE);
 			SAFECOPY(str,epath);
-			if(*(rp_slash+1))
-				sprintf(epath,"/%s%s",(rp_slash+1),str);
+			if(*rp_slash)
+				sprintf(epath,"%s%s",rp_slash,str);
 			*(rp_slash+1)=0;
 
 			/* Check if this contains an index */
 			end=strchr(rpath,0);
-			for(i=0; startup->index_file_name!=NULL && startup->index_file_name[i]!=NULL ;i++)  {
-				*end=0;
-				strcat(rpath,startup->index_file_name[i]);
-				if(!stat(rpath,&sb)) {
+			if(isdir(rpath) && !isdir(session->req.physical_path)) {
+				for(i=0; startup->index_file_name!=NULL && startup->index_file_name[i]!=NULL ;i++)  {
 					*end=0;
-					SAFECOPY(session->req.extra_path_info,epath);
-					SAFECOPY(session->req.virtual_path,vpath);
-					strcat(session->req.virtual_path,"/");
-					SAFECOPY(session->req.physical_path,rpath);
-					return(TRUE);
+					strcat(rpath,startup->index_file_name[i]);
+					if(!stat(rpath,&sb)) {
+						*end=0;
+						SAFECOPY(session->req.extra_path_info,epath);
+						SAFECOPY(session->req.virtual_path,vpath);
+						strcat(session->req.virtual_path,"/");
+						SAFECOPY(session->req.physical_path,rpath);
+						return(TRUE);
+					}
 				}
 			}
+
+			if(vp_slash==vpath)
+				return(FALSE);
 
 			/* Check if this is a script */
 			*rp_slash=0;
@@ -2087,7 +2092,7 @@ static BOOL check_request(http_session_t * session)
 		}
 
 		/* Don't send 404 unless authourized... prevent info leak */
-		if(startup->index_file_name[i] == NULL)
+		if(startup->index_file_name==NULL || startup->index_file_name[i] == NULL)
 			send404=1;
 		else {
 			strcat(session->req.virtual_path,startup->index_file_name[i]);
@@ -2205,7 +2210,7 @@ static BOOL check_request(http_session_t * session)
 	if(recheck_dynamic)
 		session->req.dynamic=is_dynamic_req(session);
 
-	if(!session->req.dynamic && extra_path_info[0])
+	if(!session->req.dynamic && session->req.extra_path_info[0])
 		send404=TRUE;
 
 	if(!check_ars(session)) {
@@ -2221,6 +2226,8 @@ static BOOL check_request(http_session_t * session)
 		if(session->req.method!=HTTP_OPTIONS) {
 			if(startup->options&WEB_OPT_DEBUG_TX)
 				lprintf(LOG_DEBUG,"%04d 404 - %s does not exist",session->socket,path);
+			strcat(session->req.physical_path,session->req.extra_path_info);
+			strcat(session->req.virtual_path,session->req.extra_path_info);
 			send_error(session,error_404);
 			return(FALSE);
 		}
@@ -3398,7 +3405,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	jsval		rval;
 	char		path[MAX_PATH+1];
 	BOOL		retval=TRUE;
-	clock_t		start;
+	double		start;
 
 	/* External JavaScript handler? */
 	if(script == session->req.physical_path && session->req.xjs_handler[0])
@@ -3436,11 +3443,11 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		}
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
-		start=msclock();
+		start=xp_timer();
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
-		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%ld ms)"
-			,session->socket,script,msclock()-start);
+		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2f seconds)"
+			,session->socket,script,xp_timer()-start);
 	} while(0);
 
 	SAFECOPY(session->req.physical_path, path);
@@ -3604,6 +3611,9 @@ void http_session_thread(void* arg)
 	socket=session.socket;
 	lprintf(LOG_DEBUG,"%04d Session thread started", session.socket);
 
+	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
+		lprintf(LOG_DEBUG,"%04d !!! DANGER WILL ROBINSON, DANGER !!!", session.socket);
+
 #ifdef _WIN32
 	if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 		PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
@@ -3758,6 +3768,10 @@ void http_session_thread(void* arg)
 	client_off(socket);
 
 	thread_down();
+
+	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
+		lprintf(LOG_DEBUG,"%04d !!! ALL YOUR BASE ARE BELONG TO US !!!", socket);
+
 	lprintf(LOG_INFO,"%04d Session thread terminated (%u clients, %u threads remain, %lu served)"
 		,socket, active_clients, thread_count, served);
 
@@ -3811,7 +3825,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.353 $", "%*s %s", revision);
+	sscanf("$Revision: 1.365 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
