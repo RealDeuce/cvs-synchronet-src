@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.153 2005/11/19 02:32:59 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.154 2005/11/19 02:47:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -561,8 +561,13 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				width=j;
 		}
 	}
-	if(!(mode&WIN_NOBRDR) && api->mode&UIFC_MOUSE && bline&BL_HELP && width<8)
-		width=8;
+	/* Determine minimum widths here to accomodate mouse "icons" in border */
+	if(!(mode&WIN_NOBRDR) && api->mode&UIFC_MOUSE) {
+		if(bline&BL_HELP && width<8)
+			width=8;
+		else if(width<5)
+			width=5;
+	}
 	if(width>(s_right+1)-s_left) {
 		width=(s_right+1)-s_left;
 		if(title_len>(width-hbrdrsize-2)) {
