@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.53 2005/09/23 04:18:34 deuce Exp $ */
+/* $Id: console.c,v 1.64 2005/11/19 08:19:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,13 +111,14 @@
 
 #include <threadwrap.h>
 #include <genwrap.h>
+#include <dirwrap.h>
 
 #include "console.h"
 #include "vidmodes.h"
+#include "allfonts.h"
 
 #include "keys.h"
 #include "mouse.h"
-#include "vgafont.h"
 
 #define CONSOLE_MAX_ROWS	61
 #define CONSOLE_MAX_COLS	81
@@ -129,12 +130,21 @@ sem_t	console_mode_changed;
 sem_t	copybuf_set;
 sem_t	pastebuf_set;
 sem_t	pastebuf_request;
+sem_t	font_set;
+sem_t	x11_loadfont;
+sem_t	x11_fontloaded;
+int		x_load_font_ret;
+char	font_filename[MAX_PATH];
+int		new_font=-1;
+int		font_force;
+int		setfont_return;
 pthread_mutex_t	copybuf_mutex;
 pthread_mutex_t	lines_mutex;
 char *copybuf=NULL;
 char *pastebuf=NULL;
 sem_t	x11_beep;
 sem_t	x11_title;
+sem_t	x11_name;
 int InitCS;
 int InitCE;
 int FW, FH;
@@ -149,6 +159,7 @@ WORD *vmem=NULL;
 static int show = 1;
 BYTE CursRow=0;
 BYTE CursCol=0;
+static int x_current_font=-99;
 typedef struct TextLine {
     WORD	*data;
     u_char	max_length;	/* Not used, but here for future use */
@@ -169,6 +180,7 @@ GC gc;
 GC cgc;
 int xfd;
 char window_title[81];
+char window_name[81];
 
 /* X functions */
 struct x11 {
@@ -198,6 +210,7 @@ struct x11 {
 	int		(*XChangeProperty)		(Display*, Window, Atom, Atom, int, int, _Xconst unsigned char*, int);
 	Status	(*XSendEvent)	(Display*, Window, Bool, long, XEvent*);
 	int		(*XSetSelectionOwner)	(Display*, Atom, Window, Time);	
+	int		(*XSetIconName)	(Display*, Window, _Xconst char *);
 };
 struct x11 x11;
 
@@ -1067,6 +1080,15 @@ video_event(XEvent *ev)
 }
 
 void
+mouse_event(void *crap)
+{
+	while(1) {
+		if(mouse_wait())
+			KbdWrite(CIO_KEY_MOUSE);
+	}
+}
+
+void
 video_async_event(void *crap)
 {
 	int x;
@@ -1105,8 +1127,41 @@ video_async_event(void *crap)
 			case 0:
 				if(console_new_mode!=NO_NEW_MODE)
 					init_mode(console_new_mode);
+				if(x_current_font!=new_font) {
+					int oldfont=x_current_font;
+					x_current_font=new_font;
+					if(load_font(NULL,FW,FH,FontScale)) {
+						if(font_force) {
+							init_mode(3);
+							sem_wait(&console_mode_changed);
+							if(load_font(NULL,FW,FH,FontScale)) {
+								setfont_return=-1;
+								x_current_font=oldfont;
+								load_font(NULL,FW,FH,FontScale);
+							}
+							else
+								setfont_return=0;
+						}
+						else {
+							setfont_return=-1;
+							x_current_font=oldfont;
+							load_font(NULL,FW,FH,FontScale);
+						}
+					}
+					else
+						setfont_return=0;
+					resize_window();
+					sem_post(&font_set);
+				}
 				while(!sem_trywait(&x11_beep))
 					x11.XBell(dpy, 0);
+				if(!sem_trywait(&x11_name))
+					x11.XSetIconName(dpy, win, window_name);
+				if(!sem_trywait(&x11_loadfont)) {
+					x_load_font_ret=load_font(font_filename,FW,FH,FontScale);
+					resize_window();
+					sem_post(&x11_fontloaded);
+				}
 				if(!sem_trywait(&x11_title))
 					x11.XStoreName(dpy, win, window_title);
 				if(!sem_trywait(&copybuf_set)) {
@@ -1282,39 +1337,89 @@ load_font(char *filename, int width, int height, int scale)
     XGCValues gcv;
 	char *font;
 	char *scaledfont;
+	char fontdata[256*16];
+	int	i,j;
+	static char current_filename[MAX_PATH];
+	FILE	*fontfile;
+	
+	if(height > 16)
+		return(-1);
 
-	/* I don't actually do this yet! */
-	if(filename != NULL) {
-		return(1);
-	}
-
-	switch(width) {
-		case 8:
-			switch(height) {
-				case 8:
-					font=vga_font_bitmap8;
-					break;
-				case 14:
-					font=vga_font_bitmap14;
-					break;
-				case 16:
-					font=vga_font_bitmap;
-					break;
-				default:
-					return(1);
+	if(x_current_font==-99 || x_current_font>(sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)-2)) {
+		for(i=0; conio_fontdata[i].desc != NULL; i++) {
+			if(!strcmp(conio_fontdata[i].desc, "Codepage 437 English")) {
+				x_current_font=i;
+				break;
 			}
-			break;
-		default:
+		}
+		if(conio_fontdata[i].desc==NULL)
+			x_current_font=0;
+		new_font=x_current_font;
+	}
+	if(x_current_font==-1)
+		filename=current_filename;
+	else if(conio_fontdata[x_current_font].desc==NULL)
+		return(-1);
+
+	if(filename != NULL) {
+		if(flength(filename)!=height*256)
+			return(-1);
+		if((fontfile=fopen(filename,"rb"))==NULL)
+			return(-1);
+		if(fread(fontdata, 1, height*256, fontfile)!=height*256) {
+			fclose(fontfile);
+			return(-1);
+		}
+		fclose(fontfile);
+		x_current_font=new_font=-1;
+		if(filename != current_filename)
+			SAFECOPY(current_filename,filename);
+	}
+	else {
+		switch(width) {
+			case 8:
+				switch(height) {
+					case 8:
+						font=conio_fontdata[x_current_font].eight_by_eight;
+						break;
+					case 14:
+						font=conio_fontdata[x_current_font].eight_by_fourteen;
+						break;
+					case 16:
+						font=conio_fontdata[x_current_font].eight_by_sixteen;
+						break;
+					default:
+						return(1);
+				}
+				break;
+			default:
+				return(1);
+		}
+		if(font==NULL)
 			return(1);
+		memcpy(fontdata, font, height*256);
 	}
 	FW = width;
     FH = height;
-
+	/* Swap bit order... leftmost bit is most significant, X11 wants it the
+	 * other way. */
+	for(i=0; i<256; i++) {
+		for(j=0; j<height; j++) {
+			fontdata[i*height+j]=		((fontdata[i*height+j] & 0x80) >> 7)
+						| ((fontdata[i*height+j] & 0x40) >> 5)
+						| ((fontdata[i*height+j] & 0x20) >> 3)
+						| ((fontdata[i*height+j] & 0x10) >> 1)
+						| ((fontdata[i*height+j] & 0x08) << 1)
+						| ((fontdata[i*height+j] & 0x04) << 3)
+						| ((fontdata[i*height+j] & 0x02) << 5)
+						| ((fontdata[i*height+j] & 0x01) << 7);
+		}
+	}
 	if(pfnt!=0)
 		x11.XFreePixmap(dpy,pfnt);
-	scaledfont=scale_bitmap(font, FW, FH*256, &FontScale);
+	scaledfont=scale_bitmap(fontdata, FW, FH*256, &FontScale);
 	if(scaledfont==NULL)
-		pfnt=x11.XCreateBitmapFromData(dpy, win, font, FW, FH*256);
+		pfnt=x11.XCreateBitmapFromData(dpy, win, fontdata, FW, FH*256);
 	else {
 		FW*=scale;
 		FH*=scale;
@@ -1490,6 +1595,7 @@ console_init()
 	x11.XChangeProperty=XChangeProperty;
 	x11.XSendEvent=XSendEvent;
 	x11.XSetSelectionOwner=XSetSelectionOwner;
+	x11.XSetIconName=XSetIconName;
 #else
 #if defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
 	if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))==NULL)
@@ -1601,6 +1707,10 @@ console_init()
 		dlclose(dl);
 		return(-1);
 	}
+	if((x11.XSetIconName=dlsym(dl,"XSetIconName"))==NULL) {
+		dlclose(dl);
+		return(-1);
+	}
 #endif
 
 	sem_init(&console_mode_changed,0,0);
@@ -1609,6 +1719,11 @@ console_init()
 	sem_init(&pastebuf_set,0,0);
 	sem_init(&x11_beep,0,0);
 	sem_init(&x11_title,0,0);
+	sem_init(&x11_name,0,0);
+	sem_init(&font_set,0,0);
+	sem_init(&x11_loadfont,0,0);
+	sem_init(&x11_fontloaded,0,0);
+
 	pthread_mutex_init(&copybuf_mutex, NULL);
 	pthread_mutex_init(&lines_mutex, NULL);
 
@@ -1621,6 +1736,7 @@ console_init()
 	}
 
 	_beginthread(video_async_event,1<<16,NULL);
+	_beginthread(mouse_event,1<<16,NULL);
 	return(0);
 }
 
@@ -1678,26 +1794,20 @@ tty_read(int flag)
 		return(r & 0xff);
 	}
 
-	if (KbdEmpty() && !mouse_pending()) {
+	if (KbdEmpty()) {
 		if (flag & TTYF_BLOCK) {
-			while (KbdEmpty() && !mouse_pending())
+			while (KbdEmpty())
 			tty_pause();
 		} else {
 			return(-1);
 		}
     }
 
-	if(mouse_pending()) {
-		x_nextchar=CIO_KEY_MOUSE>>8;
-		return(CIO_KEY_MOUSE&0xff);
-	}
-	else {
-    	r = KbdRead();
-    	if ((r & 0xff) == 0)
-			x_nextchar = r >> 8;
-    	r &= 0xff;
-    	return(r & 0xff);
-	}
+   	r = KbdRead();
+   	if ((r & 0xff) == 0 || (r & 0xff) == 0xff)
+		x_nextchar = r >> 8;
+   	r &= 0xff;
+   	return(r & 0xff);
 }
 
 int
@@ -1735,4 +1845,18 @@ void x_win_title(const char *title)
 {
 	SAFECOPY(window_title,title);
 	sem_post(&x11_title);
+}
+
+void x_win_name(const char *name)
+{
+	SAFECOPY(window_name,name);
+	sem_post(&x11_name);
+}
+
+int x_load_font(const char *filename)
+{
+	SAFECOPY(font_filename, filename);
+	sem_post(&x11_loadfont);
+	sem_wait(&x11_fontloaded);
+	return(x_load_font_ret);
 }
