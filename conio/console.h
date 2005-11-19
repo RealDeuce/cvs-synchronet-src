@@ -1,4 +1,4 @@
-/* $Id: console.h,v 1.11 2005/11/19 07:52:34 deuce Exp $ */
+/* $Id: console.h,v 1.10 2005/11/19 05:36:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,6 @@ int tty_kbhit(void);
 void tty_beep(void);
 void x_win_title(const char *title);
 int console_init(void);
-int x_load_font(const char *filename);
 
 #define	TTYF_BLOCK	0x00000008
 #define	TTYF_POLL	0x00000010
