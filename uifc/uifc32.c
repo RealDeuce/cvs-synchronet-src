@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.154 2005/11/19 02:47:18 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.155 2005/11/19 03:01:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -556,9 +556,11 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	if(!width || width<title_len+hbrdrsize+2) {
 		width=title_len+hbrdrsize+2;
 		for(i=0;i<opts;i++) {
-			truncsp(option[i]);
-			if((j=strlen(option[i])+hbrdrsize+2+1)>width)
-				width=j;
+			if(option[i]!=NULL) {
+				truncsp(option[i]);
+				if((j=strlen(option[i])+hbrdrsize+2+1)>width)
+					width=j;
+			}
 		}
 	}
 	/* Determine minimum widths here to accomodate mouse "icons" in border */
@@ -776,7 +778,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				a=api->lbclr;
 			else
 				a=api->lclr|(api->bclr<<4);
-			if(i<opts) {
+			if(i<opts && option[i]!=NULL) {
 				b=strlen(option[i]);
 				if(b>longopt)
 					longopt=b;
