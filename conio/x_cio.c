@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.20 2005/11/19 07:52:34 deuce Exp $ */
+/* $Id: x_cio.c,v 1.21 2005/11/20 03:12:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -320,6 +320,8 @@ char *x_getcliptext(void)
 
 int x_setfont(int font, int force)
 {
+	if(font==getfont())
+		return(0);
 	font_force=force;
 	new_font=font;
 	sem_wait(&font_set);
