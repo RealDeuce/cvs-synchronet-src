@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.h,v 1.5 2004/09/22 04:03:06 deuce Exp $ */
+/* $Id: ansi_cio.h,v 1.6 2005/10/14 06:21:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -30,6 +30,13 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
 
 #include "ciolib.h"
 

@@ -1,4 +1,4 @@
-/* $Id: console.h,v 1.9 2005/06/06 23:00:46 deuce Exp $ */
+/* $Id: console.h,v 1.11 2005/11/19 07:52:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,10 @@ extern sem_t	console_mode_changed;
 extern sem_t	copybuf_set;
 extern sem_t	pastebuf_request;
 extern sem_t	pastebuf_set;
+extern sem_t	font_set;
+extern int		new_font;
+extern int		font_force;
+extern int		setfont_return;
 extern pthread_mutex_t	copybuf_mutex;
 extern char *copybuf;
 extern char *pastebuf;
@@ -83,6 +87,7 @@ int tty_kbhit(void);
 void tty_beep(void);
 void x_win_title(const char *title);
 int console_init(void);
+int x_load_font(const char *filename);
 
 #define	TTYF_BLOCK	0x00000008
 #define	TTYF_POLL	0x00000010
