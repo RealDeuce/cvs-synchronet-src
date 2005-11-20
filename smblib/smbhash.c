@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.14 2005/09/30 09:05:16 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.15 2005/10/02 23:28:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -371,24 +371,4 @@ ushort SMBCALL smb_name_crc(const char* name)
 	free(str);
 
 	return(crc);
-}
-
-int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
-{
-	msg->idx.subj=smb_subject_crc(msg->subj);
-	if(smb->status.attr&SMB_EMAIL) {
-		if(msg->to_ext)
-			msg->idx.to=atoi(msg->to_ext);
-		else
-			msg->idx.to=0;
-		if(msg->from_ext)
-			msg->idx.from=atoi(msg->from_ext);
-		else
-			msg->idx.from=0; 
-	} else {
-		msg->idx.to=smb_name_crc(msg->to);
-		msg->idx.from=smb_name_crc(msg->from);
-	}
-
-	return(SMB_SUCCESS);
 }
