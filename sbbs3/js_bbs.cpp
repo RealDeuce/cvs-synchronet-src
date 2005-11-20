@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.79 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.80 2005/10/07 01:45:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,6 +135,7 @@ enum {
 	,BBS_PROP_BATCH_UPLOAD_TOTAL
 	,BBS_PROP_BATCH_DNLOAD_TOTAL
 
+	,BBS_PROP_COMMAND_STR
 };
 
 #ifdef _DEBUG
@@ -230,6 +231,7 @@ enum {
 	,"number of files in batch upload queue"
 	,"number of files in batch download queue"
 
+	,"current command shell/module <i>command string</i> value"
 	,NULL
 	};
 #endif
@@ -582,6 +584,10 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			val=sbbs->batdn_total;
 			break;
 
+		case BBS_PROP_COMMAND_STR:
+			p=sbbs->main_csi.str;
+			break;
+
 		default:
 			return(JS_TRUE);
 	}
@@ -751,6 +757,11 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(val<sbbs->cfg.altpaths)
 				sbbs->altul=(ushort)val;
 			break;
+
+		case BBS_PROP_COMMAND_STR:
+			sprintf(sbbs->main_csi.str, "%.*s", 1024, p);
+			break;
+
 		default:
 			return(JS_TRUE);
 	}
@@ -856,6 +867,8 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 
 	{	"batch_upload_total",BBS_PROP_BATCH_UPLOAD_TOTAL,PROP_READONLY	,310},
 	{	"batch_dnload_total",BBS_PROP_BATCH_DNLOAD_TOTAL,PROP_READONLY	,310},
+
+	{	"command_str"		,BBS_PROP_COMMAND_STR		,JSPROP_ENUMERATE, 313},	/* 3.13b */
 	{0}
 };
 
