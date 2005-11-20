@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.42 2006/02/02 03:17:15 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.39 2005/04/18 21:00:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,7 +39,7 @@
 
 #ifdef JAVASCRIPT
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 
 static char* lib_prop_desc[] = {
 	 "index into lib_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
@@ -143,7 +143,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	if(html_index_file==NULL)
 		html_index_file="";
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,areaobj,"File Transfer Areas",310);
 #endif
 
@@ -160,13 +160,13 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 		if((libobj=JS_NewObject(cx, NULL, NULL, NULL))==NULL)
 			return(NULL);
 
-		val=OBJECT_TO_JSVAL(libobj);
 		lib_index=-1;
 		if(user==NULL || chk_ar(cfg,cfg->lib[l]->ar,user)) {
 
 			if(!JS_GetArrayLength(cx, lib_list, &lib_index))
 				return(NULL);
 
+			val=OBJECT_TO_JSVAL(libobj);
 			if(!JS_SetElement(cx, lib_list, lib_index, &val))
 				return(NULL);
 		}
@@ -209,7 +209,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 		if(!JS_SetProperty(cx, libobj, "link", &val))
 			return(NULL);
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 		js_DescribeSyncObject(cx,libobj,"File Transfer Libraries (current user has access to)",310);
 #endif
 
@@ -242,26 +242,6 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			/* Add as property (associative array element) */
 			if(!JS_DefineProperty(cx, alldirs, cfg->dir[d]->code, val
 				,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
-				return(NULL);
-
-			if(d==cfg->user_dir 
-				&& !JS_DefineProperty(cx, areaobj, "user_dir", val
-					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
-				return(NULL);
-
-			if(d==cfg->sysop_dir 
-				&& !JS_DefineProperty(cx, areaobj, "sysop_dir", val
-					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
-				return(NULL);
-
-			if(d==cfg->upload_dir 
-				&& !JS_DefineProperty(cx, areaobj, "upload_dir", val
-					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
-				return(NULL);
-
-			if(d==cfg->lib[l]->offline_dir
-				&& !JS_DefineProperty(cx, libobj, "offline_dir", val
-					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
 
 			val=INT_TO_JSVAL(dir_index);
@@ -397,26 +377,24 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if(!JS_SetProperty(cx, dirobj, "link", &val))
 				return(NULL);
 
-			if(user==NULL 
-				|| (chk_ar(cfg,cfg->dir[d]->ul_ar,user) && !(user->rest&FLAG('U'))))
-				val=JSVAL_TRUE;
+			if(user==NULL || chk_ar(cfg,cfg->dir[d]->ul_ar,user))
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=JSVAL_FALSE;
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, dirobj, "can_upload", &val))
 				return(NULL);
 
-			if(user==NULL 
-				|| (chk_ar(cfg,cfg->dir[d]->dl_ar,user) && !(user->rest&FLAG('D'))))
-				val=JSVAL_TRUE;
+			if(user==NULL || chk_ar(cfg,cfg->dir[d]->dl_ar,user))
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=JSVAL_FALSE;
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, dirobj, "can_download", &val))
 				return(NULL);
 
 			if(is_download_free(cfg,d,user))
-				val=JSVAL_TRUE;
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=JSVAL_FALSE;
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, dirobj, "is_exempt", &val))
 				return(NULL);
 
@@ -424,29 +402,29 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 				&& (user->level>=SYSOP_LEVEL 
 					|| (cfg->dir[d]->op_ar[0]!=0 
 						&& chk_ar(cfg,cfg->dir[d]->op_ar,user))))
-				val=JSVAL_TRUE;
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=JSVAL_FALSE;
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, dirobj, "is_operator", &val))
 				return(NULL);
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 			js_CreateArrayOfStrings(cx, dirobj, "_property_desc_list", dir_prop_desc, JSPROP_READONLY);
 			js_DescribeSyncObject(cx,dirobj,"File Transfer Directories  (current user has access to)",310);
 #endif
 		}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 		js_CreateArrayOfStrings(cx, libobj, "_property_desc_list", lib_prop_desc, JSPROP_READONLY);
 #endif
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,alllibs,"Associative array of all libraries (use name as index)",312);
 	JS_DefineProperty(cx,alllibs,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
 #endif
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,alldirs,"Associative array of all directories (use internal code as index)",311);
 	JS_DefineProperty(cx,alldirs,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
 #endif

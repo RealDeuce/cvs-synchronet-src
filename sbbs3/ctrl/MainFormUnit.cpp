@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.154 2006/03/14 05:41:04 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.149 2005/08/30 10:10:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -126,10 +126,6 @@ DWORD					services_svc_config_size;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
-time_t  initialized=0;
-static	str_list_t recycle_semfiles;
-static  str_list_t shutdown_semfiles;
-bool    terminating=false;
 
 static void thread_up(void* p, BOOL up, BOOL setuid)
 {
@@ -982,7 +978,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
 
     // Verify SBBS.DLL version
     long bbs_ver = bbs_ver_num();
-    if(bbs_ver != VERSION_HEX) {
+    if(bbs_ver < (0x31300 | 'A'-'A') || bbs_ver > (0x399<<8)) {
         char str[128];
         sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -1034,44 +1030,9 @@ void __fastcall TMainForm::ViewToolbarMenuItemClick(TObject *Sender)
 	Toolbar->Visible=ViewToolbarMenuItem->Checked;
 }
 //---------------------------------------------------------------------------
-BOOL NTsvcEnabled(SC_HANDLE svc, QUERY_SERVICE_CONFIG* config, DWORD config_size)
-{
-	if(svc==NULL || startService==NULL || queryServiceStatus==NULL || config==NULL)
-    	return(FALSE);
-
-	DWORD ret;
-	if(!queryServiceConfig(svc,config,config_size,&ret))
-		return(FALSE);
-	if(config->dwStartType==SERVICE_DISABLED)
-		return(FALSE);
-	return(TRUE);
-}
-//---------------------------------------------------------------------------
-BOOL __fastcall TMainForm::bbsServiceEnabled(void)
-{
-    return NTsvcEnabled(bbs_svc,bbs_svc_config,bbs_svc_config_size);
-}
-BOOL __fastcall TMainForm::mailServiceEnabled(void)
-{
-    return NTsvcEnabled(mail_svc,mail_svc_config,mail_svc_config_size);
-}
-BOOL __fastcall TMainForm::ftpServiceEnabled(void)
-{
-    return NTsvcEnabled(ftp_svc,ftp_svc_config,ftp_svc_config_size);
-}
-BOOL __fastcall TMainForm::webServiceEnabled(void)
-{
-    return NTsvcEnabled(web_svc,web_svc_config,web_svc_config_size);
-}
-BOOL __fastcall TMainForm::servicesServiceEnabled(void)
-{
-    return NTsvcEnabled(services_svc,services_svc_config,services_svc_config_size);
-}
-//---------------------------------------------------------------------------
 void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
 {
     UpTimer->Enabled=false; /* Stop updating the status bar */
-	StatsTimer->Enabled=false;
 
     if(TrayIcon->Visible)           /* minimized to tray? */
         TrayIcon->Visible=false;    /* restore to avoid crash */
@@ -1080,81 +1041,72 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
     if(Initialized) /* Don't overwrite registry settings with defaults */
         SaveRegistrySettings(Sender);
 
-	StatusBar->Panels->Items[4]->Text="Terminating servers...";
+	StatusBar->Panels->Items[4]->Text="Closing...";
     time_t start=time(NULL);
-	while( (TelnetStop->Enabled     && !bbsServiceEnabled())
-        || (MailStop->Enabled       && !mailServiceEnabled())
-        || (FtpStop->Enabled        && !ftpServiceEnabled())
-        || (WebStop->Enabled        && !webServiceEnabled())
-    	|| (ServicesStop->Enabled   && !servicesServiceEnabled())) {
+	while( (bbs_svc==NULL && TelnetStop->Enabled)
+        || (mail_svc==NULL && MailStop->Enabled)
+        || (ftp_svc==NULL && FtpStop->Enabled)
+        || (web_svc==NULL && WebStop->Enabled)        
+    	|| (services_svc==NULL && ServicesStop->Enabled)) {
         if(time(NULL)-start>30)
             break;
         Application->ProcessMessages();
         YIELD();
     }
-	StatusBar->Panels->Items[4]->Text="Closing...";
-    Application->ProcessMessages();
-    
-	LogTimer->Enabled=false;
-	ServiceStatusTimer->Enabled=false;
-	NodeForm->Timer->Enabled=false;
-	ClientForm->Timer->Enabled=false;
-#if 0
     /* Extra time for callbacks to be called by child threads */
     start=time(NULL);
     while(time(NULL)<start+2) {
         Application->ProcessMessages();
         YIELD();
     }
-#endif
 #if 0
     if(hSCManager!=NULL)
     	closeServiceHandle(hSCManager);
 #endif
 }
 //---------------------------------------------------------------------------
+
 void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
 {
 	CanClose=false;
 
-    if(TelnetStop->Enabled && !bbsServiceEnabled()) {
-     	if(!terminating && TelnetForm->ProgressBar->Position
+    if(TelnetStop->Enabled && bbs_svc==NULL) {
+     	if(TelnetForm->ProgressBar->Position
 	        && Application->MessageBox("Shut down the Telnet Server?"
         	,"Telnet Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         TelnetStopExecute(Sender);
 	}
 
-    if(MailStop->Enabled && !mailServiceEnabled()) {
-    	if(!terminating && MailForm->ProgressBar->Position
+    if(MailStop->Enabled && mail_svc==NULL) {
+    	if(MailForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Mail Server?"
         	,"Mail Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         MailStopExecute(Sender);
     }
 
-    if(FtpStop->Enabled && !ftpServiceEnabled()) {
-    	if(!terminating && FtpForm->ProgressBar->Position
+    if(FtpStop->Enabled && ftp_svc==NULL) {
+    	if(FtpForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the FTP Server?"
 	       	,"FTP Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         FtpStopExecute(Sender);
     }
 
-    if(WebStop->Enabled && !webServiceEnabled()) {
-    	if(!terminating && WebForm->ProgressBar->Position
+    if(WebStop->Enabled && web_svc==NULL) {
+    	if(WebForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Web Server?"
 	       	,"Web Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         WebStopExecute(Sender);
     }
 
-    if(ServicesStop->Enabled && !servicesServiceEnabled())
+    if(ServicesStop->Enabled && services_svc==NULL)
 	    ServicesStopExecute(Sender);
 
     CanClose=true;
 }
-
 //---------------------------------------------------------------------------
 BOOL StartNTsvc(SC_HANDLE svc, SERVICE_STATUS* status, QUERY_SERVICE_CONFIG* config, DWORD config_size)
 {
@@ -2228,12 +2180,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         return;
     }
 
-	recycle_semfiles=semfile_list_init(cfg.ctrl_dir,"recycle","ctrl");
-   	semfile_list_check(&initialized,recycle_semfiles);
-
-	shutdown_semfiles=semfile_list_init(cfg.ctrl_dir,"shutdown","ctrl");
-	semfile_list_check(&initialized,shutdown_semfiles);
-
     if(!(cfg.sys_misc&SM_LOCAL_TZ)) {
     	if(putenv("TZ=UTC0")) {
         	Application->MessageBox("Error setting timezone"
@@ -2345,16 +2291,11 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     NodeForm->Timer->Enabled=true;
     ClientForm->Timer->Enabled=true;
 
-    SemFileTimer->Interval=global.sem_chk_freq;
-    SemFileTimer->Enabled=true;
-
     StatsTimer->Interval=cfg.node_stat_check*1000;
 	StatsTimer->Enabled=true;
     Initialized=true;
 
     UpTimer->Enabled=true; /* Start updating the status bar */
-    LogTimer->Enabled=true;
-    ServiceStatusTimer->Enabled=true;
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
@@ -3144,7 +3085,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         SAFECOPY(global.ctrl_dir,PropertiesDlg->CtrlDirEdit->Text.c_str());
         SAFECOPY(global.temp_dir,PropertiesDlg->TempDirEdit->Text.c_str());
         global.sem_chk_freq=PropertiesDlg->SemFreqUpDown->Position;
-        SemFileTimer->Interval=global.sem_chk_freq;
 
         /* Copy global values to server startup structs */
         /* We don't support per-server unique values here (yet) */
@@ -3276,7 +3216,6 @@ void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
 	FtpRecycleExecute(Sender);
 	WebRecycleExecute(Sender);
 	MailRecycleExecute(Sender);
-    TelnetRecycleExecute(Sender);
 	ServicesRecycleExecute(Sender);
 
 	char error[256];
@@ -3286,9 +3225,7 @@ void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
-   	semfile_list_check(&initialized,recycle_semfiles);
 
-#if 0   /* This appears to be redundant */
     node_t node;
     for(int i=0;i<cfg.sys_nodes;i++) {
     	int file;
@@ -3298,7 +3235,6 @@ void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
         if(NodeForm->putnodedat(i+1,&node,file))
             break;
     }
-#endif
 }
 
 //---------------------------------------------------------------------------
@@ -3696,24 +3632,6 @@ void __fastcall TMainForm::ViewFile(AnsiString filename, AnsiString Caption)
         TextFileEditForm->Memo->ReadOnly=true;
         TextFileEditForm->ShowModal();
         delete TextFileEditForm;
-    }
-}
-//---------------------------------------------------------------------------
-
-
-
-void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
-{
-    char* p;
-
-    if((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL) {
-	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
-        terminating=true;
-        Close();
-    }
-    else if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
-	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
-        ReloadConfigExecute(Sender);
     }
 }
 //---------------------------------------------------------------------------
