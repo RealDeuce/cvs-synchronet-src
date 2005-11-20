@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.40 2005/10/05 02:25:27 deuce Exp $
+# $Id: Common.bmake,v 1.43 2005/11/18 09:18:54 deuce Exp $
 #
 #############################################################################
 #																			#
@@ -71,7 +71,7 @@
 # Macros
 # Set VERSION
 !ifndef VERSION
- VERSION	=	3.12
+ VERSION	=	3.13
 !endif
 
 # Set DEBUG
@@ -132,6 +132,7 @@ MT_LDFLAGS = -WM
  CFLAGS	=	$(CFLAGS) -v
 !endif
 !endif
+MKSHLIB =       $(CC) -WD
 
 # Common compiler flags
 !ifdef DEBUG
@@ -238,6 +239,8 @@ ciolib-mt:
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
 	set BUILDPATH=$(BUILDPATH)
+	set USE_SDL=$(USE_SDL)
+	set STATIC_SDL=$(STATIC_SDL)
 	cd $(CIOLIB_SRC)
 	$(MAKE) -$(MAKEFLAGS) mtlib
 	exit
@@ -264,6 +267,8 @@ uifc-mt:
 	set RELEASE=$(RELEASE)
 	set VERBOSE=$(VERBOSE)
 	set BUILDPATH=$(BUILDPATH)
+	set USE_SDL=$(USE_SDL)
+	set STATIC_SDL=$(STATIC_SDL)
 	cd $(UIFC_SRC)
 	$(MAKE) -$(MAKEFLAGS) mtlib
 	exit
