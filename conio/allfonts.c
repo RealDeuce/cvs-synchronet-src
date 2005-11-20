@@ -2,9 +2,6 @@
 
 #include "allfonts.h"
 
-#ifdef NO_FONTS
-struct conio_font_data_struct conio_fontdata[257];
-#else
 struct conio_font_data_struct conio_fontdata[257] = {
 	 {"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 		"\x00\x00\x7e\x81\xa5\x81\x81\xbd\x99\x81\x81\x7e\x00\x00\x00\x00"
@@ -18440,4 +18437,3 @@ struct conio_font_data_struct conio_fontdata[257] = {
 	,{NULL, NULL, NULL, NULL}
 	,{NULL, NULL, NULL, NULL}
 };
-#endif
