@@ -2,13 +2,13 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.26 2006/02/24 09:50:50 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.25 2005/06/13 01:38:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,13 +75,6 @@ static BOOL is_connected(xmodem_t* xm)
 	return(TRUE);
 }
 
-static BOOL is_cancelled(xmodem_t* xm)
-{
-	if(xm->is_cancelled!=NULL)
-		return(xm->cancelled=xm->is_cancelled(xm->cbdata));
-	return(xm->cancelled);
-}
-
 static char *chr(uchar ch)
 {
 	static char str[25];
@@ -135,7 +128,7 @@ int xmodem_cancel(xmodem_t* xm)
 	int i;
 	int result;
 
-	if(!is_cancelled(xm) && is_connected(xm)) {
+	if(!xm->cancelled && is_connected(xm)) {
 		for(i=0;i<8 && is_connected(xm);i++)
 			if((result=putcom(CAN))!=0)
 				return result;
@@ -461,12 +454,12 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			lprintf(xm,LOG_INFO,"Sending Ymodem header block: '%s'",block+strlen(block)+1);
 			
 			block_len=strlen(block)+1+i;
-			for(xm->errors=0;xm->errors<=xm->max_errors && !is_cancelled(xm) && is_connected(xm);xm->errors++) {
+			for(xm->errors=0;xm->errors<=xm->max_errors && !xm->cancelled && is_connected(xm);xm->errors++) {
 				xmodem_put_block(xm, block, block_len <=128 ? 128:1024, 0  /* block_num */);
 				if(xmodem_get_ack(xm,1,0))
 					break; 
 			}
-			if(xm->errors>=xm->max_errors || is_cancelled(xm)) {
+			if(xm->errors>=xm->max_errors || xm->cancelled) {
 				lprintf(xm,LOG_ERR,"Failed to send header block");
 				break;
 			}
@@ -481,7 +474,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 
 		block_num=1;
 		xm->errors=0;
-		while(sent_bytes < (ulong)st.st_size && xm->errors<=xm->max_errors && !is_cancelled(xm)
+		while(sent_bytes < (ulong)st.st_size && xm->errors<=xm->max_errors && !xm->cancelled
 			&& is_connected(xm)) {
 			fseek(fp,sent_bytes,SEEK_SET);
 			memset(block,CPMEOF,xm->block_size);
@@ -504,7 +497,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 				sent_bytes+=rd;
 			}
 		}
-		if(sent_bytes >= (ulong)st.st_size && !is_cancelled(xm) && is_connected(xm)) {
+		if(sent_bytes >= (ulong)st.st_size && !xm->cancelled && is_connected(xm)) {
 
 	#if 0 /* !SINGLE_THREADED */
 			lprintf(LOG_DEBUG,"Waiting for output buffer to empty... ");
@@ -534,7 +527,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.26 $", "%*s %s", buf);
+	sscanf("$Revision: 1.25 $", "%*s %s", buf);
 
 	return(buf);
 }
@@ -544,8 +537,7 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 				,void	(*progress)(void* unused, unsigned block_num, ulong offset, ulong fsize, time_t t)
 				,int	(*send_byte)(void*, uchar ch, unsigned timeout)
 				,int	(*recv_byte)(void*, unsigned timeout)
-				,BOOL	(*is_connected)(void*)
-				,BOOL	(*is_cancelled)(void*))
+				,BOOL	(*is_connected)(void*))
 {
 	memset(xm,0,sizeof(xmodem_t));
 
@@ -566,5 +558,4 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 	xm->send_byte=send_byte;
 	xm->recv_byte=recv_byte;
 	xm->is_connected=is_connected;
-	xm->is_cancelled=is_cancelled;
 }
