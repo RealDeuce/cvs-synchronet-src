@@ -1,12 +1,12 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.26 2006/02/22 08:12:49 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.24 2005/09/20 03:40:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2002 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,34 +36,6 @@
 #include "scfg.h"
 
 #define DEFAULT_DIR_OPTIONS (DIR_FCHK|DIR_MULT|DIR_DUPES|DIR_CDTUL|DIR_CDTDL|DIR_DIZ)
-
-void create_raw_dir_list(const char* list_file)
-{
-	char	path[MAX_PATH+1];
-	char*	p;
-	glob_t	g;
-	int		gi;
-	FILE*	fp;
-
-	SAFECOPY(path, list_file);
-	if((p=getfname(path))!=NULL)
-		*p=0;
-	if(uifc.input(WIN_MID|WIN_SAV,0,0,"Parent Directory",path,sizeof(path)-1
-		,K_EDIT)<1)
-		return;
-	strcat(path,ALLFILES);
-	if((fp=fopen(list_file,"w"))==NULL) {
-		SAFEPRINTF2(path,"Create Failure (%u): %s", errno, list_file);
-		uifc.msg(path);
-		return; 
-	}
-	glob(path,GLOB_ONLYDIR,NULL,&g);
-   	for(gi=0;gi<g.gl_pathc;gi++)
-		fprintf(fp,"%s\n",getfname(g.gl_pathv[gi]));
-	globfree(&g);
-	fclose(fp);
-}
-
 
 void xfer_cfg()
 {
@@ -232,6 +204,7 @@ library, select Yes.
 		strcpy(opt[j++],"Import Areas...");
 		strcpy(opt[j++],"File Directories...");
 		opt[j][0]=0;
+		uifc.savnum=0;
 		sprintf(str,"%s Library",cfg.lib[i]->sname);
 		SETHELP(WHERE);
 /*
@@ -450,7 +423,6 @@ command: DIR /ON /AD /B > DIRS.RAW
 				strcpy(opt[k++],"DIRS.TXT    (Synchronet)");
                 strcpy(opt[k++],"FILEBONE.NA (Fido)");
 				strcpy(opt[k++],"DIRS.RAW    (Raw)");
-				strcpy(opt[k++],"Directory Listing...");
 				opt[k][0]=0;
 				k=0;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
@@ -466,28 +438,12 @@ command: DIR /ON /AD /B > DIRS.RAW
 					backslash(str);
 					strcat(str,"dirs.raw");
 				}
-				if(k==3)
-					create_raw_dir_list(tmpnam(str));
-				else {
-					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Filename"
-						,str,sizeof(str)-1,K_EDIT)<=0)
-						break;
-					if(k==2 && !fexistcase(str)) {
-						strcpy(opt[0],"Yes");
-						strcpy(opt[1],"No");
-						opt[2][0]=0;
-						j=0;
-						if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0
-							,"File doesn't exist, create it?",opt)==0)
-							create_raw_dir_list(str);
-					}
-				}
-				if(!fexistcase(str))
-					break;
+				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Filename"
+					,str,sizeof(str)-1,K_EDIT)<=0)
+                    break;
 				if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 					uifc.msg("Open Failure");
-                    break; 
-				}
+                    break; }
 				uifc.pop("Importing Areas...");
 				while(!feof(stream)) {
 					if(!fgets(str,128,stream)) break;
@@ -503,7 +459,7 @@ command: DIR /ON /AD /B > DIRS.RAW
 					p=str;
 					while(*p && *p<=' ') p++;
 
-					if(k>=2) { /* raw */
+					if(k==2) { /* raw */
 						SAFECOPY(tmp_code,p);
 						SAFECOPY(tmpdir.lname,p);
 						SAFECOPY(tmpdir.sname,p);
@@ -659,6 +615,7 @@ while(1) {
 	dirnum[j]=cfg.total_dirs;
 	opt[j][0]=0;
 	sprintf(str,"%s Directories",cfg.lib[libnum]->sname);
+	uifc.savnum=0;
 	i=WIN_SAV|WIN_ACT;
 	if(j)
 		i|=WIN_DEL|WIN_GET|WIN_DELACT;
@@ -681,6 +638,7 @@ To delete a directory, select it with the arrow keys and hit  DEL .
 To configure a directory, select it with the arrow keys and hit  ENTER .
 */
 	i=uifc.list(i,24,1,45,&dflt,&bar,str,opt);
+	uifc.savnum=1;
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
@@ -853,6 +811,7 @@ select Yes.
 This menu allows you to configure the individual selected directory.
 Options with a trailing ... provide a sub-menu of more options.
 */
+		uifc.savnum=1;
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_RHT|WIN_BOT
 			,0,0,60,&opt_dflt,0,str,opt)) {
 			case -1:
@@ -903,22 +862,27 @@ contents, usually an abreviation of the directory's name.
 				}
                 break;
 			case 3:
+				uifc.savnum=2;
 				sprintf(str,"%s Access",cfg.dir[i]->sname);
 				getar(str,cfg.dir[i]->arstr);
 				break;
 			case 4:
+				uifc.savnum=2;
 				sprintf(str,"%s Upload",cfg.dir[i]->sname);
 				getar(str,cfg.dir[i]->ul_arstr);
 				break;
 			case 5:
+				uifc.savnum=2;
 				sprintf(str,"%s Download",cfg.dir[i]->sname);
 				getar(str,cfg.dir[i]->dl_arstr);
 				break;
 			case 6:
+				uifc.savnum=2;
 				sprintf(str,"%s Operator",cfg.dir[i]->sname);
 				getar(str,cfg.dir[i]->op_arstr);
                 break;
 			case 7:
+				uifc.savnum=2;
 				sprintf(str,"%s Exemption",cfg.dir[i]->sname);
 				getar(str,cfg.dir[i]->ex_arstr);
                 break;
@@ -1056,6 +1020,7 @@ are later downloaded, set this value to 0.
 					sprintf(opt[n++],"%-27.27s%s","Include Transfers In Stats"
 						,cfg.dir[i]->misc&DIR_NOSTAT ? "No":"Yes");
 					opt[n][0]=0;
+					uifc.savnum=2;
 					SETHELP(WHERE);
 /*
 Directory Toggle Options:
@@ -1069,6 +1034,7 @@ more states, such as Yes and No.
 						,&tog_bar,"Toggle Options",opt);
 					if(n==-1)
                         break;
+					uifc.savnum=3;
 					switch(n) {
 						case 0:
 							n=cfg.dir[i]->misc&DIR_FCHK ? 0:1;
@@ -1556,6 +1522,7 @@ cumulative statistics.
 					: cfg.dir[i]->sort==SORT_DATE_A ? "Date Ascending"
 					: "Date Descending");
 				opt[n][0]=0;
+				uifc.savnum=2;
 				SETHELP(WHERE);
 /*
 Directory Advanced Options:
@@ -1566,6 +1533,7 @@ This is the advanced options menu for the selected file directory.
 						,"Advanced Options",opt);
 					if(n==-1)
                         break;
+					uifc.savnum=3;
                     switch(n) {
 						case 0:
 							SETHELP(WHERE);
