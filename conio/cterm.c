@@ -1,10 +1,10 @@
-/* $Id: cterm.c,v 1.64 2006/02/25 00:11:02 rswindell Exp $ */
+/* $Id: cterm.c,v 1.61 2005/11/20 06:36:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -181,7 +181,7 @@ void playnote(int notenum, int notelen, int dotted)
 	}
 	duration-=pauselen;
 	if(notenum < 72 && notenum >= 0)
-		BEEP(((double)note_frequency[notenum])/1000,duration);
+		xpbeep(((double)note_frequency[notenum])/1000,duration);
 	else
 		SLEEP(duration);
 	SLEEP(pauselen);
@@ -488,7 +488,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							i=255;
 							j=0;
 							if(strlen(cterm.escbuf)>2) {
-								if((p=strtok(cterm.escbuf+2,";"))!=NULL) {
+								if((p=strtok(cterm.escbuf+1,";"))!=NULL) {
 									i=atoi(p);
 									if(!i && cterm.escbuf[2] != '0')
 										i=255;
@@ -1022,14 +1022,12 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					break;
 			}
 			break;
-#if 0
 		case 'D':
 			scrollup();
 			break;
 		case 'M':
 			scrolldown();
 			break;
-#endif
 		case 'c':
 			/* ToDo: Reset Terminal */
 			break;
@@ -1040,7 +1038,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.64 $";
+	char	*revision="$Revision: 1.61 $";
 	char *in;
 	char	*out;
 
