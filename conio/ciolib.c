@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.73 2006/01/30 04:16:20 deuce Exp $ */
+/* $Id: ciolib.c,v 1.68 2005/11/19 07:52:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,9 +202,6 @@ int try_curses_init(int mode)
 		cio_api.hidemouse=curs_hidemouse;
 		cio_api.suspend=curs_suspend;
 		cio_api.resume=curs_resume;
-#ifdef NCURSES_VERSION_MAJOR
-		cio_api.ESCDELAY=&ESCDELAY;
-#endif
 		return(1);
 	}
 	return(0);
@@ -230,7 +227,6 @@ int try_ansi_init(int mode)
 		cio_api.getch=ansi_getch;
 		cio_api.getche=ansi_getche;
 		cio_api.textmode=ansi_textmode;
-		cio_api.ESCDELAY=&CIOLIB_ANSI_TIMEOUT;
 		return(1);
 	}
 	return(0);
@@ -439,7 +435,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	CIOLIB_INIT();
 	
 	maxlen=*(unsigned char *)str;
-	while((ch=ciolib_getch())!='\n' && ch !='\r') {
+	while((ch=ciolib_getche())!='\n' && ch !='\r') {
 		switch(ch) {
 			case 0:	/* Skip extended keys */
 				ciolib_getche();
@@ -455,13 +451,10 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				len--;
 				break;
 			default:
-				ciolib_putch(ch);
 				str[(len++)+2]=ch;
 				if(len==maxlen) {
 					str[len+2]=0;
 					*((unsigned char *)(str+1))=(unsigned char)len;
-					ciolib_putch('\r');
-					ciolib_putch('\n');
 					return(&str[2]);
 				}
 				break;
@@ -469,8 +462,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	}
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
-	ciolib_putch('\r');
-	ciolib_putch('\n');
 	return(&str[2]);
 }
 
@@ -913,8 +904,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
 	unsigned char a1=a;
 	CIOLIB_INIT();
 
-	if(a1=='\n')
-		return(cio_api.putch(a1));
 	return(cio_api.putch(a1));
 }
 

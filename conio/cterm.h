@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.13 2005/11/20 06:36:34 deuce Exp $ */
+/* $Id: cterm.h,v 1.12 2005/11/20 03:15:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,11 +78,6 @@ struct cterminal {
 	int log;
 	FILE* logfile;
 	char	DA[1024];
-	char	fontbuf[4096];
-	int		font_slot;
-	int		font_size;
-	int		font_read;
-	int		font_start_time;
 };
 
 #define CTERM_MUSIC_SYNCTERM	0
