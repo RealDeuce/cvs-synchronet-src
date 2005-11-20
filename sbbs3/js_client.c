@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.15 2005/12/13 02:24:49 rswindell Exp $ */
+/* $Id: js_client.c,v 1.14 2003/10/19 07:15:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,7 +49,7 @@ enum {
 	,CLIENT_PROP_USER		/* user name */
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	static char* client_prop_desc[] = {
 	 "client's IP address (in dotted-decimal format)"
 	,"client's host name (up to 64 characters)"
@@ -157,7 +157,7 @@ JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
 
 	js_CreateSocketObject(cx, obj, "socket", sock);
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Represents a TCP/IP client session",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", client_prop_desc, JSPROP_READONLY);
 #endif
