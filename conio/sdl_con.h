@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 /* Low-Level stuff (Shouldn't be used by ciolib programs */
-int sdl_init(void);
+int sdl_init(int mode);
 int sdl_load_font(char *filename, int width, int height, double scale);
 int sdl_init_mode(int mode);
 int sdl_setup_colours(void);
@@ -29,13 +29,15 @@ int sdl_getch(void);
 int sdl_getche(void);
 int sdl_beep(void);
 void sdl_textmode(int mode);
+void sdl_setname(const char *name);
 void sdl_settitle(const char *title);
 int sdl_hidemouse(void);
 int sdl_showmouse(void);
-#if 0
 void sdl_copytext(const char *text, size_t buflen);
 char *sdl_getcliptext(void);
-#endif
+int sdl_setfont(int font, int force);
+int sdl_getfont(void);
+int sdl_loadfont(char *filename);
 #ifdef __cplusplus
 }
 #endif
