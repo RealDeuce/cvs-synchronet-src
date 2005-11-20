@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.9 2005/10/02 11:24:06 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.10 2005/10/14 06:21:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,6 +33,13 @@
 
 #ifndef _VIDMODES_H_
 #define _VIDMODES_H_
+
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
 
 #include "ciolib.h"
 
