@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.66 2005/11/19 22:24:32 deuce Exp $ */
+/* $Id: syncterm.c,v 1.67 2005/11/20 01:26:41 deuce Exp $ */
 
 #include <sys/stat.h>
 
@@ -10,6 +10,7 @@
 #include <dirwrap.h>
 
 #include "ciolib.h"
+#include "cterm.h"
 #include "allfonts.h"
 
 #include "bbslist.h"
