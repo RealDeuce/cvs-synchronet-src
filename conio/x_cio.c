@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.15 2005/07/03 03:59:31 deuce Exp $ */
+/* $Id: x_cio.c,v 1.21 2005/11/20 03:12:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,13 @@
 #include <unistd.h>
 
 #include <threadwrap.h>
+
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
 
 #include "ciolib.h"
 #include "x_cio.h"
@@ -269,6 +276,11 @@ void x_textmode(int mode)
 	sem_wait(&console_mode_changed);
 }
 
+void x_setname(const char *name)
+{
+	x_win_name(name);
+}
+
 void x_settitle(const char *title)
 {
 	x_win_title(title);
@@ -304,4 +316,24 @@ char *x_getcliptext(void)
 	}
 	sem_post(&pastebuf_request);
 	return(ret);
+}
+
+int x_setfont(int font, int force)
+{
+	if(font==getfont())
+		return(0);
+	font_force=force;
+	new_font=font;
+	sem_wait(&font_set);
+	return(setfont_return);
+}
+
+int x_getfont(void)
+{
+	return(new_font);
+}
+
+int x_loadfont(char *filename)
+{
+	return(x_load_font(filename));
 }
