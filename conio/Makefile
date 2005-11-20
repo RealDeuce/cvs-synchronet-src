@@ -1,4 +1,4 @@
-# smblib/Makefile
+# conio/Makefile
 
 #########################################################################
 # Makefile for Synchronet Message Base Library (SMBLIB)					#
@@ -8,7 +8,10 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.11 2005/10/05 02:23:43 deuce Exp $
+# $Id: Makefile,v 1.17 2005/11/20 21:32:55 deuce Exp $
+
+# To build a DLL, use "make [OPTIONS] DLLIBS=1 dl-mtlib"
+# You *MUST* do a clean between a static and dynamic lib on Win32!
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -18,16 +21,39 @@ SRC_ROOT = ..
 !include ..\build\Common.bmake	# defines clean and output directory rules
 
 !ifdef USE_SDL
-MT_CFLAGS	= $(MT_CFLAGS) -IC:$(DIRSEP)SDL$(DIRSEP)SDL-1.2.9$(DIRSEP)include -DUSE_SDL
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE) $(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
+OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
+!endif
+OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)allfonts$(OFILE)
+
+#The following is necessary only when DLL-exporting wrapper functions
+!ifdef DLLIBS
+CFLAGS  =       $(CFLAGS) -DCIOLIB_EXPORTS=1 -DWRAPPER_IMPORTS=1
+LDFLAGS =	$(LDFLAGS) -L$(LIBODIR)
 !endif
 
-CFLAGS = -w-par -w-csu $(CFLAGS) $(XPDEV-MT_CFLAGS) $(MT_CFLAGS) -I$(CIOLIB_SRC)
+CFLAGS = -w-par -w-csu $(CFLAGS) $(XPDEV-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(MT_CFLAGS) -I$(CIOLIB_SRC)
 OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)win32cio$(OFILE)
 
-# SBBS DLL Link Rule
+mtlib: $(LIBODIR)$(DIRSEP)ciolib.res
+
+dl-mtlib: $(LIBODIR)$(DIRSEP)ciolib.res
+
+$(LIBODIR)$(DIRSEP)ciolib.res: ciolib.rc syncicon64.ico
+	@echo Creating $< ...
+	$(QUIET)brcc32 -fo$@ -32 ciolib.rc
+
 $(CIOLIB-MT_BUILD): $(OBJS)
 	@echo Creating $< ...
 	-$(QUIET)$(DELETE) $@
 	&$(QUIET)tlib $@ +$**
 
+$(CIOLIB-MT_SHLIB_BUILD): $(OBJS)
+	@echo Linking $@
+	$(QUIET)$(MKSHLIB) $(MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) -lGi -e$@ $(LDFLAGS) $(SHLIBOPTS) $(XPDEV-MT_LIBS) @&&|
+	$**
+	cw32mt.lib
+|
+
+test:
+	$(QUIET)$(CC) $(CFLAGS) $(MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) keytest.c $(LDFLAGS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
