@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.59 2005/11/20 03:16:48 deuce Exp $ */
+/* $Id: cterm.c,v 1.60 2005/11/20 03:50:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -527,14 +527,31 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						i=cterm.width;
 					gotoxy(i,wherey());
 					break;
-				case 'D':	/* Cursor Left */
-					i=atoi(cterm.escbuf+1);
-					if(i==0)
-						i=1;
-					i=wherex()-i;
-					if(i<1)
-						i=1;
-					gotoxy(i,wherey());
+				case 'D':	/* Cursor Left and Font Select */
+					if(*(p-1)==' ') {	/* Font Select */
+						i=0;
+						j=0;
+						if(strlen(cterm.escbuf)>2) {
+							if((p=strtok(cterm.escbuf+1,";"))!=NULL) {
+								i=atoi(p);
+								if((p=strtok(NULL,";"))!=NULL) {
+									j=atoi(p);
+								}
+							}
+							if(i==0) {	/* Only the primary font is currently supported */
+								setfont(j,FALSE);
+							}
+						}
+					}
+					else {
+						i=atoi(cterm.escbuf+1);
+						if(i==0)
+							i=1;
+						i=wherex()-i;
+						if(i<1)
+							i=1;
+						gotoxy(i,wherey());
+					}
 					break;
 				case 'E':
 					i=atoi(cterm.escbuf+1);
@@ -985,7 +1002,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.59 $";
+	char	*revision="$Revision: 1.60 $";
 	char *in;
 	char	*out;
 
