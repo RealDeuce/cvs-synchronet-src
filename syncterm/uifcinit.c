@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.18 2005/11/24 06:27:16 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.19 2005/11/24 06:48:42 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -103,7 +103,8 @@ int confirm(char *msg, char *helpbuf)
 	struct	text_info txtinfo;
 	char	*options[] = {
 				 "Yes"
-				,"No" };
+				,"No"
+				,"" };
 	int		ret=TRUE;
 	int		copt=0;
 
