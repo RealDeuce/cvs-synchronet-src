@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.17 2005/08/05 19:27:33 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.19 2005/11/24 06:48:42 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -94,4 +94,36 @@ void uifcmsg(char *msg, char *helpbuf)
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		free(buf);
 	}
+}
+
+int confirm(char *msg, char *helpbuf)
+{
+	int i;
+	char	*buf;
+	struct	text_info txtinfo;
+	char	*options[] = {
+				 "Yes"
+				,"No"
+				,"" };
+	int		ret=TRUE;
+	int		copt=0;
+
+    gettextinfo(&txtinfo);
+	i=uifc_initialized;
+	if(!i) {
+		buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	}
+	init_uifc(FALSE, FALSE);
+	if(uifc_initialized) {
+		uifc.helpbuf=helpbuf;
+		if(uifc.list(WIN_MID|WIN_ACT,0,0,0,&copt,NULL,msg,options)!=0)
+			ret=FALSE;
+	}
+	if(!i) {
+		uifcbail();
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		free(buf);
+	}
+	return(0);
 }
