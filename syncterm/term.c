@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.115 2005/10/06 15:59:21 deuce Exp $ */
+/* $Id: term.c,v 1.125 2005/11/24 07:03:49 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -7,6 +7,7 @@
 #include <keys.h>
 
 #include "conn.h"
+#include "syncterm.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "filepick.h"
@@ -668,6 +669,86 @@ void zmodem_download(char *download_dir)
 }
 /* End of Zmodem Stuff */
 
+void music_control(struct bbslist *bbs)
+{
+	char *buf;
+	struct	text_info txtinfo;
+	int i,j;
+	char *opts[4]={
+			 "ESC[| ANSI Music only"
+			,"ESC[N (BANSI-Style) and ESC[| ANSI Music"
+			,"ANSI Music Enabled"
+	};
+
+   	gettextinfo(&txtinfo);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	init_uifc(FALSE, FALSE);
+
+	i=cterm.music_enable;
+	uifc.helpbuf="`ANSI Music Setup`\n\n"
+				"~ ANSI Music Disabled ~ Completely disables ANSI music\n"
+				"                      Enables Delete Line\n"
+				"~ ESC[N ~               Enables BANSI-Style ANSI music\n"
+				"                      Enables Delete Line\n"
+				"~ ANSI Music Enabled ~  Enables both ESC[M and ESC[N ANSI music.\n"
+				"                      Delete Line is disabled.\n"
+				"\n"
+				"So-Called ANSI Music has a long and troubled history.  Although the\n"
+				"original ANSI standard has well defined ways to provide private\n"
+				"extensions to the spec, none of these methods were used.  Instead,\n"
+				"so-called ANSI music replaced the Delete Line ANSI sequence.  Many\n"
+				"full-screen editors use DL, and to this day, some programs (Such as\n"
+				"BitchX) require it to run.\n\n"
+				"To deal with this, BananaCom decided to use what *they* though was an\n"
+				"unspecified escape code ESC[N for ANSI music.  Unfortunately, this is\n"
+				"broken also.  Although rarely implemented in BBS clients, ESC[N is\n"
+				"the erase field sequence.\n\n"
+				"SyncTERM has now defined a third ANSI music sequence which *IS* legal\n"
+				"according to the ANSI spec.  Specifically ESC[|.";
+	if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"ANSI Music Setup",opts)!=-1)
+		cterm.music_enable=i;
+	uifcbail();
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
+	textattr(txtinfo.attribute);
+	gotoxy(txtinfo.curx,txtinfo.cury);
+	free(buf);
+}
+
+void font_control(struct bbslist *bbs)
+{
+	char *buf;
+	struct	text_info txtinfo;
+	int i,j,k;
+
+   	gettextinfo(&txtinfo);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	init_uifc(FALSE, FALSE);
+
+	i=j=getfont();
+	uifc.helpbuf="`Font Setup`\n\n"
+				"Change the current font.  Must support the current video mode.";
+	k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
+	if(k & MSK_INS) {
+		struct file_pick fpick;
+		j=filepick(&uifc, "Capture File", &fpick, ".", NULL, 0);
+
+		if(j!=-1 && fpick.files>=1)
+			loadfont(fpick.selected[0]);
+		filepick_free(&fpick);
+	}
+	else
+		setfont(i,FALSE);
+	uifcbail();
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
+	textattr(txtinfo.attribute);
+	gotoxy(txtinfo.curx,txtinfo.cury);
+	free(buf);
+}
+
 void capture_control(struct bbslist *bbs)
 {
 	char *buf;
@@ -696,11 +777,10 @@ void capture_control(struct bbslist *bbs)
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
 			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
 
-			if(j!=-1 || fpick.files>=1)
+			if(j!=-1 && fpick.files>=1)
 				cterm_openlog(fpick.selected[0], i?CTERM_LOG_RAW:CTERM_LOG_ASCII);
 			filepick_free(&fpick);
 		}
-
 	}
 	else {
 		if(cterm.log & CTERM_LOG_PAUSED) {
@@ -761,9 +841,8 @@ BOOL doterm(struct bbslist *bbs)
 	unsigned char *scrollback;
 	unsigned char *p;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
-	BYTE zrqbuf[5];
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
-	BYTE zrbuf[5];
+	BYTE zrqbuf[5];
 	int	inch;
 	long double nextchar=0;
 	long double lastchar=0;
@@ -771,7 +850,7 @@ BOOL doterm(struct bbslist *bbs)
 	int	speed;
 	int	oldmc;
 	int	updated=FALSE;
-	BOOL	sleep=TRUE;
+	BOOL	sleep;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->loglevel;
@@ -784,9 +863,9 @@ BOOL doterm(struct bbslist *bbs)
 	scrollback=malloc(term.width*2*backlines);
 	memset(scrollback,0,term.width*2*backlines);
 	cterm_init(term.height,term.width,term.x-1,term.y-1,backlines,scrollback);
+	cterm.music_enable=bbs->music;
 	ch[1]=0;
 	zrqbuf[0]=0;
-	zrbuf[0]=0;
 
 	/* Main input loop */
 	oldmc=hold_update;
@@ -821,7 +900,7 @@ BOOL doterm(struct bbslist *bbs)
 						nextchar = lastchar + 1/(long double)(speed/10);
 					}
 					if(!zrqbuf[0]) {
-						if(inch == zrqinit[0]) {
+						if(inch == zrqinit[0] || inch == zrinit[0]) {
 							zrqbuf[0]=inch;
 							zrqbuf[1]=0;
 							continue;
@@ -829,16 +908,19 @@ BOOL doterm(struct bbslist *bbs)
 					}
 					else {	/* Already have the start of the sequence */
 						j=strlen(zrqbuf);
-						if(inch == zrqinit[j]) {
-							zrqbuf[j]=zrqinit[j];
+						if(inch == zrqinit[j] || inch == zrinit[j]) {
+							zrqbuf[j]=inch;
 							zrqbuf[++j]=0;
-							if(j==sizeof(zrqinit)-1) {	/* Have full sequence */
-								zmodem_download(bbs->dldir);
+							if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
+								if(!strcmp(zrqbuf, zrqinit))
+									zmodem_download(bbs->dldir);
+								else
+									begin_upload(bbs->uldir, TRUE);
 								zrqbuf[0]=0;
 							}
 						}
 						else {	/* Not a real zrqinit */
-							zrqbuf[j]=inch;
+							zrqbuf[j++]=inch;
 							cterm_write(zrqbuf, j, prn, sizeof(prn), &speed);
 							if(prn[0])
 								conn_send(prn,strlen(prn),0);
@@ -848,33 +930,6 @@ BOOL doterm(struct bbslist *bbs)
 						continue;
 					}
 
-					if(!zrbuf[0]) {
-						if(inch == zrinit[0]) {
-							zrbuf[0]=inch;
-							zrbuf[1]=0;
-							continue;
-						}
-					}
-					else {	/* Already have the start of the sequence */
-						j=strlen(zrbuf);
-						if(inch == zrinit[j]) {
-							zrbuf[j]=zrinit[j];
-							zrbuf[++j]=0;
-							if(j==sizeof(zrinit)-1) {	/* Have full sequence */
-								begin_upload(bbs->uldir, TRUE);
-								zrbuf[0]=0;
-							}
-						}
-						else {	/* Not a real zrinit */
-							zrbuf[j]=inch;
-							cterm_write(zrbuf, j, prn, sizeof(prn), &speed);
-							if(prn[0])
-								conn_send(prn,strlen(prn),0);
-							updated=TRUE;
-							zrbuf[0]=0;
-						}
-						continue;
-					}
 					ch[0]=inch;
 					cterm_write(ch, 1, prn, sizeof(prn), &speed);
 					if(prn[0])
@@ -951,15 +1006,38 @@ BOOL doterm(struct bbslist *bbs)
 					conn_send("\033Ox",3,0);
 					break;
 				case 0x3000:	/* ALT-B - Scrollback */
+#ifdef PCM
+					if(!confirm("View scrollback?",NULL))
+						continue;
+#endif
 					viewscroll();
 					break;
 				case 0x2e00:	/* ALT-C - Capture */
+#ifdef PCM
+					if(!confirm("Go to capture control menu?",NULL))
+						continue;
+#endif
 					capture_control(bbs);
 					break;
 				case 0x2000:	/* ALT-D - Download */
+#ifdef PCM
+					if(!confirm("Begin download?",NULL))
+						continue;
+#endif
 					zmodem_download(bbs->dldir);
 					break;
+				case 0x2100:	/* ALT-F */
+#ifdef PCM
+					if(!confirm("Go to font control menu?",NULL))
+						continue;
+#endif
+					font_control(bbs);
+					break;
 				case 0x2600:	/* ALT-L */
+#ifdef PCM
+					if(!confirm("Send login credentials?",NULL))
+						continue;
+#endif
 					conn_send(bbs->user,strlen(bbs->user),0);
 					conn_send("\r",1,0);
 					SLEEP(10);
@@ -971,7 +1049,18 @@ BOOL doterm(struct bbslist *bbs)
 						conn_send("\r",1,0);
 					}
 					break;
+				case 0x3200:	/* ALT-M */
+#ifdef PCM
+					if(!confirm("Go to music control menu?",NULL))
+						continue;
+#endif
+					music_control(bbs);
+					break;
 				case 0x1600:	/* ALT-U - Upload */
+#ifdef PCM
+					if(!confirm("Begin upload?",NULL))
+						continue;
+#endif
 					begin_upload(bbs->uldir, FALSE);
 					break;
 				case 17:		/* CTRL-Q */
@@ -1030,21 +1119,55 @@ BOOL doterm(struct bbslist *bbs)
 					j=wherey();
 					switch(syncmenu(bbs, &speed)) {
 						case -1:
+#ifdef PCM
+							if(!confirm("Disconnect?",NULL))
+								continue;
+#endif
 							cterm_end();
 							free(scrollback);
 							conn_close();
 							hidemouse();
 							return(FALSE);
 						case 3:
+#ifdef PCM
+							if(!confirm("Begin upload?",NULL))
+								continue;
+#endif
 							begin_upload(bbs->uldir, FALSE);
 							break;
 						case 4:
+#ifdef PCM
+							if(!confirm("Begin download?",NULL))
+								continue;
+#endif
 							zmodem_download(bbs->dldir);
 							break;
 						case 7:
+#ifdef PCM
+							if(!confirm("Got to capture control menu?",NULL))
+								continue;
+#endif
 							capture_control(bbs);
 							break;
 						case 8:
+#ifdef PCM
+							if(!confirm("Go to music control menu?",NULL))
+								continue;
+#endif
+							music_control(bbs);
+							break;
+						case 9:
+#ifdef PCM
+							if(!confirm("Go to font control menu?",NULL))
+								continue;
+#endif
+							font_control(bbs);
+							break;
+						case 10:
+#ifdef PCM
+							if(!confirm("Disconnect?",NULL))
+								continue;
+#endif
 							cterm_end();
 							free(scrollback);
 							conn_close();
@@ -1054,12 +1177,20 @@ BOOL doterm(struct bbslist *bbs)
 					gotoxy(i,j);
 					break;
 				case 0x9800:	/* ALT-Up */
+#ifdef PCM
+					if(!confirm("Increase simulated BPS rate?",NULL))
+						continue;
+#endif
 					if(speed)
 						speed=rates[get_rate_num(speed)+1];
 					else
 						speed=rates[0];
 					break;
 				case 0xa000:	/* ALT-Down */
+#ifdef PCM
+					if(!confirm("Decrease simulated BPS rate?",NULL))
+						continue;
+#endif
 					i=get_rate_num(speed);
 					if(i==0)
 						speed=0;
