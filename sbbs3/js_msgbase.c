@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.123 2006/04/25 02:27:06 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.119 2005/09/10 22:39:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -356,18 +356,10 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			return(FALSE);
 	}
 
-	/* SMTP headers */
 	if(JS_GetProperty(cx, hdr, "reverse_path", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
 			return(FALSE);
 		if((p->status=smb_hfield_str(msg, SMTPREVERSEPATH, cp))!=SMB_SUCCESS)
-			return(FALSE);
-	}
-
-	if(JS_GetProperty(cx, hdr, "forward_path", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
-			return(FALSE);
-		if((p->status=smb_hfield_str(msg, SMTPFORWARDPATH, cp))!=SMB_SUCCESS)
 			return(FALSE);
 	}
 
@@ -1156,19 +1148,33 @@ js_remove_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(!msg_specified)
 		return(JS_TRUE);
 
-	if((p->status=smb_getmsgidx(&(p->smb), &msg))==SMB_SUCCESS
-		&& (p->status=smb_getmsghdr(&(p->smb), &msg))==SMB_SUCCESS) {
+	if((p->status=smb_getmsgidx(&(p->smb), &msg))!=SMB_SUCCESS)
+		return(JS_TRUE);
+
+	if((p->status=smb_lockmsghdr(&(p->smb),&msg))!=SMB_SUCCESS)
+		return(JS_TRUE);
+
+	do {
+		if((p->status=smb_getmsghdr(&(p->smb), &msg))!=SMB_SUCCESS)
+			break;
+
+		smb_freemsghdrmem(&msg);	/* prevent duplicate header fields */
 
 		msg.hdr.attr|=MSG_DELETE;
+		msg.idx.attr=msg.hdr.attr;
 
-		if((p->status=smb_updatemsg(&(p->smb), &msg))==SMB_SUCCESS)
-			*rval = JSVAL_TRUE;
-	}
+		if((p->status=smb_putmsg(&(p->smb), &msg))!=SMB_SUCCESS)
+			break;
 
+		*rval = JSVAL_TRUE;
+	} while(0);
+
+	smb_unlockmsghdr(&(p->smb),&msg); 
 	smb_freemsgmem(&msg);
 
 	return(JS_TRUE);
 }
+
 
 static char* get_msg_text(private_t* p, smbmsg_t* msg, BOOL strip_ctrl_a, BOOL rfc822, ulong mode)
 {
@@ -1632,7 +1638,7 @@ static jsSyncPropertySpec js_msgbase_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* msgbase_prop_desc[] = {
 
 	 "last occurred message base error - <small>READ ONLY</small>"
@@ -1676,29 +1682,29 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("close message base (if open)")
 	,310
 	},
-	{"get_msg_header",	js_get_msg_header,	2, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [,expand_fields=<tt>true</tt>]")
+	{"get_msg_header",	js_get_msg_header,	2, JSTYPE_OBJECT,	JSDOCSTR("[boolean by_offset,] number_or_id [,boolean expand_fields]")
 	,JSDOCSTR("returns a specific message header, <i>null</i> on failure. "
 	"<br><i>New in v3.12:</i> Pass <i>false</i> for the <i>expand_fields</i> argument (default: <i>true</i>) "
 	"if you will be re-writing the header later with <i>put_msg_header()</i>")
 	,312
 	},
-	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number, object header")
+	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[boolean by_offset,] number, object header")
 	,JSDOCSTR("write a message header")
 	,310
 	},
-	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [,strip_ctrl_a=<tt>false</tt>] "
-		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>]")
+	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[boolean by_offset,] number_or_id [,boolean strip_ctrl_a] "
+		"[,boolean rfc822_encoded] [,boolean include_tails]")
 	,JSDOCSTR("returns the body text of a specific message, <i>null</i> on failure. "
 		"The default behavior is to leave Ctrl-A codes intact, perform no RFC-822 encoding, and to include tails (if any) in the "
 		"returned body text."
 	)
 	,310
 	},
-	{"get_msg_tail",	js_get_msg_tail,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [,strip_ctrl_a]=<tt>false</tt>")
+	{"get_msg_tail",	js_get_msg_tail,	2, JSTYPE_STRING,	JSDOCSTR("[boolean by_offset,] number_or_id [,boolean strip_ctrl_a]")
 	,JSDOCSTR("returns the tail text of a specific message, <i>null</i> on failure")
 	,310
 	},
-	{"get_msg_index",	js_get_msg_index,	2, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number")
+	{"get_msg_index",	js_get_msg_index,	2, JSTYPE_OBJECT,	JSDOCSTR("[boolean by_offset,] number")
 	,JSDOCSTR("returns a specific message index, <i>null</i> on failure. "
 	"The index object will contain the following properties:<br>"
 	"<table>"
@@ -1712,11 +1718,11 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"</table>")
 	,311
 	},
-	{"remove_msg",		js_remove_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id")
+	{"remove_msg",		js_remove_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("[boolean by_offset,] number_or_id")
 	,JSDOCSTR("mark message for deletion")
 	,311
 	},
-	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,client=<i>none</i>] [,body_text=<tt>\"\"</tt>] [,array rcpt_list=<i>none</i>]")
+	{"save_msg",		js_save_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("object header [,client] [,body_text] [,array rcpt_list]")
 	,JSDOCSTR("create a new message in message base, the <i>header</i> object may contain the following properties:<br>"
 	"<table>"
 	"<tr><td align=top><tt>subject</tt><td>Message subject <i>(required)</i>"
@@ -1815,7 +1821,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 		return(JS_FALSE);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Class used for accessing message bases",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new MsgBase object: "
 		"<tt>var msgbase = new MsgBase('<i>code</i>')</tt><br>"
@@ -1836,7 +1842,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 			JS_DefineProperty(cx,cfgobj,"index",JSVAL_VOID
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 			js_CreateMsgAreaProperties(cx, scfg, cfgobj, p->smb.subnum);
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 			js_DescribeSyncObject(cx,cfgobj
 				,"Configuration parameters for this message area (<i>sub-boards only</i>) "
 				"- <small>READ ONLY</small>"

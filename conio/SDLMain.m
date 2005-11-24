@@ -152,8 +152,6 @@ void setupWindowMenu(void)
     [windowMenuItem release];
 }
 
-extern char **environ;
-
 /* Replacement for NSApplicationMain */
 void CustomApplicationMain (argc, argv)
 {
@@ -195,7 +193,7 @@ void CustomApplicationMain (argc, argv)
 #endif
 
     /* Hand off to main application code */
-    status = SDL_main_env (gArgc, gArgv, environ);
+    status = SDL_main (gArgc, gArgv);
 
     /* We're done, thank you for playing */
     exit(status);
