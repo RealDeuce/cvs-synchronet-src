@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.157 2005/11/24 04:41:54 deuce Exp $ */
+/* $Id: uifc32.c,v 1.158 2005/11/24 07:46:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1384,7 +1384,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			}
 			else {
 				i&=0xff;
-				if(isalnum(i) && opts && option[0][0]) {
+				if(isalnum(i) && opts>1 && option[0][0]) {
 					search[s]=i;
 					search[s+1]=0;
 					for(j=(*cur)+1,a=b=0;a<2;j++) {   /* a = search count */
