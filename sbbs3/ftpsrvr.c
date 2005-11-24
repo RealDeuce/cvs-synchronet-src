@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.300 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.302 2005/10/13 01:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,7 +231,7 @@ static SOCKET ftp_open_socket(int type)
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET) {
-		if(set_socket_options(&scfg, sock, error))
+		if(set_socket_options(&scfg, sock, "FTP", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock, error);
 		sockets++;
 #ifdef _DEBUG
@@ -4508,7 +4508,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.300 $", "%*s %s", revision);
+	sscanf("$Revision: 1.302 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4808,9 +4808,9 @@ void DLLCALL ftp_server(void* arg)
 				if(ERROR_VALUE==EINTR)
 					lprintf(LOG_NOTICE,"%04d FTP Server listening interrupted", server_socket);
 				else if(ERROR_VALUE == ENOTSOCK)
-            		lprintf(LOG_NOTICE,"%04d FTP Server sockets closed", server_socket);
+            		lprintf(LOG_NOTICE,"%04d FTP Server socket closed", server_socket);
 				else
-					lprintf(LOG_WARNING,"%04d !ERROR %d selecting sockets",server_socket, ERROR_VALUE);
+					lprintf(LOG_WARNING,"%04d !ERROR %d selecting socket",server_socket, ERROR_VALUE);
 				continue;
 			}
 
