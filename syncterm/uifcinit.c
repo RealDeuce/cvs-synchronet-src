@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.19 2005/11/24 06:48:42 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.20 2005/11/24 06:51:07 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -125,5 +125,5 @@ int confirm(char *msg, char *helpbuf)
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		free(buf);
 	}
-	return(0);
+	return(ret);
 }
