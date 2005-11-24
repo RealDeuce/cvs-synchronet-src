@@ -39,7 +39,7 @@
 struct sdlfuncs sdl;
 #endif
 
-extern int	CIOLIB_main(int argc, char **argv, char **enviro);
+extern int	CIOLIB_main(int argc, char **argv);
 
 /********************************************************/
 /* Low Level Stuff										*/
@@ -880,17 +880,9 @@ int sdl_loadfont(char *filename)
 int sdl_setfont(int font, int force)
 {
 	int changemode=0;
-	int	newmode=-1;
 
 	if(font < 0 || font>(sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)-2))
 		return(-1);
-
-	if(conio_fontdata[font].eight_by_sixteen!=NULL)
-		newmode=C80;
-	else if(conio_fontdata[font].eight_by_fourteen!=NULL)
-		newmode=C80X28;
-	else if(conio_fontdata[font].eight_by_eight!=NULL)
-		newmode=C80X50;
 
 	switch(vstat.charheight) {
 		case 8:
@@ -918,8 +910,6 @@ int sdl_setfont(int font, int force)
 			}
 			break;
 	}
-	if(changemode && newmode==-1)
-		return(-1);
 	sdl_current_font=font;
 	if(changemode)
 		sdl_init_mode(3);
@@ -1071,7 +1061,7 @@ int sdl_load_font(char *filename)
 
 	if(sdl_font!=NULL)
 		sdl.FreeSurface(sdl_font);
-	sdl_font=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth*vstat.scaling, vstat.charheight*256*vstat.scaling, 8, 0, 0, 0, 0);
+	sdl_font=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth, vstat.charheight*256, 8, 0, 0, 0, 0);
 	if(sdl_font == NULL) {
 		sdl.mutexV(sdl_vstatlock);
 		free(font);
@@ -1173,8 +1163,8 @@ int sdl_draw_one_char(unsigned short sch, unsigned int x, unsigned int y, struct
 	dst.w=vs->charwidth*vs->scaling;
 	dst.h=vs->charheight*vs->scaling;
 	src.x=0;
-	src.w=vs->charwidth*vs->scaling;
-	src.h=vs->charheight*vs->scaling;
+	src.w=vs->charwidth;
+	src.h=vs->charheight;
 	src.y=vs->charheight*vs->scaling;
 	ch=sch & 0xff;
 	if((sch >>15) && !(vs->blink))
@@ -1195,7 +1185,7 @@ int sdl_full_screen_redraw(int force)
 	int y;
 	unsigned int pos;
 	unsigned short *p;
-	unsigned short *newvmem;
+	unsigned short *newvmem=NULL;
 	static unsigned short *vmemcopies[2]={ NULL, NULL };
 	static SDL_Rect	*rects=NULL;
 	static int this_new=0;
@@ -1295,7 +1285,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 
 #ifdef __DARWIN__
 	if(unicode==0x7f) {
-		unicode=0x08;
+		unicode=0x0f;
 		keysym=SDLK_DELETE;
 	}
 #endif
@@ -1325,7 +1315,6 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 struct mainparams {
 	int	argc;
 	char	**argv;
-	char	**env;
 };
 
 /* Called from events thread only */
@@ -1334,7 +1323,7 @@ int sdl_runmain(void *data)
 	struct mainparams *mp=data;
 	SDL_Event	ev;
 
-	sdl_exitcode=CIOLIB_main(mp->argc, mp->argv, mp->env);
+	sdl_exitcode=CIOLIB_main(mp->argc, mp->argv);
 	ev.type=SDL_QUIT;
 	while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1);
 	return(0);
@@ -1350,11 +1339,7 @@ int sdl_mouse_thread(void *data)
 }
 
 /* Event Thread */
-#ifndef main
-int main(int argc, char **argv, char **env)
-#else
-int SDL_main_env(int argc, char **argv, char **env)
-#endif
+int main(int argc, char **argv)
 {
 	unsigned int i;
 	SDL_Event	ev;
@@ -1377,34 +1362,21 @@ int SDL_main_env(int argc, char **argv, char **env)
 			sdl.gotfuncs=FALSE;
 		}
 #else
-
-		/*
-		 * On Linux, SDL doesn't properly detect availability of the
-		 * framebuffer apparently.  This results in remote connections
-		 * displaying on the local framebuffer... a definate no-no.
-		 * This ugly hack attempts to prevent this... of course, remote X11
-		 * connections must still be allowed.
-		 */
-		if(getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL)
+		if(sdl.Init(SDL_INIT_VIDEO))
 			sdl.gotfuncs=FALSE;
-		else {
-			if(sdl.Init(SDL_INIT_VIDEO))
-				sdl.gotfuncs=FALSE;
-		}
 #endif
-		if(sdl.VideoDriverName(drivername, sizeof(drivername))!=NULL) {
-			/* Unacceptable drivers */
-			if((!strcmp(drivername, "caca")) || (!strcmp(drivername,"aalib")) || (!strcmp(drivername,"dummy"))) {
-				sdl.gotfuncs=FALSE;
-				sdl.Quit();
-			}
-		}
+	}
+	if(sdl.VideoDriverName(drivername, sizeof(drivername))!=NULL) {
+		/* Unacceptable drivers */
+		if(!strcmp(drivername,"aalib"))
+			sdl.gotfuncs=FALSE;
+		if(!strcmp(drivername,"dummy"))
+			sdl.gotfuncs=FALSE;
 	}
 
 	if(sdl.gotfuncs) {
 		mp.argc=argc;
 		mp.argv=argv;
-		mp.env=env;
 
 		sdl_key_pending=sdl.SDL_CreateSemaphore(0);
 		sdl_init_complete=sdl.SDL_CreateSemaphore(0);
@@ -1446,10 +1418,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 								sdl_add_key(sdl_get_char_code(ev.key.keysym.sym, ev.key.keysym.mod, ev.key.keysym.unicode));
 							}
 							else {
-#ifdef __DARWIN__		/* OS X sends Backspace as Delete! */
-								if(ev.key.keysym.unicode==0x7f)
-									ev.key.keysym.unicode=0x08;
-#endif
 								sdl_add_key(ev.key.keysym.unicode&0x7f);
 							}
 						}
@@ -1835,6 +1803,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 		}
 	}
 	else {
-		return(CIOLIB_main(argc, argv, env));
+		return(CIOLIB_main(argc, argv));
 	}
 }
