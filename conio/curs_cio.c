@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.20 2005/10/04 06:10:18 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.26 2005/10/21 23:26:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,13 @@
 #include <unistd.h>
 
 #include "gen_defs.h"	/* xpdev, for BOOL/TRUE/FALSE */
+
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
 
 #include "ciolib.h"
 #include "curs_cio.h"
@@ -648,9 +655,14 @@ void curs_gotoxy(int x, int y)
 		refresh();
 }
 
-void call_endwin(void)
+void curs_suspend(void)
 {
 	endwin();
+}
+
+void curs_resume(void)
+{
+	refresh();
 }
 
 int curs_initciolib(long inmode)
@@ -682,7 +694,7 @@ int curs_initciolib(long inmode)
 	scrollok(stdscr,FALSE);
 	raw();
 	halfdelay(1);
-	atexit(call_endwin);
+	atexit(curs_suspend);
 
 	/* Set up color pairs */
 	for(bg=0;bg<8;bg++)  {
