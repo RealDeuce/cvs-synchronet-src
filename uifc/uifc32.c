@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.170 2006/02/25 07:39:18 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.159 2005/11/25 08:07:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,6 +169,15 @@ int uifcini32(uifcapi_t* uifcapi)
 	api->getstrxy=ugetstr;
 	api->printf=uprintf;
 
+	/* A esc_delay of less than 10 is stupid... silently override */
+	if(api->esc_delay < 10)
+		api->esc_delay=25;
+
+#ifdef NCURSES_VERSION_MAJOR
+	if(cio_api.mode==CIOLIB_MODE_CURSES) {
+		ESCDELAY=api->esc_delay;
+#endif
+
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
             case 14:
@@ -279,17 +288,7 @@ int uifcini32(uifcapi_t* uifcapi)
 		uifc_mouse_enable();
 	}
 
-	/* A esc_delay of less than 10 is stupid... silently override */
-	if(api->esc_delay < 10)
-		api->esc_delay=25;
-
-	if(cio_api.ESCDELAY)
-		*(cio_api.ESCDELAY)=api->esc_delay;
-
 	api->initialized=TRUE;
-
-	for(i=0; i<MAX_BUFS; i++)
-		sav[i].buf=NULL;
 
     return(0);
 }
@@ -492,7 +491,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
-	int	is_lastwin=0;
 	int s_top=SCRN_TOP;
 	int s_left=SCRN_LEFT;
 	int s_right=SCRN_RIGHT;
@@ -509,8 +507,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int	a,b,c,longopt;
 	int	optheight=0;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
-	static int	*oldcur=NULL;
-	static int	*oldbar=NULL;
 
 	hclr=api->hclr;
 	lclr=api->lclr;
@@ -618,30 +614,15 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			&& last_menu_bar==bar
 			&& save_menu_cur==*cur
 			&& save_menu_bar==*bar
-			&& save_menu_opts==opts) {
+			&& save_menu_opts==opts)
 		is_redraw=1;
-	}
-	if(mode&WIN_SAV) {
-		if(cur==oldcur && bar==oldbar)
-			is_lastwin=1;
-		oldcur=cur;
-		oldbar=bar;
-	}
-
 	if(mode&WIN_DYN && mode&WIN_REDRAW)
 		is_redraw=1;
 	if(mode&WIN_DYN && mode&WIN_NODRAW)
 		is_redraw=0;
 
-	if(mode&WIN_ORG) {		/* Clear all save buffers on WIN_ORG */
-		for(i=0; i< MAX_BUFS; i++)
-			FREE_AND_NULL(sav[i].buf);
-	}
-
-	if(mode&WIN_SAV) {
-		if(is_lastwin && api->savnum>0 && sav[api->savnum].buf==NULL)
-			api->savnum--;
-		if(sav[api->savnum].buf==NULL) {
+	if(!is_redraw) {
+		if(mode&WIN_SAV && api->savdepth==api->savnum) {
 			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
@@ -655,15 +636,16 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			sav[api->savnum].top=s_top+top;
 			sav[api->savnum].right=s_left+left+width+1;
 			sav[api->savnum].bot=s_top+top+height;
+			api->savdepth++;
 		}
-		else if(sav[api->savnum].buf != NULL
+		else if(mode&WIN_SAV
 			&& (sav[api->savnum].left!=s_left+left
 			|| sav[api->savnum].top!=s_top+top
 			|| sav[api->savnum].right!=s_left+left+width+1
 			|| sav[api->savnum].bot!=s_top+top+height)) { /* dimensions have changed */
 			puttext(sav[api->savnum].left,sav[api->savnum].top,sav[api->savnum].right,sav[api->savnum].bot
 				,sav[api->savnum].buf);	/* put original window back */
-			FREE_AND_NULL(sav[api->savnum].buf);
+			free(sav[api->savnum].buf);
 			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
@@ -894,7 +876,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				a=lbclr;
 			else
 				a=lclr|(bclr<<4);
-			if(i<opts && option[i]!=NULL) {
+			if(i<opts) {
 				b=strlen(option[i]);
 				if(b>longopt)
 					longopt=b;
@@ -941,7 +923,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	#if 0					/* debug */
 		gotoxy(30,1);
 		cprintf("y=%2d h=%2d c=%2d b=%2d s=%2d o=%2d"
-			,y,height,*cur,bar ? *bar :0xff,api->savnum,opts);
+			,y,height,*cur,bar ? *bar :0xff,api->savdepth,opts);
 	#endif
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
@@ -965,8 +947,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(!opts)
 							continue;
 
-						if(mode&WIN_SAV)
-							api->savnum++;
 						if(mode&WIN_ACT) {
 							uifc_mouse_disable();
 							if((win=(char *)malloc((width+3)*(height+2)*2))==NULL) {
@@ -988,15 +968,13 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							uifc_mouse_enable();
 						}
 						else if(mode&WIN_SAV) {
-							api->savnum--;
 							uifc_mouse_disable();
 							puttext(sav[api->savnum].left,sav[api->savnum].top
 								,sav[api->savnum].right,sav[api->savnum].bot
 								,sav[api->savnum].buf);
 							uifc_mouse_enable();
-							FREE_AND_NULL(sav[api->savnum].buf);
-							if(api->savnum)
-								api->savnum--;
+							free(sav[api->savnum].buf);
+							api->savdepth--;
 						}
 						if(mode&WIN_XTR && (*cur)==opts-1)
 							return(MSK_INS|*cur);
@@ -1518,8 +1496,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						case CR:
 							if(!opts)
 								break;
-							if(mode&WIN_SAV)
-								api->savnum++;
 							if(mode&WIN_ACT) {
 								gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
@@ -1533,13 +1509,11 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 									+left+width-1,s_top+top+height-1,tmp_buffer);
 							}
 							else if(mode&WIN_SAV) {
-								api->savnum--;
 								puttext(sav[api->savnum].left,sav[api->savnum].top
 									,sav[api->savnum].right,sav[api->savnum].bot
 									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
-								if(api->savnum)
-									api->savnum--;
+								free(sav[api->savnum].buf);
+								api->savdepth--; 
 							}
 							if(mode&WIN_XTR && (*cur)==opts-1)
 								return(MSK_INS|*cur);
@@ -1559,9 +1533,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								puttext(sav[api->savnum].left,sav[api->savnum].top
 									,sav[api->savnum].right,sav[api->savnum].bot
 									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
-								if(api->savnum)
-									api->savnum--;
+								free(sav[api->savnum].buf);
+								api->savdepth--; 
 							}
 							return(-1);
 						default:
@@ -1773,7 +1746,9 @@ void umsg(char *str)
 	if(api->mode&UIFC_INMSG)	/* non-cursive */
 		return;
 	api->mode|=UIFC_INMSG;
+	if(api->savdepth) api->savnum++;
 	ulist(WIN_SAV|WIN_MID,0,0,0,&i,0,str,ok);
+	if(api->savdepth) api->savnum--;
 	api->mode&=~UIFC_INMSG;
 }
 
