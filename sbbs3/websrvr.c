@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.359 2005/10/11 04:51:00 deuce Exp $ */
+/* $Id: websrvr.c,v 1.365 2005/10/19 09:52:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -698,7 +698,7 @@ static SOCKET open_socket(int type)
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET) {
-		if(set_socket_options(&scfg, sock,error))
+		if(set_socket_options(&scfg, sock, "web|http", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 		sockets++;
@@ -2092,7 +2092,7 @@ static BOOL check_request(http_session_t * session)
 		}
 
 		/* Don't send 404 unless authourized... prevent info leak */
-		if(startup->index_file_name[i] == NULL)
+		if(startup->index_file_name==NULL || startup->index_file_name[i] == NULL)
 			send404=1;
 		else {
 			strcat(session->req.virtual_path,startup->index_file_name[i]);
@@ -3405,7 +3405,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	jsval		rval;
 	char		path[MAX_PATH+1];
 	BOOL		retval=TRUE;
-	clock_t		start;
+	double		start;
 
 	/* External JavaScript handler? */
 	if(script == session->req.physical_path && session->req.xjs_handler[0])
@@ -3443,11 +3443,11 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		}
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
-		start=msclock();
+		start=xp_timer();
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
-		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%ld ms)"
-			,session->socket,script,msclock()-start);
+		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2f seconds)"
+			,session->socket,script,xp_timer()-start);
 	} while(0);
 
 	SAFECOPY(session->req.physical_path, path);
@@ -3611,6 +3611,9 @@ void http_session_thread(void* arg)
 	socket=session.socket;
 	lprintf(LOG_DEBUG,"%04d Session thread started", session.socket);
 
+	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
+		lprintf(LOG_DEBUG,"%04d !!! DANGER WILL ROBINSON, DANGER !!!", session.socket);
+
 #ifdef _WIN32
 	if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 		PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
@@ -3765,6 +3768,10 @@ void http_session_thread(void* arg)
 	client_off(socket);
 
 	thread_down();
+
+	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
+		lprintf(LOG_DEBUG,"%04d !!! ALL YOUR BASE ARE BELONG TO US !!!", socket);
+
 	lprintf(LOG_INFO,"%04d Session thread terminated (%u clients, %u threads remain, %lu served)"
 		,socket, active_clients, thread_count, served);
 
@@ -3818,7 +3825,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.359 $", "%*s %s", revision);
+	sscanf("$Revision: 1.365 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
