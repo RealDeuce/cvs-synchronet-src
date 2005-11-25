@@ -47,7 +47,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="ilink32"/>
-    <USERDEFINES value="SBBS;_DEBUG;RINGBUF_SEM;RINGBUF_MUTEX"/>
+    <USERDEFINES value="SBBS;_DEBUG;RINGBUF_SEM"/>
     <SYSDEFINES value="NO_STRICT;_VIS_NOLIB"/>
     <MAINSOURCE value="sbbsctrl.cpp"/>
     <INCLUDEPATH value="..\;..;C:\Borland\CBuilder6\Projects;..\..\xpdev;..\..\smblib;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -59,7 +59,7 @@
   <OPTIONS>
     <IDLCFLAGS value="-I..\. -I.. -IC:\Borland\CBuilder6\Projects -I..\..\xpdev -I..\..\smblib 
       -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp -DSBBS -D_DEBUG 
-      -DRINGBUF_SEM -DRINGBUF_MUTEX -boa"/>
+      -DRINGBUF_SEM -boa"/>
     <CFLAG1 value="-Od -H=c:\borland\CBUILD~2\lib\vcl60.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y 
       -v -vi- -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -$A8 -v -JPHNE -M"/>
@@ -122,7 +122,7 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=3
 MinorVer=13
-Release=1
+Release=0
 Build=0
 Debug=0
 PreRelease=0
@@ -135,13 +135,13 @@ CodePage=1252
 [Version Info Keys]
 CompanyName=Rob Swindell
 FileDescription=Synchronet BBS Control Panel
-FileVersion=3.13.1.0
+FileVersion=3.13.0.0
 InternalName=
-LegalCopyright=(C) 2006 Rob Swindell
+LegalCopyright=(C) 2005 Rob Swindell
 LegalTrademarks=
 OriginalFilename=sbbsctrl.exe
 ProductName=Synchronet BBS
-ProductVersion=3.13b
+ProductVersion=3.13a
 Comments=
 
 [HistoryLists\hlIncludePath]
@@ -209,13 +209,12 @@ Item0=$(BCB)\source\vcl;C:\src\xpdev\
 Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
-Count=6
-Item0=SBBS;_DEBUG;RINGBUF_SEM;RINGBUF_MUTEX
-Item1=SBBS;_DEBUG;RINGBUF_SEM
-Item2=SBBS;_DEBUG
-Item3=SBBS
-Item4=SBBS;SMB_GETMSGTXT;_DEBUG
-Item5=SBBS;SMB_GETMSGTXT
+Count=5
+Item0=SBBS;_DEBUG;RINGBUF_SEM
+Item1=SBBS;_DEBUG
+Item2=SBBS
+Item3=SBBS;SMB_GETMSGTXT;_DEBUG
+Item4=SBBS;SMB_GETMSGTXT
 
 [Debugging]
 DebugSourceDirs=$(BCB)\source\vcl;C:\src\xpdev\
