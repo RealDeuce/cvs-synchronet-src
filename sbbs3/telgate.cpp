@@ -2,13 +2,13 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.26 2004/12/30 02:57:00 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.28 2005/10/13 06:49:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,7 +71,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 		return;
 	}
 
-    if((remote_socket = open_socket(SOCK_STREAM)) == INVALID_SOCKET) {
+    if((remote_socket = open_socket(SOCK_STREAM, client.protocol)) == INVALID_SOCKET) {
 		errormsg(WHERE,ERR_OPEN,"socket",0);
 		return;
 	}
