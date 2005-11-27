@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.77 2005/10/07 08:08:46 rswindell Exp $
+# $Id: Makefile,v 1.79 2005/10/24 18:59:27 deuce Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -46,7 +46,6 @@ JS_LDFLAGS = $(JS_LDFLAGS) $(JSLIBDIR)$(DIRSEP)$(UL_PRE)$(JSLIB)$(UL_SUF)
 #JS_LDFLAGS = $(JS_LDFLAGS) -L$(NSPRDIR) $(UL_PRE)nspr4$(UL_SUF)
 
 CFLAGS	=	$(CFLAGS) $(JS_CFLAGS)
-LDFLAGS	=	$(LDFLAGS) $(JS_LDFLAGS)
 
 !include sbbsdefs.mk
 MT_CFLAGS	=	$(MT_CFLAGS) $(SBBSDEFS)
@@ -54,8 +53,10 @@ CFLAGS	=	$(CFLAGS) -DMD5_IMPORTS
 
 CON_LIBS	= $(UL_PRE)sbbs$(UL_SUF) $(UL_PRE)ftpsrvr$(UL_SUF) $(UL_PRE)websrvr$(UL_SUF) $(UL_PRE)mailsrvr$(UL_SUF) $(UL_PRE)services$(UL_SUF)
 
-CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) -DNO_SOCKET_SUPPORT
+CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) 
 LDFLAGS =	$(LDFLAGS) $(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS)
+# JS_LDFLAGS includes libs, so needs to be added last.
+LDFLAGS	=	$(LDFLAGS) $(JS_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): $(MONO_OBJS) $(OBJS)
@@ -172,7 +173,8 @@ $(MAKEUSER): $(MAKEUSER_OBJS)
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CC) -e$@ $(LDFLAGS) $(JSEXEC_OBJS) $(XPDEV-MT_LIB) \
+	$(QUIET)$(CC) $(MT_LDFLAGS) -e$@ $(LDFLAGS) $(JSEXEC_OBJS) \
+		$(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS) \
 		$(LIBODIR)$(DIRSEP)$(UL_PRE)sbbs$(UL_SUF)
 
 # ANS2ASC
