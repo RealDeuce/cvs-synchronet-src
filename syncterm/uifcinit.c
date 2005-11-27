@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.21 2005/11/28 15:53:30 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.20 2005/11/24 06:51:07 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -117,7 +117,7 @@ int confirm(char *msg, char *helpbuf)
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
-		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,msg,options)!=0)
+		if(uifc.list(WIN_MID|WIN_ACT,0,0,0,&copt,NULL,msg,options)!=0)
 			ret=FALSE;
 	}
 	if(!i) {
