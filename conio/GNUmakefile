@@ -15,6 +15,12 @@ endif
 
 ifdef WITH_SDL
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
+ OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
+ OBJS	+=	$(MTOBJODIR)$(DIRSEP)allfonts$(OFILE)
+else
+ ifndef NO_X
+  OBJS	+=	$(MTOBJODIR)$(DIRSEP)allfonts$(OFILE)
+ endif
 endif
 
 ifeq ($(os),netbsd)
@@ -50,3 +56,11 @@ endif
 	@echo Creating $@ ...
 	$(QUIET)$(AR) rc $@ $(OBJS)
 	$(QUIET)$(RANLIB) $@
+
+ifdef STATIC
+$(CIOLIB-MT_SHLIB_BUILD): $(MTOBJODIR)$(DIRSEP)console$(OFILE).static $(MTOBJODIR) $(OBJS)
+else
+$(CIOLIB-MT_SHLIB_BUILD): $(MTOBJODIR)$(DIRSEP)console$(OFILE).dynamic $(MTOBJODIR) $(OBJS)
+endif
+	@echo Creating $@
+	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(OBJS) $(SHLIBOPTS) -o $@
