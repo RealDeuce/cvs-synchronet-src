@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.264 2005/10/13 07:34:30 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.267 2005/10/21 08:26:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -943,6 +943,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
+	DLLEXPORT char*		DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len);
 
 	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(*JSVAL_TO_DOUBLE(v))))
 
@@ -1026,6 +1027,9 @@ extern "C" {
 	/* js_bbs.cpp */
 	JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent);
 
+	/* js_uifc.c */
+	JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent);
+
 #endif
 
 /* str_util.c */
@@ -1046,7 +1050,7 @@ BOOL 	md(char *path);
 	int 	lputs(int level, char *);			/* log output */
 	int 	lprintf(int level, char *fmt, ...);	/* log output */
 	int 	eprintf(int level, char *fmt, ...);	/* event log */
-	SOCKET	open_socket(int type, const char* service);
+	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
