@@ -2,13 +2,13 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.47 2006/03/14 03:19:06 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.45 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1124,5 +1124,13 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
             break;
     }
 
-	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
+	sprintf(str,"%sftpsrvr.rec",cfg->ctrl_dir);
+	if((file=open(str,O_WRONLY|O_CREAT|O_TRUNC,S_IWRITE|S_IREAD))!=-1)
+		close(file);
+	sprintf(str,"%smailsrvr.rec",cfg->ctrl_dir);
+	if((file=open(str,O_WRONLY|O_CREAT|O_TRUNC,S_IWRITE|S_IREAD))!=-1)
+		close(file);
+	sprintf(str,"%sservices.rec",cfg->ctrl_dir);
+	if((file=open(str,O_WRONLY|O_CREAT|O_TRUNC,S_IWRITE|S_IREAD))!=-1)
+		close(file);
 }
