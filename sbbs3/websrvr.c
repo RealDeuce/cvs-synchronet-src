@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.366 2005/11/28 02:19:35 deuce Exp $ */
+/* $Id: websrvr.c,v 1.367 2005/11/28 02:51:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -423,8 +423,8 @@ static int lprintf(int level, char *fmt, ...)
 
 static int writebuf(http_session_t	*session, const char *buf, size_t len)
 {
-	int		sent=0;
-	int		avail;
+	size_t	sent=0;
+	size_t	avail;
 
 	while(!terminate_server && sent < len) {
 		avail=RingBufFree(&session->outbuf);
@@ -2871,7 +2871,7 @@ static BOOL exec_cgi(http_session_t *session)
 		if(msglen) {
 			lprintf(LOG_DEBUG,"%04d Sending %d bytes: %.*s"
 				,session->socket,msglen,msglen,buf);
-			wr=writebuf(session,session->socket,buf,msglen,NULL);
+			wr=writebuf(session,buf,msglen);
 			/* log actual bytes sent */
 			if(session->req.ld!=NULL && wr>0)
 				session->req.ld->size+=wr;	
@@ -3882,7 +3882,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.366 $", "%*s %s", revision);
+	sscanf("$Revision: 1.367 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
