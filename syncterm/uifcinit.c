@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.22 2006/05/08 18:43:11 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.20 2005/11/24 06:51:07 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -79,7 +79,7 @@ void uifcmsg(char *msg, char *helpbuf)
     gettextinfo(&txtinfo);
 	i=uifc_initialized;
 	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 	init_uifc(FALSE, FALSE);
@@ -92,6 +92,7 @@ void uifcmsg(char *msg, char *helpbuf)
 	if(!i) {
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		free(buf);
 	}
 }
 
@@ -110,18 +111,19 @@ int confirm(char *msg, char *helpbuf)
     gettextinfo(&txtinfo);
 	i=uifc_initialized;
 	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
-		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,msg,options)!=0)
+		if(uifc.list(WIN_MID|WIN_ACT,0,0,0,&copt,NULL,msg,options)!=0)
 			ret=FALSE;
 	}
 	if(!i) {
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		free(buf);
 	}
 	return(ret);
 }
