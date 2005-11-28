@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.73 2005/11/28 15:53:30 deuce Exp $ */
+/* $Id: syncterm.c,v 1.74 2005/11/28 16:57:12 deuce Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -269,6 +269,7 @@ void load_settings(struct syncterm_settings *set)
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
 fprintf(stderr,"Confirm: %d\n",set->confirm_close);
 	set->startup_mode=iniReadInteger(inifile,"SyncTERM","VideoMode",FALSE);
+	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 	if(inifile)
 		fclose(inifile);
 }

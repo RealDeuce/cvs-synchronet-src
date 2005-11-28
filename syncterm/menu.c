@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.31 2005/11/24 07:03:49 deuce Exp $ */
+/* $Id: menu.c,v 1.32 2005/11/28 16:57:12 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -11,6 +11,7 @@
 #include "bbslist.h"
 #include "conn.h"
 #include "window.h"
+#include "syncterm.h"
 
 void viewscroll(void)
 {
@@ -26,8 +27,8 @@ void viewscroll(void)
 	y=wherey();
 	uifcbail();
     gettextinfo(&txtinfo);
-	scrollback=(char *)malloc((term.width*2*backlines)+(txtinfo.screenheight*txtinfo.screenwidth*2));
-	memcpy(scrollback,cterm.scrollback,term.width*2*backlines);
+	scrollback=(char *)malloc((term.width*2*settings.backlines)+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	memcpy(scrollback,cterm.scrollback,term.width*2*settings.backlines);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
 	drawwin();
 	top=cterm.backpos;
