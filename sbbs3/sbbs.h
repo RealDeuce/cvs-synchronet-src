@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.265 2005/10/13 22:46:56 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.267 2005/10/21 08:26:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -943,6 +943,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
+	DLLEXPORT char*		DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len);
 
 	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(*JSVAL_TO_DOUBLE(v))))
 
@@ -1025,6 +1026,9 @@ extern "C" {
 
 	/* js_bbs.cpp */
 	JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent);
+
+	/* js_uifc.c */
+	JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent);
 
 #endif
 
