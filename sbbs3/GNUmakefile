@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.183 2005/09/25 08:43:53 deuce Exp $
+# $Id: GNUmakefile,v 1.184 2005/10/21 21:56:15 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -203,7 +203,7 @@ $(MAKEUSER): $(MAKEUSER_OBJS)
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 
 # ANS2ASC
 $(ANS2ASC): $(OBJODIR)/ans2asc.o
