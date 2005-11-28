@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.26 2005/10/13 07:32:07 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.29 2005/11/01 00:32:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,13 +43,13 @@
 /***************/
 /* OS-specific */
 /***************/
-#if defined(_WIN32)		/* Use WinSock */
+#if defined(_WIN32)	/* Use WinSock */
 
-#include <winsock.h>	/* socket/bind/etc. */
-
-/* Let's agree on a standard WinSock symbol here, people */
 #ifndef _WINSOCKAPI_
-#define _WINSOCKAPI_	
+	#include <winsock2.h>	/* socket/bind/etc. */
+	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
+	/* Let's agree on a standard WinSock symbol here, people */
+	#define _WINSOCKAPI_	
 #endif
 
 #elif defined __unix__		/* Unix-variant */
@@ -79,6 +79,7 @@
 
 typedef struct {
 	char*	name;
+	int		type;		/* Supported socket types (or 0 for unspecified) */
 	int		level;
 	int		value;
 } socket_option_t;
@@ -151,6 +152,10 @@ static  wsa_error;
 #define ioctlsocket		ioctl
 #define ERROR_VALUE		errno
 #define sendsocket		write		/* FreeBSD send() is broken */
+
+#ifdef __WATCOMC__
+	#define socklen_t		int
+#endif
 
 #endif	/* __unix__ */
 
