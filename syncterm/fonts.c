@@ -33,15 +33,13 @@ void free_font_files(struct font_files *ff)
 void save_font_files(struct font_files *fonts)
 {
 	FILE	*inifile;
-	char	inipath[MAX_PATH+1];
-	char	newfont[MAX_PATH+1];
+	char	inipath[MAX_PATH];
+	char	newfont[MAX_PATH];
 	char	*fontid;
 	str_list_t	ini_file;
 	str_list_t	fontnames;
 	int		i;
 
-	if(safe_mode)
-		return;
 	get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
 	if((inifile=fopen(inipath,"r"))!=NULL) {
 		ini_file=iniReadFile(inifile);
@@ -84,8 +82,8 @@ void save_font_files(struct font_files *fonts)
 struct font_files *read_font_files(int *count)
 {
 	FILE	*inifile;
-	char	inipath[MAX_PATH+1];
-	char	fontpath[MAX_PATH+1];
+	char	inipath[MAX_PATH];
+	char	fontpath[MAX_PATH];
 	char	*fontid;
 	str_list_t	fonts;
 	struct font_files	*ret=NULL;
@@ -318,14 +316,14 @@ void font_management(void)
 					show_filepick=1;
 					break;
 			}
-			if(show_filepick && !safe_mode) {
+			if(show_filepick) {
 				int result;
 				struct file_pick fpick;
 				char	*savbuf;
 				struct text_info	ti;
 
 				gettextinfo(&ti);
-				savbuf=(char *)alloca((ti.screenheight-2)*ti.screenwidth*2);
+				savbuf=(char *)malloc((ti.screenheight-2)*ti.screenwidth*2);
 				if(savbuf==NULL) {
 					uifc.msg("malloc() failure.");
 					continue;
@@ -338,6 +336,7 @@ void font_management(void)
 				}
 				filepick_free(&fpick);
 				puttext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
+				free(savbuf);
 			}
 		}
 	}
