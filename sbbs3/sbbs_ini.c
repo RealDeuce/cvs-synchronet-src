@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.113 2005/11/28 02:19:35 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.114 2005/11/28 02:48:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1114,9 +1114,9 @@ BOOL sbbs_write_ini(
 			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,web->bind_retry_delay,&style))
 			break;
-		if(!iniSetShortInt(lp,section,"OutbufHighwaterMark",bbs->outbuf_highwater_mark,&style))
+		if(!iniSetShortInt(lp,section,"OutbufHighwaterMark",web->outbuf_highwater_mark,&style))
 			break;
-		if(!iniSetShortInt(lp,section,"OutbufDrainTimeout",bbs->outbuf_drain_timeout,&style))
+		if(!iniSetShortInt(lp,section,"OutbufDrainTimeout",web->outbuf_drain_timeout,&style))
 			break;
 	}
 
