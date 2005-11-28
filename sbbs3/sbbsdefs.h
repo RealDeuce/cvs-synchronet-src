@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.141 2006/02/03 06:21:37 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.136 2005/09/25 20:10:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -52,14 +52,12 @@
 
 #define VERSION 	"3.13"  /* Version: Major.minor  */
 #define REVISION	'b'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31300	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31300 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2006 Rob Swindell"
-#define COPYRIGHT_CRC		0xE16A6CC1
+#define COPYRIGHT_NOTICE	"Copyright 2005 Rob Swindell"
+#define COPYRIGHT_CRC		0x9D0B491A
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -200,7 +198,6 @@ typedef struct {
 									/* Bit values for prot[x].misc */
 #define PROT_DSZLOG		(1<<0)      /* Supports DSZ Log */
 #define PROT_NATIVE		(1<<1)		/* Native (32-bit) executable */
-#define PROT_SOCKET		(1<<2)		/* Use socket I/O, not stdio on *nix */
 
 									/* Bit values in netmail_misc */
 
@@ -281,23 +278,26 @@ typedef struct {
 									/* Bit values for cfg.msg_misc				*/
 #define MM_REALNAME	(1<<16)			/* Allow receipt of e-mail using real names	*/
 
-									/* errormsg() codes */
-#define ERR_OPEN	"opening"		/* opening a file */
-#define ERR_CLOSE	"closing"		/* close a file */
-#define ERR_FDOPEN	"fdopen"		/* associating a stream with fd */
-#define ERR_READ	"reading"		/* reading from file */
-#define ERR_WRITE	"writing"		/* writing to file */
-#define ERR_REMOVE 	"removing"		/* removing a file */
-#define ERR_ALLOC	"allocating"	/* allocating memory */
-#define ERR_CHK		"checking"		/* checking */
-#define ERR_LEN		"checking length"
-#define ERR_EXEC	"executing"		/* executing */
-#define ERR_CREATE	"creating" 		/* creating */
-#define ERR_LOCK	"locking"		/* locking */
-#define ERR_UNLOCK 	"unlocking"		/* unlocking */
-#define ERR_TIMEOUT	"timeout"		/* timeout waiting for resource */	
-#define ERR_IOCTL	"sending IOCTL"	/* IOCTL error */
-#define ERR_SEEK	"seeking"		/* SEEKing error */
+
+enum {								/* errormsg() codes */
+	 ERR_OPEN						/* opening a file */
+	,ERR_CLOSE						/* close a file */
+	,ERR_FDOPEN 					/* associating a stream with fd */
+	,ERR_READ						/* reading from file */
+	,ERR_WRITE						/* writing to file */
+	,ERR_REMOVE 					/* removing a file */
+	,ERR_ALLOC						/* allocating memory */
+	,ERR_CHK						/* checking */
+	,ERR_LEN						/* file length */
+	,ERR_EXEC						/* executing */
+	,ERR_CHDIR						/* changing directory */
+	,ERR_CREATE 					/* creating */
+	,ERR_LOCK						/* locking */
+	,ERR_UNLOCK 					/* unlocking */
+    ,ERR_TIMEOUT					/* timeout waiting for resource */
+    ,ERR_IOCTL						/* IOCTL error */
+	,ERR_SEEK						/* SEEKing error */
+	};
 
 enum {                              /* Values for dir[x].sort */
      SORT_NAME_A                    /* Sort by filename, ascending */
@@ -673,7 +673,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_TAB		(1L<<18)	/* Treat TAB key as CR						*/
 #define K_LEFTEXIT	(1L<<19)	/* Allow exit by backspacing/arrowing left	*/
 #define K_USEOFFSET	(1L<<20)	/* Use getstr_offset for cursor	position	*/
-#define K_NOSPIN	(1L<<21)	/* Do not honor the user's spinning cursor	*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
