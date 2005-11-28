@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.97 2006/05/08 21:02:02 deuce Exp $ */
+/* $Id: js_file.c,v 1.86 2005/10/12 00:22:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -154,10 +154,8 @@ js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			mode=JS_GetStringBytes(str);
 		} else if(JSVAL_IS_BOOLEAN(argv[i]))	/* shareable */
 			shareable=JSVAL_TO_BOOLEAN(argv[i]);
-		else if(JSVAL_IS_NUMBER(argv[i])) {	/* bufsize */
-			if(!JS_ValueToInt32(cx,argv[i],&bufsize))
-				return(JS_FALSE);
-		}
+		else if(JSVAL_IS_NUMBER(argv[i]))	/* bufsize */
+			JS_ValueToInt32(cx,argv[i],&bufsize);
 	}
 	SAFECOPY(p->mode,mode);
 
@@ -226,10 +224,9 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return(JS_FALSE);
-	} else {
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
+	else {
 		len=filelength(fileno(p->fp));
 		offset=ftell(p->fp);
 		if(offset>0)
@@ -257,10 +254,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(p->uuencoded || p->b64encoded || p->yencoded) {
 		uulen=len*2;
-		if((uubuf=malloc(uulen))==NULL) {
-			free(buf);
+		if((uubuf=malloc(uulen))==NULL)
 			return(JS_TRUE);
-		}
 		if(p->uuencoded)
 			uulen=uuencode(uubuf,uulen,buf,len);
 		else if(p->yencoded)
@@ -271,12 +266,12 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			free(buf);
 			buf=uubuf;
 			len=uulen;
-		}
-		else
+		} else
 			free(uubuf);
 	}
 
 	str = JS_NewStringCopyN(cx, buf, len);
+
 	free(buf);
 
 	if(str==NULL)
@@ -308,12 +303,10 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 	
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return(JS_FALSE);
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	if(fgets(buf,len,p->fp)!=NULL) {
@@ -330,6 +323,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	/* exception here Feb-12-2005 */
 			*rval = STRING_TO_JSVAL(js_str);			/* _CrtDbgBreak from _heap_alloc_dbg */
 	}
+
+	free(buf);
 
 	return(JS_TRUE);
 }
@@ -353,10 +348,8 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],(int32*)&size))
-			return(JS_FALSE);
-	}
+	if(argc) 
+		JS_ValueToInt32(cx,argv[0],(int32*)&size);
 
 	switch(size) {
 		case sizeof(BYTE):
@@ -517,8 +510,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			break;
 		default:
 			if(JSVAL_IS_NUMBER(dflt)) {
-				if(!JS_ValueToInt32(cx,dflt,&i))
-					return(JS_FALSE);
+				JS_ValueToInt32(cx,dflt,&i);
 				JS_NewNumberValue(cx,iniReadInteger(p->fp,section,key,i),rval);
 			} else
 				*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx
@@ -571,8 +563,7 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				break;
 			default:
 				if(JSVAL_IS_NUMBER(value)) {
-					if(!JS_ValueToInt32(cx,value,&i))
-						return(JS_FALSE);
+					JS_ValueToInt32(cx,value,&i);
 					result = iniSetInteger(&list,section,key,i,NULL);
 				} else {
 					if(JSVAL_IS_OBJECT(value) 
@@ -589,70 +580,6 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	}
 
 	if(result != NULL)
-		*rval = BOOLEAN_TO_JSVAL(iniWriteFile(p->fp,list));
-
-	strListFree(&list);
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_iniRemoveKey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*	section=ROOT_SECTION;
-	char*	key;
-	private_t*	p;
-	str_list_t	list;
-
-	*rval = JSVAL_FALSE;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
-
-	if(p->fp==NULL)
-		return(JS_TRUE);
-
-	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
-		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
-	key=JS_GetStringBytes(JS_ValueToString(cx, argv[1]));
-
-	if((list=iniReadFile(p->fp))==NULL)
-		return(JS_TRUE);
-
-	if(iniRemoveKey(&list,section,key))
-		*rval = BOOLEAN_TO_JSVAL(iniWriteFile(p->fp,list));
-
-	strListFree(&list);
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_iniRemoveSection(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*	section=ROOT_SECTION;
-	private_t*	p;
-	str_list_t	list;
-
-	*rval = JSVAL_FALSE;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
-
-	if(p->fp==NULL)
-		return(JS_TRUE);
-
-	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
-		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
-
-	if((list=iniReadFile(p->fp))==NULL)
-		return(JS_TRUE);
-
-	if(iniRemoveSection(&list,section))
 		*rval = BOOLEAN_TO_JSVAL(iniWriteFile(p->fp,list));
 
 	strListFree(&list);
@@ -953,10 +880,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	tlen=len;
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&tlen)) {
-			FREE_AND_NULL(uubuf);
-			return(JS_FALSE);
-		}
+		JS_ValueToInt32(cx,argv[1],(int32*)&tlen);
 		if(len>tlen)
 			len=tlen;
 	}
@@ -965,7 +889,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(tlen>len) {
 			len=tlen-len;
 			if((cp=malloc(len))==NULL) {
-				FREE_AND_NULL(uubuf);
 				dbprintf(TRUE, p, "malloc failure of %u bytes", len);
 				return(JS_TRUE);
 			}
@@ -977,9 +900,10 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		*rval = JSVAL_TRUE;
 	} else 
 		dbprintf(TRUE, p, "write of %u bytes failed",len);
-
-	FREE_AND_NULL(uubuf);
 		
+	if(uubuf!=NULL)
+		free(uubuf);
+
 	return(JS_TRUE);
 }
 
@@ -1038,12 +962,9 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(!JS_ValueToInt32(cx,argv[0],&val))
-		return(JS_FALSE);
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
-			return(JS_FALSE);
-	}
+	JS_ValueToInt32(cx,argv[0],&val);
+	if(argc>1) 
+		JS_ValueToInt32(cx,argv[1],(int32*)&size);
 
 	switch(size) {
 		case sizeof(BYTE):
@@ -1134,16 +1055,12 @@ js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	/* offset */
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&offset))
-			return(JS_FALSE);
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&offset);
 
 	/* length */
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&len))
-			return(JS_FALSE);
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&len);
 
 	if(len==0)
 		len=filelength(fileno(p->fp))-offset;
@@ -1172,16 +1089,12 @@ js_unlock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	/* offset */
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&offset))
-			return(JS_FALSE);
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&offset);
 
 	/* length */
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&len))
-			return(JS_FALSE);
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&len);
 
 	if(len==0)
 		len=filelength(fileno(p->fp))-offset;
@@ -1251,31 +1164,6 @@ js_rewind(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_truncate(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	private_t*	p;
-	int32		len=0;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
-
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return(JS_FALSE);
-	}
-
-	*rval = JSVAL_FALSE;
-	if(p->fp!=NULL && chsize(fileno(p->fp),len)==0) {
-		fseek(p->fp,len,SEEK_SET);
-		*rval = JSVAL_TRUE;
-	}
-
-	return(JS_TRUE);
-}
-
-static JSBool
 js_clear_error(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	private_t*	p;
@@ -1299,6 +1187,10 @@ static JSBool
 js_fprintf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		cp;
+    uintN		i;
+	JSString *	fmt;
+    JSString *	str;
+	va_list		arglist[64];
 	private_t*	p;
 
 	*rval = JSVAL_FALSE;
@@ -1311,13 +1203,34 @@ js_fprintf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if((cp=js_sprintf(cx, 0, argc, argv))==NULL) {
-		JS_ReportError(cx,"js_sprintf failed");
+	if((fmt=JS_ValueToString(cx, argv[0]))==NULL) {
+		JS_ReportError(cx,"JS_ValueToString failed");
+		return(JS_FALSE);
+	}
+
+	memset(arglist,0,sizeof(arglist));	/* Initialize arglist to NULLs */
+
+    for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
+		if(JSVAL_IS_DOUBLE(argv[i]))
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
+		else if(JSVAL_IS_INT(argv[i]))
+			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+				JS_ReportError(cx,"JS_ValueToString failed");
+			    return(JS_FALSE);
+			}
+			arglist[i-1]=JS_GetStringBytes(str);
+		}
+	}
+
+	if((cp=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL) {
+		JS_ReportError(cx,"JS_vsmprintf failed");
 		return(JS_FALSE);
 	}
 
 	*rval = INT_TO_JSVAL(fwrite(cp,1,strlen(cp),p->fp));
-	js_sprintf_free(cp);
+	JS_smprintf_free(cp);
 	
     return(JS_TRUE);
 }
@@ -1388,31 +1301,26 @@ static JSBool js_file_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case FILE_PROP_POSITION:
 			if(p->fp!=NULL) {
-				if(!JS_ValueToInt32(cx,*vp,&i))
-					return(JS_FALSE);
+				JS_ValueToInt32(cx,*vp,&i);
 				fseek(p->fp,i,SEEK_SET);
 			}
 			break;
 		case FILE_PROP_DATE:
-			if(!JS_ValueToInt32(cx,*vp,&i))
-				return(JS_FALSE);
+			JS_ValueToInt32(cx,*vp,&i);
 			setfdate(p->name,i);
 			break;
 		case FILE_PROP_LENGTH:
 			if(p->fp!=NULL) {
-				if(!JS_ValueToInt32(cx,*vp,&i))
-					return(JS_FALSE);
+				JS_ValueToInt32(cx,*vp,&i);
 				chsize(fileno(p->fp),i);
 			}
 			break;
 		case FILE_PROP_ATTRIBUTES:
-			if(!JS_ValueToInt32(cx,*vp,&i))
-				return(JS_FALSE);
+			JS_ValueToInt32(cx,*vp,&i);
 			CHMOD(p->name,i);
 			break;
 		case FILE_PROP_ETX:
-			if(!JS_ValueToInt32(cx,*vp,&i))
-				return(JS_FALSE);
+			JS_ValueToInt32(cx,*vp,&i);
 			p->etx = (uchar)i;
 			break;
 	}
@@ -1635,7 +1543,7 @@ static jsSyncPropertySpec js_file_properties[] = {
 	{0}
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* file_prop_desc[] = {
 	 "filename specified in constructor - <small>READ ONLY</small>"
 	,"mode string specified in <i>open</i> call - <small>READ ONLY</small>"
@@ -1666,8 +1574,8 @@ static char* file_prop_desc[] = {
 
 
 static jsSyncMethodSpec js_file_functions[] = {
-	{"open",			js_open,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[mode=<tt>\"w+\"</tt>] [,shareable=<tt>false</tt>] [,buffer_length]")
-	,JSDOCSTR("open file, <i>shareable</i> defaults to <i>false</i>, <i>buffer_length</i> defaults to 2048 bytes, "
+	{"open",			js_open,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[string mode, boolean shareable, number buflen]")
+	,JSDOCSTR("open file, <i>shareable</i> defaults to <i>false</i>, <i>buflen</i> defaults to 2048 bytes, "
 		"mode (default: <tt>'w+'</tt>) specifies the type of access requested for the file, as follows:<br>"
 		"<tt>r&nbsp</tt> open for reading; if the file does not exist or cannot be found, the open call fails<br>"
 		"<tt>w&nbsp</tt> open an empty file for writing; if the given file exists, its contents are destroyed<br>"
@@ -1685,67 +1593,62 @@ static jsSyncMethodSpec js_file_functions[] = {
 		)
 	,310
 	},		
-	{"close",			js_close,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	{"close",			js_close,			0,	JSTYPE_VOID,	""
 	,JSDOCSTR("close file")
 	,310
 	},		
-	{"remove",			js_delete,			0,	JSTYPE_BOOLEAN, JSDOCSTR("")
+	{"remove",			js_delete,			0,	JSTYPE_BOOLEAN, ""
 	,JSDOCSTR("remove the file from the disk")
 	,310
 	},
 	{"clearError",		js_clear_error,		0,	JSTYPE_ALIAS },
-	{"clear_error",		js_clear_error,		0,	JSTYPE_BOOLEAN, JSDOCSTR("")
+	{"clear_error",		js_clear_error,		0,	JSTYPE_BOOLEAN, ""
 	,JSDOCSTR("clears the current error value (AKA clearError)")
 	,310
 	},
-	{"flush",			js_flush,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"flush",			js_flush,			0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("flush/commit buffers to disk")
 	,310
 	},
-	{"rewind",			js_rewind,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"rewind",			js_rewind,			0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("repositions the file pointer (<i>position</i>) to the beginning of a file "
 		"and clears error and end-of-file indicators")
 	,311
 	},
-	{"truncate",		js_truncate,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("[length=<tt>0</tt>]")
-	,JSDOCSTR("changes the file <i>length</i> (default: 0) and repositions the file pointer "
-	"(<i>position</i>) to the new end-of-file")
-	,31301
-	},
-	{"lock",			js_lock,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("[offset=<tt>0</tt>] [,length=<i>file_length</i>-<i>offset</i>]")
+	{"lock",			js_lock,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("[offset, length]")
 	,JSDOCSTR("lock file record for exclusive access (file must be opened <i>shareable</i>)")
 	,310
 	},		
-	{"unlock",			js_unlock,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("[offset=<tt>0</tt>] [,length=<i>file_length</i>-<i>offset</i>]")
+	{"unlock",			js_unlock,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("[offset, length]")
 	,JSDOCSTR("unlock file record for exclusive access")
 	,310
 	},		
-	{"read",			js_read,			0,	JSTYPE_STRING,	JSDOCSTR("[maxlen=<i>file_length</i>-<i>file_position</i>]")
+	{"read",			js_read,			0,	JSTYPE_STRING,	JSDOCSTR("[maxlen]")
 	,JSDOCSTR("read a string from file (optionally unix-to-unix or base64 decoding in the process), "
 		"<i>maxlen</i> defaults to the current length of the file minus the current file position")
 	,310
 	},
-	{"readln",			js_readln,			0,	JSTYPE_STRING,	JSDOCSTR("[maxlen=<tt>512</tt>]")
+	{"readln",			js_readln,			0,	JSTYPE_STRING,	JSDOCSTR("[maxlen]")
 	,JSDOCSTR("read a line-feed terminated string, <i>maxlen</i> defaults to 512 characters")
 	,310
 	},		
-	{"readBin",			js_readbin,			0,	JSTYPE_NUMBER,	JSDOCSTR("[bytes=<tt>4</tt>]")
+	{"readBin",			js_readbin,			0,	JSTYPE_NUMBER,	JSDOCSTR("[bytes]")
 	,JSDOCSTR("read a binary integer from the file, default number of <i>bytes</i> is 4 (32-bits)")
 	,310
 	},
-	{"readAll",			js_readall,			0,	JSTYPE_ARRAY,	JSDOCSTR("")
+	{"readAll",			js_readall,			0,	JSTYPE_ARRAY,	""
 	,JSDOCSTR("read all lines into an array of strings")
 	,310
 	},
-	{"write",			js_write,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("text [,length=<i>text_length</i>]")
+	{"write",			js_write,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string text [,len]")
 	,JSDOCSTR("write a string to the file (optionally unix-to-unix or base64 decoding in the process)")
 	,310
 	},
-	{"writeln",			js_writeln,			0,	JSTYPE_BOOLEAN, JSDOCSTR("[text]")
+	{"writeln",			js_writeln,			0,	JSTYPE_BOOLEAN, JSDOCSTR("[string text]")
 	,JSDOCSTR("write a line-feed terminated string to the file")
 	,310
 	},
-	{"writeBin",		js_writebin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("value [,bytes=<tt>4</tt>]")
+	{"writeBin",		js_writebin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("value [,bytes]")
 	,JSDOCSTR("write a binary integer to the file, default number of <i>bytes</i> is 4 (32-bits)")
 	,310
 	},
@@ -1753,24 +1656,24 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("write an array of strings to file")
 	,310
 	},		
-	{"printf",			js_fprintf,			0,	JSTYPE_NUMBER,	JSDOCSTR("format [,args]")
+	{"printf",			js_fprintf,			0,	JSTYPE_NUMBER,	JSDOCSTR("string format [,args]")
 	,JSDOCSTR("write a formatted string to the file (ala fprintf) - "
 		"<small>CAUTION: for experienced C programmers ONLY</small>")
 	,310
 	},
-	{"iniGetSections",	js_iniGetSections,	0,	JSTYPE_ARRAY,	JSDOCSTR("[prefix=<i>none</i>]")
+	{"iniGetSections",	js_iniGetSections,	0,	JSTYPE_ARRAY,	JSDOCSTR("[prefix]")
 	,JSDOCSTR("parse all section names from a <tt>.ini</tt> file (format = '<tt>[section]</tt>') "
 		"and return the section names as an <i>array of strings</i>, "
 		"optionally, only those section names that begin with the specified <i>prefix</i>")
 	,311
 	},
-	{"iniGetKeys",		js_iniGetKeys,		1,	JSTYPE_ARRAY,	JSDOCSTR("[section=<i>root</i>]")
+	{"iniGetKeys",		js_iniGetKeys,		1,	JSTYPE_ARRAY,	JSDOCSTR("[section]")
 	,JSDOCSTR("parse all key names from the specified <i>section</i> in a <tt>.ini</tt> file "
 		"and return the key names as an <i>array of strings</i>. "
 		"if <i>section</i> is undefined, returns key names from the <i>root</i> section")
 	,311
 	},
-	{"iniGetValue",		js_iniGetValue,		3,	JSTYPE_UNDEF,	JSDOCSTR("section, key [,default=<i>none</i>]")
+	{"iniGetValue",		js_iniGetValue,		3,	JSTYPE_UNDEF,	JSDOCSTR("section, key [,default]")
 	,JSDOCSTR("parse a key from a <tt>.ini</tt> file and return its value (format = '<tt>key = value</tt>'). "
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
 		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
@@ -1778,13 +1681,13 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"determined by the type of <i>default</i> value specified")
 	,311
 	},
-	{"iniSetValue",		js_iniSetValue,		3,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key, [value=<i>none</i>]")
+	{"iniSetValue",		js_iniSetValue,		3,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key, value")
 	,JSDOCSTR("set the specified <i>key</i> to the specified <i>value</i> in the specified <i>section</i> "
 		"of a <tt>.ini</tt> file. "
 		"to set a key in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,312
 	},
-	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>]")
+	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section]")
 	,JSDOCSTR("parse an entire section from a .ini file "
 		"and return all of its keys and values as properties of an object. "
 		"if <i>section</i> is undefined, returns key and values from the <i>root</i> section")
@@ -1796,7 +1699,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,312
 	},
-	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix=<i>none</i>]")
+	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix]")
 	,JSDOCSTR("parse all sections from a .ini file and return all (non-<i>root</i>) sections "
 		"in an array of objects with each section's keys as properties of each object. "
 		"<i>name_property</i> is the name of the property to create to contain the section's name "
@@ -1805,18 +1708,10 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
 	,311
 	},
-	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
+	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property]")
 	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
 	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
 	,312
-	},
-	{"iniRemoveKey",	js_iniRemoveKey,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key")
-	,JSDOCSTR("remove specified <i>key</i> from specified <i>section</i> in <tt>.ini</tt> file.")
-	,31301
-	},
-	{"iniRemoveSection",js_iniRemoveSection,1,	JSTYPE_BOOLEAN,	JSDOCSTR("section")
-	,JSDOCSTR("remove specified <i>section</i> from <tt>.ini</tt> file.")
-	,31301
 	},
 	{0}
 };
@@ -1890,7 +1785,7 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 		return(JS_FALSE);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Class used for opening, creating, reading, or writing files on the local file system<p>"
 		"Special features include:</h2><ol type=disc>"
 			"<li>Exclusive-access files (default) or shared files<ol type=circle>"
