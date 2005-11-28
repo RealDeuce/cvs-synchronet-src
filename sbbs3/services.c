@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.194 2006/05/08 19:14:45 deuce Exp $ */
+/* $Id: services.c,v 1.192 2005/10/19 08:26:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -287,13 +287,15 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	len=recv(client->socket,buf,len,0);
 
 	if(len>0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
+
+	free(buf);
 
 	return(JS_TRUE);
 }
@@ -311,13 +313,15 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 	
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	len=recv(client->socket,buf,len,0);	/* Need to switch to sockreadline */
 
 	if(len>0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
+
+	free(buf);
 
 	return(JS_TRUE);
 }
@@ -982,7 +986,6 @@ static void js_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread started", socket, service->protocol);
 
-	SetThreadName("JS Service Thread");
 	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
@@ -1148,7 +1151,6 @@ static void js_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static JavaScript service thread started", service->socket, service->protocol);
 
-	SetThreadName("JS Static Service Thread");
 	thread_up(TRUE /* setuid */);
 
 	memset(&service_client,0,sizeof(service_client));
@@ -1238,7 +1240,6 @@ static void native_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static service thread started", socket, service->protocol);
 
-	SetThreadName("Native Static Service Thread");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _WIN32
@@ -1302,7 +1303,6 @@ static void native_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s service thread started", socket, service->protocol);
 
-	SetThreadName("Native Service Thread");
 	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
@@ -1430,7 +1430,6 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 {
 	uint		i,j;
 	FILE*		fp;
-	char*		p;
 	char		cmd[INI_MAX_VALUE_LEN];
 	char		host[INI_MAX_VALUE_LEN];
 	char		prot[INI_MAX_VALUE_LEN];
@@ -1488,8 +1487,7 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 			lprintf(LOG_NOTICE,"Ignoring service (%s) for host: %s", sec_list[i], host);
 			continue;
 		}
-		p=iniGetString(list,sec_list[i],"NotHost","",host);
-		if(*p!=0 && stricmp(p, startup->host_name)==0) {
+		if(stricmp(iniGetString(list,sec_list[i],"NotHost","",host), startup->host_name)==0) {
 			lprintf(LOG_NOTICE,"Ignoring service (%s) not for host: %s", sec_list[i], host);
 			continue;
 		}
@@ -1541,7 +1539,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.194 $", "%*s %s", revision);
+	sscanf("$Revision: 1.192 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1615,8 +1613,6 @@ void DLLCALL services_thread(void* arg)
 	served=0;
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
-
-	SetThreadName("Services Thread");
 
 	do {
 
