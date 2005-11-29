@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.98 2005/11/29 19:20:16 deuce Exp $ */
+/* $Id: jsexec.c,v 1.99 2005/11/29 19:33:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -720,7 +720,7 @@ long js_exec(const char *fname, char** args)
 		return(-1);
 	}
 	if((diff=xp_timer()-start) > 0)
-		fprintf(statfp,"%s compiled in %.2f seconds\n"
+		fprintf(statfp,"%s compiled in %.2Lf seconds\n"
 			,path
 			,diff);
 
@@ -729,7 +729,7 @@ long js_exec(const char *fname, char** args)
 	js_EvalOnExit(js_cx, js_glob, &branch);
 
 	if((diff=xp_timer()-start) > 0)
-		fprintf(statfp,"%s executed in %.2f seconds\n"
+		fprintf(statfp,"%s executed in %.2Lf seconds\n"
 			,path
 			,diff);
 
@@ -803,7 +803,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.98 $", "%*s %s", revision);
+	sscanf("$Revision: 1.99 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));

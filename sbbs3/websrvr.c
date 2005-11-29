@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.371 2005/11/29 19:20:16 deuce Exp $ */
+/* $Id: websrvr.c,v 1.372 2005/11/29 19:33:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3416,7 +3416,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		start=xp_timer();
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
-		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2f seconds)"
+		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
 			,session->socket,script,xp_timer()-start);
 	} while(0);
 
@@ -3884,7 +3884,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.371 $", "%*s %s", revision);
+	sscanf("$Revision: 1.372 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
