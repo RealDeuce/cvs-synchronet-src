@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.22 2006/05/08 18:43:11 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.21 2005/11/28 15:53:30 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -79,7 +79,7 @@ void uifcmsg(char *msg, char *helpbuf)
     gettextinfo(&txtinfo);
 	i=uifc_initialized;
 	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 	init_uifc(FALSE, FALSE);
@@ -92,6 +92,7 @@ void uifcmsg(char *msg, char *helpbuf)
 	if(!i) {
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		free(buf);
 	}
 }
 
@@ -110,7 +111,7 @@ int confirm(char *msg, char *helpbuf)
     gettextinfo(&txtinfo);
 	i=uifc_initialized;
 	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 	init_uifc(FALSE, FALSE);
@@ -122,6 +123,7 @@ int confirm(char *msg, char *helpbuf)
 	if(!i) {
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		free(buf);
 	}
 	return(ret);
 }
