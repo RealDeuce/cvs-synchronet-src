@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.370 2005/11/28 04:32:58 deuce Exp $ */
+/* $Id: websrvr.c,v 1.371 2005/11/29 19:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3375,7 +3375,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	jsval		rval;
 	char		path[MAX_PATH+1];
 	BOOL		retval=TRUE;
-	double		start;
+	long double		start;
 
 	/* External JavaScript handler? */
 	if(script == session->req.physical_path && session->req.xjs_handler[0])
@@ -3884,7 +3884,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.370 $", "%*s %s", revision);
+	sscanf("$Revision: 1.371 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

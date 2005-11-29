@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.97 2005/11/22 23:05:19 deuce Exp $ */
+/* $Id: jsexec.c,v 1.98 2005/11/29 19:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -618,8 +618,8 @@ long js_exec(const char *fname, char** args)
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 	int32		result=0;
-	double		start;
-	double		diff;
+	long double	start;
+	long double	diff;
 	
 	if(fname!=NULL) {
 		if(strcspn(fname,"/\\")==strlen(fname)) {
@@ -803,7 +803,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.97 $", "%*s %s", revision);
+	sscanf("$Revision: 1.98 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
