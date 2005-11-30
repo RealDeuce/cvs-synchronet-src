@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.58 2005/10/12 21:25:39 deuce Exp $ */
+/* $Id: genwrap.c,v 1.65 2005/11/29 20:18:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@
 #endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
+#include "xpendian.h"	/* BYTE_SWAP */
 
 /****************************************************************************/
 /* Used to replace snprintf()  guarantees to terminate.			  			*/
@@ -231,6 +232,36 @@ char* strrev(char* str)
 #endif
 
 /****************************************************************************/
+/* Initialize (seed) the random number generator							*/
+/****************************************************************************/
+unsigned DLLCALL xp_randomize(void)
+{
+	unsigned seed=~0;
+
+#if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
+	int     rf;
+
+	if((rf=open(RANDOM_DEV, O_RDONLY))!=-1) {
+		read(rf, &seed, sizeof(seed));
+		close(rf);
+	}
+#else
+	unsigned curtime	= (unsigned)time(NULL);
+	unsigned process_id = (unsigned)GetCurrentProcessId();
+
+	seed = curtime ^ BYTE_SWAP_INT(process_id);
+
+	#if defined(_WIN32) || defined(GetCurrentThreadId)
+		seed ^= (unsigned)GetCurrentThreadId();
+	#endif
+
+#endif
+
+ 	srand(seed);
+	return(seed);
+}
+
+/****************************************************************************/
 /* Return random number between 0 and n-1									*/
 /****************************************************************************/
 int DLLCALL xp_random(int n)
@@ -380,9 +411,9 @@ char* DLLCALL asctime_r(const struct tm *tm, char *buf)
 
 #endif	/* !defined(__unix__) */
 
-/********************************************/
-/* Hi-res real-time clock implementation.	*/
-/********************************************/
+/****************************************************************/
+/* Microsoft (DOS/Win32) real-time system clock implementation.	*/
+/****************************************************************/
 #ifdef __unix__
 clock_t DLLCALL msclock(void)
 {
@@ -468,15 +499,14 @@ int DLLCALL	get_errno(void)
 long double	DLLCALL	xp_timer(void)
 {
 	long double ret;
-#ifdef __unix__
+#if defined(__unix__)
 	struct timeval tv;
 	if(gettimeofday(&tv,NULL)==1)
 		return(-1);
 	ret=tv.tv_usec;
 	ret /= 1000000;
 	ret += tv.tv_sec;
-#else
-#ifdef _WIN32
+#elif defined(_WIN32)
 	LARGE_INTEGER	freq;
 	LARGE_INTEGER	tick;
 	if(QueryPerformanceFrequency(&freq) && QueryPerformanceCounter(&tick)) {
@@ -484,7 +514,9 @@ long double	DLLCALL	xp_timer(void)
 		ret=((long double)tick.HighPart*4294967296)+((long double)tick.LowPart);
 		ret /= ((long double)freq.HighPart*4294967296)+((long double)freq.LowPart);
 #else
-		ret=((long double)tick.QuadPart)/freq.QuadPart;
+		/* In MSVC, a long double does NOT have 19 decimals of precision */
+		ret=(((long double)(tick.QuadPart%freq.QuadPart))/freq.QuadPart);
+		ret+=((long long int)(tick.QuadPart/freq.QuadPart))
 #endif
 	}
 	else {
@@ -492,8 +524,7 @@ long double	DLLCALL	xp_timer(void)
 		ret /= 1000;
 	}
 #else
-#error Need xp_timer implementation!
-#endif
+	ret=time(NULL);	/* Weak implementation */
 #endif
 	return(ret);
 }
