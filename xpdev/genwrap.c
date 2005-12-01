@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.66 2005/11/30 08:06:34 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.67 2005/12/01 00:30:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -516,7 +516,7 @@ long double	DLLCALL	xp_timer(void)
 #else
 		/* In MSVC, a long double does NOT have 19 decimals of precision */
 		ret=(((long double)(tick.QuadPart%freq.QuadPart))/freq.QuadPart);
-		ret+=((long long int)(tick.QuadPart/freq.QuadPart));
+		ret+=tick.QuadPart/freq.QuadPart;
 #endif
 	}
 	else {
