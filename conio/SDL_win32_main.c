@@ -30,6 +30,7 @@
 /* Include the SDL main definition header */
 #include "SDL.h"
 #include "SDL_main.h"
+extern C_LINKAGE int SDL_main_env(int argc, char *argv[], char **env);
 
 #ifdef main
 # ifndef _WIN32_WCE_EMULATION
@@ -52,6 +53,10 @@
   static char stderrPath[MAX_PATH];
 # endif
 #endif
+
+/* Special Dynamic/Static hackery */
+#include "sdlfuncs.h"
+struct sdlfuncs sdl;
 
 #if defined(_WIN32_WCE) && _WIN32_WCE < 300
 /* seems to be undefined in Win CE although in online help */
@@ -190,7 +195,7 @@ static void __cdecl cleanup_output(void)
 #endif
 
 /* This is where execution begins [console apps] */
-int console_main(int argc, char *argv[])
+int console_main(int argc, char *argv[], char **env)
 {
 	int n;
 	char *bufp, *appname;
@@ -218,35 +223,25 @@ int console_main(int argc, char *argv[])
 	appname = bufp;
 
 	/* Load SDL dynamic link library */
-	if ( SDL_Init(SDL_INIT_NOPARACHUTE) < 0 ) {
-		return(FALSE);
-	}
-	atexit(cleanup_output);
-	atexit(SDL_Quit);
+	if(!load_sdl_funcs(&sdl)) {
+		if ( sdl.Init(SDL_INIT_NOPARACHUTE) < 0 ) {
+			return(FALSE);
+		}
+		atexit(cleanup_output);
+		atexit(sdl.Quit);
 
 #ifndef DISABLE_VIDEO
-#if 0
-	/* Create and register our class *
-	   DJM: If we do this here, the user nevers gets a chance to
-	   putenv(SDL_WINDOWID).  This is already called later by
-	   the (DIB|DX5)_CreateWindow function, so it should be
-	   safe to comment it out here.
-	if ( SDL_RegisterApp(appname, CS_BYTEALIGNCLIENT, 
-	                     GetModuleHandle(NULL)) < 0 ) {
-		exit(1);
-	}*/
-#else
-	/* Sam:
-	   We still need to pass in the application handle so that
-	   DirectInput will initialize properly when SDL_RegisterApp()
-	   is called later in the video initialization.
-	 */
-	SDL_SetModuleHandle(GetModuleHandle(NULL));
-#endif /* 0 */
+		/* Sam:
+		   We still need to pass in the application handle so that
+		   DirectInput will initialize properly when SDL_RegisterApp()
+		   is called later in the video initialization.
+		 */
+		sdl.SetModuleHandle(GetModuleHandle(NULL));
 #endif /* !DISABLE_VIDEO */
+	}
 
 	/* Run the application main() code */
-	SDL_main(argc, argv);
+	SDL_main_env(argc, argv, env);
 
 	/* Exit cleanly, calling atexit() functions */
 	exit(0);
@@ -358,5 +353,5 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 	ParseCommandLine(cmdline, argv);
 
 	/* Run the main program (after a little SDL initialization) */
-	return(console_main(argc, argv));
+	return(console_main(argc, argv, _environ));
 }

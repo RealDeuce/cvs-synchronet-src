@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.265 2005/10/13 22:46:56 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.268 2005/11/29 01:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,6 +255,8 @@ public:
 	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
+    int     keybuftop,keybufbot;    /* Keyboard input buffer pointers (for ungetkey) */
+	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */ 
 	char *	connection;		/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
@@ -943,6 +945,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
+	DLLEXPORT char*		DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len);
 
 	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(*JSVAL_TO_DOUBLE(v))))
 
@@ -1025,6 +1028,9 @@ extern "C" {
 
 	/* js_bbs.cpp */
 	JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent);
+
+	/* js_uifc.c */
+	JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent);
 
 #endif
 
