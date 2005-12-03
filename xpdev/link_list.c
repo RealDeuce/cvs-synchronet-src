@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.28 2005/10/14 06:22:27 rswindell Exp $ */
+/* $Id: link_list.c,v 1.30 2005/10/21 21:44:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,10 +38,11 @@
 #include <stdlib.h>		/* malloc */
 #include <string.h>		/* memset */
 #include "link_list.h"
+#include "genwrap.h"
 
 #if defined(LINK_LIST_THREADSAFE)
 	#define MUTEX_INIT(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_init((pthread_mutex_t*)&list->mutex,NULL);	}
-	#define MUTEX_DESTROY(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_destroy((pthread_mutex_t*)&list->mutex);	}
+	#define MUTEX_DESTROY(list)	{ if(list->flags&LINK_LIST_MUTEX) { while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) SLEEP(1);}	}
 	#define MUTEX_LOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_lock((pthread_mutex_t*)&list->mutex);		}
 	#define MUTEX_UNLOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_unlock((pthread_mutex_t*)&list->mutex);		}
 #else
@@ -127,7 +128,8 @@ BOOL listFree(link_list_t* list)
 
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_SEMAPHORE) {
-		sem_destroy(&list->sem);
+		while(sem_destroy(&list->sem)==-1 && errno==EBUSY)
+			SLEEP(1);
 		list->sem=NULL;
 	}
 #endif
