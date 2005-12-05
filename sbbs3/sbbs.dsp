@@ -275,10 +275,6 @@ SOURCE=.\js_socket.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\js_sprintf.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\js_system.c
 # End Source File
 # Begin Source File
@@ -408,6 +404,10 @@ SOURCE=.\scfglib2.c
 # Begin Source File
 
 SOURCE=.\scfgsave.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\semfile.c
 # End Source File
 # Begin Source File
 
