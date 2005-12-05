@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.59 2005/10/15 01:59:50 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.67 2005/12/01 00:30:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -236,9 +236,7 @@ char* strrev(char* str)
 /****************************************************************************/
 unsigned DLLCALL xp_randomize(void)
 {
-	unsigned thread_id = (unsigned)GetCurrentThreadId();
-	unsigned process_id = (unsigned)GetCurrentProcessId();
-	unsigned seed = time(NULL) ^ BYTE_SWAP_INT(thread_id) ^ process_id;
+	unsigned seed=~0;
 
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
 	int     rf;
@@ -247,6 +245,16 @@ unsigned DLLCALL xp_randomize(void)
 		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
+#else
+	unsigned curtime	= (unsigned)time(NULL);
+	unsigned process_id = (unsigned)GetCurrentProcessId();
+
+	seed = curtime ^ BYTE_SWAP_INT(process_id);
+
+	#if defined(_WIN32) || defined(GetCurrentThreadId)
+		seed ^= (unsigned)GetCurrentThreadId();
+	#endif
+
 #endif
 
  	srand(seed);
@@ -491,15 +499,14 @@ int DLLCALL	get_errno(void)
 long double	DLLCALL	xp_timer(void)
 {
 	long double ret;
-#ifdef __unix__
+#if defined(__unix__)
 	struct timeval tv;
 	if(gettimeofday(&tv,NULL)==1)
 		return(-1);
 	ret=tv.tv_usec;
 	ret /= 1000000;
 	ret += tv.tv_sec;
-#else
-#ifdef _WIN32
+#elif defined(_WIN32)
 	LARGE_INTEGER	freq;
 	LARGE_INTEGER	tick;
 	if(QueryPerformanceFrequency(&freq) && QueryPerformanceCounter(&tick)) {
@@ -507,7 +514,9 @@ long double	DLLCALL	xp_timer(void)
 		ret=((long double)tick.HighPart*4294967296)+((long double)tick.LowPart);
 		ret /= ((long double)freq.HighPart*4294967296)+((long double)freq.LowPart);
 #else
-		ret=((long double)tick.QuadPart)/freq.QuadPart;
+		/* In MSVC, a long double does NOT have 19 decimals of precision */
+		ret=(((long double)(tick.QuadPart%freq.QuadPart))/freq.QuadPart);
+		ret+=tick.QuadPart/freq.QuadPart;
 #endif
 	}
 	else {
@@ -515,8 +524,7 @@ long double	DLLCALL	xp_timer(void)
 		ret /= 1000;
 	}
 #else
-#error Need xp_timer implementation!
-#endif
+	ret=time(NULL);	/* Weak implementation */
 #endif
 	return(ret);
 }
