@@ -2,13 +2,13 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.16 2006/05/10 08:52:11 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.14 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,167 +40,14 @@
 #include <vddsvc.h>
 #include "vdd_func.h"
 #include "ringbuf.h"
-#include "threadwrap.h"
 
 #define RINGBUF_SIZE_IN			10000
 #define DEFAULT_MAX_MSG_SIZE	4000
-#define LINEAR_RX_BUFLEN		5000
-
-/* UART Registers */
-#define UART_BASE				0
-#define UART_IER				1		/* interrupt enable */
-#define UART_IIR				2		/* interrupt identification */
-#define UART_FCR				2		/* FIFO control */
-#define UART_LCR				3		/* line control */
-#define UART_MCR				4		/* modem control */
-#define UART_LSR				5		/* line status */
-#define UART_MSR				6		/* modem status */
-#define UART_SCRATCH			7		/* scratch */
-#define UART_IO_RANGE			UART_SCRATCH
-
-const char* uart_reg_desc[] = { "base", "IER", "IIR", "LCR", "MCR", "LSR", "MSR", "scratch" };
-
-#define UART_IER_MODEM_STATUS	(1<<3)
-#define UART_IER_RX_LINE_STATUS	(1<<2)
-#define UART_IER_TX_EMPTY		(1<<1)
-#define UART_IER_RX_DATA		(1<<0)
-
-#define UART_IIR_NO_INT_PENDING	0x01	/* Bit 0=0, Interrupt Pending */
-#define UART_IIR_INT_MASK		0x06
-#define UART_IIR_MODEM_STATUS	0x00
-#define UART_IIR_TX_EMPTY		0x02
-#define UART_IIR_RX_DATA		0x04
-#define UART_IIR_LINE_STATUS	0x06
-
-#define UART_LSR_FIFO_ERROR		(1<<7)
-#define UART_LSR_EMPTY_DATA		(1<<6)
-#define UART_LSR_EMPTY_XMIT		(1<<5)
-#define UART_LSR_BREAK			(1<<4)
-#define UART_LSR_FRAME_ERROR	(1<<3)
-#define UART_LSR_PARITY_ERROR	(1<<2)
-#define UART_LSR_OVERRUN_ERROR	(1<<1)
-#define UART_LSR_DATA_READY		(1<<0)
-
-#define UART_MSR_DCD			(1<<7)
-#define UART_MSR_RING			(1<<6)
-#define UART_MSR_DSR			(1<<5)
-#define UART_MSR_CTS			(1<<4)
-#define UART_MSR_DCD_CHANGE		(1<<3)
-#define UART_MSR_RING_CHANGE	(1<<2)
-#define UART_MSR_DSR_CHANGE		(1<<1)
-#define UART_MSR_CTS_CHANGE		(1<<0)
-
-#define UART_LCR_DLAB			(1<<7)
-#define UART_LCR_BREAK			(1<<6)
-#define UART_LCR_DATA_BITS		0x02		/* 8 data bits */
-
-/* I/O Ports */
-#define UART_COM1_IO_BASE		0x3f8
-#define UART_COM2_IO_BASE		0x2f8
-#define UART_COM3_IO_BASE		0x3e8
-#define UART_COM4_IO_BASE		0x2e8
-
-/* IRQs */
-#define UART_COM1_IRQ			4
-#define UART_COM2_IRQ			3
-
-/* UART Parameters and virtual registers */
-WORD uart_io_base				= UART_COM1_IO_BASE;	/* COM1 */
-BYTE uart_irq					= UART_COM1_IRQ;
-BYTE uart_ier_reg				= 0;
-BYTE uart_iir_reg				= UART_IIR_NO_INT_PENDING;
-BYTE uart_lcr_reg				= UART_LCR_DATA_BITS;
-BYTE uart_mcr_reg				= 0;
-BYTE uart_lsr_reg				= UART_LSR_EMPTY_DATA | UART_LSR_EMPTY_XMIT;
-BYTE uart_msr_reg				= UART_MSR_CTS | UART_MSR_DSR;
-BYTE uart_scratch_reg			= 0;
-BYTE uart_divisor_latch_lsb		= 0x03;	/* 38400 */
-BYTE uart_divisor_latch_msb		= 0x00;
-
-#if defined (_DEBUG)
-	int log_level = LOG_DEBUG;
-#else
-	int log_level = LOG_WARNING;
-#endif
-
-DWORD	polls_before_yield=1000;
-HANDLE	hungup_event=NULL;
-HANDLE	output_event=NULL;
-HANDLE	rdslot=INVALID_HANDLE_VALUE;
-HANDLE	wrslot=INVALID_HANDLE_VALUE;
-RingBuf	rdbuf;
-
-void lputs(int level, char* sbuf)
-{
-	if(level <= log_level)
-		OutputDebugString(sbuf);
-}
-
-static void lprintf(int level, const char *fmt, ...)
-{
-	char sbuf[1024];
-	va_list argptr;
-
-    va_start(argptr,fmt);
-    _vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
-    lputs(level,sbuf);
-}
-
-void _cdecl input_thread(void* arg)
-{
-	char	buf[LINEAR_RX_BUFLEN];
-	int		count;
-
-	while(1) {
-		count=0;
-		if(!ReadFile(rdslot,buf,sizeof(buf),&count,NULL)) {
-			if(GetLastError()==ERROR_HANDLE_EOF)	/* closed by VDD_CLOSE */
-				break;
-			lprintf(LOG_ERR,"!VDD_READ: ReadFile Error %d (size=%d)"
-				,GetLastError(),count);
-			continue;
-		}
-		if(count==0) {
-			lprintf(LOG_ERR,"!VDD_READ: ReadFile read 0");
-			continue;
-		}
-		RingBufWrite(&rdbuf,buf,count);
-		if(uart_ier_reg&UART_IER_RX_DATA) {	/* assert rx data interrupt */
-			uart_iir_reg=(uart_iir_reg&~(UART_IIR_INT_MASK|UART_IIR_NO_INT_PENDING))|UART_IIR_RX_DATA;
-			lprintf(LOG_DEBUG,"input_thread: VDDSimulateInterrupt, IIR: %x", uart_iir_reg);
-			VDDSimulateInterrupt(ICA_MASTER, uart_irq, 1);
-		}
-	}
-}
-
-void _cdecl output_thread(void *arg)
-{
-	while(1) {
-		if(WaitForSingleObject(output_event,10000)!=WAIT_OBJECT_0)
-			lprintf(LOG_WARNING,"WaitForSingleObject failure: %d", GetLastError());
-		if(uart_ier_reg&UART_IER_TX_EMPTY) {
-			uart_iir_reg=(uart_iir_reg&~(UART_IIR_INT_MASK|UART_IIR_NO_INT_PENDING))|UART_IIR_TX_EMPTY;
-			lprintf(LOG_DEBUG,"output_thread: VDDSimulateInterrupt, IIR: %x", uart_iir_reg);
-			VDDSimulateInterrupt(ICA_MASTER, uart_irq, 1);
-		}
-	}
-}
-
-unsigned vdd_read(BYTE* p, unsigned count)
-{
-	sem_wait(rdbuf.sem);
-	count=RingBufRead(&rdbuf,p,count);
-	if(count==0)
-		lprintf(LOG_ERR,"!VDD_READ: RingBufRead read 0");
-
-	return(count);
-}
 
 __declspec(dllexport) void __cdecl VDDDispatch(void) 
 {
 	char			str[512];
+	char			buf[5000];
 	DWORD			count;
 	DWORD			msgs;
 	int				retval;
@@ -215,18 +62,16 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 	static	DWORD	online_poll;
 	static	DWORD	status_poll;
 	static	DWORD	yields;
+	static  HANDLE	hungup_event=NULL;
+	static  HANDLE	rdslot=INVALID_HANDLE_VALUE;
+	static  HANDLE	wrslot=INVALID_HANDLE_VALUE;
+	static  RingBuf	rdbuf;
 #if defined(_DEBUG)
 	static	FILE*	fp=NULL;
 #endif
 
 	retval=0;
 	node_num=getBH();
-
-#if TRUE && defined(_DEBUG)
-	if(fp!=NULL)
-		fprintf(fp,"VDD_OP: %d\r\n",getBL());
-#endif
-	lprintf(LOG_DEBUG,"VDD_OP: %d", getBL());
 
 	switch(getBL()) {
 
@@ -238,7 +83,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 
 			sprintf(str,"\\\\.\\mailslot\\sbbsexec\\wr%d",node_num);
 			rdslot=CreateMailslot(str
-				,LINEAR_RX_BUFLEN		/* Max message size (0=any) */
+				,sizeof(buf)			/* Max message size (0=any) */
 				,MAILSLOT_WAIT_FOREVER 	/* Read timeout */
 				,NULL);
 			if(rdslot==INVALID_HANDLE_VALUE) {
@@ -294,13 +139,6 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			online_poll=0;
 			yields=0;
 
-#if defined(_DEBUG)
-			if(fp!=NULL)
-				fprintf(fp,"VDD_OPEN: Opened successfully\r\n");
-#endif
-
-			_beginthread(input_thread, 0, NULL);
-
 			retval=0;
 			break;
 
@@ -328,12 +166,43 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 		case VDD_READ:
 			count = getCX();
 #if defined(_DEBUG)
-			if(count != 1)
-				lprintf(LOG_DEBUG,"VDD_READ of %d",count);
+			if(count != 1 && fp!=NULL)
+				fprintf(fp,"VDD_READ of %d\r\n",count);
 #endif
 			p = (BYTE*) GetVDMPointer((ULONG)((getES() << 16)|getDI())
 				,count,FALSE); 
-			retval=vdd_read(p, count);
+			if(RingBufFull(&rdbuf)) {
+				retval=RingBufRead(&rdbuf,p,count);
+#if defined(_DEBUG)
+				if(retval==0 && fp!=NULL)
+					fprintf(fp,"!VDD_READ: RingBufRead read 0\r\n");
+#endif
+				reads++;
+				bytes_read+=retval;
+				break;
+			}
+			if(!ReadFile(rdslot,buf,sizeof(buf),&retval,NULL)) {
+#if defined(_DEBUG)
+				if(fp!=NULL)
+					fprintf(fp,"!VDD_READ: ReadFile Error %d (size=%d)\r\n"
+						,GetLastError(),retval);
+#endif
+				retval=0;
+				break;
+			}
+			if(retval==0) {
+#if defined(_DEBUG)
+				if(fp!=NULL)
+					fprintf(fp,"!VDD_READ: ReadFile read 0\r\n");
+#endif
+				break;
+			}
+			RingBufWrite(&rdbuf,buf,retval);
+			retval=RingBufRead(&rdbuf,p,count);
+#if defined(_DEBUG)
+			if(retval==0 && fp!=NULL)
+				fprintf(fp,"!VDD_READ: RingBufRead read 0 after write\r\n");
+#endif
 			reads++;
 			bytes_read+=retval;
 			break;
@@ -347,6 +216,27 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 
 			p = (BYTE*) GetVDMPointer((ULONG)((getES() << 16)|getDI())
 				,count,FALSE); 
+			if(RingBufFull(&rdbuf)) {
+				retval=RingBufPeek(&rdbuf,p,count);
+				break;
+			}
+			if(!ReadFile(rdslot,buf,sizeof(buf),&retval,NULL)) {
+#if defined(_DEBUG)
+				if(fp!=NULL)
+					fprintf(fp,"!VDD_PEEK: ReadFile Error %d\r\n"
+						,GetLastError());
+#endif
+				retval=0;
+				break;
+			}
+			if(retval==0) {
+#if defined(_DEBUG)
+				if(fp!=NULL)
+					fprintf(fp,"!VDD_PEEK: ReadFile read 0\r\n");
+#endif
+				break;
+			}
+			RingBufWrite(&rdbuf,buf,retval);
 			retval=RingBufPeek(&rdbuf,p,count);
 			break;
 
@@ -358,6 +248,9 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 #endif
 			p = (BYTE*) GetVDMPointer((ULONG)((getES() << 16)|getDI())
 				,count,FALSE); 
+			/* Code disabled.  Why?  ToDo */
+/*			if(fp!=NULL)
+				fwrite(p,count,1,fp); */
 			if(!WriteFile(wrslot,p,count,&retval,NULL)) {
 #if defined(_DEBUG)
 				if(fp!=NULL)
@@ -386,7 +279,22 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			status = (vdd_status_t*) GetVDMPointer((ULONG)((getES() << 16)|getDI())
 				,count,FALSE); 
 
-			status->inbuf_full=RingBufFull(&rdbuf);
+			/* INBUF FULL/SIZE */
+			if(!GetMailslotInfo(
+				rdslot,					/* mailslot handle  */
+ 				&status->inbuf_size,	/* address of maximum message size  */
+				&status->inbuf_full,	/* address of size of next message  */
+				&msgs,					/* address of number of messages  */
+ 				NULL					/* address of read time-out  */
+				)) {
+				status->inbuf_full=0;
+				status->inbuf_size=DEFAULT_MAX_MSG_SIZE;
+			}
+			if(status->inbuf_full==MAILSLOT_NO_MESSAGE)
+				status->inbuf_full=0;
+			status->inbuf_full*=msgs;
+			status->inbuf_full+=RingBufFull(&rdbuf);
+			
 
 			/* OUTBUF FULL/SIZE */
 			if(!GetMailslotInfo(
@@ -430,12 +338,30 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			break;
 
 		case VDD_INBUF_FULL:
-			retval=RingBufFull(&rdbuf);
+			if(!GetMailslotInfo(
+				rdslot,		/* mailslot handle  */
+ 				NULL,		/* address of maximum message size  */
+				&retval,	/* address of size of next message  */
+				&msgs,		/* address of number of messages  */
+ 				NULL		/* address of read time-out  */
+				))
+				retval=0;
+			if(retval==MAILSLOT_NO_MESSAGE)
+				retval=0;
+			retval*=msgs;
+			retval+=RingBufFull(&rdbuf);
 			inbuf_poll++;
 			break;
 
 		case VDD_INBUF_SIZE:
-			retval=RINGBUF_SIZE_IN;
+			if(!GetMailslotInfo(
+				rdslot,		/* mailslot handle  */
+ 				&retval,	/* address of maximum message size  */
+				NULL,		/* address of size of next message  */
+				NULL,		/* address of number of messages  */
+ 				NULL		/* address of read time-out  */
+				))
+				retval=DEFAULT_MAX_MSG_SIZE;
 			break;
 
 		case VDD_OUTBUF_FULL:
@@ -486,155 +412,8 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 	setAX((WORD)retval);
 }
 
-unsigned polls=0;
-
-VOID uart_wrport(WORD port, BYTE data)
-{
-	int reg = port - uart_io_base;
-	int retval;
-
-	lprintf(LOG_DEBUG,"write of port: %x (%s) <- %02X", port, uart_reg_desc[reg], data);
-
-	switch(reg) {
-		case UART_BASE:
-			if(uart_lcr_reg&UART_LCR_DLAB) {
-				uart_divisor_latch_lsb = data;
-				lprintf(LOG_DEBUG,"set divisor latch low byte: %02X", data);
-			} else {
-				lprintf(LOG_DEBUG,"WRITE DATA: %02X", data);
-				if(!WriteFile(wrslot,&data,sizeof(BYTE),&retval,NULL)) {
-					lprintf(LOG_ERR,"!VDD_WRITE: WriteFile Error %d (size=%d)\r\n"
-						,GetLastError(),retval);
-				} else {
-					SetEvent(output_event);
-					polls=0;
-				}
-			}
-			break;
-		case UART_IER:
-			if(uart_lcr_reg&UART_LCR_DLAB) {
-				uart_divisor_latch_msb = data;
-				lprintf(LOG_DEBUG,"set divisor latch high byte: %02X", data);
-			} else
-				uart_ier_reg = data;
-			break;
-		case UART_IIR:
-/*			uart_fcr_reg = data; */
-			break;
-		case UART_LCR:
-			uart_lcr_reg = data;
-			break;
-		case UART_MCR:
-			uart_mcr_reg = data;
-			break;
-		case UART_SCRATCH:
-			uart_scratch_reg = data;
-			break;
-		default:
-			lprintf(LOG_ERR,"UNSUPPORTED register: %u", reg);
-			break;
-			
-	}
-}
-
-VOID uart_rdport(WORD port, PBYTE data)
-{
-	int reg = port - uart_io_base;
-	static BYTE last_msr;
-	static BYTE last_lsr;
-
-	lprintf(LOG_DEBUG,"read of port: %x (%s)", port, uart_reg_desc[reg]);
-
-	switch(reg) {
-		case UART_BASE:
-			if(uart_lcr_reg&UART_LCR_DLAB)
-				*data = uart_divisor_latch_lsb;
-			else if(RingBufFull(&rdbuf)) {
-				vdd_read(data,sizeof(BYTE));
-				lprintf(LOG_DEBUG,"READ DATA: 0x%02X", *data);
-				polls=0;
-				return;
-			}
-			break;
-		case UART_IER:
-			if(uart_lcr_reg&UART_LCR_DLAB)
-				*data = uart_divisor_latch_msb;
-			else
-				*data = uart_ier_reg;
-			break;
-		case UART_IIR:
-			*data = uart_iir_reg;
-			uart_iir_reg=(uart_iir_reg&~UART_IIR_INT_MASK)|UART_IIR_NO_INT_PENDING;
-			break;
-		case UART_LCR:
-			*data = uart_lcr_reg;
-			break;
-		case UART_MCR:
-			*data = uart_mcr_reg;
-			break;
-		case UART_LSR:
-			if(RingBufFull(&rdbuf))
-				uart_lsr_reg |= UART_LSR_DATA_READY;
-			else
-				uart_lsr_reg &=~ UART_LSR_DATA_READY;
-			*data = uart_lsr_reg;
-			if(uart_lsr_reg == last_lsr) {
-#if 1
-				if(polls_before_yield && polls++>=polls_before_yield)
-					Sleep(1);
-#endif
-			} else {
-				polls=0;
-				last_lsr = uart_lsr_reg;
-			}
-			break;
-		case UART_MSR:
-			if(WaitForSingleObject(hungup_event,0)==WAIT_OBJECT_0)
-				uart_msr_reg &=~ UART_MSR_DCD;
-			else
-				uart_msr_reg |= UART_MSR_DCD;
-			*data = uart_msr_reg;
-			if(uart_msr_reg == last_msr) {
-#if 1
-				if(polls_before_yield && polls++>=polls_before_yield)
-					Sleep(1);
-#endif
-			} else {
-				polls=0;
-				last_msr = uart_msr_reg;
-			}
-			break;
-		case UART_SCRATCH:
-			*data = uart_scratch_reg;
-			break;
-		default:
-			lprintf(LOG_ERR,"UNSUPPORTED register: %u", reg);
-			break;
-	}
-
-	lprintf(LOG_DEBUG, "returning 0x%02X", *data);
-}
-
-__declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID hVDD, IN ULONG Reason, 
+__declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID DllHandle, IN ULONG Reason, 
 IN PCONTEXT Context OPTIONAL)
 {
-	VDD_IO_HANDLERS  IOHandlers = { NULL };
-	VDD_IO_PORTRANGE PortRange;
-
-	lprintf(LOG_DEBUG,"VDDInitialize, Reason: %u", Reason);
-
-	/* Reason is always 0 (DLL_PROCESS_DETACH) which doesn't jive with the
-	   Microsoft NT DDK docs */
-	IOHandlers.inb_handler = uart_rdport;
-	IOHandlers.outb_handler = uart_wrport;
-	PortRange.First=uart_io_base;
-	PortRange.Last=uart_io_base + UART_IO_RANGE;
-
-	VDDInstallIOHook(hVDD, 1, &PortRange, &IOHandlers);
-
-	output_event=CreateEvent(NULL,FALSE,FALSE,NULL);
-
-	_beginthread(output_thread, 0, NULL);
-
     return TRUE;
 }

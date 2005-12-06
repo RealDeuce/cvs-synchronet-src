@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.56 2006/01/09 23:41:13 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.55 2005/09/05 21:53:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,14 +177,14 @@ void prep_cfg(scfg_t* cfg)
 
 		/* default QWKnet tagline */
 		if(!cfg->sub[i]->tagline[0])
-			SAFECOPY(cfg->sub[i]->tagline,cfg->qnet_tagline);
+			strcpy(cfg->sub[i]->tagline,cfg->qnet_tagline);
 
 		/* default origin line */
 		if(!cfg->sub[i]->origline[0])
-			SAFECOPY(cfg->sub[i]->origline,cfg->origline);
+			strcpy(cfg->sub[i]->origline,cfg->origline);
 
 		/* A sub-board's internal code is the combination of the grp's code_prefix & the sub's code_suffix */
-		SAFEPRINTF2(cfg->sub[i]->code,"%s%s"
+		sprintf(cfg->sub[i]->code,"%s%s"
 			,cfg->grp[cfg->sub[i]->grp]->code_prefix
 			,cfg->sub[i]->code_suffix);
 
