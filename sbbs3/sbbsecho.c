@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.176 2006/04/05 09:45:21 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.175 2005/11/17 02:15:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2069,8 +2069,6 @@ time_t fmsgtime(char *str)
 	struct tm tm;
 
 	memset(&tm,0,sizeof(tm));
-	tm.tm_isdst=-1;	/* Do not adjust for DST */
-
 	if(isdigit(str[1])) {	/* Regular format: "01 Jan 86  02:34:56" */
 		tm.tm_mday=atoi(str);
 		sprintf(month,"%3.3s",str+3);
@@ -3893,7 +3891,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.176 $", "%*s %s", revision);
+	sscanf("$Revision: 1.175 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
