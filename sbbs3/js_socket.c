@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.115 2006/05/10 22:26:51 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.109 2005/10/14 01:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -433,6 +433,7 @@ static JSBool
 js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		fname;
+	char*		buf;
 	long		len;
 	int			file;
 	JSString*	str;
@@ -454,9 +455,7 @@ js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((file=nopen(fname,O_RDONLY|O_BINARY))==-1)
 		return(JS_TRUE);
 
-#if 0
 	len=filelength(file);
-	/* TODO: Probobly too big for alloca()... also, this is insane. */
 	if((buf=malloc(len))==NULL) {
 		close(file);
 		return(JS_TRUE);
@@ -476,16 +475,6 @@ js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
 	}
 	free(buf);
-#else
-	len = sendfilesocket(p->sock, file, NULL, 0);
-	if(len > 0) {
-		dbprintf(FALSE, p, "sent %u bytes",len);
-		*rval = JSVAL_TRUE;
-	} else {
-		p->last_error=ERROR_VALUE;
-		dbprintf(TRUE, p, "send of %s failed",fname);
-	}
-#endif
 
 	return(JS_TRUE);
 }
@@ -563,13 +552,14 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
-	if((buf=(char*)alloca(len+1))==NULL) {
+	if((buf=(char*)malloc(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 
 	len = recv(p->sock,buf,len,0);
 	if(len<0) {
+		free(buf);
 		p->last_error=ERROR_VALUE;
 		*rval = JSVAL_NULL;
 		return(JS_TRUE);
@@ -577,6 +567,7 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	buf[len]=0;
 
 	str = JS_NewStringCopyN(cx, buf, len);
+	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -655,19 +646,21 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	} else {		/* String Data */
 
-		if((buf=(char*)alloca(len+1))==NULL) {
+		if((buf=(char*)malloc(len+1))==NULL) {
 			JS_ReportError(cx,"Error allocating %u bytes",len+1);
 			return(JS_FALSE);
 		}
 
 		len = recvfrom(p->sock,buf,len,0,(SOCKADDR*)&addr,&addrlen);
 		if(len<0) {
+			free(buf);
 			p->last_error=ERROR_VALUE;
 			return(JS_TRUE);
 		}
 		buf[len]=0;
 
 		str = JS_NewStringCopyN(cx, buf, len);
+		free(buf);
 
 		if(str==NULL)
 			return(JS_FALSE);
@@ -711,7 +704,7 @@ static JSBool
 js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		buf;
-	int32		len=512;
+	int32		len;
 	JSString*	str;
 
 	private_t*	p;
@@ -724,12 +717,13 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
-	if((buf=(char*)alloca(len+1))==NULL) {
+	if((buf=(char*)malloc(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 	len = recv(p->sock,buf,len,MSG_PEEK);
 	if(len<0) {
+		free(buf);
 		p->last_error=ERROR_VALUE;	
 		*rval = JSVAL_NULL;
 		return(JS_TRUE);
@@ -737,6 +731,7 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	buf[len]=0;
 
 	str = JS_NewStringCopyN(cx, buf, len);
+	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -768,7 +763,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
-	if((buf=(char*)alloca(len+1))==NULL) {
+	if((buf=(char*)malloc(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
@@ -786,6 +781,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		if(!rd) {
 			if(time(NULL)-start>timeout) {
+				free(buf);
 				dbprintf(FALSE, p, "recvline timeout (received: %d)",i);
 				*rval = JSVAL_NULL;
 				return(JS_TRUE);	/* time-out */
@@ -809,6 +805,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		buf[i]=0;
 
 	str = JS_NewStringCopyZ(cx, buf);
+	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -872,38 +869,26 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 {
 	int			opt;
 	int			level;
+	socklen_t	len;
 	int			val;
 	private_t*	p;
-	LINGER		linger;
-	void*		vp=&val;
-	socklen_t	len=sizeof(val);
-
-	*rval = INT_TO_JSVAL(-1);
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	if((opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level)) == -1)
-		return(JS_TRUE);
+	opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
+	len = sizeof(val);
 
-	if(opt == SO_LINGER) {
-		vp=&linger;
-		len=sizeof(linger);
-	}
-	if(getsockopt(p->sock, level, opt, vp, &len)==0) {
-		if(opt == SO_LINGER) {
-			if(linger.l_onoff==TRUE)
-				val = linger.l_linger;
-			else
-				val = 0;
-		}
+	if(opt!=-1 && getsockopt(p->sock, level, opt, (void*)&val, &len)==0) {
+		dbprintf(FALSE, p, "option %d = %d",opt,val);
 		JS_NewNumberValue(cx,val,rval);
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "error %d getting option %d"
 			,ERROR_VALUE,opt);
+		*rval = INT_TO_JSVAL(-1);
 	}
 
 	return(JS_TRUE);
@@ -917,10 +902,6 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	int			level;
 	int32		val=1;
 	private_t*	p;
-	LINGER		linger;
-	void*		vp=&val;
-	socklen_t	len=sizeof(val);
-
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -930,19 +911,8 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
 	JS_ValueToInt32(cx,argv[1],&val);
 
-	if(opt == SO_LINGER) {
-		if(val) {
-			linger.l_onoff = TRUE;
-			linger.l_linger = (ushort)val;
-		} else {
-			ZERO_VAR(linger);
-		}
-		vp=&linger;
-		len=sizeof(linger);
-	}
-
 	*rval = BOOLEAN_TO_JSVAL(
-		setsockopt(p->sock, level, opt, vp, len)==0);
+		setsockopt(p->sock, level, opt, (char*)&val, sizeof(val))==0);
 	p->last_error=ERROR_VALUE;
 
 	return(JS_TRUE);
@@ -1043,7 +1013,7 @@ enum {
 
 };
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 static char* socket_prop_desc[] = {
 	 "error status for the last socket operation that failed - <small>READ ONLY</small>"
 	,"<i>true</i> if socket is in a connected state - <small>READ ONLY</small>"
@@ -1252,16 +1222,16 @@ static jsSyncMethodSpec js_socket_functions[] = {
 		"optionally specifying a network interface (via <i>ip_address</i>)")
 	,311
 	},
-	{"connect",     js_connect,     2,	JSTYPE_BOOLEAN,	JSDOCSTR("host, port [,timeout=<tt>10.0</tt>]")
+	{"connect",     js_connect,     2,	JSTYPE_BOOLEAN,	JSDOCSTR("host, port [,timeout]")
 	,JSDOCSTR("connect to a remote port (number or service name) on the specified host (IP address or host name)"
 	", default <i>timeout</i> value is <i>10.0</i> (seconds)")
 	,311
 	},
-	{"listen",		js_listen,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	{"listen",		js_listen,		0,	JSTYPE_BOOLEAN,	""					
 	,JSDOCSTR("place socket in a state to listen for incoming connections (use before an accept)")
 	,310
 	},
-	{"accept",		js_accept,		0,	JSTYPE_OBJECT,	JSDOCSTR("")					
+	{"accept",		js_accept,		0,	JSTYPE_OBJECT,	""					
 	,JSDOCSTR("accept an incoming connection, returns a new <i>Socket</i> object representing the new connection")
 	,310
 	},
@@ -1274,38 +1244,38 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	,JSDOCSTR("send data to a specific host (IP address or host name) and port (number or service name), for UDP sockets")
 	,310
 	},
-	{"sendfile",	js_sendfile,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
+	{"sendfile",	js_sendfile,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
 	,JSDOCSTR("send an entire file over the socket")
 	,310
 	},
 	{"writeBin",	js_sendbin,		1,	JSTYPE_ALIAS },
-	{"sendBin",		js_sendbin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("value [,bytes=<tt>4</tt>]")
+	{"sendBin",		js_sendbin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("number value [,number bytes]")
 	,JSDOCSTR("send a binary integer over the socket, default number of bytes is 4 (32-bits)")
 	,311
 	},
 	{"read",		js_recv,		1,	JSTYPE_ALIAS },
-	{"recv",		js_recv,		1,	JSTYPE_STRING,	JSDOCSTR("[maxlen=<tt>512</tt>]")
+	{"recv",		js_recv,		1,	JSTYPE_STRING,	JSDOCSTR("[maxlen]")
 	,JSDOCSTR("receive a string, default maxlen is 512 characters (AKA read)")
 	,310
 	},
-	{"peek",		js_peek,		0,	JSTYPE_STRING,	JSDOCSTR("[maxlen=<tt>512</tt>]")
+	{"peek",		js_peek,		0,	JSTYPE_STRING,	JSDOCSTR("[maxlen]")
 	,JSDOCSTR("receive a string, default maxlen is 512 characters, leaves string in receive buffer")
 	,310
 	},
 	{"readline",	js_recvline,	0,	JSTYPE_ALIAS },
 	{"readln",		js_recvline,	0,	JSTYPE_ALIAS },
-	{"recvline",	js_recvline,	0,	JSTYPE_STRING,	JSDOCSTR("[maxlen=<tt>512</tt>] [,timeout=<tt>30.0</tt>]")
+	{"recvline",	js_recvline,	0,	JSTYPE_STRING,	JSDOCSTR("[maxlen] [,timeout]")
 	,JSDOCSTR("receive a line-feed terminated string, default maxlen is 512 characters, default timeout is 30 seconds (AKA readline and readln)")
 	,310
 	},
-	{"recvfrom",	js_recvfrom,	0,	JSTYPE_OBJECT,	JSDOCSTR("[binary=<tt>false</tt>] [,maxlen=<tt>512</tt> or int_size=<tt>4</tt>]")
+	{"recvfrom",	js_recvfrom,	0,	JSTYPE_OBJECT,	JSDOCSTR("[bool binary] [,maxlen or int_size]")
 	,JSDOCSTR("receive data (string or integer) from a socket (typically UDP)"
 	"<p>returns object with <i>ip_address</i> and <i>port</i> of sender along with <i>data</i>"
 	"<p><i>binary</i> defaults to <i>false</i>, <i>maxlen</i> defaults to 512 chars, <i>int_size</i> defaults to 4 bytes (32-bits)")
 	,311
 	},
 	{"readBin",		js_recvbin,		0,	JSTYPE_ALIAS },
-	{"recvBin",		js_recvbin,		0,	JSTYPE_NUMBER,	JSDOCSTR("[bytes=<tt>4</tt>]")
+	{"recvBin",		js_recvbin,		0,	JSTYPE_NUMBER,	JSDOCSTR("[number bytes]")
 	,JSDOCSTR("receive a binary integer from the socket, default number of bytes is 4 (32-bits)")
 	,311
 	},
@@ -1319,11 +1289,11 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	"(see <tt>sockopts</tt> in <tt>sockdefs.js</tt>) or number")
 	,310
 	},
-	{"ioctl",		js_ioctlsocket,	1,	JSTYPE_NUMBER,	JSDOCSTR("command [,argument=<tt>0</tt>]")
+	{"ioctl",		js_ioctlsocket,	1,	JSTYPE_NUMBER,	JSDOCSTR("command [,argument]")
 	,JSDOCSTR("send socket IOCTL (advanced)")					
 	,310
 	},
-	{"poll",		js_poll,		1,	JSTYPE_NUMBER,	JSDOCSTR("[timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
+	{"poll",		js_poll,		1,	JSTYPE_NUMBER,	JSDOCSTR("[number timeout] [,bool write]")
 	,JSDOCSTR("poll socket for read or write ability (default is <i>read</i>), "
 	"default timeout value is 0.0 seconds (immediate timeout)")
 	,310
@@ -1406,7 +1376,7 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 		return(JS_FALSE);
 	}
 
-#ifdef BUILD_JSDOCS
+#ifdef _DEBUG
 	js_DescribeSyncObject(cx,obj,"Class used for TCP/IP socket communications",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new Socket object: "
 		"<tt>load('sockdefs.js'); var s = new Socket(<i>type</i>)</tt><br>"

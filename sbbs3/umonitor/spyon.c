@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id: spyon.c,v 1.7 2006/05/08 18:58:21 deuce Exp $ */
+/* $Id: spyon.c,v 1.5 2005/07/03 04:25:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,18 +72,14 @@ int spyon(char *sockname)  {
 	
 	spy_name.sun_family=AF_UNIX;
 	SAFECOPY(spy_name.sun_path,sockname);
-#ifdef SUN_LEN
 	spy_len=SUN_LEN(&spy_name);
-#else
-	spy_len=sizeof(struct sockaddr_un);
-#endif
 	if(connect(spy_sock,(struct sockaddr *)&spy_name,spy_len))  {
 		return(SPY_NOCONNECT);
 	}
 	i=1;
 
 	gettextinfo(&ti);
-	scrn=(char *)alloca(ti.screenwidth*ti.screenheight*2);
+	scrn=(char *)malloc(ti.screenwidth*ti.screenheight*2);
 	gettext(1,1,ti.screenwidth,ti.screenheight,scrn);
 	textcolor(YELLOW);
 	textbackground(BLUE);
