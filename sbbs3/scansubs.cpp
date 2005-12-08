@@ -2,13 +2,13 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.12 2006/02/02 08:35:14 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.11 2005/06/24 17:36:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -60,11 +60,11 @@ void sbbs_t::scansubs(long mode)
 				return;
 			if(i) { 			/* if titles only */
 				if(ch=='S') {
-					found=listsub(usrsub[curgrp][cursub[curgrp]],SCAN_FIND,0,str);
+					found=searchsub(usrsub[curgrp][cursub[curgrp]],str);
 					subs_scanned++;
 				} else if(ch=='G')
 					for(i=0;i<usrsubs[curgrp] && !msgabort();i++) {
-						found=listsub(usrsub[curgrp][i],SCAN_FIND,0,str);
+						found=searchsub(usrsub[curgrp][i],str);
 						subs_scanned++;
 					}
 				sprintf(tmp,"%s searched %lu sub-boards for '%s'"
@@ -75,10 +75,10 @@ void sbbs_t::scansubs(long mode)
 				return; } }
 		else if(mode&SCAN_TOYOU && i) {
 			if(ch=='S')
-				found=listsub(usrsub[curgrp][cursub[curgrp]],SCAN_TOYOU,0,NULL);
+				found=searchsub_toyou(usrsub[curgrp][cursub[curgrp]]);
 			else if(ch=='G')
 				for(i=0;i<usrsubs[curgrp] && !msgabort();i++)
-					found=listsub(usrsub[curgrp][i],SCAN_TOYOU,0,NULL);
+					found=searchsub_toyou(usrsub[curgrp][i]);
 			if(!found)
 				CRLF;
 			return; } }
@@ -133,7 +133,7 @@ void sbbs_t::scanallsubs(long mode)
 			if(i) { 			/* if titles only */
 				for(i=0;i<usrgrps;i++) {
 					for(j=0;j<usrsubs[i] && !msgabort();j++) {
-						found=listsub(usrsub[i][j],SCAN_FIND,0,str);
+						found=searchsub(usrsub[i][j],str);
 						subs_scanned++;
 					}
 					if(j<usrsubs[i])
@@ -148,7 +148,7 @@ void sbbs_t::scanallsubs(long mode)
 		else if(mode&SCAN_TOYOU && i) {
 			for(i=0;i<usrgrps;i++) {
 				for(j=0;j<usrsubs[i] && !msgabort();j++) 
-					found=listsub(usrsub[i][j],SCAN_TOYOU,0,NULL);
+					found=searchsub_toyou(usrsub[i][j]);
 				if(j<usrsubs[i])
 					break; 
 			}
