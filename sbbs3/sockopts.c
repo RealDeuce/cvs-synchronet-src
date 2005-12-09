@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.ini */
 
-/* $Id: sockopts.c,v 1.22 2005/10/13 22:43:58 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.23 2005/10/19 09:06:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,20 +47,20 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* protocol, c
 	str_list_t	list;
 	socklen_t	len;
 
+	len = sizeof(type);
+	result=getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
+	if(result) {
+		safe_snprintf(error,errlen,"%d getting socket option type (%d)"
+			,ERROR_VALUE, SO_TYPE);
+		return(result);
+	}
+
 	/* Set user defined socket options */
 	iniFileName(cfgfile,sizeof(cfgfile),cfg->ctrl_dir,"sockopts.ini");
 	if((fp=iniOpenFile(cfgfile,FALSE))==NULL)
 		return(0);
 	list=iniReadFile(fp);
 	fclose(fp);
-
-	len = sizeof(type);
-	result=getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
-	if(result) {
-		sprintf(error,"%d getting socket option (TYPE, %d)"
-			,ERROR_VALUE, SO_TYPE);
-		return(result);
-	}
 
 	result=iniGetSocketOptions(list,ROOT_SECTION,sock,error,errlen);
 
