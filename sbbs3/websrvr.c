@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.372 2005/11/29 19:33:25 deuce Exp $ */
+/* $Id: websrvr.c,v 1.373 2005/12/12 23:54:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3291,6 +3291,7 @@ static BOOL js_setup(http_session_t* session)
 {
 	JSObject*	argv;
 
+#ifndef ONE_JS_RUNTIME
 	if(session->js_runtime == NULL) {
 		lprintf(LOG_INFO,"%04d JavaScript: Creating runtime: %lu bytes"
 			,session->socket,startup->js.max_bytes);
@@ -3300,6 +3301,7 @@ static BOOL js_setup(http_session_t* session)
 			return(FALSE);
 		}
 	}
+#endif
 
 	if(session->js_cx==NULL) {	/* Context not yet created, create it now */
 		if(((session->js_cx=js_initcx(session))==NULL)) {
@@ -3804,11 +3806,13 @@ void http_session_thread(void* arg)
 		session.js_cx=NULL;
 	}
 
+#ifndef ONE_JS_RUNTIME
 	if(session.js_runtime!=NULL) {
 		lprintf(LOG_INFO,"%04d JavaScript: Destroying runtime",socket);
 		JS_DestroyRuntime(session.js_runtime);
 		session.js_runtime=NULL;
 	}
+#endif
 
 	FREE_AND_NULL(session.subscan);
 
@@ -3884,7 +3888,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.372 $", "%*s %s", revision);
+	sscanf("$Revision: 1.373 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4015,6 +4019,9 @@ void DLLCALL web_server(void* arg)
 	http_session_t *	session;
 	struct timeval tv;
 	startup=(web_startup_t*)arg;
+#ifdef ONE_JS_RUNTIME
+	JSRuntime*      js_runtime;
+#endif
 
 	web_ver();	/* get CVS revision */
 
@@ -4223,6 +4230,21 @@ void DLLCALL web_server(void* arg)
 			_beginthread(http_logging_thread, 0, startup->logfile_base);
 		}
 
+#ifdef ONE_JS_RUNTIME
+	    if(js_runtime == NULL) {
+    	    lprintf(LOG_INFO,"%04d JavaScript: Creating runtime: %lu bytes"
+        	    ,server_socket,startup->js.max_bytes);
+
+    	    if((js_runtime=JS_NewRuntime(startup->js.max_bytes))==NULL) {
+        	    lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",server_socket);
+				/* Sleep 15 seconds then try again */
+				/* ToDo: Something better should be used here. */
+				SLEEP(15000);
+				continue;
+        	}
+    	}
+#endif
+
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","web");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
@@ -4356,6 +4378,9 @@ void DLLCALL web_server(void* arg)
 			session->js_branch.limit=startup->js.branch_limit;
 			session->js_branch.gc_interval=startup->js.gc_interval;
 			session->js_branch.yield_interval=startup->js.yield_interval;
+#ifdef ONE_JS_RUNTIME
+			session->js_runtime=js_runtime;
+#endif
 
 			_beginthread(http_session_thread, 0, session);
 			served++;
@@ -4394,6 +4419,14 @@ void DLLCALL web_server(void* arg)
 				mswait(100);
 			}
 		}
+
+#ifdef ONE_JS_RUNTIME
+    	if(session.js_runtime!=NULL) {
+        	lprintf(LOG_INFO,"%04d JavaScript: Destroying runtime",server_socket);
+        	JS_DestroyRuntime(js_runtime);
+    	    js_runtime=NULL;
+	    }
+#endif
 
 		cleanup(0);
 
