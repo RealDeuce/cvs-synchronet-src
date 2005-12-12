@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.93 2005/10/19 07:13:03 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.94 2005/10/19 07:18:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -717,8 +717,11 @@ str_list_t iniGetStringList(str_list_t list, const char* section, const char* ke
 
 	get_value(list, section, key, value);
 
-	if(*value==0 /* blank value or missing key */)
+	if(*value==0 /* blank value or missing key */) {
+		if(deflt==NULL)
+			return(NULL);
 		SAFECOPY(value,deflt);
+	}
 
 	return(splitList(value,sep));
 }
