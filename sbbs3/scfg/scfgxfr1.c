@@ -1,6 +1,6 @@
 /* scfgxfr1.c */
 
-/* $Id: scfgxfr1.c,v 1.16 2005/11/27 23:34:28 deuce Exp $ */
+/* $Id: scfgxfr1.c,v 1.17 2005/12/13 06:44:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1042,7 +1042,7 @@ multiple CD-ROMs or hard disks.
 					uifc.changes=1;
 					continue; }
 				sprintf(str,"Path %d",i+1);
-				uifc.input(WIN_MID|WIN_SAV,0,0,str,cfg.altpath[i],sizeof(cfg.altpath[i])-1,K_EDIT); 
+				uifc.input(WIN_MID|WIN_SAV,0,0,str,cfg.altpath[i],LEN_DIR,K_EDIT); 
 			}
 			break; 
 		} 
