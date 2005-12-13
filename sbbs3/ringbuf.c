@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.19 2005/10/20 22:34:07 rswindell Exp $ */
+/* $Id: ringbuf.c,v 1.27 2005/10/21 21:52:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,7 @@
 #endif
 
 #include "ringbuf.h"
+#include "genwrap.h"	/* SLEEP() */
 
 #ifdef RINGBUF_USE_STD_RTL
 
@@ -113,15 +114,22 @@ void RINGBUFCALL RingBufDispose( RingBuf* rb)
 		os_free(rb->pStart);
 #ifdef RINGBUF_SEM
 	sem_post(&rb->sem);			/* just incase someone's waiting */
-	sem_destroy(&rb->sem);
-	sem_destroy(&rb->highwater_sem);
+	while(sem_destroy(&rb->sem)==-1 && errno==EBUSY) {
+		SLEEP(1);
+		sem_post(&rb->sem);
+	}
+	while(sem_destroy(&rb->highwater_sem)==-1 && errno==EBUSY) {
+		SLEEP(1);
+		sem_post(&rb->highwater_sem);
+	}
 #endif
 #ifdef RINGBUF_EVENT
 	if(rb->empty_event!=NULL)
 		CloseEvent(rb->empty_event);
 #endif
 #ifdef RINGBUF_MUTEX
-	pthread_mutex_destroy(&rb->mutex);
+	while(pthread_mutex_destroy(&rb->mutex)==EBUSY)
+		SLEEP(1);
 #endif
 	memset(rb,0,sizeof(RingBuf));
 }
@@ -227,13 +235,11 @@ DWORD RINGBUFCALL RingBufRead( RingBuf* rb, BYTE* dst,  DWORD cnt )
 {
 	DWORD max, first, remain, len;
 
-	len = RingBufFull( rb );
-	if( len == 0 )
-		return(0);
-
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_lock(&rb->mutex);
 #endif
+
+	len = RINGBUF_FILL_LEVEL(rb);
 
 	if( len < cnt )
         cnt = len;
@@ -249,7 +255,7 @@ DWORD RINGBUFCALL RingBufRead( RingBuf* rb, BYTE* dst,  DWORD cnt )
 		remain = cnt - first;
 	}
 
-    if(dst!=NULL) {
+    if(first && dst!=NULL) {
 		rb_memcpy( dst, rb->pTail, first );
 		dst += first;
     }
@@ -267,14 +273,14 @@ DWORD RINGBUFCALL RingBufRead( RingBuf* rb, BYTE* dst,  DWORD cnt )
 		rb->pTail = rb->pStart;
 
 #ifdef RINGBUF_SEM		/* clear/signal semaphores, if appropriate */
-	if(len-cnt==0)		/* empty */
+	if(RINGBUF_FILL_LEVEL(rb) == 0)		/* empty */
 		sem_reset(&rb->sem);
-	if(len-cnt<rb->highwater_mark)
+	if(RINGBUF_FILL_LEVEL(rb) < rb->highwater_mark)
 		sem_reset(&rb->highwater_sem);
 #endif
 
 #ifdef RINGBUF_EVENT
-	if(rb->empty_event!=NULL && len-cnt==0)
+	if(rb->empty_event!=NULL && RINGBUF_FILL_LEVEL(rb)==0)
 		SetEvent(rb->empty_event);
 #endif
 
