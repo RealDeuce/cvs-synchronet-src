@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.375 2005/12/13 21:05:53 deuce Exp $ */
+/* $Id: websrvr.c,v 1.376 2005/12/13 21:10:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -754,11 +754,6 @@ static void close_request(http_session_t * session)
 	/* Force the output thread to go NOW */
 	sem_post(&(session->outbuf.highwater_sem));
 
-	/* Wait for the drain */
-	/* ToDo: This should probobly timeout eventually... */
-	while(RingBufFull(&session->outbuf))
-		SLEEP(1);
-
 	if(session->req.ld!=NULL) {
 		now=time(NULL);
 		localtime_r(&now,&session->req.ld->completed);
@@ -775,6 +770,10 @@ static void close_request(http_session_t * session)
 	FREE_AND_NULL(session->req.cgi_dir);
 	FREE_AND_NULL(session->req.realm);
 	if(!session->req.keep_alive) {
+		/* Wait for the drain */
+		/* ToDo: This should probobly timeout eventually... */
+		while(RingBufFull(&session->outbuf))
+			SLEEP(1);
 		close_socket(session->socket);
 		session->socket=INVALID_SOCKET;
 	}
@@ -3894,7 +3893,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.375 $", "%*s %s", revision);
+	sscanf("$Revision: 1.376 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
