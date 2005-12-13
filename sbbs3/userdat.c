@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.100 2006/04/25 00:55:32 rswindell Exp $ */
+/* $Id: userdat.c,v 1.97 2005/10/02 23:53:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1246,46 +1246,6 @@ int DLLCALL putnmsg(scfg_t* cfg, int num, char *strin)
 	return(0);
 }
 
-static int getdirnum(scfg_t* cfg, char* code)
-{
-	size_t i;
-
-	for(i=0;i<cfg->total_dirs;i++)
-		if(stricmp(cfg->dir[i]->code,code)==0)
-			return(i);
-	return(-1);
-}
-
-static int getlibnum(scfg_t* cfg, char* code)
-{
-	size_t i;
-
-	for(i=0;i<cfg->total_dirs;i++)
-		if(stricmp(cfg->dir[i]->code,code)==0)
-			return(cfg->dir[i]->lib);
-	return(-1);
-}
-
-static int getsubnum(scfg_t* cfg, char* code)
-{
-	size_t i;
-
-	for(i=0;i<cfg->total_subs;i++)
-		if(stricmp(cfg->sub[i]->code,code)==0)
-			return(i);
-	return(-1);
-}
-
-static int getgrpnum(scfg_t* cfg, char* code)
-{
-	size_t i;
-
-	for(i=0;i<cfg->total_subs;i++)
-		if(stricmp(cfg->sub[i]->code,code)==0)
-			return(cfg->sub[i]->grp);
-	return(-1);
-}
-
 static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 {
 	BOOL	result,not,or,equal;
@@ -1486,67 +1446,28 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				break;
 			case AR_GROUP:
-				if(user==NULL)
-					result=not;
-				else {
-					l=getgrpnum(cfg,user->cursub);
-					if((equal && l!=i) || (!equal && l<i))
-						result=not;
-					else
-						result=!not;
-				}
+				result=not;
 				(*ptrptr)++;
 				break;
 			case AR_SUB:
-				if(user==NULL)
-					result=not;
-				else {
-					l=getsubnum(cfg,user->cursub);
-					if((equal && l!=i) || (!equal && l<i))
-						result=not;
-					else
-						result=!not;
-				}
+				result=not;
 				(*ptrptr)++;
 				break;
 			case AR_SUBCODE:
-				if(user!=NULL && stricmp(user->cursub,(char *)*ptrptr)==0)
-					result=!not;
-				else
-					result=not;
 				result=not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
 				break;
 			case AR_LIB:
-				if(user==NULL)
-					result=not;
-				else {
-					l=getlibnum(cfg,user->curdir);
-					if((equal && l!=i) || (!equal && l<i))
-						result=not;
-					else
-						result=!not;
-				}
+				result=not;
 				(*ptrptr)++;
 				break;
 			case AR_DIR:
-				if(user==NULL)
-					result=not;
-				else {
-					l=getdirnum(cfg,user->curdir);
-					if((equal && l!=i) || (!equal && l<i))
-						result=not;
-					else
-						result=!not;
-				}
+				result=not;
 				(*ptrptr)++;
 				break;
 			case AR_DIRCODE:
-				if(user!=NULL && stricmp(user->curdir,(char *)*ptrptr)==0)
-					result=!not;
-				else
-					result=not;
+				result=not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
 				break;
@@ -1952,76 +1873,6 @@ void DLLCALL subtract_cdt(scfg_t* cfg, user_t* user, long amt)
 	}
 	else    /* no free credits */
 		user->cdt=adjustuserrec(cfg, user->number,U_CDT,10,-amt);
-}
-
-BOOL DLLCALL user_posted_msg(scfg_t* cfg, user_t* user, int count)
-{
-	if(user==NULL)
-		return(FALSE);
-
-	user->posts	=(ushort)adjustuserrec(cfg, user->number, U_POSTS, 5, count);
-	user->ptoday=(ushort)adjustuserrec(cfg, user->number, U_PTODAY, 5, count);
-
-	return(TRUE);
-}
-
-BOOL DLLCALL user_sent_email(scfg_t* cfg, user_t* user, int count, BOOL feedback)
-{
-	if(user==NULL)
-		return(FALSE);
-
-	if(feedback)
-		user->fbacks=(ushort)adjustuserrec(cfg, user->number, U_FBACKS, 5, count);
-	else
-		user->emails=(ushort)adjustuserrec(cfg, user->number, U_EMAILS, 5, count);
-	user->etoday=(ushort)adjustuserrec(cfg, user->number, U_ETODAY, 5, count);
-
-	return(TRUE);
-}
-
-BOOL DLLCALL user_downloaded(scfg_t* cfg, user_t* user, int files, long bytes)
-{
-	if(user==NULL)
-		return(FALSE);
-
-	user->dls=(ushort)adjustuserrec(cfg, user->number, U_DLS, 5, files);
-	user->dlb=adjustuserrec(cfg, user->number, U_DLB, 10, bytes);
-
-	return(TRUE);
-}
-
-BOOL DLLCALL user_uploaded(scfg_t* cfg, user_t* user, int files, long bytes)
-{
-	if(user==NULL)
-		return(FALSE);
-
-	user->uls=(ushort)adjustuserrec(cfg, user->number, U_ULS, 5, files);
-	user->ulb=adjustuserrec(cfg, user->number, U_ULB, 10, bytes);
-
-	return(TRUE);
-}
-
-BOOL DLLCALL user_adjust_credits(scfg_t* cfg, user_t* user, long amount)
-{
-	if(user==NULL)
-		return(FALSE);
-
-	if(amount<0)	/* subtract */
-		subtract_cdt(cfg, user, -amount);
-	else			/* add */
-		user->cdt=adjustuserrec(cfg, user->number, U_CDT, 10, amount);
-
-	return(TRUE);
-}
-
-BOOL DLLCALL user_adjust_minutes(scfg_t* cfg, user_t* user, long amount)
-{
-	if(user==NULL)
-		return(FALSE);
-
-	user->min=adjustuserrec(cfg, user->number, U_MIN, 10, amount);
-
-	return(TRUE);
 }
 
 /****************************************************************************/
