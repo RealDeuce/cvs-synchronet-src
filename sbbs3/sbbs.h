@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.266 2005/10/16 21:25:32 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.269 2005/12/13 02:24:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,6 +255,8 @@ public:
 	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
+    int     keybuftop,keybufbot;    /* Keyboard input buffer pointers (for ungetkey) */
+	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */ 
 	char *	connection;		/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
@@ -929,10 +931,10 @@ extern "C" {
 		,JSTYPE_UNDEF
 	};
 
-	#ifdef _DEBUG	/* String compiled into debug build only, for JS documentation generation */
+	#ifdef BUILD_JSDOCS	/* String compiled into debug build only, for JS documentation generation */
 		#define	JSDOCSTR(s)	s
 	#else
-		#define JSDOCSTR(s)	""
+		#define JSDOCSTR(s)	NULL
 	#endif
 
 	/* main.cpp */
@@ -1026,6 +1028,9 @@ extern "C" {
 
 	/* js_bbs.cpp */
 	JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent);
+
+	/* js_uifc.c */
+	JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent);
 
 #endif
 
