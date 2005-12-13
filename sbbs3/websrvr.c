@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.376 2005/12/13 21:10:04 deuce Exp $ */
+/* $Id: websrvr.c,v 1.377 2005/12/13 21:45:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1137,6 +1137,11 @@ static void send_error(http_session_t * session, const char* message)
 				session->req.ld->size=strlen(sbuf);
 		}
 	}
+	/* Force the output thread to go NOW */
+	sem_post(&(session->outbuf.highwater_sem));
+	/* ToDo: This should probobly timeout eventually... */
+	while(RingBufFull(&session->outbuf))
+		SLEEP(1);
 	session->req.finished=TRUE;
 }
 
@@ -3893,7 +3898,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.376 $", "%*s %s", revision);
+	sscanf("$Revision: 1.377 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
