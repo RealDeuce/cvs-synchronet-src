@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.70 2006/03/01 00:50:19 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.67 2005/12/01 00:30:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -238,35 +238,27 @@ unsigned DLLCALL xp_randomize(void)
 {
 	unsigned seed=~0;
 
-#if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
+#if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
 	int     rf;
 
-	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
+	if((rf=open(RANDOM_DEV, O_RDONLY))!=-1) {
 		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
-	else {
-#endif
-		unsigned curtime	= (unsigned)time(NULL);
-		unsigned process_id = (unsigned)GetCurrentProcessId();
-
-		seed = curtime ^ BYTE_SWAP_INT(process_id);
-
-		#if defined(_WIN32) || defined(GetCurrentThreadId)
-			seed ^= (unsigned)GetCurrentThreadId();
-		#endif
-
-#if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
-	}
-#endif
-
-#ifdef HAS_RANDOM_FUNC
- 	srandom(seed);
-	return(seed);
 #else
+	unsigned curtime	= (unsigned)time(NULL);
+	unsigned process_id = (unsigned)GetCurrentProcessId();
+
+	seed = curtime ^ BYTE_SWAP_INT(process_id);
+
+	#if defined(_WIN32) || defined(GetCurrentThreadId)
+		seed ^= (unsigned)GetCurrentThreadId();
+	#endif
+
+#endif
+
  	srand(seed);
 	return(seed);
-#endif
 }
 
 /****************************************************************************/
@@ -274,19 +266,13 @@ unsigned DLLCALL xp_randomize(void)
 /****************************************************************************/
 int DLLCALL xp_random(int n)
 {
-#ifdef HAS_RANDOM_FUNC
-	if(n<2)
-		return(0);
-	return(random()%n);
-#else
-	float f=0;
+	float f;
 
 	if(n<2)
 		return(0);
 	f=(float)rand()/(float)RAND_MAX;
 
 	return((int)(n*f));
-#endif
 }
 
 /****************************************************************************/
@@ -369,22 +355,6 @@ char* DLLCALL os_version(char *str)
 #endif
 
 	return(str);
-}
-
-char* DLLCALL os_cmdshell(void)
-{
-	char*	shell=getenv(OS_CMD_SHELL_ENV_VAR);
-
-#if !defined(__unix__)
-	if(shell==NULL)
-#ifdef _PATH_BSHELL
-		shell=_PATH_BSHELL;
-#else
-		shell="/bin/sh";
-#endif
-#endif
-
-	return(shell);
 }
 
 #if !defined(__unix__)
