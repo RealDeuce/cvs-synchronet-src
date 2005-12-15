@@ -1,10 +1,10 @@
-/* $Id: nopen.h,v 1.2 2006/01/13 08:48:25 rswindell Exp $ */
+/* $Id: nopen.h,v 1.1 2005/06/13 02:33:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,7 +41,7 @@ extern "C" {
 int		nopen(const char* str, int access);
 FILE *	fnopen(int* file, const char* str, int access);
 BOOL	ftouch(const char* fname);
-BOOL	fmutex(const char* fname, const char* text, long max_age);
+BOOL	fmutex(const char* fname, const char* text);
 
 #ifdef __cplusplus
 }
