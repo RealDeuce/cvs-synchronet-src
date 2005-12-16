@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.54 2005/09/28 20:03:50 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.56 2005/11/17 23:30:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -900,4 +900,41 @@ BOOL DLLCALL wildmatch(const char *fname, const char *spec, BOOL path)
 	if(*specp==*fnamep)
 		return(TRUE);
 	return(FALSE);
+}
+
+/****************************************************************************/
+/* Creates all the necessary directories in the specified path				*/
+/****************************************************************************/
+int DLLCALL mkdirs(const char* path)
+{
+	const char*	p=path;
+	const char*	tp;
+	const char*	sep=
+#ifdef _WIN32
+		"\\"
+#endif
+		"/";
+	char	dir[MAX_PATH+1];
+	int		result=0;
+
+#ifdef _WIN32
+	if(p[1]==':')	/* Skip drive letter, if specified */
+		p+=2;
+#endif
+
+	while(*p) {
+		SKIP_CHARSET(p,sep);
+		if(*p==0)
+			break;
+		tp=p;
+		FIND_CHARSET(tp,sep);
+		safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
+		if(!isdir(dir)) {
+			if((result=MKDIR(dir))!=0)
+				break;
+		}
+		p=tp;
+	}
+
+	return(result);
 }

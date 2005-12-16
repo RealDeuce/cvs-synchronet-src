@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.156 2005/10/16 21:25:32 rswindell Exp $ */
+/* $Id: js_global.c,v 1.157 2005/12/13 02:24:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2930,7 +2930,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 	if(!JS_SetPrivate(cx, glob, cfg))	/* Store a pointer to scfg_t */
 		return(NULL);
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,glob
 		,"Top-level functions and properties (common to all servers and services)",310);
 #endif
