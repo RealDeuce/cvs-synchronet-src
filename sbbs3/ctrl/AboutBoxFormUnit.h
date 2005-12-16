@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: AboutBoxFormUnit.h,v 1.5 2006/01/27 10:23:57 rswindell Exp $ */
+/* $Id: AboutBoxFormUnit.h,v 1.4 2002/02/28 03:00:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,13 +51,12 @@ __published:	// IDE-managed Components
     TBevel *Bevel;
 	TImage *Logo;
     TStaticText *CopyrightLabel;
-    TMemo *Credits;
+    TMemo *Memo;
     TStaticText *NameLabel;
     TStaticText *WebSiteLabel;
 	void __fastcall FormShow(TObject *Sender);
     void __fastcall WebPageLabelClick(TObject *Sender);
 	void __fastcall LogoClick(TObject *Sender);
-    void __fastcall CreditsClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TAboutBoxForm(TComponent* Owner);
