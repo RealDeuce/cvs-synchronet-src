@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.46 2006/03/14 09:33:29 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.44 2005/11/28 02:55:21 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -52,7 +52,6 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_queue$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_server$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_socket$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_sprintf$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_system$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_user$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_xtrn_area$(OFILE)\
@@ -86,6 +85,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)scfglib1$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)scfglib2$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)scfgsave$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)semfile$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)sockopts$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)sortdir$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)str$(OFILE)\
