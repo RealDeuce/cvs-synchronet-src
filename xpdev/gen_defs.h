@@ -2,13 +2,13 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.34 2006/04/07 21:12:34 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.29 2005/06/21 17:35:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -211,17 +211,6 @@ typedef struct {
 	BOOL	value;
 } named_bool_t;
 
-typedef struct {
-	int		key;
-	char*	value;
-} keyed_string_t;
-
-typedef struct {
-	int		key;
-	int		value;
-} keyed_int_t;
-
-
 /************************/
 /* Handy Integer Macros */
 /************************/
@@ -233,29 +222,13 @@ typedef struct {
 /* Handy String Macros */
 /***********************/
 
-/* Null-Terminate an ASCIIZ char array */
-#define TERMINATE(str)					str[sizeof(str)-1]=0
-
 /* This is a bound-safe version of strcpy basically - only works with fixed-length arrays */
-#ifdef SAFECOPY_USES_SPRINTF
 #define SAFECOPY(dst,src)				sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
-#else	/* strncpy is faster */
-#define SAFECOPY(dst,src)				(strncpy(dst,src,sizeof(dst)), TERMINATE(dst))
-#endif
-
-/* Bound-safe version of sprintf() - only works with fixed-length arrays */
-#if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))
-/* *BSD *nprintf() is already safe */
-#define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg)
-#define SAFEPRINTF2(dst,fmt,a1,a2)		snprintf(dst,sizeof(dst),fmt,a1,a2)
-#define SAFEPRINTF3(dst,fmt,a1,a2,a3)	snprintf(dst,sizeof(dst),fmt,a1,a2,a3)
-#define SAFEPRINTF4(dst,fmt,a1,a2,a3,a4) snprintf(dst,sizeof(dst),fmt,a1,a2,a3,a4)
-#else
+#define TERMINATE(str)					str[sizeof(str)-1]=0
 #define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg), TERMINATE(dst)
 #define SAFEPRINTF2(dst,fmt,a1,a2)		snprintf(dst,sizeof(dst),fmt,a1,a2), TERMINATE(dst)
 #define SAFEPRINTF3(dst,fmt,a1,a2,a3)	snprintf(dst,sizeof(dst),fmt,a1,a2,a3), TERMINATE(dst)
 #define SAFEPRINTF4(dst,fmt,a1,a2,a3,a4) snprintf(dst,sizeof(dst),fmt,a1,a2,a3,a4), TERMINATE(dst)
-#endif
 
 /* Replace every occurance of c1 in str with c2, using p as a temporary char pointer */
 #define REPLACE_CHARS(str,c1,c2,p)	for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
