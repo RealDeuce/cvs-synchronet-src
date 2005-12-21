@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.380 2005/12/14 04:10:40 deuce Exp $ */
+/* $Id: websrvr.c,v 1.381 2005/12/21 16:21:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3049,7 +3049,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 		fprintf(session->req.fp,"!JavaScript %s%s%s: %s",warning,file,line,message);
 }
 
-static void js_writebuf(http_session_t *session, char *buf, size_t buflen)
+static void js_writebuf(http_session_t *session, const char *buf, size_t buflen)
 {
 	if(session->req.sent_headers) {
 		if(session->req.method!=HTTP_HEAD && session->req.method!=HTTP_OPTIONS)
@@ -3256,6 +3256,7 @@ static char *find_next_pair(char *buffer, size_t buflen, char find)
 	char	*search;
 	char	*end;
 	size_t	buflen2;
+	char	chars[5]="@%^<";
 
 	end=buffer+buflen;
 	search=buffer;
@@ -4093,7 +4094,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.380 $", "%*s %s", revision);
+	sscanf("$Revision: 1.381 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
