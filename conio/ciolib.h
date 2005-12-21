@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.37 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: ciolib.h,v 1.35 2005/11/19 07:52:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -244,14 +244,12 @@ typedef struct {
 	int		(*setfont)		(int font, int force);
 	int		(*getfont)		(void);
 	int		(*loadfont)		(char *filename);
-	int		*ESCDELAY;
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
 CIOLIBEXPORTVAR int _wscroll;
 CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
-CIOLIBEXPORTVAR int puttext_can_move;
 
 #define _conio_kbhit()		kbhit()
 

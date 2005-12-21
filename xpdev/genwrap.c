@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.70 2006/03/01 00:50:19 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.68 2005/12/14 04:50:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,11 +275,9 @@ unsigned DLLCALL xp_randomize(void)
 int DLLCALL xp_random(int n)
 {
 #ifdef HAS_RANDOM_FUNC
-	if(n<2)
-		return(0);
 	return(random()%n);
 #else
-	float f=0;
+	float f;
 
 	if(n<2)
 		return(0);
@@ -369,22 +367,6 @@ char* DLLCALL os_version(char *str)
 #endif
 
 	return(str);
-}
-
-char* DLLCALL os_cmdshell(void)
-{
-	char*	shell=getenv(OS_CMD_SHELL_ENV_VAR);
-
-#if !defined(__unix__)
-	if(shell==NULL)
-#ifdef _PATH_BSHELL
-		shell=_PATH_BSHELL;
-#else
-		shell="/bin/sh";
-#endif
-#endif
-
-	return(shell);
 }
 
 #if !defined(__unix__)
