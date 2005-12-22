@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.36 2006/05/13 08:17:22 deuce Exp $ */
+/* $Id: menu.c,v 1.34 2005/12/05 03:39:32 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -27,7 +27,6 @@ void viewscroll(void)
 	y=wherey();
 	uifcbail();
     gettextinfo(&txtinfo);
-	/* too large for alloca() */
 	scrollback=(char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
 	if(cterm.scrollback != NULL)
 		memcpy(scrollback,cterm.scrollback,term.width*2*settings.backlines);
@@ -106,8 +105,8 @@ void viewscroll(void)
 		}
 	}
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
-	gotoxy(x,y);
 	free(scrollback);
+	gotoxy(x,y);
 	return;
 }
 
@@ -133,7 +132,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	int		ret;
 
     gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
@@ -236,11 +235,13 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				ret=i;
 				uifcbail();
 				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+				free(buf);
 				return(ret);
 		}
 	}
 
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	free(buf);
 	return(ret);
 }

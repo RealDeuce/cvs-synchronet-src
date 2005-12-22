@@ -11,13 +11,13 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.26 2006/01/11 02:14:57 deuce Exp $
+# $Id: GNUmakefile,v 1.25 2004/09/16 19:02:03 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
 
 ifeq ($(os),sunos)
- LDFLAGS	+=	-lnsl
+ LDFLAGS	+=	-lsocket -lnsl
 endif
 
 vpath %.c ..
