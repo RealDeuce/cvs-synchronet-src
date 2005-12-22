@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.418 2005/12/13 02:24:49 rswindell Exp $ */
+/* $Id: main.cpp,v 1.419 2005/12/22 08:27:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3703,13 +3703,7 @@ const char* DLLCALL bbs_ver(void)
 /* Returns binary-coded version and revision (e.g. 0x31000 == 3.10a) */
 long DLLCALL bbs_ver_num(void)
 {
-	char*	minor;
-
-	if((minor=(char *)strchr(VERSION,'.'))==NULL)
-		return(0);
-	minor++;
-
-	return((strtoul(VERSION,NULL,16)<<16)|(strtoul(minor,NULL,16)<<8)|(REVISION-'A'));
+	return(VERSION_HEX);
 }
 
 void DLLCALL bbs_terminate(void)
