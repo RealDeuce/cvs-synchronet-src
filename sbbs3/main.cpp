@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.419 2005/12/22 08:27:34 rswindell Exp $ */
+/* $Id: main.cpp,v 1.420 2005/12/22 08:45:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -374,6 +374,7 @@ JSBool
 DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec* props)
 {
 	uint		i;
+	long		ver;
 	jsval		val;
 	jsuint		len=0;
 	JSObject*	array;
@@ -390,7 +391,9 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
 			return(JS_FALSE);
 		if(props[i].flags&JSPROP_ENUMERATE) {	/* No need to version invisible props */
-			val = INT_TO_JSVAL(props[i].ver);
+			if((ver=props[i].ver) < 10000)		/* auto convert 313 to 31300 */
+				ver*=100;
+			val = INT_TO_JSVAL(ver);
 			if(!JS_SetElement(cx, array, len++, &val))
 				return(JS_FALSE);
 		}
@@ -404,6 +407,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 {
 	int			i;
 	jsuint		len=0;
+	long		ver;
 	jsval		val;
 	JSObject*	method;
 	JSObject*	method_array;
@@ -468,7 +472,9 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		}
 
 		if(funcs[i].ver) {
-			val = INT_TO_JSVAL(funcs[i].ver);
+			if((ver=funcs[i].ver<10000)		/* auto convert 313 to 31300 */
+				ver*=100;
+			val = INT_TO_JSVAL(ver);
 			JS_SetProperty(cx,method, "ver", &val);
 		}
 
