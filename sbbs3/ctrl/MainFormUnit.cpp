@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.150 2005/11/28 23:51:19 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.151 2005/12/22 08:28:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -978,7 +978,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
 
     // Verify SBBS.DLL version
     long bbs_ver = bbs_ver_num();
-    if(bbs_ver < (0x31300 | 'A'-'A') || bbs_ver > (0x399<<8)) {
+    if(bbs_ver != VERSION_HEX) {
         char str[128];
         sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -2309,6 +2309,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     Initialized=true;
 
     UpTimer->Enabled=true; /* Start updating the status bar */
+    LogTimer->Enabled=true;
+    ServiceStatusTimer->Enabled=true;
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
