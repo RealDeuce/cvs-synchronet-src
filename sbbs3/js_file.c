@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.88 2005/12/13 02:24:49 rswindell Exp $ */
+/* $Id: js_file.c,v 1.89 2006/01/06 21:44:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -589,6 +589,70 @@ js_iniSetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	}
 
 	if(result != NULL)
+		*rval = BOOLEAN_TO_JSVAL(iniWriteFile(p->fp,list));
+
+	strListFree(&list);
+
+	return(JS_TRUE);
+}
+
+static JSBool
+js_iniRemoveKey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*	section=ROOT_SECTION;
+	char*	key;
+	private_t*	p;
+	str_list_t	list;
+
+	*rval = JSVAL_FALSE;
+
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
+
+	if(p->fp==NULL)
+		return(JS_TRUE);
+
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+	key=JS_GetStringBytes(JS_ValueToString(cx, argv[1]));
+
+	if((list=iniReadFile(p->fp))==NULL)
+		return(JS_TRUE);
+
+	if(iniRemoveKey(&list,section,key))
+		*rval = BOOLEAN_TO_JSVAL(iniWriteFile(p->fp,list));
+
+	strListFree(&list);
+
+	return(JS_TRUE);
+}
+
+static JSBool
+js_iniRemoveSection(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*	section=ROOT_SECTION;
+	private_t*	p;
+	str_list_t	list;
+
+	*rval = JSVAL_FALSE;
+
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
+
+	if(p->fp==NULL)
+		return(JS_TRUE);
+
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+
+	if((list=iniReadFile(p->fp))==NULL)
+		return(JS_TRUE);
+
+	if(iniRemoveSection(&list,section))
 		*rval = BOOLEAN_TO_JSVAL(iniWriteFile(p->fp,list));
 
 	strListFree(&list);
@@ -1738,6 +1802,14 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
 	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
 	,312
+	},
+	{"iniRemoveKey",	js_iniRemoveKey,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key")
+	,JSDOCSTR("remove specified <i>key</i> from specified <i>section</i> in <tt>.ini</tt> file.")
+	,31301
+	},
+	{"iniRemoveSection",js_iniRemoveSection,1,	JSTYPE_BOOLEAN,	JSDOCSTR("section")
+	,JSDOCSTR("remove specified <i>section</i> from <tt>.ini</tt> file.")
+	,31301
 	},
 	{0}
 };
