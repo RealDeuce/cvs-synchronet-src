@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.89 2006/01/06 21:44:36 rswindell Exp $ */
+/* $Id: js_file.c,v 1.90 2006/01/07 18:15:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1249,6 +1249,31 @@ js_rewind(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
+js_truncate(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	private_t*	p;
+	int32		len=0;
+
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
+
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&len))
+			return(JS_FALSE);
+	}
+
+	*rval = JSVAL_FALSE;
+	if(p->fp!=NULL && chsize(fileno(p->fp),len)==0) {
+		fseek(p->fp,len,SEEK_SET);
+		*rval = JSVAL_TRUE;
+	}
+
+	return(JS_TRUE);
+}
+
+static JSBool
 js_clear_error(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	private_t*	p;
@@ -1704,6 +1729,11 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("repositions the file pointer (<i>position</i>) to the beginning of a file "
 		"and clears error and end-of-file indicators")
 	,311
+	},
+	{"truncate",		js_truncate,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("[length]")
+	,JSDOCSTR("changes the file <i>length</i> (default: 0) and repositions the file pointer "
+	"(<i>position</i>) to the new end-of-file")
+	,31301
 	},
 	{"lock",			js_lock,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("[offset, length]")
 	,JSDOCSTR("lock file record for exclusive access (file must be opened <i>shareable</i>)")
