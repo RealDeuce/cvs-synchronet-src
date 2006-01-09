@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.28 2005/10/21 00:03:36 rswindell Exp $ */
+/* $Id: threadwrap.h,v 1.30 2005/11/01 00:33:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@ extern "C" {
 
 	#include <sys/param.h>
 	#include <pthread.h>	/* POSIX threads and mutexes */
+	#include <unistd.h>	/* _POSIX_THREADS definition on FreeBSD (at least) */
 
 	/* Win32 thread API wrappers */
 	ulong _beginthread(void( *start_address )( void * )
@@ -80,6 +81,7 @@ extern "C" {
 #elif defined(__OS2__)
 
 	/* POSIX mutexes */
+	typedef TID pthread_t;
 	typedef HEV pthread_mutex_t;
 
 #else
