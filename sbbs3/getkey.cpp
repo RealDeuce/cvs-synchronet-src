@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.35 2006/05/03 00:26:52 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.33 2005/11/29 01:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -54,7 +54,7 @@ char sbbs_t::getkey(long mode)
 		return(0);
 	}
 	sys_status&=~SS_ABORT;
-	if((sys_status&SS_USERON || action==NODE_DFLT) && !(mode&(K_GETSTR|K_NOSPIN)))
+	if((sys_status&SS_USERON || action==NODE_DFLT) && !(mode&K_GETSTR))
 		mode|=(useron.misc&SPIN);
 	lncntr=0;
 	timeout=time(NULL);
@@ -238,7 +238,9 @@ char sbbs_t::getkey(long mode)
 			return(ch); 
 		}
 		if(sys_status&SS_USERON && !(sys_status&SS_LCHAT)) gettimeleft();
-		else if(online && now-answertime>SEC_LOGON && !(sys_status&SS_LCHAT)) {
+		else if(online &&
+			((cfg.node_dollars_per_call && now-answertime>SEC_BILLING)
+			|| (now-answertime>SEC_LOGON && !(sys_status&SS_LCHAT)))) {
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			console|=(CON_R_ECHO|CON_L_ECHO);
 			bputs(text[TakenTooLongToLogon]);
