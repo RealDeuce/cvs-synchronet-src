@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.24 2005/10/21 19:37:35 deuce Exp $ */
+/* $Id: ringbuf.c,v 1.27 2005/10/21 21:52:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,7 @@
 #endif
 
 #include "ringbuf.h"
+#include "genwrap.h"	/* SLEEP() */
 
 #ifdef RINGBUF_USE_STD_RTL
 
@@ -127,9 +128,9 @@ void RINGBUFCALL RingBufDispose( RingBuf* rb)
 		CloseEvent(rb->empty_event);
 #endif
 #ifdef RINGBUF_MUTEX
-	while(pthread_mutex_destroy(&rb->mutex)==-1 && errno==EBUSY)
+	while(pthread_mutex_destroy(&rb->mutex)==EBUSY)
 		SLEEP(1);
-#endi
+#endif
 	memset(rb,0,sizeof(RingBuf));
 }
 
