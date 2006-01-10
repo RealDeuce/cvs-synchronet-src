@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.161 2006/01/10 01:59:44 rswindell Exp $ */
+/* $Id: js_global.c,v 1.162 2006/01/10 02:18:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -300,9 +300,10 @@ js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     for(i=1; i<argc; i++) {
 		if(JSVAL_IS_DOUBLE(argv[i]))
 			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_DOUBLE,*JSVAL_TO_DOUBLE(argv[i]));
-		else if(JSVAL_IS_INT(argv[i]) 
-			|| (JSVAL_IS_BOOLEAN(argv[i]) && xp_printf_get_type(fmt)!=XP_PRINTF_TYPE_CHARP))
+		else if(JSVAL_IS_INT(argv[i]))
 			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_INT(argv[i]));
+		else if(JSVAL_IS_BOOLEAN(argv[i]) && xp_printf_get_type(fmt)!=XP_PRINTF_TYPE_CHARP)
+			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_BOOLEAN(argv[i]));
 		else {
 			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
 				JS_ReportError(cx,"JS_ValueToString failed");
