@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.156 2005/10/16 21:25:32 rswindell Exp $ */
+/* $Id: js_global.c,v 1.159 2006/01/09 21:28:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,9 @@
 #include "base64.h"
 #include "htmlansi.h"
 #include "ini_file.h"
+#ifdef USE_XP_PRINTF
+	#include "xpprintf.h"
+#endif
 
 #define MAX_ANSI_SEQ	16
 #define MAX_ANSI_PARAMS	8
@@ -281,6 +284,48 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return(success);
 }
 
+#ifdef USE_XP_PRINTF
+//#if 1
+
+static JSBool
+js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		fmt;
+    uintN		i;
+    JSString*	str;
+
+	if((fmt=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
+		return(JS_FALSE);
+
+	fmt=xp_asprintf_start(fmt);
+    for(i=1; i<argc; i++) {
+		if(JSVAL_IS_DOUBLE(argv[i]))
+			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_DOUBLE,*JSVAL_TO_DOUBLE(argv[i]));
+		else if(JSVAL_IS_INT(argv[i]))
+			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_INT(argv[i]));
+		else {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+				JS_ReportError(cx,"JS_ValueToString failed");
+			    return(JS_FALSE);
+			}
+			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,JS_GetStringBytes(str));
+		}
+	}
+
+	fmt=xp_asprintf_end(fmt);
+	
+	str = JS_NewStringCopyZ(cx, fmt);
+	free(fmt);
+
+	if(str==NULL)
+		return(JS_FALSE);
+
+	*rval = STRING_TO_JSVAL(str);
+    return(JS_TRUE);
+}
+
+#else
+
 static JSBool
 js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -321,6 +366,9 @@ js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	*rval = STRING_TO_JSVAL(str);
     return(JS_TRUE);
 }
+
+#endif
+
 
 static JSBool
 js_yield(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2930,7 +2978,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 	if(!JS_SetPrivate(cx, glob, cfg))	/* Store a pointer to scfg_t */
 		return(NULL);
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,glob
 		,"Top-level functions and properties (common to all servers and services)",310);
 #endif
