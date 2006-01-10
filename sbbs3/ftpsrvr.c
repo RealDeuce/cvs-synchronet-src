@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.302 2005/10/13 01:44:53 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.303 2006/01/10 05:46:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2603,6 +2603,8 @@ static void ctrl_thread(void* arg)
 					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s, Password: %s",sock,user.alias,p);
 				else
 					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s",sock,user.alias);
+				if(stricmp(user.alias,"anonymous")==0)
+					sockprintf(sock,"530-Anonymous logins not allowed. You must login with a valid user account.");
 				if(badlogin(sock,&login_attempts))
 					break;
 				continue;
@@ -4508,7 +4510,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.302 $", "%*s %s", revision);
+	sscanf("$Revision: 1.303 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
