@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.195 2006/05/08 21:15:18 deuce Exp $ */
+/* $Id: js_global.c,v 1.161 2006/01/10 01:59:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,6 +42,9 @@
 #include "base64.h"
 #include "htmlansi.h"
 #include "ini_file.h"
+#ifdef USE_XP_PRINTF
+	#include "xpprintf.h"
+#endif
 
 #define MAX_ANSI_SEQ	16
 #define MAX_ANSI_PARAMS	8
@@ -281,19 +284,38 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return(success);
 }
 
+#ifdef USE_XP_PRINTF
+
 static JSBool
 js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		p;
+	char*		fmt;
+    uintN		i;
     JSString*	str;
 
-	if((p=js_sprintf(cx, 0, argc, argv))==NULL) {
-		JS_ReportError(cx,"js_sprintf failed");
+	if((fmt=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
 		return(JS_FALSE);
+
+	fmt=xp_asprintf_start(fmt);
+    for(i=1; i<argc; i++) {
+		if(JSVAL_IS_DOUBLE(argv[i]))
+			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_DOUBLE,*JSVAL_TO_DOUBLE(argv[i]));
+		else if(JSVAL_IS_INT(argv[i]) 
+			|| (JSVAL_IS_BOOLEAN(argv[i]) && xp_printf_get_type(fmt)!=XP_PRINTF_TYPE_CHARP))
+			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_INT(argv[i]));
+		else {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+				JS_ReportError(cx,"JS_ValueToString failed");
+			    return(JS_FALSE);
+			}
+			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,JS_GetStringBytes(str));
+		}
 	}
 
-	str = JS_NewStringCopyZ(cx, p);
-	js_sprintf_free(p);
+	fmt=xp_asprintf_end(fmt);
+	
+	str = JS_NewStringCopyZ(cx, fmt);
+	free(fmt);
 
 	if(str==NULL)
 		return(JS_FALSE);
@@ -301,6 +323,52 @@ js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	*rval = STRING_TO_JSVAL(str);
     return(JS_TRUE);
 }
+
+#else
+
+static JSBool
+js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		p;
+	char*		fmt;
+    uintN		i;
+    JSString *	str;
+	va_list		arglist[64];
+
+	if((fmt=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
+		return(JS_FALSE);
+
+	memset(arglist,0,sizeof(arglist));	/* Initialize arglist to NULLs */
+
+    for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
+		if(JSVAL_IS_DOUBLE(argv[i]))
+			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
+		else if(JSVAL_IS_INT(argv[i]))
+			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
+		else {
+			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+				JS_ReportError(cx,"JS_ValueToString failed");
+			    return(JS_FALSE);
+			}
+			arglist[i-1]=JS_GetStringBytes(str);
+		}
+	}
+	
+	if((p=JS_vsmprintf(fmt,(char*)arglist))==NULL)
+		return(JS_FALSE);
+
+	str = JS_NewStringCopyZ(cx, p);
+	JS_smprintf_free(p);
+
+	if(str==NULL)
+		return(JS_FALSE);
+
+	*rval = STRING_TO_JSVAL(str);
+    return(JS_TRUE);
+}
+
+#endif
+
 
 static JSBool
 js_yield(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -483,7 +551,7 @@ js_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		ch=(char)i;
 	}
 
-	str[0]=toupper(ch)&~0x40;
+	str[0]=toupper(ch)&~0x20;
 	str[1]=0;
 
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
@@ -608,129 +676,15 @@ js_lfexpand(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static int get_prefix(char *text, int *bytes, int *len, int maxlen)
-{
-	int		tmp_prefix_bytes,tmp_prefix_len;
-	int		expect;
-	int		depth;
-
-	*bytes=0;
-	*len=0;
-	tmp_prefix_bytes=0;
-	tmp_prefix_len=0;
-	depth=0;
-	expect=1;
-	if(text[0]!=' ')
-		expect=2;
-	while(expect) {
-		tmp_prefix_bytes++;
-		/* Skip CTRL-A codes */
-		while(text[tmp_prefix_bytes-1]=='\x01') {
-			tmp_prefix_bytes++;
-			if(text[tmp_prefix_bytes-1]=='\x01')
-				break;
-			tmp_prefix_bytes++;
-		}
-		tmp_prefix_len++;
-		if(text[tmp_prefix_bytes-1]==0 || text[tmp_prefix_bytes-1]=='\n' || text[tmp_prefix_bytes-1]=='\r')
-			break;
-		switch(expect) {
-			case 1:		/* At start of possible quote (Next char should be space) */
-				if(text[tmp_prefix_bytes-1]!=' ')
-					expect=0;
-				else
-					expect++;
-				break;
-			case 2:		/* At start of nick (next char should be alphanum or '>') */
-			case 3:		/* At second nick initial (next char should be alphanum or '>') */
-			case 4:		/* At third nick initial (next char should be alphanum or '>') */
-				if(text[tmp_prefix_bytes-1]==' ' || text[tmp_prefix_bytes-1]==0)
-					expect=0;
-				else
-					if(text[tmp_prefix_bytes-1]=='>')
-						expect=6;
-					else
-						expect++;
-				break;
-			case 5:		/* After three regular chars, next HAS to be a '>') */
-				if(text[tmp_prefix_bytes-1]!='>')
-					expect=0;
-				else
-					expect++;
-				break;
-			case 6:		/* At '>' next char must be a space */
-				if(text[tmp_prefix_bytes-1]!=' ')
-					expect=0;
-				else {
-					expect=1;
-					*len=tmp_prefix_len;
-					*bytes=tmp_prefix_bytes;
-					depth++;
-					/* Some editors don't put double spaces in between */
-					if(text[tmp_prefix_bytes]!=' ')
-						expect++;
-				}
-				break;
-			default:
-				expect=0;
-				break;
-		}
-	}
-	if(*bytes >= maxlen) {
-		lprintf(LOG_CRIT, "Prefix bytes %u is larger than buffer (%u) here: %*.*s",*bytes,maxlen,maxlen,maxlen,text);
-		*bytes=maxlen-1;
-	}
-	return(depth);
-}
-
-static void outbuf_append(char **outbuf, char **outp, char *append, int len, int *outlen)
-{
-	char	*p;
-
-	/* Terminate outbuf */
-	**outp=0;
-	/* Check if there's room */
-	if(*outp - *outbuf + len < *outlen) {
-		memcpy(*outp, append, len);
-		*outp+=len;
-		return;
-	}
-	/* Not enough room, double the size. */
-	*outlen *= 2;
-	p=realloc(*outbuf, *outlen);
-	if(p==NULL) {
-		/* Can't do it. */
-		*outlen/=2;
-		return;
-	}
-	/* Set outp for new buffer */
-	*outp=p+(*outp - *outbuf);
-	*outbuf=p;
-	memcpy(*outp, append, len);
-	*outp+=len;
-	return;
-}
-
 static JSBool
 js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32		l,len=79;
-	int32		oldlen=79;
-	int32		crcount=0;
-	JSBool		handle_quotes=JS_TRUE;
-	long		i,k,t;
-	int			ocol=1;
-	int			icol=1;
+	ulong		i,k;
+	int			col=1;
 	uchar*		inbuf;
 	char*		outbuf;
-	char*		outp;
 	char*		linebuf;
-	char*		prefix=NULL;
-	int			prefix_len=0;
-	int			prefix_bytes=0;
-	int			quote_count=0;
-	int			old_prefix_bytes=0;
-	int			outbuf_size=0;
 	JSString*	js_str;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -739,228 +693,60 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((inbuf=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	outbuf_size=strlen(inbuf)*3+1;
-	if((outbuf=(char*)malloc(outbuf_size))==NULL)
+	if((outbuf=(char*)malloc((strlen(inbuf)*3)+1))==NULL)
 		return(JS_FALSE);
-	outp=outbuf;
 
 	if(argc>1)
 		JS_ValueToInt32(cx,argv[1],&len);
 
-	if(argc>2)
-		JS_ValueToInt32(cx,argv[2],&oldlen);
-
-	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
-		handle_quotes=JSVAL_TO_BOOLEAN(argv[3]);
-
-	if((linebuf=(char*)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
+	if((linebuf=(char*)malloc((len*2)+2))==NULL) /* room for ^A codes */
 		return(JS_FALSE);
 
-	if(handle_quotes) {
-		if((prefix=(char *)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
-			return(JS_FALSE);
-		prefix[0]=0;
-	}
-
 	outbuf[0]=0;
-	/* Get prefix from the first line (ouch) */
-	l=0;
-	i=0;
-	if(handle_quotes && (quote_count=get_prefix(inbuf, &prefix_bytes, &prefix_len, len*2+2))!=0) {
-		i+=prefix_bytes;
-		if(prefix_len>len/3*2) {
-			/* This prefix is insane (more than 2/3rds of the new width) hack it down to size */
-			/* Since we're hacking it, we will always end up with a hardcr on this line. */
-			/* ToDo: Something prettier would be nice. */
-			sprintf(prefix," %d> ",quote_count);
-			prefix_len=strlen(prefix);
-			prefix_bytes=strlen(prefix);
+	for(i=l=0;inbuf[i];) {
+		if(inbuf[i]=='\r' || inbuf[i]==FF) {
+			strncat(outbuf,linebuf,l);
+			l=0;
+			col=1;
 		}
+		else if(inbuf[i]=='\t') {
+			if((col%8)==0)
+				col++;
+			col+=(col%8);
+		} else if(inbuf[i]==CTRL_A && inbuf[i+1]!=0) {
+			if(l<(len*2)) {
+				strncpy(linebuf+l,inbuf+i,2);
+				l+=2;
+			}
+			i+=2;
+			continue;
+		} else if(inbuf[i]>=' ')
+			col++;
+		linebuf[l]=inbuf[i++];
+		if(col<=len) {
+			l++;
+			continue;
+		}
+		/* wrap line here */
+		k=l;
+		while(k && linebuf[k]>' ' && linebuf[k-1]!=CTRL_A) k--;
+		if(k==0)	/* continuous printing chars, no word wrap possible */
+			strncat(outbuf,linebuf,l+1);
 		else {
-			memcpy(prefix,inbuf,prefix_bytes);
-			/* Terminate prefix */
-			prefix[prefix_bytes]=0;
+			i-=(l-k);	/* rewind to start of next word */
+			linebuf[k]=0;
+			truncsp(linebuf);
+			strcat(outbuf,linebuf);
 		}
-		memcpy(linebuf,prefix,prefix_bytes);
-		l=prefix_bytes;
-		ocol=prefix_len+1;
-		icol=prefix_len+1;
-		old_prefix_bytes=prefix_bytes;
+		strcat(outbuf,"\r\n");
+		/* skip white space (but no more than one LF) for starting of new line */
+		while(inbuf[i] && inbuf[i]<=' ' && inbuf[i]!='\n' && inbuf[i]!=CTRL_A) i++;	
+		if(inbuf[i]=='\n') i++;
+		l=0;
+		col=1;
 	}
-	for(; inbuf[i]; i++) {
-		if(l>=len*2+2) {
-			l-=4;
-			linebuf[l]=0;
-			lprintf(LOG_CRIT, "Word wrap line buffer exceeded... munging line %s",linebuf);
-		}
-		switch(inbuf[i]) {
-			case '\r':
-				crcount++;
-				break;
-			case '\n':
-				if(handle_quotes && (quote_count=get_prefix(inbuf+i+1, &prefix_bytes, &prefix_len, len*2+2))!=0) {
-					/* Move the input pointer offset to the last char of the prefix */
-					i+=prefix_bytes;
-				}
-				if(!inbuf[i+1]) {			/* EOF */
-					linebuf[l++]='\r';
-					linebuf[l++]='\n';
-					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					l=0;
-					ocol=1;
-				}
-				/* If there's a new prefix, it is a hardcr */
-				else if(prefix_bytes != old_prefix_bytes || (memcmp(prefix,inbuf+i+1-prefix_bytes,prefix_bytes))) {
-					if(prefix_len>len/3*2) {
-						/* This prefix is insane (more than 2/3rds of the new width) hack it down to size */
-						/* Since we're hacking it, we will always end up with a hardcr on this line. */
-						/* ToDo: Something prettier would be nice. */
-						sprintf(prefix," %d> ",quote_count);
-						prefix_len=strlen(prefix);
-						prefix_bytes=strlen(prefix);
-					}
-					else {
-						memcpy(prefix,inbuf+i+1-prefix_bytes,prefix_bytes);
-						/* Terminate prefix */
-						prefix[prefix_bytes]=0;
-					}
-					linebuf[l++]='\r';
-					linebuf[l++]='\n';
-					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					memcpy(linebuf,prefix,prefix_bytes);
-					l=prefix_bytes;
-					ocol=prefix_len+1;
-					old_prefix_bytes=prefix_bytes;
-				}
-				else if(isspace(inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
-					linebuf[l++]='\r';
-					linebuf[l++]='\n';
-					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					l=0;
-					ocol=1;
-				}
-				else {
-					if(icol < oldlen) {			/* If this line is overly long, It's impossible for the next word to fit */
-						/* k will equal the length of the first word on the next line */
-						for(k=0; inbuf[i+1+k] && (!isspace(inbuf[i+1+k])); k++);
-						if(icol+k+1 < oldlen) {	/* The next word would have fit but isn't here.  Must be a hard CR */
-							linebuf[l++]='\r';
-							linebuf[l++]='\n';
-							outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-							if(prefix)
-								memcpy(linebuf,prefix,prefix_bytes);
-							l=prefix_bytes;
-							ocol=prefix_len+1;
-						}
-						else {		/* Not a hard CR... add space if needed */
-							if(l<1 || !isspace(linebuf[l-1])) {
-								linebuf[l++]=' ';
-								ocol++;
-							}
-						}
-					}
-					else {			/* Not a hard CR... add space if needed */
-						if(l<1 || !isspace(linebuf[l-1])) {
-							linebuf[l++]=' ';
-							ocol++;
-						}
-					}
-				}
-				icol=prefix_len+1;
-				break;
-			case '\x1f':	/* Delete... meaningless... strip. */
-				break;
-			case '\b':		/* Backspace... handle if possible, but don't go crazy. */
-				if(l>0) {
-					if(l>1 && linebuf[l-2]=='\x01') {
-						if(linebuf[l-1]=='\x01') {
-							ocol--;
-							icol--;
-						}
-						l-=2;
-					}
-					else {
-						l--;
-						ocol--;
-						icol--;
-					}
-				}
-				break;
-			case '\t':		/* TAB */
-				linebuf[l++]=inbuf[i];
-				/* Can't ever wrap on whitespace remember. */
-				icol++;
-				ocol++;
-				while(ocol%8)
-					ocol++;
-				while(icol%8)
-					icol++;
-				break;
-			case '\x01':	/* CTRL-A */
-				linebuf[l++]=inbuf[i++];
-				if(inbuf[i]!='\x01') {
-					linebuf[l++]=inbuf[i];
-					break;
-				}
-			default:
-				linebuf[l++]=inbuf[i];
-				ocol++;
-				icol++;
-				if(ocol>len && !isspace(inbuf[i])) {		/* Need to wrap here */
-					/* Find the start of the last word */
-					k=l;									/* Original next char */
-					l--;									/* Move back to the last char */
-					while((!isspace(linebuf[l])) && l>0)		/* Move back to the last non-space char */
-						l--;
-					if(l==0) {		/* Couldn't wrap... must chop. */
-						l=k;
-						while(l>1 && linebuf[l-2]=='\x01' && linebuf[l-1]!='\x01')
-							l-=2;
-						if(l>0 && linebuf[l-1]=='\x01')
-							l--;
-						if(l>0)
-							l--;
-					}
-					t=l+1;									/* Store start position of next line */
-					/* Move to start of whitespace */
-					while(l>0 && isspace(l))
-						l--;
-					outbuf_append(&outbuf, &outp, linebuf, l+1, &outbuf_size);
-					outbuf_append(&outbuf, &outp, "\r\n", 2, &outbuf_size);
-					/* Move trailing words to start of buffer. */
-					l=prefix_bytes;
-					if(k-t>0)							/* k-1 is the last char position.  t is the start of the next line position */
-						memmove(linebuf+l, linebuf+t, k-t);
-					l+=k-t;
-					/* Find new ocol */
-					for(ocol=prefix_len+1,t=prefix_bytes; t<l; t++) {
-						switch(linebuf[t]) {
-							case '\x01':	/* CTRL-A */
-								if(linebuf[t+1]!='\x01')
-									break;
-								t++;
-								/* Fall-through */
-							default:
-								ocol++;
-						}
-					}
-				}
-		}
-	}
-	/* Trailing bits. */
-	if(l) {
-		linebuf[l++]='\r';
-		linebuf[l++]='\n';
-		outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-	}
-	*outp=0;
-	/* If there were no CRs in the input, strip all CRs */
-	if(!crcount) {
-		for(inbuf=outbuf; *inbuf; inbuf++) {
-			if(*inbuf=='\r')
-				memmove(inbuf, inbuf+1, strlen(inbuf));
-		}
-	}
+	if(l)	/* remainder */
+		strncat(outbuf,linebuf,l);
 
 	js_str = JS_NewStringCopyZ(cx, outbuf);
 	free(outbuf);
@@ -975,7 +761,7 @@ static JSBool
 js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32		len=79;
-	int			i,l,clen;
+	int			i,l;
 	uchar*		inbuf;
 	char*		outbuf;
 	char*		linebuf;
@@ -997,32 +783,18 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((outbuf=(char*)malloc((strlen(inbuf)*strlen(prefix))+1))==NULL)
 		return(JS_FALSE);
 
-	len-=strlen(prefix);
-	if(len<=0)
-		return(JS_FALSE);
-
-	if((linebuf=(char*)alloca(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
+	if((linebuf=(char*)malloc(len+1))==NULL)
 		return(JS_FALSE);
 
 	outbuf[0]=0;
-	clen=0;
 	for(i=l=0;inbuf[i];i++) {
-		if(l==0)	/* Do not use clen here since if the line starts with ^A, could stay at zero */
+		if(l==0)
 			strcat(outbuf,prefix);
-		if(clen<len || inbuf[i]=='\n' || inbuf[i]=='\r')
+		if(l<len)
 			linebuf[l++]=inbuf[i];
-		if(inbuf[i]=='\x01') {		/* Handle CTRL-A */
-			linebuf[l++]=inbuf[++i];
-			if(inbuf[i]=='\x01')
-				clen++;
-		}
-		else
-			clen++;
-		/* ToDo: Handle TABs etc. */
 		if(inbuf[i]=='\n') {
 			strncat(outbuf,linebuf,l);
 			l=0;
-			clen=0;
 		}
 	}
 	if(l)	/* remainder */
@@ -1873,7 +1645,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	else
 		js_str = JS_NewStringCopyZ(cx, tmpbuf);
 
-	free(tmpbuf);	/* assertion here, Feb-20-2006 */
+	free(tmpbuf);
 	if(js_str==NULL)
 		return(JS_FALSE);
 
@@ -2000,7 +1772,6 @@ js_b64_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 
 	len=(inbuf_len*10)+1;
-
 	if((outbuf=(char*)malloc(len))==NULL)
 		return(JS_FALSE);
 
@@ -2038,7 +1809,6 @@ js_b64_decode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 
 	len=strlen(inbuf)+1;
-
 	if((outbuf=(char*)malloc(len))==NULL)
 		return(JS_FALSE);
 
@@ -2470,20 +2240,16 @@ js_fmutex(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		fname;
 	char*		text=NULL;
-	int32		max_age=0;
-	uintN		argn=0;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((fname=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL) 
+	if((fname=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
-	if(argc > argn && JSVAL_IS_STRING(argv[argn]))
-		text=js_ValueToStringBytes(cx, argv[argn++], NULL);
-	if(argc > argn && JSVAL_IS_NUMBER(argv[argn]))
-		JS_ValueToInt32(cx, argv[argn++], &max_age);
+	if(argc>1)
+		text=js_ValueToStringBytes(cx,argv[1], NULL);
 
-	*rval = BOOLEAN_TO_JSVAL(fmutex(fname,text,max_age));
+	*rval = BOOLEAN_TO_JSVAL(fmutex(fname,text));
 	return(JS_TRUE);
 }
 		
@@ -2557,37 +2323,6 @@ js_directory(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_wildmatch(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	BOOL		case_sensitive=FALSE;
-	BOOL		path=FALSE;
-	char*		fname;
-	char*		spec="*";
-	uintN		argn=0;
-
-	if(JSVAL_IS_BOOLEAN(argv[argn]))
-		JS_ValueToBoolean(cx, argv[argn++], &case_sensitive);
-
-	if((fname=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL) 
-		return(JS_FALSE);
-
-	if(argn<argc && argv[argn]!=JSVAL_VOID)
-		if((spec=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL) 
-			return(JS_FALSE);
-
-	if(argn<argc && argv[argn]!=JSVAL_VOID)
-		JS_ValueToBoolean(cx, argv[argn++], &path);
-	
-	if(case_sensitive)
-		*rval = BOOLEAN_TO_JSVAL(wildmatch(fname, spec, path));
-	else
-		*rval = BOOLEAN_TO_JSVAL(wildmatchi(fname, spec, path));
-
-	return(JS_TRUE);
-}
-
-
-static JSBool
 js_freediskspace(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32		unit=0;
@@ -2648,7 +2383,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
     if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
 		return(JS_FALSE);
 
-	if((index=(SOCKET *)alloca(sizeof(SOCKET)*limit))==NULL)
+	if((index=(SOCKET *)malloc(sizeof(SOCKET)*limit))==NULL)
 		return(JS_FALSE);
 
 	FD_ZERO(&socket_set);
@@ -2679,6 +2414,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 				break;
 		}
 	}
+	free(index);
 
     *rval = OBJECT_TO_JSVAL(rarray);
 
@@ -2894,31 +2630,30 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,312
 	},		
 	{"sleep",			js_mswait,			0,	JSTYPE_ALIAS },
-	{"mswait",			js_mswait,			0,	JSTYPE_NUMBER,	JSDOCSTR("[milliseconds=<tt>1</tt>]")
+	{"mswait",			js_mswait,			0,	JSTYPE_NUMBER,	JSDOCSTR("[number milliseconds]")
 	,JSDOCSTR("millisecond wait/sleep routine (AKA sleep), returns number of elapsed clock ticks (in v3.13)")
 	,313
 	},
-	{"yield",			js_yield,			0,	JSTYPE_VOID,	JSDOCSTR("[forced=<tt>true</tt>]")
+	{"yield",			js_yield,			0,	JSTYPE_VOID,	JSDOCSTR("[bool forced]")
 	,JSDOCSTR("release current thread time-slice, "
 		"a <i>forced</i> yield will yield to all other pending tasks (lowering CPU utilization), "
 		"a non-<i>forced</i> yield will yield only to pending tasks of equal or higher priority. "
 		"<i>forced</i> defaults to <i>true</i>")
 	,311
 	},
-	{"random",			js_random,			1,	JSTYPE_NUMBER,	JSDOCSTR("max_number=<tt>100</tt>")
-	,JSDOCSTR("return random integer between <tt>0</tt> and <i>max_number</i>-1")
+	{"random",			js_random,			1,	JSTYPE_NUMBER,	JSDOCSTR("number max")
+	,JSDOCSTR("return random integer between 0 and max-1")
 	,310
 	},		
 	{"time",			js_time,			0,	JSTYPE_NUMBER,	""
-	,JSDOCSTR("return current time and date in Unix (time_t) format "
-		"(number of seconds since Jan-01-1970)")
+	,JSDOCSTR("return current time in Unix (time_t) format (number of seconds since Jan-01-1970)")
 	,310
 	},		
-	{"beep",			js_beep,			0,	JSTYPE_VOID,	JSDOCSTR("[frequency=<tt>500</tt>] [,duration=<tt>500</tt>]")
+	{"beep",			js_beep,			0,	JSTYPE_VOID,	JSDOCSTR("[number freq, duration]")
 	,JSDOCSTR("produce a tone on the local speaker at specified frequency for specified duration (in milliseconds)")
 	,310
 	},		
-	{"sound",			js_sound,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("[filename]")
+	{"sound",			js_sound,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("[string filename]")
 	,JSDOCSTR("play a waveform (.wav) sound file (currently, on Windows platforms only)")
 	,310
 	},		
@@ -2930,77 +2665,72 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("convert single character to numeric ASCII value or vice-versa (returns number OR string)")
 	,310
 	},		
-	{"ascii_str",		js_ascii_str,		1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("convert extended-ASCII in text string to plain ASCII, returns modified string")
+	{"ascii_str",		js_ascii_str,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
+	,JSDOCSTR("convert extended-ASCII in string to plain ASCII")
 	,310
 	},		
-	{"strip_ctrl",		js_strip_ctrl,		1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("strip control characters from string, returns modified string")
+	{"strip_ctrl",		js_strip_ctrl,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
+	,JSDOCSTR("strip control characters from string")
 	,310
 	},		
-	{"strip_exascii",	js_strip_exascii,	1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("strip extended-ASCII characters from string, returns modified string")
+	{"strip_exascii",	js_strip_exascii,	1,	JSTYPE_STRING,	JSDOCSTR("string text")
+	,JSDOCSTR("strip extended-ASCII characters from string")
 	,310
 	},		
-	{"truncsp",			js_truncsp,			1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("truncate (trim) white-space characters off end of string, returns modified string")
+	{"truncsp",			js_truncsp,			1,	JSTYPE_STRING,	JSDOCSTR("string text")
+	,JSDOCSTR("truncate (trim) white-space characters off end of string")
 	,310
 	},
-	{"truncstr",		js_truncstr,		2,	JSTYPE_STRING,	JSDOCSTR("text, charset")
-	,JSDOCSTR("truncate (trim) string at first char in <i>charset</i>, returns modified string")
+	{"truncstr",		js_truncstr,		2,	JSTYPE_STRING,	JSDOCSTR("string text, charset")
+	,JSDOCSTR("truncate (trim) string at first char in <i>charset</i>")
 	,310
 	},		
-	{"lfexpand",		js_lfexpand,		1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF), returns modified string")
+	{"lfexpand",		js_lfexpand,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
+	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF)")
 	,310
 	},
-	{"wildmatch",		js_wildmatch,		2,	JSTYPE_BOOLEAN, JSDOCSTR("[case_sensitive=<tt>false</tt>,] string [,pattern=<tt>"*"</tt>] [,path=<tt>false</tt>]")
-	,JSDOCSTR("returns <tt>true</tt> if the <i>string</i> matches the wildcard <i>pattern</i> (wildcard supported are '*' and '?'), "
-	"if <i>path</i> is <tt>true</tt>, '*' will not match path delimeter characters (e.g. '/')")
-	,31301
-	},
-	{"backslash",		js_backslash,		1,	JSTYPE_STRING,	JSDOCSTR("path")
+	{"backslash",		js_backslash,		1,	JSTYPE_STRING,	JSDOCSTR("string path")
 	,JSDOCSTR("returns directory path with trailing (platform-specific) path delimeter "
 		"(i.e. \"slash\" or \"backslash\")")
 	,312
 	},
-	{"file_getname",	js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
+	{"file_getname",	js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("string path")
 	,JSDOCSTR("returns filename portion of passed path string")
 	,311
 	},
-	{"file_getext",		js_getfext,			1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
+	{"file_getext",		js_getfext,			1,	JSTYPE_STRING,	JSDOCSTR("string path")
 	,JSDOCSTR("returns file extension portion of passed path/filename string (including '.') "
 		"or <i>undefined</i> if no extension is found")
 	,311
 	},
-	{"file_getcase",	js_getfcase,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
+	{"file_getcase",	js_getfcase,		1,	JSTYPE_STRING,	JSDOCSTR("string filename")
 	,JSDOCSTR("returns correct case of filename (long version of filename on Win32) "
 		"or <i>undefined</i> if the file doesn't exist")
 	,311
 	},
-	{"file_cfgname",	js_cfgfname,		2,	JSTYPE_STRING,	JSDOCSTR("path, filename")
+	{"file_cfgname",	js_cfgfname,		2,	JSTYPE_STRING,	JSDOCSTR("string path, filename")
 	,JSDOCSTR("returns completed configuration filename from supplied <i>path</i> and <i>filename</i>, "
 	"optionally including the local hostname (e.g. <tt>path/file.<i>host</i>.<i>domain</i>.ext</tt> "
 	"or <tt>path/file.<i>host</i>.ext</tt>) if such a variation of the filename exists")
 	,312
 	},
-	{"file_exists",		js_fexist,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
+	{"file_exists",		js_fexist,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
 	,JSDOCSTR("verify a file's existence")
 	,310
 	},		
-	{"file_remove",		js_remove,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
+	{"file_remove",		js_remove,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
 	,JSDOCSTR("delete a file")
 	,310
 	},		
-	{"file_rename",		js_rename,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/oldname, path/newname")
+	{"file_rename",		js_rename,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("oldname, newname")
 	,JSDOCSTR("rename a file, possibly moving it to another directory in the process")
 	,311
 	},
-	{"file_copy",		js_fcopy,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/source, path/destination")
+	{"file_copy",		js_fcopy,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("source, destination")
 	,JSDOCSTR("copy a file from one directory or filename to another")
 	,311
 	},
-	{"file_backup",		js_backup,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename [,level=<tt>5</tt>] [,rename=<tt>false</tt>]")
+	{"file_backup",		js_backup,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename [,number level] [,bool rename]")
 	,JSDOCSTR("backup the specified <i>filename</i> as <tt>filename.<i>number</i>.extension</tt> "
 		"where <i>number</i> is the backup number 0 through <i>level</i>-1 "
 		"(default backup <i>level</i> is 5), "
@@ -3008,133 +2738,129 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"(default is <i>false</i>)")
 	,311
 	},
-	{"file_isdir",		js_isdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
+	{"file_isdir",		js_isdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
 	,JSDOCSTR("check if specified <i>filename</i> is a directory")
 	,310
 	},		
-	{"file_attrib",		js_fattr,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
+	{"file_attrib",		js_fattr,			1,	JSTYPE_NUMBER,	JSDOCSTR("string filename")
 	,JSDOCSTR("get a file's permissions/attributes")
 	,310
 	},		
-	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
+	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("string filename")
 	,JSDOCSTR("get a file's last modified date/time (in time_t format)")
 	,310
 	},
-	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
+	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("string filename")
 	,JSDOCSTR("get a file's length (in bytes)")
 	,310
 	},
-	{"file_utime",		js_utime,			3,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename [,access_time=<i>current</i>] [,mod_time=<i>current</i>]")
+	{"file_utime",		js_utime,			3,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename [,access_time] [,mod_time]")
 	,JSDOCSTR("change a file's last accessed and modification date/time (in time_t format), "
 		"or change to current time")
 	,311
 	},
-	{"file_touch",		js_ftouch,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
+	{"file_touch",		js_ftouch,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename")
 	,JSDOCSTR("updates a file's last modification date/time to current time, "
 		"creating an empty file if it doesn't already exist")
 	,311
 	},
-	{"file_mutex",		js_fmutex,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename [,text=<i>local_hostname</i>] [,max_age=<tt>0</tt>]")
-	,JSDOCSTR("attempts to create an mutual-exclusion (e.g. lock) file, "
-		"optionally with the contents of <i>text</i>. "
-		"If a non-zero <i>max_age</i> (supported in v3.13b+) is specified "
-		"and the lock file exists, but is older than this value (in seconds), "
-		"it is presumed stale and removed/over-written")
+	{"file_mutex",		js_fmutex,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename [,text]")
+	,JSDOCSTR("attempts to create an exclusive (e.g. lock) file, "
+		"optionally with the contents of <i>text</i>")
 	,312
 	},
-	{"directory",		js_directory,		1,	JSTYPE_ARRAY,	JSDOCSTR("path/pattern [,flags=<tt>GLOB_MARK</tt>]")
+	{"directory",		js_directory,		1,	JSTYPE_ARRAY,	JSDOCSTR("string pattern [,flags]")
 	,JSDOCSTR("returns an array of directory entries, "
 		"<i>pattern</i> is the path and filename or wildcards to search for (e.g. '/subdir/*.txt'), "
 		"<i>flags</i> is a bitfield of optional <tt>glob</tt> flags (default is <tt>GLOB_MARK</tt>)")
 	,310
 	},
-	{"dir_freespace",	js_freediskspace,	2,	JSTYPE_NUMBER,	JSDOCSTR("directory [,unit_size=<tt>1</tt>]")
+	{"dir_freespace",	js_freediskspace,	2,	JSTYPE_NUMBER,	JSDOCSTR("string directory [,unit_size]")
 	,JSDOCSTR("returns the amount of available disk space in the specified <i>directory</i> "
 		"using the specified <i>unit_size</i> in bytes (default: 1), "
 		"specify a <i>unit_size</i> of <tt>1024</tt> to return the available space in <i>kilobytes</i>.")
 	,311
 	},
-	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
+	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,number timeout] [,bool write]")
 	,JSDOCSTR("checks an array of socket objects or descriptors for read or write ability (default is <i>read</i>), "
 		"default timeout value is 0.0 seconds (immediate timeout), "
 		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing")
 	,311
 	},
-	{"mkdir",			js_mkdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
+	{"mkdir",			js_mkdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string directory")
 	,JSDOCSTR("make a directory")
 	,310
 	},		
-	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
+	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string directory")
 	,JSDOCSTR("remove a directory")
 	,310
 	},		
-	{"strftime",		js_strftime,		1,	JSTYPE_STRING,	JSDOCSTR("format [,time=<i>current</i>]")
+	{"strftime",		js_strftime,		1,	JSTYPE_STRING,	JSDOCSTR("string format [,number time]")
 	,JSDOCSTR("return a formatted time string (ala C strftime)")
 	,310
 	},		
-	{"format",			js_format,			1,	JSTYPE_STRING,	JSDOCSTR("format [,args]")
-	,JSDOCSTR("return a formatted string (ala the standard C <tt>sprintf</tt> function)")
+	{"format",			js_format,			1,	JSTYPE_STRING,	JSDOCSTR("string format [,args]")
+	,JSDOCSTR("return a formatted string (ala sprintf) - "
+		"<small>CAUTION: for experienced C programmers ONLY</small>")
 	,310
 	},
-	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("text [,ex_ascii=<tt>true</tt>] [,white_space=<tt>true</tt>] [,ansi=<tt>true</tt>] [,ctrl_a=<tt>true</tt>]")
+	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("string text [,bool ex_ascii] [,bool white_space] [,bool ansi] [,bool ctrl_a]")
 	,JSDOCSTR("return an HTML-encoded text string (using standard HTML character entities), "
 		"escaping IBM extended-ASCII, white-space characters, ANSI codes, and CTRL-A codes by default")
 	,311
 	},
-	{"html_decode",		js_html_decode,		1,	JSTYPE_STRING,	JSDOCSTR("html")
+	{"html_decode",		js_html_decode,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("return a decoded HTML-encoded text string")
 	,311
 	},
-	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt>]]]]")
-	,JSDOCSTR("returns a word-wrapped version of the text string argument optionally handing quotes magically, "
-		"<i>line_length</i> defaults to <i>79</i> <i>orig_line_length</i> defaults to <i>79</i> "
-		"and <i>handle_quotes</i> defaults to <i>true</i>")
+	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("string text [,line_length]")
+	,JSDOCSTR("returns a word-wrapped version of the text string argument, <i>line_length</i> defaults to <i>79</i>")
 	,311
 	},
-	{"quote_msg",		js_quote_msg,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt>] [,prefix=<tt>\" > \"</tt>]")
+	{"quote_msg",		js_quote_msg,		1,	JSTYPE_STRING,	JSDOCSTR("string text [,line_length] [,prefix]")
 	,JSDOCSTR("returns a quoted version of the message text string argument, <i>line_length</i> defaults to <i>79</i>, "
 		"<i>prefix</i> defaults to <tt>\" > \"</tt>")
 	,311
 	},
-	{"rot13_translate",	js_rot13,			1,	JSTYPE_STRING,	JSDOCSTR("text")
+	{"rot13_translate",	js_rot13,			1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("returns ROT13-translated version of text string (will encode or decode text)")
 	,311
 	},
-	{"base64_encode",	js_b64_encode,		1,	JSTYPE_STRING,	JSDOCSTR("text")
+	{"base64_encode",	js_b64_encode,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("returns base64-encoded version of text string or <i>null</i> on error")
 	,311
 	},
-	{"base64_decode",	js_b64_decode,		1,	JSTYPE_STRING,	JSDOCSTR("text")
+	{"base64_decode",	js_b64_decode,		1,	JSTYPE_STRING,	JSDOCSTR("string text")
 	,JSDOCSTR("returns base64-decoded text string or <i>null</i> on error")
 	,311
 	},
-	{"crc16_calc",		js_crc16,			1,	JSTYPE_NUMBER,	JSDOCSTR("text")
+	{"crc16_calc",		js_crc16,			1,	JSTYPE_NUMBER,	JSDOCSTR("string text")
 	,JSDOCSTR("calculate and return 16-bit CRC of text string")
 	,311
 	},		
-	{"crc32_calc",		js_crc32,			1,	JSTYPE_NUMBER,	JSDOCSTR("text")
+	{"crc32_calc",		js_crc32,			1,	JSTYPE_NUMBER,	JSDOCSTR("string text")
 	,JSDOCSTR("calculate and return 32-bit CRC of text string")
 	,311
 	},		
-	{"chksum_calc",		js_chksum,			1,	JSTYPE_NUMBER,	JSDOCSTR("text")
+	{"chksum_calc",		js_chksum,			1,	JSTYPE_NUMBER,	JSDOCSTR("string text")
 	,JSDOCSTR("calculate and return 32-bit checksum of text string")
 	,311
 	},
-	{"md5_calc",		js_md5_calc,		1,	JSTYPE_STRING,	JSDOCSTR("text [,hex=<tt>false</tt>]")
+	{"md5_calc",		js_md5_calc,		1,	JSTYPE_STRING,	JSDOCSTR("string text [,bool hex]")
 	,JSDOCSTR("calculate and return 128-bit MD5 digest of text string, result encoded in base64 (default) or hexadecimal")
 	,311
 	},
 	{"gethostbyname",	js_resolve_ip,		1,	JSTYPE_ALIAS },
-	{"resolve_ip",		js_resolve_ip,		1,	JSTYPE_STRING,	JSDOCSTR("hostname")
+	{"resolve_ip",		js_resolve_ip,		1,	JSTYPE_STRING,	JSDOCSTR("string hostname")
 	,JSDOCSTR("resolve IP address of specified hostname (AKA gethostbyname)")
 	,311
 	},
 	{"gethostbyaddr",	js_resolve_host,	1,	JSTYPE_ALIAS },
-	{"resolve_host",	js_resolve_host,	1,	JSTYPE_STRING,	JSDOCSTR("ip_address")
+	{"resolve_host",	js_resolve_host,	1,	JSTYPE_STRING,	JSDOCSTR("string ip_address")
 	,JSDOCSTR("resolve hostname of specified IP address (AKA gethostbyaddr)")
 	,311
 	},
-	{"netaddr_type",	js_netaddr_type,	1,	JSTYPE_NUMBER,	JSDOCSTR("email_address")
+	{"netaddr_type",	js_netaddr_type,	1,	JSTYPE_NUMBER,	JSDOCSTR("string email_address")
 	,JSDOCSTR("returns the proper message <i>net_type</i> for the specified <i>email_address</i>, "
 		"(e.g. <tt>NET_INTERNET</tt> for Internet e-mail or <tt>NET_NONE</tt> for local e-mail)")
 	,312
@@ -3143,7 +2869,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("returns an array of <i>named queues</i> (created with the <i>Queue</i> constructor)")
 	,312
 	},
-	{"flags_str",		js_flags_str,		1,	JSTYPE_UNDEF,	JSDOCSTR("[string] or [number]")
+	{"flags_str",		js_flags_str,		1,	JSTYPE_UNDEF,	JSDOCSTR("[string text] or [number value]")
 	,JSDOCSTR("convert a string of security flags (letters) into their numeric value or vice-versa "
 	"(returns number OR string) - (added in v3.13)")
 	,313
