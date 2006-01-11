@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.45 2006/01/11 17:42:03 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.46 2006/01/11 17:44:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -314,13 +314,13 @@ void ansi_textattr(int attr)
 	bl=attr&0x80;
 	bg=(attr>>4)&0x7;
 	fg=attr&0x07;
-	br=attr&0x04;
+	br=attr&0x08;
 
 	oa=ansi_curr_attr>>8;
 	obl=oa&0x80;
 	obg=(oa>>4)&0x7;
 	ofg=oa&0x07;
-	obr=oa&0x04;
+	obr=oa&0x08;
 
 	ansi_curr_attr=attr<<8;
 
