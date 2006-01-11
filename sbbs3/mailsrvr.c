@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.394 2006/01/11 04:16:12 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.395 2006/01/11 18:14:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3525,6 +3525,7 @@ static void sendmail_thread(void* arg)
 	mail_t*		mail;
 	long		msgs;
 	long		l;
+	BOOL		sending_locally=FALSE;
 
 	thread_up(TRUE /* setuid */);
 
@@ -3681,6 +3682,7 @@ static void sendmail_thread(void* arg)
 							, startup->interface_addr & 0xff);
 					server = numeric_ip;
 				}
+				sending_locally=TRUE;
 			}
 			else {
 				if(startup->options&MAIL_OPT_RELAY_TX) { 
@@ -3809,7 +3811,7 @@ static void sendmail_thread(void* arg)
 
 			/* AUTH */
 			if(startup->options&MAIL_OPT_RELAY_TX 
-				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0) {
+				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0 && !sending_locally) {
 				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
 					case MAIL_OPT_RELAY_AUTH_PLAIN:
 						p="PLAIN";
@@ -4031,7 +4033,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.394 $", "%*s %s", revision);
+	sscanf("$Revision: 1.395 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
