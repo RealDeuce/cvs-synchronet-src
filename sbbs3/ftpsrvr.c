@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.302 2005/10/13 01:44:53 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.304 2006/01/10 06:26:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2263,6 +2263,30 @@ char* vpath(int lib, int dir, char* str)
 	return(str);
 }
 
+void ftp_printfile(SOCKET sock, const char* name, unsigned code)
+{
+	char	path[MAX_PATH+1];
+	char	buf[512];
+	FILE*	fp;
+	unsigned i;
+
+	SAFEPRINTF2(path,"%sftp%s.txt",scfg.text_dir,name);
+	if((fp=fopen(path,"rb"))!=NULL) {
+		i=0;
+		while(!feof(fp)) {
+			if(!fgets(buf,sizeof(buf),fp))
+				break;
+			truncsp(buf);
+			if(!i)
+				sockprintf(sock,"%u-%s",code,buf);
+			else
+				sockprintf(sock," %s",buf);
+			i++;
+		}
+		fclose(fp);
+	}
+}
+
 static BOOL badlogin(SOCKET sock, ulong* login_attempts)
 {
 	mswait(5000);	/* As recommended by RFC2577 */
@@ -2270,6 +2294,7 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts)
 		sockprintf(sock,"421 Too many failed login attempts.");
 		return(TRUE);
 	}
+	ftp_printfile(sock,"badlogin",530);
 	sockprintf(sock,"530 Invalid login.");
 	return(FALSE);
 }
@@ -2556,21 +2581,7 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 		if(!stricmp(cmd, "QUIT")) {
-			sprintf(str,"%sftpbye.txt",scfg.text_dir);
-			if((fp=fopen(str,"rb"))!=NULL) {
-				i=0;
-				while(!feof(fp)) {
-					if(!fgets(buf,sizeof(buf),fp))
-						break;
-					truncsp(buf);
-					if(!i)
-						sockprintf(sock,"221-%s",buf);
-					else
-						sockprintf(sock," %s",buf);
-					i++;
-				}
-				fclose(fp);
-			}
+			ftp_printfile(sock,"bye",221);
 			sockprintf(sock,"221 Goodbye. Closing control connection.");
 			break;
 		}
@@ -2688,21 +2699,7 @@ static void ctrl_thread(void* arg)
 			lprintf(LOG_INFO,"%04d %s logged in",sock,user.alias);
 			logintime=time(NULL);
 			timeleft=gettimeleft(&scfg,&user,logintime);
-			sprintf(str,"%sftphello.txt",scfg.text_dir);
-			if((fp=fopen(str,"rb"))!=NULL) {
-				i=0;
-				while(!feof(fp)) {
-					if(!fgets(buf,sizeof(buf),fp))
-						break;
-					truncsp(buf);
-					if(!i)
-						sockprintf(sock,"230-%s",buf);
-					else
-						sockprintf(sock," %s",buf);
-					i++;
-				}
-				fclose(fp);
-			}
+			ftp_printfile(sock,"hello",230);
 
 #ifdef JAVASCRIPT
 #ifdef JS_CX_PER_SESSION
@@ -4508,7 +4505,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.302 $", "%*s %s", revision);
+	sscanf("$Revision: 1.304 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
