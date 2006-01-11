@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.41 2005/09/20 03:40:59 deuce Exp $ */
+/* $Id: uedit.c,v 1.42 2005/12/21 16:23:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "ciolib.h"
-#define __COLORS	1
 #include "sbbs.h"
 #include <sys/types.h>
 #include <time.h>
@@ -1910,7 +1909,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.41 $", "%*s %s", revision);
+	sscanf("$Revision: 1.42 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);

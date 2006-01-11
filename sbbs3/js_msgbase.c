@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.119 2005/09/10 22:39:02 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.120 2005/12/13 02:24:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1638,7 +1638,7 @@ static jsSyncPropertySpec js_msgbase_properties[] = {
 	{0}
 };
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 static char* msgbase_prop_desc[] = {
 
 	 "last occurred message base error - <small>READ ONLY</small>"
@@ -1821,7 +1821,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 		return(JS_FALSE);
 	}
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for accessing message bases",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new MsgBase object: "
 		"<tt>var msgbase = new MsgBase('<i>code</i>')</tt><br>"
@@ -1842,7 +1842,7 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 			JS_DefineProperty(cx,cfgobj,"index",JSVAL_VOID
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 			js_CreateMsgAreaProperties(cx, scfg, cfgobj, p->smb.subnum);
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 			js_DescribeSyncObject(cx,cfgobj
 				,"Configuration parameters for this message area (<i>sub-boards only</i>) "
 				"- <small>READ ONLY</small>"

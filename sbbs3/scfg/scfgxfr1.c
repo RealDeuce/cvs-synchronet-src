@@ -1,6 +1,6 @@
 /* scfgxfr1.c */
 
-/* $Id: scfgxfr1.c,v 1.14 2005/09/20 03:40:47 deuce Exp $ */
+/* $Id: scfgxfr1.c,v 1.17 2005/12/13 06:44:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,6 @@ on the estimated CPS of the connection result code), then a leech
 protocol error is issued and the user's leech download counter is
 incremented. Setting this value to 0 disables leech protocol detection.
 */
-			uifc.savnum=0;
 			uifc.input(WIN_MID|WIN_SAV,0,0
 				,"Leech Protocol Detection Percentage (0=Disabled)"
 				,ultoa(cfg.leech_pct,tmp,10),3,K_EDIT|K_NUMBER);
@@ -254,7 +253,6 @@ considered a possible leech attempt.
 					i|=WIN_DEL|WIN_GET;
 				if(savfview.cmd[0])
 					i|=WIN_PUT;
-				uifc.savnum=0;
 				SETHELP(WHERE);
 /*
 Viewable File Types:
@@ -290,7 +288,7 @@ command line examples for a few file types.
 							continue; }
 						memset(cfg.fview[0],0,sizeof(fview_t));
 						strcpy(cfg.fview[0]->ext,"ZIP");
-						strcpy(cfg.fview[0]->cmd,"%!pkunzip -v %f"); }
+						strcpy(cfg.fview[0]->cmd,"%@unzip -vq %s"); }
 					else {
 						for(j=cfg.total_fviews;j>i;j--)
 							cfg.fview[j]=cfg.fview[j-1];
@@ -325,7 +323,6 @@ command line examples for a few file types.
 					sprintf(opt[j++],"%-22.22s%s","Access Requirements"
 						,cfg.fview[i]->arstr);
 					opt[j][0]=0;
-					uifc.savnum=1;
 					switch(uifc.list(WIN_RHT|WIN_BOT|WIN_SAV|WIN_ACT,0,0,0,&fview_opt,0
 						,"Viewable File Type",opt)) {
 						case -1:
@@ -342,7 +339,6 @@ command line examples for a few file types.
 								,cfg.fview[i]->cmd,sizeof(cfg.fview[i]->cmd)-1,K_EDIT);
 							break;
 						case 2:
-							uifc.savnum=2;
 							sprintf(str,"Viewable File Type %s"
 								,cfg.fview[i]->ext);
 							getar(str,cfg.fview[i]->arstr);
@@ -360,7 +356,6 @@ command line examples for a few file types.
 					i|=WIN_DEL|WIN_GET;
 				if(savftest.cmd[0])
 					i|=WIN_PUT;
-				uifc.savnum=0;
 				SETHELP(WHERE);
 /*
 Testable File Types:
@@ -405,7 +400,7 @@ listed.
 							continue; }
 						memset(cfg.ftest[0],0,sizeof(ftest_t));
 						strcpy(cfg.ftest[0]->ext,"ZIP");
-						strcpy(cfg.ftest[0]->cmd,"%!pkunzip -t %f");
+						strcpy(cfg.ftest[0]->cmd,"%@unzip -tqq %f");
 						strcpy(cfg.ftest[0]->workstr,"Testing ZIP Integrity..."); }
 					else {
 
@@ -444,7 +439,6 @@ listed.
 					sprintf(opt[j++],"%-22.22s%s","Access Requirements"
 						,cfg.ftest[i]->arstr);
 					opt[j][0]=0;
-					uifc.savnum=1;
 					switch(uifc.list(WIN_RHT|WIN_BOT|WIN_SAV|WIN_ACT,0,0,0,&ftest_opt,0
 						,"Testable File Type",opt)) {
 						case -1:
@@ -466,7 +460,6 @@ listed.
 								,cfg.ftest[i]->workstr,sizeof(cfg.ftest[i]->workstr)-1,K_EDIT|K_MSG);
 							break;
 						case 3:
-							uifc.savnum=2;
 							sprintf(str,"Testable File Type %s",cfg.ftest[i]->ext);
 							getar(str,cfg.ftest[i]->arstr);
 							break; } } }
@@ -483,7 +476,6 @@ listed.
 					i|=WIN_DEL|WIN_GET;
 				if(savdlevent.cmd[0])
 					i|=WIN_PUT;
-				uifc.savnum=0;
 				SETHELP(WHERE);
 /*
 Download Events:
@@ -527,8 +519,7 @@ for each file type and command line listed.
 							continue; }
 						memset(cfg.dlevent[0],0,sizeof(dlevent_t));
 						strcpy(cfg.dlevent[0]->ext,"ZIP");
-						strcpy(cfg.dlevent[0]->cmd,"%!pkzip -z %f "
-							"< ..\\text\\zipmsg.txt");
+						strcpy(cfg.dlevent[0]->cmd,"%@zip -z %f < %zzipmsg.txt");
 						strcpy(cfg.dlevent[0]->workstr,"Adding ZIP Comment..."); }
 					else {
 
@@ -567,7 +558,6 @@ for each file type and command line listed.
 					sprintf(opt[j++],"%-22.22s%s","Access Requirements"
 						,cfg.dlevent[i]->arstr);
 					opt[j][0]=0;
-					uifc.savnum=1;
 					switch(uifc.list(WIN_RHT|WIN_BOT|WIN_SAV|WIN_ACT,0,0,0,&dlevent_opt,0
 						,"Download Event",opt)) {
 						case -1:
@@ -589,7 +579,6 @@ for each file type and command line listed.
 								,cfg.dlevent[i]->workstr,sizeof(cfg.dlevent[i]->workstr)-1,K_EDIT|K_MSG);
 							break;
 						case 3:
-							uifc.savnum=2;
 							sprintf(str,"Download Event %s",cfg.dlevent[i]->ext);
 							getar(str,cfg.dlevent[i]->arstr);
 							break; } } }
@@ -607,7 +596,6 @@ for each file type and command line listed.
                     i|=WIN_DEL|WIN_GET;
 				if(savfextr.cmd[0])
                     i|=WIN_PUT;
-                uifc.savnum=0;
                 SETHELP(WHERE);
 /*
 Extractable File Types:
@@ -644,7 +632,7 @@ extract the file(s).
                             continue; }
 						memset(cfg.fextr[0],0,sizeof(fextr_t));
                         strcpy(cfg.fextr[0]->ext,"ZIP");
-                        strcpy(cfg.fextr[0]->cmd,"%!pkunzip -o %f %g %s"); }
+                        strcpy(cfg.fextr[0]->cmd,"%@unzip -Cojqq %f %s -d %g"); }
                     else {
 
                         for(j=cfg.total_fextrs;j>i;j--)
@@ -680,7 +668,6 @@ extract the file(s).
 					sprintf(opt[j++],"%-22.22s%s","Access Requirements"
 						,cfg.fextr[i]->arstr);
 					opt[j][0]=0;
-					uifc.savnum=1;
 					switch(uifc.list(WIN_RHT|WIN_BOT|WIN_SAV|WIN_ACT,0,0,0,&fextr_opt,0
 						,"Extractable File Type",opt)) {
 						case -1:
@@ -697,7 +684,6 @@ extract the file(s).
 								,cfg.fextr[i]->cmd,sizeof(cfg.fextr[i]->cmd)-1,K_EDIT);
 							break;
 						case 2:
-							uifc.savnum=2;
 							sprintf(str,"Extractable File Type %s"
 								,cfg.fextr[i]->ext);
 							getar(str,cfg.fextr[i]->arstr);
@@ -715,7 +701,6 @@ extract the file(s).
 					i|=WIN_DEL|WIN_GET;
 				if(savfcomp.cmd[0])
 					i|=WIN_PUT;
-				uifc.savnum=0;
 				SETHELP(WHERE);
 /*
 Compressable File Types:
@@ -751,7 +736,7 @@ files from the transfer section, and more.
 							continue; }
 						memset(cfg.fcomp[0],0,sizeof(fcomp_t));
 						strcpy(cfg.fcomp[0]->ext,"ZIP");
-						strcpy(cfg.fcomp[0]->cmd,"%!pkzip %f %s"); }
+						strcpy(cfg.fcomp[0]->cmd,"%@zip -jD %f %s"); }
 					else {
 						for(j=cfg.total_fcomps;j>i;j--)
 							cfg.fcomp[j]=cfg.fcomp[j-1];
@@ -786,7 +771,6 @@ files from the transfer section, and more.
 					sprintf(opt[j++],"%-22.22s%s","Access Requirements"
 						,cfg.fcomp[i]->arstr);
 					opt[j][0]=0;
-					uifc.savnum=1;
 					switch(uifc.list(WIN_RHT|WIN_BOT|WIN_SAV|WIN_ACT,0,0,0,&fcomp_opt,0
 						,"Compressable File Type",opt)) {
 						case -1:
@@ -803,7 +787,6 @@ files from the transfer section, and more.
 								,cfg.fcomp[i]->cmd,sizeof(cfg.fcomp[i]->cmd)-1,K_EDIT);
 							break;
 						case 2:
-							uifc.savnum=2;
 							sprintf(str,"Compressable File Type %s"
 								,cfg.fcomp[i]->ext);
 							getar(str,cfg.fcomp[i]->arstr);
@@ -822,7 +805,6 @@ files from the transfer section, and more.
 					i|=WIN_DEL|WIN_GET;
 				if(savprot.mnemonic)
 					i|=WIN_PUT;
-				uifc.savnum=0;
 				SETHELP(WHERE);
 /*
 File Transfer Protocols:
@@ -911,7 +893,6 @@ command line for that method blank.
 					sprintf(opt[j++],"%-30.30s%s",	 "Supports DSZLOG"
 						,cfg.prot[i]->misc&PROT_DSZLOG ? "Yes":"No");
 					opt[j][0]=0;
-					uifc.savnum=1;
 					switch(uifc.list(WIN_RHT|WIN_BOT|WIN_SAV|WIN_ACT,0,0,70,&prot_opt,0
 						,"File Transfer Protocol",opt)) {
 						case -1:
@@ -932,7 +913,6 @@ command line for that method blank.
 								,cfg.prot[i]->name,sizeof(cfg.prot[i]->name)-1,K_EDIT);
                             break;
 						case 2:
-							uifc.savnum=2;
 							sprintf(str,"Protocol %s",cfg.prot[i]->name);
 							getar(str,cfg.prot[i]->arstr);
 							break;
@@ -966,7 +946,6 @@ command line for that method blank.
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.savnum=2;
 							l=uifc.list(WIN_MID|WIN_SAV,0,0,0,&l,0
 								,"Native (32-bit) Executable",opt);
 							if((l==0 && !(cfg.prot[i]->misc&PROT_NATIVE))
@@ -980,7 +959,6 @@ command line for that method blank.
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.savnum=2;
 							l=uifc.list(WIN_MID|WIN_SAV,0,0,0,&l,0
 								,"Uses DSZLOG",opt);
 							if((l==0 && !(cfg.prot[i]->misc&PROT_DSZLOG))
@@ -1005,7 +983,6 @@ command line for that method blank.
 					i|=WIN_DEL|WIN_GET;
 				if(savaltpath[0])
 					i|=WIN_PUT;
-				uifc.savnum=0;
 				SETHELP(WHERE);
 /*
 Alternate File Paths:
@@ -1065,7 +1042,7 @@ multiple CD-ROMs or hard disks.
 					uifc.changes=1;
 					continue; }
 				sprintf(str,"Path %d",i+1);
-				uifc.input(WIN_MID|WIN_SAV,0,0,str,cfg.altpath[i],sizeof(cfg.altpath[i])-1,K_EDIT); 
+				uifc.input(WIN_MID|WIN_SAV,0,0,str,cfg.altpath[i],LEN_DIR,K_EDIT); 
 			}
 			break; 
 		} 
