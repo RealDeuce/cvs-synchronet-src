@@ -453,6 +453,10 @@ malloc_error:
    {
       od_control.od_node = atoi(pointer);
    }
+   else if((pointer=getenv("SBBSNNUM")) != NULL)
+   {
+      od_control.od_node = atoi(pointer);
+   }
    else if(wODNodeNumber != 65535U)
    {
       od_control.od_node = wODNodeNumber;
@@ -2356,8 +2360,8 @@ no_default:
    {
       if(od_control.od_logfile_messages[btCount] == NULL)
       {
-         (char *)od_control.od_logfile_messages[btCount]
-            = (char *)apszLogMessages[btCount];
+         od_control.od_logfile_messages[btCount]
+            = apszLogMessages[btCount];
       }
    }
 

@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.1 2005/10/21 08:26:59 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.9 2005/11/25 22:03:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,11 +43,191 @@
 #include "uifc.h"
 #include "ciolib.h"
 
+/* Properties */
+enum {
+	 PROP_INITIALIZED	/* read-only */
+	,PROP_MODE
+	,PROP_CHANGES
+	,PROP_SAVNUM
+	,PROP_SCRN_LEN
+    ,PROP_SCRN_WIDTH
+	,PROP_ESC_DELAY
+	,PROP_HELPBUF
+	,PROP_HCOLOR
+	,PROP_LCOLOR
+	,PROP_BCOLOR
+	,PROP_CCOLOR
+	,PROP_LBCOLOR
+	,PROP_LIST_HEIGHT
+};
+
+static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+{
+    jsint		tiny;
+	uifcapi_t*	uifc;
+
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
+
+    tiny = JSVAL_TO_INT(id);
+
+	switch(tiny) {
+		case PROP_INITIALIZED:
+			*vp=BOOLEAN_TO_JSVAL(uifc->initialized);
+			break;
+		case PROP_MODE:
+			JS_NewNumberValue(cx,uifc->mode,vp);
+			break;
+		case PROP_CHANGES:
+			*vp=BOOLEAN_TO_JSVAL(uifc->changes);
+			break;
+		case PROP_SAVNUM:
+			*vp=INT_TO_JSVAL(uifc->savnum);
+			break;
+		case PROP_SCRN_LEN:
+			*vp=INT_TO_JSVAL(uifc->scrn_len);
+			break;
+		case PROP_SCRN_WIDTH:
+			*vp=INT_TO_JSVAL(uifc->scrn_width);
+			break;
+		case PROP_ESC_DELAY:
+			*vp=INT_TO_JSVAL(uifc->esc_delay);
+			break;
+		case PROP_HELPBUF:
+			*vp=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,uifc->helpbuf));
+			break;
+		case PROP_HCOLOR:
+			*vp=INT_TO_JSVAL(uifc->hclr);
+			break;
+		case PROP_LCOLOR:
+			*vp=INT_TO_JSVAL(uifc->lclr);
+			break;
+		case PROP_BCOLOR:
+			*vp=INT_TO_JSVAL(uifc->bclr);
+			break;
+		case PROP_CCOLOR:
+			*vp=INT_TO_JSVAL(uifc->cclr);
+			break;
+		case PROP_LBCOLOR:
+			*vp=INT_TO_JSVAL(uifc->lbclr);
+			break;
+		case PROP_LIST_HEIGHT:
+			*vp=INT_TO_JSVAL(uifc->list_height);
+			break;
+	}
+
+	return(JS_TRUE);
+}
+
+static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+{
+    jsint		tiny;
+	int32		i=0;
+	uifcapi_t*	uifc;
+
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
+
+    tiny = JSVAL_TO_INT(id);
+
+	switch(tiny) {
+		case PROP_MODE:
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->mode);
+			break;
+		case PROP_CHANGES:
+			JS_ValueToBoolean(cx,*vp,&uifc->changes);
+			break;
+		case PROP_SAVNUM:
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->savnum);
+			break;
+		case PROP_SCRN_LEN:
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->scrn_len);
+			break;
+		case PROP_SCRN_WIDTH:
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->scrn_width);
+			break;
+		case PROP_ESC_DELAY:
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->esc_delay);
+			break;
+		case PROP_HELPBUF:
+			uifc->helpbuf=js_ValueToStringBytes(cx, *vp, NULL);
+			break;
+		case PROP_LIST_HEIGHT:
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->list_height);
+			break;
+		case PROP_HCOLOR:
+		case PROP_LCOLOR:
+		case PROP_BCOLOR:
+		case PROP_CCOLOR:
+		case PROP_LBCOLOR:
+			JS_ValueToInt32(cx, *vp, &i);
+			switch(tiny) {
+				case PROP_HCOLOR:
+					uifc->hclr=(char)i;
+					break;
+				case PROP_LCOLOR:
+					uifc->lclr=(char)i;
+					break;
+				case PROP_BCOLOR:
+					uifc->bclr=(char)i;
+					break;
+				case PROP_CCOLOR:
+					uifc->cclr=(char)i;
+					break;
+				case PROP_LBCOLOR:
+					uifc->lbclr=(char)i;
+					break;
+			}
+			break;
+	}	
+
+	return(JS_TRUE);
+}
+
+static jsSyncPropertySpec js_properties[] = {
+/*		 name,				tinyid,						flags,		ver	*/
+
+	{	"initialized",		PROP_INITIALIZED,	JSPROP_ENUMERATE|JSPROP_READONLY, 313 },
+	{	"mode",				PROP_MODE,			JSPROP_ENUMERATE,	313 },
+	{	"changes",			PROP_CHANGES,		JSPROP_ENUMERATE,	313 },
+	{	"save_num",			PROP_SAVNUM,		JSPROP_ENUMERATE,	313 },
+	{	"screen_length",	PROP_SCRN_LEN,		JSPROP_ENUMERATE,	313 },
+	{	"screen_width",		PROP_SCRN_WIDTH,	JSPROP_ENUMERATE,	313 },
+	{	"list_height",		PROP_LIST_HEIGHT,	JSPROP_ENUMERATE,	313 },
+	{	"esc_delay",		PROP_ESC_DELAY,		JSPROP_ENUMERATE,	313 },
+	{	"help_text",		PROP_HELPBUF,		JSPROP_ENUMERATE,	313 },
+	{	"background_color",	PROP_BCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"frame_color",		PROP_HCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"text_color",		PROP_LCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"inverse_color",	PROP_CCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"lightbar_color",	PROP_LBCOLOR,		JSPROP_ENUMERATE,	313 },
+	{0}
+};
+
+/* Convenience functions */
+static uifcapi_t* get_uifc(JSContext *cx, JSObject *obj)
+{
+	uifcapi_t* uifc;
+
+	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(NULL);
+
+	if(!uifc->initialized) {
+		JS_ReportError(cx,"UIFC not initialized");
+		return(NULL);
+	}
+
+	return(uifc);
+}
+
+/* Methods */
+
 static JSBool
 js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
 	char*	title="Synchronet";
+	char*	mode;
 	uifcapi_t* uifc;
 
 	*rval = JSVAL_FALSE;
@@ -58,11 +238,29 @@ js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc && (title=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
 		return(JS_FALSE);
 
-	if(initciolib(ciolib_mode))
-		return(JS_TRUE);
+	if(argc>1 && (mode=js_ValueToStringBytes(cx, argv[1], NULL))!=NULL) {
+		if(!stricmp(mode,"STDIO"))
+			ciolib_mode=-1;
+		else if(!stricmp(mode,"AUTO"))
+			ciolib_mode=CIOLIB_MODE_AUTO;
+		else if(!stricmp(mode,"X"))
+			ciolib_mode=CIOLIB_MODE_X;
+		else if(!stricmp(mode,"ANSI"))
+			ciolib_mode=CIOLIB_MODE_ANSI;
+		else if(!stricmp(mode,"CONIO"))
+			ciolib_mode=CIOLIB_MODE_CONIO;
+	}
 
-    if(uifcini32(uifc))
-		return(JS_TRUE);
+	if(ciolib_mode==-1) {
+		if(uifcinix(uifc))
+			return(JS_TRUE);
+	} else {
+		if(initciolib(ciolib_mode))
+			return(JS_TRUE);
+
+		if(uifcini32(uifc))
+			return(JS_TRUE);
+	}
 
 	*rval = JSVAL_TRUE;
 	uifc->scrn(title);
@@ -74,11 +272,10 @@ js_uifc_bail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uifcapi_t* uifc;
 
-	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	uifc->bail();
-	clrscr();
 	return(JS_TRUE);
 }
 
@@ -88,7 +285,7 @@ js_uifc_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		str;
 	uifcapi_t*	uifc;
 
-	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
@@ -104,7 +301,7 @@ js_uifc_pop(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		str=NULL;
 	uifcapi_t*	uifc;
 
-	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(argc)
@@ -120,15 +317,15 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	char*		str;
 	char*		org=NULL;
 	char*		prompt=NULL;
-	int			maxlen=0;
-	int			left=0;
-	int			top=0;
-	long		mode=0;
-	long		kmode=0;
+	int32		maxlen=0;
+	int32		left=0;
+	int32		top=0;
+	int32		mode=0;
+	int32		kmode=0;
 	uifcapi_t*	uifc;
 	uintN		argn=0;
 
-	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
@@ -175,13 +372,13 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 static JSBool
 js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		title="Title";
-	int			left=0;
-	int			top=0;
-	int			width=0;
-	int			dflt=0;
-	int			bar=0;
-	long		mode=0;
+	char*		title=NULL;
+	int32		left=0;
+	int32		top=0;
+	int32		width=0;
+	int32		dflt=0;
+	int32		bar=0;
+	int32		mode=0;
 	JSObject*	objarg;
 	uifcapi_t*	uifc;
 	uintN		argn=0;
@@ -190,7 +387,7 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	jsuint		numopts;
 	str_list_t	opts=NULL;
 
-	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
@@ -229,14 +426,15 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-    *rval = INT_TO_JSVAL(uifc->list(mode,left,top,width,&dflt,&bar,title,opts));
+    *rval = INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)&dflt,(int*)&bar,title,opts));
 	strListFree(&opts);
 	return(JS_TRUE);
 }
 
+/* Destructor */
 
 static void 
-js_uifc_finalize(JSContext *cx, JSObject *obj)
+js_finalize(JSContext *cx, JSObject *obj)
 {
 	uifcapi_t* p;
 
@@ -281,12 +479,12 @@ static JSClass js_uifc_class = {
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
-	,JS_PropertyStub		/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
+	,js_get					/* getProperty	*/
+	,js_set					/* setProperty	*/
 	,JS_EnumerateStub		/* enumerate	*/
 	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
-	,js_uifc_finalize		/* finalize		*/
+	,js_finalize			/* finalize		*/
 };
 
 JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent)
@@ -307,10 +505,10 @@ JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent)
 
 	if(!JS_SetPrivate(cx, obj, api))	/* Store a pointer to uifcapi_t */
 		return(NULL);
-#if 0
+
 	if(!js_DefineSyncProperties(cx, obj, js_properties))	/* expose them */
 		return(NULL);
-#endif
+
 	if(!js_DefineSyncMethods(cx, obj, js_functions, /* append? */ FALSE)) 
 		return(NULL);
 
