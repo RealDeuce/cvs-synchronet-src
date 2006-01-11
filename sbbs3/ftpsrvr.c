@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.308 2006/05/10 21:50:03 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.304 2006/01/10 06:26:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1264,11 +1264,6 @@ static char* cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *c
                 case '!':   /* EXEC Directory */
                     strcat(cmd,scfg.exec_dir);
                     break;
-                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-                    strcat(cmd,scfg.exec_dir);
-#endif
-                    break;
                 case '#':   /* Node number (same as SBBSNNUM environment var) */
                     sprintf(str,"%u",scfg.node_num);
                     strcat(cmd,str);
@@ -1566,7 +1561,8 @@ static void send_thread(void* arg)
 		}	
 
 		if(xfer.credits) {
-			user_downloaded(&scfg, xfer.user, 1, total);
+			xfer.user->dls=(ushort)adjustuserrec(&scfg, xfer.user->number,U_DLS,5,1);
+			xfer.user->dlb=adjustuserrec(&scfg, xfer.user->number,U_DLB,10,total);
 			if(xfer.dir>=0 && !is_download_free(&scfg,xfer.dir,xfer.user))
 				subtract_cdt(&scfg, xfer.user, xfer.credits);
 		}
@@ -1773,9 +1769,6 @@ static void receive_thread(void* arg)
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
 				SAFECOPY(f.desc,xfer.desc);
 
-			/* Necessary for DIR and LIB ARS keyword support in subsequent chk_ar()'s */
-			SAFECOPY(xfer.user->curdir, scfg.dir[f.dir]->code);
-
 			/* FILE_ID.DIZ support */
 			p=strrchr(f.name,'.');
 			if(p!=NULL && scfg.dir[f.dir]->misc&DIR_DIZ) {
@@ -1839,7 +1832,9 @@ static void receive_thread(void* arg)
 			/**************************/
 			/* Update Uploader's Info */
 			/**************************/
-			user_uploaded(&scfg, xfer.user, (!xfer.append && xfer.filepos==0) ? 1:0, total);
+			if(!xfer.append && xfer.filepos==0)
+				xfer.user->uls=(short)adjustuserrec(&scfg, xfer.user->number,U_ULS,5,1);
+			xfer.user->ulb=adjustuserrec(&scfg, xfer.user->number,U_ULB,10,total);
 			if(scfg.dir[f.dir]->up_pct && scfg.dir[f.dir]->misc&DIR_CDTUL) { /* credit for upload */
 				if(scfg.dir[f.dir]->misc&DIR_CDTMIN && cps)    /* Give min instead of cdt */
 					xfer.user->min=adjustuserrec(&scfg,xfer.user->number,U_MIN,10
@@ -2929,24 +2924,10 @@ static void ctrl_thread(void* arg)
 				continue;
 			}
 
-			/* Choose IP address to use in passive response */
-			ip_addr=0;
-			if(startup->options&FTP_OPT_LOOKUP_PASV_IP
-				&& (host=gethostbyname(startup->host_name))!=NULL) 
-				ip_addr=ntohl(*((ulong*)host->h_addr_list[0]));
-			if(ip_addr==0 && (ip_addr=startup->pasv_ip_addr)==0)
+			if((ip_addr=startup->pasv_ip_addr)==0)
 				ip_addr=ntohl(pasv_addr.sin_addr.s_addr);
-
-			if(startup->options&FTP_OPT_DEBUG_DATA)
-				lprintf(LOG_INFO,"%04d PASV DATA IP address in response: %u.%u.%u.%u (subject to NAT)"
-					,sock
-					,(ip_addr>>24)&0xff
-					,(ip_addr>>16)&0xff
-					,(ip_addr>>8)&0xff
-					,ip_addr&0xff
-					);
 			port=ntohs(addr.sin_port);
-			sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
+			sockprintf(sock,"227 Entering Passive Mode (%d,%d,%d,%d,%hd,%hd)"
 				,(ip_addr>>24)&0xff
 				,(ip_addr>>16)&0xff
 				,(ip_addr>>8)&0xff
@@ -4524,7 +4505,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.308 $", "%*s %s", revision);
+	sscanf("$Revision: 1.304 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
