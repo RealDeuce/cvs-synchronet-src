@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.83 2006/05/18 21:29:46 deuce Exp $ */
+/* $Id: genwrap.h,v 1.80 2005/11/01 00:32:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,8 +178,8 @@ extern "C" {
 	DLLEXPORT char*	DLLCALL strlwr(char* str);
 	DLLEXPORT char* DLLCALL	strrev(char* str);
 	#if !defined(stricmp)
-		#define stricmp			strcasecmp
-		#define strnicmp		strncasecmp
+		#define stricmp(x,y)		strcasecmp(x,y)
+		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
 	#endif
 #endif
 
@@ -224,12 +224,12 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #elif defined(__unix__) || defined(__APPLE__)
 
 	#if defined(_PTH_PTHREAD_H_)
-		#define SLEEP(x)		({ int sleep_msecs=x; struct timeval tv; \
-								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
+		#define SLEEP(x)		({ int y=x; struct timeval tv; \
+								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
 								pth_nap(tv); })
 	#else
-		#define SLEEP(x)		({	int sleep_msecs=x; struct timeval tv; \
-								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
+		#define SLEEP(x)		({	int y=x; struct timeval tv; \
+								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
 								select(0,NULL,NULL,NULL,&tv); })
 	#endif
 
@@ -271,13 +271,6 @@ DLLEXPORT int DLLCALL	get_errno(void);
 
 #endif
 
-/* Command processor/shell environment variable name */
-#ifdef __unix__
-	#define OS_CMD_SHELL_ENV_VAR	"SHELL"
-#else	/* DOS/Windows/OS2 */
-	#define OS_CMD_SHELL_ENV_VAR	"COMSPEC"
-#endif
-
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
 
 #if !defined(__unix__)	
@@ -303,7 +296,6 @@ DLLEXPORT int		DLLCALL	xp_random(int);
 
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
-DLLEXPORT char*		DLLCALL os_cmdshell(void);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
 
