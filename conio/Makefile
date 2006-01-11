@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.13 2005/10/14 06:21:15 deuce Exp $
+# $Id: Makefile,v 1.18 2005/11/28 05:44:46 deuce Exp $
 
 # To build a DLL, use "make [OPTIONS] DLLIBS=1 dl-mtlib"
 # You *MUST* do a clean between a static and dynamic lib on Win32!
@@ -22,6 +22,7 @@ SRC_ROOT = ..
 
 !ifdef USE_SDL
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE) $(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
+OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
 !endif
 
 #The following is necessary only when DLL-exporting wrapper functions
@@ -52,3 +53,6 @@ $(CIOLIB-MT_SHLIB_BUILD): $(OBJS)
 	$**
 	cw32mt.lib
 |
+
+test:
+	$(QUIET)$(CC) $(CFLAGS) $(MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) keytest.c $(LDFLAGS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
