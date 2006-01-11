@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.14 2005/09/25 22:56:57 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.16 2005/10/25 20:29:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.8 2005/10/21 20:09:38 deuce Exp $ */
+/* $Id: xpevent.c,v 1.9 2005/10/21 21:49:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,7 @@
 #include <stdio.h>		/* NULL */
 #include <stdlib.h>		/* malloc() */
 #include "xpevent.h"
+#include "genwrap.h"
 
 xpevent_t
 CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
