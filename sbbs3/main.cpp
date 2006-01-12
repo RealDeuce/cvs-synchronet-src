@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.420 2005/12/22 08:45:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.421 2006/01/12 04:40:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1924,6 +1924,7 @@ void event_thread(void* arg)
 					sprintf(str,"%s%s.q%c%c",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id
 						,j>10 ? ((j-1)/10)+'0' : 'w'
 						,j ? ((j-1)%10)+'0' : 'k');
+					eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
