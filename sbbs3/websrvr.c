@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.382 2006/01/12 03:07:31 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.383 2006/01/12 03:25:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -730,14 +730,18 @@ static int close_socket(SOCKET sock)
 /* Waits for the outbuf to drain */
 static void drain_outbuf(http_session_t * session)
 {
+	if(session->socket==INVALID_SOCKET)
+		return;
 	/* Force the output thread to go NOW */
 	sem_post(&(session->outbuf.highwater_sem));
 	/* ToDo: This should probobly timeout eventually... */
-	while(RingBufFull(&session->outbuf))
+	while(RingBufFull(&session->outbuf) && session->socket!=INVALID_SOCKET && !terminate_server)
 		SLEEP(1);
 	/* Lock the mutex to ensure data has been sent */
-	while(!session->outbuf_write_initialized)
+	while(session->socket!=INVALID_SOCKET && !terminate_server && !session->outbuf_write_initialized)
 		SLEEP(1);
+	if(session->socket==INVALID_SOCKET || terminate_server)
+		return;
 	pthread_mutex_lock(&session->outbuf_write);		/* Win32 Access violation here on Jan-11-2006 - shutting down webserver while in use */
 	pthread_mutex_unlock(&session->outbuf_write);
 }
@@ -4094,7 +4098,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.382 $", "%*s %s", revision);
+	sscanf("$Revision: 1.383 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
