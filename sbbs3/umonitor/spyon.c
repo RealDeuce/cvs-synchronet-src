@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id: spyon.c,v 1.5 2005/07/03 04:25:23 deuce Exp $ */
+/* $Id: spyon.c,v 1.6 2006/01/11 02:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,11 @@ int spyon(char *sockname)  {
 	
 	spy_name.sun_family=AF_UNIX;
 	SAFECOPY(spy_name.sun_path,sockname);
+#ifdef SUN_LEN
 	spy_len=SUN_LEN(&spy_name);
+#else
+	spy_len=sizeof(struct sockaddr_un);
+#endif
 	if(connect(spy_sock,(struct sockaddr *)&spy_name,spy_len))  {
 		return(SPY_NOCONNECT);
 	}
