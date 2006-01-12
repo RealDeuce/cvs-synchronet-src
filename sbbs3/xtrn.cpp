@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.194 2006/05/24 06:10:18 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.190 2005/11/08 21:13:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -254,31 +254,6 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
-static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
-{
-	char*	p;
-	char	str[MAX_PATH+1];
-	char	name[64];
-	char	base[64];
-	unsigned i;
-
-	if(mode&EX_NATIVE)
-		return(TRUE);
-
-    SAFECOPY(str,cmdline);				/* Set str to program name only */
-	truncstr(str," ");
-    SAFECOPY(name,getfname(str));
-	SAFECOPY(base,name);
-	if((p=getfext(base))!=NULL)
-		*p=0;
-
-    for(i=0;i<cfg->total_natvpgms;i++)
-        if(stricmp(name,cfg->natvpgm[i]->name)==0
-		|| stricmp(base,cfg->natvpgm[i]->name)==0)
-            break;
-    return(i<cfg->total_natvpgms);
-}
-
 #define XTRN_LOADABLE_MODULE								\
 	if(cmdline[0]=='*') {   /* Baja module or JavaScript */	\
 		SAFECOPY(str,cmdline+1);							\
@@ -288,6 +263,8 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
 			*p=0; 											\
 		} else												\
 			main_csi.str[0]=0;								\
+		if(!strchr(str,'.'))								\
+			strcat(str,".bin");								\
 		return(exec_bin(str,&main_csi));					\
 	}														
 #ifdef JAVASCRIPT
@@ -365,6 +342,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	char*	env_strings;
 	const char* p_startup_dir;
 	char	path[MAX_PATH+1];
+	char	fname[MAX_PATH+1];
     char	fullcmdline[MAX_PATH+1];
 	char	realcmdline[MAX_PATH+1];
 	char	comspec_str[MAX_PATH+1];
@@ -416,7 +394,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
-	native = native_executable(&cfg, cmdline, mode);
+    SAFECOPY(str,cmdline);				/* Set str to program name only */
+	truncstr(str," ");
+    SAFECOPY(fname,getfname(str));
+
+    for(i=0;i<cfg.total_natvpgms;i++)
+        if(!stricmp(fname,cfg.natvpgm[i]->name))
+            break;
+    if(i<cfg.total_natvpgms || mode&EX_NATIVE)
+        native=true;
 
 	if(mode&EX_SH || strcspn(cmdline,"<>|")!=strlen(cmdline)) 
 		sprintf(comspec_str,"%s /C ", comspec);
@@ -526,8 +512,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
            		i|=SBBSEXEC_MODE_DOS_IN;
 			if(mode&EX_OUTR)
         		i|=SBBSEXEC_MODE_DOS_OUT;
-			sprintf(str," NT %u %u"
-				,cfg.node_num,i);
+			sprintf(str," NT %u %u %u"
+				,cfg.node_num,i,startup->xtrn_polls_before_yield);
 			strcat(fullcmdline,str);
 
 			sprintf(str,"sbbsexec_hungup%d",cfg.node_num);
@@ -589,8 +575,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			if(mode&EX_OUTR)
         		start.mode|=SBBSEXEC_MODE_DOS_OUT;
 
-			sprintf(str," 95 %u %u"
-				,cfg.node_num,start.mode);
+			sprintf(str," 95 %u %u %u"
+				,cfg.node_num,start.mode,startup->xtrn_polls_before_yield);
 			strcat(fullcmdline,str);
 
 			if(!DeviceIoControl(
@@ -1290,11 +1276,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
-	native = native_executable(&cfg, cmdline, mode);
-
     SAFECOPY(str,cmdline);			/* Set fname to program name only */
 	truncstr(str," ");
     SAFECOPY(fname,getfname(str));
+
+    for(i=0;i<cfg.total_natvpgms;i++)
+        if(!stricmp(fname,cfg.natvpgm[i]->name))
+            break;
+    if(i<cfg.total_natvpgms || mode&EX_NATIVE)
+        native=true;
 
 	sprintf(fullpath,"%s%s",startup_dir,fname);
 	if(startup_dir!=NULL && cmdline[0]!='/' && cmdline[0]!='.' && fexist(fullpath))
@@ -2019,7 +2009,11 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,cfg.temp_dir);
                     break;
                 case 'H':   /* Port Handle or Hardware Flow Control */
+#if defined(__unix__)
+					strcat(cmd,ultoa(client_socket,str,10));
+#else
                     strcat(cmd,ultoa(client_socket_dup,str,10));
+#endif
                     break;
                 case 'I':   /* IP address */
                     strcat(cmd,cid);
