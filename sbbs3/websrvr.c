@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.381 2005/12/21 16:21:57 deuce Exp $ */
+/* $Id: websrvr.c,v 1.382 2006/01/12 03:07:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -738,7 +738,7 @@ static void drain_outbuf(http_session_t * session)
 	/* Lock the mutex to ensure data has been sent */
 	while(!session->outbuf_write_initialized)
 		SLEEP(1);
-	pthread_mutex_lock(&session->outbuf_write);
+	pthread_mutex_lock(&session->outbuf_write);		/* Win32 Access violation here on Jan-11-2006 - shutting down webserver while in use */
 	pthread_mutex_unlock(&session->outbuf_write);
 }
 
@@ -4094,7 +4094,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.381 $", "%*s %s", revision);
+	sscanf("$Revision: 1.382 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
