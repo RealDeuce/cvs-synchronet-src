@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.25 2005/10/21 23:13:47 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.26 2005/10/21 23:26:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -694,7 +694,7 @@ int curs_initciolib(long inmode)
 	scrollok(stdscr,FALSE);
 	raw();
 	halfdelay(1);
-	atexit(call_endwin);
+	atexit(curs_suspend);
 
 	/* Set up color pairs */
 	for(bg=0;bg<8;bg++)  {
