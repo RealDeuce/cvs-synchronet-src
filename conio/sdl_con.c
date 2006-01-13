@@ -67,7 +67,7 @@ static int lastcursor_y=0;
 static int sdl_current_font=-99;
 static int lastfg=-1;
 static int lastbg=-1;
-static unsigned int sdl_pending_mousekeys=0;
+
 
 struct video_stats vstat;
 int fullscreen=0;
@@ -495,12 +495,6 @@ int sdl_draw_char(unsigned short vch, int xpos, int ypos, int update)
 	return(0);
 }
 
-/* atexit() function */
-void sdl_exit(void)
-{
-	sdl.Quit();
-}
-
 /* Called from main thread only (Passes Event) */
 int sdl_init(int mode)
 {
@@ -524,6 +518,8 @@ int sdl_init(int mode)
 		fullscreen=1;
 
 	sdl_init_mode(3);
+
+	atexit(sdl.Quit);
 
 	sdl_user_func(SDL_USEREVENT_INIT);
 
@@ -822,13 +818,6 @@ int sdl_getch(void)
 	sdl.SemWait(sdl_key_pending);
 	sdl.mutexP(sdl_keylock);
 	ch=sdl_keybuf[sdl_key++];
-	if(sdl_pending_mousekeys) {
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE & 0xff;
-        sdl.SemPost(sdl_key_pending);
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE >> 8;
-        sdl.SemPost(sdl_key_pending);
-		sdl_pending_mousekeys--;
-	}
 	sdl.mutexV(sdl_keylock);
 	return(ch);
 }
@@ -961,10 +950,7 @@ void sdl_add_key(unsigned int keyval)
 			return;
 		}
 		if((sdl_keynext+2==sdl_key) && keyval > 0xff) {
-			if(keyval==CIO_KEY_MOUSE)
-				sdl_pending_mousekeys++;
-			else
-				sdl_beep();
+			sdl_beep();
 			sdl.mutexV(sdl_keylock);
 			return;
 		}
@@ -1085,7 +1071,7 @@ int sdl_load_font(char *filename)
 
 	if(sdl_font!=NULL)
 		sdl.FreeSurface(sdl_font);
-	sdl_font=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth*vstat.scaling, vstat.charheight*256*vstat.scaling, 8, 0, 0, 0, 0);
+	sdl_font=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth, vstat.charheight*256, 8, 0, 0, 0, 0);
 	if(sdl_font == NULL) {
 		sdl.mutexV(sdl_vstatlock);
 		free(font);
@@ -1187,8 +1173,8 @@ int sdl_draw_one_char(unsigned short sch, unsigned int x, unsigned int y, struct
 	dst.w=vs->charwidth*vs->scaling;
 	dst.h=vs->charheight*vs->scaling;
 	src.x=0;
-	src.w=vs->charwidth*vs->scaling;
-	src.h=vs->charheight*vs->scaling;
+	src.w=vs->charwidth;
+	src.h=vs->charheight;
 	src.y=vs->charheight*vs->scaling;
 	ch=sch & 0xff;
 	if((sch >>15) && !(vs->blink))
@@ -1391,20 +1377,8 @@ int SDL_main_env(int argc, char **argv, char **env)
 			sdl.gotfuncs=FALSE;
 		}
 #else
-
-		/*
-		 * On Linux, SDL doesn't properly detect availability of the
-		 * framebuffer apparently.  This results in remote connections
-		 * displaying on the local framebuffer... a definate no-no.
-		 * This ugly hack attempts to prevent this... of course, remote X11
-		 * connections must still be allowed.
-		 */
-		if(getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL)
+		if(sdl.Init(SDL_INIT_VIDEO))
 			sdl.gotfuncs=FALSE;
-		else {
-			if(sdl.Init(SDL_INIT_VIDEO))
-				sdl.gotfuncs=FALSE;
-		}
 #endif
 		if(sdl.VideoDriverName(drivername, sizeof(drivername))!=NULL) {
 			/* Unacceptable drivers */
@@ -1416,7 +1390,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 	}
 
 	if(sdl.gotfuncs) {
-		atexit(sdl_exit);
 		mp.argc=argc;
 		mp.argv=argv;
 		mp.env=env;
@@ -1564,7 +1537,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 
 								if(sdl_cursor!=NULL)
 									sdl.FreeSurface(sdl_cursor);
-								sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth*vstat.scaling, vstat.charheight*vstat.scaling, 8, 0, 0, 0, 0);
+								sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth, vstat.charheight, 8, 0, 0, 0, 0);
 						    	/* Update font. */
 						    	sdl_load_font(NULL);
 						    	sdl_setup_colours(win,0);
@@ -1631,7 +1604,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 									sdl_setup_colours(win,0);
 									if(sdl_cursor!=NULL)
 										sdl.FreeSurface(sdl_cursor);
-									sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth*vstat.scaling, vstat.charheight*vstat.scaling, 8, 0, 0, 0, 0);
+									sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth, vstat.charheight, 8, 0, 0, 0, 0);
 									/* Update font. */
 									sdl_load_font(NULL);
 									sdl_full_screen_redraw(TRUE);
