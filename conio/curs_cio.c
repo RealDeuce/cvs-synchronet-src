@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.24 2005/10/21 23:13:13 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.26 2005/10/21 23:26:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -657,12 +657,12 @@ void curs_gotoxy(int x, int y)
 
 void curs_suspend(void)
 {
-	refresh();
+	endwin();
 }
 
 void curs_resume(void)
 {
-	endwin();
+	refresh();
 }
 
 int curs_initciolib(long inmode)
@@ -694,7 +694,7 @@ int curs_initciolib(long inmode)
 	scrollok(stdscr,FALSE);
 	raw();
 	halfdelay(1);
-	atexit(call_endwin);
+	atexit(curs_suspend);
 
 	/* Set up color pairs */
 	for(bg=0;bg<8;bg++)  {
