@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.40 2006/05/03 00:26:52 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.39 2005/08/12 08:48:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,8 +73,6 @@ bool sbbs_t::logon()
 		qwklogon=1;
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP))
 		return(false);
-
-#if 0
 	if(cur_rate<cfg.node_minbps && !(useron.exempt&FLAG('M'))) {
 		bprintf(text[MinimumModemSpeed],cfg.node_minbps);
 		sprintf(str,"%stooslow.msg",cfg.text_dir);
@@ -85,7 +83,6 @@ bool sbbs_t::logon()
 		logline("+!",str);
 		return(false); 
 	}
-#endif
 
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
@@ -111,7 +108,6 @@ bool sbbs_t::logon()
 		useron.shell=cfg.new_shell; 
 	}
 
-#if 0
 	if(cfg.node_dollars_per_call) {
 		adjustuserrec(&cfg,useron.number,U_CDT,10
 			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
@@ -124,7 +120,6 @@ bool sbbs_t::logon()
 		hangup();
 		return(false); 
 	}
-#endif
 
 	if(!chk_ar(cfg.node_ar,&useron)) {
 		bputs(text[NoNodeAccess]);
@@ -290,6 +285,8 @@ bool sbbs_t::logon()
 				else
 					bputs(text[NewUserPasswordVerify]);
 				console|=CON_R_ECHOX;
+				if(!(cfg.sys_misc&SM_ECHO_PW))
+					console|=CON_L_ECHOX;
 				getstr(tmp,LEN_PASS*2,K_UPPER);
 				console&=~(CON_R_ECHOX|CON_L_ECHOX);
 				if(strcmp(str,tmp)) {
