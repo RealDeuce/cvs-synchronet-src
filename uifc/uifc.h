@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.74 2006/05/26 02:59:32 deuce Exp $ */
+/* $Id: uifc.h,v 1.73 2005/11/25 08:07:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,7 +242,6 @@ enum {
 
 typedef struct {
 	int		left,top,right,bot;
-	int		*cur,*bar;
     uchar*	buf;
 } win_t;
 
