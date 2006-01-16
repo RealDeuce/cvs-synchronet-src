@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.47 2005/12/14 02:27:46 deuce Exp $
+# $Id: Common.gmake,v 1.48 2006/01/16 04:11:08 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -110,7 +110,7 @@ endif
 # Set DEBUG
 ifdef DEBUG
  ifdef RELEASE
-  undef RELEASE
+  $(error Both DEBUG and RELEASE are defined!  Help!)
  endif
 endif
 
