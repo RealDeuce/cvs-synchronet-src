@@ -2,13 +2,13 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.22 2006/04/05 09:45:21 rswindell Exp $ */
+/* $Id: date_str.c,v 1.21 2004/09/08 03:35:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -86,7 +86,6 @@ time_t DLLCALL dstrtounix(scfg_t* cfg, char *instr)
 		tm.tm_mday=((p[3]&0xf)*10)+(p[4]&0xf); }
 	if (tm.tm_mon)
 		tm.tm_mon--;	/* zero-based month field */
-	tm.tm_isdst=-1;		/* Do not adjust for DST */
 	return(mktime(&tm));
 }
 
