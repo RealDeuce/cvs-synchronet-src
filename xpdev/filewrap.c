@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.33 2006/05/18 04:09:35 deuce Exp $ */
+/* $Id: filewrap.c,v 1.29 2004/07/20 23:26:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,6 +92,7 @@ int DLLCALL lock(int fd, long pos, long len)
 		int	flags;
 		if((flags=fcntl(fd,F_GETFL))==-1)
 			return -1;
+
 		if(flags==O_RDONLY)
 			alock.l_type = F_RDLCK; /* set read lock to prevent writes */
 		else
@@ -144,43 +145,8 @@ int DLLCALL unlock(int fd, long pos, long len)
 }
 
 /* Opens a file in specified sharing (file-locking) mode */
-/*
- * This is how it *SHOULD* work:
- * Values of DOS 2-6.22 file sharing behavior: 
- *          | Second and subsequent Opens 
- * First    |Compat Deny   Deny   Deny   Deny 
- * Open     |       All    Write  Read   None 
- *          |R W RW R W RW R W RW R W RW R W RW
- * - - - - -| - - - - - - - - - - - - - - - - -
- * Compat R |Y Y Y  N N N  1 N N  N N N  1 N N
- *        W |Y Y Y  N N N  N N N  N N N  N N N
- *        RW|Y Y Y  N N N  N N N  N N N  N N N
- * - - - - -|
- * Deny   R |C C C  N N N  N N N  N N N  N N N
- * All    W |C C C  N N N  N N N  N N N  N N N
- *        RW|C C C  N N N  N N N  N N N  N N N
- * - - - - -|
- * Deny   R |2 C C  N N N  Y N N  N N N  Y N N
- * Write  W |C C C  N N N  N N N  Y N N  Y N N
- *        RW|C C C  N N N  N N N  N N N  Y N N
- * - - - - -| 
- * Deny   R |C C C  N N N  N Y N  N N N  N Y N
- * Read   W |C C C  N N N  N N N  N Y N  N Y N
- *        RW|C C C  N N N  N N N  N N N  N Y N
- * - - - - -| 
- * Deny   R |2 C C  N N N  Y Y Y  N N N  Y Y Y
- * None   W |C C C  N N N  N N N  Y Y Y  Y Y Y
- *        RW|C C C  N N N  N N N  N N N  Y Y Y
- * 
- * Legend:
- * Y = open succeeds, 
- * N = open fails with error code 05h. 
- * C = open fails, INT 24 generated. 
- * 1 = open succeeds if file read-only, else fails with error code. 
- * 2 = open succeeds if file read-only, else fails with INT 24 
- */
 #if !defined(__QNX__)
-int DLLCALL sopen(const char *fn, int sh_access, int share, ...)
+int DLLCALL sopen(const char *fn, int access, int share, ...)
 {
 	int fd;
 	int pmode=S_IREAD;
@@ -192,16 +158,16 @@ int DLLCALL sopen(const char *fn, int sh_access, int share, ...)
 #endif
     va_list ap;
 
-    if(sh_access&O_CREAT) {
+    if(access&O_CREAT) {
         va_start(ap,share);
         pmode = va_arg(ap,unsigned int);
         va_end(ap);
     }
 
-	if ((fd = open(fn, sh_access, pmode)) < 0)
+	if ((fd = open(fn, access, pmode)) < 0)
 		return -1;
 
-	if (share == SH_DENYNO || share == SH_COMPAT) /* no lock needed */
+	if (share == SH_DENYNO) /* no lock needed */
 		return fd;
 #if defined(F_SANEWRLCKNO) || !defined(BSD)
 	/* use fcntl (doesn't work correctly with threads) */
