@@ -11,12 +11,11 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.189 2006/04/22 20:47:04 deuce Exp $
+# $Id: GNUmakefile,v 1.185 2006/01/11 02:16:00 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
 
-UTIL_LDFLAGS	:=	$(LDFLAGS)
 UTIL_LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
 UTIL_LIBS	+=	$(SMBLIB_LIBS)
 
@@ -85,17 +84,9 @@ MT_CFLAGS	+=	$(SBBSDEFS)
 # Set up LD_RUN_PATH for run-time locating of the .so files
 PWD	:=	$(shell pwd)
 ifdef SBBSDIR
- ifeq ($(os),sunos)
-  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):/opt/sfw/gcc-3/lib
- else
-  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
- endif
+ LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
 else
- ifeq ($(os),sunos)
-  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):/opt/sfw/gcc-3/lib
- else
-  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
- endif
+ LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
 endif
 export LD_RUN_PATH
 
@@ -227,7 +218,7 @@ $(ASC2ANS): $(OBJODIR)/asc2ans.o
 # SEXYZ
 $(SEXYZ): $(SEXYZ_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) $(MT_LDFLAGS) -o $@ $(SEXYZ_OBJS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(SEXYZ_OBJS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # QWKNODES
 $(QWKNODES): $(QWKNODES_OBJS)
