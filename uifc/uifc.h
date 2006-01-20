@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.70 2005/10/21 08:24:09 rswindell Exp $ */
+/* $Id: uifc.h,v 1.73 2005/11/25 08:07:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,6 +138,7 @@
 								/* Put the mouse event back into the event queue */
 #define WIN_EDIT	(1<<27)	/* Allow F2 to edit a menu item */
 #define WIN_EDITACT	(1<<28)	/* Remain active after edit key */
+#define WIN_INACT	(1<<29)	/* Draw window inactive... intended for use with WIN_IMM */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -240,8 +241,8 @@ enum {
 #endif
 
 typedef struct {
-	uint    left,top,right,bot;
-    uchar   *buf;
+	int		left,top,right,bot;
+    uchar*	buf;
 } win_t;
 
 typedef struct {
@@ -302,7 +303,12 @@ typedef struct {
 /****************************************************************************/
 /* Colours for the various bits												*/
 /****************************************************************************/
-	char	hclr,lclr,bclr,cclr,lbclr;
+	uchar	hclr,lclr,bclr,cclr,lbclr;
+
+/****************************************************************************/
+/* Have we initialized successfully?										*/
+/****************************************************************************/
+	BOOL	initialized;
 
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
@@ -389,7 +395,7 @@ typedef struct {
 /****************************************************************************/
 /* Formatted print with attribute											*/
 /****************************************************************************/
-	int		(*printf)(int x, int y, unsigned char attr, char *fmat, ...);
+	int		(*printf)(int x, int y, unsigned attr, char *fmat, ...);
 
 } uifcapi_t;
 
