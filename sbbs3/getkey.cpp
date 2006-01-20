@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.32 2005/09/02 21:07:04 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.33 2005/11/29 01:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -538,5 +538,11 @@ void sbbs_t::pause()
 /****************************************************************************/
 void sbbs_t::ungetkey(char ch)
 {
+#if 0	/* this way breaks ansi_getxy() */
 	RingBufWrite(&inbuf,(uchar*)&ch,sizeof(uchar));
+#else
+	keybuf[keybuftop++]=ch;   
+	if(keybuftop==KEY_BUFSIZE)   
+		keybuftop=0; 
+#endif
 }
