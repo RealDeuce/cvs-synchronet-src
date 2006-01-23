@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.185 2006/01/11 02:16:00 deuce Exp $
+# $Id: GNUmakefile,v 1.186 2006/01/23 19:06:02 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -218,7 +218,7 @@ $(ASC2ANS): $(OBJODIR)/asc2ans.o
 # SEXYZ
 $(SEXYZ): $(SEXYZ_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(SEXYZ_OBJS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) $(MT_LDFLAGS) -o $@ $(SEXYZ_OBJS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # QWKNODES
 $(QWKNODES): $(QWKNODES_OBJS)
