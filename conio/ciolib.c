@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.63 2005/10/22 01:14:44 deuce Exp $ */
+/* $Id: ciolib.c,v 1.69 2006/01/23 09:51:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,6 +137,9 @@ int try_sdl_init(int mode)
 		cio_api.copytext=sdl_copytext;
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
+		cio_api.setfont=sdl_setfont;
+		cio_api.getfont=sdl_getfont;
+		cio_api.loadfont=sdl_loadfont;
 		return(1);
 	}
 	return(0);
@@ -168,6 +171,9 @@ int try_x_init(int mode)
 		cio_api.settitle=x_settitle;
 		cio_api.copytext=x_copytext;
 		cio_api.getcliptext=x_getcliptext;
+		cio_api.setfont=x_setfont;
+		cio_api.getfont=x_getfont;
+		cio_api.loadfont=x_loadfont;
 		return(1);
 	}
 	return(0);
@@ -278,10 +284,10 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 		case 1:
 			return(0);
 		case -1:
+			initialized=1;
 			if(cio_api.resume != NULL)
 				cio_api.resume();
 			ciolib_clrscr();
-			initialized=1;
 			return(0);
 	}
 
@@ -429,7 +435,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	CIOLIB_INIT();
 	
 	maxlen=*(unsigned char *)str;
-	while((ch=ciolib_getche())!='\n' && ch !='\r') {
+	while((ch=ciolib_getch())!='\n' && ch !='\r') {
 		switch(ch) {
 			case 0:	/* Skip extended keys */
 				ciolib_getche();
@@ -445,6 +451,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				len--;
 				break;
 			default:
+				ciolib_putch(ch);
 				str[(len++)+2]=ch;
 				if(len==maxlen) {
 					str[len+2]=0;
@@ -454,6 +461,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				break;
 		}
 	}
+	ciolib_putch(ch);
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
 	return(&str[2]);
@@ -954,4 +962,34 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void)
 		return(cio_api.getcliptext());
 	else
 		return(NULL);
+}
+
+CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.setfont!=NULL)
+		return(cio_api.setfont(font,force));
+	else
+		return(-1);
+}
+
+CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.getfont!=NULL)
+		return(cio_api.getfont());
+	else
+		return(-1);
+}
+
+CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.loadfont!=NULL)
+		return(cio_api.loadfont(filename));
+	else
+		return(-1);
 }
