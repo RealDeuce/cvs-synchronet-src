@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.69 2006/01/23 09:51:56 deuce Exp $ */
+/* $Id: ciolib.c,v 1.70 2006/01/23 10:18:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -456,14 +456,15 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				if(len==maxlen) {
 					str[len+2]=0;
 					*((unsigned char *)(str+1))=(unsigned char)len;
+					ciolib_putch('\n');
 					return(&str[2]);
 				}
 				break;
 		}
 	}
-	ciolib_putch(ch);
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
+	ciolib_putch('\n');
 	return(&str[2]);
 }
 
@@ -906,6 +907,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
 	unsigned char a1=a;
 	CIOLIB_INIT();
 
+	if(a1=='\n')
+		return(cio_api.putch(a1));
 	return(cio_api.putch(a1));
 }
 
