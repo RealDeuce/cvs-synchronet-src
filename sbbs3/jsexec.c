@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.102 2006/01/21 01:33:32 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.103 2006/01/26 00:53:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,6 +119,7 @@ void usage(FILE* fp)
 		"\t-o<filename>   send console messages to file instead of stdout\n"
 		"\t-n             send status messages to %s instead of stderr\n"
 		"\t-q             send console messages to %s instead of stdout\n"
+		"\t-v             display version details and exit\n"
 		"\t-x             disable auto-termination on local abort signal\n"
 		"\t-l             loop until intentionally terminated\n"
 		"\t-p             wait for keypress (pause) on exit\n"
@@ -784,7 +785,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.102 $", "%*s %s", revision);
+	sscanf("$Revision: 1.103 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -877,6 +878,10 @@ int main(int argc, char **argv, char** environ)
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
 					break;
+				case 'v':
+					banner(statfp);
+					fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
+					bail(0);
 #if defined(__unix__)
 				case 'd':
 					daemonize=TRUE;
