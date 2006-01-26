@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.156 2005/10/16 21:25:32 rswindell Exp $ */
+/* $Id: js_global.c,v 1.164 2006/01/21 01:33:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -285,35 +285,15 @@ static JSBool
 js_format(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	char*		fmt;
-    uintN		i;
-    JSString *	str;
-	va_list		arglist[64];
+    JSString*	str;
 
-	if((fmt=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
+	if((p=js_sprintf(cx, 0, argc, argv))==NULL) {
+		JS_ReportError(cx,"js_sprintf failed");
 		return(JS_FALSE);
-
-	memset(arglist,0,sizeof(arglist));	/* Initialize arglist to NULLs */
-
-    for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
-		if(JSVAL_IS_DOUBLE(argv[i]))
-			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
-		else if(JSVAL_IS_INT(argv[i]))
-			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
-		else {
-			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-				JS_ReportError(cx,"JS_ValueToString failed");
-			    return(JS_FALSE);
-			}
-			arglist[i-1]=JS_GetStringBytes(str);
-		}
 	}
-	
-	if((p=JS_vsmprintf(fmt,(char*)arglist))==NULL)
-		return(JS_FALSE);
 
 	str = JS_NewStringCopyZ(cx, p);
-	JS_smprintf_free(p);
+	free(p);
 
 	if(str==NULL)
 		return(JS_FALSE);
@@ -2192,16 +2172,20 @@ js_fmutex(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		fname;
 	char*		text=NULL;
+	int32		max_age=0;
+	uintN		argn=0;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((fname=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
+	if((fname=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL) 
 		return(JS_FALSE);
-	if(argc>1)
-		text=js_ValueToStringBytes(cx,argv[1], NULL);
+	if(argc > argn && JSVAL_IS_STRING(argv[argn]))
+		text=js_ValueToStringBytes(cx, argv[argn++], NULL);
+	if(argc > argn && JSVAL_IS_NUMBER(argv[argn]))
+		JS_ValueToInt32(cx, argv[argn++], &max_age);
 
-	*rval = BOOLEAN_TO_JSVAL(fmutex(fname,text));
+	*rval = BOOLEAN_TO_JSVAL(fmutex(fname,text,max_age));
 	return(JS_TRUE);
 }
 		
@@ -2716,9 +2700,12 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"creating an empty file if it doesn't already exist")
 	,311
 	},
-	{"file_mutex",		js_fmutex,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename [,text]")
+	{"file_mutex",		js_fmutex,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string filename [,string text] [,number max_age]")
 	,JSDOCSTR("attempts to create an exclusive (e.g. lock) file, "
-		"optionally with the contents of <i>text</i>")
+		"optionally with the contents of <i>text</i>. "
+		"If a non-zero <i>max_age</i> (supported in v3.13b+) is specified "
+		"and the lock file exists, but is older than this value (in seconds), "
+		"it is presumed stale and removed/over-written")
 	,312
 	},
 	{"directory",		js_directory,		1,	JSTYPE_ARRAY,	JSDOCSTR("string pattern [,flags]")
@@ -2930,7 +2917,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 	if(!JS_SetPrivate(cx, glob, cfg))	/* Store a pointer to scfg_t */
 		return(NULL);
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,glob
 		,"Top-level functions and properties (common to all servers and services)",310);
 #endif
