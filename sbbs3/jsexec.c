@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.105 2006/05/08 19:37:19 deuce Exp $ */
+/* $Id: jsexec.c,v 1.103 2006/01/26 00:53:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -280,7 +280,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	rd=fread(buf,sizeof(char),len,stdin);
@@ -288,6 +288,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(rd>=0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd));
 
+	free(buf);
     return(JS_TRUE);
 }
 
@@ -300,7 +301,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=alloca(len+1))==NULL)
+	if((buf=malloc(len+1))==NULL)
 		return(JS_TRUE);
 
 	p=fgets(buf,len+1,stdin);
@@ -308,6 +309,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p!=NULL)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p)));
 
+	free(buf);
     return(JS_TRUE);
 }
 
@@ -355,7 +357,7 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p));
 
-	js_sprintf_free(p);
+	free(p);
 
     return(JS_TRUE);
 }
@@ -783,7 +785,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.105 $", "%*s %s", revision);
+	sscanf("$Revision: 1.103 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
