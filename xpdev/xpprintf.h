@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.h,v 1.11 2006/01/27 05:49:47 deuce Exp $ */
+/* $Id: xpprintf.h,v 1.10 2006/01/26 00:38:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-void xp_asprintf_free(char *format);
 char *xp_asprintf_start(const char *format);
 char *xp_asprintf_next(char *format, int type, ...);
 char *xp_asprintf_end(char *format);
