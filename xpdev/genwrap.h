@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.79 2005/10/15 02:25:35 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.81 2006/01/12 19:17:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,9 +49,6 @@
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
 
-	/* Simple Win32 function equivalents */
-	#define GetCurrentProcessId()		getpid()
-
 	#ifdef _THREAD_SAFE
 		#include <pthread.h>/* Check for GNU PTH libs */
 		#ifdef _PTH_PTHREAD_H_
@@ -61,6 +58,11 @@
 	#endif
 #elif defined(_WIN32)
 	#include <process.h>	/* getpid() */
+#endif
+
+#if !defined(_WIN32)
+	/* Simple Win32 function equivalents */
+	#define GetCurrentProcessId()		getpid()
 #endif
 
 /* utime() support */
@@ -176,8 +178,8 @@ extern "C" {
 	DLLEXPORT char*	DLLCALL strlwr(char* str);
 	DLLEXPORT char* DLLCALL	strrev(char* str);
 	#if !defined(stricmp)
-		#define stricmp(x,y)		strcasecmp(x,y)
-		#define strnicmp(x,y,z)		strncasecmp(x,y,z)
+		#define stricmp			strcasecmp
+		#define strnicmp		strncasecmp
 	#endif
 #endif
 
@@ -306,7 +308,7 @@ DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__OS2__)
 	#define		MSCLOCKS_PER_SEC	CLOCKS_PER_SEC	/* e.g. 18.2 on DOS, 1000.0 on Win32 */
 	#define		msclock()			clock()
 #else

@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.28 2005/10/14 02:25:38 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.29 2005/11/01 00:32:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 /***************/
 /* OS-specific */
 /***************/
-#if defined(_WIN32)		/* Use WinSock */
+#if defined(_WIN32)	/* Use WinSock */
 
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
@@ -152,6 +152,10 @@ static  wsa_error;
 #define ioctlsocket		ioctl
 #define ERROR_VALUE		errno
 #define sendsocket		write		/* FreeBSD send() is broken */
+
+#ifdef __WATCOMC__
+	#define socklen_t		int
+#endif
 
 #endif	/* __unix__ */
 
