@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.189 2005/10/13 06:49:14 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.192 2006/01/24 05:09:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -254,6 +254,31 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
+static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
+{
+	char*	p;
+	char	str[MAX_PATH+1];
+	char	name[64];
+	char	base[64];
+	unsigned i;
+
+	if(mode&EX_NATIVE)
+		return(TRUE);
+
+    SAFECOPY(str,cmdline);				/* Set str to program name only */
+	truncstr(str," ");
+    SAFECOPY(name,getfname(str));
+	SAFECOPY(base,name);
+	if((p=getfext(base))!=NULL)
+		*p=0;
+
+    for(i=0;i<cfg->total_natvpgms;i++)
+        if(stricmp(name,cfg->natvpgm[i]->name)==0
+		|| stricmp(base,cfg->natvpgm[i]->name)==0)
+            break;
+    return(i<cfg->total_natvpgms);
+}
+
 #define XTRN_LOADABLE_MODULE								\
 	if(cmdline[0]=='*') {   /* Baja module or JavaScript */	\
 		SAFECOPY(str,cmdline+1);							\
@@ -342,7 +367,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	char*	env_strings;
 	const char* p_startup_dir;
 	char	path[MAX_PATH+1];
-	char	fname[MAX_PATH+1];
     char	fullcmdline[MAX_PATH+1];
 	char	realcmdline[MAX_PATH+1];
 	char	comspec_str[MAX_PATH+1];
@@ -394,15 +418,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
-    SAFECOPY(str,cmdline);				/* Set str to program name only */
-	truncstr(str," ");
-    SAFECOPY(fname,getfname(str));
-
-    for(i=0;i<cfg.total_natvpgms;i++)
-        if(!stricmp(fname,cfg.natvpgm[i]->name))
-            break;
-    if(i<cfg.total_natvpgms || mode&EX_NATIVE)
-        native=true;
+	native = native_executable(&cfg, cmdline, mode);
 
 	if(mode&EX_SH || strcspn(cmdline,"<>|")!=strlen(cmdline)) 
 		sprintf(comspec_str,"%s /C ", comspec);
@@ -1276,15 +1292,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
+	native = native_executable(&cfg, cmdline, mode);
+
     SAFECOPY(str,cmdline);			/* Set fname to program name only */
 	truncstr(str," ");
     SAFECOPY(fname,getfname(str));
-
-    for(i=0;i<cfg.total_natvpgms;i++)
-        if(!stricmp(fname,cfg.natvpgm[i]->name))
-            break;
-    if(i<cfg.total_natvpgms || mode&EX_NATIVE)
-        native=true;
 
 	sprintf(fullpath,"%s%s",startup_dir,fname);
 	if(startup_dir!=NULL && cmdline[0]!='/' && cmdline[0]!='.' && fexist(fullpath))
@@ -1955,8 +1967,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 #endif	/* !WIN32 */
 
-uint fakeriobp=0xffff;
-
 const char* quoted_string(const char* str, char* buf, size_t maxlen)
 {
 	if(strchr(str,' ')==NULL)
@@ -2011,11 +2021,7 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     strcat(cmd,cfg.temp_dir);
                     break;
                 case 'H':   /* Port Handle or Hardware Flow Control */
-#if defined(__unix__)
-					strcat(cmd,ultoa(client_socket,str,10));
-#else
                     strcat(cmd,ultoa(client_socket_dup,str,10));
-#endif
                     break;
                 case 'I':   /* IP address */
                     strcat(cmd,cid);
@@ -2061,16 +2067,11 @@ char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
                     sprintf(str,"%s%c",VERSION,REVISION);
                     break;
                 case 'W':   /* Time-slice API type (mswtype) */
-#if 0 //ndef __FLAT__
-                    strcat(cmd,ultoa(mswtyp,str,10));
-#endif
                     break;
                 case 'X':
                     strcat(cmd,cfg.shell[useron.shell]->code);
                     break;
                 case '&':   /* Address of msr */
-                    sprintf(str,"%lu",(DWORD)&fakeriobp);
-                    strcat(cmd,str);
                     break;
                 case 'Y':
                     strcat(cmd,comspec);
@@ -2221,17 +2222,12 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                     sprintf(str,"%s%c",VERSION,REVISION);
                     break;
                 case 'W':   /* Time-slice API type (mswtype) */
-#if 0 //ndef __FLAT__
-                    strcat(cmd,ultoa(mswtyp,str,10));
-#endif
                     break;
                 case 'X':
 					if(user!=NULL)
 						strcat(cmd,cfg->shell[user->shell]->code);
                     break;
                 case '&':   /* Address of msr */
-                    sprintf(str,"%lu",(DWORD)&fakeriobp);
-                    strcat(cmd,str);
                     break;
                 case 'Y':
                     break;
