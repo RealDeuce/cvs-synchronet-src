@@ -2556,17 +2556,22 @@ object MainForm: TMainForm
         ImageIndex = 27
         object FtpEditLoginMessage: TMenuItem
           Caption = 'Login Message'
-          Hint = 'FTPLOGIN.TXT'
+          Hint = 'ftplogin.txt'
+          OnClick = TextMenuItemEditClick
+        end
+        object FtpEditBadLoginMessage: TMenuItem
+          Caption = 'Failed Login Message'
+          Hint = 'ftpbadlogin.txt'
           OnClick = TextMenuItemEditClick
         end
         object FtpEditHelloMessage: TMenuItem
-          Caption = 'Hello Message'
-          Hint = 'FTPHELLO.TXT'
+          Caption = 'Welcome Message'
+          Hint = 'ftphello.txt'
           OnClick = TextMenuItemEditClick
         end
         object FtpEditGoodbyeMessage: TMenuItem
           Caption = 'Goodbye Message'
-          Hint = 'FTPBYE.TXT'
+          Hint = 'ftpbye.txt'
           OnClick = TextMenuItemEditClick
         end
         object FtpEditAliasList: TMenuItem
@@ -5427,12 +5432,14 @@ object MainForm: TMainForm
     Left = 600
   end
   object LogTimer: TTimer
+    Enabled = False
     Interval = 250
     OnTimer = LogTimerTick
     Left = 536
     Top = 40
   end
   object ServiceStatusTimer: TTimer
+    Enabled = False
     Interval = 250
     OnTimer = ServiceStatusTimerTick
     Left = 504
