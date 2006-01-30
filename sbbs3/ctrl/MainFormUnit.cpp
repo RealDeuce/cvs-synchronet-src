@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.149 2005/08/30 10:10:38 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.152 2006/01/27 10:20:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -978,7 +978,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
 
     // Verify SBBS.DLL version
     long bbs_ver = bbs_ver_num();
-    if(bbs_ver < (0x31300 | 'A'-'A') || bbs_ver > (0x399<<8)) {
+    if(bbs_ver != VERSION_HEX) {
         char str[128];
         sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -1030,9 +1030,44 @@ void __fastcall TMainForm::ViewToolbarMenuItemClick(TObject *Sender)
 	Toolbar->Visible=ViewToolbarMenuItem->Checked;
 }
 //---------------------------------------------------------------------------
+BOOL NTsvcEnabled(SC_HANDLE svc, QUERY_SERVICE_CONFIG* config, DWORD config_size)
+{
+	if(svc==NULL || startService==NULL || queryServiceStatus==NULL || config==NULL)
+    	return(FALSE);
+
+	DWORD ret;
+	if(!queryServiceConfig(svc,config,config_size,&ret))
+		return(FALSE);
+	if(config->dwStartType==SERVICE_DISABLED)
+		return(FALSE);
+	return(TRUE);
+}
+//---------------------------------------------------------------------------
+BOOL __fastcall TMainForm::bbsServiceEnabled(void)
+{
+    return NTsvcEnabled(bbs_svc,bbs_svc_config,bbs_svc_config_size);
+}
+BOOL __fastcall TMainForm::mailServiceEnabled(void)
+{
+    return NTsvcEnabled(mail_svc,mail_svc_config,mail_svc_config_size);
+}
+BOOL __fastcall TMainForm::ftpServiceEnabled(void)
+{
+    return NTsvcEnabled(ftp_svc,ftp_svc_config,ftp_svc_config_size);
+}
+BOOL __fastcall TMainForm::webServiceEnabled(void)
+{
+    return NTsvcEnabled(web_svc,web_svc_config,web_svc_config_size);
+}
+BOOL __fastcall TMainForm::servicesServiceEnabled(void)
+{
+    return NTsvcEnabled(services_svc,services_svc_config,services_svc_config_size);
+}
+//---------------------------------------------------------------------------
 void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
 {
     UpTimer->Enabled=false; /* Stop updating the status bar */
+	StatsTimer->Enabled=false;
 
     if(TrayIcon->Visible)           /* minimized to tray? */
         TrayIcon->Visible=false;    /* restore to avoid crash */
@@ -1041,36 +1076,44 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
     if(Initialized) /* Don't overwrite registry settings with defaults */
         SaveRegistrySettings(Sender);
 
-	StatusBar->Panels->Items[4]->Text="Closing...";
+	StatusBar->Panels->Items[4]->Text="Terminating servers...";
     time_t start=time(NULL);
-	while( (bbs_svc==NULL && TelnetStop->Enabled)
-        || (mail_svc==NULL && MailStop->Enabled)
-        || (ftp_svc==NULL && FtpStop->Enabled)
-        || (web_svc==NULL && WebStop->Enabled)        
-    	|| (services_svc==NULL && ServicesStop->Enabled)) {
+	while( (TelnetStop->Enabled     && !bbsServiceEnabled())
+        || (MailStop->Enabled       && !mailServiceEnabled())
+        || (FtpStop->Enabled        && !ftpServiceEnabled())
+        || (WebStop->Enabled        && !webServiceEnabled())
+    	|| (ServicesStop->Enabled   && !servicesServiceEnabled())) {
         if(time(NULL)-start>30)
             break;
         Application->ProcessMessages();
         YIELD();
     }
+	StatusBar->Panels->Items[4]->Text="Closing...";
+    Application->ProcessMessages();
+    
+	LogTimer->Enabled=false;
+	ServiceStatusTimer->Enabled=false;
+	NodeForm->Timer->Enabled=false;
+	ClientForm->Timer->Enabled=false;
+#if 0
     /* Extra time for callbacks to be called by child threads */
     start=time(NULL);
     while(time(NULL)<start+2) {
         Application->ProcessMessages();
         YIELD();
     }
+#endif
 #if 0
     if(hSCManager!=NULL)
     	closeServiceHandle(hSCManager);
 #endif
 }
 //---------------------------------------------------------------------------
-
 void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
 {
 	CanClose=false;
 
-    if(TelnetStop->Enabled && bbs_svc==NULL) {
+    if(TelnetStop->Enabled && !bbsServiceEnabled()) {
      	if(TelnetForm->ProgressBar->Position
 	        && Application->MessageBox("Shut down the Telnet Server?"
         	,"Telnet Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1078,7 +1121,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         TelnetStopExecute(Sender);
 	}
 
-    if(MailStop->Enabled && mail_svc==NULL) {
+    if(MailStop->Enabled && !mailServiceEnabled()) {
     	if(MailForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Mail Server?"
         	,"Mail Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1086,7 +1129,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         MailStopExecute(Sender);
     }
 
-    if(FtpStop->Enabled && ftp_svc==NULL) {
+    if(FtpStop->Enabled && !ftpServiceEnabled()) {
     	if(FtpForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the FTP Server?"
 	       	,"FTP Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1094,7 +1137,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         FtpStopExecute(Sender);
     }
 
-    if(WebStop->Enabled && web_svc==NULL) {
+    if(WebStop->Enabled && !webServiceEnabled()) {
     	if(WebForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Web Server?"
 	       	,"Web Server In Use", MB_OKCANCEL)!=IDOK)
@@ -1102,11 +1145,12 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
         WebStopExecute(Sender);
     }
 
-    if(ServicesStop->Enabled && services_svc==NULL)
+    if(ServicesStop->Enabled && !servicesServiceEnabled())
 	    ServicesStopExecute(Sender);
 
     CanClose=true;
 }
+
 //---------------------------------------------------------------------------
 BOOL StartNTsvc(SC_HANDLE svc, SERVICE_STATUS* status, QUERY_SERVICE_CONFIG* config, DWORD config_size)
 {
@@ -2296,6 +2340,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     Initialized=true;
 
     UpTimer->Enabled=true; /* Start updating the status bar */
+    LogTimer->Enabled=true;
+    ServiceStatusTimer->Enabled=true;
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
