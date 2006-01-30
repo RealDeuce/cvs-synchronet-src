@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.156 2006/05/24 06:14:22 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.152 2006/01/27 10:20:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,10 +126,6 @@ DWORD					services_svc_config_size;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
-time_t  initialized=0;
-static	str_list_t recycle_semfiles;
-static  str_list_t shutdown_semfiles;
-bool    terminating=false;
 
 static void thread_up(void* p, BOOL up, BOOL setuid)
 {
@@ -1118,7 +1114,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
 	CanClose=false;
 
     if(TelnetStop->Enabled && !bbsServiceEnabled()) {
-     	if(!terminating && TelnetForm->ProgressBar->Position
+     	if(TelnetForm->ProgressBar->Position
 	        && Application->MessageBox("Shut down the Telnet Server?"
         	,"Telnet Server In Use", MB_OKCANCEL)!=IDOK)
             return;
@@ -1126,7 +1122,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
 	}
 
     if(MailStop->Enabled && !mailServiceEnabled()) {
-    	if(!terminating && MailForm->ProgressBar->Position
+    	if(MailForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Mail Server?"
         	,"Mail Server In Use", MB_OKCANCEL)!=IDOK)
             return;
@@ -1134,7 +1130,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     }
 
     if(FtpStop->Enabled && !ftpServiceEnabled()) {
-    	if(!terminating && FtpForm->ProgressBar->Position
+    	if(FtpForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the FTP Server?"
 	       	,"FTP Server In Use", MB_OKCANCEL)!=IDOK)
             return;
@@ -1142,7 +1138,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     }
 
     if(WebStop->Enabled && !webServiceEnabled()) {
-    	if(!terminating && WebForm->ProgressBar->Position
+    	if(WebForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Web Server?"
 	       	,"Web Server In Use", MB_OKCANCEL)!=IDOK)
             return;
@@ -1978,6 +1974,9 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("LastNode"))
             bbs_startup.last_node=Registry->ReadInteger("LastNode");
 
+        if(Registry->ValueExists("ExternalYield"))
+            bbs_startup.xtrn_polls_before_yield=Registry->ReadInteger("ExternalYield");
+
         if(Registry->ValueExists("OutbufHighwaterMark"))
             bbs_startup.outbuf_highwater_mark=Registry->ReadInteger("OutbufHighwaterMark");
         else
@@ -2225,12 +2224,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         return;
     }
 
-	recycle_semfiles=semfile_list_init(cfg.ctrl_dir,"recycle","ctrl");
-   	semfile_list_check(&initialized,recycle_semfiles);
-
-	shutdown_semfiles=semfile_list_init(cfg.ctrl_dir,"shutdown","ctrl");
-	semfile_list_check(&initialized,shutdown_semfiles);
-
     if(!(cfg.sys_misc&SM_LOCAL_TZ)) {
     	if(putenv("TZ=UTC0")) {
         	Application->MessageBox("Error setting timezone"
@@ -2341,9 +2334,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
     NodeForm->Timer->Enabled=true;
     ClientForm->Timer->Enabled=true;
-
-    SemFileTimer->Interval=global.sem_chk_freq;
-    SemFileTimer->Enabled=true;
 
     StatsTimer->Interval=cfg.node_stat_check*1000;
 	StatsTimer->Enabled=true;
@@ -3141,7 +3131,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         SAFECOPY(global.ctrl_dir,PropertiesDlg->CtrlDirEdit->Text.c_str());
         SAFECOPY(global.temp_dir,PropertiesDlg->TempDirEdit->Text.c_str());
         global.sem_chk_freq=PropertiesDlg->SemFreqUpDown->Position;
-        SemFileTimer->Interval=global.sem_chk_freq;
 
         /* Copy global values to server startup structs */
         /* We don't support per-server unique values here (yet) */
@@ -3252,7 +3241,7 @@ void __fastcall TMainForm::BBSConfigWizardMenuItemClick(TObject *Sender)
     Application->CreateForm(__classid(TConfigWizard), &ConfigWizard);
 	if(ConfigWizard->ShowModal()==mrOk) {
         SaveSettings(Sender);
-//        ReloadConfigExecute(Sender);  /* unnecessary since refresh_cfg() is already called */
+        ReloadConfigExecute(Sender);
     }
     delete ConfigWizard;
 
@@ -3267,8 +3256,14 @@ void __fastcall TMainForm::PageControlUnDock(TObject *Sender,
         Allow=UndockableForms;
 }
 //---------------------------------------------------------------------------
-void __fastcall TMainForm::reload_config(void)
+
+void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
 {
+	FtpRecycleExecute(Sender);
+	WebRecycleExecute(Sender);
+	MailRecycleExecute(Sender);
+	ServicesRecycleExecute(Sender);
+
 	char error[256];
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
 	if(!load_cfg(&cfg, NULL, TRUE, error)) {
@@ -3276,20 +3271,7 @@ void __fastcall TMainForm::reload_config(void)
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
-   	semfile_list_check(&initialized,recycle_semfiles);
-}
-//---------------------------------------------------------------------------
 
-void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
-{
-	FtpRecycleExecute(Sender);
-	WebRecycleExecute(Sender);
-	MailRecycleExecute(Sender);
-    TelnetRecycleExecute(Sender);
-	ServicesRecycleExecute(Sender);
-
-    reload_config();
-#if 0   /* This appears to be redundant */
     node_t node;
     for(int i=0;i<cfg.sys_nodes;i++) {
     	int file;
@@ -3299,7 +3281,6 @@ void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
         if(NodeForm->putnodedat(i+1,&node,file))
             break;
     }
-#endif
 }
 
 //---------------------------------------------------------------------------
@@ -3697,21 +3678,6 @@ void __fastcall TMainForm::ViewFile(AnsiString filename, AnsiString Caption)
         TextFileEditForm->Memo->ReadOnly=true;
         TextFileEditForm->ShowModal();
         delete TextFileEditForm;
-    }
-}
-//---------------------------------------------------------------------------
-void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
-{
-    char* p;
-
-    if((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL) {
-	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
-        terminating=true;
-        Close();
-    }
-    else if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
-	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
-        reload_config();
     }
 }
 //---------------------------------------------------------------------------
