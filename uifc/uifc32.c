@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.164 2005/11/28 03:27:46 deuce Exp $ */
+/* $Id: uifc32.c,v 1.165 2006/01/30 03:57:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,7 +174,7 @@ int uifcini32(uifcapi_t* uifcapi)
 		api->esc_delay=25;
 
 #ifdef NCURSES_VERSION_MAJOR
-	if(cio_api.mode==CIOLIB_MODE_CURSES) {
+	if(cio_api.mode==CIOLIB_MODE_CURSES || cio_api.mode==CIOLIB_MODE_CURSES_IBM)
 		ESCDELAY=api->esc_delay;
 #endif
 
