@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.91 2006/05/12 01:35:37 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.83 2006/01/30 00:26:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,10 +75,8 @@ enum {
 
 	,BBS_PROP_CURGRP
 	,BBS_PROP_CURSUB
-	,BBS_PROP_CURSUB_CODE
 	,BBS_PROP_CURLIB
 	,BBS_PROP_CURDIR
-	,BBS_PROP_CURDIR_CODE
 
 	,BBS_PROP_CONNECTION		/* READ ONLY */
 	,BBS_PROP_RLOGIN_NAME
@@ -146,8 +144,8 @@ enum {
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"answer time, in time_t format"
 	,"logon time, in time_t format"
-	,"curren file new-scan time, in time_t format"
-	,"previous file new-scan time, in time_t format"
+	,"file newscan time, in time_t format"
+	,"previous newscan time, in time_t format"
 	,"online (see <tt>ON_*</tt> in <tt>sbbsdefs.js</tt> for valid values)"
 	,"time left (in seconds)"
 	,"time of next exclusive event (in time_t format), or 0 if none"
@@ -174,10 +172,8 @@ enum {
 
 	,"current message group"
 	,"current message sub-board"
-	,"current message sub-board internal code"
 	,"current file library"
 	,"current file directory"
-	,"current file directory internal code"
 
 	,"remote connection type"
 	,"rlogin name"
@@ -343,21 +339,12 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->curgrp<sbbs->usrgrps)
 				val=sbbs->cursub[sbbs->curgrp];
 			break;
-		case BBS_PROP_CURSUB_CODE:
-			if(sbbs->cursubnum<sbbs->cfg.total_subs)
-				p=sbbs->cfg.sub[sbbs->cursubnum]->code;
-			break;
-
 		case BBS_PROP_CURLIB:
 			val=sbbs->curlib;
 			break;
 		case BBS_PROP_CURDIR:
 			if(sbbs->curlib<sbbs->usrlibs)
 				val=sbbs->curdir[sbbs->curlib];
-			break;
-		case BBS_PROP_CURDIR_CODE:
-			if(sbbs->curdirnum<sbbs->cfg.total_dirs)
-				p=sbbs->cfg.dir[sbbs->curdirnum]->code;
 			break;
 
 		case BBS_PROP_CONNECTION:
@@ -718,7 +705,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				sbbs->curgrp=val;
 			break;
 		case BBS_PROP_CURSUB:
-		case BBS_PROP_CURSUB_CODE:
 			if(p!=NULL) {	/* set by code */
 				for(uint i=0;i<sbbs->usrgrps;i++)
 					for(uint j=0;j<sbbs->usrsubs[i];j++)
@@ -746,7 +732,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				sbbs->curlib=val;
 			break;
 		case BBS_PROP_CURDIR:
-		case BBS_PROP_CURDIR_CODE:
 			if(p!=NULL) {	/* set by code */
 				for(uint i=0;i<sbbs->usrlibs;i++)
 					for(uint j=0;j<sbbs->usrdirs[i];j++)
@@ -827,10 +812,8 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"file_cmds"			,BBS_PROP_FILE_CMDS		,JSPROP_ENUMERATE	,310},
 	{	"curgrp"			,BBS_PROP_CURGRP		,JSPROP_ENUMERATE	,310},
 	{	"cursub"			,BBS_PROP_CURSUB		,JSPROP_ENUMERATE	,310},
-	{	"cursub_code"		,BBS_PROP_CURSUB_CODE	,JSPROP_ENUMERATE	,31301},
 	{	"curlib"			,BBS_PROP_CURLIB		,JSPROP_ENUMERATE	,310},
 	{	"curdir"			,BBS_PROP_CURDIR		,JSPROP_ENUMERATE	,310},
-	{	"curdir_code"		,BBS_PROP_CURDIR_CODE	,JSPROP_ENUMERATE	,31301},
 	{	"connection"		,BBS_PROP_CONNECTION	,PROP_READONLY		,310},
 	{	"rlogin_name"		,BBS_PROP_RLOGIN_NAME	,JSPROP_ENUMERATE	,310},
 	{	"client_name"		,BBS_PROP_CLIENT_NAME	,JSPROP_ENUMERATE	,310},
@@ -1275,7 +1258,7 @@ js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>1)
-		JS_ValueToBoolean(cx,argv[1],&comma);
+		comma=JS_ValueToBoolean(cx,argv[1],&comma);
 
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = JSVAL_FALSE;
@@ -1574,32 +1557,6 @@ js_batchaddlist(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		return(JS_FALSE);
 
 	sbbs->batch_add_list(JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(sbbs->sendfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_recvfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(sbbs->recvfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
 
 	return(JS_TRUE);
 }
@@ -2097,15 +2054,11 @@ static JSBool
 js_private_chat(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
-	JSBool		local=false;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToBoolean(cx,argv[0],&local);
-
-	sbbs->privchat(local ? true:false);	// <- eliminates stupid msvc6 "performance warning"
+	sbbs->privchat();
 
 	return(JS_TRUE);
 }
@@ -2281,10 +2234,7 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-	if(!(mode&(FL_FINDDESC|FL_EXFIND)))
-		fspec=padfname(fspec,buf);
-
-	*rval = INT_TO_JSVAL(sbbs->listfiles(dirnum,fspec,0 /* tofile */,mode));
+	*rval = INT_TO_JSVAL(sbbs->listfiles(dirnum,padfname(fspec,buf),0 /* tofile */,mode));
 	return(JS_TRUE);
 }
 
@@ -2486,41 +2436,7 @@ js_scanposts(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			find=JS_GetStringBytes(JS_ValueToString(cx,argv[i]));
 	}
 
-	if(*find)
-		mode|=SCAN_FIND;
-
 	*rval = BOOLEAN_TO_JSVAL(sbbs->scanposts(subnum,mode,find)==0);
-	return(JS_TRUE);
-}
-
-static JSBool
-js_listmsgs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		find="";
-	long		mode=0;
-	long		start=0;
-	uint		subnum;
-	sbbs_t*		sbbs;
-	uintN		argn=0;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	*rval = INT_TO_JSVAL(0);
-
-	subnum=get_subnum(cx,sbbs,argv[argn++]);
-
-	if(subnum>=sbbs->cfg.total_subs) 	// invalid sub-board
-		return(JS_TRUE);
-
-	if(JSVAL_IS_NUMBER(argv[argn]))
-		JS_ValueToInt32(cx,argv[argn++],(int32*)&mode);
-	if(JSVAL_IS_NUMBER(argv[argn]))
-		JS_ValueToInt32(cx,argv[argn++],(int32*)&start);
-	if(JSVAL_IS_STRING(argv[argn]))
-		find=JS_GetStringBytes(JS_ValueToString(cx,argv[argn++]));
-
-	*rval = INT_TO_JSVAL(sbbs->listsub(subnum,mode,start,find));
 	return(JS_TRUE);
 }
 
@@ -2569,25 +2485,25 @@ js_select_editor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 }
 
 static jsSyncMethodSpec js_bbs_functions[] = {
-	{"atcode",			js_atcode,			1,	JSTYPE_STRING,	JSDOCSTR("code_string")
+	{"atcode",			js_atcode,			1,	JSTYPE_STRING,	JSDOCSTR("string code")
 	,JSDOCSTR("returns @-code value, specified <i>code</i> string does not include @ character delimiters")
 	,310
 	},
 	/* text.dat */
-	{"text",			js_text,			1,	JSTYPE_STRING,	JSDOCSTR("line_number")
+	{"text",			js_text,			1,	JSTYPE_STRING,	JSDOCSTR("number line")
 	,JSDOCSTR("returns specified text string from text.dat")
 	,310
 	},
-	{"replace_text",	js_replace_text,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("line_number, string text")
+	{"replace_text",	js_replace_text,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("number line, string text")
 	,JSDOCSTR("replaces specified text string in memory")
 	,310
 	},
-	{"revert_text",		js_revert_text,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[line_number=<i>all</i>]")
+	{"revert_text",		js_revert_text,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[number line]")
 	,JSDOCSTR("reverts specified text string to original text string; "
-		"if <i>line_number</i> unspecified, reverts all text lines")
+		"if <i>line</i> unspecified, reverts all text lines")
 	,310
 	},
-	{"load_text",		js_load_text,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("base_filename")
+	{"load_text",		js_load_text,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("string basefilename")
 	,JSDOCSTR("load an alternate text.dat from ctrl directory, automatically appends '.dat' to basefilename")
 	,310
 	},
@@ -2596,8 +2512,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("interactive new user procedure")
 	,310
 	},
-	{"login",			js_login,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("user_name, password_prompt")
-	,JSDOCSTR("login with <i>user_name</i>, displaying <i>password_prompt</i> for password (if required)")
+	{"login",			js_login,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("string username, password_prompt")
+	,JSDOCSTR("login with <i>username</i>, displaying <i>password_prompt</i> for password (if required)")
 	,310
 	},
 	{"logon",			js_logon,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
@@ -2653,18 +2569,10 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("start a batch download")
 	,310
 	},		
-	{"batch_add_list",	js_batchaddlist,	1,	JSTYPE_VOID,	JSDOCSTR("list_filename")
+	{"batch_add_list",	js_batchaddlist,	1,	JSTYPE_VOID,	JSDOCSTR("filename")
 	,JSDOCSTR("add file list to batch download queue")
 	,310
-	},
-	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("send specified filename (complete path) to user via user-prompted protocol")
-	,31301
-	},
-	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("received specified filename (complete path) frome user via user-prompted protocol")
-	,31301
-	},
+	},		
 	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("enter the temporary file tranfer menu")
 	,310
@@ -2681,11 +2589,11 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("display system information")
 	,310
 	},		
-	{"sub_info",		js_sub_info,		1,	JSTYPE_VOID,	JSDOCSTR("[sub-board=<i>current</i>]")
-	,JSDOCSTR("display message sub-board information (current <i>sub-board</i>, if unspecified)")
+	{"sub_info",		js_sub_info,		1,	JSTYPE_VOID,	JSDOCSTR("[subboard]")
+	,JSDOCSTR("display message sub-board information (current <i>subboard</i>, if unspecified)")
 	,310
 	},		
-	{"dir_info",		js_dir_info,		0,	JSTYPE_VOID,	JSDOCSTR("[directory=<i>current</i>]")
+	{"dir_info",		js_dir_info,		0,	JSTYPE_VOID,	JSDOCSTR("[directory]")
 	,JSDOCSTR("display file directory information (current <i>directory</i>, if unspecified)")
 	,310
 	},		
@@ -2701,16 +2609,16 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("display system statistics")
 	,310
 	},		
-	{"node_stats",		js_node_stats,		0,	JSTYPE_VOID,	JSDOCSTR("[node_number=<i>current</i>]")
+	{"node_stats",		js_node_stats,		0,	JSTYPE_VOID,	JSDOCSTR("[node_number]")
 	,JSDOCSTR("display current (or specified) node statistics")
 	,310
 	},		
-	{"list_users",		js_userlist,		0,	JSTYPE_VOID,	JSDOCSTR("[mode=<tt>UL_ALL</tt>]")
+	{"list_users",		js_userlist,		0,	JSTYPE_VOID,	JSDOCSTR("[mode]")
 	,JSDOCSTR("display user list"
 	"(see <tt>UL_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> values)")
 	,310
 	},		
-	{"edit_user",		js_useredit,		0,	JSTYPE_VOID,	JSDOCSTR("[user_number=<i>current</i>]")
+	{"edit_user",		js_useredit,		0,	JSTYPE_VOID,	JSDOCSTR("[user_number]")
 	,JSDOCSTR("enter the user editor")
 	,310
 	},		
@@ -2722,54 +2630,53 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("display the logon list")
 	,310
 	},		
-	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>]")
+	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which [,user_number]]")
 	,JSDOCSTR("read private e-mail"
 	"(see <tt>MAIL_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>which</i> values)")
 	,310
 	},		
-	{"email",			js_email,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("to_user_number [,mode=<tt>WM_EMAIL</tt>] [,top=<i>none</i>] [,subject=<i>none</i>]")
-	,JSDOCSTR("send private e-mail to a local user")
+	{"email",			js_email,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("number user [,number mode] [,string top] [,string subject]")
+	,JSDOCSTR("send private e-mail or netmail")
 	,310
 	},		
-	{"netmail",			js_netmail,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("address [,mode=<tt>WM_NONE</tt>] [,subject=<i>none</i>]")
+	{"netmail",			js_netmail,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string address [,number mode] [,string subject]")
 	,JSDOCSTR("send private netmail")
 	,310
 	},		
 	{"bulk_mail",		js_bulkmail,		0,	JSTYPE_VOID,	JSDOCSTR("[ars]")
-	,JSDOCSTR("send bulk private e-mail, if <i>ars</i> not specified, prompt for destination users")
+	,JSDOCSTR("send bulk private e-mail")
 	,310
 	},		
-	{"upload_file",		js_upload_file,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory=<i>current</i>]")
+	{"upload_file",		js_upload_file,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory]")
 	,JSDOCSTR("upload file to file directory specified by number or internal code")
 	,310
 	},		
-	{"bulk_upload",		js_bulkupload,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory=<i>current</i>]")
+	{"bulk_upload",		js_bulkupload,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory]")
 	,JSDOCSTR("add files (already in local storage path) to file directory "
 		"specified by number or internal code")
 	,310
 	},		
-	{"resort_dir",		js_resort_dir,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory=<i>current</i>]")
+	{"resort_dir",		js_resort_dir,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[directory]")
 	,JSDOCSTR("re-sort the file directory specified by number or internal code)")
 	,310
 	},		
-	{"list_files",		js_listfiles,		1,	JSTYPE_NUMBER,	JSDOCSTR("[directory=<i>current</i>] [,filespec=<tt>\"*.*\"</tt> or search_string] [,mode=<tt>FL_NONE</tt>]")
+	{"list_files",		js_listfiles,		1,	JSTYPE_NUMBER,	JSDOCSTR("[directory] [,string filespec] [,number mode]")
 	,JSDOCSTR("list files in the specified file directory, "
-		"optionally specifying a file specification (wildcards) or a description search string, "
-		"and <i>mode</i> (bitfield)")
+		"optionally specifying a file specification (wildcards) and <i>mode</i> (bitfield)")
 	,310
 	},		
-	{"list_file_info",	js_listfileinfo,	1,	JSTYPE_NUMBER,	JSDOCSTR("[directory=<i>current</i>] [,filespec=<tt>\"*.*\"</tt>] [,mode=<tt>FI_INFO</tt>]")
+	{"list_file_info",	js_listfileinfo,	1,	JSTYPE_NUMBER,	JSDOCSTR("[directory] [,string filespec] [,number mode]")
 	,JSDOCSTR("list extended file information for files in the specified file directory")
 	,310
 	},		
-	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>WM_MODE</tt>] [,object reply_header]")
+	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("sub-board [,number mode] [,object reply_header]")
 	,JSDOCSTR("post a message in the specified message sub-board (number or internal code) "
 		"with optinal <i>mode</i> (bitfield)<br>"
 		"If <i>reply_header</i> is specified (a header object returned from <i>MsgBase.get_msg_header()</i>), that header "
 		"will be used for the in-reply-to header fields (this argument added in v3.13)")
 	,313
 	},		
-	{"cfg_msg_scan",	js_msgscan_cfg,		0,	JSTYPE_VOID,	JSDOCSTR("[type=<tt>SCAN_CFG_NEW</tt>]")
+	{"cfg_msg_scan",	js_msgscan_cfg,		0,	JSTYPE_VOID,	JSDOCSTR("[number type]")
 	,JSDOCSTR("configure message scan "
 		"(<i>type</i> is either <tt>SCAN_CFG_NEW</tt> or <tt>SCAN_CFG_TOYOU</tt>)")
 	,310
@@ -2782,31 +2689,25 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("re-initialize new message scan pointers")
 	,310
 	},		
-	{"scan_subs",		js_scansubs,		0,	JSTYPE_VOID,	JSDOCSTR("[mode=<tt>SCAN_NEW</tt>] [,all=<tt>false</tt>]")
+	{"scan_subs",		js_scansubs,		0,	JSTYPE_VOID,	JSDOCSTR("[number mode, boolean all]")
 	,JSDOCSTR("scan sub-boards for messages")
 	,310
 	},		
-	{"scan_dirs",		js_scandirs,		0,	JSTYPE_VOID,	JSDOCSTR("[mode=<tt>FL_NONE</tt>] [,all=<tt>false</tt>]")
+	{"scan_dirs",		js_scandirs,		0,	JSTYPE_VOID,	JSDOCSTR("[number mode, boolean all]")
 	,JSDOCSTR("scan directories for files")
 	,310
 	},		
-	{"scan_posts",		js_scanposts,		1,	JSTYPE_ALIAS },
-	{"scan_msgs",		js_scanposts,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_READ</tt>] [,string find]")
-	,JSDOCSTR("scan messages in the specified message sub-board (number or internal code), "
-		"optionally search for 'find' string (AKA scan_posts)")
+	{"scan_posts",		js_scanposts,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board, number mode, string find]")
+	,JSDOCSTR("scan posts in the specified message sub-board (number or internal code), "
+		"optionally search for 'find' string")
 	,310
-	},		
-	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_READ</tt>] [,message_number=<tt>0</tt>] [,string find]")
-	,JSDOCSTR("list messages in the specified message sub-board (number or internal code), "
-		"optionally search for 'find' string, returns number of messages listed")
-	,31301
 	},		
 	/* menuing */
 	{"menu",			js_menu,			1,	JSTYPE_VOID,	JSDOCSTR("base_filename")
 	,JSDOCSTR("display a menu file from the text/menu directory")
 	,310
 	},		
-	{"log_key",			js_logkey,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("key [,comma=<tt>false</tt>]")
+	{"log_key",			js_logkey,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("key [,boolean comma]")
 	,JSDOCSTR("log key to node.log (comma optional)")
 	,310
 	},		
@@ -2824,22 +2725,22 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	/* xtrn programs/modules */
-	{"exec",			js_exec,			2,	JSTYPE_NUMBER,	JSDOCSTR("cmdline [,mode=<tt>EX_NONE</tt>] [,string startup_dir]")
+	{"exec",			js_exec,			2,	JSTYPE_NUMBER,	JSDOCSTR("cmdline [,number mode] [,string startup_dir]")
 	,JSDOCSTR("execute a program, optionally changing current directory to <i>startup_dir</i> "
 	"(see <tt>EX_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
 	,310
 	},		
 	{"exec_xtrn",		js_exec_xtrn,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("xtrn_number_or_code")
-	,JSDOCSTR("execute external program by number or internal code")
+	,JSDOCSTR("execute external program by internal code")
 	,310
 	},		
-	{"user_event",		js_user_event,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("event_type")
+	{"user_event",		js_user_event,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("number event_type")
 	,JSDOCSTR("execute user event by event type "
 	"(see <tt>EVENT_*</tt> in <tt>sbbsdefs.js</tt> for valid values)")
 	,310
 	},		
-	{"telnet_gate",		js_telnet_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,mode=<tt>TG_NONE</tt>]")
-	,JSDOCSTR("external telnet/rlogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
+	{"telnet_gate",		js_telnet_gate,		1,	JSTYPE_VOID,	JSDOCSTR("string address [,number mode]")
+	,JSDOCSTR("external telnet gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
 	,310
 	},		
 	/* security */
@@ -2847,7 +2748,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("prompt for and verify system password")
 	,310
 	},
-	{"good_password",	js_chkpass,			1,	JSTYPE_STRING,	JSDOCSTR("password")
+	{"good_password",	js_chkpass,			1,	JSTYPE_STRING,	JSDOCSTR("string password")
 	,JSDOCSTR("check if requested user password meets minimum password requirements "
 		"(length, uniqueness, etc.)")
 	,310
@@ -2869,23 +2770,23 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("use the private inter-node message prompt")
 	,310
 	},		
-	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("[local=<i>false</i>]")
-	,JSDOCSTR("enter private inter-node chat, or local sysop chat (if <i>local</i>=<i>true</i>)")
+	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("enter private inter-node chat")
 	,310
 	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("receive and display an inter-node message")
 	,310
 	},		
-	{"put_node_message",js_put_node_message,2,	JSTYPE_BOOLEAN,	JSDOCSTR("node_number, text")
+	{"put_node_message",js_put_node_message,2,	JSTYPE_BOOLEAN,	JSDOCSTR("number node, string text")
 	,JSDOCSTR("send an inter-node message")
 	,310
 	},		
-	{"get_telegram",	js_get_telegram,	1,	JSTYPE_VOID,	JSDOCSTR("[user_number=<i>current</i>]")
-	,JSDOCSTR("receive and display waiting telegrams for specified (or current) user")
+	{"get_telegram",	js_get_telegram,	1,	JSTYPE_VOID,	JSDOCSTR("[number usernum]")
+	,JSDOCSTR("receive and display a telegram")
 	,310
 	},		
-	{"put_telegram",	js_put_telegram,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("user_number, text")
+	{"put_telegram",	js_put_telegram,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("number user, string text")
 	,JSDOCSTR("send a telegram to a user")
 	,310
 	},		
@@ -2902,7 +2803,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	/* misc */
-	{"cmdstr",			js_cmdstr,			1,	JSTYPE_STRING,	JSDOCSTR("command_string [,string fpath=<tt>\"\"</tt>] [,string fspec=<tt>\"\"</tt>]")
+	{"cmdstr",			js_cmdstr,			1,	JSTYPE_STRING,	JSDOCSTR("string str [,string fpath] [,string fspec]")
 	,JSDOCSTR("return expanded command string using Synchronet command-line specifiers")
 	,310
 	},		
@@ -2911,8 +2812,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("returns a file specification input by the user (optionally with wildcards)")
 	,310
 	},		
-	{"get_newscantime",	js_getnstime,		1,	JSTYPE_NUMBER,	JSDOCSTR("time=<i>current</i>")
-	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (time_t format)")
+	{"get_newscantime",	js_getnstime,		1,	JSTYPE_NUMBER,	JSDOCSTR("number time")
+	,JSDOCSTR("confirm or change newscan time, returns new newscan time value (time_t format)")
 	,310
 	},		
 	{"select_shell",	js_select_shell,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
