@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.166 2006/01/30 04:12:00 deuce Exp $ */
+/* $Id: uifc32.c,v 1.167 2006/01/30 04:12:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,7 +174,7 @@ int uifcini32(uifcapi_t* uifcapi)
 		api->esc_delay=25;
 
 	if(cio_api.ESCDELAY)
-		ESCDELAY=api->esc_delay;
+		cio_api.ESCDELAY=api->esc_delay;
 
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
