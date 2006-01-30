@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.168 2006/01/30 04:13:49 deuce Exp $ */
+/* $Id: uifc32.c,v 1.169 2006/01/30 04:31:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,13 +169,6 @@ int uifcini32(uifcapi_t* uifcapi)
 	api->getstrxy=ugetstr;
 	api->printf=uprintf;
 
-	/* A esc_delay of less than 10 is stupid... silently override */
-	if(api->esc_delay < 10)
-		api->esc_delay=25;
-
-	if(cio_api.ESCDELAY)
-		*(cio_api.ESCDELAY)=api->esc_delay;
-
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
             case 14:
@@ -285,6 +278,13 @@ int uifcini32(uifcapi_t* uifcapi)
 		api->mode|=UIFC_MOUSE;
 		uifc_mouse_enable();
 	}
+
+	/* A esc_delay of less than 10 is stupid... silently override */
+	if(api->esc_delay < 10)
+		api->esc_delay=25;
+
+	if(cio_api.ESCDELAY)
+		*(cio_api.ESCDELAY)=api->esc_delay;
 
 	api->initialized=TRUE;
 
