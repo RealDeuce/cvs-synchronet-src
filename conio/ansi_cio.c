@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.44 2005/10/14 06:21:15 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.47 2006/01/30 04:16:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@
 #include "ciolib.h"
 #include "ansi_cio.h"
 
-#define	ANSI_TIMEOUT	500
+int	CIOLIB_ANSI_TIMEOUT=500;
 
 sem_t	got_key;
 sem_t	got_input;
@@ -314,24 +314,29 @@ void ansi_textattr(int attr)
 	bl=attr&0x80;
 	bg=(attr>>4)&0x7;
 	fg=attr&0x07;
-	br=attr&0x04;
+	br=attr&0x08;
 
 	oa=ansi_curr_attr>>8;
-	obl=oa>>7;
+	obl=oa&0x80;
 	obg=(oa>>4)&0x7;
 	ofg=oa&0x07;
-	obr=(oa>>3)&0x01;
+	obr=oa&0x08;
 
 	ansi_curr_attr=attr<<8;
 
 	strcpy(str,"\033[");
 	if(obl!=bl) {
-		if(!bl) {
+		if(!bl)
+#if 0
+			strcat(str,"25;");
+#else
+		{
 			strcat(str,"0;");
 			ofg=7;
 			obg=0;
 			obr=0;
 		}
+#endif
 		else
 			strcat(str,"5;");
 	}
@@ -340,10 +345,12 @@ void ansi_textattr(int attr)
 			strcat(str,"1;");
 		else
 #if 0
-			strcat(str,"2;");
+			strcat(str,"22;");
 #else
 		{
 			strcat(str,"0;");
+			if(bl)
+				strcat(str,"5;");
 			ofg=7;
 			obg=0;
 		}
@@ -403,7 +410,7 @@ static void ansi_keyparse(void *par)
 
 		switch(gotesc) {
 			case 1:	/* Escape Sequence */
-				timeout=ANSI_TIMEOUT;
+				timeout=CIOLIB_ANSI_TIMEOUT;
 				seq[strlen(seq)+1]=0;
 				seq[strlen(seq)]=ch;
 				if(strlen(seq)>=sizeof(seq)-2) {
@@ -448,7 +455,7 @@ static void ansi_keyparse(void *par)
 					seq[0]=27;
 					seq[1]=0;
 					gotesc=1;
-					timeout=ANSI_TIMEOUT;
+					timeout=CIOLIB_ANSI_TIMEOUT;
 					/* Need more keys... keep going... */
 					sem_post(&goahead);
 					break;
