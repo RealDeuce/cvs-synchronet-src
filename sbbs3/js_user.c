@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.61 2006/03/30 23:12:22 rswindell Exp $ */
+/* $Id: js_user.c,v 1.59 2006/01/31 03:51:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -855,7 +855,7 @@ js_sent_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 {
 	private_t*	p;
 	int32	count=1;
-	BOOL	feedback=FALSE;
+	BOOL	feedback;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
@@ -1144,9 +1144,8 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 	if(userobj==NULL)
 		return(NULL);
 
-	if((p=JS_GetPrivate(cx, userobj)) == NULL)	/* Uses existing private pointer: Fix memory leak? */
-		if((p=(private_t*)malloc(sizeof(private_t)))==NULL)
-			return(NULL);
+	if((p=(private_t*)malloc(sizeof(private_t)))==NULL)
+		return(NULL);
 
 	p->cfg = cfg;
 	p->user.number = usernumber;

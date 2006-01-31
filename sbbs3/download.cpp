@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.34 2006/02/28 00:47:34 rswindell Exp $ */
+/* $Id: download.cpp,v 1.33 2006/01/31 02:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -448,35 +448,4 @@ void sbbs_t::seqwait(uint devnum)
 		mswait(100); 
 	}
 
-}
-
-bool sbbs_t::sendfile(char* fname)
-{
-	char	keys[128];
-	char	ch;
-	size_t	i;
-	bool	result=false;
-
-	xfer_prot_menu(XFER_DOWNLOAD);
-	mnemonics(text[ProtocolOrQuit]);
-	strcpy(keys,"Q");
-	for(i=0;i<cfg.total_prots;i++)
-		if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron))
-			sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
-
-	ch=(char)getkeys(keys,0);
-
-	if(ch=='Q' || sys_status&SS_ABORT)
-		return(false); 
-
-	for(i=0;i<cfg.total_prots;i++)
-		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
-			break;
-	if(i<cfg.total_prots) {
-		if(protocol(cfg.prot[i],XFER_DOWNLOAD,fname,fname,false)==0)
-			result=true;
-		autohangup(); 
-	}
-
-	return(result);
 }
