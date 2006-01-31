@@ -35,6 +35,10 @@
 
 #include "sdlfuncs.h"
 
+#ifndef _WIN32
+struct sdlfuncs sdl;
+#endif
+
 extern int	CIOLIB_main(int argc, char **argv, char **enviro);
 
 /********************************************************/
@@ -63,7 +67,7 @@ static int lastcursor_y=0;
 static int sdl_current_font=-99;
 static int lastfg=-1;
 static int lastbg=-1;
-static unsigned int sdl_pending_mousekeys=0;
+
 
 struct video_stats vstat;
 int fullscreen=0;
@@ -498,7 +502,7 @@ int sdl_init(int mode)
 	void *dl;
 #endif
 
-	if(init_sdl_video())
+	if(!sdl.gotfuncs)
 		return(-1);
 
 	sdl.mutexP(sdl_vstatlock);
@@ -514,6 +518,8 @@ int sdl_init(int mode)
 		fullscreen=1;
 
 	sdl_init_mode(3);
+
+	atexit(sdl.Quit);
 
 	sdl_user_func(SDL_USEREVENT_INIT);
 
@@ -812,13 +818,6 @@ int sdl_getch(void)
 	sdl.SemWait(sdl_key_pending);
 	sdl.mutexP(sdl_keylock);
 	ch=sdl_keybuf[sdl_key++];
-	if(sdl_pending_mousekeys) {
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE & 0xff;
-        sdl.SemPost(sdl_key_pending);
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE >> 8;
-        sdl.SemPost(sdl_key_pending);
-		sdl_pending_mousekeys--;
-	}
 	sdl.mutexV(sdl_keylock);
 	return(ch);
 }
@@ -951,10 +950,7 @@ void sdl_add_key(unsigned int keyval)
 			return;
 		}
 		if((sdl_keynext+2==sdl_key) && keyval > 0xff) {
-			if(keyval==CIO_KEY_MOUSE)
-				sdl_pending_mousekeys++;
-			else
-				sdl_beep();
+			sdl_beep();
 			sdl.mutexV(sdl_keylock);
 			return;
 		}
@@ -1075,7 +1071,7 @@ int sdl_load_font(char *filename)
 
 	if(sdl_font!=NULL)
 		sdl.FreeSurface(sdl_font);
-	sdl_font=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth*vstat.scaling, vstat.charheight*256*vstat.scaling, 8, 0, 0, 0, 0);
+	sdl_font=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth, vstat.charheight*256, 8, 0, 0, 0, 0);
 	if(sdl_font == NULL) {
 		sdl.mutexV(sdl_vstatlock);
 		free(font);
@@ -1177,8 +1173,8 @@ int sdl_draw_one_char(unsigned short sch, unsigned int x, unsigned int y, struct
 	dst.w=vs->charwidth*vs->scaling;
 	dst.h=vs->charheight*vs->scaling;
 	src.x=0;
-	src.w=vs->charwidth*vs->scaling;
-	src.h=vs->charheight*vs->scaling;
+	src.w=vs->charwidth;
+	src.h=vs->charheight;
 	src.y=vs->charheight*vs->scaling;
 	ch=sch & 0xff;
 	if((sch >>15) && !(vs->blink))
@@ -1332,6 +1328,18 @@ struct mainparams {
 	char	**env;
 };
 
+/* Called from events thread only */
+int sdl_runmain(void *data)
+{
+	struct mainparams *mp=data;
+	SDL_Event	ev;
+
+	sdl_exitcode=CIOLIB_main(mp->argc, mp->argv, mp->env);
+	ev.type=SDL_QUIT;
+	while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1);
+	return(0);
+}
+
 /* Mouse event/keyboard thread */
 int sdl_mouse_thread(void *data)
 {
@@ -1342,11 +1350,76 @@ int sdl_mouse_thread(void *data)
 }
 
 /* Event Thread */
-int sdl_video_event_thread(void *data)
+#ifndef main
+int main(int argc, char **argv, char **env)
+#else
+int SDL_main_env(int argc, char **argv, char **env)
+#endif
 {
+	unsigned int i;
 	SDL_Event	ev;
+	struct mainparams mp;
+	char	drivername[64];
 
-	if(!init_sdl_video()) {
+#ifndef _WIN32
+	load_sdl_funcs(&sdl);
+#endif
+
+	if(sdl.gotfuncs) {
+#ifdef _WIN32
+		/* Fail to windib (ie: No mouse attached) */
+		if(sdl.Init(SDL_INIT_VIDEO)) {
+			if(getenv("SDL_VIDEODRIVER")==NULL) {
+				putenv("SDL_VIDEODRIVER=windib");
+				WinExec(GetCommandLine(), SW_SHOWDEFAULT);
+				exit(0);
+			}
+			sdl.gotfuncs=FALSE;
+		}
+#else
+
+		/*
+		 * On Linux, SDL doesn't properly detect availability of the
+		 * framebuffer apparently.  This results in remote connections
+		 * displaying on the local framebuffer... a definate no-no.
+		 * This ugly hack attempts to prevent this... of course, remote X11
+		 * connections must still be allowed.
+		 */
+		if(getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL)
+			sdl.gotfuncs=FALSE;
+		else {
+			if(sdl.Init(SDL_INIT_VIDEO))
+				sdl.gotfuncs=FALSE;
+		}
+#endif
+		if(sdl.VideoDriverName(drivername, sizeof(drivername))!=NULL) {
+			/* Unacceptable drivers */
+			if((!strcmp(drivername, "caca")) || (!strcmp(drivername,"aalib")) || (!strcmp(drivername,"dummy"))) {
+				sdl.gotfuncs=FALSE;
+				sdl.Quit();
+			}
+		}
+	}
+
+	if(sdl.gotfuncs) {
+		mp.argc=argc;
+		mp.argv=argv;
+		mp.env=env;
+
+		sdl_key_pending=sdl.SDL_CreateSemaphore(0);
+		sdl_init_complete=sdl.SDL_CreateSemaphore(0);
+		sdl_ufunc_ret=sdl.SDL_CreateSemaphore(0);
+		sdl_updlock=sdl.SDL_CreateMutex();
+		sdl_keylock=sdl.SDL_CreateMutex();
+		sdl_vstatlock=sdl.SDL_CreateMutex();
+		sdl_ufunc_lock=sdl.SDL_CreateMutex();
+#if !defined(NO_X) && defined(__unix__)
+		sdl_pastebuf_set=sdl.SDL_CreateSemaphore(0);
+		sdl_pastebuf_copied=sdl.SDL_CreateSemaphore(0);
+		sdl_copybuf_mutex=sdl.SDL_CreateMutex();
+#endif
+		sdl.CreateThread(sdl_runmain, &mp);
+
 		while(1) {
 			if(sdl.WaitEvent(&ev)==1) {
 				switch (ev.type) {
@@ -1476,7 +1549,7 @@ int sdl_video_event_thread(void *data)
 
 								if(sdl_cursor!=NULL)
 									sdl.FreeSurface(sdl_cursor);
-								sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth*vstat.scaling, vstat.charheight*vstat.scaling, 8, 0, 0, 0, 0);
+								sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth, vstat.charheight, 8, 0, 0, 0, 0);
 						    	/* Update font. */
 						    	sdl_load_font(NULL);
 						    	sdl_setup_colours(win,0);
@@ -1543,7 +1616,7 @@ int sdl_video_event_thread(void *data)
 									sdl_setup_colours(win,0);
 									if(sdl_cursor!=NULL)
 										sdl.FreeSurface(sdl_cursor);
-									sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth*vstat.scaling, vstat.charheight*vstat.scaling, 8, 0, 0, 0, 0);
+									sdl_cursor=sdl.CreateRGBSurface(SDL_SWSURFACE, vstat.charwidth, vstat.charheight, 8, 0, 0, 0, 0);
 									/* Update font. */
 									sdl_load_font(NULL);
 									sdl_full_screen_redraw(TRUE);
@@ -1761,27 +1834,7 @@ int sdl_video_event_thread(void *data)
 			}
 		}
 	}
+	else {
+		return(CIOLIB_main(argc, argv, env));
+	}
 }
-
-int sdl_initciolib(int mode)
-{
-	if(init_sdl_video)
-		return(-1);
-	if(init_sdl_video()==-1)
-		return(-1);
-	sdl_key_pending=sdl.SDL_CreateSemaphore(0);
-	sdl_init_complete=sdl.SDL_CreateSemaphore(0);
-	sdl_ufunc_ret=sdl.SDL_CreateSemaphore(0);
-	sdl_updlock=sdl.SDL_CreateMutex();
-	sdl_keylock=sdl.SDL_CreateMutex();
-	sdl_vstatlock=sdl.SDL_CreateMutex();
-	sdl_ufunc_lock=sdl.SDL_CreateMutex();
-#if !defined(NO_X) && defined(__unix__)
-	sdl_pastebuf_set=sdl.SDL_CreateSemaphore(0);
-	sdl_pastebuf_copied=sdl.SDL_CreateSemaphore(0);
-	sdl_copybuf_mutex=sdl.SDL_CreateMutex();
-#endif
-	sdl.CreateThread(sdl_video_event_thread, NULL);
-	return(sdl_init(mode));
-}
-
