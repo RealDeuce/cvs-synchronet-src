@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.47 2006/03/14 03:19:06 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.46 2006/01/26 02:00:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1124,5 +1124,8 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
             break;
     }
 
-	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
+	SAFEPRINTF(str,"%srecycle.ftp",cfg->ctrl_dir);		ftouch(str);
+	SAFEPRINTF(str,"%srecycle.web",cfg->ctrl_dir);		ftouch(str);
+	SAFEPRINTF(str,"%srecycle.mail",cfg->ctrl_dir);		ftouch(str);
+	SAFEPRINTF(str,"%srecycle.services",cfg->ctrl_dir);	ftouch(str);
 }

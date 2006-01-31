@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.64 2006/02/24 20:41:19 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.61 2006/01/12 23:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -233,38 +233,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			SAFECOPY(sbbs->question,JS_GetStringBytes(str));
 			break;
 		case CON_PROP_CTRLKEY_PASSTHRU:
-			if(JSVAL_IS_STRING(*vp)) {
-				/* op can be 0 for replace, + for add, or - for remove */
-				int op=0;
-				char *s;
-				char ctrl;
-
-				if((str=JS_ValueToString(cx, *vp))==NULL)
-					break;
-				val=sbbs->cfg.ctrlkey_passthru;
-				for(s=JS_GetStringBytes(str); *s; s++) {
-					if(*s=='+')
-						op=1;
-					else if(*s=='-')
-						op=2;
-					else {
-						if(!op) {
-							val=0;
-							op=1;
-						}
-						ctrl=toupper(*s);
-						ctrl&=0x1f;			/* Ensure it fits */
-						switch(op) {
-							case 1:		/* Add to the set */
-								val |= 1<<ctrl;
-								break;
-							case 2:		/* Remove from the set */
-								val &= ~(1<<ctrl);
-								break;
-						}
-					}
-				}
-			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
 		default:
@@ -323,14 +291,7 @@ static char* con_prop_desc[] = {
 	,"current yes/no question (set by yesno and noyes)"
 	,"cursor position offset for use with <tt>getstr(K_USEOFFSET)</tt>"
 	,"control key pass-through bitmask, set bits represent control key combinations "
-		"<i>not</i> handled by <tt>inkey()</tt> method "
-		"This may optionally be specified as a string of characters. "
-		"The format of this string is [+-][@-_]. If neither plus nor minus is "
-		"the first character, the value will be replaced by one constructed "
-		"from the string. A + indicates that characters following will be "
-		"added to the set, and a - indicates they should be removed. "
-		"ex: <tt>console.ctrlkey_passthru="-UP+AB"</tt> will clear CTRL-U and "
-		"CTRL-P and set CTRL-A and CTRL-B."
+		"<i>not</i> handled by <tt>inkey()</tt> method"
 	,"number of bytes currently in the input buffer (from the remote client) - <small>READ ONLY</small>"
 	,"number of bytes available in the input buffer	- <small>READ ONLY</small>"
 	,"number of bytes currently in the output buffer (from the local server) - <small>READ ONLY</small>"
@@ -1166,14 +1127,13 @@ static JSBool
 js_telnet_cmd(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
-	int32		cmd,opt=0;
+	int32		cmd,opt;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&cmd);
-	if(argc>1)
-		JS_ValueToInt32(cx,argv[1],&opt);
+	JS_ValueToInt32(cx,argv[0],&opt);
 
 	sbbs->send_telnet_cmd((uchar)cmd,(uchar)opt);
 
@@ -1182,17 +1142,17 @@ js_telnet_cmd(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 
 
 static jsSyncMethodSpec js_console_functions[] = {
-	{"inkey",			js_inkey,			0, JSTYPE_STRING,	JSDOCSTR("[mode=<tt>K_NONE</tt>] [,timeout=<tt>0</tt>]")
+	{"inkey",			js_inkey,			0, JSTYPE_STRING,	JSDOCSTR("[number mode] [,number timeout]")
 	,JSDOCSTR("get a single key with optional <i>timeout</i> in milliseconds (defaults to 0, for no wait), "
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,311
 	},		
-	{"getkey",			js_getkey,			0, JSTYPE_STRING,	JSDOCSTR("[mode=<tt>K_NONE</tt>]")
+	{"getkey",			js_getkey,			0, JSTYPE_STRING,	JSDOCSTR("[number mode]")
 	,JSDOCSTR("get a single key, with wait, "
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
 	},		
-	{"getstr",			js_getstr,			0, JSTYPE_STRING,	JSDOCSTR("[string] [,maxlen=<tt>128</tt>] [,mode=<tt>K_NONE</tt>]")
+	{"getstr",			js_getstr,			0, JSTYPE_STRING,	JSDOCSTR("[string][,maxlen][,mode]")
 	,JSDOCSTR("get a text string from the user, "
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
@@ -1206,7 +1166,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"or a number between 1 and <i>maxnum</i>")
 	,310
 	},		
-	{"gettemplate",		js_gettemplate,		1, JSTYPE_STRING,	JSDOCSTR("format [,string] [,mode=<tt>0</tt>]")
+	{"gettemplate",		js_gettemplate,		1, JSTYPE_STRING,	JSDOCSTR("format [,string] [,mode]")
 	,JSDOCSTR("get a string based on template")
 	,310
 	},		
@@ -1214,16 +1174,16 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("put a string in the keyboard buffer")
 	,310
 	},		
-	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
+	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("string question")
 	,JSDOCSTR("YES/no question")
 	,310
 	},		
-	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
+	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("string question")
 	,JSDOCSTR("NO/yes question")
 	,310
 	},		
-	{"mnemonics",		js_mnemonics,		1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("print a mnemonics string, command keys highlighted with tilde (~) characters")
+	{"mnemonics",		js_mnemonics,		1, JSTYPE_VOID,		JSDOCSTR("string text")
+	,JSDOCSTR("print a mnemonics string")
 	,310
 	},		
 	{"clear",           js_clear,			0, JSTYPE_VOID,		JSDOCSTR("[attribute]")
@@ -1253,44 +1213,44 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display pause prompt and wait for key hit")
 	,310
 	},
-	{"beep",			js_beep,			1, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
+	{"beep",			js_beep,			1, JSTYPE_VOID,		JSDOCSTR("[number count]")
 	,JSDOCSTR("beep for count number of times (default count is 1)")
 	,311
 	},
-	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("string text")
 	,JSDOCSTR("display a string (supports Ctrl-A codes)")
 	,310
 	},		
-	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("string text")
 	,JSDOCSTR("display a raw string")
 	,310
 	},		
-	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
+	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("string text [,number mode]")
 	,JSDOCSTR("display message text (Ctrl-A codes, @-codes, pipe codes, etc), "
 		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
 	},		
-	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("string text")
 	,JSDOCSTR("display a string centered on the screen")
 	,310
 	},
-	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text")
+	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("string text")
 	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
 	,310
 	},
-	{"printfile",		js_printfile,		1, JSTYPE_VOID,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
+	{"printfile",		js_printfile,		1, JSTYPE_VOID,		JSDOCSTR("string text [,number mode]")
 	,JSDOCSTR("print a message text file with optional mode")
 	,310
 	},		
-	{"printtail",		js_printtail,		2, JSTYPE_VOID,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
+	{"printtail",		js_printtail,		2, JSTYPE_VOID,		JSDOCSTR("string text, number lines [,number mode]")
 	,JSDOCSTR("print last x lines of file with optional mode")
 	,310
 	},		
-	{"editfile",		js_editfile,		1, JSTYPE_VOID,		JSDOCSTR("filename")
+	{"editfile",		js_editfile,		1, JSTYPE_VOID,		JSDOCSTR("string filename")
 	,JSDOCSTR("edit/create a text file using the user's preferred message editor")
 	,310
 	},		
-	{"uselect",			js_uselect,			0, JSTYPE_NUMBER,	JSDOCSTR("[number, title, item] [,ars]")
+	{"uselect",			js_uselect,			0, JSTYPE_NUMBER,	JSDOCSTR("[number, string title, string item, string ars]")
 	,JSDOCSTR("user selection menu, call for each item, then with no args to display select menu")
 	,312
 	},		
@@ -1302,8 +1262,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("restore last output line")
 	,310
 	},		
-	{"ansi",			js_ansi,			1, JSTYPE_STRING,	JSDOCSTR("attribute_number")
-	,JSDOCSTR("returns ANSI encoding of specified <i>attribute_number</i>")
+	{"ansi",			js_ansi,			1, JSTYPE_STRING,	JSDOCSTR("number attribute")
+	,JSDOCSTR("returns ANSI encoding of specified attribute")
 	,310
 	},		
 	{"ansi_save",		js_pushxy,			0, JSTYPE_ALIAS	},
@@ -1319,29 +1279,29 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,311
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
-	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("[x,y] or [object { x,y }]")
+	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("number x,y")
 	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI), "
 	"arguments can be separate x and y cooridinates or an object with x and y properites "
 	"(like that returned from <tt>console.getxy()</tt>)")
 	,311
 	},
 	{"ansi_up",			js_cursor_up,		0, JSTYPE_ALIAS },
-	{"up",				js_cursor_up,		0, JSTYPE_VOID,		JSDOCSTR("[rows=<tt>1</tt>]")
+	{"up",				js_cursor_up,		0, JSTYPE_VOID,		JSDOCSTR("[number rows]")
 	,JSDOCSTR("move cursor up one or more rows (ANSI)")
 	,311
 	},
 	{"ansi_down",		js_cursor_down,		0, JSTYPE_ALIAS },
-	{"down",			js_cursor_down,		0, JSTYPE_VOID,		JSDOCSTR("[rows=<tt>1</tt>]")
+	{"down",			js_cursor_down,		0, JSTYPE_VOID,		JSDOCSTR("[number rows]")
 	,JSDOCSTR("move cursor down one or more rows (ANSI)")
 	,311
 	},
 	{"ansi_right",		js_cursor_right,	0, JSTYPE_ALIAS },
-	{"right",			js_cursor_right,	0, JSTYPE_VOID,		JSDOCSTR("[columns=<tt>1</tt>]")
+	{"right",			js_cursor_right,	0, JSTYPE_VOID,		JSDOCSTR("[number columns]")
 	,JSDOCSTR("move cursor right one or more columns (ANSI)")
 	,311
 	},
 	{"ansi_left",		js_cursor_left,		0, JSTYPE_ALIAS },
-	{"left",			js_cursor_left,		0, JSTYPE_VOID,		JSDOCSTR("[columns=<tt>1</tt>]")
+	{"left",			js_cursor_left,		0, JSTYPE_VOID,		JSDOCSTR("[number columns]")
 	,JSDOCSTR("move cursor left one or more columns (ANSI)")
 	,311
 	},
@@ -1355,16 +1315,16 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("returns the current cursor position as an object (with x and y properties)")
 	,311
 	},
-	{"lock_input",		js_lock_input,		1, JSTYPE_VOID,		JSDOCSTR("[lock=<tt>true</tt>]")
+	{"lock_input",		js_lock_input,		1, JSTYPE_VOID,		JSDOCSTR("[boolean lock]")
 	,JSDOCSTR("lock the user input thread (allowing direct client socket access)")
 	,310
 	},
-	{"telnet_cmd",		js_telnet_cmd,		2, JSTYPE_VOID,		JSDOCSTR("command [,option=<tt>0</tt>]")
-	,JSDOCSTR("send Telnet command (with optional command option) to remote client")
+	{"telnet_cmd",		js_telnet_cmd,		2, JSTYPE_VOID,		JSDOCSTR("number cmd [,number option]")
+	,JSDOCSTR("send telnet command (with optional command option) to remote client")
 	,310
 	},
-	{"handle_ctrlkey",	js_handle_ctrlkey,	1, JSTYPE_BOOLEAN,	JSDOCSTR("key [,mode=<tt>K_NONE</tt>]")
-	,JSDOCSTR("call internal control key handler for specified control key, returns <tt>true</tt> if handled")
+	{"handle_ctrlkey",	js_handle_ctrlkey,	1, JSTYPE_BOOLEAN,	JSDOCSTR("string key [,number mode]")
+	,JSDOCSTR("call internal control key handler for specified control key, returns true if handled")
 	,311
 	},
 	{0}
