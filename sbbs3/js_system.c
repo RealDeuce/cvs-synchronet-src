@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.101 2005/10/12 21:33:35 rswindell Exp $ */
+/* $Id: js_system.c,v 1.103 2005/12/22 08:52:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -407,7 +407,7 @@ static jsSyncPropertySpec js_system_properties[] = {
 	{0}
 };
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 static char* sys_prop_desc[] = {
 	 "BBS name"
 	,"operator name"
@@ -484,6 +484,8 @@ static char* sys_prop_desc[] = {
 	,"Synchronet alpha/beta designation (e.g. ' beta')"
 	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
 	,"Synchronet version notice (includes version and platform)"
+	,"Synchronet version number in decimal (e.g. 31301 for v3.13b)"
+	,"Synchronet version number in hexadecimal (e.g. 0x31301 for v3.13b)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
 	,"socket library version information"
 	,"message base library version information"
@@ -640,7 +642,7 @@ static jsSyncPropertySpec js_sysstats_properties[] = {
 	{0}
 };
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 static char* sysstat_prop_desc[] = {
 	 "total logons"
 	,"logons today"
@@ -1436,7 +1438,7 @@ enum {
 	,NODE_PROP_EXTAUX
 };
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 static char* node_prop_desc[] = {
 	 "status (see <tt>nodedefs.js</tt> for valid values)"
 	,"error counter"
@@ -1624,7 +1626,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if (!js_DefineSyncMethods(cx, sysobj, js_system_functions, FALSE)) 
 		return(NULL);
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,sysobj,"Global system-related properties and methods",310);
 	js_CreateArrayOfStrings(cx, sysobj, "_property_desc_list", sys_prop_desc, JSPROP_READONLY);
 #endif
@@ -1674,6 +1676,17 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 		return(NULL);
 	val = STRING_TO_JSVAL(js_str);
 	if(!JS_SetProperty(cx, sysobj, "version_notice", &val))
+		return(NULL);
+
+	/* Numeric version properties */
+	if(!JS_NewNumberValue(cx, VERSION_NUM, &val))
+		return(NULL);
+	if(!JS_SetProperty(cx, sysobj, "version_num", &val))
+		return(NULL);
+
+	if(!JS_NewNumberValue(cx, VERSION_HEX, &val))
+		return(NULL);
+	if(!JS_SetProperty(cx, sysobj, "version_hex", &val))
 		return(NULL);
 
 	if((js_str=JS_NewStringCopyZ(cx, PLATFORM_DESC))==NULL)
@@ -1759,7 +1772,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 	if(!js_DefineSyncProperties(cx, statsobj, js_sysstats_properties))
 		return(NULL);
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,statsobj,"System statistics",310);
 	js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
 #endif
@@ -1788,7 +1801,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 		if(!js_DefineSyncProperties(cx, nodeobj, js_node_properties))
 			return(NULL);
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 		if(i==0) {
 			js_DescribeSyncObject(cx,nodeobj,"BBS node listing",310);
 			js_CreateArrayOfStrings(cx, nodeobj, "_property_desc_list", node_prop_desc, JSPROP_READONLY);
