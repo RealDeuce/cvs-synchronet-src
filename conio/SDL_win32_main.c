@@ -241,13 +241,13 @@ int console_main(int argc, char *argv[], char **env)
 	}
 
 	/* Run the application main() code */
-	n=SDL_main_env(argc, argv, env);
+	SDL_main_env(argc, argv, env);
 
 	/* Exit cleanly, calling atexit() functions */
-	exit(n);
+	exit(0);
 
 	/* Hush little compiler, don't you cry... */
-	return(n);
+	return(0);
 }
 
 /* This is where execution begins [windowed apps] */
