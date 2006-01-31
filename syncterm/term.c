@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.119 2005/11/15 17:50:57 deuce Exp $ */
+/* $Id: term.c,v 1.132 2005/11/28 21:41:33 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -7,6 +7,7 @@
 #include <keys.h>
 
 #include "conn.h"
+#include "syncterm.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "filepick.h"
@@ -19,8 +20,6 @@
 static char recvbuf[BUFSIZE];
 
 #define DUMP
-
-int backlines=2000;
 
 struct terminal term;
 
@@ -524,7 +523,7 @@ void zmodem_upload(FILE *fp, char *path);
 
 void begin_upload(char *uldir, BOOL autozm)
 {
-	char	str[MAX_PATH*2];
+	char	str[MAX_PATH*2+1];
 	char	path[MAX_PATH+1];
 	int		result;
 	int i;
@@ -715,6 +714,41 @@ void music_control(struct bbslist *bbs)
 	free(buf);
 }
 
+void font_control(struct bbslist *bbs)
+{
+	char *buf;
+	struct	text_info txtinfo;
+	int i,j,k;
+
+   	gettextinfo(&txtinfo);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	init_uifc(FALSE, FALSE);
+
+	i=j=getfont();
+	uifc.helpbuf="`Font Setup`\n\n"
+				"Change the current font.  Must support the current video mode.";
+	k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
+	if(k!=-1) {
+		if(k & MSK_INS) {
+			struct file_pick fpick;
+			j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
+
+			if(j!=-1 && fpick.files>=1)
+				loadfont(fpick.selected[0]);
+			filepick_free(&fpick);
+		}
+		else
+			setfont(i,FALSE);
+	}
+	uifcbail();
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
+	textattr(txtinfo.attribute);
+	gotoxy(txtinfo.curx,txtinfo.cury);
+	free(buf);
+}
+
 void capture_control(struct bbslist *bbs)
 {
 	char *buf;
@@ -743,11 +777,10 @@ void capture_control(struct bbslist *bbs)
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
 			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
 
-			if(j!=-1 || fpick.files>=1)
+			if(j!=-1 && fpick.files>=1)
 				cterm_openlog(fpick.selected[0], i?CTERM_LOG_RAW:CTERM_LOG_ASCII);
 			filepick_free(&fpick);
 		}
-
 	}
 	else {
 		if(cterm.log & CTERM_LOG_PAUSED) {
@@ -805,7 +838,6 @@ BOOL doterm(struct bbslist *bbs)
 	unsigned char prn[BUFSIZE];
 	int	key;
 	int i,j,k;
-	unsigned char *scrollback;
 	unsigned char *p;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
@@ -817,7 +849,7 @@ BOOL doterm(struct bbslist *bbs)
 	int	speed;
 	int	oldmc;
 	int	updated=FALSE;
-	BOOL	sleep=TRUE;
+	BOOL	sleep;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->loglevel;
@@ -827,9 +859,9 @@ BOOL doterm(struct bbslist *bbs)
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
 	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
 	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
-	scrollback=malloc(term.width*2*backlines);
-	memset(scrollback,0,term.width*2*backlines);
-	cterm_init(term.height,term.width,term.x-1,term.y-1,backlines,scrollback);
+	if(scrollback_buf != NULL)
+		memset(scrollback_buf,0,term.width*2*settings.backlines);
+	cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf);
 	cterm.music_enable=bbs->music;
 	ch[1]=0;
 	zrqbuf[0]=0;
@@ -853,10 +885,11 @@ BOOL doterm(struct bbslist *bbs)
 			switch(inch) {
 				case -1:
 					if(!is_connected(NULL)) {
-						free(scrollback);
+						uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
+						cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+						scrollback_lines=cterm.backpos;
 						cterm_end();
 						conn_close();
-						uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
 						hidemouse();
 						return(FALSE);
 					}
@@ -926,7 +959,7 @@ BOOL doterm(struct bbslist *bbs)
 					getmouse(&mevent);
 					switch(mevent.event) {
 						case CIOLIB_BUTTON_1_DRAG_START:
-							mousedrag(scrollback);
+							mousedrag(scrollback_buf);
 							break;
 						case CIOLIB_BUTTON_2_CLICK:
 						case CIOLIB_BUTTON_3_CLICK:
@@ -973,15 +1006,42 @@ BOOL doterm(struct bbslist *bbs)
 					conn_send("\033Ox",3,0);
 					break;
 				case 0x3000:	/* ALT-B - Scrollback */
+#ifdef PCM
+					if(!confirm("View scrollback?",NULL))
+						continue;
+#endif
 					viewscroll();
+					showmouse();
 					break;
 				case 0x2e00:	/* ALT-C - Capture */
+#ifdef PCM
+					if(!confirm("Go to capture control menu?",NULL))
+						continue;
+#endif
 					capture_control(bbs);
+					showmouse();
 					break;
 				case 0x2000:	/* ALT-D - Download */
+#ifdef PCM
+					if(!confirm("Begin download?",NULL))
+						continue;
+#endif
 					zmodem_download(bbs->dldir);
+					showmouse();
+					break;
+				case 0x2100:	/* ALT-F */
+#ifdef PCM
+					if(!confirm("Go to font control menu?",NULL))
+						continue;
+#endif
+					font_control(bbs);
+					showmouse();
 					break;
 				case 0x2600:	/* ALT-L */
+#ifdef PCM
+					if(!confirm("Send login credentials?",NULL))
+						continue;
+#endif
 					conn_send(bbs->user,strlen(bbs->user),0);
 					conn_send("\r",1,0);
 					SLEEP(10);
@@ -994,10 +1054,20 @@ BOOL doterm(struct bbslist *bbs)
 					}
 					break;
 				case 0x3200:	/* ALT-M */
+#ifdef PCM
+					if(!confirm("Go to music control menu?",NULL))
+						continue;
+#endif
 					music_control(bbs);
+					showmouse();
 					break;
 				case 0x1600:	/* ALT-U - Upload */
+#ifdef PCM
+					if(!confirm("Begin upload?",NULL))
+						continue;
+#endif
 					begin_upload(bbs->uldir, FALSE);
+					showmouse();
 					break;
 				case 17:		/* CTRL-Q */
 					if(cio_api.mode!=CIOLIB_MODE_CURSES
@@ -1027,8 +1097,9 @@ BOOL doterm(struct bbslist *bbs)
 						if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Disconnect... Are you sure?",opts)==0) {
 							uifcbail();
 							free(buf);
+							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+							scrollback_lines=cterm.backpos;
 							cterm_end();
-							free(scrollback);
 							conn_close();
 							hidemouse();
 							return(key==0x2d00 /* Alt-X? */);
@@ -1039,6 +1110,7 @@ BOOL doterm(struct bbslist *bbs)
 						textattr(txtinfo.attribute);
 						gotoxy(txtinfo.curx,txtinfo.cury);
 						free(buf);
+						showmouse();
 					}
 					break;
 				case 19:	/* CTRL-S */
@@ -1055,39 +1127,81 @@ BOOL doterm(struct bbslist *bbs)
 					j=wherey();
 					switch(syncmenu(bbs, &speed)) {
 						case -1:
+#ifdef PCM
+							if(!confirm("Disconnect?",NULL))
+								continue;
+#endif
+							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+							scrollback_lines=cterm.backpos;
 							cterm_end();
-							free(scrollback);
 							conn_close();
 							hidemouse();
 							return(FALSE);
 						case 3:
+#ifdef PCM
+							if(!confirm("Begin upload?",NULL))
+								continue;
+#endif
 							begin_upload(bbs->uldir, FALSE);
 							break;
 						case 4:
+#ifdef PCM
+							if(!confirm("Begin download?",NULL))
+								continue;
+#endif
 							zmodem_download(bbs->dldir);
 							break;
 						case 7:
+#ifdef PCM
+							if(!confirm("Got to capture control menu?",NULL))
+								continue;
+#endif
 							capture_control(bbs);
 							break;
 						case 8:
+#ifdef PCM
+							if(!confirm("Go to music control menu?",NULL))
+								continue;
+#endif
 							music_control(bbs);
 							break;
 						case 9:
+#ifdef PCM
+							if(!confirm("Go to font control menu?",NULL))
+								continue;
+#endif
+							font_control(bbs);
+							break;
+						case 10:
+#ifdef PCM
+							if(!confirm("Disconnect?",NULL))
+								continue;
+#endif
+							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+							scrollback_lines=cterm.backpos;
 							cterm_end();
-							free(scrollback);
 							conn_close();
 							hidemouse();
 							return(TRUE);
 					}
+					showmouse();
 					gotoxy(i,j);
 					break;
 				case 0x9800:	/* ALT-Up */
+#ifdef PCM
+					if(!confirm("Increase simulated BPS rate?",NULL))
+						continue;
+#endif
 					if(speed)
 						speed=rates[get_rate_num(speed)+1];
 					else
 						speed=rates[0];
 					break;
 				case 0xa000:	/* ALT-Down */
+#ifdef PCM
+					if(!confirm("Decrease simulated BPS rate?",NULL))
+						continue;
+#endif
 					i=get_rate_num(speed);
 					if(i==0)
 						speed=0;
