@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.67 2005/10/03 21:13:04 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.68 2006/01/31 02:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -382,11 +382,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		return(false); 
 	}
 
-	useron.ptoday++;
-	useron.posts++;
 	logon_posts++;
-	putuserrec(&cfg,useron.number,U_POSTS,5,ultoa(useron.posts,str,10));
-	putuserrec(&cfg,useron.number,U_PTODAY,5,ultoa(useron.ptoday,str,10));
+	user_posted_msg(&cfg, &useron, 1);
 	bprintf(text[Posted],cfg.grp[cfg.sub[subnum]->grp]->sname
 		,cfg.sub[subnum]->lname);
 	sprintf(str,"%s posted on %s %s"

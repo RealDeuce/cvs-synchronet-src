@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.44 2005/08/30 01:08:20 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.45 2006/01/31 02:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -223,8 +223,7 @@ bool sbbs_t::uploadfile(file_t *f)
 	/**************************/
 	/* Update Uploader's Info */
 	/**************************/
-	useron.uls=(ushort)adjustuserrec(&cfg,useron.number,U_ULS,5,1);
-	useron.ulb=(ushort)adjustuserrec(&cfg,useron.number,U_ULB,10,length);
+	user_uploaded(&cfg, &useron, 1, length);
 	if(cfg.dir[f->dir]->up_pct && cfg.dir[f->dir]->misc&DIR_CDTUL) { /* credit for upload */
 		if(cfg.dir[f->dir]->misc&DIR_CDTMIN && cur_cps)    /* Give min instead of cdt */
 			useron.min=adjustuserrec(&cfg,useron.number,U_MIN,10
