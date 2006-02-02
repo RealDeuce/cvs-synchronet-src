@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.61 2005/11/01 00:31:25 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.69 2006/01/19 21:13:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -238,27 +238,35 @@ unsigned DLLCALL xp_randomize(void)
 {
 	unsigned seed=~0;
 
-#if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
+#if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	int     rf;
 
-	if((rf=open(RANDOM_DEV, O_RDONLY))!=-1) {
+	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
 		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
-#else
-	unsigned curtime	= (unsigned)time(NULL);
-	unsigned process_id = (unsigned)GetCurrentProcessId();
+	else {
+#endif
+		unsigned curtime	= (unsigned)time(NULL);
+		unsigned process_id = (unsigned)GetCurrentProcessId();
 
-	seed = curtime ^ BYTE_SWAP_INT(process_id);
+		seed = curtime ^ BYTE_SWAP_INT(process_id);
 
-	#if defined(_WIN32) || defined(GetCurrentThreadId)
-		seed ^= (unsigned)GetCurrentThreadId();
-	#endif
+		#if defined(_WIN32) || defined(GetCurrentThreadId)
+			seed ^= (unsigned)GetCurrentThreadId();
+		#endif
 
+#if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
+	}
 #endif
 
+#ifdef HAS_RANDOM_FUNC
+ 	srandom(seed);
+	return(seed);
+#else
  	srand(seed);
 	return(seed);
+#endif
 }
 
 /****************************************************************************/
@@ -266,13 +274,19 @@ unsigned DLLCALL xp_randomize(void)
 /****************************************************************************/
 int DLLCALL xp_random(int n)
 {
-	float f;
+#ifdef HAS_RANDOM_FUNC
+	if(n<2)
+		return(0);
+	return(random()%n);
+#else
+	float f=0;
 
 	if(n<2)
 		return(0);
 	f=(float)rand()/(float)RAND_MAX;
 
 	return((int)(n*f));
+#endif
 }
 
 /****************************************************************************/
@@ -514,7 +528,9 @@ long double	DLLCALL	xp_timer(void)
 		ret=((long double)tick.HighPart*4294967296)+((long double)tick.LowPart);
 		ret /= ((long double)freq.HighPart*4294967296)+((long double)freq.LowPart);
 #else
-		ret=((long double)tick.QuadPart)/freq.QuadPart;
+		/* In MSVC, a long double does NOT have 19 decimals of precision */
+		ret=(((long double)(tick.QuadPart%freq.QuadPart))/freq.QuadPart);
+		ret+=tick.QuadPart/freq.QuadPart;
 #endif
 	}
 	else {
