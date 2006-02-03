@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.91 2006/05/12 01:35:37 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.86 2006/02/02 08:37:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,10 +75,8 @@ enum {
 
 	,BBS_PROP_CURGRP
 	,BBS_PROP_CURSUB
-	,BBS_PROP_CURSUB_CODE
 	,BBS_PROP_CURLIB
 	,BBS_PROP_CURDIR
-	,BBS_PROP_CURDIR_CODE
 
 	,BBS_PROP_CONNECTION		/* READ ONLY */
 	,BBS_PROP_RLOGIN_NAME
@@ -174,10 +172,8 @@ enum {
 
 	,"current message group"
 	,"current message sub-board"
-	,"current message sub-board internal code"
 	,"current file library"
 	,"current file directory"
-	,"current file directory internal code"
 
 	,"remote connection type"
 	,"rlogin name"
@@ -343,21 +339,12 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->curgrp<sbbs->usrgrps)
 				val=sbbs->cursub[sbbs->curgrp];
 			break;
-		case BBS_PROP_CURSUB_CODE:
-			if(sbbs->cursubnum<sbbs->cfg.total_subs)
-				p=sbbs->cfg.sub[sbbs->cursubnum]->code;
-			break;
-
 		case BBS_PROP_CURLIB:
 			val=sbbs->curlib;
 			break;
 		case BBS_PROP_CURDIR:
 			if(sbbs->curlib<sbbs->usrlibs)
 				val=sbbs->curdir[sbbs->curlib];
-			break;
-		case BBS_PROP_CURDIR_CODE:
-			if(sbbs->curdirnum<sbbs->cfg.total_dirs)
-				p=sbbs->cfg.dir[sbbs->curdirnum]->code;
 			break;
 
 		case BBS_PROP_CONNECTION:
@@ -718,7 +705,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				sbbs->curgrp=val;
 			break;
 		case BBS_PROP_CURSUB:
-		case BBS_PROP_CURSUB_CODE:
 			if(p!=NULL) {	/* set by code */
 				for(uint i=0;i<sbbs->usrgrps;i++)
 					for(uint j=0;j<sbbs->usrsubs[i];j++)
@@ -746,7 +732,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				sbbs->curlib=val;
 			break;
 		case BBS_PROP_CURDIR:
-		case BBS_PROP_CURDIR_CODE:
 			if(p!=NULL) {	/* set by code */
 				for(uint i=0;i<sbbs->usrlibs;i++)
 					for(uint j=0;j<sbbs->usrdirs[i];j++)
@@ -827,10 +812,8 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"file_cmds"			,BBS_PROP_FILE_CMDS		,JSPROP_ENUMERATE	,310},
 	{	"curgrp"			,BBS_PROP_CURGRP		,JSPROP_ENUMERATE	,310},
 	{	"cursub"			,BBS_PROP_CURSUB		,JSPROP_ENUMERATE	,310},
-	{	"cursub_code"		,BBS_PROP_CURSUB_CODE	,JSPROP_ENUMERATE	,31301},
 	{	"curlib"			,BBS_PROP_CURLIB		,JSPROP_ENUMERATE	,310},
 	{	"curdir"			,BBS_PROP_CURDIR		,JSPROP_ENUMERATE	,310},
-	{	"curdir_code"		,BBS_PROP_CURDIR_CODE	,JSPROP_ENUMERATE	,31301},
 	{	"connection"		,BBS_PROP_CONNECTION	,PROP_READONLY		,310},
 	{	"rlogin_name"		,BBS_PROP_RLOGIN_NAME	,JSPROP_ENUMERATE	,310},
 	{	"client_name"		,BBS_PROP_CLIENT_NAME	,JSPROP_ENUMERATE	,310},
@@ -1275,7 +1258,7 @@ js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>1)
-		JS_ValueToBoolean(cx,argv[1],&comma);
+		comma=JS_ValueToBoolean(cx,argv[1],&comma);
 
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = JSVAL_FALSE;
@@ -1574,32 +1557,6 @@ js_batchaddlist(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		return(JS_FALSE);
 
 	sbbs->batch_add_list(JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(sbbs->sendfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_recvfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(sbbs->recvfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
 
 	return(JS_TRUE);
 }
@@ -2097,15 +2054,11 @@ static JSBool
 js_private_chat(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
-	JSBool		local=false;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToBoolean(cx,argv[0],&local);
-
-	sbbs->privchat(local ? true:false);	// <- eliminates stupid msvc6 "performance warning"
+	sbbs->privchat();
 
 	return(JS_TRUE);
 }
@@ -2281,10 +2234,7 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-	if(!(mode&(FL_FINDDESC|FL_EXFIND)))
-		fspec=padfname(fspec,buf);
-
-	*rval = INT_TO_JSVAL(sbbs->listfiles(dirnum,fspec,0 /* tofile */,mode));
+	*rval = INT_TO_JSVAL(sbbs->listfiles(dirnum,padfname(fspec,buf),0 /* tofile */,mode));
 	return(JS_TRUE);
 }
 
@@ -2656,15 +2606,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	{"batch_add_list",	js_batchaddlist,	1,	JSTYPE_VOID,	JSDOCSTR("list_filename")
 	,JSDOCSTR("add file list to batch download queue")
 	,310
-	},
-	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("send specified filename (complete path) to user via user-prompted protocol")
-	,31301
-	},
-	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("received specified filename (complete path) frome user via user-prompted protocol")
-	,31301
-	},
+	},		
 	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("enter the temporary file tranfer menu")
 	,310
@@ -2752,10 +2694,9 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("re-sort the file directory specified by number or internal code)")
 	,310
 	},		
-	{"list_files",		js_listfiles,		1,	JSTYPE_NUMBER,	JSDOCSTR("[directory=<i>current</i>] [,filespec=<tt>\"*.*\"</tt> or search_string] [,mode=<tt>FL_NONE</tt>]")
+	{"list_files",		js_listfiles,		1,	JSTYPE_NUMBER,	JSDOCSTR("[directory=<i>current</i>] [,filespec=<tt>\"*.*\"</tt>] [,mode=<tt>FL_NONE</tt>]")
 	,JSDOCSTR("list files in the specified file directory, "
-		"optionally specifying a file specification (wildcards) or a description search string, "
-		"and <i>mode</i> (bitfield)")
+		"optionally specifying a file specification (wildcards) and <i>mode</i> (bitfield)")
 	,310
 	},		
 	{"list_file_info",	js_listfileinfo,	1,	JSTYPE_NUMBER,	JSDOCSTR("[directory=<i>current</i>] [,filespec=<tt>\"*.*\"</tt>] [,mode=<tt>FI_INFO</tt>]")
@@ -2869,8 +2810,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("use the private inter-node message prompt")
 	,310
 	},		
-	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("[local=<i>false</i>]")
-	,JSDOCSTR("enter private inter-node chat, or local sysop chat (if <i>local</i>=<i>true</i>)")
+	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("enter private inter-node chat")
 	,310
 	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_VOID,	JSDOCSTR("")
