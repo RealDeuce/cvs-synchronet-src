@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.87 2006/02/03 06:14:02 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.88 2006/02/03 06:20:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2234,7 +2234,7 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-	if(!(mode&FL_FINDDESC))
+	if(!(mode&(FL_FINDDESC|FL_EXFIND)))
 		fspec=padfname(fspec,buf);
 
 	*rval = INT_TO_JSVAL(sbbs->listfiles(dirnum,fspec,0 /* tofile */,mode));
