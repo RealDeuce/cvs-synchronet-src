@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.71 2005/10/22 01:11:58 rswindell Exp $ */
+/* $Id: uifc.h,v 1.73 2005/11/25 08:07:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,6 +138,7 @@
 								/* Put the mouse event back into the event queue */
 #define WIN_EDIT	(1<<27)	/* Allow F2 to edit a menu item */
 #define WIN_EDITACT	(1<<28)	/* Remain active after edit key */
+#define WIN_INACT	(1<<29)	/* Draw window inactive... intended for use with WIN_IMM */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 
@@ -303,6 +304,11 @@ typedef struct {
 /* Colours for the various bits												*/
 /****************************************************************************/
 	uchar	hclr,lclr,bclr,cclr,lbclr;
+
+/****************************************************************************/
+/* Have we initialized successfully?										*/
+/****************************************************************************/
+	BOOL	initialized;
 
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
