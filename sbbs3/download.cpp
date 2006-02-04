@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.31 2005/05/14 05:12:40 rswindell Exp $ */
+/* $Id: download.cpp,v 1.33 2006/01/31 02:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,8 +67,7 @@ void sbbs_t::downloadfile(file_t* f)
 	/****************************/
 	/* Update Downloader's Info */
 	/****************************/
-	useron.dls=(ushort)adjustuserrec(&cfg,useron.number,U_DLS,5,1);
-	useron.dlb=adjustuserrec(&cfg,useron.number,U_DLB,10,length);
+	user_downloaded(&cfg, &useron, 1, length);
 	if(!is_download_free(&cfg,f->dir,&useron))
 		subtract_cdt(&cfg,&useron,f->cdt);
 	/**************************/
@@ -231,7 +230,8 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	if(prot->misc&PROT_NATIVE)
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
-	ex_mode|=(EX_INR|EX_OUTR|EX_BIN);
+	if(!(prot->misc&PROT_SOCKET))
+		ex_mode|=(EX_INR|EX_OUTR|EX_BIN);
 #endif
 
 	i=external(cmdline,ex_mode,p);
