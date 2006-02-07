@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.91 2006/05/12 01:35:37 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.89 2006/02/04 02:45:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1275,7 +1275,7 @@ js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>1)
-		JS_ValueToBoolean(cx,argv[1],&comma);
+		comma=JS_ValueToBoolean(cx,argv[1],&comma);
 
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = JSVAL_FALSE;
@@ -1574,32 +1574,6 @@ js_batchaddlist(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		return(JS_FALSE);
 
 	sbbs->batch_add_list(JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(sbbs->sendfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
-
-	return(JS_TRUE);
-}
-
-static JSBool
-js_recvfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(sbbs->recvfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
 
 	return(JS_TRUE);
 }
@@ -2097,15 +2071,11 @@ static JSBool
 js_private_chat(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
-	JSBool		local=false;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToBoolean(cx,argv[0],&local);
-
-	sbbs->privchat(local ? true:false);	// <- eliminates stupid msvc6 "performance warning"
+	sbbs->privchat();
 
 	return(JS_TRUE);
 }
@@ -2656,15 +2626,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	{"batch_add_list",	js_batchaddlist,	1,	JSTYPE_VOID,	JSDOCSTR("list_filename")
 	,JSDOCSTR("add file list to batch download queue")
 	,310
-	},
-	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("send specified filename (complete path) to user via user-prompted protocol")
-	,31301
-	},
-	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("received specified filename (complete path) frome user via user-prompted protocol")
-	,31301
-	},
+	},		
 	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("enter the temporary file tranfer menu")
 	,310
@@ -2869,8 +2831,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("use the private inter-node message prompt")
 	,310
 	},		
-	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("[local=<i>false</i>]")
-	,JSDOCSTR("enter private inter-node chat, or local sysop chat (if <i>local</i>=<i>true</i>)")
+	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("enter private inter-node chat")
 	,310
 	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_VOID,	JSDOCSTR("")
