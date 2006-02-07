@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.440 2006/06/01 21:51:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.433 2006/02/07 07:17:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -276,7 +276,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 	sbbs_random(10);	/* Throw away first number */
 }
 
-int DLLCALL sbbs_random(int n)
+DLLEXPORT int DLLCALL sbbs_random(int n)
 {
 	return(xp_random(n));
 }
@@ -1504,24 +1504,25 @@ void output_thread(void* arg)
 		 */
 		if(bufbot == buftop) {
 			/* Wait for something to output in the RingBuffer */
-			if((avail=RingBufFull(&sbbs->outbuf))==0) {	/* empty */
+			if(RingBufFull(&sbbs->outbuf)==0) {	/* empty */
 				if(sem_trywait_block(&sbbs->outbuf.sem,1000))
-					continue;
-				/* Check for spurious sem post... */
-				if((avail=RingBufFull(&sbbs->outbuf))==0)
 					continue;
 			}
 			else
 				sem_trywait(&sbbs->outbuf.sem);
 
+			/* Check for spurious sem post... */
+			if((avail=RingBufFull(&sbbs->outbuf))==0)
+				continue;
+
 			/* Wait for full buffer or drain timeout */
 			if(sbbs->outbuf.highwater_mark) {
-				if(avail<sbbs->outbuf.highwater_mark) {
+				if(avail<sbbs->outbuf.highwater_mark)
 					sem_trywait_block(&sbbs->outbuf.highwater_sem,startup->outbuf_drain_timeout);
-					/* We (potentially) blocked, so get fill level again */
-		    		avail=RingBufFull(&sbbs->outbuf);
-				} else
+				else
 					sem_trywait(&sbbs->outbuf.highwater_sem);	
+				/* We (potentially) blocked, so get fill level again */
+		    	avail=RingBufFull(&sbbs->outbuf);
 			}
 
 			/*
@@ -2332,8 +2333,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	client_ident[0]=0;
 
 	terminal[0]=0;
-	rlogin_name[0]=0;
-	rlogin_pass[0]=0;
 
 	/* Init some important variables */
 
@@ -2374,7 +2373,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
-	mnestr=NULL;
 
 #ifdef JAVASCRIPT
 	js_runtime=NULL;	/* runtime */
@@ -2384,15 +2382,13 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	for(i=0;i<TOTAL_TEXT;i++)
 		text[i]=text_sav[i]=global_text[i];
 
-	ZERO_VAR(main_csi);
-	ZERO_VAR(thisnode);
-	ZERO_VAR(useron);
-	ZERO_VAR(inbuf);
-	ZERO_VAR(outbuf);
-	ZERO_VAR(smb);
-	ZERO_VAR(nodesync_user);
+	memset(&main_csi,0,sizeof(main_csi));
+	memset(&thisnode,0,sizeof(thisnode));
+	memset(&useron,0,sizeof(useron));
+	memset(&inbuf,0,sizeof(inbuf));
+	memset(&outbuf,0,sizeof(outbuf));
+	memset(&smb,0,sizeof(smb));
 
-	action=NODE_MAIN;
 	global_str_vars=0;
 	global_str_var=NULL;
 	global_str_var_name=NULL;
@@ -2480,9 +2476,30 @@ bool sbbs_t::init()
 		local_addr=addr.sin_addr.s_addr;
 	}
 
-	if((comspec=os_cmdshell())==NULL) {
-		errormsg(WHERE, ERR_CHK, OS_CMD_SHELL_ENV_VAR" environment variable", 0);
+	comspec=getenv(
+#ifdef __unix__
+		"SHELL"
+#else
+		"COMSPEC"
+#endif
+		);
+	if(comspec==NULL) {
+		errormsg(WHERE, ERR_CHK, 
+#ifdef __unix__
+		"SHELL"
+#else
+		"COMSPEC"
+#endif
+		" environment variable", 0);
+#if defined(__unix__)
+	#if defined(_PATH_BSHELL)
+		comspec =  _PATH_BSHELL;
+	#else
+		comspec = "/bin/sh";
+	#endif
+#else
 		return(false);
+#endif
 	}
 
 	md(cfg.temp_dir);
@@ -3828,6 +3845,7 @@ void DLLCALL bbs_thread(void* arg)
 	/* Setup intelligent defaults */
 	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
 	if(startup->rlogin_port==0)				startup->rlogin_port=513;
+	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
 	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 	if(startup->temp_dir[0])				backslash(startup->temp_dir);
