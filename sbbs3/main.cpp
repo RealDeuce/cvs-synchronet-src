@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.431 2006/02/07 07:14:19 rswindell Exp $ */
+/* $Id: main.cpp,v 1.432 2006/02/07 07:16:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1512,12 +1512,12 @@ void output_thread(void* arg)
 				sem_trywait(&sbbs->outbuf.sem);
 
 			/* Check for spurious sem post... */
-			if(RingBufFull(&sbbs->outbuf)==0)
+			if((avail=RingBufFull(&sbbs->outbuf))==0)
 				continue;
 
 			/* Wait for full buffer or drain timeout */
 			if(sbbs->outbuf.highwater_mark) {
-				if(RingBufFull(&sbbs->outbuf)<sbbs->outbuf.highwater_mark)
+				if(avail<sbbs->outbuf.highwater_mark)
 					sem_trywait_block(&sbbs->outbuf.highwater_sem,startup->outbuf_drain_timeout);
 				else
 					sem_trywait(&sbbs->outbuf.highwater_sem);	
