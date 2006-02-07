@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.432 2006/02/07 07:16:15 rswindell Exp $ */
+/* $Id: main.cpp,v 1.433 2006/02/07 07:17:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1521,6 +1521,8 @@ void output_thread(void* arg)
 					sem_trywait_block(&sbbs->outbuf.highwater_sem,startup->outbuf_drain_timeout);
 				else
 					sem_trywait(&sbbs->outbuf.highwater_sem);	
+				/* We (potentially) blocked, so get fill level again */
+		    	avail=RingBufFull(&sbbs->outbuf);
 			}
 
 			/*
@@ -1529,7 +1531,6 @@ void output_thread(void* arg)
 			 * passed or we've hit highwater.  Read ring buffer
 			 * into linear buffer.
 			 */
-	    	avail=RingBufFull(&sbbs->outbuf);
            	if(avail>sizeof(buf)) {
                	lprintf(LOG_WARNING,"!%s: Insufficient linear output buffer (%lu > %lu)"
 					,node, avail, sizeof(buf));
