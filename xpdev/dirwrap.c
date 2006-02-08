@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.57 2006/02/08 07:34:00 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.58 2006/02/08 07:51:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -913,7 +913,7 @@ BOOL DLLCALL wildmatchi(const char *fname, const char *spec, BOOL path)
 
 	if((s1=strdup(fname))==NULL)
 		return(FALSE);
-	if((s2=strdup(fname))==NULL) {
+	if((s2=strdup(spec))==NULL) {
 		free(s1);
 		return(FALSE);
 	}
