@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.50 2006/02/08 19:04:11 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.48 2006/02/08 05:44:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -656,8 +656,7 @@ void sbbs_t::attr(int atr)
 	}
 	if((atr&0x70) != (curatr&0x70)) {
 		switch(atr&0x70) {
-			/* The BG_BLACK macro is 0x200, so isn't in the mask */
-			case 0 /* BG_BLACK */:	
+			case BG_BLACK:
 				strcat(str,"40;");
 				break;
 			case BG_RED:
