@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.106 2006/06/06 17:17:18 rswindell Exp $ */
+/* $Id: js_system.c,v 1.104 2006/02/01 04:13:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,6 @@ enum {
 	/* filenames */
 	,SYS_PROP_DEVNULL
 	,SYS_PROP_TEMP_PATH
-	,SYS_PROP_CMD_SHELL
 
 	/* last */
 	,SYS_PROP_LOCAL_HOSTNAME
@@ -287,10 +286,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			p=_PATH_TMP;
 			break;
 
-		case SYS_PROP_CMD_SHELL:
-			p=os_cmdshell();
-			break;
-
 		case SYS_PROP_CLOCK:
 			JS_NewNumberValue(cx,msclock(),vp);
 			break;
@@ -401,7 +396,6 @@ static jsSyncPropertySpec js_system_properties[] = {
 	/* filenames */
 	{	"devnull",					SYS_PROP_DEVNULL		,SYSOBJ_FLAGS,	311  },
 	{	"temp_path",				SYS_PROP_TEMP_PATH		,SYSOBJ_FLAGS,	312	 },
-	{	"cmd_shell",				SYS_PROP_CMD_SHELL		,SYSOBJ_FLAGS,	314	 },
 
 	/* clock access */
 	{	"clock_ticks",				SYS_PROP_CLOCK			,SYSOBJ_FLAGS,	311  },
@@ -474,7 +468,6 @@ static char* sys_prop_desc[] = {
 	/* filenames */
 	,"platform-specific \"null\" device filename"
 	,"platform-specific temporary file directory"
-	,"platform-specific command processor/shell"
 
 	/* clock */
 	,"amount of elapsed processor time in clock 'ticks'"
