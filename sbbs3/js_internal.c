@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.31 2006/06/01 21:51:32 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.30 2006/02/01 04:13:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -205,7 +205,7 @@ static char* prop_desc[] = {
 };
 #endif
 
-JSBool DLLCALL
+DLLEXPORT JSBool DLLCALL
 js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 {
 	branch->counter++;

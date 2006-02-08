@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.28 2006/05/18 06:20:32 rswindell Exp $ */
+/* $Id: bbslist.h,v 1.25 2005/11/28 21:41:33 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -8,10 +8,6 @@
 #include "dirwrap.h"	/* MAX_PATH */
 #include "ini_file.h"
 #include <time.h>
-
-#if defined(_WIN32)
-	#include <malloc.h>	/* alloca() on Win32 */
-#endif
 
 #define LIST_NAME_MAX	30
 #define LIST_ADDR_MAX	64
@@ -57,9 +53,7 @@ struct bbslist {
 	int				nostatus;
 	char			dldir[MAX_PATH+1];
 	char			uldir[MAX_PATH+1];
-	char			logfile[MAX_PATH+1];
-	int				xfer_loglevel;
-	int				telnet_loglevel;
+	int				loglevel;
 	int				bpsrate;
 	int				music;
 	char			font[80];
