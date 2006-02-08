@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.47 2005/11/09 20:47:38 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.48 2006/01/13 02:03:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -411,15 +411,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,cfg.temp_dir
 			,cfg.sys_id
 			,cfg.node_misc
-	#if defined(__OS2__)
-			,rio_handle
-	#elif defined(_WIN32)
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
-	#elif defined(__unix__)
-			,misc&IO_INTS ? INVALID_SOCKET : client_socket
-	#else
-			,-1
-	#endif
 			);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
