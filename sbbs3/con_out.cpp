@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.47 2006/02/08 04:47:04 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.48 2006/02/08 05:44:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,7 +655,7 @@ void sbbs_t::attr(int atr)
 		}
 	}
 	if((atr&0x70) != (curatr&0x70)) {
-		switch(atr&0x07) {
+		switch(atr&0x70) {
 			case BG_BLACK:
 				strcat(str,"40;");
 				break;
