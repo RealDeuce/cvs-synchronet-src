@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.48 2006/02/08 05:44:21 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.49 2006/02/08 05:52:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -611,7 +611,7 @@ void sbbs_t::attr(int atr)
 	if(curatr==atr) /* text hasn't changed. don't send codes */
 		return;
 
-#if 1
+#if 0
 	strcpy(str,"\033[");
 	if((!(atr&HIGH) && curatr&HIGH) || (!(atr&BLINK) && curatr&BLINK)
 		|| atr==LIGHTGRAY) {
