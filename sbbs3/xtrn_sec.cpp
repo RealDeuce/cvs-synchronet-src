@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.51 2006/05/09 02:54:53 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.49 2006/02/14 22:43:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -114,7 +114,7 @@ int sbbs_t::xtrn_sec()
 			for(i=0,usrxtrns=0;i<cfg.total_xtrns; i++) {
 				if(cfg.xtrn[i]->sec!=xsec)
 					continue;
-				if(cfg.xtrn[i]->event && cfg.xtrn[i]->misc&EVENTONLY)
+				if(cfg.xtrn[i]->misc&EVENTONLY)
 					continue;
 				if(!chk_ar(cfg.xtrn[i]->ar,&useron))
 					continue;
@@ -1589,11 +1589,11 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			if((node.status==NODE_INUSE || node.status==NODE_QUIET)
 				&& node.action==NODE_XTRN && node.aux==(xtrnnum+1)) {
 				if(node.status==NODE_QUIET) {
-					SAFECOPY(str,cfg.sys_guru);
+					strcpy(str,cfg.sys_guru);
 					c=cfg.sys_nodes+1; 
 				}
 				else if(node.misc&NODE_ANON)
-					SAFECOPY(str,"UNKNOWN USER");
+					strcpy(str,"UNKNOWN USER");
 				else
 					username(&cfg,node.useron,str);
 				bprintf(text[UserRunningXtrn],str
@@ -1606,45 +1606,44 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			return(false); 
 	}
 
-	SAFECOPY(str,cfg.xtrn[xtrnnum]->path);
-	backslash(str);
-	SAFECOPY(path,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
-	SAFECOPY(dropdir,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
+	sprintf(str,"%s/",cfg.xtrn[xtrnnum]->path);
+	strcpy(path,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
+	strcpy(dropdir,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
 
 	switch(cfg.xtrn[xtrnnum]->type) {
 		case XTRN_WWIV:
-			SAFECOPY(name,"CHAIN.TXT");
+			strcpy(name,"CHAIN.TXT");
 			break;
 		case XTRN_GAP:
-			SAFECOPY(name,"DOOR.SYS");
+			strcpy(name,"DOOR.SYS");
 			break;
 		case XTRN_RBBS:
 			sprintf(str,"DORINFO%X.DEF",cfg.node_num);
-			SAFECOPY(name,str);
+			strcpy(name,str);
 			break;
 		case XTRN_RBBS1:
-			SAFECOPY(name,"DORINFO1.DEF");
+			strcpy(name,"DORINFO1.DEF");
 			break;
 		case XTRN_WILDCAT:
-			SAFECOPY(name,"CALLINFO.BBS");
+			strcpy(name,"CALLINFO.BBS");
 			break;
 		case XTRN_PCBOARD:
-			SAFECOPY(name,"PCBOARD.SYS");
+			strcpy(name,"PCBOARD.SYS");
 			break;
 		case XTRN_UTI:
-			SAFECOPY(name,"UTIDOOR.TXT");
+			strcpy(name,"UTIDOOR.TXT");
 			break;
 		case XTRN_SR:
-			SAFECOPY(name,"DOORFILE.SR");
+			strcpy(name,"DOORFILE.SR");
 			break;
 		case XTRN_TRIBBS:
-			SAFECOPY(name,"TRIBBS.SYS");
+			strcpy(name,"TRIBBS.SYS");
 			break;
 		case XTRN_DOOR32:
-			SAFECOPY(name,"DOOR32.SYS");
+			strcpy(name,"DOOR32.SYS");
 			break;
 		default:
-			SAFECOPY(name,"XTRN.DAT");
+			strcpy(name,"XTRN.DAT");
 			break; 
 	}
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_LWRCASE)
@@ -1657,9 +1656,9 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	putuserrec(&cfg,useron.number,U_CURXTRN,8,cfg.xtrn[xtrnnum]->code);
 
 	if(cfg.xtrn[xtrnnum]->misc&REALNAME)
-		SAFECOPY(name,useron.name);
+		strcpy(name,useron.name);
 	else
-		SAFECOPY(name,useron.alias);
+		strcpy(name,useron.alias);
 
 	gettimeleft();
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
