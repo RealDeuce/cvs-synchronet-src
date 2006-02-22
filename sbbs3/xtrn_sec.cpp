@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.49 2006/02/14 22:43:48 deuce Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.50 2006/02/22 22:30:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -114,7 +114,7 @@ int sbbs_t::xtrn_sec()
 			for(i=0,usrxtrns=0;i<cfg.total_xtrns; i++) {
 				if(cfg.xtrn[i]->sec!=xsec)
 					continue;
-				if(cfg.xtrn[i]->misc&EVENTONLY)
+				if(cfg.xtrn[i]->event && cfg.xtrn[i]->misc&EVENTONLY)
 					continue;
 				if(!chk_ar(cfg.xtrn[i]->ar,&useron))
 					continue;
