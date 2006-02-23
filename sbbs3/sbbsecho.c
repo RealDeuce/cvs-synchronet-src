@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.180 2006/06/14 17:43:30 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.175 2005/11/17 02:15:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1420,53 +1420,35 @@ int unpack(char *infile)
 	char str[256],tmp[128];
 	int i,j,ch,file;
 
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if((stream=fnopen(&file,infile,O_RDONLY))==NULL) {
 		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,infile
 			,strerror(errno));
 		bail(1); }
-	lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, cfg.arcdefs);
 	for(i=0;i<cfg.arcdefs;i++) {
 		str[0]=0;
-		lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, cfg.arcdef[i].byteloc);
 		fseek(stream,cfg.arcdef[i].byteloc,SEEK_SET);
-		lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, strlen(cfg.arcdef[i].hexid));
 		for(j=0;j<strlen(cfg.arcdef[i].hexid)/2;j++) {
-			lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, j);
 			ch=fgetc(stream);
-			lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, ch);
 			if(ch==EOF) {
-				lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 				i=cfg.arcdefs;
 				break; }
-			lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 			sprintf(tmp,"%02X",ch);
-			strcat(str,tmp); 
-			lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
-		}
-		lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
+			strcat(str,tmp); }
 		if(!stricmp(str,cfg.arcdef[i].hexid))
-			break; 
-		lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
-	}
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
+			break; }
 	fclose(stream);
 
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if(i==cfg.arcdefs) {
 		lprintf(LOG_ERR,"ERROR line %d determining filetype of %s",__LINE__,infile);
 		return(1); }
 
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	j=execute(mycmdstr(&scfg,cfg.arcdef[i].unpack,infile
 		,secure ? cfg.secure : cfg.inbound));
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if(j) {
 		lprintf(LOG_ERR,"ERROR %d (%d) line %d executing %s"
 			,j,errno,__LINE__,mycmdstr(&scfg,cfg.arcdef[i].unpack,infile
 				,secure ? cfg.secure : cfg.inbound));
 		return(j); }
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	return(0);
 }
 /******************************************************************************
@@ -1809,7 +1791,6 @@ BOOL unpack_bundle(void)
 			SAFECOPY(fname,g.gl_pathv[gi]);
 			lprintf(LOG_DEBUG,"Unpacking bundle: %s",fname);
 			if(unpack(fname)) {	/* failure */
-				lprintf(LOG_ERR,"!Unpack failure");
 				if(fdate(fname)+(48L*60L*60L)>time(NULL)) {
 					SAFECOPY(str,fname);
 					str[strlen(str)-2]='_';
@@ -2088,8 +2069,6 @@ time_t fmsgtime(char *str)
 	struct tm tm;
 
 	memset(&tm,0,sizeof(tm));
-	tm.tm_isdst=-1;	/* Do not adjust for DST */
-
 	if(isdigit(str[1])) {	/* Regular format: "01 Jan 86  02:34:56" */
 		tm.tm_mday=atoi(str);
 		sprintf(month,"%3.3s",str+3);
@@ -3816,7 +3795,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					,cfg.area[i].exported,scfg.sub[cfg.area[i].sub]->code
 					,cfg.area[i].name);
 
-	export_time=((float)export_ticks)/(float)MSCLOCKS_PER_SEC;
+	export_time=((float)export_ticks)/(float)CLK_TCK;
 	if(cfg.log&LOG_TOTALS && exported && export_time) {
 		lprintf(LOG_INFO,"Exported: %5lu msgs in %.1f sec (%.1f/min %.1f/sec)"
 			,exported,export_time
@@ -3828,17 +3807,12 @@ void export_echomail(char *sub_code,faddr_t addr)
 char* freadstr(FILE* fp, char* str, size_t maxlen)
 {
 	int		ch;
-	size_t	rd=0;
 	size_t	len=0;
 
-	memset(str,0,maxlen);	/* pre-terminate */
-
-	while(rd<maxlen && (ch=fgetc(fp))!=EOF) {
+	while((ch=fgetc(fp))!=EOF && len<maxlen) {
+		str[len++]=ch;
 		if(ch==0)
 			break;
-		if((uchar)ch>=' ')	/* not a ctrl char (garbage?) */
-			str[len++]=ch;
-		rd++;
 	}
 
 	str[maxlen-1]=0;	/* Force terminator */
@@ -3917,7 +3891,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.180 $", "%*s %s", revision);
+	sscanf("$Revision: 1.175 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4687,7 +4661,7 @@ int main(int argc, char **argv)
 					lprintf(LOG_INFO,"Duplicate: %5u detected in %s"
 						,cfg.area[i].dupes,cfg.area[i].name); } }
 
-		import_time=((float)import_ticks)/(float)MSCLOCKS_PER_SEC;
+		import_time=((float)import_ticks)/(float)CLK_TCK;
 		if(cfg.log&LOG_TOTALS && import_time && echomail) {
 			lprintf(LOG_INFO,"Imported: %5lu msgs in %.1f sec (%.1f/min %.1f/sec)"
 				,echomail,import_time
