@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.34 2006/02/24 20:12:19 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.33 2006/02/24 20:09:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,6 @@ pthread_mutex_t pthread_mutex_initializer(void);
 #define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
 #else
 #define SetThreadName(c)
-#endif
 #else
 #define SetThreadName(c)
 #endif

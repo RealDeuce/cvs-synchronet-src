@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.32 2006/05/09 21:02:55 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.30 2005/10/14 02:25:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,14 +35,11 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <stdlib.h>		/* alloca/free on FreeBSD */
+#include <stdlib.h>		/* malloc/free on FreeBSD */
 #include <string.h>		/* bzero (for FD_ZERO) on FreeBSD */
 #include <errno.h>		/* ENOMEM */
 #include <stdio.h>		/* SEEK_SET */
 #include <string.h>
-#if defined(_WIN32)
- #include <malloc.h>	/* alloca() on Win32 */
-#endif
 
 #include "genwrap.h"	/* SLEEP */
 #include "gen_defs.h"	/* BOOL/LOG_WARNING */
@@ -248,7 +245,7 @@ int recvfilesocket(int sock, int file, long *offset, long count)
 		return(-1);
 	}
 		
-	if((buf=(char*)alloca(count))==NULL) {
+	if((buf=(char*)malloc(count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}
@@ -258,10 +255,13 @@ int recvfilesocket(int sock, int file, long *offset, long count)
 			return(-1);
 
 	rd=read(sock,buf,count);
-	if(rd!=count)
+	if(rd!=count) {
+		free(buf);
 		return(-1);
+	}
 
 	wr=write(file,buf,rd);
+	free(buf);
 
 	if(offset!=NULL)
 		(*offset)+=wr;
