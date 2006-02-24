@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.64 2006/02/24 20:41:19 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.63 2006/02/24 18:31:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -325,9 +325,9 @@ static char* con_prop_desc[] = {
 	,"control key pass-through bitmask, set bits represent control key combinations "
 		"<i>not</i> handled by <tt>inkey()</tt> method "
 		"This may optionally be specified as a string of characters. "
-		"The format of this string is [+-][@-_]. If neither plus nor minus is "
+		"The format if this string is [+-][@-_] if neither plus nor minus is "
 		"the first character, the value will be replaced by one constructed "
-		"from the string. A + indicates that characters following will be "
+		"from the string.  A + indicates that characters following will be "
 		"added to the set, and a - indicates they should be removed. "
 		"ex: <tt>console.ctrlkey_passthru="-UP+AB"</tt> will clear CTRL-U and "
 		"CTRL-P and set CTRL-A and CTRL-B."
