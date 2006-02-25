@@ -1,12 +1,12 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.1 2006/03/14 09:29:42 rswindell Exp $ */
+/* $Id: semfile.c,v 1.7 2005/03/26 06:54:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -33,14 +33,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "semfile.h"
-#include "filewrap.h"
-#include "dirwrap.h"
-#include "genwrap.h"
-
-#if !defined(NO_SOCKET_SUPPORT)
-	#include "sockwrap.h"
-#endif
+#include "sbbs.h"
 
 /****************************************************************************/
 /* This function compares a single semaphore file's							*/
@@ -124,14 +117,12 @@ void DLLCALL semfile_list_free(str_list_t* filelist)
 BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 {
 	int file;
-#if !defined(NO_SOCKET_SUPPORT)
 	char hostname[128];
 
+	if((file=nopen(fname,O_CREAT|O_WRONLY))<0)
+		return(FALSE);
 	if(text==NULL && gethostname(hostname,sizeof(hostname))==0)
 		text=hostname;
-#endif
-	if((file=open(fname,O_CREAT|O_WRONLY))<0)	/* use sopen instead? */
-		return(FALSE);
 	if(text!=NULL)
 		write(file,text,strlen(text));
 	/* use utime() for force the time-stamp to that of the local system? */

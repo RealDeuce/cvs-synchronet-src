@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.89 2006/05/30 16:51:04 deuce Exp $ */
+/* $Id: syncterm.c,v 1.86 2006/02/25 18:35:03 rswindell Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -24,9 +24,12 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.8"
+char* syncterm_version = "SyncTERM 0.7"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
+#endif
+#ifdef PCM
+	" Clippy Edition"
 #endif
 	;
 
@@ -71,6 +74,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 {
 	char *p1, *p2, *p3;
 	struct	bbslist	*list[MAX_OPTS+1];
+	char	path[MAX_PATH+1];
 	char	listpath[MAX_PATH+1];
 	int		listcount=0, i;
 
@@ -162,7 +166,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		SAFECOPY(oldlst, home);
 		strcat(oldlst, "/syncterm.lst");
 	}
-#ifdef CSIDL_FLAG_CREATE
+#ifdef SHGFP_TYPE_CURRENT
 	if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 		switch(SHGetFolderPath(NULL, CSIDL_PERSONAL|CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, fn)) {
 			case E_FAIL:
@@ -297,6 +301,9 @@ int main(int argc, char **argv)
 	char	ext[MAX_PATH+1];
 	/* Command-line parsing vars */
 	char	url[MAX_PATH+1];
+	char	*p1;
+	char	*p2;
+	char	*p3;
 	int		i;
 	int	ciolib_mode=CIOLIB_MODE_AUTO;
 	str_list_t	inifile;
