@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.85 2006/02/25 09:13:44 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.86 2006/02/25 18:35:03 rswindell Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -193,6 +193,9 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			strcat(fn,"SyncTERM");
 			break;
 	}
+#else
+	getcwd(fn, fnlen);
+	backslash(fn);
 #endif
 
 	/* Create if it doesn't exist */
