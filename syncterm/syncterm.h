@@ -3,10 +3,6 @@
 
 #include "bbslist.h"
 
-#if defined(_WIN32)
-	#include <malloc.h>	/* alloca() on Win32 */
-#endif
-
 enum {
 	 SYNCTERM_PATH_INI
 	,SYNCTERM_PATH_LIST
