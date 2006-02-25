@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.169 2006/01/30 04:31:32 deuce Exp $ */
+/* $Id: uifc32.c,v 1.170 2006/02/25 07:39:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -894,7 +894,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				a=lbclr;
 			else
 				a=lclr|(bclr<<4);
-			if(i<opts) {
+			if(i<opts && option[i]!=NULL) {
 				b=strlen(option[i]);
 				if(b>longopt)
 					longopt=b;
