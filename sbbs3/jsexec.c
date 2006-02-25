@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.106 2006/07/07 00:21:29 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.104 2006/01/27 06:31:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,6 @@ BOOL		terminated=FALSE;
 BOOL		recycled;
 DWORD		log_mask=DEFAULT_LOG_MASK;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
-pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
 #endif
@@ -158,10 +157,6 @@ int lprintf(int level, char *fmt, ...)
 		return(ret);
 	}
 #endif
-
-	/* Mutex-protect stdout/stderr */
-	pthread_mutex_lock(&output_mutex);
-
 	if(level<=err_level) {
 		ret=fprintf(errfp,"%s\n",sbuf);
 		if(errfp!=stderr && confp!=stdout)
@@ -169,8 +164,6 @@ int lprintf(int level, char *fmt, ...)
 	}
 	if(level>err_level || errfp!=stderr)
 		ret=fprintf(confp,"%s\n",sbuf);
-
-	pthread_mutex_unlock(&output_mutex);
     return(ret);
 }
 
@@ -287,7 +280,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	rd=fread(buf,sizeof(char),len,stdin);
@@ -295,6 +288,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(rd>=0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd));
 
+	free(buf);
     return(JS_TRUE);
 }
 
@@ -307,7 +301,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=alloca(len+1))==NULL)
+	if((buf=malloc(len+1))==NULL)
 		return(JS_TRUE);
 
 	p=fgets(buf,len+1,stdin);
@@ -315,6 +309,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p!=NULL)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p)));
 
+	free(buf);
     return(JS_TRUE);
 }
 
@@ -707,7 +702,7 @@ long js_exec(const char *fname, char** args)
 		return(-1);
 	}
 	if((diff=xp_timer()-start) > 0)
-		lprintf(LOG_INFO,"%s compiled in %.2Lf seconds"
+		fprintf(statfp,"%s compiled in %.2Lf seconds\n"
 			,path
 			,diff);
 
@@ -716,14 +711,14 @@ long js_exec(const char *fname, char** args)
 	js_EvalOnExit(js_cx, js_glob, &branch);
 
 	if((diff=xp_timer()-start) > 0)
-		lprintf(LOG_INFO,"%s executed in %.2Lf seconds"
+		fprintf(statfp,"%s executed in %.2Lf seconds\n"
 			,path
 			,diff);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		lprintf(LOG_DEBUG,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
+		fprintf(statfp,"Using JavaScript exit_code: %s\n",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
 
@@ -739,13 +734,13 @@ long js_exec(const char *fname, char** args)
 
 void break_handler(int type)
 {
-	lprintf(LOG_NOTICE,"\n-> Terminated Locally (signal: %d)",type);
+	fprintf(statfp,"\n-> Terminated Locally (signal: %d)\n",type);
 	terminated=TRUE;
 }
 
 void recycle_handler(int type)
 {
-	lprintf(LOG_NOTICE,"\n-> Recycled Locally (signal: %d)",type);
+	fprintf(statfp,"\n-> Recycled Locally (signal: %d)\n",type);
 	recycled=TRUE;
 	branch.terminated=&recycled;
 }
@@ -790,7 +785,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.106 $", "%*s %s", revision);
+	sscanf("$Revision: 1.104 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -971,12 +966,10 @@ int main(int argc, char **argv, char** environ)
 	signal(SIGPIPE,SIG_IGN);
 #endif
 
-	output_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 	do {
 
 		if(exec_count++)
-			lprintf(LOG_INFO,"\nRe-running: %s", module);
+			fprintf(statfp,"\nRe-running: %s\n", module);
 
 		recycled=FALSE;
 
