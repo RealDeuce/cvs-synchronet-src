@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.84 2006/02/25 03:39:03 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.85 2006/02/25 09:13:44 rswindell Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -92,7 +92,8 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
 		bbs->conn_type=dflt_conn_type;
 		bbs->port=(dflt_conn_type==CONN_TYPE_TELNET)?23:513;
-		bbs->loglevel=LOG_INFO;
+		bbs->xfer_loglevel=LOG_INFO;
+		bbs->telnet_loglevel=LOG_INFO;
 		bbs->music=CTERM_MUSIC_BANSI;
 		strcpy(bbs->font,"Codepage 437 English");
 	}
