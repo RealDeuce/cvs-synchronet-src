@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.25 2005/11/28 21:41:33 deuce Exp $ */
+/* $Id: bbslist.h,v 1.26 2006/02/25 03:18:25 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -53,6 +53,7 @@ struct bbslist {
 	int				nostatus;
 	char			dldir[MAX_PATH+1];
 	char			uldir[MAX_PATH+1];
+	char			logfile[MAX_PATH+1];
 	int				loglevel;
 	int				bpsrate;
 	int				music;
