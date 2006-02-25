@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.81 2006/02/04 21:07:20 deuce Exp $ */
+/* $Id: syncterm.c,v 1.82 2006/02/25 00:13:02 rswindell Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -163,6 +163,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		SAFECOPY(oldlst, home);
 		strcat(oldlst, "/syncterm.lst");
 	}
+#ifdef SHGFP_TYPE_CURRENT
 	if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 		switch(SHGetFolderPath(NULL, CSIDL_PERSONAL|CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, fn)) {
 			case E_FAIL:
@@ -189,6 +190,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			strcat(fn,"SyncTERM");
 			break;
 	}
+#endif
 
 	/* Create if it doesn't exist */
 	if(!isdir(fn)) {
