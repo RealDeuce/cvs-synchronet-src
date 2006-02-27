@@ -2,13 +2,13 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.7 2006/03/16 22:35:54 rswindell Exp $ */
+/* $Id: getmail.c,v 1.6 2005/09/29 08:44:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,7 +50,6 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
     idxrec_t idx;
 	smb_t	smb;
 
-	ZERO_VAR(smb);
 	sprintf(smb.file,"%smail",cfg->data_dir);
 	smb.retry_time=cfg->smb_retry_time;
 	sprintf(str,"%s.sid",smb.file);
