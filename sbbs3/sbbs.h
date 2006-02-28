@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.273 2006/02/03 03:47:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.274 2006/02/28 00:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -608,6 +608,8 @@ public:
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
+	bool	sendfile(char* fname);
+	bool	recvfile(char* fname);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
