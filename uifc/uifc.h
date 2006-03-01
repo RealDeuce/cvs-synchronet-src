@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.72 2005/11/19 02:32:59 rswindell Exp $ */
+/* $Id: uifc.h,v 1.73 2005/11/25 08:07:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,6 +138,7 @@
 								/* Put the mouse event back into the event queue */
 #define WIN_EDIT	(1<<27)	/* Allow F2 to edit a menu item */
 #define WIN_EDITACT	(1<<28)	/* Remain active after edit key */
+#define WIN_INACT	(1<<29)	/* Draw window inactive... intended for use with WIN_IMM */
 
 #define WIN_MID WIN_L2R|WIN_T2B  /* Place window in middle of screen */
 

@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.44 2005/10/14 06:21:15 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.50 2006/02/04 22:12:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@
 #include "ciolib.h"
 #include "ansi_cio.h"
 
-#define	ANSI_TIMEOUT	500
+int	CIOLIB_ANSI_TIMEOUT=500;
 
 sem_t	got_key;
 sem_t	got_input;
@@ -182,24 +182,27 @@ cfmakeraw(struct termios *t)
 }
 #endif
 
+/* Do NOT call this to output to the last column of the last row. */
+/* ONLY call this for chars which will move the cursor */
 void ansi_sendch(char ch)
 {
 	if(!ch)
 		ch=' ';
-	if(ansi_row<ansi_rows-1 || (ansi_row==ansi_rows-1 && ansi_col<ansi_cols-1)) {
-		ansi_col++;
-		if(ansi_col>=ansi_cols) {
-			ansi_col=0;
-			ansi_row++;
-			if(ansi_row>=ansi_rows) {
-				ansi_col=ansi_cols-1;
-				ansi_row=ansi_rows-1;
-			}
+	ansi_col++;
+	if(ansi_col>=ansi_cols) {
+		/* Column 80 sux0rz */
+		force_move=1;
+		ansi_col=0;
+		ansi_row++;
+		if(ansi_row>=ansi_rows) {
+			ansi_col=ansi_cols-1;
+			ansi_row=ansi_rows-1;
 		}
-		fwrite(&ch,1,1,stdout);
-		if(ch<' ')
-			force_move=1;
 	}
+	fwrite(&ch,1,1,stdout);
+	/* We sent a control char... better make the next movement explicit */
+	if(ch<' ' && ch > 0)
+		force_move=1;
 }
 
 void ansi_sendstr(char *str,int len)
@@ -214,6 +217,7 @@ void ansi_sendstr(char *str,int len)
 int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 {
 	int x,y;
+	int cx,cy,i,j;
 	unsigned char *out;
 	WORD	sch;
 	struct text_info	ti;
@@ -237,23 +241,103 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 
 	out=fill;
 	attrib=ti.attribute;
-	for(y=sy-1;y<ey;y++) {
-		for(x=sx-1;x<ex;x++) {
-			sch=*(out++);
-			if(sch==27)
-				sch=' ';
-			if(sch==0)
-				sch=' ';
-			sch |= (*(out++))<<8;
-			if(ansivmem[y*ansi_cols+x]==sch)
-				continue;
-			ansivmem[y*ansi_cols+x]=sch;
-			ansi_gotoxy(x+1,y+1);
-			if(attrib!=sch>>8) {
-				textattr(sch>>8);
-				attrib=sch>>8;
+
+	i=0;		/* Did a nasty. */
+	/* Check if this is a nasty scroll */
+
+	/* Check if this is a nasty screen clear... */
+	j=0;		/* We can clearscreen */
+	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight && (*out==' ' || *out==0)) {
+		j=1;		/* We can clearscreen */
+		for(cy=sy-1;cy<ey;cy++) {
+			for(cx=sx-1;cx<ex;cx++) {
+				if(out[(cy*ti.screenwidth+cx)*2]!=*out
+						|| out[(cy*ti.screenwidth+cx)*2+1]!=*(out+1)) {
+					j=0;
+					cx=ex;
+					cy=ey;
+				}
 			}
-			ansi_sendch((char)(sch&0xff));
+		}
+	}
+	if(j) {
+		textattr(*(out+1));
+		/* Many terminals make ESC[2J home the cursor */
+		ansi_sendstr("\033[2J\033[1;1H",-1);
+		ansi_col=0;
+		ansi_row=0;
+		memcpy(ansivmem,out,ti.screenwidth*ti.screenheight*2);
+		i=1;
+	}
+	if(!i) {
+		for(y=sy-1;y<ey;y++) {
+			for(x=sx-1;x<ex;x++) {
+				/*
+				 * Check if we can use clear2eol now... this means  the rest of the
+				 * chars on the line are the same attr, and are all spaces or NULLs
+				 * Also, if there's less than four chars left, it's not worth it.
+				 */
+				i=0;	/* number of differing chars from screen */
+				j=1;	/* Can use clrtoeol? */
+				for(cx=x; cx<ti.screenwidth; cx++) {
+					/* Compare to source buffer */
+					if(cx<ex) {
+						/* a blank? */
+						if(*(out+(cx-x)*2)==' ' || *(out+(cx-x)*2)==0) {
+							/* same colour? */
+							if(*(out+(cx-x)*2+1)==*(out+1)) {
+								/* Is it any change? */
+								if(*((WORD *)(out+(cx-x)*2)) != ansivmem[y*2+cx])
+									/* And it's different! */
+									i++;
+							}
+							else {
+								j=0;
+								break;
+							}
+						}
+						else {
+							j=0;
+							break;
+						}
+					}
+					else {
+						/* Compare to screen */
+						/* a blank? */
+						if((ansivmem[y*2+cx]&0xff)!=' ' && (ansivmem[y*2+cx]&0xff)!=0) {
+							j=0;
+							break;
+						}
+					}
+				}
+				if(j && i>3) {
+					ansi_gotoxy(x+1,y+1);
+					textattr(*(out+1));
+					ansi_sendstr("\033[K",-1);
+					for(cx=x; cx<ex; cx++) {
+						ansivmem[y*ansi_cols+cx]=*(out++);
+						ansivmem[y*ansi_cols+cx]|=(*(out++))<<8;
+					}
+					break;
+				}
+				sch=*(out++);
+				if(sch==27)
+					sch=' ';
+				if(sch==0)
+					sch=' ';
+				sch |= (*(out++))<<8;
+				if(ansivmem[y*ansi_cols+x]==sch)
+					continue;
+				ansivmem[y*ansi_cols+x]=sch;
+				ansi_gotoxy(x+1,y+1);
+				if(y>=ansi_rows-1 && x>=ansi_cols-1)
+					continue;
+				if(attrib!=sch>>8) {
+					textattr(sch>>8);
+					attrib=sch>>8;
+				}
+				ansi_sendch((char)(sch&0xff));
+			}
 		}
 	}
 
@@ -314,24 +398,29 @@ void ansi_textattr(int attr)
 	bl=attr&0x80;
 	bg=(attr>>4)&0x7;
 	fg=attr&0x07;
-	br=attr&0x04;
+	br=attr&0x08;
 
 	oa=ansi_curr_attr>>8;
-	obl=oa>>7;
+	obl=oa&0x80;
 	obg=(oa>>4)&0x7;
 	ofg=oa&0x07;
-	obr=(oa>>3)&0x01;
+	obr=oa&0x08;
 
 	ansi_curr_attr=attr<<8;
 
 	strcpy(str,"\033[");
 	if(obl!=bl) {
-		if(!bl) {
+		if(!bl)
+#if 0
+			strcat(str,"25;");
+#else
+		{
 			strcat(str,"0;");
 			ofg=7;
 			obg=0;
 			obr=0;
 		}
+#endif
 		else
 			strcat(str,"5;");
 	}
@@ -340,10 +429,12 @@ void ansi_textattr(int attr)
 			strcat(str,"1;");
 		else
 #if 0
-			strcat(str,"2;");
+			strcat(str,"22;");
 #else
 		{
 			strcat(str,"0;");
+			if(bl)
+				strcat(str,"5;");
 			ofg=7;
 			obg=0;
 		}
@@ -403,7 +494,7 @@ static void ansi_keyparse(void *par)
 
 		switch(gotesc) {
 			case 1:	/* Escape Sequence */
-				timeout=ANSI_TIMEOUT;
+				timeout=CIOLIB_ANSI_TIMEOUT;
 				seq[strlen(seq)+1]=0;
 				seq[strlen(seq)]=ch;
 				if(strlen(seq)>=sizeof(seq)-2) {
@@ -448,7 +539,7 @@ static void ansi_keyparse(void *par)
 					seq[0]=27;
 					seq[1]=0;
 					gotesc=1;
-					timeout=ANSI_TIMEOUT;
+					timeout=CIOLIB_ANSI_TIMEOUT;
 					/* Need more keys... keep going... */
 					sem_post(&goahead);
 					break;
@@ -548,7 +639,7 @@ int ansi_putch(int ch)
 			}
 			break;
 		case 7:		/* Bell */
-			ansi_sendch(7);
+			ansi_sendstr("\007",1);
 			break;
 		case '\t':
 			for(i=0;i<10;i++) {
@@ -592,64 +683,89 @@ void ansi_gotoxy(int x, int y)
 {
 	char str[16];
 
+	str[0]=0;
 	if(x < 1
 		|| x > ansi_cols
 		|| y < 1
 		|| y > ansi_rows)
 		return;
+
+	/* ToDo optimizations: use tabs for horizontal movement to tabstops */
+
+	/* Movement forced... always send position code */
 	if(force_move) {
-		force_move=0;
 		sprintf(str,"\033[%d;%dH",y,x);
-	}
-	else {
-		if(x==1 && ansi_col != 0 && ansi_row<ansi_row-1) {
-			ansi_sendch('\r');
-			force_move=0;
-			ansi_col=0;
-		}
-		if(x==ansi_col+1) {
-			if(y==ansi_row+1) {
-				str[0]=0;
-			}
-			else {
-				if(y<ansi_row+1) {
-					if(y==ansi_row)
-						strcpy(str,"\033[A");
-					else
-						sprintf(str,"\033[%dA",ansi_row+1-y);
-				}
-				else {
-					if(y==ansi_row+2)
-						strcpy(str,"\033[B");
-					else
-						sprintf(str,"\033[%dB",y-ansi_row-1);
-				}
-			}
-		}
-		else {
-			if(y==ansi_row+1) {
-				if(x<ansi_col+1) {
-					if(x==ansi_col)
-						strcpy(str,"\033[D");
-					else
-						sprintf(str,"\033[%dD",ansi_col+1-x);
-				}
-				else {
-					if(x==ansi_col+2)
-						strcpy(str,"\033[C");
-					else
-						sprintf(str,"\033[%dC",x-ansi_col-1);
-				}
-			}
-			else {
-				sprintf(str,"\033[%d;%dH",y,x);
-			}
-		}
+		ansi_sendstr(str,-1);
+		force_move=0;
+		ansi_row=y-1;
+		ansi_col=x-1;
+		return;
 	}
 
+	/* Moving to col 1 (and not already there)... use \r */
+	if(x==1 && ansi_col) {
+		ansi_sendstr("\r",1);
+		ansi_col=0;
+	}
+
+	/* Do we even NEED to move? */
+	if(x==ansi_col+1 && y==ansi_row+1)
+		return;
+
+	/* If we're already on the correct column */
+	if(x==ansi_col+1) {
+		/* Do we need to move up? */
+		if(y<ansi_row+1) {
+			if(y==ansi_row)
+				/* Only up one */
+				strcpy(str,"\033[A");
+			else
+				sprintf(str,"\033[%dA",ansi_row+1-y);
+			ansi_sendstr(str,-1);
+			ansi_row=y-1;
+			return;
+		}
+
+		/* We must have to move down then. */
+		/* Only one, use a newline */
+		if(y==ansi_row+2)
+			strcpy(str,"\n");
+		else
+			sprintf(str,"\033[%dB",y-ansi_row-1);
+		ansi_sendstr(str,-1);
+		ansi_row=y-1;
+		return;
+	}
+
+	/* Ok, we need to change the column then... is the row right though? */
+	if(y==ansi_row+1) {
+		/* Do we need to move left then? */
+		if(x<ansi_col+1) {
+			if(x==ansi_col)
+				strcpy(str,"\033[D");
+			else
+				sprintf(str,"\033[%dD",ansi_col+1-x);
+			ansi_sendstr(str,-1);
+			ansi_col=x-1;
+			return;
+		}
+
+		/* Must need to move right then */
+		if(x==ansi_col+2)
+			strcpy(str,"\033[C");
+		else
+			sprintf(str,"\033[%dC",x-ansi_col-1);
+		ansi_sendstr(str,-1);
+		ansi_col=x-1;
+		return;
+	}
+
+	/* Changing the row and the column... better use a fill movement then. */
+	sprintf(str,"\033[%d;%dH",y,x);
 	ansi_sendstr(str,-1);
 	ansi_row=y-1;
 	ansi_col=x-1;
+	return;
 }
 
 void ansi_gettextinfo(struct text_info *info)
