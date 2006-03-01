@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.81 2006/01/12 19:17:19 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.82 2006/03/01 00:50:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,6 +271,13 @@ DLLEXPORT int DLLCALL	get_errno(void);
 
 #endif
 
+/* Command processor/shell environment variable name */
+#ifdef __unix__
+	#define OS_CMD_SHELL_ENV_VAR	"SHELL"
+#else	/* DOS/Windows/OS2 */
+	#define OS_CMD_SHELL_ENV_VAR	"COMSPEC"
+#endif
+
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
 
 #if !defined(__unix__)	
@@ -296,6 +303,7 @@ DLLEXPORT int		DLLCALL	xp_random(int);
 
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
+DLLEXPORT char*		DLLCALL os_cmdshell(void);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
 
