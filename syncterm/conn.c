@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.16 2006/05/27 06:47:25 rswindell Exp $ */
+/* $Id: conn.c,v 1.14 2005/11/24 03:53:58 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -115,6 +115,7 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 	SOCKADDR_IN	saddr;
 	char	*p;
 	unsigned int	neta;
+	int	i;
 
 	init_uifc(TRUE, TRUE);
 	con_type=conn_type;
@@ -151,7 +152,7 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 	memset(&saddr,0,sizeof(saddr));
 	saddr.sin_addr.s_addr = neta;
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons((WORD)port);
+	saddr.sin_port   = htons(port);
 
 	if(connect(conn_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];

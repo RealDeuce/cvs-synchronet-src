@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.63 2006/08/22 22:56:47 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.61 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -57,10 +57,8 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 	char 	tmp[512];
 	int		i,j,file,linesquoted=0;
 	long	length,qlen=0,qtime=0,ex_mode=0;
-	int		max_title_len=LEN_TITLE;
 	ulong	l;
-	FILE*	stream;
-	FILE*	fp;
+	FILE *	stream;
 
 	useron_level=useron.level;
 
@@ -244,19 +242,19 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 
 	if(!(mode&WM_EXTDESC)) {
 		if(mode&WM_FILE) {
-			max_title_len=12;	/* ToDo: implied 8.3 filename limit! */
+			c=12;
 			CRLF;
 			bputs(text[Filename]); 
 		}
 		else {
-			max_title_len=LEN_TITLE;
+			c=LEN_TITLE;
 			if(mode&WM_QWKNET
 				|| (subnum!=INVALID_SUB 
 					&& (cfg.sub[subnum]->misc&(SUB_QNET|SUB_INET|SUB_FIDO))==SUB_QNET))
-				max_title_len=25;
+				c=25;
 			bputs(text[SubjectPrompt]); 
 		}
-		if(!getstr(title,max_title_len,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
+		if(!getstr(title,c,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
 			&& useron_level && useron.logons) {
 			free(buf);
 			return(false); 
@@ -273,6 +271,17 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 	if(!online || sys_status&SS_ABORT) {
 		free(buf);
 		return(false); 
+	}
+
+	/* Create WWIV compatible EDITOR.INF file */
+
+	if(useron.xedit) {
+		editor_inf(useron.xedit,dest,title,mode,subnum);
+		if(cfg.xedit[useron.xedit-1]->type) {
+			gettimeleft();
+			xtrndat(useron.alias,cfg.node_dir,cfg.xedit[useron.xedit-1]->type
+ 			   ,timeleft,cfg.xedit[useron.xedit-1]->misc); 
+		}
 	}
 
 	if(console&CON_RAW_IN) {
@@ -308,21 +317,14 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 
 	else if(useron.xedit) {
 
-		editor_inf(useron.xedit,dest,title,mode,subnum);
-		if(cfg.xedit[useron.xedit-1]->type) {
-			gettimeleft();
-			xtrndat(useron.alias,cfg.node_dir,cfg.xedit[useron.xedit-1]->type
- 			   ,timeleft,cfg.xedit[useron.xedit-1]->misc); 
-		}
-
-		if(cfg.xedit[useron.xedit-1]->misc&IO_INTS) {
+		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&IO_INTS) {
 			ex_mode|=(EX_OUTR|EX_INR);
 			if(cfg.xedit[useron.xedit-1]->misc&WWIVCOLOR)
 				ex_mode|=EX_WWIV; 
 		}
-		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
+		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
 			ex_mode|=EX_NATIVE;
-		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
+		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
 			ex_mode|=EX_SH;
 
 		if(!linesquoted && fexistcase(msgtmp))
@@ -343,19 +345,6 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 			free(buf);
 			return(false); 
 		}
-		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
-		if(!(mode&(WM_EXTDESC|WM_FILE))
-			&& !(cfg.xedit[useron.xedit-1]->misc&QUICKBBS) 
-			&& fexistcase(str)) {
-			if((fp=fopen(str,"r")) != NULL) {
-				fgets(str,sizeof(str),fp);
-				fgets(str,sizeof(str),fp);
-				truncsp(str);
-				sprintf(title,"%.*s",max_title_len,str);
-				fclose(fp);
-			}
-		}
-
 		buf[0]=0;
 		if(!(mode&WM_NOTOP))
 			strcpy((char *)buf,top);
@@ -476,17 +465,14 @@ void quotestr(char *str)
 void sbbs_t::editor_inf(int xeditnum,char *dest, char *title, long mode
 	,uint subnum)
 {
-	char str[MAX_PATH+1];
-	char tmp[32];
+	char str[512];
 	int file;
+	char tmp[13];
 
 	xeditnum--;
 
 	if(cfg.xedit[xeditnum]->misc&QUICKBBS) {
-		strcpy(tmp,"MSGINF");
-		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
-			strlwr(tmp);
-		sprintf(str,"%s%s",cfg.node_dir,tmp);
+		sprintf(str,"%sMSGINF",cfg.node_dir);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 			return; 
@@ -504,11 +490,8 @@ void sbbs_t::editor_inf(int xeditnum,char *dest, char *title, long mode
 		close(file); 
 	}
 	else {
-		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
-		if(fexistcase(str))
-			remove(str);
 		strcpy(tmp,"EDITOR.INF");
-		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
+		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",cfg.node_dir,tmp);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
