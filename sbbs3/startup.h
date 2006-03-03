@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.58 2006/05/24 06:10:18 rswindell Exp $ */
+/* $Id: startup.h,v 1.57 2005/04/21 06:44:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -81,6 +81,7 @@ typedef struct {
     DWORD   telnet_interface;
     DWORD	options;			/* See BBS_OPT definitions */
     DWORD	rlogin_interface;
+    DWORD	xtrn_polls_before_yield;
     RingBuf** node_spybuf;			/* Spy output buffer (each node)	*/
     RingBuf** node_inbuf;			/* User input buffer (each node)	*/
     sem_t**	node_spysem;			/* Spy output semaphore (each node)	*/
