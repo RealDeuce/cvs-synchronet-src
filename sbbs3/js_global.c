@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.175 2006/03/04 02:37:41 deuce Exp $ */
+/* $Id: js_global.c,v 1.176 2006/03/04 03:42:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -624,6 +624,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		prefix=NULL;
 	int			prefix_len=0;
 	int			prefix_bytes=0;
+	int			quote_count=0;
 	JSString*	js_str;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -668,11 +669,11 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				}
 				else if(isspace(inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. or quoted */
 					if(handle_quotes) {
-						/* k will be the new prefix_bytes */
 						t=1;
 						k=prefix_bytes;
 						prefix_bytes=0;
 						prefix_len=0;
+						quote_count=0;
 						while(t && t<6) {
 							prefix_bytes++;
 							/* Skip CTRL-A codes */
@@ -687,7 +688,9 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 								case 1:		/* At start of possible quote (Next char should be space) */
 									if(inbuf[i+prefix_bytes]!=' ') {
 										if(prefix_bytes>1)
-										t=6;
+											t=6;
+										else
+											t=0;
 									}
 									else
 										t++;
@@ -721,8 +724,10 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 								case 5:		/* At '>' next char must be a space */
 									if(inbuf[i+prefix_bytes]!=' ')
 										t=0;
-									else
+									else {
 										t++;
+										quote_count++;
+									}
 									break;
 							}
 						}
@@ -747,6 +752,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 							}
 							i+=prefix_bytes-1;	/* Keep the space (kinda a cheat... don't tell anyone) */
 						}
+						icol=prefix_len+1;
 					}
 					else {
 						linebuf[l++]='\r';
