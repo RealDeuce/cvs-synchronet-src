@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.176 2006/03/04 03:42:30 deuce Exp $ */
+/* $Id: js_global.c,v 1.177 2006/03/04 04:08:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -747,12 +747,21 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 								if(prefix)
 									strcpy(linebuf,prefix);
 								l=prefix_bytes;
-								ocol=prefix_len;
+								ocol=prefix_len+1;
 								i++;	/* Do not keep the space (ie: cheat) for the first line of this quote block */
 							}
 							i+=prefix_bytes-1;	/* Keep the space (kinda a cheat... don't tell anyone) */
 						}
-						icol=prefix_len+1;
+						/* Now, if the NEXT char is also whitespace, it's still a hardcr... so there. */
+						if(isspace(inbuf[i+1])) {
+							linebuf[l++]='\r';
+							linebuf[l++]='\n';
+							strncat(outbuf, linebuf, l);
+							if(prefix)
+								strcpy(linebuf,prefix);
+							l=prefix_bytes;
+							ocol=prefix_len+1;
+						}
 					}
 					else {
 						linebuf[l++]='\r';
@@ -760,8 +769,8 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 						strncat(outbuf, linebuf, l);
 						if(prefix)
 							strcpy(linebuf,prefix);
-						l=prefix_bytes;
-						ocol=prefix_len;
+						l=0;
+						ocol=1;
 					}
 				}
 				else {
@@ -775,7 +784,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 							if(prefix)
 								strcpy(linebuf,prefix);
 							l=prefix_bytes;
-							ocol=prefix_len;
+							ocol=prefix_len+1;
 						}
 						else {		/* Not a hard CR... add space if needed */
 							if(!isspace(linebuf[l-1]))
@@ -787,7 +796,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 								linebuf[l++]=' ';
 					}
 				}
-				icol=1;
+				icol=prefix_len+1;
 				break;
 			case '\x1f':	/* Delete... meaningless... strip. */
 				break;
@@ -853,7 +862,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 						memmove(linebuf+l, linebuf+t, k-t);
 					if(prefix)
 						memcpy(linebuf,prefix,prefix_bytes);
-					ocol=prefix_len;
+					ocol=prefix_len+1;
 					l+=k-t;
 					/* Find new ocol */
 					for(ocol=prefix_len+1,t=0; t<l; t++) {
