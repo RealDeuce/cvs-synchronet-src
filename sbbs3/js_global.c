@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.178 2006/03/04 18:22:05 deuce Exp $ */
+/* $Id: js_global.c,v 1.179 2006/03/06 00:14:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -701,7 +701,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 										t=0;
 									else {
 										if(inbuf[i+tmp_prefix_bytes]=='>')
-											t=5;
+											t=6;
 										else
 											t++;
 									}
@@ -709,18 +709,26 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 								case 3:		/* At second nick initial (next char should be alphanum or '>') */
 									if(inbuf[i+tmp_prefix_bytes]==' ' || inbuf[i+tmp_prefix_bytes]==0)
 										t=0;
-									else if(inbuf[i+tmp_prefix_bytes]=='>')
-										t=5;
-									else
-										t++;
+									else {
+										if(inbuf[i+tmp_prefix_bytes]=='>')
+											t=6;
+										else
+											t++;
+									}
 									break;
-								case 4:		/* After two regular chars, next HAS to be a '>') */
+								case 4:		/* At third nick initial (next char should be alphanum or '>') */
 									if(inbuf[i+tmp_prefix_bytes]!='>')
 										t=0;
 									else
 										t++;
 									break;
-								case 5:		/* At '>' next char must be a space */
+								case 5:		/* After three regular chars, next HAS to be a '>') */
+									if(inbuf[i+tmp_prefix_bytes]!='>')
+										t=0;
+									else
+										t++;
+									break;
+								case 6:		/* At '>' next char must be a space */
 									if(inbuf[i+tmp_prefix_bytes]!=' ')
 										t=0;
 									else {
