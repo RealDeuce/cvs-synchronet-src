@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.53 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.50 2006/02/22 22:30:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -330,8 +330,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,cfg.sys_nodes						/* Total system nodes */
 			,cfg.node_num						/* Current node */
 			,tleft								/* User Timeleft in seconds */
-			,term_supports(ANSI)				/* User ANSI ? (Yes/Mono/No) */
-				? term_supports(COLOR)
+			,useron.misc&ANSI					/* User ANSI ? (Yes/Mono/No) */
+				? useron.misc&COLOR
 				? "Yes":"Mono":"No"
 			,rows								/* User Screen lines */
 			,useron.cdt+useron.freecdt);		/* User Credits */
@@ -451,7 +451,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.level						/* User SL */
 			,0									/* Cosysop? */
 			,SYSOP								/* Sysop? (1/0) */
-			,term_supports(ANSI)				/* ANSI ? (1/0) */
+			,(useron.misc&ANSI) ? 1:0			/* ANSI ? (1/0) */
 			,online==ON_REMOTE);				/* Remote (1/0) */
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -660,7 +660,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,tmp								/* User's firstname */
 			,p									/* User's lastname */
 			,useron.location					/* User's city */
-			,term_supports(ANSI)				/* 1=ANSI 0=ASCII */
+			,(useron.misc&ANSI)==ANSI			/* 1=ANSI 0=ASCII */
 			,useron.level						/* Security level */
 			,tleft/60); 						/* Time left in minutes */
 		strupr(str);
@@ -710,7 +710,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		if(useron.misc&DELETED) c|=(1<<0);
 		if(useron.misc&CLRSCRN) c|=(1<<1);
 		if(useron.misc&UPAUSE)	 c|=(1<<2);
-		if(term_supports(ANSI))	c|=(1<<3);
+		if(useron.misc&ANSI)	c|=(1<<3);
 		if(useron.sex=='F')     c|=(1<<7);
 		write(file,&c,1);						/* Attrib */
 		write(file,&useron.flags1,4);			/* Flags */
@@ -798,7 +798,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,49); 					/* ChatReason */
 		c=0;
 		write(file,&c,1);						/* ExternLogoff */
-		c=(char)term_supports(ANSI);
+		c=useron.misc&ANSI ? 1:0;
 		write(file,&c,1);						/* ANSI_Capable */
 		close(file);
 	}
@@ -844,7 +844,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.location					/* User location */
 			,useron.level						/* Security level */
 			,tleft/60							/* Time left in min */
-			,term_supports(ANSI) ? "COLOR":"MONO"  /* ANSI ??? */
+			,useron.misc&ANSI ? "COLOR":"MONO"  /* ANSI ??? */
 			,useron.pass						/* Password */
 			,useron.number);					/* User number */
 		lfexpand(str,misc);
@@ -1002,7 +1002,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,cfg.com_port						/* COM Port number */
 			,' ' 								/* Reserved */
 			,' ' 								/* "" */
-			,term_supports(ANSI)				/* 1=ANSI 0=NO ANSI */
+			,(useron.misc&ANSI)==ANSI			/* 1=ANSI 0=NO ANSI */
 			,"01-01-80"                         /* last event date */
 			,0,0								/* last event minute */
 			,0									/* caller exited to dos */
@@ -1158,7 +1158,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			"%s\n%s\n%lu\n%s\n%u\n%u\n%u\n%u\n%u\n%lu\n%u\n"
 			"%lu\n%lu\n%s\n%s\n"
 			,dropdir
-			,term_supports(ANSI) ? "TRUE":"FALSE"  /* ANSI ? True or False */
+			,useron.misc&ANSI ? "TRUE":"FALSE"  /* ANSI ? True or False */
 			,useron.level						/* Security level */
 			,useron.uls 						/* Total uploads */
 			,useron.dls 						/* Total downloads */
@@ -1224,8 +1224,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 
 		sprintf(str,"%s\n%d\n%d\n%lu\n%lu\n%u\n%lu\n"
 			,name								/* Complete name of user */
-			,term_supports(ANSI)	 			/* ANSI ? */
-			,term_supports(NO_EXASCII) ? 0:1	/* IBM characters ? */
+			,useron.misc&ANSI ? 1:0 			/* ANSI ? */
+			,useron.misc&NO_EXASCII ? 0:1		/* IBM characters ? */
 			,rows								/* Page length */
 			,dte_rate							/* Baud rate */
 			,online==ON_LOCAL ? 0:cfg.com_port	/* COM port */
@@ -1252,7 +1252,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.pass						/* User's password */
 			,useron.level						/* User's level */
 			,useron.misc&EXPERT ? 'Y':'N'       /* Expert? */
-			,term_supports(ANSI) ? 'Y':'N'      /* ANSI? */
+			,useron.misc&ANSI ? 'Y':'N'         /* ANSI? */
 			,tleft/60							/* Minutes left */
 			,useron.phone						/* User's phone number */
 			,useron.location					/* User's city and state */
@@ -1301,7 +1301,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,name
 			,useron.level
 			,tleft/60
-			,term_supports(ANSI)
+			,useron.misc&ANSI ? 1 : 0
 			,cfg.node_num);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -1589,11 +1589,11 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			if((node.status==NODE_INUSE || node.status==NODE_QUIET)
 				&& node.action==NODE_XTRN && node.aux==(xtrnnum+1)) {
 				if(node.status==NODE_QUIET) {
-					SAFECOPY(str,cfg.sys_guru);
+					strcpy(str,cfg.sys_guru);
 					c=cfg.sys_nodes+1; 
 				}
 				else if(node.misc&NODE_ANON)
-					SAFECOPY(str,"UNKNOWN USER");
+					strcpy(str,"UNKNOWN USER");
 				else
 					username(&cfg,node.useron,str);
 				bprintf(text[UserRunningXtrn],str
@@ -1606,45 +1606,44 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			return(false); 
 	}
 
-	SAFECOPY(str,cfg.xtrn[xtrnnum]->path);
-	backslash(str);
-	SAFECOPY(path,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
-	SAFECOPY(dropdir,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
+	sprintf(str,"%s/",cfg.xtrn[xtrnnum]->path);
+	strcpy(path,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
+	strcpy(dropdir,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
 
 	switch(cfg.xtrn[xtrnnum]->type) {
 		case XTRN_WWIV:
-			SAFECOPY(name,"CHAIN.TXT");
+			strcpy(name,"CHAIN.TXT");
 			break;
 		case XTRN_GAP:
-			SAFECOPY(name,"DOOR.SYS");
+			strcpy(name,"DOOR.SYS");
 			break;
 		case XTRN_RBBS:
 			sprintf(str,"DORINFO%X.DEF",cfg.node_num);
-			SAFECOPY(name,str);
+			strcpy(name,str);
 			break;
 		case XTRN_RBBS1:
-			SAFECOPY(name,"DORINFO1.DEF");
+			strcpy(name,"DORINFO1.DEF");
 			break;
 		case XTRN_WILDCAT:
-			SAFECOPY(name,"CALLINFO.BBS");
+			strcpy(name,"CALLINFO.BBS");
 			break;
 		case XTRN_PCBOARD:
-			SAFECOPY(name,"PCBOARD.SYS");
+			strcpy(name,"PCBOARD.SYS");
 			break;
 		case XTRN_UTI:
-			SAFECOPY(name,"UTIDOOR.TXT");
+			strcpy(name,"UTIDOOR.TXT");
 			break;
 		case XTRN_SR:
-			SAFECOPY(name,"DOORFILE.SR");
+			strcpy(name,"DOORFILE.SR");
 			break;
 		case XTRN_TRIBBS:
-			SAFECOPY(name,"TRIBBS.SYS");
+			strcpy(name,"TRIBBS.SYS");
 			break;
 		case XTRN_DOOR32:
-			SAFECOPY(name,"DOOR32.SYS");
+			strcpy(name,"DOOR32.SYS");
 			break;
 		default:
-			SAFECOPY(name,"XTRN.DAT");
+			strcpy(name,"XTRN.DAT");
 			break; 
 	}
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_LWRCASE)
@@ -1657,9 +1656,9 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	putuserrec(&cfg,useron.number,U_CURXTRN,8,cfg.xtrn[xtrnnum]->code);
 
 	if(cfg.xtrn[xtrnnum]->misc&REALNAME)
-		SAFECOPY(name,useron.name);
+		strcpy(name,useron.name);
 	else
-		SAFECOPY(name,useron.alias);
+		strcpy(name,useron.alias);
 
 	gettimeleft();
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
@@ -1723,12 +1722,10 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	sprintf(str,"%shangup.now",cfg.node_dir);
 	if(fexistcase(str)) {
-		lprintf(LOG_NOTICE,"Node %d External program requested hangup (%s signaled)"
-			,cfg.node_num, str);
 		remove(str);
 		hangup(); 
 	}
-	else if(!online) {
+	if(!online) {
 		sprintf(str,"%shungup.log",cfg.logs_dir);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
