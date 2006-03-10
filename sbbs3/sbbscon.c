@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.202 2006/08/27 09:37:34 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.201 2005/11/17 06:24:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,42 +256,38 @@ static int lprintf(int level, char *fmt, ...)
 }
 
 #ifdef __unix__
-static pthread_mutex_t setid_mutex;
-static BOOL setid_mutex_initialized;
 /**********************************************************
 * Change uid of the calling process to the user if specified
 * **********************************************************/
 static BOOL do_seteuid(BOOL to_new) 
 {
 	BOOL	result=FALSE;
+	static pthread_mutex_t mutex;
+	static BOOL mutex_initialized;
 
 	if(new_uid_name[0]==0)	/* not set? */
 		return(TRUE);		/* do nothing */
 
-	if(!setid_mutex_initialized) {
-		pthread_mutex_init(&setid_mutex,NULL);
-		setid_mutex_initialized=TRUE;
+	if(!mutex_initialized) {
+		pthread_mutex_init(&mutex,NULL);
+		mutex_initialized=TRUE;
 	}
 
-	pthread_mutex_lock(&setid_mutex);
+	pthread_mutex_lock(&mutex);
 
-	if(to_new) {
-		if(((new_gid==getegid() && new_gid==getgid()) || setregid(-1,new_gid)==0)
-				&& ((new_uid==geteuid() && new_uid==getuid()) || setreuid(-1,new_uid)==0))
+	if(to_new)
+		if(!setregid(-1,new_gid) && !setreuid(-1,new_uid))
 			result=TRUE;
 		else
 			result=FALSE;
-	}
-	else {
-		if(((old_gid==getegid() && old_gid==getgid()) || setregid(-1,old_gid)==0)
-				&& ((old_uid==geteuid() && old_uid==getuid()) || setreuid(-1,old_uid)==0))
+	else
+		if(!setregid(-1,old_gid) && !setreuid(-1,old_uid))
 			result=TRUE;
 		else
 			result=FALSE;
-	}
 
 		
-	pthread_mutex_unlock(&setid_mutex);
+	pthread_mutex_unlock(&mutex);
 
 	if(!result) {
 		lputs(LOG_ERR,"!seteuid FAILED");
@@ -310,14 +306,6 @@ BOOL do_setuid(BOOL force)
 	if(!force)
 		return(do_seteuid(TRUE));
 #endif
-
-	if(!setid_mutex_initialized) {
-		pthread_mutex_init(&setid_mutex,NULL);
-		setid_mutex_initialized=TRUE;
-	}
-
-	pthread_mutex_lock(&setid_mutex);
-
 	setregid(-1,old_gid);
 	setreuid(-1,old_uid);
 	if(setregid(new_gid,new_gid))
@@ -333,9 +321,6 @@ BOOL do_setuid(BOOL force)
 		lputs(LOG_ERR,strerror(errno));
 		result=FALSE;
 	}
-
-	pthread_mutex_unlock(&setid_mutex);
-
 	if(force && (!result))
 		exit(1);
 

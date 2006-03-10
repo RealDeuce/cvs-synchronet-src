@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.279 2006/08/23 22:34:32 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.274 2006/02/28 00:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +119,6 @@
  #define LINK_LIST_THREADSAFE
 #endif
 #include "genwrap.h"
-#include "semfile.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "sockwrap.h"
@@ -438,7 +437,6 @@ public:
 	void	automsg(void);
 	bool	writemsg(char *str, char *top, char *title, long mode, int subnum
 				,char *dest);
-	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(char *str, long mode);
 	bool	msgabort(void);
 	bool	email(int usernumber, char *top, char *title, long mode);
@@ -492,7 +490,6 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	long	term_supports(long cmp_flags=0);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -523,6 +520,7 @@ public:
 	int		uselect(int add, uint n, char *title, char *item, uchar *ar);
 	uint	uselect_total, uselect_num[500];
 
+	void	riosync(char abortable);
 	void	redrwstr(char *strin, int i, int l, long mode);
 	void	attr(int atr);				/* Change local and remote text attributes */
 	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
@@ -610,8 +608,8 @@ public:
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0);
-	bool	recvfile(char* fname, char prot=0);
+	bool	sendfile(char* fname);
+	bool	recvfile(char* fname);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -859,7 +857,6 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL fcopy(char* src, char* dest);
-	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
 	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
 	
@@ -886,6 +883,17 @@ extern "C" {
 	/* xtrn.cpp */
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
+
+	/* semfile.c */
+	DLLEXPORT BOOL		DLLCALL semfile_signal(const char* fname, const char* text);
+	DLLEXPORT BOOL		DLLCALL semfile_check(time_t* t, const char* fname);
+	DLLEXPORT char*		DLLCALL semfile_list_check(time_t* t, str_list_t filelist);
+	DLLEXPORT str_list_t	
+						DLLCALL semfile_list_init(const char* parent, const char* action
+													,const char* service);
+	DLLEXPORT void		DLLCALL semfile_list_add(str_list_t* filelist, const char* fname);
+	DLLEXPORT void		DLLCALL semfile_list_free(str_list_t* filelist);
+
 
 #ifdef JAVASCRIPT
 
