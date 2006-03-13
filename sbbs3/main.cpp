@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.444 2006/08/29 00:55:23 deuce Exp $ */
+/* $Id: main.cpp,v 1.436 2006/03/01 00:58:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,6 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
-#include "sbbscon.h"        /* thread_suid_broken */
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -91,9 +90,6 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
-#ifdef _THREAD_SUID_BROKEN
-int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
-#endif
 
 extern "C" {
 
@@ -280,7 +276,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 	sbbs_random(10);	/* Throw away first number */
 }
 
-int DLLCALL sbbs_random(int n)
+DLLEXPORT int DLLCALL sbbs_random(int n)
 {
 	return(xp_random(n));
 }
@@ -811,7 +807,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"write_raw",			js_write_raw,			0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
 	,JSDOCSTR("send a stream of bytes (possibly containing NULLs or special control code sequences) to the server output")
-	,314
+	,313
 	},
 	{"print",			js_writeln,			0,	JSTYPE_ALIAS },
     {"writeln",         js_writeln,         0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
@@ -2336,8 +2332,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	client_ident[0]=0;
 
 	terminal[0]=0;
-	rlogin_name[0]=0;
-	rlogin_pass[0]=0;
 
 	/* Init some important variables */
 
@@ -2378,7 +2372,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
-	mnestr=NULL;
 
 #ifdef JAVASCRIPT
 	js_runtime=NULL;	/* runtime */
@@ -2388,15 +2381,13 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	for(i=0;i<TOTAL_TEXT;i++)
 		text[i]=text_sav[i]=global_text[i];
 
-	ZERO_VAR(main_csi);
-	ZERO_VAR(thisnode);
-	ZERO_VAR(useron);
-	ZERO_VAR(inbuf);
-	ZERO_VAR(outbuf);
-	ZERO_VAR(smb);
-	ZERO_VAR(nodesync_user);
+	memset(&main_csi,0,sizeof(main_csi));
+	memset(&thisnode,0,sizeof(thisnode));
+	memset(&useron,0,sizeof(useron));
+	memset(&inbuf,0,sizeof(inbuf));
+	memset(&outbuf,0,sizeof(outbuf));
+	memset(&smb,0,sizeof(smb));
 
-	action=NODE_MAIN;
 	global_str_vars=0;
 	global_str_var=NULL;
 	global_str_var_name=NULL;
@@ -3043,6 +3034,7 @@ void sbbs_t::hangup(void)
 
 	if(client_socket!=INVALID_SOCKET) {
 		mswait(1000);	/* Give socket output buffer time to flush */
+		riosync(0);
 		client_off(client_socket);
 		close_socket(client_socket);
 		client_socket=INVALID_SOCKET;
@@ -3087,6 +3079,31 @@ void sbbs_t::putcom(char *str, int len)
     	len=strlen(str);
     for(i=0;i<len && online; i++)
         outcom(str[i]);
+}
+
+void sbbs_t::riosync(char abortable)
+{
+	if(useron.misc&(RIP|WIP|HTML))	/* don't allow abort with RIP or WIP */
+		abortable=0;			/* mainly because of ANSI cursor position response */
+	if(sys_status&SS_ABORT)		/* no need to sync if already aborting */
+		return;
+	time_t start=time(NULL);
+	while(online && rioctl(TXBC)) {				/* wait up to three minutes for tx buf empty */
+		if(sys_status&SS_ABORT)
+			break;
+#if 0	/* this isn't necessary (or desired) on a TCP/IP connection */
+		if(abortable && rioctl(RXBC)) { 		/* incoming characer */
+			rioctl(IOFO);						/* flush output */
+			sys_status|=SS_ABORT;				/* set abort flag so no pause */
+			break;								/* abort sync */
+		}
+#endif
+		if(time(NULL)-start>180) {				/* timeout */
+			logline("!!","riosync timeout"); 
+			break;
+		}
+		mswait(100);
+	}
 }
 
 /* Legacy Remote I/O Control Interface */
@@ -3800,13 +3817,13 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef _THREAD_SUID_BROKEN
-	if(thread_suid_broken)
-		startup->seteuid(TRUE);
+	startup->seteuid(TRUE);
 #endif
 
 	/* Setup intelligent defaults */
 	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
 	if(startup->rlogin_port==0)				startup->rlogin_port=513;
+	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
 	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 	if(startup->temp_dir[0])				backslash(startup->temp_dir);
