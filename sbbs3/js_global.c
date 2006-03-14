@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.183 2006/03/07 18:38:03 deuce Exp $ */
+/* $Id: js_global.c,v 1.184 2006/03/14 06:55:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -712,7 +712,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32		l,len=79;
 	int32		oldlen=79;
-	int32		crcount;
+	int32		crcount=0;
 	JSBool		handle_quotes=JS_TRUE;
 	ulong		i,k,t;
 	int			ocol=1;
