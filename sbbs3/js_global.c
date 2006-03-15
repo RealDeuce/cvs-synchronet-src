@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.184 2006/03/14 06:55:31 rswindell Exp $ */
+/* $Id: js_global.c,v 1.185 2006/03/15 02:28:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -987,7 +987,7 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(len<=0)
 		return(JS_FALSE);
 
-	if((linebuf=(char*)malloc(len+1))==NULL)
+	if((linebuf=(char*)malloc(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
 		return(JS_FALSE);
 
 	outbuf[0]=0;
