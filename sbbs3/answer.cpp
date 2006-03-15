@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.48 2006/08/27 05:26:12 deuce Exp $ */
+/* $Id: answer.cpp,v 1.46 2005/09/08 02:19:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -113,7 +113,7 @@ bool sbbs_t::answer()
 				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
 				if(!findstr(client.addr,path)) {
 					SAFECOPY(tmp
-						,rlogin_pass);
+						,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
 					for(i=0;i<3;i++) {
 						if(stricmp(tmp,useron.pass)) {
 							rioctl(IOFI);       /* flush input buffer */
@@ -127,6 +127,8 @@ bool sbbs_t::answer()
 								logline("+!",str);
 							bputs(text[PasswordPrompt]);
 							console|=CON_R_ECHOX;
+							if(!(cfg.sys_misc&SM_ECHO_PW))
+								console|=CON_L_ECHOX;
 							getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 							console&=~(CON_R_ECHOX|CON_L_ECHOX);
 						}
