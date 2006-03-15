@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.190 2006/03/15 06:19:44 deuce Exp $ */
+/* $Id: js_global.c,v 1.191 2006/03/15 06:25:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -781,7 +781,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			/* Terminate prefix */
 			prefix[prefix_bytes]=0;
 		}
-		strncpy(linebuf,prefix,prefix_bytes);
+		memcpy(linebuf,prefix,prefix_bytes);
 		l=prefix_bytes;
 		ocol=prefix_len+1;
 		icol=prefix_len+1;
@@ -827,7 +827,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					strncpy(linebuf,prefix,prefix_bytes);
+					memcpy(linebuf,prefix,prefix_bytes);
 					l=prefix_bytes;
 					ocol=prefix_len+1;
 					old_prefix_bytes=prefix_bytes;
@@ -848,7 +848,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 							linebuf[l++]='\n';
 							outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
 							if(prefix)
-								strcpy(linebuf,prefix);
+								memcpy(linebuf,prefix,prefix_bytes);
 							l=prefix_bytes;
 							ocol=prefix_len+1;
 						}
