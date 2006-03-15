@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.37 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: addfiles.c,v 1.38 2006/01/11 04:16:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,6 +152,11 @@ char *mycmdstr(char *instr, char *fpath, char *fspec, char *outstr)
 				case '!':   /* EXEC Directory */
 					strcat(cmd,scfg.exec_dir);
 					break;
+                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
+#ifndef __unix__
+                    strcat(cmd,scfg.exec_dir);
+#endif
+                    break;
 				case '#':   /* Node number (same as SBBSNNUM environment var) */
 					sprintf(str,"%d",scfg.node_num);
 					strcat(cmd,str);
@@ -669,7 +674,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
