@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.17 2004/09/21 05:06:48 deuce Exp $
+# $Id: GNUmakefile,v 1.18 2006/01/11 02:16:26 deuce Exp $
 
 SRC_ROOT	= ../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -23,7 +23,7 @@ ifdef STATIC
 endif
 
 ifeq ($(os),sunos)
- LDFLAGS	+=	-lsocket -lnsl
+ LDFLAGS	+=	-lnsl
 endif
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS)
