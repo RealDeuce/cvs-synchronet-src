@@ -6,14 +6,13 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
+ifdef CHANNEL_CLIPPY
+ CFLAGS +=	-DPCM
+endif
+
 ifdef USE_GUTS
  CFLAGS +=	-I../guts -DGUTS_BUILTIN
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
-endif
-
-ifdef USE_CRYPTLIB
- CFLAGS	+=	-DUSE_CRYPTLIB
- OBJS	+=	$(MTOBJODIR)$(DIRSEP)st_crypt$(OFILE)
 endif
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib
