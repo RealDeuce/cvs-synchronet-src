@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.189 2006/03/15 04:13:09 deuce Exp $ */
+/* $Id: js_global.c,v 1.190 2006/03/15 06:19:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -776,8 +776,11 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			prefix_len=strlen(prefix);
 			prefix_bytes=strlen(prefix);
 		}
-		else
+		else {
 			memcpy(prefix,inbuf,prefix_bytes);
+			/* Terminate prefix */
+			prefix[prefix_bytes]=0;
+		}
 		strncpy(linebuf,prefix,prefix_bytes);
 		l=prefix_bytes;
 		ocol=prefix_len+1;
@@ -816,8 +819,11 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 						prefix_len=strlen(prefix);
 						prefix_bytes=strlen(prefix);
 					}
-					else
+					else {
 						memcpy(prefix,inbuf+i+1-prefix_bytes,prefix_bytes);
+						/* Terminate prefix */
+						prefix[prefix_bytes]=0;
+					}
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
