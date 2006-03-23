@@ -1,10 +1,10 @@
-/* $Id: cterm.c,v 1.59 2005/11/20 03:16:48 deuce Exp $ */
+/* $Id: cterm.c,v 1.64 2006/02/25 00:11:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -49,6 +49,7 @@
 #include "keys.h"
 
 #include "cterm.h"
+#include "allfonts.h"
 
 #define	BUFSIZE	2048
 
@@ -180,7 +181,7 @@ void playnote(int notenum, int notelen, int dotted)
 	}
 	duration-=pauselen;
 	if(notenum < 72 && notenum >= 0)
-		xpbeep(((double)note_frequency[notenum])/1000,duration);
+		BEEP(((double)note_frequency[notenum])/1000,duration);
 	else
 		SLEEP(duration);
 	SLEEP(pauselen);
@@ -482,6 +483,41 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							}
 						}
 						break;
+					case '{':
+						if(cterm.escbuf[1] == '=') {	/* Font loading */
+							i=255;
+							j=0;
+							if(strlen(cterm.escbuf)>2) {
+								if((p=strtok(cterm.escbuf+2,";"))!=NULL) {
+									i=atoi(p);
+									if(!i && cterm.escbuf[2] != '0')
+										i=255;
+									if((p=strtok(NULL,";"))!=NULL) {
+										j=atoi(p);
+									}
+								}
+							}
+							if(i>255)
+								break;
+							cterm.font_start_time=time(NULL);
+							cterm.font_read=0;
+							cterm.font_slot=i;
+							switch(j) {
+								case 0:
+									cterm.font_size=4096;
+									break;
+								case 1:
+									cterm.font_size=3586;
+									break;
+								case 2:
+									cterm.font_size=2048;
+									break;
+								default:
+									cterm.font_size=0;
+									break;
+							}
+						}
+						break;
 				}
 				break;
 			}
@@ -527,14 +563,31 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						i=cterm.width;
 					gotoxy(i,wherey());
 					break;
-				case 'D':	/* Cursor Left */
-					i=atoi(cterm.escbuf+1);
-					if(i==0)
-						i=1;
-					i=wherex()-i;
-					if(i<1)
-						i=1;
-					gotoxy(i,wherey());
+				case 'D':	/* Cursor Left and Font Select */
+					if(*(p-1)==' ') {	/* Font Select */
+						i=0;
+						j=0;
+						if(strlen(cterm.escbuf)>2) {
+							if((p=strtok(cterm.escbuf+1,";"))!=NULL) {
+								i=atoi(p);
+								if((p=strtok(NULL,";"))!=NULL) {
+									j=atoi(p);
+								}
+							}
+							if(i==0) {	/* Only the primary font is currently supported */
+								setfont(j,FALSE);
+							}
+						}
+					}
+					else {
+						i=atoi(cterm.escbuf+1);
+						if(i==0)
+							i=1;
+						i=wherex()-i;
+						if(i<1)
+							i=1;
+						gotoxy(i,wherey());
+					}
 					break;
 				case 'E':
 					i=atoi(cterm.escbuf+1);
@@ -969,12 +1022,14 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					break;
 			}
 			break;
+#if 0
 		case 'D':
 			scrollup();
 			break;
 		case 'M':
 			scrolldown();
 			break;
+#endif
 		case 'c':
 			/* ToDo: Reset Terminal */
 			break;
@@ -985,10 +1040,11 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.59 $";
+	char	*revision="$Revision: 1.64 $";
 	char *in;
 	char	*out;
 
+	memset(&cterm, 0, sizeof(cterm));
 	cterm.x=xpos;
 	cterm.y=ypos;
 	cterm.height=height;
@@ -1145,7 +1201,42 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 			prn[0]=0;
 			for(j=0;j<buflen;j++) {
 				ch[0]=buf[j];
-				if(cterm.sequence) {
+				if(cterm.font_size) {
+					cterm.fontbuf[cterm.font_read++]=ch[0];
+					if(cterm.font_read == cterm.font_size) {
+						char *buf;
+
+						if((buf=(char *)malloc(cterm.font_size))!=NULL) {
+							memcpy(buf,cterm.fontbuf,cterm.font_size);
+							if(cterm.font_slot >= CONIO_FIRST_FREE_FONT) {
+								switch(cterm.font_size) {
+									case 4096:
+										FREE_AND_NULL(conio_fontdata[cterm.font_slot].eight_by_sixteen);
+										conio_fontdata[cterm.font_slot].eight_by_sixteen=buf;
+										FREE_AND_NULL(conio_fontdata[cterm.font_slot].desc);
+										conio_fontdata[cterm.font_slot].desc=strdup("Remote Defined Font");
+										break;
+									case 3586:
+										FREE_AND_NULL(conio_fontdata[cterm.font_slot].eight_by_fourteen);
+										conio_fontdata[cterm.font_slot].eight_by_fourteen=buf;
+										FREE_AND_NULL(conio_fontdata[cterm.font_slot].desc);
+										conio_fontdata[cterm.font_slot].desc=strdup("Remote Defined Font");
+										break;
+									case 2048:
+										FREE_AND_NULL(conio_fontdata[cterm.font_slot].eight_by_eight);
+										conio_fontdata[cterm.font_slot].eight_by_eight=buf;
+										FREE_AND_NULL(conio_fontdata[cterm.font_slot].desc);
+										conio_fontdata[cterm.font_slot].desc=strdup("Remote Defined Font");
+										break;
+								}
+							}
+							else
+								FREE_AND_NULL(buf);
+						}
+						cterm.font_size=0;
+					}
+				}
+				else if(cterm.sequence) {
 					k=strlen(cterm.escbuf);
 					strcat(cterm.escbuf,ch);
 					if(k) {
@@ -1329,5 +1420,13 @@ void cterm_closelog()
 
 void cterm_end(void)
 {
+	int i;
+
 	cterm_closelog();
+	for(i=CONIO_FIRST_FREE_FONT; i < 256; i++) {
+		FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
+		FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
+		FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
+		FREE_AND_NULL(conio_fontdata[i].desc);
+	}
 }
