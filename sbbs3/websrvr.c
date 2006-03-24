@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.387 2006/03/01 00:58:17 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.388 2006/03/16 04:59:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -881,7 +881,7 @@ static BOOL get_xjs_handler(char* ext, http_session_t* session)
 {
 	size_t	i;
 
-	if(ext==NULL || xjs_handlers==NULL)
+	if(ext==NULL || xjs_handlers==NULL || ext[0]==0)
 		return(FALSE);
 
 	for(i=0;xjs_handlers[i]!=NULL;i++) {
@@ -4190,7 +4190,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.387 $", "%*s %s", revision);
+	sscanf("$Revision: 1.388 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
