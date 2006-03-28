@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.46 2005/10/13 02:11:02 deuce Exp $
+# $Id: Common.gmake,v 1.50 2006/03/23 22:22:10 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -110,7 +110,7 @@ endif
 # Set DEBUG
 ifdef DEBUG
  ifdef RELEASE
-  undef RELEASE
+  $(error Both DEBUG and RELEASE are defined)
  endif
 endif
 
@@ -323,7 +323,7 @@ ifdef DEBUG
  CFLAGS	+=	-ggdb
  CFLAGS	+=	-D_DEBUG
 else # RELEASE
- CFLAGS	:= -O3 $(CFLAGS)
+ CFLAGS	:= -O2 -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops $(CFLAGS)
 endif
 
 -include targets.mk
