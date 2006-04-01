@@ -114,6 +114,10 @@ SOURCE=.\netwrap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\semfile.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\semwrap.c
 # End Source File
 # Begin Source File
@@ -127,6 +131,10 @@ SOURCE=.\str_list.c
 # Begin Source File
 
 SOURCE=.\threadwrap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\xpprintf.c
 # End Source File
 # End Target
 # End Project

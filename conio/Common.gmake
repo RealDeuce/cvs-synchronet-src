@@ -1,25 +1,27 @@
 # Find SDL headers!
-ifndef SDL_CONFIG
- ifeq ($(os),darwin)
-  ifeq ($(shell if [ -d /Library/Frameworks/SDL.framework ] ; then echo YES ; fi),YES)
-   WITH_SDL	:=	1
-  endif
- else
-  ifeq ($(shell sdl-config --cflags > /dev/null && echo YES),YES)
-   SDL_CONFIG := sdl-config
-   WITH_SDL	:=	1
+ifndef WITHOUT_SDL
+ ifndef SDL_CONFIG
+  ifeq ($(os),darwin)
+   ifeq ($(shell if [ -d /Library/Frameworks/SDL.framework ] ; then echo YES ; fi),YES)
+    WITH_SDL	:=	1
+   endif
   else
-   ifeq ($(shell sdl13-config --cflags > /dev/null && echo YES),YES)
-    SDL_CONFIG := sdl13-config
+   ifeq ($(shell sdl-config --cflags > /dev/null 2>&1 && echo YES),YES)
+    SDL_CONFIG := sdl-config
     WITH_SDL	:=	1
    else
-    ifeq ($(shell sdl12-config --cflags > /dev/null && echo YES),YES)
-     SDL_CONFIG := sdl12-config
+    ifeq ($(shell sdl13-config --cflags > /dev/null 2>&1 && echo YES),YES)
+     SDL_CONFIG := sdl13-config
      WITH_SDL	:=	1
     else
-     ifeq ($(shell sdl11-config --cflags > /dev/null && echo YES),YES)
-      SDL_CONFIG := sdl11-config
+     ifeq ($(shell sdl12-config --cflags > /dev/null 2>&1 && echo YES),YES)
+      SDL_CONFIG := sdl12-config
       WITH_SDL	:=	1
+     else
+      ifeq ($(shell sdl11-config --cflags > /dev/null 2>&1 && echo YES),YES)
+       SDL_CONFIG := sdl11-config
+       WITH_SDL	:=	1
+      endif
      endif
     endif
    endif
@@ -29,7 +31,7 @@ endif
 
 ifdef WITH_SDL
  ifdef SDL_CONFIG
-  ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null && echo YES),YES)
+  ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null 2>&1 && echo YES),YES)
    CIOLIB-MT_CFLAGS	+=	-DWITH_SDL
    CIOLIB-MT_CFLAGS	+=	$(shell $(SDL_CONFIG) --cflags)
    ifdef STATIC_SDL
@@ -45,6 +47,8 @@ ifdef WITH_SDL
   endif
  endif
 endif
+
+X_PATH ?=      $(shell if [ -f /usr/X11R6/include/X11/Xlib.h ]; then echo /usr/X11R6 ; elif [ -f /usr/X11R7/include/X11/Xlib.h ] ; then echo /usr/X11R7 ; elif [ -f /usr/X11/include/X11/Xlib.h ] ; then echo /usr/X11 ; elif [ -f /usr/X/include/X11/Xlib.h ] ; then echo /usr/X ; elif [ -f /usr/include/X11/Xlib.h ] ; then echo /usr ; else echo 0 ; fi)
 
 ifeq ($(os),sunos)
  X_PATH	?=	/usr/X
@@ -63,11 +67,12 @@ else
  endif
 endif
 
-ifeq ($(os),sunos)
- CIOLIB-MT_LIBS		+=	$(UL_PRE)curses$(UL_SUF)
-else
- CIOLIB-MT_LIBS		+=	$(UL_PRE)ncurses$(UL_SUF)
-endif
+#ifeq ($(os),sunos)
+# CIOLIB-MT_LIBS		+=	$(UL_PRE)curses$(UL_SUF)
+#else
+# CIOLIB-MT_LIBS		+=	$(UL_PRE)ncurses$(UL_SUF)
+#endif
+CIOLIB-MT_LIBS		+=	$(UL_PRE)ncurses$(UL_SUF)
 ifndef NO_X
  ifdef STATIC
   CIOLIB-MT_LIBS		+=	-L$(X_PATH)$(DIRSEP)lib -lX11
@@ -81,5 +86,16 @@ ifndef NO_X
   ifeq ($(os),sunos)
    CIOLIB-MT_LIBS		+=  $(UL_PRE)dl$(UL_SUF)
   endif
+ endif
+else
+  ifeq ($(os),darwin)
+   CIOLIB-MT_CFLAGS		+=  -DDISABLE_X11=1
+  endif
+endif
+
+ifdef NO_X
+ ifndef WITH_SDL
+  CIOLIB-MT_CFLAGS		+=	-DNO_FONTS
+  CIOLIB-CFLAGS			+=	-DNO_FONTS
  endif
 endif
