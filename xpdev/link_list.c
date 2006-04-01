@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.35 2006/05/29 07:32:43 rswindell Exp $ */
+/* $Id: link_list.c,v 1.33 2006/04/01 07:36:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,7 @@ BOOL DLLCALL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
 		return(FALSE);
 
-	return(sem_trywait_block(&list->sem,timeout)==0);
+	return(sem_trywait_block(&list->sem,timeout));
 }
 
 #endif
@@ -629,19 +629,25 @@ link_list_t* DLLCALL listExtract(link_list_t* dest_list, const list_node_t* node
 	return(list);
 }
 
-static void* list_remove_node(link_list_t* list, list_node_t* node, BOOL free_data)
+void* DLLCALL listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_data)
 {
 	void*	data;
 
+	if(list==NULL)
+		return(NULL);
+
+	/* Should these lines be mutex protected? */
 	if(node==FIRST_NODE)
 		node=list->first;
-	else if(node==LAST_NODE)
+	if(node==LAST_NODE)
 		node=list->last;
 	if(node==NULL)
 		return(NULL);
 
 	if(node->flags&LINK_LIST_NODE_LOCKED)
 		return(NULL);
+
+	MUTEX_LOCK(list);
 
 	if(node->prev!=NULL)
 		node->prev->next = node->next;
@@ -661,20 +667,6 @@ static void* list_remove_node(link_list_t* list, list_node_t* node, BOOL free_da
 
 	if(list->count)
 		list->count--;
-
-	return(data);
-}
-
-void* DLLCALL listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_data)
-{
-	void*	data;
-
-	if(list==NULL)
-		return(NULL);
-
-	MUTEX_LOCK(list);
-
-	data = list_remove_node(list, node, free_data);
 
 	MUTEX_UNLOCK(list);
 
