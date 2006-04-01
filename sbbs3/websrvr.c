@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.387 2006/03/01 00:58:17 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.391 2006/03/31 23:42:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,6 @@ static named_string_t** cgi_handlers;
 static named_string_t** xjs_handlers;
 
 /* Logging stuff */
-sem_t	log_sem;
 link_list_t	log_list;
 struct log_data {
 	char	*hostname;
@@ -777,7 +776,6 @@ static void close_request(http_session_t * session)
 		now=time(NULL);
 		localtime_r(&now,&session->req.ld->completed);
 		listPushNode(&log_list,session->req.ld);
-		sem_post(&log_sem);
 		session->req.ld=NULL;
 	}
 
@@ -881,7 +879,7 @@ static BOOL get_xjs_handler(char* ext, http_session_t* session)
 {
 	size_t	i;
 
-	if(ext==NULL || xjs_handlers==NULL)
+	if(ext==NULL || xjs_handlers==NULL || ext[0]==0)
 		return(FALSE);
 
 	for(i=0;xjs_handlers[i]!=NULL;i++) {
@@ -4126,6 +4124,7 @@ void http_session_thread(void* arg)
 	close_socket(session.socket);
 	session.socket=INVALID_SOCKET;
 	sem_wait(&session.output_thread_terminated);
+	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
 
 	active_clients--;
@@ -4190,7 +4189,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.387 $", "%*s %s", revision);
+	sscanf("$Revision: 1.391 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4232,7 +4231,7 @@ void http_logging_thread(void* arg)
 		char	timestr[128];
 		char	sizestr[100];
 
-		sem_wait(&log_sem);
+		listSemWait(&log_list);
 		if(terminate_http_logging_thread)
 			break;
 
@@ -4523,12 +4522,11 @@ void DLLCALL web_server(void* arg)
 
 		lprintf(LOG_INFO,"%04d Web Server thread started", server_socket);
 
-		listInit(&log_list,/* flags */ 0);
+		listInit(&log_list,/* flags */ LINK_LIST_MUTEX|LINK_LIST_SEMAPHORE);
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
 			/********************/
 			/* Start log thread */
 			/********************/
-			sem_init(&log_sem,0,0);
 			_beginthread(http_logging_thread, 0, startup->logfile_base);
 		}
 
@@ -4705,7 +4703,7 @@ void DLLCALL web_server(void* arg)
 
 		if(http_logging_thread_running) {
 			terminate_http_logging_thread=TRUE;
-			sem_post(&log_sem);
+			listSemPost(&log_list);
 			mswait(100);
 		}
 		if(http_logging_thread_running) {
