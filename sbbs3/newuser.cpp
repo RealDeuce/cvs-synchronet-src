@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.49 2006/09/09 06:24:05 deuce Exp $ */
+/* $Id: newuser.cpp,v 1.43 2005/06/04 09:40:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,7 +51,6 @@ BOOL sbbs_t::newuser()
 	long	kmode;
 	bool	usa;
 
-#if 0
 	if(cur_rate<cfg.node_minbps) {
 		bprintf(text[MinimumModemSpeed],cfg.node_minbps);
 		sprintf(str,"%stooslow.msg",cfg.text_dir);
@@ -63,7 +62,6 @@ BOOL sbbs_t::newuser()
 		hangup();
 		return(FALSE); 
 	}
-#endif
 
 	getnodedat(cfg.node_num,&thisnode,0);
 	if(thisnode.misc&NODE_LOCK) {
@@ -186,11 +184,7 @@ BOOL sbbs_t::newuser()
 		else
 			useron.misc&=~NO_EXASCII;
 
-#ifdef USE_CRYPTLIB
-		if((sys_status&SS_RLOGIN || sys_status&SS_SSH) && rlogin_name[0])
-#else
 		if(sys_status&SS_RLOGIN && rlogin_name[0])
-#endif
 			strcpy(useron.alias,rlogin_name);
 		else {
 			while(online) {
@@ -369,18 +363,20 @@ BOOL sbbs_t::newuser()
 			useron.shell=i; 
 	}
 
-	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true)) {
+	c=0;
+	if(sys_status&SS_RLOGIN && rlogin_pass[0]) {
 		SAFECOPY(useron.pass, rlogin_pass);
 	}
 	else {
-		c=0;
 		while(c<LEN_PASS) { 				/* Create random password */
 			useron.pass[c]=sbbs_random(43)+'0';
 			if(isalnum(useron.pass[c]))
 				c++; 
 		}
 		useron.pass[c]=0;
+	}
 
+	if(!(sys_status&SS_RLOGIN && rlogin_pass[0])) {
 		bprintf(text[YourPasswordIs],useron.pass);
 
 		if(cfg.sys_misc&SM_PWEDIT && yesno(text[NewPasswordQ]))
@@ -401,6 +397,8 @@ BOOL sbbs_t::newuser()
 		while(online) {
 			bprintf(text[NewUserPasswordVerify]);
 			console|=CON_R_ECHOX;
+			if(!(cfg.sys_misc&SM_ECHO_PW))
+				console|=CON_L_ECHOX;
 			str[0]=0;
 			getstr(str,LEN_PASS,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
@@ -463,11 +461,11 @@ BOOL sbbs_t::newuser()
 		sprintf(str,text[NewUserFeedbackHdr]
 			,nulstr,getage(&cfg,useron.birth),useron.sex,useron.birth
 			,useron.name,useron.phone,useron.comp,useron.modem);
-		email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO);
+		email(cfg.node_valuser,str,"New User Validation",WM_EMAIL);
 		if(!useron.fbacks && !useron.emails) {
 			if(online) {						/* didn't hang up */
 				bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
-				email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO);
+				email(cfg.node_valuser,str,"New User Validation",WM_EMAIL);
 				} /* give 'em a 2nd try */
 			if(!useron.fbacks && !useron.emails) {
         		bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
