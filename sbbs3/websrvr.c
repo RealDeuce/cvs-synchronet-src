@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.391 2006/03/31 23:42:44 deuce Exp $ */
+/* $Id: websrvr.c,v 1.392 2006/04/07 07:01:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1376,14 +1376,27 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 	DWORD	i;
 	BOOL	rd;
 	DWORD	chucked=0;
+	fd_set	rd_set;
+	struct	timeval tv;
 
 	for(i=0;TRUE;) {
-		if(!socket_check(session->socket,&rd,NULL,startup->max_inactivity*1000) 
-			|| !rd || recv(session->socket, &ch, 1, 0)!=1)  {
-			session->req.keep_alive=FALSE;
-			session->req.finished=TRUE;
-			return(-1);        /* time-out */
+		if(session->socket==INVALID_SOCKET)
+			return(-1);
+		FD_ZERO(&rd_set);
+		FD_SET(session->socket,&rd_set);
+		/* Convert timeout from ms to sec/usec */
+		tv.tv_sec=startup->max_inactivity;
+		tv.tv_usec=0;
+		switch(select(session->socket+1,&rd_set,NULL,NULL,&tv)) {
+			case 1:
+				break;
+			default:
+				/* Timeout, select() error, etc */
+				return(-1);
 		}
+
+		if(recv(session->socket, &ch, 1, 0)!=1)
+			return(-1);
 
 		if(ch=='\n')
 			break;
@@ -4189,7 +4202,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.391 $", "%*s %s", revision);
+	sscanf("$Revision: 1.392 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4286,6 +4299,7 @@ void http_logging_thread(void* arg)
 		FREE_AND_NULL(ld->request);
 		FREE_AND_NULL(ld->referrer);
 		FREE_AND_NULL(ld->agent);
+		FREE_AND_NULL(ld->vhost);
 		FREE_AND_NULL(ld);
 	}
 	if(logfile!=NULL) {
