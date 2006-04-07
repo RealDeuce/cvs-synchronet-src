@@ -11,12 +11,12 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.186 2006/01/23 19:06:02 deuce Exp $
+# $Id: GNUmakefile,v 1.187 2006/04/07 16:18:39 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
 
-UTIL_LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
+UTIL_LDFLAGS	+=	$(LDFLAGS) $(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
 UTIL_LIBS	+=	$(SMBLIB_LIBS)
 
 ifndef bcc
