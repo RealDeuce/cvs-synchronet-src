@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.437 2006/03/16 22:35:54 rswindell Exp $ */
+/* $Id: main.cpp,v 1.438 2006/04/07 02:41:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2332,6 +2332,8 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	client_ident[0]=0;
 
 	terminal[0]=0;
+	rlogin_name[0]=0;
+	rlogin_pass[0]=0;
 
 	/* Init some important variables */
 
