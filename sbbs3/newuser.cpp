@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.43 2005/06/04 09:40:26 deuce Exp $ */
+/* $Id: newuser.cpp,v 1.45 2006/04/07 04:33:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -363,20 +363,18 @@ BOOL sbbs_t::newuser()
 			useron.shell=i; 
 	}
 
-	c=0;
-	if(sys_status&SS_RLOGIN && rlogin_pass[0]) {
+	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true))) {
 		SAFECOPY(useron.pass, rlogin_pass);
 	}
 	else {
+		c=0;
 		while(c<LEN_PASS) { 				/* Create random password */
 			useron.pass[c]=sbbs_random(43)+'0';
 			if(isalnum(useron.pass[c]))
 				c++; 
 		}
 		useron.pass[c]=0;
-	}
 
-	if(!(sys_status&SS_RLOGIN && rlogin_pass[0])) {
 		bprintf(text[YourPasswordIs],useron.pass);
 
 		if(cfg.sys_misc&SM_PWEDIT && yesno(text[NewPasswordQ]))
