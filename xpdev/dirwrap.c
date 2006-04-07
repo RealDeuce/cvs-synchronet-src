@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.59 2006/04/07 18:52:56 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.60 2006/04/07 20:31:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -503,8 +503,8 @@ BOOL DLLCALL fexistcase(char *path)
 	long	handle;
 	struct _finddata_t f;
 
-	if(!strchr(path,'*') && !strchr(path,'?'))
-		return(fnameexist(path));
+	if(access(path,0)==-1 && !strchr(path,'*') && !strchr(path,'?'))
+		return(FALSE);
 
 	if((handle=_findfirst((char*)path,&f))==-1)
 		return(FALSE);
