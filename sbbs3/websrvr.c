@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.392 2006/04/07 07:01:40 deuce Exp $ */
+/* $Id: websrvr.c,v 1.393 2006/04/07 21:17:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,6 +104,7 @@ static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
 static char		temp_dir[MAX_PATH+1];
 static char		cgi_dir[MAX_PATH+1];
+static char		cgi_env_ini[MAX_PATH+1];
 static time_t	uptime=0;
 static DWORD	served=0;
 static web_startup_t* startup=NULL;
@@ -2354,7 +2355,6 @@ static BOOL check_request(http_session_t * session)
 
 static str_list_t get_cgi_env(http_session_t *session)
 {
-	char		path[MAX_PATH+1];
 	char		value[INI_MAX_VALUE_LEN+1];
 	char*		deflt;
 	char		defltbuf[INI_MAX_VALUE_LEN+1];
@@ -2373,7 +2373,7 @@ static str_list_t get_cgi_env(http_session_t *session)
 
 	strListPush(&env_list,"REDIRECT_STATUS=200");	/* Kludge for php-cgi */
 
-	if((fp=iniOpenFile(iniFileName(path,sizeof(path),scfg.ctrl_dir,"cgi_env.ini"),/* create? */FALSE))==NULL)
+	if((fp=iniOpenFile(cgi_env_ini,/* create? */FALSE))==NULL)
 		return(env_list);
 
 	if((add_list=iniReadSectionList(fp,NULL))!=NULL) {
@@ -4202,7 +4202,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.392 $", "%*s %s", revision);
+	sscanf("$Revision: 1.393 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4467,6 +4467,9 @@ void DLLCALL web_server(void* arg)
 			,cgi_handlers);
 		xjs_handlers=read_ini_list("web_handler.ini","JavaScript","JavaScript content handlers"
 			,xjs_handlers);
+
+		/* Don't do this for *each* CGI request, just once here during [re]init */
+		iniFileName(cgi_env_ini,sizeof(cgi_env_ini),scfg.ctrl_dir,"cgi_env.ini");
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
