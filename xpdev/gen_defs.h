@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.32 2006/04/07 07:08:37 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.33 2006/04/07 16:43:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,7 +237,7 @@ typedef struct {
 #ifdef SAFECOPY_USES_SPRINTF
 #define SAFECOPY(dst,src)				sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
 #else
-#define SAFECOPY(dst,src)				(((dst)==(src))?0:(strncpy(dst,src,sizeof(dst)), dst[(int)sizeof(dst)-1]=0))
+#define SAFECOPY(dst,src)				((((char *)(dst))==((char *)(src)))?0:(strncpy(dst,src,sizeof(dst)), dst[(int)sizeof(dst)-1]=0))
 #endif
 #define TERMINATE(str)					str[sizeof(str)-1]=0
 #if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))
