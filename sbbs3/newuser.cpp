@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.45 2006/04/07 04:33:12 deuce Exp $ */
+/* $Id: newuser.cpp,v 1.46 2006/04/07 04:34:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -363,7 +363,7 @@ BOOL sbbs_t::newuser()
 			useron.shell=i; 
 	}
 
-	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true))) {
+	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true)) {
 		SAFECOPY(useron.pass, rlogin_pass);
 	}
 	else {
