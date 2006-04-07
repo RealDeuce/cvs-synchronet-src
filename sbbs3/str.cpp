@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.55 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: str.cpp,v 1.53 2006/04/05 09:45:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,7 +198,7 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 				m++; 
 			}
 			if((buf[m+1]&0xdf)=='L') {		/* Draw line */
-        		if(term_supports(COLOR))
+        		if(useron.misc&COLOR)
 					attr(cfg.color[clr_inputline]);
 				else
 					attr(BLACK|BG_LIGHTGRAY);
@@ -361,7 +361,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 			else if((buf[m+1]&0xdf)=='N')  	/* Numbers only */
 				m++;
 			if((buf[m+1]&0xdf)=='L') {		/* Draw line */
-        		if(term_supports(COLOR))
+        		if(useron.misc&COLOR)
 					attr(cfg.color[clr_inputline]);
 				else
 					attr(BLACK|BG_LIGHTGRAY);
@@ -386,7 +386,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 			else if((buf[m+1]&0xdf)=='N')   /* Numbers only */
 				m++;
 			if((buf[m+1]&0xdf)=='L') {
-        		if(term_supports(COLOR))
+        		if(useron.misc&COLOR)
 					attr(cfg.color[clr_inputline]);
 				else
 					attr(BLACK|BG_LIGHTGRAY);
@@ -495,9 +495,9 @@ size_t sbbs_t::gettmplt(char *strout,char *templt, long mode)
 	sys_status&=~SS_ABORT;
 	SAFECOPY(tmplt, templt);
 	strupr(tmplt);
-	if(term_supports(ANSI)) {
+	if(useron.misc&ANSI) {
 		if(mode&K_LINE) {
-			if(term_supports(COLOR))
+			if(useron.misc&COLOR)
 				attr(cfg.color[clr_inputline]);
 			else
 				attr(BLACK|BG_LIGHTGRAY); 
@@ -1187,6 +1187,8 @@ void sbbs_t::change_user(void)
 			getuserrec(&cfg,i,U_PASS,8,tmp);
 			bputs(text[ChUserPwPrompt]);
 			console|=CON_R_ECHOX;
+			if(!(cfg.sys_misc&SM_ECHO_PW))
+				console|=CON_L_ECHOX;
 			getstr(str,8,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(strcmp(str,tmp))
