@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.44 2006/04/07 02:41:06 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.45 2006/04/07 04:33:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -363,12 +363,7 @@ BOOL sbbs_t::newuser()
 			useron.shell=i; 
 	}
 
-	if(rlogin_pass[0]
-		&& (strnicmp(useron.alias,rlogin_pass,strlen(rlogin_pass))==0
-		||  strnicmp(useron.name ,rlogin_pass,strlen(rlogin_pass))==0))
-		rlogin_pass[0]=0;	/* Don't use insecure RLogin password */
-
-	if(rlogin_pass[0]) {
+	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true))) {
 		SAFECOPY(useron.pass, rlogin_pass);
 	}
 	else {
