@@ -27,7 +27,7 @@ void free_font_files(struct font_files *ff)
 		FREE_AND_NULL(ff[i].path8x14);
 		FREE_AND_NULL(ff[i].path8x16);
 	}
-	free(ff);
+	FREE_AND_NULL(ff);
 }
 
 void save_font_files(struct font_files *fonts)
@@ -325,7 +325,7 @@ void font_management(void)
 				struct text_info	ti;
 
 				gettextinfo(&ti);
-				savbuf=(char *)alloca((ti.screenheight-2)*ti.screenwidth*2);
+				savbuf=(char *)malloc((ti.screenheight-2)*ti.screenwidth*2);
 				if(savbuf==NULL) {
 					uifc.msg("malloc() failure.");
 					continue;
@@ -338,6 +338,7 @@ void font_management(void)
 				}
 				filepick_free(&fpick);
 				puttext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
+				free(savbuf);
 			}
 		}
 	}
