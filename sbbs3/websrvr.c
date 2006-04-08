@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.395 2006/04/08 07:34:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.396 2006/04/08 08:25:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1395,6 +1395,8 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 		switch(select(session->socket+1,&rd_set,NULL,NULL,&tv)) {
 			case 1:
 				break;
+			case -1:
+				close_socket(&session->socket);
 			default:
 				/* Timeout, select() error, etc */
 				return(-1);
@@ -4226,7 +4228,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.395 $", "%*s %s", revision);
+	sscanf("$Revision: 1.396 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
