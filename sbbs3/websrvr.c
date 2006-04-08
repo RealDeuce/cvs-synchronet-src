@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.393 2006/04/07 21:17:59 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.394 2006/04/08 05:27:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,6 +111,7 @@ static web_startup_t* startup=NULL;
 static js_server_props_t js_server_props;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
+static int session_threads=0;
 
 static named_string_t** mime_types;
 static named_string_t** cgi_handlers;
@@ -3965,6 +3966,7 @@ void http_session_thread(void* arg)
 
 	socket=session.socket;
 	lprintf(LOG_DEBUG,"%04d Session thread started", session.socket);
+	session_threads++;
 
 	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
 		lprintf(LOG_DEBUG,"%04d !!! DANGER WILL ROBINSON, DANGER !!!", session.socket);
@@ -3982,6 +3984,7 @@ void http_session_thread(void* arg)
 		lprintf(LOG_ERR,"%04d Canot create output ringbuffer!", session.socket);
 		close_socket(session.socket);
 		thread_down();
+		session_threads--;
 		return;
 	}
 
@@ -4015,6 +4018,7 @@ void http_session_thread(void* arg)
 			RingBufDispose(&session.outbuf);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			thread_down();
+			session_threads--;
 			return;
 		}
 	}
@@ -4027,6 +4031,7 @@ void http_session_thread(void* arg)
 		RingBufDispose(&session.outbuf);
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		thread_down();
+		session_threads--;
 		return;
 	}
 
@@ -4144,6 +4149,7 @@ void http_session_thread(void* arg)
 	update_clients();
 	client_off(socket);
 
+	session_threads--;
 	thread_down();
 
 	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
@@ -4164,6 +4170,8 @@ static void cleanup(int code)
 {
 	free_cfg(&scfg);
 
+	while(session_threads)
+		SLEEP(1);
 	listFree(&log_list);
 
 	mime_types=iniFreeNamedStringList(mime_types);
@@ -4202,7 +4210,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.393 $", "%*s %s", revision);
+	sscanf("$Revision: 1.394 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
