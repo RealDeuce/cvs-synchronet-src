@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.192 2006/03/15 06:46:42 deuce Exp $ */
+/* $Id: js_global.c,v 1.193 2006/04/08 01:00:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -766,7 +766,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	/* Get prefix from the first line (ouch) */
 	l=0;
 	i=0;
-	if(handle_quotes && (quote_count=get_prefix(inbuf, &prefix_bytes, &prefix_len, len*2+2))) {
+	if(handle_quotes && (quote_count=get_prefix(inbuf, &prefix_bytes, &prefix_len, len*2+2))!=0) {
 		i+=prefix_bytes;
 		if(prefix_len>len/3*2) {
 			/* This prefix is insane (more than 2/3rds of the new width) hack it down to size */
@@ -798,7 +798,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				crcount++;
 				break;
 			case '\n':
-				if(handle_quotes && (quote_count=get_prefix(inbuf+i+1, &prefix_bytes, &prefix_len, len*2+2))) {
+				if(handle_quotes && (quote_count=get_prefix(inbuf+i+1, &prefix_bytes, &prefix_len, len*2+2))!=0) {
 					/* Move the input pointer offset to the last char of the prefix */
 					i+=prefix_bytes;
 				}
