@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.399 2006/04/10 21:54:44 deuce Exp $ */
+/* $Id: websrvr.c,v 1.400 2006/04/11 03:30:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4245,7 +4245,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.399 $", "%*s %s", revision);
+	sscanf("$Revision: 1.400 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4387,6 +4387,10 @@ void DLLCALL web_server(void* arg)
 #ifdef ONE_JS_RUNTIME
 	JSRuntime*      js_runtime;
 #endif
+#ifdef SO_ACCEPTFILTER
+	struct accept_filter_arg afa;
+#endif
+
 	startup=(web_startup_t*)arg;
 
 	web_ver();	/* get CVS revision */
@@ -4552,6 +4556,12 @@ void DLLCALL web_server(void* arg)
  *		if(setsockopt(server_socket, IPPROTO_TCP, TCP_NOPUSH, &i, sizeof(i)))
  *			lprintf("Cannot set TCP_NOPUSH socket option");
  */
+
+#ifdef SO_ACCEPTFILTER
+		memset(&afa, 0, sizeof(afa));
+		strcpy(afa.af_name, "httpready");
+		setsockopt(server_socket, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa));
+#endif
 
 		lprintf(LOG_INFO,"%04d Web Server socket opened",server_socket);
 
