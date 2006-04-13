@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.25 2006/04/13 07:41:57 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.26 2006/04/13 17:29:48 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -15,7 +15,7 @@
 	#elif SOUNDCARD_H_IN==3
 		#include <linux/soundcard.h>
 	#else
-		#ifndef USE_ALSA
+		#ifndef USE_ALSA_SOUND
 			#warning Cannot find soundcard.h
 		#endif
 	#endif
