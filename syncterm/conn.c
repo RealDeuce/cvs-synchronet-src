@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.24 2006/09/19 22:39:12 deuce Exp $ */
+/* $Id: conn.c,v 1.15 2006/03/20 23:44:44 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -11,40 +11,9 @@
 #include "conn.h"
 #include "uifcinit.h"
 
-#ifdef USE_CRYPTLIB
-#include "st_crypt.h"
-#endif
-
 static int	con_type=CONN_TYPE_UNKNOWN;
 SOCKET conn_socket=INVALID_SOCKET;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw"
-#ifdef USE_CRYPTLIB
-	,"SSH"
-#endif
-,NULL};
-int conn_ports[]={0,513,23,0
-#ifdef USE_CRYPTLIB
-	,22
-#endif
-};
-#ifdef USE_CRYPTLIB
-CRYPT_SESSION	ssh_session;
-int				ssh_active=FALSE;
-#endif
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-BOOL conn_is_connected(void)
-{
-#ifdef USE_CRYPTLIB
-	if(con_type==CONN_TYPE_SSH) {
-		if(!ssh_active)
-			return(FALSE);
-	}
-#endif
-	return socket_check(conn_socket,NULL,NULL,0);
-}
+char *conn_types[]={"Unknown","RLogin","Telnet","Raw",NULL};
 
 int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 {
@@ -54,25 +23,6 @@ int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 	BOOL	data_waiting;
 	static BYTE	*telnet_buf=NULL;
 	static size_t tbsize=0;
-
-#ifdef USE_CRYPTLIB
-	if(con_type==CONN_TYPE_SSH) {
-		int	status;
-		status=cl.PopData(ssh_session, buffer, buflen, &rd);
-		if(cryptStatusError(status)) {
-			char	str[1024];
-
-			if(status==CRYPT_ERROR_COMPLETE) {	/* connection closed */
-				ssh_active=FALSE;
-				return(-1);
-			}
-			sprintf(str,"Error %d recieving data",status);
-			uifcmsg("Error recieving data",str);
-			return(-1);
-		}
-		return(rd);
-	}
-#endif	/* USE_CRYPTLIB */
 
 	if(con_type == CONN_TYPE_TELNET) {
 		if(tbsize < buflen) {
@@ -120,31 +70,6 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	static BYTE *outbuf=NULL;
 	static size_t obsize=0;
 
-#ifdef USE_CRYPTLIB
-	if(con_type==CONN_TYPE_SSH) {
-		int status;
-
-		sent=0;
-		while(sent<(int)buflen) {
-			status=cl.PushData(ssh_session, buffer+sent, buflen-sent, &i);
-			if(cryptStatusError(status)) {
-				char	str[1024];
-
-				if(status==CRYPT_ERROR_COMPLETE) {	/* connection closed */
-					ssh_active=FALSE;
-					return(-1);
-				}
-				sprintf(str,"Error %d sending data",status);
-				uifcmsg("Error sending data",str);
-				return(-1);
-			}
-			sent+=i;
-		}
-		cl.FlushData(ssh_session);
-		return(0);
-	}
-#endif
-
 	if(con_type == CONN_TYPE_TELNET) {
 		if(obsize < buflen*2) {
 			p=realloc(outbuf, buflen*2);
@@ -184,58 +109,27 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int conn_connect(struct bbslist *bbs)
+int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass, int conn_type, int speed)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
 	char	*p;
 	unsigned int	neta;
-	char	*ruser;
-	char	*passwd;
 
 	init_uifc(TRUE, TRUE);
-
-	con_type=bbs->conn_type;
-#ifdef USE_CRYPTLIB
-	if(con_type==CONN_TYPE_SSH) {
-		if(!crypt_loaded)
-			init_crypt();
-		if(!crypt_loaded) {
-			uifcmsg("Cannot load cryptlib - SSH inoperative",	"`Cannot load cryptlib`\n\n"
-						"Cannot laod the file "
-#ifdef _WIN32
-						"cl32.dll"
-#else
-						"libcl.so"
-#endif
-						"\nThis file is required for SSH functionality.\n\n"
-						"The newest version is always available from:\n"
-						"http://www.cs.auckland.ac.nz/~pgut001/cryptlib/"
-						);
-			return(-1);
-		}
-	}
-#endif
-
-	ruser=bbs->user;
-	passwd=bbs->password;
-	if(con_type==CONN_TYPE_RLOGIN && bbs->reversed) {
-		passwd=bbs->user;
-		ruser=bbs->password;
-	}
-	for(p=bbs->addr;*p;p++)
+	con_type=conn_type;
+	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
 			break;
-
 	if(!(*p))
-		neta=inet_addr(bbs->addr);
+		neta=inet_addr(addr);
 	else {
 		uifc.pop("Lookup up host");
-		if((ent=gethostbyname(bbs->addr))==NULL) {
+		if((ent=gethostbyname(addr))==NULL) {
 			char str[LIST_ADDR_MAX+17];
 
 			uifc.pop(NULL);
-			sprintf(str,"Cannot resolve %s!",bbs->addr);
+			sprintf(str,"Cannot resolve %s!",addr);
 			uifcmsg(str,	"`Cannot Resolve Host`\n\n"
 							"The system is unable to resolve the hostname... double check the spelling.\n"
 							"If it's not an issue with your DNS settings, the issue is probobly\n"
@@ -246,7 +140,6 @@ int conn_connect(struct bbslist *bbs)
 		uifc.pop(NULL);
 	}
 	uifc.pop("Connecting...");
-
 	conn_socket=socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
 	if(conn_socket==INVALID_SOCKET) {
 		uifc.pop(NULL);
@@ -258,14 +151,14 @@ int conn_connect(struct bbslist *bbs)
 	memset(&saddr,0,sizeof(saddr));
 	saddr.sin_addr.s_addr = neta;
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons((WORD)bbs->port);
+	saddr.sin_port   = htons(port);
 
 	if(connect(conn_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];
 
 		conn_close();
 		uifc.pop(NULL);
-		sprintf(str,"Cannot connect to %s!",bbs->addr);
+		sprintf(str,"Cannot connect to %s!",addr);
 		uifcmsg(str,	"`Unable to connect`\n\n"
 						"Cannot connect to the remote system... it is down or unreachable.");
 		return(-1);
@@ -281,79 +174,15 @@ int conn_connect(struct bbslist *bbs)
 			conn_send("",1,1000);
 			conn_send(passwd,strlen(passwd)+1,1000);
 			conn_send(ruser,strlen(ruser)+1,1000);
-			if(bbs->bpsrate) {
+			if(speed) {
 				char	sbuf[30];
-				sprintf(sbuf, "ansi-bbs/%d", bbs->bpsrate);
+				sprintf(sbuf, "ansi-bbs/%d", speed);
 
 				conn_send(sbuf, strlen(sbuf)+1,1000);
 			}
 			else
 				conn_send("ansi-bbs/115200",15,1000);
 			break;
-#ifdef USE_CRYPTLIB
-		case CONN_TYPE_SSH: {
-			int off=1;
-			int status;
-			char password[MAX_PASSWD_LEN+1];
-
-			ssh_active=FALSE;
-
-			status=cl.CreateSession(&ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH);
-			if(cryptStatusError(status)) {
-				char	str[1024];
-				sprintf(str,"Error %d creating session",status);
-				uifcmsg("Error creating session",str);
-				return(-1);
-			}
-
-			/* we need to disable Nagle on the socket. */
-			setsockopt(conn_socket, IPPROTO_TCP, TCP_NODELAY, ( char * )&off, sizeof ( off ) );
-
-			SAFECOPY(password,bbs->password);
-
-			/* Pass socket to cryptlib */
-			status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, conn_socket);
-			if(cryptStatusError(status)) {
-				char	str[1024];
-				sprintf(str,"Error %d passing socket",status);
-				uifcmsg("Error passing socket",str);
-				return(-1);
-			}
-
-			/* Add username/password */
-			status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, ruser, strlen(ruser));
-			if(cryptStatusError(status)) {
-				char	str[1024];
-				sprintf(str,"Error %d setting username",status);
-				uifcmsg("Error setting username",str);
-				return(-1);
-			}
-
-			if(!password[0])
-				uifcinput("Password",MAX_PASSWD_LEN,password,K_PASSWORD,"Incorrect password.  Try again.");
-
-			status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_PASSWORD, passwd, strlen(passwd));
-			if(cryptStatusError(status)) {
-				char	str[1024];
-				sprintf(str,"Error %d setting password",status);
-				uifcmsg("Error setting password",str);
-				return(-1);
-			}
-
-			/* Activate the session */
-			status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_ACTIVE, 1);
-			if(cryptStatusError(status)) {
-				char	str[1024];
-
-				sprintf(str,"Error %d activating session",status);
-				uifcmsg("Error activating session",str);
-				return(-1);
-			}
-
-			ssh_active=TRUE;
-			break;
-		}
-#endif
 	}
 	uifc.pop(NULL);
 
@@ -362,12 +191,5 @@ int conn_connect(struct bbslist *bbs)
 
 int conn_close(void)
 {
-#ifdef USE_CRYPTLIB
-	if(con_type==CONN_TYPE_SSH) {
-		cl.DestroySession(ssh_session);
-		ssh_active=FALSE;
-		return(0);
-	}
-#endif
 	return(closesocket(conn_socket));
 }
