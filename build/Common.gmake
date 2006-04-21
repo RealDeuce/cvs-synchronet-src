@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.51 2006/04/06 22:16:25 deuce Exp $
+# $Id: Common.gmake,v 1.52 2006/04/21 02:50:03 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -204,6 +204,9 @@ ifeq ($(machine),sun4u)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
 ifeq ($(machine),power_macintosh)
+ CFLAGS +=      -D__BIG_ENDIAN__
+endif
+ifeq ($(machine),mac68k)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
 ifeq ($(machine),)
