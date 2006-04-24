@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.59 2006/06/18 05:08:13 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.58 2006/02/03 03:47:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1661,6 +1661,11 @@ int sbbs_t::exec(csi_t *csi)
 		case CS_ASYNC:
 			ASYNC;
 			return(0);
+#if 0 /* Removed 02/18/01 - never used, officially deprecated for INCHAR */
+		case CS_RIOSYNC:
+			RIOSYNC(0);
+			return(0);
+#endif
 		case CS_GETTIMELEFT:
 			gettimeleft();
 			return(0);
