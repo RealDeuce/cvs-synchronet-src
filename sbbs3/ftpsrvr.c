@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.306 2006/01/31 02:51:59 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.307 2006/04/25 00:59:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1772,6 +1772,9 @@ static void receive_thread(void* arg)
 			/* Desciption specified with DESC command? */
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
 				SAFECOPY(f.desc,xfer.desc);
+
+			/* Necessary for DIR and LIB ARS keyword support in subsequent chk_ar()'s */
+			SAFECOPY(xfer.user->curdir, scfg.dir[f.dir]->code);
 
 			/* FILE_ID.DIZ support */
 			p=strrchr(f.name,'.');
@@ -4507,7 +4510,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.306 $", "%*s %s", revision);
+	sscanf("$Revision: 1.307 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
