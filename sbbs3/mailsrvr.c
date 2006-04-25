@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.397 2006/03/28 20:57:27 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.398 2006/04/25 02:43:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3908,15 +3908,19 @@ static void sendmail_thread(void* arg)
 				continue;
 			}
 			/* RCPT */
-			if((p=strrchr((char*)msg.to_net.addr,'<'))!=NULL)
-				p++;
-			else
-				p=(char*)msg.to_net.addr;
-			SAFECOPY(toaddr,p);
-			truncstr(toaddr,"> ");
-			if((p=strrchr(toaddr,'@'))!=NULL && (tp=strrchr(toaddr,':'))!=NULL
-				&& tp > p)
-				*tp=0;	/* Remove ":port" designation from envelope */
+			if(msg.forward_path!=NULL) {
+				SAFECOPY(toaddr,msg.forward_path);
+			} else {
+				if((p=strrchr((char*)msg.to_net.addr,'<'))!=NULL)
+					p++;
+				else
+					p=(char*)msg.to_net.addr;
+				SAFECOPY(toaddr,p);
+				truncstr(toaddr,"> ");
+				if((p=strrchr(toaddr,'@'))!=NULL && (tp=strrchr(toaddr,':'))!=NULL
+					&& tp > p)
+					*tp=0;	/* Remove ":port" designation from envelope */
+			}
 			sockprintf(sock,"RCPT TO: <%s>", toaddr);
 			if(!sockgetrsp(sock,"25", buf, sizeof(buf))) {
 				remove_msg_intransit(&smb,&msg);
@@ -4033,7 +4037,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.397 $", "%*s %s", revision);
+	sscanf("$Revision: 1.398 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
