@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.109 2006/09/15 21:12:53 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.104 2006/01/27 06:31:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 
 #include "sbbs.h"
 
-#define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
+#define DEFAULT_LOG_MASK	0xff	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
 
 JSRuntime*	js_runtime;
@@ -70,9 +70,8 @@ BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
 BOOL		recycled;
-int			log_level=DEFAULT_LOG_LEVEL;
+DWORD		log_mask=DEFAULT_LOG_MASK;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
-pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
 #endif
@@ -112,7 +111,7 @@ void usage(FILE* fp)
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
-		"\t-L<level>      set log level (default=%u)\n"
+		"\t-L<mask>       set log level mask (default=0x%x)\n"
 		"\t-E<level>      set error log level threshold (default=%d)\n"
 		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
@@ -131,31 +130,11 @@ void usage(FILE* fp)
 		,JAVASCRIPT_BRANCH_LIMIT
 		,JAVASCRIPT_YIELD_INTERVAL
 		,JAVASCRIPT_GC_INTERVAL
-		,DEFAULT_LOG_LEVEL
+		,DEFAULT_LOG_MASK
 		,DEFAULT_ERR_LOG_LVL
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
 		);
-}
-
-int mfprintf(FILE* fp, char *fmt, ...)
-{
-	va_list argptr;
-	char sbuf[1024];
-	int ret=0;
-
-    va_start(argptr,fmt);
-    ret=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
-
-	/* Mutex-protect stdout/stderr */
-	pthread_mutex_lock(&output_mutex);
-
-	ret = fprintf(fp, "%s\n", sbuf);
-
-	pthread_mutex_unlock(&output_mutex);
-    return(ret);
 }
 
 /* Log printf */
@@ -165,7 +144,7 @@ int lprintf(int level, char *fmt, ...)
 	char sbuf[1024];
 	int ret=0;
 
-	if(level > log_level)
+	if(!(log_mask&(1<<level)))
 		return(0);
 
     va_start(argptr,fmt);
@@ -178,10 +157,6 @@ int lprintf(int level, char *fmt, ...)
 		return(ret);
 	}
 #endif
-
-	/* Mutex-protect stdout/stderr */
-	pthread_mutex_lock(&output_mutex);
-
 	if(level<=err_level) {
 		ret=fprintf(errfp,"%s\n",sbuf);
 		if(errfp!=stderr && confp!=stdout)
@@ -189,8 +164,6 @@ int lprintf(int level, char *fmt, ...)
 	}
 	if(level>err_level || errfp!=stderr)
 		ret=fprintf(confp,"%s\n",sbuf);
-
-	pthread_mutex_unlock(&output_mutex);
     return(ret);
 }
 
@@ -307,7 +280,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	rd=fread(buf,sizeof(char),len,stdin);
@@ -315,6 +288,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(rd>=0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd));
 
+	free(buf);
     return(JS_TRUE);
 }
 
@@ -327,7 +301,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=alloca(len+1))==NULL)
+	if((buf=malloc(len+1))==NULL)
 		return(JS_TRUE);
 
 	p=fgets(buf,len+1,stdin);
@@ -335,6 +309,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p!=NULL)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p)));
 
+	free(buf);
     return(JS_TRUE);
 }
 
@@ -727,7 +702,7 @@ long js_exec(const char *fname, char** args)
 		return(-1);
 	}
 	if((diff=xp_timer()-start) > 0)
-		mfprintf(statfp,"%s compiled in %.2Lf seconds"
+		fprintf(statfp,"%s compiled in %.2Lf seconds\n"
 			,path
 			,diff);
 
@@ -736,14 +711,14 @@ long js_exec(const char *fname, char** args)
 	js_EvalOnExit(js_cx, js_glob, &branch);
 
 	if((diff=xp_timer()-start) > 0)
-		mfprintf(statfp,"%s executed in %.2Lf seconds"
+		fprintf(statfp,"%s executed in %.2Lf seconds\n"
 			,path
 			,diff);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
+		fprintf(statfp,"Using JavaScript exit_code: %s\n",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
 
@@ -759,13 +734,13 @@ long js_exec(const char *fname, char** args)
 
 void break_handler(int type)
 {
-	lprintf(LOG_NOTICE,"\n-> Terminated Locally (signal: %d)",type);
+	fprintf(statfp,"\n-> Terminated Locally (signal: %d)\n",type);
 	terminated=TRUE;
 }
 
 void recycle_handler(int type)
 {
-	lprintf(LOG_NOTICE,"\n-> Recycled Locally (signal: %d)",type);
+	fprintf(statfp,"\n-> Recycled Locally (signal: %d)\n",type);
 	recycled=TRUE;
 	branch.terminated=&recycled;
 }
@@ -810,7 +785,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.109 $", "%*s %s", revision);
+	sscanf("$Revision: 1.104 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -861,7 +836,7 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'L':
 					if(*p==0) p=argv[++argn];
-					log_level=strtol(p,NULL,0);
+					log_mask=strtol(p,NULL,0);
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
@@ -991,12 +966,10 @@ int main(int argc, char **argv, char** environ)
 	signal(SIGPIPE,SIG_IGN);
 #endif
 
-	pthread_mutex_init(&output_mutex,NULL);
-
 	do {
 
 		if(exec_count++)
-			lprintf(LOG_INFO,"\nRe-running: %s", module);
+			fprintf(statfp,"\nRe-running: %s\n", module);
 
 		recycled=FALSE;
 
