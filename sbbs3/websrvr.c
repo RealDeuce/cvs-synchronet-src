@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.405 2006/04/27 19:59:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.406 2006/04/27 21:23:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2149,6 +2149,9 @@ static BOOL check_extra_path(http_session_t * session)
 						return(TRUE);
 					}
 				}
+				/* rpath was an existing path and DID NOT contain an index. */
+				/* We do not allow scripts to mask existing dirs/files */
+				return(FALSE);
 			}
 
 			if(vp_slash==vpath)
@@ -2218,6 +2221,7 @@ static BOOL check_request(http_session_t * session)
 				lprintf(LOG_DEBUG,"%04d Checking for %s",session->socket,path);
 			if(!stat(path,&sb))
 				break;
+			SAFECOPY(path,session->req.physical_path);
 		}
 
 		/* Don't send 404 unless authourized... prevent info leak */
@@ -4245,7 +4249,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.405 $", "%*s %s", revision);
+	sscanf("$Revision: 1.406 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
