@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.404 2006/04/25 19:23:40 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.405 2006/04/27 19:59:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2308,13 +2308,17 @@ static BOOL check_request(http_session_t * session)
 					if(wildmatch(filename,spec,TRUE)) {
 						if(iniReadString(file, spec, "AccessRequirements", session->req.ars,str)==str)
 							SAFECOPY(session->req.ars,str);
-						if(iniReadString(file, spec, "Realm", scfg.sys_name,str)==str)
+						if(iniReadString(file, spec, "Realm", scfg.sys_name,str)==str) {
+							FREE_AND_NULL(session->req.realm);
 							session->req.realm=strdup(str);
+						}
 						if(iniReadString(file, spec, "ErrorDirectory", error_dir,str)==str) {
+							FREE_AND_NULL(session->req.error_dir);
 							prep_dir(root_dir, str, sizeof(str));
 							session->req.error_dir=strdup(str);
 						}
 						if(iniReadString(file, spec, "CGIDirectory", cgi_dir,str)==str) {
+							FREE_AND_NULL(session->req.cgi_dir);
 							prep_dir(root_dir, str, sizeof(str));
 							session->req.cgi_dir=strdup(str);
 							recheck_dynamic=TRUE;
@@ -4241,7 +4245,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.404 $", "%*s %s", revision);
+	sscanf("$Revision: 1.405 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
