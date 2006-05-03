@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.53 2006/04/05 09:45:21 rswindell Exp $ */
+/* $Id: str.cpp,v 1.54 2006/05/03 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1187,8 +1187,6 @@ void sbbs_t::change_user(void)
 			getuserrec(&cfg,i,U_PASS,8,tmp);
 			bputs(text[ChUserPwPrompt]);
 			console|=CON_R_ECHOX;
-			if(!(cfg.sys_misc&SM_ECHO_PW))
-				console|=CON_L_ECHOX;
 			getstr(str,8,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(strcmp(str,tmp))
