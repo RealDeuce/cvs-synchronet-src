@@ -1,8 +1,5 @@
-/* $Id: syncterm.c,v 1.96 2006/09/24 05:07:15 deuce Exp $ */
+/* $Id: syncterm.c,v 1.87 2006/02/27 21:46:11 rswindell Exp $ */
 
-#define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
-					/* Is windows.h REALLY necessary?!?! */
-#define WIN32_LEAN_AND_MEAN
 #include <sys/stat.h>
 #ifdef _WIN32
 #include <shlobj.h>
@@ -19,7 +16,6 @@
 #include "cterm.h"
 #include "allfonts.h"
 
-#include "st_crypt.h"
 #include "fonts.h"
 #include "syncterm.h"
 #include "bbslist.h"
@@ -28,9 +24,12 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.8"
+char* syncterm_version = "SyncTERM 0.7"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
+#endif
+#ifdef PCM
+	" Clippy Edition"
 #endif
 	;
 
@@ -75,6 +74,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 {
 	char *p1, *p2, *p3;
 	struct	bbslist	*list[MAX_OPTS+1];
+	char	path[MAX_PATH+1];
 	char	listpath[MAX_PATH+1];
 	int		listcount=0, i;
 
@@ -91,7 +91,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->reversed=FALSE;
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
 		bbs->conn_type=dflt_conn_type;
-		bbs->port=conn_ports[dflt_conn_type];
+		bbs->port=(dflt_conn_type==CONN_TYPE_TELNET)?23:513;
 		bbs->xfer_loglevel=LOG_INFO;
 		bbs->telnet_loglevel=LOG_INFO;
 		bbs->music=CTERM_MUSIC_BANSI;
@@ -100,17 +100,12 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	p1=url;
 	if(!strnicmp("rlogin://",url,9)) {
 		bbs->conn_type=CONN_TYPE_RLOGIN;
-		bbs->port=conn_ports[bbs->conn_type];
+		bbs->port=513;
 		p1=url+9;
-	}
-	else if(!strnicmp("ssh://",url,9)) {
-		bbs->conn_type=CONN_TYPE_SSH;
-		bbs->port=conn_ports[bbs->conn_type];
-		p1=url+6;
 	}
 	else if(!strnicmp("telnet://",url,9)) {
 		bbs->conn_type=CONN_TYPE_TELNET;
-		bbs->port=conn_ports[bbs->conn_type];
+		bbs->port=23;
 		p1=url+9;
 	}
 	/* Remove trailing / (Win32 adds one 'cause it hates me) */
@@ -306,6 +301,9 @@ int main(int argc, char **argv)
 	char	ext[MAX_PATH+1];
 	/* Command-line parsing vars */
 	char	url[MAX_PATH+1];
+	char	*p1;
+	char	*p2;
+	char	*p3;
 	int		i;
 	int	ciolib_mode=CIOLIB_MODE_AUTO;
 	str_list_t	inifile;
@@ -363,9 +361,6 @@ int main(int argc, char **argv)
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
 					break;
-				case 'H':
-					conn_type=CONN_TYPE_SSH;
-					break;
 				case 'T':
 					conn_type=CONN_TYPE_TELNET;
 					break;
@@ -381,8 +376,7 @@ int main(int argc, char **argv)
 
 	load_settings(&settings);
 
-	if(initciolib(ciolib_mode))
-		return(1);
+	initciolib(ciolib_mode);
 	if(!dont_set_mode) {
 		switch(settings.startup_mode) {
 			case SCREEN_MODE_80X25:
@@ -452,7 +446,7 @@ int main(int argc, char **argv)
 	load_font_files();
 	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
-		if(!conn_connect(bbs)) {
+		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->syspass,bbs->conn_type,bbs->bpsrate)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			bbs->connected=time(NULL);
@@ -493,10 +487,8 @@ int main(int argc, char **argv)
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
-			if(drawwin()) {
-				atexit(exit_crypt);
+			if(drawwin())
 				return(1);
-			}
 			if(log_fp==NULL && bbs->logfile[0])
 				log_fp=fopen(bbs->logfile,"a");
 			if(log_fp!=NULL) {
@@ -547,7 +539,6 @@ int main(int argc, char **argv)
 	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
-		atexit(exit_crypt);
 	return(0);
 
 	USAGE:
@@ -568,10 +559,9 @@ int main(int argc, char **argv)
         "-l# =  set screen lines to # (default=auto-detect)\n"
 		"-t  =  use telnet mode if URL does not include the scheme\n"
 		"-r  =  use rlogin mode if URL does not include the scheme\n"
-		"-h  =  use SSH mode if URL does not include the scheme\n"
 		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"\n"
-		"URL format is: [(rlogin|telnet|ssh)://][user[:password]@]domainname[:port]\n"
+		"URL format is: [(rlogin|telnet)://][user[:password]@]domainname[:port]\n"
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
 		"          telnet://deuce@nix.synchro.net\n"
 		"          nix.synchro.net\n"
