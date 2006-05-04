@@ -6,6 +6,10 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
+ifdef CHANNEL_CLIPPY
+ CFLAGS +=	-DPCM
+endif
+
 ifdef USE_GUTS
  CFLAGS +=	-I../guts -DGUTS_BUILTIN
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
