@@ -2,13 +2,13 @@
 
 /* Synchronet External DOS Program Launcher (16-bit MSVC 1.52c project) */
 
-/* $Id: dosxtrn.c,v 1.7 2005/09/05 21:54:03 deuce Exp $ */
+/* $Id: dosxtrn.c,v 1.9 2006/05/04 02:43:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -52,10 +52,10 @@ static void truncsp(char *str)
 {
 	size_t c;
 
-str[strcspn(str,"\t")]=0;
-c=strlen(str);
-while(c && (unsigned char)str[c-1]<=' ') c--;
-str[c]=0;
+	str[strcspn(str,"\t")]=0;
+	c=strlen(str);
+	while(c && (unsigned char)str[c-1]<=' ') c--;
+	str[c]=0;
 }
 
 short	vdd=0;
@@ -117,22 +117,6 @@ static int vdd_op(BYTE op)
 	return(retval);
 }
 
-#if 0
-
-char win95int14[]={
-	 0xCF	/* IRET */
-	,0x90	/* NOP */
-	,0x90
-	,0x90
-	,0x90
-	,0x90
-	,0x54	/* FOSSIL sig */
-	,0x19	/* FOSSIL sig */
-	,0x1B	/* FOSSIL highest func supported */
-};
-
-#else
-
 union REGS inregs;
 struct SREGS sregs;
 BOOL inside_int14=FALSE;
@@ -175,8 +159,6 @@ void interrupt win95int14(
 
 	inside_int14=FALSE;
 }
-
-#endif
 
 void vdd_getstatus(vdd_status_t* status)
 {
@@ -340,6 +322,11 @@ void interrupt winNTint14(
 	}
 }
 
+void int14stub(void)
+{
+	/* This function will be overwritten later (during runtime) with FOSSIL signature */
+}
+
 void interrupt winNTint16(
 	unsigned _es, unsigned _ds,
 	unsigned _di, unsigned _si,
@@ -474,6 +461,15 @@ int main(int argc, char **argv)
 	/* Save int14 handler */
 	oldint14=_dos_getvect(0x14);
 
+	/* Overwrite stub function */
+	((BYTE*)int14stub)[0] = 0xe9;	/* jump (relative) */
+	((BYTE*)int14stub)[3] = 0x90;	/* NOP */
+	((BYTE*)int14stub)[4] = 0x90;	/* NOP */
+	((BYTE*)int14stub)[5] = 0x90;	/* NOP */
+	((BYTE*)int14stub)[6] = 0x54;	/* FOSSIL sig */
+	((BYTE*)int14stub)[7] = 0x19;	/* FOSSIL sig */
+	((BYTE*)int14stub)[8] = 0x1B;	/* FOSSIL highest func supported */
+
 	if(NT) {	/* Windows NT/2000 */
 
 		/* Register VDD */
@@ -508,18 +504,21 @@ int main(int argc, char **argv)
 			UnRegisterModule();
 			return(-1);
 		}
-
 		oldint16=_dos_getvect(0x16);
 		oldint29=_dos_getvect(0x29);
-		if(mode==SBBSEXEC_MODE_FOSSIL)
-			_dos_setvect(0x14,(void(interrupt *)())winNTint14); 
+		if(mode==SBBSEXEC_MODE_FOSSIL) {
+			*(WORD*)((BYTE*)int14stub+1) = (WORD)winNTint14 - (WORD)&int14stub - 3;	/* jmp offset */
+			_dos_setvect(0x14,(void(interrupt *)())int14stub); 
+		}
 		if(mode&SBBSEXEC_MODE_DOS_IN)
 			_dos_setvect(0x16,winNTint16); 
 		if(mode&SBBSEXEC_MODE_DOS_OUT) 
 			_dos_setvect(0x29,winNTint29); 
 	}
-	else if(mode==SBBSEXEC_MODE_FOSSIL)	/* Windows 95/98/Millennium */
-		_dos_setvect(0x14,(void(interrupt *)())win95int14); 
+	else if(mode==SBBSEXEC_MODE_FOSSIL)	{ /* Windows 95/98/Millennium */
+		*(WORD*)((BYTE*)int14stub+1) = (WORD)win95int14 - (WORD)&int14stub - 3;		/* jmp offset */
+		_dos_setvect(0x14,(void(interrupt *)())int14stub); 
+	}
 
 	_heapmin();
 	i=_spawnvp(_P_WAIT, arg[0], arg);
