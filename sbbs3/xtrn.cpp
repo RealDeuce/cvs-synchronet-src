@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.198 2006/09/14 22:00:30 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.193 2006/02/03 09:08:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -351,7 +351,6 @@ static void add_env_var(str_list_t* list, const char* var, const char* val)
 	if(wrslot!=INVALID_HANDLE_VALUE)	CloseHandle(wrslot);		\
 	if(start_event!=NULL)				CloseHandle(start_event);	\
 	if(hungup_event!=NULL)				CloseHandle(hungup_event);	\
-	if(hangup_event!=NULL)				CloseHandle(hangup_event);	\
 	ReleaseMutex(exec_mutex);										\
 	SetLastError(last_error)
 
@@ -389,7 +388,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	wrslot=INVALID_HANDLE_VALUE;
 	HANDLE  start_event=NULL;
 	HANDLE	hungup_event=NULL;
-	HANDLE	hangup_event=NULL;
 	HANDLE	rdoutpipe;
 	HANDLE	wrinpipe;
     PROCESS_INFORMATION process_info;
@@ -492,28 +490,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
     } else { // DOS external
 
-		// DOS-compatible (short) paths
-		char node_dir[MAX_PATH+1];
-		char ctrl_dir[MAX_PATH+1];
-		char data_dir[MAX_PATH+1];
-		char exec_dir[MAX_PATH+1];
-
-		// in case GetShortPathName fails
-		SAFECOPY(node_dir,cfg.node_dir);
-		SAFECOPY(ctrl_dir,cfg.ctrl_dir);
-		SAFECOPY(data_dir,cfg.data_dir);
-		SAFECOPY(exec_dir,cfg.exec_dir);
-
-		GetShortPathName(cfg.node_dir,node_dir,sizeof(node_dir));
-		GetShortPathName(cfg.ctrl_dir,ctrl_dir,sizeof(node_dir));
-		GetShortPathName(cfg.data_dir,data_dir,sizeof(data_dir));
-		GetShortPathName(cfg.exec_dir,exec_dir,sizeof(exec_dir));
-
 		sprintf(path,"%sDOSXTRN.RET", cfg.node_dir);
 		remove(path);
 
     	// Create temporary environment file
-    	sprintf(path,"%sDOSXTRN.ENV", node_dir);
+    	sprintf(path,"%sDOSXTRN.ENV", cfg.node_dir);
         FILE* fp=fopen(path,"w");
         if(fp==NULL) {
 			XTRN_CLEANUP;
@@ -521,11 +502,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
             return(errno);
         }
         fprintf(fp, "%s\n", fullcmdline);
-		fprintf(fp, "DSZLOG=%sPROTOCOL.LOG\n", node_dir);
-        fprintf(fp, "SBBSNODE=%s\n", node_dir);
-        fprintf(fp, "SBBSCTRL=%s\n", ctrl_dir);
-		fprintf(fp, "SBBSDATA=%s\n", data_dir);
-		fprintf(fp, "SBBSEXEC=%s\n", exec_dir);
+		fprintf(fp, "DSZLOG=%sPROTOCOL.LOG\n", cfg.node_dir);
+        fprintf(fp, "SBBSNODE=%s\n", cfg.node_dir);
+        fprintf(fp, "SBBSCTRL=%s\n", cfg.ctrl_dir);
+		fprintf(fp, "SBBSDATA=%s\n", cfg.data_dir);
+		fprintf(fp, "SBBSEXEC=%s\n", cfg.exec_dir);
         fprintf(fp, "SBBSNNUM=%d\n", cfg.node_num);
 		/* date/time env vars */
 		fprintf(fp, "DAY=%02u\n", tm.tm_mday);
@@ -535,7 +516,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "YEAR=%u\n",1900+tm.tm_year);
         fclose(fp);
 
-        sprintf(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
+		SAFECOPY(str,path);	// incase GetShortPathName fails
+		GetShortPathName(path,str,sizeof(str));
+        sprintf(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, str);
 
 		if(!(mode&EX_OFFLINE) && nt) {	// Windows NT/2000
 			i=SBBSEXEC_MODE_FOSSIL;
@@ -543,24 +526,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
            		i|=SBBSEXEC_MODE_DOS_IN;
 			if(mode&EX_OUTR)
         		i|=SBBSEXEC_MODE_DOS_OUT;
-			sprintf(str," NT %u %u"
-				,cfg.node_num,i);
+			sprintf(str," NT %u %u %u"
+				,cfg.node_num,i,startup->xtrn_polls_before_yield);
 			strcat(fullcmdline,str);
 
 			sprintf(str,"sbbsexec_hungup%d",cfg.node_num);
 			if((hungup_event=CreateEvent(
-				 NULL	// pointer to security attributes
-				,TRUE	// flag for manual-reset event
-				,FALSE  // flag for initial state
-				,str	// pointer to event-object name
-				))==NULL) {
-				XTRN_CLEANUP;
-				errormsg(WHERE, ERR_CREATE, str, 0);
-				return(GetLastError());
-			}
-
-			sprintf(str,"sbbsexec_hangup%d",cfg.node_num);
-			if((hangup_event=CreateEvent(
 				 NULL	// pointer to security attributes
 				,TRUE	// flag for manual-reset event
 				,FALSE  // flag for initial state
@@ -618,8 +589,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			if(mode&EX_OUTR)
         		start.mode|=SBBSEXEC_MODE_DOS_OUT;
 
-			sprintf(str," 95 %u %u"
-				,cfg.node_num,start.mode);
+			sprintf(str," 95 %u %u %u"
+				,cfg.node_num,start.mode,startup->xtrn_polls_before_yield);
 			strcat(fullcmdline,str);
 
 			if(!DeviceIoControl(
@@ -1005,18 +976,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 				/* only check process termination after 300 milliseconds of no I/O */
 				/* to allow for last minute reception of output from DOS programs */
-				if(loop_since_io>=3) {
-
-					if(online && hangup_event!=NULL
-						&& WaitForSingleObject(hangup_event,0)==WAIT_OBJECT_0) {
-						lprintf(LOG_NOTICE,"Node %d External program requested hangup (dropped DTR)"
-							,cfg.node_num);
-						hangup();
-					}
-
-					if(WaitForSingleObject(process_info.hProcess,0)==WAIT_OBJECT_0)
-						break;	/* Process Terminated */
-				}
+				if(loop_since_io>=3
+					&& WaitForSingleObject(process_info.hProcess,0)==WAIT_OBJECT_0)
+					break;	/* Process Terminated */
 
 				/* only check node for interrupt flag every 3 seconds of no I/O */
 				if((loop_since_io%30)==0) {	
@@ -1720,7 +1682,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		sigprocmask(SIG_UNBLOCK,&sigs,NULL);
 		if(!(mode&EX_BIN))  {
 			static char	term_env[256];
-			if(term_supports(ANSI))
+			if(useron.misc&ANSI)
 				sprintf(term_env,"TERM=%s",startup->xtrn_term_ansi);
 			else
 				sprintf(term_env,"TERM=%s",startup->xtrn_term_dumb);
