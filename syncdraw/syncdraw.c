@@ -31,7 +31,6 @@
 #include <sys/types.h>
 
 #include <dirwrap.h>
-#include "xpendian.h"
 
 #include "homedir.h"
 #include "block.h"
@@ -703,7 +702,6 @@ SelectFont(void)
 	if (fp != NULL) {
 		fread(&Header.sign, 1, 10, fp);
 		fread(&Header.NumberofFonts, 2, 1, fp);
-		Header.NumberofFonts=LE_SHORT(Header.NumberofFonts);
 		for (b = 0; b <= Header.NumberofFonts; b++) {
 			Openfont(b);
 			memcpy(&Fnts[b + 1], &FontRec.FontName, 16);
@@ -937,26 +935,6 @@ asciitable(void)
 			if (x >= 16)
 				x -= 16;
 			break;
-		case CIO_KEY_HOME:
-			if(x)
-				x = (x / 16)*16;
-			break;
-		case CIO_KEY_END:
-			if(x)
-				x = (x / 16)*16;
-			x += 15;
-			break;
-		case CIO_KEY_PPAGE:
-			if(x)
-				x=x % 16;
-			break;
-		case CIO_KEY_NPAGE:
-			if(x)
-				x=x % 16;
-			x+=240;
-			break;
-		default:
-			return(ch);
 		}
 	} while (ch != 27 && ch != 13);
 	if (ch == 13 && x != 127)
@@ -1049,7 +1027,6 @@ main(int argnum, char *args[])
 	_wscroll=0;
 
 	initciolib(CIOLIB_MODE_AUTO);
-	settitle("SyncDraw");
 
 	CharSet[0] = NCharSet[0];
 	CharSet[1] = NCharSet[1];
@@ -1154,7 +1131,6 @@ main(int argnum, char *args[])
 			break;
 		case 0x2d00:	/* ALT+X - Exit */
 			exitprg();
-			return(0);
 			break;
 		case 0x1e00:	/* ALT+A - Color */
 			Attribute = SelectColor();
