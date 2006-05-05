@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.32 2006/05/09 21:02:55 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.30 2006/04/08 01:01:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
 
 #include "xpprintf.h"
 
@@ -1144,7 +1141,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 				if(s<precision)
 					s=precision;
 				if(s>=MAX_ARG_LEN)
-					entry=(char *)alloca(s+1);
+					entry=(char *)malloc(s+1);
 				if(entry==NULL)
 					return(NULL);
 				j=sprintf(entry, this_format, cp);
@@ -1173,13 +1170,18 @@ char *xp_asprintf_next(char *format, int type, ...)
 		 */
 		if(format_len < (format_len-this_format_len+j)) {
 			newbuf=(char *)realloc(format, format_len-this_format_len+j);
-			if(newbuf==NULL)
+			if(newbuf==NULL) {
+				if(entry != entry_buf)
+					free(entry);
 				return(NULL);
+			}
 			format=newbuf;
 		}
 		/* Move trailing end to make space */
 		memmove(format+offset+j, format+offset+this_format_len, format_len-offset-this_format_len);
 		memcpy(format+offset, entry, j);
+		if(entry != entry_buf)
+			free(entry);
 		p=format+offset+j;
 	}
 	else
