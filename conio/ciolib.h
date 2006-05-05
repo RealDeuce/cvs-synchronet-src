@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.35 2005/11/19 07:52:34 deuce Exp $ */
+/* $Id: ciolib.h,v 1.36 2006/01/30 04:11:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -244,6 +244,7 @@ typedef struct {
 	int		(*setfont)		(int font, int force);
 	int		(*getfont)		(void);
 	int		(*loadfont)		(char *filename);
+	int		*ESCDELAY;
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
