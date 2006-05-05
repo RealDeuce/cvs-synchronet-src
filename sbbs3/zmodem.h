@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.38 2005/06/13 01:38:54 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.39 2006/02/24 09:50:50 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -275,6 +275,7 @@ typedef struct {
 	int			(*recv_byte)(void*, unsigned timeout);
 	void		(*progress)(void*, ulong current_pos);
 	BOOL		(*is_connected)(void*);
+	BOOL		(*is_cancelled)(void*);
 	BOOL		(*data_waiting)(void*, unsigned timeout);
 
 } zmodem_t;
@@ -285,6 +286,7 @@ void		zmodem_init(zmodem_t*, void* cbdata
 						,int	(*send_byte)(void*, BYTE ch, unsigned timeout)
 						,int	(*recv_byte)(void*, unsigned timeout)
 						,BOOL	(*is_connected)(void*)
+						,BOOL	(*is_cancelled)(void*)
 						,BOOL	(*data_waiting)(void*, unsigned timeout)
 						);
 char*		zmodem_ver(char *buf);
