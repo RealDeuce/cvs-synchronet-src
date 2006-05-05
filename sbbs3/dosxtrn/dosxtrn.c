@@ -2,7 +2,7 @@
 
 /* Synchronet External DOS Program Launcher (16-bit MSVC 1.52c project) */
 
-/* $Id: dosxtrn.c,v 1.11 2006/05/05 02:47:29 rswindell Exp $ */
+/* $Id: dosxtrn.c,v 1.12 2006/05/05 02:53:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,12 +217,12 @@ void interrupt winNTint14(
 		,0			/* ID string pointer */	
 		,0,0		/* receive buffer size/free (overwritten later) */
 		,0,0		/* transmit buffer size/free (overwritten later) */
-        ,80,25		/* screen dimensions */
+        ,80,25		/* screen dimensions (cols, rows) */
 					/* port settings (i.e. 38400 N-8-1): */
-        , FOSSIL_BAUD_RATE_38400<<FOSSIL_BAUD_RATE_SHIFT
-		| FOSSIL_PARITY_NONE<<FOSSIL_PARITY_SHIFT
-		| FOSSIL_DATA_BITS_8<<FOSSIL_DATA_BITS_SHIFT
-		| FOSSIL_STOP_BITS_1<<FOSSIL_STOP_BITS_SHIFT
+        ,FOSSIL_BAUD_RATE_38400
+		|FOSSIL_PARITY_NONE
+		|FOSSIL_DATA_BITS_8
+		|FOSSIL_STOP_BITS_1
 	};
 
 	switch(_ax>>8) {
@@ -406,7 +406,7 @@ int main(int argc, char **argv)
 	BOOL	success=FALSE;
 	WORD	seg;
 
-	sscanf("$Revision: 1.11 $", "%*s 1.%u", &revision);
+	sscanf("$Revision: 1.12 $", "%*s 1.%u", &revision);
 
 	if(argc<2) {
 		fprintf(stderr
