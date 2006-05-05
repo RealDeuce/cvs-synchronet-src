@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.66 2005/12/06 17:48:41 deuce Exp $ */
+/* $Id: console.c,v 1.67 2006/05/05 21:01:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,6 +166,7 @@ typedef struct TextLine {
 	u_char	*exposed;
 } TextLine;
 TextLine *lines = NULL;
+unsigned int	x_pending_mousekeys=0;
 
 /* X Variables */
 Display *dpy=NULL;
@@ -572,8 +573,12 @@ KbdWrite(WORD code)
 		kf = K_BUFSTARTP;
 
 	if (kf == K_NEXT) {
-		x11.XBell(dpy, 0);
-		return;
+		if(code==CIO_KEY_MOUSE)
+			x_pending_mousekeys++;
+		else {
+			x11.XBell(dpy, 0);
+			return;
+		}
 	}
 	K_BUF(K_FREE) = code;
 	K_FREE = kf;
@@ -1799,12 +1804,18 @@ WORD
 KbdRead()
 {
 	int kf = K_NEXT;
+	WORD	ret;
 
 	K_NEXT = K_NEXT + 2;
 	if (K_NEXT == K_BUFENDP)
 		K_NEXT = K_BUFSTARTP;
 
-	return(K_BUF(kf));
+	ret=K_BUF(kf);
+	if(x_pending_mousekeys) {
+		KbdWrite(CIO_KEY_MOUSE);
+		x_pending_mousekeys--;
+	}
+	return(ret);
 }
 
 int

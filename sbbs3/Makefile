@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.81 2006/09/08 15:28:00 deuce Exp $
+# $Id: Makefile,v 1.80 2006/04/08 02:00:49 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -136,7 +136,7 @@ $(BAJA): $(BAJA_OBJS)
 # UnBaja Utility
 $(UNBAJA): $(UNBAJA_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(SMBLIB_LIBS) $(XPDEV_LIBS) $(WILDARGS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV_LIBS) $(WILDARGS)
 
 # Node Utility
 $(NODE): $(NODE_OBJS)
