@@ -1,13 +1,10 @@
-/* $Id: term.c,v 1.151 2006/09/24 23:54:05 deuce Exp $ */
+/* $Id: term.c,v 1.138 2006/03/20 23:50:51 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
 #include <mouse.h>
 #include <keys.h>
-
-#include "threadwrap.h"
-#include "filewrap.h"
 
 #include "conn.h"
 #include "syncterm.h"
@@ -56,8 +53,8 @@ void mousedrag(unsigned char *scrollback)
 	int lastchar;
 
 	sbufsize=term.width*2*term.height;
-	screen=(unsigned char*)alloca(sbufsize);
-	sbuffer=(unsigned char*)alloca(sbufsize);
+	screen=(unsigned char*)malloc(sbufsize);
+	sbuffer=(unsigned char*)malloc(sbufsize);
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 	while(1) {
 		key=getch();
@@ -93,7 +90,7 @@ void mousedrag(unsigned char *scrollback)
 						break;
 					default:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=alloca(endpos-startpos+4+lines*2);
+						copybuf=malloc(endpos-startpos+4+lines*2);
 						outpos=0;
 						lastchar=0;
 						for(pos=startpos;pos<=endpos;pos++) {
@@ -110,12 +107,17 @@ void mousedrag(unsigned char *scrollback)
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
 						puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
+						free(copybuf);
+						free(screen);
+						free(sbuffer);
 						return;
 				}
 				break;
 			default:
 				puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 				ungetch(key);
+				free(screen);
+				free(sbuffer);
 				return;
 		}
 	}
@@ -388,29 +390,38 @@ static int recv_byte(void* unused, unsigned timeout)
 		buftop=i;
 		bufbot=0;
 	}
-	ch=recvbuf[bufbot++];
-/*
 	if(buftop < sizeof(recvbuf)) {
 		i=conn_recv(recvbuf + buftop, sizeof(recvbuf) - buftop, 0);
 		if(i > 0)
 			buftop+=i;
 	}
- */
+	ch=recvbuf[bufbot++];
 /*	lprintf(LOG_DEBUG,"RX: %02X", ch); */
 	return(ch);
 }
 
 void purge_recv(void)
 {
+	int ch;
 	unsigned count=0;
 
 	lprintf(LOG_NOTICE,"Purging receive buffer...");
 	YIELD();
-	while(recv_byte(NULL,0) >= 0) {
+	while((ch=recv_byte(NULL,0)) >= 0) {
 		YIELD();
 		count++;
 	}
-	lprintf(LOG_NOTICE,"%u bytes purged",count);
+	lprintf(LOG_NOTICE,"%u bytes purged");
+}
+
+#if defined(__BORLANDC__)
+	#pragma argsused
+#endif
+static BOOL is_connected(void* unused)
+{
+	if(bufbot < buftop)
+		return(TRUE);
+	return socket_check(conn_socket,NULL,NULL,0);
 }
 
 #if defined(__BORLANDC__)
@@ -540,7 +551,7 @@ void erase_transfer_window(void) {
 	_setcursortype(_NORMALCURSOR);
 }
 
-static void binary_mode_on(struct bbslist *bbs)
+static binary_mode_on(struct bbslist *bbs)
 {
 	if(bbs->conn_type == CONN_TYPE_TELNET) {
 		request_telnet_opt(TELNET_DO,TELNET_BINARY_TX);
@@ -548,7 +559,7 @@ static void binary_mode_on(struct bbslist *bbs)
 	}
 }
 
-static void binary_mode_off(struct bbslist *bbs)
+static binary_mode_off(struct bbslist *bbs)
 {
 	if(bbs->conn_type == CONN_TYPE_TELNET) {
 		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
@@ -556,7 +567,7 @@ static void binary_mode_off(struct bbslist *bbs)
 	}
 }
 
-void ascii_upload(FILE *fp);
+void ascii_upload(FILE *fp, char *path);
 void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path);
 
 void begin_upload(struct bbslist *bbs, BOOL autozm)
@@ -572,12 +583,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 			,"ASCII"
 			,""
 		};
-	struct	text_info txtinfo;
-	char	*buf;
-
-    gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if(safe_mode)
 		return;
@@ -588,7 +593,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	if(result==-1 || fpick.files<1) {
 		filepick_free(&fpick);
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -598,7 +602,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
@@ -612,22 +615,11 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 				zmodem_upload(bbs, fp, path);
 				break;
 			case 1:
-				ascii_upload(fp);
+				ascii_upload(fp, path);
 				break;
 		}
 	}
 	uifcbail();
-	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-}
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-static BOOL is_connected(void* unused)
-{
-	if(bufbot < buftop)
-		return(TRUE);
-	return conn_is_connected();
 }
 
 #ifdef GUTS_BUILTIN
@@ -817,7 +809,7 @@ void guts_transfer(struct bbslist *bbs)
 }
 #endif
 
-void ascii_upload(FILE *fp)
+void ascii_upload(FILE *fp, char *path)
 {
 	char linebuf[1024+2];	/* One extra for terminator, one extra for added CR */
 	char *p;
@@ -943,7 +935,7 @@ void music_control(struct bbslist *bbs)
 	};
 
    	gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	init_uifc(FALSE, FALSE);
 
@@ -962,8 +954,8 @@ void music_control(struct bbslist *bbs)
 				"so-called ANSI music replaced the Delete Line ANSI sequence.  Many\n"
 				"full-screen editors use DL, and to this day, some programs (Such as\n"
 				"BitchX) require it to run.\n\n"
-				"To deal with this, BananaCom decided to use what *they* thought was an\n"
-				"unspecified escape code, ESC[N, for ANSI music.  Unfortunately, this is\n"
+				"To deal with this, BananaCom decided to use what *they* though was an\n"
+				"unspecified escape code ESC[N for ANSI music.  Unfortunately, this is\n"
 				"broken also.  Although rarely implemented in BBS clients, ESC[N is\n"
 				"the erase field sequence.\n\n"
 				"SyncTERM has now defined a third ANSI music sequence which *IS* legal\n"
@@ -975,6 +967,7 @@ void music_control(struct bbslist *bbs)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
 	gotoxy(txtinfo.curx,txtinfo.cury);
+	free(buf);
 }
 
 void font_control(struct bbslist *bbs)
@@ -986,7 +979,7 @@ void font_control(struct bbslist *bbs)
 	if(safe_mode)
 		return;
    	gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	init_uifc(FALSE, FALSE);
 
@@ -1011,6 +1004,7 @@ void font_control(struct bbslist *bbs)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
 	gotoxy(txtinfo.curx,txtinfo.cury);
+	free(buf);
 }
 
 void capture_control(struct bbslist *bbs)
@@ -1022,7 +1016,7 @@ void capture_control(struct bbslist *bbs)
 	if(safe_mode)
 		return;
    	gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	init_uifc(FALSE, FALSE);
 
@@ -1095,6 +1089,7 @@ void capture_control(struct bbslist *bbs)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
 	gotoxy(txtinfo.curx,txtinfo.cury);
+	free(buf);
 }
 
 BOOL doterm(struct bbslist *bbs)
@@ -1299,15 +1294,6 @@ BOOL doterm(struct bbslist *bbs)
 #endif
 					conn_send("\033[K",3,0);
 					break;
-				case CIO_KEY_DC:		/* "Delete" key, send ASCII 127 (DEL) */
-					conn_send("\x7f",1,0);
-					break;
-				case CIO_KEY_NPAGE:		/* Page down */
-					conn_send("\033[U",3,0);
-					break;
-				case CIO_KEY_PPAGE:	/* Page up */
-					conn_send("\033[V",3,0);
-					break;
 				case CIO_KEY_F(1):
 					conn_send("\033OP",3,0);
 					break;
@@ -1315,55 +1301,48 @@ BOOL doterm(struct bbslist *bbs)
 					conn_send("\033OQ",3,0);
 					break;
 				case CIO_KEY_F(3):
-					conn_send("\033OR",3,0);
+					conn_send("\033Ow",3,0);
 					break;
 				case CIO_KEY_F(4):
-					conn_send("\033OS",3,0);
-					break;
-				case CIO_KEY_F(5):
-					conn_send("\033Ot",3,0);
-					break;
-				case CIO_KEY_F(6):
-					conn_send("\033[17~",5,0);
-					break;
-				case CIO_KEY_F(7):
-					conn_send("\033[18~",5,0);
-					break;
-				case CIO_KEY_F(8):
-					conn_send("\033[19~",5,0);
-					break;
-				case CIO_KEY_F(9):
-					conn_send("\033[20~",5,0);
-					break;
-				case CIO_KEY_F(10):
-					conn_send("\033[21~",5,0);
-					break;
-				case CIO_KEY_F(11):
-					conn_send("\033[23~",5,0);
-					break;
-				case CIO_KEY_F(12):
-					conn_send("\033[24~",5,0);
-					break;
-				case CIO_KEY_IC:
-					conn_send("\033[@",3,0);
+					conn_send("\033Ox",3,0);
 					break;
 				case 0x3000:	/* ALT-B - Scrollback */
+#ifdef PCM
+					if(!confirm("View scrollback?",NULL))
+						continue;
+#endif
 					viewscroll();
 					showmouse();
 					break;
 				case 0x2e00:	/* ALT-C - Capture */
+#ifdef PCM
+					if(!confirm("Go to capture control menu?",NULL))
+						continue;
+#endif
 					capture_control(bbs);
 					showmouse();
 					break;
 				case 0x2000:	/* ALT-D - Download */
+#ifdef PCM
+					if(!confirm("Begin download?",NULL))
+						continue;
+#endif
 					zmodem_download(bbs);
 					showmouse();
 					break;
 				case 0x2100:	/* ALT-F */
+#ifdef PCM
+					if(!confirm("Go to font control menu?",NULL))
+						continue;
+#endif
 					font_control(bbs);
 					showmouse();
 					break;
 				case 0x2600:	/* ALT-L */
+#ifdef PCM
+					if(!confirm("Send login credentials?",NULL))
+						continue;
+#endif
 					conn_send(bbs->user,strlen(bbs->user),0);
 					conn_send("\r",1,0);
 					SLEEP(10);
@@ -1376,10 +1355,18 @@ BOOL doterm(struct bbslist *bbs)
 					}
 					break;
 				case 0x3200:	/* ALT-M */
+#ifdef PCM
+					if(!confirm("Go to music control menu?",NULL))
+						continue;
+#endif
 					music_control(bbs);
 					showmouse();
 					break;
 				case 0x1600:	/* ALT-U - Upload */
+#ifdef PCM
+					if(!confirm("Begin upload?",NULL))
+						continue;
+#endif
 					begin_upload(bbs, FALSE);
 					showmouse();
 					break;
@@ -1404,12 +1391,13 @@ BOOL doterm(struct bbslist *bbs)
 						struct	text_info txtinfo;
 
     					gettextinfo(&txtinfo);
-						buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+						buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 						gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						i=0;
 						init_uifc(FALSE, FALSE);
 						if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Disconnect... Are you sure?",opts)==0) {
 							uifcbail();
+							free(buf);
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
@@ -1422,6 +1410,7 @@ BOOL doterm(struct bbslist *bbs)
 						window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 						textattr(txtinfo.attribute);
 						gotoxy(txtinfo.curx,txtinfo.cury);
+						free(buf);
 						showmouse();
 					}
 					break;
@@ -1439,6 +1428,10 @@ BOOL doterm(struct bbslist *bbs)
 					j=wherey();
 					switch(syncmenu(bbs, &speed)) {
 						case -1:
+#ifdef PCM
+							if(!confirm("Disconnect?",NULL))
+								continue;
+#endif
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
@@ -1446,21 +1439,45 @@ BOOL doterm(struct bbslist *bbs)
 							hidemouse();
 							return(FALSE);
 						case 3:
+#ifdef PCM
+							if(!confirm("Begin upload?",NULL))
+								continue;
+#endif
 							begin_upload(bbs, FALSE);
 							break;
 						case 4:
+#ifdef PCM
+							if(!confirm("Begin download?",NULL))
+								continue;
+#endif
 							zmodem_download(bbs);
 							break;
 						case 7:
+#ifdef PCM
+							if(!confirm("Got to capture control menu?",NULL))
+								continue;
+#endif
 							capture_control(bbs);
 							break;
 						case 8:
+#ifdef PCM
+							if(!confirm("Go to music control menu?",NULL))
+								continue;
+#endif
 							music_control(bbs);
 							break;
 						case 9:
+#ifdef PCM
+							if(!confirm("Go to font control menu?",NULL))
+								continue;
+#endif
 							font_control(bbs);
 							break;
 						case 10:
+#ifdef PCM
+							if(!confirm("Disconnect?",NULL))
+								continue;
+#endif
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
@@ -1472,12 +1489,20 @@ BOOL doterm(struct bbslist *bbs)
 					gotoxy(i,j);
 					break;
 				case 0x9800:	/* ALT-Up */
+#ifdef PCM
+					if(!confirm("Increase simulated BPS rate?",NULL))
+						continue;
+#endif
 					if(speed)
 						speed=rates[get_rate_num(speed)+1];
 					else
 						speed=rates[0];
 					break;
 				case 0xa000:	/* ALT-Down */
+#ifdef PCM
+					if(!confirm("Decrease simulated BPS rate?",NULL))
+						continue;
+#endif
 					i=get_rate_num(speed);
 					if(i==0)
 						speed=0;
@@ -1500,8 +1525,6 @@ BOOL doterm(struct bbslist *bbs)
 			MAYBE_YIELD();
 	}
 
-/*
 	hidemouse();
 	return(FALSE);
- */
 }
