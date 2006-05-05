@@ -2,13 +2,13 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.68 2005/11/17 04:31:56 rswindell Exp $ */
+/* $Id: scfg.c,v 1.70 2006/02/03 22:14:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -588,8 +588,6 @@ int save_changes(int mode)
 	strcpy(opt[0],"Yes");
 	strcpy(opt[1],"No");
 	opt[2][0]=0;
-	if(mode&WIN_SAV && uifc.savdepth)
-		uifc.savnum++;
 	SETHELP(WHERE);
 /*
 Save uifc.changes:
@@ -600,8 +598,6 @@ these uifc.changes, select No. If you are not sure and want to review the
 configuration before deciding, hit  ESC .
 */
 	i=uifc.list(mode|WIN_ACT,0,0,0,&i,0,"Save Changes",opt);
-	if(mode&WIN_SAV && uifc.savdepth && uifc.savnum)
-		uifc.savnum--;
 	if(i!=-1)
 		uifc.changes=0;
 	return(i);
@@ -972,8 +968,6 @@ strcpy(opt[1],"Equal");
 strcpy(opt[2],"Not Equal");
 strcpy(opt[3],"Less than");
 opt[4][0]=0;
-if(uifc.savdepth)
-	uifc.savnum++;
 SETHELP(WHERE);
 /*
 Select Logic for Requirement:
@@ -989,8 +983,6 @@ must have any level BUT 50. And if you select Less than from this
 menu and level 50, the user must have a level below 50.
 */
 i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Select Logic",opt);
-if(uifc.savdepth && uifc.savnum)
-	uifc.savnum--;
 return(i);
 }
 
@@ -1002,8 +994,6 @@ i=0;
 strcpy(opt[0],"AND (Both/All)");
 strcpy(opt[1],"OR  (Either/Any)");
 opt[2][0]=0;
-if(uifc.savdepth)
-	uifc.savnum++;
 SETHELP(WHERE);
 /*
 Select Logic for Multiple Requirements:
@@ -1017,8 +1007,6 @@ parameter requirements aren't met, select OR to specify that either
 or any of the parameter requirements must be met.
 */
 i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Multiple Requirement Logic",opt);
-if(uifc.savdepth && uifc.savnum)
-	uifc.savnum--;
 return(i);
 }
 
@@ -1261,8 +1249,6 @@ USER		  $U		User's number (1-xxxx)
 			strcpy(opt[0],"Yes");
 			strcpy(opt[1],"No");
 			opt[2][0]=0;
-			if(uifc.savdepth)
-				uifc.savnum++;
 			SETHELP(WHERE);
 /*
 Clear Requirements:
@@ -1271,8 +1257,6 @@ If you wish to clear the current requirement string, select Yes.
 Otherwise, select No.
 */
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Are You Sure",opt);
-			if(uifc.savdepth && uifc.savnum)
-                uifc.savnum--;
 			if(!i) {
 				ar[0]=0;
 				uifc.changes=1; }
@@ -1325,11 +1309,7 @@ requirement evaluation. The valid range is 0 (zero) through 99.
 				sprintf(opt[i],"Flag Set #%d",i+1);
 			opt[i][0]=0;
 			i=0;
-			if(uifc.savdepth)
-				uifc.savnum++;
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Select Flag Set",opt);
-			if(uifc.savdepth && uifc.savnum)
-				uifc.savnum--;
 			if(i==-1)
                 break;
 			str[0]=0;
@@ -1640,11 +1620,7 @@ divided by the number of files downloaded.
 			strcpy(opt[0],"Before");
 			strcpy(opt[1],"After");
 			opt[2][0]=0;
-			if(uifc.savdepth)
-				uifc.savnum++;
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Time Relationship",opt);
-			if(uifc.savdepth && uifc.savnum)
-				uifc.savnum--;
 			if(i==-1)
 				break;
 			str[0]=0;
@@ -1690,11 +1666,7 @@ requirement value.
 				strcpy(opt[n],wday[n]);
 			opt[n][0]=0;
 			n=0;
-			if(uifc.savdepth)
-				uifc.savnum++;
 			n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0,"Select Day of Week",opt);
-			if(uifc.savdepth && uifc.savnum)
-				uifc.savnum--;
 			if(n==-1)
                 break;
 			strcpy(str,wday[n]);
@@ -1942,50 +1914,14 @@ void bail(int code)
 /* information, function, action, object and access and then attempts to    */
 /* write the error information into the file ERROR.LOG in the text dir.     */
 /****************************************************************************/
-void errormsg(int line, char *source,  char action, char *object, ulong access)
+void errormsg(int line, char* source,  char* action, char* object, ulong access)
 {
-    char actstr[256];
-
 	char scrn_buf[MAX_BFLN];
     gettext(1,1,80,uifc.scrn_len,scrn_buf);
     clrscr();
-
-    switch(action) {
-        case ERR_OPEN:
-            strcpy(actstr,"opening");
-            break;
-        case ERR_CLOSE:
-            strcpy(actstr,"closeing");
-            break;
-        case ERR_FDOPEN:
-            strcpy(actstr,"fdopen");
-            break;
-        case ERR_READ:
-            strcpy(actstr,"reading");
-            break;
-        case ERR_WRITE:
-            strcpy(actstr,"writing");
-            break;
-        case ERR_REMOVE:
-            strcpy(actstr,"removing");
-            break;
-        case ERR_ALLOC:
-            strcpy(actstr,"allocating memory");
-            break;
-        case ERR_CHK:
-            strcpy(actstr,"checking");
-            break;
-        case ERR_LEN:
-            strcpy(actstr,"checking length");
-            break;
-        case ERR_EXEC:
-            strcpy(actstr,"executing");
-            break;
-        default:
-            strcpy(actstr,"UNKNOWN"); }
     printf("ERROR -     line: %d\n",line);
     printf("            file: %s\n",source);
-    printf("          action: %s\n",actstr);
+    printf("          action: %s\n",action);
     printf("          object: %s\n",object);
     printf("          access: %ld (%lx)\n",access,access);
     printf("\nHit enter to continue...");
