@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.27 2006/04/20 20:42:17 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.28 2006/05/05 06:53:15 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -33,8 +33,12 @@
 	#endif
 	#if (defined(__OpenBSD__) || defined(__NetBSD__)) && defined(HAS_MACHINE_SPKR_H)
 		#include <machine/spkr.h>
-	#elif defined(__FreeBSD__) && defined(HAS_MACHINE_SPEAKER_H)
-		#include <machine/speaker.h>
+	#elif defined(__FreeBSD__)
+		#if defined(HAS_DEV_SPEAKER_SPEAKER_H)
+			#include <dev/speaker/speaker.h>
+		#elif defined(HAS_MACHINE_SPEAKER_H)
+			#include <machine/speaker.h>
+		#endif
 	#endif
 #endif
 
