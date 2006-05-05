@@ -214,9 +214,10 @@ menue(void)
 			MenueItem[1] = " LINE DRAW        ALT+D  ";
 			MenueItem[2] = " DRAW MODE        ALT+-  ";
 			MenueItem[3] = " INSERT MODE      INS    ";
-			MenueItem[4] = " ELITE MODE       ALT+E  ";
+			MenueItem[4] = " VIEW IN 320x200  ALT+V  ";
+			MenueItem[5] = " ELITE MODE       ALT+E  ";
 			Length = 24;
-			MaxItem = 4;
+			MaxItem = 5;
 			a = Menues(55, 2);
 			break;
 		case 7:
@@ -351,7 +352,12 @@ menuemode(void)
 		case 3:
 			InsertMode = !InsertMode;
 			break;
+#ifdef HAS_SVGALIB
 		case 4:
+			viewmode();
+			break;
+#endif
+		case 5:
 			EliteMode = !EliteMode;
 			break;
 		}
