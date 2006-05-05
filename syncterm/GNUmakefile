@@ -1,20 +1,18 @@
 SRC_ROOT	:=	..
 include ${SRC_ROOT}/build/Common.gmake
 
-CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
-
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt -lcurses -ldl
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
+ifdef CHANNEL_CLIPPY
+ CFLAGS +=	-DPCM
+endif
+
 ifdef USE_GUTS
  CFLAGS +=	-I../guts -DGUTS_BUILTIN
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
-endif
-
-ifdef PREFIX
- CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
 endif
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib
