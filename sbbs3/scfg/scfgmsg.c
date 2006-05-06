@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.30 2005/09/20 03:40:47 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.31 2005/11/27 23:34:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,7 +161,6 @@ subject denominator, you may want to have a separate message group for
 those sub-boards for a more organized message structure.
 */
 	i=uifc.list(j,0,0,45,&msgs_dflt,&bar,"Message Groups",opt);
-	uifc.savnum=0;
 	if(i==-1) {
 		j=save_changes(WIN_MID);
 		if(j==-1)
@@ -292,7 +291,6 @@ select Yes.
 		strcpy(opt[j++],"Message Sub-boards...");
 		opt[j][0]=0;
 		sprintf(str,"%s Group",cfg.grp[i]->sname);
-		uifc.savnum=0;
 		SETHELP(WHERE);
 /*
 Message Group Configuration:
@@ -795,7 +793,6 @@ void msg_opts()
 				? "Sysops Only":"No");
 		strcpy(opt[i++],"Extra Attribute Codes...");
 		opt[i][0]=0;
-		uifc.savnum=0;
 		SETHELP(WHERE);
 /*
 Message Options:
