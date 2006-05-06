@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.68 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: console.c,v 1.67 2006/05/05 21:01:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -460,7 +460,7 @@ video_update_text()
 	curscol=CursCol;
 	wakeup_poll();	/* Wake up anyone waiting on kbd poll */
 
-    vmemc = (WORD *)alloca(DpyCols*(DpyRows+1)*sizeof(WORD));
+    vmemc = (WORD *)malloc(DpyCols*(DpyRows+1)*sizeof(WORD));
 	pthread_mutex_lock(&lines_mutex);
 	memcpy(vmemc, vmem, DpyCols*(DpyRows+1)*sizeof(WORD));
 	for (r = 0; r < (DpyRows+1); ++r) {
@@ -500,6 +500,8 @@ video_update_text()
 			   FW, (CursEnd + 1)*FontScale - (CursStart*FontScale));
 		flush=1;
 	}
+
+	free(vmemc);
 
 	or =cursrow;
 	oc =curscol;
