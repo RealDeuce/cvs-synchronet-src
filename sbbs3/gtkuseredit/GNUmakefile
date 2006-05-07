@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.2 2006/03/10 05:26:11 deuce Exp $
+# $Id: GNUmakefile,v 1.3 2006/05/07 09:55:49 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -22,6 +22,23 @@ ifeq ($(os),sunos)
 endif
 
 vpath %.c ..
+
+# Set up LD_RUN_PATH for run-time locating of the .so files
+PWD     :=      $(shell dirname `pwd`)
+ifdef SBBSDIR
+ ifeq ($(os),sunos)
+  LD_RUN_PATH   :=      $(SBBSDIR)/exec:$(PWD)/$(LIBODIR):/opt/sfw/gcc-3/lib
+ else
+  LD_RUN_PATH   :=      $(SBBSDIR)/exec:$(PWD)/$(LIBODIR)
+ endif
+else
+ ifeq ($(os),sunos) 
+  LD_RUN_PATH   :=      $(PWD)/$(LIBODIR):/opt/sfw/gcc-3/lib
+ else
+  LD_RUN_PATH   :=      $(PWD)/$(LIBODIR)
+ endif
+endif
+export LD_RUN_PATH
 
 CFLAGS	+=	$(SBBSDEFS) -I.. $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) `pkg-config libglade-2.0 --cflags`
 # Hopefully, -Wl,-E exports all symbols dynamically everywhere.
