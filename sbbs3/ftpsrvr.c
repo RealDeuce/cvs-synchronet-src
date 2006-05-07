@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.311 2006/09/07 17:59:27 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.307 2006/04/25 00:59:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2929,24 +2929,10 @@ static void ctrl_thread(void* arg)
 				continue;
 			}
 
-			/* Choose IP address to use in passive response */
-			ip_addr=0;
-			if(startup->options&FTP_OPT_LOOKUP_PASV_IP
-				&& (host=gethostbyname(startup->host_name))!=NULL) 
-				ip_addr=ntohl(*((ulong*)host->h_addr_list[0]));
-			if(ip_addr==0 && (ip_addr=startup->pasv_ip_addr)==0)
+			if((ip_addr=startup->pasv_ip_addr)==0)
 				ip_addr=ntohl(pasv_addr.sin_addr.s_addr);
-
-			if(startup->options&FTP_OPT_DEBUG_DATA)
-				lprintf(LOG_INFO,"%04d PASV DATA IP address in response: %u.%u.%u.%u (subject to NAT)"
-					,sock
-					,(ip_addr>>24)&0xff
-					,(ip_addr>>16)&0xff
-					,(ip_addr>>8)&0xff
-					,ip_addr&0xff
-					);
 			port=ntohs(addr.sin_port);
-			sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
+			sockprintf(sock,"227 Entering Passive Mode (%d,%d,%d,%d,%hd,%hd)"
 				,(ip_addr>>24)&0xff
 				,(ip_addr>>16)&0xff
 				,(ip_addr>>8)&0xff
@@ -4524,7 +4510,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.311 $", "%*s %s", revision);
+	sscanf("$Revision: 1.307 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4565,8 +4551,7 @@ void DLLCALL ftp_server(void* arg)
 	startup=(ftp_startup_t*)arg;
 
 #ifdef _THREAD_SUID_BROKEN
-	if(thread_suid_broken)
-		startup->seteuid(TRUE);
+	startup->seteuid(TRUE);
 #endif
 
     if(startup==NULL) {
@@ -4823,7 +4808,7 @@ void DLLCALL ftp_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_DEBUG,"%04d FTP Server listening interrupted", server_socket);
+					lprintf(LOG_NOTICE,"%04d FTP Server listening interrupted", server_socket);
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_NOTICE,"%04d FTP Server socket closed", server_socket);
 				else
