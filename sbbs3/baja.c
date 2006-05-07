@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.41 2006/12/18 19:28:42 deuce Exp $ */
+/* $Id: baja.c,v 1.40 2005/09/20 03:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3406,13 +3406,7 @@ int main(int argc, char **argv)
 	int		show_banner=1;
 	char	revision[16];
 
-	sscanf("$Revision: 1.41 $", "%*s %s", revision);
-
-	if(argc<2) {
-		printf(banner,PLATFORM_DESC,revision);
-		printf(usage);
-		bail(1);
-	}
+	sscanf("$Revision: 1.40 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
