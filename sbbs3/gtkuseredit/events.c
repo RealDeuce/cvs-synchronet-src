@@ -76,16 +76,14 @@ void load_user(GtkWidget *wiggy, gpointer data)
 	GtkTextIter	start;
 	GtkTextIter	end;
 
-	if(current_user != 0) {
-		user.number=current_user;
-		if(user.number < 1 || user.number > totalusers) {
-			fprintf(stderr,"Attempted to load illegal user number %d.\n",user.number);
-			return;
-		}
-		if(getuserdat(&cfg, &user)) {
-			fprintf(stderr,"Error loading user %d.\n",current_user);
-			return;
-		}
+	user.number=current_user;
+	if(user.number < 1 || user.number > totalusers) {
+		fprintf(stderr,"Attempted to load illegal user number %d.\n",user.number);
+		return;
+	}
+	if(getuserdat(&cfg, &user)) {
+		fprintf(stderr,"Error loading user %d.\n",current_user);
+		return;
 	}
 
 	/* Toolbar indicators */
@@ -675,10 +673,10 @@ void load_user(GtkWidget *wiggy, gpointer data)
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the default download protocol widget\n");
 		else {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(w),0);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(w),-1);
 			for(i=0;i<cfg.total_prots;i++) {
 				if(cfg.prot[i]->mnemonic==user.prot) {
-					gtk_combo_box_set_active(GTK_COMBO_BOX(w),i+1);
+					gtk_combo_box_set_active(GTK_COMBO_BOX(w),i);
 					break;
 				}
 			}
@@ -801,6 +799,7 @@ void load_user(GtkWidget *wiggy, gpointer data)
 
 void save_user(GtkWidget *wiggy, gpointer data)
 {
+	/* ToDo */
 	GtkWidget	*w;
 	char		str[1024];
 	gboolean	b;
@@ -846,12 +845,10 @@ void save_user(GtkWidget *wiggy, gpointer data)
 			fprintf(stderr,"Cannot get the alias widget\n");
 		else {
 			strcpy(user.alias, gtk_entry_get_text(GTK_ENTRY(w)));
-			if(user.number) {
-				if(user.misc & DELETED)
-					putusername(&cfg, user.number, "");
-				else
-					putusername(&cfg, user.number, user.alias);
-			}
+			if(user.misc & DELETED)
+				putusername(&cfg, user.number, "");
+			else
+				putusername(&cfg, user.number, user.alias);
 		}
 
 		/* Real Name */
@@ -1602,12 +1599,8 @@ void save_user(GtkWidget *wiggy, gpointer data)
 		w=glade_xml_get_widget(xml, "cDefaultDownloadProtocol");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the default download protocol widget\n");
-		else {
-			if(gtk_combo_box_get_active(GTK_COMBO_BOX(w))==0)
-				user.prot=' ';
-			else
-				user.prot=cfg.prot[gtk_combo_box_get_active(GTK_COMBO_BOX(w))-1]->mnemonic;
-		}
+		else
+			user.prot=cfg.prot[gtk_combo_box_get_active(GTK_COMBO_BOX(w))]->mnemonic;
 
 		w=glade_xml_get_widget(xml, "cTempQWKFileType");
 		if(w==NULL)
@@ -1782,72 +1775,14 @@ void save_user(GtkWidget *wiggy, gpointer data)
 			fclose(f);
 		}
 
-	if(user.number) {
-		putuserdat(&cfg, &user);
-		load_user(wiggy, data);
-	}
-	else {
-		newuserdat(&cfg, &user);
-		update_current_user(user.number);
-	}
+	putuserdat(&cfg, &user);
+
+	load_user(wiggy, data);
 }
 
 void new_user(GtkWidget *wiggy, gpointer data)
 {
-	GtkWidget	*eCurrentUser;
-	int			i;
-
-	memset(&user,0,sizeof(user));
- 
-	/****************/   
-	/* Set Defaults */
-	/****************/
- 
-	/* security */
-	user.level=cfg.new_level;
-	user.flags1=cfg.new_flags1;
-	user.flags2=cfg.new_flags2;
-	user.flags3=cfg.new_flags3;
-	user.flags4=cfg.new_flags4;
-	user.rest=cfg.new_rest;
-	user.exempt=cfg.new_exempt;
- 
-	user.cdt=cfg.new_cdt;
-	user.min=cfg.new_min;
-	user.freecdt=cfg.level_freecdtperday[user.level];
-	 
-	if(cfg.total_fcomps)
-		strcpy(user.tmpext,cfg.fcomp[0]->ext);
-	else
-		strcpy(user.tmpext,"ZIP");
-	for(i=0;i<cfg.total_xedits;i++)
-		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit))
-			break;
-	if(i<cfg.total_xedits)
-		user.xedit=i+1;
-	 
-	user.shell=cfg.new_shell;
-	user.misc=(cfg.new_misc&~(DELETED|INACTIVE|QUIET|NETMAIL));
-	user.misc|=AUTOTERM;    /* No way to frob the default value... */
-	user.qwk=QWK_DEFAULT;
-	user.firston=time(NULL);
-	user.laston=time(NULL);	/* must set this or user may be purged prematurely */
-	user.pwmod=time(NULL);
-	user.sex=' ';
-	user.prot=cfg.new_prot;
-
-	if(cfg.new_expire)
-		user.expire=time(NULL)+((long)cfg.new_expire*24L*60L*60L);
-
-	eCurrentUser=glade_xml_get_widget(xml, "eCurrentUser");
-	if(eCurrentUser==NULL) {
-		fprintf(stderr,"Cannot get the current user widget\n");
-		load_user(wiggy, data);
-		return;
-	}
-	gtk_entry_set_text(GTK_ENTRY(eCurrentUser), "New"	);
-	current_user=0;
-	load_user(wiggy, data);
+	/* ToDo */
 }
 
 int update_current_user(int new_user)
@@ -1903,7 +1838,7 @@ void last_user(GtkWidget *w, gpointer data)
 void show_about_box(GtkWidget *unused, gpointer data)
 {
 	GladeXML	*axml;
-    axml = glade_xml_new(glade_path, "AboutWindow", NULL);
+    axml = glade_xml_new("gtkuseredit.glade", "AboutWindow", NULL);
 	if(axml==NULL) {
 		fprintf(stderr,"Could not locate AboutWindow widget\n");
 		return;
@@ -1965,7 +1900,7 @@ void find_user(GtkWidget *t, gpointer data)
 		nu=matchuser(&cfg, (char *)gtk_entry_get_text(GTK_ENTRY(w)), TRUE);
 		if(nu==0) {
 			GladeXML	*cxml;
-			cxml = glade_xml_new(glade_path, "NotFoundWindow", NULL);
+			cxml = glade_xml_new("gtkuseredit.glade", "NotFoundWindow", NULL);
 		    /* connect the signals in the interface */
 		    glade_xml_signal_autoconnect(cxml);
 			if(cxml==NULL)
@@ -2010,7 +1945,7 @@ int get_date(GtkWidget *t, isoDate_t *date)
 	isoDate_t	odate=*date;
 
 	got_date=0;
-    cxml = glade_xml_new(glade_path, "CalendarWindow", NULL);
+    cxml = glade_xml_new("gtkuseredit.glade", "CalendarWindow", NULL);
 	if(cxml==NULL) {
 		fprintf(stderr,"Could not locate Calendar Window XML\n");
 		return(-1);
