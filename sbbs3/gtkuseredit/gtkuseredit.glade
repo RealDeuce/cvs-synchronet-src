@@ -738,12 +738,12 @@
 			  <property name="can_focus">True</property>
 			  <property name="editable">True</property>
 			  <property name="visibility">True</property>
-			  <property name="max_length">30</property>
+			  <property name="max_length">24</property>
 			  <property name="text" translatable="yes"></property>
 			  <property name="has_frame">True</property>
 			  <property name="invisible_char">*</property>
 			  <property name="activates_default">False</property>
-			  <property name="width_chars">30</property>
+			  <property name="width_chars">25</property>
 			  <signal name="changed" handler="user_changed" last_modification_time="Thu, 23 Mar 2006 03:20:44 GMT"/>
 			</widget>
 			<packing>
@@ -1842,7 +1842,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsA">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow user to post anonymously</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">A</property>
 			      <property name="use_underline">True</property>
@@ -1881,7 +1880,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsC">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow paging regardless of sysop availability</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">C</property>
 			      <property name="use_underline">True</property>
@@ -1901,7 +1899,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsD">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow downloads regardless of users credits</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">D</property>
 			      <property name="use_underline">True</property>
@@ -1921,7 +1918,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsE">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Prevent account from expiring when out of time and SCFG-&gt;System-&gt;Toggle Options-&gt;User Expires is YES</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">E</property>
 			      <property name="use_underline">True</property>
@@ -1941,7 +1937,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsF">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow NetMail title specifiers</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">F</property>
 			      <property name="use_underline">True</property>
@@ -1961,7 +1956,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsG">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow user to be on multiple nodes</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">G</property>
 			      <property name="use_underline">True</property>
@@ -1981,7 +1975,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsH">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable automatic inactivity timer</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">H</property>
 			      <property name="use_underline">True</property>
@@ -2001,7 +1994,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsI">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow user to interrupt nodes</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">I</property>
 			      <property name="use_underline">True</property>
@@ -2021,7 +2013,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsJ">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not charge credits to change chat channels</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">J</property>
 			      <property name="use_underline">True</property>
@@ -2060,7 +2051,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsL">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not limit logons per day</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">L</property>
 			      <property name="use_underline">True</property>
@@ -2080,7 +2070,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsM">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow user to ignore minimum modem speed for all nodes</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">M</property>
 			      <property name="use_underline">True</property>
@@ -2100,7 +2089,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsN">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow user to lock/unlock nodes</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">N</property>
 			      <property name="use_underline">True</property>
@@ -2139,7 +2127,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsP">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not delete this account to do inactivity</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">P</property>
 			      <property name="use_underline">True</property>
@@ -2159,7 +2146,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsQ">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allow user to toggle quiet/anonymous modes</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">Q</property>
 			      <property name="use_underline">True</property>
@@ -2179,7 +2165,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsR">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Allows user to remove, move, or edit file descriptions</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">R</property>
 			      <property name="use_underline">True</property>
@@ -2199,7 +2184,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsS">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not charge user for sending Netail</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">S</property>
 			      <property name="use_underline">True</property>
@@ -2219,7 +2203,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsT">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not limit users time online (See also the H exemption)</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">T</property>
 			      <property name="use_underline">True</property>
@@ -2296,7 +2279,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tExemptionsX">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not charge credits for externals</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">X</property>
 			      <property name="use_underline">True</property>
@@ -2386,7 +2368,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsA">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not allow ANSI escapes or CTRL-A codes in messages</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">A</property>
 			      <property name="use_underline">True</property>
@@ -2406,7 +2387,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsB">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not allow beeps (CTRL-G) im messages</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">B</property>
 			      <property name="use_underline">True</property>
@@ -2426,7 +2406,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsC">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable chat functions</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">C</property>
 			      <property name="use_underline">True</property>
@@ -2446,7 +2425,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsD">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disallow downloads</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">D</property>
 			      <property name="use_underline">True</property>
@@ -2466,7 +2444,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsE">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disallow e-mail</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">E</property>
 			      <property name="use_underline">True</property>
@@ -2486,7 +2463,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsF">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable mail forwarding</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">F</property>
 			      <property name="use_underline">True</property>
@@ -2506,7 +2482,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsG">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Do not allow user to edit dis/her default settings</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">G</property>
 			      <property name="use_underline">True</property>
@@ -2564,7 +2539,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsJ">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable internal message quoting</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">J</property>
 			      <property name="use_underline">True</property>
@@ -2584,7 +2558,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsK">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">User can't read/kill sent mail</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">K</property>
 			      <property name="use_underline">True</property>
@@ -2604,7 +2577,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsL">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Only allow one logon per day</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">L</property>
 			      <property name="use_underline">True</property>
@@ -2624,7 +2596,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsM">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable NetMail</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">M</property>
 			      <property name="use_underline">True</property>
@@ -2644,7 +2615,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsN">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable posting on networked subs</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">N</property>
 			      <property name="use_underline">True</property>
@@ -2683,7 +2653,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsP">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable posting</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">P</property>
 			      <property name="use_underline">True</property>
@@ -2703,7 +2672,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsQ">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">This is a QWK network user</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">Q</property>
 			      <property name="use_underline">True</property>
@@ -2723,7 +2691,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsR">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disallow editing file descriptions for files this user has uploaded</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">R</property>
 			      <property name="use_underline">True</property>
@@ -2743,7 +2710,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsS">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disallow feedback (email to user #1)</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">S</property>
 			      <property name="use_underline">True</property>
@@ -2763,7 +2729,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsT">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Disable the transfer section</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">T</property>
 			      <property name="use_underline">True</property>
@@ -2783,7 +2748,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsU">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">disable uploads</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">U</property>
 			      <property name="use_underline">True</property>
@@ -2822,7 +2786,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsW">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">User cannot wrote to auto-message</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">W</property>
 			      <property name="use_underline">True</property>
@@ -2842,7 +2805,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsX">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">User can't access external programs</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">X</property>
 			      <property name="use_underline">True</property>
@@ -2862,7 +2824,6 @@
 			  <child>
 			    <widget class="GtkToggleButton" id="tRestrictionsY">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Prompt y/N for all main and transfer functions</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">Y</property>
 			      <property name="use_underline">True</property>
@@ -7093,8 +7054,8 @@
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
+				  <property name="expand">True</property>
+				  <property name="fill">True</property>
 				</packing>
 			      </child>
 			    </widget>
@@ -7221,8 +7182,8 @@
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
-		      <property name="expand">False</property>
-		      <property name="fill">False</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
 		    </packing>
 		  </child>
 		</widget>
@@ -7732,7 +7693,7 @@
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
-				  <property name="expand">False</property>
+				  <property name="expand">True</property>
 				  <property name="fill">True</property>
 				</packing>
 			      </child>
@@ -7823,8 +7784,8 @@
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
-		      <property name="expand">False</property>
-		      <property name="fill">False</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
 		    </packing>
 		  </child>
 
@@ -8283,7 +8244,7 @@
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
-			      <property name="expand">True</property>
+			      <property name="expand">False</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>
@@ -8400,10 +8361,6 @@
 			      <property name="expand">False</property>
 			      <property name="fill">True</property>
 			    </packing>
-			  </child>
-
-			  <child>
-			    <placeholder/>
 			  </child>
 			</widget>
 		      </child>
