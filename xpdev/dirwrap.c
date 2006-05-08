@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.70 2006/08/24 00:20:48 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.61 2006/04/20 18:18:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 /* This code _may_ work on other DOS-based platforms (e.g. OS/2)			*/
 /****************************************************************************/
 #if !defined(__unix__)
-static int _cdecl glob_compare( const void *arg1, const void *arg2 )
+static int glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
    return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
@@ -633,33 +633,6 @@ int DLLCALL getfattr(const char* filename)
 #endif
 }
 
-#ifdef __unix__
-int removecase(char *path)
-{
-	char inpath[MAX_PATH+1];
-	char fname[MAX_PATH*4+1];
-	char tmp[5];
-	char *p;
-	int  i;
-
-	if(strchr(path,'?') || strchr(path,'*'))
-		return(-1);
-	SAFECOPY(inpath,path);
-	p=getfname(inpath);
-	fname[0]=0;
-	for(i=0;p[i];i++)  {
-		if(isalpha(p[i]))
-			sprintf(tmp,"[%c%c]",toupper(p[i]),tolower(p[i]));
-		else
-			sprintf(tmp,"%c",p[i]);
-		strncat(fname,tmp,MAX_PATH*4);
-	}
-	*p=0;
-
-	return(delfiles(inpath,fname)?-1:0);
-}
-#endif
-
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /****************************************************************************/
@@ -671,7 +644,7 @@ ulong DLLCALL delfiles(char *inpath, char *spec)
 	glob_t	g;
 
 	lastch=*lastchar(inpath);
-	if(!IS_PATH_DELIM(lastch) && lastch)
+	if(!IS_PATH_DELIM(lastch))
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
 		strcpy(path,inpath);
@@ -707,8 +680,8 @@ static int bit_num(ulong val)
 }
 #endif
 
-/* Unit should be a power-of-2 (e.g. 1024 to report kilobytes) or 1 (to report bytes) */
-static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
+/* Unit should be a power-of-2 (e.g. 1024 to report kilobytes) */
+ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 {
 #if defined(_WIN32)
 	char			root[16];
@@ -734,23 +707,20 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 			NULL))		/* receives the free bytes on disk */
 			return(0);
 
-		if(freespace)
-			size=avail;
-
 		if(unit>1)
-			size.QuadPart=Int64ShrlMod32(size.QuadPart,bit_num(unit));
+			avail.QuadPart=Int64ShrlMod32(avail.QuadPart,bit_num(unit));
 
 #if defined(_ANONYMOUS_STRUCT)
-		if(size.HighPart)
+		if(avail.HighPart)
 #else
-		if(size.u.HighPart)
+		if(avail.u.HighPart)
 #endif
 			return(0xffffffff);	/* 4GB max */
 
 #if defined(_ANONYMOUS_STRUCT)
-		return(size.LowPart);
+		return(avail.LowPart);
 #else
-		return(size.u.LowPart);
+		return(avail.u.LowPart);
 #endif
 	}
 
@@ -765,47 +735,33 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 		))
 		return(0);
 
-	if(freespace)
-		TotalNumberOfClusters = NumberOfFreeClusters;
 	if(unit>1)
-		TotalNumberOfClusters/=unit;
-	return(TotalNumberOfClusters*SectorsPerCluster*BytesPerSector);
+		NumberOfFreeClusters/=unit;
+	return(NumberOfFreeClusters*SectorsPerCluster*BytesPerSector);
 
 
 #elif defined(__solaris__) || (defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 300000000 /* NetBSD 3.0 */))
 
 	struct statvfs fs;
-	unsigned long blocks;
 
     if (statvfs(path, &fs) < 0)
     	return 0;
 
-	if(freespace)
-		blocks=fs.f_bavail;
-	else
-		blocks=fs.f_blocks;
-
 	if(unit>1)
-		blocks/=unit;
-    return fs.f_bsize * blocks;
+		fs.f_bavail/=unit;
+    return fs.f_bsize * fs.f_bavail;
     
 /* statfs is also used under FreeBSD (Though it *supports* statvfs() now too) */
 #elif defined(__GLIBC__) || defined(BSD)
 
 	struct statfs fs;
-	unsigned long blocks;
 
     if (statfs(path, &fs) < 0)
     	return 0;
 
-	if(freespace)
-		blocks=fs.f_bavail;
-	else
-		blocks=fs.f_blocks;
-
 	if(unit>1)
-		blocks/=unit;
-    return fs.f_bsize * blocks;
+		fs.f_bavail/=unit;
+    return fs.f_bsize * fs.f_bavail;
     
 #else
 
@@ -813,16 +769,6 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	return(0);
 
 #endif
-}
-
-ulong DLLCALL getfreediskspace(const char* path, ulong unit)
-{
-	return getdiskspace(path, unit, /* freespace? */TRUE);
-}
-
-ulong DLLCALL getdisksize(const char* path, ulong unit)
-{
-	return getdiskspace(path, unit, /* freespace? */FALSE);
 }
 
 /****************************************************************************/
