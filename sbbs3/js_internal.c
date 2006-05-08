@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.28 2005/10/14 07:50:51 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.30 2006/02/01 04:13:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -184,7 +184,7 @@ static jsSyncPropertySpec js_properties[] = {
 	{0}
 };
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 static char* prop_desc[] = {
 	 "JavaScript engine version information (AKA system.js_version)"
 	,"set to <i>false</i> to disable the automatic termination of the script upon external request"
@@ -371,27 +371,27 @@ static JSClass js_internal_class = {
 };
 
 static jsSyncMethodSpec js_functions[] = {
-	{"eval",            js_eval,            0,	JSTYPE_UNDEF,	JSDOCSTR("string script")
+	{"eval",            js_eval,            0,	JSTYPE_UNDEF,	JSDOCSTR("script")
 	,JSDOCSTR("evaluate a JavaScript string in its own (secure) context, returning the result")
 	,311
 	},		
-	{"gc",				js_gc,				0,	JSTYPE_VOID,	JSDOCSTR("bool forced")
+	{"gc",				js_gc,				0,	JSTYPE_VOID,	JSDOCSTR("forced=<tt>true</tt>")
 	,JSDOCSTR("perform a garbage collection operation (freeing memory for unused allocated objects), "
 		"if <i>forced</i> is <i>true</i> (the default) a garbage collection is always performed, "
 		"otherwise it is only performed if deemed appropriate by the JavaScript engine")
 	,311
 	},
-	{"on_exit",			js_on_exit,			1,	JSTYPE_VOID,	JSDOCSTR("string to_eval")
-	,JSDOCSTR("add a string to evaluate/execute (LIFO) upon script's termination")
+	{"on_exit",			js_on_exit,			1,	JSTYPE_VOID,	JSDOCSTR("to_eval")
+	,JSDOCSTR("add a string to evaluate/execute (LIFO stack) upon script's termination")
 	,313
 	},
-	{"report_error",	js_report_error,	1,	JSTYPE_VOID,	JSDOCSTR("error [, bool fatal]")
+	{"report_error",	js_report_error,	1,	JSTYPE_VOID,	JSDOCSTR("error [,fatal=<tt>false</tt>]")
 	,JSDOCSTR("report an error using the standard JavaScript error reporting mechanism "
 	"(including script filename and line number), "
 	"if <i>fatal</i> is <i>true</i>, immediately terminates script")
 	,313
 	},
-	{"get_parent",		js_get_parent,		1,	JSTYPE_OBJECT,	JSDOCSTR("object child")
+	{"get_parent",		js_get_parent,		1,	JSTYPE_OBJECT,	JSDOCSTR("object")
 	,JSDOCSTR("return the parent of the specified object")
 	,313
 	},
@@ -431,7 +431,7 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	if(!js_DefineSyncMethods(cx, obj, js_functions, /* append? */ FALSE)) 
 		return(NULL);
 
-#ifdef _DEBUG
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"JavaScript execution and garbage collection control object",311);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", prop_desc, JSPROP_READONLY);
 #endif
