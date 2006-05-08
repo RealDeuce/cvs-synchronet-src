@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.32 2006/05/09 21:02:55 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.31 2006/05/08 19:55:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,9 +40,6 @@
 #include <errno.h>		/* ENOMEM */
 #include <stdio.h>		/* SEEK_SET */
 #include <string.h>
-#if defined(_WIN32)
- #include <malloc.h>	/* alloca() on Win32 */
-#endif
 
 #include "genwrap.h"	/* SLEEP */
 #include "gen_defs.h"	/* BOOL/LOG_WARNING */
