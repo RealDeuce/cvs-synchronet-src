@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.52 2006/05/18 06:21:02 rswindell Exp $ */
+/* $Id: ansi_cio.c,v 1.51 2006/05/08 18:25:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -222,6 +222,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 	struct text_info	ti;
 	int		attrib;
 	unsigned char *fill = (unsigned char*)buf;
+	char	str[16];
 
 	gettextinfo(&ti);
 
