@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.210 2006/12/27 09:19:26 rswindell Exp $ */
+/* $Id: js_global.c,v 1.193 2006/04/08 01:00:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,9 +42,6 @@
 #include "base64.h"
 #include "htmlansi.h"
 #include "ini_file.h"
-
-/* SpiderMonkey: */
-#include <jsfun.h>
 
 #define MAX_ANSI_SEQ	16
 #define MAX_ANSI_PARAMS	8
@@ -101,7 +98,6 @@ typedef struct {
 	msg_queue_t*	msg_queue;
 	js_branch_t		branch;
 	JSErrorReporter error_reporter;
-	JSNative		log;
 } background_data_t;
 
 static void background_thread(void* arg)
@@ -152,57 +148,6 @@ static JSBool js_BranchCallback(JSContext *cx, JSScript* script)
 		return(JS_FALSE);
 
 	return js_CommonBranchCallback(cx,&bg->branch);
-}
-
-static JSBool
-js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	JSBool retval;
-	background_data_t* bg;
-
-	if((bg=(background_data_t*)JS_GetContextPrivate(cx))==NULL)
-		return JS_FALSE;
-
-	/* Use parent's context private data */
-	JS_SetContextPrivate(cx, JS_GetContextPrivate(bg->parent_cx));
-
-	/* Call parent's log() function */
-	retval = bg->log(cx, obj, argc, argv, rval);
-
-	/* Restore our context private data */
-	JS_SetContextPrivate(cx, bg);
-
-	return retval;
-}
-
-/* Create a new value in the new context with a value from the original context */
-/* Note: objects (including arrays) not currently supported */
-static jsval* js_CopyValue(JSContext* cx, jsval val, JSContext* new_cx, jsval* rval)
-{
-	*rval = JSVAL_VOID;
-
-	if(cx==new_cx
-		|| JSVAL_IS_BOOLEAN(val) 
-		|| JSVAL_IS_NULL(val) 
-		|| JSVAL_IS_VOID(val) 
-		|| JSVAL_IS_INT(val))
-		*rval = val;
-	else if(JSVAL_IS_NUMBER(val)) {
-		jsdouble	d;
-		if(JS_ValueToNumber(cx,val,&d))
-			JS_NewNumberValue(new_cx,d,rval);
-	}
-	else {
-		JSString*	str;
-		size_t		len;
-		char*		p;
-
-		if((p=js_ValueToStringBytes(cx,val,&len)) != NULL
-			&& (str=JS_NewStringCopyN(new_cx,p,len)) != NULL)
-			*rval=STRING_TO_JSVAL(str);
-	}
-
-	return rval;
 }
 
 static JSBool
@@ -283,33 +228,16 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_SetContextPrivate(bg->cx, bg);
 		JS_SetBranchCallback(bg->cx, js_BranchCallback);
 
-		/* Save parent's 'log' function (for later use by our log function) */
-		if(JS_GetProperty(cx, obj, "log", &val)) {
-			JSFunction* func;
-			if((func=JS_ValueToFunction(cx, val))!=NULL && !func->interpreted) {
-				bg->log=func->u.native;
-				JS_DefineFunction(bg->cx, bg->obj
-					,"log", js_log, func->nargs, func->flags);
-			}
-		}
-
 		exec_cx = bg->cx;
 		exec_obj = bg->obj;
 		
-	} else if(JSVAL_IS_OBJECT(argv[argn])) {
-		JSObject* tmp_obj=JSVAL_TO_OBJECT(argv[argn++]);
-		if(!JS_ObjectIsFunction(cx,tmp_obj))	/* Scope specified */
-			exec_obj=tmp_obj;
-	}
+	} else if(JSVAL_IS_OBJECT(argv[argn]))	/* Scope specified */
+		obj=JSVAL_TO_OBJECT(argv[argn++]);
 
-	if(argn==argc) {
-		JS_ReportError(cx,"no filename specified");
-		return(JS_FALSE);
-	}
 	if((filename=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL)
 		return(JS_FALSE);
 
-	if(argc>argn || background) {
+	if(argc>argn) {
 
 		if((js_argv=JS_NewArrayObject(exec_cx, 0, NULL)) == NULL)
 			return(JS_FALSE);
@@ -318,7 +246,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 		for(i=argn; i<argc; i++)
-			JS_SetElement(exec_cx, js_argv, i-argn, js_CopyValue(cx,argv[i],exec_cx,&val));
+			JS_SetElement(exec_cx, js_argv, i-argn, &argv[i]);
 
 		JS_DefineProperty(exec_cx, exec_obj, "argc", INT_TO_JSVAL(argc-argn)
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -825,11 +753,11 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes=JSVAL_TO_BOOLEAN(argv[3]);
 
-	if((linebuf=(char*)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
+	if((linebuf=(char*)malloc((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
 		return(JS_FALSE);
 
 	if(handle_quotes) {
-		if((prefix=(char *)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
+		if((prefix=(char *)malloc((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
 			return(JS_FALSE);
 		prefix[0]=0;
 	}
@@ -1036,6 +964,8 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	js_str = JS_NewStringCopyZ(cx, outbuf);
 	free(outbuf);
+	if(prefix)
+		free(prefix);
 	if(js_str==NULL)
 		return(JS_FALSE);
 
@@ -1073,7 +1003,7 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(len<=0)
 		return(JS_FALSE);
 
-	if((linebuf=(char*)alloca(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
+	if((linebuf=(char*)malloc(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
 		return(JS_FALSE);
 
 	outbuf[0]=0;
@@ -1340,25 +1270,25 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	JSBool		ansi=JS_TRUE;
 	JSBool		ctrl_a=JS_TRUE;
 	JSString*	js_str;
-	int32		fg=7;
-	int32		bg=0;
-	JSBool		blink=FALSE;
-	JSBool		bold=FALSE;
+	int			fg=7;
+	int			bg=0;
+	BOOL		blink=FALSE;
+	BOOL		bold=FALSE;
 	int			esccount=0;
 	char		ansi_seq[MAX_ANSI_SEQ+1];
 	int			ansi_param[MAX_ANSI_PARAMS];
 	int			k,l;
 	ulong		savepos=0;
-	int32		hpos=0;
-	int32		currrow=0;
+	int			hpos=0;
+	int			currrow=0;
 	int			savehpos=0;
 	int			savevpos=0;
-	int32		wraphpos=-2;
-	int32		wrapvpos=-2;
-	int32		wrappos=0;
+	int			wraphpos=-2;
+	int			wrapvpos=-2;
+	ulong		wrappos=0;
 	BOOL		extchar=FALSE;
 	ulong		obsize;
-	int32		lastcolor=7;
+	int			lastcolor=7;
 	char		tmp1[128];
 	struct		tm tm;
 	time_t		now;
@@ -1367,8 +1297,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	uchar   	attr_stack[64]; /* Saved attributes (stack) */
 	int     	attr_sp=0;                /* Attribute stack pointer */
 	ulong		clear_screen=0;
-	JSObject*	stateobj=NULL;
-	jsval		val;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -1393,40 +1321,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		ctrl_a=JSVAL_TO_BOOLEAN(argv[4]);
 		if(ctrl_a)
 			ansi=ctrl_a;
-	}
-
-	if(argc>5 && JSVAL_IS_OBJECT(argv[5])) {
-		stateobj=JSVAL_TO_OBJECT(argv[5]);
-		JS_GetProperty(cx,stateobj,"fg",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &fg);
-		JS_GetProperty(cx,stateobj,"bg",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &bg);
-		JS_GetProperty(cx,stateobj,"lastcolor",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &lastcolor);
-		JS_GetProperty(cx,stateobj,"blink",&val);
-		if(JSVAL_IS_BOOLEAN(val))
-			fg=JS_ValueToBoolean(cx, val, &blink);
-		JS_GetProperty(cx,stateobj,"bold",&val);
-		if(JSVAL_IS_BOOLEAN(val))
-			fg=JS_ValueToBoolean(cx, val, &bold);
-		JS_GetProperty(cx,stateobj,"hpos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &hpos);
-		JS_GetProperty(cx,stateobj,"currrow",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &currrow);
-		JS_GetProperty(cx,stateobj,"wraphpos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &wraphpos);
-		JS_GetProperty(cx,stateobj,"wrapvpos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &wrapvpos);
-		JS_GetProperty(cx,stateobj,"wrappos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &wrappos);
 	}
 
 	if((tmpbuf=(char*)malloc((strlen(inbuf)*10)+1))==NULL)
@@ -1693,7 +1587,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case 'A': /* Move up */
 						l=wrappos;
-						if(j > (ulong)wrappos && hpos==0 && currrow==wrapvpos+1 && ansi_param[0]<=1)  {
+						if(j > wrappos && hpos==0 && currrow==wrapvpos+1 && ansi_param[0]<=1)  {
 							hpos=wraphpos;
 							currrow=wrapvpos;
 							j=wrappos;
@@ -1789,7 +1683,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case '+':
 						if(attr_sp<(int)sizeof(attr_stack))
-							attr_stack[attr_sp++]=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | (int)fg;
+							attr_stack[attr_sp++]=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | fg;
 						break;
 					case '-':
 						if(attr_sp>0)
@@ -1923,7 +1817,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case LF:
 						wrapvpos=currrow;
-						if((ulong)wrappos<j-3)
+						if(wrappos<j-3)
 							wrappos=j;
 						currrow++;
 						if(hpos!=0 && tmpbuf[i+1]!=CR)
@@ -1941,7 +1835,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					case CR:
 						if(wraphpos==-2 || hpos!=0)
 							wraphpos=hpos;
-						if((ulong)wrappos<j-3)
+						if(wrappos<j-3)
 							wrappos=j;
 						outbuf[j++]=tmpbuf[i];
 						hpos=0;
@@ -1952,13 +1846,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 							lastcolor=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | fg;
 							j+=sprintf(outbuf+j,"%s%s%s",HTML_COLOR_PREFIX,htmlansi[lastcolor],HTML_COLOR_SUFFIX);
 						}
-						outbuf[j++]=tmpbuf[i];
-						if(tmpbuf[i]=='&')
-							extchar=TRUE;
-						if(tmpbuf[i]==';')
-							extchar=FALSE;
-						if(!extchar)
-							hpos++;
 						/* ToDo: Fix hard-coded terminal window width (80) */
 						if(hpos>=80 && tmpbuf[i+1] != '\r' && tmpbuf[i+1] != '\n' && tmpbuf[i+1] != ESC)
 						{
@@ -1970,6 +1857,13 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 							outbuf[j++]='\r';
 							outbuf[j++]='\n';
 						}
+						outbuf[j++]=tmpbuf[i];
+						if(tmpbuf[i]=='&')
+							extchar=TRUE;
+						if(tmpbuf[i]==';')
+							extchar=FALSE;
+						if(!extchar)
+							hpos++;
 				}
 			}
 		}
@@ -1986,30 +1880,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(js_str);
-
-	if(stateobj!=NULL) {
-		JS_DefineProperty(cx, stateobj, "fg", INT_TO_JSVAL(fg)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "bg", INT_TO_JSVAL(bg)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "lastcolor", INT_TO_JSVAL(lastcolor)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "blink", BOOLEAN_TO_JSVAL(blink)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "bold", BOOLEAN_TO_JSVAL(bold)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "hpos", INT_TO_JSVAL(hpos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "currrow", INT_TO_JSVAL(currrow)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "wraphpos", INT_TO_JSVAL(wraphpos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "wrapvpos", INT_TO_JSVAL(wrapvpos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "wrappos", INT_TO_JSVAL(wrappos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-	}
-
 	return(JS_TRUE);
 }
 
@@ -2132,7 +2002,6 @@ js_b64_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 
 	len=(inbuf_len*10)+1;
-
 	if((outbuf=(char*)malloc(len))==NULL)
 		return(JS_FALSE);
 
@@ -2170,7 +2039,6 @@ js_b64_decode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 
 	len=strlen(inbuf)+1;
-
 	if((outbuf=(char*)malloc(len))==NULL)
 		return(JS_FALSE);
 
@@ -2413,21 +2281,6 @@ js_fexist(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_removecase(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		p;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(removecase(p)==0);
-	return(JS_TRUE);
-}
-
-static JSBool
 js_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -2477,25 +2330,6 @@ js_fcopy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	*rval = BOOLEAN_TO_JSVAL(fcopy(src,dest));
-	return(JS_TRUE);
-}
-
-static JSBool
-js_fcompare(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		fn1;
-	char*		fn2;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
-	if((fn1=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
-		return(JS_TRUE);
-	if((fn2=js_ValueToStringBytes(cx, argv[1], NULL))==NULL)
-		return(JS_TRUE);
-
-	*rval = BOOLEAN_TO_JSVAL(fcompare(fn1,fn2));
 	return(JS_TRUE);
 }
 
@@ -2773,26 +2607,6 @@ js_freediskspace(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
     return(JS_TRUE);
 }
 
-static JSBool
-js_disksize(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	int32		unit=0;
-	char*		p;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	if(argc>1)
-		JS_ValueToInt32(cx,argv[1],&unit);
-
-	JS_NewNumberValue(cx,getdisksize(p,unit),rval);
-
-    return(JS_TRUE);
-}
-
 
 static JSBool
 js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2834,7 +2648,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
     if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
 		return(JS_FALSE);
 
-	if((index=(SOCKET *)alloca(sizeof(SOCKET)*limit))==NULL)
+	if((index=(SOCKET *)malloc(sizeof(SOCKET)*limit))==NULL)
 		return(JS_FALSE);
 
 	FD_ZERO(&socket_set);
@@ -2865,6 +2679,7 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 				break;
 		}
 	}
+	free(index);
 
     *rval = OBJECT_TO_JSVAL(rarray);
 
@@ -3140,10 +2955,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF), returns modified string")
 	,310
 	},
-	{"wildmatch",		js_wildmatch,		2,	JSTYPE_BOOLEAN, JSDOCSTR("[case_sensitive=<tt>false</tt>,] string [,pattern=<tt>'*'</tt>] [,path=<tt>false</tt>]")
-	,JSDOCSTR("returns <tt>true</tt> if the <i>string</i> matches the wildcard <i>pattern</i> (wildcards supported are '*' and '?'), "
+	{"wildmatch",		js_wildmatch,		2,	JSTYPE_BOOLEAN, JSDOCSTR("[case_sensitive=<tt>false</tt>,] string [,pattern=<tt>"*"</tt>] [,path=<tt>false</tt>]")
+	,JSDOCSTR("returns <tt>true</tt> if the <i>string</i> matches the wildcard <i>pattern</i> (wildcard supported are '*' and '?'), "
 	"if <i>path</i> is <tt>true</tt>, '*' will not match path delimeter characters (e.g. '/')")
-	,314
+	,31301
 	},
 	{"backslash",		js_backslash,		1,	JSTYPE_STRING,	JSDOCSTR("path")
 	,JSDOCSTR("returns directory path with trailing (platform-specific) path delimeter "
@@ -3177,10 +2992,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"file_remove",		js_remove,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
 	,JSDOCSTR("delete a file")
 	,310
-	},		
-	{"file_removecase",	js_removecase,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
-	,JSDOCSTR("delete files case insensitively")
-	,314
 	},		
 	{"file_rename",		js_rename,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/oldname, path/newname")
 	,JSDOCSTR("rename a file, possibly moving it to another directory in the process")
@@ -3232,10 +3043,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"it is presumed stale and removed/over-written")
 	,312
 	},
-	{"file_compare",	js_fcompare,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/file1, path/file2")
-	,JSDOCSTR("compare 2 files, returning <i>true</i> if they are identical, <i>false</i> otherwise")
-	,314
-	},
 	{"directory",		js_directory,		1,	JSTYPE_ARRAY,	JSDOCSTR("path/pattern [,flags=<tt>GLOB_MARK</tt>]")
 	,JSDOCSTR("returns an array of directory entries, "
 		"<i>pattern</i> is the path and filename or wildcards to search for (e.g. '/subdir/*.txt'), "
@@ -3247,12 +3054,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"using the specified <i>unit_size</i> in bytes (default: 1), "
 		"specify a <i>unit_size</i> of <tt>1024</tt> to return the available space in <i>kilobytes</i>.")
 	,311
-	},
-	{"disk_size",		js_disksize,		2,	JSTYPE_NUMBER,	JSDOCSTR("directory [,unit_size=<tt>1</tt>]")
-	,JSDOCSTR("returns the total disk size of the specified <i>directory</i> "
-		"using the specified <i>unit_size</i> in bytes (default: 1), "
-		"specify a <i>unit_size</i> of <tt>1024</tt> to return the total disk size in <i>kilobytes</i>.")
-	,314
 	},
 	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
 	,JSDOCSTR("checks an array of socket objects or descriptors for read or write ability (default is <i>read</i>), "
@@ -3276,10 +3077,9 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("return a formatted string (ala the standard C <tt>sprintf</tt> function)")
 	,310
 	},
-	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("text [,ex_ascii=<tt>true</tt>] [,white_space=<tt>true</tt>] [,ansi=<tt>true</tt>] [,ctrl_a=<tt>true</tt>] [, state (object)]")
+	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("text [,ex_ascii=<tt>true</tt>] [,white_space=<tt>true</tt>] [,ansi=<tt>true</tt>] [,ctrl_a=<tt>true</tt>]")
 	,JSDOCSTR("return an HTML-encoded text string (using standard HTML character entities), "
-		"escaping IBM extended-ASCII, white-space characters, ANSI codes, and CTRL-A codes by default."
-		"Optionally storing the current ANSI state in <i>state</i> object")
+		"escaping IBM extended-ASCII, white-space characters, ANSI codes, and CTRL-A codes by default")
 	,311
 	},
 	{"html_decode",		js_html_decode,		1,	JSTYPE_STRING,	JSDOCSTR("html")
