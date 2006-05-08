@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.45 2006/09/15 21:12:53 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.43 2005/05/07 01:15:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -83,7 +83,7 @@ typedef struct {
     char	host_name[128];
 	BOOL	recycle_now;
 	BOOL	shutdown_now;
-	int		log_level;
+	DWORD	log_mask;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
@@ -112,7 +112,6 @@ static struct init_field ftp_init_fields[] = {
 #define FTP_OPT_DIR_FILES			(1<<6)	/* Allow access to files in dir but not in database */
 #define FTP_OPT_KEEP_TEMP_FILES		(1<<7)	/* Don't delete temp files (for debugging) */
 #define FTP_OPT_HTML_INDEX_FILE		(1<<8)	/* Auto-generate HTML index files */
-#define FTP_OPT_LOOKUP_PASV_IP		(1<<9)	/* resolve public IP address for PASV response */
 #define FTP_OPT_NO_HOST_LOOKUP		(1<<11)
 #define FTP_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define FTP_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
@@ -134,7 +133,6 @@ static ini_bitdesc_t ftp_options[] = {
 	{ FTP_OPT_DIR_FILES				,"DIR_FILES"			},
 	{ FTP_OPT_KEEP_TEMP_FILES		,"KEEP_TEMP_FILES"		},
 	{ FTP_OPT_HTML_INDEX_FILE		,"HTML_INDEX_FILE"		},
-	{ FTP_OPT_LOOKUP_PASV_IP		,"LOOKUP_PASV_IP"		},
 	{ FTP_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ FTP_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ FTP_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
