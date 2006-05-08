@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.160 2005/11/25 21:59:09 deuce Exp $ */
+/* $Id: uifc32.c,v 1.170 2006/02/25 07:39:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,15 +169,6 @@ int uifcini32(uifcapi_t* uifcapi)
 	api->getstrxy=ugetstr;
 	api->printf=uprintf;
 
-	/* A esc_delay of less than 10 is stupid... silently override */
-	if(api->esc_delay < 10)
-		api->esc_delay=25;
-
-#ifdef NCURSES_VERSION_MAJOR
-	if(cio_api.mode==CIOLIB_MODE_CURSES) {
-		ESCDELAY=api->esc_delay;
-#endif
-
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
             case 14:
@@ -287,6 +278,13 @@ int uifcini32(uifcapi_t* uifcapi)
 		api->mode|=UIFC_MOUSE;
 		uifc_mouse_enable();
 	}
+
+	/* A esc_delay of less than 10 is stupid... silently override */
+	if(api->esc_delay < 10)
+		api->esc_delay=25;
+
+	if(cio_api.ESCDELAY)
+		*(cio_api.ESCDELAY)=api->esc_delay;
 
 	api->initialized=TRUE;
 
@@ -494,6 +492,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
+	int	is_lastwin=0;
 	int s_top=SCRN_TOP;
 	int s_left=SCRN_LEFT;
 	int s_right=SCRN_RIGHT;
@@ -510,6 +509,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int	a,b,c,longopt;
 	int	optheight=0;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
+	static int	*oldcur=NULL;
+	static int	*oldbar=NULL;
 
 	hclr=api->hclr;
 	lclr=api->lclr;
@@ -617,14 +618,29 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			&& last_menu_bar==bar
 			&& save_menu_cur==*cur
 			&& save_menu_bar==*bar
-			&& save_menu_opts==opts)
+			&& save_menu_opts==opts) {
 		is_redraw=1;
+	}
+	if(mode&WIN_SAV) {
+		if(cur==oldcur && bar==oldbar)
+			is_lastwin=1;
+		oldcur=cur;
+		oldbar=bar;
+	}
+
 	if(mode&WIN_DYN && mode&WIN_REDRAW)
 		is_redraw=1;
 	if(mode&WIN_DYN && mode&WIN_NODRAW)
 		is_redraw=0;
 
+	if(mode&WIN_ORG) {		/* Clear all save buffers on WIN_ORG */
+		for(i=0; i< MAX_BUFS; i++)
+			FREE_AND_NULL(sav[i].buf);
+	}
+
 	if(mode&WIN_SAV) {
+		if(is_lastwin && api->savnum>0 && sav[api->savnum].buf==NULL)
+			api->savnum--;
 		if(sav[api->savnum].buf==NULL) {
 			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
@@ -878,7 +894,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				a=lbclr;
 			else
 				a=lclr|(bclr<<4);
-			if(i<opts) {
+			if(i<opts && option[i]!=NULL) {
 				b=strlen(option[i]);
 				if(b>longopt)
 					longopt=b;

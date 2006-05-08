@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.31 2005/11/24 07:03:49 deuce Exp $ */
+/* $Id: menu.c,v 1.34 2005/12/05 03:39:32 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -11,6 +11,7 @@
 #include "bbslist.h"
 #include "conn.h"
 #include "window.h"
+#include "syncterm.h"
 
 void viewscroll(void)
 {
@@ -26,8 +27,9 @@ void viewscroll(void)
 	y=wherey();
 	uifcbail();
     gettextinfo(&txtinfo);
-	scrollback=(char *)malloc((term.width*2*backlines)+(txtinfo.screenheight*txtinfo.screenwidth*2));
-	memcpy(scrollback,cterm.scrollback,term.width*2*backlines);
+	scrollback=(char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	if(cterm.scrollback != NULL)
+		memcpy(scrollback,cterm.scrollback,term.width*2*settings.backlines);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
 	drawwin();
 	top=cterm.backpos;
@@ -114,8 +116,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						 "Scrollback (Alt-B)"
 						,"Disconnect (Ctrl-Q)"
 						,"Send Login (Alt-L)"
-						,"Zmodem Upload (Alt-U)"
-						,"Zmodem Download (Alt-D)"
+						,"Upload (Alt-U)"
+						,"Download (Alt-D)"
 						,"Change Output Rate (Alt-Up/Alt-Down)"
 						,"Change Log Level"
 						,"Capture Control (Alt-C)"
@@ -147,8 +149,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						"                     dialing list\n"
 						"~ Send Login ~         Sends the configured user and password pair separated\n"
 						"                     by a \\r\n"
-						"~ Zmodem Upload ~      Initiates a ZModem upload\n"
-						"~ Zmodem Download ~    Initiates a ZModem download\n"
+						"~ Upload ~             Initiates a ZModem upload\n"
+						"~ Download ~           Initiates a ZModem download\n"
 						"~ Change Output Rate ~ Changes the speed charaters are output to the screen\n"
 						"~ Change Log Level ~   Changes the minimum log leve for ZModem information\n"
 						"~ Capture Control ~    Enables/Disables screen capture\n"
