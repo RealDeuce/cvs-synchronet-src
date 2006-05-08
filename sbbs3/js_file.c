@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.94 2006/05/08 19:20:05 deuce Exp $ */
+/* $Id: js_file.c,v 1.95 2006/05/08 19:51:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -268,6 +268,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(uulen>=0) {
 			buf=uubuf;
 			len=uulen;
+		}
 	}
 
 	str = JS_NewStringCopyN(cx, buf, len);
