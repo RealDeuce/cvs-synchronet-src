@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.96 2006/05/08 20:58:51 deuce Exp $ */
+/* $Id: js_file.c,v 1.97 2006/05/08 21:02:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -257,7 +257,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(p->uuencoded || p->b64encoded || p->yencoded) {
 		uulen=len*2;
-		if((uubuf=malloc(uulen))==NULL)
+		if((uubuf=malloc(uulen))==NULL) {
 			free(buf);
 			return(JS_TRUE);
 		}
