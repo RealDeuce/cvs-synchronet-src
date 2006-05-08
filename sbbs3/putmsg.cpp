@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.16 2005/10/25 20:29:56 deuce Exp $ */
+/* $Id: putmsg.cpp,v 1.17 2006/02/08 00:47:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -102,7 +102,7 @@ char sbbs_t::putmsg(char *str, long mode)
 			l+=4; 
 		}
 		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit(str[l+1])
-			&& !(useron.misc&(RIP|WIP))) {
+			&& isdigit(str[l+2]) && !(useron.misc&(RIP|WIP))) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			i=atoi(tmp2);
 			if(i>=16) { 				/* setting background */
@@ -114,9 +114,7 @@ char sbbs_t::putmsg(char *str, long mode)
 				i|=(curatr&0xf0);		/* leave background alone */
 			attr(i);
 			exatr=1;
-			l+=2;	/* Skip |x */
-			if(isdigit(str[l]))
-				l++;	/* Skip second digit if it exists */
+			l+=3;	/* Skip |xx */
 		}	
 		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha(str[l+1])
 			&& !(useron.misc&(RIP|WIP))) {
