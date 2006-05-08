@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.161 2005/11/27 22:18:05 deuce Exp $ */
+/* $Id: uifc32.c,v 1.171 2006/05/08 18:34:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,15 +169,6 @@ int uifcini32(uifcapi_t* uifcapi)
 	api->getstrxy=ugetstr;
 	api->printf=uprintf;
 
-	/* A esc_delay of less than 10 is stupid... silently override */
-	if(api->esc_delay < 10)
-		api->esc_delay=25;
-
-#ifdef NCURSES_VERSION_MAJOR
-	if(cio_api.mode==CIOLIB_MODE_CURSES) {
-		ESCDELAY=api->esc_delay;
-#endif
-
     if(api->scrn_len!=0) {
         switch(api->scrn_len) {
             case 14:
@@ -288,6 +279,13 @@ int uifcini32(uifcapi_t* uifcapi)
 		uifc_mouse_enable();
 	}
 
+	/* A esc_delay of less than 10 is stupid... silently override */
+	if(api->esc_delay < 10)
+		api->esc_delay=25;
+
+	if(cio_api.ESCDELAY)
+		*(cio_api.ESCDELAY)=api->esc_delay;
+
 	api->initialized=TRUE;
 
 	for(i=0; i<MAX_BUFS; i++)
@@ -308,8 +306,8 @@ void docopy(void)
 	char *copybuf;
 
 	sbufsize=api->scrn_width*2*(api->scrn_len+1);
-	screen=(unsigned char*)malloc(sbufsize);
-	sbuffer=(unsigned char*)malloc(sbufsize);
+	screen=(unsigned char*)alloca(sbufsize);
+	sbuffer=(unsigned char*)alloca(sbufsize);
 	gettext(1,1,api->scrn_width,api->scrn_len+1,screen);
 	while(1) {
 		key=getch();
@@ -353,7 +351,7 @@ void docopy(void)
 						break;
 					case CIOLIB_BUTTON_1_DRAG_END:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=malloc((endy-starty+1)*(endx-startx+1)+1+lines*2);
+						copybuf=alloca((endy-starty+1)*(endx-startx+1)+1+lines*2);
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
@@ -365,17 +363,12 @@ void docopy(void)
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
 						puttext(1,1,api->scrn_width,api->scrn_len+1,screen);
-						free(copybuf);
-						free(screen);
-						free(sbuffer);
 						return;
 				}
 				break;
 			default:
 				puttext(1,1,api->scrn_width,api->scrn_len+1,screen);
 				ungetch(key);
-				free(screen);
-				free(sbuffer);
 				return;
 		}
 	}
@@ -494,6 +487,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
+	int	is_lastwin=0;
 	int s_top=SCRN_TOP;
 	int s_left=SCRN_LEFT;
 	int s_right=SCRN_RIGHT;
@@ -510,6 +504,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int	a,b,c,longopt;
 	int	optheight=0;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
+	static int	*oldcur=NULL;
+	static int	*oldbar=NULL;
 
 	hclr=api->hclr;
 	lclr=api->lclr;
@@ -617,8 +613,16 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			&& last_menu_bar==bar
 			&& save_menu_cur==*cur
 			&& save_menu_bar==*bar
-			&& save_menu_opts==opts)
+			&& save_menu_opts==opts) {
 		is_redraw=1;
+	}
+	if(mode&WIN_SAV) {
+		if(cur==oldcur && bar==oldbar)
+			is_lastwin=1;
+		oldcur=cur;
+		oldbar=bar;
+	}
+
 	if(mode&WIN_DYN && mode&WIN_REDRAW)
 		is_redraw=1;
 	if(mode&WIN_DYN && mode&WIN_NODRAW)
@@ -630,6 +634,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	}
 
 	if(mode&WIN_SAV) {
+		if(is_lastwin && api->savnum>0 && sav[api->savnum].buf==NULL)
+			api->savnum--;
 		if(sav[api->savnum].buf==NULL) {
 			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
@@ -883,7 +889,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				a=lbclr;
 			else
 				a=lclr|(bclr<<4);
-			if(i<opts) {
+			if(i<opts && option[i]!=NULL) {
 				b=strlen(option[i]);
 				if(b>longopt)
 					longopt=b;
@@ -958,7 +964,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							api->savnum++;
 						if(mode&WIN_ACT) {
 							uifc_mouse_disable();
-							if((win=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+							if((win=(char *)alloca((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
 								return(-1);
@@ -973,7 +979,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 							puttext(s_left+left,s_top+top,s_left
 								+left+width-1,s_top+top+height-1,win);
-							free(win);
 							uifc_mouse_enable();
 						}
 						else if(mode&WIN_SAV) {
@@ -1799,7 +1804,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	unsigned char	*pastebuf=NULL;
 	unsigned char	*pb=NULL;
 
-	if((str=(uchar *)malloc(max+1))==NULL) {
+	if((str=(uchar *)alloca(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(max+1));
 		_setcursortype(cursor);
@@ -2479,7 +2484,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	if(lines < height-2-pad-pad)
 		lines=height-2-pad-pad;
 
-	if((textbuf=(char *)malloc((width-2-pad-pad)*lines*2))==NULL) {
+	if((textbuf=(char *)alloca((width-2-pad-pad)*lines*2))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(width-2-pad-pad)*lines*2);
 		_setcursortype(cursor);
@@ -2594,7 +2599,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	}
 	if(is_redraw)			/* Force redraw of menu also. */
 		reset_dynamic();
-	free(textbuf);
 	_setcursortype(cursor);
 }
 
