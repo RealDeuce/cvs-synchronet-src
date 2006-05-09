@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.65 2005/11/19 08:45:43 deuce Exp $ */
+/* $Id: console.c,v 1.68 2006/05/08 18:25:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,6 +166,7 @@ typedef struct TextLine {
 	u_char	*exposed;
 } TextLine;
 TextLine *lines = NULL;
+unsigned int	x_pending_mousekeys=0;
 
 /* X Variables */
 Display *dpy=NULL;
@@ -391,7 +392,7 @@ struct {
 #define	HWM	16
 void resize_window(void);
 int KbdEmpty(void);
-int load_font(char *filename, int width, int height, int scale);
+int load_font(char *filename, int width, int height, int scale, int *newmode);
 
 void tty_pause()
 {
@@ -459,7 +460,7 @@ video_update_text()
 	curscol=CursCol;
 	wakeup_poll();	/* Wake up anyone waiting on kbd poll */
 
-    vmemc = (WORD *)malloc(DpyCols*(DpyRows+1)*sizeof(WORD));
+    vmemc = (WORD *)alloca(DpyCols*(DpyRows+1)*sizeof(WORD));
 	pthread_mutex_lock(&lines_mutex);
 	memcpy(vmemc, vmem, DpyCols*(DpyRows+1)*sizeof(WORD));
 	for (r = 0; r < (DpyRows+1); ++r) {
@@ -499,8 +500,6 @@ video_update_text()
 			   FW, (CursEnd + 1)*FontScale - (CursStart*FontScale));
 		flush=1;
 	}
-
-	free(vmemc);
 
 	or =cursrow;
 	oc =curscol;
@@ -572,8 +571,12 @@ KbdWrite(WORD code)
 		kf = K_BUFSTARTP;
 
 	if (kf == K_NEXT) {
-		x11.XBell(dpy, 0);
-		return;
+		if(code==CIO_KEY_MOUSE)
+			x_pending_mousekeys++;
+		else {
+			x11.XBell(dpy, 0);
+			return;
+		}
 	}
 	K_BUF(K_FREE) = code;
 	K_FREE = kf;
@@ -648,7 +651,7 @@ video_event(XEvent *ev)
 					FontScale=newFSH;
 				else
 					FontScale=newFSW;
-				load_font(NULL,FW,FH,FontScale);
+				load_font(NULL,FW,FH,FontScale,NULL);
 				resize_window();
 				break;
 		}
@@ -1129,16 +1132,18 @@ video_async_event(void *crap)
 					init_mode(console_new_mode);
 				if(x_current_font!=new_font) {
 					int oldfont=x_current_font;
+					int newmode=0;
+
 					x_current_font=new_font;
-					if(load_font(NULL,FW/FontScale,FH/FontScale,FontScale)) {
-						if(font_force) {
-							init_mode(3);
+					if(load_font(NULL,FW/FontScale,FH/FontScale,FontScale,&newmode)) {
+						if(font_force && newmode) {
+							init_mode(newmode);
 							sem_wait(&console_mode_changed);
-							if(load_font(NULL,FW/FontScale,FH/FontScale,FontScale)) {
+							if(load_font(NULL,FW/FontScale,FH/FontScale,FontScale,NULL)) {
 								setfont_return=-1;
 								x_current_font=oldfont;
 								new_font=oldfont;
-								load_font(NULL,FW/FontScale,FH/FontScale,FontScale);
+								load_font(NULL,FW/FontScale,FH/FontScale,FontScale,NULL);
 							}
 							else
 								setfont_return=0;
@@ -1147,7 +1152,7 @@ video_async_event(void *crap)
 							setfont_return=-1;
 							x_current_font=oldfont;
 							new_font=oldfont;
-							load_font(NULL,FW/FontScale,FH/FontScale,FontScale);
+							load_font(NULL,FW/FontScale,FH/FontScale,FontScale,NULL);
 						}
 					}
 					else
@@ -1161,7 +1166,7 @@ video_async_event(void *crap)
 					x11.XSetIconName(dpy, win, window_name);
 				if(!sem_trywait(&x11_loadfont)) {
 					int oldfont=x_current_font;
-					x_load_font_ret=load_font(font_filename,FW/FontScale,FH/FontScale,FontScale);
+					x_load_font_ret=load_font(font_filename,FW/FontScale,FH/FontScale,FontScale,NULL);
 					if(x_load_font_ret)
 						x_current_font=oldfont;
 					new_font=x_current_font;
@@ -1338,7 +1343,7 @@ scale_bitmap(char *bitmap, int width, int height, int *multiplier)
 
 /* No longer uses X fonts - pass NULL to use VGA 8x16 font */
 int
-load_font(char *filename, int width, int height, int scale)
+load_font(char *filename, int width, int height, int scale, int *newmode)
 {
     XGCValues gcv;
 	char *font;
@@ -1368,7 +1373,22 @@ load_font(char *filename, int width, int height, int scale)
 		return(-1);
 
 	if(filename != NULL) {
-		if(flength(filename)!=height*256)
+		int fl=flength(filename);
+
+		if(newmode != NULL) {
+			switch(fl/256) {
+				case 8:
+					*newmode=C80X50;
+					break;
+				case 14:
+					*newmode=C80X28;
+					break;
+				case 16:
+					*newmode=C80;
+					break;
+			}
+		}
+		if(fl!=height*256)
 			return(-1);
 		if((fontfile=fopen(filename,"rb"))==NULL)
 			return(-1);
@@ -1382,6 +1402,14 @@ load_font(char *filename, int width, int height, int scale)
 			SAFECOPY(current_filename,filename);
 	}
 	else {
+		if(newmode != NULL) {
+			if(conio_fontdata[x_current_font].eight_by_sixteen!=NULL)
+				*newmode=C80;
+			else if(conio_fontdata[x_current_font].eight_by_fourteen!=NULL)
+				*newmode=C80X28;
+			else if(conio_fontdata[x_current_font].eight_by_eight!=NULL)
+				*newmode=C80X50;
+		}
 		switch(width) {
 			case 8:
 				switch(height) {
@@ -1494,7 +1522,7 @@ init_mode(int mode)
     update_pixels();
 
     /* Update font. */
-    if(load_font(NULL,vmode.charwidth,vmode.charheight,FontScale)) {
+    if(load_font(NULL,vmode.charwidth,vmode.charheight,FontScale,NULL)) {
 		sem_post(&console_mode_changed);
 		return(-1);
 	}
@@ -1774,12 +1802,18 @@ WORD
 KbdRead()
 {
 	int kf = K_NEXT;
+	WORD	ret;
 
 	K_NEXT = K_NEXT + 2;
 	if (K_NEXT == K_BUFENDP)
 		K_NEXT = K_BUFSTARTP;
 
-	return(K_BUF(kf));
+	ret=K_BUF(kf);
+	if(x_pending_mousekeys) {
+		KbdWrite(CIO_KEY_MOUSE);
+		x_pending_mousekeys--;
+	}
+	return(ret);
 }
 
 int

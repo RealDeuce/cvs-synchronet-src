@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.72 2005/11/28 15:07:34 deuce Exp $ */
+/* $Id: syncterm.c,v 1.87 2006/02/27 21:46:11 rswindell Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -16,6 +16,7 @@
 #include "cterm.h"
 #include "allfonts.h"
 
+#include "fonts.h"
 #include "syncterm.h"
 #include "bbslist.h"
 #include "conn.h"
@@ -23,7 +24,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.6"
+char* syncterm_version = "SyncTERM 0.7"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -34,7 +35,13 @@ char* syncterm_version = "SyncTERM 0.6"
 
 char *inpath=NULL;
 int default_font=0;
+struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
+unsigned char *scrollback_buf=NULL;
+unsigned int  scrollback_lines=0;
+int	safe_mode=0;
+FILE* log_fp;
+extern ini_style_t ini_style;
 
 #ifdef _WINSOCKAPI_
 
@@ -67,7 +74,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 {
 	char *p1, *p2, *p3;
 	struct	bbslist	*list[MAX_OPTS+1];
-	char	path[MAX_PATH];
+	char	path[MAX_PATH+1];
 	char	listpath[MAX_PATH+1];
 	int		listcount=0, i;
 
@@ -85,7 +92,8 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
 		bbs->conn_type=dflt_conn_type;
 		bbs->port=(dflt_conn_type==CONN_TYPE_TELNET)?23:513;
-		bbs->loglevel=LOG_INFO;
+		bbs->xfer_loglevel=LOG_INFO;
+		bbs->telnet_loglevel=LOG_INFO;
 		bbs->music=CTERM_MUSIC_BANSI;
 		strcpy(bbs->font,"Codepage 437 English");
 	}
@@ -158,6 +166,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		SAFECOPY(oldlst, home);
 		strcat(oldlst, "/syncterm.lst");
 	}
+#ifdef CSIDL_FLAG_CREATE
 	if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 		switch(SHGetFolderPath(NULL, CSIDL_PERSONAL|CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, fn)) {
 			case E_FAIL:
@@ -170,18 +179,24 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 				strcat(fn,"SyncTERM");
 				break;
 		}
+		if(!isdir(fn))
+			MKDIR(fn);
 		return(fn);
 	}
 	switch(SHGetFolderPath(NULL, (shared?CSIDL_COMMON_APPDATA:CSIDL_APPDATA)|CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, fn)) {
 		case E_FAIL:
 		case E_INVALIDARG:
-			strcpy(fn,".\\");
+			strcpy(fn,".");
 			break;
 		default:
 			backslash(fn);
 			strcat(fn,"SyncTERM");
 			break;
 	}
+#else
+	getcwd(fn, fnlen);
+	backslash(fn);
+#endif
 
 	/* Create if it doesn't exist */
 	if(!isdir(fn)) {
@@ -191,9 +206,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 		case SYNCTERM_PATH_INI:
+			backslash(fn);
 			strncat(fn,"syncterm.ini",fnlen);
 			break;
 		case SYNCTERM_PATH_LIST:
+			backslash(fn);
 			strncat(fn,"syncterm.lst",fnlen);
 			break;
 	}
@@ -216,6 +233,8 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 			strcpy(fn, home);
 			backslash(fn);
+			if(!isdir(fn))
+				MKDIR(fn);
 			return(fn);
 		}
 		SAFECOPY(oldlst,home);
@@ -257,17 +276,31 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	return(fn);
 }
 
+void load_settings(struct syncterm_settings *set)
+{
+	FILE	*inifile;
+	char	inipath[MAX_PATH+1];
+
+	get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
+	inifile=fopen(inipath,"r");
+	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
+	set->startup_mode=iniReadInteger(inifile,"SyncTERM","VideoMode",FALSE);
+	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
+	if(inifile)
+		fclose(inifile);
+}
+
 int main(int argc, char **argv)
 {
 	struct bbslist *bbs=NULL;
 	struct	text_info txtinfo;
-	char	str[MAX_PATH];
-	char	drive[MAX_PATH];
-	char	path[MAX_PATH];
-	char	fname[MAX_PATH];
-	char	ext[MAX_PATH];
+	char	str[MAX_PATH+1];
+	char	drive[MAX_PATH+1];
+	char	path[MAX_PATH+1];
+	char	fname[MAX_PATH+1];
+	char	ext[MAX_PATH+1];
 	/* Command-line parsing vars */
-	char	url[MAX_PATH];
+	char	url[MAX_PATH+1];
 	char	*p1;
 	char	*p2;
 	char	*p3;
@@ -279,6 +312,7 @@ int main(int argc, char **argv)
 	char	*inpath=NULL;
 	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
+	BOOL	dont_set_mode=FALSE;
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
@@ -293,9 +327,6 @@ int main(int argc, char **argv)
 #endif
             )
             switch(toupper(argv[i][1])) {
-                case 'C':
-        			uifc.mode|=UIFC_COLOR;
-                    break;
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
@@ -325,9 +356,7 @@ int main(int argc, char **argv)
 					break;
                 case 'L':
                     uifc.scrn_len=atoi(argv[i]+2);
-                    break;
-		        case 'M':   /* Monochrome mode */
-        			uifc.mode|=UIFC_MONO;
+					dont_set_mode=TRUE;
                     break;
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
@@ -335,9 +364,9 @@ int main(int argc, char **argv)
 				case 'T':
 					conn_type=CONN_TYPE_TELNET;
 					break;
-                case 'V':
-                    textmode(atoi(argv[i]+2));
-                    break;
+				case 'S':
+					safe_mode=1;
+					break;
                 default:
 					goto USAGE;
            }
@@ -345,7 +374,28 @@ int main(int argc, char **argv)
 			SAFECOPY(url,argv[i]);
     }
 
+	load_settings(&settings);
+
 	initciolib(ciolib_mode);
+	if(!dont_set_mode) {
+		switch(settings.startup_mode) {
+			case SCREEN_MODE_80X25:
+				textmode(C80);
+				break;
+			case SCREEN_MODE_80X28:
+				textmode(C80X28);
+				break;
+			case SCREEN_MODE_80X43:
+				textmode(C80X43);
+				break;
+			case SCREEN_MODE_80X50:
+				textmode(C80X50);
+				break;
+			case SCREEN_MODE_80X60:
+				textmode(C80X60);
+				break;
+		}
+	}
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -360,6 +410,11 @@ int main(int argc, char **argv)
 	else
 		FULLPATH(path,inpath,sizeof(path));
 	atexit(uifcbail);
+
+	scrollback_buf=malloc(80*2*settings.backlines);	/* Terminal width is *always* 80 cols */
+	if(scrollback_buf==NULL) {
+		uifc.msg("Cannot allocate space for scrollback buffer.\n");
+	}
 
 #ifdef __unix__
 	umask(077);
@@ -400,8 +455,8 @@ int main(int argc, char **argv)
 				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
-					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,NULL);
-					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
+					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,&ini_style);
+					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,&ini_style);
 					if((listfile=fopen(listpath,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
 						fclose(listfile);
@@ -434,7 +489,21 @@ int main(int argc, char **argv)
 			term.nostatus=bbs->nostatus;
 			if(drawwin())
 				return(1);
+			if(log_fp==NULL && bbs->logfile[0])
+				log_fp=fopen(bbs->logfile,"a");
+			if(log_fp!=NULL) {
+				time_t now=time(NULL);
+				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
+			}
+
 			exit_now=doterm(bbs);
+
+			if(log_fp!=NULL) {
+				time_t now=time(NULL);
+				fprintf(log_fp,"%.15s Log closed\n", ctime(&now)+4);
+				fclose(log_fp);
+				log_fp=NULL;
+			}
 			setfont(default_font,TRUE);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
@@ -477,8 +546,6 @@ int main(int argc, char **argv)
 	clrscr();
     cprintf("\nusage: syncterm [options] [URL]"
         "\n\noptions:\n\n"
-        "-c  =  force color mode\n"
-		"-m  =  force monochrome mode\n"
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
 #ifdef __unix__
@@ -489,10 +556,10 @@ int main(int argc, char **argv)
 		"       W = Win32 native mode\n"
 #endif
 		"       A = ANSI mode\n"
-        "-v# =  set video mode to # (default=auto)\n"
         "-l# =  set screen lines to # (default=auto-detect)\n"
 		"-t  =  use telnet mode if URL does not include the scheme\n"
 		"-r  =  use rlogin mode if URL does not include the scheme\n"
+		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"\n"
 		"URL format is: [(rlogin|telnet)://][user[:password]@]domainname[:port]\n"
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
