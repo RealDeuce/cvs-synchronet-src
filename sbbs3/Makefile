@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.79 2005/10/24 18:59:27 deuce Exp $
+# $Id: Makefile,v 1.80 2006/04/08 02:00:49 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -113,6 +113,20 @@ $(SBBSCON): $(CON_OBJS) $(SBBS) $(FTPSRVR) $(WEBSRVR) $(MAILSRVR) $(SERVICES)
 		$(XPDEV-MT_LIB) -L$(LIBODIR) $(LIBODIR)$(DIRSEP)sbbs.lib \
 		$(LIBODIR)$(DIRSEP)ftpsrvr.lib $(LIBODIR)$(DIRSEP)mailsrvr.lib \
 		$(LIBODIR)$(DIRSEP)websrvr.lib $(LIBODIR)$(DIRSEP)services.lib
+
+SBBSNTSVCS = $(EXEODIR)$(DIRSEP)sbbsNTsvcs.exe
+ntsvcs: $(SBBSNTSVCS)
+
+# Synchronet NT Services
+$(EXEODIR)$(DIRSEP)sbbsNTsvcs.exe: $(SBBS) $(FTPSRVR) $(WEBSRVR) $(MAILSRVR) $(SERVICES) \
+	$(MTOBJODIR)$(DIRSEP)ntsvcs$(OFILE) $(MTOBJODIR)$(DIRSEP)sbbs_ini$(OFILE)
+	@echo Linking $@
+	$(QUIET)$(CC) $(MT_LDFLAGS) -e$@ $(LDFLAGS) \
+	$(MTOBJODIR)$(DIRSEP)ntsvcs$(OFILE) $(MTOBJODIR)$(DIRSEP)sbbs_ini$(OFILE) \
+	$(XPDEV-MT_LIB) -L$(LIBODIR) $(LIBODIR)$(DIRSEP)sbbs.lib \
+	$(LIBODIR)$(DIRSEP)ftpsrvr.lib $(LIBODIR)$(DIRSEP)mailsrvr.lib \
+	$(LIBODIR)$(DIRSEP)websrvr.lib $(LIBODIR)$(DIRSEP)services.lib
+	$(QUIET)brc32 ntsvcs.rc $@
 
 # Baja Utility
 $(BAJA): $(BAJA_OBJS)
