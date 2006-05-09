@@ -123,16 +123,38 @@ int read_config(void)
 }
 
 int main(int argc, char *argv[]) {
+	char	glade_path[MAX_PATH+1];
+
     gtk_init(&argc, &argv);
     glade_init();
 
     /* load the interface */
-    xml = glade_xml_new("gtkuseredit.glade", NULL, NULL);
+	strcpy(glade_path, argv[0]);
+	strcpy(getfname(glade_path), "gtkuseredit.glade");
+    xml = glade_xml_new(glade_path, "MainWindow", NULL);
     /* connect the signals in the interface */
     glade_xml_signal_autoconnect(xml);
 	/* Set up the global config stuff. */
 	if(read_config())
 		return(1);
+
+	if(argc>1) {
+		if(atoi(argv[1]))
+			update_current_user(atoi(argv[1]));
+		else {
+			unsigned int	nu;
+			nu=matchuser(&cfg, argv[1], TRUE);
+			if(nu)
+				update_current_user(nu);
+			else {
+				GladeXML        *cxml;
+				cxml = glade_xml_new("gtkuseredit.glade", "NotFoundWindow", NULL);
+				glade_xml_signal_autoconnect(cxml);
+				gtk_window_present(GTK_WINDOW(glade_xml_get_widget(cxml, "NotFoundWindow")));
+			}
+		}
+	}
+
     /* start the event loop */
     gtk_main();
     return 0;
