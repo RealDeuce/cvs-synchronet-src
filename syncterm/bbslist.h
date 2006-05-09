@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.29 2006/10/01 19:56:52 deuce Exp $ */
+/* $Id: bbslist.h,v 1.27 2006/02/25 09:13:44 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -9,15 +9,11 @@
 #include "ini_file.h"
 #include <time.h>
 
-#if defined(_WIN32)
-	#include <malloc.h>	/* alloca() on Win32 */
-#endif
-
 #define LIST_NAME_MAX	30
 #define LIST_ADDR_MAX	64
 #define MAX_USER_LEN	30
 #define MAX_PASSWD_LEN	16
-#define MAX_SYSPASS_LEN	40
+#define MAX_SYSPASS_LEN	16
 
 enum {
 	 USER_BBSLIST
