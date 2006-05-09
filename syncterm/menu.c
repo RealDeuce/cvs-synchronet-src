@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.32 2005/11/28 16:57:12 deuce Exp $ */
+/* $Id: menu.c,v 1.35 2006/05/08 18:43:11 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -27,8 +27,10 @@ void viewscroll(void)
 	y=wherey();
 	uifcbail();
     gettextinfo(&txtinfo);
-	scrollback=(char *)malloc((term.width*2*settings.backlines)+(txtinfo.screenheight*txtinfo.screenwidth*2));
-	memcpy(scrollback,cterm.scrollback,term.width*2*settings.backlines);
+	/* ToDo: Watch this... may be too large for alloca() */
+	scrollback=(char *)alloca((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	if(cterm.scrollback != NULL)
+		memcpy(scrollback,cterm.scrollback,term.width*2*settings.backlines);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
 	drawwin();
 	top=cterm.backpos;
@@ -104,7 +106,6 @@ void viewscroll(void)
 		}
 	}
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
-	free(scrollback);
 	gotoxy(x,y);
 	return;
 }
@@ -115,8 +116,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						 "Scrollback (Alt-B)"
 						,"Disconnect (Ctrl-Q)"
 						,"Send Login (Alt-L)"
-						,"Zmodem Upload (Alt-U)"
-						,"Zmodem Download (Alt-D)"
+						,"Upload (Alt-U)"
+						,"Download (Alt-D)"
 						,"Change Output Rate (Alt-Up/Alt-Down)"
 						,"Change Log Level"
 						,"Capture Control (Alt-C)"
@@ -131,7 +132,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	int		ret;
 
     gettextinfo(&txtinfo);
-	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
@@ -148,8 +149,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						"                     dialing list\n"
 						"~ Send Login ~         Sends the configured user and password pair separated\n"
 						"                     by a \\r\n"
-						"~ Zmodem Upload ~      Initiates a ZModem upload\n"
-						"~ Zmodem Download ~    Initiates a ZModem download\n"
+						"~ Upload ~             Initiates a ZModem upload\n"
+						"~ Download ~           Initiates a ZModem download\n"
 						"~ Change Output Rate ~ Changes the speed charaters are output to the screen\n"
 						"~ Change Log Level ~   Changes the minimum log leve for ZModem information\n"
 						"~ Capture Control ~    Enables/Disables screen capture\n"
@@ -234,13 +235,11 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				ret=i;
 				uifcbail();
 				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-				free(buf);
 				return(ret);
 		}
 	}
 
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	free(buf);
 	return(ret);
 }
