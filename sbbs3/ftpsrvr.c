@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.302 2005/10/13 01:44:53 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.307 2006/04/25 00:59:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1264,6 +1264,11 @@ static char* cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *c
                 case '!':   /* EXEC Directory */
                     strcat(cmd,scfg.exec_dir);
                     break;
+                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
+#ifndef __unix__
+                    strcat(cmd,scfg.exec_dir);
+#endif
+                    break;
                 case '#':   /* Node number (same as SBBSNNUM environment var) */
                     sprintf(str,"%u",scfg.node_num);
                     strcat(cmd,str);
@@ -1561,8 +1566,7 @@ static void send_thread(void* arg)
 		}	
 
 		if(xfer.credits) {
-			xfer.user->dls=(ushort)adjustuserrec(&scfg, xfer.user->number,U_DLS,5,1);
-			xfer.user->dlb=adjustuserrec(&scfg, xfer.user->number,U_DLB,10,total);
+			user_downloaded(&scfg, xfer.user, 1, total);
 			if(xfer.dir>=0 && !is_download_free(&scfg,xfer.dir,xfer.user))
 				subtract_cdt(&scfg, xfer.user, xfer.credits);
 		}
@@ -1769,6 +1773,9 @@ static void receive_thread(void* arg)
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
 				SAFECOPY(f.desc,xfer.desc);
 
+			/* Necessary for DIR and LIB ARS keyword support in subsequent chk_ar()'s */
+			SAFECOPY(xfer.user->curdir, scfg.dir[f.dir]->code);
+
 			/* FILE_ID.DIZ support */
 			p=strrchr(f.name,'.');
 			if(p!=NULL && scfg.dir[f.dir]->misc&DIR_DIZ) {
@@ -1832,9 +1839,7 @@ static void receive_thread(void* arg)
 			/**************************/
 			/* Update Uploader's Info */
 			/**************************/
-			if(!xfer.append && xfer.filepos==0)
-				xfer.user->uls=(short)adjustuserrec(&scfg, xfer.user->number,U_ULS,5,1);
-			xfer.user->ulb=adjustuserrec(&scfg, xfer.user->number,U_ULB,10,total);
+			user_uploaded(&scfg, xfer.user, (!xfer.append && xfer.filepos==0) ? 1:0, total);
 			if(scfg.dir[f.dir]->up_pct && scfg.dir[f.dir]->misc&DIR_CDTUL) { /* credit for upload */
 				if(scfg.dir[f.dir]->misc&DIR_CDTMIN && cps)    /* Give min instead of cdt */
 					xfer.user->min=adjustuserrec(&scfg,xfer.user->number,U_MIN,10
@@ -2263,6 +2268,30 @@ char* vpath(int lib, int dir, char* str)
 	return(str);
 }
 
+void ftp_printfile(SOCKET sock, const char* name, unsigned code)
+{
+	char	path[MAX_PATH+1];
+	char	buf[512];
+	FILE*	fp;
+	unsigned i;
+
+	SAFEPRINTF2(path,"%sftp%s.txt",scfg.text_dir,name);
+	if((fp=fopen(path,"rb"))!=NULL) {
+		i=0;
+		while(!feof(fp)) {
+			if(!fgets(buf,sizeof(buf),fp))
+				break;
+			truncsp(buf);
+			if(!i)
+				sockprintf(sock,"%u-%s",code,buf);
+			else
+				sockprintf(sock," %s",buf);
+			i++;
+		}
+		fclose(fp);
+	}
+}
+
 static BOOL badlogin(SOCKET sock, ulong* login_attempts)
 {
 	mswait(5000);	/* As recommended by RFC2577 */
@@ -2270,6 +2299,7 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts)
 		sockprintf(sock,"421 Too many failed login attempts.");
 		return(TRUE);
 	}
+	ftp_printfile(sock,"badlogin",530);
 	sockprintf(sock,"530 Invalid login.");
 	return(FALSE);
 }
@@ -2556,21 +2586,7 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 		if(!stricmp(cmd, "QUIT")) {
-			sprintf(str,"%sftpbye.txt",scfg.text_dir);
-			if((fp=fopen(str,"rb"))!=NULL) {
-				i=0;
-				while(!feof(fp)) {
-					if(!fgets(buf,sizeof(buf),fp))
-						break;
-					truncsp(buf);
-					if(!i)
-						sockprintf(sock,"221-%s",buf);
-					else
-						sockprintf(sock," %s",buf);
-					i++;
-				}
-				fclose(fp);
-			}
+			ftp_printfile(sock,"bye",221);
 			sockprintf(sock,"221 Goodbye. Closing control connection.");
 			break;
 		}
@@ -2688,21 +2704,7 @@ static void ctrl_thread(void* arg)
 			lprintf(LOG_INFO,"%04d %s logged in",sock,user.alias);
 			logintime=time(NULL);
 			timeleft=gettimeleft(&scfg,&user,logintime);
-			sprintf(str,"%sftphello.txt",scfg.text_dir);
-			if((fp=fopen(str,"rb"))!=NULL) {
-				i=0;
-				while(!feof(fp)) {
-					if(!fgets(buf,sizeof(buf),fp))
-						break;
-					truncsp(buf);
-					if(!i)
-						sockprintf(sock,"230-%s",buf);
-					else
-						sockprintf(sock," %s",buf);
-					i++;
-				}
-				fclose(fp);
-			}
+			ftp_printfile(sock,"hello",230);
 
 #ifdef JAVASCRIPT
 #ifdef JS_CX_PER_SESSION
@@ -4508,7 +4510,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.302 $", "%*s %s", revision);
+	sscanf("$Revision: 1.307 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
