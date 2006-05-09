@@ -2,7 +2,7 @@
 
 /* 32-bit CRC table  */
 
-/* $Id: crc32.c,v 1.6 2006/05/09 18:50:47 deuce Exp $ */
+/* $Id: crc32.c,v 1.5 2006/05/09 03:22:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,9 +78,9 @@ long crc32tbl[]={	/* CRC polynomial 0xedb88320 */
 /* Pass len of 0 to auto-determine ASCIIZ string length						*/
 /* or non-zero for arbitrary binary data									*/
 /****************************************************************************/
-unsigned long crc32i(unsigned long crc, char *buf, unsigned long len)
+unsigned long sbbs_crc32(char *buf, unsigned long len)
 {
-	unsigned long l;
+	unsigned long l,crc=0xffffffff;
 
 	if(len==0 && buf!=NULL) 
 		len=strlen(buf);
