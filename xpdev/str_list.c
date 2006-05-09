@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.30 2006/05/08 19:56:43 deuce Exp $ */
+/* $Id: str_list.c,v 1.31 2006/05/09 21:02:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,9 @@
 
 #include <stdlib.h>		/* malloc and qsort */
 #include <string.h>		/* strtok */
+#if defined(_WIN32)
+ #include <malloc.h>    /* alloca() on Win32 */
+#endif
 #include "genwrap.h"	/* stricmp */
 #include "str_list.h"
 
