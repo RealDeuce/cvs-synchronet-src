@@ -19,6 +19,7 @@
 
 char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
+char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
 char *rate_names[]={"300bps", "600bps", "1200bps", "2400bps", "4800bps", "9600bps", "19.2Kbps", "38.4Kbps", "57.6Kbps", "76.8Kbps", "115.2Kbps", "Unlimited", NULL};
 int rates[]={300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 76800, 115200, 0};
@@ -31,6 +32,101 @@ ini_style_t ini_style = {
 	/* section_separator */ "\n", 
 	/* value_separarator */NULL, 
 	/* bit_separator */ NULL };
+
+void viewofflinescroll(void)
+{
+	int	top;
+	int key;
+	int i;
+	char	*scrnbuf;
+	struct	text_info txtinfo;
+	int	x,y;
+	struct mouse_event mevent;
+
+	x=wherex();
+	y=wherey();
+    gettextinfo(&txtinfo);
+	scrnbuf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrnbuf);
+	uifcbail();
+	drawwin();
+	top=scrollback_lines;
+	gotoxy(1,1);
+	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
+	for(i=0;!i;) {
+		if(top<1)
+			top=1;
+		if(top>scrollback_lines)
+			top=scrollback_lines;
+		puttext(((txtinfo.screenwidth-80)/2)+1,1,(txtinfo.screenwidth-80)/2+80,txtinfo.screenheight,scrollback_buf+(80*2*top));
+		cputs("Scrollback");
+		gotoxy(71,1);
+		cputs("Scrollback");
+		gotoxy(1,1);
+		key=getch();
+		switch(key) {
+			case 0xff:
+			case 0:
+				switch(key|getch()<<8) {
+					case CIO_KEY_MOUSE:
+						getmouse(&mevent);
+						switch(mevent.event) {
+							case CIOLIB_BUTTON_1_DRAG_START:
+								mousedrag(scrollback_buf);
+								break;
+						}
+						break;
+					case CIO_KEY_UP:
+						top--;
+						break;
+					case CIO_KEY_DOWN:
+						top++;
+						break;
+					case CIO_KEY_PPAGE:
+						top-=txtinfo.screenheight;
+						break;
+					case CIO_KEY_NPAGE:
+						top+=txtinfo.screenheight;
+						break;
+					case CIO_KEY_F(1):
+						init_uifc(FALSE, FALSE);
+						uifc.helpbuf=	"`Scrollback Buffer`\n\n"
+										"~ J ~ or ~ Up Arrow ~   Scrolls up one line\n"
+										"~ K ~ or ~ Down Arrow ~ Scrolls down one line\n"
+										"~ H ~ or ~ Page Up ~    Scrolls up one screen\n"
+										"~ L ~ or ~ Page Down ~  Scrolls down one screen\n";
+						uifc.showhelp();
+						uifcbail();
+						drawwin();
+						break;
+				}
+				break;
+			case 'j':
+			case 'J':
+				top--;
+				break;
+			case 'k':
+			case 'K':
+				top++;
+				break;
+			case 'h':
+			case 'H':
+				top-=txtinfo.screenheight;
+				break;
+			case 'l':
+			case 'L':
+				top+=txtinfo.screenheight;
+				break;
+			case ESC:
+				i=1;
+				break;
+		}
+	}
+	init_uifc(TRUE, TRUE);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrnbuf);
+	gotoxy(x,y);
+	return;
+}
 
 int get_rate_num(int rate)
 {
@@ -56,7 +152,7 @@ void sort_list(struct bbslist **list)  {
 
 	while(swapped) {
 		swapped=0;
-		for(i=1;list[i-1]->name[0] && list[i]->name[0];i++) {
+		for(i=1;list[i]!=NULL && list[i-1]->name[0] && list[i]->name[0];i++) {
 			int	cmp=stricmp(list[i-1]->name,list[i]->name);
 			if(cmp>0) {
 				tmp=list[i];
@@ -80,7 +176,7 @@ void free_list(struct bbslist **list, int listcount)
 void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int type)
 {
 	BOOL	dumb;
-	char	home[MAX_PATH];
+	char	home[MAX_PATH+1];
 
 	get_syncterm_filename(home, sizeof(home), SYNCTERM_DEFAULT_TRANSFER_PATH, FALSE);
 	if(bbsname != NULL)
@@ -102,7 +198,12 @@ void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int
 	entry->nostatus=iniReadBool(listfile,bbsname,"NoStatus",0);
 	iniReadString(listfile,bbsname,"DownloadPath",home,entry->dldir);
 	iniReadString(listfile,bbsname,"UploadPath",home,entry->uldir);
-	entry->loglevel=iniReadInteger(listfile,bbsname,"LogLevel",LOG_INFO);
+
+	/* Log Stuff */
+	iniReadString(listfile,bbsname,"LogFile","",entry->logfile);
+	entry->xfer_loglevel=iniReadEnum(listfile,bbsname,"TransferLogLevel",log_levels,LOG_INFO);
+	entry->telnet_loglevel=iniReadEnum(listfile,bbsname,"TelnetLogLevel",log_levels,LOG_INFO);
+
 	entry->bpsrate=iniReadInteger(listfile,bbsname,"BPSRate",0);
 	entry->music=iniReadInteger(listfile,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
 	iniReadString(listfile,bbsname,"Font","Codepage 437 English",entry->font);
@@ -133,14 +234,16 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 		strListFreeStrings(bbses);
 	}
 
+#if 0	/* This isn't necessary (NULL is a sufficient) */
 	/* Add terminator */
 	list[*i]=(struct bbslist *)"";
+#endif
 }
 
 int edit_list(struct bbslist *item,char *listpath,int isdefault)
 {
-	char	opt[17][80];
-	char	*opts[17];
+	char	opt[18][80];	/* <- Beware of magic number! */
+	char	*opts[19];		/* <- Beware of magic number! */
 	int		changed=0;
 	int		copt=0,i,j;
 	char	str[6];
@@ -149,7 +252,7 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 	char	tmp[LIST_NAME_MAX+1];
 	char	*itemname;
 
-	for(i=0;i<17;i++)
+	for(i=0;i<18;i++)		/* <- Beware of magic number! */
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
 		uifc.helpbuf=	"`Cannot edit system BBS list`\n\n"
@@ -185,12 +288,14 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 		sprintf(opt[i++], "Screen Mode       %s",screen_modes[item->screen_mode]);
 		sprintf(opt[i++], "Hide Status Line  %s",item->nostatus?"Yes":"No");
 		sprintf(opt[i++], "Download Path     %s",item->dldir);
-		sprintf(opt[i++],"Upload Path       %s",item->uldir);
-		sprintf(opt[i++],"Log Level         %s",log_levels[item->loglevel]);
-		sprintf(opt[i++],"Simulated BPS     %s",rate_names[get_rate_num(item->bpsrate)]);
-		sprintf(opt[i++],"ANSI Music        %s",music_names[item->music]);
-		sprintf(opt[i++],"Font              %s",item->font);
-		opt[i++][0]=0;
+		sprintf(opt[i++], "Upload Path       %s",item->uldir);
+		sprintf(opt[i++], "Log File          %s",item->logfile);
+		sprintf(opt[i++], "Log Transfers     %s",log_level_desc[item->xfer_loglevel]);
+		sprintf(opt[i++], "Log Telnet Cmds   %s",log_level_desc[item->telnet_loglevel]);
+		sprintf(opt[i++], "Simulated BPS     %s",rate_names[get_rate_num(item->bpsrate)]);
+		sprintf(opt[i++], "ANSI Music        %s",music_names[item->music]);
+		sprintf(opt[i++], "Font              %s",item->font);
+		opts[i]=NULL;
 		uifc.changes=0;
 
 		uifc.helpbuf=	"`Edit BBS`\n\n"
@@ -204,9 +309,11 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 				if(!confirm("Quit editing?", NULL))
 					continue;
 #endif
-				if((listfile=fopen(listpath,"w"))!=NULL) {
-					iniWriteFile(listfile,inifile);
-					fclose(listfile);
+				if(!safe_mode) {
+					if((listfile=fopen(listpath,"w"))!=NULL) {
+						iniWriteFile(listfile,inifile);
+						fclose(listfile);
+					}
 				}
 				strListFreeStrings(inifile);
 				return(changed);
@@ -352,16 +459,41 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 				break;
 			case 12:
 #ifdef PCM
-				if(!confirm("Edit BBS Log Level?",NULL))
+				if(!confirm("Edit Log Filename?",NULL))
 					continue;
 #endif
-				uifc.helpbuf=	"`Log Level`\n\n"
-								"Set the level of verbosity for file transfer info.\n\n";
-				uifc.list(WIN_SAV,0,0,0,&(item->loglevel),NULL,"Log Level",log_levels);
-				iniSetInteger(&inifile,itemname,"LogLevel",item->loglevel,&ini_style);
-				changed=1;
+				uifc.helpbuf=	"`Log Filename`\n\n"
+								"Enter the path to the optional log file.";
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Log File",item->logfile,MAX_PATH,K_EDIT);
+				iniSetString(&inifile,itemname,"LogFile",item->logfile,&ini_style);
 				break;
 			case 13:
+#ifdef PCM
+				if(!confirm("Edit File Transfer Log Level?",NULL))
+					continue;
+#endif
+				item->xfer_loglevel--;
+				if(item->xfer_loglevel<0)
+					item->xfer_loglevel=LOG_DEBUG;
+				else if(item->xfer_loglevel<LOG_ERR)
+					item->xfer_loglevel=0;
+				iniSetEnum(&inifile,itemname,"TransferLogLevel",log_levels,item->xfer_loglevel,&ini_style);
+				changed=1;
+				break;
+			case 14:
+#ifdef PCM
+				if(!confirm("Edit Telnet Command Log Level?",NULL))
+					continue;
+#endif
+				item->telnet_loglevel--;
+				if(item->telnet_loglevel<0)
+					item->telnet_loglevel=LOG_DEBUG;
+				else if(item->telnet_loglevel<LOG_ERR)
+					item->telnet_loglevel=0;
+				iniSetEnum(&inifile,itemname,"TelnetLogLevel",log_levels,item->telnet_loglevel,&ini_style);
+				changed=1;
+				break;
+			case 15:
 #ifdef PCM
 				if(!confirm("Edit BBS Simulated BPS Rate?",NULL))
 					continue;
@@ -375,7 +507,7 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 				iniSetInteger(&inifile,itemname,"BPSRate",item->bpsrate,&ini_style);
 				changed=1;
 				break;
-			case 14:
+			case 16:
 #ifdef PCM
 				if(!confirm("Edit BBS ANSI Music Setting?",NULL))
 					continue;
@@ -407,7 +539,7 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 					changed=1;
 				}
 				break;
-			case 15:
+			case 17:
 #ifdef PCM
 				if(!confirm("Edit BBS Font?",NULL))
 					continue;
@@ -435,6 +567,8 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	FILE *listfile;
 	str_list_t	inifile;
 
+	if(safe_mode)
+		return;
 	if((listfile=fopen(listpath,"r"))!=NULL) {
 		inifile=iniReadFile(listfile);
 		fclose(listfile);
@@ -459,7 +593,9 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	iniSetEnum(&inifile,bbs->name,"ScreenMode",screen_modes,bbs->screen_mode,&ini_style);
 	iniSetString(&inifile,bbs->name,"DownloadPath",bbs->dldir,&ini_style);
 	iniSetString(&inifile,bbs->name,"UploadPath",bbs->uldir,&ini_style);
-	iniSetInteger(&inifile,bbs->name,"LogLevel",bbs->loglevel,&ini_style);
+	iniSetString(&inifile,bbs->name,"LogFile",bbs->logfile,&ini_style);
+	iniSetEnum(&inifile,bbs->name,"TransferLogLevel",log_levels,bbs->xfer_loglevel,&ini_style);
+	iniSetEnum(&inifile,bbs->name,"TelnetLogLevel",log_levels,bbs->telnet_loglevel,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"ANSIMusic",bbs->music,&ini_style);
 	iniSetString(&inifile,bbs->name,"Font",bbs->font,&ini_style);
@@ -475,6 +611,8 @@ void del_bbs(char *listpath, struct bbslist *bbs)
 	FILE *listfile;
 	str_list_t	inifile;
 
+	if(safe_mode)
+		return;
 	if((listfile=fopen(listpath,"r"))!=NULL) {
 		inifile=iniReadFile(listfile);
 		fclose(listfile);
@@ -489,13 +627,14 @@ void del_bbs(char *listpath, struct bbslist *bbs)
 
 void change_settings(void)
 {
-	char	inipath[MAX_PATH];
+	char	inipath[MAX_PATH+1];
 	FILE	*inifile;
 	str_list_t	inicontents;
 	char	opts[4][80];
 	char	*opt[4];
 	int		i,j;
 	char	str[64];
+	int	cur=0;
 
 	get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
 	if((inifile=fopen(inipath,"r"))!=NULL) {
@@ -509,13 +648,12 @@ void change_settings(void)
 	for(i=0; i<4; i++)
 		opt[i]=opts[i];
 
-	i=0;
 	opts[3][0]=0;
 	for(;;) {
-		sprintf(opts[0],"Confirm Program Exit:    %s",settings.confirm_close?"Yes":"No");
-		sprintf(opts[1],"Startup Video Mode:      %s",screen_modes[settings.startup_mode]);
-		sprintf(opts[2],"Scrollback Buffer Lines: %d",settings.backlines);
-		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Program Settings",opt)) {
+		sprintf(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
+		sprintf(opts[1],"Startup Video Mode      %s",screen_modes[settings.startup_mode]);
+		sprintf(opts[2],"Scrollback Buffer Lines %d",settings.backlines);
+		switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				goto write_ini;
 			case 0:
@@ -524,30 +662,47 @@ void change_settings(void)
 				break;
 			case 1:
 				j=settings.startup_mode;
-				for(;;) {
-					switch(uifc.list(WIN_SAV,0,0,0,&j,NULL,"Startup Video Mode",screen_modes)) {
-						case -1:
-							continue;
-						default:
-							settings.startup_mode=j;
-							iniSetInteger(&inicontents,"SyncTERM","VideoMode",settings.startup_mode,&ini_style);
-							break;
-					}
+				i=0;
+				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Startup Video Mode",screen_modes)) {
+					case -1:
+						continue;
+					default:
+						settings.startup_mode=j;
+						iniSetInteger(&inicontents,"SyncTERM","VideoMode",settings.startup_mode,&ini_style);
+						break;
 				}
 				break;
 			case 2:
 				sprintf(str,"%d",settings.backlines);
-				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Scrollback Lines",str,9,K_NUMBER)!=-1) {
-					settings.backlines=atoi(str);
-					iniSetInteger(&inicontents,"SyncTERM","ScrollBackLines",settings.backlines,&ini_style);
+				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Scrollback Lines",str,9,K_NUMBER|K_EDIT)!=-1) {
+					unsigned char *tmpscroll;
+
+					j=atoi(str);
+					if(j<1)
+						uifc.msg("Cannot set lines to less than one.");
+					else {
+						tmpscroll=(unsigned char *)realloc(scrollback_buf,80*2*j);
+						if(tmpscroll == NULL) {
+							uifc.msg("Cannot allocate space for scrollback.");
+						}
+						else {
+							if(scrollback_lines > j)
+								scrollback_lines=j;
+							scrollback_buf=tmpscroll;
+							settings.backlines=j;
+							iniSetInteger(&inicontents,"SyncTERM","ScrollBackLines",settings.backlines,&ini_style);
+						}
+					}
 				}
 				break;
 		}
 	}
 write_ini:
-	if((inifile=fopen(inipath,"w"))!=NULL) {
-		iniWriteFile(inifile,inicontents);
-		fclose(inifile);
+	if(!safe_mode) {
+		if((inifile=fopen(inipath,"w"))!=NULL) {
+			iniWriteFile(inifile,inicontents);
+			fclose(inifile);
+		}
 	}
 }
 
@@ -576,23 +731,27 @@ struct bbslist *show_bbslist(int mode)
 					,"Screen Setup"
 					,"Font Management"
 					,"Program Settings"
-					,""
+					,NULL
 				};
 	int		at_settings=0;
 	struct mouse_event mevent;
 	struct bbslist defaults;
-	char	shared_list[MAX_PATH];
-	char	listpath[MAX_PATH];
+	char	shared_list[MAX_PATH+1];
+	char	listpath[MAX_PATH+1];
 
 	if(init_uifc(TRUE, TRUE))
 		return(NULL);
 
+	memset(list,0,sizeof(list));
+	memset(&defaults,0,sizeof(defaults));
+
 	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
-	read_list(listpath, &list[0], &defaults, &listcount, USER_BBSLIST);
+	read_list(listpath, list, &defaults, &listcount, USER_BBSLIST);
 
 	/* System BBS List */
 	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
-	read_list(shared_list, &list[0], &defaults, &listcount, SYSTEM_BBSLIST);
+	if(stricmp(shared_list, listpath)) /* don't read the same list twice */
+		read_list(shared_list, list, &defaults, &listcount, SYSTEM_BBSLIST);
 
 	sort_list(list);
 	uifc.helpbuf=	"`SyncTERM Settings Menu`\n\n";
@@ -626,8 +785,14 @@ struct bbslist *show_bbslist(int mode)
 					val=listcount|MSK_INS;
 				if(val<0) {
 					switch(val) {
+						case -2-0x3000:	/* ALT-B - Scrollback */
+							viewofflinescroll();
+							break;
 						case -2-CIO_KEY_MOUSE:	/* Clicked outside of window... */
 							getmouse(&mevent);
+						case -2-0x0f00:	/* Backtab */
+						case -2-0x4b00:	/* Left Arrow */
+						case -2-0x4d00:	/* Right Arrow */
 						case -11:		/* TAB */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 								|WIN_T2B|WIN_IMM|WIN_INACT
@@ -642,7 +807,7 @@ struct bbslist *show_bbslist(int mode)
 							i=list[opt]->id;
 							if(edit_list(list[opt],listpath,FALSE)) {
 								sort_list(list);
-								for(j=0;list[j]->name[0];j++) {
+								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 									if(list[j]->id==i)
 										opt=j;
 								}
@@ -682,6 +847,13 @@ struct bbslist *show_bbslist(int mode)
 								uifc.msg("Max List size reached!");
 								break;
 							}
+							if(safe_mode) {
+								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
+												"SyncTERM is currently running in safe mode.  This means you cannot add to the\n"
+												"BBS list.";
+								uifc.msg("Cannot edit list in safe mode");
+								break;
+							}
 		#ifdef PCM
 							if(!confirm("Add new Entry?",NULL))
 								continue;
@@ -709,7 +881,7 @@ struct bbslist *show_bbslist(int mode)
 							else {
 								add_bbs(listpath,list[listcount-1]);
 								sort_list(list);
-								for(j=0;list[j]->name[0];j++) {
+								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 									if(list[j]->id==listcount-1)
 										opt=j;
 								}
@@ -717,7 +889,7 @@ struct bbslist *show_bbslist(int mode)
 							}
 							break;
 						case MSK_DEL:
-							if(!list[opt]->name[0]) {
+							if(list[opt]==NULL || !list[opt]->name[0]) {
 								uifc.helpbuf=	"`Calming down`\n\n"
 												"~ Some handy tips on calming down ~\n"
 												"Close your eyes, imagine yourself alone on a brilliant white beach...\n"
@@ -733,22 +905,36 @@ struct bbslist *show_bbslist(int mode)
 								uifc.msg("It's gone, calm down man!");
 								break;
 							}
+							if(safe_mode) {
+								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
+												"SyncTERM is currently running in safe mode.  This means you cannot remove from the\n"
+												"BBS list.";
+								uifc.msg("Cannot edit list in safe mode");
+								break;
+							}
 							sprintf(str,"Delete %s?",list[opt]->name);
 							i=1;
 							if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,str,YesNo)!=0)
 								break;
 							del_bbs(listpath,list[opt]);
 							free(list[opt]);
-							for(i=opt;list[i]->name[0];i++) {
+							for(i=opt;list[i]!=NULL && list[i]->name[0];i++) {
 								list[i]=list[i+1];
 							}
-							for(i=0;list[i]->name[0];i++) {
+							for(i=0;list[i]!=NULL && list[i]->name[0];i++) {
 								list[i]->id=i;
 							}
 							listcount--;
 							oldopt=-1;
 							break;
 						case MSK_EDIT:
+							if(safe_mode) {
+								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
+												"SyncTERM is currently running in safe mode.  This means you cannot edit the\n"
+												"BBS list.";
+								uifc.msg("Cannot edit list in safe mode");
+								break;
+							}
 		#ifdef PCM
 							if(!confirm("Edit this entry?",NULL))
 								continue;
@@ -756,7 +942,7 @@ struct bbslist *show_bbslist(int mode)
 							i=list[opt]->id;
 							if(edit_list(list[opt],listpath,FALSE)) {
 								sort_list(list);
-								for(j=0;list[j]->name[0];j++) {
+								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 									if(list[j]->id==i)
 										opt=j;
 								}
@@ -767,6 +953,13 @@ struct bbslist *show_bbslist(int mode)
 				}
 				else {
 					if(mode==BBSLIST_EDIT) {
+						if(safe_mode) {
+							uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
+											"SyncTERM is currently running in safe mode.  This means you cannot edit the\n"
+											"BBS list.";
+							uifc.msg("Cannot edit list in safe mode");
+							break;
+						}
 		#ifdef PCM
 						if(!confirm("Edit this entry?",NULL))
 							continue;
@@ -774,7 +967,7 @@ struct bbslist *show_bbslist(int mode)
 						i=list[opt]->id;
 						if(edit_list(list[opt],listpath,FALSE)) {
 							sort_list(list);
-							for(j=0;list[j]->name[0];j++) {
+							for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 								if(list[j]->id==i)
 									opt=j;
 							}
@@ -802,8 +995,14 @@ struct bbslist *show_bbslist(int mode)
 				val=uifc.list(WIN_ACT|WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE
 					,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
 				switch(val) {
+					case -2-0x3000:	/* ALT-B - Scrollback */
+						viewofflinescroll();
+						break;
 					case -2-CIO_KEY_MOUSE:
 						getmouse(&mevent);
+					case -2-0x0f00:	/* Backtab */
+					case -2-0x4b00:	/* Left Arrow */
+					case -2-0x4d00:	/* Right Arrow */
 					case -11:		/* TAB */
 						uifc.list(WIN_T2B|WIN_RHT|WIN_IMM|WIN_INACT
 							,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
@@ -872,7 +1071,7 @@ struct bbslist *show_bbslist(int mode)
 						}
 						break;
 					case 3:			/* Font management */
-						font_management();
+						if(!safe_mode) font_management();
 						break;
 					case 4:			/* Program settings */
 						change_settings();
