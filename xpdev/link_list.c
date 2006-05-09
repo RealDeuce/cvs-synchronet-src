@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.35 2006/05/29 07:32:43 rswindell Exp $ */
+/* $Id: link_list.c,v 1.34 2006/04/01 08:00:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,7 @@ BOOL DLLCALL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 	if(list==NULL || !(list->flags&LINK_LIST_SEMAPHORE))
 		return(FALSE);
 
-	return(sem_trywait_block(&list->sem,timeout)==0);
+	return(sem_trywait_block(&list->sem,timeout));
 }
 
 #endif
