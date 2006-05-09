@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.99 2005/11/29 19:33:25 deuce Exp $ */
+/* $Id: jsexec.c,v 1.105 2006/05/08 19:37:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -119,6 +119,7 @@ void usage(FILE* fp)
 		"\t-o<filename>   send console messages to file instead of stdout\n"
 		"\t-n             send status messages to %s instead of stderr\n"
 		"\t-q             send console messages to %s instead of stdout\n"
+		"\t-v             display version details and exit\n"
 		"\t-x             disable auto-termination on local abort signal\n"
 		"\t-l             loop until intentionally terminated\n"
 		"\t-p             wait for keypress (pause) on exit\n"
@@ -279,7 +280,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=malloc(len))==NULL)
+	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
 	rd=fread(buf,sizeof(char),len,stdin);
@@ -287,7 +288,6 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(rd>=0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd));
 
-	free(buf);
     return(JS_TRUE);
 }
 
@@ -300,7 +300,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	if((buf=malloc(len+1))==NULL)
+	if((buf=alloca(len+1))==NULL)
 		return(JS_TRUE);
 
 	p=fgets(buf,len+1,stdin);
@@ -308,7 +308,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p!=NULL)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p)));
 
-	free(buf);
     return(JS_TRUE);
 }
 
@@ -345,39 +344,18 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char*		p;
-    uintN		i;
-	JSString *	fmt;
-    JSString *	str;
-	va_list		arglist[64];
+	char* p;
 
-	if((fmt = JS_ValueToString(cx, argv[0]))==NULL)
+	if((p = js_sprintf(cx, 0, argc, argv))==NULL) {
+		JS_ReportError(cx,"js_sprintf failed");
 		return(JS_FALSE);
-
-	memset(arglist,0,sizeof(arglist));	/* Initialize arglist to NULLs */
-
-    for (i = 1; i < argc && i<sizeof(arglist)/sizeof(arglist[0]); i++) {
-		if(JSVAL_IS_DOUBLE(argv[i]))
-			arglist[i-1]=(char*)(unsigned long)*JSVAL_TO_DOUBLE(argv[i]);
-		else if(JSVAL_IS_INT(argv[i]))
-			arglist[i-1]=(char *)JSVAL_TO_INT(argv[i]);
-		else {
-			if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-				JS_ReportError(cx,"JS_ValueToString failed");
-			    return(JS_FALSE);
-			}
-			arglist[i-1]=JS_GetStringBytes(str);
-		}
 	}
-	
-	if((p=JS_vsmprintf(JS_GetStringBytes(fmt),(char*)arglist))==NULL)
-		return(JS_FALSE);
 
 	fprintf(confp,"%s",p);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p));
 
-	JS_smprintf_free(p);
+	js_sprintf_free(p);
 
     return(JS_TRUE);
 }
@@ -391,6 +369,8 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	    return(JS_FALSE);
 
 	fprintf(confp,"!%s\n",JS_GetStringBytes(str));
+
+	*rval = argv[0];
 
     return(JS_TRUE);
 }
@@ -735,7 +715,7 @@ long js_exec(const char *fname, char** args)
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
-	if(rval!=JSVAL_VOID) {
+	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		fprintf(statfp,"Using JavaScript exit_code: %s\n",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
@@ -803,7 +783,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.99 $", "%*s %s", revision);
+	sscanf("$Revision: 1.105 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -896,6 +876,10 @@ int main(int argc, char **argv, char** environ)
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
 					break;
+				case 'v':
+					banner(statfp);
+					fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
+					bail(0);
 #if defined(__unix__)
 				case 'd':
 					daemonize=TRUE;
@@ -962,6 +946,9 @@ int main(int argc, char **argv, char** environ)
 
 	if(nonbuffered_con)
 		setvbuf(confp,NULL,_IONBF,0);
+
+	/* Seed random number generator */
+	sbbs_srand();
 
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
