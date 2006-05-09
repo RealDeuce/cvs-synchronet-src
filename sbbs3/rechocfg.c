@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.22 2006/12/29 01:23:41 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.21 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,9 @@
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
+#ifdef _WIN32
+	#include <windows.h>
+#endif
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>
