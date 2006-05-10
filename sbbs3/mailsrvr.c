@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.393 2005/12/05 00:21:58 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.399 2006/05/03 05:02:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1434,6 +1434,11 @@ static char* mailcmdstr(char* instr, char* msgpath, char* lstpath, char* errpath
                 case '!':   /* EXEC Directory */
                     strcat(cmd,scfg.exec_dir);
                     break;
+                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
+#ifndef __unix__
+                    strcat(cmd,scfg.exec_dir);
+#endif
+                    break;
                 case '%':   /* %% for percent sign */
                     strcat(cmd,"%");
                     break;
@@ -1842,7 +1847,7 @@ static void smtp_thread(void* arg)
 	char		str[512];
 	char		tmp[128];
 	char		value[INI_MAX_VALUE_LEN];
-	char**		sec_list;
+	str_list_t	sec_list;
 	char*		section;
 	char		buf[1024],*p,*tp,*cp;
 	char		hdrfield[512];
@@ -2544,7 +2549,7 @@ static void smtp_thread(void* arg)
 							,timestr(&scfg,(time_t*)&newmsg.hdr.when_imported.time,tmp)
 							,sender,sender_addr);
 						if(!newmsg.idx.to) {	/* Forwarding */
-							strcat(str,"\1mand it was automatically forwaded to: \1h");
+							strcat(str,"\1mand it was automatically forwarded to: \1h");
 							strcat(str,user.netmail);
 							strcat(str,"\1n\r\n");
 						}
@@ -3520,6 +3525,7 @@ static void sendmail_thread(void* arg)
 	mail_t*		mail;
 	long		msgs;
 	long		l;
+	BOOL		sending_locally=FALSE;
 
 	thread_up(TRUE /* setuid */);
 
@@ -3676,36 +3682,40 @@ static void sendmail_thread(void* arg)
 							, startup->interface_addr & 0xff);
 					server = numeric_ip;
 				}
+				sending_locally=TRUE;
 			}
 			else {
 				if(startup->options&MAIL_OPT_RELAY_TX) { 
 					server=startup->relay_server;
 					port=startup->relay_port;
 				} else {
+					server=p;
 					tp=strrchr(p,':');	/* non-standard SMTP port */
 					if(tp!=NULL) {
 						*tp=0;
 						port=atoi(tp+1);
 					}
-					get_dns_server(dns_server,sizeof(dns_server));
-					if((dns=resolve_ip(dns_server))==INADDR_NONE) {
-						remove_msg_intransit(&smb,&msg);
-						lprintf(LOG_WARNING,"0000 !SEND INVALID DNS server address: %s"
-							,dns_server);
-						continue;
+					if(port==0) {	/* No port specified, use MX look-up */
+						get_dns_server(dns_server,sizeof(dns_server));
+						if((dns=resolve_ip(dns_server))==INADDR_NONE) {
+							remove_msg_intransit(&smb,&msg);
+							lprintf(LOG_WARNING,"0000 !SEND INVALID DNS server address: %s"
+								,dns_server);
+							continue;
+						}
+						lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
+						if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
+							,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
+							,TIMEOUT_THREAD_WAIT/2))!=0) {
+							remove_msg_intransit(&smb,&msg);
+							lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
+								,i,p,startup->dns_server);
+							SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
+							bounce(&smb,&msg,err,FALSE);
+							continue;
+						}
+						server=mx;
 					}
-					lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
-					if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
-						,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
-						,TIMEOUT_THREAD_WAIT/2))!=0) {
-						remove_msg_intransit(&smb,&msg);
-						lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
-							,i,p,startup->dns_server);
-						SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
-						bounce(&smb,&msg,err,FALSE);
-						continue;
-					}
-					server=mx;
 				}
 			}
 			if(!port)
@@ -3804,7 +3814,7 @@ static void sendmail_thread(void* arg)
 
 			/* AUTH */
 			if(startup->options&MAIL_OPT_RELAY_TX 
-				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0) {
+				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0 && !sending_locally) {
 				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
 					case MAIL_OPT_RELAY_AUTH_PLAIN:
 						p="PLAIN";
@@ -3901,15 +3911,19 @@ static void sendmail_thread(void* arg)
 				continue;
 			}
 			/* RCPT */
-			if((p=strrchr((char*)msg.to_net.addr,'<'))!=NULL)
-				p++;
-			else
-				p=(char*)msg.to_net.addr;
-			SAFECOPY(toaddr,p);
-			truncstr(toaddr,"> ");
-			if((p=strrchr(toaddr,'@'))!=NULL && (tp=strrchr(toaddr,':'))!=NULL
-				&& tp > p)
-				*tp=0;	/* Remove ":port" designation from envelope */
+			if(msg.forward_path!=NULL) {
+				SAFECOPY(toaddr,msg.forward_path);
+			} else {
+				if((p=strrchr((char*)msg.to_net.addr,'<'))!=NULL)
+					p++;
+				else
+					p=(char*)msg.to_net.addr;
+				SAFECOPY(toaddr,p);
+				truncstr(toaddr,"> ");
+				if((p=strrchr(toaddr,'@'))!=NULL && (tp=strrchr(toaddr,':'))!=NULL
+					&& tp > p)
+					*tp=0;	/* Remove ":port" designation from envelope */
+			}
 			sockprintf(sock,"RCPT TO: <%s>", toaddr);
 			if(!sockgetrsp(sock,"25", buf, sizeof(buf))) {
 				remove_msg_intransit(&smb,&msg);
@@ -4026,7 +4040,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.393 $", "%*s %s", revision);
+	sscanf("$Revision: 1.399 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4190,6 +4204,7 @@ void DLLCALL mail_server(void* arg)
 						iniReadBool(fp,sec_list[i],"native",FALSE);
 				}
 			}
+			iniFreeStringList(sec_list);
 			iniCloseFile(fp);
 		}
 
