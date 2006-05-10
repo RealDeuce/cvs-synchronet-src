@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.118 2006/12/28 02:43:48 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.114 2006/05/08 19:52:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -433,6 +433,7 @@ static JSBool
 js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		fname;
+	char*		buf;
 	long		len;
 	int			file;
 	JSString*	str;
@@ -1059,8 +1060,6 @@ static char* socket_prop_desc[] = {
 	,"remote TCP or UDP port number"
 	,"socket type, <tt>SOCK_STREAM</tt> (TCP) or <tt>SOCK_DGRAM</tt> (UDP)"
 	,"<i>true</i> if binary data is to be sent in Network Byte Order (big end first), default is <i>true</i>"
-	/* statically-defined properties: */
-	,"array of socket option names supported by the current platform"
 	,NULL
 };
 #endif
@@ -1302,7 +1301,7 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	},
 	{"recvfrom",	js_recvfrom,	0,	JSTYPE_OBJECT,	JSDOCSTR("[binary=<tt>false</tt>] [,maxlen=<tt>512</tt> or int_size=<tt>4</tt>]")
 	,JSDOCSTR("receive data (string or integer) from a socket (typically UDP)"
-	"<p>returns object with <i>ip_address</i> and <i>port</i> of sender along with <i>data</i> properties"
+	"<p>returns object with <i>ip_address</i> and <i>port</i> of sender along with <i>data</i>"
 	"<p><i>binary</i> defaults to <i>false</i>, <i>maxlen</i> defaults to 512 chars, <i>int_size</i> defaults to 4 bytes (32-bits)")
 	,311
 	},
@@ -1411,10 +1410,8 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for TCP/IP socket communications",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new Socket object: "
-		"<tt>load('sockdefs.js'); var s = new Socket(<i>type</i>, <i>protocol</i>)</tt><br>"
-		"where <i>type</i> = <tt>SOCK_STREAM</tt> for TCP (default) or <tt>SOCK_DGRAM</tt> for UDP<br>"
-		"and <i>protocol</i> (optional) = the name of the protocol or service the socket is to be used for"
-		);
+		"<tt>load('sockdefs.js'); var s = new Socket(<i>type</i>)</tt><br>"
+		"where <i>type</i> = <tt>SOCK_STREAM</tt> for TCP (default) or <tt>SOCK_DGRAM</tt> for UDP");
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", socket_prop_desc, JSPROP_READONLY);
 #endif
 
