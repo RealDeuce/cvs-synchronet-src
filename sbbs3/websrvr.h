@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.39 2006/09/15 21:12:53 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.38 2006/01/31 23:11:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,7 +86,7 @@ typedef struct {
     char	host_name[128];
 	BOOL	recycle_now;
 	BOOL	shutdown_now;
-	int		log_level;
+	DWORD	log_mask;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 	char	default_cgi_content[128];
