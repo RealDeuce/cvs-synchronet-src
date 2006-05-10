@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.79 2005/11/28 21:41:33 deuce Exp $ */
+/* $Id: syncterm.c,v 1.87 2006/02/27 21:46:11 rswindell Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -24,7 +24,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.6"
+char* syncterm_version = "SyncTERM 0.7"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -39,6 +39,9 @@ struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
 unsigned int  scrollback_lines=0;
+int	safe_mode=0;
+FILE* log_fp;
+extern ini_style_t ini_style;
 
 #ifdef _WINSOCKAPI_
 
@@ -89,7 +92,8 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
 		bbs->conn_type=dflt_conn_type;
 		bbs->port=(dflt_conn_type==CONN_TYPE_TELNET)?23:513;
-		bbs->loglevel=LOG_INFO;
+		bbs->xfer_loglevel=LOG_INFO;
+		bbs->telnet_loglevel=LOG_INFO;
 		bbs->music=CTERM_MUSIC_BANSI;
 		strcpy(bbs->font,"Codepage 437 English");
 	}
@@ -162,6 +166,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		SAFECOPY(oldlst, home);
 		strcat(oldlst, "/syncterm.lst");
 	}
+#ifdef CSIDL_FLAG_CREATE
 	if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 		switch(SHGetFolderPath(NULL, CSIDL_PERSONAL|CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, fn)) {
 			case E_FAIL:
@@ -174,6 +179,8 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 				strcat(fn,"SyncTERM");
 				break;
 		}
+		if(!isdir(fn))
+			MKDIR(fn);
 		return(fn);
 	}
 	switch(SHGetFolderPath(NULL, (shared?CSIDL_COMMON_APPDATA:CSIDL_APPDATA)|CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, fn)) {
@@ -186,6 +193,10 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			strcat(fn,"SyncTERM");
 			break;
 	}
+#else
+	getcwd(fn, fnlen);
+	backslash(fn);
+#endif
 
 	/* Create if it doesn't exist */
 	if(!isdir(fn)) {
@@ -222,6 +233,8 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 			strcpy(fn, home);
 			backslash(fn);
+			if(!isdir(fn))
+				MKDIR(fn);
 			return(fn);
 		}
 		SAFECOPY(oldlst,home);
@@ -351,6 +364,9 @@ int main(int argc, char **argv)
 				case 'T':
 					conn_type=CONN_TYPE_TELNET;
 					break;
+				case 'S':
+					safe_mode=1;
+					break;
                 default:
 					goto USAGE;
            }
@@ -439,8 +455,8 @@ int main(int argc, char **argv)
 				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
-					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,NULL);
-					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,NULL);
+					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,&ini_style);
+					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,&ini_style);
 					if((listfile=fopen(listpath,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
 						fclose(listfile);
@@ -473,7 +489,21 @@ int main(int argc, char **argv)
 			term.nostatus=bbs->nostatus;
 			if(drawwin())
 				return(1);
+			if(log_fp==NULL && bbs->logfile[0])
+				log_fp=fopen(bbs->logfile,"a");
+			if(log_fp!=NULL) {
+				time_t now=time(NULL);
+				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
+			}
+
 			exit_now=doterm(bbs);
+
+			if(log_fp!=NULL) {
+				time_t now=time(NULL);
+				fprintf(log_fp,"%.15s Log closed\n", ctime(&now)+4);
+				fclose(log_fp);
+				log_fp=NULL;
+			}
 			setfont(default_font,TRUE);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
@@ -529,6 +559,7 @@ int main(int argc, char **argv)
         "-l# =  set screen lines to # (default=auto-detect)\n"
 		"-t  =  use telnet mode if URL does not include the scheme\n"
 		"-r  =  use rlogin mode if URL does not include the scheme\n"
+		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"\n"
 		"URL format is: [(rlogin|telnet)://][user[:password]@]domainname[:port]\n"
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
