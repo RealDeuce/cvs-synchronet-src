@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.268 2005/11/29 01:18:55 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.275 2006/03/14 09:33:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -119,6 +119,7 @@
  #define LINK_LIST_THREADSAFE
 #endif
 #include "genwrap.h"
+#include "semfile.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "sockwrap.h"
@@ -553,16 +554,16 @@ public:
 	BOOL	newuser(void);					/* Get new user							*/
 	void	backout(void);
 
-	/* readmsgs.cpp */
-	int		scanposts(uint subnum, long mode, char *find);	/* Scan sub-board */
-	int		searchsub(uint subnum, char *search);	/* Search for string on sub */
-	int		searchsub_toyou(uint subnum);
+	/* text_sec.cpp */
 	int		text_sec(void);						/* Text sections */
-	void	listmsgs(int subnum, post_t * post, long i, long posts);
+
+	/* readmsgs.cpp */
+	int		scanposts(uint subnum, long mode, char* find);	/* Scan sub-board */
+	long	listsub(uint subnum, long mode, long start, char* search);
+	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
+	long	searchposts(uint subnum, post_t* post, long start, long msgs, char* find);
+	long	showposts_toyou(post_t* post, ulong start, long posts);
 	void	msghdr(smbmsg_t* msg);
-	int		searchposts(uint subnum, post_t * post, long start, long msgs
-				,char *search);
-	void	showposts_toyou(post_t * post, ulong start, long posts);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -608,6 +609,8 @@ public:
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
+	bool	sendfile(char* fname);
+	bool	recvfile(char* fname);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -674,7 +677,7 @@ public:
 	void	errorlog(char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
 	bool	errorlog_inside;
 	bool	errormsg_inside;
-	void	errormsg(int line, const char *file, char action, const char *object
+	void	errormsg(int line, const char *file, const char* action, const char *object
 				,ulong access, const char *extinfo=NULL);
 	
 	/* qwk.cpp */
@@ -882,17 +885,6 @@ extern "C" {
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
 
-	/* semfile.c */
-	DLLEXPORT BOOL		DLLCALL semfile_signal(const char* fname, const char* text);
-	DLLEXPORT BOOL		DLLCALL semfile_check(time_t* t, const char* fname);
-	DLLEXPORT char*		DLLCALL semfile_list_check(time_t* t, str_list_t filelist);
-	DLLEXPORT str_list_t	
-						DLLCALL semfile_list_init(const char* parent, const char* action
-													,const char* service);
-	DLLEXPORT void		DLLCALL semfile_list_add(str_list_t* filelist, const char* fname);
-	DLLEXPORT void		DLLCALL semfile_list_free(str_list_t* filelist);
-
-
 #ifdef JAVASCRIPT
 
 	typedef struct {
@@ -931,10 +923,10 @@ extern "C" {
 		,JSTYPE_UNDEF
 	};
 
-	#ifdef _DEBUG	/* String compiled into debug build only, for JS documentation generation */
+	#ifdef BUILD_JSDOCS	/* String compiled into debug build only, for JS documentation generation */
 		#define	JSDOCSTR(s)	s
 	#else
-		#define JSDOCSTR(s)	""
+		#define JSDOCSTR(s)	NULL
 	#endif
 
 	/* main.cpp */
@@ -1022,6 +1014,10 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
+
+	/* js_sprintf.c */
+	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, uintN argc, jsval *argv);
+	DLLEXPORT void		DLLCALL js_sprintf_free(char *);
 
 	/* js_console.cpp */
 	JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent);

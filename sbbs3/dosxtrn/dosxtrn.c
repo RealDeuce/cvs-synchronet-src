@@ -2,13 +2,13 @@
 
 /* Synchronet External DOS Program Launcher (16-bit MSVC 1.52c project) */
 
-/* $Id: dosxtrn.c,v 1.7 2005/09/05 21:54:03 deuce Exp $ */
+/* $Id: dosxtrn.c,v 1.13 2006/05/05 08:26:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,6 +44,7 @@
 #include "vdd_func.h"
 #include "execvxd.h"
 #include "isvbop.h"			/* ddk\inc */
+#include "fossdefs.h"
 
 /****************************************************************************/
 /* Truncates white-space chars off end of 'str' and terminates at first tab */
@@ -52,10 +53,10 @@ static void truncsp(char *str)
 {
 	size_t c;
 
-str[strcspn(str,"\t")]=0;
-c=strlen(str);
-while(c && (unsigned char)str[c-1]<=' ') c--;
-str[c]=0;
+	str[strcspn(str,"\t")]=0;
+	c=strlen(str);
+	while(c && (unsigned char)str[c-1]<=' ') c--;
+	str[c]=0;
 }
 
 short	vdd=0;
@@ -63,6 +64,8 @@ BYTE	node_num=0;
 int		mode=0;
 DWORD	nodata=0;
 DWORD	polls_before_yield=10;
+int		revision;
+char	id_string[128];
 
 void (interrupt *oldint14)();
 void (interrupt *oldint16)();
@@ -117,22 +120,6 @@ static int vdd_op(BYTE op)
 	return(retval);
 }
 
-#if 0
-
-char win95int14[]={
-	 0xCF	/* IRET */
-	,0x90	/* NOP */
-	,0x90
-	,0x90
-	,0x90
-	,0x90
-	,0x54	/* FOSSIL sig */
-	,0x19	/* FOSSIL sig */
-	,0x1B	/* FOSSIL highest func supported */
-};
-
-#else
-
 union REGS inregs;
 struct SREGS sregs;
 BOOL inside_int14=FALSE;
@@ -175,8 +162,6 @@ void interrupt win95int14(
 
 	inside_int14=FALSE;
 }
-
-#endif
 
 void vdd_getstatus(vdd_status_t* status)
 {
@@ -226,24 +211,20 @@ void interrupt winNTint14(
 	WORD			buf_seg;
 	int				wr;
 	vdd_status_t	vdd_status;
-    struct {
-        WORD    info_size;
-        BYTE	curr_fossil;
-        BYTE	curr_rev;
-        DWORD	id_string;
-        WORD	inbuf_size;
-        WORD	inbuf_free;
-        WORD	outbuf_size;
-        WORD	outbuf_free;
-        BYTE	screen_width;
-        BYTE	screen_height;
-        BYTE	baud_rate;
-    } info= { sizeof(info), 5, 1, 0
-				,0,0
-				,0,0
-		        ,80,25
-		        ,1 /* 38400 */
-			};
+    fossil_info_t info = { 
+		 sizeof(info)
+		,FOSSIL_REVISION
+		,revision	/* driver revision */
+		,0			/* ID string pointer */	
+		,0,0		/* receive buffer size/free (overwritten later) */
+		,0,0		/* transmit buffer size/free (overwritten later) */
+        ,80,25		/* screen dimensions (cols, rows) */
+					/* port settings (i.e. 38400 N-8-1): */
+        ,FOSSIL_BAUD_RATE_38400
+		|FOSSIL_PARITY_NONE
+		|FOSSIL_DATA_BITS_8
+		|FOSSIL_STOP_BITS_1
+	};
 
 	switch(_ax>>8) {
 		case 0x00:	/* Initialize/Set baud rate */
@@ -273,8 +254,8 @@ void interrupt winNTint14(
 				vdd_op(VDD_YIELD);
 			break;
 		case 0x04:	/* initialize */
-			_ax=0x1954;	/* magic number = success */
-			_bx=0x051B;	/* FOSSIL rev/maximum FOSSIL func supported */
+			_ax=FOSSIL_SIGNATURE;	/* magic number = success */
+			_bx=FOSSIL_REVISION<<8 | FOSSIL_FUNC_HIGHEST;	/* FOSSIL rev/maximum FOSSIL func supported */
 			break;
         case 0x08:	/* flush output buffer	*/
 			break;
@@ -325,6 +306,7 @@ void interrupt winNTint14(
 			info.inbuf_free=info.inbuf_size-vdd_status.inbuf_full;
 			info.outbuf_size=vdd_status.outbuf_size;
 			info.outbuf_free=info.outbuf_size-vdd_status.outbuf_full;
+			info.id_string = id_string;
 
 			if(vdd_status.inbuf_full==vdd_status.outbuf_full==0 
 				&& ++nodata>=polls_before_yield)
@@ -338,6 +320,11 @@ void interrupt winNTint14(
         	_ax=wr;
             break;
 	}
+}
+
+void int14stub(void)
+{
+	/* This function will be overwritten later (during runtime) with FOSSIL signature */
 }
 
 void interrupt winNTint16(
@@ -421,9 +408,15 @@ int main(int argc, char **argv)
 	BOOL	success=FALSE;
 	WORD	seg;
 
+	sscanf("$Revision: 1.13 $", "%*s 1.%u", &revision);
+
+	sprintf(id_string,"Synchronet FOSSIL Driver (DOSXTRN) revision %u", revision);
 	if(argc<2) {
 		fprintf(stderr
-			,"This program is for the internal use of Synchronet BBS only\n");
+			,"%s - Copyright %s Rob Swindell\n"
+			,id_string, __DATE__+7);
+		fprintf(stderr
+			,"usage: dosxtrn <path/dosxtrn.env> [NT|95] [node_num] [mode] [polls_per_yield]\n");
 		return(1);
 	}
 
@@ -474,6 +467,15 @@ int main(int argc, char **argv)
 	/* Save int14 handler */
 	oldint14=_dos_getvect(0x14);
 
+	/* Overwrite stub function */
+	((BYTE*)int14stub)[0] = 0xe9;	/* jump (relative) */
+	((BYTE*)int14stub)[3] = 0x90;	/* NOP */
+	((BYTE*)int14stub)[4] = 0x90;	/* NOP */
+	((BYTE*)int14stub)[5] = 0x90;	/* NOP */
+	((BYTE*)int14stub)[6] = FOSSIL_SIGNATURE&0xff;	/* FOSSIL sig (LSB) */
+	((BYTE*)int14stub)[7] = FOSSIL_SIGNATURE>>8;	/* FOSSIL sig (MSB) */
+	((BYTE*)int14stub)[8] = FOSSIL_FUNC_HIGHEST;	/* FOSSIL highest func supported */
+
 	if(NT) {	/* Windows NT/2000 */
 
 		/* Register VDD */
@@ -508,18 +510,21 @@ int main(int argc, char **argv)
 			UnRegisterModule();
 			return(-1);
 		}
-
 		oldint16=_dos_getvect(0x16);
 		oldint29=_dos_getvect(0x29);
-		if(mode==SBBSEXEC_MODE_FOSSIL)
-			_dos_setvect(0x14,(void(interrupt *)())winNTint14); 
+		if(mode==SBBSEXEC_MODE_FOSSIL) {
+			*(WORD*)((BYTE*)int14stub+1) = (WORD)winNTint14 - (WORD)&int14stub - 3;	/* jmp offset */
+			_dos_setvect(0x14,(void(interrupt *)())int14stub); 
+		}
 		if(mode&SBBSEXEC_MODE_DOS_IN)
 			_dos_setvect(0x16,winNTint16); 
 		if(mode&SBBSEXEC_MODE_DOS_OUT) 
 			_dos_setvect(0x29,winNTint29); 
 	}
-	else if(mode==SBBSEXEC_MODE_FOSSIL)	/* Windows 95/98/Millennium */
-		_dos_setvect(0x14,(void(interrupt *)())win95int14); 
+	else if(mode==SBBSEXEC_MODE_FOSSIL)	{ /* Windows 95/98/Millennium */
+		*(WORD*)((BYTE*)int14stub+1) = (WORD)win95int14 - (WORD)&int14stub - 3;		/* jmp offset */
+		_dos_setvect(0x14,(void(interrupt *)())int14stub); 
+	}
 
 	_heapmin();
 	i=_spawnvp(_P_WAIT, arg[0], arg);
