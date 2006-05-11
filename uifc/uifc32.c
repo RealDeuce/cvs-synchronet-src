@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.172 2006/05/08 21:19:39 deuce Exp $ */
+/* $Id: uifc32.c,v 1.173 2006/05/11 15:45:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 #elif defined(_WIN32)
 	#include <share.h>
 	#include <windows.h>
+	#include <malloc.h>
 	#define mswait(x) Sleep(x)
 #endif
 
