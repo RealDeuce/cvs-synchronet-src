@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.37 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.35 2006/05/03 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -321,14 +321,14 @@ void sbbs_t::mnemonics(char *str)
 	l=0L;
 	while(str[l]) {
 		if(str[l]=='~' && str[l+1]!=0) {
-			if(!term_supports(ANSI))
+			if(!(useron.misc&ANSI))
 				outchar('(');
 			l++;
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnehigh]);
 			outchar(str[l]);
 			l++;
-			if(!term_supports(ANSI))
+			if(!(useron.misc&ANSI))
 				outchar(')');
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnelow]); 
@@ -507,6 +507,7 @@ void sbbs_t::pause()
     int		i,j;
 	long	l=K_UPPER;
 
+	RIOSYNC(0);
 	if(sys_status&SS_ABORT)
 		return;
 	lncntr=0;
