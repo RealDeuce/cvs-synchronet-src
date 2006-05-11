@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.44 2005/08/30 01:08:20 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.46 2006/02/28 00:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -223,8 +223,7 @@ bool sbbs_t::uploadfile(file_t *f)
 	/**************************/
 	/* Update Uploader's Info */
 	/**************************/
-	useron.uls=(ushort)adjustuserrec(&cfg,useron.number,U_ULS,5,1);
-	useron.ulb=(ushort)adjustuserrec(&cfg,useron.number,U_ULB,10,length);
+	user_uploaded(&cfg, &useron, 1, length);
 	if(cfg.dir[f->dir]->up_pct && cfg.dir[f->dir]->misc&DIR_CDTUL) { /* credit for upload */
 		if(cfg.dir[f->dir]->misc&DIR_CDTMIN && cur_cps)    /* Give min instead of cdt */
 			useron.min=adjustuserrec(&cfg,useron.number,U_MIN,10
@@ -600,3 +599,33 @@ bool sbbs_t::bulkupload(uint dirnum)
 	return(false);
 }
 
+bool sbbs_t::recvfile(char *fname)
+{
+	char	keys[32];
+	char	ch;
+	size_t	i;
+	bool	result=false;
+
+	xfer_prot_menu(XFER_UPLOAD);
+	mnemonics(text[ProtocolOrQuit]);
+	strcpy(keys,"Q");
+	for(i=0;i<cfg.total_prots;i++)
+		if(cfg.prot[i]->ulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron))
+			sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
+
+	ch=(char)getkeys(keys,0);
+
+	if(ch=='Q' || sys_status&SS_ABORT)
+		return(false); 
+
+	for(i=0;i<cfg.total_prots;i++)
+		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
+			break;
+	if(i<cfg.total_prots) {
+		if(protocol(cfg.prot[i],XFER_UPLOAD,fname,fname,true)==0)
+			result=true;
+		autohangup(); 
+	}
+
+	return(result);
+}
