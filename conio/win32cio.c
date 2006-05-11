@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.71 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: win32cio.c,v 1.72 2006/05/11 15:45:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,9 @@
 #include <windows.h>	/* INPUT_RECORD, etc. */
 #include <genwrap.h>
 #include <stdio.h>		/* stdin */
+#if defined(_WIN32)
+ #include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #if (defined CIOLIB_IMPORTS)
  #undef CIOLIB_IMPORTS

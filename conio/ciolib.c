@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.74 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: ciolib.c,v 1.75 2006/05/11 15:45:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,9 @@
 #include <stdarg.h>
 #include <stdlib.h>	/* alloca */
 #include <stdio.h>
+#if defined(_WIN32)
+ #include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #include <threadwrap.h>
 

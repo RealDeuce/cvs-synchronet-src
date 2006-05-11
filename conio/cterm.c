@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.65 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: cterm.c,v 1.66 2006/05/11 15:45:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(_WIN32)
+ #include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #include <genwrap.h>
 #include <xpbeep.h>
@@ -1030,7 +1033,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.65 $";
+	char	*revision="$Revision: 1.66 $";
 	char *in;
 	char	*out;
 
