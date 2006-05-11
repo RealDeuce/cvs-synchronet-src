@@ -2,7 +2,7 @@
 
 /* 8250 Universal Asynchronous Receiver/Transmitter definitions */
 
-/* $Id: uartdefs.h,v 1.1 2006/05/11 02:17:54 rswindell Exp $ */
+/* $Id: uartdefs.h,v 1.2 2006/05/11 09:42:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,7 +83,7 @@ const char* uart_reg_desc[] = { "base", "IER", "IIR", "LCR", "MCR", "LSR", "MSR"
 
 #define UART_LCR_DLAB			(1<<7)
 #define UART_LCR_BREAK			(1<<6)
-#define UART_LCR_DATA_BITS		0x02		/* 8 data bits */
+#define UART_LCR_8_DATA_BITS	0x03		/* 8 data bits */
 
 /* I/O Ports */
 #define UART_COM1_IO_BASE		0x3f8
