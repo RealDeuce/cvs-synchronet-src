@@ -114,11 +114,19 @@ SOURCE=.\netwrap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\semfile.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\sockwrap.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\str_list.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\xpprintf.c
 # End Source File
 # End Target
 # End Project
