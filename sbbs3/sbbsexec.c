@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.19 2006/05/11 02:19:29 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.20 2006/05/11 09:45:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@
 WORD uart_io_base				= UART_COM1_IO_BASE;	/* COM1 */
 BYTE uart_irq					= UART_COM1_IRQ;
 BYTE uart_ier_reg				= 0;
-BYTE uart_lcr_reg				= UART_LCR_DATA_BITS;
+BYTE uart_lcr_reg				= UART_LCR_8_DATA_BITS;
 BYTE uart_mcr_reg				= 0;
 BYTE uart_lsr_reg				= UART_LSR_EMPTY_DATA | UART_LSR_EMPTY_XMIT;
 BYTE uart_msr_reg				= UART_MSR_CTS | UART_MSR_DSR;
@@ -441,6 +441,7 @@ VOID uart_wrport(WORD port, BYTE data)
 				lprintf(LOG_DEBUG,"set divisor latch high byte: %02X", data);
 			} else
 				uart_ier_reg = data;
+			assert_interrupt(UART_IER_TX_EMPTY);
 			break;
 		case UART_IIR:
 /*			uart_fcr_reg = data; */
@@ -475,6 +476,7 @@ VOID uart_rdport(WORD port, PBYTE data)
 	switch(reg) {
 		case UART_BASE:
 			if(uart_lcr_reg&UART_LCR_DLAB) {
+				lprintf(LOG_DEBUG,"reading divisor latch LSB");
 				*data = uart_divisor_latch_lsb;
 				break;
 			}
@@ -493,9 +495,10 @@ VOID uart_rdport(WORD port, PBYTE data)
 			}
 			return;	/* early return */
 		case UART_IER:
-			if(uart_lcr_reg&UART_LCR_DLAB)
+			if(uart_lcr_reg&UART_LCR_DLAB) {
+				lprintf(LOG_DEBUG,"reading divisor latch MSB");
 				*data = uart_divisor_latch_msb;
-			else
+			} else
 				*data = uart_ier_reg;
 			break;
 		case UART_IIR:
@@ -570,7 +573,7 @@ IN PCONTEXT Context OPTIONAL)
 	VDD_IO_HANDLERS  IOHandlers = { NULL };
 	VDD_IO_PORTRANGE PortRange;
 
-	sscanf("$Revision: 1.19 $", "%*s %s", revision);
+	sscanf("$Revision: 1.20 $", "%*s %s", revision);
 
 	lprintf(LOG_INFO,"Synchronet Virutal Device Driver, rev %s %s %s"
 		,revision, __DATE__, __TIME__);
