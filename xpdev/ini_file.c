@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.97 2007/05/09 02:28:25 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.94 2005/10/19 07:18:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -647,7 +647,7 @@ char* iniSetStringList(str_list_t* list, const char* section, const char* key
 char* iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
 {
 	if(read_value(fp,section,key,value)==NULL || *value==0 /* blank */) {
-		if(deflt!=NULL && deflt!=value)
+		if(deflt!=NULL)
 			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
 		return((char*)deflt);
 	}
@@ -660,7 +660,7 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 	get_value(list, section, key, value);
 
 	if(*value==0 /* blank value or missing key */) {
-		if(deflt!=NULL && deflt!=value)
+		if(deflt!=NULL)
 			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
 		return((char*)deflt);
 	}
@@ -671,7 +671,6 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 static str_list_t splitList(char* list, const char* sep)
 {
 	char*		token;
-	char*		tmp;
 	ulong		items=0;
 	str_list_t	lp;
 
@@ -681,13 +680,13 @@ static str_list_t splitList(char* list, const char* sep)
 	if(sep==NULL)
 		sep=",";
 
-	token=strtok_r(list,sep,&tmp);
+	token=strtok(list,sep);
 	while(token!=NULL) {
 		SKIP_WHITESPACE(token);
 		truncsp(token);
 		if(strListAppend(&lp,token,items++)==NULL)
 			break;
-		token=strtok_r(NULL,sep,&tmp);
+		token=strtok(NULL,sep);
 	}
 
 	return(lp);
@@ -1669,8 +1668,7 @@ str_list_t iniReadFile(FILE* fp)
 	str_list_t	list;
 	FILE*		insert_fp=NULL;
 	
-	if(fp!=NULL)
-		rewind(fp);
+	rewind(fp);
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
 	if(list==NULL)

@@ -2,13 +2,13 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.10 2006/06/14 02:34:49 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.9 2005/11/25 22:03:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -187,20 +187,20 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static jsSyncPropertySpec js_properties[] = {
 /*		 name,				tinyid,						flags,		ver	*/
 
-	{	"initialized",		PROP_INITIALIZED,	JSPROP_ENUMERATE|JSPROP_READONLY, 314 },
-	{	"mode",				PROP_MODE,			JSPROP_ENUMERATE,	314 },
-	{	"changes",			PROP_CHANGES,		JSPROP_ENUMERATE,	314 },
-	{	"save_num",			PROP_SAVNUM,		JSPROP_ENUMERATE,	314 },
-	{	"screen_length",	PROP_SCRN_LEN,		JSPROP_ENUMERATE,	314 },
-	{	"screen_width",		PROP_SCRN_WIDTH,	JSPROP_ENUMERATE,	314 },
-	{	"list_height",		PROP_LIST_HEIGHT,	JSPROP_ENUMERATE,	314 },
-	{	"esc_delay",		PROP_ESC_DELAY,		JSPROP_ENUMERATE,	314 },
-	{	"help_text",		PROP_HELPBUF,		JSPROP_ENUMERATE,	314 },
-	{	"background_color",	PROP_BCOLOR,		JSPROP_ENUMERATE,	314 },
-	{	"frame_color",		PROP_HCOLOR,		JSPROP_ENUMERATE,	314 },
-	{	"text_color",		PROP_LCOLOR,		JSPROP_ENUMERATE,	314 },
-	{	"inverse_color",	PROP_CCOLOR,		JSPROP_ENUMERATE,	314 },
-	{	"lightbar_color",	PROP_LBCOLOR,		JSPROP_ENUMERATE,	314 },
+	{	"initialized",		PROP_INITIALIZED,	JSPROP_ENUMERATE|JSPROP_READONLY, 313 },
+	{	"mode",				PROP_MODE,			JSPROP_ENUMERATE,	313 },
+	{	"changes",			PROP_CHANGES,		JSPROP_ENUMERATE,	313 },
+	{	"save_num",			PROP_SAVNUM,		JSPROP_ENUMERATE,	313 },
+	{	"screen_length",	PROP_SCRN_LEN,		JSPROP_ENUMERATE,	313 },
+	{	"screen_width",		PROP_SCRN_WIDTH,	JSPROP_ENUMERATE,	313 },
+	{	"list_height",		PROP_LIST_HEIGHT,	JSPROP_ENUMERATE,	313 },
+	{	"esc_delay",		PROP_ESC_DELAY,		JSPROP_ENUMERATE,	313 },
+	{	"help_text",		PROP_HELPBUF,		JSPROP_ENUMERATE,	313 },
+	{	"background_color",	PROP_BCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"frame_color",		PROP_HCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"text_color",		PROP_LCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"inverse_color",	PROP_CCOLOR,		JSPROP_ENUMERATE,	313 },
+	{	"lightbar_color",	PROP_LBCOLOR,		JSPROP_ENUMERATE,	313 },
 	{0}
 };
 
@@ -448,27 +448,27 @@ js_finalize(JSContext *cx, JSObject *obj)
 static jsSyncMethodSpec js_functions[] = {
 	{"init",            js_uifc_init,       1,	JSTYPE_BOOLEAN,	JSDOCSTR("string title")
 	,JSDOCSTR("initialize")
-	,314
+	,313
 	},		
 	{"bail",			js_uifc_bail,		0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("uninitialize")
-	,314
+	,313
 	},
 	{"msg",				js_uifc_msg,		1,	JSTYPE_VOID,	JSDOCSTR("string text")
 	,JSDOCSTR("print a message")
-	,314
+	,313
 	},
 	{"pop",				js_uifc_pop,		1,	JSTYPE_VOID,	JSDOCSTR("[string text]")
 	,JSDOCSTR("popup (or down) a message")
-	,314
+	,313
 	},
 	{"input",			js_uifc_input,		0,	JSTYPE_STRING,	JSDOCSTR("[...]")
 	,JSDOCSTR("prompt for a string input")
-	,314
+	,313
 	},
 	{"list",			js_uifc_list,		0,	JSTYPE_STRING,	JSDOCSTR("[...]")
 	,JSDOCSTR("select from a list of options")
-	,314
+	,313
 	},
 	{0}
 };
