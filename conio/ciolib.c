@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.68 2005/11/19 07:52:34 deuce Exp $ */
+/* $Id: ciolib.c,v 1.75 2006/05/11 15:45:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,8 +37,11 @@
 #endif
 
 #include <stdarg.h>
-#include <stdlib.h>	/* malloc */
+#include <stdlib.h>	/* alloca */
 #include <stdio.h>
+#if defined(_WIN32)
+ #include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #include <threadwrap.h>
 
@@ -68,6 +71,7 @@ static int lastmode=3;
 CIOLIBEXPORT int _wscroll=1;
 CIOLIBEXPORT int directvideo=0;
 CIOLIBEXPORT int hold_update=0;
+CIOLIBEXPORT int puttext_can_move=0;
 static int initialized=0;
 
 CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
@@ -202,6 +206,9 @@ int try_curses_init(int mode)
 		cio_api.hidemouse=curs_hidemouse;
 		cio_api.suspend=curs_suspend;
 		cio_api.resume=curs_resume;
+#ifdef NCURSES_VERSION_MAJOR
+		cio_api.ESCDELAY=&ESCDELAY;
+#endif
 		return(1);
 	}
 	return(0);
@@ -227,6 +234,7 @@ int try_ansi_init(int mode)
 		cio_api.getch=ansi_getch;
 		cio_api.getche=ansi_getche;
 		cio_api.textmode=ansi_textmode;
+		cio_api.ESCDELAY=&CIOLIB_ANSI_TIMEOUT;
 		return(1);
 	}
 	return(0);
@@ -411,18 +419,13 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int 
 
 	width=ex-sx;
 	height=ey-sy;
-	buf=(unsigned char *)malloc((width+1)*(height+1)*2);
+	buf=(unsigned char *)alloca((width+1)*(height+1)*2);
 	if(buf==NULL)
 		return(0);
-	if(!ciolib_gettext(sx,sy,ex,ey,buf)) {
-		free(buf);
+	if(!ciolib_gettext(sx,sy,ex,ey,buf))
 		return(0);
-	}
-	if(!ciolib_puttext(dx,dy,dx+width,dy+height,buf)) {
-		free(buf);
+	if(!ciolib_puttext(dx,dy,dx+width,dy+height,buf))
 		return(0);
-	}
-	free(buf);
 	return(1);
 }
 
@@ -435,7 +438,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	CIOLIB_INIT();
 	
 	maxlen=*(unsigned char *)str;
-	while((ch=ciolib_getche())!='\n' && ch !='\r') {
+	while((ch=ciolib_getch())!='\n' && ch !='\r') {
 		switch(ch) {
 			case 0:	/* Skip extended keys */
 				ciolib_getche();
@@ -451,10 +454,13 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				len--;
 				break;
 			default:
+				ciolib_putch(ch);
 				str[(len++)+2]=ch;
 				if(len==maxlen) {
 					str[len+2]=0;
 					*((unsigned char *)(str+1))=(unsigned char)len;
+					ciolib_putch('\r');
+					ciolib_putch('\n');
 					return(&str[2]);
 				}
 				break;
@@ -462,6 +468,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	}
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
+	ciolib_putch('\r');
+	ciolib_putch('\n');
 	return(&str[2]);
 }
 
@@ -693,13 +701,12 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 
 	width=ti.winright-ti.curx+1;
 	height=1;
-	buf=(unsigned char *)malloc(width*height*2);
+	buf=(unsigned char *)alloca(width*height*2);
 	for(i=0;i<width*height*2;) {
 		buf[i++]=' ';
 		buf[i++]=ti.attribute;
 	}
 	ciolib_puttext(ti.curx+ti.winleft-1,ti.cury+ti.wintop-1,ti.winright,ti.cury+ti.wintop-1,buf);
-	free(buf);
 }
 
 CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
@@ -715,14 +722,13 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 
 	width=ti.winright-ti.winleft+1;
 	height=ti.winbottom-ti.wintop+1;
-	buf=(unsigned char *)malloc(width*height*2);
+	buf=(unsigned char *)alloca(width*height*2);
 	for(i=0;i<width*height*2;) {
 		buf[i++]=' ';
 		buf[i++]=ti.attribute;
 	}
 	ciolib_puttext(ti.winleft,ti.wintop,ti.winright,ti.winbottom,buf);
 	ciolib_gotoxy(1,1);
-	free(buf);
 }
 
 CIOLIBEXPORT void CIOLIBCALL ciolib_delline(void)
@@ -772,7 +778,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
     ret=vsnprintf(NULL,0,fmat,argptr);
 	if(ret<0)
 		return(EOF);
-	str=(char *)malloc(ret+1);
+	str=(char *)alloca(ret+1);
 	if(str==NULL)
 		return(EOF);
 	ret=vsprintf(str,fmat,argptr);
@@ -782,9 +788,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 		ciolib_cputs(str);
 	else
 		ret=EOF;
-#ifndef _MSC_VER
-	free(str);
-#endif
     return(ret);
 }
 
@@ -904,6 +907,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
 	unsigned char a1=a;
 	CIOLIB_INIT();
 
+	if(a1=='\n')
+		return(cio_api.putch(a1));
 	return(cio_api.putch(a1));
 }
 
