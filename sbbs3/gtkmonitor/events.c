@@ -7,80 +7,6 @@
 
 #include "gtkmonitor.h"
 #include "util_funcs.h"
-#include "datewrap.h"
-
-int got_date=0;
-
-void destroy_calendar_window(GtkWidget *t, gpointer data)
-{
-	if(!got_date)
-		gtk_main_quit();
-}
-
-void changed_day(GtkWidget *t, gpointer data)
-{
-	got_date=1;
-	gtk_main_quit();
-}
-
-int get_date(GtkWidget *t, isoDate_t *date)
-{
-	GladeXML	*cxml;
-	GtkWidget	*w;
-	GtkWidget	*win;
-	GtkWidget	*thiswin;
-	gint		x,x_off;
-	gint		y,y_off;
-	guint		year;
-	guint		month;
-	guint		day;
-	isoDate_t	odate=*date;
-
-	got_date=0;
-    cxml = glade_xml_new(glade_path, "CalendarWindow", NULL);
-	if(cxml==NULL) {
-		fprintf(stderr,"Could not locate Calendar Window XML\n");
-		return(-1);
-	}
-    /* connect the signals in the interface */
-    glade_xml_signal_autoconnect(cxml);
-	win=glade_xml_get_widget(cxml, "CalendarWindow");
-	if(win==NULL) {
-		fprintf(stderr,"Could not locate Calendar window\n");
-		return(-1);
-	}
-
-	thiswin = gtk_widget_get_toplevel(t);
-	if(thiswin==NULL) {
-		fprintf(stderr,"Could not locate main window\n");
-		return(-1);
-	}
-	if(!(gtk_widget_translate_coordinates(GTK_WIDGET(t)
-			,GTK_WIDGET(thiswin), 0, 0, &x_off, &y_off))) {
-		fprintf(stderr,"Could not get position of button in window");
-	}
-	gtk_window_get_position(GTK_WINDOW(thiswin), &x, &y);
-
-	gtk_window_move(GTK_WINDOW(win), x+x_off, y+y_off);
-
-	w=glade_xml_get_widget(cxml, "Calendar");
-	if(w==NULL) {
-		fprintf(stderr,"Could not locate Calendar widget\n");
-		return(-1);
-	}
-	gtk_calendar_select_month(GTK_CALENDAR(w), isoDate_month(*date)-1, isoDate_year(*date));
-	gtk_calendar_select_day(GTK_CALENDAR(w), isoDate_day(*date));
-	gtk_window_present(GTK_WINDOW(win));
-	/* Wait for window to close... */
-	gtk_main();
-	w=glade_xml_get_widget(cxml, "Calendar");
-	if(w==NULL)
-		return(-1);
-	gtk_calendar_get_date(GTK_CALENDAR(w), &year, &month, &day);
-	gtk_widget_destroy(GTK_WIDGET(gtk_widget_get_toplevel(GTK_WIDGET(w))));
-	*date=isoDate_create(year, month+1, day);
-	return(odate!=*date);
-}
 
 void update_stats_callback(GtkWidget *wiggy, gpointer data)
 {
@@ -266,14 +192,7 @@ void on_yesterdays_log1_activate(GtkWidget *wiggy, gpointer data)
 }
 
 void on_another_days_log1_activate(GtkWidget *wiggy, gpointer data) {
-	isoDate_t	date;
-	char	fn[20];
-	GtkWidget	*w;
-
-	date=time_to_isoDate(time(NULL));
-	get_date(wiggy, &date);
-	sprintf(fn,"logs/%02d%02d%02d.log",isoDate_month(date),isoDate_day(date),isoDate_year(date)%100);
-	exec_cmdstr(gtkm_conf.view_text_file, cfg.logs_dir, fn);
+	/* ToDo */
 }
 
 void on_spam_log1_activate(GtkWidget *wiggy, gpointer data)
@@ -650,6 +569,70 @@ void close_this_window(GtkWidget *wiggy, gpointer data)
 	gtk_widget_destroy(GTK_WIDGET(gtk_widget_get_toplevel(wiggy)));
 }
 
+GladeXML		*lxml;
+
+void update_userlist_sensitive_callback(GtkTreeSelection *wiggy, gpointer data)
+{
+	GtkWidget	*w;
+	int selected;
+
+	w=glade_xml_get_widget(lxml, "bUserListEditUser");
+	selected=gtk_tree_selection_count_selected_rows(wiggy);
+	gtk_widget_set_sensitive(w, selected==1);
+}
+
+void update_userlist_item(GtkListStore *lstore, GtkTreeIter *curr, int usernum)
+{
+	char			sex[2];
+	char			first[9];
+	char			last[9];
+	user_t			user;
+
+	user.number=usernum;
+	getuserdat(&cfg, &user);
+	sex[0]=user.sex;
+	sex[1]=0;
+	unixtodstr(&cfg, user.firston, first);
+	unixtodstr(&cfg, user.laston, last);
+	gtk_list_store_set(lstore, curr
+		,0,user.number
+		,1,user.alias
+		,2,user.name
+		,3,user.level
+		,4,getage(&cfg, user.birth)
+		,5,sex
+		,6,user.location
+		,7,user.modem
+		,8,user.note
+		,9,user.comp
+		,10,user.phone
+		,11,user.netmail
+		,12,user.logons
+		,13,first
+		,14,last
+		,15,user.firston
+		,16,user.laston
+		,-1);
+}
+
+void update_userlist_callback(GtkWidget *wiggy, gpointer data)
+{
+	GtkWidget		*w;
+	GtkListStore	*lstore = NULL;
+	int				totalusers;
+	int				i;
+	GtkTreeIter		curr;
+
+	w=glade_xml_get_widget(lxml, "lUserList");
+	lstore=GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(w)));
+	gtk_list_store_clear(lstore);
+	totalusers=lastuser(&cfg);
+	for(i=1; i<=totalusers; i++) {
+		gtk_list_store_insert(lstore, &curr, i-1);
+		update_userlist_item(lstore, &curr, i);
+	}
+}
+
 void quick_validate(int usernum, int set)
 {
 	user_t		user;
@@ -681,10 +664,323 @@ void quick_validate(int usernum, int set)
 	}
 }
 
+void userlist_do_quick_validate(GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+	int	*set=data;
+	int	usernum;
+
+	gtk_tree_model_get(model, iter, 0, &usernum, -1);
+	quick_validate(usernum,*set);
+	update_userlist_item(GTK_LIST_STORE(model), iter, usernum);
+}
+
+void on_userlist_quick_validate(GtkWidget *wiggy, gpointer data)
+{
+	int		set;
+	GtkWidget	*w;
+
+	w=glade_xml_get_widget(lxml, "lUserList");
+	set=gtk_combo_box_get_active(GTK_COMBO_BOX(wiggy))-1;
+	if(set>=0) {
+		gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection (GTK_TREE_VIEW (w))
+				,userlist_do_quick_validate
+				,&set);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(wiggy), 0);
+	}
+}
+
 /* Show user list */
 on_list1_activate(GtkWidget *wiggy, gpointer data)
 {
-	run_external(cfg.exec_dir,"gtkuserlist");
+	GtkWidget		*w;
+	int				i;
+	char			str[1025];
+	char			flags[33];
+	GtkListStore	*lstore = NULL;
+	GtkTreeSelection *lsel;
+
+    lxml = glade_xml_new(glade_path, "UserListWindow", NULL);
+	if(lxml==NULL) {
+		fprintf(stderr,"Could not locate UserListWindow widget\n");
+		return;
+	}
+    /* connect the signals in the interface */
+    glade_xml_signal_autoconnect(lxml);
+
+	/* Set up user list */
+	w=glade_xml_get_widget(lxml, "lUserList");
+	lstore = gtk_list_store_new(17
+			,G_TYPE_INT
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_INT
+			,G_TYPE_INT
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_INT
+			,G_TYPE_STRING
+			,G_TYPE_STRING
+			,G_TYPE_INT
+			,G_TYPE_INT
+	);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(w), GTK_TREE_MODEL(lstore));
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,0
+			,"Num"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,0
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 0
+			)
+			,0
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,1
+			,"Alias"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,1
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 1
+			)
+			,1
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,2
+			,"Name"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,2
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 2
+			)
+			,2
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,3
+			,"Lev"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,3
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 3
+			)
+			,3
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,4
+			,"Age"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,4
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 4
+			)
+			,4
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,5
+			,"Sex"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,5
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 5
+			)
+			,5
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,6
+			,"Location"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,6
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 6
+			)
+			,6
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,7
+			,"Protocol"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,7
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 7
+			)
+			,7
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,8
+			,"Address"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,8
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 8
+			)
+			,8
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,9
+			,"Host Name"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,9
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 9
+			)
+			,9
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,10
+			,"Phone"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,10
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 10
+			)
+			,10
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,11
+			,"Email"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,11
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 11
+			)
+			,11
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,12
+			,"Logons"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,12
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 12
+			)
+			,12
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,13
+			,"First On"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,13
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 13
+			)
+			,15
+	);
+	gtk_tree_view_insert_column_with_attributes(
+			GTK_TREE_VIEW(w)
+			,14
+			,"Last On"
+			,gtk_cell_renderer_text_new()
+			,"text"
+			,14
+			,NULL);
+	gtk_tree_view_column_set_sort_column_id(
+			gtk_tree_view_get_column(
+					GTK_TREE_VIEW(w), 14
+			)
+			,16
+	);
+	lsel = gtk_tree_view_get_selection (GTK_TREE_VIEW (w));
+	gtk_tree_selection_set_mode (lsel, GTK_SELECTION_MULTIPLE);
+	g_signal_connect (G_OBJECT (lsel), "changed", G_CALLBACK (update_userlist_sensitive_callback), NULL);
+
+	/* Set up users */
+	update_userlist_callback(GTK_WIDGET(w), NULL);
+	update_userlist_sensitive_callback(lsel, NULL);
+
+	/* Set up quick validation values */
+	w=glade_xml_get_widget(lxml, "cQuickValidate");
+	gtk_combo_box_set_active(GTK_COMBO_BOX(w), 0);
+	for(i=0;i<10;i++) {
+		sprintf(str,"%d  SL: %-2d  F1: %s",i,cfg.val_level[i],ltoaf(cfg.val_flags1[i],flags));
+		gtk_combo_box_append_text(GTK_COMBO_BOX(w), str);
+	}
+
+	/* Show 'er to the user */
+	gtk_window_present(GTK_WINDOW(glade_xml_get_widget(lxml, "UserListWindow")));
+}
+
+void get_lastselected_user(GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+	int	*i=data;
+	int	user;
+
+	gtk_tree_model_get(model, iter, 0, &user, -1);
+	*i=user;
+}
+
+void userlist_edituser(GtkWidget *wiggy, gpointer data)
+{
+	char	str[MAX_PATH+1];
+	int		i;
+	GtkWidget	*w;
+
+	w=glade_xml_get_widget(lxml, "lUserList");
+	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection (GTK_TREE_VIEW (w))
+			,get_lastselected_user
+			,&i);
+
+	sprintf(str,"gtkuseredit %d",i);
+	run_external(cfg.exec_dir,str);
 }
 
 void quickvalidate_useron_node(GtkWidget *wiggy, gpointer data)
@@ -891,10 +1187,6 @@ void sendmessageto_node(GtkWidget *wiggy, gpointer data)
 			/* If utime() failed for some reason, sleep for a second */
 			if(fdate(fn)!=edited)
 				SLEEP(1000);
-			if(!run_cmd_mutex_initalized) {
-				pthread_mutex_init(&run_cmd_mutex, NULL);
-				run_cmd_mutex_initalized=1;
-			}
 			exec_cmdstr(gtkm_conf.edit_text_file, NULL, fn);
 			/* Spin on the lock waiting for the edit command to start */
 			while(!pthread_mutex_trylock(&run_cmd_mutex))
@@ -963,15 +1255,15 @@ void on_properties1_activate(GtkWidget *wiggy, gpointer data)
 		case GTK_RESPONSE_OK:
 			/* Read out the new values */
 			w=glade_xml_get_widget(pxml,"eEditTextFile");
-			strcpy(gtkm_conf.edit_text_file,gtk_entry_get_text(GTK_ENTRY(w)));
+			strcpy(gtkm_conf.edit_text_file,gtk_entry_set_text(GTK_ENTRY(w)));
 			w=glade_xml_get_widget(pxml,"eViewTextFile");
-			strcpy(gtkm_conf.view_text_file,gtk_entry_get_text(GTK_ENTRY(w)));
+			strcpy(gtkm_conf.view_text_file,gtk_entry_set_text(GTK_ENTRY(w)));
 			w=glade_xml_get_widget(pxml,"eViewStdout");
-			strcpy(gtkm_conf.view_stdout,gtk_entry_get_text(GTK_ENTRY(w)));
+			strcpy(gtkm_conf.view_stdout,gtk_entry_set_text(GTK_ENTRY(w)));
 			w=glade_xml_get_widget(pxml,"eViewCtrlAFile");
-			strcpy(gtkm_conf.view_ctrla_file,gtk_entry_get_text(GTK_ENTRY(w)));
+			strcpy(gtkm_conf.view_ctrla_file,gtk_entry_set_text(GTK_ENTRY(w)));
 			w=glade_xml_get_widget(pxml,"eViewHTMLFile");
-			strcpy(gtkm_conf.view_html_file,gtk_entry_get_text(GTK_ENTRY(w)));
+			strcpy(gtkm_conf.view_html_file,gtk_entry_set_text(GTK_ENTRY(w)));
 			write_ini();
 	}
 	gtk_widget_destroy(dialog);
