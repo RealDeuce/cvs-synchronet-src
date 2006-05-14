@@ -1,7 +1,47 @@
+/* xpprintf.c */
+
+/* Deuce's vs[n]printf() replacement */
+
+/* $Id: xpprintf.c,v 1.32 2006/05/09 21:02:55 deuce Exp $ */
+
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#if defined(_WIN32)
+ #include <malloc.h>    /* alloca() on Win32 */
+#endif
 
 #include "xpprintf.h"
 
@@ -14,7 +54,12 @@
 /* Maximum length of a format specifier including the % */
 #define MAX_FORMAT_LEN	256
 
-static int xp_printf_get_type(const char *format)
+void xp_asprintf_free(char *format)
+{
+	free(format);
+}
+
+int xp_printf_get_type(const char *format)
 {
 	const char	*p;
 	int		modifier=0;
@@ -268,7 +313,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 	char			this_format[MAX_FORMAT_LEN];
 	char			*fmt;
 	int				modifier=0;
-	char			*fmt_start;
 	int				correct_type=0;
 	char			num_str[128];		/* More than enough room for a 256-bit int */
 	size_t			width=0;
@@ -281,10 +325,9 @@ char *xp_asprintf_next(char *format, int type, ...)
 		return(format);
 	p=format+*(size_t *)format;
 	offset=p-format;
-	format_len=strlen(format+sizeof(size_t))+sizeof(size_t);
+	format_len=strlen(format+sizeof(size_t))+sizeof(size_t)+1;
 	this_format[0]=0;
 	fmt=this_format;
-	fmt_start=p;
 	*(fmt++)=*(p++);
 
 	/*
@@ -331,7 +374,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 			 * with format and p
 			 */
 			offset2=p-format;
-			newbuf=(char *)realloc(format, format_len+i /* -1 for the '*' that's already there, +1 for the terminator */);
+			newbuf=(char *)realloc(format, format_len+i-1 /* -1 for the '*' that's already there */);
 			if(newbuf==NULL)
 				return(NULL);
 			format=newbuf;
@@ -371,7 +414,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 				 * with format and p
 				 */
 				offset2=p-format;
-				newbuf=(char *)realloc(format, format_len+i /* -1 for the '*' that's already there, +1 for the terminator */);
+				newbuf=(char *)realloc(format, format_len+i-1 /* -1 for the '*' that's already there */);
 				if(newbuf==NULL)
 					return(NULL);
 				format=newbuf;
@@ -1101,7 +1144,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 				if(s<precision)
 					s=precision;
 				if(s>=MAX_ARG_LEN)
-					entry=(char *)malloc(s+1);
+					entry=(char *)alloca(s+1);
 				if(entry==NULL)
 					return(NULL);
 				j=sprintf(entry, this_format, cp);
@@ -1122,24 +1165,25 @@ char *xp_asprintf_next(char *format, int type, ...)
 	}
 
 	this_format_len=strlen(this_format);
-	/*
-	 * This isn't necessary if it's already the right size,
-	 * or it's too large... this realloc() should only need to grow
-	 * the string.
-	 */
-	newbuf=(char *)realloc(format, format_len-this_format_len+j+1);
-	if(newbuf==NULL) {
-		if(entry != entry_buf)
-			free(entry);
-		return(NULL);
+	if(j>=0) {
+		/*
+		 * This isn't necessary if it's already the right size,
+		 * or it's too large... this realloc() should only need to grow
+		 * the string.
+		 */
+		if(format_len < (format_len-this_format_len+j)) {
+			newbuf=(char *)realloc(format, format_len-this_format_len+j);
+			if(newbuf==NULL)
+				return(NULL);
+			format=newbuf;
+		}
+		/* Move trailing end to make space */
+		memmove(format+offset+j, format+offset+this_format_len, format_len-offset-this_format_len);
+		memcpy(format+offset, entry, j);
+		p=format+offset+j;
 	}
-	format=newbuf;
-	/* Move trailing end to make space */
-	memmove(format+offset+j, format+offset+this_format_len, offset+format_len-this_format_len+1);
-	memcpy(format+offset, entry, j);
-	if(entry != entry_buf)
-		free(entry);
-	p=format+offset+j;
+	else
+		p=format+offset+this_format_len;
 	/*
 	 * Search for next non-%% separateor and set offset
 	 * to zero if none found for wrappers to know when
@@ -1307,34 +1351,34 @@ int main(int argc, char *argv[])
 		switch(argv[j][0]) {
 			case 'f':
 				f=(float)atof(argv[j]+1);
-				p=xp_asprintf_next(format,XP_PRINTF_TYPE_FLOAT,f);
+				p=xp_asprintf_next(format,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_FLOAT,f);
 				break;
 			case 'd':
 				d=atof(argv[j]+1);
-				p=xp_asprintf_next(format,XP_PRINTF_TYPE_DOUBLE,d);
+				p=xp_asprintf_next(format,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_DOUBLE,d);
 				break;
 			case 'D':
 				/* Don't know of a thing that converts a string to a long double */
 				D=atof(argv[j]+1);
-				p=xp_asprintf_next(format,XP_PRINTF_TYPE_LONGDOUBLE,D);
+				p=xp_asprintf_next(format,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_LONGDOUBLE,D);
 				break;
 			case 'i':
 				i=atoi(argv[j]+1);
-				p=xp_asprintf_next(format,XP_PRINTF_TYPE_INT,i);
+				p=xp_asprintf_next(format,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,i);
 				break;
 			case 'l':
 				l=atol(argv[j]+1);
-				p=xp_asprintf_next(format,XP_PRINTF_TYPE_LONG,l);
+				p=xp_asprintf_next(format,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_LONG,l);
 				break;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 			case 'L':
 				L=strtoll(argv[j]+1, NULL, 10);
-				p=xp_asprintf_next(format,XP_PRINTF_TYPE_LONGLONG,L);
+				p=xp_asprintf_next(format,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_LONGLONG,L);
 				break;
 #endif
 			case 's':
 				cp=argv[j]+1;
-				p=xp_asprintf_next(format,XP_PRINTF_TYPE_CHARP,cp);
+				p=xp_asprintf_next(format,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,cp);
 				break;
 		}
 		if(p==NULL) {
@@ -1345,6 +1389,7 @@ int main(int argc, char *argv[])
 	}
 	p=xp_asprintf_end(format);
 	printf("At end, value is: '%s'\n",p);
+	free(p);
 }
 
 #endif
