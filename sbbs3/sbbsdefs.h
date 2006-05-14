@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.147 2007/01/03 16:59:16 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.141 2006/02/03 06:21:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,10 +50,10 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.14"  /* Version: Major.minor  */
+#define VERSION 	"3.13"  /* Version: Major.minor  */
 #define REVISION	'b'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31400	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31400 + (tolower(REVISION)-'a'))
+#define VERSION_NUM	(31300	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31300 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -613,8 +613,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
 #define HTML		(1L<<23)		/* Using Deuce's HTML terminal			*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
-
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML)
 																			
 #define CLREOL      256     /* Character to erase to end of line 			*/
 																			
@@ -651,7 +649,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_NEWDAY	(1L<<25) /* Date changed while online					*/
 #define SS_RLOGIN	(1L<<26) /* Current login via BSD RLogin				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
-#define SS_SSH		(1L<<28) /* Current login via SSH						*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
@@ -706,7 +703,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_QUOTE	(1<<6)		/* Quote file available 					*/
 #define WM_QWKNET	(1<<7)		/* Writing QWK NetMail (25 char title)		*/
 #define WM_PRIVATE	(1<<8)		/* Private (for creating MSGINF file)		*/
-#define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
 								
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
@@ -823,9 +819,12 @@ enum {							/* Values of mode for userlist function     */
 							attr(slatr[slcnt]); \
 							rputs(slbuf[slcnt]); \
 							curatr=slcuratr[slcnt]; }
+#define RIOSYNC(x)		{ if(online==ON_REMOTE) riosync(x); }
 #define SYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
+						  RIOSYNC(0); \
 						  nodesync(); }
 #define ASYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
+						  RIOSYNC(1); \
 						  nodesync(); }
 #define ANSI_SAVE() 	rputs("\x1b[s")
 #define ANSI_RESTORE()	rputs("\x1b[u")
