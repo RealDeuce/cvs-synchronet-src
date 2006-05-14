@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.21 2006/09/24 20:05:20 deuce Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.20 2005/10/07 08:05:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
  ****************************************************************************/
 //---------------------------------------------------------------------------
 
-#include "sbbs.h"
 #include <vcl.h>
 #pragma hdrstop
 
