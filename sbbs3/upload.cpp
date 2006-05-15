@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.48 2006/10/27 00:39:45 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.46 2006/02/28 00:47:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -576,11 +576,6 @@ bool sbbs_t::bulkupload(uint dirnum)
 		if(isdir(str))
 			continue;
 #ifdef _WIN32
-		/* Skip hidden/system files on Win32 */
-		if(getfattr(str)&(_A_HIDDEN|_A_SYSTEM))
-			continue;
-#endif
-#ifdef _WIN32
 		GetShortPathName(str,spath,sizeof(spath));
 #else
 		strcpy(spath,str);
@@ -604,28 +599,25 @@ bool sbbs_t::bulkupload(uint dirnum)
 	return(false);
 }
 
-bool sbbs_t::recvfile(char *fname, char prot)
+bool sbbs_t::recvfile(char *fname)
 {
 	char	keys[32];
 	char	ch;
 	size_t	i;
 	bool	result=false;
 
-	if(prot)
-		ch=toupper(prot);
-	else {
-		xfer_prot_menu(XFER_UPLOAD);
-		mnemonics(text[ProtocolOrQuit]);
-		strcpy(keys,"Q");
-		for(i=0;i<cfg.total_prots;i++)
-			if(cfg.prot[i]->ulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron))
-				sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
+	xfer_prot_menu(XFER_UPLOAD);
+	mnemonics(text[ProtocolOrQuit]);
+	strcpy(keys,"Q");
+	for(i=0;i<cfg.total_prots;i++)
+		if(cfg.prot[i]->ulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron))
+			sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
 
-		ch=(char)getkeys(keys,0);
+	ch=(char)getkeys(keys,0);
 
-		if(ch=='Q' || sys_status&SS_ABORT)
-			return(false); 
-	}
+	if(ch=='Q' || sys_status&SS_ABORT)
+		return(false); 
+
 	for(i=0;i<cfg.total_prots;i++)
 		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
 			break;
