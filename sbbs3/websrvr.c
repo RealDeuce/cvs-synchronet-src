@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.410 2006/05/08 18:13:48 deuce Exp $ */
+/* $Id: websrvr.c,v 1.411 2006/05/16 00:00:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2218,6 +2218,7 @@ static BOOL check_request(http_session_t * session)
 		if(!IS_PATH_DELIM(last_ch))  {
 			session->req.send_location=MOVED_PERM;
 			strcat(path,"/");
+			strcat(session->req.physical_path,"/");
 		}
 		last_ch=*lastchar(session->req.virtual_path);
 		if(!IS_PATH_DELIM(last_ch))  {
@@ -4264,7 +4265,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.410 $", "%*s %s", revision);
+	sscanf("$Revision: 1.411 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
