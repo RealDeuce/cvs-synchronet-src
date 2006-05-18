@@ -1,7 +1,47 @@
+/* xpprintf.c */
+
+/* Deuce's vs[n]printf() replacement */
+
+/* $Id: xpprintf.c,v 1.32 2006/05/09 21:02:55 deuce Exp $ */
+
+/****************************************************************************
+ * @format.tab-size 4		(Plain Text/Source Code File Header)			*
+ * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
+ *																			*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ *																			*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
+ * as published by the Free Software Foundation; either version 2			*
+ * of the License, or (at your option) any later version.					*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
+ *																			*
+ * Anonymous FTP access to the most recent released source is available at	*
+ * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
+ *																			*
+ * Anonymous CVS access to the development source and modification history	*
+ * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*
+ *     (just hit return, no password is necessary)							*
+ * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*
+ *																			*
+ * For Synchronet coding style and modification guidelines, see				*
+ * http://www.synchro.net/source.html										*
+ *																			*
+ * You are encouraged to submit any modifications (preferably in Unix diff	*
+ * format) via e-mail to mods@synchro.net									*
+ *																			*
+ * Note: If this box doesn't appear square, then you need to fix your tabs.	*
+ ****************************************************************************/
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#if defined(_WIN32)
+ #include <malloc.h>    /* alloca() on Win32 */
+#endif
 
 #include "xpprintf.h"
 
@@ -13,6 +53,11 @@
 
 /* Maximum length of a format specifier including the % */
 #define MAX_FORMAT_LEN	256
+
+void xp_asprintf_free(char *format)
+{
+	free(format);
+}
 
 int xp_printf_get_type(const char *format)
 {
@@ -268,7 +313,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 	char			this_format[MAX_FORMAT_LEN];
 	char			*fmt;
 	int				modifier=0;
-	char			*fmt_start;
 	int				correct_type=0;
 	char			num_str[128];		/* More than enough room for a 256-bit int */
 	size_t			width=0;
@@ -284,7 +328,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 	format_len=strlen(format+sizeof(size_t))+sizeof(size_t)+1;
 	this_format[0]=0;
 	fmt=this_format;
-	fmt_start=p;
 	*(fmt++)=*(p++);
 
 	/*
@@ -1101,7 +1144,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 				if(s<precision)
 					s=precision;
 				if(s>=MAX_ARG_LEN)
-					entry=(char *)malloc(s+1);
+					entry=(char *)alloca(s+1);
 				if(entry==NULL)
 					return(NULL);
 				j=sprintf(entry, this_format, cp);
@@ -1130,18 +1173,13 @@ char *xp_asprintf_next(char *format, int type, ...)
 		 */
 		if(format_len < (format_len-this_format_len+j)) {
 			newbuf=(char *)realloc(format, format_len-this_format_len+j);
-			if(newbuf==NULL) {
-				if(entry != entry_buf)
-					free(entry);
+			if(newbuf==NULL)
 				return(NULL);
-			}
 			format=newbuf;
 		}
 		/* Move trailing end to make space */
 		memmove(format+offset+j, format+offset+this_format_len, format_len-offset-this_format_len);
 		memcpy(format+offset, entry, j);
-		if(entry != entry_buf)
-			free(entry);
 		p=format+offset+j;
 	}
 	else
