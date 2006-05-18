@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.14 2007/05/25 07:15:38 deuce Exp $ */
+/* $Id: cterm.h,v 1.13 2005/11/20 06:36:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,8 +52,6 @@ enum {
 #define CTERM_LOG_PAUSED	0x80
 
 struct cterminal {
-	int emulation;
-	int c64reversemode;
 	int	height;
 	int	width;
 	int	x;
@@ -90,11 +88,6 @@ struct cterminal {
 #define CTERM_MUSIC_SYNCTERM	0
 #define	CTERM_MUSIC_BANSI		1
 #define	CTERM_MUSIC_ENABLED		2
-
-enum {
-	 CTERM_EMULATION_ANSI_BBS
-	,CTERM_EMULATION_PETASCII
-};
 
 #ifdef __cplusplus
 extern "C" {
