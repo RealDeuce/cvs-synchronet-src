@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.61 2007/01/06 09:20:53 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.58 2006/02/03 03:47:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -653,38 +653,23 @@ long sbbs_t::js_execfile(const char *cmd)
 }
 #endif
 
-/* Important change as of Nov-16-2006, 'cmdline' may contain args */
-long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
+
+long sbbs_t::exec_bin(char *mod, csi_t *csi)
 {
     char    str[MAX_PATH+1];
-	char	mod[MAX_PATH+1];
 	char	modname[MAX_PATH+1];
-	char*	p;
 	int 	file;
     csi_t   bin;
 
-	SAFECOPY(mod,cmdline);
-	p=mod;
-	FIND_CHAR(p,' ');
-	if(*p) {
-		*p=0;				/* terminate 'mod' */
-		p++;				/* skip space */
-		SKIP_CHAR(p,' ');	/* skip more spaces */
-	}
-	if(*p)
-		strcpy(main_csi.str, p);
-
 #ifdef JAVASCRIPT
-	if((p=getfext(mod))!=NULL && stricmp(p,".js")==0)
-		return(js_execfile(cmdline));
 	if(cfg.mods_dir[0]) {
 		sprintf(str,"%s%s.js",cfg.mods_dir,mod);
 		if(fexistcase(str)) 
-			return(js_execfile(cmdline));
+			return(js_execfile(str));
 	}
 	sprintf(str,"%s%s.js",cfg.exec_dir,mod);
 	if(fexistcase(str)) 
-		return(js_execfile(cmdline));
+		return(js_execfile(str));
 #endif
 
 	memcpy(&bin,csi,sizeof(csi_t));
@@ -1676,6 +1661,11 @@ int sbbs_t::exec(csi_t *csi)
 		case CS_ASYNC:
 			ASYNC;
 			return(0);
+#if 0 /* Removed 02/18/01 - never used, officially deprecated for INCHAR */
+		case CS_RIOSYNC:
+			RIOSYNC(0);
+			return(0);
+#endif
 		case CS_GETTIMELEFT:
 			gettimeleft();
 			return(0);
