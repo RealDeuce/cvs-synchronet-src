@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.28 2006/05/25 05:56:02 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.29 2006/05/26 23:02:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -333,8 +333,10 @@ VOID uart_rdport(WORD port, PBYTE data)
 				lprintf(LOG_DEBUG,"READ DATA: 0x%02X", *data);
 				avail--;
 				reset_yield();
-			}
+			} else
+				*data=0;
 			if(avail==0) {
+				lprintf(LOG_DEBUG,"No more data");
 				/* Clear the data ready bit in the LSR */
 				uart_lsr_reg &= ~UART_LSR_DATA_READY;
 
@@ -727,7 +729,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 __declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID hVDD, IN ULONG Reason, 
 IN PCONTEXT Context OPTIONAL)
 {
-	sscanf("$Revision: 1.28 $", "%*s %s", revision);
+	sscanf("$Revision: 1.29 $", "%*s %s", revision);
 
 	vdd_handle=hVDD;
 
