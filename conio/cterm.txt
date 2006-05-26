@@ -476,7 +476,8 @@ Mx sets misc music parameters where x is one of the following:
 	F - Plays music in the foreground, waiting for music to complete
 	    playing before more characters are processed.
 	B - Play music in the background, allowing normal processing to
-	    continue.
+	    continue.  This is ignored by CTerm.  All music is played in
+	    the foreground.
 	N - "Normal" not legato, not stacatto
 	L - Play notes legato
 	S - Play notes stacatto
@@ -532,7 +533,3 @@ low frequences.  The notes *sound* correct to me.  If anyone can give me
 an excellent reason to change them (and more correct integer values for all
 notes) I am willing to do that assuming the notes still sound "right".
 
-!!!PLEASE NOTE!!! If you are playing some ANSI Music then ask the user if they
-heard it, ALWAYS follow it with an 0x0b 0x0a is the shift lock character which
-*will* cause people with anything but an ANSI-BBS terminal (ie: *nix users using
-the bundled telnet app) to have their screen messed up.  0x0b "undoes" the 0x0a.
