@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.14 2005/11/24 03:53:58 deuce Exp $ */
+/* $Id: conn.c,v 1.15 2006/03/20 23:44:44 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -115,7 +115,6 @@ int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass,
 	SOCKADDR_IN	saddr;
 	char	*p;
 	unsigned int	neta;
-	int	i;
 
 	init_uifc(TRUE, TRUE);
 	con_type=conn_type;
