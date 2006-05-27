@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.71 2006/05/27 04:11:42 deuce Exp $ */
+/* $Id: cterm.c,v 1.72 2006/05/27 05:54:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1093,7 +1093,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.71 $";
+	char	*revision="$Revision: 1.72 $";
 	char *in;
 	char	*out;
 
@@ -1508,8 +1508,8 @@ void cterm_end(void)
 			listPushNode(&notes, NULL);
 			sem_wait(&playnote_thread_terminated);
 		}
+		sem_destroy(&playnote_thread_terminated);
+		sem_destroy(&note_completed_sem);
+		listFree(&notes);
 	}
-	sem_destroy(&playnote_thread_terminated);
-	sem_destroy(&note_completed_sem);
-	listFree(&notes);
 }
