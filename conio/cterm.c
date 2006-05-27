@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.75 2006/05/27 06:54:12 rswindell Exp $ */
+/* $Id: cterm.c,v 1.76 2006/05/27 07:00:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,10 +185,19 @@ void playnote_thread(void *args)
 	int duration;
 	int pauselen;
 	struct note_params *note;
+	int	device_open=FALSE;
 
 	playnote_thread_running=TRUE;
 	while(1) {
-		listSemWait(&notes);
+		if(device_open) {
+			if(!listSemTryWait(&notes)) {
+				xptone_close();
+				listSemWait(&notes);
+			}
+		}
+		else
+			listSemWait(&notes);
+		xptone_open();
 		note=listShiftNode(&notes);
 		if(note==NULL)
 			break;
@@ -1095,7 +1104,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.75 $";
+	char	*revision="$Revision: 1.76 $";
 	char *in;
 	char	*out;
 
