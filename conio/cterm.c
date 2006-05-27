@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.69 2006/05/27 01:50:08 deuce Exp $ */
+/* $Id: cterm.c,v 1.70 2006/05/27 04:03:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1097,7 +1097,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.69 $";
+	char	*revision="$Revision: 1.70 $";
 	char *in;
 	char	*out;
 
@@ -1154,7 +1154,7 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 	}
 	/* Fire up note playing thread */
 	if(!playnote_thread_running) {
-		listInit(&notes, LINK_LIST_SEMAPHORE);
+		listInit(&notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
 		sem_init(&note_completed_sem,0,0);
 		sem_init(&playnote_thread_terminated,0,0);
 		_beginthread(playnote_thread, 0, NULL);
