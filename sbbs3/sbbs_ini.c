@@ -2,13 +2,13 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.114 2005/11/28 02:48:13 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.117 2006/05/24 06:10:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -277,13 +277,6 @@ void sbbs_read_ini(
 		if(mail!=NULL)		SAFECOPY(mail->ctrl_dir,global->ctrl_dir);
 		if(services!=NULL)	SAFECOPY(services->ctrl_dir,global->ctrl_dir);
 	}
-	if(global->temp_dir[0]) {
-		if(bbs!=NULL)		SAFECOPY(bbs->temp_dir,global->temp_dir);
-		if(ftp!=NULL)		SAFECOPY(ftp->temp_dir,global->temp_dir);
-		if(web!=NULL)		SAFECOPY(web->temp_dir,global->temp_dir);
-		if(mail!=NULL)		SAFECOPY(mail->temp_dir,global->temp_dir);
-		if(services!=NULL)	SAFECOPY(services->temp_dir,global->temp_dir);
-	}
 													
 	/***********************************************************************/
 	section = "BBS";
@@ -309,15 +302,18 @@ void sbbs_read_ini(
 			=iniGetShortInt(list,section,"LastNode",4);
 
 		bbs->outbuf_highwater_mark
-			=iniGetShortInt(list,section,"OutbufHighwaterMark",1024);
+			=iniGetShortInt(list,section,"OutbufHighwaterMark"
+#ifdef TCP_MAXSEG	/* Auto-tune if possible.  Would this be defined here? */
+			,0
+#else
+			,1024
+#endif
+			);
 		bbs->outbuf_drain_timeout
 			=iniGetShortInt(list,section,"OutbufDrainTimeout",10);
 
 		bbs->sem_chk_freq
 			=iniGetShortInt(list,section,strSemFileCheckFrequency,global->sem_chk_freq);
-
-		bbs->xtrn_polls_before_yield
-			=iniGetInteger(list,section,"ExternalYield",10);
 
 		/* JavaScript operating parameters */
 		sbbs_get_js_settings(list, section, &bbs->js, &global->js);
@@ -326,7 +322,7 @@ void sbbs_read_ini(
 			,iniGetString(list,section,strHostName,global->host_name,value));
 
 		SAFECOPY(bbs->temp_dir
-			,iniGetString(list,section,strTempDirectory,bbs->temp_dir,value));
+			,iniGetString(list,section,strTempDirectory,global->temp_dir,value));
 
 		/* Set default terminal type to "stock" termcap closest to "ansi-bbs" */
 	#if defined(__FreeBSD__)
@@ -415,7 +411,7 @@ void sbbs_read_ini(
 			,iniGetString(list,section,strHackAttemptSound,nulstr,value));
 
 		SAFECOPY(ftp->temp_dir
-			,iniGetString(list,section,strTempDirectory,ftp->temp_dir,value));
+			,iniGetString(list,section,strTempDirectory,global->temp_dir,value));
 
 		ftp->log_mask
 			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
@@ -464,17 +460,17 @@ void sbbs_read_ini(
 			,iniGetString(list,section,strHostName,global->host_name,value));
 
 		SAFECOPY(mail->temp_dir
-			,iniGetString(list,section,strTempDirectory,mail->temp_dir,value));
+			,iniGetString(list,section,strTempDirectory,global->temp_dir,value));
 
 		SAFECOPY(mail->relay_server
-			,iniGetString(list,section,"RelayServer",mail->relay_server,value));
+			,iniGetString(list,section,"RelayServer",nulstr,value));
 		SAFECOPY(mail->relay_user
-			,iniGetString(list,section,"RelayUsername",mail->relay_user,value));
+			,iniGetString(list,section,"RelayUsername",nulstr,value));
 		SAFECOPY(mail->relay_pass
-			,iniGetString(list,section,"RelayPassword",mail->relay_pass,value));
+			,iniGetString(list,section,"RelayPassword",nulstr,value));
 
 		SAFECOPY(mail->dns_server
-			,iniGetString(list,section,"DNSServer",mail->dns_server,value));
+			,iniGetString(list,section,"DNSServer",nulstr,value));
 
 		SAFECOPY(mail->default_user
 			,iniGetString(list,section,"DefaultUser",nulstr,value));
@@ -525,7 +521,7 @@ void sbbs_read_ini(
 			,iniGetString(list,section,strHostName,global->host_name,value));
 
 		SAFECOPY(services->temp_dir
-			,iniGetString(list,section,strTempDirectory,services->temp_dir,value));
+			,iniGetString(list,section,strTempDirectory,global->temp_dir,value));
 
 		SAFECOPY(services->answer_sound
 			,iniGetString(list,section,strAnswerSound,nulstr,value));
@@ -568,7 +564,7 @@ void sbbs_read_ini(
 			,iniGetString(list,section,strHostName,global->host_name,value));
 
 		SAFECOPY(web->temp_dir
-			,iniGetString(list,section,strTempDirectory,web->temp_dir,value));
+			,iniGetString(list,section,strTempDirectory,global->temp_dir,value));
 
 		SAFECOPY(web->root_dir
 			,iniGetString(list,section,"RootDirectory",WEB_DEFAULT_ROOT_DIR,value));
@@ -611,7 +607,13 @@ void sbbs_read_ini(
 			=iniGetBitField(list,section,strOptions,web_options
 				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
 		web->outbuf_highwater_mark
-			=iniGetShortInt(list,section,"OutbufHighwaterMark",1024);
+			=iniGetShortInt(list,section,"OutbufHighwaterMark"
+#ifdef TCP_MAXSEG	/* Auto-tune if possible.  Would this be defined here? */
+			,0
+#else
+			,1024
+#endif
+			);
 		web->outbuf_drain_timeout
 			=iniGetShortInt(list,section,"OutbufDrainTimeout",10);
 
@@ -747,9 +749,6 @@ BOOL sbbs_write_ini(
 		if(bbs->log_mask==global->log_mask)
 			iniRemoveValue(lp,section,strLogMask);
 		else if(!iniSetBitField(lp,section,strLogMask,log_mask_bits,bbs->log_mask,&style))
-			break;
-
-		if(!iniSetInteger(lp,section,"ExternalYield",bbs->xtrn_polls_before_yield,&style))
 			break;
 
 		/* JavaScript operating parameters */
