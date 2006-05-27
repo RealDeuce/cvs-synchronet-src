@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.72 2006/01/10 06:33:05 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.75 2006/03/16 00:07:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -299,6 +299,10 @@ __published:	// IDE-managed Components
     TMenuItem *WebEditHandlersMenuItem;
     TMenuItem *WebEditCgiEnvMenuItem;
     TMenuItem *FtpEditBadLoginMessage;
+    TMenuItem *ConfigureWebTrayMenuItem;
+    TMenuItem *ConfigureServicesTrayMenuItem;
+    TMenuItem *HelpTechnicalSupportMenuItem;
+    TTimer *SemFileTimer;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -387,6 +391,7 @@ __published:	// IDE-managed Components
     void __fastcall WebRecycleExecute(TObject *Sender);
     void __fastcall WebConfigureExecute(TObject *Sender);
     void __fastcall ViewServicesExecute(TObject *Sender);
+    void __fastcall SemFileTimerTick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
@@ -433,6 +438,12 @@ public:		// User declarations
     void __fastcall WriteFont(AnsiString, TFont*);
     void __fastcall EditFile(AnsiString filename, AnsiString Caption="Edit");
     void __fastcall ViewFile(AnsiString filename, AnsiString Caption);
+    void __fastcall reload_config(void);    
+    BOOL __fastcall bbsServiceEnabled(void);
+    BOOL __fastcall ftpServiceEnabled(void);
+    BOOL __fastcall webServiceEnabled(void);
+    BOOL __fastcall mailServiceEnabled(void);
+    BOOL __fastcall servicesServiceEnabled(void);
 };
 
 //---------------------------------------------------------------------------
