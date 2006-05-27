@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.30 2006/05/27 07:03:03 rswindell Exp $ */
+/* $Id: xpbeep.c,v 1.31 2006/05/27 07:14:00 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -208,7 +208,6 @@ BOOL xptone_open(void)
 	int	fragsize=0x7fff0004;
 #endif
 
-fprintf(stderr,"1\n");
 	/* Already open */
 	if(handle_type!=SOUND_DEVICE_CLOSED)
 		return(TRUE);
