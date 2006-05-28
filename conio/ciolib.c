@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.81 2007/05/31 09:37:25 deuce Exp $ */
+/* $Id: ciolib.c,v 1.76 2006/05/28 20:50:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@
 #define CIOLIB_NO_MACROS
 #include "ciolib.h"
 
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+#ifdef WITH_SDL
  #include "sdl_con.h"
 #endif
 #ifdef _WIN32
@@ -111,7 +111,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 
 #define CIOLIB_INIT()		{ if(initialized != 1) initciolib(CIOLIB_MODE_AUTO); }
 
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+#ifdef WITH_SDL
 int try_sdl_init(int mode)
 {
 	if(!sdl_initciolib(mode)) {
@@ -133,7 +133,6 @@ int try_sdl_init(int mode)
 		cio_api.showmouse=sdl_showmouse;
 		cio_api.hidemouse=sdl_hidemouse;
 		cio_api.setname=sdl_setname;
-		cio_api.seticon=sdl_seticon;
 		cio_api.settitle=sdl_settitle;
 #ifdef _WIN32
 		cio_api.copytext=win32_copytext;
@@ -304,7 +303,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 
 	switch(mode) {
 		case CIOLIB_MODE_AUTO:
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+#ifdef WITH_SDL
 			if(!try_sdl_init(mode))
 #endif
 #ifdef _WIN32
@@ -337,7 +336,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			try_ansi_init(mode);
 			break;
 
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+#ifdef WITH_SDL
 		case CIOLIB_MODE_SDL:
 		case CIOLIB_MODE_SDL_FULLSCREEN:
 			try_sdl_init(mode);
@@ -355,16 +354,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-	/* Default C64 is Lt Blue on Black (As per CGTerm) */
-	switch(cio_textinfo.currmode) {
-		case C64_40X25:
-		case C128_40X25:
-		case C128_80X25:
-			cio_textinfo.normattr=14;
-			break;
-		default:
-			cio_textinfo.normattr=7;
-	}
+	cio_textinfo.normattr=7;
 	_beginthread(ciolib_mouse_thread,0,NULL);
 	return(0);
 }
@@ -446,7 +436,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	int ch;
 
 	CIOLIB_INIT();
-
+	
 	maxlen=*(unsigned char *)str;
 	while((ch=ciolib_getch())!='\n' && ch !='\r') {
 		switch(ch) {
@@ -673,15 +663,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-	switch(cio_textinfo.currmode) {
-		case C64_40X25:
-		case C128_40X25:
-		case C128_80X25:
-			cio_textinfo.normattr=14;
-			break;
-		default:
-			cio_textinfo.normattr=7;
-	}
 }
 
 CIOLIBEXPORT void CIOLIBCALL ciolib_window(int sx, int sy, int ex, int ey)
@@ -718,7 +699,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	
 	ciolib_gettextinfo(&ti);
 
-	width=ti.winright-ti.winleft+1-ti.curx+1;
+	width=ti.winright-ti.curx+1;
 	height=1;
 	buf=(unsigned char *)alloca(width*height*2);
 	for(i=0;i<width*height*2;) {
@@ -959,13 +940,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setname(const char *name) {
 
 	if(cio_api.setname!=NULL)
 		cio_api.setname(name);
-}
-
-CIOLIBEXPORT void CIOLIBCALL ciolib_seticon(const void *icon, unsigned long size) {
-	CIOLIB_INIT();
-
-	if(cio_api.seticon!=NULL)
-		cio_api.seticon(icon,size);
 }
 
 CIOLIBEXPORT void CIOLIBCALL ciolib_settitle(const char *title) {
