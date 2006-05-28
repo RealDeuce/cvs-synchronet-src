@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.42 2006/05/28 23:45:32 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.43 2006/05/28 23:59:21 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -391,6 +391,7 @@ BOOL xptone_close(void)
 	handle_type=SOUND_DEVICE_CLOSED;
 	sound_device_open_failed=FALSE;
 	alsa_device_open_failed=FALSE;
+	sdl_device_open_failed=FALSE;
 
 	return(TRUE);
 }
