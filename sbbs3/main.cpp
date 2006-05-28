@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.427 2006/01/27 06:37:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.439 2006/05/24 06:10:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -472,7 +472,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		}
 
 		if(funcs[i].ver) {
-			if((ver=funcs[i].ver<10000)		/* auto convert 313 to 31300 */
+			if((ver=funcs[i].ver) < 10000)		/* auto convert 313 to 31300 */
 				ver*=100;
 			val = INT_TO_JSVAL(ver);
 			JS_SetProperty(cx,method, "ver", &val);
@@ -1454,6 +1454,7 @@ void output_thread(void* arg)
 	sbbs_t*		sbbs = (sbbs_t*) arg;
 	fd_set		socket_set;
 	struct timeval tv;
+	ulong		mss=IO_THREAD_BUF_SIZE;
 
 	thread_up(TRUE /* setuid */);
 
@@ -1468,28 +1469,60 @@ void output_thread(void* arg)
     sbbs->output_thread_running = true;
 	sbbs->console|=CON_R_ECHO;
 
+#ifdef TCP_MAXSEG
+	/*
+	 * Auto-tune the highwater mark to be the negotiated MSS for the
+     * socket (when possible)
+	 */
+	if(!sbbs->outbuf.highwater_mark) {
+		socklen_t	sl;
+		sl=sizeof(i);
+		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
+			/* Check for sanity... */
+			if(i>100) {
+				sbbs->outbuf.highwater_mark=i;
+				lprintf(LOG_DEBUG,"Autotuning outbuf highwater mark to %d based on MSS",i);
+				mss=sbbs->outbuf.highwater_mark;
+				if(mss>IO_THREAD_BUF_SIZE) {
+					mss=IO_THREAD_BUF_SIZE;
+					lprintf(LOG_DEBUG,"MSS (%d) is higher than IO_THREAD_BUF_SIZE (%d)",i,IO_THREAD_BUF_SIZE);
+				}
+			}
+		}
+	}
+#endif
+
 	while(sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
 		/*
 		 * I'd like to check the linear buffer against the highwater
 		 * at this point, but it would get too clumsy imho - Deuce
 		 *
 		 * Actually, another option would just be to have the size
-		 * of the linear buffer equal to the MTU... any larger and
+		 * of the linear buffer equal to the MSS... any larger and
 		 * you could have small sends off the end.  this would
 		 * probobly be even clumbsier
 		 */
 		if(bufbot == buftop) {
 			/* Wait for something to output in the RingBuffer */
-			if(sem_trywait_block(&sbbs->outbuf.sem,1000))
-				continue;
-
-			/* Check for spurious sem post... */
-			if(!RingBufFull(&sbbs->outbuf))
-				continue;
+			if((avail=RingBufFull(&sbbs->outbuf))==0) {	/* empty */
+				if(sem_trywait_block(&sbbs->outbuf.sem,1000))
+					continue;
+				/* Check for spurious sem post... */
+				if((avail=RingBufFull(&sbbs->outbuf))==0)
+					continue;
+			}
+			else
+				sem_trywait(&sbbs->outbuf.sem);
 
 			/* Wait for full buffer or drain timeout */
-			if(sbbs->outbuf.highwater_mark)
-				sem_trywait_block(&sbbs->outbuf.highwater_sem,startup->outbuf_drain_timeout);
+			if(sbbs->outbuf.highwater_mark) {
+				if(avail<sbbs->outbuf.highwater_mark) {
+					sem_trywait_block(&sbbs->outbuf.highwater_sem,startup->outbuf_drain_timeout);
+					/* We (potentially) blocked, so get fill level again */
+		    		avail=RingBufFull(&sbbs->outbuf);
+				} else
+					sem_trywait(&sbbs->outbuf.highwater_sem);	
+			}
 
 			/*
 			 * At this point, there's something to send and,
@@ -1497,12 +1530,14 @@ void output_thread(void* arg)
 			 * passed or we've hit highwater.  Read ring buffer
 			 * into linear buffer.
 			 */
-	    	avail=RingBufFull(&sbbs->outbuf);
            	if(avail>sizeof(buf)) {
                	lprintf(LOG_WARNING,"!%s: Insufficient linear output buffer (%lu > %lu)"
 					,node, avail, sizeof(buf));
                	avail=sizeof(buf);
            	}
+			/* If we know the MSS, use it as the max send() size. */
+			if(avail>mss)
+				avail=mss;
            	buftop=RingBufRead(&sbbs->outbuf, buf, avail);
            	bufbot=0;
 		}
@@ -2297,6 +2332,8 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	client_ident[0]=0;
 
 	terminal[0]=0;
+	rlogin_name[0]=0;
+	rlogin_pass[0]=0;
 
 	/* Init some important variables */
 
@@ -2337,6 +2374,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
+	mnestr=NULL;
 
 #ifdef JAVASCRIPT
 	js_runtime=NULL;	/* runtime */
@@ -2346,13 +2384,15 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	for(i=0;i<TOTAL_TEXT;i++)
 		text[i]=text_sav[i]=global_text[i];
 
-	memset(&main_csi,0,sizeof(main_csi));
-	memset(&thisnode,0,sizeof(thisnode));
-	memset(&useron,0,sizeof(useron));
-	memset(&inbuf,0,sizeof(inbuf));
-	memset(&outbuf,0,sizeof(outbuf));
-	memset(&smb,0,sizeof(smb));
+	ZERO_VAR(main_csi);
+	ZERO_VAR(thisnode);
+	ZERO_VAR(useron);
+	ZERO_VAR(inbuf);
+	ZERO_VAR(outbuf);
+	ZERO_VAR(smb);
+	ZERO_VAR(nodesync_user);
 
+	action=NODE_MAIN;
 	global_str_vars=0;
 	global_str_var=NULL;
 	global_str_var_name=NULL;
@@ -2440,30 +2480,9 @@ bool sbbs_t::init()
 		local_addr=addr.sin_addr.s_addr;
 	}
 
-	comspec=getenv(
-#ifdef __unix__
-		"SHELL"
-#else
-		"COMSPEC"
-#endif
-		);
-	if(comspec==NULL) {
-		errormsg(WHERE, ERR_CHK, 
-#ifdef __unix__
-		"SHELL"
-#else
-		"COMSPEC"
-#endif
-		" environment variable", 0);
-#if defined(__unix__)
-	#if defined(_PATH_BSHELL)
-		comspec =  _PATH_BSHELL;
-	#else
-		comspec = "/bin/sh";
-	#endif
-#else
+	if((comspec=os_cmdshell())==NULL) {
+		errormsg(WHERE, ERR_CHK, OS_CMD_SHELL_ENV_VAR" environment variable", 0);
 		return(false);
-#endif
 	}
 
 	md(cfg.temp_dir);
@@ -3809,7 +3828,6 @@ void DLLCALL bbs_thread(void* arg)
 	/* Setup intelligent defaults */
 	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
 	if(startup->rlogin_port==0)				startup->rlogin_port=513;
-	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
 	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 	if(startup->temp_dir[0])				backslash(startup->temp_dir);
