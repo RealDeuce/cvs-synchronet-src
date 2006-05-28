@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.35 2006/05/28 07:08:28 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.36 2006/05/28 07:10:01 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -423,7 +423,7 @@ BOOL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 	/* Prepare for next note */
 	curr_wh=1-curr_wh;
 	memset(wave[curr_wh], 128, sizeof(wave));	/* Ensure that if silence DOES timeout, you still get silence */
-	wh=wh_bufs[curr_wh];
+	wh=&wh_bufs[curr_wh];
 	waveOutWrite(waveOut, wh, sizeof(wh_bufs[0]));
 
 	while(!(this_wh->dwFlags & WHDR_DONE))
