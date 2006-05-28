@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.34 2006/01/13 03:18:57 rswindell Exp $ */
+/* $Id: str_util.c,v 1.35 2006/01/26 00:52:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
