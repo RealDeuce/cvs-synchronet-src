@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.103 2007/05/01 06:00:27 rswindell Exp $ */
+/* $Id: userdat.c,v 1.100 2006/04/25 00:55:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -800,33 +800,9 @@ char* DLLCALL unpackchatpass(char *pass, node_t* node)
 	return(pass);
 }
 
-static char* node_connection_desc(ushort conn, char* str)
-{
-	switch(conn) {
-		case NODE_CONNECTION_LOCAL:
-			strcpy(str,"Locally");
-			break;
-		case NODE_CONNECTION_TELNET:
-			strcpy(str,"via telnet");
-			break;
-		case NODE_CONNECTION_RLOGIN:
-			strcpy(str,"via rlogin");
-			break;
-		case NODE_CONNECTION_SSH:
-			strcpy(str,"via ssh");
-			break;
-		default:
-			sprintf(str,"at %ubps",conn);
-			break;
-	}
-
-	return str;
-}
-
 char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 {
 	char	str[256];
-	char	tmp[128];
 	char*	mer;
 	int		hour;
 
@@ -859,8 +835,13 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             strcpy(str,"Running external event");
             break;
         case NODE_NEWUSER:
-            sprintf(str,"New user applying for access %s"
-				,node_connection_desc(node->connection, tmp));
+            strcpy(str,"New user applying for access ");
+            if(!node->connection)
+                strcat(str,"Locally");
+            else if(node->connection==0xffff) {
+                strcat(str,"via telnet");
+            } else
+                sprintf(str+strlen(str),"at %ubps",node->connection);
             break;
         case NODE_QUIET:
         case NODE_INUSE:
@@ -968,7 +949,12 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
                     sprintf(str+strlen(str),"%d",node->action);
                     break;  
 			}
-			sprintf(str+strlen(str)," %s",node_connection_desc(node->connection, tmp));
+            if(!node->connection)
+                strcat(str," locally");
+            if(node->connection==0xffff) {
+                strcat(str," via telnet");
+            } else
+                sprintf(str+strlen(str)," at %ubps",node->connection);
             if(node->action==NODE_DLNG) {
                 if((node->aux/60)>=12) {
                     if(node->aux/60==12)
@@ -1438,21 +1424,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				#else
 					result=!not;
 				#endif
-				break;
-			case AR_ACTIVE:
-				if(user==NULL || user->misc&(DELETED|INACTIVE))
-					result=not;
-				else result=!not;
-				break;
-			case AR_INACTIVE:
-				if(user==NULL || !(user->misc&INACTIVE))
-					result=not;
-				else result=!not;
-				break;
-			case AR_DELETED:
-				if(user==NULL || !(user->misc&DELETED))
-					result=not;
-				else result=!not;
 				break;
 			case AR_EXPERT:
 				if(user==NULL || !(user->misc&EXPERT))
