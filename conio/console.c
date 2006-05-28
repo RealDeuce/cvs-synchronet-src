@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.69 2007/05/25 02:23:59 deuce Exp $ */
+/* $Id: console.c,v 1.68 2006/05/08 18:25:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1478,9 +1478,9 @@ update_pixels()
     for (i = 0; i < 16; i++) {
 		XColor color;
 
-	    color.red   = dac_default[palette[i]].red << 8;
-	    color.green = dac_default[palette[i]].green << 8;
-	    color.blue  = dac_default[palette[i]].blue << 8;
+	    color.red   = dac_default16[palette[i]].red << 10;
+	    color.green = dac_default16[palette[i]].green << 10;
+	    color.blue  = dac_default16[palette[i]].blue << 10;
 		if (x11.XAllocColor(dpy, DefaultColormap(dpy, DefaultScreen(dpy)), &color)) {
 		    pixels[i] = color.pixel;
 		} else if (i < 7)
