@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.122 2006/12/31 11:16:40 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.117 2006/05/24 06:10:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,7 @@ static const char*	strPort="Port";
 static const char*	strMaxClients="MaxClients";
 static const char*	strMaxInactivity="MaxInactivity";
 static const char*	strHostName="HostName";
-static const char*	strLogLevel="LogLevel";
+static const char*	strLogMask="LogMask";
 static const char*	strBindRetryCount="BindRetryCount";
 static const char*	strBindRetryDelay="BindRetryDelay";
 static const char*	strAnswerSound="AnswerSound";
@@ -67,7 +67,11 @@ static const char*	strJavaScriptGcInterval		="JavaScriptGcInterval";
 static const char*	strJavaScriptYieldInterval	="JavaScriptYieldInterval";
 static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 
-#define DEFAULT_LOG_LEVEL		LOG_DEBUG
+#if defined(SBBSNTSVCS) && 0	/* sbbs_ini.obj is shared with sbbs.exe (!) */
+	#define DEFAULT_LOG_MASK		0x3f	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE */
+#else
+	#define DEFAULT_LOG_MASK		0xff	/* EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO|DEBUG */
+#endif
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
 #define DEFAULT_BIND_RETRY_COUNT	2
 #define DEFAULT_BIND_RETRY_DELAY	15
@@ -218,7 +222,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 
 	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,0);
 	global->interface_addr=iniGetIpAddress(list,section,strInterface,INADDR_ANY);
-	global->log_level=iniGetLogLevel(list,section,strLogLevel,DEFAULT_LOG_LEVEL);
+	global->log_mask=iniGetBitField(list,section,strLogMask,log_mask_bits,DEFAULT_LOG_MASK);
 	global->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,DEFAULT_BIND_RETRY_COUNT);
 	global->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,DEFAULT_BIND_RETRY_DELAY);
 
@@ -292,11 +296,6 @@ void sbbs_read_ini(
 		bbs->rlogin_port
 			=iniGetShortInt(list,section,"RLoginPort",513);
 
-		bbs->ssh_interface
-			=iniGetIpAddress(list,section,"SSHInterface",global->interface_addr);
-		bbs->ssh_port
-			=iniGetShortInt(list,section,"SSHPort",22);
-
 		bbs->first_node
 			=iniGetShortInt(list,section,"FirstNode",1);
 		bbs->last_node
@@ -351,8 +350,8 @@ void sbbs_read_ini(
 		SAFECOPY(bbs->hangup_sound
 			,iniGetString(list,section,strHangupSound,nulstr,value));
 
-		bbs->log_level
-			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
+		bbs->log_mask
+			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
 		bbs->options
 			=iniGetBitField(list,section,strOptions,bbs_options
 				,BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE);
@@ -414,8 +413,8 @@ void sbbs_read_ini(
 		SAFECOPY(ftp->temp_dir
 			,iniGetString(list,section,strTempDirectory,global->temp_dir,value));
 
-		ftp->log_level
-			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
+		ftp->log_mask
+			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
 		ftp->options
 			=iniGetBitField(list,section,strOptions,ftp_options
 				,FTP_OPT_INDEX_FILE|FTP_OPT_HTML_INDEX_FILE|FTP_OPT_ALLOW_QWK);
@@ -476,9 +475,6 @@ void sbbs_read_ini(
 		SAFECOPY(mail->default_user
 			,iniGetString(list,section,"DefaultUser",nulstr,value));
 
-		SAFECOPY(mail->default_charset
-			,iniGetString(list,section,"DefaultCharset",nulstr,value));
-
 		SAFECOPY(mail->dnsbl_hdr
 			,iniGetString(list,section,"DNSBlacklistHeader","X-DNSBL",value));
 		SAFECOPY(mail->dnsbl_tag
@@ -494,8 +490,8 @@ void sbbs_read_ini(
 		/* JavaScript Operating Parameters */
 		sbbs_get_js_settings(list, section, &mail->js, &global->js);
 
-		mail->log_level
-			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
+		mail->log_mask
+			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
 		mail->options
 			=iniGetBitField(list,section,strOptions,mail_options
 				,MAIL_OPT_ALLOW_POP3);
@@ -532,8 +528,8 @@ void sbbs_read_ini(
 		SAFECOPY(services->hangup_sound
 			,iniGetString(list,section,strHangupSound,nulstr,value));
 
-		services->log_level
-			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
+		services->log_mask
+			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
 		services->options
 			=iniGetBitField(list,section,strOptions,service_options
 				,BBS_OPT_NO_HOST_LOOKUP);
@@ -605,8 +601,8 @@ void sbbs_read_ini(
 		SAFECOPY(web->hack_sound
 			,iniGetString(list,section,strHackAttemptSound,nulstr,value));
 
-		web->log_level
-			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
+		web->log_mask
+			=iniGetBitField(list,section,strLogMask,log_mask_bits,global->log_mask);
 		web->options
 			=iniGetBitField(list,section,strOptions,web_options
 				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
@@ -694,10 +690,10 @@ BOOL sbbs_write_ini(
 			iniRemoveKey(lp,section,strInterface);
 		else
 			iniSetIpAddress(lp,section,strInterface,global->interface_addr,&style);
-		if(global->log_level==DEFAULT_LOG_LEVEL)
-			iniRemoveKey(lp,section,strLogLevel);
+		if(global->log_mask==DEFAULT_LOG_MASK)
+			iniRemoveKey(lp,section,strLogMask);
 		else
-			iniSetLogLevel(lp,section,strLogLevel,global->log_level,&style);
+			iniSetBitField(lp,section,strLogMask,log_mask_bits,global->log_mask,&style);
 
 		if(global->bind_retry_count==DEFAULT_BIND_RETRY_COUNT)
 			iniRemoveKey(lp,section,strBindRetryCount);
@@ -733,16 +729,9 @@ BOOL sbbs_write_ini(
 			iniRemoveValue(lp,section,"RLoginInterface");
 		else if(!iniSetIpAddress(lp,section,"RLoginInterface",bbs->rlogin_interface,&style))
 			break;
+
 		if(!iniSetShortInt(lp,section,"RLoginPort",bbs->rlogin_port,&style))
 			break;
-
-		if(bbs->ssh_interface==global->interface_addr)
-			iniRemoveValue(lp,section,"SSHInterface");
-		else if(!iniSetIpAddress(lp,section,"SSHInterface",bbs->ssh_interface,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"SSHPort",bbs->ssh_port,&style))
-			break;
-
 		if(!iniSetShortInt(lp,section,"FirstNode",bbs->first_node,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"LastNode",bbs->last_node,&style))
@@ -757,9 +746,9 @@ BOOL sbbs_write_ini(
 		else if(!iniSetShortInt(lp,section,strSemFileCheckFrequency,bbs->sem_chk_freq,&style))
 			break;
 
-		if(bbs->log_level==global->log_level)
-			iniRemoveValue(lp,section,strLogLevel);
-		else if(!iniSetLogLevel(lp,section,strLogLevel,bbs->log_level,&style))
+		if(bbs->log_mask==global->log_mask)
+			iniRemoveValue(lp,section,strLogMask);
+		else if(!iniSetBitField(lp,section,strLogMask,log_mask_bits,bbs->log_mask,&style))
 			break;
 
 		/* JavaScript operating parameters */
@@ -836,9 +825,9 @@ BOOL sbbs_write_ini(
 		else if(!iniSetShortInt(lp,section,strSemFileCheckFrequency,ftp->sem_chk_freq,&style))
 			break;
 
-		if(ftp->log_level==global->log_level)
-			iniRemoveValue(lp,section,strLogLevel);
-		else if(!iniSetLogLevel(lp,section,strLogLevel,ftp->log_level,&style))
+		if(ftp->log_mask==global->log_mask)
+			iniRemoveValue(lp,section,strLogMask);
+		else if(!iniSetBitField(lp,section,strLogMask,log_mask_bits,ftp->log_mask,&style))
 			break;
 
 		/* JavaScript Operating Parameters */
@@ -901,9 +890,9 @@ BOOL sbbs_write_ini(
 		else if(!iniSetShortInt(lp,section,strSemFileCheckFrequency,mail->sem_chk_freq,&style))
 			break;
 
-		if(mail->log_level==global->log_level)
-			iniRemoveValue(lp,section,strLogLevel);
-		else if(!iniSetLogLevel(lp,section,strLogLevel,mail->log_level,&style))
+		if(mail->log_mask==global->log_mask)
+			iniRemoveValue(lp,section,strLogMask);
+		else if(!iniSetBitField(lp,section,strLogMask,log_mask_bits,mail->log_mask,&style))
 			break;
 
 		if(!iniSetShortInt(lp,section,"SMTPPort",mail->smtp_port,&style))
@@ -946,9 +935,6 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(!iniSetString(lp,section,"DNSServer",mail->dns_server,&style))
-			break;
-
-		if(!iniSetString(lp,section,"DefaultCharset",mail->default_charset,&style))
 			break;
 
 		if(!iniSetString(lp,section,"DefaultUser",mail->default_user,&style))
@@ -1001,9 +987,9 @@ BOOL sbbs_write_ini(
 		else if(!iniSetShortInt(lp,section,strSemFileCheckFrequency,services->sem_chk_freq,&style))
 			break;
 
-		if(services->log_level==global->log_level)
-			iniRemoveValue(lp,section,strLogLevel);
-		else if(!iniSetLogLevel(lp,section,strLogLevel,services->log_level,&style))
+		if(services->log_mask==global->log_mask)
+			iniRemoveValue(lp,section,strLogMask);
+		else if(!iniSetBitField(lp,section,strLogMask,log_mask_bits,services->log_mask,&style))
 			break;
 
 		/* Configurable JavaScript default parameters */
@@ -1064,9 +1050,9 @@ BOOL sbbs_write_ini(
 		else if(!iniSetShortInt(lp,section,strSemFileCheckFrequency,web->sem_chk_freq,&style))
 			break;
 
-		if(web->log_level==global->log_level)
-			iniRemoveValue(lp,section,strLogLevel);
-		else if(!iniSetLogLevel(lp,section,strLogLevel,web->log_level,&style))
+		if(web->log_mask==global->log_mask)
+			iniRemoveValue(lp,section,strLogMask);
+		else if(!iniSetBitField(lp,section,strLogMask,log_mask_bits,web->log_mask,&style))
 			break;
 
 		/* JavaScript Operating Parameters */
