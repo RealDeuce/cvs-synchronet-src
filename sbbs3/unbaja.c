@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.28 2005/09/16 17:23:32 deuce Exp $ */
+/* $Id: unbaja.c,v 1.29 2006/04/24 22:41:17 rswindell Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -1827,7 +1827,7 @@ void decompile(FILE *bin, FILE *srcfile)
 				p=(char *)malloc(uch);
 				fread(p,uch,1,bin);
 				WRITE_NAME("COMPARE_ARS");
-				sprintf(strchr(src,0),"%s\n",decompile_ars(p,uch));
+				sprintf(strchr(src,0),"%s\n",decompile_ars((uchar*)p,uch));
 				free(p);
 				break;
 			case CS_TOGGLE_USER_MISC:
@@ -2289,7 +2289,7 @@ int main(int argc, char **argv)
 	char	*p;
 	char	revision[16];
 
-	sscanf("$Revision: 1.28 $", "%*s %s", revision);
+	sscanf("$Revision: 1.29 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
