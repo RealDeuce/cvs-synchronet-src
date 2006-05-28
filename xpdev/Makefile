@@ -3,9 +3,6 @@
 SRC_ROOT	=	..
 !include $(SRC_ROOT)/build/Common.bmake
 
-CFLAGS	=	$(CFLAGS) $(XPDEV_CFLAGS)
-MT_CFLAGS	=	$(MT_CFLAGS) $(XPDEV-MT_CFLAGS)
-
 #The following is necessary only when DLL-exporting wrapper functions
 !ifdef DLLIBS
 CFLAGS	=	$(CFLAGS) -DWRAPPER_EXPORTS=1
@@ -13,11 +10,9 @@ CFLAGS	=	$(CFLAGS) -DWRAPPER_EXPORTS=1
 
 MT_CFLAGS = $(MT_CFLAGS) -DLINK_LIST_THREADSAFE
 
-!ifdef USE_SDL_AUDIO
+!ifdef USE_SDL
 MTOBJS		= $(MTOBJS) $(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
 MTOBJS		= $(MTOBJS) $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
-OBJS		= $(OBJS) $(OBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
-OBJS		= $(OBJS) $(OBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
 !endif
 
 $(WRAPTEST): $(XPDEV-MT_LIB_BUILD) $(TESTOBJS) $(EXEODIR)
