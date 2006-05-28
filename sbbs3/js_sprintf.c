@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "[s]printf" implementation */
 
-/* $Id: js_sprintf.c,v 1.1 2006/01/21 01:33:32 rswindell Exp $ */
+/* $Id: js_sprintf.c,v 1.2 2006/01/27 06:31:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,4 +64,10 @@ js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 
 	return xp_asprintf_end(p);
 
+}
+
+void DLLCALL
+js_sprintf_free(char* p)
+{
+	xp_asprintf_free(p);
 }
