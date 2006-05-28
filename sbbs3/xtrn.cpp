@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.192 2006/01/24 05:09:47 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.194 2006/05/24 06:10:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,8 +288,6 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
 			*p=0; 											\
 		} else												\
 			main_csi.str[0]=0;								\
-		if(!strchr(str,'.'))								\
-			strcat(str,".bin");								\
 		return(exec_bin(str,&main_csi));					\
 	}														
 #ifdef JAVASCRIPT
@@ -528,8 +526,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
            		i|=SBBSEXEC_MODE_DOS_IN;
 			if(mode&EX_OUTR)
         		i|=SBBSEXEC_MODE_DOS_OUT;
-			sprintf(str," NT %u %u %u"
-				,cfg.node_num,i,startup->xtrn_polls_before_yield);
+			sprintf(str," NT %u %u"
+				,cfg.node_num,i);
 			strcat(fullcmdline,str);
 
 			sprintf(str,"sbbsexec_hungup%d",cfg.node_num);
@@ -591,8 +589,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			if(mode&EX_OUTR)
         		start.mode|=SBBSEXEC_MODE_DOS_OUT;
 
-			sprintf(str," 95 %u %u %u"
-				,cfg.node_num,start.mode,startup->xtrn_polls_before_yield);
+			sprintf(str," 95 %u %u"
+				,cfg.node_num,start.mode);
 			strcat(fullcmdline,str);
 
 			if(!DeviceIoControl(
