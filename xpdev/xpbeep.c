@@ -1,6 +1,4 @@
-/* $Id: xpbeep.c,v 1.49 2007/05/31 09:09:58 deuce Exp $ */
-
-/* TODO: USE PORTAUDIO! */
+/* $Id: xpbeep.c,v 1.44 2006/05/29 01:05:35 deuce Exp $ */
 
 /* standard headers */
 #include <math.h>
@@ -45,14 +43,9 @@
 #endif
 
 /* xpdev headers */
-#ifdef WITH_PORTAUDIO
-#include "portaudio.h"
-#endif
-
-#ifdef WITH_SDL_AUDIO
+#ifdef WITH_SDL
 #include "sdlfuncs.h"
 #endif
-
 #include "genwrap.h"
 #include "xpbeep.h"
 
@@ -61,7 +54,6 @@
 static BOOL sound_device_open_failed=FALSE;
 static BOOL alsa_device_open_failed=FALSE;
 static BOOL sdl_device_open_failed=FALSE;
-static BOOL portaudio_device_open_failed=FALSE;
 
 enum {
 	 SOUND_DEVICE_CLOSED
@@ -69,20 +61,11 @@ enum {
 	,SOUND_DEVICE_ALSA
 	,SOUND_DEVICE_OSS
 	,SOUND_DEVICE_SDL
-	,SOUND_DEVICE_PORTAUDIO
 };
 
 static int handle_type=SOUND_DEVICE_CLOSED;
 
-#ifdef WITH_PORTAUDIO
-static PaStream			*portaudio_stream;
-static int				portaudio_buf_len=0;
-static int				portaudio_buf_pos=0;
-static unsigned char	pawave[S_RATE*15/2+1];
-static int				portaudio_initialized=FALSE;
-#endif
-
-#ifdef WITH_SDL_AUDIO
+#ifdef WITH_SDL
 static SDL_AudioSpec	spec;
 static int				sdl_audio_buf_len=0;
 static int				sdl_audio_buf_pos=0;
@@ -207,42 +190,18 @@ void makewave(double freq, unsigned char *wave, int samples, enum WAVE_SHAPE sha
 	}
 }
 
-#ifdef WITH_PORTAUDIO
-static int portaudio_callback(void *inputBuffer
-				, void *outputBuffer
-				, unsigned long framesPerBuffer
-				, const PaTimestamp outTime
-				, void *userData )
-{
-	int copylen=framesPerBuffer;
-	int maxlen=portaudio_buf_len-portaudio_buf_pos;
-
-	if(copylen>maxlen) {
-		copylen=maxlen;
-		memset(outputBuffer+copylen, 128, framesPerBuffer-copylen);
-	}
-	if(copylen) {
-		memcpy(outputBuffer, ((unsigned char *)userData)+portaudio_buf_pos, copylen);
-		portaudio_buf_pos+=copylen;
-	}
-	if(portaudio_buf_pos >= portaudio_buf_len)
-		return(1);
-	return(0);
-}
-#endif
-
-#ifdef WITH_SDL_AUDIO
+#ifdef WITH_SDL
 void sdl_fillbuf(void *userdata, Uint8 *stream, int len)
 {
 	int	copylen=len;
 	int maxlen=sdl_audio_buf_len-sdl_audio_buf_pos;
 
+	/* Fill with silence */
+	memset(stream, spec.silence, len);
+
 	/* Copy in the current buffer */
 	if(copylen>maxlen)
 		copylen=maxlen;
-	/* Fill with silence */
-	if(len>copylen)
-		memset(stream+copylen, spec.silence, len-copylen);
 	if(copylen) {
 		memcpy(stream, swave+sdl_audio_buf_pos, copylen);
 		sdl_audio_buf_pos+=copylen;
@@ -273,31 +232,7 @@ BOOL xptone_open(void)
 	if(handle_type!=SOUND_DEVICE_CLOSED)
 		return(TRUE);
 
-#ifdef WITH_PORTAUDIO
-	if(!portaudio_device_open_failed) {
-		if(portaudio_initialized || (Pa_Initialize() != paNoError))
-			portaudio_device_open_failed=TRUE;
-		else {
-			portaudio_initialized=TRUE;
-			if(Pa_OpenDefaultStream(&portaudio_stream
-					, 0	/* No input */
-					, 1	/* Mono output */
-					, paUInt8
-					, S_RATE
-					, S_RATE/100	/* Buffer size is 1/100 of a second */
-					, sizeof(pawave)/(S_RATE/100)+1	/* Enough buffers for all audio data */
-					, portaudio_callback
-					, pawave) != paNoError)
-				portaudio_device_open_failed=TRUE;
-			else {
-				handle_type=SOUND_DEVICE_PORTAUDIO;
-				return(TRUE);
-			}
-		}
-	}
-#endif
-
-#ifdef WITH_SDL_AUDIO
+#ifdef WITH_SDL
 	if(!sdl_device_open_failed) {
 		if(init_sdl_audio()==-1)
 			sdl_device_open_failed=TRUE;
@@ -305,8 +240,8 @@ BOOL xptone_open(void)
 			spec.freq=22050;
 			spec.format=AUDIO_U8;
 			spec.channels=1;
-			spec.samples=256;		/* Size of audio buffer */
-			spec.size=256;
+			spec.samples=512;		/* Size of audio buffer */
+			spec.size=512;
 			spec.callback=sdl_fillbuf;
 			spec.userdata=NULL;
 			if(sdl.OpenAudio(&spec, NULL)==-1) {
@@ -314,9 +249,6 @@ BOOL xptone_open(void)
 			}
 			else {
 				sdlToneDone=sdl.SDL_CreateSemaphore(0);
-				sdl_audio_buf_len=0;
-				sdl_audio_buf_pos=0;
-				sdl.PauseAudio(FALSE);
 				handle_type=SOUND_DEVICE_SDL;
 				return(TRUE);
 			}
@@ -432,13 +364,7 @@ BOOL xptone_open(void)
 
 BOOL xptone_close(void)
 {
-#ifdef WITH_PORTAUDIO
-	if(handle_type==SOUND_DEVICE_PORTAUDIO) {
-		Pa_CloseStream(portaudio_stream);
-	}
-#endif
-
-#ifdef WITH_SDL_AUDIO
+#ifdef WITH_SDL
 	if(handle_type==SOUND_DEVICE_SDL) {
 		sdl.CloseAudio();
 		sdl.SDL_DestroySemaphore(sdlToneDone);
@@ -499,21 +425,7 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 			return(FALSE);
 	}
 
-#ifdef WITH_PORTAUDIO
-	if(handle_type==SOUND_DEVICE_PORTAUDIO) {
-		portaudio_buf_pos=0;
-		portaudio_buf_len=S_RATE*duration/1000;
-		if(portaudio_buf_len<=S_RATE/freq*2)
-			portaudio_buf_len=S_RATE/freq*2;
-		makewave(freq,pawave,portaudio_buf_len,shape);
-		Pa_StartStream(portaudio_stream);
-		while(Pa_StreamActive(portaudio_stream))
-			SLEEP(1);
-		Pa_StopStream(portaudio_stream);
-	}
-#endif
-
-#ifdef WITH_SDL_AUDIO
+#ifdef WITH_SDL
 	if(handle_type==SOUND_DEVICE_SDL) {
 		sdl.LockAudio();
 		sdl_audio_buf_pos=0;
@@ -522,7 +434,9 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 			sdl_audio_buf_len=S_RATE/freq*2;
 		makewave(freq,swave,sdl_audio_buf_len,shape);
 		sdl.UnlockAudio();
+		sdl.PauseAudio(FALSE);
 		sdl.SemWait(sdlToneDone);
+		sdl.PauseAudio(TRUE);
 	}
 #endif
 
