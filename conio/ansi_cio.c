@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.53 2007/06/22 04:19:24 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.52 2006/05/18 06:21:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ sem_t	need_key;
 static BOOL	sent_ga=FALSE;
 WORD	ansi_curr_attr=0x07<<8;
 
-int ansi_rows=-1;
+int ansi_rows=24;
 int ansi_cols=80;
 int ansi_got_row=0;
 int ansi_got_col=0;
@@ -503,8 +503,7 @@ static void ansi_keyparse(void *par)
 
 	seq[0]=0;
 	for(;;) {
-		if(ansi_rows != -1)
-			sem_wait(&goahead);
+		sem_wait(&goahead);
 		if(timedout || unknown) {
 			for(p=seq;*p;p++) {
 				ansi_inch=*p;
@@ -563,16 +562,6 @@ static void ansi_keyparse(void *par)
 							seq[0]=0;
 							break;
 						}
-					}
-					/* ANSI position report? */
-					if(ch=='R') {
-						if(strspn(seq,"\033[0123456789;R")==strlen(seq)) {
-							p=seq+2;
-							i=strtol(p,&p,10);
-							if(i>ansi_rows)
-								ansi_rows=i;
-						}
-						unknown=0;
 					}
 					if(unknown) {
 						sem_post(&goahead);
@@ -897,8 +886,7 @@ void ansi_fixterm(void)
 int ansi_initciolib(long inmode)
 {
 	int i;
-	char *init="\033[s\033[99B_\033[6n\033[u\033[0m_\033[2J\033[H";
-	time_t start;
+	char *init="\033[0m\033[2J\033[1;1H";
 
 #ifdef _WIN32
 	if(isatty(fileno(stdin))) {
@@ -935,21 +923,10 @@ int ansi_initciolib(long inmode)
 	sem_init(&goahead,0,0);
 	sem_init(&need_key,0,0);
 
-	ansi_sendstr(init,-1);
-	_beginthread(ansi_keythread,1024,NULL);
-	start=time(NULL);
-	while(time(NULL)-start < 5 && ansi_rows==-1)
-		SLEEP(1);
-	if(ansi_rows==-1)
-		ansi_rows=24;
 	ansivmem=(WORD *)malloc(ansi_rows*ansi_cols*sizeof(WORD));
+	ansi_sendstr(init,-1);
 	for(i=0;i<ansi_rows*ansi_cols;i++)
 		ansivmem[i]=0x0720;
-	/* drain all the semaphores */
-	sem_reset(&got_key);
-	sem_reset(&got_input);
-	sem_reset(&used_input);
-	sem_reset(&goahead);
-	sem_reset(&need_key);
+	_beginthread(ansi_keythread,1024,NULL);
 	return(1);
 }
