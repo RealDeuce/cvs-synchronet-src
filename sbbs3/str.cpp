@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.56 2006/12/29 19:10:38 rswindell Exp $ */
+/* $Id: str.cpp,v 1.54 2006/05/03 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,7 +198,7 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 				m++; 
 			}
 			if((buf[m+1]&0xdf)=='L') {		/* Draw line */
-        		if(term_supports(COLOR))
+        		if(useron.misc&COLOR)
 					attr(cfg.color[clr_inputline]);
 				else
 					attr(BLACK|BG_LIGHTGRAY);
@@ -361,7 +361,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 			else if((buf[m+1]&0xdf)=='N')  	/* Numbers only */
 				m++;
 			if((buf[m+1]&0xdf)=='L') {		/* Draw line */
-        		if(term_supports(COLOR))
+        		if(useron.misc&COLOR)
 					attr(cfg.color[clr_inputline]);
 				else
 					attr(BLACK|BG_LIGHTGRAY);
@@ -386,7 +386,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 			else if((buf[m+1]&0xdf)=='N')   /* Numbers only */
 				m++;
 			if((buf[m+1]&0xdf)=='L') {
-        		if(term_supports(COLOR))
+        		if(useron.misc&COLOR)
 					attr(cfg.color[clr_inputline]);
 				else
 					attr(BLACK|BG_LIGHTGRAY);
@@ -495,9 +495,9 @@ size_t sbbs_t::gettmplt(char *strout,char *templt, long mode)
 	sys_status&=~SS_ABORT;
 	SAFECOPY(tmplt, templt);
 	strupr(tmplt);
-	if(term_supports(ANSI)) {
+	if(useron.misc&ANSI) {
 		if(mode&K_LINE) {
-			if(term_supports(COLOR))
+			if(useron.misc&COLOR)
 				attr(cfg.color[clr_inputline]);
 			else
 				attr(BLACK|BG_LIGHTGRAY); 
@@ -676,14 +676,10 @@ bool sbbs_t::inputnstime(time_t *dt)
 /*****************************************************************************/
 /* Checks a password for uniqueness and validity                              */
 /*****************************************************************************/
-bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
+bool sbbs_t::chkpass(char *pass, user_t* user, bool unique)
 {
 	char c,d,first[128],last[128],sysop[41],sysname[41],*p;
 	char alias[LEN_ALIAS+1], name[LEN_NAME+1], handle[LEN_HANDLE+1];
-	char pass[LEN_PASS+1];
-
-	SAFECOPY(pass,passwd);
-	strupr(pass);
 
 	if(strlen(pass)<4) {
 		bputs(text[PasswordTooShort]);
@@ -715,23 +711,23 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 		bputs(text[PasswordObvious]);
 		return(0); 
 	}
-	SAFECOPY(name,user->name);
+	strcpy(name,user->name);
 	strupr(name);
-	SAFECOPY(alias,user->alias);
+	strcpy(alias,user->alias);
 	strupr(alias);
-	SAFECOPY(first,alias);
+	strcpy(first,alias);
 	p=strchr(first,' ');
 	if(p) {
 		*p=0;
-		SAFECOPY(last,p+1); 
+		strcpy(last,p+1); 
 	}
 	else
 		last[0]=0;
-	SAFECOPY(handle,user->handle);
+	strcpy(handle,user->handle);
 	strupr(handle);
-	SAFECOPY(sysop,cfg.sys_op);
+	strcpy(sysop,cfg.sys_op);
 	strupr(sysop);
-	SAFECOPY(sysname,cfg.sys_name);
+	strcpy(sysname,cfg.sys_name);
 	strupr(sysname);
 	if((unique && user->pass[0]
 			&& (strstr(pass,user->pass) || strstr(user->pass,pass)))
