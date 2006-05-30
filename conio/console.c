@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.66 2005/12/06 17:48:41 deuce Exp $ */
+/* $Id: console.c,v 1.68 2006/05/08 18:25:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,6 +166,7 @@ typedef struct TextLine {
 	u_char	*exposed;
 } TextLine;
 TextLine *lines = NULL;
+unsigned int	x_pending_mousekeys=0;
 
 /* X Variables */
 Display *dpy=NULL;
@@ -459,7 +460,7 @@ video_update_text()
 	curscol=CursCol;
 	wakeup_poll();	/* Wake up anyone waiting on kbd poll */
 
-    vmemc = (WORD *)malloc(DpyCols*(DpyRows+1)*sizeof(WORD));
+    vmemc = (WORD *)alloca(DpyCols*(DpyRows+1)*sizeof(WORD));
 	pthread_mutex_lock(&lines_mutex);
 	memcpy(vmemc, vmem, DpyCols*(DpyRows+1)*sizeof(WORD));
 	for (r = 0; r < (DpyRows+1); ++r) {
@@ -499,8 +500,6 @@ video_update_text()
 			   FW, (CursEnd + 1)*FontScale - (CursStart*FontScale));
 		flush=1;
 	}
-
-	free(vmemc);
 
 	or =cursrow;
 	oc =curscol;
@@ -572,8 +571,12 @@ KbdWrite(WORD code)
 		kf = K_BUFSTARTP;
 
 	if (kf == K_NEXT) {
-		x11.XBell(dpy, 0);
-		return;
+		if(code==CIO_KEY_MOUSE)
+			x_pending_mousekeys++;
+		else {
+			x11.XBell(dpy, 0);
+			return;
+		}
 	}
 	K_BUF(K_FREE) = code;
 	K_FREE = kf;
@@ -1799,12 +1802,18 @@ WORD
 KbdRead()
 {
 	int kf = K_NEXT;
+	WORD	ret;
 
 	K_NEXT = K_NEXT + 2;
 	if (K_NEXT == K_BUFENDP)
 		K_NEXT = K_BUFSTARTP;
 
-	return(K_BUF(kf));
+	ret=K_BUF(kf);
+	if(x_pending_mousekeys) {
+		KbdWrite(CIO_KEY_MOUSE);
+		x_pending_mousekeys--;
+	}
+	return(ret);
 }
 
 int
