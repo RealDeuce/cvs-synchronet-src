@@ -228,6 +228,7 @@ int console_main(int argc, char *argv[], char **env)
 			return(FALSE);
 		}
 		atexit(cleanup_output);
+		atexit(sdl.Quit);
 
 #ifndef DISABLE_VIDEO
 		/* Sam:
