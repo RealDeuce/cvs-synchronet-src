@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.87 2006/08/14 22:51:12 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.84 2006/05/30 05:39:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -213,9 +213,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if !defined(_MSC_VER)	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
-		#define tzname			_tzname
-	#endif
+	#define tzname			_tzname
 
 #elif defined(__OS2__)
 
@@ -290,8 +288,6 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
 	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf);
 	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf);
-	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
-
 #endif
 
 #if defined(__solaris__)
