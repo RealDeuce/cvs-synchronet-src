@@ -1,14 +1,14 @@
-/* ntsrvcs.c */
+/* ntsvcs.c */
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.31 2005/09/05 21:53:24 deuce Exp $ */
+/* $Id: ntsvcs.c,v 1.33 2006/04/08 02:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,8 +79,8 @@ typedef struct {
 	DWORD*					options;
 	BOOL*					recycle_now;
 	DWORD*					log_mask;
-	void					(*thread)(void* arg);
-	void					(*terminate)(void);
+	void DLLCALL			(*thread)(void* arg);
+	void DLLCALL			(*terminate)(void);
 	void					(WINAPI *ctrl_handler)(DWORD);
 	HANDLE					log_handle;
 	HANDLE					event_handle;
@@ -339,7 +339,7 @@ static int svc_lputs(void* p, int level, char* str)
 				NULL,					/* no user security identifier */
 				1,						/* one string */
 				0,						/* no data */
-				&str,					/* pointer to string array */
+				(LPCSTR*)&str,			/* pointer to string array */
 				NULL);					/* pointer to data */
 	}
 
@@ -766,6 +766,7 @@ static SC_HANDLE create_service(HANDLE hSCMlib, SC_HANDLE hSCManager
 		printf("%s\n", start_type_desc(start_type));
 
 		register_event_source(name,path);
+		register_event_source(NTSVC_NAME_EVENT,path);	/* Create SynchronetEvent event source */
 	}
 
 	return(hService);
@@ -991,7 +992,7 @@ static void start_service(SC_HANDLE hSCManager, char* name, char* disp_name
 		printf("Already running\n");
 	else {
 		/* Start the service */
-		if(StartService( hService, argc, argv))
+		if(StartService(hService, argc, (LPCTSTR*)argv))
 		{
 			while(QueryServiceStatus(hService, &status) && status.dwCurrentState == SERVICE_START_PENDING)
 				Sleep(1000);
@@ -1192,12 +1193,12 @@ int main(int argc, char** argv)
 
 	SERVICE_TABLE_ENTRY  ServiceDispatchTable[] = 
     { 
-        { bbs.name,			bbs_start		}, 
-		{ ftp.name,			ftp_start		},
-		{ web.name,			web_start		},
-		{ mail.name,		mail_start		},
-		{ services.name,	services_start	},
-        { NULL,				NULL			}	/* Terminator */
+        { NTSVC_NAME_BBS,		bbs_start		}, 
+		{ NTSVC_NAME_FTP,		ftp_start		},
+		{ NTSVC_NAME_WEB,		web_start		},
+		{ NTSVC_NAME_MAIL,		mail_start		},
+		{ NTSVC_NAME_SERVICES,	services_start	},
+        { NULL,					NULL			}	/* Terminator */
     }; 
 
 	printf("\nSynchronet NT Services  Version %s%c  %s\n\n"
