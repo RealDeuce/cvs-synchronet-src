@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.62 2006/06/06 17:17:18 rswindell Exp $ */
+/* $Id: js_user.c,v 1.61 2006/03/30 23:12:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -616,7 +616,7 @@ static jsSyncPropertySpec js_user_properties[] = {
 	{	"newscan_date"		,USER_PROP_NS_TIME	 	,0, /* Alias */			310},
 	{	"download_protocol"	,USER_PROP_PROT		 	,USER_PROP_FLAGS,		310},
 	{	"logontime"			,USER_PROP_LOGONTIME 	,USER_PROP_FLAGS,		310},
-	{	"cached"			,USER_PROP_CACHED		,USER_PROP_FLAGS,		314},
+	{	"cached"			,USER_PROP_CACHED		,USER_PROP_FLAGS,		31301},
 	{0}
 };
 
@@ -961,27 +961,27 @@ static jsSyncMethodSpec js_user_functions[] = {
 	},		
 	{"adjust_credits",	js_adjust_credits,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("count")
 	,JSDOCSTR("Adjust user's credits by <i>count</i> (negative to subtract)")
-	,314
+	,31301
 	},		
 	{"adjust_minutes",	js_adjust_minutes,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("count")
 	,JSDOCSTR("Adjust user's extra minutes <i>count</i> (negative to subtract)")
-	,314
+	,31301
 	},		
 	{"posted_message",	js_posted_msg,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[count]")
 	,JSDOCSTR("Adjust user's posted-messages statistics by <i>count</i> (default: 1) (negative to subtract)")
-	,314
+	,31301
 	},		
 	{"sent_email",		js_sent_email,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[count] [,bool feedback]")
 	,JSDOCSTR("Adjust user's email/feedback-sent statistics by <i>count</i> (default: 1) (negative to subtract)")
-	,314
+	,31301
 	},		
 	{"uploaded_file",	js_uploaded_file,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("[bytes] [,files]")
 	,JSDOCSTR("Adjust user's files/bytes-uploaded statistics")
-	,314
+	,31301
 	},		
 	{"downloaded_file",	js_downloaded_file,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("[bytes] [,files]")
 	,JSDOCSTR("Adjust user's files/bytes-downloaded statistics")
-	,314
+	,31301
 	},		
 	{0}
 };
