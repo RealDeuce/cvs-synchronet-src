@@ -22,11 +22,6 @@ static int sdl_funcs_loaded=0;
 static int sdl_initialized=0;
 static int sdl_audio_initialized=0;
 static int sdl_video_initialized=0;
-static int (*sdl_drawing_thread)(void *data)=NULL;
-static void (*sdl_exit_drawing_thread)(void)=NULL;
-static int main_returned=0;
-static SDL_sem *sdl_main_sem;
-SDL_sem *sdl_exit_sem;
 
 int XPDEV_main(int argc, char **argv, char **enviro);
 
@@ -47,7 +42,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->SemPost=SDL_SemPost;
 	sdlf->EventState=SDL_EventState;
 	sdlf->CreateRGBSurface=SDL_CreateRGBSurface;
-	sdlf->CreateRGBSurfaceFrom=SDL_CreateRGBSurfaceFrom;
 	sdlf->FillRect=SDL_FillRect;
 	sdlf->SetColors=SDL_SetColors;
 	sdlf->BlitSurface=SDL_UpperBlit;
@@ -56,13 +50,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->SDL_DestroySemaphore=SDL_DestroySemaphore;
 	sdlf->SDL_CreateMutex=SDL_CreateMutex;
 	sdlf->CreateThread=SDL_CreateThread;
-	sdlf->KillThread=SDL_KillThread;
-	sdlf->WaitThread=SDL_WaitThread;
 	sdlf->WaitEvent=SDL_WaitEvent;
 	sdlf->SetVideoMode=SDL_SetVideoMode;
 	sdlf->FreeSurface=SDL_FreeSurface;
 	sdlf->WM_SetCaption=SDL_WM_SetCaption;
-	sdlf->WM_SetIcon=SDL_WM_SetIcon;
 	sdlf->ShowCursor=SDL_ShowCursor;
 	sdlf->WasInit=SDL_WasInit;
 	sdlf->EnableUNICODE=SDL_EnableUNICODE;
@@ -140,10 +131,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateRGBSurfaceFrom=GetProcAddress(sdl_dll, "SDL_CreateRGBSurfaceFrom"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
 	if((sdlf->FillRect=GetProcAddress(sdl_dll, "SDL_FillRect"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
@@ -176,14 +163,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->KillThread=GetProcAddress(sdl_dll, "SDL_KillThread"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->WaitThread=GetProcAddress(sdl_dll, "SDL_WaitThread"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
 	if((sdlf->WaitEvent=GetProcAddress(sdl_dll, "SDL_WaitEvent"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
@@ -197,10 +176,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->WM_SetCaption=GetProcAddress(sdl_dll, "SDL_WM_SetCaption"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->WM_SetIcon=GetProcAddress(sdl_dll, "SDL_WM_SetIcon"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
@@ -317,10 +292,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateRGBSurfaceFrom=dlsym(sdl_dll, "SDL_CreateRGBSurfaceFrom"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
 	if((sdlf->FillRect=dlsym(sdl_dll, "SDL_FillRect"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
@@ -353,14 +324,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->KillThread=dlsym(sdl_dll, "SDL_KillThread"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->WaitThread=dlsym(sdl_dll, "SDL_WaitThread"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
 	if((sdlf->WaitEvent=dlsym(sdl_dll, "SDL_WaitEvent"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
@@ -374,10 +337,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->WM_SetCaption=dlsym(sdl_dll, "SDL_WM_SetCaption"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->WM_SetIcon=dlsym(sdl_dll, "SDL_WM_SetIcon"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
 	}
@@ -467,32 +426,10 @@ int init_sdl_audio(void)
 	return(-1);
 }
 
-struct main_args {
-	int		argc;
-	char	**argv;
-	char	**enviro;
-};
-
-static int sdl_run_main(void *data)
+/* atexit() function */
+static void sdl_exit(void)
 {
-	struct main_args	*args;
-	int	ret;
-
-	args=data;
-	ret=XPDEV_main(args->argc, args->argv, args->enviro);
-	main_returned=1;
-	sdl.SemPost(sdl_main_sem);
-	if(sdl_exit_drawing_thread!=NULL)
-		sdl_exit_drawing_thread();
-	sdl.SemPost(sdl_exit_sem);
-	return(ret);
-}
-
-void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawing_thread)(void))
-{
-	sdl_drawing_thread=drawing_thread;
-	sdl_exit_drawing_thread=exit_drawing_thread;
-	sdl.SemPost(sdl_main_sem);
+	sdl.Quit();
 }
 
 #ifndef main
@@ -504,28 +441,19 @@ int SDL_main_env(int argc, char **argv, char **env)
 	unsigned int i;
 	SDL_Event	ev;
 	char	drivername[64];
-	struct main_args ma;
-	SDL_Thread	*main_thread;
-	int		main_ret;
-	int		use_sdl_video=FALSE;
 
-	ma.argc=argc;
-	ma.argv=argv;
-	ma.enviro=env;
 #ifndef _WIN32
 	load_sdl_funcs(&sdl);
 #endif
 
 	if(sdl.gotfuncs) {
-		use_sdl_video=TRUE;
-
 #ifdef _WIN32
 		/* Fail to windib (ie: No mouse attached) */
 		if(sdl.Init(SDL_INIT_VIDEO)) {
 			if(getenv("SDL_VIDEODRIVER")==NULL) {
 				putenv("SDL_VIDEODRIVER=windib");
 				WinExec(GetCommandLine(), SW_SHOWDEFAULT);
-				return(0);
+				exit(0);
 			}
 			/* Sure ,we can't use video, but audio is still valid! */
 			if(sdl.Init(0)==0)
@@ -536,6 +464,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 			sdl_initialized=TRUE;
 		}
 #else
+
 		/*
 		 * On Linux, SDL doesn't properly detect availability of the
 		 * framebuffer apparently.  This results in remote connections
@@ -543,13 +472,13 @@ int SDL_main_env(int argc, char **argv, char **env)
 		 * This ugly hack attempts to prevent this... of course, remote X11
 		 * connections must still be allowed.
 		 */
-		if((!use_sdl_video) || getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL) {
+		if(getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL) {
 			/* Sure ,we can't use video, but audio is still valid! */
 			if(sdl.Init(0)==0)
 				sdl_initialized=TRUE;
 		}
 		else {
-			if(sdl.Init(SDL_INIT_VIDEO)==0) {
+			if(sdl.Init(SDL_INIT_VIDEO)==0)
 				sdl_initialized=TRUE;
 				sdl_video_initialized=TRUE;
 			}
@@ -571,24 +500,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 			}
 		}
 	}
-	if(sdl_video_initialized) {
-		atexit(sdl.Quit);
-		sdl_main_sem=sdl.SDL_CreateSemaphore(0);
-		sdl_exit_sem=sdl.SDL_CreateSemaphore(0);
-		main_thread=sdl.CreateThread(sdl_run_main,&ma);
-		sdl.SemWait(sdl_main_sem);
-		if(sdl_drawing_thread!=NULL) {
-			sdl_drawing_thread(NULL);
-			sdl_exit_drawing_thread=NULL;
-			if(!main_returned) {
-				main_ret=0;
-			}
-		}
-		sdl.SemWait(sdl_exit_sem);
-		if(main_returned)
-			sdl.WaitThread(main_thread, &main_ret);
-	}
-	else
-		main_ret=XPDEV_main(argc, argv, env);
-	return(main_ret);
+	if(sdl_initialized)
+		atexit(sdl_exit);
+	return(XPDEV_main(argc, argv, env));
 }
