@@ -3,6 +3,10 @@
 
 #include "bbslist.h"
 
+#if defined(_WIN32)
+	#include <malloc.h>	/* alloca() on Win32 */
+#endif
+
 enum {
 	 SYNCTERM_PATH_INI
 	,SYNCTERM_PATH_LIST
@@ -23,6 +27,7 @@ extern struct syncterm_settings settings;
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults);
 extern int default_font;
 extern char *font_names[];
+extern int safe_mode;
 char *get_syncterm_filename(char *fn, int fnlen, int type, int shared);
 void load_settings(struct syncterm_settings *set);
 

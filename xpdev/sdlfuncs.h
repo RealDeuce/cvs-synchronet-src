@@ -25,6 +25,7 @@ struct sdlfuncs {
 								SDL_Surface *dst, SDL_Rect *dstrect);
 	void	(*UpdateRects)	(SDL_Surface *screen, int numrects, SDL_Rect *rects);
 	SDL_sem *(*SDL_CreateSemaphore)	(Uint32 initial_value);
+	void (*SDL_DestroySemaphore)	(SDL_sem *semaphore);
 	SDL_mutex	*(*SDL_CreateMutex)	(void);
 	struct SDL_Thread	*(*CreateThread)	(int (*fn)(void *), void *data);
 	int	(*WaitEvent)	(SDL_Event *event);
@@ -37,18 +38,27 @@ struct sdlfuncs {
 	int	(*EnableKeyRepeat)	(int delay, int interval);
 	int	(*GetWMInfo)	(struct SDL_SysWMinfo *info);
 	char	*(*GetError)	(void);
+	int (*InitSubSystem)(Uint32 flags);
+	void (*QuitSubSystem)(Uint32 flags);
+	int (*OpenAudio)(SDL_AudioSpec *desired, SDL_AudioSpec *obtained);
+	void (*CloseAudio)(void);
+	void (*LockAudio)(void);
+	void (*UnlockAudio)(void);
+	void (*PauseAudio)(int pause_on);
+	void (*GetAudioStatus)(int pause_on);
 	int	gotfuncs;
 };
 
-#ifdef _WIN32
-/* Defined in SDL_win32_main.c */
+/* Defined in SDL_win32_main.c for Win32 */
 extern struct sdlfuncs	sdl;
-#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 int load_sdl_funcs(struct sdlfuncs *sdlf);
+int init_sdl_audio(void);
+int init_sdl_video(void);
+int SDL_main_env(int argc, char *argv[], char **env);
 #ifdef __cplusplus
 }
 #endif
