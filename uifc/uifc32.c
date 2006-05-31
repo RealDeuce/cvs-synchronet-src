@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.178 2007/01/02 21:44:00 deuce Exp $ */
+/* $Id: uifc32.c,v 1.175 2006/05/26 03:31:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -900,11 +900,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		}
 	}
 	else {	/* Is a redraw */
-		if(bar)
-			y=top+tbrdrwidth+(*bar);
-		else
-			y=top+tbrdrwidth+(*cur);
-		i=(*cur)+(top+tbrdrwidth-y);
+		i=(*cur)-(*bar);
 		j=2;
 
 		longopt=0;
@@ -937,6 +933,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			puttext(s_left+left+lbrdrwidth+2,s_top+top+j,s_left+left+width-rbrdrwidth-1
 				,s_top+top+j,tmp_buffer);
 		}
+		if(bar)
+			y=top+tbrdrwidth+(*bar);
+		else
+			y=top+tbrdrwidth+(*cur);
 	}
 	free(title);
 
@@ -973,7 +973,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							&& mevnt.starty<=(s_top+top+optheight)-bbrdrwidth-1
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
 
-						(*cur)=((mevnt.starty)-(s_top+top+tbrdrwidth))+(*cur+(top+tbrdrwidth-y));
+						(*cur)=((mevnt.starty)-(s_top+top+tbrdrwidth))+(*cur-y+tbrdrwidth);
 						if(bar)
 							(*bar)=(*cur);
 						y=top+tbrdrwidth+((mevnt.starty)-(s_top+top+tbrdrwidth));
@@ -1364,9 +1364,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't edit */
 							break;							/* extra line */
 						if(mode&WIN_EDIT) {
-							if(mode&WIN_SAV)
-								api->savnum++;
-							if(mode&WIN_ACT) {
+							if(mode&WIN_EDITACT) {
 								gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
 								for(i=1;i<(width*height*2);i+=2)
@@ -1374,16 +1372,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
 								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
 									tmp_buffer[i]=hclr|(cclr<<4);
-
 								puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
-							else if(mode&WIN_SAV) {
-								api->savnum--;
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_EDIT); 
 						}
@@ -1398,26 +1388,18 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						break;
 					case CIO_KEY_IC:	/* insert */
 						if(mode&WIN_INS) {
-							if(mode&WIN_SAV)
-								api->savnum++;
 							if(mode&WIN_INSACT) {
 								gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
 								for(i=1;i<(width*height*2);i+=2)
 									tmp_buffer[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									tmp_buffer[i]=hclr|(cclr<<4);
-
+								if(opts) {
+									j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
+									for(i=(((y-top)*width)*2)+7;i<j;i+=2)
+										tmp_buffer[i]=hclr|(cclr<<4); 
+								}
 								puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
-							else if(mode&WIN_SAV) {
-								api->savnum--;
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							if(!opts) {
 								return(MSK_INS); 
@@ -1429,8 +1411,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't delete */
 							break;							/* extra line */
 						if(mode&WIN_DEL) {
-							if(mode&WIN_SAV)
-								api->savnum++;
 							if(mode&WIN_DELACT) {
 								gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
@@ -1439,16 +1419,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
 								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
 									tmp_buffer[i]=hclr|(cclr<<4);
-
 								puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
-							else if(mode&WIN_SAV) {
-								api->savnum--;
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_DEL); 
 						}
@@ -1819,7 +1791,7 @@ void umsg(char *str)
 /***************************************/
 /* Private sub - updates a ugetstr box */
 /***************************************/
-void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *scrnoffset, int mode)
+void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *scrnoffset)
 {
 	_setcursortype(_NOCURSOR);
 	if(cursoffset<*scrnoffset)
@@ -1829,10 +1801,7 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 		*scrnoffset=cursoffset-width;
 
 	gotoxy(left,top);
-	if(mode&K_PASSWORD)
-		cprintf("%-*.*s",width,width,"********************************************************************************"+(80-strlen(outstr+*scrnoffset)));
-	else
-		cprintf("%-*.*s",width,width,outstr+*scrnoffset);
+	cprintf("%-*.*s",width,width,outstr+*scrnoffset);
 	gotoxy(left+(cursoffset-*scrnoffset),top);
 	_setcursortype(cursor);
 }
@@ -1869,7 +1838,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		outstr[max]=0;
 		i=j=strlen(outstr);
 		textattr(api->lbclr);
-		getstrupd(left, top, width, outstr, i, &soffset, mode);
+		getstrupd(left, top, width, outstr, i, &soffset);
 		textattr(api->lclr|(api->bclr<<4));
 		if(strlen(outstr)<(size_t)width) {
 			k=wherex();
@@ -1929,11 +1898,11 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				|| f==CTRL_Z
 				|| f==0)
 		{
-			getstrupd(left, top, width, str, i, &soffset, mode);
+			getstrupd(left, top, width, str, i, &soffset);
 		}
 		else
 		{
-			getstrupd(left, top, width, str, i, &soffset, mode);
+			getstrupd(left, top, width, str, i, &soffset);
 			i=j=0;
 		}
 	}
@@ -1945,7 +1914,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	{
 		if(i>j) j=i;
 		str[j]=0;
-		getstrupd(left, top, width, str, i, &soffset, mode);
+		getstrupd(left, top, width, str, i, &soffset);
 		if(f || pb!=NULL || (ch=inkey())!=0)
 		{
 			if(f) {
