@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.57 2006/02/03 03:33:07 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.58 2006/02/03 03:47:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -624,7 +624,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	if(js_scope==NULL || js_script==NULL) {
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
-		errormsg(WHERE,ERR_EXEC,path,0);
+		errormsg(WHERE,"compiling",path,0);
 		return(-1);
 	}
 
