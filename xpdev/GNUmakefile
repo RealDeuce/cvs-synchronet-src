@@ -12,10 +12,13 @@ ifeq ($(shell if [ -f /usr/include/alsa/asoundlib.h ] ; then echo YES ; fi),YES)
 endif
 MT_CFLAGS	+=	$(XPDEV-MT_CFLAGS)
 
-ifdef WITH_SDL_AUDIO
+ifdef WITH_SDL
  MTOBJS	+=	$(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
  OBJS	+=	$(OBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
- ifeq ($(os),darwin)
+endif
+
+ifeq ($(os),darwin)
+ ifdef WITH_SDL
   MTOBJS	+=	$(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
   OBJS	+=	$(OBJODIR)$(DIRSEP)SDLMain$(OFILE)
  endif
@@ -23,10 +26,6 @@ endif
 
 ifeq ($(os),darwin)
 $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
-	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CC) $(MT_CFLAGS) $(CCFLAGS) -o $@ -c $<
-
-$(OBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
 endif
