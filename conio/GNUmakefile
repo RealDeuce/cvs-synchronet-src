@@ -12,23 +12,12 @@ else
 			$(MTOBJODIR)$(DIRSEP)x_cio$(OFILE)
 endif
 
-ifdef WITH_SDL_AUDIO
+ifdef WITH_SDL
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
-else
- ifdef WITH_SDL
-  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
-  OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
-  ifeq ($(os),darwin)
-   MTOBJS	+=      $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
-   OBJS 	+=      $(OBJODIR)$(DIRSEP)SDLMain$(OFILE)
-  endif
- endif
 endif
 
 ifeq ($(os),netbsd)
- ifndef USE_SYSTEM_CURSES
-  CFLAGS	+=	-DN_CURSES_LIB
- endif
+ CFLAGS	+=	-DN_CURSES_LIB
 endif
 
 $(MTOBJODIR)$(DIRSEP)console$(OFILE).static:
