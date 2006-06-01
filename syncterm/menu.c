@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.38 2007/05/27 21:29:30 deuce Exp $ */
+/* $Id: menu.c,v 1.37 2006/05/30 16:51:04 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -42,27 +42,9 @@ void viewscroll(void)
 		if(top>cterm.backpos)
 			top=cterm.backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		switch(cterm.emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
-		gotoxy(cterm.width-9,1);
-		switch(cterm.emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		cputs("Scrollback");
+		gotoxy(71,1);
+		cputs("Scrollback");
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
