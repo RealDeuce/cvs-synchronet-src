@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.33 2006/05/12 03:26:56 rswindell Exp $ */
+/* $Id: str_list.c,v 1.34 2006/06/01 21:53:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -373,14 +373,16 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 		lp=&list;
 	}
 
-	count=strListCount(*lp);
-	while(!feof(fp)) {
-		if(buf==NULL && (buf=(char*)alloca(max_line_len+1))==NULL)
-			return(NULL);
-		
-		if(fgets(buf,max_line_len+1,fp)==NULL)
-			break;
-		strListAppend(lp, buf, count++);
+	if(fp!=NULL) {
+		count=strListCount(*lp);
+		while(!feof(fp)) {
+			if(buf==NULL && (buf=(char*)alloca(max_line_len+1))==NULL)
+				return(NULL);
+			
+			if(fgets(buf,max_line_len+1,fp)==NULL)
+				break;
+			strListAppend(lp, buf, count++);
+		}
 	}
 
 	return(*lp);
