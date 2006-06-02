@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	cterm_init(ti.screenheight, ti.screenwidth, 0, 0, SCROLL_LINES, scrollbuf, CTERM_EMULATION_ANSI_BBS);
+	cterm_init(ti.screenheight, ti.screenwidth, 0, 0, SCROLL_LINES, scrollbuf);
 	if(infile) {
 		if((f=fopen(infile,"r"))==NULL) {
 			cprintf("Cannot read %s\n\n\rPress any key to exit.",argv[1]);
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 		strcpy(title,"SyncView: [stdin]");
 	}
 	settitle(title);
-	while((len=fread(buf, 1, BUF_SIZE, f))!=0) {
+	while((len=fread(buf, 1, BUF_SIZE, f))) {
 		if(expand)
 			lfexpand(buf, &len);
 		cterm_write(buf, len, NULL, 0, &speed);
