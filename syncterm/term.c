@@ -1,10 +1,13 @@
-/* $Id: term.c,v 1.142 2006/05/30 16:51:04 deuce Exp $ */
+/* $Id: term.c,v 1.143 2006/06/02 21:36:53 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
 #include <mouse.h>
 #include <keys.h>
+
+#include "threadwrap.h"
+#include "filewrap.h"
 
 #include "conn.h"
 #include "syncterm.h"
