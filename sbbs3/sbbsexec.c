@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.30 2006/05/26 23:14:45 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.31 2006/06/02 03:21:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,12 +164,13 @@ CRITICAL_SECTION interrupt_mutex;
 void set_interrupt_pending(BYTE intr, BOOL assert)
 {
 	EnterCriticalSection(&interrupt_mutex);
+	lprintf(LOG_DEBUG,"%sasserting interrupt %02X", assert ? "" : "de-", intr);
 	if(assert) {
 		if(uart_ier_reg&intr)				/* is interrupt enabled? */
 			pending_interrupts |= intr;		/* flag as pending */
+		SetEvent(interrupt_event);
 	} else /* de-assert */
 		pending_interrupts &= ~intr;		/* remove as pending */
-	SetEvent(interrupt_event);
 	LeaveCriticalSection(&interrupt_mutex);
 }
 
@@ -184,7 +185,7 @@ void _cdecl interrupt_thread(void *arg)
 		if((uart_ier_reg&pending_interrupts) != 0) {
 			lprintf(LOG_DEBUG,"VDDSimulateInterrupt (pending: %02X) - IER: %02X"
 				,pending_interrupts, uart_ier_reg);
-			VDDSimulateInterrupt(ICA_MASTER, uart_irq, 1);
+			VDDSimulateInterrupt(ICA_MASTER, uart_irq, /* count: */1);
 		}
 #if 0
 		/* "Real 16550s should always reassert
@@ -343,7 +344,7 @@ VOID uart_rdport(WORD port, PBYTE data)
 				/* Clear data ready interrupt identification in IIR */
 				deassert_interrupt(UART_IER_RX_DATA);
 			}
-			return;	/* early return */
+			break;
 		case UART_IER:
 			if(uart_lcr_reg&UART_LCR_DLAB) {
 				lprintf(LOG_DEBUG,"reading divisor latch MSB");
@@ -398,7 +399,8 @@ VOID uart_rdport(WORD port, PBYTE data)
 			break;
 	}
 
-	lprintf(LOG_DEBUG, "returning 0x%02X", *data);
+	if(reg!=UART_BASE)
+		lprintf(LOG_DEBUG, "returning 0x%02X", *data);
 }
 
 /* VDD DOS Interface (mainly for FOSSIL driver in dosxtrn.exe) */
@@ -729,7 +731,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 __declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID hVDD, IN ULONG Reason, 
 IN PCONTEXT Context OPTIONAL)
 {
-	sscanf("$Revision: 1.30 $", "%*s %s", revision);
+	sscanf("$Revision: 1.31 $", "%*s %s", revision);
 
 	vdd_handle=hVDD;
 
