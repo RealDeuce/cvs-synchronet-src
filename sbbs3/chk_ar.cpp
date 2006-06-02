@@ -2,13 +2,13 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.16 2006/12/29 09:00:59 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.15 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -178,21 +178,6 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				#else
 					result=!_not;
 				#endif
-				break;
-			case AR_ACTIVE:
-				if(user->misc&(DELETED|INACTIVE))
-					result=_not;
-				else result=!_not;
-				break;
-			case AR_INACTIVE:
-				if(!(user->misc&INACTIVE))
-					result=_not;
-				else result=!_not;
-				break;
-			case AR_DELETED:
-				if(!(user->misc&DELETED))
-					result=_not;
-				else result=!_not;
 				break;
 			case AR_EXPERT:
 				if(!(user->misc&EXPERT))
