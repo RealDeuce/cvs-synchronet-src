@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id: spyon.c,v 1.8 2007/05/27 05:49:39 deuce Exp $ */
+/* $Id: spyon.c,v 1.7 2006/05/08 18:58:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,7 +91,7 @@ int spyon(char *sockname)  {
 	gotoxy(1,ti.screenheight);
 	cputs("Local spy mode... press CTRL-C to return to monitor");
 	clreol();
-	cterm_init(ti.screenheight-1,ti.screenwidth,1,1,0,NULL,CTERM_EMULATION_ANSI_BBS);
+	cterm_init(ti.screenheight-1,ti.screenwidth,1,1,0,NULL);
 	while(spy_sock!=INVALID_SOCKET)  {
 		struct timeval tv;
 		tv.tv_sec=0;
