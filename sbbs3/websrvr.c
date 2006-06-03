@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.413 2006/06/02 17:21:13 deuce Exp $ */
+/* $Id: websrvr.c,v 1.414 2006/06/03 02:39:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4100,7 +4100,7 @@ void http_session_thread(void* arg)
 			close_socket(&session.socket);
 			sem_wait(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
-			pthread_mutex_destroy(&session->outbuf_write);
+			pthread_mutex_destroy(&session.outbuf_write);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			thread_down();
 			session_threads--;
@@ -4113,7 +4113,7 @@ void http_session_thread(void* arg)
 		close_socket(&session.socket);
 		sem_wait(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
-		pthread_mutex_destroy(&session->outbuf_write);
+		pthread_mutex_destroy(&session.outbuf_write);
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		thread_down();
 		session_threads--;
@@ -4226,7 +4226,7 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	pthread_mutex_destroy(&session->outbuf_write);
+	pthread_mutex_destroy(&session.outbuf_write);
 
 	active_clients--;
 	update_clients();
@@ -4294,7 +4294,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.413 $", "%*s %s", revision);
+	sscanf("$Revision: 1.414 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
