@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.414 2006/06/03 02:39:06 deuce Exp $ */
+/* $Id: websrvr.c,v 1.415 2006/06/03 17:20:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -449,6 +449,7 @@ static int sock_sendbuf(SOCKET *sock, const char *buf, size_t len, BOOL *failed)
 {
 	size_t sent=0;
 	int result;
+	int sel;
 	fd_set	wr_set;
 	struct timeval tv;
 
@@ -458,7 +459,8 @@ static int sock_sendbuf(SOCKET *sock, const char *buf, size_t len, BOOL *failed)
 		/* Convert timeout from ms to sec/usec */
 		tv.tv_sec=startup->max_inactivity;
 		tv.tv_usec=0;
-		switch(select(*sock+1,NULL,&wr_set,NULL,&tv)) {
+		sel=select(*sock+1,NULL,&wr_set,NULL,&tv);
+		switch(sel) {
 			case 1:
 				result=sendsocket(*sock,buf+sent,len-sent);
 				if(result==SOCKET_ERROR) {
@@ -1427,6 +1429,7 @@ static named_string_t** read_ini_list(char* fname, char* section, char* desc
 static int sockreadline(http_session_t * session, char *buf, size_t length)
 {
 	char	ch;
+	int		sel;
 	DWORD	i;
 	DWORD	chucked=0;
 	fd_set	rd_set;
@@ -1440,7 +1443,8 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 		/* Convert timeout from ms to sec/usec */
 		tv.tv_sec=startup->max_inactivity;
 		tv.tv_usec=0;
-		switch(select(session->socket+1,&rd_set,NULL,NULL,&tv)) {
+		sel=select(session->socket+1,&rd_set,NULL,NULL,&tv);
+		switch(sel) {
 			case 1:
 				break;
 			case -1:
@@ -4294,7 +4298,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.414 $", "%*s %s", revision);
+	sscanf("$Revision: 1.415 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
