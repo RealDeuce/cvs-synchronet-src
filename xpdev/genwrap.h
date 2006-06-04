@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.85 2006/05/31 03:23:06 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.86 2006/06/04 16:38:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,7 +213,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if 0	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+	#if !defined(_MSC_VER)	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
 		#define tzname			_tzname
 	#endif
 
