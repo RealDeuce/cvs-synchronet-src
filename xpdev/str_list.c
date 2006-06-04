@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.35 2006/08/14 22:55:48 rswindell Exp $ */
+/* $Id: str_list.c,v 1.34 2006/06/01 21:53:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -244,7 +244,6 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 {
 	size_t	count;
 	char*	token;
-	char*	tmp;
 	str_list_t	list;
 
 	if(str==NULL || delimit==NULL)
@@ -258,7 +257,7 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 	} else
 		count=strListCount(*lp);
 
-	for(token = strtok_r(str, delimit, &tmp); token!=NULL; token=strtok_r(NULL, delimit, &tmp))
+	for(token = strtok(str, delimit); token!=NULL; token=strtok(NULL, delimit))
 		if(strListAppend(lp, token, count++)==NULL)
 			break;
 
