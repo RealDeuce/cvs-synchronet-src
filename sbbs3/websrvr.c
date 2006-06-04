@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.415 2006/06/03 17:20:06 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.416 2006/06/04 23:36:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4201,6 +4201,10 @@ void http_session_thread(void* arg)
 					}
 				}
 			}
+			else {
+				session.req.keep_alive=FALSE;
+				break;
+			}
 		}
 		close_request(&session);
 	}
@@ -4298,7 +4302,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.415 $", "%*s %s", revision);
+	sscanf("$Revision: 1.416 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
