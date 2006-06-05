@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.32 2006/07/12 06:41:50 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.31 2005/11/27 23:34:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,6 @@ void msgs_cfg()
 	char	tmp_code[16];
 	int		j,k,l,q,s;
 	int		i,file,ptridx,n;
-	unsigned total_subs;
 	long	ported;
 	sub_t	tmpsub;
 	static grp_t savgrp;
@@ -539,8 +538,6 @@ import into the current message group.
 					uifc.msg("Open Failure");
                     break; }
 				uifc.pop("Importing Areas...");
-				total_subs = cfg.total_subs;	 /* Save original number of subs */
-				ptridx = 0;
 				while(!feof(stream)) {
 					if(!fgets(str,sizeof(str),stream)) break;
 					truncsp(str);
@@ -679,13 +676,13 @@ import into the current message group.
 						|| tmpsub.qwkname[0]==0)
 						continue;
 
-					for(j=0;j<total_subs;j++) {
+					for(j=0;j<cfg.total_subs;j++) {
 						if(cfg.sub[j]->grp!=i)
 							continue;
 						if(!stricmp(cfg.sub[j]->code_suffix,tmpsub.code_suffix))
 							break; }
-					if(j==total_subs) {
-						j=cfg.total_subs;
+					if(j==cfg.total_subs) {
+
 						if((cfg.sub=(sub_t **)realloc(cfg.sub
 							,sizeof(sub_t *)*(cfg.total_subs+1)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_subs+1);
@@ -701,9 +698,9 @@ import into the current message group.
 						}
 						memset(cfg.sub[j],0,sizeof(sub_t)); }
 					if(!k) {
-						n=cfg.sub[j]->ptridx;	/* save original ptridx */
+						ptridx=cfg.sub[j]->ptridx;	/* save original ptridx */
 						memcpy(cfg.sub[j],&tmpsub,sizeof(sub_t));
-						cfg.sub[j]->ptridx=n;	/* restore original ptridx */
+						cfg.sub[j]->ptridx=ptridx;	/* restore original ptridx */
 					} else {
                         cfg.sub[j]->grp=i;
 						if(cfg.total_faddrs)
@@ -717,17 +714,16 @@ import into the current message group.
 							cfg.sub[j]->maxmsgs=1000;
 					}
 					if(j==cfg.total_subs) {	/* adding new sub-board */
-						for(;ptridx<USHRT_MAX;ptridx++) {
-							for(n=0;n<total_subs;n++)
+						for(ptridx=0;ptridx<USHRT_MAX;ptridx++) {
+							for(n=0;n<cfg.total_subs;n++)
 								if(cfg.sub[n]->ptridx==ptridx)
 									break;
-							if(n==total_subs)
+							if(n==cfg.total_subs)
 								break; 
 						}
 						cfg.sub[j]->ptridx=ptridx;	/* use new ptridx */
 						cfg.sub[j]->misc=tmpsub.misc;
 						cfg.total_subs++; 
-						ptridx++;	/* don't use the same ptridx for next sub */
 					}
 					uifc.changes=1; 
 					ported++;
