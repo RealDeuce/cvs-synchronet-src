@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.150 2007/07/10 20:18:38 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.141 2006/02/03 06:21:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,10 +50,10 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.14"  /* Version: Major.minor  */
+#define VERSION 	"3.13"  /* Version: Major.minor  */
 #define REVISION	'b'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31400	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31400 + (tolower(REVISION)-'a'))
+#define VERSION_NUM	(31300	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31300 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -613,8 +613,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
 #define HTML		(1L<<23)		/* Using Deuce's HTML terminal			*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
-
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML)
 																			
 #define CLREOL      256     /* Character to erase to end of line 			*/
 																			
@@ -651,7 +649,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_NEWDAY	(1L<<25) /* Date changed while online					*/
 #define SS_RLOGIN	(1L<<26) /* Current login via BSD RLogin				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
-#define SS_SSH		(1L<<28) /* Current login via SSH						*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
@@ -706,7 +703,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_QUOTE	(1<<6)		/* Quote file available 					*/
 #define WM_QWKNET	(1<<7)		/* Writing QWK NetMail (25 char title)		*/
 #define WM_PRIVATE	(1<<8)		/* Private (for creating MSGINF file)		*/
-#define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
 								
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
@@ -823,9 +819,12 @@ enum {							/* Values of mode for userlist function     */
 							attr(slatr[slcnt]); \
 							rputs(slbuf[slcnt]); \
 							curatr=slcuratr[slcnt]; }
+#define RIOSYNC(x)		{ if(online==ON_REMOTE) riosync(x); }
 #define SYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
+						  RIOSYNC(0); \
 						  nodesync(); }
 #define ASYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
+						  RIOSYNC(1); \
 						  nodesync(); }
 #define ANSI_SAVE() 	rputs("\x1b[s")
 #define ANSI_RESTORE()	rputs("\x1b[u")
@@ -951,17 +950,17 @@ typedef struct {						/* File (transfers) Data */
 			desc[LEN_FDESC+1],			/* Uploader's Description */
 			uler[LEN_ALIAS+1];			/* User who uploaded */
 	uchar	opencount;					/* Times record is currently open */
-	time32_t  date,						/* File date/time */
+	time_t  date,						/* File date/time */
 			dateuled,					/* Date/Time (Unix) Uploaded */
 			datedled;					/* Date/Time (Unix) Last downloaded */
-	uint16_t	dir,						/* Directory file is in */
+	ushort	dir,						/* Directory file is in */
 			altpath,
 			timesdled,					/* Total times downloaded */
 			timetodl;					/* How long transfer time */
-	int32_t	datoffset,					/* Offset into .DAT file */
+	long	datoffset,					/* Offset into .DAT file */
 			size,						/* Size of file */
 			misc;						/* Miscellaneous bits */
-	uint32_t	cdt;						/* Credit value for this file */
+	ulong	cdt;						/* Credit value for this file */
 
 } file_t;
 
@@ -970,28 +969,28 @@ typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
 
 typedef struct {						/* System/Node Statistics */
-	uint32_t	logons,						/* Total Logons on System */
-				ltoday,						/* Total Logons Today */
-				timeon,						/* Total Time on System */
-				ttoday,						/* Total Time Today */
-				uls,						/* Total Uploads Today */
-				ulb,						/* Total Upload Bytes Today */
-				dls,						/* Total Downloads Today */
-				dlb,						/* Total Download Bytes Today */
-				ptoday,						/* Total Posts Today */
-				etoday,						/* Total Emails Today */
-				ftoday; 					/* Total Feedbacks Today */
-	uint16_t	nusers; 					/* Total New Users Today */
+	ulong 	logons,						/* Total Logons on System */
+			ltoday,						/* Total Logons Today */
+			timeon,						/* Total Time on System */
+			ttoday,						/* Total Time Today */
+			uls,						/* Total Uploads Today */
+			ulb,						/* Total Upload Bytes Today */
+			dls,						/* Total Downloads Today */
+			dlb,						/* Total Download Bytes Today */
+			ptoday,						/* Total Posts Today */
+			etoday,						/* Total Emails Today */
+			ftoday; 					/* Total Feedbacks Today */
+	ushort	nusers; 					/* Total New Users Today */
 
 } stats_t;
 
 typedef struct {						/* Sub-board scan information */
-	uint16_t	cfg;						/* User's configuration */
-	uint32_t	ptr;						/* New-message pointer */
-	uint32_t	last;						/* Last read message number */
-	uint16_t	sav_cfg;					/* Saved configuration */
-	uint32_t	sav_ptr;					/* Saved New-message pointer */
-	uint32_t	sav_last;					/* Saved Last read message number */
+	ushort	cfg;						/* User's configuration */
+	ulong	ptr;						/* New-message pointer */
+	ulong	last;						/* Last read message number */
+	ushort	sav_cfg;					/* Saved configuration */
+	ulong	sav_ptr;					/* Saved New-message pointer */
+	ulong	sav_last;					/* Saved Last read message number */
 } subscan_t;
 
 #endif /* Don't add anything after this #endif statement */
