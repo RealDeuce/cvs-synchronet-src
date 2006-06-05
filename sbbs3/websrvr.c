@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.416 2006/06/04 23:36:58 deuce Exp $ */
+/* $Id: websrvr.c,v 1.417 2006/06/05 06:21:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1449,19 +1449,24 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 				break;
 			case -1:
 				close_socket(&session->socket);
+				lprintf(LOG_DEBUG,"%04d Error select()ing socket for read %s (%d)",session->socket,strerror(errno),errno);
+				return(-1);
 			default:
-				/* Timeout, select() error, etc */
+				/* Timeout */
+				lprintf(LOG_WARNING,"%04d Session timeout due to inactivity (%d seconds)",session->socket,startup->max_inactivity);
 				return(-1);
 		}
 
 		switch(recv(session->socket, &ch, 1, 0)) {
 			case -1:
 				if(errno!=EAGAIN) {
+					lprintf(LOG_DEBUG,"%04d Error recv()ing on socket %s (%d)",session->socket,strerror(errno),errno);
 					close_socket(&session->socket);
 					return(-1);
 				}
 				break;
 			case 0:
+				/* Socket has been closed */
 				close_socket(&session->socket);
 				return(-1);
 		}
@@ -4302,7 +4307,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.416 $", "%*s %s", revision);
+	sscanf("$Revision: 1.417 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
