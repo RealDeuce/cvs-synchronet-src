@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.39 2007/03/11 01:49:15 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.32 2006/06/03 03:35:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@ WORD uart_io_base				= UART_COM1_IO_BASE;	/* COM1 */
 BYTE uart_irq					= UART_COM1_IRQ;
 BYTE uart_ier_reg				= 0;
 BYTE uart_lcr_reg				= UART_LCR_8_DATA_BITS;
-BYTE uart_mcr_reg				= UART_MCR_RTS | UART_MCR_DTR;
+BYTE uart_mcr_reg				= 0;
 BYTE uart_lsr_reg				= UART_LSR_EMPTY_DATA | UART_LSR_EMPTY_XMIT;
 BYTE uart_msr_reg				= UART_MSR_CTS | UART_MSR_DSR;
 BYTE uart_scratch_reg			= 0;
@@ -71,12 +71,11 @@ BYTE uart_divisor_latch_msb		= 0x00;
 
 BOOL		virtualize_uart=TRUE;
 double		yield_interval=1.0;
-BOOL		hangup_supported=TRUE;
-HANDLE		hangup_event=NULL;
 HANDLE		hungup_event=NULL;
 HANDLE		interrupt_event=NULL;
 HANDLE		rdslot=INVALID_HANDLE_VALUE;
 HANDLE		wrslot=INVALID_HANDLE_VALUE;
+HANDLE		vdd_handle;
 RingBuf		rdbuf;
 str_list_t	ini;
 char		ini_fname[MAX_PATH+1];
@@ -107,14 +106,6 @@ static void lprintf(int level, const char *fmt, ...)
     lputs(level,sbuf);
 }
 
-void hangup()
-{
-	if(hangup_supported && hangup_event!=NULL) {
-		lprintf(LOG_DEBUG,"Hanging-up at application request");
-		SetEvent(hangup_event);
-	}
-}
-
 void parse_ini(char* program)
 {
 	char section[MAX_PATH+1];
@@ -127,7 +118,6 @@ void parse_ini(char* program)
 	if(iniGetBool(ini,program,"Debug",FALSE))
 		log_level=LOG_DEBUG;
 	yield_interval=iniGetFloat(ini,program,"YieldInterval",yield_interval);
-	hangup_supported=iniGetBool(ini,program,"CanDisconnect",hangup_supported);
 
 	lprintf(LOG_INFO,"Parsed %s section of %s"
 		,program==ROOT_SECTION ? "root" : program
@@ -232,13 +222,10 @@ void _cdecl input_thread(void* arg)
 			continue;
 		}
 		RingBufWrite(&rdbuf,buf,count);
+		/* Set the "Data ready" bit in the LSR */
+		uart_lsr_reg |= UART_LSR_DATA_READY;
 
-		if(virtualize_uart) {
-			/* Set the "Data ready" bit in the LSR */
-			uart_lsr_reg |= UART_LSR_DATA_READY;
-
-			assert_interrupt(UART_IER_RX_DATA); /* assert rx data interrupt */
-		}
+		assert_interrupt(UART_IER_RX_DATA); /* assert rx data interrupt */
 	}
 }
 
@@ -335,8 +322,6 @@ VOID uart_wrport(WORD port, BYTE data)
 			break;
 		case UART_MCR:
 			uart_mcr_reg = data;
-			if((uart_mcr_reg&UART_MCR_DTR) == 0)	/* Dropping DTR (i.e. "hangup") */
-				hangup();
 			break;
 		case UART_SCRATCH:
 			uart_scratch_reg = data;
@@ -463,14 +448,12 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 	retval=0;
 	node_num=getBH();
 
-	lprintf(LOG_DEBUG,"VDD_OP: (handle=%d) %d (arg=%X)", getAX(),getBL(),getCX());
+	lprintf(LOG_DEBUG,"VDD_OP: %d (arg=%X)", getBL(),getCX());
 	vdd_calls++;
 
 	switch(getBL()) {
 
 		case VDD_OPEN:
-
-			sscanf("$Revision: 1.39 $", "%*s %s", revision);
 
 			lprintf(LOG_INFO,"Synchronet Virtual Device Driver, rev %s %s %s"
 				,revision, __DATE__, __TIME__);
@@ -523,16 +506,6 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 				break;
 			}
 
-			sprintf(str,"sbbsexec_hangup%d",node_num);
-			hangup_event=OpenEvent(
-				EVENT_ALL_ACCESS,	/* access flag  */
-				FALSE,				/* inherit flag  */
-				str);				/* pointer to event-object name  */
-			if(hangup_event==NULL) {
-				lprintf(LOG_WARNING,"!VDD_OPEN: Error %d opening %s"
-					,GetLastError(),str);
-			}
-
 			status_poll=0;
 			inbuf_poll=0;
 			online_poll=0;
@@ -549,7 +522,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 				PortRange.First=uart_io_base;
 				PortRange.Last=uart_io_base + UART_IO_RANGE;
 
-				VDDInstallIOHook((HANDLE)getAX(), 1, &PortRange, &IOHandlers);
+				VDDInstallIOHook(vdd_handle, 1, &PortRange, &IOHandlers);
 
 				interrupt_event=CreateEvent(NULL,FALSE,FALSE,NULL);
 				InitializeCriticalSection(&interrupt_mutex);
@@ -574,20 +547,14 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 
 			if(virtualize_uart) {
 				lprintf(LOG_INFO,"Uninstalling Virtualizaed UART IO Hook");
-				VDDDeInstallIOHook((HANDLE)getAX(), 1, &PortRange);
+				VDDDeInstallIOHook(vdd_handle, 1, &PortRange);
 			}
 
 			CloseHandle(rdslot);
 			CloseHandle(wrslot);
 			if(hungup_event!=NULL)
 				CloseHandle(hungup_event);
-			if(hangup_event!=NULL)
-				CloseHandle(hangup_event);
-
-#if 0	/* This isn't strictly necessary... 
-		   and possibly the cause of a NULL dereference in the input_thread */
 			RingBufDispose(&rdbuf);
-#endif
 			status_poll=0;
 			retval=0;
 
@@ -773,13 +740,19 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			lputs(LOG_INFO, p);
 			break;
 
-		case VDD_HANGUP:
-			hangup();
-			break;
-
 		default:
 			lprintf(LOG_ERR,"!UNKNOWN VDD_OP: %d",getBL());
 			break;
 	}
 	setAX((WORD)retval);
+}
+
+__declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID hVDD, IN ULONG Reason, 
+IN PCONTEXT Context OPTIONAL)
+{
+	sscanf("$Revision: 1.32 $", "%*s %s", revision);
+
+	vdd_handle=hVDD;
+
+    return TRUE;
 }
