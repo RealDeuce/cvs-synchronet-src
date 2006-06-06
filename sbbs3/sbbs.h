@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.273 2006/02/03 03:47:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.276 2006/06/06 17:13:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,6 +119,7 @@
  #define LINK_LIST_THREADSAFE
 #endif
 #include "genwrap.h"
+#include "semfile.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "sockwrap.h"
@@ -608,6 +609,8 @@ public:
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
+	bool	sendfile(char* fname, char prot=0);
+	bool	recvfile(char* fname, char prot=0);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -881,17 +884,6 @@ extern "C" {
 	/* xtrn.cpp */
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
-
-	/* semfile.c */
-	DLLEXPORT BOOL		DLLCALL semfile_signal(const char* fname, const char* text);
-	DLLEXPORT BOOL		DLLCALL semfile_check(time_t* t, const char* fname);
-	DLLEXPORT char*		DLLCALL semfile_list_check(time_t* t, str_list_t filelist);
-	DLLEXPORT str_list_t	
-						DLLCALL semfile_list_init(const char* parent, const char* action
-													,const char* service);
-	DLLEXPORT void		DLLCALL semfile_list_add(str_list_t* filelist, const char* fname);
-	DLLEXPORT void		DLLCALL semfile_list_free(str_list_t* filelist);
-
 
 #ifdef JAVASCRIPT
 
