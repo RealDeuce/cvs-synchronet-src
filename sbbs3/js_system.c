@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.105 2006/03/01 01:01:08 rswindell Exp $ */
+/* $Id: js_system.c,v 1.106 2006/06/06 17:17:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -401,7 +401,7 @@ static jsSyncPropertySpec js_system_properties[] = {
 	/* filenames */
 	{	"devnull",					SYS_PROP_DEVNULL		,SYSOBJ_FLAGS,	311  },
 	{	"temp_path",				SYS_PROP_TEMP_PATH		,SYSOBJ_FLAGS,	312	 },
-	{	"cmd_shell",				SYS_PROP_CMD_SHELL		,SYSOBJ_FLAGS,	31301},
+	{	"cmd_shell",				SYS_PROP_CMD_SHELL		,SYSOBJ_FLAGS,	314	 },
 
 	/* clock access */
 	{	"clock_ticks",				SYS_PROP_CLOCK			,SYSOBJ_FLAGS,	311  },
