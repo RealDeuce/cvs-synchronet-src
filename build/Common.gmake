@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.54 2006/06/02 21:03:43 deuce Exp $
+# $Id: Common.gmake,v 1.55 2006/06/07 23:20:07 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -358,7 +358,9 @@ ifdef DEBUG
  CFLAGS	+=	-ggdb
  CFLAGS	+=	-D_DEBUG
 else # RELEASE
- CFLAGS	:= -O2 -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops $(CFLAGS)
+ # -finline functions breaks the baja build badly.
+ # This also means that -O3 won't work either.
+ CFLAGS	:= -O2 -fomit-frame-pointer -ffast-math -funroll-loops $(CFLAGS)
 endif
 
 -include targets.mk
