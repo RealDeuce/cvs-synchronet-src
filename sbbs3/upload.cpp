@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.45 2006/01/31 02:51:59 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.47 2006/06/06 17:13:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -599,3 +599,36 @@ bool sbbs_t::bulkupload(uint dirnum)
 	return(false);
 }
 
+bool sbbs_t::recvfile(char *fname, char prot)
+{
+	char	keys[32];
+	char	ch;
+	size_t	i;
+	bool	result=false;
+
+	if(prot)
+		ch=toupper(prot);
+	else {
+		xfer_prot_menu(XFER_UPLOAD);
+		mnemonics(text[ProtocolOrQuit]);
+		strcpy(keys,"Q");
+		for(i=0;i<cfg.total_prots;i++)
+			if(cfg.prot[i]->ulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron))
+				sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
+
+		ch=(char)getkeys(keys,0);
+
+		if(ch=='Q' || sys_status&SS_ABORT)
+			return(false); 
+	}
+	for(i=0;i<cfg.total_prots;i++)
+		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
+			break;
+	if(i<cfg.total_prots) {
+		if(protocol(cfg.prot[i],XFER_UPLOAD,fname,fname,true)==0)
+			result=true;
+		autohangup(); 
+	}
+
+	return(result);
+}
