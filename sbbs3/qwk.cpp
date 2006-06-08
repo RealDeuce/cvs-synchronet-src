@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.43 2007/04/11 19:29:15 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.42 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,9 +63,10 @@ bool route_circ(char *via, char *id)
 {
 	char str[256],*p,*sp;
 
-	SAFECOPY(str,via);
+	strcpy(str,via);
 	p=str;
-	SKIP_WHITESPACE(p);
+	while(*p && *p<=' ')
+		p++;
 	while(*p) {
 		sp=strchr(p,'/');
 		if(sp) *sp=0;
@@ -73,8 +74,7 @@ bool route_circ(char *via, char *id)
 			return(true);
 		if(!sp)
 			break;
-		p=sp+1; 
-	}
+		p=sp+1; }
 	return(false);
 }
 
