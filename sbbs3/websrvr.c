@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.418 2006/06/07 22:23:55 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.419 2006/06/12 07:00:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1460,7 +1460,8 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 		switch(recv(session->socket, &ch, 1, 0)) {
 			case -1:
 				if(ERROR_VALUE!=EAGAIN) {
-					lprintf(LOG_DEBUG,"%04d !ERROR %d receiving on socket",session->socket,ERROR_VALUE);
+					if(startup->options&WEB_OPT_DEBUG_RX)
+						lprintf(LOG_DEBUG,"%04d !ERROR %d receiving on socket",session->socket,ERROR_VALUE);
 					close_socket(&session->socket);
 					return(-1);
 				}
@@ -4307,7 +4308,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.418 $", "%*s %s", revision);
+	sscanf("$Revision: 1.419 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
