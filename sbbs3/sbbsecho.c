@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.178 2006/05/30 23:54:18 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.179 2006/06/12 22:08:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1420,10 +1420,12 @@ int unpack(char *infile)
 	char str[256],tmp[128];
 	int i,j,ch,file;
 
+	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if((stream=fnopen(&file,infile,O_RDONLY))==NULL) {
 		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,infile
 			,strerror(errno));
 		bail(1); }
+	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	for(i=0;i<cfg.arcdefs;i++) {
 		str[0]=0;
 		fseek(stream,cfg.arcdef[i].byteloc,SEEK_SET);
@@ -1436,19 +1438,24 @@ int unpack(char *infile)
 			strcat(str,tmp); }
 		if(!stricmp(str,cfg.arcdef[i].hexid))
 			break; }
+	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	fclose(stream);
 
+	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if(i==cfg.arcdefs) {
 		lprintf(LOG_ERR,"ERROR line %d determining filetype of %s",__LINE__,infile);
 		return(1); }
 
+	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	j=execute(mycmdstr(&scfg,cfg.arcdef[i].unpack,infile
 		,secure ? cfg.secure : cfg.inbound));
+	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if(j) {
 		lprintf(LOG_ERR,"ERROR %d (%d) line %d executing %s"
 			,j,errno,__LINE__,mycmdstr(&scfg,cfg.arcdef[i].unpack,infile
 				,secure ? cfg.secure : cfg.inbound));
 		return(j); }
+	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	return(0);
 }
 /******************************************************************************
@@ -1791,6 +1798,7 @@ BOOL unpack_bundle(void)
 			SAFECOPY(fname,g.gl_pathv[gi]);
 			lprintf(LOG_DEBUG,"Unpacking bundle: %s",fname);
 			if(unpack(fname)) {	/* failure */
+				lprintf(LOG_ERR,"!Unpack failure");
 				if(fdate(fname)+(48L*60L*60L)>time(NULL)) {
 					SAFECOPY(str,fname);
 					str[strlen(str)-2]='_';
@@ -3898,7 +3906,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.178 $", "%*s %s", revision);
+	sscanf("$Revision: 1.179 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
