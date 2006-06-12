@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.48 2006/01/13 02:03:40 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.51 2006/05/09 02:54:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -114,7 +114,7 @@ int sbbs_t::xtrn_sec()
 			for(i=0,usrxtrns=0;i<cfg.total_xtrns; i++) {
 				if(cfg.xtrn[i]->sec!=xsec)
 					continue;
-				if(cfg.xtrn[i]->misc&EVENTONLY)
+				if(cfg.xtrn[i]->event && cfg.xtrn[i]->misc&EVENTONLY)
 					continue;
 				if(!chk_ar(cfg.xtrn[i]->ar,&useron))
 					continue;
@@ -492,6 +492,31 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		if(tleft>0x7fff)	/* Reduce time-left for broken 16-bit doors		*/
 			tleft=0x7fff;	/* That interpret this value as a signed short	*/
 
+#if 0
+		if(misc&XTRN_NATIVE) {
+			if(misc&IO_INTS) {
+				strcpy(str,"COM0:STDIO\n");
+			}
+			else {
+				sprintf(str,"COM0:SOCKET%d\n",
+#ifdef __unix__
+					client_socket
+#else
+					client_socket_dup
+#endif
+				);
+			}
+		}
+		else {
+			sprintf(str,"COM%d:\n"
+				,online==ON_REMOTE ? cfg.com_port:0);	/* 01: COM port - 0 if Local */
+		}
+#else
+		sprintf(str,"COM%d:\n"
+			,online==ON_REMOTE ? cfg.com_port:0);	/* 01: COM port - 0 if Local */
+#endif
+		lfexpand(str,misc);
+		write(file,str,strlen(str));
 		/* Note about door.sys, line 2 (April-24-2005):
 		   It *should* be the DCE rate (any number, including the popular modem
 		   DCE rates of 14400, 28800, and 33600).  However, according to Deuce,
@@ -500,8 +525,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		   changing this value to the DTE rate until/unless some other doors
 		   have an issue with that. <sigh>
 		*/
-		sprintf(str,"COM%d:\n%lu\n%u\n%u\n%lu\n%c\n%c\n%c\n%c\n"
-			,online==ON_REMOTE ? cfg.com_port:0	/* 01: COM port - 0 if Local */
+		sprintf(str,"%lu\n%u\n%u\n%lu\n%c\n%c\n%c\n%c\n"
 			,dte_rate /* was cur_rate */		/* 02: DCE rate, see note above */
 			,8									/* 03: Data bits */
 			,cfg.node_num						/* 04: Node number */
@@ -1565,11 +1589,11 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			if((node.status==NODE_INUSE || node.status==NODE_QUIET)
 				&& node.action==NODE_XTRN && node.aux==(xtrnnum+1)) {
 				if(node.status==NODE_QUIET) {
-					strcpy(str,cfg.sys_guru);
+					SAFECOPY(str,cfg.sys_guru);
 					c=cfg.sys_nodes+1; 
 				}
 				else if(node.misc&NODE_ANON)
-					strcpy(str,"UNKNOWN USER");
+					SAFECOPY(str,"UNKNOWN USER");
 				else
 					username(&cfg,node.useron,str);
 				bprintf(text[UserRunningXtrn],str
@@ -1582,44 +1606,45 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			return(false); 
 	}
 
-	sprintf(str,"%s/",cfg.xtrn[xtrnnum]->path);
-	strcpy(path,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
-	strcpy(dropdir,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
+	SAFECOPY(str,cfg.xtrn[xtrnnum]->path);
+	backslash(str);
+	SAFECOPY(path,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
+	SAFECOPY(dropdir,cfg.xtrn[xtrnnum]->misc&STARTUPDIR ? str : cfg.node_dir);
 
 	switch(cfg.xtrn[xtrnnum]->type) {
 		case XTRN_WWIV:
-			strcpy(name,"CHAIN.TXT");
+			SAFECOPY(name,"CHAIN.TXT");
 			break;
 		case XTRN_GAP:
-			strcpy(name,"DOOR.SYS");
+			SAFECOPY(name,"DOOR.SYS");
 			break;
 		case XTRN_RBBS:
 			sprintf(str,"DORINFO%X.DEF",cfg.node_num);
-			strcpy(name,str);
+			SAFECOPY(name,str);
 			break;
 		case XTRN_RBBS1:
-			strcpy(name,"DORINFO1.DEF");
+			SAFECOPY(name,"DORINFO1.DEF");
 			break;
 		case XTRN_WILDCAT:
-			strcpy(name,"CALLINFO.BBS");
+			SAFECOPY(name,"CALLINFO.BBS");
 			break;
 		case XTRN_PCBOARD:
-			strcpy(name,"PCBOARD.SYS");
+			SAFECOPY(name,"PCBOARD.SYS");
 			break;
 		case XTRN_UTI:
-			strcpy(name,"UTIDOOR.TXT");
+			SAFECOPY(name,"UTIDOOR.TXT");
 			break;
 		case XTRN_SR:
-			strcpy(name,"DOORFILE.SR");
+			SAFECOPY(name,"DOORFILE.SR");
 			break;
 		case XTRN_TRIBBS:
-			strcpy(name,"TRIBBS.SYS");
+			SAFECOPY(name,"TRIBBS.SYS");
 			break;
 		case XTRN_DOOR32:
-			strcpy(name,"DOOR32.SYS");
+			SAFECOPY(name,"DOOR32.SYS");
 			break;
 		default:
-			strcpy(name,"XTRN.DAT");
+			SAFECOPY(name,"XTRN.DAT");
 			break; 
 	}
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_LWRCASE)
@@ -1632,9 +1657,9 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	putuserrec(&cfg,useron.number,U_CURXTRN,8,cfg.xtrn[xtrnnum]->code);
 
 	if(cfg.xtrn[xtrnnum]->misc&REALNAME)
-		strcpy(name,useron.name);
+		SAFECOPY(name,useron.name);
 	else
-		strcpy(name,useron.alias);
+		SAFECOPY(name,useron.alias);
 
 	gettimeleft();
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
