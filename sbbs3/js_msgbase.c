@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.126 2006/12/28 02:45:27 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.124 2006/06/01 21:51:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -777,11 +777,6 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if(msg.reverse_path!=NULL
 		&& (js_str=JS_NewStringCopyZ(cx,truncsp(msg.reverse_path)))!=NULL)
 		JS_DefineProperty(cx, hdrobj, "reverse_path"
-			,STRING_TO_JSVAL(js_str)
-			,NULL,NULL,JSPROP_ENUMERATE);
-	if(msg.forward_path!=NULL
-		&& (js_str=JS_NewStringCopyZ(cx,truncsp(msg.forward_path)))!=NULL)
-		JS_DefineProperty(cx, hdrobj, "forward_path"
 			,STRING_TO_JSVAL(js_str)
 			,NULL,NULL,JSPROP_ENUMERATE);
 
@@ -1750,7 +1745,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>id</tt><td>Message's RFC-822 compliant Message-ID"
 	"<tr><td align=top><tt>reply_id</tt><td>Message's RFC-822 compliant Reply-ID"
 	"<tr><td align=top><tt>reverse_path</tt><td>Message's SMTP sender address"
-	"<tr><td align=top><tt>forward_path</tt><td>Argument to SMTP 'RCPT TO' command"
 	"<tr><td align=top><tt>path</tt><td>Messages's NNTP path"
 	"<tr><td align=top><tt>newsgroups</tt><td>Message's NNTP newsgroups header"
 	"<tr><td align=top><tt>ftn_msgid</tt><td>FidoNet FTS-9 Message-ID"
@@ -1839,15 +1833,8 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 		}
 		if(p->smb.subnum<scfg->total_subs) {
 			cfgobj=JS_NewObject(cx,NULL,NULL,obj);
-
-#ifdef BUILD_JSDOCS	
-			/* needed for property description alignment */
 			JS_DefineProperty(cx,cfgobj,"index",JSVAL_VOID
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-			JS_DefineProperty(cx,cfgobj,"grp_index",JSVAL_VOID
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-#endif
-
 			js_CreateMsgAreaProperties(cx, scfg, cfgobj, p->smb.subnum);
 #ifdef BUILD_JSDOCS
 			js_DescribeSyncObject(cx,cfgobj
