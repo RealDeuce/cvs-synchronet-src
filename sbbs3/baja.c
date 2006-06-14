@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.43 2007/07/08 20:30:31 deuce Exp $ */
+/* $Id: baja.c,v 1.40 2005/09/20 03:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,8 +346,7 @@ void writecrc(uchar *src, uchar *in)
 {
 	uchar	name[128];
 	uchar*	p;
-	int32_t	l;
-	int		i;
+	long	i,l;
 
 	/* Automatically terminate variable name Oct-09-2000 rswindell */
 	sprintf(name,"%.80s",in);
@@ -455,10 +454,8 @@ void compile(char *src)
 {
 	uchar *str,*save,*p,*sp,*tp,*arg,*arg2,*arg3,*arg4,*ar,ch;
 	char path[MAX_PATH+1];
-	uint16_t i;
-    ushort j;
-	int32_t l;
-	int savline;
+    ushort i,j;
+	long l,savline;
 	FILE *in;
 
 	if((in=fopen(src,"rb"))==NULL) {
@@ -3404,13 +3401,12 @@ char *usage=	"\n"
 
 int main(int argc, char **argv)
 {
-	char	src[MAX_PATH+1]="",*p;
-	char	path[MAX_PATH+1];
+	uchar	str[128],src[128]="",*p;
 	int		i,j;
-	int		show_banner=TRUE;
+	int		show_banner=1;
 	char	revision[16];
 
-	sscanf("$Revision: 1.43 $", "%*s %s", revision);
+	sscanf("$Revision: 1.40 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
@@ -3444,7 +3440,7 @@ int main(int argc, char **argv)
 					printf(usage);
 					bail(1); }
 		else
-			sprintf(src,"%.*s",sizeof(src)-5,argv[i]);	/* leave room for '.src' to be appended */
+			strcpy(src,argv[i]);
 
 	if(show_banner)
 		printf(banner,PLATFORM_DESC,revision);
@@ -3469,8 +3465,8 @@ int main(int argc, char **argv)
 
 	if(output_dir[0]) {
 		p=getfname(bin_file);
-		SAFEPRINTF2(path,"%s%s",output_dir,p);
-		SAFECOPY(bin_file,path); 
+		sprintf(str,"%s%s",output_dir,bin_file);
+		SAFECOPY(bin_file,str); 
 	}
 
 	if((out=fopen(bin_file,"w+b"))==NULL) {
