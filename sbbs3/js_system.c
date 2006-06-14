@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.107 2006/06/15 03:20:00 rswindell Exp $ */
+/* $Id: js_system.c,v 1.106 2006/06/06 17:17:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -406,7 +406,7 @@ static jsSyncPropertySpec js_system_properties[] = {
 	/* clock access */
 	{	"clock_ticks",				SYS_PROP_CLOCK			,SYSOBJ_FLAGS,	311  },
 	{	"clock_ticks_per_second",	SYS_PROP_CLOCK_PER_SEC	,SYSOBJ_FLAGS,	311  },
-	{	"timer",					SYS_PROP_TIMER			,SYSOBJ_FLAGS,	314	 },
+	{	"timer",					SYS_PROP_TIMER			,SYSOBJ_FLAGS,	313	 },
 
 	/* last */
 	{	"local_host_name",			SYS_PROP_LOCAL_HOSTNAME	,SYSOBJ_FLAGS,	311  },
