@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.70 2006/08/24 00:20:48 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.63 2006/06/04 21:06:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -633,33 +633,6 @@ int DLLCALL getfattr(const char* filename)
 #endif
 }
 
-#ifdef __unix__
-int removecase(char *path)
-{
-	char inpath[MAX_PATH+1];
-	char fname[MAX_PATH*4+1];
-	char tmp[5];
-	char *p;
-	int  i;
-
-	if(strchr(path,'?') || strchr(path,'*'))
-		return(-1);
-	SAFECOPY(inpath,path);
-	p=getfname(inpath);
-	fname[0]=0;
-	for(i=0;p[i];i++)  {
-		if(isalpha(p[i]))
-			sprintf(tmp,"[%c%c]",toupper(p[i]),tolower(p[i]));
-		else
-			sprintf(tmp,"%c",p[i]);
-		strncat(fname,tmp,MAX_PATH*4);
-	}
-	*p=0;
-
-	return(delfiles(inpath,fname)?-1:0);
-}
-#endif
-
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /****************************************************************************/
@@ -671,7 +644,7 @@ ulong DLLCALL delfiles(char *inpath, char *spec)
 	glob_t	g;
 
 	lastch=*lastchar(inpath);
-	if(!IS_PATH_DELIM(lastch) && lastch)
+	if(!IS_PATH_DELIM(lastch))
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
 		strcpy(path,inpath);

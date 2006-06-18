@@ -2,13 +2,13 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.48 2007/07/11 00:33:05 deuce Exp $ */
+/* $Id: listfile.cpp,v 1.44 2006/06/16 05:20:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -56,8 +56,7 @@ int sbbs_t::listfiles(uint dirnum, char *filespec, int tofile, long mode)
 	uchar	flagprompt=0;
 	uint	i,j;
 	int		file,found=0,lastbat=0,disp;
-	long	m=0,n,anchor=0,next,datbuflen;
-	int32_t	l;
+	long	l,m=0,n,anchor=0,next,datbuflen;
 	file_t	f,bf[26];	/* bf is batch flagged files */
 
 	if(mode&FL_ULTIME) {
@@ -532,23 +531,6 @@ bool sbbs_t::removefcdt(file_t* f)
 	return(true);
 }
 
-bool sbbs_t::removefile(file_t* f)
-{
-	char str[256];
-
-	if(removefiledat(&cfg,f)) {
-		SAFEPRINTF4(str,"%s removed %s from %s %s"
-			,useron.alias
-			,f->name
-			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-		logline("U-",str);
-		return(true);
-	}
-	SAFEPRINTF2(str,"%s %s",cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-	errormsg(WHERE, ERR_REMOVE, f->name, 0, str);
-	return(false);
-}
-
 /****************************************************************************/
 /* Move file 'f' from f.dir to newdir                                       */
 /****************************************************************************/
@@ -802,7 +784,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 										,f.opencount,f.opencount>1 ? "s":nulstr);
 									continue; }
 								if(ch=='D') {
-									removefile(&f);
+									removefiledat(&cfg,&f);
 									if(remfile) {
 										sprintf(tmp,"%s%s",cfg.dir[f.dir]->path,fname);
 										remove(tmp); }
@@ -826,7 +808,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 								,f.opencount,f.opencount>1 ? "s":nulstr);
 							continue; }
 						if(ch=='D') {
-							removefile(&f);
+							removefiledat(&cfg,&f);
 							if(remfile) {
 								sprintf(tmp,"%s%s",cfg.dir[f.dir]->path,fname);
 								remove(tmp); }
@@ -1036,7 +1018,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 						break;
 					ultoa(f.cdt,str,10);
 					bputs(text[EditCreditValue]);
-					getstr(str,10,K_NUMBER|K_EDIT|K_AUTODEL);
+					getstr(str,7,K_NUMBER|K_EDIT|K_AUTODEL);
 					if(sys_status&SS_ABORT)
 						break;
 					f.cdt=atol(str);
@@ -1061,7 +1043,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					if(sys_status&SS_ABORT)
 						break;
 					putfiledat(&cfg,&f);
-					inputnstime32(&f.dateuled);
+					inputnstime(&f.dateuled);
 					update_uldate(&cfg, &f);
 					break;
 				case 'F':   /* delete file only */
@@ -1084,7 +1066,12 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 				case 'R':   /* remove file from database */
 					if(noyes(text[AreYouSureQ]))
 						break;
-					removefile(&f);
+					removefiledat(&cfg,&f);
+					sprintf(str,"%s removed %s from %s %s"
+						,useron.alias
+						,f.name
+						,cfg.lib[cfg.dir[f.dir]->lib]->sname,cfg.dir[f.dir]->sname);
+					logline("U-",str);
 					sprintf(str,"%s%s",dirpath,fname);
 					if(fexistcase(str)) {
 						if(dir_op(dirnum)) {
