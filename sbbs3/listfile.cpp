@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.43 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: listfile.cpp,v 1.44 2006/06/16 05:20:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -990,7 +990,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 							else {
 								sprintf(path,"%s%s",dirpath,fname);
 								sprintf(tmp,"%s%s",dirpath,str);
-								if(rename(path,tmp))
+								if(fexistcase(path) && rename(path,tmp))
 									bprintf(text[CouldntRenameFile],path,tmp);
 								else {
 									bprintf(text[FileRenamed],path,tmp);
