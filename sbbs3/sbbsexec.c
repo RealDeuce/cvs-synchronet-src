@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.34 2006/06/20 22:29:35 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.35 2006/06/20 22:38:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@ WORD uart_io_base				= UART_COM1_IO_BASE;	/* COM1 */
 BYTE uart_irq					= UART_COM1_IRQ;
 BYTE uart_ier_reg				= 0;
 BYTE uart_lcr_reg				= UART_LCR_8_DATA_BITS;
-BYTE uart_mcr_reg				= 0;
+BYTE uart_mcr_reg				= UART_MCR_RTS | UART_MCR_DTR;
 BYTE uart_lsr_reg				= UART_LSR_EMPTY_DATA | UART_LSR_EMPTY_XMIT;
 BYTE uart_msr_reg				= UART_MSR_CTS | UART_MSR_DSR;
 BYTE uart_scratch_reg			= 0;
@@ -782,7 +782,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 __declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID hVDD, IN ULONG Reason, 
 IN PCONTEXT Context OPTIONAL)
 {
-	sscanf("$Revision: 1.34 $", "%*s %s", revision);
+	sscanf("$Revision: 1.35 $", "%*s %s", revision);
 
 	vdd_handle=hVDD;
 
