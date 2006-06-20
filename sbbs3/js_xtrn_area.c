@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.19 2005/12/13 02:24:49 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.20 2006/02/22 22:30:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -306,7 +306,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 			prog_index=-1;
 			if((user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user))
-				&& !(cfg->xtrn[d]->misc&EVENTONLY)) {
+				&& !(cfg->xtrn[d]->event && cfg->xtrn[d]->misc&EVENTONLY)) {
 
 				if(!JS_GetArrayLength(cx, prog_list, &prog_index))
 					return(NULL);							
