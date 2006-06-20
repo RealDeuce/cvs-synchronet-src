@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.199 2006/11/16 20:41:06 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.195 2006/06/20 21:49:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -280,8 +280,16 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
 }
 
 #define XTRN_LOADABLE_MODULE								\
-	if(cmdline[0]=='*')		/* Baja module or JavaScript */	\
-		return(exec_bin(cmdline+1,&main_csi))				
+	if(cmdline[0]=='*') {   /* Baja module or JavaScript */	\
+		SAFECOPY(str,cmdline+1);							\
+		p=strchr(str,' ');									\
+		if(p) {												\
+			strcpy(main_csi.str,p+1);						\
+			*p=0; 											\
+		} else												\
+			main_csi.str[0]=0;								\
+		return(exec_bin(str,&main_csi));					\
+	}														
 #ifdef JAVASCRIPT
 	#define XTRN_LOADABLE_JS_MODULE							\
 	if(cmdline[0]=='?') 	/* JavaScript */				\
@@ -353,6 +361,7 @@ static void add_env_var(str_list_t* list, const char* var, const char* val)
 int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 {
 	char	str[MAX_PATH+1];
+	char*	p;
 	char*	env_block=NULL;
 	char*	env_strings;
 	const char* p_startup_dir;
@@ -483,28 +492,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
     } else { // DOS external
 
-		// DOS-compatible (short) paths
-		char node_dir[MAX_PATH+1];
-		char ctrl_dir[MAX_PATH+1];
-		char data_dir[MAX_PATH+1];
-		char exec_dir[MAX_PATH+1];
-
-		// in case GetShortPathName fails
-		SAFECOPY(node_dir,cfg.node_dir);
-		SAFECOPY(ctrl_dir,cfg.ctrl_dir);
-		SAFECOPY(data_dir,cfg.data_dir);
-		SAFECOPY(exec_dir,cfg.exec_dir);
-
-		GetShortPathName(cfg.node_dir,node_dir,sizeof(node_dir));
-		GetShortPathName(cfg.ctrl_dir,ctrl_dir,sizeof(node_dir));
-		GetShortPathName(cfg.data_dir,data_dir,sizeof(data_dir));
-		GetShortPathName(cfg.exec_dir,exec_dir,sizeof(exec_dir));
-
 		sprintf(path,"%sDOSXTRN.RET", cfg.node_dir);
 		remove(path);
 
     	// Create temporary environment file
-    	sprintf(path,"%sDOSXTRN.ENV", node_dir);
+    	sprintf(path,"%sDOSXTRN.ENV", cfg.node_dir);
         FILE* fp=fopen(path,"w");
         if(fp==NULL) {
 			XTRN_CLEANUP;
@@ -512,11 +504,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
             return(errno);
         }
         fprintf(fp, "%s\n", fullcmdline);
-		fprintf(fp, "DSZLOG=%sPROTOCOL.LOG\n", node_dir);
-        fprintf(fp, "SBBSNODE=%s\n", node_dir);
-        fprintf(fp, "SBBSCTRL=%s\n", ctrl_dir);
-		fprintf(fp, "SBBSDATA=%s\n", data_dir);
-		fprintf(fp, "SBBSEXEC=%s\n", exec_dir);
+		fprintf(fp, "DSZLOG=%sPROTOCOL.LOG\n", cfg.node_dir);
+        fprintf(fp, "SBBSNODE=%s\n", cfg.node_dir);
+        fprintf(fp, "SBBSCTRL=%s\n", cfg.ctrl_dir);
+		fprintf(fp, "SBBSDATA=%s\n", cfg.data_dir);
+		fprintf(fp, "SBBSEXEC=%s\n", cfg.exec_dir);
         fprintf(fp, "SBBSNNUM=%d\n", cfg.node_num);
 		/* date/time env vars */
 		fprintf(fp, "DAY=%02u\n", tm.tm_mday);
@@ -526,7 +518,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "YEAR=%u\n",1900+tm.tm_year);
         fclose(fp);
 
-        sprintf(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
+		SAFECOPY(str,path);	// incase GetShortPathName fails
+		GetShortPathName(path,str,sizeof(str));
+        sprintf(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, str);
 
 		if(!(mode&EX_OFFLINE) && nt) {	// Windows NT/2000
 			i=SBBSEXEC_MODE_FOSSIL;
@@ -998,7 +992,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				/* to allow for last minute reception of output from DOS programs */
 				if(loop_since_io>=3) {
 
-					if(online && hangup_event!=NULL
+					if(hangup_event!=NULL
 						&& WaitForSingleObject(hangup_event,0)==WAIT_OBJECT_0) {
 						lprintf(LOG_NOTICE,"Node %d External program requested hangup (dropped DTR)"
 							,cfg.node_num);
@@ -1711,7 +1705,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		sigprocmask(SIG_UNBLOCK,&sigs,NULL);
 		if(!(mode&EX_BIN))  {
 			static char	term_env[256];
-			if(term_supports(ANSI))
+			if(useron.misc&ANSI)
 				sprintf(term_env,"TERM=%s",startup->xtrn_term_ansi);
 			else
 				sprintf(term_env,"TERM=%s",startup->xtrn_term_dumb);
