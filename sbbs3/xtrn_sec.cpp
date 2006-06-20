@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.51 2006/05/09 02:54:53 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.52 2006/06/20 21:52:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1723,10 +1723,12 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	sprintf(str,"%shangup.now",cfg.node_dir);
 	if(fexistcase(str)) {
+		lprintf(LOG_NOTICE,"Node %d External program requested hangup (%s signaled)"
+			,cfg.node_num, str);
 		remove(str);
 		hangup(); 
 	}
-	if(!online) {
+	else if(!online) {
 		sprintf(str,"%shungup.log",cfg.logs_dir);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
