@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.65 2007/07/10 21:11:09 deuce Exp $ */
+/* $Id: exec.cpp,v 1.59 2006/06/18 05:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
+char ** sbbs_t::getstrvar(csi_t *bin, long name)
 {
 	uint i;
 
@@ -122,7 +122,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
+long * sbbs_t::getintvar(csi_t *bin, long name)
 {
 	uint i;
 
@@ -653,38 +653,23 @@ long sbbs_t::js_execfile(const char *cmd)
 }
 #endif
 
-/* Important change as of Nov-16-2006, 'cmdline' may contain args */
-long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
+
+long sbbs_t::exec_bin(char *mod, csi_t *csi)
 {
     char    str[MAX_PATH+1];
-	char	mod[MAX_PATH+1];
 	char	modname[MAX_PATH+1];
-	char*	p;
 	int 	file;
     csi_t   bin;
 
-	SAFECOPY(mod,cmdline);
-	p=mod;
-	FIND_CHAR(p,' ');
-	if(*p) {
-		*p=0;				/* terminate 'mod' */
-		p++;				/* skip space */
-		SKIP_CHAR(p,' ');	/* skip more spaces */
-	}
-	if(*p)
-		strcpy(main_csi.str, p);
-
 #ifdef JAVASCRIPT
-	if((p=getfext(mod))!=NULL && stricmp(p,".js")==0)
-		return(js_execfile(cmdline));
 	if(cfg.mods_dir[0]) {
 		sprintf(str,"%s%s.js",cfg.mods_dir,mod);
 		if(fexistcase(str)) 
-			return(js_execfile(cmdline));
+			return(js_execfile(str));
 	}
 	sprintf(str,"%s%s.js",cfg.exec_dir,mod);
 	if(fexistcase(str)) 
-		return(js_execfile(cmdline));
+		return(js_execfile(str));
 #endif
 
 	memcpy(&bin,csi,sizeof(csi_t));
