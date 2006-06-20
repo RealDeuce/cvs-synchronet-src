@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.195 2006/06/20 21:49:34 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.196 2006/06/20 22:39:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -992,7 +992,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				/* to allow for last minute reception of output from DOS programs */
 				if(loop_since_io>=3) {
 
-					if(hangup_event!=NULL
+					if(online && hangup_event!=NULL
 						&& WaitForSingleObject(hangup_event,0)==WAIT_OBJECT_0) {
 						lprintf(LOG_NOTICE,"Node %d External program requested hangup (dropped DTR)"
 							,cfg.node_num);
