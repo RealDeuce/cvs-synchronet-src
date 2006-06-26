@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.35 2006/06/20 22:38:49 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.36 2006/06/26 23:12:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -525,10 +525,8 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 				FALSE,				/* inherit flag  */
 				str);				/* pointer to event-object name  */
 			if(hangup_event==NULL) {
-				lprintf(LOG_ERR,"!VDD_OPEN: Error %d opening %s"
+				lprintf(LOG_WARNING,"!VDD_OPEN: Error %d opening %s"
 					,GetLastError(),str);
-				retval=4;
-				break;
 			}
 
 			status_poll=0;
@@ -782,7 +780,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 __declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID hVDD, IN ULONG Reason, 
 IN PCONTEXT Context OPTIONAL)
 {
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.36 $", "%*s %s", revision);
 
 	vdd_handle=hVDD;
 
