@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.180 2006/06/14 17:43:30 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.181 2006/06/27 18:20:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1420,53 +1420,37 @@ int unpack(char *infile)
 	char str[256],tmp[128];
 	int i,j,ch,file;
 
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if((stream=fnopen(&file,infile,O_RDONLY))==NULL) {
 		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,infile
 			,strerror(errno));
 		bail(1); }
-	lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, cfg.arcdefs);
 	for(i=0;i<cfg.arcdefs;i++) {
 		str[0]=0;
-		lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, cfg.arcdef[i].byteloc);
 		fseek(stream,cfg.arcdef[i].byteloc,SEEK_SET);
-		lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, strlen(cfg.arcdef[i].hexid));
 		for(j=0;j<strlen(cfg.arcdef[i].hexid)/2;j++) {
-			lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, j);
 			ch=fgetc(stream);
-			lprintf(LOG_DEBUG,"unpack line %d (%d)", __LINE__, ch);
 			if(ch==EOF) {
-				lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 				i=cfg.arcdefs;
 				break; }
-			lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 			sprintf(tmp,"%02X",ch);
 			strcat(str,tmp); 
-			lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 		}
-		lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 		if(!stricmp(str,cfg.arcdef[i].hexid))
 			break; 
-		lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	}
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	fclose(stream);
 
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if(i==cfg.arcdefs) {
 		lprintf(LOG_ERR,"ERROR line %d determining filetype of %s",__LINE__,infile);
 		return(1); }
 
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	j=execute(mycmdstr(&scfg,cfg.arcdef[i].unpack,infile
 		,secure ? cfg.secure : cfg.inbound));
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	if(j) {
 		lprintf(LOG_ERR,"ERROR %d (%d) line %d executing %s"
 			,j,errno,__LINE__,mycmdstr(&scfg,cfg.arcdef[i].unpack,infile
 				,secure ? cfg.secure : cfg.inbound));
 		return(j); }
-	lprintf(LOG_DEBUG,"unpack line %d", __LINE__);
 	return(0);
 }
 /******************************************************************************
@@ -3917,7 +3901,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.180 $", "%*s %s", revision);
+	sscanf("$Revision: 1.181 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
