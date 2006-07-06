@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.94 2005/10/19 07:18:02 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.95 2006/06/01 21:53:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -1668,7 +1668,8 @@ str_list_t iniReadFile(FILE* fp)
 	str_list_t	list;
 	FILE*		insert_fp=NULL;
 	
-	rewind(fp);
+	if(fp!=NULL)
+		rewind(fp);
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
 	if(list==NULL)
