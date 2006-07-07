@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.212 2007/07/11 00:01:43 rswindell Exp $ */
+/* $Id: js_global.c,v 1.201 2006/07/06 18:14:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -296,16 +296,9 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		exec_cx = bg->cx;
 		exec_obj = bg->obj;
 		
-	} else if(JSVAL_IS_OBJECT(argv[argn])) {
-		JSObject* tmp_obj=JSVAL_TO_OBJECT(argv[argn++]);
-		if(!JS_ObjectIsFunction(cx,tmp_obj))	/* Scope specified */
-			exec_obj=tmp_obj;
-	}
+	} else if(JSVAL_IS_OBJECT(argv[argn]))	/* Scope specified */
+		obj=JSVAL_TO_OBJECT(argv[argn++]);
 
-	if(argn==argc) {
-		JS_ReportError(cx,"no filename specified");
-		return(JS_FALSE);
-	}
 	if((filename=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL)
 		return(JS_FALSE);
 
@@ -1340,25 +1333,25 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	JSBool		ansi=JS_TRUE;
 	JSBool		ctrl_a=JS_TRUE;
 	JSString*	js_str;
-	int32		fg=7;
-	int32		bg=0;
-	JSBool		blink=FALSE;
-	JSBool		bold=FALSE;
+	int			fg=7;
+	int			bg=0;
+	BOOL		blink=FALSE;
+	BOOL		bold=FALSE;
 	int			esccount=0;
 	char		ansi_seq[MAX_ANSI_SEQ+1];
 	int			ansi_param[MAX_ANSI_PARAMS];
 	int			k,l;
 	ulong		savepos=0;
-	int32		hpos=0;
-	int32		currrow=0;
+	int			hpos=0;
+	int			currrow=0;
 	int			savehpos=0;
 	int			savevpos=0;
-	int32		wraphpos=-2;
-	int32		wrapvpos=-2;
-	int32		wrappos=0;
+	int			wraphpos=-2;
+	int			wrapvpos=-2;
+	ulong		wrappos=0;
 	BOOL		extchar=FALSE;
 	ulong		obsize;
-	int32		lastcolor=7;
+	int			lastcolor=7;
 	char		tmp1[128];
 	struct		tm tm;
 	time_t		now;
@@ -1367,8 +1360,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	uchar   	attr_stack[64]; /* Saved attributes (stack) */
 	int     	attr_sp=0;                /* Attribute stack pointer */
 	ulong		clear_screen=0;
-	JSObject*	stateobj=NULL;
-	jsval		val;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -1393,40 +1384,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		ctrl_a=JSVAL_TO_BOOLEAN(argv[4]);
 		if(ctrl_a)
 			ansi=ctrl_a;
-	}
-
-	if(argc>5 && JSVAL_IS_OBJECT(argv[5])) {
-		stateobj=JSVAL_TO_OBJECT(argv[5]);
-		JS_GetProperty(cx,stateobj,"fg",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &fg);
-		JS_GetProperty(cx,stateobj,"bg",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &bg);
-		JS_GetProperty(cx,stateobj,"lastcolor",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &lastcolor);
-		JS_GetProperty(cx,stateobj,"blink",&val);
-		if(JSVAL_IS_BOOLEAN(val))
-			fg=JS_ValueToBoolean(cx, val, &blink);
-		JS_GetProperty(cx,stateobj,"bold",&val);
-		if(JSVAL_IS_BOOLEAN(val))
-			fg=JS_ValueToBoolean(cx, val, &bold);
-		JS_GetProperty(cx,stateobj,"hpos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &hpos);
-		JS_GetProperty(cx,stateobj,"currrow",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &currrow);
-		JS_GetProperty(cx,stateobj,"wraphpos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &wraphpos);
-		JS_GetProperty(cx,stateobj,"wrapvpos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &wrapvpos);
-		JS_GetProperty(cx,stateobj,"wrappos",&val);
-		if(JSVAL_IS_NUMBER(val))
-			fg=JS_ValueToInt32(cx, val, &wrappos);
 	}
 
 	if((tmpbuf=(char*)malloc((strlen(inbuf)*10)+1))==NULL)
@@ -1693,7 +1650,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case 'A': /* Move up */
 						l=wrappos;
-						if(j > (ulong)wrappos && hpos==0 && currrow==wrapvpos+1 && ansi_param[0]<=1)  {
+						if(j > wrappos && hpos==0 && currrow==wrapvpos+1 && ansi_param[0]<=1)  {
 							hpos=wraphpos;
 							currrow=wrapvpos;
 							j=wrappos;
@@ -1789,7 +1746,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case '+':
 						if(attr_sp<(int)sizeof(attr_stack))
-							attr_stack[attr_sp++]=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | (int)fg;
+							attr_stack[attr_sp++]=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | fg;
 						break;
 					case '-':
 						if(attr_sp>0)
@@ -1923,7 +1880,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case LF:
 						wrapvpos=currrow;
-						if((ulong)wrappos<j-3)
+						if(wrappos<j-3)
 							wrappos=j;
 						currrow++;
 						if(hpos!=0 && tmpbuf[i+1]!=CR)
@@ -1941,7 +1898,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					case CR:
 						if(wraphpos==-2 || hpos!=0)
 							wraphpos=hpos;
-						if((ulong)wrappos<j-3)
+						if(wrappos<j-3)
 							wrappos=j;
 						outbuf[j++]=tmpbuf[i];
 						hpos=0;
@@ -1952,13 +1909,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 							lastcolor=(blink?(1<<7):0) | (bg << 4) | (bold?(1<<3):0) | fg;
 							j+=sprintf(outbuf+j,"%s%s%s",HTML_COLOR_PREFIX,htmlansi[lastcolor],HTML_COLOR_SUFFIX);
 						}
-						outbuf[j++]=tmpbuf[i];
-						if(tmpbuf[i]=='&')
-							extchar=TRUE;
-						if(tmpbuf[i]==';')
-							extchar=FALSE;
-						if(!extchar)
-							hpos++;
 						/* ToDo: Fix hard-coded terminal window width (80) */
 						if(hpos>=80 && tmpbuf[i+1] != '\r' && tmpbuf[i+1] != '\n' && tmpbuf[i+1] != ESC)
 						{
@@ -1970,6 +1920,13 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 							outbuf[j++]='\r';
 							outbuf[j++]='\n';
 						}
+						outbuf[j++]=tmpbuf[i];
+						if(tmpbuf[i]=='&')
+							extchar=TRUE;
+						if(tmpbuf[i]==';')
+							extchar=FALSE;
+						if(!extchar)
+							hpos++;
 				}
 			}
 		}
@@ -1986,30 +1943,6 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(js_str);
-
-	if(stateobj!=NULL) {
-		JS_DefineProperty(cx, stateobj, "fg", INT_TO_JSVAL(fg)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "bg", INT_TO_JSVAL(bg)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "lastcolor", INT_TO_JSVAL(lastcolor)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "blink", BOOLEAN_TO_JSVAL(blink)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "bold", BOOLEAN_TO_JSVAL(bold)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "hpos", INT_TO_JSVAL(hpos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "currrow", INT_TO_JSVAL(currrow)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "wraphpos", INT_TO_JSVAL(wraphpos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "wrapvpos", INT_TO_JSVAL(wrapvpos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, stateobj, "wrappos", INT_TO_JSVAL(wrappos)
-			,NULL,NULL,JSPROP_ENUMERATE);
-	}
-
 	return(JS_TRUE);
 }
 
@@ -2413,21 +2346,6 @@ js_fexist(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_removecase(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		p;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(removecase(p)==0);
-	return(JS_TRUE);
-}
-
-static JSBool
 js_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -2477,25 +2395,6 @@ js_fcopy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	*rval = BOOLEAN_TO_JSVAL(fcopy(src,dest));
-	return(JS_TRUE);
-}
-
-static JSBool
-js_fcompare(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		fn1;
-	char*		fn2;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
-	if((fn1=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
-		return(JS_TRUE);
-	if((fn2=js_ValueToStringBytes(cx, argv[1], NULL))==NULL)
-		return(JS_TRUE);
-
-	*rval = BOOLEAN_TO_JSVAL(fcompare(fn1,fn2));
 	return(JS_TRUE);
 }
 
@@ -2573,7 +2472,8 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*			fname;
 	int32			actime;
 	int32			modtime;
-	struct utimbuf	ut;
+	struct utimbuf	tbuf;
+	struct utimbuf*	t=NULL;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -2583,18 +2483,17 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((fname=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	/* use current time as default */
-	ut.actime = ut.modtime = time(NULL);
-
 	if(argc>1) {
-		actime=modtime=ut.actime;
+		memset(&tbuf,0,sizeof(tbuf));
+		actime=modtime=time(NULL);
 		JS_ValueToInt32(cx,argv[1],&actime);
 		JS_ValueToInt32(cx,argv[2],&modtime);
-		ut.actime=actime;
-		ut.modtime=modtime;
+		tbuf.actime=actime;
+		tbuf.modtime=modtime;
+		t=&tbuf;
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(utime(fname,&ut)==0);
+	*rval = BOOLEAN_TO_JSVAL(utime(fname,t)==0);
 
 	return(JS_TRUE);
 }
@@ -2855,18 +2754,18 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		}
     }
 
-	if(select(maxsock+1,rd_set,wr_set,NULL,&tv) >= 0) {
+	if(select(maxsock+1,rd_set,wr_set,NULL,&tv)<0)
+		lprintf(LOG_DEBUG,"Error in socket_select()  %s (%d)",strerror(errno),errno);
 
-		for(i=0;i<limit;i++) {
-			if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
-				val=INT_TO_JSVAL(i);
-   				if(!JS_SetElement(cx, rarray, len++, &val))
-					break;
-			}
+	for(i=0;i<limit;i++) {
+		if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
+			val=INT_TO_JSVAL(i);
+   			if(!JS_SetElement(cx, rarray, len++, &val))
+				break;
 		}
-
-		*rval = OBJECT_TO_JSVAL(rarray);
 	}
+
+    *rval = OBJECT_TO_JSVAL(rarray);
 
     return(JS_TRUE);
 }
@@ -3140,8 +3039,8 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF), returns modified string")
 	,310
 	},
-	{"wildmatch",		js_wildmatch,		2,	JSTYPE_BOOLEAN, JSDOCSTR("[case_sensitive=<tt>false</tt>,] string [,pattern=<tt>'*'</tt>] [,path=<tt>false</tt>]")
-	,JSDOCSTR("returns <tt>true</tt> if the <i>string</i> matches the wildcard <i>pattern</i> (wildcards supported are '*' and '?'), "
+	{"wildmatch",		js_wildmatch,		2,	JSTYPE_BOOLEAN, JSDOCSTR("[case_sensitive=<tt>false</tt>,] string [,pattern=<tt>"*"</tt>] [,path=<tt>false</tt>]")
+	,JSDOCSTR("returns <tt>true</tt> if the <i>string</i> matches the wildcard <i>pattern</i> (wildcard supported are '*' and '?'), "
 	"if <i>path</i> is <tt>true</tt>, '*' will not match path delimeter characters (e.g. '/')")
 	,314
 	},
@@ -3177,10 +3076,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"file_remove",		js_remove,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
 	,JSDOCSTR("delete a file")
 	,310
-	},		
-	{"file_removecase",	js_removecase,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
-	,JSDOCSTR("delete files case insensitively")
-	,314
 	},		
 	{"file_rename",		js_rename,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/oldname, path/newname")
 	,JSDOCSTR("rename a file, possibly moving it to another directory in the process")
@@ -3232,10 +3127,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"it is presumed stale and removed/over-written")
 	,312
 	},
-	{"file_compare",	js_fcompare,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/file1, path/file2")
-	,JSDOCSTR("compare 2 files, returning <i>true</i> if they are identical, <i>false</i> otherwise")
-	,314
-	},
 	{"directory",		js_directory,		1,	JSTYPE_ARRAY,	JSDOCSTR("path/pattern [,flags=<tt>GLOB_MARK</tt>]")
 	,JSDOCSTR("returns an array of directory entries, "
 		"<i>pattern</i> is the path and filename or wildcards to search for (e.g. '/subdir/*.txt'), "
@@ -3257,7 +3148,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
 	,JSDOCSTR("checks an array of socket objects or descriptors for read or write ability (default is <i>read</i>), "
 		"default timeout value is 0.0 seconds (immediate timeout), "
-		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing, or <i>null</i> on error")
+		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing")
 	,311
 	},
 	{"mkdir",			js_mkdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
@@ -3276,10 +3167,9 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("return a formatted string (ala the standard C <tt>sprintf</tt> function)")
 	,310
 	},
-	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("text [,ex_ascii=<tt>true</tt>] [,white_space=<tt>true</tt>] [,ansi=<tt>true</tt>] [,ctrl_a=<tt>true</tt>] [, state (object)]")
+	{"html_encode",		js_html_encode,		1,	JSTYPE_STRING,	JSDOCSTR("text [,ex_ascii=<tt>true</tt>] [,white_space=<tt>true</tt>] [,ansi=<tt>true</tt>] [,ctrl_a=<tt>true</tt>]")
 	,JSDOCSTR("return an HTML-encoded text string (using standard HTML character entities), "
-		"escaping IBM extended-ASCII, white-space characters, ANSI codes, and CTRL-A codes by default."
-		"Optionally storing the current ANSI state in <i>state</i> object")
+		"escaping IBM extended-ASCII, white-space characters, ANSI codes, and CTRL-A codes by default")
 	,311
 	},
 	{"html_decode",		js_html_decode,		1,	JSTYPE_STRING,	JSDOCSTR("html")
