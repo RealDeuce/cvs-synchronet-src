@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.107 2006/07/09 06:51:25 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.108 2006/07/13 02:14:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -136,6 +136,26 @@ void usage(FILE* fp)
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
 		);
+}
+
+int mfprintf(FILE* fp, char *fmt, ...)
+{
+	va_list argptr;
+	char sbuf[1024];
+	int ret=0;
+
+    va_start(argptr,fmt);
+    ret=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
+    va_end(argptr);
+
+	/* Mutex-protect stdout/stderr */
+	pthread_mutex_lock(&output_mutex);
+
+	ret = fprintf(fp, "%s\n", sbuf);
+
+	pthread_mutex_unlock(&output_mutex);
+    return(ret);
 }
 
 /* Log printf */
@@ -707,7 +727,7 @@ long js_exec(const char *fname, char** args)
 		return(-1);
 	}
 	if((diff=xp_timer()-start) > 0)
-		lprintf(LOG_INFO,"%s compiled in %.2Lf seconds"
+		mfprintf(statfp,"%s compiled in %.2Lf seconds"
 			,path
 			,diff);
 
@@ -716,14 +736,14 @@ long js_exec(const char *fname, char** args)
 	js_EvalOnExit(js_cx, js_glob, &branch);
 
 	if((diff=xp_timer()-start) > 0)
-		lprintf(LOG_INFO,"%s executed in %.2Lf seconds"
+		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		lprintf(LOG_DEBUG,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
+		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
 
@@ -790,7 +810,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.107 $", "%*s %s", revision);
+	sscanf("$Revision: 1.108 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
