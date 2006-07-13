@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.94 2007/07/10 19:59:39 deuce Exp $ */
+/* $Id: smbutil.c,v 1.93 2005/09/29 01:01:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -910,7 +910,6 @@ void packmsgs(ulong packable)
 		fseek(smb.sda_fp,0L,SEEK_SET);
 		for(l=m=0;l<length;l+=2) {
 			printf("\r%2lu%%  ",l ? (long)(100.0/((float)length/l)) : 0);
-			/* TODO: Only works on LE (size mismatch) */
 			i=0;
 			if(!fread(&i,2,1,smb.sda_fp))
 				break;
@@ -1475,7 +1474,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.94 $", "%*s %s", revision);
+	sscanf("$Revision: 1.93 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
