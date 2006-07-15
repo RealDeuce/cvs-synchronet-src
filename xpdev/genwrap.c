@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.73 2007/02/26 09:30:04 deuce Exp $ */
+/* $Id: genwrap.c,v 1.70 2006/03/01 00:50:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -231,47 +231,6 @@ char* strrev(char* str)
 }
 #endif
 
-#if !defined(__unix__)
-
-/****************************************************************************/
-/* Implementations of the recursive (thread-safe) version of strtok			*/
-/* Thanks to Apache Portable Runtime (APR)									*/
-/****************************************************************************/
-char* DLLCALL strtok_r(char *str, const char *delim, char **last)
-{
-    char* token;
-
-    if (str==NULL)      /* subsequent call */
-        str = *last;    /* start where we left off */
-
-    /* skip characters in delimiter (will terminate at '\0') */
-    while(*str && strchr(delim, *str))
-        ++str;
-
-    if(!*str) {         /* no more tokens */
-		*last = str;
-        return NULL;
-	}
-
-    token = str;
-
-    /* skip valid token characters to terminate token and
-     * prepare for the next call (will terminate at '\0)
-     */
-    *last = token + 1;
-    while(**last && !strchr(delim, **last))
-        ++*last;
-
-    if (**last) {
-        **last = '\0';
-        ++*last;
-    }
-
-    return token;
-}
-
-#endif
-
 /****************************************************************************/
 /* Initialize (seed) the random number generator							*/
 /****************************************************************************/
@@ -416,7 +375,7 @@ char* DLLCALL os_cmdshell(void)
 {
 	char*	shell=getenv(OS_CMD_SHELL_ENV_VAR);
 
-#if defined(__unix__)
+#if !defined(__unix__)
 	if(shell==NULL)
 #ifdef _PATH_BSHELL
 		shell=_PATH_BSHELL;
