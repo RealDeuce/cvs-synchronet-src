@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.39 2006/11/02 00:19:32 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.38 2005/09/30 09:17:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -360,19 +360,16 @@ void sbbs_t::readmail(uint usernumber, int which)
 				quotemsg(&msg,1);
 
 				if(msg.from_net.addr==NULL)
-					SAFECOPY(str,msg.from);
+					strcpy(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO) 	/* FidoNet type */
-					SAFEPRINTF2(str,"%s@%s",msg.from
+					sprintf(str,"%s@%s",msg.from
 						,smb_faddrtoa((faddr_t *)msg.from_net.addr,tmp));
-				else if(msg.from_net.type==NET_INTERNET) {
-					if(msg.replyto_net.type==NET_INTERNET)
-						SAFECOPY(str,(char *)msg.replyto_net.addr);
-					else
-						SAFECOPY(str,(char *)msg.from_net.addr);
-				} else
-					SAFEPRINTF2(str,"%s@%s",msg.from,(char*)msg.from_net.addr);
+				else if(msg.from_net.type==NET_INTERNET)
+					strcpy(str,(char *)msg.from_net.addr);
+				else
+					sprintf(str,"%s@%s",msg.from,(char*)msg.from_net.addr);
 
-				SAFECOPY(str2,str);
+				strcpy(str2,str);
 
 				bputs(text[Email]);
 				if(!getstr(str,64,K_EDIT|K_AUTODEL))
