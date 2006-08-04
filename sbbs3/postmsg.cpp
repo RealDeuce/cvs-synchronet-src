@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.72 2007/07/13 21:29:33 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.68 2006/01/31 02:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -65,8 +65,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	char	touser[64];
 	char	from[64];
 	char	pid[128];
-	uint16_t xlat;
-	ushort	msgattr;
+	ushort	xlat,msgattr;
 	int 	i,j,x,file,storage;
 	ulong	length,offset,crc=0xffffffff;
 	FILE*	instream;
@@ -192,7 +191,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	if(cfg.sub[subnum]->misc&SUB_NAME)
 		bputs(text[UsingRealName]);
 
-	msg_tmp_fname(useron.xedit, str, sizeof(str));
+	sprintf(str,"%sinput.msg",cfg.node_dir);
 	if(!writemsg(str,top,title,wm_mode,subnum,touser)
 		|| (long)(length=flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
@@ -337,7 +336,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			smb_hfield_str(&msg,FIDOREPLYID,remsg->ftn_msgid);
 
 		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
-			errormsg(WHERE,"updating thread",smb.file,i,smb.last_error); 
+			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
 	}
 
 
@@ -527,8 +526,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
  		smb_hfield_str(msg,FIDOMSGID,msg_id);
  	}
 
-	if((i=smb_addmsg(smb,msg,storage,dupechk_hashes,xlat,(uchar*)msgbuf,NULL))==SMB_SUCCESS
-		&& msg->to!=NULL	/* no recipient means no header created at this stage */)
+	if((i=smb_addmsg(smb,msg,storage,dupechk_hashes,xlat,(uchar*)msgbuf,NULL))==SMB_SUCCESS)
 		signal_sub_sem(cfg,smb->subnum);
 
 	return(i);
