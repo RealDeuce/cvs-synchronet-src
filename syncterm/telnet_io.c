@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.17 2006/02/25 08:40:28 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.19 2006/03/20 23:46:19 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -22,14 +22,14 @@ uchar	telnet_local_option[0x100];
 uchar	telnet_remote_option[0x100];
 
 extern FILE*	log_fp;
-extern int		log_level;
+int	telnet_log_level;
 
 static int lprintf(int level, const char *fmt, ...)
 {
 	char sbuf[1024];
 	va_list argptr;
 
-	if(log_fp==NULL || level > log_level)
+	if(log_fp==NULL || level > telnet_log_level)
 		return 0;
 
     va_start(argptr,fmt);
@@ -69,7 +69,7 @@ static void send_telnet_cmd(uchar cmd, uchar opt)
 	}
 }
 
-static void request_telnet_opt(uchar cmd, uchar opt)
+void request_telnet_opt(uchar cmd, uchar opt)
 {
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))

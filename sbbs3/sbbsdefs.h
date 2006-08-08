@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.141 2006/02/03 06:21:37 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.143 2006/06/18 05:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,10 +50,10 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.13"  /* Version: Major.minor  */
-#define REVISION	'b'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31300	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31300 + (tolower(REVISION)-'a'))
+#define VERSION 	"3.14"  /* Version: Major.minor  */
+#define REVISION	'a'     /* Revision: lowercase letter */
+#define VERSION_NUM	(31400	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31400 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -819,12 +819,9 @@ enum {							/* Values of mode for userlist function     */
 							attr(slatr[slcnt]); \
 							rputs(slbuf[slcnt]); \
 							curatr=slcuratr[slcnt]; }
-#define RIOSYNC(x)		{ if(online==ON_REMOTE) riosync(x); }
 #define SYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
-						  RIOSYNC(0); \
 						  nodesync(); }
 #define ASYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
-						  RIOSYNC(1); \
 						  nodesync(); }
 #define ANSI_SAVE() 	rputs("\x1b[s")
 #define ANSI_RESTORE()	rputs("\x1b[u")
