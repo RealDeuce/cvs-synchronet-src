@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.424 2006/08/08 20:04:23 deuce Exp $ */
+/* $Id: websrvr.c,v 1.425 2006/08/10 01:53:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2278,7 +2278,7 @@ static BOOL check_extra_path(http_session_t * session)
 					*end=0;
 					strcat(rpath,startup->index_file_name[i]);
 					if(!stat(rpath,&sb)) {
-						*end=0;
+						/* *end=0; /* Removed Wed, Aug 09, 2006 to allow is_dynamic_req to detect correctly */
 						SAFECOPY(session->req.extra_path_info,epath);
 						SAFECOPY(session->req.virtual_path,vpath);
 						strcat(session->req.virtual_path,"/");
@@ -4413,7 +4413,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.424 $", "%*s %s", revision);
+	sscanf("$Revision: 1.425 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
