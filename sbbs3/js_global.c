@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.204 2006/08/11 18:31:48 rswindell Exp $ */
+/* $Id: js_global.c,v 1.205 2006/08/11 21:44:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -296,9 +296,16 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		exec_cx = bg->cx;
 		exec_obj = bg->obj;
 		
-	} else if(JSVAL_IS_OBJECT(argv[argn]))	/* Scope specified */
-		exec_obj=JSVAL_TO_OBJECT(argv[argn++]);
+	} else if(JSVAL_IS_OBJECT(argv[argn])) {
+		JSObject* tmp_obj=JSVAL_TO_OBJECT(argv[argn++]);
+		if(!JS_ObjectIsFunction(cx,tmp_obj))	/* Scope specified */
+			exec_obj=tmp_obj;
+	}
 
+	if(argn==argc) {
+		JS_ReportError(cx,"no filename specified");
+		return(JS_FALSE);
+	}
 	if((filename=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL)
 		return(JS_FALSE);
 
