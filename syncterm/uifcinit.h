@@ -1,4 +1,4 @@
-/* $Id: uifcinit.h,v 1.8 2006/09/24 05:03:27 deuce Exp $ */
+/* $Id: uifcinit.h,v 1.7 2005/11/28 15:57:51 deuce Exp $ */
 
 #ifndef _UIFCINIT_H_
 #define _UIFCINIT_H_
@@ -9,7 +9,6 @@ extern	uifcapi_t uifc; /* User Interface (UIFC) Library API */
 int	init_uifc(BOOL scrn, BOOL bottom);
 void uifcbail(void);
 void uifcmsg(char *msg, char *helpbuf);
-void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf);
 int confirm(char *msg, char *helpbuf);
 
 #endif
