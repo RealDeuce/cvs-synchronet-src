@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.71 2007/06/21 03:33:19 deuce Exp $ */
+/* $Id: console.c,v 1.68 2006/05/08 18:25:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ int InitCE;
 int FW, FH;
 int FontScale=1;
 #define MAX_SCALE	2
-WORD DpyCols=80;		/* Initialize this so init_mode() is happy */
+WORD DpyCols;
 BYTE DpyRows;
 BYTE *palette;
 BYTE CursStart;
@@ -1478,9 +1478,9 @@ update_pixels()
     for (i = 0; i < 16; i++) {
 		XColor color;
 
-	    color.red   = dac_default[palette[i]].red << 8;
-	    color.green = dac_default[palette[i]].green << 8;
-	    color.blue  = dac_default[palette[i]].blue << 8;
+	    color.red   = dac_default16[palette[i]].red << 10;
+	    color.green = dac_default16[palette[i]].green << 10;
+	    color.blue  = dac_default16[palette[i]].blue << 10;
 		if (x11.XAllocColor(dpy, DefaultColormap(dpy, DefaultScreen(dpy)), &color)) {
 		    pixels[i] = color.pixel;
 		} else if (i < 7)
@@ -1496,7 +1496,6 @@ init_mode(int mode)
     struct video_params vmode;
     int idx;			/* Index into vmode */
     int i;
-    WORD oldcols = DpyCols;
 
     idx = find_vmode(mode);
     if (idx == -1) {
@@ -1514,19 +1513,6 @@ init_mode(int mode)
 	InitCE = CursEnd;
 
     vmem = (WORD *)realloc(vmem,vmode.cols*vmode.rows*sizeof(WORD));
-	/* Deal with 40 col doubling */
-	if(oldcols != DpyCols) {
-		if(oldcols == 40)
-			FontScale /= 2;
-		if(DpyCols == 40)
-			FontScale *= 2;
-	}
-
-	if(FontScale > MAX_SCALE)
-		FontScale = MAX_SCALE;
-
-	if(FontScale < 1)
-		FontScale = 1;
 
     /* Point 'palette[]' to the Attribute Controller space. We will only use
        the first 16 slots. */
