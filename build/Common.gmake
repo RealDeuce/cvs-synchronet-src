@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.57 2006/06/15 03:45:47 deuce Exp $
+# $Id: Common.gmake,v 1.58 2006/08/14 23:27:32 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -281,7 +281,7 @@ ifeq ($(os),linux)    # Linux
  endif
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
-CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
+CFLAGS    += -D_THREAD_SAFE -D_REENTRANT -D__EXTENSIONS__
 ifeq ($(os),freebsd)    # FreeBSD
  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
  MT_LDFLAGS    +=    -pthread
