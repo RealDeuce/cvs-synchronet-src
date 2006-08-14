@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.400 2006/06/07 17:45:50 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.401 2006/08/14 23:22:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -694,6 +694,7 @@ static void pop3_thread(void* arg)
 	mail_t*		mail;
 	pop3_t		pop3=*(pop3_t*)arg;
 
+	SetThreadName("POP3 Thread");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -1765,6 +1766,7 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 	char		ip[16];
 	char		*p;
 	char		*p2;
+	char		*last;
 
 	fromstr=(char *)malloc(strlen(buf)+1);
 	if(fromstr==NULL)
@@ -1784,10 +1786,10 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 			*p2++=*p;
 		}
 		*p2=0;
-		p=strtok(fromstr,"[");
+		p=strtok_r(fromstr,"[",&last);
 		if(p==NULL)
 			break;
-		p=strtok(NULL,"]");
+		p=strtok_r(NULL,"]",&last);
 		if(p==NULL)
 			break;
 		strncpy(ip,p,16);
@@ -1941,6 +1943,7 @@ static void smtp_thread(void* arg)
 
 	} cmd = SMTP_CMD_NONE;
 
+	SetThreadName("SMTP Thread");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -3527,6 +3530,7 @@ static void sendmail_thread(void* arg)
 	long		l;
 	BOOL		sending_locally=FALSE;
 
+	SetThreadName("SendMail Thread");
 	thread_up(TRUE /* setuid */);
 
 	sendmail_running=TRUE;
@@ -4040,7 +4044,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.400 $", "%*s %s", revision);
+	sscanf("$Revision: 1.401 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4124,6 +4128,8 @@ void DLLCALL mail_server(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
+
+	SetThreadName("Mail Server");
 
 	do {
 
