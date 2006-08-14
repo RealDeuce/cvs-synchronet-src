@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.302 2007/07/11 00:27:27 deuce Exp $ */
+/* $Id: sbbs.h,v 1.277 2006/06/18 05:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,9 +47,6 @@
 /***************/
 #if defined(_WIN32)			/* Windows */
 
-	#define NOCRYPT     /* Stop windows.h from loading wincrypt.h */
-                    /* Is windows.h REALLY necessary?!?! */
-	#define WIN32_LEAN_AND_MEAN
 	#include <io.h>
 	#include <share.h>
 	#include <windows.h>
@@ -70,12 +67,6 @@
 
 	#include <unistd.h>		/* close */
 
-#endif
-
-#ifdef _THREAD_SUID_BROKEN
-extern int	thread_suid_broken;			/* NPTL is no longer broken */
-#else
-#define thread_suid_broken FALSE
 #endif
 
 /******************/
@@ -110,10 +101,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include <jsprf.h>		/* JS-safe sprintf functions */
 	#include <jsnum.h>		/* JSDOUBLE_IS_NaN() */
 
-#endif
-
-#ifdef USE_CRYPTLIB
-#include <cryptlib.h>
 #endif
 
 /***********************/
@@ -176,13 +163,6 @@ public:
 	char	client_name[128];
 	char	client_ident[128];
 	DWORD	local_addr;
-#ifdef USE_CRYPTLIB
-	CRYPT_SESSION	ssh_session;
-	bool	ssh_mode;
-	SOCKET	passthru_socket;
-    bool	passthru_output_thread_running;
-    bool	passthru_input_thread_running;
-#endif
 
 	scfg_t	cfg;
 
@@ -214,7 +194,6 @@ public:
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
 	uchar	telnet_last_rxch;
-	char	telnet_location[128];
 	char	terminal[TELNET_TERM_MAXLEN+1];
 
 	time_t	event_time;				// Time of next exclusive event
@@ -276,13 +255,10 @@ public:
 	/*********************************/
 	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
-
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
     int     keybuftop,keybufbot;    /* Keyboard input buffer pointers (for ungetkey) */
 	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */ 
-
-	ushort	node_connection;
-	char	connection[LEN_MODEM+1];	/* Connection Description */
+	char *	connection;		/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
@@ -306,10 +282,10 @@ public:
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
-			ns_time;		/* File new-scan time */
-	time32_t	answertime, 	/* Time call was answered */
+			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
+			ns_time,		/* File new-scan time */
 			last_ns_time;	/* Most recent new-file-scan this call */
 	uchar 	action;			/* Current action of user */
 	long 	online; 		/* Remote/Local or not online */
@@ -367,13 +343,13 @@ public:
 			/* Global command shell variables */
 	uint	global_str_vars;
 	char **	global_str_var;
-	int32_t *	global_str_var_name;
+	long *	global_str_var_name;
 	uint	global_int_vars;
-	int32_t *	global_int_var;
-	int32_t *	global_int_var_name;
+	long *	global_int_var;
+	long *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
-	int32_t	sysvar_l[MAX_SYSVARS];
+	long	sysvar_l[MAX_SYSVARS];
 	uint	sysvar_li;
 
     /* ansi_term.cpp */
@@ -388,11 +364,11 @@ public:
 	int		exec_net(csi_t *csi);
 	int		exec_msg(csi_t *csi);
 	int		exec_file(csi_t *csi);
-	long	exec_bin(const char *mod, csi_t *csi);
+	long	exec_bin(char *mod, csi_t *csi);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
-	char**	getstrvar(csi_t *bin, int32_t name);
-	int32_t*	getintvar(csi_t *bin, int32_t name);
+	char**	getstrvar(csi_t *bin, long name);
+	long*	getintvar(csi_t *bin, long name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
 	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, char* cmdsrc, char* rsp);
@@ -418,7 +394,7 @@ public:
 	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
-	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
+	ulong	getlastmsg(uint subnum, ulong *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
 
@@ -438,7 +414,6 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	time32str(time32_t *intime);
 	char*	timestr(time_t *intime);
     char	timestr_output[60];
 	void	userlist(long mode);
@@ -463,7 +438,6 @@ public:
 	void	automsg(void);
 	bool	writemsg(char *str, char *top, char *title, long mode, int subnum
 				,char *dest);
-	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(char *str, long mode);
 	bool	msgabort(void);
 	bool	email(int usernumber, char *top, char *title, long mode);
@@ -493,7 +467,7 @@ public:
 	void	delallmail(uint usernumber);
 
 	/* getmsg.cpp */
-	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
+	post_t* loadposts(long *posts, uint subnum, ulong ptr, long mode);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -517,7 +491,6 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	long	term_supports(long cmp_flags=0);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -554,7 +527,7 @@ public:
 
 	/* atcodes.cpp */
 	int		show_atcode(char *code);
-	char*	atcode(char* sp, char* str, size_t maxlen);
+	char*	atcode(char* sp, char* str);
 
 	/* getnode.cpp */
 	int		getsmsg(int usernumber);
@@ -618,7 +591,6 @@ public:
 	bool	chksyspass(void);
 	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
 	bool	ar_exp(uchar ** ptrptr, user_t * user);
-	void	daily_maint(void);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
@@ -644,7 +616,6 @@ public:
 	void	openfile(file_t* f);
 	void	closefile(file_t* f);
 	bool	removefcdt(file_t* f);
-	bool	removefile(file_t* f);
 	bool	movefile(file_t* f, int newdir);
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
@@ -815,7 +786,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, int32_t* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -827,7 +798,6 @@ extern "C" {
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
-	DLLEXPORT BOOL		DLLCALL putfileixb(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL getfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL putfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT void		DLLCALL putextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext);
@@ -887,7 +857,6 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL fcopy(char* src, char* dest);
-	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
 	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
 	
@@ -951,9 +920,6 @@ extern "C" {
 		 JSTYPE_ARRAY=JSTYPE_LIMIT
 		,JSTYPE_ALIAS
 		,JSTYPE_UNDEF
-#if !defined(JSTYPE_NULL)	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
-		,JSTYPE_NULL
-#endif
 	};
 
 	#ifdef BUILD_JSDOCS	/* String compiled into debug build only, for JS documentation generation */
