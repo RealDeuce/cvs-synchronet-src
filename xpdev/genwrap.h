@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.81 2006/01/12 19:17:19 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.87 2006/08/14 22:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -49,7 +49,7 @@
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
 
-	#ifdef _THREAD_SAFE
+	#ifdef XPDEV_THREAD_SAFE
 		#include <pthread.h>/* Check for GNU PTH libs */
 		#ifdef _PTH_PTHREAD_H_
 			#include <pth.h>
@@ -213,7 +213,9 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#define tzname			_tzname
+	#if !defined(_MSC_VER)	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+		#define tzname			_tzname
+	#endif
 
 #elif defined(__OS2__)
 
@@ -224,18 +226,18 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #elif defined(__unix__) || defined(__APPLE__)
 
 	#if defined(_PTH_PTHREAD_H_)
-		#define SLEEP(x)		({ int y=x; struct timeval tv; \
-								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
+		#define SLEEP(x)		({ int sleep_msecs=x; struct timeval tv; \
+								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
 								pth_nap(tv); })
 	#else
-		#define SLEEP(x)		({	int y=x; struct timeval tv; \
-								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
+		#define SLEEP(x)		({	int sleep_msecs=x; struct timeval tv; \
+								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
 								select(0,NULL,NULL,NULL,&tv); })
 	#endif
 
 	#define YIELD()			SLEEP(1)
 
-	#if defined(_THREAD_SAFE)
+	#if defined(XPDEV_THREAD_SAFE)
 		#if defined(__FreeBSD__)
 			#define MAYBE_YIELD()			pthread_yield()
 		#elif defined(_PTH_PTHREAD_H_)
@@ -271,6 +273,13 @@ DLLEXPORT int DLLCALL	get_errno(void);
 
 #endif
 
+/* Command processor/shell environment variable name */
+#ifdef __unix__
+	#define OS_CMD_SHELL_ENV_VAR	"SHELL"
+#else	/* DOS/Windows/OS2 */
+	#define OS_CMD_SHELL_ENV_VAR	"COMSPEC"
+#endif
+
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
 
 #if !defined(__unix__)	
@@ -281,6 +290,8 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
 	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf);
 	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf);
+	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
+
 #endif
 
 #if defined(__solaris__)
@@ -296,6 +307,7 @@ DLLEXPORT int		DLLCALL	xp_random(int);
 
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
+DLLEXPORT char*		DLLCALL os_cmdshell(void);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
 DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
 
