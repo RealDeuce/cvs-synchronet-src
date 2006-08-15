@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.193 2006/02/03 09:08:24 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.196 2006/06/20 22:39:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -351,6 +351,7 @@ static void add_env_var(str_list_t* list, const char* var, const char* val)
 	if(wrslot!=INVALID_HANDLE_VALUE)	CloseHandle(wrslot);		\
 	if(start_event!=NULL)				CloseHandle(start_event);	\
 	if(hungup_event!=NULL)				CloseHandle(hungup_event);	\
+	if(hangup_event!=NULL)				CloseHandle(hangup_event);	\
 	ReleaseMutex(exec_mutex);										\
 	SetLastError(last_error)
 
@@ -388,6 +389,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	wrslot=INVALID_HANDLE_VALUE;
 	HANDLE  start_event=NULL;
 	HANDLE	hungup_event=NULL;
+	HANDLE	hangup_event=NULL;
 	HANDLE	rdoutpipe;
 	HANDLE	wrinpipe;
     PROCESS_INFORMATION process_info;
@@ -526,12 +528,24 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
            		i|=SBBSEXEC_MODE_DOS_IN;
 			if(mode&EX_OUTR)
         		i|=SBBSEXEC_MODE_DOS_OUT;
-			sprintf(str," NT %u %u %u"
-				,cfg.node_num,i,startup->xtrn_polls_before_yield);
+			sprintf(str," NT %u %u"
+				,cfg.node_num,i);
 			strcat(fullcmdline,str);
 
 			sprintf(str,"sbbsexec_hungup%d",cfg.node_num);
 			if((hungup_event=CreateEvent(
+				 NULL	// pointer to security attributes
+				,TRUE	// flag for manual-reset event
+				,FALSE  // flag for initial state
+				,str	// pointer to event-object name
+				))==NULL) {
+				XTRN_CLEANUP;
+				errormsg(WHERE, ERR_CREATE, str, 0);
+				return(GetLastError());
+			}
+
+			sprintf(str,"sbbsexec_hangup%d",cfg.node_num);
+			if((hangup_event=CreateEvent(
 				 NULL	// pointer to security attributes
 				,TRUE	// flag for manual-reset event
 				,FALSE  // flag for initial state
@@ -589,8 +603,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			if(mode&EX_OUTR)
         		start.mode|=SBBSEXEC_MODE_DOS_OUT;
 
-			sprintf(str," 95 %u %u %u"
-				,cfg.node_num,start.mode,startup->xtrn_polls_before_yield);
+			sprintf(str," 95 %u %u"
+				,cfg.node_num,start.mode);
 			strcat(fullcmdline,str);
 
 			if(!DeviceIoControl(
@@ -976,9 +990,18 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 				/* only check process termination after 300 milliseconds of no I/O */
 				/* to allow for last minute reception of output from DOS programs */
-				if(loop_since_io>=3
-					&& WaitForSingleObject(process_info.hProcess,0)==WAIT_OBJECT_0)
-					break;	/* Process Terminated */
+				if(loop_since_io>=3) {
+
+					if(online && hangup_event!=NULL
+						&& WaitForSingleObject(hangup_event,0)==WAIT_OBJECT_0) {
+						lprintf(LOG_NOTICE,"Node %d External program requested hangup (dropped DTR)"
+							,cfg.node_num);
+						hangup();
+					}
+
+					if(WaitForSingleObject(process_info.hProcess,0)==WAIT_OBJECT_0)
+						break;	/* Process Terminated */
+				}
 
 				/* only check node for interrupt flag every 3 seconds of no I/O */
 				if((loop_since_io%30)==0) {	
