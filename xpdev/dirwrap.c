@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.64 2006/08/23 23:48:45 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.65 2006/08/23 23:56:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -573,7 +573,7 @@ BOOL DLLCALL fexistcase(char *path)
 #endif
 }
 
-#ifndef _WIN32
+#ifdef __unix__
 int removecase(char *path)
 {
 	char inpath[MAX_PATH+1];
@@ -581,20 +581,22 @@ int removecase(char *path)
 	char tmp[5];
 	char *p;
 	int  i;
-	
+
+	if(strchr(path,'?') || strchr(path,'*'))
+		return(-1);
 	SAFECOPY(inpath,path);
 	p=getfname(inpath);
-	SAFECOPY(fname,p);
-	*p=0;
+	if(p>inpath)
+		*(p-1)=0;
 	fname[0]=0;
-	p++;
-	for(;*p;p++)  {
-		if(isalpha(*p))
-			sprintf(tmp,"[%c%c]",toupper(*p),tolower(*p));
+	for(i=0;p[i];i++)  {
+		if(isalpha(p[i]))
+			sprintf(tmp,"[%c%c]",toupper(p[i]),tolower(p[i]));
 		else
-			sprintf(tmp,"%c",*p);
+			sprintf(tmp,"%c",p[i]);
 		strncat(fname,tmp,MAX_PATH*4);
 	}
+	*p=0;
 
 	return(delfiles(inpath,fname)?-1:0);
 }
