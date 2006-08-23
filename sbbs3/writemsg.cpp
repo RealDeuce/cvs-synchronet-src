@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.70 2007/07/11 00:11:15 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.66 2006/08/23 23:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",cfg.node_dir,tmp);
-		removecase(str); 
+		remove(str); 
 	}
 
 	if(!online || sys_status&SS_ABORT) {
@@ -337,9 +337,9 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
 			ex_mode|=EX_SH;
 
-		if(!linesquoted)
-			removecase(msgtmp);
-		else {
+		if(!linesquoted && fexistcase(msgtmp))
+			remove(msgtmp);
+		if(linesquoted) {
 			qlen=flength(msgtmp);
 			qtime=fdate(msgtmp); 
 		}
@@ -517,7 +517,8 @@ void sbbs_t::editor_inf(int xeditnum,char *dest, char *title, long mode
 	}
 	else {
 		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
-		removecase(str);
+		if(fexistcase(str))
+			remove(str);
 		strcpy(tmp,"EDITOR.INF");
 		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
 			strlwr(tmp);
@@ -902,18 +903,18 @@ void sbbs_t::editfile(char *fname)
 
 	maxlines=cfg.level_linespermsg[useron.level];
 	sprintf(path,"%sQUOTES.TXT",cfg.node_dir);
-	removecase(path);
+	if(fexistcase(path))
+		remove(path);
 
 	if(useron.xedit) {
 
-		SAFECOPY(path,fname);
-
 		msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
-		if(stricmp(msgtmp,path)) {
-			removecase(msgtmp);
-			if(fexistcase(path))
-				fcopy(path, msgtmp);
-		}
+		if(fexist(msgtmp))
+			remove(msgtmp);
+
+		SAFECOPY(path,fname);
+		if(fexistcase(path))
+			fcopy(path, msgtmp);
 
 		editor_inf(useron.xedit,fname,nulstr,0,INVALID_SUB);
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
@@ -928,7 +929,7 @@ void sbbs_t::editfile(char *fname)
 		CLS;
 		rioctl(IOCM|PAUSE|ABORT);
 		external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir);
-		if(stricmp(msgtmp,path) && !fcompare(msgtmp, path))	/* file changed */
+		if(!fcompare(msgtmp, path))	/* file changed */
 			fcopy(msgtmp, path);
 		rioctl(IOSM|PAUSE|ABORT); 
 		return; 
@@ -1025,7 +1026,6 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	node_t		node;
 	msghdr_t	hdr=msg->hdr;
 	idxrec_t	idx=msg->idx;
-	time32_t	now32;
 
 	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
@@ -1058,8 +1058,8 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield(msg,RECIPIENTEXT,sizeof(str),str);
 	msg->idx.to=usernumber;
 
-	now32=time(NULL);
-	smb_hfield(msg,FORWARDED,sizeof(time32_t),&now32);
+	now=time(NULL);
+	smb_hfield(msg,FORWARDED,sizeof(time_t),&now);
 
 
 	if((i=smb_open_da(&smb))!=SMB_SUCCESS) {
@@ -1190,7 +1190,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 {
 	char	buf[SDT_BLOCK_LEN];
 	char	msgtmp[MAX_PATH+1];
-	uint16_t	xlat;
+	ushort	xlat;
 	int 	file,i,j,x;
 	long	length,offset;
 	FILE	*instream;
@@ -1199,7 +1199,8 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 		return;
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
-	removecase(msgtmp);
+	if(fexist(msgtmp))
+		remove(msgtmp);
 	msgtotxt(msg,msgtmp,0,1);
 	editfile(msgtmp);
 	length=flength(msgtmp);

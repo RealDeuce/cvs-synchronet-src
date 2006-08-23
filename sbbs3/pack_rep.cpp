@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.35 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: pack_rep.cpp,v 1.34 2005/09/25 22:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,11 +48,9 @@ bool sbbs_t::pack_rep(uint hubnum)
 	char 	tmp[MAX_PATH+1],tmp2[MAX_PATH+1];
 	int 	file,mode;
 	uint	i,j,k;
-	long	l,msgcnt,submsgs,packedmail,netfiles=0,deleted;
-	int32_t	posts;
-	int32_t	mailmsgs;
-	ulong	msgs;
-	uint32_t	last;
+	long	l,msgcnt,submsgs,posts,packedmail,netfiles=0,deleted;
+	long	mailmsgs;
+	ulong	last,msgs;
 	post_t	*post;
 	mail_t	*mail;
 	FILE*	rep;
