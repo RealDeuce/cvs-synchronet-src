@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.70 2006/08/24 00:20:48 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.64 2006/08/23 23:48:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -573,6 +573,33 @@ BOOL DLLCALL fexistcase(char *path)
 #endif
 }
 
+#ifndef _WIN32
+int removecase(char *path)
+{
+	char inpath[MAX_PATH+1];
+	char fname[MAX_PATH*4+1];
+	char tmp[5];
+	char *p;
+	int  i;
+	
+	SAFECOPY(inpath,path);
+	p=getfname(inpath);
+	SAFECOPY(fname,p);
+	*p=0;
+	fname[0]=0;
+	p++;
+	for(;*p;p++)  {
+		if(isalpha(*p))
+			sprintf(tmp,"[%c%c]",toupper(*p),tolower(*p));
+		else
+			sprintf(tmp,"%c",*p);
+		strncat(fname,tmp,MAX_PATH*4);
+	}
+
+	return(delfiles(inpath,fname)?-1:0);
+}
+#endif
+
 #if !defined(S_ISDIR)
 	#define S_ISDIR(x)	((x)&S_IFDIR)
 #endif
@@ -632,33 +659,6 @@ int DLLCALL getfattr(const char* filename)
 	return(st.st_mode);
 #endif
 }
-
-#ifdef __unix__
-int removecase(char *path)
-{
-	char inpath[MAX_PATH+1];
-	char fname[MAX_PATH*4+1];
-	char tmp[5];
-	char *p;
-	int  i;
-
-	if(strchr(path,'?') || strchr(path,'*'))
-		return(-1);
-	SAFECOPY(inpath,path);
-	p=getfname(inpath);
-	fname[0]=0;
-	for(i=0;p[i];i++)  {
-		if(isalpha(p[i]))
-			sprintf(tmp,"[%c%c]",toupper(p[i]),tolower(p[i]));
-		else
-			sprintf(tmp,"%c",p[i]);
-		strncat(fname,tmp,MAX_PATH*4);
-	}
-	*p=0;
-
-	return(delfiles(inpath,fname)?-1:0);
-}
-#endif
 
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
