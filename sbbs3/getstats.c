@@ -2,7 +2,7 @@
 
 /* Synchronet C-export statistics retrieval functions */
 
-/* $Id: getstats.c,v 1.2 2007/07/08 20:56:14 deuce Exp $ */
+/* $Id: getstats.c,v 1.1 2003/05/18 04:22:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,6 @@ BOOL DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats)
         return(FALSE); 
 	}
     lseek(file,4L,SEEK_SET);    /* Skip update time/date */
-	/* TODO: Direct read of unpacked struct */
     read(file,stats,sizeof(stats_t));
     close(file);
 	return(TRUE);
