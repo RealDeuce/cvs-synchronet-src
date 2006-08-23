@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.38 2006/08/23 23:48:45 deuce Exp $ */
+/* $Id: dirwrap.h,v 1.37 2006/06/04 21:06:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,9 +240,6 @@ DLLEXPORT int		DLLCALL	mkdirs(const char* path);
 DLLEXPORT void DLLCALL _splitpath(const char *path, char *drive, char *dir, 
 								  char *fname, char *ext);
 DLLEXPORT char * DLLCALL _fullpath(char *target, const char *path, size_t size);
-DLLEXPORT int DLLCALL removecase(char *path);
-#else
-	#define	removecase(x)	remove(x)
 #endif
 
 #if defined(__cplusplus)
