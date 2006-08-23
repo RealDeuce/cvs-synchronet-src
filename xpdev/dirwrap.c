@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.65 2006/08/23 23:56:28 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.66 2006/08/23 23:57:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -586,8 +586,6 @@ int removecase(char *path)
 		return(-1);
 	SAFECOPY(inpath,path);
 	p=getfname(inpath);
-	if(p>inpath)
-		*(p-1)=0;
 	fname[0]=0;
 	for(i=0;p[i];i++)  {
 		if(isalpha(p[i]))
