@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.65 2006/08/23 22:34:32 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.66 2006/08/23 23:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -916,7 +916,7 @@ void sbbs_t::editfile(char *fname)
 		if(fexistcase(path))
 			fcopy(path, msgtmp);
 
-		editor_inf(useron.xedit,nulstr,nulstr,0,INVALID_SUB);
+		editor_inf(useron.xedit,fname,nulstr,0,INVALID_SUB);
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
 			mode|=EX_NATIVE;
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
