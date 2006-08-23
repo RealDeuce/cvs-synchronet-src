@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.63 2006/06/04 21:06:55 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.64 2006/08/23 23:48:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -573,6 +573,33 @@ BOOL DLLCALL fexistcase(char *path)
 #endif
 }
 
+#ifndef _WIN32
+int removecase(char *path)
+{
+	char inpath[MAX_PATH+1];
+	char fname[MAX_PATH*4+1];
+	char tmp[5];
+	char *p;
+	int  i;
+	
+	SAFECOPY(inpath,path);
+	p=getfname(inpath);
+	SAFECOPY(fname,p);
+	*p=0;
+	fname[0]=0;
+	p++;
+	for(;*p;p++)  {
+		if(isalpha(*p))
+			sprintf(tmp,"[%c%c]",toupper(*p),tolower(*p));
+		else
+			sprintf(tmp,"%c",*p);
+		strncat(fname,tmp,MAX_PATH*4);
+	}
+
+	return(delfiles(inpath,fname)?-1:0);
+}
+#endif
+
 #if !defined(S_ISDIR)
 	#define S_ISDIR(x)	((x)&S_IFDIR)
 #endif
@@ -644,7 +671,7 @@ ulong DLLCALL delfiles(char *inpath, char *spec)
 	glob_t	g;
 
 	lastch=*lastchar(inpath);
-	if(!IS_PATH_DELIM(lastch))
+	if(!IS_PATH_DELIM(lastch) && lastch)
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
 		strcpy(path,inpath);
