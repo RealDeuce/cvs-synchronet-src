@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.118 2006/12/28 02:43:48 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.116 2006/06/15 03:19:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1059,8 +1059,6 @@ static char* socket_prop_desc[] = {
 	,"remote TCP or UDP port number"
 	,"socket type, <tt>SOCK_STREAM</tt> (TCP) or <tt>SOCK_DGRAM</tt> (UDP)"
 	,"<i>true</i> if binary data is to be sent in Network Byte Order (big end first), default is <i>true</i>"
-	/* statically-defined properties: */
-	,"array of socket option names supported by the current platform"
 	,NULL
 };
 #endif
@@ -1302,7 +1300,7 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	},
 	{"recvfrom",	js_recvfrom,	0,	JSTYPE_OBJECT,	JSDOCSTR("[binary=<tt>false</tt>] [,maxlen=<tt>512</tt> or int_size=<tt>4</tt>]")
 	,JSDOCSTR("receive data (string or integer) from a socket (typically UDP)"
-	"<p>returns object with <i>ip_address</i> and <i>port</i> of sender along with <i>data</i> properties"
+	"<p>returns object with <i>ip_address</i> and <i>port</i> of sender along with <i>data</i>"
 	"<p><i>binary</i> defaults to <i>false</i>, <i>maxlen</i> defaults to 512 chars, <i>int_size</i> defaults to 4 bytes (32-bits)")
 	,311
 	},
