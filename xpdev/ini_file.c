@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.94 2005/10/19 07:18:02 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.96 2006/08/14 22:55:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -671,6 +671,7 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 static str_list_t splitList(char* list, const char* sep)
 {
 	char*		token;
+	char*		tmp;
 	ulong		items=0;
 	str_list_t	lp;
 
@@ -680,13 +681,13 @@ static str_list_t splitList(char* list, const char* sep)
 	if(sep==NULL)
 		sep=",";
 
-	token=strtok(list,sep);
+	token=strtok_r(list,sep,&tmp);
 	while(token!=NULL) {
 		SKIP_WHITESPACE(token);
 		truncsp(token);
 		if(strListAppend(&lp,token,items++)==NULL)
 			break;
-		token=strtok(NULL,sep);
+		token=strtok_r(NULL,sep,&tmp);
 	}
 
 	return(lp);
@@ -1668,7 +1669,8 @@ str_list_t iniReadFile(FILE* fp)
 	str_list_t	list;
 	FILE*		insert_fp=NULL;
 	
-	rewind(fp);
+	if(fp!=NULL)
+		rewind(fp);
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
 	if(list==NULL)
