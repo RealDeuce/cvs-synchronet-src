@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.138 2007/07/10 22:20:00 deuce Exp $ */
+/* $Id: smblib.c,v 1.137 2006/04/25 02:26:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1268,7 +1268,7 @@ int SMBCALL smb_dfield(smbmsg_t* msg, ushort type, ulong length)
 /* Checks CRC history file for duplicate crc. If found, returns 1.			*/
 /* If no dupe, adds to CRC history and returns 0, or negative if error. 	*/
 /****************************************************************************/
-int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
+int SMBCALL smb_addcrc(smb_t* smb, ulong crc)
 {
 	char	str[MAX_PATH+1];
 	int 	file;
