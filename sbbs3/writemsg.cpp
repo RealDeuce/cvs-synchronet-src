@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.66 2006/08/23 23:13:05 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.67 2006/08/24 00:53:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",cfg.node_dir,tmp);
-		remove(str); 
+		removecase(str); 
 	}
 
 	if(!online || sys_status&SS_ABORT) {
@@ -337,9 +337,9 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
 			ex_mode|=EX_SH;
 
-		if(!linesquoted && fexistcase(msgtmp))
-			remove(msgtmp);
-		if(linesquoted) {
+		if(!linesquoted)
+			removecase(msgtmp);
+		else {
 			qlen=flength(msgtmp);
 			qtime=fdate(msgtmp); 
 		}
@@ -517,8 +517,7 @@ void sbbs_t::editor_inf(int xeditnum,char *dest, char *title, long mode
 	}
 	else {
 		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
-		if(fexistcase(str))
-			remove(str);
+		removecase(str);
 		strcpy(tmp,"EDITOR.INF");
 		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
 			strlwr(tmp);
@@ -903,14 +902,12 @@ void sbbs_t::editfile(char *fname)
 
 	maxlines=cfg.level_linespermsg[useron.level];
 	sprintf(path,"%sQUOTES.TXT",cfg.node_dir);
-	if(fexistcase(path))
-		remove(path);
+	removecase(path);
 
 	if(useron.xedit) {
 
 		msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
-		if(fexist(msgtmp))
-			remove(msgtmp);
+		removecase(msgtmp);
 
 		SAFECOPY(path,fname);
 		if(fexistcase(path))
@@ -1199,8 +1196,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 		return;
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
-	if(fexist(msgtmp))
-		remove(msgtmp);
+	removecase(msgtmp);
 	msgtotxt(msg,msgtmp,0,1);
 	editfile(msgtmp);
 	length=flength(msgtmp);
