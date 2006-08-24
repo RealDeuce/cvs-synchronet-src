@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.166 2007/07/25 22:22:34 deuce Exp $ */
+/* $Id: term.c,v 1.143 2006/06/02 21:36:53 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -23,7 +23,12 @@
 #include "gutsz.h"
 #endif
 
-#define	ANSI_REPLY_BUFSIZE	2048
+#ifdef GUTS_BUILTIN
+#define	BUFSIZE	1
+#else
+#define	BUFSIZE	2048
+#endif
+static char recvbuf[BUFSIZE];
 
 #define DUMP
 
@@ -150,8 +155,6 @@ void update_status(struct bbslist *bbs, int speed)
 		strcat(nbuf, " (Logging)");
 	if(speed)
 		sprintf(strchr(nbuf,0)," (%d)", speed);
-	if(cterm.doorway_mode)
-		strcat(nbuf, " (DrWy)");
 	switch(cio_api.mode) {
 		case CIOLIB_MODE_CURSES:
 		case CIOLIB_MODE_CURSES_IBM:
@@ -195,8 +198,6 @@ void dump(BYTE* buf, int len)
 /* Zmodem Stuff */
 int log_level = LOG_INFO;
 
-enum { ZMODEM_MODE_SEND, ZMODEM_MODE_RECV } zmodem_mode;
-
 static BOOL zmodem_check_abort(void* vp)
 {
 	zmodem_t* zm = (zmodem_t*)vp;
@@ -215,6 +216,7 @@ static BOOL zmodem_check_abort(void* vp)
 
 extern FILE* log_fp;
 extern char *log_levels[];
+extern int	telnet_log_level;
 
 #if defined(__BORLANDC__)
 	#pragma argsused
@@ -333,8 +335,7 @@ void zmodem_progress(void* cbdata, ulong current_pos)
 			,l/60L
 			,l%60L
 			,zm->block_size
-			,zmodem_mode==ZMODEM_MODE_RECV ? (zm->receive_32bit_data ? 32:16) : 
-				(zm->can_fcs_32 && !zm->want_fcs_16) ? 32:16
+			,zm->receive_32bit_data ? 32 : 16
 			,cps
 			);
 		clreol();
@@ -360,21 +361,64 @@ void zmodem_progress(void* cbdata, ulong current_pos)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
-static int send_byte(void* unused, uchar ch, unsigned timeout /* seconds */)
+static int send_byte(void* unused, uchar ch, unsigned timeout)
 {
-	return(conn_send(&ch,sizeof(ch),timeout*1000)!=1);
+	return conn_send(&ch,sizeof(char),timeout*1000);
+}
+
+static	ulong	bufbot;
+static	ulong	buftop;
+
+#if defined(__BORLANDC__)
+	#pragma argsused
+#endif
+static int recv_byte(void* unused, unsigned timeout)
+{
+	BYTE	ch;
+	int		i;
+	time_t start=time(NULL);
+
+	if(bufbot==buftop) {
+		if((i=conn_recv(recvbuf,sizeof(recvbuf),timeout*1000))<1) {
+			if(timeout)
+				lprintf(LOG_ERR,"RECEIVE ERROR %d (after %u seconds, timeout=%u)"
+					,i, time(NULL)-start, timeout);
+			return(-1);
+		}
+		buftop=i;
+		bufbot=0;
+	}
+	if(buftop < sizeof(recvbuf)) {
+		i=conn_recv(recvbuf + buftop, sizeof(recvbuf) - buftop, 0);
+		if(i > 0)
+			buftop+=i;
+	}
+	ch=recvbuf[bufbot++];
+/*	lprintf(LOG_DEBUG,"RX: %02X", ch); */
+	return(ch);
+}
+
+void purge_recv(void)
+{
+	unsigned count=0;
+
+	lprintf(LOG_NOTICE,"Purging receive buffer...");
+	YIELD();
+	while(recv_byte(NULL,0) >= 0) {
+		YIELD();
+		count++;
+	}
+	lprintf(LOG_NOTICE,"%u bytes purged");
 }
 
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
-static int recv_byte(void* unused, unsigned timeout /* seconds */)
+static BOOL is_connected(void* unused)
 {
-	BYTE	ch;
-
-	if(conn_recv(&ch, sizeof(ch), timeout*1000))
-		return(ch);
-	return(-1);
+	if(bufbot < buftop)
+		return(TRUE);
+	return socket_check(conn_socket,NULL,NULL,0);
 }
 
 #if defined(__BORLANDC__)
@@ -382,7 +426,13 @@ static int recv_byte(void* unused, unsigned timeout /* seconds */)
 #endif
 BOOL data_waiting(void* unused, unsigned timeout)
 {
-	return(conn_data_waiting());
+	BOOL rd;
+
+	if(bufbot < buftop)
+		return(TRUE);
+	if(!socket_check(conn_socket,&rd,NULL,timeout))
+		return(FALSE);
+	return(rd);
 }
 
 void draw_transfer_window(char* title)
@@ -498,6 +548,22 @@ void erase_transfer_window(void) {
 	_setcursortype(_NORMALCURSOR);
 }
 
+static void binary_mode_on(struct bbslist *bbs)
+{
+	if(bbs->conn_type == CONN_TYPE_TELNET) {
+		request_telnet_opt(TELNET_DO,TELNET_BINARY_TX);
+		request_telnet_opt(TELNET_WILL,TELNET_BINARY_TX);
+	}
+}
+
+static void binary_mode_off(struct bbslist *bbs)
+{
+	if(bbs->conn_type == CONN_TYPE_TELNET) {
+		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
+		request_telnet_opt(TELNET_WONT,TELNET_BINARY_TX);
+	}
+}
+
 void ascii_upload(FILE *fp);
 void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path);
 
@@ -514,12 +580,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 			,"ASCII"
 			,""
 		};
-	struct	text_info txtinfo;
-	char	*buf;
-
-    gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if(safe_mode)
 		return;
@@ -530,7 +590,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	if(result==-1 || fpick.files<1) {
 		filepick_free(&fpick);
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -540,7 +599,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
@@ -559,15 +617,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		}
 	}
 	uifcbail();
-	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-}
-
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
-static BOOL is_connected(void* unused)
-{
-	return(conn_connected());
 }
 
 #ifdef GUTS_BUILTIN
@@ -646,8 +695,6 @@ void guts_background_download(void *cbdata)
 	zmodem_t	zm;
 	ulong		bytes_received;
 
-	zmodem_mode=ZMODEM_MODE_RECV;
-
 	zmodem_init(&zm
 		,&gi
 		,guts_lputs, guts_zmodem_progress
@@ -675,9 +722,6 @@ void guts_background_upload(void *cbdata)
 	}
 
 	setvbuf(fp,NULL,_IOFBF,0x10000);
-
-
-	zmodem_mode=ZMODEM_MODE_SEND;
 
 	zmodem_init(&zm
 		,&gi
@@ -807,9 +851,7 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 
 	draw_transfer_window("Zmodem Upload");
 
-	zmodem_mode=ZMODEM_MODE_SEND;
-
-	conn_binary_mode_on();
+	binary_mode_on(bbs);
 	zmodem_init(&zm
 		,/* cbdata */&zm
 		,lputs, zmodem_progress
@@ -831,7 +873,7 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 
 	fclose(fp);
 
-	conn_binary_mode_off();
+	binary_mode_off(bbs);
 	lprintf(LOG_NOTICE,"Hit any key to continue...");
 	getch();
 
@@ -846,11 +888,12 @@ void zmodem_download(struct bbslist *bbs)
 
 	if(safe_mode)
 		return;
+#if 0
+	bufbot=buftop=0;	/* purge our receive buffer */
+#endif
 	draw_transfer_window("Zmodem Download");
 
-	zmodem_mode=ZMODEM_MODE_RECV;
-
-	conn_binary_mode_on();
+	binary_mode_on(bbs);
 	zmodem_init(&zm
 		,/* cbdata */&zm
 		,lputs, zmodem_progress
@@ -861,10 +904,15 @@ void zmodem_download(struct bbslist *bbs)
 
 	files_received=zmodem_recv_files(&zm,bbs->dldir,&bytes_received);
 
+#if 0
+	if(zm.local_abort)
+		purge_recv();
+#endif
+
 	if(files_received>1)
 		lprintf(LOG_INFO,"Received %u files (%lu bytes) successfully", files_received, bytes_received);
 
-	conn_binary_mode_off();
+	binary_mode_off(bbs);
 	lprintf(LOG_NOTICE,"Hit any key to continue...");
 	getch();
 
@@ -1041,7 +1089,11 @@ void capture_control(struct bbslist *bbs)
 BOOL doterm(struct bbslist *bbs)
 {
 	unsigned char ch[2];
-	unsigned char prn[ANSI_REPLY_BUFSIZE];
+#ifdef GUTS_BUILTIN
+	unsigned char prn[1024];
+#else
+	unsigned char prn[BUFSIZE];
+#endif
 	int	key;
 	int i,j;
 	unsigned char *p;
@@ -1060,12 +1112,10 @@ BOOL doterm(struct bbslist *bbs)
 	int	oldmc;
 	int	updated=FALSE;
 	BOOL	sleep;
-	BOOL	rd;
-	int 	emulation=CTERM_EMULATION_ANSI_BBS;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
-	conn_api.log_level = bbs->telnet_loglevel;
+	telnet_log_level = bbs->telnet_loglevel;
 	ciomouse_setevents(0);
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
@@ -1074,17 +1124,7 @@ BOOL doterm(struct bbslist *bbs)
 	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
 	if(scrollback_buf != NULL)
 		memset(scrollback_buf,0,term.width*2*settings.backlines);
-	switch(bbs->screen_mode) {
-		case SCREEN_MODE_C64:
-		case SCREEN_MODE_C128_40:
-		case SCREEN_MODE_C128_80:
-			emulation = CTERM_EMULATION_PETASCII;
-			break;
-		case SCREEN_MODE_ATARI:
-			emulation = CTERM_EMULATION_ATASCII;
-			break;
-	}
-	cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf, emulation);
+	cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf);
 	cterm.music_enable=bbs->music;
 	ch[1]=0;
 	zrqbuf[0]=0;
@@ -1102,105 +1142,99 @@ BOOL doterm(struct bbslist *bbs)
 			speed = bbs->bpsrate;
 		if(speed)
 			thischar=xp_timer();
+		if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
+			/* Get remote input */
+			inch=recv_byte(NULL, 0);
 
-		if(!term.nostatus)
-			update_status(bbs, speed);
-		while(conn_data_waiting() || !conn_connected()) {
-			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
-				/* Get remote input */
-				inch=recv_byte(NULL, 0);
-
-				switch(inch) {
-					case -1:
-						if(!conn_connected()) {
-							hold_update=oldmc;
-							uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
-							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
-							scrollback_lines=cterm.backpos;
-							cterm_end();
-							conn_close();
-							hidemouse();
-							return(FALSE);
-						}
-						break;
-					default:
-						if(speed) {
-							lastchar = xp_timer();
-							nextchar = lastchar + 1/(long double)(speed/10);
-						}
+			if(!term.nostatus)
+				update_status(bbs, speed);
+			switch(inch) {
+				case -1:
+					if(!is_connected(NULL)) {
+						uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
+						cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+						scrollback_lines=cterm.backpos;
+						cterm_end();
+						conn_close();
+						hidemouse();
+						return(FALSE);
+					}
+					break;
+				default:
+					if(speed) {
+						lastchar = xp_timer();
+						nextchar = lastchar + 1/(long double)(speed/10);
+					}
 
 #ifdef GUTS_BUILTIN
-						if(!gutsbuf[0]) {
-							if(inch == gutsinit[0]) {
-								gutsbuf[0]=inch;
-								gutsbuf[1]=0;
-								continue;
-							}
-						}
-						else {		/* Already have the start of the sequence */
-							j=strlen(gutsbuf);
-							if(inch == gutsinit[j]) {
-								gutsbuf[j]=inch;
-								gutsbuf[++j]=0;
-								if(j==sizeof(gutsinit)) /* Have full sequence */
-									guts_transfer(bbs);
-							}
-							else {
-								gutsbuf[j++]=inch;
-								cterm_write(gutsbuf, j, prn, sizeof(prn), &speed);
-								if(prn[0])
-									conn_send(prn,strlen(prn),0);
-								updated=TRUE;
-								gutsbuf[0]=0;
-							}
+					if(!gutsbuf[0]) {
+						if(inch == gutsinit[0]) {
+							gutsbuf[0]=inch;
+							gutsbuf[1]=0;
 							continue;
 						}
+					}
+					else {		/* Already have the start of the sequence */
+						j=strlen(gutsbuf);
+						if(inch == gutsinit[j]) {
+							gutsbuf[j]=inch;
+							gutsbuf[++j]=0;
+							if(j==sizeof(gutsinit)) /* Have full sequence */
+								guts_transfer(bbs);
+						}
+						else {
+							gutsbuf[j++]=inch;
+							cterm_write(gutsbuf, j, prn, sizeof(prn), &speed);
+							if(prn[0])
+								conn_send(prn,strlen(prn),0);
+							updated=TRUE;
+							gutsbuf[0]=0;
+						}
+						continue;
+					}
 #endif
 
-						if(!zrqbuf[0]) {
-							if(inch == zrqinit[0] || inch == zrinit[0]) {
-								zrqbuf[0]=inch;
-								zrqbuf[1]=0;
-								continue;
-							}
-						}
-						else {	/* Already have the start of the sequence */
-							j=strlen(zrqbuf);
-							if(inch == zrqinit[j] || inch == zrinit[j]) {
-								zrqbuf[j]=inch;
-								zrqbuf[++j]=0;
-								if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
-									if(!strcmp(zrqbuf, zrqinit))
-										zmodem_download(bbs);
-									else
-										begin_upload(bbs, TRUE);
-									zrqbuf[0]=0;
-								}
-							}
-							else {	/* Not a real zrqinit */
-								zrqbuf[j++]=inch;
-								cterm_write(zrqbuf, j, prn, sizeof(prn), &speed);
-								if(prn[0])
-									conn_send(prn,strlen(prn),0);
-								updated=TRUE;
-								zrqbuf[0]=0;
-							}
+					if(!zrqbuf[0]) {
+						if(inch == zrqinit[0] || inch == zrinit[0]) {
+							zrqbuf[0]=inch;
+							zrqbuf[1]=0;
 							continue;
 						}
-
-						ch[0]=inch;
-						cterm_write(ch, 1, prn, sizeof(prn), &speed);
-						if(prn[0])
-							conn_send(prn, strlen(prn), 0);
-						updated=TRUE;
+					}
+					else {	/* Already have the start of the sequence */
+						j=strlen(zrqbuf);
+						if(inch == zrqinit[j] || inch == zrinit[j]) {
+							zrqbuf[j]=inch;
+							zrqbuf[++j]=0;
+							if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
+								if(!strcmp(zrqbuf, zrqinit))
+									zmodem_download(bbs);
+								else
+									begin_upload(bbs, TRUE);
+								zrqbuf[0]=0;
+							}
+						}
+						else {	/* Not a real zrqinit */
+							zrqbuf[j++]=inch;
+							cterm_write(zrqbuf, j, prn, sizeof(prn), &speed);
+							if(prn[0])
+								conn_send(prn,strlen(prn),0);
+							updated=TRUE;
+							zrqbuf[0]=0;
+						}
 						continue;
-				}
+					}
+
+					ch[0]=inch;
+					cterm_write(ch, 1, prn, sizeof(prn), &speed);
+					if(prn[0])
+						conn_send(prn, strlen(prn), 0);
+					updated=TRUE;
+					continue;
 			}
-			else {
-				if (speed)
-					sleep=FALSE;
-				break;
-			}
+		}
+		else if (speed) {
+			sleep=FALSE;
 		}
 		hold_update=oldmc;
 		if(updated && sleep)
@@ -1213,26 +1247,14 @@ BOOL doterm(struct bbslist *bbs)
 			updated=TRUE;
 			gotoxy(wherex(), wherey());
 			key=getch();
-			if(key==0 || key==0xff) {
+			if(key==0 || key==0xff)
 				key|=getch()<<8;
-				if(cterm.doorway_mode && ((key & 0xff) == 0) && key != 0x2c00 /* ALT-Z */) {
-					ch[0]=0;
-					ch[1]=key>>8;
-					conn_send(ch,2,0);
-					key=0;
-					continue;
-				}
-			}
-
-			/* These keys are SyncTERM control keys */
-			/* key is set to zero if consumed */
 			switch(key) {
 				case CIO_KEY_MOUSE:
 					getmouse(&mevent);
 					switch(mevent.event) {
 						case CIOLIB_BUTTON_1_DRAG_START:
 							mousedrag(scrollback_buf);
-							key = 0;
 							break;
 						case CIOLIB_BUTTON_2_CLICK:
 						case CIOLIB_BUTTON_3_CLICK:
@@ -1241,31 +1263,61 @@ BOOL doterm(struct bbslist *bbs)
 								conn_send(p,strlen(p),0);
 								free(p);
 							}
-							key = 0;
 							break;
 					}
 
-					key = 0;
+					break;
+				case CIO_KEY_LEFT:
+					conn_send("\033[D",3,0);
+					break;
+				case CIO_KEY_RIGHT:
+					conn_send("\033[C",3,0);
+					break;
+				case CIO_KEY_UP:
+					conn_send("\033[A",3,0);
+					break;
+				case CIO_KEY_DOWN:
+					conn_send("\033[B",3,0);
+					break;
+				case CIO_KEY_HOME:
+					conn_send("\033[H",3,0);
+					break;
+				case CIO_KEY_END:
+#ifdef CIO_KEY_SELECT
+				case CIO_KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
+#endif
+					conn_send("\033[K",3,0);
+					break;
+				case CIO_KEY_DC:		/* "Delete" key, send ASCII 127 (DEL) */
+					conn_send("\x7f",1,0);
+					break;
+				case CIO_KEY_F(1):
+					conn_send("\033OP",3,0);
+					break;
+				case CIO_KEY_F(2):
+					conn_send("\033OQ",3,0);
+					break;
+				case CIO_KEY_F(3):
+					conn_send("\033Ow",3,0);
+					break;
+				case CIO_KEY_F(4):
+					conn_send("\033Ox",3,0);
 					break;
 				case 0x3000:	/* ALT-B - Scrollback */
 					viewscroll();
 					showmouse();
-					key = 0;
 					break;
 				case 0x2e00:	/* ALT-C - Capture */
 					capture_control(bbs);
 					showmouse();
-					key = 0;
 					break;
 				case 0x2000:	/* ALT-D - Download */
 					zmodem_download(bbs);
 					showmouse();
-					key = 0;
 					break;
 				case 0x2100:	/* ALT-F */
 					font_control(bbs);
 					showmouse();
-					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
 					conn_send(bbs->user,strlen(bbs->user),0);
@@ -1278,22 +1330,21 @@ BOOL doterm(struct bbslist *bbs)
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
 						conn_send("\r",1,0);
 					}
-					key = 0;
 					break;
 				case 0x3200:	/* ALT-M */
 					music_control(bbs);
 					showmouse();
-					key = 0;
 					break;
 				case 0x1600:	/* ALT-U - Upload */
 					begin_upload(bbs, FALSE);
 					showmouse();
-					key = 0;
 					break;
 				case 17:		/* CTRL-Q */
 					if(cio_api.mode!=CIOLIB_MODE_CURSES
 							&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
 							&& cio_api.mode!=CIOLIB_MODE_ANSI) {
+						ch[0]=key;
+						conn_send(ch,1,0);
 						break;
 					}
 					/* FALLTHROUGH for curses/ansi modes */
@@ -1308,7 +1359,7 @@ BOOL doterm(struct bbslist *bbs)
 						char *buf;
 						struct	text_info txtinfo;
 
-   						gettextinfo(&txtinfo);
+    					gettextinfo(&txtinfo);
 						buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 						gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						i=0;
@@ -1329,12 +1380,13 @@ BOOL doterm(struct bbslist *bbs)
 						gotoxy(txtinfo.curx,txtinfo.cury);
 						showmouse();
 					}
-					key = 0;
 					break;
 				case 19:	/* CTRL-S */
 					if(cio_api.mode!=CIOLIB_MODE_CURSES
 							&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
 							&& cio_api.mode!=CIOLIB_MODE_ANSI) {
+						ch[0]=key;
+						conn_send(ch,1,0);
 						break;
 					}
 					/* FALLTHROUGH for curses/ansi modes */
@@ -1365,9 +1417,6 @@ BOOL doterm(struct bbslist *bbs)
 							font_control(bbs);
 							break;
 						case 10:
-							cterm.doorway_mode=!cterm.doorway_mode;
-							break;
-						case 11:
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
@@ -1377,14 +1426,12 @@ BOOL doterm(struct bbslist *bbs)
 					}
 					showmouse();
 					gotoxy(i,j);
-					key = 0;
 					break;
 				case 0x9800:	/* ALT-Up */
 					if(speed)
 						speed=rates[get_rate_num(speed)+1];
 					else
 						speed=rates[0];
-					key = 0;
 					break;
 				case 0xa000:	/* ALT-Down */
 					i=get_rate_num(speed);
@@ -1392,257 +1439,15 @@ BOOL doterm(struct bbslist *bbs)
 						speed=0;
 					else
 						speed=rates[i-1];
-					key = 0;
 					break;
-			}
-			if(key && cterm.emulation == CTERM_EMULATION_ATASCII) {
-				/* Translate keys to ATASCII */
-				switch(key) {
-					case '\r':
-					case '\n':
-						ch[0]=155;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_DOWN:
-						ch[0]=29;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_DC:		/* "Delete" key */
-					case '\b':				/* Backspace */
-						ch[0]=126;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_RIGHT:
-						ch[0]=31;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_UP:
-						ch[0]=28;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_LEFT:
-						ch[0]=30;
-						conn_send(ch,1,0);
-						break;
-					case '\t':
-						ch[0]=127;
-						conn_send(ch,1,0);
-						break;
-					default:
-						if(key<256) {
-							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<65) {
-								ch[0]=key;
-								conn_send(ch,1,0);
-							}
-							else if(key<91) {
-								ch[0]=tolower(key);
-								conn_send(ch,1,0);
-							}
-							else if(key<96) {
-								ch[0]=key;
-								conn_send(ch,1,0);
-							}
-							else if(key==96) {
-								break;
-							}
-							else if(key<123) {
-								ch[0]=toupper(key);
-								conn_send(ch,1,0);
-							}
-						}
-						break;
-				}
-			}
-			else if(key && cterm.emulation == CTERM_EMULATION_PETASCII) {
-				/* Translate keys to PETSCII */
-				switch(key) {
-					case '\r':
-					case '\n':
-						ch[0]=13;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_DOWN:
-						ch[0]=17;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_HOME:
-						ch[0]=19;
-						conn_send(ch,1,0);
-						break;
-					case '\b':
-					case CIO_KEY_DC:		/* "Delete" key */
-						ch[0]=20;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_RIGHT:
-						ch[0]=29;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(1):
-						ch[0]=133;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(3):
-						ch[0]=134;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(5):
-						ch[0]=135;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(7):
-						ch[0]=136;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(2):
-						ch[0]=137;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(4):
-						ch[0]=138;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(6):
-						ch[0]=139;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_F(8):
-						ch[0]=140;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_UP:
-						ch[0]=145;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_IC:
-						ch[0]=148;
-						conn_send(ch,1,0);
-						break;
-					case CIO_KEY_LEFT:
-						ch[0]=157;
-						conn_send(ch,1,0);
-						break;
-					default:
-						if(key<256) {
-							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<65) {
-								ch[0]=key;
-								conn_send(ch,1,0);
-							}
-							else if(key<91) {
-								ch[0]=tolower(key);
-								conn_send(ch,1,0);
-							}
-							else if(key<96) {
-								ch[0]=key;
-								conn_send(ch,1,0);
-							}
-							else if(key==96) {
-								break;
-							}
-							else if(key<123) {
-								ch[0]=toupper(key);
-								conn_send(ch,1,0);
-							}
-						}
-						break;
-				}
-			}
-			else if(key) {
-				switch(key) {
-					case CIO_KEY_LEFT:
-						conn_send("\033[D",3,0);
-						break;
-					case CIO_KEY_RIGHT:
-						conn_send("\033[C",3,0);
-						break;
-					case CIO_KEY_UP:
-						conn_send("\033[A",3,0);
-						break;
-					case CIO_KEY_DOWN:
-						conn_send("\033[B",3,0);
-						break;
-					case CIO_KEY_HOME:
-						conn_send("\033[H",3,0);
-						break;
-					case CIO_KEY_END:
-#ifdef CIO_KEY_SELECT
-					case CIO_KEY_SELECT:	/* Some terminfo/termcap entries use KEY_SELECT as the END key! */
-#endif
-						conn_send("\033[K",3,0);
-						break;
-					case CIO_KEY_DC:		/* "Delete" key, send ASCII 127 (DEL) */
-						conn_send("\x7f",1,0);
-						break;
-					case CIO_KEY_NPAGE:		/* Page down */
-						conn_send("\033[U",3,0);
-						break;
-					case CIO_KEY_PPAGE:	/* Page up */
-						conn_send("\033[V",3,0);
-						break;
-					case CIO_KEY_F(1):
-						conn_send("\033OP",3,0);
-						break;
-					case CIO_KEY_F(2):
-						conn_send("\033OQ",3,0);
-						break;
-					case CIO_KEY_F(3):
-						conn_send("\033OR",3,0);
-						break;
-					case CIO_KEY_F(4):
-						conn_send("\033OS",3,0);
-						break;
-					case CIO_KEY_F(5):
-						conn_send("\033Ot",3,0);
-						break;
-					case CIO_KEY_F(6):
-						conn_send("\033[17~",5,0);
-						break;
-					case CIO_KEY_F(7):
-						conn_send("\033[18~",5,0);
-						break;
-					case CIO_KEY_F(8):
-						conn_send("\033[19~",5,0);
-						break;
-					case CIO_KEY_F(9):
-						conn_send("\033[20~",5,0);
-						break;
-					case CIO_KEY_F(10):
-						conn_send("\033[21~",5,0);
-						break;
-					case CIO_KEY_F(11):
-						conn_send("\033[23~",5,0);
-						break;
-					case CIO_KEY_F(12):
-						conn_send("\033[24~",5,0);
-						break;
-					case CIO_KEY_IC:
-						conn_send("\033[@",3,0);
-						break;
-					case 17:		/* CTRL-Q */
+				case '\b':
+					key='\b';
+					/* FALLTHROUGH to default */
+				default:
+					if(key<256) {
 						ch[0]=key;
 						conn_send(ch,1,0);
-						break;
-					case 19:	/* CTRL-S */
-						ch[0]=key;
-						conn_send(ch,1,0);
-						break;
-					case '\b':
-						key='\b';
-						/* FALLTHROUGH to default */
-					default:
-						if(key<256) {
-							ch[0]=key;
-							conn_send(ch,1,0);
-						}
-				}
+					}
 			}
 		}
 		if(sleep)
@@ -1651,8 +1456,6 @@ BOOL doterm(struct bbslist *bbs)
 			MAYBE_YIELD();
 	}
 
-/*
 	hidemouse();
 	return(FALSE);
- */
 }
