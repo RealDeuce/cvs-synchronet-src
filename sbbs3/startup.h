@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.61 2006/12/31 11:15:25 rswindell Exp $ */
+/* $Id: startup.h,v 1.58 2006/05/24 06:10:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@ typedef struct {
 	char	host_name[INI_MAX_VALUE_LEN];
 	ushort	sem_chk_freq;
 	ulong	interface_addr;
-	int		log_level;
+	ulong	log_mask;
 	js_startup_t js;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
@@ -75,14 +75,12 @@ typedef struct {
     WORD	last_node;
 	WORD	telnet_port;
 	WORD	rlogin_port;
-	WORD	ssh_port;
 	WORD	outbuf_highwater_mark;	/* output block size control */
 	WORD	outbuf_drain_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
     DWORD   telnet_interface;
     DWORD	options;			/* See BBS_OPT definitions */
     DWORD	rlogin_interface;
-	DWORD	ssh_interface;
     RingBuf** node_spybuf;			/* Spy output buffer (each node)	*/
     RingBuf** node_inbuf;			/* User input buffer (each node)	*/
     sem_t**	node_spysem;			/* Spy output semaphore (each node)	*/
@@ -116,7 +114,7 @@ typedef struct {
 	char	host_name[128];
 	BOOL	recycle_now;
 	BOOL	shutdown_now;
-	int		log_level;
+	DWORD	log_mask;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 
@@ -156,7 +154,6 @@ static struct init_field {
 #define BBS_OPT_NO_EVENTS			(1<<9)	/* Don't run event thread			*/
 #define BBS_OPT_NO_SPY_SOCKETS		(1<<10)	/* Don't create spy sockets			*/
 #define BBS_OPT_NO_HOST_LOOKUP		(1<<11)
-#define BBS_OPT_ALLOW_SSH			(1<<12)	/* Allow logins via BSD SSH			*/
 #define BBS_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define BBS_OPT_GET_IDENT			(1<<28)	/* Get Identity (RFC 1413)			*/
 #define BBS_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
@@ -164,7 +161,7 @@ static struct init_field {
 #define BBS_OPT_MUTE				(1<<31)	/* Mute sounds						*/
 
 /* bbs_startup_t.options bits that require re-init/recycle when changed */
-#define BBS_INIT_OPTS	(BBS_OPT_ALLOW_RLOGIN|BBS_OPT_ALLOW_SSH|BBS_OPT_NO_EVENTS|BBS_OPT_NO_SPY_SOCKETS \
+#define BBS_INIT_OPTS	(BBS_OPT_ALLOW_RLOGIN|BBS_OPT_NO_EVENTS|BBS_OPT_NO_SPY_SOCKETS \
 						|BBS_OPT_NO_JAVASCRIPT|BBS_OPT_LOCAL_TIMEZONE)
 
 #if defined(STARTUP_INI_BITDESC_TABLES)
@@ -181,7 +178,6 @@ static ini_bitdesc_t bbs_options[] = {
 	{ BBS_OPT_NO_EVENTS				,"NO_EVENTS"			},
 	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ BBS_OPT_NO_SPY_SOCKETS		,"NO_SPY_SOCKETS"		},
-	{ BBS_OPT_ALLOW_SSH				,"ALLOW_SSH"			},
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
 	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
@@ -191,6 +187,18 @@ static ini_bitdesc_t bbs_options[] = {
 	{ 0								,NULL					}
 };
 
+static ini_bitdesc_t log_mask_bits[] = {
+	{ (1<<LOG_EMERG)				,"EMERG"				},
+	{ (1<<LOG_ALERT)				,"ALERT"				},
+	{ (1<<LOG_CRIT)					,"CRIT"					},
+	{ (1<<LOG_ERR)					,"ERR"					},
+	{ (1<<LOG_WARNING)				,"WARNING"				},
+	{ (1<<LOG_NOTICE)				,"NOTICE"				},
+	{ (1<<LOG_INFO)					,"INFO"					},
+	{ (1<<LOG_DEBUG)				,"DEBUG"				},
+	/* the Gubinator */				
+	{ 0								,NULL					}
+};
 #endif
 
 #ifdef __cplusplus
