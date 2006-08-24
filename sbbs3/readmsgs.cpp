@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.34 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: readmsgs.cpp,v 1.33 2006/02/02 08:35:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,7 +165,7 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 /****************************************************************************/
 /****************************************************************************/
-post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode)
+post_t * sbbs_t::loadposts(long *posts, uint subnum, ulong ptr, long mode)
 {
 	char name[128];
 	ushort aliascrc,namecrc,sysop;
@@ -344,8 +344,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 	uint 	usub,ugrp,reads=0;
 	uint	lp=0;
 	long	org_mode=mode;
-	ulong	msgs,l;
-	uint32_t last;
+	ulong	msgs,last,l;
 	post_t	*post;
 	smbmsg_t	msg;
 
@@ -1117,7 +1116,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 long sbbs_t::listsub(uint subnum, long mode, long start, char* search)
 {
 	int 	i;
-	int32_t	posts;
+	long	posts;
 	long	displayed;
 	post_t	*post;
 
