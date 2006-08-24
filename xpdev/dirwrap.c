@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.68 2006/08/24 00:16:42 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.69 2006/08/24 00:17:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -660,7 +660,7 @@ int removecase(char *path)
 	}
 	*p=0;
 
-	return(delfiles(inpath,fname,TRUE)?-1:0);
+	return(delfiles(inpath,fname)?-1:0);
 }
 #endif
 
