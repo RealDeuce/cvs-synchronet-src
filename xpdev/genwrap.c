@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.71 2006/08/14 22:51:12 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.72 2006/08/26 18:45:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,8 +248,10 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
     while(*str && strchr(delim, *str))
         ++str;
 
-    if(!*str)          /* no more tokens */
+    if(!*str) {         /* no more tokens */
+		*last = str;
         return NULL;
+	}
 
     token = str;
 
