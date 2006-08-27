@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.47 2006/05/03 00:26:52 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.48 2006/08/27 05:26:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,7 @@ bool sbbs_t::answer()
 				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
 				if(!findstr(client.addr,path)) {
 					SAFECOPY(tmp
-						,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
+						,rlogin_pass);
 					for(i=0;i<3;i++) {
 						if(stricmp(tmp,useron.pass)) {
 							rioctl(IOFI);       /* flush input buffer */
