@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.35 2007/07/10 20:03:26 deuce Exp $ */
+/* $Id: unbaja.c,v 1.33 2006/08/25 00:46:22 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -354,7 +354,7 @@ char *getvar(long name)
 
 void write_var(FILE *bin, char *src)
 {
-	int32_t lng;
+	long lng;
 
 	fread(&lng, 1, 4, bin);
 	sprintf(strchr(src,0),"%s ",getvar(lng));
@@ -381,7 +381,7 @@ void write_cstr(FILE *bin, char *src)
 
 void write_lng(FILE *bin, char *src)
 {
-	int32_t lng;
+	long lng;
 
 	fread(&lng,4,1,bin);
 	sprintf(strchr(src,0),"%ld ",lng);
@@ -389,7 +389,7 @@ void write_lng(FILE *bin, char *src)
 
 void write_short(FILE *bin, char *src)
 {
-	int16_t sht;
+	short sht;
 
 	fread(&sht,2,1,bin);
 	sprintf(strchr(src,0),"%d ",sht);
@@ -397,7 +397,7 @@ void write_short(FILE *bin, char *src)
 
 void write_ushort(FILE *bin, char *src)
 {
-	uint16_t sht;
+	ushort sht;
 
 	fread(&sht,2,1,bin);
 	sprintf(strchr(src,0),"%d ",sht);
@@ -1310,10 +1310,10 @@ void decompile(FILE *bin, FILE *srcfile)
 	char	ch;
 	uchar	uch;
 	ushort	ush;
-	int32_t	lng;
-	int32_t	lng2;
+	long	lng;
+	long	lng2;
 	int		usevar=FALSE;
-	uint32_t	var=0;
+	long	var=0;
 	char	buf[80];
 	char	*p;
 	char	src[2048];
@@ -2318,7 +2318,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.33 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
@@ -2335,7 +2335,7 @@ int main(int argc, char **argv)
 					free(brute_buf);
 					brute_len=0;
 				}
-				if((cache=fopen("unbaja.brute","r"))!=NULL) {
+				if((cache=fopen("unbaja.brute","r"))) {
 					while(fgets(cache_line,sizeof(cache_line),cache)) {
 						truncnl(cache_line);
 						crc=strtok(cache_line,",");
