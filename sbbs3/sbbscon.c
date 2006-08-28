@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.208 2006/08/28 22:56:16 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.209 2006/08/28 23:12:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -766,7 +766,7 @@ static void web_started(void* p)
 	web_running=TRUE;
 	web_stopped=FALSE;
 	#ifdef _THREAD_SUID_BROKEN
-		if(thread_suid_broken)
+		if(thread_suid_broken) {
 	    	do_seteuid(FALSE);
 	    	do_setuid(FALSE);
 		}
