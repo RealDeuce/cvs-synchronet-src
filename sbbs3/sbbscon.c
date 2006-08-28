@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.204 2006/08/28 20:24:58 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.205 2006/08/28 21:07:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -290,7 +290,10 @@ static BOOL do_seteuid(BOOL to_new)
 			result=FALSE;
 	}
 
-		
+#if defined(_THREAD_SUID_BROKEN)
+	SLEEP(10);
+#endif
+
 	pthread_mutex_unlock(&setid_mutex);
 
 	if(!result) {
