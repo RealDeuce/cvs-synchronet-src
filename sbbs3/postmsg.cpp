@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.68 2006/01/31 02:51:59 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.69 2006/08/23 22:34:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,7 +191,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	if(cfg.sub[subnum]->misc&SUB_NAME)
 		bputs(text[UsingRealName]);
 
-	sprintf(str,"%sinput.msg",cfg.node_dir);
+	msg_tmp_fname(useron.xedit, str, sizeof(str));
 	if(!writemsg(str,top,title,wm_mode,subnum,touser)
 		|| (long)(length=flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
