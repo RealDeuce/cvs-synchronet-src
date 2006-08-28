@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.203 2006/08/28 19:34:40 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.204 2006/08/28 20:24:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -257,7 +257,7 @@ static int lprintf(int level, char *fmt, ...)
 
 #ifdef __unix__
 static pthread_mutex_t setid_mutex;
-static BOOL setid_mutex_initialized;
+static BOOL setid_mutex_initialized=0;
 /**********************************************************
 * Change uid of the calling process to the user if specified
 * **********************************************************/
