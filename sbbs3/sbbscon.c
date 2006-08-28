@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.202 2006/08/27 09:37:34 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.203 2006/08/28 19:34:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -276,15 +276,15 @@ static BOOL do_seteuid(BOOL to_new)
 	pthread_mutex_lock(&setid_mutex);
 
 	if(to_new) {
-		if(((new_gid==getegid() && new_gid==getgid()) || setregid(-1,new_gid)==0)
-				&& ((new_uid==geteuid() && new_uid==getuid()) || setreuid(-1,new_uid)==0))
+		if((new_gid==getegid() || setregid(-1,new_gid)==0)
+				&& (new_uid==geteuid() || setreuid(-1,new_uid)==0))
 			result=TRUE;
 		else
 			result=FALSE;
 	}
 	else {
-		if(((old_gid==getegid() && old_gid==getgid()) || setregid(-1,old_gid)==0)
-				&& ((old_uid==geteuid() && old_uid==getuid()) || setreuid(-1,old_uid)==0))
+		if((old_gid==getegid() || setregid(-1,old_gid)==0)
+				&& (old_uid==geteuid() || setreuid(-1,old_uid)==0))
 			result=TRUE;
 		else
 			result=FALSE;
