@@ -2,13 +2,13 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.30 2007/07/25 23:09:50 rswindell Exp $ */
+/* $Id: userdat.h,v 1.29 2006/01/31 03:40:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -116,8 +116,6 @@ DLLEXPORT BOOL	DLLCALL user_downloaded(scfg_t* cfg, user_t* user, int files, lon
 DLLEXPORT BOOL	DLLCALL user_uploaded(scfg_t* cfg, user_t* user, int files, long bytes);
 DLLEXPORT BOOL	DLLCALL user_adjust_credits(scfg_t* cfg, user_t* user, long amount);
 DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t* cfg, user_t* user, long amount);
-
-DLLEXPORT time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime);
 
 #ifdef __cplusplus
 }
