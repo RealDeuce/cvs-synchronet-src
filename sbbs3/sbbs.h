@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.279 2006/08/23 22:34:32 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.280 2006/08/29 00:55:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,12 @@
 
 	#include <unistd.h>		/* close */
 
+#endif
+
+#ifdef _THREAD_SUID_BROKEN
+extern int	thread_suid_broken;			/* NPTL is no longer broken */
+#else
+#define thread_suid_broken FALSE
 #endif
 
 /******************/

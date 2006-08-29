@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.211 2006/08/28 23:54:48 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.212 2006/08/29 00:55:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,10 +200,6 @@ static const char* web_usage  = "Web server settings:\n"
 							"\tw-         disable Web server (no services module)\n"
 							"\n"
 							;
-#ifdef _THREAD_SUID_BROKEN
-int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
-#endif
-
 static int lputs(int level, char *str)
 {
 	static pthread_mutex_t mutex;

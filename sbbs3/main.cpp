@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.443 2006/08/28 22:56:16 deuce Exp $ */
+/* $Id: main.cpp,v 1.444 2006/08/29 00:55:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,6 +91,9 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
+#ifdef _THREAD_SUID_BROKEN
+int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
+#endif
 
 extern "C" {
 
