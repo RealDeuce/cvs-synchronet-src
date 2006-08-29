@@ -1,4 +1,4 @@
-/* $Id: conn.h,v 1.6 2006/08/29 20:02:01 deuce Exp $ */
+/* $Id: conn.h,v 1.7 2006/08/29 21:27:43 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -7,6 +7,7 @@
 
 extern SOCKET conn_socket;
 extern char *conn_types[];
+extern int conn_ports[];
 
 enum {
 	 CONN_TYPE_UNKNOWN

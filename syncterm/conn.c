@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.17 2006/08/29 20:02:01 deuce Exp $ */
+/* $Id: conn.c,v 1.18 2006/08/29 21:27:43 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -22,6 +22,11 @@ char *conn_types[]={"Unknown","RLogin","Telnet","Raw"
 	,"SSH"
 #endif
 ,NULL};
+int conn_ports[]={0,513,23,0
+#ifdef USE_CRYPTLIB
+	,22
+#endif
+};
 #ifdef USE_CRYPTLIB
 CRYPT_SESSION	ssh_session;
 #endif
