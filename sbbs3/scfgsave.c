@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.46 2006/01/26 02:00:06 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.48 2006/08/23 22:34:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,6 +109,33 @@ BOOL DLLCALL fcopy(char* src, char* dest)
 
 	return(success);
 }
+
+BOOL DLLCALL fcompare(char* fn1, char* fn2)
+{
+	FILE*	fp1;
+	FILE*	fp2;
+	BOOL	success=TRUE;
+
+	if(flength(fn1) != flength(fn2))
+		return(FALSE);
+	if((fp1=fopen(fn1,"rb"))==NULL)
+		return(FALSE);
+	if((fp2=fopen(fn2,"rb"))==NULL) {
+		fclose(fp1);
+		return(FALSE);
+	}
+
+	while(!feof(fp1) && success) {
+		if(fgetc(fp1) != fgetc(fp2))
+			success=FALSE;
+	}
+
+	fclose(fp1);
+	fclose(fp2);
+
+	return(success);
+}
+
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1124,8 +1151,5 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
             break;
     }
 
-	SAFEPRINTF(str,"%srecycle.ftp",cfg->ctrl_dir);		ftouch(str);
-	SAFEPRINTF(str,"%srecycle.web",cfg->ctrl_dir);		ftouch(str);
-	SAFEPRINTF(str,"%srecycle.mail",cfg->ctrl_dir);		ftouch(str);
-	SAFEPRINTF(str,"%srecycle.services",cfg->ctrl_dir);	ftouch(str);
+	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
 }
