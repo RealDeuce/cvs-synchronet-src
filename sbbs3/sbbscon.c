@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.217 2006/09/20 21:30:56 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.212 2006/08/29 00:55:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,6 +51,7 @@
 #include "ftpsrvr.h"	/* ftp_startup_t, ftp_server */
 #include "mailsrvr.h"	/* mail_startup_t, mail_server */
 #include "services.h"	/* services_startup_t, services_thread */
+#include "sbbscon.h"
 
 /* XPDEV headers */
 #include "conwrap.h"	/* kbhit/getch */
@@ -267,9 +268,6 @@ static BOOL do_seteuid(BOOL to_new)
 	if(new_uid_name[0]==0)	/* not set? */
 		return(TRUE);		/* do nothing */
 
-	if(old_uid==new_uid && old_gid==new_gid)
-		return(TRUE);		/* do nothing */
-
 	if(!setid_mutex_initialized) {
 		pthread_mutex_init(&setid_mutex,NULL);
 		setid_mutex_initialized=TRUE;
@@ -317,9 +315,6 @@ BOOL do_setuid(BOOL force)
 		return(do_seteuid(TRUE));
 #endif
 
-	if(old_uid==new_uid && old_gid==new_gid)
-		return(TRUE);		/* do nothing */
-
 	if(!setid_mutex_initialized) {
 		pthread_mutex_init(&setid_mutex,NULL);
 		setid_mutex_initialized=TRUE;
@@ -327,26 +322,20 @@ BOOL do_setuid(BOOL force)
 
 	pthread_mutex_lock(&setid_mutex);
 
-	if(getegid()!=old_gid)
-		setregid(-1,old_gid);
-	if(geteuid()!=old_gid)
-		setreuid(-1,old_uid);
-	if(getgid() != new_gid || getegid() != new_gid) {
-		if(setregid(new_gid,new_gid))
-		{
-			lputs(LOG_ERR,"!setgid FAILED");
-			lputs(LOG_ERR,strerror(errno));
-			result=FALSE;
-		}
+	setregid(-1,old_gid);
+	setreuid(-1,old_uid);
+	if(setregid(new_gid,new_gid))
+	{
+		lputs(LOG_ERR,"!setgid FAILED");
+		lputs(LOG_ERR,strerror(errno));
+		result=FALSE;
 	}
 
-	if(getuid() != new_uid || geteuid() != new_uid) {
-		if(setreuid(new_uid,new_uid))
-		{
-			lputs(LOG_ERR,"!setuid FAILED");
-			lputs(LOG_ERR,strerror(errno));
-			result=FALSE;
-		}
+	if(setreuid(new_uid,new_uid))
+	{
+		lputs(LOG_ERR,"!setuid FAILED");
+		lputs(LOG_ERR,strerror(errno));
+		result=FALSE;
 	}
 
 	pthread_mutex_unlock(&setid_mutex);
@@ -465,7 +454,7 @@ static int bbs_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(level > bbs_startup.log_level)
+	if(!(bbs_startup.log_mask&(1<<level)))
 		return(0);
 
 #ifdef __unix__
@@ -523,7 +512,7 @@ static int ftp_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(level > ftp_startup.log_level)
+	if(!(ftp_startup.log_mask&(1<<level)))
 		return(0);
 
 #ifdef __unix__
@@ -585,7 +574,7 @@ static int mail_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(level > mail_startup.log_level)
+	if(!(mail_startup.log_mask&(1<<level)))
 		return(0);
 
 #ifdef __unix__
@@ -643,7 +632,7 @@ static int services_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(level > services_startup.log_level)
+	if(!(services_startup.log_mask&(1<<level)))
 		return(0);
 
 #ifdef __unix__
@@ -701,7 +690,7 @@ static int event_lputs(int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(level > bbs_startup.log_level)
+	if(!(bbs_startup.log_mask&(1<<level)))
 		return(0);
 
 #ifdef __unix__
@@ -741,7 +730,7 @@ static int web_lputs(void* p, int level, char *str)
 	time_t		t;
 	struct tm	tm;
 
-	if(level > web_startup.log_level)
+	if(!(web_startup.log_mask&(1<<level)))
 		return(0);
 
 #ifdef __unix__
@@ -1079,7 +1068,7 @@ int main(int argc, char** argv)
     memset(&bbs_startup,0,sizeof(bbs_startup));
     bbs_startup.size=sizeof(bbs_startup);
 	bbs_startup.cbdata=&bbs_startup;
-	bbs_startup.log_level = LOG_DEBUG;
+	bbs_startup.log_mask=~0;
 	bbs_startup.lputs=bbs_lputs;
 	bbs_startup.event_lputs=event_lputs;
     bbs_startup.started=bbs_started;
@@ -1102,7 +1091,7 @@ int main(int argc, char** argv)
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
 	ftp_startup.cbdata=&ftp_startup;
-	ftp_startup.log_level = LOG_DEBUG;
+	ftp_startup.log_mask=~0;
 	ftp_startup.lputs=ftp_lputs;
     ftp_startup.started=ftp_started;
 	ftp_startup.recycle=recycle;
@@ -1121,7 +1110,7 @@ int main(int argc, char** argv)
     memset(&web_startup,0,sizeof(web_startup));
     web_startup.size=sizeof(web_startup);
 	web_startup.cbdata=&web_startup;
-	web_startup.log_level = LOG_DEBUG;
+	web_startup.log_mask=~0;
 	web_startup.lputs=web_lputs;
     web_startup.started=web_started;
 	web_startup.recycle=recycle;
@@ -1139,7 +1128,7 @@ int main(int argc, char** argv)
     memset(&mail_startup,0,sizeof(mail_startup));
     mail_startup.size=sizeof(mail_startup);
 	mail_startup.cbdata=&mail_startup;
-	mail_startup.log_level = LOG_DEBUG;
+	mail_startup.log_mask=~0;
 	mail_startup.lputs=mail_lputs;
     mail_startup.started=mail_started;
 	mail_startup.recycle=recycle;
@@ -1157,7 +1146,7 @@ int main(int argc, char** argv)
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
 	services_startup.cbdata=&services_startup;
-	services_startup.log_level = LOG_DEBUG;
+	services_startup.log_mask=~0;
 	services_startup.lputs=services_lputs;
     services_startup.started=services_started;
 	services_startup.recycle=recycle;
@@ -1619,8 +1608,6 @@ int main(int argc, char** argv)
 
 #ifdef _THREAD_SUID_BROKEN
 	/* check if we're using NPTL */
-/* Old (2.2) systems don't have this. */
-#ifdef _CS_GNU_LIBPTHREAD_VERSION
 	conflen=confstr (_CS_GNU_LIBPTHREAD_VERSION, NULL, 0);
 	if (conflen > 0) {
 		char *buf = alloca (conflen);
@@ -1628,7 +1615,6 @@ int main(int argc, char** argv)
 		if (strstr (buf, "NPTL"))
 			thread_suid_broken=FALSE;
 	}
-#endif
 #endif
 
 	/* Install Ctrl-C/Break signal handler here */
@@ -1655,12 +1641,7 @@ int main(int argc, char** argv)
 		if(!thread_suid_broken) {
  			if(bbs_startup.telnet_port < IPPORT_RESERVED
 				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
-					&& bbs_startup.rlogin_port < IPPORT_RESERVED)
-#ifdef USE_CRYPTLIB
-				|| (bbs_startup.options & BBS_OPT_ALLOW_SSH
-					&& bbs_startup.ssh_port < IPPORT_RESERVED)
-#endif
-				)
+					&& bbs_startup.rlogin_port < IPPORT_RESERVED))
 				bbs_startup.options|=BBS_OPT_NO_RECYCLE;
 			if(ftp_startup.port < IPPORT_RESERVED)
 				ftp_startup.options|=FTP_OPT_NO_RECYCLE;
