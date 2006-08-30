@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.389 2006/03/28 15:34:31 deuce Exp $ */
+/* $Id: websrvr.c,v 1.387 2006/03/01 00:58:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -881,7 +881,7 @@ static BOOL get_xjs_handler(char* ext, http_session_t* session)
 {
 	size_t	i;
 
-	if(ext==NULL || xjs_handlers==NULL || ext[0]==0)
+	if(ext==NULL || xjs_handlers==NULL)
 		return(FALSE);
 
 	for(i=0;xjs_handlers[i]!=NULL;i++) {
@@ -4126,7 +4126,6 @@ void http_session_thread(void* arg)
 	close_socket(session.socket);
 	session.socket=INVALID_SOCKET;
 	sem_wait(&session.output_thread_terminated);
-	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
 
 	active_clients--;
@@ -4191,7 +4190,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.389 $", "%*s %s", revision);
+	sscanf("$Revision: 1.387 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4294,7 +4293,6 @@ void http_logging_thread(void* arg)
 		fclose(logfile);
 		logfile=NULL;
 	}
-	sem_destroy(&log_sem);
 	thread_down();
 	lprintf(LOG_DEBUG,"%04d http logging thread terminated",server_socket);
 
