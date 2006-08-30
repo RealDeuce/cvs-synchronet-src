@@ -60,10 +60,6 @@ int init_crypt(void)
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.AddRandom=GetProcAddress(cryptlib,"cryptAddRandom"))==NULL) {
-		FreeLibrary(cryptlib);
-		return(-1);
-	}
 #else
 	void *cryptlib;
 
@@ -113,22 +109,17 @@ int init_crypt(void)
 		dlclose(cryptlib);
 		return(-1);
 	}
-	if((cl.AddRandom=dlsym(cryptlib,"cryptAddRandom"))==NULL) {
-		dlclose(cryptlib);
-		return(-1);
-	}
 #endif
 	if(cryptStatusOK(cl.Init())) {
-		if(cryptStatusOK(cl.AddRandom(NULL, CRYPT_RANDOM_SLOWPOLL))) {
-			crypt_loaded=1;
-			return(0);
-		}
+		crypt_loaded=1;
+		return(0);
 	}
 	return(-1);
 }
 
-void exit_crypt(void)
+int exit_crypt(void)
 {
 	if(crypt_loaded)
 		cl.End();
+	return(0);
 }
