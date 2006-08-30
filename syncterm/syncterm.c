@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.87 2006/02/27 21:46:11 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.90 2006/08/29 21:27:43 deuce Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -24,12 +24,9 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.7"
+char* syncterm_version = "SyncTERM 0.8"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
-#endif
-#ifdef PCM
-	" Clippy Edition"
 #endif
 	;
 
@@ -74,7 +71,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 {
 	char *p1, *p2, *p3;
 	struct	bbslist	*list[MAX_OPTS+1];
-	char	path[MAX_PATH+1];
 	char	listpath[MAX_PATH+1];
 	int		listcount=0, i;
 
@@ -91,7 +87,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->reversed=FALSE;
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
 		bbs->conn_type=dflt_conn_type;
-		bbs->port=(dflt_conn_type==CONN_TYPE_TELNET)?23:513;
+		bbs->port=conn_ports[dflt_conn_type];
 		bbs->xfer_loglevel=LOG_INFO;
 		bbs->telnet_loglevel=LOG_INFO;
 		bbs->music=CTERM_MUSIC_BANSI;
@@ -100,12 +96,19 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	p1=url;
 	if(!strnicmp("rlogin://",url,9)) {
 		bbs->conn_type=CONN_TYPE_RLOGIN;
-		bbs->port=513;
+		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+9;
 	}
+#ifdef USE_CRYPTLIB
+	else if(!strnicmp("ssh://",url,9)) {
+		bbs->conn_type=CONN_TYPE_SSH;
+		bbs->port=conn_ports[bbs->conn_type];
+		p1=url+6;
+	}
+#endif
 	else if(!strnicmp("telnet://",url,9)) {
 		bbs->conn_type=CONN_TYPE_TELNET;
-		bbs->port=23;
+		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+9;
 	}
 	/* Remove trailing / (Win32 adds one 'cause it hates me) */
@@ -301,9 +304,6 @@ int main(int argc, char **argv)
 	char	ext[MAX_PATH+1];
 	/* Command-line parsing vars */
 	char	url[MAX_PATH+1];
-	char	*p1;
-	char	*p2;
-	char	*p3;
 	int		i;
 	int	ciolib_mode=CIOLIB_MODE_AUTO;
 	str_list_t	inifile;
@@ -361,6 +361,11 @@ int main(int argc, char **argv)
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
 					break;
+#ifdef USE_CRYPTLIB
+				case 'H':
+					conn_type=CONN_TYPE_SSH;
+					break;
+#endif
 				case 'T':
 					conn_type=CONN_TYPE_TELNET;
 					break;
@@ -559,9 +564,16 @@ int main(int argc, char **argv)
         "-l# =  set screen lines to # (default=auto-detect)\n"
 		"-t  =  use telnet mode if URL does not include the scheme\n"
 		"-r  =  use rlogin mode if URL does not include the scheme\n"
+#ifdef USE_CRYPTLIB
+		"-h  =  use SSH mode if URL does not include the scheme\n"
+#endif
 		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"\n"
-		"URL format is: [(rlogin|telnet)://][user[:password]@]domainname[:port]\n"
+		"URL format is: [(rlogin|telnet"
+#ifdef USE_CRYPTLIB
+		"|ssh"
+#endif
+									  ")://][user[:password]@]domainname[:port]\n"
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
 		"          telnet://deuce@nix.synchro.net\n"
 		"          nix.synchro.net\n"
