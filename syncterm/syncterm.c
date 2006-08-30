@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.90 2006/08/29 21:27:43 deuce Exp $ */
+/* $Id: syncterm.c,v 1.91 2006/08/30 06:51:51 deuce Exp $ */
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -20,6 +20,7 @@
 #include "syncterm.h"
 #include "bbslist.h"
 #include "conn.h"
+#include "st_crypt.h"
 #include "term.h"
 #include "uifcinit.h"
 #include "window.h"
@@ -415,6 +416,9 @@ int main(int argc, char **argv)
 	else
 		FULLPATH(path,inpath,sizeof(path));
 	atexit(uifcbail);
+#ifdef USE_CRYPTLIB
+	atexit(exit_crypt);
+#endif
 
 	scrollback_buf=malloc(80*2*settings.backlines);	/* Terminal width is *always* 80 cols */
 	if(scrollback_buf==NULL) {
