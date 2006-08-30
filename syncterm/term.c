@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.144 2006/08/30 02:29:16 deuce Exp $ */
+/* $Id: term.c,v 1.145 2006/08/30 02:55:20 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -388,12 +388,14 @@ static int recv_byte(void* unused, unsigned timeout)
 		buftop=i;
 		bufbot=0;
 	}
+	ch=recvbuf[bufbot++];
+/*
 	if(buftop < sizeof(recvbuf)) {
 		i=conn_recv(recvbuf + buftop, sizeof(recvbuf) - buftop, 0);
 		if(i > 0)
 			buftop+=i;
 	}
-	ch=recvbuf[bufbot++];
+ */
 /*	lprintf(LOG_DEBUG,"RX: %02X", ch); */
 	return(ch);
 }
