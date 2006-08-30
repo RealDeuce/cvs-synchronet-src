@@ -1,26 +1,16 @@
 SRC_ROOT	= ..
 !include ${SRC_ROOT}\build\Common.bmake
 
-CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I..\sbbs3;..\smblib;..\..\include\cryptlib;..\comio
+CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3;../smblib
 LDFLAGS	=	$(LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 
-.path.c = .;..\sbbs3;..\smblib;..\uifc;..\comio
-
-OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE)
-
-!ifdef USE_WXWIDGETS
- !ifndef WXWIDGETS_DIR
-  WXWIDGETS_DIR = C:\wxWidgets-2.8.4
- !endif
- !ifndef WXWIDGETS_CFG
-  WXWIDGETS_CFG=syncterm
- !endif
- CFLAGS = $(CFLAGS) -DWITH_WXWIDGETS -I$(WXWIDGETS_DIR)\include -I$(WXWIDGETS_DIR)\lib\bcc_lib$(WXWIDGETS_CFG)\mswu
- LDFLAGS = $(LDFLAGS)  -L$(WXWIDGETS_DIR)\lib\bcc_lib$(WXWIDGETS_CFG) 
- WXLIBS = $(WXLIBS) comctl32.lib rpcrt4.lib wxbase28.lib wxbase28_net.lib wxjpeg.lib wxmsw28_adv.lib wxmsw28_core.lib wxmsw28_html.lib wxpng.lib wxtiff.lib wxzlib.lib
- OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)htmlwin$(OFILE)
+!ifdef USE_CRYPTLIB
+ CFLAGS	=	$(CFLAGS) -DUSE_CRYPTLIB
+ OBJS	+=	$(OBJS) $(MTOBJODIR)$(DIRSEP)st_crypt$(OFILE)
 !endif
+
+.path.c = .;../sbbs3;../smblib;../uifc
 
 $(SYNCTERM): $(OBJS)
 	@echo Linking $@
-        ${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) -e$@ $(OBJS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS)
+        ${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) -e$@ $(OBJS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
