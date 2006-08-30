@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.306 2007/07/25 23:19:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.280 2006/08/29 00:55:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,9 +47,6 @@
 /***************/
 #if defined(_WIN32)			/* Windows */
 
-	#define NOCRYPT     /* Stop windows.h from loading wincrypt.h */
-                    /* Is windows.h REALLY necessary?!?! */
-	#define WIN32_LEAN_AND_MEAN
 	#include <io.h>
 	#include <share.h>
 	#include <windows.h>
@@ -112,10 +109,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #endif
 
-#ifdef USE_CRYPTLIB
-#include <cryptlib.h>
-#endif
-
 /***********************/
 /* Synchronet-specific */
 /***********************/
@@ -176,13 +169,6 @@ public:
 	char	client_name[128];
 	char	client_ident[128];
 	DWORD	local_addr;
-#ifdef USE_CRYPTLIB
-	CRYPT_SESSION	ssh_session;
-	bool	ssh_mode;
-	SOCKET	passthru_socket;
-    bool	passthru_output_thread_running;
-    bool	passthru_input_thread_running;
-#endif
 
 	scfg_t	cfg;
 
@@ -214,7 +200,6 @@ public:
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
 	uchar	telnet_last_rxch;
-	char	telnet_location[128];
 	char	terminal[TELNET_TERM_MAXLEN+1];
 
 	time_t	event_time;				// Time of next exclusive event
@@ -276,13 +261,10 @@ public:
 	/*********************************/
 	char 	*text[TOTAL_TEXT];			/* Text from ctrl\text.dat */
 	char 	*text_sav[TOTAL_TEXT];		/* Text from ctrl\text.dat */
-
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
     int     keybuftop,keybufbot;    /* Keyboard input buffer pointers (for ungetkey) */
 	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */ 
-
-	ushort	node_connection;
-	char	connection[LEN_MODEM+1];	/* Connection Description */
+	char *	connection;		/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
@@ -367,13 +349,13 @@ public:
 			/* Global command shell variables */
 	uint	global_str_vars;
 	char **	global_str_var;
-	int32_t *	global_str_var_name;
+	long *	global_str_var_name;
 	uint	global_int_vars;
-	int32_t *	global_int_var;
-	int32_t *	global_int_var_name;
+	long *	global_int_var;
+	long *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
-	int32_t	sysvar_l[MAX_SYSVARS];
+	long	sysvar_l[MAX_SYSVARS];
 	uint	sysvar_li;
 
     /* ansi_term.cpp */
@@ -388,11 +370,11 @@ public:
 	int		exec_net(csi_t *csi);
 	int		exec_msg(csi_t *csi);
 	int		exec_file(csi_t *csi);
-	long	exec_bin(const char *mod, csi_t *csi);
+	long	exec_bin(char *mod, csi_t *csi);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
-	char**	getstrvar(csi_t *bin, int32_t name);
-	int32_t*	getintvar(csi_t *bin, int32_t name);
+	char**	getstrvar(csi_t *bin, long name);
+	long*	getintvar(csi_t *bin, long name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
 	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, char* cmdsrc, char* rsp);
@@ -418,7 +400,7 @@ public:
 	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
-	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
+	ulong	getlastmsg(uint subnum, ulong *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
 
@@ -434,11 +416,10 @@ public:
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del);
-	ulong	gettimeleft(bool handle_out_of_time=true);
+	void	gettimeleft(void);
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	time32str(time32_t *intime);
 	char*	timestr(time_t *intime);
     char	timestr_output[60];
 	void	userlist(long mode);
@@ -448,7 +429,6 @@ public:
 	void	create_sif_dat(char *siffile, char *datfile);
 	void	read_sif_dat(char *siffile, char *datfile);
 	void	printnodedat(uint number, node_t* node);
-	bool	inputnstime32(time32_t *dt);
 	bool	inputnstime(time_t *dt);
 	bool	chkpass(char *pass, user_t* user, bool unique);
 	char *	cmdstr(char *instr, char *fpath, char *fspec, char *outstr);
@@ -494,7 +474,7 @@ public:
 	void	delallmail(uint usernumber);
 
 	/* getmsg.cpp */
-	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
+	post_t* loadposts(long *posts, uint subnum, ulong ptr, long mode);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -555,7 +535,7 @@ public:
 
 	/* atcodes.cpp */
 	int		show_atcode(char *code);
-	char*	atcode(char* sp, char* str, size_t maxlen);
+	char*	atcode(char* sp, char* str);
 
 	/* getnode.cpp */
 	int		getsmsg(int usernumber);
@@ -619,7 +599,6 @@ public:
 	bool	chksyspass(void);
 	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
 	bool	ar_exp(uchar ** ptrptr, user_t * user);
-	void	daily_maint(void);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
@@ -645,7 +624,6 @@ public:
 	void	openfile(file_t* f);
 	void	closefile(file_t* f);
 	bool	removefcdt(file_t* f);
-	bool	removefile(file_t* f);
 	bool	movefile(file_t* f, int newdir);
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
@@ -816,7 +794,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, int32_t* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -828,7 +806,6 @@ extern "C" {
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
-	DLLEXPORT BOOL		DLLCALL putfileixb(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL getfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL putfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT void		DLLCALL putextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext);
@@ -869,7 +846,6 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL time32str(scfg_t* cfg, time32_t *intime, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
@@ -904,9 +880,6 @@ extern "C" {
 										,char* host, char* ip_addr, char* to, char* from);
 
 	DLLEXPORT char *	DLLCALL remove_ctrl_a(char* instr, char* outstr);
-
-	/* data.cpp */
-	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
 
 	/* data_ovl.cpp */
 	DLLEXPORT BOOL		DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
@@ -956,9 +929,6 @@ extern "C" {
 		 JSTYPE_ARRAY=JSTYPE_LIMIT
 		,JSTYPE_ALIAS
 		,JSTYPE_UNDEF
-#if !defined(JSTYPE_NULL)	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
-		,JSTYPE_NULL
-#endif
 	};
 
 	#ifdef BUILD_JSDOCS	/* String compiled into debug build only, for JS documentation generation */
