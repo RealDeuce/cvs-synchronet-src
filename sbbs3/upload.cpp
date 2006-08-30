@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.48 2006/10/27 00:39:45 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.47 2006/06/06 17:13:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,11 +575,6 @@ bool sbbs_t::bulkupload(uint dirnum)
 		sprintf(str,"%s%s",path,dirent->d_name);
 		if(isdir(str))
 			continue;
-#ifdef _WIN32
-		/* Skip hidden/system files on Win32 */
-		if(getfattr(str)&(_A_HIDDEN|_A_SYSTEM))
-			continue;
-#endif
 #ifdef _WIN32
 		GetShortPathName(str,spath,sizeof(spath));
 #else
