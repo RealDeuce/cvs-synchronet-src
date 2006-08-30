@@ -44,6 +44,10 @@ int init_crypt(void)
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
+	if((cl.GetAttribute=GetProcAddress(cryptlib,"cryptGetAttribute"))==NULL) {
+		FreeLibrary(cryptlib);
+		return(-1);
+	}
 	if((cl.SetAttribute=GetProcAddress(cryptlib,"cryptSetAttribute"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
@@ -52,7 +56,7 @@ int init_crypt(void)
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.DestroySession=(cryptlib,"cryptDestroySession"))==NULL) {
+	if((cl.DestroySession=GetProcAddress(cryptlib,"cryptDestroySession"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
@@ -89,6 +93,10 @@ int init_crypt(void)
 		dlclose(cryptlib);
 		return(-1);
 	}
+	if((cl.GetAttribute=dlsym(cryptlib,"cryptGetAttribute"))==NULL) {
+		dlclose(cryptlib);
+		return(-1);
+	}
 	if((cl.SetAttribute=dlsym(cryptlib,"cryptSetAttribute"))==NULL) {
 		dlclose(cryptlib);
 		return(-1);
@@ -109,7 +117,7 @@ int init_crypt(void)
 	return(-1);
 }
 
-int exit_crypt(void)
+void exit_crypt(void)
 {
 	if(crypt_loaded)
 		cl.End();
