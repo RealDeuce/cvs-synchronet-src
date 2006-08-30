@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.98 2006/08/30 19:58:14 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.99 2006/08/30 19:59:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1849,7 +1849,7 @@ js_spy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&node_num))
 			node_num=0;
 	}
