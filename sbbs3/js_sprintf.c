@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "[s]printf" implementation */
 
-/* $Id: js_sprintf.c,v 1.3 2006/12/21 21:27:19 deuce Exp $ */
+/* $Id: js_sprintf.c,v 1.2 2006/01/27 06:31:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,7 @@ js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 		}
 	}
 
-	return xp_asprintf_end(p, NULL);
+	return xp_asprintf_end(p);
 
 }
 
