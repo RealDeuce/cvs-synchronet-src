@@ -12,23 +12,12 @@ else
 			$(MTOBJODIR)$(DIRSEP)x_cio$(OFILE)
 endif
 
-ifdef WITH_SDL_AUDIO
+ifdef WITH_SDL
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
-else
- ifdef WITH_SDL
-  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
-  OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
-  ifeq ($(os),darwin)
-   MTOBJS	+=      $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
-   OBJS 	+=      $(OBJODIR)$(DIRSEP)SDLMain$(OFILE)
-  endif
- endif
 endif
 
 ifeq ($(os),netbsd)
- ifndef USE_SYSTEM_CURSES
-  CFLAGS	+=	-DN_CURSES_LIB
- endif
+ CFLAGS	+=	-DN_CURSES_LIB
 endif
 
 $(MTOBJODIR)$(DIRSEP)console$(OFILE).static:
@@ -56,14 +45,3 @@ $(CIOLIB-MT_SHLIB_BUILD): $(MTOBJODIR)$(DIRSEP)console$(OFILE).dynamic $(MTOBJOD
 endif
 	@echo Creating $@
 	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(OBJS) $(SHLIBOPTS) -o $@
-
-ifeq ($(os),darwin)
-$(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
-	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CC) $(MT_CFLAGS) $(CCFLAGS) -o $@ -c $<
-
-$(OBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
-	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
-endif
-
