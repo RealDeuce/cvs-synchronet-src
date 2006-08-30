@@ -597,6 +597,7 @@ void change_settings(void)
 				break;
 			case 1:
 				j=settings.startup_mode;
+				i=0;
 				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Startup Video Mode",screen_modes)) {
 					case -1:
 						continue;
@@ -975,7 +976,7 @@ struct bbslist *show_bbslist(int mode)
 								}
 								init_uifc(TRUE, TRUE);
 							}
-							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
+							val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 								|WIN_T2B|WIN_IMM|WIN_INACT
 								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 						}
