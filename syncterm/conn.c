@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.22 2006/08/31 04:26:28 deuce Exp $ */
+/* $Id: conn.c,v 1.20 2006/08/30 02:29:16 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -184,20 +184,17 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 	return(0);
 }
 
-int conn_connect(struct bbslist *bbs)
+int conn_connect(char *addr, int port, char *ruser, char *passwd, char *syspass, int conn_type, int speed)
 {
 	HOSTENT *ent;
 	SOCKADDR_IN	saddr;
 	char	*p;
 	unsigned int	neta;
-	char	*ruser;
-	char	*passwd;
 
 	init_uifc(TRUE, TRUE);
 
-	con_type=bbs->conn_type;
 #ifdef USE_CRYPTLIB
-	if(con_type==CONN_TYPE_SSH) {
+	if(conn_type==CONN_TYPE_SSH) {
 		if(!crypt_loaded)
 			init_crypt();
 		if(!crypt_loaded) {
@@ -217,25 +214,20 @@ int conn_connect(struct bbslist *bbs)
 	}
 #endif
 
-	ruser=bbs->user;
-	passwd=bbs->password;
-	if(con_type==CONN_TYPE_RLOGIN && bbs->reversed) {
-		passwd=bbs->user;
-		ruser=bbs->password;
-	}
-	for(p=bbs->addr;*p;p++)
+	con_type=conn_type;
+	for(p=addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
 			break;
 
 	if(!(*p))
-		neta=inet_addr(bbs->addr);
+		neta=inet_addr(addr);
 	else {
 		uifc.pop("Lookup up host");
-		if((ent=gethostbyname(bbs->addr))==NULL) {
+		if((ent=gethostbyname(addr))==NULL) {
 			char str[LIST_ADDR_MAX+17];
 
 			uifc.pop(NULL);
-			sprintf(str,"Cannot resolve %s!",bbs->addr);
+			sprintf(str,"Cannot resolve %s!",addr);
 			uifcmsg(str,	"`Cannot Resolve Host`\n\n"
 							"The system is unable to resolve the hostname... double check the spelling.\n"
 							"If it's not an issue with your DNS settings, the issue is probobly\n"
@@ -258,14 +250,14 @@ int conn_connect(struct bbslist *bbs)
 	memset(&saddr,0,sizeof(saddr));
 	saddr.sin_addr.s_addr = neta;
 	saddr.sin_family = AF_INET;
-	saddr.sin_port   = htons((WORD)bbs->port);
+	saddr.sin_port   = htons((WORD)port);
 
 	if(connect(conn_socket, (struct sockaddr *)&saddr, sizeof(saddr))) {
 		char str[LIST_ADDR_MAX+20];
 
 		conn_close();
 		uifc.pop(NULL);
-		sprintf(str,"Cannot connect to %s!",bbs->addr);
+		sprintf(str,"Cannot connect to %s!",addr);
 		uifcmsg(str,	"`Unable to connect`\n\n"
 						"Cannot connect to the remote system... it is down or unreachable.");
 		return(-1);
@@ -281,9 +273,9 @@ int conn_connect(struct bbslist *bbs)
 			conn_send("",1,1000);
 			conn_send(passwd,strlen(passwd)+1,1000);
 			conn_send(ruser,strlen(ruser)+1,1000);
-			if(bbs->bpsrate) {
+			if(speed) {
 				char	sbuf[30];
-				sprintf(sbuf, "ansi-bbs/%d", bbs->bpsrate);
+				sprintf(sbuf, "ansi-bbs/%d", speed);
 
 				conn_send(sbuf, strlen(sbuf)+1,1000);
 			}
@@ -341,7 +333,7 @@ int conn_connect(struct bbslist *bbs)
 				return(-1);
 			}
 
-			ssh_active=TRUE;
+			ssh_active=TRUE;;
 			break;
 		}
 #endif
