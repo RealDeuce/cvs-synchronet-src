@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.306 2006/01/31 02:51:59 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.310 2006/08/29 03:42:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1773,6 +1773,9 @@ static void receive_thread(void* arg)
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
 				SAFECOPY(f.desc,xfer.desc);
 
+			/* Necessary for DIR and LIB ARS keyword support in subsequent chk_ar()'s */
+			SAFECOPY(xfer.user->curdir, scfg.dir[f.dir]->code);
+
 			/* FILE_ID.DIZ support */
 			p=strrchr(f.name,'.');
 			if(p!=NULL && scfg.dir[f.dir]->misc&DIR_DIZ) {
@@ -2926,10 +2929,24 @@ static void ctrl_thread(void* arg)
 				continue;
 			}
 
-			if((ip_addr=startup->pasv_ip_addr)==0)
+			/* Choose IP address to use in passive response */
+			ip_addr=0;
+			if(startup->options&FTP_OPT_LOOKUP_PASV_IP
+				&& (host=gethostbyname(startup->host_name))!=NULL) 
+				ip_addr=ntohl(*((ulong*)host->h_addr_list[0]));
+			if(ip_addr==0 && (ip_addr=startup->pasv_ip_addr)==0)
 				ip_addr=ntohl(pasv_addr.sin_addr.s_addr);
+
+			if(startup->options&FTP_OPT_DEBUG_DATA)
+				lprintf(LOG_INFO,"%04d PASV DATA IP address in response: %u.%u.%u.%u (subject to NAT)"
+					,sock
+					,(ip_addr>>24)&0xff
+					,(ip_addr>>16)&0xff
+					,(ip_addr>>8)&0xff
+					,ip_addr&0xff
+					);
 			port=ntohs(addr.sin_port);
-			sockprintf(sock,"227 Entering Passive Mode (%d,%d,%d,%d,%hd,%hd)"
+			sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
 				,(ip_addr>>24)&0xff
 				,(ip_addr>>16)&0xff
 				,(ip_addr>>8)&0xff
@@ -4507,7 +4524,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.306 $", "%*s %s", revision);
+	sscanf("$Revision: 1.310 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4548,7 +4565,8 @@ void DLLCALL ftp_server(void* arg)
 	startup=(ftp_startup_t*)arg;
 
 #ifdef _THREAD_SUID_BROKEN
-	startup->seteuid(TRUE);
+	if(thread_suid_broken)
+		startup->seteuid(TRUE);
 #endif
 
     if(startup==NULL) {

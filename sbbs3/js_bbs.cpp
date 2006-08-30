@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.90 2006/02/28 00:47:34 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.96 2006/08/30 18:37:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -827,10 +827,10 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"file_cmds"			,BBS_PROP_FILE_CMDS		,JSPROP_ENUMERATE	,310},
 	{	"curgrp"			,BBS_PROP_CURGRP		,JSPROP_ENUMERATE	,310},
 	{	"cursub"			,BBS_PROP_CURSUB		,JSPROP_ENUMERATE	,310},
-	{	"cursub_code"		,BBS_PROP_CURSUB_CODE	,JSPROP_ENUMERATE	,31301},
+	{	"cursub_code"		,BBS_PROP_CURSUB_CODE	,JSPROP_ENUMERATE	,314},
 	{	"curlib"			,BBS_PROP_CURLIB		,JSPROP_ENUMERATE	,310},
 	{	"curdir"			,BBS_PROP_CURDIR		,JSPROP_ENUMERATE	,310},
-	{	"curdir_code"		,BBS_PROP_CURDIR_CODE	,JSPROP_ENUMERATE	,31301},
+	{	"curdir_code"		,BBS_PROP_CURDIR_CODE	,JSPROP_ENUMERATE	,314},
 	{	"connection"		,BBS_PROP_CONNECTION	,PROP_READONLY		,310},
 	{	"rlogin_name"		,BBS_PROP_RLOGIN_NAME	,JSPROP_ENUMERATE	,310},
 	{	"client_name"		,BBS_PROP_CLIENT_NAME	,JSPROP_ENUMERATE	,310},
@@ -885,7 +885,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"batch_upload_total",BBS_PROP_BATCH_UPLOAD_TOTAL,PROP_READONLY	,310},
 	{	"batch_dnload_total",BBS_PROP_BATCH_DNLOAD_TOTAL,PROP_READONLY	,310},
 
-	{	"command_str"		,BBS_PROP_COMMAND_STR		,JSPROP_ENUMERATE, 313},	/* 3.13b */
+	{	"command_str"		,BBS_PROP_COMMAND_STR		,JSPROP_ENUMERATE, 314},
 	{0}
 };
 
@@ -1275,7 +1275,7 @@ js_logkey(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>1)
-		comma=JS_ValueToBoolean(cx,argv[1],&comma);
+		JS_ValueToBoolean(cx,argv[1],&comma);
 
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = JSVAL_FALSE;
@@ -1442,7 +1442,6 @@ js_logoff(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			sbbs->exec_bin(sbbs->cfg.logoff_mod,&sbbs->main_csi);
 		sbbs->user_event(EVENT_LOGOFF);
 		sbbs->menu("logoff");
-		sbbs->riosync(0);
 		sbbs->hangup(); 
 	}
 
@@ -1582,11 +1581,16 @@ static JSBool
 js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
+	char		prot=0;
+	char*		p;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	*rval = BOOLEAN_TO_JSVAL(sbbs->sendfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
+	if(argc>1 && (p=js_ValueToStringBytes(cx, argv[1], NULL))!=NULL)
+		prot=*p;
+
+	*rval = BOOLEAN_TO_JSVAL(sbbs->sendfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0])),prot));
 
 	return(JS_TRUE);
 }
@@ -1595,11 +1599,16 @@ static JSBool
 js_recvfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
+	char		prot=0;
+	char*		p;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	*rval = BOOLEAN_TO_JSVAL(sbbs->recvfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
+	if(argc>1 && (p=js_ValueToStringBytes(cx, argv[1], NULL))!=NULL)
+		prot=*p;
+
+	*rval = BOOLEAN_TO_JSVAL(sbbs->recvfile(JS_GetStringBytes(JS_ValueToString(cx, argv[0])),prot));
 
 	return(JS_TRUE);
 }
@@ -1840,7 +1849,10 @@ js_spy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&node_num);
+	if(JSVAL_IS_NUMBER(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&node_num);
+	else
+		node_num=0;
 	sbbs->spy(node_num);
 
 	return(JS_TRUE);
@@ -2097,11 +2109,15 @@ static JSBool
 js_private_chat(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
+	JSBool		local=false;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	sbbs->privchat();
+	if(argc)
+		JS_ValueToBoolean(cx,argv[0],&local);
+
+	sbbs->privchat(local ? true:false);	// <- eliminates stupid msvc6 "performance warning"
 
 	return(JS_TRUE);
 }
@@ -2653,13 +2669,15 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("add file list to batch download queue")
 	,310
 	},
-	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("send specified filename (complete path) to user via user-prompted protocol")
-	,31301
+	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol]")
+	,JSDOCSTR("send specified filename (complete path) to user via user-prompted "
+		"(or optionally specified) protocol")
+	,314
 	},
-	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename")
-	,JSDOCSTR("received specified filename (complete path) frome user via user-prompted protocol")
-	,31301
+	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol]")
+	,JSDOCSTR("received specified filename (complete path) frome user via user-prompted "
+		"(or optionally specified) protocol")
+	,314
 	},
 	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("enter the temporary file tranfer menu")
@@ -2795,7 +2813,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_READ</tt>] [,message_number=<tt>0</tt>] [,string find]")
 	,JSDOCSTR("list messages in the specified message sub-board (number or internal code), "
 		"optionally search for 'find' string, returns number of messages listed")
-	,31301
+	,314
 	},		
 	/* menuing */
 	{"menu",			js_menu,			1,	JSTYPE_VOID,	JSDOCSTR("base_filename")
@@ -2865,8 +2883,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("use the private inter-node message prompt")
 	,310
 	},		
-	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("")
-	,JSDOCSTR("enter private inter-node chat")
+	{"private_chat",	js_private_chat,	0,	JSTYPE_VOID,	JSDOCSTR("[local=<i>false</i>]")
+	,JSDOCSTR("enter private inter-node chat, or local sysop chat (if <i>local</i>=<i>true</i>)")
 	,310
 	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_VOID,	JSDOCSTR("")
