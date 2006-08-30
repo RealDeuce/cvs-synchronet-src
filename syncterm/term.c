@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.147 2006/08/30 06:33:40 deuce Exp $ */
+/* $Id: term.c,v 1.145 2006/08/30 02:55:20 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -410,7 +410,7 @@ void purge_recv(void)
 		YIELD();
 		count++;
 	}
-	lprintf(LOG_NOTICE,"%u bytes purged",count);
+	lprintf(LOG_NOTICE,"%u bytes purged");
 }
 
 #if defined(__BORLANDC__)
@@ -1458,8 +1458,6 @@ BOOL doterm(struct bbslist *bbs)
 			MAYBE_YIELD();
 	}
 
-/*
 	hidemouse();
 	return(FALSE);
- */
 }
