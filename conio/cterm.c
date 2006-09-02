@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.86 2006/09/02 06:54:54 deuce Exp $ */
+/* $Id: cterm.c,v 1.87 2006/09/02 07:26:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -510,7 +510,7 @@ void clear2bol(void)
 		buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
-	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+wherex()-1,cterm.y+wherey(),buf);
+	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+wherex()-1,cterm.y+wherey()-1,buf);
 }
 
 void clear2eol(void)
@@ -1140,7 +1140,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.86 $";
+	char	*revision="$Revision: 1.87 $";
 	char *in;
 	char	*out;
 
