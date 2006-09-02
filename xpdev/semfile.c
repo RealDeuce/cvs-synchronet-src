@@ -1,12 +1,12 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.4 2007/07/11 00:02:35 rswindell Exp $ */
+/* $Id: semfile.c,v 1.2 2006/09/02 01:59:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -126,7 +126,6 @@ void DLLCALL semfile_list_free(str_list_t* filelist)
 BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 {
 	int file;
-	struct utimbuf ut;
 #if !defined(NO_SOCKET_SUPPORT)
 	char hostname[128];
 
@@ -137,9 +136,7 @@ BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 		return(FALSE);
 	if(text!=NULL)
 		write(file,text,strlen(text));
+	/* use utime() for force the time-stamp to that of the local system? */
 	close(file);
-
-	/* update the time stamp */
-	ut.actime = ut.modtime = time(NULL);
-	return utime(fname, &ut)==0;
+	return(TRUE);
 }
