@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.59 2007/07/25 08:16:44 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.53 2006/08/23 01:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -299,42 +299,12 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 {
 	char	str[1024],tmp2[128],c,*p;
 	char 	tmp[512];
-	/* TODO: 16-bit i */
-	int16_t	i;
-	int		file;
-	uint16_t	w;
-	int32_t	l;
+	int		i,file;
+	ushort	w;
+	long	l;
 	struct tm tm;
 	struct tm tl;
 	stats_t stats;
-
-	char	node_dir[MAX_PATH+1];
-	char	ctrl_dir[MAX_PATH+1];
-	char	data_dir[MAX_PATH+1];
-	char	exec_dir[MAX_PATH+1];
-	char	text_dir[MAX_PATH+1];
-	char	temp_dir[MAX_PATH+1];
-
-	SAFECOPY(node_dir,cfg.node_dir);
-	SAFECOPY(ctrl_dir,cfg.ctrl_dir);
-	SAFECOPY(data_dir,cfg.data_dir);
-	SAFECOPY(exec_dir,cfg.exec_dir);
-	SAFECOPY(text_dir,cfg.text_dir);
-	SAFECOPY(temp_dir,cfg.temp_dir);
-
-#ifdef _WIN32
-
-	if(!(misc&XTRN_NATIVE)) {
-		/* Put Micros~1 shortened paths in drop files when running 16-bit DOS programs */
-		GetShortPathName(cfg.node_dir,node_dir,sizeof(node_dir));
-		GetShortPathName(cfg.ctrl_dir,node_dir,sizeof(ctrl_dir));
-		GetShortPathName(cfg.data_dir,data_dir,sizeof(data_dir));
-		GetShortPathName(cfg.exec_dir,exec_dir,sizeof(exec_dir));
-		GetShortPathName(cfg.text_dir,text_dir,sizeof(text_dir));
-		GetShortPathName(cfg.temp_dir,temp_dir,sizeof(temp_dir));
-	}
-
-#endif
 
 	if(type==XTRN_SBBS) {	/* SBBS XTRN.DAT file */
 		strcpy(tmp,"XTRN.DAT");
@@ -355,8 +325,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,strlen(str));
 
 		sprintf(str,"%s\n%s\n%u\n%u\n%lu\n%s\n%lu\n%lu\n"
-			,ctrl_dir							/* Ctrl dir */
-			,data_dir							/* Data dir */
+			,cfg.ctrl_dir						/* Ctrl dir */
+			,cfg.data_dir						/* Data dir */
 			,cfg.sys_nodes						/* Total system nodes */
 			,cfg.node_num						/* Current node */
 			,tleft								/* User Timeleft in seconds */
@@ -436,9 +406,9 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,0									/* Time-slice type */
 			,useron.name						/* Real name/company */
 			,cur_rate							/* DCE rate */
-			,exec_dir
-			,text_dir
-			,temp_dir
+			,cfg.exec_dir
+			,cfg.text_dir
+			,cfg.temp_dir
 			,cfg.sys_id
 			,cfg.node_misc
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
@@ -489,8 +459,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(str,"%lu\n%s\n%s\n%s\n%lu\n%d\n%s\n%s\n"
 			"%u\n%u\n%lu\n%u\n%lu\n%u\n%s\n"
 			,tleft								/* Time left in seconds */
-			,node_dir							/* Gfiles dir (log dir) */
-			,data_dir							/* Data dir */
+			,cfg.node_dir						/* Gfiles dir (log dir) */
+			,cfg.data_dir						/* Data dir */
 			,"node.log"                         /* Name of log file */
 			,dte_rate							/* DTE rate */
 			,cfg.com_port						/* COM port number */
@@ -529,7 +499,11 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			}
 			else {
 				sprintf(str,"COM0:SOCKET%d\n",
+#ifdef __unix__
+					client_socket
+#else
 					client_socket_dup
+#endif
 				);
 			}
 		}
@@ -601,8 +575,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,0									/* 30: Kbytes downloaded today */
 			,(useron.cdt+useron.freecdt)/1024UL /* 31: Max Kbytes to download today */
 			,useron.birth						/* 32: User birthday */
-			,node_dir							/* 33: Path to MAIN directory */
-			,data_dir							/* 34: Path to GEN directory */
+			,cfg.node_dir						/* 33: Path to MAIN directory */
+			,cfg.data_dir						/* 34: Path to GEN directory */
 			,cfg.sys_op 						/* 35: Sysop name */
 			,nulstr 							/* 36: Alias name */
 			,0 // sys_eventtime/60				/* 37: Event time HH:MM */
@@ -704,17 +678,17 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 		w=(WORD)dte_rate;
-		write(file,&w,sizeof(w));			/* BaudRate */
+		write(file,&w,sizeof(short));			/* BaudRate */
 		/* SysInfo */
 		getstats(&cfg,0,&stats);
-		write(file,&stats.logons,sizeof(stats.logons)); /* CallCount */
+		write(file,&stats.logons,sizeof(long)); /* CallCount */
 		write(file,nulstr,36);					/* LastCallerName */
 		write(file,nulstr,36);					/* LastCallerAlias */
 		write(file,nulstr,92);					/* ExtraSpace */
 		/* TimeLogInfo */
 		write(file,nulstr,9);					/* StartDate */
-		write(file,nulstr,24*sizeof(int16_t));	/* BusyPerHour */
-		write(file,nulstr,7*sizeof(int16_t));		/* BusyPerDay */
+		write(file,nulstr,24*sizeof(short));	/* BusyPerHour */
+		write(file,nulstr,7*sizeof(short));		/* BusyPerDay */
 		/* UserInfo */
 		str2pas(name,str);				/* Name */
 		write(file,str,36);
@@ -741,33 +715,33 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,&c,1);						/* Attrib */
 		write(file,&useron.flags1,4);			/* Flags */
 		w=0;
-		write(file,&w,sizeof(w)); 			/* Credit */
-		write(file,&w,sizeof(w)); 			/* Pending */
-		write(file,&useron.posts,sizeof(useron.posts));/* TimesPosted */
-		write(file,&w,sizeof(w)); 			/* HighMsgRead */
+		write(file,&w,sizeof(short)); 			/* Credit */
+		write(file,&w,sizeof(short)); 			/* Pending */
+		write(file,&useron.posts,sizeof(short));/* TimesPosted */
+		write(file,&w,sizeof(short)); 			/* HighMsgRead */
 		w=useron.level;
-		write(file,&w,sizeof(w)); 			/* SecLvl */
+		write(file,&w,sizeof(short)); 			/* SecLvl */
 		w=0;
-		write(file,&w,sizeof(w)); 			/* Times */
-		write(file,&useron.uls,sizeof(useron.uls));	/* Ups */
-		write(file,&useron.dls,sizeof(useron.dls));	/* Downs */
+		write(file,&w,sizeof(short)); 			/* Times */
+		write(file,&useron.uls,sizeof(short));	/* Ups */
+		write(file,&useron.dls,sizeof(short));	/* Downs */
 		w=(ushort)(useron.ulb/1024UL);
-		write(file,&w,sizeof(w)); 			/* UpK */
+		write(file,&w,sizeof(short)); 			/* UpK */
 		w=(ushort)(useron.dlb/1024UL);
-		write(file,&w,sizeof(w)); 			/* DownK */
+		write(file,&w,sizeof(short)); 			/* DownK */
 		w=(ushort)(logon_dlb/1024UL);
-		write(file,&w,sizeof(w)); 			/* TodayK */
+		write(file,&w,sizeof(short)); 			/* TodayK */
 		w=0;
-		write(file,&w,sizeof(w)); 			/* Elapsed */
-		write(file,&w,sizeof(w)); 			/* Len */
-		write(file,&w,sizeof(w)); 			/* CombinedPtr */
-		write(file,&w,sizeof(w)); 			/* AliasPtr */
+		write(file,&w,sizeof(short)); 			/* Elapsed */
+		write(file,&w,sizeof(short)); 			/* Len */
+		write(file,&w,sizeof(short)); 			/* CombinedPtr */
+		write(file,&w,sizeof(short)); 			/* AliasPtr */
 		l=0;
-		write(file,&l,sizeof(l));			/* Birthday (as a long?) */
+		write(file,&l,sizeof(long));			/* Birthday (as a long?) */
 		/* EventInfo */
 		c=0;
 		write(file,&c,sizeof(char));			/* Status */
-		write(file,&l /* sys_eventtime */,sizeof(l));	/* RunTime */
+		write(file,&l /* sys_eventtime */,sizeof(long));	/* RunTime */
 		write(file,&c,sizeof(char));			/* ErrorLevel */
 		c='\xff';
 		write(file,&c,sizeof(char));			/* Days */
@@ -778,7 +752,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			l=0;
 		else
 			l=cfg.event[0]->last;
-		write(file,&l,sizeof(l));			/* LastTimeRun */
+		write(file,&l,sizeof(long));			/* LastTimeRun */
 		memset(str,0,40);
 		write(file,str,7);						/* Spare */
 
@@ -793,10 +767,10 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		unixtodstr(&cfg,logontime,tmp);
 		str2pas(tmp,str);
 		write(file,str,9);						/* LoginDate */
-		write(file,&cfg.level_timepercall[useron.level],sizeof(int16_t));  /* TmLimit */
-		write(file,&logontime,sizeof(logontime));	/* LoginSec */
-		write(file,&useron.cdt,sizeof(useron.cdt));	/* Credit */
-		write(file,&useron.number,sizeof(useron.number)); /* UserRecNum */
+		write(file,&cfg.level_timepercall[useron.level],sizeof(short));  /* TmLimit */
+		write(file,&logontime,sizeof(long));	/* LoginSec */
+		write(file,&useron.cdt,sizeof(long));	/* Credit */
+		write(file,&useron.number,sizeof(short)); /* UserRecNum */
 		write(file,&i,2);						/* ReadThru */
 		write(file,&i,2);						/* PageTimes */
 		write(file,&i,2);						/* DownLimit */
@@ -817,7 +791,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,&c,1);						/* GraphicsMode */
 		c=useron.xedit ? 1:0;
 		write(file,&c,1);						/* ExternEdit */
-		i=(int16_t)rows;
+		i=rows;
 		write(file,&i,2);						/* ScreenLength */
 		c=1;
 		write(file,&c,1);						/* MNP_Connect */
@@ -1008,7 +982,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(str,"%-25.25s",name);           /* User's full name */
 		write(file,str,25);
 
-		i=(int16_t)(tleft/60);
+		i=(tleft/60);
 		write(file,&i,2);						/* Minutes remaining */
 
 		write(file,&cfg.node_num,1);			/* Node number */
@@ -1316,7 +1290,11 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(str,"%d\n%d\n38400\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
 			"%d\n%d\n"
 			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
+#if defined(__unix__)
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket
+#else
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
+#endif
 			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
@@ -1343,8 +1321,7 @@ void sbbs_t::moduserdat(uint xtrnnum)
 {
 	char	str[256],path[256],c,startup[128];
 	char 	tmp[512];
-	/* TODO: I don't really like a 16-bit i */
-	uint16_t	i;
+	uint	i;
 	long	mod;
     int		file;
     FILE *	stream;
@@ -1361,7 +1338,7 @@ void sbbs_t::moduserdat(uint xtrnnum)
 			lseek(file,373,SEEK_SET);
 			read(file,&i,2);			/* SecLvl */
 			if(i<SYSOP_LEVEL) {
-				useron.level=(uint8_t)i;
+				useron.level=i;
 				putuserrec(&cfg,useron.number,U_LEVEL,2,ultoa(useron.level,tmp,10)); 
 			}
 			close(file);
@@ -1448,7 +1425,7 @@ void sbbs_t::moduserdat(uint xtrnnum)
 				lseek(file,105,SEEK_CUR);	/* read security level */
 				read(file,&i,2);
 				if(i<SYSOP_LEVEL) {
-					useron.level=(uint8_t)i;
+					useron.level=i;
 					putuserrec(&cfg,useron.number,U_LEVEL,2,ultoa(useron.level,tmp,10)); 
 				}
 				lseek(file,75,SEEK_CUR);	/* read in expiration date */
