@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.45 2006/12/28 02:45:27 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.42 2006/02/02 03:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,13 +40,6 @@
 #ifdef JAVASCRIPT
 
 #ifdef BUILD_JSDOCS
-
-static char* file_area_prop_desc[] = {
-	 "minimum amount of available disk space (in bytes) required for user uploads to be allowed"
-	,"file area settings (bitfield) - see <tt>FM_*</tt> in <tt>sbbsdefs.js</tt> for details"
-	,NULL
-};
-
 
 static char* lib_prop_desc[] = {
 	 "index into lib_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
@@ -89,9 +82,6 @@ static char* dir_prop_desc[] = {
 	,"user has sufficient access to download files"
 	,"user is exempt from download credit costs"
 	,"user has operator access to this directory"
-	,"directory is for offline storage <i>(introduced in v3.14)</i>"
-	,"directory is for uploads only <i>(introduced in v3.14)</i>"
-	,"directory is for uploads to sysop only <i>(introduced in v3.14)</i>"
 	,NULL
 };
 #endif
@@ -123,17 +113,6 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	if(areaobj==NULL)
 		return(NULL);
 
-	/* file_area.properties */
-	if(!JS_NewNumberValue(cx,cfg->min_dspace,&val))
-		return(NULL);
-	if(!JS_SetProperty(cx, areaobj, "min_diskspace", &val)) 
-		return(NULL);
-
-	if(!JS_NewNumberValue(cx,cfg->file_misc,&val))
-		return(NULL);
-	if(!JS_SetProperty(cx, areaobj, "settings", &val)) 
-		return(NULL);
-
 	/* file_area.lib[] */
 	if((alllibs=JS_NewObject(cx, NULL, NULL, areaobj))==NULL)
 		return(NULL);
@@ -148,6 +127,17 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 	val=OBJECT_TO_JSVAL(alldirs);
 	if(!JS_SetProperty(cx, areaobj, "dir", &val))
+		return(NULL);
+
+	/* file_area.properties */
+	if(!JS_NewNumberValue(cx,cfg->min_dspace,&val))
+		return(NULL);
+	if(!JS_SetProperty(cx, areaobj, "min_diskspace", &val)) 
+		return(NULL);
+
+	if(!JS_NewNumberValue(cx,cfg->file_misc,&val))
+		return(NULL);
+	if(!JS_SetProperty(cx, areaobj, "settings", &val)) 
 		return(NULL);
 
 	if(html_index_file==NULL)
@@ -238,13 +228,13 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if((dirobj=JS_NewObject(cx, NULL, NULL, NULL))==NULL)
 				return(NULL);
 
-			val=OBJECT_TO_JSVAL(dirobj);
 			dir_index=-1;
 			if(user==NULL || chk_ar(cfg,cfg->dir[d]->ar,user)) {
 
 				if(!JS_GetArrayLength(cx, dir_list, &dir_index))
 					return(NULL);								
 
+				val=OBJECT_TO_JSVAL(dirobj);
 				if(!JS_SetElement(cx, dir_list, dir_index, &val))
 					return(NULL);
 			}
@@ -256,22 +246,22 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 			if(d==cfg->user_dir 
 				&& !JS_DefineProperty(cx, areaobj, "user_dir", val
-					,NULL,NULL,JSPROP_READONLY))
+					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
 
 			if(d==cfg->sysop_dir 
 				&& !JS_DefineProperty(cx, areaobj, "sysop_dir", val
-					,NULL,NULL,JSPROP_READONLY))
+					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
 
 			if(d==cfg->upload_dir 
 				&& !JS_DefineProperty(cx, areaobj, "upload_dir", val
-					,NULL,NULL,JSPROP_READONLY))
+					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
 
 			if(d==cfg->lib[l]->offline_dir
 				&& !JS_DefineProperty(cx, libobj, "offline_dir", val
-					,NULL,NULL,JSPROP_READONLY))
+					,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE))
 				return(NULL);
 
 			val=INT_TO_JSVAL(dir_index);
@@ -341,8 +331,8 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if((js_str=JS_NewStringCopyZ(cx, cfg->dir[d]->ex_arstr))==NULL)
 				return(NULL);
 			if(!JS_DefineProperty(cx, dirobj, "exempt_ars", STRING_TO_JSVAL(js_str)
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))	/* exception here: Oct-15-2006 */
-				return(NULL);									/* ChangeScope->calloc() */
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
+				return(NULL);
 
 			if((js_str=JS_NewStringCopyZ(cx, cfg->dir[d]->op_arstr))==NULL)
 				return(NULL);
@@ -440,18 +430,6 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if(!JS_SetProperty(cx, dirobj, "is_operator", &val))
 				return(NULL);
 
-			val=BOOLEAN_TO_JSVAL(d==cfg->lib[l]->offline_dir);
-			if(!JS_SetProperty(cx, dirobj, "is_offline", &val))
-				return(NULL);
-
-			val=BOOLEAN_TO_JSVAL(d==cfg->upload_dir);
-			if(!JS_SetProperty(cx, dirobj, "is_upload", &val))
-				return(NULL);
-
-			val=BOOLEAN_TO_JSVAL(d==cfg->sysop_dir);
-			if(!JS_SetProperty(cx, dirobj, "is_sysop", &val))
-				return(NULL);
-
 #ifdef BUILD_JSDOCS
 			js_CreateArrayOfStrings(cx, dirobj, "_property_desc_list", dir_prop_desc, JSPROP_READONLY);
 			js_DescribeSyncObject(cx,dirobj,"File Transfer Directories  (current user has access to)",310);
@@ -464,11 +442,11 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 	}
 
 #ifdef BUILD_JSDOCS
-	js_CreateArrayOfStrings(cx, areaobj, "_property_desc_list", file_area_prop_desc, JSPROP_READONLY);
-
 	js_DescribeSyncObject(cx,alllibs,"Associative array of all libraries (use name as index)",312);
 	JS_DefineProperty(cx,alllibs,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
+#endif
 
+#ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,alldirs,"Associative array of all directories (use internal code as index)",311);
 	JS_DefineProperty(cx,alldirs,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
 #endif
