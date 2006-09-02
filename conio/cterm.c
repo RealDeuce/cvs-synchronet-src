@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.82 2006/05/29 14:28:50 deuce Exp $ */
+/* $Id: cterm.c,v 1.83 2006/09/02 02:48:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -762,8 +762,8 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						p2[j++]=' ';
 						p2[j++]=cterm.attr;
 					}
-					for(i=0;j<i;i++) {
-						puttext(cterm.x+1,cterm.y+i,cterm.x+cterm.width,cterm.y+i,p2);
+					for(j=0;j<i;j++) {
+						puttext(cterm.x+1,cterm.y+j,cterm.x+cterm.width,cterm.y+j,p2);
 					}
 					break;
 				case 'M':	/* ANSI music and also supposed to be delete line! */
@@ -1106,7 +1106,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.82 $";
+	char	*revision="$Revision: 1.83 $";
 	char *in;
 	char	*out;
 
