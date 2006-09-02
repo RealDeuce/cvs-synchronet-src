@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.94 2006/09/02 17:22:29 deuce Exp $ */
+/* $Id: syncterm.c,v 1.93 2006/08/30 20:45:24 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -19,9 +19,7 @@
 #include "cterm.h"
 #include "allfonts.h"
 
-#ifdef USE_CRYPTLIB
 #include "st_crypt.h"
-#endif
 #include "fonts.h"
 #include "syncterm.h"
 #include "bbslist.h"
