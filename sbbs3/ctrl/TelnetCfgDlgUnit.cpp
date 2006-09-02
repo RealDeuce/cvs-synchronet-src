@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.17 2005/02/18 09:32:22 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.18 2006/05/24 06:14:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -82,8 +82,6 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
 
 	FirstNodeEdit->Text=AnsiString((int)MainForm->bbs_startup.first_node);
 	LastNodeEdit->Text=AnsiString((int)MainForm->bbs_startup.last_node);
-	XtrnYieldEdit->Text=AnsiString(
-        (int)MainForm->bbs_startup.xtrn_polls_before_yield);
     AutoStartCheckBox->Checked=MainForm->SysAutoStart;
     AnswerSoundEdit->Text=AnsiString(MainForm->bbs_startup.answer_sound);
     HangupSoundEdit->Text=AnsiString(MainForm->bbs_startup.hangup_sound);
@@ -159,8 +157,6 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
 
     MainForm->bbs_startup.first_node=FirstNodeEdit->Text.ToIntDef(1);
     MainForm->bbs_startup.last_node=LastNodeEdit->Text.ToIntDef(1);
-    MainForm->bbs_startup.xtrn_polls_before_yield
-        =XtrnYieldEdit->Text.ToIntDef(10);
 
     MainForm->SysAutoStart=AutoStartCheckBox->Checked;
     SAFECOPY(MainForm->bbs_startup.answer_sound
