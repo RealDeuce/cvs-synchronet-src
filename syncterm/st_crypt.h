@@ -24,11 +24,12 @@ struct crypt_funcs {
 		C_IN CRYPT_ATTRIBUTE_TYPE attributeType,
 		C_IN void C_PTR value, C_IN int valueLength );
 	C_RET (*DestroySession)( C_IN CRYPT_SESSION session );
+	C_RET (*AddRandom)( C_IN void C_PTR randomData, C_IN int randomDataLength );
 };
 extern struct crypt_funcs cl;
 extern int crypt_loaded;
 
 int init_crypt(void);
-int exit_crypt(void);
+void exit_crypt(void);
 
 #endif
