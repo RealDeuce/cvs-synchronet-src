@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.154 2006/03/14 05:41:04 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.156 2006/05/24 06:14:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1978,9 +1978,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("LastNode"))
             bbs_startup.last_node=Registry->ReadInteger("LastNode");
 
-        if(Registry->ValueExists("ExternalYield"))
-            bbs_startup.xtrn_polls_before_yield=Registry->ReadInteger("ExternalYield");
-
         if(Registry->ValueExists("OutbufHighwaterMark"))
             bbs_startup.outbuf_highwater_mark=Registry->ReadInteger("OutbufHighwaterMark");
         else
@@ -3255,7 +3252,7 @@ void __fastcall TMainForm::BBSConfigWizardMenuItemClick(TObject *Sender)
     Application->CreateForm(__classid(TConfigWizard), &ConfigWizard);
 	if(ConfigWizard->ShowModal()==mrOk) {
         SaveSettings(Sender);
-        ReloadConfigExecute(Sender);
+//        ReloadConfigExecute(Sender);  /* unnecessary since refresh_cfg() is already called */
     }
     delete ConfigWizard;
 
@@ -3270,6 +3267,18 @@ void __fastcall TMainForm::PageControlUnDock(TObject *Sender,
         Allow=UndockableForms;
 }
 //---------------------------------------------------------------------------
+void __fastcall TMainForm::reload_config(void)
+{
+	char error[256];
+	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
+	if(!load_cfg(&cfg, NULL, TRUE, error)) {
+    	Application->MessageBox(error,"ERROR Re-loading Configuration"
+	        ,MB_OK|MB_ICONEXCLAMATION);
+        Application->Terminate();
+    }
+   	semfile_list_check(&initialized,recycle_semfiles);
+}
+//---------------------------------------------------------------------------
 
 void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
 {
@@ -3279,15 +3288,7 @@ void __fastcall TMainForm::ReloadConfigExecute(TObject *Sender)
     TelnetRecycleExecute(Sender);
 	ServicesRecycleExecute(Sender);
 
-	char error[256];
-	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
-	if(!load_cfg(&cfg, NULL, TRUE, error)) {
-    	Application->MessageBox(error,"ERROR Re-loading Configuration"
-	        ,MB_OK|MB_ICONEXCLAMATION);
-        Application->Terminate();
-    }
-   	semfile_list_check(&initialized,recycle_semfiles);
-
+    reload_config();
 #if 0   /* This appears to be redundant */
     node_t node;
     for(int i=0;i<cfg.sys_nodes;i++) {
@@ -3699,9 +3700,6 @@ void __fastcall TMainForm::ViewFile(AnsiString filename, AnsiString Caption)
     }
 }
 //---------------------------------------------------------------------------
-
-
-
 void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
 {
     char* p;
@@ -3713,7 +3711,7 @@ void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
     }
     else if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
-        ReloadConfigExecute(Sender);
+        reload_config();
     }
 }
 //---------------------------------------------------------------------------
