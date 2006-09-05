@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.97 2006/08/30 19:39:12 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.99 2006/08/30 19:59:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1843,14 +1843,16 @@ js_whos_online(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 static JSBool
 js_spy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	int32		node_num=1;
+	int32		node_num=0;
 	sbbs_t*		sbbs;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(!JS_ValueToInt32(cx,argv[0],&node_num))
-		node_num=0;
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&node_num))
+			node_num=0;
+	}
 	sbbs->spy(node_num);
 
 	return(JS_TRUE);

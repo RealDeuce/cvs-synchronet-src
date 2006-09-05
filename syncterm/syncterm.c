@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.92 2006/08/30 07:05:50 deuce Exp $ */
+/* $Id: syncterm.c,v 1.94 2006/09/02 17:22:29 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -19,7 +19,9 @@
 #include "cterm.h"
 #include "allfonts.h"
 
+#ifdef USE_CRYPTLIB
 #include "st_crypt.h"
+#endif
 #include "fonts.h"
 #include "syncterm.h"
 #include "bbslist.h"
@@ -419,9 +421,6 @@ int main(int argc, char **argv)
 	else
 		FULLPATH(path,inpath,sizeof(path));
 	atexit(uifcbail);
-#ifdef USE_CRYPTLIB
-	atexit(exit_crypt);
-#endif
 
 	scrollback_buf=malloc(80*2*settings.backlines);	/* Terminal width is *always* 80 cols */
 	if(scrollback_buf==NULL) {
@@ -458,7 +457,7 @@ int main(int argc, char **argv)
 	load_font_files();
 	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
-		if(!conn_connect(bbs->addr,bbs->port,bbs->reversed?bbs->password:bbs->user,bbs->reversed?bbs->user:bbs->password,bbs->syspass,bbs->conn_type,bbs->bpsrate)) {
+		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			bbs->connected=time(NULL);
@@ -499,8 +498,12 @@ int main(int argc, char **argv)
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
-			if(drawwin())
+			if(drawwin()) {
+#ifdef USE_CRYPTLIB
+				atexit(exit_crypt);
+#endif
 				return(1);
+			}
 			if(log_fp==NULL && bbs->logfile[0])
 				log_fp=fopen(bbs->logfile,"a");
 			if(log_fp!=NULL) {
@@ -550,6 +553,9 @@ int main(int argc, char **argv)
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
+#endif
+#ifdef USE_CRYPTLIB
+				atexit(exit_crypt);
 #endif
 	return(0);
 
