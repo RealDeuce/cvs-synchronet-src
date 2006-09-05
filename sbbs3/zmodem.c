@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.69 2006/02/24 09:50:50 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.70 2006/08/30 06:40:41 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1778,7 +1778,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, ulong* bytes_recei
 	time_t		t;
 	unsigned	cps;
 	unsigned	timeout;
-	unsigned	errors=0;
+	unsigned	errors;
 
 	if(bytes_received!=NULL)
 		*bytes_received=0;
@@ -2057,7 +2057,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.69 $", "%*s %s", buf);
+	sscanf("$Revision: 1.70 $", "%*s %s", buf);
 
 	return(buf);
 }
