@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id: spyon.c,v 1.6 2006/01/11 02:24:39 deuce Exp $ */
+/* $Id: spyon.c,v 1.7 2006/05/08 18:58:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,7 +83,7 @@ int spyon(char *sockname)  {
 	i=1;
 
 	gettextinfo(&ti);
-	scrn=(char *)malloc(ti.screenwidth*ti.screenheight*2);
+	scrn=(char *)alloca(ti.screenwidth*ti.screenheight*2);
 	gettext(1,1,ti.screenwidth,ti.screenheight,scrn);
 	textcolor(YELLOW);
 	textbackground(BLUE);
