@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.440 2006/09/12 00:11:41 deuce Exp $ */
+/* $Id: websrvr.c,v 1.437 2006/09/05 19:38:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2136,7 +2136,7 @@ static BOOL get_request_headers(http_session_t * session)
 
 	while(sockreadline(session,head_line,sizeof(head_line)-1)>0) {
 		/* Multi-line headers */
-		while((i=recv(session->socket,&next_char,1,MSG_PEEK))>0
+		while((i=recv(session->socket,&next_char,1,MSG_PEEK)>0)
 			&& (next_char=='\t' || next_char==' ')) {
 			if(i==-1 && ERROR_VALUE != EAGAIN)
 				close_socket(&session->socket);
@@ -3175,7 +3175,7 @@ static BOOL exec_cgi(http_session_t *session)
 				,session->socket, buf);
 			SAFECOPY(header,buf);
 			if(strchr(header,':')!=NULL) {
-				if((directive=strtok_r(header,":",&last))!=NULL)
+				if(directive=strtok_r(header,":",&last))
 					value=strtok_r(NULL,"",&last);
 				else
 					value="";
@@ -3496,7 +3496,6 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	char	*header;
 	char	*p;
 	int32	i;
-	JSBool	b;
 	struct tm tm;
 	http_session_t* session;
 
@@ -3529,8 +3528,8 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 			header += sprintf(header,"; path=%s",p);
 	}
 	if(argc>5) {
-		JS_ValueToBoolean(cx, argv[5], &b);
-		if(b)
+		JS_ValueToBoolean(cx, argv[5], &i);
+		if(i)
 			header += sprintf(header,"; secure");
 	}
 	strListPush(&session->req.dynamic_heads,header_buf);
@@ -4551,7 +4550,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.440 $", "%*s %s", revision);
+	sscanf("$Revision: 1.437 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5017,7 +5016,7 @@ void DLLCALL web_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_DEBUG,"Web Server listening interrupted");
+					lprintf(LOG_INFO,"Web Server listening interrupted");
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_INFO,"Web Server socket closed");
 				else
@@ -5094,11 +5093,6 @@ void DLLCALL web_server(void* arg)
 			pthread_mutex_unlock(&session->struct_filled);
 			session=NULL;
 			served++;
-		}
-
-		if(session) {
-			pthread_mutex_unlock(&session->struct_filled);
-			session=NULL;
 		}
 
 		/* Wait for active clients to terminate */
