@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.281 2006/09/09 06:24:05 deuce Exp $ */
+/* $Id: sbbs.h,v 1.275 2006/03/14 09:33:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,12 +69,6 @@
 
 #endif
 
-#ifdef _THREAD_SUID_BROKEN
-extern int	thread_suid_broken;			/* NPTL is no longer broken */
-#else
-#define thread_suid_broken FALSE
-#endif
-
 /******************/
 /* ANSI C Library */
 /******************/
@@ -107,10 +101,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include <jsprf.h>		/* JS-safe sprintf functions */
 	#include <jsnum.h>		/* JSDOUBLE_IS_NaN() */
 
-#endif
-
-#ifdef USE_CRYPTLIB
-#include <cryptlib.h>
 #endif
 
 /***********************/
@@ -173,10 +163,6 @@ public:
 	char	client_name[128];
 	char	client_ident[128];
 	DWORD	local_addr;
-#ifdef USE_CRYPTLIB
-	CRYPT_SESSION	ssh_session;
-	bool	ssh_mode;
-#endif
 
 	scfg_t	cfg;
 
@@ -452,7 +438,6 @@ public:
 	void	automsg(void);
 	bool	writemsg(char *str, char *top, char *title, long mode, int subnum
 				,char *dest);
-	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(char *str, long mode);
 	bool	msgabort(void);
 	bool	email(int usernumber, char *top, char *title, long mode);
@@ -506,7 +491,6 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	long	term_supports(long cmp_flags=0);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -537,6 +521,7 @@ public:
 	int		uselect(int add, uint n, char *title, char *item, uchar *ar);
 	uint	uselect_total, uselect_num[500];
 
+	void	riosync(char abortable);
 	void	redrwstr(char *strin, int i, int l, long mode);
 	void	attr(int atr);				/* Change local and remote text attributes */
 	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
@@ -624,8 +609,8 @@ public:
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0);
-	bool	recvfile(char* fname, char prot=0);
+	bool	sendfile(char* fname);
+	bool	recvfile(char* fname);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -873,7 +858,6 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL fcopy(char* src, char* dest);
-	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
 	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
 	
