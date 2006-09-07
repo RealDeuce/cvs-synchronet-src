@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.21 2006/08/30 20:45:24 deuce Exp $ */
+/* $Id: conn.c,v 1.22 2006/08/31 04:26:28 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -341,7 +341,7 @@ int conn_connect(struct bbslist *bbs)
 				return(-1);
 			}
 
-			ssh_active=TRUE;;
+			ssh_active=TRUE;
 			break;
 		}
 #endif
