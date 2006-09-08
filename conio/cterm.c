@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.85 2006/09/02 05:52:55 deuce Exp $ */
+/* $Id: cterm.c,v 1.89 2006/09/02 08:25:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -490,7 +490,7 @@ void dellines(int lines)
 	gettext(cterm.x,cterm.y+wherey()-1+lines,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
 	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1-lines,buf);
 	j=0;
-	k=cterm.width*lines*2;
+	k=cterm.width*lines;
 	for(i=0;i<k;i++) {
 		buf[j++]=' ';
 		buf[j++]=cterm.attr;
@@ -510,7 +510,7 @@ void clear2bol(void)
 		buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
-	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+wherex()-1,cterm.y+wherey(),buf);
+	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+wherex()-1,cterm.y+wherey()-1,buf);
 }
 
 void clear2eol(void)
@@ -848,7 +848,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						p2[j++]=' ';
 						p2[j++]=cterm.attr;
 					}
-					puttext(cterm.x+wherex()-1,cterm.y+wherey()-1,cterm.x+wherex()-1+i,cterm.y+wherey()-1,p2);
+					puttext(cterm.x+wherex()-1,cterm.y+wherey()-1,cterm.x+wherex()-1+i-1,cterm.y+wherey()-1,p2);
 					break;
 				case 'Z':
 					i=atoi(cterm.escbuf+1);
@@ -1140,11 +1140,10 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.85 $";
+	char	*revision="$Revision: 1.89 $";
 	char *in;
 	char	*out;
 
-fprintf(stderr,"Init at %d,%d\n",xpos,ypos);
 	memset(&cterm, 0, sizeof(cterm));
 	cterm.x=xpos;
 	cterm.y=ypos;
@@ -1237,8 +1236,12 @@ void ctputs(char *buf)
 				gotoxy(cx,cy);
 				break;
 			case '\b':
+				*p=0;
+				cputs(outp);
+				outp=p+1;
 				if(cx>0)
 					cx--;
+				gotoxy(cx,cy);
 				break;
 			case 7:		/* Bell */
 				break;
