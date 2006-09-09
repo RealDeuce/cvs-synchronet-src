@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.201 2005/11/17 06:24:45 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.214 2006/09/09 06:24:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,7 +199,6 @@ static const char* web_usage  = "Web server settings:\n"
 							"\tw-         disable Web server (no services module)\n"
 							"\n"
 							;
-
 static int lputs(int level, char *str)
 {
 	static pthread_mutex_t mutex;
@@ -256,38 +255,41 @@ static int lprintf(int level, char *fmt, ...)
 }
 
 #ifdef __unix__
+static pthread_mutex_t setid_mutex;
+static BOOL setid_mutex_initialized=0;
 /**********************************************************
 * Change uid of the calling process to the user if specified
 * **********************************************************/
 static BOOL do_seteuid(BOOL to_new) 
 {
 	BOOL	result=FALSE;
-	static pthread_mutex_t mutex;
-	static BOOL mutex_initialized;
 
 	if(new_uid_name[0]==0)	/* not set? */
 		return(TRUE);		/* do nothing */
 
-	if(!mutex_initialized) {
-		pthread_mutex_init(&mutex,NULL);
-		mutex_initialized=TRUE;
+	if(!setid_mutex_initialized) {
+		pthread_mutex_init(&setid_mutex,NULL);
+		setid_mutex_initialized=TRUE;
 	}
 
-	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(&setid_mutex);
 
-	if(to_new)
-		if(!setregid(-1,new_gid) && !setreuid(-1,new_uid))
+	if(to_new) {
+		if((new_gid==getegid() || setregid(-1,new_gid)==0)
+				&& (new_uid==geteuid() || setreuid(-1,new_uid)==0))
 			result=TRUE;
 		else
 			result=FALSE;
-	else
-		if(!setregid(-1,old_gid) && !setreuid(-1,old_uid))
+	}
+	else {
+		if((old_gid==getegid() || setregid(-1,old_gid)==0)
+				&& (old_uid==geteuid() || setreuid(-1,old_uid)==0))
 			result=TRUE;
 		else
 			result=FALSE;
+	}
 
-		
-	pthread_mutex_unlock(&mutex);
+	pthread_mutex_unlock(&setid_mutex);
 
 	if(!result) {
 		lputs(LOG_ERR,"!seteuid FAILED");
@@ -302,10 +304,23 @@ static BOOL do_seteuid(BOOL to_new)
 BOOL do_setuid(BOOL force)
 {
 	BOOL result=TRUE;
-#if defined(DONT_BLAME_SYNCHRONET) || defined(_THREAD_SUID_BROKEN)
+#if defined(DONT_BLAME_SYNCHRONET)
 	if(!force)
 		return(do_seteuid(TRUE));
 #endif
+
+#if defined(_THREAD_SUID_BROKEN)
+	if(thread_suid_broken && (!force))
+		return(do_seteuid(TRUE));
+#endif
+
+	if(!setid_mutex_initialized) {
+		pthread_mutex_init(&setid_mutex,NULL);
+		setid_mutex_initialized=TRUE;
+	}
+
+	pthread_mutex_lock(&setid_mutex);
+
 	setregid(-1,old_gid);
 	setreuid(-1,old_uid);
 	if(setregid(new_gid,new_gid))
@@ -321,6 +336,9 @@ BOOL do_setuid(BOOL force)
 		lputs(LOG_ERR,strerror(errno));
 		result=FALSE;
 	}
+
+	pthread_mutex_unlock(&setid_mutex);
+
 	if(force && (!result))
 		exit(1);
 
@@ -365,7 +383,7 @@ static void thread_up(void* p, BOOL up, BOOL setuid)
 	static BOOL mutex_initialized;
 
 #ifdef _THREAD_SUID_BROKEN
-	if(up && setuid) {
+	if(thread_suid_broken && up && setuid) {
 		do_seteuid(FALSE);
 		do_setuid(FALSE);
 	}
@@ -377,6 +395,7 @@ static void thread_up(void* p, BOOL up, BOOL setuid)
 	}
 
 	pthread_mutex_lock(&mutex);
+
 	if(up)
 	    thread_count++;
     else if(thread_count>0)
@@ -469,8 +488,10 @@ static void bbs_started(void* p)
 	bbs_running=TRUE;
 	bbs_stopped=FALSE;
 	#ifdef _THREAD_SUID_BROKEN
-	    do_seteuid(FALSE);
-	    do_setuid(FALSE);
+		if(thread_suid_broken) {
+	    	do_seteuid(FALSE);
+	    	do_setuid(FALSE);
+		}
 	#endif
 }
 
@@ -529,8 +550,10 @@ static void ftp_started(void* p)
 	ftp_running=TRUE;
 	ftp_stopped=FALSE;
 	#ifdef _THREAD_SUID_BROKEN
-	    do_seteuid(FALSE);
-	    do_setuid(FALSE);
+		if(thread_suid_broken) {
+	    	do_seteuid(FALSE);
+	    	do_setuid(FALSE);
+		}
 	#endif
 }
 
@@ -585,8 +608,10 @@ static void mail_started(void* p)
 	mail_running=TRUE;
 	mail_stopped=FALSE;
 	#ifdef _THREAD_SUID_BROKEN
-	    do_seteuid(FALSE);
-	    do_setuid(FALSE);
+		if(thread_suid_broken) {
+	    	do_seteuid(FALSE);
+	    	do_setuid(FALSE);
+		}
 	#endif
 }
 
@@ -641,8 +666,10 @@ static void services_started(void* p)
 	services_running=TRUE;
 	services_stopped=FALSE;
 	#ifdef _THREAD_SUID_BROKEN
-	    do_seteuid(FALSE);
-	    do_setuid(FALSE);
+		if(thread_suid_broken) {
+	    	do_seteuid(FALSE);
+	    	do_setuid(FALSE);
+		}
 	#endif
 }
 
@@ -737,8 +764,10 @@ static void web_started(void* p)
 	web_running=TRUE;
 	web_stopped=FALSE;
 	#ifdef _THREAD_SUID_BROKEN
-	    do_seteuid(FALSE);
-	    do_setuid(FALSE);
+		if(thread_suid_broken) {
+	    	do_seteuid(FALSE);
+	    	do_setuid(FALSE);
+		}
 	#endif
 }
 
@@ -1000,6 +1029,9 @@ int main(int argc, char** argv)
 	struct passwd*	pw_entry;
 	struct group*	gr_entry;
 	sigset_t		sigs;
+#endif
+#ifdef _THREAD_SUID_BROKEN
+	size_t	conflen;
 #endif
 
 #ifdef __QNX__
@@ -1573,6 +1605,17 @@ int main(int argc, char** argv)
 	do_seteuid(TRUE);
 #endif
 
+#ifdef _THREAD_SUID_BROKEN
+	/* check if we're using NPTL */
+	conflen=confstr (_CS_GNU_LIBPTHREAD_VERSION, NULL, 0);
+	if (conflen > 0) {
+		char *buf = alloca (conflen);
+		confstr (_CS_GNU_LIBPTHREAD_VERSION, buf, conflen);
+		if (strstr (buf, "NPTL"))
+			thread_suid_broken=FALSE;
+	}
+#endif
+
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
@@ -1593,21 +1636,28 @@ int main(int argc, char** argv)
 	if(new_uid_name[0]!=0) {        /*  check the user arg, if we have uid 0 */
 		/* Can't recycle servers (re-bind ports) as non-root user */
 		/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
-#if !defined(DONT_BLAME_SYNCHRONET) && !defined(_THREAD_SUID_BROKEN)
- 		if(bbs_startup.telnet_port < IPPORT_RESERVED
-			|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
-				&& bbs_startup.rlogin_port < IPPORT_RESERVED))
-			bbs_startup.options|=BBS_OPT_NO_RECYCLE;
-		if(ftp_startup.port < IPPORT_RESERVED)
-			ftp_startup.options|=FTP_OPT_NO_RECYCLE;
-		if(web_startup.port < IPPORT_RESERVED)
-			web_startup.options|=BBS_OPT_NO_RECYCLE;
-		if((mail_startup.options & MAIL_OPT_ALLOW_POP3
-			&& mail_startup.pop3_port < IPPORT_RESERVED)
-			|| mail_startup.smtp_port < IPPORT_RESERVED)
-			mail_startup.options|=MAIL_OPT_NO_RECYCLE;
-		/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
-		services_startup.options|=BBS_OPT_NO_RECYCLE;
+#if !defined(DONT_BLAME_SYNCHRONET)
+		if(!thread_suid_broken) {
+ 			if(bbs_startup.telnet_port < IPPORT_RESERVED
+				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
+					&& bbs_startup.rlogin_port < IPPORT_RESERVED)
+#ifdef USE_CRYPTLIB
+				|| (bbs_startup.options & BBS_OPT_ALLOW_SSH
+					&& bbs_startup.ssh_port < IPPORT_RESERVED)
+#endif
+				)
+				bbs_startup.options|=BBS_OPT_NO_RECYCLE;
+			if(ftp_startup.port < IPPORT_RESERVED)
+				ftp_startup.options|=FTP_OPT_NO_RECYCLE;
+			if(web_startup.port < IPPORT_RESERVED)
+				web_startup.options|=BBS_OPT_NO_RECYCLE;
+			if((mail_startup.options & MAIL_OPT_ALLOW_POP3
+				&& mail_startup.pop3_port < IPPORT_RESERVED)
+				|| mail_startup.smtp_port < IPPORT_RESERVED)
+				mail_startup.options|=MAIL_OPT_NO_RECYCLE;
+			/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
+			services_startup.options|=BBS_OPT_NO_RECYCLE;
+		}
 #endif
 	}
 #endif
