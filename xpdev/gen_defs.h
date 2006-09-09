@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.32 2006/04/07 07:08:37 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.30 2006/01/13 01:03:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,24 +234,12 @@ typedef struct {
 /***********************/
 
 /* This is a bound-safe version of strcpy basically - only works with fixed-length arrays */
-#ifdef SAFECOPY_USES_SPRINTF
 #define SAFECOPY(dst,src)				sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
-#else
-#define SAFECOPY(dst,src)				(((dst)==(src))?0:(strncpy(dst,src,sizeof(dst)), dst[(int)sizeof(dst)-1]=0))
-#endif
 #define TERMINATE(str)					str[sizeof(str)-1]=0
-#if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))
-/* *BSD *nprintf() is already safe */
-#define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg)
-#define SAFEPRINTF2(dst,fmt,a1,a2)		snprintf(dst,sizeof(dst),fmt,a1,a2)
-#define SAFEPRINTF3(dst,fmt,a1,a2,a3)	snprintf(dst,sizeof(dst),fmt,a1,a2,a3)
-#define SAFEPRINTF4(dst,fmt,a1,a2,a3,a4) snprintf(dst,sizeof(dst),fmt,a1,a2,a3,a4)
-#else
 #define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg), TERMINATE(dst)
 #define SAFEPRINTF2(dst,fmt,a1,a2)		snprintf(dst,sizeof(dst),fmt,a1,a2), TERMINATE(dst)
 #define SAFEPRINTF3(dst,fmt,a1,a2,a3)	snprintf(dst,sizeof(dst),fmt,a1,a2,a3), TERMINATE(dst)
 #define SAFEPRINTF4(dst,fmt,a1,a2,a3,a4) snprintf(dst,sizeof(dst),fmt,a1,a2,a3,a4), TERMINATE(dst)
-#endif
 
 /* Replace every occurance of c1 in str with c2, using p as a temporary char pointer */
 #define REPLACE_CHARS(str,c1,c2,p)	for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
