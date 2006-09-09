@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.436 2006/03/01 00:58:17 rswindell Exp $ */
+/* $Id: main.cpp,v 1.447 2006/09/07 17:59:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,6 +90,9 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
+#ifdef _THREAD_SUID_BROKEN
+int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
+#endif
 
 extern "C" {
 
@@ -276,7 +279,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 	sbbs_random(10);	/* Throw away first number */
 }
 
-DLLEXPORT int DLLCALL sbbs_random(int n)
+int DLLCALL sbbs_random(int n)
 {
 	return(xp_random(n));
 }
@@ -807,7 +810,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"write_raw",			js_write_raw,			0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
 	,JSDOCSTR("send a stream of bytes (possibly containing NULLs or special control code sequences) to the server output")
-	,313
+	,314
 	},
 	{"print",			js_writeln,			0,	JSTYPE_ALIAS },
     {"writeln",         js_writeln,         0,	JSTYPE_VOID,	JSDOCSTR("value [,value]")
@@ -1268,7 +1271,7 @@ void input_thread(void *arg)
 			else if(ERROR_VALUE==ESHUTDOWN)
 				lprintf(LOG_NOTICE,"Node %d socket shutdown on input->select", sbbs->cfg.node_num);
 			else if(ERROR_VALUE==EINTR)
-				lprintf(LOG_NOTICE,"Node %d input thread interrupted",sbbs->cfg.node_num);
+				lprintf(LOG_DEBUG,"Node %d input thread interrupted",sbbs->cfg.node_num);
             else if(ERROR_VALUE==ECONNRESET) 
 				lprintf(LOG_NOTICE,"Node %d connection reset by peer on input->select", sbbs->cfg.node_num);
 	        else if(ERROR_VALUE==ECONNABORTED) 
@@ -1290,7 +1293,7 @@ void input_thread(void *arg)
  *       \  * \   / *   /
  *        -----   ------           /----\
  *              ||               -< Boo! |
- *             /_\                 \----/
+ *             /__\                \----/
  *       \______________/
  *        \/\/\/\/\/\/\/
  *         ------------
@@ -2332,6 +2335,8 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	client_ident[0]=0;
 
 	terminal[0]=0;
+	rlogin_name[0]=0;
+	rlogin_pass[0]=0;
 
 	/* Init some important variables */
 
@@ -2372,6 +2377,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
+	mnestr=NULL;
 
 #ifdef JAVASCRIPT
 	js_runtime=NULL;	/* runtime */
@@ -2381,13 +2387,15 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	for(i=0;i<TOTAL_TEXT;i++)
 		text[i]=text_sav[i]=global_text[i];
 
-	memset(&main_csi,0,sizeof(main_csi));
-	memset(&thisnode,0,sizeof(thisnode));
-	memset(&useron,0,sizeof(useron));
-	memset(&inbuf,0,sizeof(inbuf));
-	memset(&outbuf,0,sizeof(outbuf));
-	memset(&smb,0,sizeof(smb));
+	ZERO_VAR(main_csi);
+	ZERO_VAR(thisnode);
+	ZERO_VAR(useron);
+	ZERO_VAR(inbuf);
+	ZERO_VAR(outbuf);
+	ZERO_VAR(smb);
+	ZERO_VAR(nodesync_user);
 
+	action=NODE_MAIN;
 	global_str_vars=0;
 	global_str_var=NULL;
 	global_str_var_name=NULL;
@@ -3034,7 +3042,6 @@ void sbbs_t::hangup(void)
 
 	if(client_socket!=INVALID_SOCKET) {
 		mswait(1000);	/* Give socket output buffer time to flush */
-		riosync(0);
 		client_off(client_socket);
 		close_socket(client_socket);
 		client_socket=INVALID_SOCKET;
@@ -3079,31 +3086,6 @@ void sbbs_t::putcom(char *str, int len)
     	len=strlen(str);
     for(i=0;i<len && online; i++)
         outcom(str[i]);
-}
-
-void sbbs_t::riosync(char abortable)
-{
-	if(useron.misc&(RIP|WIP|HTML))	/* don't allow abort with RIP or WIP */
-		abortable=0;			/* mainly because of ANSI cursor position response */
-	if(sys_status&SS_ABORT)		/* no need to sync if already aborting */
-		return;
-	time_t start=time(NULL);
-	while(online && rioctl(TXBC)) {				/* wait up to three minutes for tx buf empty */
-		if(sys_status&SS_ABORT)
-			break;
-#if 0	/* this isn't necessary (or desired) on a TCP/IP connection */
-		if(abortable && rioctl(RXBC)) { 		/* incoming characer */
-			rioctl(IOFO);						/* flush output */
-			sys_status|=SS_ABORT;				/* set abort flag so no pause */
-			break;								/* abort sync */
-		}
-#endif
-		if(time(NULL)-start>180) {				/* timeout */
-			logline("!!","riosync timeout"); 
-			break;
-		}
-		mswait(100);
-	}
 }
 
 /* Legacy Remote I/O Control Interface */
@@ -3817,13 +3799,13 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef _THREAD_SUID_BROKEN
-	startup->seteuid(TRUE);
+	if(thread_suid_broken)
+		startup->seteuid(TRUE);
 #endif
 
 	/* Setup intelligent defaults */
 	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
 	if(startup->rlogin_port==0)				startup->rlogin_port=513;
-	if(startup->xtrn_polls_before_yield==0)	startup->xtrn_polls_before_yield=10;
 	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 	if(startup->temp_dir[0])				backslash(startup->temp_dir);
@@ -4290,7 +4272,7 @@ void DLLCALL bbs_thread(void* arg)
 			if(i==0)
 				continue;
 			if(ERROR_VALUE==EINTR)
-				lprintf(LOG_NOTICE,"Telnet Server listening interrupted");
+				lprintf(LOG_DEBUG,"Telnet Server listening interrupted");
 			else if(ERROR_VALUE == ENOTSOCK)
             	lprintf(LOG_NOTICE,"Telnet Server sockets closed");
 			else
