@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.282 2006/09/12 23:05:03 deuce Exp $ */
+/* $Id: sbbs.h,v 1.281 2006/09/09 06:24:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,7 +176,6 @@ public:
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
 	bool	ssh_mode;
-	SOCKET	passthru_socket;
 #endif
 
 	scfg_t	cfg;
