@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.72 2007/08/23 07:53:46 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.67 2006/08/24 00:53:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -906,14 +906,12 @@ void sbbs_t::editfile(char *fname)
 
 	if(useron.xedit) {
 
-		SAFECOPY(path,fname);
-
 		msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
-		if(stricmp(msgtmp,path)) {
-			removecase(msgtmp);
-			if(fexistcase(path))
-				fcopy(path, msgtmp);
-		}
+		removecase(msgtmp);
+
+		SAFECOPY(path,fname);
+		if(fexistcase(path))
+			fcopy(path, msgtmp);
 
 		editor_inf(useron.xedit,fname,nulstr,0,INVALID_SUB);
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
@@ -928,7 +926,7 @@ void sbbs_t::editfile(char *fname)
 		CLS;
 		rioctl(IOCM|PAUSE|ABORT);
 		external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir);
-		if(stricmp(msgtmp,path) && !fcompare(msgtmp, path))	/* file changed */
+		if(!fcompare(msgtmp, path))	/* file changed */
 			fcopy(msgtmp, path);
 		rioctl(IOSM|PAUSE|ABORT); 
 		return; 
@@ -1025,7 +1023,6 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	node_t		node;
 	msghdr_t	hdr=msg->hdr;
 	idxrec_t	idx=msg->idx;
-	time32_t	now32;
 
 	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
@@ -1058,8 +1055,8 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield(msg,RECIPIENTEXT,sizeof(str),str);
 	msg->idx.to=usernumber;
 
-	now32=time(NULL);
-	smb_hfield(msg,FORWARDED,sizeof(time32_t),&now32);
+	now=time(NULL);
+	smb_hfield(msg,FORWARDED,sizeof(time_t),&now);
 
 
 	if((i=smb_open_da(&smb))!=SMB_SUCCESS) {
@@ -1074,7 +1071,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 
 
 	if((i=smb_addmsghdr(&smb,msg,SMB_SELFPACK))!=SMB_SUCCESS) {
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		errormsg(WHERE,ERR_WRITE,smb.file,i);
 		smb_freemsg_dfields(&smb,msg,1);
 		return; 
 	}
@@ -1170,7 +1167,7 @@ void sbbs_t::automsg()
 						sprintf(tmp,"%.80s",text[Anonymous]);
 					else
 						sprintf(tmp,"%s #%d",useron.alias,useron.number);
-					sprintf(str,text[AutoMsgBy],tmp,timestr(now));
+					sprintf(str,text[AutoMsgBy],tmp,timestr(&now));
 					strcat(str,"          ");
 					write(file,str,strlen(str));
 					write(file,buf,strlen(buf));
@@ -1190,7 +1187,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 {
 	char	buf[SDT_BLOCK_LEN];
 	char	msgtmp[MAX_PATH+1];
-	uint16_t	xlat;
+	ushort	xlat;
 	int 	file,i,j,x;
 	long	length,offset;
 	FILE	*instream;
@@ -1209,12 +1206,12 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 	length+=2;	 /* +2 for translation string */
 
 	if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
-		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
+		errormsg(WHERE,ERR_LOCK,smb.file,i);
 		return; 
 	}
 
 	if((i=smb_getstatus(&smb))!=SMB_SUCCESS) {
-		errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
+		errormsg(WHERE,ERR_READ,smb.file,i);
 		return; 
 	}
 
@@ -1278,7 +1275,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 	smb_unlocksmbhdr(&smb);
 	msg->hdr.length=(ushort)smb_getmsghdrlen(msg);
 	if((i=smb_putmsghdr(&smb,msg))!=SMB_SUCCESS)
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		errormsg(WHERE,ERR_WRITE,smb.file,i);
 }
 
 /****************************************************************************/
