@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.439 2006/09/09 02:16:31 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.440 2006/09/12 00:11:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4551,7 +4551,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.439 $", "%*s %s", revision);
+	sscanf("$Revision: 1.440 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5094,6 +5094,11 @@ void DLLCALL web_server(void* arg)
 			pthread_mutex_unlock(&session->struct_filled);
 			session=NULL;
 			served++;
+		}
+
+		if(session) {
+			pthread_mutex_unlock(&session->struct_filled);
+			session=NULL;
 		}
 
 		/* Wait for active clients to terminate */
