@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.31 2006/04/01 07:36:43 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.36 2006/05/28 22:01:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -233,13 +233,17 @@ typedef struct {
 /* Handy String Macros */
 /***********************/
 
+/* Null-Terminate an ASCIIZ char array */
+#define TERMINATE(str)					str[sizeof(str)-1]=0
+
 /* This is a bound-safe version of strcpy basically - only works with fixed-length arrays */
 #ifdef SAFECOPY_USES_SPRINTF
 #define SAFECOPY(dst,src)				sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
-#else
-#define SAFECOPY(dst,src)				(strncpy(dst,src,sizeof(dst)), dst[(int)sizeof(dst)-1]=0)
+#else	/* strncpy is faster */
+#define SAFECOPY(dst,src)				(strncpy(dst,src,sizeof(dst)), TERMINATE(dst))
 #endif
-#define TERMINATE(str)					str[sizeof(str)-1]=0
+
+/* Bound-safe version of sprintf() - only works with fixed-length arrays */
 #if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))
 /* *BSD *nprintf() is already safe */
 #define SAFEPRINTF(dst,fmt,arg)			snprintf(dst,sizeof(dst),fmt,arg)
@@ -349,5 +353,14 @@ typedef struct {
 	#define LOG_DEBUG       7       /* debug-level messages */
 #endif
 
+/* Special hackery for SDL */
+#ifdef WITH_SDL
+	#include <SDL.h>
+
+	#ifdef main
+		#undef main
+	#endif
+	#define	main	XPDEV_main
+#endif
 
 #endif /* Don't add anything after this #endif statement */
