@@ -11,10 +11,9 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.203 2007/07/11 01:31:45 deuce Exp $
+# $Id: GNUmakefile,v 1.193 2006/09/09 06:24:05 deuce Exp $
 
-PWD	:=	$(shell pwd)
-SRC_ROOT	?=	${PWD}/..
+SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
 
 UTIL_LDFLAGS	:=	$(LDFLAGS)
@@ -29,7 +28,6 @@ endif
 
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt
- SBBS_LIBS	+=	-lkstat
 endif
 
 # So far, only QNX has sem_timedwait()
@@ -37,7 +35,10 @@ ifeq ($(os),qnx)
  LDFLAGS += -lsocket
 endif
 
-SBBS_LIBS	+=	-lcl
+ifdef USE_CRYPTLIB
+ CFLAGS	+=	-DUSE_CRYPTLIB
+ SBBS_LIBS	+=	-lcl
+endif
 
 ifdef PREFIX
  CFLAGS += -DPREFIX=$(PREFIX)
@@ -52,20 +53,6 @@ ifdef DONT_BLAME_SYNCHRONET
 endif
 
 # JS and NSPR setup stuff...
-
-ifeq ($(os),sunos)
- ifeq ($(shell test -f /usr/sfw/lib/mozilla/libmozjs.so && echo "yes"),yes)
-  JSLIBDIR ?= /usr/sfw/lib/mozilla
-  JSLIB ?= mozjs
- endif
- ifeq ($(shell test -f /usr/sfw/lib/mozilla/libnspr4.so && echo "yes"),yes)
-  NSPRDIR ?= /usr/sfw/lib/mozilla
-  ifeq ($(shell test -d /usr/sfw/include/mozilla/nspr && echo "yes"),yes)
-   NSPRINCLUDE ?= /usr/sfw/include/mozilla/nspr
-  endif
- endif
-endif
-
 CFLAGS += -DJAVASCRIPT
 ifdef JSINCLUDE
  CFLAGS += -I$(JSINCLUDE)
@@ -77,11 +64,6 @@ ifdef NSPRINCLUDE
 else
  # Use local NSPR first...
  CFLAGS += -I/usr/local/include -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)nspr
-endif
-ifdef CRYPTLIBINCLUDE
- CFLAGS += -I$(CRYPTLIBINCLUDE)
-else
- CFLAGS += -I$(SRC_ROOT)/../include/cryptlib
 endif
 ifndef JSLIBDIR
  JSLIBDIR := $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)$(machine).$(BUILD)
@@ -98,34 +80,31 @@ ifeq ($(os),linux)
  JS_LDFLAGS	+=	-ldl
 endif
 JS_LDFLAGS	+=	-L/usr/local/lib -L$(NSPRDIR) -lnspr4
+
 CFLAGS	+=	$(JS_CFLAGS)
 LDFLAGS	+=	$(JS_LDFLAGS)
-
-ifndef CRYPTLIBDIR
- CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(os).release
-endif
-LDFLAGS	+=	-L$(CRYPTLIBDIR)
 
 include sbbsdefs.mk
 MT_CFLAGS	+=	$(SBBSDEFS)
 
 # Set up LD_RUN_PATH for run-time locating of the .so files
+PWD	:=	$(shell pwd)
 ifdef SBBSDIR
  ifeq ($(os),sunos)
-  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
+  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):/opt/sfw/gcc-3/lib
  else
-  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR)
+  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
  endif
 else
  ifeq ($(os),sunos)
-  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
+  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):/opt/sfw/gcc-3/lib
  else
-  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR)
+  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR)
  endif
 endif
 export LD_RUN_PATH
 
-CON_LIBS	:= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
+CON_LIBS	= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
