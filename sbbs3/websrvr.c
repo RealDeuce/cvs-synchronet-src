@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.453 2006/09/15 19:42:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.446 2006/09/14 20:40:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2672,7 +2672,7 @@ static str_list_t get_cgi_env(http_session_t *session)
 				,add_list[i], prepend, value, append);
 			strListPush(&env_list,env_str);
 		}
-		iniFreeStringList(add_list);
+		iniFreeStringList(&add_list);
 	}
 
 	fclose(fp);
@@ -4217,7 +4217,6 @@ void http_output_thread(void *arg)
 	unsigned mss=OUTBUF_LEN;
 
 	obuf=&(session->outbuf);
-	/* Destroyed at end of function */
 	pthread_mutex_init(&session->outbuf_write,NULL);
 	session->outbuf_write_initialized=1;
 
@@ -4310,11 +4309,6 @@ void http_output_thread(void *arg)
     }
 	thread_down();
 	sem_post(&session->output_thread_terminated);
-	/* Ensure outbuf isn't currently being drained */
-	pthread_mutex_lock(&session->outbuf_write);
-	session->outbuf_write_initialized=0;
-	pthread_mutex_unlock(&session->outbuf_write);
-	pthread_mutex_destroy(&session->outbuf_write);
 }
 
 void http_session_thread(void* arg)
@@ -4390,6 +4384,7 @@ void http_session_thread(void* arg)
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
+			pthread_mutex_destroy(&session.outbuf_write);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			thread_down();
 			session_threads--;
@@ -4403,6 +4398,7 @@ void http_session_thread(void* arg)
 		sem_wait(&session.output_thread_terminated);
 		sem_destroy(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
+		pthread_mutex_destroy(&session.outbuf_write);
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		thread_down();
 		session_threads--;
@@ -4533,6 +4529,7 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
+	pthread_mutex_destroy(&session.outbuf_write);
 
 	active_clients--;
 	update_clients();
@@ -4600,7 +4597,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.453 $", "%*s %s", revision);
+	sscanf("$Revision: 1.446 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4642,11 +4639,7 @@ void http_logging_thread(void* arg)
 		char	timestr[128];
 		char	sizestr[100];
 
-		if(!listSemTryWait(&log_list)) {
-			if(logfile!=NULL)
-				fflush(logfile);
-			listSemWait(&log_list);
-		}
+		listSemWait(&log_list);
 
 		ld=listShiftNode(&log_list);
 		/*
@@ -4695,6 +4688,7 @@ void http_logging_thread(void* arg)
 						,ld->size?sizestr:"-"
 						,ld->referrer?(ld->referrer[0]?ld->referrer:"-"):"-"
 						,ld->agent?(ld->agent[0]?ld->agent:"-"):"-");
+				fflush(logfile);
 				unlock(fileno(logfile),0,1);
 			}
 		}
@@ -5052,7 +5046,6 @@ void DLLCALL web_server(void* arg)
 				}
 				memset(session, 0, sizeof(http_session_t));
    				session->socket=INVALID_SOCKET;
-				/* Destroyed in http_session_thread */
 				pthread_mutex_init(&session->struct_filled,NULL);
 				pthread_mutex_lock(&session->struct_filled);
 				_beginthread(http_session_thread, 0, session);
