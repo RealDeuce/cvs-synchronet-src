@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.44 2006/04/07 02:41:06 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.49 2006/09/09 06:24:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,7 @@ BOOL sbbs_t::newuser()
 	long	kmode;
 	bool	usa;
 
+#if 0
 	if(cur_rate<cfg.node_minbps) {
 		bprintf(text[MinimumModemSpeed],cfg.node_minbps);
 		sprintf(str,"%stooslow.msg",cfg.text_dir);
@@ -62,6 +63,7 @@ BOOL sbbs_t::newuser()
 		hangup();
 		return(FALSE); 
 	}
+#endif
 
 	getnodedat(cfg.node_num,&thisnode,0);
 	if(thisnode.misc&NODE_LOCK) {
@@ -184,7 +186,11 @@ BOOL sbbs_t::newuser()
 		else
 			useron.misc&=~NO_EXASCII;
 
+#ifdef USE_CRYPTLIB
+		if((sys_status&SS_RLOGIN || sys_status&SS_SSH) && rlogin_name[0])
+#else
 		if(sys_status&SS_RLOGIN && rlogin_name[0])
+#endif
 			strcpy(useron.alias,rlogin_name);
 		else {
 			while(online) {
@@ -363,12 +369,7 @@ BOOL sbbs_t::newuser()
 			useron.shell=i; 
 	}
 
-	if(rlogin_pass[0]
-		&& (strnicmp(useron.alias,rlogin_pass,strlen(rlogin_pass))==0
-		||  strnicmp(useron.name ,rlogin_pass,strlen(rlogin_pass))==0))
-		rlogin_pass[0]=0;	/* Don't use insecure RLogin password */
-
-	if(rlogin_pass[0]) {
+	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true)) {
 		SAFECOPY(useron.pass, rlogin_pass);
 	}
 	else {
@@ -400,8 +401,6 @@ BOOL sbbs_t::newuser()
 		while(online) {
 			bprintf(text[NewUserPasswordVerify]);
 			console|=CON_R_ECHOX;
-			if(!(cfg.sys_misc&SM_ECHO_PW))
-				console|=CON_L_ECHOX;
 			str[0]=0;
 			getstr(str,LEN_PASS,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
@@ -464,11 +463,11 @@ BOOL sbbs_t::newuser()
 		sprintf(str,text[NewUserFeedbackHdr]
 			,nulstr,getage(&cfg,useron.birth),useron.sex,useron.birth
 			,useron.name,useron.phone,useron.comp,useron.modem);
-		email(cfg.node_valuser,str,"New User Validation",WM_EMAIL);
+		email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO);
 		if(!useron.fbacks && !useron.emails) {
 			if(online) {						/* didn't hang up */
 				bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
-				email(cfg.node_valuser,str,"New User Validation",WM_EMAIL);
+				email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO);
 				} /* give 'em a 2nd try */
 			if(!useron.fbacks && !useron.emails) {
         		bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
