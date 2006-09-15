@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.189 2006/04/22 20:47:04 deuce Exp $
+# $Id: GNUmakefile,v 1.193 2006/09/09 06:24:05 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -33,6 +33,11 @@ endif
 # So far, only QNX has sem_timedwait()
 ifeq ($(os),qnx)
  LDFLAGS += -lsocket
+endif
+
+ifdef USE_CRYPTLIB
+ CFLAGS	+=	-DUSE_CRYPTLIB
+ SBBS_LIBS	+=	-lcl
 endif
 
 ifdef PREFIX
@@ -122,12 +127,12 @@ LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 	@echo Linking $@
-	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # Synchronet BBS library Link Rule
 $(SBBS): $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(LIBS) $(SHLIBOPTS)
+	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS)
 
 # FTP Server Link Rule
 $(FTPSRVR): $(MTOBJODIR)/ftpsrvr.o
@@ -162,7 +167,7 @@ $(BAJA): $(BAJA_OBJS)
 # UnBaja Utility
 $(UNBAJA): $(OBJODIR) $(EXEODIR) $(UNBAJA_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(UNBAJA_OBJS) $(XPDEV_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(UNBAJA_OBJS) $(XPDEV_LIBS) $(UTIL_LIBS)
 
 # Node Utility
 $(NODE): $(NODE_OBJS)

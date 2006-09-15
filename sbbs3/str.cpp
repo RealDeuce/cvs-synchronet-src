@@ -2,13 +2,13 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.53 2006/04/05 09:45:21 rswindell Exp $ */
+/* $Id: str.cpp,v 1.52 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -668,7 +668,6 @@ bool sbbs_t::inputnstime(time_t *dt)
 	else {
 		CRLF; 
 	}
-	tm.tm_isdst=-1;	/* Do not adjust for DST */
 	*dt=mktime(&tm);
 	return(true);
 }
