@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.116 2006/04/07 21:03:29 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.118 2006/09/09 06:24:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -296,6 +296,13 @@ void sbbs_read_ini(
 		bbs->rlogin_port
 			=iniGetShortInt(list,section,"RLoginPort",513);
 
+#ifdef USE_CRYPTLIB
+		bbs->ssh_interface
+			=iniGetIpAddress(list,section,"SSHInterface",global->interface_addr);
+		bbs->ssh_port
+			=iniGetShortInt(list,section,"SSHPort",22);
+#endif
+
 		bbs->first_node
 			=iniGetShortInt(list,section,"FirstNode",1);
 		bbs->last_node
@@ -314,9 +321,6 @@ void sbbs_read_ini(
 
 		bbs->sem_chk_freq
 			=iniGetShortInt(list,section,strSemFileCheckFrequency,global->sem_chk_freq);
-
-		bbs->xtrn_polls_before_yield
-			=iniGetInteger(list,section,"ExternalYield",10);
 
 		/* JavaScript operating parameters */
 		sbbs_get_js_settings(list, section, &bbs->js, &global->js);
@@ -732,9 +736,18 @@ BOOL sbbs_write_ini(
 			iniRemoveValue(lp,section,"RLoginInterface");
 		else if(!iniSetIpAddress(lp,section,"RLoginInterface",bbs->rlogin_interface,&style))
 			break;
-
 		if(!iniSetShortInt(lp,section,"RLoginPort",bbs->rlogin_port,&style))
 			break;
+
+#ifdef USE_CRYPTLIB
+		if(bbs->ssh_interface==global->interface_addr)
+			iniRemoveValue(lp,section,"SSHInterface");
+		else if(!iniSetIpAddress(lp,section,"SSHInterface",bbs->ssh_interface,&style))
+			break;
+		if(!iniSetShortInt(lp,section,"SSHPort",bbs->ssh_port,&style))
+			break;
+#endif
+
 		if(!iniSetShortInt(lp,section,"FirstNode",bbs->first_node,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"LastNode",bbs->last_node,&style))
@@ -752,9 +765,6 @@ BOOL sbbs_write_ini(
 		if(bbs->log_mask==global->log_mask)
 			iniRemoveValue(lp,section,strLogMask);
 		else if(!iniSetBitField(lp,section,strLogMask,log_mask_bits,bbs->log_mask,&style))
-			break;
-
-		if(!iniSetInteger(lp,section,"ExternalYield",bbs->xtrn_polls_before_yield,&style))
 			break;
 
 		/* JavaScript operating parameters */
