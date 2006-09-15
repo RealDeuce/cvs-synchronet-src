@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.30 2006/04/08 01:01:25 rswindell Exp $ */
+/* $Id: xpprintf.c,v 1.29 2006/01/27 05:49:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,6 +310,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 	char			this_format[MAX_FORMAT_LEN];
 	char			*fmt;
 	int				modifier=0;
+	char			*fmt_start;
 	int				correct_type=0;
 	char			num_str[128];		/* More than enough room for a 256-bit int */
 	size_t			width=0;
@@ -325,6 +326,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 	format_len=strlen(format+sizeof(size_t))+sizeof(size_t)+1;
 	this_format[0]=0;
 	fmt=this_format;
+	fmt_start=p;
 	*(fmt++)=*(p++);
 
 	/*
