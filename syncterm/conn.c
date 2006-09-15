@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.24 2006/09/19 22:39:12 deuce Exp $ */
+/* $Id: conn.c,v 1.23 2006/09/13 18:38:27 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -348,6 +348,8 @@ int conn_connect(struct bbslist *bbs)
 				sprintf(str,"Error %d activating session",status);
 				uifcmsg("Error activating session",str);
 				return(-1);
+				}
+				break;
 			}
 
 			ssh_active=TRUE;

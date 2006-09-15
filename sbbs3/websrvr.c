@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.453 2006/09/15 19:42:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.448 2006/09/15 01:28:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4312,7 +4312,6 @@ void http_output_thread(void *arg)
 	sem_post(&session->output_thread_terminated);
 	/* Ensure outbuf isn't currently being drained */
 	pthread_mutex_lock(&session->outbuf_write);
-	session->outbuf_write_initialized=0;
 	pthread_mutex_unlock(&session->outbuf_write);
 	pthread_mutex_destroy(&session->outbuf_write);
 }
@@ -4390,6 +4389,7 @@ void http_session_thread(void* arg)
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
+			pthread_mutex_destroy(&session.outbuf_write);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			thread_down();
 			session_threads--;
@@ -4403,6 +4403,7 @@ void http_session_thread(void* arg)
 		sem_wait(&session.output_thread_terminated);
 		sem_destroy(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
+		pthread_mutex_destroy(&session.outbuf_write);
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		thread_down();
 		session_threads--;
@@ -4533,6 +4534,7 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
+	pthread_mutex_destroy(&session.outbuf_write);
 
 	active_clients--;
 	update_clients();
@@ -4600,7 +4602,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.453 $", "%*s %s", revision);
+	sscanf("$Revision: 1.448 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4622,6 +4624,7 @@ void http_logging_thread(void* arg)
 	char	filename[MAX_PATH+1];
 	char	newfilename[MAX_PATH+1];
 	FILE*	logfile=NULL;
+	int		pending;
 
 	http_logging_thread_running=TRUE;
 	terminate_http_logging_thread=FALSE;
@@ -4642,11 +4645,10 @@ void http_logging_thread(void* arg)
 		char	timestr[128];
 		char	sizestr[100];
 
-		if(!listSemTryWait(&log_list)) {
-			if(logfile!=NULL)
-				fflush(logfile);
-			listSemWait(&log_list);
-		}
+		sem_getvalue(&log_list.sem, &pending);
+		if(logfile && (!pending))
+			fflush(logfile);
+		listSemWait(&log_list);
 
 		ld=listShiftNode(&log_list);
 		/*
