@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.27 2006/02/25 09:13:44 rswindell Exp $ */
+/* $Id: bbslist.h,v 1.28 2006/05/18 06:20:32 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -8,6 +8,10 @@
 #include "dirwrap.h"	/* MAX_PATH */
 #include "ini_file.h"
 #include <time.h>
+
+#if defined(_WIN32)
+	#include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #define LIST_NAME_MAX	30
 #define LIST_ADDR_MAX	64
