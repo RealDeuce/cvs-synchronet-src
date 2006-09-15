@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.177 2006/09/15 21:05:56 deuce Exp $ */
+/* $Id: uifc32.c,v 1.176 2006/09/06 22:24:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -900,10 +900,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		}
 	}
 	else {	/* Is a redraw */
-		if(bar)
-			y=top+tbrdrwidth+(*bar);
-		else
-			y=top+tbrdrwidth+(*cur);
 		i=(*cur)+(top+tbrdrwidth-y);
 		j=2;
 
@@ -937,6 +933,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			puttext(s_left+left+lbrdrwidth+2,s_top+top+j,s_left+left+width-rbrdrwidth-1
 				,s_top+top+j,tmp_buffer);
 		}
+		if(bar)
+			y=top+tbrdrwidth+(*bar);
+		else
+			y=top+tbrdrwidth+(*cur);
 	}
 	free(title);
 

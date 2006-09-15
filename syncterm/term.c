@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.149 2006/09/24 05:01:25 deuce Exp $ */
+/* $Id: term.c,v 1.148 2006/09/01 23:59:00 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1315,25 +1315,25 @@ BOOL doterm(struct bbslist *bbs)
 					conn_send("\033Ot",3,0);
 					break;
 				case CIO_KEY_F(6):
-					conn_send("\033[17~",5,0);
+					conn_send("\033[17~",4,0);
 					break;
 				case CIO_KEY_F(7):
-					conn_send("\033[18~",5,0);
+					conn_send("\033[18~",4,0);
 					break;
 				case CIO_KEY_F(8):
-					conn_send("\033[19~",5,0);
+					conn_send("\033[19~",4,0);
 					break;
 				case CIO_KEY_F(9):
-					conn_send("\033[20~",5,0);
+					conn_send("\033[20~",4,0);
 					break;
 				case CIO_KEY_F(10):
-					conn_send("\033[21~",5,0);
+					conn_send("\033[21~",4,0);
 					break;
 				case CIO_KEY_F(11):
-					conn_send("\033[23~",5,0);
+					conn_send("\033[23~",4,0);
 					break;
 				case CIO_KEY_F(12):
-					conn_send("\033[24~",5,0);
+					conn_send("\033[24~",4,0);
 					break;
 				case CIO_KEY_IC:
 					conn_send("\033[@",3,0);

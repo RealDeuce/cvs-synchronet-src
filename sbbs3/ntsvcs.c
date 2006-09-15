@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.34 2006/09/15 21:12:53 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.32 2006/02/21 23:50:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,9 +78,9 @@ typedef struct {
 	void*					startup;
 	DWORD*					options;
 	BOOL*					recycle_now;
-	int*					log_level;
-	void DLLCALL			(*thread)(void* arg);
-	void DLLCALL			(*terminate)(void);
+	DWORD*					log_mask;
+	void					(*thread)(void* arg);
+	void					(*terminate)(void);
 	void					(WINAPI *ctrl_handler)(DWORD);
 	HANDLE					log_handle;
 	HANDLE					event_handle;
@@ -98,7 +98,7 @@ sbbs_ntsvc_t bbs ={
 	&bbs_startup,
 	&bbs_startup.options,
 	&bbs_startup.recycle_now,
-	&bbs_startup.log_level,
+	&bbs_startup.log_mask,
 	bbs_thread,
 	bbs_terminate,
 	bbs_ctrl_handler,
@@ -113,7 +113,7 @@ sbbs_ntsvc_t event ={
 	NULL,
 	NULL,
 	NULL,
-	&bbs_startup.log_level,
+	&bbs_startup.log_mask,
 	NULL,
 	NULL,
 	NULL,
@@ -127,7 +127,7 @@ sbbs_ntsvc_t ftp = {
 	&ftp_startup,
 	&ftp_startup.options,
 	&ftp_startup.recycle_now,
-	&ftp_startup.log_level,
+	&ftp_startup.log_mask,
 	ftp_server,
 	ftp_terminate,
 	ftp_ctrl_handler,
@@ -141,7 +141,7 @@ sbbs_ntsvc_t web = {
 	&web_startup,
 	&web_startup.options,
 	&web_startup.recycle_now,
-	&web_startup.log_level,
+	&web_startup.log_mask,
 	web_server,
 	web_terminate,
 	web_ctrl_handler,
@@ -156,7 +156,7 @@ sbbs_ntsvc_t mail = {
 	&mail_startup,
 	&mail_startup.options,
 	&mail_startup.recycle_now,
-	&mail_startup.log_level,
+	&mail_startup.log_mask,
 	mail_server,
 	mail_terminate,
 	mail_ctrl_handler,
@@ -172,7 +172,7 @@ sbbs_ntsvc_t services = {
 	&services_startup,
 	&services_startup.options,
 	&services_startup.recycle_now,
-	&services_startup.log_level,
+	&services_startup.log_mask,
 	services_thread,
 	services_terminate,
 	services_ctrl_handler,
@@ -325,7 +325,7 @@ static int svc_lputs(void* p, int level, char* str)
 	}
 	
 	/* Event Logging */
-	if(level <= (*svc->log_level)) {
+	if((*svc->log_mask)&(1<<level)) {
 		if(svc->event_handle == NULL)
 			svc->event_handle = RegisterEventSource(
 				NULL,		/* server name for source (NULL = local computer) */
@@ -339,7 +339,7 @@ static int svc_lputs(void* p, int level, char* str)
 				NULL,					/* no user security identifier */
 				1,						/* one string */
 				0,						/* no data */
-				(LPCSTR*)&str,			/* pointer to string array */
+				&str,					/* pointer to string array */
 				NULL);					/* pointer to data */
 	}
 
@@ -447,8 +447,8 @@ static void WINAPI svc_main(sbbs_ntsvc_t* svc, DWORD argc, LPTSTR *argv)
 			arg++;
 		if(!stricmp(arg,"debug"))
 			svc->debug=TRUE;
-		if(!stricmp(arg,"loglevel") && i+1<argc)
-			(*svc->log_level)=strtol(argv[++i],NULL,0);
+		if(!stricmp(arg,"logmask") && i+1<argc)
+			(*svc->log_mask)=strtol(argv[++i],NULL,0);
 	}
 
 	sprintf(str,"Starting NT Service: %s",svc->display_name);
@@ -992,7 +992,7 @@ static void start_service(SC_HANDLE hSCManager, char* name, char* disp_name
 		printf("Already running\n");
 	else {
 		/* Start the service */
-		if(StartService(hService, argc, (LPCTSTR*)argv))
+		if(StartService( hService, argc, argv))
 		{
 			while(QueryServiceStatus(hService, &status) && status.dwCurrentState == SERVICE_START_PENDING)
 				Sleep(1000);
@@ -1193,12 +1193,12 @@ int main(int argc, char** argv)
 
 	SERVICE_TABLE_ENTRY  ServiceDispatchTable[] = 
     { 
-        { NTSVC_NAME_BBS,		bbs_start		}, 
-		{ NTSVC_NAME_FTP,		ftp_start		},
-		{ NTSVC_NAME_WEB,		web_start		},
-		{ NTSVC_NAME_MAIL,		mail_start		},
-		{ NTSVC_NAME_SERVICES,	services_start	},
-        { NULL,					NULL			}	/* Terminator */
+        { bbs.name,			bbs_start		}, 
+		{ ftp.name,			ftp_start		},
+		{ web.name,			web_start		},
+		{ mail.name,		mail_start		},
+		{ services.name,	services_start	},
+        { NULL,				NULL			}	/* Terminator */
     }; 
 
 	printf("\nSynchronet NT Services  Version %s%c  %s\n\n"

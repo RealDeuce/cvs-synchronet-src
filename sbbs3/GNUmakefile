@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.194 2006/09/18 19:40:26 deuce Exp $
+# $Id: GNUmakefile,v 1.193 2006/09/09 06:24:05 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -53,20 +53,6 @@ ifdef DONT_BLAME_SYNCHRONET
 endif
 
 # JS and NSPR setup stuff...
-
-ifeq ($(os),sunos)
- ifeq ($(shell test -f /usr/sfw/lib/mozilla/libmozjs.so && echo "yes"),yes)
-  JSLIBDIR ?= /usr/sfw/lib/mozilla
-  JSLIB ?= mozjs
- endif
- ifeq ($(shell test -f /usr/sfw/lib/mozilla/libnspr4.so && echo "yes"),yes)
-  NSPRDIR ?= /usr/sfw/lib/mozilla
-  ifeq ($(shell test -d /usr/sfw/include/mozilla/nspr && echo "yes"),yes)
-   NSPRINCLUDE ?= /usr/sfw/include/mozilla/nspr
-  endif
- endif
-endif
-
 CFLAGS += -DJAVASCRIPT
 ifdef JSINCLUDE
  CFLAGS += -I$(JSINCLUDE)
