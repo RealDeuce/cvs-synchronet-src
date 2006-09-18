@@ -228,7 +228,6 @@ int console_main(int argc, char *argv[], char **env)
 			return(FALSE);
 		}
 		atexit(cleanup_output);
-		atexit(sdl.Quit);
 
 #ifndef DISABLE_VIDEO
 		/* Sam:
@@ -241,13 +240,13 @@ int console_main(int argc, char *argv[], char **env)
 	}
 
 	/* Run the application main() code */
-	SDL_main_env(argc, argv, env);
+	n=SDL_main_env(argc, argv, env);
 
 	/* Exit cleanly, calling atexit() functions */
-	exit(0);
+	exit(n);
 
 	/* Hush little compiler, don't you cry... */
-	return(0);
+	return(n);
 }
 
 /* This is where execution begins [windowed apps] */
