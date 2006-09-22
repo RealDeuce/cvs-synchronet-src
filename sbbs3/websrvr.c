@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.447 2006/09/14 20:48:12 deuce Exp $ */
+/* $Id: websrvr.c,v 1.453 2006/09/15 19:42:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4312,6 +4312,7 @@ void http_output_thread(void *arg)
 	sem_post(&session->output_thread_terminated);
 	/* Ensure outbuf isn't currently being drained */
 	pthread_mutex_lock(&session->outbuf_write);
+	session->outbuf_write_initialized=0;
 	pthread_mutex_unlock(&session->outbuf_write);
 	pthread_mutex_destroy(&session->outbuf_write);
 }
@@ -4389,7 +4390,6 @@ void http_session_thread(void* arg)
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
-			pthread_mutex_destroy(&session.outbuf_write);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			thread_down();
 			session_threads--;
@@ -4403,7 +4403,6 @@ void http_session_thread(void* arg)
 		sem_wait(&session.output_thread_terminated);
 		sem_destroy(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
-		pthread_mutex_destroy(&session.outbuf_write);
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		thread_down();
 		session_threads--;
@@ -4534,7 +4533,6 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	pthread_mutex_destroy(&session.outbuf_write);
 
 	active_clients--;
 	update_clients();
@@ -4602,7 +4600,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.447 $", "%*s %s", revision);
+	sscanf("$Revision: 1.453 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4644,7 +4642,11 @@ void http_logging_thread(void* arg)
 		char	timestr[128];
 		char	sizestr[100];
 
-		listSemWait(&log_list);
+		if(!listSemTryWait(&log_list)) {
+			if(logfile!=NULL)
+				fflush(logfile);
+			listSemWait(&log_list);
+		}
 
 		ld=listShiftNode(&log_list);
 		/*
@@ -4693,7 +4695,6 @@ void http_logging_thread(void* arg)
 						,ld->size?sizestr:"-"
 						,ld->referrer?(ld->referrer[0]?ld->referrer:"-"):"-"
 						,ld->agent?(ld->agent[0]?ld->agent:"-"):"-");
-				fflush(logfile);
 				unlock(fileno(logfile),0,1);
 			}
 		}
