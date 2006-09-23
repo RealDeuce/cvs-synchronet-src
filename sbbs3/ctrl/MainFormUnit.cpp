@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.155 2006/03/16 00:07:49 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.156 2006/05/24 06:14:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1977,9 +1977,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
         if(Registry->ValueExists("LastNode"))
             bbs_startup.last_node=Registry->ReadInteger("LastNode");
-
-        if(Registry->ValueExists("ExternalYield"))
-            bbs_startup.xtrn_polls_before_yield=Registry->ReadInteger("ExternalYield");
 
         if(Registry->ValueExists("OutbufHighwaterMark"))
             bbs_startup.outbuf_highwater_mark=Registry->ReadInteger("OutbufHighwaterMark");
