@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.94 2006/09/02 17:22:29 deuce Exp $ */
+/* $Id: syncterm.c,v 1.95 2006/09/19 22:36:51 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -387,7 +387,8 @@ int main(int argc, char **argv)
 
 	load_settings(&settings);
 
-	initciolib(ciolib_mode);
+	if(initciolib(ciolib_mode))
+		return(1);
 	if(!dont_set_mode) {
 		switch(settings.startup_mode) {
 			case SCREEN_MODE_80X25:
