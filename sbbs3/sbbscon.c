@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.216 2006/09/15 21:12:53 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.217 2006/09/20 21:30:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1619,6 +1619,8 @@ int main(int argc, char** argv)
 
 #ifdef _THREAD_SUID_BROKEN
 	/* check if we're using NPTL */
+/* Old (2.2) systems don't have this. */
+#ifdef _CS_GNU_LIBPTHREAD_VERSION
 	conflen=confstr (_CS_GNU_LIBPTHREAD_VERSION, NULL, 0);
 	if (conflen > 0) {
 		char *buf = alloca (conflen);
@@ -1626,6 +1628,7 @@ int main(int argc, char** argv)
 		if (strstr (buf, "NPTL"))
 			thread_suid_broken=FALSE;
 	}
+#endif
 #endif
 
 	/* Install Ctrl-C/Break signal handler here */
