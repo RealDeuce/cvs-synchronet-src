@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.97 2006/10/04 07:02:52 deuce Exp $ */
+/* $Id: syncterm.c,v 1.96 2006/09/24 05:07:15 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -254,7 +254,6 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 #ifdef PREFIX
 		strcpy(fn,PREFIX);
 		backslash(fn);
-		strcat(fn,"etc/");
 #else
 		strcpy(fn,"/usr/local/etc/");
 #endif
