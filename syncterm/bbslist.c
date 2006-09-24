@@ -734,16 +734,14 @@ struct bbslist *show_bbslist(int mode)
 							at_settings=!at_settings;
 							break;
 						case -7:		/* CTRL-E */
-							if(list[opt]) {
-								i=list[opt]->id;
-								if(edit_list(list[opt],listpath,FALSE)) {
-									sort_list(list);
-									for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
-										if(list[j]->id==i)
-											opt=j;
-									}
-									oldopt=-1;
+							i=list[opt]->id;
+							if(edit_list(list[opt],listpath,FALSE)) {
+								sort_list(list);
+								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
+									if(list[j]->id==i)
+										opt=j;
 								}
+								oldopt=-1;
 							}
 							break;
 						case -6:		/* CTRL-D */
@@ -786,7 +784,6 @@ struct bbslist *show_bbslist(int mode)
 							list[listcount]=list[listcount-1];
 							list[listcount-1]=(struct bbslist *)malloc(sizeof(struct bbslist));
 							memcpy(list[listcount-1],&defaults,sizeof(struct bbslist));
-							list[listcount-1]->id=listcount-1;
 							uifc.changes=0;
 							uifc.helpbuf=	"`BBS Name`\n\n"
 											"Enter the BBS name as it is to appear in the list.";

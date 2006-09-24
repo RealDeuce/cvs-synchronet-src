@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.453 2006/09/25 06:46:11 deuce Exp $ */
+/* $Id: main.cpp,v 1.450 2006/09/13 02:54:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1564,7 +1564,7 @@ void passthru_output_thread(void* arg)
 		/*
 		 * TODO: This should check for writability etc.
 		 */
-		sendsocket(sbbs->passthru_socket, (char *)wrbuf, wr);
+		sendsocket(sbbs->passthru_socket, wrbuf, wr);
 	}
 }
 
@@ -1614,7 +1614,7 @@ void passthru_input_thread(void* arg)
 		if(!RingBufFree(&sbbs->outbuf))
 			continue;
 
-    	i = recv(sbbs->passthru_socket, (char *)(&ch), 1, 0);
+    	i = recv(sbbs->passthru_socket, &ch, 1, 0);
 
 		if(i == SOCKET_ERROR)
 		{
@@ -1775,7 +1775,7 @@ void output_thread(void* arg)
 			continue;
 		}
 
-#ifdef USE_CRYPTLIB
+#if USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
 			if(!cryptStatusOK(cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))
 				i=-1;
@@ -4294,9 +4294,6 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
-#if CRYPTLIB_VERSION < 3300
-	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
-#endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
 		bool			loaded_key=false;
 
