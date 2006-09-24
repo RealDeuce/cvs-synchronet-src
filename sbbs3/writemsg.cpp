@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.71 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.68 2006/09/15 01:36:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1025,7 +1025,6 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	node_t		node;
 	msghdr_t	hdr=msg->hdr;
 	idxrec_t	idx=msg->idx;
-	time32_t	now32;
 
 	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
@@ -1058,8 +1057,8 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield(msg,RECIPIENTEXT,sizeof(str),str);
 	msg->idx.to=usernumber;
 
-	now32=time(NULL);
-	smb_hfield(msg,FORWARDED,sizeof(time32_t),&now32);
+	now=time(NULL);
+	smb_hfield(msg,FORWARDED,sizeof(time_t),&now);
 
 
 	if((i=smb_open_da(&smb))!=SMB_SUCCESS) {
@@ -1170,7 +1169,7 @@ void sbbs_t::automsg()
 						sprintf(tmp,"%.80s",text[Anonymous]);
 					else
 						sprintf(tmp,"%s #%d",useron.alias,useron.number);
-					sprintf(str,text[AutoMsgBy],tmp,timestr(now));
+					sprintf(str,text[AutoMsgBy],tmp,timestr(&now));
 					strcat(str,"          ");
 					write(file,str,strlen(str));
 					write(file,buf,strlen(buf));
@@ -1190,7 +1189,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 {
 	char	buf[SDT_BLOCK_LEN];
 	char	msgtmp[MAX_PATH+1];
-	uint16_t	xlat;
+	ushort	xlat;
 	int 	file,i,j,x;
 	long	length,offset;
 	FILE	*instream;
