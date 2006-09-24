@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 
-#include "sbbs.h"
 #include <vcl.h>
+#include "sbbs.h"
 #pragma hdrstop
 
 #include "UserListFormUnit.h"

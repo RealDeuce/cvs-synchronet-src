@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.455 2006/09/26 05:08:43 deuce Exp $ */
+/* $Id: websrvr.c,v 1.453 2006/09/15 19:42:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4218,11 +4218,7 @@ void http_output_thread(void *arg)
 
 	obuf=&(session->outbuf);
 	/* Destroyed at end of function */
-	if((i=pthread_mutex_init(&session->outbuf_write,NULL))!=0) {
-		lprintf(LOG_DEBUG,"Error %d initializing outbuf mutex",i);
-		close_socket(&session->socket);
-		return;
-	}
+	pthread_mutex_init(&session->outbuf_write,NULL);
 	session->outbuf_write_initialized=1;
 
 #ifdef TCP_MAXSEG
@@ -4313,12 +4309,12 @@ void http_output_thread(void *arg)
 		pthread_mutex_unlock(&session->outbuf_write);
     }
 	thread_down();
+	sem_post(&session->output_thread_terminated);
 	/* Ensure outbuf isn't currently being drained */
 	pthread_mutex_lock(&session->outbuf_write);
 	session->outbuf_write_initialized=0;
 	pthread_mutex_unlock(&session->outbuf_write);
 	pthread_mutex_destroy(&session->outbuf_write);
-	sem_post(&session->output_thread_terminated);
 }
 
 void http_session_thread(void* arg)
@@ -4604,7 +4600,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.455 $", "%*s %s", revision);
+	sscanf("$Revision: 1.453 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
