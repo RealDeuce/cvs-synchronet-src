@@ -2,7 +2,7 @@
 
 /* Synchronet file database scanning routines */
 
-/* $Id: scandirs.cpp,v 1.3 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: scandirs.cpp,v 1.2 2000/12/11 23:21:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ void sbbs_t::scandirs(long mode)
 		return; }
 	if(ch!='A') {
 		if(mode&FL_ULTIME) {			/* New file scan */
-			bprintf(text[NScanHdr],timestr(ns_time));
+			bprintf(text[NScanHdr],timestr(&ns_time));
 			str[0]=0; }
 		else if(mode==FL_NO_HDR) {		/* Search for a string */
 			if(!getfilespec(tmp))
@@ -117,7 +117,7 @@ void sbbs_t::scanalldirs(long mode)
 	if(!usrlibs) return;
 	k=0;
 	if(mode&FL_ULTIME) {			/* New file scan */
-		bprintf(text[NScanHdr],timestr(ns_time));
+		bprintf(text[NScanHdr],timestr(&ns_time));
 		str[0]=0; }
 	else if(mode==FL_NO_HDR) {		/* Search for a string */
 		if(!getfilespec(tmp))
