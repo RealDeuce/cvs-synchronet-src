@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.150 2006/09/24 23:53:01 deuce Exp $ */
+/* $Id: term.c,v 1.151 2006/09/24 23:54:05 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -576,7 +576,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	char	*buf;
 
     gettextinfo(&txtinfo);
-	i=uifc_initialized;
 	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
