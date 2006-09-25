@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.282 2006/09/12 23:05:03 deuce Exp $ */
+/* $Id: sbbs.h,v 1.283 2006/09/24 19:16:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,9 @@
 /***************/
 #if defined(_WIN32)			/* Windows */
 
+	#define NOCRYPT     /* Stop windows.h from loading wincrypt.h */
+                    /* Is windows.h REALLY necessary?!?! */
+	#define WIN32_LEAN_AND_MEAN
 	#include <io.h>
 	#include <share.h>
 	#include <windows.h>
