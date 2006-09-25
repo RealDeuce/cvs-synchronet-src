@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.450 2006/09/13 02:54:39 deuce Exp $ */
+/* $Id: main.cpp,v 1.451 2006/09/25 06:11:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4294,6 +4294,9 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
+#if CRYPTLIB_VERSION < 3300
+	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
+#endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
 		bool			loaded_key=false;
 
