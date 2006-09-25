@@ -1,4 +1,4 @@
-/* $Id: conn.h,v 1.9 2006/08/30 20:45:24 deuce Exp $ */
+/* $Id: conn.h,v 1.10 2006/09/24 05:07:15 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -16,9 +16,7 @@ enum {
 	,CONN_TYPE_RLOGIN
 	,CONN_TYPE_TELNET
 	,CONN_TYPE_RAW
-#ifdef USE_CRYPTLIB
 	,CONN_TYPE_SSH
-#endif
 	,CONN_TYPE_TERMINATOR
 };
 

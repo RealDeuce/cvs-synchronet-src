@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.148 2006/09/01 23:59:00 deuce Exp $ */
+/* $Id: term.c,v 1.151 2006/09/24 23:54:05 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -572,6 +572,12 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 			,"ASCII"
 			,""
 		};
+	struct	text_info txtinfo;
+	char	*buf;
+
+    gettextinfo(&txtinfo);
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if(safe_mode)
 		return;
@@ -582,6 +588,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	if(result==-1 || fpick.files<1) {
 		filepick_free(&fpick);
 		uifcbail();
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -591,6 +598,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
@@ -609,6 +617,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		}
 	}
 	uifcbail();
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 }
 
 #if defined(__BORLANDC__)
@@ -1315,25 +1324,25 @@ BOOL doterm(struct bbslist *bbs)
 					conn_send("\033Ot",3,0);
 					break;
 				case CIO_KEY_F(6):
-					conn_send("\033[17~",4,0);
+					conn_send("\033[17~",5,0);
 					break;
 				case CIO_KEY_F(7):
-					conn_send("\033[18~",4,0);
+					conn_send("\033[18~",5,0);
 					break;
 				case CIO_KEY_F(8):
-					conn_send("\033[19~",4,0);
+					conn_send("\033[19~",5,0);
 					break;
 				case CIO_KEY_F(9):
-					conn_send("\033[20~",4,0);
+					conn_send("\033[20~",5,0);
 					break;
 				case CIO_KEY_F(10):
-					conn_send("\033[21~",4,0);
+					conn_send("\033[21~",5,0);
 					break;
 				case CIO_KEY_F(11):
-					conn_send("\033[23~",4,0);
+					conn_send("\033[23~",5,0);
 					break;
 				case CIO_KEY_F(12):
-					conn_send("\033[24~",4,0);
+					conn_send("\033[24~",5,0);
 					break;
 				case CIO_KEY_IC:
 					conn_send("\033[@",3,0);
