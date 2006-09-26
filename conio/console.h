@@ -1,14 +1,10 @@
-/* comio.c */
-
-/* Synchronet Serial Communications I/O Library Common Functions */
-
-/* $Id: comio.c,v 1.1 2007/04/21 01:36:35 rswindell Exp $ */
+/* $Id: console.h,v 1.11 2005/11/19 07:52:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,38 +31,66 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "comio.h"
-#include "genwrap.h"	/* msclock */
 
-size_t comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, const char* terminators, int timeout)
-{
-	BYTE		ch;
-	size_t		len=0;
-	msclock_t	start=msclock();
+#ifndef _CONSOLE_H_
+#define _CONSOLE_H_
 
-	while(len < buflen) {
-		if(!comReadByte(handle, &ch)) {
-			if(msclock()-start >= timeout)
-				break;
-			YIELD();
-			continue;
-		}
-		if(len && terminators!=NULL && strchr(terminators, ch)!=NULL)
-			break;
-		buf[len++]=ch;
-	}
+#include <sys/param.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/user.h>
 
-	return len;
-}
+#include <gen_defs.h>
+#include <semwrap.h>
 
-size_t comReadLine(COM_HANDLE handle, char* buf, size_t buflen, int timeout)
-{
-	size_t	len;
+#include "vidmodes.h"
 
-	len=comReadBuf(handle, buf, buflen-1, "\n", timeout);
+extern sem_t	console_mode_changed;
+extern sem_t	copybuf_set;
+extern sem_t	pastebuf_request;
+extern sem_t	pastebuf_set;
+extern sem_t	font_set;
+extern int		new_font;
+extern int		font_force;
+extern int		setfont_return;
+extern pthread_mutex_t	copybuf_mutex;
+extern char *copybuf;
+extern char *pastebuf;
 
-	buf[len]=0;
+extern int CurrMode;
 
-	return len;
-}
+extern int InitCS;
+extern int InitCE;
 
+extern WORD *vmem;
+
+extern BYTE CursRow;
+extern BYTE CursCol;
+extern BYTE CursStart;
+extern BYTE CursEnd;
+
+extern WORD DpyCols;
+extern BYTE DpyRows;
+
+extern int FH,FW;
+
+extern int x_nextchar;
+
+extern int console_new_mode;
+
+int init_window();
+int video_init();
+int init_mode(int mode);
+int tty_read(int flag);
+int tty_peek(int flag);
+int tty_kbhit(void);
+void tty_beep(void);
+void x_win_title(const char *title);
+int console_init(void);
+int x_load_font(const char *filename);
+
+#define	TTYF_BLOCK	0x00000008
+#define	TTYF_POLL	0x00000010
+#define NO_NEW_MODE -999
+
+#endif
