@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.407 2006/10/26 01:46:54 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.405 2006/09/07 17:59:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1365,7 +1365,7 @@ static void signal_smtp_sem(void)
 	if(scfg.smtpmail_sem[0]==0) 
 		return; /* do nothing */
 
-	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,S_IREAD|S_IWRITE))!=-1)
+	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
 		close(file);
 }
 
@@ -1848,7 +1848,6 @@ static void smtp_thread(void* arg)
 	int			rd;
 	char		str[512];
 	char		tmp[128];
-	char		path[MAX_PATH+1];
 	char		value[INI_MAX_VALUE_LEN];
 	str_list_t	sec_list;
 	char*		section;
@@ -2144,17 +2143,6 @@ static void smtp_thread(void* arg)
 
 				lprintf(LOG_INFO,"%04d SMTP End of message (body: %lu lines, %lu bytes, header: %lu lines, %lu bytes)"
 					, socket, lines, ftell(msgtxt)-hdr_len, hdr_lines, hdr_len);
-
-				/* Twit-listing (sender's name and e-mail addresses) here */
-				sprintf(path,"%stwitlist.cfg",scfg.ctrl_dir);
-				if(fexist(path) && (findstr(sender,path) || findstr(sender_addr,path))) {
-					lprintf(LOG_NOTICE,"%04d !SMTP FILTERING TWIT-LISTED SENDER: %s <%s>"
-						,socket, sender, sender_addr);
-					SAFEPRINTF2(tmp,"Twit-listed sender: %s <%s>", sender, sender_addr);
-					spamlog(&scfg, "SMTP", "REFUSED", tmp, host_name, host_ip, rcpt_addr, reverse_path);
-					sockprintf(socket, "554 Sender not allowed.");
-					continue;
-				}
 
 				if(telegram==TRUE) {		/* Telegram */
 					const char* head="\1n\1h\1cInstant Message\1n from \1h\1y";
@@ -4057,7 +4045,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.407 $", "%*s %s", revision);
+	sscanf("$Revision: 1.405 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
