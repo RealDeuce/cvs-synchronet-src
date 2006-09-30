@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.398 2006/04/25 02:43:01 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.406 2006/09/28 05:56:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -694,6 +694,7 @@ static void pop3_thread(void* arg)
 	mail_t*		mail;
 	pop3_t		pop3=*(pop3_t*)arg;
 
+	SetThreadName("POP3 Thread");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -1364,7 +1365,7 @@ static void signal_smtp_sem(void)
 	if(scfg.smtpmail_sem[0]==0) 
 		return; /* do nothing */
 
-	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC))!=-1)
+	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,S_IREAD|S_IWRITE))!=-1)
 		close(file);
 }
 
@@ -1765,6 +1766,7 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 	char		ip[16];
 	char		*p;
 	char		*p2;
+	char		*last;
 
 	fromstr=(char *)malloc(strlen(buf)+1);
 	if(fromstr==NULL)
@@ -1784,10 +1786,10 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 			*p2++=*p;
 		}
 		*p2=0;
-		p=strtok(fromstr,"[");
+		p=strtok_r(fromstr,"[",&last);
 		if(p==NULL)
 			break;
-		p=strtok(NULL,"]");
+		p=strtok_r(NULL,"]",&last);
 		if(p==NULL)
 			break;
 		strncpy(ip,p,16);
@@ -1941,6 +1943,7 @@ static void smtp_thread(void* arg)
 
 	} cmd = SMTP_CMD_NONE;
 
+	SetThreadName("SMTP Thread");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -2346,7 +2349,7 @@ static void smtp_thread(void* arg)
 				}
 
 				/* SPAM Filtering/Logging */
-				if(msg.subj!=NULL && trashcan(&scfg,msg.subj,"subject")) {
+				if(relay_user.number==0 && msg.subj!=NULL && trashcan(&scfg,msg.subj,"subject")) {
 					lprintf(LOG_WARNING,"%04d !SMTP BLOCKED SUBJECT (%s) from: %s"
 						,socket, msg.subj, reverse_path);
 					SAFEPRINTF2(tmp,"Blocked subject (%s) from: %s"
@@ -2542,7 +2545,8 @@ static void smtp_thread(void* arg)
 					}
 					lprintf(LOG_INFO,"%04d SMTP Created message #%ld from %s to %s <%s>"
 						,socket, newmsg.hdr.number, sender, rcpt_name, rcpt_addr);
-					if(!(startup->options&MAIL_OPT_NO_NOTIFY) && usernum) {
+					if(!(startup->options&MAIL_OPT_NO_NOTIFY) && usernum
+						&& !dnsbl_recvhdr && !dnsbl_result.s_addr) {
 						safe_snprintf(str,sizeof(str)
 							,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
 							"\1h%s\1n\r\n"
@@ -3527,6 +3531,7 @@ static void sendmail_thread(void* arg)
 	long		l;
 	BOOL		sending_locally=FALSE;
 
+	SetThreadName("SendMail Thread");
 	thread_up(TRUE /* setuid */);
 
 	sendmail_running=TRUE;
@@ -3619,7 +3624,7 @@ static void sendmail_thread(void* arg)
 					,i, smb.last_error, msg.idx.number);
 				continue; 
 			}
-			if(msg.to_net.type!=NET_INTERNET || msg.to_net.addr==NULL) {
+			if(msg.hdr.attr&MSG_DELETE || msg.to_net.type!=NET_INTERNET || msg.to_net.addr==NULL) {
 				smb_unlockmsghdr(&smb,&msg);
 				continue;
 			}
@@ -3689,30 +3694,33 @@ static void sendmail_thread(void* arg)
 					server=startup->relay_server;
 					port=startup->relay_port;
 				} else {
+					server=p;
 					tp=strrchr(p,':');	/* non-standard SMTP port */
 					if(tp!=NULL) {
 						*tp=0;
 						port=atoi(tp+1);
 					}
-					get_dns_server(dns_server,sizeof(dns_server));
-					if((dns=resolve_ip(dns_server))==INADDR_NONE) {
-						remove_msg_intransit(&smb,&msg);
-						lprintf(LOG_WARNING,"0000 !SEND INVALID DNS server address: %s"
-							,dns_server);
-						continue;
+					if(port==0) {	/* No port specified, use MX look-up */
+						get_dns_server(dns_server,sizeof(dns_server));
+						if((dns=resolve_ip(dns_server))==INADDR_NONE) {
+							remove_msg_intransit(&smb,&msg);
+							lprintf(LOG_WARNING,"0000 !SEND INVALID DNS server address: %s"
+								,dns_server);
+							continue;
+						}
+						lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
+						if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
+							,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
+							,TIMEOUT_THREAD_WAIT/2))!=0) {
+							remove_msg_intransit(&smb,&msg);
+							lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
+								,i,p,startup->dns_server);
+							SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
+							bounce(&smb,&msg,err,FALSE);
+							continue;
+						}
+						server=mx;
 					}
-					lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
-					if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
-						,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
-						,TIMEOUT_THREAD_WAIT/2))!=0) {
-						remove_msg_intransit(&smb,&msg);
-						lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
-							,i,p,startup->dns_server);
-						SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
-						bounce(&smb,&msg,err,FALSE);
-						continue;
-					}
-					server=mx;
 				}
 			}
 			if(!port)
@@ -4037,7 +4045,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.398 $", "%*s %s", revision);
+	sscanf("$Revision: 1.406 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4084,7 +4092,8 @@ void DLLCALL mail_server(void* arg)
 	startup=(mail_startup_t*)arg;
 
 #ifdef _THREAD_SUID_BROKEN
-	startup->seteuid(TRUE);
+	if(thread_suid_broken)
+		startup->seteuid(TRUE);
 #endif
 
     if(startup==NULL) {
@@ -4121,6 +4130,8 @@ void DLLCALL mail_server(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
+
+	SetThreadName("Mail Server");
 
 	do {
 
@@ -4400,7 +4411,7 @@ void DLLCALL mail_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"%04d Mail Server listening interrupted",server_socket);
+					lprintf(LOG_DEBUG,"%04d Mail Server listening interrupted",server_socket);
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_NOTICE,"%04d Mail Server sockets closed",server_socket);
 				else
