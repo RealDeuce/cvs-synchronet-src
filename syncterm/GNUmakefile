@@ -1,8 +1,6 @@
 SRC_ROOT	:=	..
 include ${SRC_ROOT}/build/Common.gmake
 
-CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
-
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt -lcurses -ldl
  CFLAGS	+=	-DNEED_CFMAKERAW
@@ -13,24 +11,14 @@ ifdef USE_GUTS
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
 endif
 
-ifdef PREFIX
- CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
-endif
-
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib
 LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 
 vpath %.c ../sbbs3 ../smblib ../uifc ../guts
 
-INSTALL_EXE	?=	install
-
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
 	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
-
-install: $(SYNCTERM)
-	@echo Installing...
-	${INSTALL_EXE} ${SYNCTERM} ${PREFIX}/bin
 
 devel: tags cscope.out
 

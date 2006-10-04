@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.101 2006/10/25 22:10:52 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.100 2006/09/07 00:28:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@ enum {
 	,BBS_PROP_STARTUP_OPT
 	,BBS_PROP_ANSWER_TIME
 	,BBS_PROP_LOGON_TIME
-	,BBS_PROP_START_TIME
 	,BBS_PROP_NS_TIME
 	,BBS_PROP_LAST_NS_TIME
 	,BBS_PROP_ONLINE
@@ -145,14 +144,13 @@ enum {
 	static char* bbs_prop_desc[] = {
 	 "system status bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"answer time, in <i>time_t</i> format"
-	,"logon time, in <i>time_t</i> format"
-	,"time from which user's time left is calculated, in <i>time_t</i> format"
-	,"current file new-scan time, in <i>time_t</i> format"
-	,"previous file new-scan time, in <i>time_t</i> format"
+	,"answer time, in time_t format"
+	,"logon time, in time_t format"
+	,"curren file new-scan time, in time_t format"
+	,"previous file new-scan time, in time_t format"
 	,"online (see <tt>ON_*</tt> in <tt>sbbsdefs.js</tt> for valid values)"
 	,"time left (in seconds)"
-	,"time of next exclusive event (in <i>time_t</i> format), or 0 if none"
+	,"time of next exclusive event (in time_t format), or 0 if none"
 	,"internal code of next exclusive event"
 
 	,"current node number"
@@ -267,9 +265,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case BBS_PROP_LOGON_TIME:
 			val=sbbs->logontime;
-			break;
-		case BBS_PROP_START_TIME:
-			val=sbbs->starttime;
 			break;
 		case BBS_PROP_NS_TIME:
 			val=sbbs->ns_time;
@@ -654,9 +649,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case BBS_PROP_LOGON_TIME:
 			sbbs->logontime=val;
 			break;
-		case BBS_PROP_START_TIME:
-			sbbs->starttime=val;
-			break;
 		case BBS_PROP_NS_TIME:
 			sbbs->ns_time=val;
 			break;
@@ -810,7 +802,6 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"startup_options"	,BBS_PROP_STARTUP_OPT	,JSPROP_ENUMERATE	,310},
 	{	"answer_time"		,BBS_PROP_ANSWER_TIME	,JSPROP_ENUMERATE	,310},
 	{	"logon_time"		,BBS_PROP_LOGON_TIME	,JSPROP_ENUMERATE	,310},
-	{	"start_time"		,BBS_PROP_START_TIME	,JSPROP_ENUMERATE	,314},
 	{	"new_file_time"		,BBS_PROP_NS_TIME		,JSPROP_ENUMERATE	,310},
 	{	"last_new_file_time",BBS_PROP_LAST_NS_TIME	,JSPROP_ENUMERATE	,310},
 	{	"online"			,BBS_PROP_ONLINE		,JSPROP_ENUMERATE	,310},
@@ -2940,7 +2931,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	{"get_newscantime",	js_getnstime,		1,	JSTYPE_NUMBER,	JSDOCSTR("time=<i>current</i>")
-	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (<i>time_t</i> format)")
+	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (time_t format)")
 	,310
 	},		
 	{"select_shell",	js_select_shell,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
