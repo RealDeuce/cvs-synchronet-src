@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.11 2006/04/25 02:26:06 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.10 2005/09/30 09:05:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -99,7 +99,6 @@ char* SMBCALL smb_hfieldtype(ushort type)
 
 		case SMTPCOMMAND:		return("SMTPCommand");
 		case SMTPREVERSEPATH:	return("SMTPReversePath");
-		case SMTPFORWARDPATH:	return("SMTPForwardPath");
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
 

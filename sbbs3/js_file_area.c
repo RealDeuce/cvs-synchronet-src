@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.42 2006/02/02 03:17:15 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.43 2006/10/17 06:22:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,8 +331,8 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if((js_str=JS_NewStringCopyZ(cx, cfg->dir[d]->ex_arstr))==NULL)
 				return(NULL);
 			if(!JS_DefineProperty(cx, dirobj, "exempt_ars", STRING_TO_JSVAL(js_str)
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
-				return(NULL);
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))	/* exception here: Oct-15-2006 */
+				return(NULL);									/* ChangeScope->calloc() */
 
 			if((js_str=JS_NewStringCopyZ(cx, cfg->dir[d]->op_arstr))==NULL)
 				return(NULL);
