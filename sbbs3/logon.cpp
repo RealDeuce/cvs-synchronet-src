@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.42 2006/10/28 18:39:40 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.41 2006/10/17 07:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -667,7 +667,7 @@ ulong sbbs_t::logonstats()
 		} 
 	}
 
-	if(cfg.node_num==0)	/* called from event_thread() */
+	if(cfg.node_num==0)	/* called from bbs_thread() */
 		return(0);
 
 	if(thisnode.status==NODE_QUIET)       /* Quiet users aren't counted */
