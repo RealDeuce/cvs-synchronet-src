@@ -2,13 +2,13 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.18 2007/09/30 22:30:10 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.15 2005/09/20 05:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -178,21 +178,6 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				#else
 					result=!_not;
 				#endif
-				break;
-			case AR_ACTIVE:
-				if(user->misc&(DELETED|INACTIVE))
-					result=_not;
-				else result=!_not;
-				break;
-			case AR_INACTIVE:
-				if(!(user->misc&INACTIVE))
-					result=_not;
-				else result=!_not;
-				break;
-			case AR_DELETED:
-				if(!(user->misc&DELETED))
-					result=_not;
-				else result=!_not;
 				break;
 			case AR_EXPERT:
 				if(!(user->misc&EXPERT))
@@ -448,48 +433,6 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 				if(!result) {
 					noaccess_str=text[NoAccessUDFR];
 					noaccess_val=n; }
-				break;
-			case AR_ULS:
-				if((equal && user->uls!=i) || (!equal && user->uls<i))
-					result=_not;
-				else
-					result=!_not;
-				(*ptrptr)++;
-				break;
-			case AR_ULK:
-				if((equal && (user->ulb/1024)!=i) || (!equal && (user->ulb/1024)<i))
-					result=_not;
-				else
-					result=!_not;
-				(*ptrptr)++;
-				break;
-			case AR_ULM:
-				if((equal && (user->ulb/(1024*1024))!=i) || (!equal && (user->ulb/(1024*1024))<i))
-					result=_not;
-				else
-					result=!_not;
-				(*ptrptr)++;
-				break;
-			case AR_DLS:
-				if((equal && user->dls!=i) || (!equal && user->dls<i))
-					result=_not;
-				else
-					result=!_not;
-				(*ptrptr)++;
-				break;
-			case AR_DLK:
-				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
-					result=_not;
-				else
-					result=!_not;
-				(*ptrptr)++;
-				break;
-			case AR_DLM:
-				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
-					result=_not;
-				else
-					result=!_not;
-				(*ptrptr)++;
 				break;
 			case AR_FLAG1:
 				if((!equal && !(user->flags1&FLAG(n)))
