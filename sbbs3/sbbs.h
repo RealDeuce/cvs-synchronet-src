@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.283 2006/09/24 19:16:51 deuce Exp $ */
+/* $Id: sbbs.h,v 1.284 2006/10/17 07:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -611,6 +611,7 @@ public:
 	bool	chksyspass(void);
 	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
 	bool	ar_exp(uchar ** ptrptr, user_t * user);
+	void	daily_maint(void);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
