@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.454 2006/10/17 07:27:02 rswindell Exp $ */
+/* $Id: main.cpp,v 1.455 2006/10/26 00:52:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2084,6 +2084,12 @@ void event_thread(void* arg)
 		}
 
 		if(check_semaphores) {
+
+			/* Run daily maintenance? */
+			sbbs->logonstats();
+			if(sbbs->sys_status&SS_DAILY)
+				sbbs->daily_maint();
+
 			/* Node Daily Events */
 			for(i=first_node;i<=last_node;i++) {
 				// Node Daily Event
@@ -4561,9 +4567,6 @@ NO_SSH:
 				terminate_server=TRUE;
 				break;
 			}
-			sbbs->logonstats();
-			if(sbbs->sys_status&SS_DAILY)
-				sbbs->daily_maint();
 		}
 
     	sbbs->online=0;
