@@ -2,13 +2,13 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.29 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: filedat.c,v 1.26 2005/09/20 03:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -170,7 +170,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	/* Add data to DAT File */
 	/************************/
 	SAFEPRINTF2(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
-	if((file=sopen(str,O_RDWR|O_BINARY|O_CREAT,SH_DENYRW,DEFFILEMODE))==-1) {
+	if((file=sopen(str,O_RDWR|O_BINARY|O_CREAT,SH_DENYRW,S_IREAD|S_IWRITE))==-1) {
 		return(FALSE); 
 	}
 	length=filelength(file);
@@ -222,9 +222,8 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	/* Update last upload date/time stamp file */
 	/*******************************************/
 	SAFEPRINTF2(str,"%s%s.dab",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
-	if((file=sopen(str,O_WRONLY|O_CREAT|O_BINARY,SH_DENYRW,DEFFILEMODE))!=-1) {
+	if((file=sopen(str,O_WRONLY|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))!=-1) {
 		now=time(NULL);
-		/* TODO: 32-bit *or* LE required */
 		write(file,&now,4);
 		close(file); 
 	}
@@ -236,7 +235,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	for(i=8;i<12;i++)   /* Turn FILENAME.EXT into FILENAMEEXT */
 		fname[i]=fname[i+1];
 	SAFEPRINTF2(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
-	if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW,DEFFILEMODE))==-1) {
+	if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))==-1) {
 		return(FALSE); 
 	}
 	length=filelength(file);
@@ -294,7 +293,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 			free((char *)ixbbuf);
 			return(FALSE); 
 		}
-		write(file,&f->dateuled,4);
+		write(file,&f->dateuled,sizeof(time_t));
 		write(file,&f->datedled,4);              /* Write 0 for datedled */
 		if(lwrite(file,&ixbbuf[l],length-l)!=length-l) { /* Write rest of IXB */
 			close(file);
@@ -311,7 +310,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 			close(file);
 			return(FALSE); 
 		}
-		write(file,&f->dateuled,4);
+		write(file,&f->dateuled,sizeof(time_t));
 		write(file,&f->datedled,4); 
 	}
 	length=filelength(file);
@@ -371,60 +370,6 @@ BOOL DLLCALL getfileixb(scfg_t* cfg, file_t* f)
 	free((char *)ixbbuf);
 	return(TRUE);
 }
-
-/****************************************************************************/
-/* Updates the datedled and dateuled index record fields for a file			*/
-/****************************************************************************/
-BOOL DLLCALL putfileixb(scfg_t* cfg, file_t* f)
-{
-	char	str[MAX_PATH+1],fname[13];
-	uchar*	ixbbuf;
-	int		file;
-	long	l,length;
-
-	SAFEPRINTF2(str,"%s%s.ixb",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
-	if((file=sopen(str,O_RDWR|O_BINARY,SH_DENYRW))==-1) {
-		return(FALSE); 
-	}
-	length=filelength(file);
-	if(length%F_IXBSIZE) {
-		close(file);
-		return(FALSE); 
-	}
-	if((ixbbuf=(uchar *)malloc(length))==NULL) {
-		close(file);
-		return(FALSE); 
-	}
-	if(lread(file,ixbbuf,length)!=length) {
-		close(file);
-		free(ixbbuf);
-		return(FALSE); 
-	}
-	SAFECOPY(fname,f->name);
-	for(l=8;l<12;l++)	/* Turn FILENAME.EXT into FILENAMEEXT */
-		fname[l]=fname[l+1];
-	for(l=0;l<length;l+=F_IXBSIZE) {
-		SAFEPRINTF(str,"%11.11s",ixbbuf+l);
-		if(!stricmp(str,fname))
-			break; 
-	}
-	free(ixbbuf);
-
-	if(l>=length) {
-		close(file);
-		return(FALSE); 
-	}
-	
-	lseek(file,l+11+3,SEEK_SET);
-
-	write(file,&f->dateuled,4);
-	write(file,&f->datedled,4);
-
-	close(file);
-
-	return(TRUE);
-}
-
 
 /****************************************************************************/
 /* Removes DAT and IXB entries for the file in the struct 'f'               */
