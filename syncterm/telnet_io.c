@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.19 2006/03/20 23:46:19 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.18 2006/02/25 09:13:44 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -69,7 +69,7 @@ static void send_telnet_cmd(uchar cmd, uchar opt)
 	}
 }
 
-void request_telnet_opt(uchar cmd, uchar opt)
+static void request_telnet_opt(uchar cmd, uchar opt)
 {
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
