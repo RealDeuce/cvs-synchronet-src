@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.52 2007/08/14 06:23:46 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.50 2005/12/22 17:13:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -446,13 +446,14 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			if(subscan!=NULL)
 				JS_SetPrivate(cx,subobj,&subscan[d]);
 
-			val=OBJECT_TO_JSVAL(subobj);
 			sub_index=-1;
+
 			if(user==NULL || chk_ar(cfg,cfg->sub[d]->ar,user)) {
 
 				if(!JS_GetArrayLength(cx, sub_list, &sub_index))
 					return(NULL);							
 
+				val=OBJECT_TO_JSVAL(subobj);
 				if(!JS_SetElement(cx, sub_list, sub_index, &val))
 					return(NULL);
 			}
@@ -482,8 +483,14 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			if(user==NULL)
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
+			else if(cfg->sub[d]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET)
+				&& user->rest&FLAG('N'))		/* network restriction? */
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
+			else if(!chk_ar(cfg,cfg->sub[d]->post_ar,user)
+				|| user->rest&FLAG('P'))		/* post restriction? */
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);	
 			else
-				val=BOOLEAN_TO_JSVAL(can_user_post(cfg,d,user,/* reason: */NULL));
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			if(!JS_SetProperty(cx, subobj, "can_post", &val))
 				return(NULL);
 
