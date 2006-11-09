@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.98 2006/12/18 19:00:23 deuce Exp $ */
+/* $Id: syncterm.c,v 1.97 2006/10/04 07:02:52 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -225,7 +225,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 
 	if(inpath==NULL)
 		home=getenv("HOME");
-	if(home==NULL || strlen(home) > MAX_PATH-32) {	/* $HOME just too damn big */
+	if(home==NULL) {
 		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 			getcwd(fn, fnlen);
 			backslash(fn);

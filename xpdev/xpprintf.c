@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.34 2006/12/21 21:32:12 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.29 2006/01/27 05:49:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
 
 #include "xpprintf.h"
 
@@ -313,6 +310,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 	char			this_format[MAX_FORMAT_LEN];
 	char			*fmt;
 	int				modifier=0;
+	char			*fmt_start;
 	int				correct_type=0;
 	char			num_str[128];		/* More than enough room for a 256-bit int */
 	size_t			width=0;
@@ -323,12 +321,12 @@ char *xp_asprintf_next(char *format, int type, ...)
 	 */
 	if(!*(size_t *) format)
 		return(format);
-
 	p=format+*(size_t *)format;
 	offset=p-format;
-	format_len=*(size_t *)(format+sizeof(size_t))+sizeof(size_t)*2+1;
+	format_len=strlen(format+sizeof(size_t))+sizeof(size_t)+1;
 	this_format[0]=0;
 	fmt=this_format;
+	fmt_start=p;
 	*(fmt++)=*(p++);
 
 	/*
@@ -616,7 +614,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 	 */
 	va_start(vars, type);
 	switch(type & ~XP_PRINTF_CONVERT) {
-		case XP_PRINTF_TYPE_CHAR:
 		case XP_PRINTF_TYPE_INT:	/* Also includes char and short */
 			i=va_arg(vars, int);
 			break;
@@ -663,52 +660,8 @@ char *xp_asprintf_next(char *format, int type, ...)
 		type=type & ~XP_PRINTF_CONVERT;
 		if(type != correct_type) {
 			switch(correct_type) {
-				case XP_PRINTF_TYPE_CHAR:
-					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
-						case XP_PRINTF_TYPE_INT:
-							i=i;
-							break;
-						case XP_PRINTF_TYPE_UINT:
-							i=ui;
-							break;
-						case XP_PRINTF_TYPE_LONG:
-							i=l;
-							break;
-						case XP_PRINTF_TYPE_ULONG:
-							i=ul;
-							break;
-#if defined(XP_PRINTF_TYPE_LONGLONG)
-						case XP_PRINTF_TYPE_LONGLONG:
-							i=ll;
-							break;
-						case XP_PRINTF_TYPE_ULONGLONG:
-							i=ull;
-							break;
-#endif
-						case XP_PRINTF_TYPE_CHARP:
-							if(cp)
-								i=*cp;
-							else
-								i=0;
-							break;
-						case XP_PRINTF_TYPE_DOUBLE:
-							i=(int)d;
-							break;
-						case XP_PRINTF_TYPE_LONGDOUBLE:
-							i=(int)ld;
-							break;
-						case XP_PRINTF_TYPE_VOIDP:
-							i=(int)pntr;
-							break;
-						case XP_PRINTF_TYPE_SIZET:
-							i=s;
-							break;
-					}
-					break;
 				case XP_PRINTF_TYPE_INT:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							i=i;
 							break;
@@ -748,7 +701,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					break;
 				case XP_PRINTF_TYPE_UINT:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							ui=i;
 							break;
@@ -788,7 +740,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					break;
 				case XP_PRINTF_TYPE_LONG:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							l=i;
 							break;
@@ -828,7 +779,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					break;
 				case XP_PRINTF_TYPE_ULONG:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							ul=i;
 							break;
@@ -869,7 +819,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 				case XP_PRINTF_TYPE_LONGLONG:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							ll=i;
 							break;
@@ -907,7 +856,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					break;
 				case XP_PRINTF_TYPE_ULONGLONG:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							ull=i;
 							break;
@@ -947,7 +895,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 				case XP_PRINTF_TYPE_CHARP:
 					num_str[0]=0;
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							sprintf(num_str, "%d", i);
 							cp=num_str;
@@ -1000,7 +947,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					break;
 				case XP_PRINTF_TYPE_DOUBLE:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							d=i;
 							break;
@@ -1040,7 +986,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					break;
 				case XP_PRINTF_TYPE_LONGDOUBLE:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							ld=i;
 							break;
@@ -1082,7 +1027,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 				case XP_PRINTF_TYPE_VOIDP:
 					/* ToDo: this is nasty... */
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							pntr=(void *)i;
 							break;
@@ -1122,7 +1066,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					break;
 				case XP_PRINTF_TYPE_SIZET:
 					switch(type) {
-						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
 							s=i;
 							break;
@@ -1170,7 +1113,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 	*fmt=0;
 	entry=entry_buf;
 	switch(type) {
-		case XP_PRINTF_TYPE_CHAR:	/* Also includes char and short */
 		case XP_PRINTF_TYPE_INT:	/* Also includes char and short */
 			j=sprintf(entry, this_format, i);
 			break;
@@ -1201,7 +1143,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 				if(s<precision)
 					s=precision;
 				if(s>=MAX_ARG_LEN)
-					entry=(char *)alloca(s+1);
+					entry=(char *)malloc(s+1);
 				if(entry==NULL)
 					return(NULL);
 				j=sprintf(entry, this_format, cp);
@@ -1230,20 +1172,22 @@ char *xp_asprintf_next(char *format, int type, ...)
 		 */
 		if(format_len < (format_len-this_format_len+j)) {
 			newbuf=(char *)realloc(format, format_len-this_format_len+j);
-			if(newbuf==NULL)
+			if(newbuf==NULL) {
+				if(entry != entry_buf)
+					free(entry);
 				return(NULL);
+			}
 			format=newbuf;
 		}
 		/* Move trailing end to make space */
 		memmove(format+offset+j, format+offset+this_format_len, format_len-offset-this_format_len);
 		memcpy(format+offset, entry, j);
+		if(entry != entry_buf)
+			free(entry);
 		p=format+offset+j;
 	}
 	else
 		p=format+offset+this_format_len;
-
-	*(size_t *)(format+sizeof(size_t))=format_len-this_format_len+j-sizeof(size_t)*2-1;
-
 	/*
 	 * Search for next non-%% separateor and set offset
 	 * to zero if none found for wrappers to know when
@@ -1269,18 +1213,15 @@ char *xp_asprintf_start(const char *format)
 	char	*ret;
 	char	*p;
 
-	ret=(char *)malloc(strlen(format)+1+((sizeof(size_t)*2)));
+	ret=(char *)malloc(strlen(format)+1+(sizeof(size_t)));
 	if(ret==NULL)
 		return(NULL);
 	/* Place current offset at the start of the buffer */
-	strcpy(ret+sizeof(size_t)*2,format);
-	/* Place the current length after the offset */
-	*(size_t *)(ret+sizeof(size_t))=strlen(format);
-
+	strcpy(ret+sizeof(size_t),format);
 	/*
 	 * Find the next non %% format, leaving %% as it is
 	 */
-	for(p=ret+sizeof(size_t)*2; *p; p++) {
+	for(p=ret+sizeof(size_t); *p; p++) {
 		if(*p=='%') {
 			if(*(p+1) == '%')
 				p++;
@@ -1295,23 +1236,17 @@ char *xp_asprintf_start(const char *format)
 	return(ret);
 }
 
-char *xp_asprintf_end(char *format, size_t *lenret)
+char *xp_asprintf_end(char *format)
 {
 	char	*p;
 	size_t	len;
-	size_t	end_len;
 
-	len=*(size_t *)(format+sizeof(size_t));
-	end_len=len;
-	for(p=format+sizeof(size_t)*2; len; p++, len--) {
-		if(*p=='%' && *(p+1)=='%') {
+	len=strlen(format+sizeof(size_t));
+	for(p=format+sizeof(size_t); *p; p++, len--) {
+		if(*p=='%' && *(p+1)=='%')
 			memmove(p, p+1, len--);
-			end_len--;
-		}
 	}
-	memmove(format, format+sizeof(size_t)*2, end_len+1);
-	if(lenret)
-		*lenret=end_len;
+	memmove(format, format+sizeof(size_t), strlen(format+sizeof(size_t))+1);
 	return(format);
 }
 
@@ -1331,7 +1266,6 @@ char *xp_vasprintf(const char *format, va_list va)
 			case 0:
 				free(working);
 				return(NULL);
-			case XP_PRINTF_TYPE_CHAR:
 			case XP_PRINTF_TYPE_INT:	/* Also includes char and short */
 				next=xp_asprintf_next(working, type, va_arg(va, int));
 				break;
@@ -1374,7 +1308,7 @@ char *xp_vasprintf(const char *format, va_list va)
 		}
 		working=next;
 	}
-	next=xp_asprintf_end(working, NULL);
+	next=xp_asprintf_end(working);
 	if(next==NULL) {
 		free(working);
 		return(NULL);
@@ -1457,7 +1391,7 @@ int main(int argc, char *argv[])
 		}
 		format=p;
 	}
-	p=xp_asprintf_end(format, NULL);
+	p=xp_asprintf_end(format);
 	printf("At end, value is: '%s'\n",p);
 	free(p);
 }

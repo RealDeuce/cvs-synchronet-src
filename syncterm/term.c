@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.153 2006/11/09 06:47:56 deuce Exp $ */
+/* $Id: term.c,v 1.152 2006/11/09 06:34:44 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1123,7 +1123,6 @@ BOOL doterm(struct bbslist *bbs)
 	int	oldmc;
 	int	updated=FALSE;
 	BOOL	sleep;
-	BOOL	rd;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
@@ -1154,8 +1153,7 @@ BOOL doterm(struct bbslist *bbs)
 			speed = bbs->bpsrate;
 		if(speed)
 			thischar=xp_timer();
-
-		while((bufbot < buftop) || (!socket_check(conn_socket,&rd,NULL,0)) || rd) {
+		while(data_waiting(NULL, 0)) {
 			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
 				/* Get remote input */
 				inch=recv_byte(NULL, 0);
@@ -1247,9 +1245,8 @@ BOOL doterm(struct bbslist *bbs)
 						continue;
 				}
 			}
-			else {
-				if (speed)
-					sleep=FALSE;
+			else if (speed) {
+				sleep=FALSE;
 				break;
 			}
 		}
