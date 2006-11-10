@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.409 2006/12/15 21:59:48 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.407 2006/10/26 01:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1336,7 +1336,7 @@ static ulong dns_blacklisted(SOCKET sock, IN_ADDR addr, char* host_name, char* l
 
 
 static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_ip
-						   ,char* to, char* from, char* source)
+						   ,char* to, char* from)
 {
 	char	addr[64];
 	char	tmp[128];
@@ -1349,10 +1349,11 @@ static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_i
 	if(!trashcan(&scfg,addr,"email"))
 		return(TRUE);
 
-	lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED %s e-mail address: %s"
-		,socket, source, addr);
-	SAFEPRINTF2(tmp,"Blocked %s e-mail address: %s", source, addr);
+	lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SOURCE: %s"
+		,socket, addr);
+	SAFEPRINTF(tmp,"Blocked source e-mail address: %s", addr);
 	spamlog(&scfg, "SMTP", "REFUSED", tmp, host_name, host_ip, to, from);
+	sockprintf(socket, "554 Sender not allowed.");
 
 	return(FALSE);
 }
@@ -1881,7 +1882,6 @@ static void smtp_thread(void* arg)
 	char		md5_data[384];
 	char		digest[MD5_DIGEST_SIZE];
 	char		dest_host[128];
-	char*		errmsg;
 	ushort		dest_port;
 	socklen_t	addr_len;
 	ushort		hfield_type;
@@ -2310,7 +2310,6 @@ static void smtp_thread(void* arg)
 				/* Parse message header here */
 				hfield_type=UNKNOWN;
 				smb_error=SMB_SUCCESS; /* no SMB error */
-				errmsg="452 Insufficient system storage";
 				while(!feof(msgtxt)) {
 					if(!fgets(buf,sizeof(buf),msgtxt))
 						break;
@@ -2334,17 +2333,8 @@ static void smtp_thread(void* arg)
 						continue;
 					}
 					if(!strnicmp(buf, "FROM:", 5)
-						&& !chk_email_addr(socket,buf+5,host_name,host_ip,rcpt_addr,reverse_path,"FROM")) {
-						errmsg="554 Sender not allowed.";
-						smb_error=SMB_FAILURE;
+						&& !chk_email_addr(socket,buf+5,host_name,host_ip,rcpt_addr,reverse_path))
 						break;
-					}
-					if(!strnicmp(buf, "TO:", 3)
-						&& !chk_email_addr(socket,buf+3,host_name,host_ip,rcpt_addr,reverse_path,"TO")) {
-						errmsg="550 Unknown user.";
-						smb_error=SMB_FAILURE;
-						break;
-					}
 					if((smb_error=parse_header_field(buf,&msg,&hfield_type))!=SMB_SUCCESS) {
 						if(smb_error==SMB_ERR_HDR_LEN)
 							lprintf(LOG_WARNING,"%04d !SMTP MESSAGE HEADER EXCEEDS %u BYTES"
@@ -2356,7 +2346,7 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if(smb_error!=SMB_SUCCESS) {	/* SMB Error */
-					sockprintf(socket, errmsg);
+					sockprintf(socket, "452 Insufficient system storage");
 					continue;
 				}
 				if((p=smb_get_hfield(&msg, RFC822TO, NULL))!=NULL) {
@@ -2879,10 +2869,8 @@ static void smtp_thread(void* arg)
 			|| !strnicmp(buf,"SAML FROM:",10)	/* Send AND Mail a Message to a local user */
 			) {
 			p=buf+10;
-			if(!chk_email_addr(socket,p,host_name,host_ip,NULL,NULL,"REVERSE PATH")) {
-				sockprintf(socket, "554 Sender not allowed.");
+			if(!chk_email_addr(socket,p,host_name,host_ip,NULL,NULL))
 				break;
-			}
 			SKIP_WHITESPACE(p);
 			SAFECOPY(reverse_path,p);
 
@@ -3001,7 +2989,11 @@ static void smtp_thread(void* arg)
 			}
 
 			/* Check for blocked recipients */
-			if(!chk_email_addr(socket,rcpt_addr,host_name,host_ip,rcpt_addr,reverse_path,"RECIPIENT")) {
+			if(trashcan(&scfg,rcpt_addr,"email")) {
+				lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED RECIPIENT (%s) from: %s"
+					,socket, rcpt_addr, reverse_path);
+				spamlog(&scfg, "SMTP", "REFUSED", "Blocked recipient e-mail address"
+					,host_name, host_ip, rcpt_addr, reverse_path);
 				sockprintf(socket, "550 Unknown User:%s", buf+8);
 				continue;
 			}
@@ -3176,7 +3168,7 @@ static void smtp_thread(void* arg)
 				}
 			}
 
-			if((p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
+			if(startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER 
 				&& isdigit(*p)) {
 				usernum=atoi(p);			/* RX by user number */
 				/* verify usernum */
@@ -3186,7 +3178,7 @@ static void smtp_thread(void* arg)
 				p=str;
 			} else {
 				/* RX by "user alias", "user.alias" or "user_alias" */
-				usernum=matchuser(&scfg,p,startup->options&MAIL_OPT_ALLOW_SYSOP_ALIASES);	
+				usernum=matchuser(&scfg,p,TRUE /* sysop_alias */);	
 
 				if(!usernum) { /* RX by "real name", "real.name", or "sysop.alias" */
 					
@@ -3208,8 +3200,8 @@ static void smtp_thread(void* arg)
 			if(!usernum && startup->default_user[0]) {
 				usernum=matchuser(&scfg,startup->default_user,TRUE /* sysop_alias */);
 				if(usernum)
-					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: %s #%u"
-						,socket,startup->default_user,usernum);
+					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: %s"
+						,socket,startup->default_user);
 				else
 					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN DEFAULT USER: %s"
 						,socket,startup->default_user);
@@ -4065,7 +4057,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.409 $", "%*s %s", revision);
+	sscanf("$Revision: 1.407 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.60 2006/12/02 01:27:35 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.59 2006/09/15 21:12:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,9 +123,8 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_DEBUG_RX_RSP			(1<<4)
 #define MAIL_OPT_RELAY_TX				(1<<5)	/* Use SMTP relay server */
 #define MAIL_OPT_DEBUG_POP3				(1<<6)
-#define MAIL_OPT_ALLOW_RX_BY_NUMBER		(1<<7)	/* Receive mail sent to user # */
+#define MAIL_OPT_ALLOW_RX_BY_NUMBER		(1<<7)	/* Allow mail sent to user # */
 #define MAIL_OPT_NO_NOTIFY				(1<<8)	/* Don't notify local recipients */
-#define MAIL_OPT_ALLOW_SYSOP_ALIASES	(1<<9)	/* Receive mail sent to built-in sysop aliases (i.e. "sysop" and "postmaster") */ 
 #define MAIL_OPT_NO_HOST_LOOKUP			(1<<11)	/* Don't look-up hostnames */
 #define MAIL_OPT_USE_TCP_DNS			(1<<12)	/* Use TCP vs UDP for DNS req */
 #define MAIL_OPT_NO_SENDMAIL			(1<<13)	/* Don't run SendMail thread */
@@ -161,7 +160,6 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_TX				,"RELAY_TX"				},
 	{ MAIL_OPT_DEBUG_POP3			,"DEBUG_POP3"			},
 	{ MAIL_OPT_ALLOW_RX_BY_NUMBER	,"ALLOW_RX_BY_NUMBER"	},
-	{ MAIL_OPT_ALLOW_SYSOP_ALIASES	,"ALLOW_SYSOP_ALIASES"	},
 	{ MAIL_OPT_NO_NOTIFY			,"NO_NOTIFY"			},
 	{ MAIL_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ MAIL_OPT_USE_TCP_DNS			,"USE_TCP_DNS"			},

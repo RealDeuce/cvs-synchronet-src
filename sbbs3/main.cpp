@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.459 2006/12/02 00:56:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.457 2006/10/28 18:43:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3735,7 +3735,8 @@ void sbbs_t::daily_maint(void)
 	sbbs->logentry("!:","Ran system daily maintenance");
 
 	if(sbbs->cfg.user_backup_level) {
-		lputs(LOG_INFO,"Backing-up user data...");
+		lprintf(LOG_INFO,"Node %d Backing-up user data..."
+			,sbbs->cfg.node_num);
 		sprintf(str,"%suser/user.dat",sbbs->cfg.data_dir);
 		backup(str,sbbs->cfg.user_backup_level,FALSE);
 		sprintf(str,"%suser/name.dat",sbbs->cfg.data_dir);
@@ -3743,7 +3744,8 @@ void sbbs_t::daily_maint(void)
 	}
 
 	if(sbbs->cfg.mail_backup_level) {
-		lputs(LOG_INFO,"Backing-up mail data...");
+		lprintf(LOG_INFO,"Node %d Backing-up mail data..."
+			,sbbs->cfg.node_num);
 		sprintf(str,"%smail.shd",sbbs->cfg.data_dir);
 		backup(str,sbbs->cfg.mail_backup_level,FALSE);
 		sprintf(str,"%smail.sha",sbbs->cfg.data_dir);
@@ -3758,7 +3760,8 @@ void sbbs_t::daily_maint(void)
 		backup(str,sbbs->cfg.mail_backup_level,FALSE);
 	}
 
-	lputs(LOG_INFO,"Checking for inactive/expired user records...");
+	lprintf(LOG_INFO,"Node %d Checking for inactive/expired user records..."
+		,sbbs->cfg.node_num);
 	lastusernum=lastuser(&sbbs->cfg);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
 
@@ -3851,7 +3854,7 @@ void sbbs_t::daily_maint(void)
 		}
 	}
 
-	lputs(LOG_INFO,"Purging deleted/expired e-mail");
+	lprintf(LOG_INFO,"Node %d Purging deleted/expired e-mail",sbbs->cfg.node_num);
 	sprintf(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
 	sbbs->smb.retry_time=sbbs->cfg.smb_retry_time;
 	sbbs->smb.subnum=INVALID_SUB;
