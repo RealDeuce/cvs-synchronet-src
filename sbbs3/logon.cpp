@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.39 2005/08/12 08:48:09 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.42 2006/10/28 18:39:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,6 +73,8 @@ bool sbbs_t::logon()
 		qwklogon=1;
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP))
 		return(false);
+
+#if 0
 	if(cur_rate<cfg.node_minbps && !(useron.exempt&FLAG('M'))) {
 		bprintf(text[MinimumModemSpeed],cfg.node_minbps);
 		sprintf(str,"%stooslow.msg",cfg.text_dir);
@@ -83,6 +85,7 @@ bool sbbs_t::logon()
 		logline("+!",str);
 		return(false); 
 	}
+#endif
 
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
@@ -108,6 +111,7 @@ bool sbbs_t::logon()
 		useron.shell=cfg.new_shell; 
 	}
 
+#if 0
 	if(cfg.node_dollars_per_call) {
 		adjustuserrec(&cfg,useron.number,U_CDT,10
 			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
@@ -120,6 +124,7 @@ bool sbbs_t::logon()
 		hangup();
 		return(false); 
 	}
+#endif
 
 	if(!chk_ar(cfg.node_ar,&useron)) {
 		bputs(text[NoNodeAccess]);
@@ -285,8 +290,6 @@ bool sbbs_t::logon()
 				else
 					bputs(text[NewUserPasswordVerify]);
 				console|=CON_R_ECHOX;
-				if(!(cfg.sys_misc&SM_ECHO_PW))
-					console|=CON_L_ECHOX;
 				getstr(tmp,LEN_PASS*2,K_UPPER);
 				console&=~(CON_R_ECHOX|CON_L_ECHOX);
 				if(strcmp(str,tmp)) {
@@ -569,23 +572,25 @@ bool sbbs_t::logon()
 /****************************************************************************/
 ulong sbbs_t::logonstats()
 {
-    char str[256];
+    char str[MAX_PATH+1];
     int dsts,csts;
     uint i;
     time_t update_t=0;
     stats_t stats;
-    node_t node;
+	node_t	node;
 	struct tm tm, update_tm;
 
+	sys_status&=~SS_DAILY;
 	memset(&stats,0,sizeof(stats));
 	sprintf(str,"%sdsts.dab",cfg.ctrl_dir);
 	if((dsts=nopen(str,O_RDWR))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(0L); 
 	}
-	read(dsts,&update_t,4);         /* Last updated         */
-	read(dsts,&stats.logons,4);     /* Total number of logons on system */
+	read(dsts,&update_t,4);			/* Last updated         */
+	read(dsts,&stats.logons,4);		/* Total number of logons on system */
 	close(dsts);
+	now=time(NULL);
 	if(update_t>now+(24L*60L*60L)) /* More than a day in the future? */
 		errormsg(WHERE,ERR_CHK,"Daily stats time stamp",update_t);
 	if(localtime_r(&update_t,&update_tm)==NULL)
@@ -661,6 +666,9 @@ ulong sbbs_t::logonstats()
 			close(dsts); 
 		} 
 	}
+
+	if(cfg.node_num==0)	/* called from event_thread() */
+		return(0);
 
 	if(thisnode.status==NODE_QUIET)       /* Quiet users aren't counted */
 		return(0);
