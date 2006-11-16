@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.283 2006/09/24 19:16:51 deuce Exp $ */
+/* $Id: sbbs.h,v 1.285 2006/11/16 20:41:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,7 +382,7 @@ public:
 	int		exec_net(csi_t *csi);
 	int		exec_msg(csi_t *csi);
 	int		exec_file(csi_t *csi);
-	long	exec_bin(char *mod, csi_t *csi);
+	long	exec_bin(const char *mod, csi_t *csi);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
 	char**	getstrvar(csi_t *bin, long name);
@@ -611,6 +611,7 @@ public:
 	bool	chksyspass(void);
 	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
 	bool	ar_exp(uchar ** ptrptr, user_t * user);
+	void	daily_maint(void);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
