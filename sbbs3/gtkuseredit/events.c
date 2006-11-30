@@ -3,62 +3,8 @@
 
 #include "sbbs.h"
 #include "dirwrap.h"
-#include "xpbeep.h"
 
 #include "gtkuseredit.h"
-
-/*
- * Sets the save buttons sensitive.
- */
-void user_changed(GtkWidget *wiggy, gpointer data)
-{
-	GtkWidget	*w;
-
-	w=glade_xml_get_widget(xml, "bSaveUser");
-	if(w==NULL)
-		fprintf(stderr,"Cannot get the save user button widget\n");
-	else
-		gtk_widget_set_sensitive(GTK_WIDGET(w),TRUE);
-	w=glade_xml_get_widget(xml, "save1");
-	if(w==NULL)
-		fprintf(stderr,"Cannot get the save user menu widget\n");
-	else
-		gtk_widget_set_sensitive(GTK_WIDGET(w),TRUE);
-}
-
-/*
- * Prevents anything but digits from being entered into an input box
- */
-void digit_insert_text_handler (GtkEntry *entry, const gchar *text, gint length, gint *position, gpointer data)
-{
-	GtkEditable *editable = GTK_EDITABLE(entry);
-	int i, count=0, beep=0;
-	gchar *result = g_new (gchar, length);
-
-	for (i=0; i < length; i++) {
-		if (!isdigit(text[i])) {
-			beep=1;
-			continue;
-		}
-		result[count++] = text[i];
-	}
-
-	if (count > 0) {
-		g_signal_handlers_block_by_func (G_OBJECT (editable)
-			,G_CALLBACK (digit_insert_text_handler)
-			,data);
-		gtk_editable_insert_text (editable, result, count, position);
-		g_signal_handlers_unblock_by_func (G_OBJECT (editable)
-			,G_CALLBACK (digit_insert_text_handler)
-			,data);
-	}
-	if(beep)
-		BEEP(440,100);
-
-	g_signal_stop_emission_by_name (G_OBJECT (editable), "insert_text");
-
-	g_free (result);
-}
 
 /* 
  * This is one of the two big gruntwork functions
@@ -226,11 +172,13 @@ void load_user(GtkWidget *wiggy, gpointer data)
 
 	/* Security Tab */
 		/* Level */
-		w=glade_xml_get_widget(xml, "sLevel");
+		w=glade_xml_get_widget(xml, "eLevel");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the level widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.level);
+		else {
+			sprintf(str,"%u",user.level);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Expiration */
 		w=glade_xml_get_widget(xml, "eExpiration");
@@ -242,100 +190,85 @@ void load_user(GtkWidget *wiggy, gpointer data)
 		}
 
 		/* Flag Sets */
-		strcpy(str,"tFlagSet1.");
-		for(i=0;i<26;i++) {
-			str[9]='A'+i;
-			w=glade_xml_get_widget(xml, str);
-			if(w==NULL)
-				fprintf(stderr,"Cannot get the %s widget\n",str);
-			else {
-				b = (user.flags1 & (1L << i)) != 0;
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),b);
-			}
+		w=glade_xml_get_widget(xml, "eFlagSet1");
+		if(w==NULL)
+			fprintf(stderr,"Cannot get the flag set 1 widget\n");
+		else {
+			ltoaf(user.flags1, str);
+			truncsp(str);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
 		}
-
-		strcpy(str,"tFlagSet2.");
-		for(i=0;i<26;i++) {
-			str[9]='A'+i;
-			w=glade_xml_get_widget(xml, str);
-			if(w==NULL)
-				fprintf(stderr,"Cannot get the %s widget\n",str);
-			else {
-				b = (user.flags2 & (1L << i)) != 0;
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),b);
-			}
+		w=glade_xml_get_widget(xml, "eFlagSet2");
+		if(w==NULL)
+			fprintf(stderr,"Cannot get the flag set 2 widget\n");
+		else {
+			ltoaf(user.flags2, str);
+			truncsp(str);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
 		}
-
-		strcpy(str,"tFlagSet3.");
-		for(i=0;i<26;i++) {
-			str[9]='A'+i;
-			w=glade_xml_get_widget(xml, str);
-			if(w==NULL)
-				fprintf(stderr,"Cannot get the %s widget\n",str);
-			else {
-				b = (user.flags3 & (1L << i)) != 0;
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),b);
-			}
+		w=glade_xml_get_widget(xml, "eFlagSet3");
+		if(w==NULL)
+			fprintf(stderr,"Cannot get the flag set 3 widget\n");
+		else {
+			ltoaf(user.flags3, str);
+			truncsp(str);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
 		}
-
-		strcpy(str,"tFlagSet4.");
-		for(i=0;i<26;i++) {
-			str[9]='A'+i;
-			w=glade_xml_get_widget(xml, str);
-			if(w==NULL)
-				fprintf(stderr,"Cannot get the %s widget\n",str);
-			else {
-				b = (user.flags4 & (1L << i)) != 0;
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),b);
-			}
+		w=glade_xml_get_widget(xml, "eFlagSet4");
+		if(w==NULL)
+			fprintf(stderr,"Cannot get the flag set 4 widget\n");
+		else {
+			ltoaf(user.flags4, str);
+			truncsp(str);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
 		}
 
 		/* Exemptions */
-		strcpy(str,"tExemptions.");
-		for(i=0;i<26;i++) {
-			str[11]='A'+i;
-			w=glade_xml_get_widget(xml, str);
-			if(w==NULL)
-				fprintf(stderr,"Cannot get the %s widget\n",str);
-			else {
-				b = (user.exempt & (1L << i)) != 0;
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),b);
-			}
+		w=glade_xml_get_widget(xml, "eExemptions");
+		if(w==NULL)
+			fprintf(stderr,"Cannot get the exemptions widget\n");
+		else {
+			ltoaf(user.exempt, str);
+			truncsp(str);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
 		}
 
 		/* Restrictions */
-		strcpy(str,"tRestrictions.");
-		for(i=0;i<26;i++) {
-			str[13]='A'+i;
-			w=glade_xml_get_widget(xml, str);
-			if(w==NULL)
-				fprintf(stderr,"Cannot get the %s widget\n",str);
-			else {
-				b = (user.rest & (1L << i)) != 0;
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),b);
-			}
+		w=glade_xml_get_widget(xml, "eRestrictions");
+		if(w==NULL)
+			fprintf(stderr,"Cannot get the restrictions widget\n");
+		else {
+			ltoaf(user.rest, str);
+			truncsp(str);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
 		}
 
 		/* Credits */
-		w=glade_xml_get_widget(xml, "sCredits");
+		w=glade_xml_get_widget(xml, "eCredits");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the credits widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.cdt);
+		else {
+			sprintf(str,"%u",user.cdt);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Free Credits */
-		w=glade_xml_get_widget(xml, "sFreeCredits");
+		w=glade_xml_get_widget(xml, "eFreeCredits");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the free credits widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.freecdt);
+		else {
+			sprintf(str,"%u",user.freecdt);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Minutes */
-		w=glade_xml_get_widget(xml, "sMinutes");
+		w=glade_xml_get_widget(xml, "eMinutes");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the minutes widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.min);
+		else {
+			sprintf(str,"%u",user.min);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 	/* Statistics */
 		/* First On */
@@ -366,116 +299,148 @@ void load_user(GtkWidget *wiggy, gpointer data)
 		}
 
 		/* Total Logons */
-		w=glade_xml_get_widget(xml, "sLogonsTotal");
+		w=glade_xml_get_widget(xml, "eLogonsTotal");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the total logons widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.logons);
+		else {
+			sprintf(str, "%hu", user.logons);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Logons today */
-		w=glade_xml_get_widget(xml, "sLogonsToday");
+		w=glade_xml_get_widget(xml, "eLogonsToday");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the logons today widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.ltoday);
+		else {
+			sprintf(str, "%hu", user.ltoday);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Total Posts */
-		w=glade_xml_get_widget(xml, "sTotalPosts");
+		w=glade_xml_get_widget(xml, "eTotalPosts");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the total posts widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.posts);
+		else {
+			sprintf(str, "%hu", user.posts);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Posts Today */
-		w=glade_xml_get_widget(xml, "sPostsToday");
+		w=glade_xml_get_widget(xml, "ePostsToday");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the posts today widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.ptoday);
+		else {
+			sprintf(str, "%hu", user.ptoday);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Total Uploads */
-		w=glade_xml_get_widget(xml, "sTotalUploads");
+		w=glade_xml_get_widget(xml, "eTotalUploads");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the total uploads widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.uls);
+		else {
+			sprintf(str, "%hu", user.uls);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Upload Bytes */
-		w=glade_xml_get_widget(xml, "sUploadBytes");
+		w=glade_xml_get_widget(xml, "eUploadBytes");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the upload bytes widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.ulb);
+		else {
+			sprintf(str, "%u", user.ulb);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Total Time On */
-		w=glade_xml_get_widget(xml, "sTotalTimeOn");
+		w=glade_xml_get_widget(xml, "eTotalTimeOn");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the total time on widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.timeon);
+		else {
+			sprintf(str, "%hu", user.timeon);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Time On Today */
-		w=glade_xml_get_widget(xml, "sTimeOnToday");
+		w=glade_xml_get_widget(xml, "eTimeOnToday");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the time on today widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.ttoday);
+		else {
+			sprintf(str, "%hu", user.ttoday);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Time On Last Call */
-		w=glade_xml_get_widget(xml, "sTimeOnLastCall");
+		w=glade_xml_get_widget(xml, "eTimeOnLastCall");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the last call time on widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.tlast);
+		else {
+			sprintf(str, "%hu", user.tlast);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Time On Extra */
-		w=glade_xml_get_widget(xml, "sTimeOnExtra");
+		w=glade_xml_get_widget(xml, "eTimeOnExtra");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the extra time on widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.textra);
+		else {
+			sprintf(str, "%hu", user.textra);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Total Downloads */
-		w=glade_xml_get_widget(xml, "sDownloadsTotal");
+		w=glade_xml_get_widget(xml, "eDownloadsTotal");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the total downloads widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.dls);
+		else {
+			sprintf(str, "%hu", user.dls);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Download Bytes */
-		w=glade_xml_get_widget(xml, "sDownloadsBytes");
+		w=glade_xml_get_widget(xml, "eDownloadsBytes");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the download bytes widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.dlb);
+		else {
+			sprintf(str, "%u", user.dlb);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Download Leeches */
-		w=glade_xml_get_widget(xml, "sDownloadsLeech");
+		w=glade_xml_get_widget(xml, "eDownloadsLeech");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the downloads leech widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.leech);
+		else {
+			sprintf(str, "%hhu", user.leech);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Total Email */
-		w=glade_xml_get_widget(xml, "sEmailTotal");
+		w=glade_xml_get_widget(xml, "eEmailTotal");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the total email widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.emails);
+		else {
+			sprintf(str, "%hu", user.emails);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Email Today */
-		w=glade_xml_get_widget(xml, "sEmailToday");
+		w=glade_xml_get_widget(xml, "eEmailToday");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the email today widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.etoday);
+		else {
+			sprintf(str, "%hu", user.etoday);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		/* Email To Sysop */
-		w=glade_xml_get_widget(xml, "sEmailToSysop");
+		w=glade_xml_get_widget(xml, "eEmailToSysop");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the email to sysop widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.fbacks);
+		else {
+			sprintf(str, "%hu", user.fbacks);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 	/* Settings */
 		w=glade_xml_get_widget(xml, "cUserAUTOTERM");
@@ -538,11 +503,13 @@ void load_user(GtkWidget *wiggy, gpointer data)
 		else
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),user.misc&RIP);
 
-		w=glade_xml_get_widget(xml, "sRows");
+		w=glade_xml_get_widget(xml, "eRows");
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the rows widget\n");
-		else
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w),user.rows);
+		else {
+			sprintf(str, "%hhu", user.rows);
+			gtk_entry_set_text(GTK_ENTRY(w),str);
+		}
 
 		w=glade_xml_get_widget(xml, "cCommandShell");
 		if(w==NULL)
@@ -779,30 +746,6 @@ void load_user(GtkWidget *wiggy, gpointer data)
 				gtk_text_buffer_insert_at_cursor(gtk_text_view_get_buffer(GTK_TEXT_VIEW(w)), str,i);
 			fclose(f);
 		}
-
-	/*
-	 * Set the save buttons as inactive to indicate that no changes were made
-	 */
-	w=glade_xml_get_widget(xml, "bSaveUser");
-	if(w==NULL)
-		fprintf(stderr,"Cannot get the save user button widget\n");
-	else
-		gtk_widget_set_sensitive(GTK_WIDGET(w),FALSE);
-	w=glade_xml_get_widget(xml, "save1");
-	if(w==NULL)
-		fprintf(stderr,"Cannot get the save user menu widget\n");
-	else
-		gtk_widget_set_sensitive(GTK_WIDGET(w),FALSE);
-}
-
-void save_user(GtkWidget *wiggy, gpointer data)
-{
-	/* ToDo */
-}
-
-void new_user(GtkWidget *wiggy, gpointer data)
-{
-	/* ToDo */
 }
 
 int update_current_user(int new_user)
@@ -883,7 +826,6 @@ void user_toggle_delete(GtkWidget *t, gpointer data)
 		fprintf(stderr,"Cannot get the deleted menu widget\n");
 	else
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(w),deleted);
-	user_changed(t, data);
 }
 
 void user_toggle_inactive(GtkWidget *t, gpointer data)
@@ -903,7 +845,6 @@ void user_toggle_inactive(GtkWidget *t, gpointer data)
 		fprintf(stderr,"Cannot get the remove menu widget\n");
 	else
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(w),inactive);
-	user_changed(t, data);
 }
 
 void find_user(GtkWidget *t, gpointer data)
