@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.39 2007/03/11 01:49:15 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.38 2006/10/28 03:56:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,13 +232,10 @@ void _cdecl input_thread(void* arg)
 			continue;
 		}
 		RingBufWrite(&rdbuf,buf,count);
+		/* Set the "Data ready" bit in the LSR */
+		uart_lsr_reg |= UART_LSR_DATA_READY;
 
-		if(virtualize_uart) {
-			/* Set the "Data ready" bit in the LSR */
-			uart_lsr_reg |= UART_LSR_DATA_READY;
-
-			assert_interrupt(UART_IER_RX_DATA); /* assert rx data interrupt */
-		}
+		assert_interrupt(UART_IER_RX_DATA); /* assert rx data interrupt */
 	}
 }
 
@@ -470,7 +467,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 
 		case VDD_OPEN:
 
-			sscanf("$Revision: 1.39 $", "%*s %s", revision);
+			sscanf("$Revision: 1.38 $", "%*s %s", revision);
 
 			lprintf(LOG_INFO,"Synchronet Virtual Device Driver, rev %s %s %s"
 				,revision, __DATE__, __TIME__);
