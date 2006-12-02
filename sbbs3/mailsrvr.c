@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.406 2006/09/28 05:56:24 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.408 2006/12/02 01:27:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1848,6 +1848,7 @@ static void smtp_thread(void* arg)
 	int			rd;
 	char		str[512];
 	char		tmp[128];
+	char		path[MAX_PATH+1];
 	char		value[INI_MAX_VALUE_LEN];
 	str_list_t	sec_list;
 	char*		section;
@@ -2143,6 +2144,17 @@ static void smtp_thread(void* arg)
 
 				lprintf(LOG_INFO,"%04d SMTP End of message (body: %lu lines, %lu bytes, header: %lu lines, %lu bytes)"
 					, socket, lines, ftell(msgtxt)-hdr_len, hdr_lines, hdr_len);
+
+				/* Twit-listing (sender's name and e-mail addresses) here */
+				sprintf(path,"%stwitlist.cfg",scfg.ctrl_dir);
+				if(fexist(path) && (findstr(sender,path) || findstr(sender_addr,path))) {
+					lprintf(LOG_NOTICE,"%04d !SMTP FILTERING TWIT-LISTED SENDER: %s <%s>"
+						,socket, sender, sender_addr);
+					SAFEPRINTF2(tmp,"Twit-listed sender: %s <%s>", sender, sender_addr);
+					spamlog(&scfg, "SMTP", "REFUSED", tmp, host_name, host_ip, rcpt_addr, reverse_path);
+					sockprintf(socket, "554 Sender not allowed.");
+					continue;
+				}
 
 				if(telegram==TRUE) {		/* Telegram */
 					const char* head="\1n\1h\1cInstant Message\1n from \1h\1y";
@@ -3156,7 +3168,7 @@ static void smtp_thread(void* arg)
 				}
 			}
 
-			if(startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER 
+			if((p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
 				&& isdigit(*p)) {
 				usernum=atoi(p);			/* RX by user number */
 				/* verify usernum */
@@ -3166,7 +3178,7 @@ static void smtp_thread(void* arg)
 				p=str;
 			} else {
 				/* RX by "user alias", "user.alias" or "user_alias" */
-				usernum=matchuser(&scfg,p,TRUE /* sysop_alias */);	
+				usernum=matchuser(&scfg,p,startup->options&MAIL_OPT_ALLOW_SYSOP_ALIASES);	
 
 				if(!usernum) { /* RX by "real name", "real.name", or "sysop.alias" */
 					
@@ -3188,8 +3200,8 @@ static void smtp_thread(void* arg)
 			if(!usernum && startup->default_user[0]) {
 				usernum=matchuser(&scfg,startup->default_user,TRUE /* sysop_alias */);
 				if(usernum)
-					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: %s"
-						,socket,startup->default_user);
+					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: %s #%u"
+						,socket,startup->default_user,usernum);
 				else
 					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN DEFAULT USER: %s"
 						,socket,startup->default_user);
@@ -4045,7 +4057,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.406 $", "%*s %s", revision);
+	sscanf("$Revision: 1.408 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
