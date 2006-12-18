@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.101 2006/10/25 22:10:52 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.102 2006/11/30 07:28:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1256,7 +1256,7 @@ js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	char* p = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
 
-	p=sbbs->atcode(p,str);
+	p=sbbs->atcode(p,str,sizeof(str));
 
 	if(p==NULL)
 		*rval = JSVAL_NULL;
