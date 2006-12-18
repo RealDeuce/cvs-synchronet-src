@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.455 2006/10/26 00:52:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.459 2006/12/02 00:56:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2086,6 +2086,7 @@ void event_thread(void* arg)
 		if(check_semaphores) {
 
 			/* Run daily maintenance? */
+			sbbs->cfg.node_num=0;
 			sbbs->logonstats();
 			if(sbbs->sys_status&SS_DAILY)
 				sbbs->daily_maint();
@@ -3734,8 +3735,7 @@ void sbbs_t::daily_maint(void)
 	sbbs->logentry("!:","Ran system daily maintenance");
 
 	if(sbbs->cfg.user_backup_level) {
-		lprintf(LOG_INFO,"Node %d Backing-up user data..."
-			,sbbs->cfg.node_num);
+		lputs(LOG_INFO,"Backing-up user data...");
 		sprintf(str,"%suser/user.dat",sbbs->cfg.data_dir);
 		backup(str,sbbs->cfg.user_backup_level,FALSE);
 		sprintf(str,"%suser/name.dat",sbbs->cfg.data_dir);
@@ -3743,8 +3743,7 @@ void sbbs_t::daily_maint(void)
 	}
 
 	if(sbbs->cfg.mail_backup_level) {
-		lprintf(LOG_INFO,"Node %d Backing-up mail data..."
-			,sbbs->cfg.node_num);
+		lputs(LOG_INFO,"Backing-up mail data...");
 		sprintf(str,"%smail.shd",sbbs->cfg.data_dir);
 		backup(str,sbbs->cfg.mail_backup_level,FALSE);
 		sprintf(str,"%smail.sha",sbbs->cfg.data_dir);
@@ -3759,8 +3758,7 @@ void sbbs_t::daily_maint(void)
 		backup(str,sbbs->cfg.mail_backup_level,FALSE);
 	}
 
-	lprintf(LOG_INFO,"Node %d Checking for inactive/expired user records..."
-		,sbbs->cfg.node_num);
+	lputs(LOG_INFO,"Checking for inactive/expired user records...");
 	lastusernum=lastuser(&sbbs->cfg);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
 
@@ -3853,7 +3851,7 @@ void sbbs_t::daily_maint(void)
 		}
 	}
 
-	lprintf(LOG_INFO,"Node %d Purging deleted/expired e-mail",sbbs->cfg.node_num);
+	lputs(LOG_INFO,"Purging deleted/expired e-mail");
 	sprintf(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
 	sbbs->smb.retry_time=sbbs->cfg.smb_retry_time;
 	sbbs->smb.subnum=INVALID_SUB;
