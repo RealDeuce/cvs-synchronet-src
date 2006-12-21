@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.76 2006/12/28 20:52:45 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.75 2006/02/24 09:50:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1272,7 +1272,7 @@ static const char* usage=
 	"         -8  set maximum Zmodem block size to 8K (ZedZap)\n"
 	"         -!  to pause after abnormal exit (error)\n"
 	"         -telnet to enable Telnet mode (the default)\n"
-	"         -rlogin or -ssh to disable Telnet mode\n"
+	"         -rlogin to enable RLogin (pass-through) mode\n"
 	"\n"
 	"cmd    = v  to display detailed version information\n"
 	"         sx to send Xmodem     rx to recv Xmodem\n"
@@ -1314,7 +1314,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.76 $", "%*s %s", revision);
+	sscanf("$Revision: 1.75 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1482,7 +1482,7 @@ int main(int argc, char **argv)
 					telnet=TRUE;
 					continue;
 				}
-				if(stricmp(arg,"rlogin")==0 || stricmp(arg,"ssh")==0) {
+				if(stricmp(arg,"rlogin")==0) {
 					telnet=FALSE;
 					continue;
 				}
