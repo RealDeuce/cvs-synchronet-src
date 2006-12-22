@@ -17,8 +17,8 @@ object TelnetCfgDlg: TTelnetCfgDlg
     Top = 4
     Width = 342
     Height = 229
-    ActivePage = GeneralTabSheet
-    TabIndex = 0
+    ActivePage = SoundTabSheet
+    TabIndex = 3
     TabOrder = 0
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
@@ -38,6 +38,14 @@ object TelnetCfgDlg: TTelnetCfgDlg
         AutoSize = False
         Caption = 'Last Node'
       end
+      object XtrnPollsLabel: TLabel
+        Left = 9
+        Top = 76
+        Width = 91
+        Height = 25
+        AutoSize = False
+        Caption = 'External Yield'
+      end
       object AutoStartCheckBox: TCheckBox
         Left = 182
         Top = 12
@@ -47,7 +55,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Auto Startup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 5
       end
       object FirstNodeEdit: TEdit
         Left = 105
@@ -68,7 +76,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Minimize Externals'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 6
       end
       object LastNodeEdit: TEdit
         Left = 105
@@ -89,7 +97,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Hostname Lookup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 2
+        TabOrder = 3
       end
       object QWKEventsCheckBox: TCheckBox
         Left = 182
@@ -100,7 +108,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'QWK Msg Events'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 7
       end
       object JavaScriptCheckBox: TCheckBox
         Left = 182
@@ -111,7 +119,19 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'JavaScript Support'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 8
+      end
+      object XtrnYieldEdit: TEdit
+        Left = 105
+        Top = 76
+        Width = 48
+        Height = 24
+        Hint = 
+          'Number of polls before yielding time-slices for external DOS/FOS' +
+          'SIL programs'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 2
       end
       object IdentityCheckBox: TCheckBox
         Left = 9
@@ -122,7 +142,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Identity Lookup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
+        TabOrder = 4
       end
       object EventsCheckBox: TCheckBox
         Left = 182
@@ -133,7 +153,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Events Enabled'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 8
+        TabOrder = 9
       end
     end
     object TelnetTabSheet: TTabSheet
