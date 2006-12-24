@@ -1,10 +1,10 @@
-/* $Id: vidmodes.c,v 1.9 2007/10/10 02:35:02 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.5 2005/11/20 20:12:45 deuce Exp $ */
 
 #include <stdlib.h>
 
 #include "vidmodes.h"
 
-struct video_params vparams[40] = {
+struct video_params vparams[36] = {
 	/* BW 40x25 */
 	{BW40, GREYSCALE_PALETTE, 40, 25, 14, 15, 16, 8},
 	/* CO 40x25 */
@@ -77,17 +77,9 @@ struct video_params vparams[40] = {
 	{MONO60, MONO_PALETTE, 80, 60, 7, 7, 8, 8},
 	/* Magical C4350 Mode */
 	{C4350, COLOUR_PALETTE, 80, 50, 7, 7, 8, 8},
-	/* Commodore 64 40x25 mode */
-	{C64_40X25, C64_PALETTE, 40, 25, 0, 7, 8, 8},
-	/* Commodore 128 40x25 mode */
-	{C128_40X25, COLOUR_PALETTE, 40, 25, 0, 7, 8, 8},
-	/* Commodore 128 80x25 mode */
-	{C128_80X25, COLOUR_PALETTE, 80, 25, 0, 7, 8, 8},
-	/* Atari 800 40x24 mode */
-	{ATARI_40X24, ATARI_PALETTE, 40, 24, 0, 7, 8, 8},
 };
 
-unsigned char palettes[5][16] = {
+unsigned char palettes[3][16] = {
 	/* Mono */
 	{ 0x00, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
 	  0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07
@@ -99,34 +91,21 @@ unsigned char palettes[5][16] = {
 	/* Colour */
 	{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
 	  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
-	},
-	/* C64 */
-	{ 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 
-	  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
-	},
-	/* Atari */
-	{ 0x20, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
-	  0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21
-	},
+	}
 };
 
-struct dac_colors dac_default[34] = {
+struct dac_colors dac_default16[16] = {
+	{0, 0, 0},    {0, 0, 42},   {0, 42, 0},   {0, 42, 42},
+	{42, 0, 0},   {42, 0, 42},  {42, 21, 0},  {42, 42, 42},
+	{21, 21, 21}, {21, 21, 63}, {21, 63, 21}, {21, 63, 63},
+	{63, 21, 21}, {63, 21, 63}, {63, 63, 21}, {63, 63, 63}
+};
+
+struct dac_colors dac_default256[16] = {
 	{0, 0, 0},    {0, 0, 168},   {0, 168, 0},   {0, 168, 168},
 	{168, 0, 0},   {168, 0, 168},  {168, 84, 0},  {168, 168, 168},
 	{84, 84, 84}, {84, 84, 255}, {84, 255, 84}, {84, 255, 255},
-	{255, 84, 84}, {255, 84, 255}, {255, 255, 84}, {255, 255, 255},
-	/* C64 colours */
-	/* Black, White, Red, Cyan, Purple, Green, Blue, Yellow */
-	/* Orange, Brown, Lt Red, Dk Grey, Grey, Lt Green, Lt Blue, Lt Grey */
-	{0x00, 0x00, 0x00}, {0xff, 0xff, 0xff}, {0x68, 0x37, 0x2b}, 
-	{0x70, 0xa4, 0xb2}, {0x6f, 0x3d, 0x86}, {0x58, 0x8d, 0x43},
-	{0x35, 0x29, 0x79}, {0xb8, 0xc7, 0x6f}, {0x6f, 0x4f, 0x25},
-	{0x43, 0x39, 0x00}, {0x9a, 0x67, 0x59}, {0x44, 0x44, 0x44},
-	{0x6c, 0x6c, 0x6c}, {0x9a, 0xd2, 0x84}, {0x6c, 0x5e, 0xb5},
-	{0x95, 0x95, 0x95},
-	/* Atari Colours */
-	/* BG, FG */
-	{0, 81, 129}, {96, 183, 231}
+	{255, 84, 84}, {255, 84, 255}, {255, 255, 84}, {255, 255, 255}
 };
 
 int find_vmode(int mode)
