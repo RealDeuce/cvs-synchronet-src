@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.30 2006/02/01 04:13:47 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.33 2006/12/27 18:36:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,9 @@
 
 #include "sbbs.h"
 
+#if FALSE	/* v3.14a-Win32 build crashing on context-private properties (e.g. js.gc_counter) */
 #include <jscntxt.h>	/* Needed for Context-private data structure */
+#endif
 
 enum {
 	 PROP_VERSION
@@ -180,7 +182,7 @@ static jsSyncPropertySpec js_properties[] = {
 	{	"bytes",			PROP_BYTES,			PROP_FLAGS,			311 },
 	{	"max_bytes",		PROP_MAXBYTES,		JSPROP_ENUMERATE,	311 },
 #endif
-	{	"global",			PROP_GLOBAL,		PROP_FLAGS,			313 },
+	{	"global",			PROP_GLOBAL,		PROP_FLAGS,			314 },
 	{0}
 };
 
@@ -205,7 +207,7 @@ static char* prop_desc[] = {
 };
 #endif
 
-DLLEXPORT JSBool DLLCALL
+JSBool DLLCALL
 js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 {
 	branch->counter++;
@@ -393,7 +395,7 @@ static jsSyncMethodSpec js_functions[] = {
 	},
 	{"get_parent",		js_get_parent,		1,	JSTYPE_OBJECT,	JSDOCSTR("object")
 	,JSDOCSTR("return the parent of the specified object")
-	,313
+	,314
 	},
 	{0}
 };
