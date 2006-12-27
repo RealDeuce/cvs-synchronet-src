@@ -31,6 +31,7 @@
 #include <sys/types.h>
 
 #include <dirwrap.h>
+#include "xpendian.h"
 
 #include "homedir.h"
 #include "block.h"
@@ -702,6 +703,7 @@ SelectFont(void)
 	if (fp != NULL) {
 		fread(&Header.sign, 1, 10, fp);
 		fread(&Header.NumberofFonts, 2, 1, fp);
+		Header.NumberofFonts=LE_SHORT(Header.NumberofFonts);
 		for (b = 0; b <= Header.NumberofFonts; b++) {
 			Openfont(b);
 			memcpy(&Fnts[b + 1], &FontRec.FontName, 16);
@@ -1152,6 +1154,7 @@ main(int argnum, char *args[])
 			break;
 		case 0x2d00:	/* ALT+X - Exit */
 			exitprg();
+			return(0);
 			break;
 		case 0x1e00:	/* ALT+A - Color */
 			Attribute = SelectColor();
