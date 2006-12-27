@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.288 2006/12/29 00:25:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.286 2006/11/30 07:28:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,8 +180,6 @@ public:
 	CRYPT_SESSION	ssh_session;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
-    bool	passthru_output_thread_running;
-    bool	passthru_input_thread_running;
 #endif
 
 	scfg_t	cfg;
@@ -944,9 +942,6 @@ extern "C" {
 		 JSTYPE_ARRAY=JSTYPE_LIMIT
 		,JSTYPE_ALIAS
 		,JSTYPE_UNDEF
-#if !defined(JSTYPE_NULL)	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
-		,JSTYPE_NULL
-#endif
 	};
 
 	#ifdef BUILD_JSDOCS	/* String compiled into debug build only, for JS documentation generation */
