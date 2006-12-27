@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.24 2007/07/11 01:12:51 deuce Exp $ */
+/* $Id: logout.cpp,v 1.22 2005/09/20 03:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
