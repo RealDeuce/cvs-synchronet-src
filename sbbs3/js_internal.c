@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.34 2006/12/27 23:25:17 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.33 2006/12/27 18:36:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,9 @@
 
 #include "sbbs.h"
 
+#if FALSE	/* v3.14a-Win32 build crashing on context-private properties (e.g. js.gc_counter) */
 #include <jscntxt.h>	/* Needed for Context-private data structure */
+#endif
 
 enum {
 	 PROP_VERSION
