@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.116 2006/06/15 03:19:31 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.117 2006/12/28 02:38:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1059,6 +1059,8 @@ static char* socket_prop_desc[] = {
 	,"remote TCP or UDP port number"
 	,"socket type, <tt>SOCK_STREAM</tt> (TCP) or <tt>SOCK_DGRAM</tt> (UDP)"
 	,"<i>true</i> if binary data is to be sent in Network Byte Order (big end first), default is <i>true</i>"
+	/* statically-defined properties: */
+	,"array of socket option names supported by the current platform"
 	,NULL
 };
 #endif
