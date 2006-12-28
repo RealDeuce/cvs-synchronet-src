@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.199 2006/12/29 01:23:05 rswindell Exp $ */
+/* $Id: services.c,v 1.198 2006/09/07 17:59:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,16 @@
  ****************************************************************************/
 
 /* Platform-specific headers */
+#ifdef _WIN32
+
+	#include <io.h>			/* open/close */
+	#include <share.h>		/* share open flags */
+	#include <process.h>	/* _beginthread */
+	#include <windows.h>	/* required for mmsystem.h */
+	#include <mmsystem.h>	/* SND_ASYNC */
+
+#endif
+
 #ifdef __unix__
 	#include <sys/param.h>	/* BSD? */
 #endif
@@ -1570,7 +1580,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.199 $", "%*s %s", revision);
+	sscanf("$Revision: 1.198 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
