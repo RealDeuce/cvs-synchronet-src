@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.33 2006/12/21 21:26:31 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.34 2006/12/21 21:32:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -687,7 +687,10 @@ char *xp_asprintf_next(char *format, int type, ...)
 							break;
 #endif
 						case XP_PRINTF_TYPE_CHARP:
-							i=*cp;
+							if(cp)
+								i=*cp;
+							else
+								i=0;
 							break;
 						case XP_PRINTF_TYPE_DOUBLE:
 							i=(int)d;

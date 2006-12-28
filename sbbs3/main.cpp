@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.459 2006/12/02 00:56:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.460 2006/12/28 01:54:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,6 +334,9 @@ DLLCALL js_DescribeSyncObject(JSContext* cx, JSObject* obj, const char* str, int
 	if(js_str==NULL)
 		return(JS_FALSE);
 
+	if(ver < 10000)		/* auto convert 313 to 31300 */
+		ver*=100;
+
 	return(JS_DefineProperty(cx,obj,"_description"
 			,STRING_TO_JSVAL(js_str),NULL,NULL,JSPROP_READONLY)
 		&& JS_DefineProperty(cx,obj,"_ver"
@@ -369,11 +372,10 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
-	"null",
-	"xml object",
 	"array",
 	"alias",
-	"undefined"
+	"undefined",
+	"null"
 };
 
 JSBool
