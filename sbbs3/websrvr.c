@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.456 2006/12/28 01:50:48 deuce Exp $ */
+/* $Id: websrvr.c,v 1.457 2006/12/28 03:21:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4564,12 +4564,12 @@ void DLLCALL web_terminate(void)
 
 static void cleanup(int code)
 {
-	free_cfg(&scfg);
-
 	while(session_threads) {
 		lprintf(LOG_INFO,"#### Web Server waiting on %d active session threads",session_threads);
 		SLEEP(1000);
 	}
+	free_cfg(&scfg);
+
 	listFree(&log_list);
 
 	mime_types=iniFreeNamedStringList(mime_types);
@@ -4607,7 +4607,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.456 $", "%*s %s", revision);
+	sscanf("$Revision: 1.457 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
