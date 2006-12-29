@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.455 2006/09/26 05:08:43 deuce Exp $ */
+/* $Id: websrvr.c,v 1.457 2006/12/28 03:21:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4341,8 +4341,11 @@ void http_session_thread(void* arg)
 	FREE_AND_NULL(arg);
 
 	socket=session.socket;
+	if(socket==INVALID_SOCKET) {
+		session_threads--;
+		return;
+	}
 	lprintf(LOG_DEBUG,"%04d Session thread started", session.socket);
-	session_threads++;
 
 	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
 		lprintf(LOG_DEBUG,"%04d !!! DANGER WILL ROBINSON, DANGER !!!", session.socket);
@@ -4561,12 +4564,12 @@ void DLLCALL web_terminate(void)
 
 static void cleanup(int code)
 {
-	free_cfg(&scfg);
-
 	while(session_threads) {
 		lprintf(LOG_INFO,"#### Web Server waiting on %d active session threads",session_threads);
 		SLEEP(1000);
 	}
+	free_cfg(&scfg);
+
 	listFree(&log_list);
 
 	mime_types=iniFreeNamedStringList(mime_types);
@@ -4604,7 +4607,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.455 $", "%*s %s", revision);
+	sscanf("$Revision: 1.457 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5059,6 +5062,7 @@ void DLLCALL web_server(void* arg)
 				/* Destroyed in http_session_thread */
 				pthread_mutex_init(&session->struct_filled,NULL);
 				pthread_mutex_lock(&session->struct_filled);
+				session_threads++;
 				_beginthread(http_session_thread, 0, session);
 			}
 
