@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.423 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.412 2006/12/29 01:23:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,7 +67,6 @@ static char* ok_rsp		=	"250 OK";
 static char* auth_ok	=	"235 User Authenticated";
 static char* sys_error	=	"421 System error";
 static char* sys_unavail=	"421 System unavailable, try again later";
-static char* insuf_stor =	"452 Insufficient system storage";
 static char* badarg_rsp =	"501 Bad argument";
 static char* badseq_rsp	=	"503 Bad sequence of commands";
 static char* badauth_rsp=	"535 Authentication failure";
@@ -672,8 +671,7 @@ static void pop3_thread(void* arg)
 	long		l;
 	ulong		lines;
 	ulong		lines_sent;
-	int32_t		msgs;
-	long		msgnum;
+	long		msgs,msgnum;
 	ulong		bytes;
 	SOCKET		socket;
 	HOSTENT*	host;
@@ -1354,7 +1352,7 @@ static void signal_smtp_sem(void)
 	if(scfg.smtpmail_sem[0]==0) 
 		return; /* do nothing */
 
-	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,DEFFILEMODE))!=-1)
+	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,S_IREAD|S_IWRITE))!=-1)
 		close(file);
 }
 
@@ -1562,11 +1560,8 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 		strcat(fname,".js");
 
 	SAFECOPY(path,fname);
-	if(getfname(path)==path) { /* No path specified, assume mods or exec dir */
-		sprintf(path,"%s%s",scfg.mods_dir,fname);
-		if(scfg.mods_dir[0]==0 || !fexist(path))
-			sprintf(path,"%s%s",scfg.exec_dir,fname);
-	}
+	if(getfname(path)==path) /* No path specified, assume exec_dir */
+		sprintf(path,"%s%s",scfg.exec_dir,fname);
 
 	do {
 
@@ -2166,14 +2161,14 @@ static void smtp_thread(void* arg)
 					if((telegram_buf=(char*)malloc(length+strlen(str)+1))==NULL) {
 						lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating %lu bytes of memory for telegram from %s"
 							,socket,length+strlen(str)+1,sender_addr);
-						sockprintf(socket, insuf_stor);
+						sockprintf(socket, "452 Insufficient system storage");
 						continue; 
 					}
 					strcpy(telegram_buf,str);	/* can't use SAFECOPY here */
 					if(fread(telegram_buf+strlen(str),1,length,msgtxt)!=length) {
 						lprintf(LOG_ERR,"%04d !SMTP ERROR reading %lu bytes from telegram file"
 							,socket,length);
-						sockprintf(socket, insuf_stor);
+						sockprintf(socket, "452 Insufficient system storage");
 						free(telegram_buf);
 						continue; 
 					}
@@ -2303,7 +2298,7 @@ static void smtp_thread(void* arg)
 				/* Parse message header here */
 				hfield_type=UNKNOWN;
 				smb_error=SMB_SUCCESS; /* no SMB error */
-				errmsg=insuf_stor;
+				errmsg="452 Insufficient system storage";
 				while(!feof(msgtxt)) {
 					if(!fgets(buf,sizeof(buf),msgtxt))
 						break;
@@ -2442,7 +2437,7 @@ static void smtp_thread(void* arg)
 				if((msgbuf=(char*)malloc(length+1))==NULL) {
 					lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating %d bytes of memory"
 						,socket,length+1);
-					sockprintf(socket, insuf_stor);
+					sockprintf(socket, "452 Insufficient system storage");
 					subnum=INVALID_SUB;
 					continue;
 				}
@@ -2452,14 +2447,14 @@ static void smtp_thread(void* arg)
 				/* Do external JavaScript processing here? */
 
 				if(subnum!=INVALID_SUB) {	/* Message Base */
-					uint reason;
 					if(relay_user.number==0)
 						memset(&relay_user,0,sizeof(relay_user));
 
-					if(!can_user_post(&scfg,subnum,&relay_user,&reason)) {
-						lprintf(LOG_WARNING,"%04d !SMTP %s (user #u) cannot post on %s (reason: %u)"
-							,socket, sender_addr, relay_user.number
-							,scfg.sub[subnum]->sname, reason);
+					if(!chk_ar(&scfg,scfg.grp[scfg.sub[subnum]->grp]->ar, &relay_user)
+						|| !chk_ar(&scfg,scfg.sub[subnum]->ar, &relay_user)
+						|| !chk_ar(&scfg,scfg.sub[subnum]->post_ar, &relay_user)) {
+						lprintf(LOG_WARNING,"%04d !SMTP %s has insufficient access to post on %s"
+							,socket, sender_addr, scfg.sub[subnum]->sname);
 						sockprintf(socket,"550 Insufficient access");
 						subnum=INVALID_SUB;
 						continue;
@@ -2489,7 +2484,6 @@ static void smtp_thread(void* arg)
 
 				/* E-mail */
 				smb.subnum=INVALID_SUB;
-				/* creates message data, but no header or index records (since msg.to==NULL) */
 				i=savemsg(&scfg, &smb, &msg, &client, msgbuf);
 				free(msgbuf);
 				if(i!=SMB_SUCCESS) {
@@ -2540,7 +2534,7 @@ static void smtp_thread(void* arg)
 
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
-					if(usernum && nettype!=NET_INTERNET) {	/* Local destination or QWKnet routed */
+					if(usernum) {	/* Local destination or QWKnet routed */
 						/* This is required for fixsmb to be able to rebuild the index */
 						sprintf(str,"%u",usernum);
 						smb_hfield_str(&newmsg, RECIPIENTEXT, str);
@@ -2566,11 +2560,11 @@ static void smtp_thread(void* arg)
 						safe_snprintf(str,sizeof(str)
 							,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
 							"\1h%s\1n\r\n"
-							,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
+							,timestr(&scfg,(time_t*)&newmsg.hdr.when_imported.time,tmp)
 							,sender,sender_addr);
 						if(!newmsg.idx.to) {	/* Forwarding */
 							strcat(str,"\1mand it was automatically forwarded to: \1h");
-							strcat(str,rcpt_addr);
+							strcat(str,user.netmail);
 							strcat(str,"\1n\r\n");
 						}
 						putsmsg(&scfg, usernum, str);
@@ -2579,7 +2573,7 @@ static void smtp_thread(void* arg)
 				iniFreeStringList(sec_list);
 				if(rcpt_count<1) {
 					smb_freemsg_dfields(&smb,&msg,SMB_ALL_REFS);
-					sockprintf(socket, insuf_stor);
+					sockprintf(socket, "452 Insufficient system storage");
 				}
 				else {
 					if(rcpt_count>1)
@@ -3170,7 +3164,7 @@ static void smtp_thread(void* arg)
 				}
 			}
 
-			if((p==alias_buf || p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
+			if((p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
 				&& isdigit(*p)) {
 				usernum=atoi(p);			/* RX by user number */
 				/* verify usernum */
@@ -3297,7 +3291,7 @@ static void smtp_thread(void* arg)
 			if((msgtxt=fopen(msgtxt_fname,"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !SMTP ERROR %d opening %s"
 					,socket, errno, msgtxt_fname);
-				sockprintf(socket, insuf_stor);
+				sockprintf(socket, "452 Insufficient system storage");
 				continue;
 			}
 			/* These vars are potentially over-written by parsing an RFC822 header */
@@ -3541,7 +3535,7 @@ static void sendmail_thread(void* arg)
 	smb_t		smb;
 	smbmsg_t	msg;
 	mail_t*		mail;
-	int32_t		msgs;
+	long		msgs;
 	long		l;
 	BOOL		sending_locally=FALSE;
 
@@ -3728,7 +3722,7 @@ static void sendmail_thread(void* arg)
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
 							lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
-								,i,p,dns_server);
+								,i,p,startup->dns_server);
 							SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
 							bounce(&smb,&msg,err,FALSE);
 							continue;
@@ -3750,13 +3744,11 @@ static void sendmail_thread(void* arg)
 			addr.sin_addr.s_addr = htonl(startup->interface_addr);
 			addr.sin_family = AF_INET;
 
-			/* Not needed.  Port is zero
 			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE); */
+				startup->seteuid(FALSE);
 			i=bind(sock,(struct sockaddr *)&addr, sizeof(addr));
-			/* Not needed.  Port is zero
 			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE); */
+				startup->seteuid(TRUE);
 			if(i!=0) {
 				remove_msg_intransit(&smb,&msg);
 				lprintf(LOG_ERR,"%04d !SEND ERROR %d (%d) binding socket", sock, i, ERROR_VALUE);
@@ -4061,7 +4053,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.423 $", "%*s %s", revision);
+	sscanf("$Revision: 1.412 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4283,16 +4275,12 @@ void DLLCALL mail_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->smtp_port);
 
-		if(startup->smtp_port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
 		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"SMTP Server",lprintf);
-		if(startup->smtp_port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
 		if(result != 0) {
 			lprintf(LOG_ERR,"%04d %s",server_socket, BIND_FAILURE_HELP);
 			cleanup(1);
@@ -4334,16 +4322,12 @@ void DLLCALL mail_server(void* arg)
 			server_addr.sin_family = AF_INET;
 			server_addr.sin_port   = htons(startup->pop3_port);
 
-			if(startup->pop3_port < IPPORT_RESERVED) {
-				if(startup->seteuid!=NULL)
-					startup->seteuid(FALSE);
-			}
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
 			result = retry_bind(pop3_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 				,startup->bind_retry_count,startup->bind_retry_delay,"POP3 Server",lprintf);
-			if(startup->pop3_port < IPPORT_RESERVED) {
-				if(startup->seteuid!=NULL)
-					startup->seteuid(FALSE);
-			}
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
 			if(result != 0) {
 				lprintf(LOG_ERR,"%04d %s",pop3_socket,BIND_FAILURE_HELP);
 				cleanup(1);
@@ -4377,6 +4361,7 @@ void DLLCALL mail_server(void* arg)
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
+			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -4394,6 +4379,10 @@ void DLLCALL mail_server(void* arg)
 							,server_socket,p);
 						break;
 					}
+#if 0	/* unused */
+					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+						startup->recycle_now=TRUE;
+#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"%04d Recycle semaphore signaled", server_socket);
 						startup->recycle_now=FALSE;
