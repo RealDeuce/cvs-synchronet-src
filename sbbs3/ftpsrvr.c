@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.311 2006/09/07 17:59:27 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.312 2006/12/29 01:23:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,18 +34,6 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-
-/* Platform-specific headers */
-#ifdef _WIN32
-
-	#include <share.h>		/* SH_DENYNO */
-	#include <direct.h>		/* _mkdir/rmdir() */
-	#include <process.h>	/* _beginthread */
-	#include <windows.h>	/* required for mmsystem.h */
-	#include <mmsystem.h>	/* SND_ASYNC */
-
-#endif
-
 
 /* ANSI C Library headers */
 #include <stdio.h>
@@ -4524,7 +4512,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.311 $", "%*s %s", revision);
+	sscanf("$Revision: 1.312 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
