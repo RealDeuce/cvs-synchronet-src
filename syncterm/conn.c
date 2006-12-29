@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.26 2007/01/03 00:48:17 deuce Exp $ */
+/* $Id: conn.c,v 1.25 2006/09/24 05:07:15 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -43,9 +43,6 @@ int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 
 	if(con_type==CONN_TYPE_SSH) {
 		int	status;
-		if(!socket_check(conn_socket, &data_waiting, NULL, timeout))
-			return(-1);
-
 		status=cl.PopData(ssh_session, buffer, buflen, &rd);
 		if(cryptStatusError(status)) {
 			char	str[1024];
