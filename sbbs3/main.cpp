@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.468 2006/12/30 04:36:44 rswindell Exp $ */
+/* $Id: main.cpp,v 1.462 2006/12/29 00:28:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,12 +66,6 @@
 	#endif // _DEBUG && _MSC_VER
 
 #endif // _WIN32
-
-#ifdef USE_CRYPTLIB
-	#define SSH_END()	if(ssh)	cryptDestroySession(sbbs->ssh_session);
-#else
-	#define	SSH_END()
-#endif
 
 time_t	uptime=0;
 DWORD	served=0;
@@ -1357,11 +1351,8 @@ void input_thread(void *arg)
 			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
 				rd=0;
 			else {
-				if(!i) {
-					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				if(!i)
 					continue;
-				}
 				rd=i;
 			}
 		}
@@ -1453,7 +1444,7 @@ void input_thread(void *arg)
 //		if(wr>100)
 //			mswait(500);	// Throttle sender
 	}
-	sbbs->online=FALSE;
+	sbbs->online=0;
 	sbbs->sys_status|=SS_ABORT;	/* as though Ctrl-C were hit */
 
     sbbs->input_thread_running = false;
@@ -1820,7 +1811,7 @@ void output_thread(void* arg)
 			else
 				lprintf(LOG_WARNING,"!%s: ERROR %d sending on socket %d"
                 	,node, ERROR_VALUE, sbbs->client_socket);
-			sbbs->online=FALSE;
+			sbbs->online=0;
 			/* was break; on 4/7/00 */
 			i=buftop-bufbot;	// Pretend we sent it all
 		}
@@ -1980,7 +1971,7 @@ void event_thread(void* arg)
 		} else
 			check_semaphores=false;
 
-		sbbs->online=FALSE;	/* reset this from ON_LOCAL */
+		sbbs->online=0;	/* reset this from ON_LOCAL */
 
 		/* QWK events */
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
@@ -2045,7 +2036,7 @@ void event_thread(void* arg)
 					} else
 						eprintf(LOG_INFO,"No packet created (no new messages)");
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);
-					sbbs->online=FALSE;
+					sbbs->online=0;
 				}
 				remove(g.gl_pathv[i]);
 				remove(semfile);
@@ -2090,7 +2081,7 @@ void event_thread(void* arg)
 							sbbs->putmsgptrs(); 
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
-						sbbs->online=FALSE;
+						sbbs->online=0;
 					} 
 				}
 				lastprepack=now;
@@ -2207,7 +2198,7 @@ void event_thread(void* arg)
 							}
 						}
 						sbbs->console&=~CON_L_ECHO;
-						sbbs->online=FALSE;
+						sbbs->online=0;
 						remove(str);
 					} 
 				}
@@ -3303,7 +3294,7 @@ void sbbs_t::hangup(void)
 		client_socket=INVALID_SOCKET;
 	}
 	sem_post(&outbuf.sem);
-	online=FALSE;
+	online=0;
 }
 
 int sbbs_t::incom(unsigned long timeout)
@@ -3867,7 +3858,7 @@ void sbbs_t::daily_maint(void)
 				sbbs->useron=user;
 				sbbs->online=ON_LOCAL;
 				sbbs->exec_bin(sbbs->cfg.expire_mod,&sbbs->main_csi);
-				sbbs->online=FALSE; 
+				sbbs->online=0; 
 			}
 		}
 
@@ -4601,10 +4592,7 @@ NO_SSH:
 			}
 		}
 
-    	sbbs->online=FALSE;
-#ifdef USE_CRYPTLIB
-		sbbs->ssh_mode=false;
-#endif
+    	sbbs->online=0;
 
 		/* now wait for connection */
 
@@ -4684,9 +4672,39 @@ NO_SSH:
 #ifdef USE_CRYPTLIB
 		} else if(ssh_socket!=INVALID_SOCKET 
 			&& FD_ISSET(ssh_socket,&socket_set)) {
-
 			client_socket = accept_socket(ssh_socket, (struct sockaddr *)&client_addr
 	        	,&client_addr_len);
+			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
+				lprintf(LOG_ERR,"Cryptlib error %d creating session",i);
+				close_socket(client_socket);
+				continue;
+			}
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
+				lprintf(LOG_ERR,"Cryptlib error %d setting private key",i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			/* Accept any credentials */
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
+				lprintf(LOG_ERR,"Cryptlib error %d setting AUTHRESPONSE",i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
+				lprintf(LOG_ERR,"Cryptlib error %d setting socket",i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
+				lprintf(LOG_ERR,"Cryptlib error %d setting session active",i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 			ssh = true;
 			is_client=TRUE;
 			sbbs->ssh_mode=true;
@@ -4734,10 +4752,8 @@ NO_SSH:
 #endif
 		}
 
-		if(!is_client) {
-			/* Do not need to close_socket(client_socket) here */
+		if(!is_client)
 			continue;
-		}
 
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
@@ -4751,7 +4767,6 @@ NO_SSH:
 			if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
 				break;
 #endif
-			SSH_END();
 			continue;
 		}
 		char host_ip[32];
@@ -4759,7 +4774,12 @@ NO_SSH:
 		strcpy(host_ip,inet_ntoa(client_addr.sin_addr));
 
 		if(trashcan(&scfg,host_ip,"ip-silent")) {
-			SSH_END();
+#ifdef USE_CRYPTLIB
+			if(ssh) {
+				cryptDestroySession(sbbs->ssh_session);
+				sbbs->ssh_mode=false;
+			}
+#endif
 			close_socket(client_socket);
 			continue;
 		}
@@ -4778,47 +4798,16 @@ NO_SSH:
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
-		/* Do SSH stuff here */
-
-		if(ssh) {
-			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
-				lprintf(LOG_ERR,"%04d Cryptlib error %d creating session", client_socket, i);
-				close_socket(client_socket);
-				continue;
-			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
-				lprintf(LOG_ERR,"%04d Cryptlib error %d setting private key",client_socket, i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			/* Accept any credentials */
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
-				lprintf(LOG_ERR,"%04d Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
-				lprintf(LOG_ERR,"%04d Cryptlib error %d setting socket",client_socket, i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
-				lprintf(LOG_ERR,"%04d Cryptlib error %d setting session active",client_socket, i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
-		}
-
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
 
 		if(sbbs->trashcan(host_ip,"ip")) {
-			SSH_END();
+#ifdef USE_CRYPTLIB
+			if(ssh) {
+				cryptDestroySession(sbbs->ssh_session);
+				sbbs->ssh_mode=false;
+			}
+#endif
 			close_socket(client_socket);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can"
 				,client_socket);
@@ -4857,7 +4846,12 @@ NO_SSH:
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
-			SSH_END();
+#ifdef USE_CRYPTLIB
+			if(ssh) {
+				cryptDestroySession(sbbs->ssh_session);
+				sbbs->ssh_mode=false;
+			}
+#endif
 			close_socket(client_socket);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can",client_socket);
 			SAFEPRINTF(logstr, "Blocked Hostname: %s",host_name);
@@ -4916,7 +4910,12 @@ NO_SSH:
 			}
 			mswait(3000);
 			client_off(client_socket);
-			SSH_END();
+#ifdef USE_CRYPTLIB
+			if(ssh) {
+				cryptDestroySession(sbbs->ssh_session);
+				sbbs->ssh_mode=false;
+			}
+#endif
 			close_socket(client_socket);
 			continue;
 		}
@@ -4954,7 +4953,12 @@ NO_SSH:
 			delete new_node;
 			node_socket[i-1]=INVALID_SOCKET;
 			client_off(client_socket);
-			SSH_END();
+#ifdef USE_CRYPTLIB
+			if(ssh) {
+				cryptDestroySession(sbbs->ssh_session);
+				sbbs->ssh_mode=false;
+			}
+#endif
 			close_socket(client_socket);
 			continue;
 		}
@@ -5054,10 +5058,6 @@ NO_PASSTHRU:
 			new_node->sys_status|=SS_SSH;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
-			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
-			while(RingBufFull(&sbbs->outbuf))
-				SLEEP(1);
-			sbbs->ssh_mode=false;
 		}
 #endif
 
