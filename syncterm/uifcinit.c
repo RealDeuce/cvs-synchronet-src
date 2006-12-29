@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.22 2006/05/08 18:43:11 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.23 2006/09/24 05:03:27 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -86,6 +86,31 @@ void uifcmsg(char *msg, char *helpbuf)
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
 		uifc.msg(msg);
+	}
+	else
+		fprintf(stderr,"%s\n",msg);
+	if(!i) {
+		uifcbail();
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	}
+}
+
+void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
+{
+	int i;
+	char	*buf;
+	struct	text_info txtinfo;
+
+    gettextinfo(&txtinfo);
+	i=uifc_initialized;
+	if(!i) {
+		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	}
+	init_uifc(FALSE, FALSE);
+	if(uifc_initialized) {
+		uifc.helpbuf=helpbuf;
+		uifc.input(WIN_MID|WIN_SAV, 0, 0, title, msg, len, mode);
 	}
 	else
 		fprintf(stderr,"%s\n",msg);
