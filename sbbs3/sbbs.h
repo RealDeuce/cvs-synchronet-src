@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.287 2006/12/27 23:15:26 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.289 2006/12/29 08:41:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,6 +180,8 @@ public:
 	CRYPT_SESSION	ssh_session;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
+    bool	passthru_output_thread_running;
+    bool	passthru_input_thread_running;
 #endif
 
 	scfg_t	cfg;
@@ -819,6 +821,7 @@ extern "C" {
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
+	DLLEXPORT BOOL		DLLCALL putfileixb(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL getfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL putfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT void		DLLCALL putextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext);
