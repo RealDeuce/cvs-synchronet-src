@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.50 2006/12/29 19:08:59 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.49 2006/09/09 06:24:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,15 +113,15 @@ BOOL sbbs_t::newuser()
 		useron.expire=0;
 	useron.sex=' ';
 	useron.prot=cfg.new_prot;
-	SAFECOPY(useron.note,cid);		/* Caller ID if supported, NULL otherwise */
+	strcpy(useron.note,cid);		/* Caller ID if supported, NULL otherwise */
 	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
 		logline("N!",useron.comment); 
 	}
 
-	SAFECOPY(useron.alias,"New");     /* just for status line */
-	SAFECOPY(useron.modem,connection);
+	strcpy(useron.alias,"New");     /* just for status line */
+	strcpy(useron.modem,connection);
 	if(!lastuser(&cfg)) {	/* Automatic sysop access for first user */
 		bprintf("Creating sysop account... System password required.\r\n");
 		if(!chksyspass())
@@ -145,9 +145,9 @@ BOOL sbbs_t::newuser()
 	useron.freecdt=cfg.level_freecdtperday[useron.level];
 
 	if(cfg.total_fcomps)
-		SAFECOPY(useron.tmpext,cfg.fcomp[0]->ext);
+		strcpy(useron.tmpext,cfg.fcomp[0]->ext);
 	else
-		SAFECOPY(useron.tmpext,"ZIP");
+		strcpy(useron.tmpext,"ZIP");
 
 	useron.shell=cfg.new_shell;
 
@@ -191,28 +191,29 @@ BOOL sbbs_t::newuser()
 #else
 		if(sys_status&SS_RLOGIN && rlogin_name[0])
 #endif
-			SAFECOPY(useron.alias,rlogin_name);
-
-		while(online) {
-			if(cfg.uq&UQ_ALIASES)
-				bputs(text[EnterYourAlias]);
-			else
-				bputs(text[EnterYourRealName]);
-			getstr(useron.alias,LEN_ALIAS,kmode);
-			truncsp(useron.alias);
-			if(useron.alias[0]<=' ' || !isalpha(useron.alias[0])
-				|| alias(&cfg,useron.alias,tmp)!=useron.alias
-				|| !stricmp(useron.alias,cfg.sys_id)
-				|| strchr(useron.alias,0xff)
-				|| matchuser(&cfg,useron.alias,TRUE /* sysop_alias */) 
-				|| trashcan(useron.alias,"name")
-				|| (!(cfg.uq&UQ_ALIASES) && !strchr(useron.alias,' '))) {
-				bputs(text[YouCantUseThatName]);
-				if(!yesno(text[ContinueQ]))
-					return(FALSE);
-				continue; 
+			strcpy(useron.alias,rlogin_name);
+		else {
+			while(online) {
+				if(cfg.uq&UQ_ALIASES)
+					bputs(text[EnterYourAlias]);
+				else
+					bputs(text[EnterYourRealName]);
+				getstr(useron.alias,LEN_ALIAS,kmode);
+				truncsp(useron.alias);
+				if(useron.alias[0]<=' ' || !isalpha(useron.alias[0])
+					|| alias(&cfg,useron.alias,tmp)!=useron.alias
+					|| !stricmp(useron.alias,cfg.sys_id)
+					|| strchr(useron.alias,0xff)
+					|| matchuser(&cfg,useron.alias,TRUE /* sysop_alias */) 
+					|| trashcan(useron.alias,"name")
+					|| (!(cfg.uq&UQ_ALIASES) && !strchr(useron.alias,' '))) {
+					bputs(text[YouCantUseThatName]);
+					if(!yesno(text[ContinueQ]))
+						return(FALSE);
+					continue; 
+				}
+				break; 
 			}
-			break; 
 		}
 		if(!online) return(FALSE);
 		if(cfg.uq&UQ_ALIASES && cfg.uq&UQ_REALNAME) {
@@ -237,7 +238,7 @@ BOOL sbbs_t::newuser()
 				getstr(useron.name,LEN_NAME,(cfg.uq&UQ_NOEXASC)|K_EDIT|K_AUTODEL); 
 		}
 		if(!useron.name[0])
-			SAFECOPY(useron.name,useron.alias);
+			strcpy(useron.name,useron.alias);
 		if(!online) return(FALSE);
 		if(!useron.handle[0])
 			sprintf(useron.handle,"%.*s",LEN_HANDLE,useron.alias);
@@ -369,7 +370,6 @@ BOOL sbbs_t::newuser()
 	}
 
 	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true)) {
-		CRLF;
 		SAFECOPY(useron.pass, rlogin_pass);
 	}
 	else {
@@ -389,7 +389,7 @@ BOOL sbbs_t::newuser()
 				getstr(str,LEN_PASS,K_UPPER|K_LINE);
 				truncsp(str);
 				if(chkpass(str,&useron,true)) {
-					SAFECOPY(useron.pass,str);
+					strcpy(useron.pass,str);
 					CRLF;
 					bprintf(text[YourPasswordIs],useron.pass);
 					break; 
