@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.194 2006/05/08 19:14:45 deuce Exp $ */
+/* $Id: services.c,v 1.199 2006/12/29 01:23:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,16 +36,6 @@
  ****************************************************************************/
 
 /* Platform-specific headers */
-#ifdef _WIN32
-
-	#include <io.h>			/* open/close */
-	#include <share.h>		/* share open flags */
-	#include <process.h>	/* _beginthread */
-	#include <windows.h>	/* required for mmsystem.h */
-	#include <mmsystem.h>	/* SND_ASYNC */
-
-#endif
-
 #ifdef __unix__
 	#include <sys/param.h>	/* BSD? */
 #endif
@@ -301,8 +291,14 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	char		ch;
 	char*		buf;
+	int			i;
 	int32		len=512;
+	BOOL		rd;
+	time_t		start;
+	int32		timeout=30;	/* seconds */
+	JSString*	str;
 	service_client_t* client;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
@@ -310,15 +306,48 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
-	
-	if((buf=alloca(len))==NULL)
-		return(JS_TRUE);
 
-	len=recv(client->socket,buf,len,0);	/* Need to switch to sockreadline */
+	if((buf=(char*)alloca(len+1))==NULL) {
+		JS_ReportError(cx,"Error allocating %u bytes",len+1);
+		return(JS_FALSE);
+	}
 
-	if(len>0)
-		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
 
+	start=time(NULL);
+	for(i=0;i<len;) {
+
+		if(!socket_check(client->socket,&rd,NULL,1000))
+			break;		/* disconnected */
+
+		if(!rd) {
+			if(time(NULL)-start>timeout) {
+				*rval = JSVAL_NULL;
+				return(JS_TRUE);	/* time-out */
+			}
+			continue;	/* no data */
+		}
+
+		if(recv(client->socket, &ch, 1, 0)!=1)
+			break;
+
+		if(ch=='\n' /* && i>=1 */) /* Mar-9-2003: terminate on sole LF */
+			break;
+
+		buf[i++]=ch;
+	}
+	if(i>0 && buf[i-1]=='\r')
+		buf[i-1]=0;
+	else
+		buf[i]=0;
+
+	str = JS_NewStringCopyZ(cx, buf);
+	if(str==NULL)
+		return(JS_FALSE);
+
+	*rval = STRING_TO_JSVAL(str);
+		
 	return(JS_TRUE);
 }
 
@@ -1541,7 +1570,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.194 $", "%*s %s", revision);
+	sscanf("$Revision: 1.199 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1603,7 +1632,8 @@ void DLLCALL services_thread(void* arg)
 	}
 
 #ifdef _THREAD_SUID_BROKEN
-	startup->seteuid(TRUE);
+	if(thread_suid_broken)
+		startup->seteuid(TRUE);
 #endif
 
 	/* Setup intelligent defaults */
@@ -1865,7 +1895,7 @@ void DLLCALL services_thread(void* arg)
 					continue;
 
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"0000 Services listening interrupted");
+					lprintf(LOG_DEBUG,"0000 Services listening interrupted");
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_NOTICE,"0000 Services sockets closed");
 				else
