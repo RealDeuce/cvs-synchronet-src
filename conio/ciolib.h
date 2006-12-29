@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.37 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: ciolib.h,v 1.38 2006/05/28 21:43:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -351,11 +351,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 	#define setfont(a,b)			ciolib_setfont(a,b)
 	#define getfont()				ciolib_getfont()
 	#define loadfont(a)				ciolib_loadfont(a)
-#endif
-
-/* Special hackery for SDL */
-#ifdef WITH_SDL
-	#define	main	CIOLIB_main
 #endif
 
 #endif	/* Do not add anything after this line */
