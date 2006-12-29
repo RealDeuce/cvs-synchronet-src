@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.49 2006/09/09 06:24:05 deuce Exp $ */
+/* $Id: answer.cpp,v 1.50 2006/12/29 00:22:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,7 +240,7 @@ bool sbbs_t::answer()
 			}
 		}
 		else
-			lprintf(LOG_DEBUG,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
+			lprintf(LOG_DEBUG,"Node %d SSH: Unknown user: %s",cfg.node_num,rlogin_name);
 	}
 #endif
 

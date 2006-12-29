@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.119 2006/09/15 21:12:53 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.121 2006/12/27 06:29:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -478,6 +478,9 @@ void sbbs_read_ini(
 		SAFECOPY(mail->default_user
 			,iniGetString(list,section,"DefaultUser",nulstr,value));
 
+		SAFECOPY(mail->default_charset
+			,iniGetString(list,section,"DefaultCharset",nulstr,value));
+
 		SAFECOPY(mail->dnsbl_hdr
 			,iniGetString(list,section,"DNSBlacklistHeader","X-DNSBL",value));
 		SAFECOPY(mail->dnsbl_tag
@@ -947,6 +950,9 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(!iniSetString(lp,section,"DNSServer",mail->dns_server,&style))
+			break;
+
+		if(!iniSetString(lp,section,"DefaultCharset",mail->default_charset,&style))
 			break;
 
 		if(!iniSetString(lp,section,"DefaultUser",mail->default_user,&style))
