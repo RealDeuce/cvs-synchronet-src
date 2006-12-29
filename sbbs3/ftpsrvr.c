@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.313 2006/12/29 08:42:56 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.312 2006/12/29 01:23:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1506,9 +1506,6 @@ static void send_thread(void* arg)
 			if(getfileixb(&scfg,&f)==TRUE && getfiledat(&scfg,&f)==TRUE) {
 				f.timesdled++;
 				putfiledat(&scfg,&f);
-				f.datedled=time(NULL);
-				putfileixb(&scfg,&f);
-
 				lprintf(LOG_INFO,"%04d %s downloaded: %s (%lu times total)"
 					,xfer.ctrl_sock
 					,xfer.user->alias
@@ -1550,6 +1547,8 @@ static void send_thread(void* arg)
 					}
 				}
 			}
+			/* Need to update datedled in index */
+
 			if(!xfer.tmpfile && !xfer.delfile && !(scfg.dir[f.dir]->misc&DIR_NOSTAT))
 				download_stats(total);
 		}	
@@ -4513,7 +4512,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.313 $", "%*s %s", revision);
+	sscanf("$Revision: 1.312 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
