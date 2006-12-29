@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.13 2007/05/27 04:31:33 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.10 2005/10/14 06:21:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,13 +84,13 @@ enum {
 	 MONO_PALETTE
 	,GREYSCALE_PALETTE
 	,COLOUR_PALETTE
-	,C64_PALETTE
 };
 
-extern struct video_params vparams[40];
+extern struct video_params vparams[36];
 #define NUMMODES      (sizeof(vparams) / sizeof(struct video_params))
-extern unsigned char palettes[4][16];
-extern struct dac_colors dac_default[32];
+extern unsigned char palettes[3][16];
+extern struct dac_colors dac_default16[16];
+extern struct dac_colors dac_default256[16];
 extern char vga_font_bitmap[4096];
 extern char vga_font_bitmap14[3584];
 extern char vga_font_bitmap8[2048];
