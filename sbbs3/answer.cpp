@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.51 2006/12/29 19:32:36 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.50 2006/12/29 00:22:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,8 +184,10 @@ bool sbbs_t::answer()
 		rlogin_name[i]=0;
 		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_PASSWORD, rlogin_pass, &i);
 		rlogin_pass[i]=0;
-		lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
-			,cfg.node_num, rlogin_name);
+		lprintf(LOG_DEBUG,"Node %d SSH: '%.*s' / '%.*s'"
+			,cfg.node_num
+			,LEN_ALIAS*2,rlogin_name
+			,LEN_ALIAS*2,rlogin_pass);
 		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
