@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.287 2006/12/27 23:15:26 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.288 2006/12/29 00:25:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,6 +180,8 @@ public:
 	CRYPT_SESSION	ssh_session;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
+    bool	passthru_output_thread_running;
+    bool	passthru_input_thread_running;
 #endif
 
 	scfg_t	cfg;
