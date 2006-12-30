@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.16 2007/07/10 22:20:00 deuce Exp $ */
+/* $Id: smbhash.c,v 1.15 2005/10/02 23:28:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,10 +331,10 @@ int SMBCALL smb_getmsghdr_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
 	return(retval);
 }
 
-uint16_t SMBCALL smb_subject_crc(const char* subj)
+ushort SMBCALL smb_subject_crc(const char* subj)
 {
 	char*	str;
-	uint16_t	crc;
+	ushort	crc;
 
 	if(subj==NULL)
 		return(0xffff);
@@ -355,10 +355,10 @@ uint16_t SMBCALL smb_subject_crc(const char* subj)
 	return(crc);
 }
 
-uint16_t SMBCALL smb_name_crc(const char* name)
+ushort SMBCALL smb_name_crc(const char* name)
 {
 	char*	str;
-	uint16_t	crc;
+	ushort	crc;
 
 	if(name==NULL)
 		return(0xffff);
