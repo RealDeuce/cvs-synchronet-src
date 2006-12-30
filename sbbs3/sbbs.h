@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.288 2006/12/29 00:25:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.289 2006/12/29 08:41:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -821,6 +821,7 @@ extern "C" {
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
+	DLLEXPORT BOOL		DLLCALL putfileixb(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL getfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL putfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT void		DLLCALL putextdesc(scfg_t* cfg, uint dirnum, ulong datoffset, char *ext);
