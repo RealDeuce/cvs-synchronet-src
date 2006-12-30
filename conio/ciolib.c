@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.74 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: ciolib.c,v 1.77 2006/09/02 07:25:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,9 @@
 #include <stdarg.h>
 #include <stdlib.h>	/* alloca */
 #include <stdio.h>
+#if defined(_WIN32)
+ #include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #include <threadwrap.h>
 
@@ -111,7 +114,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 #ifdef WITH_SDL
 int try_sdl_init(int mode)
 {
-	if(!sdl_init(mode)) {
+	if(!sdl_initciolib(mode)) {
 		cio_api.mouse=1;
 		cio_api.puttext=sdl_puttext;
 		cio_api.gettext=sdl_gettext;
@@ -696,7 +699,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	
 	ciolib_gettextinfo(&ti);
 
-	width=ti.winright-ti.curx+1;
+	width=ti.winright-ti.winleft+1-ti.curx+1;
 	height=1;
 	buf=(unsigned char *)alloca(width*height*2);
 	for(i=0;i<width*height*2;) {
