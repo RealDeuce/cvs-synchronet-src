@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.68 2007/10/02 16:55:56 rswindell Exp $
+# $Id: Common.gmake,v 1.60 2006/12/29 02:54:32 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -197,10 +197,6 @@ endif
 os      :=	$(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
 machine		:=	$(shell if uname -m | egrep -v "(i[3456789]*|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
-machine		:=	$(shell if uname -m | egrep "64" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; else echo $(machine) ; fi)
-ifeq ($(machine),x86_64)
- CFLAGS +=	-fPIC
-endif
 ifeq ($(machine),sparc64)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
@@ -219,10 +215,6 @@ else
  machine	:=	$(os).$(machine)
 endif
 
-ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
- CFLAGS	+=	-DHAS_INTTYPES_H
-endif
-
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
 OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
 MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
@@ -235,7 +227,7 @@ else
  ifeq ($(os),sunos)
   DELETE :=	rm -f
  else
-  DELETE	=	rm -f
+  DELETE	=	rm -fv
  endif
 endif
 
@@ -352,11 +344,9 @@ CIOLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)conio
 SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
 
-# SDL ciolib enabled by default for the moment.
-ifndef WITHOUT_SDL
- ifndef USE_SDL_AUDIO
-  USE_SDL	:=	1
- endif
+# SDL disabled by default for the moment.
+ifndef USE_SDL
+ WITHOUT_SDL	:=	1
 endif
 
 # Pull in lib-specific flags
