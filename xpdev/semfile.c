@@ -1,6 +1,6 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.1 2006/03/14 09:29:42 rswindell Exp $ */
+/* $Id: semfile.c,v 1.2 2006/09/02 01:59:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -32,6 +32,8 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+
+#include <string.h>
 
 #include "semfile.h"
 #include "filewrap.h"
