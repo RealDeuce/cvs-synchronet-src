@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.100 2006/04/25 00:55:32 rswindell Exp $ */
+/* $Id: userdat.c,v 1.101 2006/12/29 09:00:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1424,6 +1424,21 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				#else
 					result=!not;
 				#endif
+				break;
+			case AR_ACTIVE:
+				if(user==NULL || user->misc&(DELETED|INACTIVE))
+					result=not;
+				else result=!not;
+				break;
+			case AR_INACTIVE:
+				if(user==NULL || !(user->misc&INACTIVE))
+					result=not;
+				else result=!not;
+				break;
+			case AR_DELETED:
+				if(user==NULL || !(user->misc&DELETED))
+					result=not;
+				else result=!not;
 				break;
 			case AR_EXPERT:
 				if(user==NULL || !(user->misc&EXPERT))
