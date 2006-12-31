@@ -2,13 +2,13 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.42 2007/07/10 21:51:27 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.36 2006/05/28 22:01:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -61,9 +61,6 @@
 
 
 #include <sys/types.h>
-#ifdef HAS_INTTYPES_H
-#include <inttypes.h>
-#endif
 
 									/* Control characters */
 #ifndef STX
@@ -139,35 +136,19 @@ enum {
 	#endif
 #endif
 
-#if !defined(HAS_INTTYPES_H)
-
-typedef char	int8_t;
-typedef short	int16_t;
-typedef long	int32_t;
-typedef uchar	uint8_t;
-typedef ushort	uint16_t;
-typedef ulong	uint32_t;
-
-#endif
-
-/* Legacy 32-bit time_t */
-typedef int32_t		time32_t;
-
 /* Windows Types */
-
 #ifndef BYTE
-#define BYTE	uint8_t
+#define BYTE	uchar
 #endif
 #ifndef WORD
-#define WORD	uint16_t
+#define WORD	ushort
 #endif
 #ifndef DWORD
-#define DWORD	uint32_t
+#define DWORD	ulong
 #endif
 #ifndef BOOL
 #define BOOL	int
 #endif
-
 #ifndef TRUE
 #define TRUE	1
 #define FALSE	0
@@ -373,7 +354,7 @@ typedef struct {
 #endif
 
 /* Special hackery for SDL */
-#ifdef WITH_SDL_AUDIO
+#ifdef WITH_SDL
 	#include <SDL.h>
 
 	#ifdef main
