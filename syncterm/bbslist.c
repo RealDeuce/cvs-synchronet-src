@@ -19,7 +19,7 @@
 #include "window.h"
 #include "term.h"
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -148,33 +148,19 @@ int get_next_rate(int curr_rate) {
 	return(rates[i]);
 }
 
-void sort_list(struct bbslist **list, int *listcount)  {
+void sort_list(struct bbslist **list)  {
 	struct bbslist *tmp;
-	unsigned int	i,j,swapped=1;
+	unsigned int	i,swapped=1;
 
 	while(swapped) {
 		swapped=0;
 		for(i=1;list[i]!=NULL && list[i-1]->name[0] && list[i]->name[0];i++) {
 			int	cmp=stricmp(list[i-1]->name,list[i]->name);
-			if(cmp>0 || (cmp==0 && list[i-1]->type==SYSTEM_BBSLIST && list[i]->type==USER_BBSLIST)) {
+			if(cmp>0) {
 				tmp=list[i];
 				list[i]=list[i-1];
 				list[i-1]=tmp;
 				swapped=1;
-			}
-			if(cmp==0) {
-				/* Duplicate.  Remove the one from system BBS list */
-				tmp=list[i];
-				for(j=i;list[j]!=NULL && list[j]->name[0];j++) {
-					list[j]=list[j+1];
-				}
-				free(tmp);
-				for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
-					list[j]->id=j;
-				}
-				(*listcount)--;
-				swapped=1;
-				break;
 			}
 		}
 	}
@@ -196,7 +182,7 @@ void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int
 
 	get_syncterm_filename(home, sizeof(home), SYNCTERM_DEFAULT_TRANSFER_PATH, FALSE);
 	if(bbsname != NULL)
-		SAFECOPY(entry->name,bbsname);
+		strcpy(entry->name,bbsname);
 	iniReadString(listfile,bbsname,"Address","",entry->addr);
 	entry->conn_type=iniReadEnum(listfile,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
 	entry->port=iniReadShortInt(listfile,bbsname,"Port",conn_ports[entry->conn_type]);
@@ -250,10 +236,6 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 		fclose(listfile);
 		strListFreeStrings(bbses);
 	}
-	else {
-		if(defaults != NULL && type==USER_BBSLIST)
-			read_item(listfile,defaults,NULL,-1,type);
-	}
 
 #if 0	/* This isn't necessary (NULL is a sufficient) */
 	/* Add terminator */
@@ -276,14 +258,11 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 	for(i=0;i<18;i++)		/* <- Beware of magic number! */
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
-		char	*YesNo[3]={"Yes","No",""};
-		uifc.helpbuf=	"`Copy from system BBS list`\n\n"
-						"This BBS was loaded from the system BBS list.  In order to edit it, it\n"
-						"must be copied into your personal BBS list.\n";
-		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Copy from system BBS list?",YesNo)!=0)
-			return(0);
-		item->type=USER_BBSLIST;
-		add_bbs(listpath, item);
+		uifc.helpbuf=	"`Cannot edit system BBS list`\n\n"
+						"SyncTERM supports system-wide and per-user lists.  You may only edit entries"
+						"in your own personal list.\n";
+		uifc.msg("Cannot edit system BBS list");
+		return(0);
 	}
 	if((listfile=fopen(listpath,"r"))!=NULL) {
 		inifile=iniReadFile(listfile);
@@ -418,25 +397,6 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 								"Select the screen size for this connection\n";
 				uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),NULL,"Screen Mode",screen_modes);
 				iniSetEnum(&inifile,itemname,"ScreenMode",screen_modes,item->screen_mode,&ini_style);
-				if(item->screen_mode == SCREEN_MODE_C64) {
-					strcpy(item->font,font_names[33]);
-					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
-					item->nostatus = 1;
-					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
-				}
-				if(item->screen_mode == SCREEN_MODE_C128_40
-						|| item->screen_mode == SCREEN_MODE_C128_80) {
-					strcpy(item->font,font_names[35]);
-					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
-					item->nostatus = 1;
-					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
-				}
-				if(item->screen_mode == SCREEN_MODE_ATARI) {
-					strcpy(item->font,font_names[36]);
-					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
-					item->nostatus = 1;
-					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
-				}
 				changed=1;
 				break;
 			case 9:
@@ -605,8 +565,8 @@ void change_settings(void)
 	char	inipath[MAX_PATH+1];
 	FILE	*inifile;
 	str_list_t	inicontents;
-	char	opts[7][80];
-	char	*opt[7];
+	char	opts[4][80];
+	char	*opt[4];
 	int		i,j;
 	char	str[64];
 	int	cur=0;
@@ -620,17 +580,14 @@ void change_settings(void)
 		inicontents=strListInit();
 	}
 
-	for(i=0; i<7; i++)
+	for(i=0; i<4; i++)
 		opt[i]=opts[i];
 
-	opts[6][0]=0;
+	opts[3][0]=0;
 	for(;;) {
 		sprintf(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
 		sprintf(opts[1],"Startup Video Mode      %s",screen_modes[settings.startup_mode]);
-		sprintf(opts[2],"Output Mode             %s",output_descrs[settings.output_mode]);
-		sprintf(opts[3],"Scrollback Buffer Lines %d",settings.backlines);
-		sprintf(opts[4],"Modem Device            %s",settings.mdm.device_name);
-		sprintf(opts[5],"Modem Init String       %s",settings.mdm.init_string);
+		sprintf(opts[2],"Scrollback Buffer Lines %d",settings.backlines);
 		switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				goto write_ini;
@@ -650,21 +607,6 @@ void change_settings(void)
 				}
 				break;
 			case 2:
-				for(j=0;output_types[j]!=NULL;j++)
-					if(output_map[j]==settings.output_mode)
-						break;
-				if(output_types[j]==NULL)
-					j=0;
-				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Output Mode",output_types)) {
-					case -1:
-						continue;
-					default:
-						settings.output_mode=output_map[j];
-						iniSetEnum(&inicontents,"SyncTERM","OutputMode",output_enum,settings.output_mode,&ini_style);
-						break;
-				}
-				break;
-			case 3:
 				sprintf(str,"%d",settings.backlines);
 				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Scrollback Lines",str,9,K_NUMBER|K_EDIT)!=-1) {
 					unsigned char *tmpscroll;
@@ -687,33 +629,6 @@ void change_settings(void)
 					}
 				}
 				break;
-			case 4:
-				uifc.helpbuf=	"`Modem Device`\n\n"
-#ifdef _WIN32
-								"Enter the modem device name (ie: COM1).";
-#else
-								"Enter the modem device name (ie: /dev/ttyd0).";
-#endif
-				uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Device",settings.mdm.device_name,LIST_NAME_MAX,K_EDIT);
-				iniSetString(&inicontents,"SyncTERM","ModemDevice",settings.mdm.device_name,&ini_style);
-				break;
-			case 5:
-				uifc.helpbuf=	"`Modem Init String`\n\n"
-								"Your modem init string goes here.\n"
-								"For reference, here are the expected settings and USR inits\n\n"
-								"State                      USR Init\n"
-								"------------------------------------\n"
-								"Echo on                    E1\n"
-								"Verbal result codes        Q0V1\n"
-								"Include connection speed   &X4\n"
-								"Normal CD Handling         &C1\n"
-								"Locked speed               &B1\n"
-								"Normal DTR                 &D2\n"
-								"CTS/RTS Flow Control       &H1&R2\n"
-								"Disable Software Flow      &I0\n";
-				uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Init String",settings.mdm.init_string,LIST_NAME_MAX,K_EDIT);
-				iniSetString(&inicontents,"SyncTERM","ModemInit",settings.mdm.init_string,&ini_style);
-				break;
 		}
 	}
 write_ini:
@@ -723,22 +638,6 @@ write_ini:
 			fclose(inifile);
 		}
 	}
-}
-
-void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaults, char *listpath, size_t listpathsize, char *shared_list, size_t shared_listsize, int *listcount)
-{
-	free_list(&list[0],*listcount);
-	*listcount=0;
-
-	memset(list,0,listsize);
-	memset(defaults,0,sizeof(struct bbslist));
-
-	read_list(listpath, list, defaults, listcount, USER_BBSLIST);
-
-	/* System BBS List */
-	if(stricmp(shared_list, listpath)) /* don't read the same list twice */
-		read_list(shared_list, list, defaults, listcount, SYSTEM_BBSLIST);
-	sort_list(list, listcount);
 }
 
 /*
@@ -777,10 +676,18 @@ struct bbslist *show_bbslist(int mode)
 	if(init_uifc(TRUE, TRUE))
 		return(NULL);
 
-	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
-	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
-	load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+	memset(list,0,sizeof(list));
+	memset(&defaults,0,sizeof(defaults));
 
+	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
+	read_list(listpath, list, &defaults, &listcount, USER_BBSLIST);
+
+	/* System BBS List */
+	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
+	if(stricmp(shared_list, listpath)) /* don't read the same list twice */
+		read_list(shared_list, list, &defaults, &listcount, SYSTEM_BBSLIST);
+
+	sort_list(list);
 	uifc.helpbuf=	"`SyncTERM Settings Menu`\n\n";
 	uifc.list(WIN_T2B|WIN_RHT|WIN_IMM|WIN_INACT
 		,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
@@ -830,7 +737,7 @@ struct bbslist *show_bbslist(int mode)
 							if(list[opt]) {
 								i=list[opt]->id;
 								if(edit_list(list[opt],listpath,FALSE)) {
-									load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+									sort_list(list);
 									for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 										if(list[j]->id==i)
 											opt=j;
@@ -898,7 +805,7 @@ struct bbslist *show_bbslist(int mode)
 							}
 							else {
 								add_bbs(listpath,list[listcount-1]);
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+								sort_list(list);
 								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 									if(list[j]->id==listcount-1)
 										opt=j;
@@ -930,18 +837,20 @@ struct bbslist *show_bbslist(int mode)
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
-							if(list[opt]->type==SYSTEM_BBSLIST) {
-								uifc.helpbuf=	"`Cannot delete from system list`\n\n"
-												"This BBS was loaded from the system-wide list and cannot be deleted.";
-								uifc.msg("Cannot delete system list entries");
-								break;
-							}
 							sprintf(str,"Delete %s?",list[opt]->name);
 							i=1;
 							if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,str,YesNo)!=0)
 								break;
 							del_bbs(listpath,list[opt]);
-							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+							free(list[opt]);
+							for(i=opt;list[i]!=NULL && list[i]->name[0];i++) {
+								list[i]=list[i+1];
+							}
+							for(i=0;list[i]!=NULL && list[i]->name[0];i++) {
+								list[i]->id=i;
+							}
+							listcount--;
+							oldopt=-1;
 							break;
 						case MSK_EDIT:
 							if(safe_mode) {
@@ -953,7 +862,7 @@ struct bbslist *show_bbslist(int mode)
 							}
 							i=list[opt]->id;
 							if(edit_list(list[opt],listpath,FALSE)) {
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+								sort_list(list);
 								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 									if(list[j]->id==i)
 										opt=j;
@@ -974,7 +883,7 @@ struct bbslist *show_bbslist(int mode)
 						}
 						i=list[opt]->id;
 						if(edit_list(list[opt],listpath,FALSE)) {
-							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+							sort_list(list);
 							for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 								if(list[j]->id==i)
 									opt=j;
@@ -1065,18 +974,6 @@ struct bbslist *show_bbslist(int mode)
 										break;
 									case SCREEN_MODE_80X60:
 										textmode(C80X60);
-										break;
-									case SCREEN_MODE_C64:
-										textmode(C64_40X25);
-										break;
-									case SCREEN_MODE_C128_40:
-										textmode(C128_40X25);
-										break;
-									case SCREEN_MODE_C128_80:
-										textmode(C128_80X25);
-										break;
-									case SCREEN_MODE_ATARI:
-										textmode(ATARI_40X24);
 										break;
 								}
 								init_uifc(TRUE, TRUE);

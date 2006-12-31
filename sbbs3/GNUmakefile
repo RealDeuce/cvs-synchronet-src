@@ -11,10 +11,9 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.211 2007/10/15 08:06:00 deuce Exp $
+# $Id: GNUmakefile,v 1.199 2006/12/31 00:03:08 deuce Exp $
 
-PWD	:=	$(shell pwd)
-SRC_ROOT	?=	${PWD}/..
+SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
 
 UTIL_LDFLAGS	:=	$(LDFLAGS)
@@ -29,7 +28,6 @@ endif
 
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt
- SBBS_LIBS	+=	-lkstat
 endif
 
 # So far, only QNX has sem_timedwait()
@@ -51,18 +49,7 @@ ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
 endif
 
-ifeq ($(os),linux)
- ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
-  CFLAGS += -DUSE_LINUX_CAPS
-  SBBS_LIBS += -lcap
- endif
-endif
-
 # JS and NSPR setup stuff...
-ifeq ($(shell nspr-config --version > /dev/null 2>&1 && echo YES),YES)
- NSPRDIR ?= $(shell nspr-config --libdir)
- NSPRINCLUDE ?= $(shell nspr-config --includedir)
-endif
 
 ifeq ($(os),sunos)
  ifeq ($(shell test -f /usr/sfw/lib/mozilla/libmozjs.so && echo "yes"),yes)
@@ -113,7 +100,7 @@ CFLAGS	+=	$(JS_CFLAGS)
 LDFLAGS	+=	$(JS_LDFLAGS)
 
 ifndef CRYPTLIBDIR
- CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(machine).release
+ CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(os).release
 endif
 LDFLAGS	+=	-L$(CRYPTLIBDIR)
 
@@ -121,22 +108,23 @@ include sbbsdefs.mk
 MT_CFLAGS	+=	$(SBBSDEFS)
 
 # Set up LD_RUN_PATH for run-time locating of the .so files
+PWD	:=	$(shell pwd)
 ifdef SBBSDIR
  ifeq ($(os),sunos)
-  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
+  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
  else
-  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR)
+  LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):$(CRYPTLIBDIR)
  endif
 else
  ifeq ($(os),sunos)
-  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
+  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
  else
-  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR)
+  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(PWD)/$(JSLIBDIR):$(PWD)/$(NSPRDIR):$(CRYPTLIBDIR)
  endif
 endif
 export LD_RUN_PATH
 
-CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
+CON_LIBS	:= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic

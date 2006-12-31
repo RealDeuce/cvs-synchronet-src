@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.179 2007/10/10 02:43:14 deuce Exp $ */
+/* $Id: uifc32.c,v 1.177 2006/09/15 21:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -236,8 +236,7 @@ int uifcini32(uifcapi_t* uifcapi)
             || txtinfo.currmode==MONO28 || txtinfo.currmode==BW40X28 || txtinfo.currmode==BW80X28
             || txtinfo.currmode==MONO43 || txtinfo.currmode==BW40X43 || txtinfo.currmode==BW80X43
             || txtinfo.currmode==MONO50 || txtinfo.currmode==BW40X50 || txtinfo.currmode==BW80X50
-            || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60
-			|| txtinfo.currmode==ATARI_40X24))
+            || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60))
 	{
         api->bclr=BLACK;
         api->hclr=WHITE;
@@ -1365,9 +1364,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't edit */
 							break;							/* extra line */
 						if(mode&WIN_EDIT) {
-							if(mode&WIN_SAV)
-								api->savnum++;
-							if(mode&WIN_ACT) {
+							if(mode&WIN_EDITACT) {
 								gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
 								for(i=1;i<(width*height*2);i+=2)
@@ -1375,16 +1372,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
 								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
 									tmp_buffer[i]=hclr|(cclr<<4);
-
 								puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
-							else if(mode&WIN_SAV) {
-								api->savnum--;
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_EDIT); 
 						}
@@ -1399,26 +1388,18 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						break;
 					case CIO_KEY_IC:	/* insert */
 						if(mode&WIN_INS) {
-							if(mode&WIN_SAV)
-								api->savnum++;
 							if(mode&WIN_INSACT) {
 								gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
 								for(i=1;i<(width*height*2);i+=2)
 									tmp_buffer[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									tmp_buffer[i]=hclr|(cclr<<4);
-
+								if(opts) {
+									j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
+									for(i=(((y-top)*width)*2)+7;i<j;i+=2)
+										tmp_buffer[i]=hclr|(cclr<<4); 
+								}
 								puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
-							else if(mode&WIN_SAV) {
-								api->savnum--;
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							if(!opts) {
 								return(MSK_INS); 
@@ -1430,8 +1411,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't delete */
 							break;							/* extra line */
 						if(mode&WIN_DEL) {
-							if(mode&WIN_SAV)
-								api->savnum++;
 							if(mode&WIN_DELACT) {
 								gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
@@ -1440,16 +1419,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
 								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
 									tmp_buffer[i]=hclr|(cclr<<4);
-
 								puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
-							else if(mode&WIN_SAV) {
-								api->savnum--;
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
-								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_DEL); 
 						}
