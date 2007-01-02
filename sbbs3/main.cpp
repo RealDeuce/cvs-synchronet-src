@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.470 2007/01/03 00:27:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.468 2006/12/30 04:36:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1354,16 +1354,8 @@ void input_thread(void *arg)
 
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode && sock==sbbs->client_socket) {
-			int err;
-			if(!cryptStatusOK((err=cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))) {
-				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
-				if(err==CRYPT_ERROR_TIMEOUT)
-					continue;
-				/* Handle the SSH error here... */
-				lprintf(LOG_ERR,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
-				break;
-			}
+			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
+				rd=0;
 			else {
 				if(!i) {
 					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
@@ -1478,7 +1470,7 @@ void input_thread(void *arg)
 
 #ifdef USE_CRYPTLIB
 /*
- * This thread copies anything received from the client to the passthru_socket
+ * This thread copies anything recieved from the client to the passthru_socket
  * It can only do that when the input thread is locked.
  * Luckily, the input thread is currently locked exactly when we want it to be.
  * Since the passthru socket is 8-bit clean and does NOT use a protocol,
@@ -1810,14 +1802,8 @@ void output_thread(void* arg)
 
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
-			int err;
-			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
-				/* Handle the SSH error here... */
-				lprintf(LOG_ERR,"!%s: ERROR %d sending on Cryptlib session", node, err);
+			if(!cryptStatusOK(cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))
 				i=-1;
-				sbbs->online=FALSE;
-				i=buftop-bufbot;	// Pretend we sent it all
-			}
 			else
 				cryptFlushData(sbbs->ssh_session);
 		}
@@ -5071,7 +5057,6 @@ NO_PASSTHRU:
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
 			while(RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
-			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 			sbbs->ssh_mode=false;
 		}
 #endif
