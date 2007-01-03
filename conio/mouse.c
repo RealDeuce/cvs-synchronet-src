@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.34 2006/04/01 01:51:06 deuce Exp $ */
+/* $Id: mouse.c,v 1.35 2006/05/29 14:30:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,7 +212,7 @@ void ciolib_mouse_thread(void *data)
 				timedout=1;
 			}
 			else {
-				timedout=listSemTryWaitBlock(&state.input,delay);
+				timedout=!listSemTryWaitBlock(&state.input,delay);
 			}
 		}
 		else {
