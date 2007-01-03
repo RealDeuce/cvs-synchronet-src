@@ -11,7 +11,6 @@
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon_name">gtk-execute</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -19,7 +18,6 @@
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
   <property name="urgency_hint">False</property>
-  <signal name="destroy" handler="gtk_main_quit" last_modification_time="Mon, 08 May 2006 01:41:32 GMT"/>
 
   <child>
     <widget class="GtkVBox" id="vbox1">
@@ -49,7 +47,7 @@
 		      <property name="use_underline">True</property>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image750">
+			<widget class="GtkImage" id="image666">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -102,7 +100,7 @@
 		      <signal name="activate" handler="on_save_settings1_activate" last_modification_time="Thu, 09 Mar 2006 05:25:04 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image751">
+			<widget class="GtkImage" id="image667">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-save</property>
 			  <property name="icon_size">1</property>
@@ -123,7 +121,7 @@
 		      <signal name="activate" handler="on_import_settings1_activate" last_modification_time="Thu, 09 Mar 2006 05:25:04 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image752">
+			<widget class="GtkImage" id="image668">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-open</property>
 			  <property name="icon_size">1</property>
@@ -144,7 +142,7 @@
 		      <signal name="activate" handler="on_export_settings1_activate" last_modification_time="Thu, 09 Mar 2006 05:25:04 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image753">
+			<widget class="GtkImage" id="image669">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-save-as</property>
 			  <property name="icon_size">1</property>
@@ -199,7 +197,7 @@
 		      <property name="visible">True</property>
 		      <property name="label">gtk-quit</property>
 		      <property name="use_stock">True</property>
-		      <signal name="activate" handler="gtk_main_quit" last_modification_time="Mon, 08 May 2006 01:41:52 GMT"/>
+		      <signal name="activate" handler="on_quit1_activate" last_modification_time="Thu, 09 Mar 2006 05:25:04 GMT"/>
 		    </widget>
 		  </child>
 		</widget>
@@ -225,7 +223,7 @@
 		      <signal name="activate" handler="on_configure1_activate" last_modification_time="Thu, 09 Mar 2006 17:09:58 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image754">
+			<widget class="GtkImage" id="image670">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-preferences</property>
 			  <property name="icon_size">1</property>
@@ -246,7 +244,7 @@
 		      <signal name="activate" handler="on_reload_configuration1_activate" last_modification_time="Thu, 09 Mar 2006 17:09:58 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image755">
+			<widget class="GtkImage" id="image671">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-refresh</property>
 			  <property name="icon_size">1</property>
@@ -267,7 +265,7 @@
 		      <signal name="activate" handler="on_login1_activate" last_modification_time="Thu, 09 Mar 2006 17:09:58 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image756">
+			<widget class="GtkImage" id="image672">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-connect</property>
 			  <property name="icon_size">1</property>
@@ -298,7 +296,7 @@
 		      <signal name="activate" handler="on_force_timed_event1_activate" last_modification_time="Thu, 09 Mar 2006 17:09:58 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image757">
+			<widget class="GtkImage" id="image673">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-execute</property>
 			  <property name="icon_size">1</property>
@@ -319,7 +317,7 @@
 		      <signal name="activate" handler="on_force_network_call-out1_activate" last_modification_time="Thu, 09 Mar 2006 17:09:58 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image758">
+			<widget class="GtkImage" id="image674">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-network</property>
 			  <property name="icon_size">1</property>
@@ -355,7 +353,7 @@
 			      <signal name="activate" handler="on_error_log1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
 
 			      <child internal-child="image">
-				<widget class="GtkImage" id="image759">
+				<widget class="GtkImage" id="image675">
 				  <property name="visible">True</property>
 				  <property name="stock">gtk-dialog-error</property>
 				  <property name="icon_size">1</property>
@@ -376,7 +374,7 @@
 			      <signal name="activate" handler="on_statistics_log1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
 
 			      <child internal-child="image">
-				<widget class="GtkImage" id="image760">
+				<widget class="GtkImage" id="image676">
 				  <property name="visible">True</property>
 				  <property name="stock">gtk-info</property>
 				  <property name="icon_size">1</property>
@@ -427,7 +425,7 @@
 		      <property name="use_underline">True</property>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image761">
+			<widget class="GtkImage" id="image677">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -532,11 +530,11 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkMenuItem" id="new_user_welcome_email1">
+			    <widget class="GtkMenuItem" id="new_user_welcome_e-mail1">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">New User _Welcome E-mail</property>
 			      <property name="use_underline">True</property>
-			      <signal name="activate" handler="on_new_user_welcome_email1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
+			      <signal name="activate" handler="on_new_user_welcome_e-mail1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
 			    </widget>
 			  </child>
 
@@ -635,29 +633,29 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkMenuItem" id="email_address_filter1">
+			    <widget class="GtkMenuItem" id="e-mail_address_filter1">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">E-mail _Address Filter</property>
 			      <property name="use_underline">True</property>
-			      <signal name="activate" handler="on_email_address_filter1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
+			      <signal name="activate" handler="on_e-mail_address_filter1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
 			    </widget>
 			  </child>
 
 			  <child>
-			    <widget class="GtkMenuItem" id="email_address_filter_message1">
+			    <widget class="GtkMenuItem" id="e-mail_address_filter_message1">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">E-mail Address Filter Message</property>
 			      <property name="use_underline">True</property>
-			      <signal name="activate" handler="on_email_address_filter_message1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
+			      <signal name="activate" handler="on_e-mail_address_filter_message1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
 			    </widget>
 			  </child>
 
 			  <child>
-			    <widget class="GtkMenuItem" id="email_subject_filter1">
+			    <widget class="GtkMenuItem" id="e-mail_subject_filter1">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">E-mail _Subject Filter</property>
 			      <property name="use_underline">True</property>
-			      <signal name="activate" handler="on_email_subject_filter1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
+			      <signal name="activate" handler="on_e-mail_subject_filter1_activate" last_modification_time="Thu, 09 Mar 2006 17:23:36 GMT"/>
 			    </widget>
 			  </child>
 
@@ -733,7 +731,7 @@
 		      <signal name="activate" handler="on_edit_and_preview_file1_activate" last_modification_time="Thu, 09 Mar 2006 17:24:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image762">
+			<widget class="GtkImage" id="image678">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -777,7 +775,7 @@
 		      <signal name="activate" handler="on_list1_activate" last_modification_time="Thu, 09 Mar 2006 17:27:47 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image763">
+			<widget class="GtkImage" id="image679">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-index</property>
 			  <property name="icon_size">1</property>
@@ -798,7 +796,7 @@
 		      <signal name="activate" handler="on_edit3_activate" last_modification_time="Thu, 09 Mar 2006 17:27:47 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image764">
+			<widget class="GtkImage" id="image680">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -819,7 +817,7 @@
 		      <signal name="activate" handler="on_clear_deleted_users1_activate" last_modification_time="Thu, 09 Mar 2006 17:27:47 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image765">
+			<widget class="GtkImage" id="image681">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-clear</property>
 			  <property name="icon_size">1</property>
@@ -854,7 +852,7 @@
 		      <signal name="activate" handler="on_configure2_activate" last_modification_time="Thu, 09 Mar 2006 17:29:17 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image766">
+			<widget class="GtkImage" id="image682">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-preferences</property>
 			  <property name="icon_size">1</property>
@@ -875,7 +873,7 @@
 		      <signal name="activate" handler="on_start1_activate" last_modification_time="Thu, 09 Mar 2006 17:29:17 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image767">
+			<widget class="GtkImage" id="image683">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-media-play</property>
 			  <property name="icon_size">1</property>
@@ -896,7 +894,7 @@
 		      <signal name="activate" handler="on_stop1_activate" last_modification_time="Thu, 09 Mar 2006 17:29:17 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image768">
+			<widget class="GtkImage" id="image684">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-stop</property>
 			  <property name="icon_size">1</property>
@@ -922,7 +920,7 @@
 		      <property name="use_underline">True</property>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image769">
+			<widget class="GtkImage" id="image685">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -971,7 +969,7 @@
 		      <signal name="activate" handler="on_configure3_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image770">
+			<widget class="GtkImage" id="image686">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-preferences</property>
 			  <property name="icon_size">1</property>
@@ -992,7 +990,7 @@
 		      <signal name="activate" handler="on_start2_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image771">
+			<widget class="GtkImage" id="image687">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-media-play</property>
 			  <property name="icon_size">1</property>
@@ -1013,7 +1011,7 @@
 		      <signal name="activate" handler="on_stop2_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image772">
+			<widget class="GtkImage" id="image688">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-stop</property>
 			  <property name="icon_size">1</property>
@@ -1034,7 +1032,7 @@
 		      <signal name="activate" handler="on_recycle1_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image773">
+			<widget class="GtkImage" id="image689">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-refresh</property>
 			  <property name="icon_size">1</property>
@@ -1157,20 +1155,20 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkMenuItem" id="dnsbased_blacklists1">
+			    <widget class="GtkMenuItem" id="dns-based_blacklists1">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">DNS-based Blacklists</property>
 			      <property name="use_underline">True</property>
-			      <signal name="activate" handler="on_dnsbased_blacklists1_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
+			      <signal name="activate" handler="on_dns-based_blacklists1_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
 			    </widget>
 			  </child>
 
 			  <child>
-			    <widget class="GtkMenuItem" id="dnsblacklist_exempt_ips1">
+			    <widget class="GtkMenuItem" id="dns-blacklist_exempt_ips1">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">DNS-blacklist Exempt IPs</property>
 			      <property name="use_underline">True</property>
-			      <signal name="activate" handler="on_dnsblacklist_exempt_ips1_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
+			      <signal name="activate" handler="on_dns-blacklist_exempt_ips1_activate" last_modification_time="Thu, 09 Mar 2006 17:34:31 GMT"/>
 			    </widget>
 			  </child>
 
@@ -1209,7 +1207,7 @@
 		      <signal name="activate" handler="on_configure4_activate" last_modification_time="Thu, 09 Mar 2006 17:35:19 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image774">
+			<widget class="GtkImage" id="image690">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-preferences</property>
 			  <property name="icon_size">1</property>
@@ -1230,7 +1228,7 @@
 		      <signal name="activate" handler="on_start3_activate" last_modification_time="Thu, 09 Mar 2006 17:35:19 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image775">
+			<widget class="GtkImage" id="image691">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-media-play</property>
 			  <property name="icon_size">1</property>
@@ -1251,7 +1249,7 @@
 		      <signal name="activate" handler="on_stop3_activate" last_modification_time="Thu, 09 Mar 2006 17:35:19 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image776">
+			<widget class="GtkImage" id="image692">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-stop</property>
 			  <property name="icon_size">1</property>
@@ -1272,7 +1270,7 @@
 		      <signal name="activate" handler="on_recycle2_activate" last_modification_time="Thu, 09 Mar 2006 17:35:19 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image777">
+			<widget class="GtkImage" id="image693">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-refresh</property>
 			  <property name="icon_size">1</property>
@@ -1339,7 +1337,7 @@
 		      <signal name="activate" handler="on_edit6_activate" last_modification_time="Thu, 09 Mar 2006 17:36:39 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image778">
+			<widget class="GtkImage" id="image694">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -1415,7 +1413,7 @@
 		      <signal name="activate" handler="on_configure5_activate" last_modification_time="Thu, 09 Mar 2006 17:37:44 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image779">
+			<widget class="GtkImage" id="image695">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-preferences</property>
 			  <property name="icon_size">1</property>
@@ -1436,7 +1434,7 @@
 		      <signal name="activate" handler="on_start4_activate" last_modification_time="Thu, 09 Mar 2006 17:37:44 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image780">
+			<widget class="GtkImage" id="image696">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-media-play</property>
 			  <property name="icon_size">1</property>
@@ -1457,7 +1455,7 @@
 		      <signal name="activate" handler="on_stop4_activate" last_modification_time="Thu, 09 Mar 2006 17:37:44 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image781">
+			<widget class="GtkImage" id="image697">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-stop</property>
 			  <property name="icon_size">1</property>
@@ -1478,7 +1476,7 @@
 		      <signal name="activate" handler="on_recycle3_activate" last_modification_time="Thu, 09 Mar 2006 17:37:44 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image782">
+			<widget class="GtkImage" id="image698">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-refresh</property>
 			  <property name="icon_size">1</property>
@@ -1505,7 +1503,7 @@
 		      <signal name="activate" handler="on_edit7_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image783">
+			<widget class="GtkImage" id="image699">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -1572,7 +1570,7 @@
 		      <signal name="activate" handler="on_configure6_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image784">
+			<widget class="GtkImage" id="image700">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-preferences</property>
 			  <property name="icon_size">1</property>
@@ -1593,7 +1591,7 @@
 		      <signal name="activate" handler="on_start5_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image785">
+			<widget class="GtkImage" id="image701">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-media-play</property>
 			  <property name="icon_size">1</property>
@@ -1614,7 +1612,7 @@
 		      <signal name="activate" handler="on_stop5_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image786">
+			<widget class="GtkImage" id="image702">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-stop</property>
 			  <property name="icon_size">1</property>
@@ -1635,7 +1633,7 @@
 		      <signal name="activate" handler="on_recycle4_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image787">
+			<widget class="GtkImage" id="image703">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-refresh</property>
 			  <property name="icon_size">1</property>
@@ -1662,7 +1660,7 @@
 		      <signal name="activate" handler="on_edit8_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image788">
+			<widget class="GtkImage" id="image704">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-edit</property>
 			  <property name="icon_size">1</property>
@@ -1748,7 +1746,7 @@
 		      <signal name="activate" handler="on_index1_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image789">
+			<widget class="GtkImage" id="image705">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-index</property>
 			  <property name="icon_size">1</property>
@@ -1769,7 +1767,7 @@
 		      <signal name="activate" handler="on_sysop_manual1_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image790">
+			<widget class="GtkImage" id="image706">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-help</property>
 			  <property name="icon_size">1</property>
@@ -1790,7 +1788,7 @@
 		      <signal name="activate" handler="on_frequently_asked_questions_(faq)1_activate" last_modification_time="Thu, 09 Mar 2006 17:40:46 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image791">
+			<widget class="GtkImage" id="image707">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-dialog-info</property>
 			  <property name="icon_size">1</property>
@@ -1817,7 +1815,7 @@
 		      <signal name="activate" handler="on_about1_activate" last_modification_time="Thu, 09 Mar 2006 05:25:04 GMT"/>
 
 		      <child internal-child="image">
-			<widget class="GtkImage" id="image792">
+			<widget class="GtkImage" id="image708">
 			  <property name="visible">True</property>
 			  <property name="stock">gtk-about</property>
 			  <property name="icon_size">1</property>
@@ -1852,10 +1850,8 @@
 	  <child>
 	    <widget class="GtkToolButton" id="locknodebutton">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Lock Node</property>
 	      <property name="label" translatable="yes"></property>
 	      <property name="use_underline">True</property>
-	      <property name="stock_id">gtk-dialog-authentication</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">False</property>
@@ -1869,9 +1865,6 @@
 	  <child>
 	    <widget class="GtkToolButton" id="downnodebutton">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Down Node</property>
-	      <property name="label" translatable="yes"></property>
-	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-go-down</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
@@ -1886,9 +1879,6 @@
 	  <child>
 	    <widget class="GtkToolButton" id="interruptnodebutton">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Interrupt Node</property>
-	      <property name="label" translatable="yes"></property>
-	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-cancel</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
@@ -1901,11 +1891,8 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="bRerunNode">
+	    <widget class="GtkToolButton" id="toolbutton4">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Rerun Node</property>
-	      <property name="label" translatable="yes"></property>
-	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-refresh</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
@@ -1918,11 +1905,8 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="bClearErrors">
+	    <widget class="GtkToolButton" id="toolbutton5">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Clear Error Log</property>
-	      <property name="label" translatable="yes"></property>
-	      <property name="use_underline">True</property>
 	      <property name="stock_id">gtk-clear</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
@@ -1935,12 +1919,10 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="bSpyOnNode">
+	    <widget class="GtkToolButton" id="toolbutton6">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Spy on User</property>
 	      <property name="label" translatable="yes"></property>
 	      <property name="use_underline">True</property>
-	      <property name="stock_id">gtk-zoom-in</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">False</property>
@@ -1952,12 +1934,10 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="bChatWithUser">
+	    <widget class="GtkToolButton" id="toolbutton7">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Chat With User</property>
 	      <property name="label" translatable="yes"></property>
 	      <property name="use_underline">True</property>
-	      <property name="icon">stock_help-chat.png</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">False</property>
@@ -1969,12 +1949,10 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="bSendMessageToUser">
+	    <widget class="GtkToolButton" id="toolbutton8">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Send Message to User</property>
 	      <property name="label" translatable="yes"></property>
 	      <property name="use_underline">True</property>
-	      <property name="icon">stock_mail-send.png</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
 	      <property name="is_important">False</property>
@@ -1986,9 +1964,8 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkToolButton" id="bEditUser">
+	    <widget class="GtkToolButton" id="toolbutton9">
 	      <property name="visible">True</property>
-	      <property name="tooltip" translatable="yes">Edit User</property>
 	      <property name="stock_id">gtk-edit</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
@@ -2011,16 +1988,16 @@
 	<widget class="GtkScrolledWindow" id="scrolledwindow1">
 	  <property name="visible">True</property>
 	  <property name="can_focus">True</property>
-	  <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-	  <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+	  <property name="hscrollbar_policy">GTK_POLICY_ALWAYS</property>
+	  <property name="vscrollbar_policy">GTK_POLICY_ALWAYS</property>
 	  <property name="shadow_type">GTK_SHADOW_IN</property>
 	  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 	  <child>
-	    <widget class="GtkTreeView" id="lNodeList">
+	    <widget class="GtkTreeView" id="treeview1">
 	      <property name="visible">True</property>
 	      <property name="can_focus">True</property>
-	      <property name="headers_visible">False</property>
+	      <property name="headers_visible">True</property>
 	      <property name="rules_hint">False</property>
 	      <property name="reorderable">False</property>
 	      <property name="enable_search">False</property>
@@ -2038,7 +2015,7 @@
       </child>
 
       <child>
-	<widget class="GtkHBox" id="StatisticsPane">
+	<widget class="GtkHBox" id="hbox1">
 	  <property name="visible">True</property>
 	  <property name="homogeneous">False</property>
 	  <property name="spacing">0</property>
@@ -2240,16 +2217,16 @@
 		      </child>
 
 		      <child>
-			<widget class="GtkEntry" id="eLogonsToday">
+			<widget class="GtkEntry" id="entry1">
 			  <property name="visible">True</property>
 			  <property name="editable">False</property>
 			  <property name="visibility">True</property>
-			  <property name="max_length">15</property>
+			  <property name="max_length">7</property>
 			  <property name="text" translatable="yes"></property>
 			  <property name="has_frame">True</property>
 			  <property name="invisible_char">*</property>
 			  <property name="activates_default">False</property>
-			  <property name="width_chars">15</property>
+			  <property name="width_chars">7</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
@@ -2262,16 +2239,16 @@
 		      </child>
 
 		      <child>
-			<widget class="GtkEntry" id="eTimeToday">
+			<widget class="GtkEntry" id="entry2">
 			  <property name="visible">True</property>
 			  <property name="editable">False</property>
 			  <property name="visibility">True</property>
-			  <property name="max_length">15</property>
+			  <property name="max_length">7</property>
 			  <property name="text" translatable="yes"></property>
 			  <property name="has_frame">True</property>
 			  <property name="invisible_char">*</property>
 			  <property name="activates_default">False</property>
-			  <property name="width_chars">15</property>
+			  <property name="width_chars">7</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
@@ -2284,142 +2261,90 @@
 		      </child>
 
 		      <child>
-			<widget class="GtkHBox" id="hbox1">
+			<widget class="GtkEntry" id="entry3">
 			  <property name="visible">True</property>
-			  <property name="homogeneous">False</property>
-			  <property name="spacing">0</property>
-
-			  <child>
-			    <widget class="GtkEntry" id="eEmailToday">
-			      <property name="visible">True</property>
-			      <property name="editable">False</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char">*</property>
-			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">False</property>
-			    </packing>
-			  </child>
+			  <property name="editable">False</property>
+			  <property name="visibility">True</property>
+			  <property name="max_length">7</property>
+			  <property name="text" translatable="yes"></property>
+			  <property name="has_frame">True</property>
+			  <property name="invisible_char">*</property>
+			  <property name="activates_default">False</property>
+			  <property name="width_chars">7</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
 			  <property name="right_attach">2</property>
 			  <property name="top_attach">2</property>
 			  <property name="bottom_attach">3</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options">fill</property>
+			  <property name="x_options">expand</property>
+			  <property name="y_options"></property>
 			</packing>
 		      </child>
 
 		      <child>
-			<widget class="GtkHBox" id="hbox2">
+			<widget class="GtkEntry" id="entry4">
 			  <property name="visible">True</property>
-			  <property name="homogeneous">False</property>
-			  <property name="spacing">0</property>
-
-			  <child>
-			    <widget class="GtkEntry" id="eFeedbackToday">
-			      <property name="visible">True</property>
-			      <property name="editable">False</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char">*</property>
-			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">False</property>
-			    </packing>
-			  </child>
+			  <property name="editable">False</property>
+			  <property name="visibility">True</property>
+			  <property name="max_length">7</property>
+			  <property name="text" translatable="yes"></property>
+			  <property name="has_frame">True</property>
+			  <property name="invisible_char">*</property>
+			  <property name="activates_default">False</property>
+			  <property name="width_chars">7</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
 			  <property name="right_attach">2</property>
 			  <property name="top_attach">3</property>
 			  <property name="bottom_attach">4</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options">fill</property>
+			  <property name="x_options">expand</property>
+			  <property name="y_options"></property>
 			</packing>
 		      </child>
 
 		      <child>
-			<widget class="GtkHBox" id="hbox4">
+			<widget class="GtkEntry" id="entry5">
 			  <property name="visible">True</property>
-			  <property name="homogeneous">False</property>
-			  <property name="spacing">0</property>
-
-			  <child>
-			    <widget class="GtkEntry" id="eNewUsersToday">
-			      <property name="visible">True</property>
-			      <property name="editable">False</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char">*</property>
-			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">False</property>
-			    </packing>
-			  </child>
+			  <property name="editable">False</property>
+			  <property name="visibility">True</property>
+			  <property name="max_length">7</property>
+			  <property name="text" translatable="yes"></property>
+			  <property name="has_frame">True</property>
+			  <property name="invisible_char">*</property>
+			  <property name="activates_default">False</property>
+			  <property name="width_chars">7</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
 			  <property name="right_attach">2</property>
 			  <property name="top_attach">4</property>
 			  <property name="bottom_attach">5</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options">fill</property>
+			  <property name="x_options">expand</property>
+			  <property name="y_options"></property>
 			</packing>
 		      </child>
 
 		      <child>
-			<widget class="GtkHBox" id="hbox7">
+			<widget class="GtkEntry" id="entry6">
 			  <property name="visible">True</property>
-			  <property name="homogeneous">False</property>
-			  <property name="spacing">0</property>
-
-			  <child>
-			    <widget class="GtkEntry" id="ePostsToday">
-			      <property name="visible">True</property>
-			      <property name="editable">False</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char">*</property>
-			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">False</property>
-			    </packing>
-			  </child>
+			  <property name="editable">False</property>
+			  <property name="visibility">True</property>
+			  <property name="max_length">7</property>
+			  <property name="text" translatable="yes"></property>
+			  <property name="has_frame">True</property>
+			  <property name="invisible_char">*</property>
+			  <property name="activates_default">False</property>
+			  <property name="width_chars">7</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
 			  <property name="right_attach">2</property>
 			  <property name="top_attach">5</property>
 			  <property name="bottom_attach">6</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options">fill</property>
+			  <property name="x_options">expand</property>
+			  <property name="y_options"></property>
 			</packing>
 		      </child>
 		    </widget>
@@ -2632,16 +2557,16 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkEntry" id="eLogonsTotal">
+			    <widget class="GtkEntry" id="entry7">
 			      <property name="visible">True</property>
 			      <property name="editable">False</property>
 			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
+			      <property name="max_length">7</property>
 			      <property name="text" translatable="yes"></property>
 			      <property name="has_frame">True</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
+			      <property name="width_chars">7</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -2654,16 +2579,16 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkEntry" id="eTimeTotal">
+			    <widget class="GtkEntry" id="entry8">
 			      <property name="visible">True</property>
 			      <property name="editable">False</property>
 			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
+			      <property name="max_length">7</property>
 			      <property name="text" translatable="yes"></property>
 			      <property name="has_frame">True</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
+			      <property name="width_chars">7</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -2676,119 +2601,68 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkHBox" id="hbox8">
+			    <widget class="GtkEntry" id="entry9">
 			      <property name="visible">True</property>
-			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
-
-			      <child>
-				<widget class="GtkEntry" id="eEmailTotal">
-				  <property name="visible">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">7</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">True</property>
-				  <property name="invisible_char">*</property>
-				  <property name="activates_default">False</property>
-				  <property name="width_chars">7</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<placeholder/>
-			      </child>
+			      <property name="editable">False</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">7</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">7</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
 			      <property name="right_attach">2</property>
 			      <property name="top_attach">2</property>
 			      <property name="bottom_attach">3</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
+			      <property name="x_options">expand</property>
+			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 
 			  <child>
-			    <widget class="GtkHBox" id="hbox9">
+			    <widget class="GtkEntry" id="entry10">
 			      <property name="visible">True</property>
-			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
-
-			      <child>
-				<widget class="GtkEntry" id="eFeedbackTotal">
-				  <property name="visible">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">7</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">True</property>
-				  <property name="invisible_char">*</property>
-				  <property name="activates_default">False</property>
-				  <property name="width_chars">7</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<placeholder/>
-			      </child>
+			      <property name="editable">False</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">7</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">7</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
 			      <property name="right_attach">2</property>
 			      <property name="top_attach">3</property>
 			      <property name="bottom_attach">4</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
+			      <property name="x_options">expand</property>
+			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 
 			  <child>
-			    <widget class="GtkHBox" id="hbox10">
+			    <widget class="GtkEntry" id="entry11">
 			      <property name="visible">True</property>
-			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
-
-			      <child>
-				<widget class="GtkEntry" id="eUsersTotal">
-				  <property name="visible">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">7</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">True</property>
-				  <property name="invisible_char">*</property>
-				  <property name="activates_default">False</property>
-				  <property name="width_chars">7</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<placeholder/>
-			      </child>
+			      <property name="editable">False</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">7</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">7</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
 			      <property name="right_attach">2</property>
 			      <property name="top_attach">4</property>
 			      <property name="bottom_attach">5</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
+			      <property name="x_options">expand</property>
+			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 			</widget>
@@ -2940,16 +2814,38 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkEntry" id="eBytesUploadedToday">
+			    <widget class="GtkEntry" id="entry12">
 			      <property name="visible">True</property>
 			      <property name="editable">False</property>
 			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
+			      <property name="max_length">7</property>
 			      <property name="text" translatable="yes"></property>
 			      <property name="has_frame">True</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
+			      <property name="width_chars">7</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">expand</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry13">
+			      <property name="visible">True</property>
+			      <property name="editable">False</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">10</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -2958,45 +2854,6 @@
 			      <property name="bottom_attach">2</property>
 			      <property name="x_options">expand</property>
 			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkHBox" id="hbox11">
-			      <property name="visible">True</property>
-			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
-
-			      <child>
-				<widget class="GtkEntry" id="eFilesUploadedToday">
-				  <property name="visible">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">7</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">True</property>
-				  <property name="invisible_char">*</property>
-				  <property name="activates_default">False</property>
-				  <property name="width_chars">7</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<placeholder/>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
 			    </packing>
 			  </child>
 			</widget>
@@ -3119,16 +2976,38 @@
 			  </child>
 
 			  <child>
-			    <widget class="GtkEntry" id="eBytesDownloadedToday">
+			    <widget class="GtkEntry" id="entry14">
 			      <property name="visible">True</property>
 			      <property name="editable">False</property>
 			      <property name="visibility">True</property>
-			      <property name="max_length">15</property>
+			      <property name="max_length">7</property>
 			      <property name="text" translatable="yes"></property>
 			      <property name="has_frame">True</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>
-			      <property name="width_chars">15</property>
+			      <property name="width_chars">7</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">expand</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry15">
+			      <property name="visible">True</property>
+			      <property name="editable">False</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">10</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -3137,45 +3016,6 @@
 			      <property name="bottom_attach">2</property>
 			      <property name="x_options">expand</property>
 			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkHBox" id="hbox12">
-			      <property name="visible">True</property>
-			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
-
-			      <child>
-				<widget class="GtkEntry" id="eFilesDownloadedToday">
-				  <property name="visible">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">7</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">True</property>
-				  <property name="invisible_char">*</property>
-				  <property name="activates_default">False</property>
-				  <property name="width_chars">7</property>
-				</widget>
-				<packing>
-				  <property name="padding">0</property>
-				  <property name="expand">False</property>
-				  <property name="fill">False</property>
-				</packing>
-			      </child>
-
-			      <child>
-				<placeholder/>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
 			    </packing>
 			  </child>
 			</widget>
@@ -3224,174 +3064,6 @@
 	  <property name="padding">0</property>
 	  <property name="expand">False</property>
 	  <property name="fill">True</property>
-	</packing>
-      </child>
-    </widget>
-  </child>
-</widget>
-
-<widget class="GtkMenu" id="nodepopup">
-
-  <child>
-    <widget class="GtkMenuItem" id="lock_node1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Lock Node</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_lock_node1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="down_node1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Down Node</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_down_node1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="interrupt_node1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Interrupt Node</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_interrupt_node1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="rerun_node1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Rerun Node</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_rerun_node1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="clear_error_log1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Clear Error Log</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_clear_error_log1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="spy_on_user1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Spy on User</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_spy_on_user1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="chat_with_user1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Chat With User</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_chat_with_user1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="send_message_to_user1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Send Message to User</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_send_message_to_user1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkMenuItem" id="edit_user1">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Edit User</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_edit_user1_activate" last_modification_time="Sun, 07 May 2006 21:17:14 GMT"/>
-    </widget>
-  </child>
-</widget>
-
-<widget class="GtkAboutDialog" id="aboutdialog">
-  <property name="visible">True</property>
-  <property name="destroy_with_parent">False</property>
-  <property name="name" translatable="yes">GTK Monitor</property>
-  <property name="copyright" translatable="yes">Copyright (c) 2006 by Rob Swindell</property>
-  <property name="license" translatable="yes">GNU GENERAL PUBLIC LICENSE
-</property>
-  <property name="wrap_license">False</property>
-  <property name="website">http://www.synchro.net/</property>
-  <property name="website_label" translatable="yes">Synchronet</property>
-  <property name="authors">Stephen Hurd</property>
-  <property name="translator_credits" translatable="yes" comments="TRANSLATORS: Replace this string with your names, one name per line.">translator-credits</property>
-</widget>
-
-<widget class="GtkFileChooserDialog" id="filechooserdialog">
-  <property name="visible">True</property>
-  <property name="action">GTK_FILE_CHOOSER_ACTION_OPEN</property>
-  <property name="local_only">False</property>
-  <property name="select_multiple">False</property>
-  <property name="show_hidden">False</property>
-  <property name="do_overwrite_confirmation">False</property>
-  <property name="type">GTK_WINDOW_TOPLEVEL</property>
-  <property name="window_position">GTK_WIN_POS_NONE</property>
-  <property name="modal">True</property>
-  <property name="resizable">True</property>
-  <property name="destroy_with_parent">False</property>
-  <property name="icon_name">gtk-open</property>
-  <property name="decorated">True</property>
-  <property name="skip_taskbar_hint">False</property>
-  <property name="skip_pager_hint">False</property>
-  <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
-  <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
-  <property name="focus_on_map">True</property>
-  <property name="urgency_hint">False</property>
-
-  <child internal-child="vbox">
-    <widget class="GtkVBox" id="dialog-vbox1">
-      <property name="visible">True</property>
-      <property name="homogeneous">False</property>
-      <property name="spacing">24</property>
-
-      <child internal-child="action_area">
-	<widget class="GtkHButtonBox" id="dialog-action_area1">
-	  <property name="visible">True</property>
-	  <property name="layout_style">GTK_BUTTONBOX_END</property>
-
-	  <child>
-	    <widget class="GtkButton" id="button2">
-	      <property name="visible">True</property>
-	      <property name="can_default">True</property>
-	      <property name="can_focus">True</property>
-	      <property name="label">gtk-cancel</property>
-	      <property name="use_stock">True</property>
-	      <property name="relief">GTK_RELIEF_NORMAL</property>
-	      <property name="focus_on_click">True</property>
-	      <property name="response_id">-6</property>
-	    </widget>
-	  </child>
-
-	  <child>
-	    <widget class="GtkButton" id="button3">
-	      <property name="visible">True</property>
-	      <property name="can_default">True</property>
-	      <property name="has_default">True</property>
-	      <property name="can_focus">True</property>
-	      <property name="label">gtk-open</property>
-	      <property name="use_stock">True</property>
-	      <property name="relief">GTK_RELIEF_NORMAL</property>
-	      <property name="focus_on_click">True</property>
-	      <property name="response_id">-5</property>
-	    </widget>
-	  </child>
-	</widget>
-	<packing>
-	  <property name="padding">0</property>
-	  <property name="expand">False</property>
-	  <property name="fill">True</property>
-	  <property name="pack_type">GTK_PACK_END</property>
 	</packing>
       </child>
     </widget>

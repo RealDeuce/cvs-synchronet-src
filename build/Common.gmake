@@ -2,13 +2,13 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.52 2006/04/21 02:50:03 deuce Exp $
+# $Id: Common.gmake,v 1.60 2006/12/29 02:54:32 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
 # @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)			#
 #																			#
-# Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		#
+# Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		#
 #																			#
 # This program is free software; you can redistribute it and/or				#
 # modify it under the terms of the GNU General Public License				#
@@ -109,7 +109,7 @@
 
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.13
+ VERSION	:=	3.14
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -196,7 +196,7 @@ ifndef os
 endif
 os      :=	$(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
-machine		:=	$(shell if uname -m | egrep -v "(i[3456789]|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
+machine		:=	$(shell if uname -m | egrep -v "(i[3456789]*|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
 ifeq ($(machine),sparc64)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
@@ -281,14 +281,17 @@ ifeq ($(os),linux)    # Linux
  endif
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
+CFLAGS    += -D_THREAD_SAFE -D_REENTRANT -D__EXTENSIONS__
 ifeq ($(os),freebsd)    # FreeBSD
  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
  MT_LDFLAGS    +=    -pthread
+ LDFLAGS    +=    -pthread
  XP_SEM    :=    1
 else
  ifeq ($(os),openbsd)    # OpenBSD
   MT_CFLAGS    += -DUSE_XP_SEMAPHORES
   MT_LDFLAGS    +=    -pthread
+  LDFLAGS    +=    -pthread
   XP_SEM    :=    1
  else
   ifeq ($(os),netbsd)    # NetBSD
@@ -341,21 +344,28 @@ CIOLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)conio
 SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
 
+# SDL disabled by default for the moment.
+ifndef USE_SDL
+ WITHOUT_SDL	:=	1
+endif
+
 # Pull in lib-specific flags
--include		$(CIOLIB_SRC)$(DIRSEP)Common.make
--include		$(UIFC_SRC)$(DIRSEP)Common.make
--include		$(SMBLIB_SRC)$(DIRSEP)Common.make
 -include		$(XPDEV_SRC)$(DIRSEP)Common.make
--include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
--include		$(UIFC_SRC)$(DIRSEP)Common.gmake
--include		$(SMBLIB_SRC)$(DIRSEP)Common.gmake
 -include		$(XPDEV_SRC)$(DIRSEP)Common.gmake
+-include		$(SMBLIB_SRC)$(DIRSEP)Common.make
+-include		$(SMBLIB_SRC)$(DIRSEP)Common.gmake
+-include		$(CIOLIB_SRC)$(DIRSEP)Common.make
+-include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
+-include		$(UIFC_SRC)$(DIRSEP)Common.make
+-include		$(UIFC_SRC)$(DIRSEP)Common.gmake
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
  CFLAGS	+=	-D_DEBUG
 else # RELEASE
- CFLAGS	:= -O2 -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops $(CFLAGS)
+ # -finline functions breaks the baja build badly.
+ # This also means that -O3 won't work either.
+ CFLAGS	:= -O2 -fomit-frame-pointer -ffast-math -funroll-loops $(CFLAGS)
 endif
 
 -include targets.mk
