@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.50 2005/12/22 17:13:32 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.51 2006/12/28 02:45:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -446,14 +446,13 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			if(subscan!=NULL)
 				JS_SetPrivate(cx,subobj,&subscan[d]);
 
+			val=OBJECT_TO_JSVAL(subobj);
 			sub_index=-1;
-
 			if(user==NULL || chk_ar(cfg,cfg->sub[d]->ar,user)) {
 
 				if(!JS_GetArrayLength(cx, sub_list, &sub_index))
 					return(NULL);							
 
-				val=OBJECT_TO_JSVAL(subobj);
 				if(!JS_SetElement(cx, sub_list, sub_index, &val))
 					return(NULL);
 			}
