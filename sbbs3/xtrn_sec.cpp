@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.51 2006/05/09 02:54:53 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.55 2006/09/15 01:01:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,6 +306,34 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 	struct tm tl;
 	stats_t stats;
 
+	char	node_dir[MAX_PATH+1];
+	char	ctrl_dir[MAX_PATH+1];
+	char	data_dir[MAX_PATH+1];
+	char	exec_dir[MAX_PATH+1];
+	char	text_dir[MAX_PATH+1];
+	char	temp_dir[MAX_PATH+1];
+
+	SAFECOPY(node_dir,cfg.node_dir);
+	SAFECOPY(ctrl_dir,cfg.ctrl_dir);
+	SAFECOPY(data_dir,cfg.data_dir);
+	SAFECOPY(exec_dir,cfg.exec_dir);
+	SAFECOPY(text_dir,cfg.text_dir);
+	SAFECOPY(temp_dir,cfg.temp_dir);
+
+#ifdef _WIN32
+
+	if(!(misc&XTRN_NATIVE)) {
+		/* Put Micros~1 shortened paths in drop files when running 16-bit DOS programs */
+		GetShortPathName(cfg.node_dir,node_dir,sizeof(node_dir));
+		GetShortPathName(cfg.ctrl_dir,node_dir,sizeof(ctrl_dir));
+		GetShortPathName(cfg.data_dir,data_dir,sizeof(data_dir));
+		GetShortPathName(cfg.exec_dir,exec_dir,sizeof(exec_dir));
+		GetShortPathName(cfg.text_dir,text_dir,sizeof(text_dir));
+		GetShortPathName(cfg.temp_dir,temp_dir,sizeof(temp_dir));
+	}
+
+#endif
+
 	if(type==XTRN_SBBS) {	/* SBBS XTRN.DAT file */
 		strcpy(tmp,"XTRN.DAT");
 		if(misc&XTRN_LWRCASE)
@@ -325,13 +353,13 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,strlen(str));
 
 		sprintf(str,"%s\n%s\n%u\n%u\n%lu\n%s\n%lu\n%lu\n"
-			,cfg.ctrl_dir						/* Ctrl dir */
-			,cfg.data_dir						/* Data dir */
+			,ctrl_dir							/* Ctrl dir */
+			,data_dir							/* Data dir */
 			,cfg.sys_nodes						/* Total system nodes */
 			,cfg.node_num						/* Current node */
 			,tleft								/* User Timeleft in seconds */
-			,useron.misc&ANSI					/* User ANSI ? (Yes/Mono/No) */
-				? useron.misc&COLOR
+			,term_supports(ANSI)				/* User ANSI ? (Yes/Mono/No) */
+				? term_supports(COLOR)
 				? "Yes":"Mono":"No"
 			,rows								/* User Screen lines */
 			,useron.cdt+useron.freecdt);		/* User Credits */
@@ -406,9 +434,9 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,0									/* Time-slice type */
 			,useron.name						/* Real name/company */
 			,cur_rate							/* DCE rate */
-			,cfg.exec_dir
-			,cfg.text_dir
-			,cfg.temp_dir
+			,exec_dir
+			,text_dir
+			,temp_dir
 			,cfg.sys_id
 			,cfg.node_misc
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
@@ -451,7 +479,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.level						/* User SL */
 			,0									/* Cosysop? */
 			,SYSOP								/* Sysop? (1/0) */
-			,(useron.misc&ANSI) ? 1:0			/* ANSI ? (1/0) */
+			,term_supports(ANSI)				/* ANSI ? (1/0) */
 			,online==ON_REMOTE);				/* Remote (1/0) */
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -459,8 +487,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(str,"%lu\n%s\n%s\n%s\n%lu\n%d\n%s\n%s\n"
 			"%u\n%u\n%lu\n%u\n%lu\n%u\n%s\n"
 			,tleft								/* Time left in seconds */
-			,cfg.node_dir						/* Gfiles dir (log dir) */
-			,cfg.data_dir						/* Data dir */
+			,node_dir							/* Gfiles dir (log dir) */
+			,data_dir							/* Data dir */
 			,"node.log"                         /* Name of log file */
 			,dte_rate							/* DTE rate */
 			,cfg.com_port						/* COM port number */
@@ -499,11 +527,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			}
 			else {
 				sprintf(str,"COM0:SOCKET%d\n",
-#ifdef __unix__
-					client_socket
-#else
 					client_socket_dup
-#endif
 				);
 			}
 		}
@@ -575,8 +599,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,0									/* 30: Kbytes downloaded today */
 			,(useron.cdt+useron.freecdt)/1024UL /* 31: Max Kbytes to download today */
 			,useron.birth						/* 32: User birthday */
-			,cfg.node_dir						/* 33: Path to MAIN directory */
-			,cfg.data_dir						/* 34: Path to GEN directory */
+			,node_dir							/* 33: Path to MAIN directory */
+			,data_dir							/* 34: Path to GEN directory */
 			,cfg.sys_op 						/* 35: Sysop name */
 			,nulstr 							/* 36: Alias name */
 			,0 // sys_eventtime/60				/* 37: Event time HH:MM */
@@ -660,7 +684,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,tmp								/* User's firstname */
 			,p									/* User's lastname */
 			,useron.location					/* User's city */
-			,(useron.misc&ANSI)==ANSI			/* 1=ANSI 0=ASCII */
+			,term_supports(ANSI)				/* 1=ANSI 0=ASCII */
 			,useron.level						/* Security level */
 			,tleft/60); 						/* Time left in minutes */
 		strupr(str);
@@ -710,7 +734,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		if(useron.misc&DELETED) c|=(1<<0);
 		if(useron.misc&CLRSCRN) c|=(1<<1);
 		if(useron.misc&UPAUSE)	 c|=(1<<2);
-		if(useron.misc&ANSI)	c|=(1<<3);
+		if(term_supports(ANSI))	c|=(1<<3);
 		if(useron.sex=='F')     c|=(1<<7);
 		write(file,&c,1);						/* Attrib */
 		write(file,&useron.flags1,4);			/* Flags */
@@ -798,7 +822,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,49); 					/* ChatReason */
 		c=0;
 		write(file,&c,1);						/* ExternLogoff */
-		c=useron.misc&ANSI ? 1:0;
+		c=(char)term_supports(ANSI);
 		write(file,&c,1);						/* ANSI_Capable */
 		close(file);
 	}
@@ -844,7 +868,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.location					/* User location */
 			,useron.level						/* Security level */
 			,tleft/60							/* Time left in min */
-			,useron.misc&ANSI ? "COLOR":"MONO"  /* ANSI ??? */
+			,term_supports(ANSI) ? "COLOR":"MONO"  /* ANSI ??? */
 			,useron.pass						/* Password */
 			,useron.number);					/* User number */
 		lfexpand(str,misc);
@@ -1002,7 +1026,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,cfg.com_port						/* COM Port number */
 			,' ' 								/* Reserved */
 			,' ' 								/* "" */
-			,(useron.misc&ANSI)==ANSI			/* 1=ANSI 0=NO ANSI */
+			,term_supports(ANSI)				/* 1=ANSI 0=NO ANSI */
 			,"01-01-80"                         /* last event date */
 			,0,0								/* last event minute */
 			,0									/* caller exited to dos */
@@ -1158,7 +1182,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			"%s\n%s\n%lu\n%s\n%u\n%u\n%u\n%u\n%u\n%lu\n%u\n"
 			"%lu\n%lu\n%s\n%s\n"
 			,dropdir
-			,useron.misc&ANSI ? "TRUE":"FALSE"  /* ANSI ? True or False */
+			,term_supports(ANSI) ? "TRUE":"FALSE"  /* ANSI ? True or False */
 			,useron.level						/* Security level */
 			,useron.uls 						/* Total uploads */
 			,useron.dls 						/* Total downloads */
@@ -1224,8 +1248,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 
 		sprintf(str,"%s\n%d\n%d\n%lu\n%lu\n%u\n%lu\n"
 			,name								/* Complete name of user */
-			,useron.misc&ANSI ? 1:0 			/* ANSI ? */
-			,useron.misc&NO_EXASCII ? 0:1		/* IBM characters ? */
+			,term_supports(ANSI)	 			/* ANSI ? */
+			,term_supports(NO_EXASCII) ? 0:1	/* IBM characters ? */
 			,rows								/* Page length */
 			,dte_rate							/* Baud rate */
 			,online==ON_LOCAL ? 0:cfg.com_port	/* COM port */
@@ -1252,7 +1276,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.pass						/* User's password */
 			,useron.level						/* User's level */
 			,useron.misc&EXPERT ? 'Y':'N'       /* Expert? */
-			,useron.misc&ANSI ? 'Y':'N'         /* ANSI? */
+			,term_supports(ANSI) ? 'Y':'N'      /* ANSI? */
 			,tleft/60							/* Minutes left */
 			,useron.phone						/* User's phone number */
 			,useron.location					/* User's city and state */
@@ -1290,18 +1314,14 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(str,"%d\n%d\n38400\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
 			"%d\n%d\n"
 			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
-#if defined(__unix__)
-			,misc&IO_INTS ? INVALID_SOCKET : client_socket
-#else
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
-#endif
 			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
 			,name
 			,useron.level
 			,tleft/60
-			,useron.misc&ANSI ? 1 : 0
+			,term_supports(ANSI)
 			,cfg.node_num);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -1723,10 +1743,12 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	sprintf(str,"%shangup.now",cfg.node_dir);
 	if(fexistcase(str)) {
+		lprintf(LOG_NOTICE,"Node %d External program requested hangup (%s signaled)"
+			,cfg.node_num, str);
 		remove(str);
 		hangup(); 
 	}
-	if(!online) {
+	else if(!online) {
 		sprintf(str,"%shungup.log",cfg.logs_dir);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
