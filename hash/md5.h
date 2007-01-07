@@ -1,6 +1,6 @@
 /* md5.h - header file for md5.c */
 
-/* $Id: md5.h,v 1.6 2007/08/12 19:24:08 deuce Exp $ */
+/* $Id: md5.h,v 1.5 2004/09/23 19:09:53 rswindell Exp $ */
 
 /* RSA Data Security, Inc., MD5 Message-Digest Algorithm */
 
@@ -33,18 +33,20 @@ documentation and/or software.
 #define H__MD5
 
 #include <stddef.h>		/* size_t */
-#include <gen_defs.h>	/* uint32_t */
 
 #define MD5_DIGEST_SIZE		16
 
+#ifndef UINT4
+	typedef unsigned long UINT4;
+#endif
 #ifndef BYTE
 	typedef unsigned char BYTE;
 #endif
 
 typedef struct
 {
-  uint32_t	state[4];
-  uint32_t	count[2];
+  UINT4	state[4];
+  UINT4	count[2];
   BYTE	buffer[64];
 } MD5;
 
