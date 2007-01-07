@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.67 2007/07/31 19:38:05 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.66 2006/12/27 09:19:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,10 +53,8 @@ enum {
 	,CON_PROP_TERMINAL
 	,CON_PROP_WORDWRAP
 	,CON_PROP_QUESTION
-	,CON_PROP_INACTIV_WARN
-	,CON_PROP_INACTIV_HANGUP
 	,CON_PROP_TIMEOUT			/* User inactivity timeout reference */
-	,CON_PROP_TIMELEFT_WARN		/* low timeleft warning counter */
+	,CON_PROP_TIMELEFT_WARN		/* low timeleft warning flag */
 	,CON_PROP_ABORTED
 	,CON_PROP_ABORTABLE
 	,CON_PROP_TELNET_MODE
@@ -108,13 +106,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				return(JS_FALSE);
 			*vp = STRING_TO_JSVAL(js_str);
 			return(JS_TRUE);
-
-		case CON_PROP_INACTIV_WARN:
-			val=sbbs->cfg.sec_warn;
-			break;
-		case CON_PROP_INACTIV_HANGUP:
-			val=sbbs->cfg.sec_hangup;
-			break;
 		case CON_PROP_TIMEOUT:
 			val=sbbs->timeout;
 			break;
@@ -158,7 +149,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case CON_PROP_OUTBUF_SPACE:
 			val=RingBufFree(&sbbs->outbuf);
 			break;
-
 		default:
 			return(JS_TRUE);
 	}
@@ -214,12 +204,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if((str=JS_ValueToString(cx, *vp))==NULL)
 				break;
 			SAFECOPY(sbbs->terminal,JS_GetStringBytes(str));
-			break;
-		case CON_PROP_INACTIV_WARN:
-			sbbs->cfg.sec_warn = (uint16_t)val;
-			break;
-		case CON_PROP_INACTIV_HANGUP:
-			sbbs->cfg.sec_hangup = (uint16_t)val;
 			break;
 		case CON_PROP_TIMEOUT:
 			sbbs->timeout=val;
@@ -283,7 +267,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
-
 		default:
 			return(JS_TRUE);
 	}
@@ -304,8 +287,6 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"screen_columns"	,CON_PROP_COLUMNS			,CON_PROP_FLAGS	,311},
 	{	"autoterm"			,CON_PROP_AUTOTERM			,CON_PROP_FLAGS	,310},
 	{	"terminal"			,CON_PROP_TERMINAL			,CON_PROP_FLAGS ,311},
-	{	"inactivity_warning",CON_PROP_INACTIV_WARN		,CON_PROP_FLAGS, 31401},
-	{	"inactivity_hangup"	,CON_PROP_INACTIV_HANGUP	,CON_PROP_FLAGS, 31401},
 	{	"timeout"			,CON_PROP_TIMEOUT			,CON_PROP_FLAGS	,310},
 	{	"timeleft_warning"	,CON_PROP_TIMELEFT_WARN		,CON_PROP_FLAGS	,310},
 	{	"aborted"			,CON_PROP_ABORTED			,CON_PROP_FLAGS	,310},
@@ -333,10 +314,8 @@ static char* con_prop_desc[] = {
 	,"bitfield of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"terminal type description (e.g. 'ANSI')"
-	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
-	,"number of seconds before disconnection due to user/keyboard inactivity"
-	,"user/keyboard inactivity timeout reference value (time_t format)"
-	,"number of low time-left (5 or fewer minutes remaining) warnings displayed to user"
+	,"user inactivity timeout reference"
+	,"low timeleft warning flag"
 	,"input/output has been aborted"
 	,"output can be aborted with Ctrl-C"
 	,"current telnet mode bitfield (see <tt>TELNET_MODE_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"

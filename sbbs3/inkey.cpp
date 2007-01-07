@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.32 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: inkey.cpp,v 1.28 2006/09/07 22:59:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,7 +71,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 		&& (!(sys_status&SS_USERON) || useron.misc&NO_EXASCII))
 		ch&=0x7f; 
 
-	this->timeout=time(NULL);
+	timeout=time(NULL);
 
 	/* Is this a control key */
 	if(ch<' ') {
@@ -221,8 +221,8 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			SAVELINE;
 			attr(LIGHTGRAY);
 			now=time(NULL);
-			bprintf(text[TiLogon],timestr(logontime));
-			bprintf(text[TiNow],timestr(now));
+			bprintf(text[TiLogon],timestr(&logontime));
+			bprintf(text[TiNow],timestr(&now));
 			bprintf(text[TiTimeon]
 				,sectostr(now-logontime,tmp));
 			bprintf(text[TiTimeLeft]
