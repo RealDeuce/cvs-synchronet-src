@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.60 2006/11/16 20:41:06 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.61 2007/01/06 09:20:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -671,7 +671,8 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 		p++;				/* skip space */
 		SKIP_CHAR(p,' ');	/* skip more spaces */
 	}
-	strcpy(main_csi.str, p);
+	if(*p)
+		strcpy(main_csi.str, p);
 
 #ifdef JAVASCRIPT
 	if((p=getfext(mod))!=NULL && stricmp(p,".js")==0)
