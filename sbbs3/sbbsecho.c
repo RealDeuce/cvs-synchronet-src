@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.175 2005/11/17 02:15:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.183 2007/01/07 19:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -72,7 +72,6 @@ smb_t *smb,*email;
 long misc=(IMPORT_PACKETS|IMPORT_NETMAIL|IMPORT_ECHOMAIL|EXPORT_ECHOMAIL
 			|DELETE_NETMAIL|DELETE_PACKETS);
 ulong netmail=0;
-int log_level=LOG_NOTICE;
 char tmp[256],pkt_type=0;
 int secure,cur_smb=0;
 FILE *fidologfile=NULL;
@@ -141,7 +140,7 @@ int lprintf(int level, char *fmat, ...)
 	truncsp(sbuf);
 	printf("%s\n",sbuf);
 
-	if(level<=log_level)
+	if(level<=cfg.log_level)
 		logprintf("%s",sbuf);
 	return(chcount);
 }
@@ -602,14 +601,14 @@ void notify_list(void)
 				fprintf(tmpf,"%s",str); }
 
 		if(ftell(tmpf))
-			file_to_netmail(tmpf,"SBBSecho Notify List",cfg.nodecfg[k].faddr,0);
+			file_to_netmail(tmpf,"SBBSecho Notify List",cfg.nodecfg[k].faddr, /* To: */NULL);
 		fclose(tmpf); }
 }
 /******************************************************************************
  This function creates a netmail to addr showing a list of available areas (0),
  a list of connected areas (1), or a list of removed areas (2).
 ******************************************************************************/
-void netmail_arealist(int type, faddr_t addr)
+void netmail_arealist(int type, faddr_t addr, char* to)
 {
 	FILE *stream,*tmpf;
 	char str[256],temp[256],title[128],match,*p,*tp;
@@ -677,9 +676,9 @@ void netmail_arealist(int type, faddr_t addr)
 							break; } } } } }
 
 	if(!ftell(tmpf))
-		create_netmail(NULL,title,"None.",addr,FALSE);
+		create_netmail(to,title,"None.",addr,FALSE);
 	else
-		file_to_netmail(tmpf,title,addr,0);
+		file_to_netmail(tmpf,title,addr,to);
 	fclose(tmpf);
 }
 /******************************************************************************
@@ -748,7 +747,7 @@ int check_elists(char *areatag,faddr_t addr)
 /******************************************************************************
  Used by AREAFIX to add/remove/change areas in the areas file
 ******************************************************************************/
-void alter_areas(area_t* add_area,area_t* del_area,faddr_t addr)
+void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 {
 	FILE *nmfile,*afilein,*afileout,*fwdfile;
 	char str[1024],fields[1024],field1[256],field2[256],field3[256]
@@ -963,7 +962,7 @@ void alter_areas(area_t* add_area,area_t* del_area,faddr_t addr)
 							fclose(afilein);
 							if(!(cfg.listcfg[j].misc&NOFWD) && ftell(fwdfile)>0)
 								file_to_netmail(fwdfile,cfg.listcfg[j].password
-									,cfg.listcfg[j].forward,"Areafix");
+									,cfg.listcfg[j].forward,/* To: */"Areafix");
 							fclose(fwdfile);
 							match=1;
 							break; } } } } }
@@ -972,9 +971,9 @@ void alter_areas(area_t* add_area,area_t* del_area,faddr_t addr)
 			if(add_area->tag[i][0])
 				fprintf(nmfile,"%s not found.\r\n",add_area->tag[i]); }
 	if(!ftell(nmfile))
-		create_netmail(NULL,"Area Change Request","No changes made.",addr,FALSE);
+		create_netmail(to,"Area Change Request","No changes made.",addr,FALSE);
 	else
-		file_to_netmail(nmfile,"Area Change Request",addr,0);
+		file_to_netmail(nmfile,"Area Change Request",addr,to);
 	fclose(nmfile);
 	fclose(afileout);
 	if(delfile(cfg.areafile))					/* Delete AREAS.BBS */
@@ -1113,7 +1112,7 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 /******************************************************************************
  Used by AREAFIX to process any '%' commands that come in via netmail
 ******************************************************************************/
-void command(char *instr,faddr_t addr)
+void command(char* instr, faddr_t addr, char* to)
 {
 	FILE *stream,*tmpf;
 	char str[MAX_PATH+1],temp[256],*buf,*p;
@@ -1144,23 +1143,23 @@ void command(char *instr,faddr_t addr)
 		fread(buf,l,1,stream);
 		fclose(stream);
 		buf[l]=0;
-		create_netmail(NULL,"Area Manager Help",buf,addr,FALSE);
+		create_netmail(to,"Area Manager Help",buf,addr,FALSE);
 		free(buf);
 		return; 
 	}
 
 	if((p=strstr(instr,"LIST"))!=NULL) {
-		netmail_arealist(0,addr);
+		netmail_arealist(0,addr,to);
 		return; 
 	}
 
 	if((p=strstr(instr,"QUERY"))!=NULL) {
-		netmail_arealist(1,addr);
+		netmail_arealist(1,addr,to);
 		return; 
 	}
 
 	if((p=strstr(instr,"UNLINKED"))!=NULL) {
-		netmail_arealist(2,addr);
+		netmail_arealist(2,addr,to);
 		return; 
 	}
 
@@ -1180,7 +1179,7 @@ void command(char *instr,faddr_t addr)
 				"Available types are:\r\n");
 			for(i=0;i<cfg.arcdefs;i++)
 				fprintf(tmpf,"                     %s\r\n",cfg.arcdef[i].name);
-			file_to_netmail(tmpf,"Compression Type Change",addr,0);
+			file_to_netmail(tmpf,"Compression Type Change",addr,to);
 			fclose(tmpf);
 			return; 
 		}
@@ -1188,7 +1187,7 @@ void command(char *instr,faddr_t addr)
 			,cfg.arcdef[i].name,0);
 		cfg.nodecfg[node].arctype=i;
 		sprintf(str,"Compression type changed to %s.",cfg.arcdef[i].name);
-		create_netmail(NULL,"Compression Type Change",str,addr,FALSE);
+		create_netmail(to,"Compression Type Change",str,addr,FALSE);
 		return; 
 	}
 
@@ -1204,19 +1203,19 @@ void command(char *instr,faddr_t addr)
 		if(!stricmp(temp,cfg.nodecfg[node].password)) {
 			sprintf(str,"Your password was already set to %s."
 				,cfg.nodecfg[node].password);
-			create_netmail(NULL,"Password Change Request",str,addr,FALSE);
+			create_netmail(to,"Password Change Request",str,addr,FALSE);
 			return; }
 		alter_config(addr,cfg.nodecfg[node].password,temp,1);
 		sprintf(str,"Your password has been changed from %s to %.25s."
 			,cfg.nodecfg[node].password,temp);
 		sprintf(cfg.nodecfg[node].password,"%.25s",temp);
-		create_netmail(NULL,"Password Change Request",str,addr,FALSE);
+		create_netmail(to,"Password Change Request",str,addr,FALSE);
 		return; 
 	}
 
 	if((p=strstr(instr,"RESCAN"))!=NULL) {
 		export_echomail("",addr);
-		create_netmail(NULL,"Rescan Areas"
+		create_netmail(to,"Rescan Areas"
 			,"All connected areas carried by your hub have been rescanned."
 			,addr,FALSE);
 		return; 
@@ -1224,23 +1223,23 @@ void command(char *instr,faddr_t addr)
 
 	if((p=strstr(instr,"ACTIVE"))!=NULL) {
 		if(!(cfg.nodecfg[node].attr&ATTR_PASSIVE)) {
-			create_netmail(NULL,"Reconnect Disconnected Areas"
+			create_netmail(to,"Reconnect Disconnected Areas"
 				,"Your areas are already connected.",addr,FALSE);
 			return; }
 		alter_config(addr,0,0,3);
-		create_netmail(NULL,"Reconnect Disconnected Areas"
+		create_netmail(to,"Reconnect Disconnected Areas"
 			,"Temporarily disconnected areas have been reconnected.",addr,FALSE);
 		return; 
 	}
 
 	if((p=strstr(instr,"PASSIVE"))!=NULL) {
 		if(cfg.nodecfg[node].attr&ATTR_PASSIVE) {
-			create_netmail(NULL,"Temporarily Disconnect Areas"
+			create_netmail(to,"Temporarily Disconnect Areas"
 				,"Your areas are already temporarily disconnected.",addr,FALSE);
 			return; 
 		}
 		alter_config(addr,0,0,2);
-		create_netmail(NULL,"Temporarily Disconnect Areas"
+		create_netmail(to,"Temporarily Disconnect Areas"
 			,"Your areas have been temporarily disconnected.",addr,FALSE);
 		return; 
 	}
@@ -1259,7 +1258,7 @@ void command(char *instr,faddr_t addr)
 			bail(1); }
 		strcpy(add_area.tag[add_area.tags],instr);
 		add_area.tags++;
-		alter_areas(&add_area,&del_area,addr);
+		alter_areas(&add_area,&del_area,addr,to);
 		for(i=0;i<add_area.tags;i++)
 			free(add_area.tag[i]);
 		FREE_AND_NULL(add_area.tag);
@@ -1278,7 +1277,7 @@ void command(char *instr,faddr_t addr)
 			bail(1); }
 		strcpy(del_area.tag[del_area.tags],instr);
 		del_area.tags++;
-		alter_areas(&add_area,&del_area,addr);
+		alter_areas(&add_area,&del_area,addr,to);
 		for(i=0;i<del_area.tags;i++)
 			free(del_area.tag[i]);
 		FREE_AND_NULL(del_area.tag);
@@ -1289,7 +1288,7 @@ void command(char *instr,faddr_t addr)
  This is where we're gonna process any netmail that comes in for areafix.
  Returns text for message body for the local sysop if necessary.
 ******************************************************************************/
-char *process_areafix(faddr_t addr,char* inbuf,char *password)
+char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 {
 	static char body[512];
 	char str[128];
@@ -1322,7 +1321,7 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 
 	i=matchnode(addr,0);
 	if(i>=cfg.nodecfgs) {
-		create_netmail(NULL,"Areafix Request"
+		create_netmail(to,"Areafix Request"
 			,"Your node is not configured for Areafix, please contact your hub.\r\n",addr,FALSE);
 		sprintf(body,"An areafix request was made by node %s.\r\nThis node "
 			"is not currently configured for areafix.\r\n"
@@ -1330,7 +1329,7 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 		return(body); }
 
 	if(stricmp(cfg.nodecfg[i].password,password)) {
-		create_netmail(NULL,"Areafix Request","Invalid Password.",addr,FALSE);
+		create_netmail(to,"Areafix Request","Invalid Password.",addr,FALSE);
 		sprintf(body,"Node %s attempted an areafix request using an invalid "
 			"password.\r\nThe password attempted was %s.\r\nThe correct password "
 			"for this node is %s.\r\n",smb_faddrtoa(&addr,NULL),password
@@ -1387,19 +1386,19 @@ char *process_areafix(faddr_t addr,char* inbuf,char *password)
 				del_area.tags++;
 				break;
 			case '%':                       /* Process Command */
-				command(str,addr);
+				command(str,addr,to);
 				percent++;
 				break; }
 
 		while(*(p+l) && *(p+l)!='\r') l++; }
 
 	if(!percent && !add_area.tags && !del_area.tags) {
-		create_netmail(NULL,"Areafix Request","No commands to process.",addr,FALSE);
+		create_netmail(to,"Areafix Request","No commands to process.",addr,FALSE);
 		sprintf(body,"Node %s attempted an areafix request with an empty message "
 			"body or with no valid commands.\r\n",smb_faddrtoa(&addr,NULL));
 		return(body); }
 	if(add_area.tags || del_area.tags)
-		alter_areas(&add_area,&del_area,addr);
+		alter_areas(&add_area,&del_area,addr,to);
 	if(add_area.tags) {
 		for(i=0;i<add_area.tags;i++)
 			free(add_area.tag[i]);
@@ -1433,9 +1432,11 @@ int unpack(char *infile)
 				i=cfg.arcdefs;
 				break; }
 			sprintf(tmp,"%02X",ch);
-			strcat(str,tmp); }
+			strcat(str,tmp); 
+		}
 		if(!stricmp(str,cfg.arcdef[i].hexid))
-			break; }
+			break; 
+	}
 	fclose(stream);
 
 	if(i==cfg.arcdefs) {
@@ -1574,7 +1575,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 				if(mfncrc[crcidx]==fncrc)
 					break;
 			if(crcidx==num_mfncrc)
-				if(create_netmail(NULL,str
+				if(create_netmail(/* To: */NULL,str
 					,misc&TRUNC_BUNDLES ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
 					,attach.dest,TRUE))
 					error=1; 
@@ -1663,7 +1664,7 @@ void pack_bundle(char *infile,faddr_t dest)
 			if(misc&FLO_MAILER)
 				i=write_flofile(infile,dest,TRUE /* bundle */);
 			else
-				i=create_netmail(NULL,infile
+				i=create_netmail(/* To: */NULL,infile
 					,misc&TRUNC_BUNDLES ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
 					,dest,TRUE);
 			if(i) bail(1);
@@ -1791,6 +1792,7 @@ BOOL unpack_bundle(void)
 			SAFECOPY(fname,g.gl_pathv[gi]);
 			lprintf(LOG_DEBUG,"Unpacking bundle: %s",fname);
 			if(unpack(fname)) {	/* failure */
+				lprintf(LOG_ERR,"!Unpack failure");
 				if(fdate(fname)+(48L*60L*60L)>time(NULL)) {
 					SAFECOPY(str,fname);
 					str[strlen(str)-2]='_';
@@ -2069,6 +2071,8 @@ time_t fmsgtime(char *str)
 	struct tm tm;
 
 	memset(&tm,0,sizeof(tm));
+	tm.tm_isdst=-1;	/* Do not adjust for DST */
+
 	if(isdigit(str[1])) {	/* Regular format: "01 Jan 86  02:34:56" */
 		tm.tm_mday=atoi(str);
 		sprintf(month,"%3.3s",str+3);
@@ -3364,17 +3368,17 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 		addr.net=hdr.orignet;
 		addr.node=hdr.orignode;
 		addr.point=hdr.origpoint;
-		SAFECOPY(hdr.to,scfg.sys_op);
-		SAFECOPY(hdr.from,"SBBSecho");
-		SAFECOPY(str,hdr.subj);
-		SAFECOPY(hdr.subj,"Areafix Request");
-		hdr.origzone=hdr.orignet=hdr.orignode=hdr.origpoint=0;
-		p=process_areafix(addr,fmsgbuf,str);
-		if(p && cfg.notify)
+		p=process_areafix(addr,fmsgbuf,/* Password: */hdr.subj, /* To: */hdr.from);
+		if(p && cfg.notify) {
+			SAFECOPY(hdr.to,scfg.sys_op);
+			SAFECOPY(hdr.from,"SBBSecho");
+			SAFECOPY(hdr.subj,"Areafix Request");
+			hdr.origzone=hdr.orignet=hdr.orignode=hdr.origpoint=0;
 			if(fmsgtosmsg(p,hdr,cfg.notify,INVALID_SUB)==0) {
 				sprintf(str,"\7\1n\1hSBBSecho \1n\1msent you mail\r\n");
 				putsmsg(&scfg,cfg.notify,str); 
 			}
+		}
 		if(fmsgbuf)
 			free(fmsgbuf);
 		if(cfg.log&LOG_AREAFIX)
@@ -3795,7 +3799,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					,cfg.area[i].exported,scfg.sub[cfg.area[i].sub]->code
 					,cfg.area[i].name);
 
-	export_time=((float)export_ticks)/(float)CLK_TCK;
+	export_time=((float)export_ticks)/(float)MSCLOCKS_PER_SEC;
 	if(cfg.log&LOG_TOTALS && exported && export_time) {
 		lprintf(LOG_INFO,"Exported: %5lu msgs in %.1f sec (%.1f/min %.1f/sec)"
 			,exported,export_time
@@ -3807,12 +3811,17 @@ void export_echomail(char *sub_code,faddr_t addr)
 char* freadstr(FILE* fp, char* str, size_t maxlen)
 {
 	int		ch;
+	size_t	rd=0;
 	size_t	len=0;
 
-	while((ch=fgetc(fp))!=EOF && len<maxlen) {
-		str[len++]=ch;
+	memset(str,0,maxlen);	/* pre-terminate */
+
+	while(rd<maxlen && (ch=fgetc(fp))!=EOF) {
 		if(ch==0)
 			break;
+		if((uchar)ch>=' ')	/* not a ctrl char (garbage?) */
+			str[len++]=ch;
+		rd++;
 	}
 
 	str[maxlen-1]=0;	/* Force terminator */
@@ -3891,7 +3900,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.175 $", "%*s %s", revision);
+	sscanf("$Revision: 1.183 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4661,7 +4670,7 @@ int main(int argc, char **argv)
 					lprintf(LOG_INFO,"Duplicate: %5u detected in %s"
 						,cfg.area[i].dupes,cfg.area[i].name); } }
 
-		import_time=((float)import_ticks)/(float)CLK_TCK;
+		import_time=((float)import_ticks)/(float)MSCLOCKS_PER_SEC;
 		if(cfg.log&LOG_TOTALS && import_time && echomail) {
 			lprintf(LOG_INFO,"Imported: %5lu msgs in %.1f sec (%.1f/min %.1f/sec)"
 				,echomail,import_time
