@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.21 2005/09/20 05:50:45 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.23 2007/01/07 19:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,9 +37,6 @@
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
-#ifdef _WIN32
-	#include <windows.h>
-#endif
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>
@@ -199,6 +196,7 @@ void read_echo_cfg()
 	cfg.maxbdlsize=DFLT_BDL_SIZE;
 	cfg.badecho=-1;
 	cfg.log=LOG_DEFAULTS;
+	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
 
 	while(1) {
@@ -277,6 +275,10 @@ void read_echo_cfg()
 				cfg.log=0L;
 			else
 				cfg.log=strtol(cleanstr(p),0,16);
+			continue; }
+
+		if(!stricmp(tmp,"LOG_LEVEL")) {
+			cfg.log_level=atoi(cleanstr(p));
 			continue; }
 
 		if(!stricmp(tmp,"NOSWAP")) {
