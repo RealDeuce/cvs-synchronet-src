@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.11 2005/09/01 18:32:06 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.12 2007/01/07 19:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -219,7 +219,8 @@ typedef struct {
 			   ,cfgfile[128];		/* Configuration path/filename */
 	ulong		maxpktsize			/* Maximum size for packets */
 			   ,maxbdlsize			/* Maximum size for bundles */
-			   ,log;				/* What do we log? */
+			   ,log					/* What do we log? */
+			   ,log_level;			/* Highest level (lowest severity) */
 	int 		badecho;			/* Area to store bad echomail msgs */
 	uint		arcdefs 			/* Number of archive definitions */
 			   ,nodecfgs			/* Number of nodes with configs */
