@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.193 2007/08/19 06:26:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.184 2007/01/11 06:42:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -345,9 +345,9 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 	else if(attr&ATTR_DIRECT) ch='d';
 	else ch='f';
 	if(dest.zone==sys_faddr.zone)		/* Default zone, use default outbound */
-		SAFECOPY(outbound,cfg.outbound);
+		strcpy(outbound,cfg.outbound);
 	else {								/* Inter-zone outbound is OUTBOUND.XXX */
-		SAFEPRINTF3(outbound,"%.*s.%03x"
+		sprintf(outbound,"%.*s.%03x"
 			,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
 		MKDIR(outbound);
 		backslash(outbound);
@@ -434,7 +434,6 @@ int create_netmail(char *to, char *subject, char *body, faddr_t dest, BOOL file_
 			if(i<cfg.nodecfgs)
 				attr=cfg.nodecfg[i].attr; } }
 
-	MKDIR(scfg.netmail_dir);
 	do {
 		for(i=startmsg;i;i++) {
 			sprintf(fname,"%s%u.msg",scfg.netmail_dir,i);
@@ -1600,7 +1599,6 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 
 	memcpy(&attach.dest,&dest,sizeof(faddr_t));
 	strcpy(attach.fname,bundlename);
-	/* TODO: Write of unpacked struct */
 	fwrite(&attach,sizeof(attach_t),1,stream);
 	fclose(stream);
 	return(0);
@@ -1641,9 +1639,9 @@ void pack_bundle(char *infile,faddr_t dest)
 		}
 
 		if(dest.zone==sys_faddr.zone)	/* Default zone, use default outbound */
-			SAFECOPY(outbound,cfg.outbound);
+			strcpy(outbound,cfg.outbound);
 		else {							/* Inter-zone outbound is OUTBOUND.XXX */
-			SAFEPRINTF3(outbound,"%.*s.%03x"
+			sprintf(outbound,"%.*s.%03x"
 				,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
 			MKDIR(outbound);
 			backslash(outbound);
@@ -2485,8 +2483,6 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		net=NET_FIDO;						/* Record origin address */
 
 	if(net) {
-		if(origaddr.zone==0)
-			origaddr.zone = sys_faddr.zone;
 		smb_hfield(&msg,SENDERNETTYPE,sizeof(ushort),&net);
 		smb_hfield(&msg,SENDERNETADDR,sizeof(fidoaddr_t),&origaddr); }
 
@@ -2522,9 +2518,6 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	}
 	if(smbfile->status.max_crcs==0)
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
-	/* Bad echo area collects a *lot* of messages, and thus, hashes - so no dupe checking */
-	if(cfg.badecho>=0 && subnum==cfg.area[cfg.badecho].sub)
-		dupechk_hashes=SMB_HASH_SOURCE_NONE;
 
 	i=smb_addmsg(smbfile, &msg, storage, dupechk_hashes, xlat, sbody, stail);
 
@@ -3516,7 +3509,6 @@ void export_echomail(char *sub_code,faddr_t addr)
 	areasbbs_t fakearea;
 	addrlist_t msg_seen,msg_path;
     clock_t start_tick=0,export_ticks=0;
-	time_t	tt;
 
 	memset(&msg_seen,0,sizeof(addrlist_t));
 	memset(&msg_path,0,sizeof(addrlist_t));
@@ -3550,12 +3542,12 @@ void export_echomail(char *sub_code,faddr_t addr)
 			if(!addr.zone && !(misc&IGNORE_MSGPTRS)) {
 				sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
 				if((file=nopen(str,O_RDONLY))!=-1) {
-					read(file,&ptr,4);
+					read(file,&ptr,sizeof(time_t));
 					close(file); } }
 
 			msgs=getlastmsg(i,&lastmsg,0);
 			if(!msgs || (!addr.zone && !(misc&IGNORE_MSGPTRS) && ptr>=lastmsg)) {
-				lprintf(LOG_DEBUG,"No new messages.");
+				lprintf(LOG_INFO,"No new messages.");
 				if(ptr>lastmsg && !addr.zone && !(misc&LEAVE_MSGPTRS)) {
 					lprintf(LOG_DEBUG,"Fixing new-scan pointer.");
 					sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
@@ -3645,8 +3637,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 				SAFECOPY(hdr.from,msg.from);
 
-				tt=msg.hdr.when_written.time;
-				tm=localtime(&tt);
+				tm=localtime((time_t *)&msg.hdr.when_written.time);
 				sprintf(hdr.time,"%02u %3.3s %02u  %02u:%02u:%02u"
 					,tm->tm_mday,mon[tm->tm_mon],TM_YEAR(tm->tm_year)
 					,tm->tm_hour,tm->tm_min,tm->tm_sec);
@@ -3909,7 +3900,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.193 $", "%*s %s", revision);
+	sscanf("$Revision: 1.184 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4619,8 +4610,7 @@ int main(int argc, char **argv)
 				if(j==0) {		/* Successful import */
 					echomail++;
 					cfg.area[i].imported++;
-					/* Should this check if the user has access to the echo in question? */
-					if(i!=cfg.badecho && misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
+					if(misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
 						sprintf(str
 						,"\7\1n\1hSBBSecho: \1m%.*s \1n\1msent you EchoMail on "
 							"\1h%s \1n\1m%s\1n\r\n"
@@ -4756,7 +4746,7 @@ int main(int argc, char **argv)
 		memset(&msg_path,0,sizeof(addrlist_t));
 		memset(&fakearea,0,sizeof(areasbbs_t));
 
-		lprintf(LOG_DEBUG,"\nPacking Outbound NetMail from %s",scfg.netmail_dir);
+		lprintf(LOG_DEBUG,"\nPacking Outbound NetMail...");
 
 #ifdef __unix__
 		sprintf(str,"%s*.[Mm][Ss][Gg]",scfg.netmail_dir);
@@ -4795,7 +4785,7 @@ int main(int argc, char **argv)
 				fclose(fidomsg);
 				continue;
 			}
-			printf("\n%s to %s ",getfname(path),smb_faddrtoa(&addr,NULL));
+			printf("\n%s to %s ",path,smb_faddrtoa(&addr,NULL));
 			if(cfg.log&LOG_PACKING)
 				logprintf("Packing %s (%s)",path,smb_faddrtoa(&addr,NULL));
 			fmsgbuf=getfmsg(fidomsg,NULL);
@@ -4826,10 +4816,10 @@ int main(int argc, char **argv)
 				else if(attr&ATTR_HOLD) ch='h';
 				else if(attr&ATTR_DIRECT) ch='d';
 				else ch='o';
-				if(addr.zone==sys_faddr.zone) { /* Default zone, use default outbound */
-					SAFECOPY(outbound,cfg.outbound);
-				} else {						 /* Inter-zone outbound is OUTBOUND.XXX */
-					SAFEPRINTF3(outbound,"%.*s.%03x"
+				if(addr.zone==sys_faddr.zone) /* Default zone, use default outbound */
+					strcpy(outbound,cfg.outbound);
+				else {						 /* Inter-zone outbound is OUTBOUND.XXX */
+					sprintf(outbound,"%.*s.%03x"
 						,(int)strlen(cfg.outbound)-1,cfg.outbound,addr.zone);
 					MKDIR(outbound);
 					backslash(outbound);
@@ -4844,16 +4834,15 @@ int main(int argc, char **argv)
 				MKDIR(outbound);
 				backslash(outbound);
 				if(addr.point)
-					SAFEPRINTF3(packet,"%s%08x.%cut",outbound,addr.point,ch);
+					sprintf(packet,"%s%08x.%cut",outbound,addr.point,ch);
 				else
-					SAFEPRINTF4(packet,"%s%04x%04x.%cut",outbound,addr.net,addr.node,ch);
+					sprintf(packet,"%s%04x%04x.%cut",outbound,addr.net,addr.node,ch);
 				if(hdr.attr&FIDO_FILE)
 					if(write_flofile(hdr.subj,addr,FALSE /* !bundle */))
 						bail(1); }
 			else
 				SAFECOPY(packet,pktname(/* Temp? */ FALSE));
 
-			lprintf(LOG_DEBUG,"NetMail packet: %s", packet);
 			now=time(NULL);
 			tm=localtime(&now);
 			if((stream=fnopen(&file,packet,O_RDWR|O_CREAT))==NULL) {
@@ -4939,7 +4928,7 @@ int main(int argc, char **argv)
 						lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
 							,errno,__LINE__,str); }
 					else {
-						write(file,&l,4);
+						write(file,&l,sizeof(time_t));
 						close(file); 
 					} 
 				}
