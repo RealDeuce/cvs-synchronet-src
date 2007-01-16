@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.35 2007/09/06 17:19:26 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.34 2006/12/21 21:32:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -386,7 +386,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 			 */
 			memmove(p+i, p+1, format-p+format_len);
 			memcpy(p, entry_buf, i);
-			*(size_t *)(format+sizeof(size_t))+=i-1;
 		}
 		else
 			*p=entry_buf[0];
@@ -427,7 +426,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 				 */
 				memmove(p+i, p+1, format-p+format_len);
 				memcpy(p, entry_buf, i);
-				*(size_t *)(format+sizeof(size_t))+=i-1;
 			}
 			else
 				*p=entry_buf[0];

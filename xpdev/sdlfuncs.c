@@ -47,12 +47,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->SemPost=SDL_SemPost;
 	sdlf->EventState=SDL_EventState;
 	sdlf->CreateRGBSurface=SDL_CreateRGBSurface;
-	sdlf->CreateRGBSurfaceFrom=SDL_CreateRGBSurfaceFrom;
 	sdlf->FillRect=SDL_FillRect;
 	sdlf->SetColors=SDL_SetColors;
 	sdlf->BlitSurface=SDL_UpperBlit;
 	sdlf->UpdateRects=SDL_UpdateRects;
-	sdlf->UpdateRect=SDL_UpdateRect;
 	sdlf->SDL_CreateSemaphore=SDL_CreateSemaphore;
 	sdlf->SDL_DestroySemaphore=SDL_DestroySemaphore;
 	sdlf->SDL_CreateMutex=SDL_CreateMutex;
@@ -63,7 +61,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->SetVideoMode=SDL_SetVideoMode;
 	sdlf->FreeSurface=SDL_FreeSurface;
 	sdlf->WM_SetCaption=SDL_WM_SetCaption;
-	sdlf->WM_SetIcon=SDL_WM_SetIcon;
 	sdlf->ShowCursor=SDL_ShowCursor;
 	sdlf->WasInit=SDL_WasInit;
 	sdlf->EnableUNICODE=SDL_EnableUNICODE;
@@ -78,17 +75,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->LockAudio=SDL_LockAudio;
 	sdlf->UnlockAudio=SDL_UnlockAudio;
 	sdlf->GetAudioStatus=SDL_GetAudioStatus;
-	sdlf->MapRGB=SDL_MapRGB;
-	sdlf->LockSurface=SDL_LockSurface;
-	sdlf->UnlockSurface=SDL_UnlockSurface;
-	sdlf->DisplayFormat=SDL_DisplayFormat;
-	sdlf->Flip=SDL_Flip;
-	sdlf->CreateYUVOverlay=SDL_CreateYUVOverlay;
-	sdlf->DisplayYUVOverlay=SDL_DisplayYUVOverlay;
-	sdlf->FreeYUVOverlay=SDL_FreeYUVOverlay;
-	sdlf->LockYUVOverlay=SDL_LockYUVOverlay;
-	sdlf->UnlockYUVOverlay=SDL_UnlockYUVOverlay;
-	sdlf->GetVideoInfo=SDL_GetVideoInfo;
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
 	return(0);
@@ -108,219 +94,162 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 			if((sdl_dll=LoadLibrary("SDL-1.1.dll"))==NULL)
 				return(-1);
 
-	if((sdlf->Init=(void *)GetProcAddress(sdl_dll, "SDL_Init"))==NULL) {
+	if((sdlf->Init=GetProcAddress(sdl_dll, "SDL_Init"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->Quit=(void *)GetProcAddress(sdl_dll, "SDL_Quit"))==NULL) {
+	if((sdlf->Quit=GetProcAddress(sdl_dll, "SDL_Quit"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SetModuleHandle=(void *)GetProcAddress(sdl_dll, "SDL_SetModuleHandle"))==NULL) {
+	if((sdlf->SetModuleHandle=GetProcAddress(sdl_dll, "SDL_SetModuleHandle"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->mutexP=(void *)GetProcAddress(sdl_dll, "SDL_mutexP"))==NULL) {
+	if((sdlf->mutexP=GetProcAddress(sdl_dll, "SDL_mutexP"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->mutexV=(void *)GetProcAddress(sdl_dll, "SDL_mutexV"))==NULL) {
+	if((sdlf->mutexV=GetProcAddress(sdl_dll, "SDL_mutexV"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->PeepEvents=(void *)GetProcAddress(sdl_dll, "SDL_PeepEvents"))==NULL) {
+	if((sdlf->PeepEvents=GetProcAddress(sdl_dll, "SDL_PeepEvents"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->VideoDriverName=(void *)GetProcAddress(sdl_dll, "SDL_VideoDriverName"))==NULL) {
+	if((sdlf->VideoDriverName=GetProcAddress(sdl_dll, "SDL_VideoDriverName"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SemWait=(void *)GetProcAddress(sdl_dll, "SDL_SemWait"))==NULL) {
+	if((sdlf->SemWait=GetProcAddress(sdl_dll, "SDL_SemWait"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SemPost=(void *)GetProcAddress(sdl_dll, "SDL_SemPost"))==NULL) {
+	if((sdlf->SemPost=GetProcAddress(sdl_dll, "SDL_SemPost"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->EventState=(void *)GetProcAddress(sdl_dll, "SDL_EventState"))==NULL) {
+	if((sdlf->EventState=GetProcAddress(sdl_dll, "SDL_EventState"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateRGBSurface=(void *)GetProcAddress(sdl_dll, "SDL_CreateRGBSurface"))==NULL) {
+	if((sdlf->CreateRGBSurface=GetProcAddress(sdl_dll, "SDL_CreateRGBSurface"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateRGBSurfaceFrom=(void *)GetProcAddress(sdl_dll, "SDL_CreateRGBSurfaceFrom"))==NULL) {
+	if((sdlf->FillRect=GetProcAddress(sdl_dll, "SDL_FillRect"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->FillRect=(void *)GetProcAddress(sdl_dll, "SDL_FillRect"))==NULL) {
+	if((sdlf->SetColors=GetProcAddress(sdl_dll, "SDL_SetColors"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SetColors=(void *)GetProcAddress(sdl_dll, "SDL_SetColors"))==NULL) {
+	if((sdlf->BlitSurface=GetProcAddress(sdl_dll, "SDL_UpperBlit"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->BlitSurface=(void *)GetProcAddress(sdl_dll, "SDL_UpperBlit"))==NULL) {
+	if((sdlf->UpdateRects=GetProcAddress(sdl_dll, "SDL_UpdateRects"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->UpdateRects=(void *)GetProcAddress(sdl_dll, "SDL_UpdateRects"))==NULL) {
+	if((sdlf->SDL_CreateSemaphore=GetProcAddress(sdl_dll, "SDL_CreateSemaphore"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->UpdateRect=(void *)GetProcAddress(sdl_dll, "SDL_UpdateRect"))==NULL) {
+	if((sdlf->SDL_DestroySemaphore=GetProcAddress(sdl_dll, "SDL_DestroySemaphore"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SDL_CreateSemaphore=(void *)GetProcAddress(sdl_dll, "SDL_CreateSemaphore"))==NULL) {
+	if((sdlf->SDL_CreateMutex=GetProcAddress(sdl_dll, "SDL_CreateMutex"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SDL_DestroySemaphore=(void *)GetProcAddress(sdl_dll, "SDL_DestroySemaphore"))==NULL) {
+	if((sdlf->CreateThread=GetProcAddress(sdl_dll, "SDL_CreateThread"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SDL_CreateMutex=(void *)GetProcAddress(sdl_dll, "SDL_CreateMutex"))==NULL) {
+	if((sdlf->KillThread=GetProcAddress(sdl_dll, "SDL_KillThread"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateThread=(void *)GetProcAddress(sdl_dll, "SDL_CreateThread"))==NULL) {
+	if((sdlf->WaitThread=GetProcAddress(sdl_dll, "SDL_WaitThread"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->KillThread=(void *)GetProcAddress(sdl_dll, "SDL_KillThread"))==NULL) {
+	if((sdlf->WaitEvent=GetProcAddress(sdl_dll, "SDL_WaitEvent"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->WaitThread=(void *)GetProcAddress(sdl_dll, "SDL_WaitThread"))==NULL) {
+	if((sdlf->SetVideoMode=GetProcAddress(sdl_dll, "SDL_SetVideoMode"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->WaitEvent=(void *)GetProcAddress(sdl_dll, "SDL_WaitEvent"))==NULL) {
+	if((sdlf->FreeSurface=GetProcAddress(sdl_dll, "SDL_FreeSurface"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SetVideoMode=(void *)GetProcAddress(sdl_dll, "SDL_SetVideoMode"))==NULL) {
+	if((sdlf->WM_SetCaption=GetProcAddress(sdl_dll, "SDL_WM_SetCaption"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->FreeSurface=(void *)GetProcAddress(sdl_dll, "SDL_FreeSurface"))==NULL) {
+	if((sdlf->ShowCursor=GetProcAddress(sdl_dll, "SDL_ShowCursor"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->WM_SetCaption=(void *)GetProcAddress(sdl_dll, "SDL_WM_SetCaption"))==NULL) {
+	if((sdlf->WasInit=GetProcAddress(sdl_dll, "SDL_WasInit"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->WM_SetIcon=(void *)GetProcAddress(sdl_dll, "SDL_WM_SetIcon"))==NULL) {
+	if((sdlf->EnableUNICODE=GetProcAddress(sdl_dll, "SDL_EnableUNICODE"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->ShowCursor=(void *)GetProcAddress(sdl_dll, "SDL_ShowCursor"))==NULL) {
+	if((sdlf->EnableKeyRepeat=GetProcAddress(sdl_dll, "SDL_EnableKeyRepeat"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->WasInit=(void *)GetProcAddress(sdl_dll, "SDL_WasInit"))==NULL) {
+	if((sdlf->GetWMInfo=GetProcAddress(sdl_dll, "SDL_GetWMInfo"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->EnableUNICODE=(void *)GetProcAddress(sdl_dll, "SDL_EnableUNICODE"))==NULL) {
+	if((sdlf->GetError=GetProcAddress(sdl_dll, "SDL_GetError"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->EnableKeyRepeat=(void *)GetProcAddress(sdl_dll, "SDL_EnableKeyRepeat"))==NULL) {
+	if((sdlf->InitSubSystem=GetProcAddress(sdl_dll, "SDL_InitSubSystem"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->GetWMInfo=(void *)GetProcAddress(sdl_dll, "SDL_GetWMInfo"))==NULL) {
+	if((sdlf->QuitSubSystem=GetProcAddress(sdl_dll, "SDL_QuitSubSystem"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->GetError=(void *)GetProcAddress(sdl_dll, "SDL_GetError"))==NULL) {
+	if((sdlf->OpenAudio=GetProcAddress(sdl_dll, "SDL_OpenAudio"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->InitSubSystem=(void *)GetProcAddress(sdl_dll, "SDL_InitSubSystem"))==NULL) {
+	if((sdlf->CloseAudio=GetProcAddress(sdl_dll, "SDL_CloseAudio"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->QuitSubSystem=(void *)GetProcAddress(sdl_dll, "SDL_QuitSubSystem"))==NULL) {
+	if((sdlf->PauseAudio=GetProcAddress(sdl_dll, "SDL_PauseAudio"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->OpenAudio=(void *)GetProcAddress(sdl_dll, "SDL_OpenAudio"))==NULL) {
+	if((sdlf->LockAudio=GetProcAddress(sdl_dll, "SDL_LockAudio"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CloseAudio=(void *)GetProcAddress(sdl_dll, "SDL_CloseAudio"))==NULL) {
+	if((sdlf->UnlockAudio=GetProcAddress(sdl_dll, "SDL_UnlockAudio"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->PauseAudio=(void *)GetProcAddress(sdl_dll, "SDL_PauseAudio"))==NULL) {
+	if((sdlf->GetAudioStatus=GetProcAddress(sdl_dll, "SDL_GetAudioStatus"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->LockAudio=(void *)GetProcAddress(sdl_dll, "SDL_LockAudio"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->UnlockAudio=(void *)GetProcAddress(sdl_dll, "SDL_UnlockAudio"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->GetAudioStatus=(void *)GetProcAddress(sdl_dll, "SDL_GetAudioStatus"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->MapRGB=(void *)GetProcAddress(sdl_dll, "SDL_MapRGB"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->LockSurface=(void *)GetProcAddress(sdl_dll, "SDL_LockSurface"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->UnlockSurface=(void *)GetProcAddress(sdl_dll, "SDL_UnlockSurface"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->DisplayFormat=(void *)GetProcAddress(sdl_dll, "SDL_DisplayFormat"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->Flip=(void *)GetProcAddress(sdl_dll, "SDL_Flip"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->CreateYUVOverlay=(void *)GetProcAddress(sdl_dll, "SDL_CreateYUVOverlay"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->DisplayYUVOverlay=(void *)GetProcAddress(sdl_dll, "SDL_DisplayYUVOverlay"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->FreeYUVOverlay=(void *)GetProcAddress(sdl_dll, "SDL_FreeYUVOverlay"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->LockYUVOverlay=(void *)GetProcAddress(sdl_dll, "SDL_LockYUVOverlay"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->UnlockYUVOverlay=(void *)GetProcAddress(sdl_dll, "SDL_UnlockYUVOverlay"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->GetVideoInfo=(void *)GetProcAddress(sdl_dll, "SDL_GetVideoInfo"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
-
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
 	return(0);
@@ -378,10 +307,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateRGBSurfaceFrom=dlsym(sdl_dll, "SDL_CreateRGBSurfaceFrom"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
 	if((sdlf->FillRect=dlsym(sdl_dll, "SDL_FillRect"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
@@ -395,10 +320,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->UpdateRects=dlsym(sdl_dll, "SDL_UpdateRects"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->UpdateRect=dlsym(sdl_dll, "SDL_UpdateRect"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
 	}
@@ -439,10 +360,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->WM_SetCaption=dlsym(sdl_dll, "SDL_WM_SetCaption"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->WM_SetIcon=dlsym(sdl_dll, "SDL_WM_SetIcon"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
 	}
@@ -499,50 +416,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->GetAudioStatus=dlsym(sdl_dll, "SDL_GetAudioStatus"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->MapRGB=dlsym(sdl_dll, "SDL_MapRGB"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->LockSurface=dlsym(sdl_dll, "SDL_LockSurface"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->UnlockSurface=dlsym(sdl_dll, "SDL_UnlockSurface"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->DisplayFormat=dlsym(sdl_dll, "SDL_DisplayFormat"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->Flip=dlsym(sdl_dll, "SDL_Flip"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->CreateYUVOverlay=dlsym(sdl_dll, "SDL_CreateYUVOverlay"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->DisplayYUVOverlay=dlsym(sdl_dll, "SDL_DisplayYUVOverlay"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->FreeYUVOverlay=dlsym(sdl_dll, "SDL_FreeYUVOverlay"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->LockYUVOverlay=dlsym(sdl_dll, "SDL_LockYUVOverlay"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->UnlockYUVOverlay=dlsym(sdl_dll, "SDL_UnlockYUVOverlay"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->GetVideoInfo=dlsym(sdl_dll, "SDL_GetVideoInfo"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
 	}
@@ -610,6 +483,8 @@ int main(int argc, char **argv, char **env)
 int SDL_main_env(int argc, char **argv, char **env)
 #endif
 {
+	unsigned int i;
+	SDL_Event	ev;
 	char	drivername[64];
 	struct main_args ma;
 	SDL_Thread	*main_thread;
@@ -650,7 +525,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 		 * This ugly hack attempts to prevent this... of course, remote X11
 		 * connections must still be allowed.
 		 */
-		if((!use_sdl_video) || (getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL)) {
+		if((!use_sdl_video) || getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL) {
 			/* Sure ,we can't use video, but audio is still valid! */
 			if(sdl.Init(0)==0)
 				sdl_initialized=TRUE;
@@ -674,13 +549,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 				sdl_video_initialized=FALSE;
 			}
 			else {
-				const SDL_VideoInfo *initial=sdl.GetVideoInfo();
-
-				/* Save initial video mode */
-				if(initial)
-					sdl.initial_videoinfo=*initial;
-				else
-					memset(&sdl.initial_videoinfo, 0, sizeof(sdl.initial_videoinfo));
 				sdl_video_initialized=TRUE;
 			}
 		}
