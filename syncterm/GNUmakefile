@@ -23,7 +23,6 @@ LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 vpath %.c ../sbbs3 ../smblib ../uifc ../guts
 
 INSTALL_EXE	?=	install
-INSTALL_DATA	?=	install -m 0444
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
@@ -32,8 +31,6 @@ $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 install: $(SYNCTERM)
 	@echo Installing...
 	${INSTALL_EXE} ${SYNCTERM} ${PREFIX}/bin
-	${INSTALL_DATA} syncterm.png ${PREFIX}/share/icons/hicolor/64x64/apps
-	${INSTALL_DATA} syncterm.desktop ${PREFIX}/share/icons/hicolor/64x64/apps
 
 devel: tags cscope.out
 
