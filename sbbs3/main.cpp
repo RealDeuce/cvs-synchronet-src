@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.487 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: main.cpp,v 1.470 2007/01/03 00:27:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -76,7 +76,7 @@
 time_t	uptime=0;
 DWORD	served=0;
 
-static	DWORD node_threads_running=0;
+static	ulong node_threads_running=0;
 static	ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
@@ -1054,13 +1054,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE 
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
-
-					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s Telnet sub-negotiation command: %s"
-	                		,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,telnet_opt_desc(option));
-
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
@@ -1078,17 +1071,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,speed);
-						sbbs->cur_rate=atoi(speed);
-						sbbs->cur_cps=sbbs->cur_rate/10;
-
-					} else if(option==TELNET_SEND_LOCATION) {
-						safe_snprintf(sbbs->telnet_location
-							,sizeof(sbbs->telnet_location)
-							,"%.*s",(int)sbbs->telnet_cmdlen-5,sbbs->telnet_cmd+3);
-						lprintf(LOG_DEBUG,"Node %d %s telnet location: %s"
-	                		,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,sbbs->telnet_location);
 
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
@@ -1144,7 +1126,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_TERM_SPEED:
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
-								case TELNET_SEND_LOCATION:
 									sbbs->telnet_remote_option[option]=command;
 									sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 									break;
@@ -1912,15 +1893,12 @@ void event_thread(void* arg)
 	int			offset;
 	bool		check_semaphores;
 	bool		packed_rep;
-	ulong	l;
-	/* TODO: This is a silly hack... */
-	uint32_t	l32;
+	ulong		l;
 	time_t		now;
 	time_t		start;
 	time_t		lastsemchk=0;
 	time_t		lastnodechk=0;
-	time32_t	lastprepack=0;
-	time_t		tmptime;
+	time_t		lastprepack=0;
 	node_t		node;
 	glob_t		g;
 	sbbs_t*		sbbs = (sbbs_t*) arg;
@@ -1949,20 +1927,20 @@ void event_thread(void* arg)
 	else {
 		for(i=0;i<sbbs->cfg.total_events;i++) {
 			sbbs->cfg.event[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
+			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last run time for event: %s"
 					,sbbs->cfg.event[i]->code);
-				write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
+				write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
 			} else {
-				if(read(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last))!=sizeof(sbbs->cfg.event[i]->last))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time32_t));
+				if(read(file,&sbbs->cfg.event[i]->last,sizeof(time_t))!=sizeof(time_t))
+					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
 			}
 			/* Event always runs after initialization? */
 			if(sbbs->cfg.event[i]->misc&EVENT_INIT)
 				sbbs->cfg.event[i]->last=-1;
 		}
 		lastprepack=0;
-		read(file,&lastprepack,sizeof(lastprepack));	/* expected to fail first time */
+		read(file,&lastprepack,sizeof(time_t));	/* expected to fail first time */
 		close(file);
 	}
 
@@ -1973,13 +1951,13 @@ void event_thread(void* arg)
 	else {
 		for(i=0;i<sbbs->cfg.total_qhubs;i++) {
 			sbbs->cfg.qhub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
+			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
 					,sbbs->cfg.qhub[i]->id);
-				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
+				write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
 			} else {
-				if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last))!=sizeof(sbbs->cfg.qhub[i]->last))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(sbbs->cfg.qhub[i]->last));
+				if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t))!=sizeof(time_t))
+					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
 			}
 		}
 		close(file);
@@ -1992,10 +1970,10 @@ void event_thread(void* arg)
 	else {
 		for(i=0;i<sbbs->cfg.total_phubs;i++) {
 			sbbs->cfg.phub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time32_t)*(i+1)))
-				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
+			if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
+				write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
 			else
-				read(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last)); 
+				read(file,&sbbs->cfg.phub[i]->last,sizeof(time_t)); 
 		}
 		close(file);
 	}
@@ -2136,7 +2114,7 @@ void event_thread(void* arg)
 					break; 
 				}
 				lseek(file,(long)sbbs->cfg.total_events*4L,SEEK_SET);
-				write(file,&lastprepack,sizeof(lastprepack));
+				write(file,&lastprepack,sizeof(time_t));
 				close(file);
 
 				remove(semfile);
@@ -2223,11 +2201,11 @@ void event_thread(void* arg)
 
 			if(check_semaphores) {
 				// See if any packets have come in
-				SAFEPRINTF2(str,"%s%s.q??",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
-				glob(str,GLOB_NOSORT,NULL,&g);
-				for(j=0;j<(int)g.gl_pathc;j++) {
-					SAFECOPY(str,g.gl_pathv[j]);
-					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
+				for(j=0;j<101;j++) {
+					SAFEPRINTF4(str,"%s%s.q%c%c",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id
+						,j>10 ? ((j-1)/10)+'0' : 'w'
+						,j ? ((j-1)%10)+'0' : 'k');
+					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
@@ -2247,12 +2225,10 @@ void event_thread(void* arg)
 						remove(str);
 					} 
 				}
-				globfree(&g);
 			}
 
 			/* Qnet call out based on time */
-			tmptime=sbbs->cfg.qhub[i]->last;
-			if(localtime_r(&tmptime,&tm)==NULL)
+			if(localtime_r(&sbbs->cfg.qhub[i]->last,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
 				|| ((sbbs->cfg.qhub[i]->freq
@@ -2271,8 +2247,8 @@ void event_thread(void* arg)
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long),SEEK_SET);
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(long)); 
 					}
 				}
 				if(file!=-1)
@@ -2286,14 +2262,12 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
-								l32=l;
-								write(file,&l32,4);		/* initialize ptrs to null */
-							}
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L)
+								write(file,&l,4);		/* initialize ptrs to null */
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(long)); 
 						}
 						close(file); 
 					} 
@@ -2306,8 +2280,8 @@ void event_thread(void* arg)
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 					break; 
 				}
-				lseek(file,sizeof(time32_t)*i,SEEK_SET);
-				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
+				lseek(file,sizeof(time_t)*i,SEEK_SET);
+				write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
 				close(file);
 
 				if(sbbs->cfg.qhub[i]->call[0]) {
@@ -2331,8 +2305,7 @@ void event_thread(void* arg)
 				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
 			/* PostLink call out based on time */
-			tmptime=sbbs->cfg.phub[i]->last;
-			if(localtime_r(&tmptime,&tm)==NULL)
+			if(localtime_r(&sbbs->cfg.phub[i]->last,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.phub[i]->last==-1
 				|| (((sbbs->cfg.phub[i]->freq								/* or frequency */
@@ -2348,8 +2321,8 @@ void event_thread(void* arg)
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 					break; 
 				}
-				lseek(file,sizeof(time32_t)*i,SEEK_SET);
-				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
+				lseek(file,sizeof(time_t)*i,SEEK_SET);
+				write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
 				close(file);
 
 				if(sbbs->cfg.phub[i]->call[0]) {
@@ -2380,8 +2353,7 @@ void event_thread(void* arg)
 				&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 				continue;	// ignore non-exclusive events for other instances
 
-			tmptime=sbbs->cfg.event[i]->last;
-			if(localtime_r(&tmptime,&tm)==NULL)
+			if(localtime_r(&sbbs->cfg.event[i]->last,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.event[i]->last==-1 ||
 				(((sbbs->cfg.event[i]->freq 
@@ -2401,7 +2373,7 @@ void event_thread(void* arg)
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
 							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
+							,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
@@ -2427,7 +2399,7 @@ void event_thread(void* arg)
 								continue; 
 							}
 							lseek(file,(long)i*4L,SEEK_SET);
-							read(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
+							read(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
 							close(file);
 							if(now-sbbs->cfg.event[i]->last<(60*60))	/* event is done */
 								break; 
@@ -2542,7 +2514,7 @@ void event_thread(void* arg)
 						break; 
 					}
 					lseek(file,(long)i*4L,SEEK_SET);
-					write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
+					write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
 					close(file);
 
 					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
@@ -2579,7 +2551,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
     if(node_num)
     	SAFEPRINTF(nodestr,"Node %d",node_num);
     else
-    	SAFECOPY(nodestr,name);
+    	strcpy(nodestr,name);
 
 	lprintf(LOG_DEBUG,"%s constructor using socket %d (settings=%lx)"
 		,nodestr, sd, global_cfg->node_misc);
@@ -2626,7 +2598,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	client_socket_dup=INVALID_SOCKET;
 	client_ident[0]=0;
 
-	telnet_location[0]=0;
 	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
@@ -2656,8 +2627,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	uselect_total = 0;
 	lbuflen = 0;
 	keybufbot=keybuftop=0;	/* initialize [unget]keybuf pointers */
-	SAFECOPY(connection,"Telnet");
-	node_connection=NODE_CONNECTION_TELNET;
+	connection="Telnet";
 
 	ZERO_VAR(telnet_local_option);
 	ZERO_VAR(telnet_remote_option);
@@ -3182,7 +3152,7 @@ int sbbs_t::nopen(char *str, int access)
     else share=SH_DENYRW;
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
-    while(((file=sopen(str,access,share,DEFFILEMODE))==-1)
+    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
         && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
 	    mswait(100);
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
@@ -4269,7 +4239,7 @@ void DLLCALL bbs_thread(void* arg)
 			md(scfg.node_path[i-1]);
 		SAFEPRINTF(str,"%sdsts.dab",i ? scfg.node_path[i-1] : scfg.ctrl_dir);
 		if(flength(str)<DSTSDABLEN) {
-			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, DEFFILEMODE))==-1) {
+			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, S_IREAD|S_IWRITE))==-1) {
 				lprintf(LOG_ERR,"!ERROR %d creating %s",errno, str);
 				cleanup(1);
 				return; 
@@ -4315,16 +4285,12 @@ void DLLCALL bbs_thread(void* arg)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port   = htons(startup->telnet_port);
 
-	if(startup->telnet_port < IPPORT_RESERVED) {
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
-	}
+	if(startup->seteuid!=NULL)
+		startup->seteuid(FALSE);
     result = retry_bind(telnet_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 		,startup->bind_retry_count,startup->bind_retry_delay,"Telnet Server",lprintf);
-	if(startup->telnet_port < IPPORT_RESERVED) {
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
-	}
+	if(startup->seteuid!=NULL)
+		startup->seteuid(TRUE);
 	if(result != 0) {
 		lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 		cleanup(1);
@@ -4363,16 +4329,12 @@ void DLLCALL bbs_thread(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->rlogin_port);
 
-		if(startup->rlogin_port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
 		result = retry_bind(rlogin_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"RLogin Server",lprintf);
-		if(startup->rlogin_port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
@@ -4455,16 +4417,12 @@ void DLLCALL bbs_thread(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->ssh_port);
 
-		if(startup->ssh_port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
 		result = retry_bind(ssh_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"SSH Server",lprintf);
-		if(startup->ssh_port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
@@ -4512,7 +4470,7 @@ NO_SSH:
 	for(i=first_node;i<=last_node;i++) {
 		sbbs->getnodedat(i,&node,1);
 		node.status=NODE_WFC;
-		node.misc&=NODE_EVENT;	/* Note: Turns-off NODE_RRUN flag (and others) */
+		node.misc&=NODE_EVENT;
 		node.action=0;
 		sbbs->putnodedat(i,&node);
 	}
@@ -4557,9 +4515,10 @@ NO_SSH:
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
-	if(!initialized)
+	if(!initialized) {
+		semfile_list_check(&initialized,recycle_semfiles);
 		semfile_list_check(&initialized,shutdown_semfiles);
-	semfile_list_check(&initialized,recycle_semfiles);
+	}
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
@@ -4612,30 +4571,32 @@ NO_SSH:
 
 	while(!terminate_server) {
 
-		if(node_threads_running==0) {	/* check for re-run flags and recycle/shutdown sem files */
-			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
-
-				bool rerun=false;
-				for(i=first_node;i<=last_node;i++) {
-					if(sbbs->getnodedat(i,&node,0)!=0)
-						continue;
-					if(node.misc&NODE_RRUN) {
-						sbbs->getnodedat(i,&node,1);
-						if(!rerun)
-							lprintf(LOG_INFO,"Node %d flagged for re-run",i);
-						rerun=true;
-						node.misc&=~NODE_RRUN;
-						sbbs->putnodedat(i,&node);
-					}
+		if(node_threads_running==0) {	/* check for re-run flags */
+			bool rerun=false;
+			for(i=first_node;i<=last_node;i++) {
+				if(sbbs->getnodedat(i,&node,0)!=0)
+					continue;
+				if(node.misc&NODE_RRUN) {
+					sbbs->getnodedat(i,&node,1);
+					if(!rerun)
+						lprintf(LOG_INFO,"Node %d flagged for re-run",i);
+					rerun=true;
+					node.misc&=~NODE_RRUN;
+					sbbs->putnodedat(i,&node);
 				}
-				if(rerun)
-					break;
-
+			}
+			if(rerun)
+				break;
+			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 				if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
 						,telnet_socket,p);
 					break;
 				}
+#if 0	/* unused */
+				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+					startup->recycle_now=TRUE;
+#endif
 				if(startup->recycle_now==TRUE) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore signaled",telnet_socket);
 					startup->recycle_now=FALSE;
@@ -4921,16 +4882,13 @@ NO_SSH:
 		identity=NULL;
 		if(startup->options&BBS_OPT_GET_IDENT) {
 			sbbs->bprintf("Resolving identity...");
-			/* ToDo: Make ident timeout configurable */
-			if(identify(&client_addr, startup->telnet_port, str, sizeof(str)-1, /* timeout: */1)) {
-				lprintf(LOG_DEBUG,"%04d Ident Response: %s",client_socket, str);
-				identity=strrchr(str,':');
-				if(identity!=NULL) {
-					identity++;	/* skip colon */
-					SKIP_WHITESPACE(identity);
-					if(*identity)
-						lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
-				}
+			identify(&client_addr, startup->telnet_port, str, sizeof(str)-1,0);
+			identity=strrchr(str,':');
+			if(identity!=NULL) {
+				identity++;	/* skip colon */
+				while(*identity && *identity<=' ') /* point to user name */
+					identity++;
+				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
 			}
 			sbbs->putcom(crlf);
 		}
@@ -5016,8 +4974,7 @@ NO_SSH:
 		}
 
 		if(rlogin==true) {
-			SAFECOPY(new_node->connection,"RLogin");
-			new_node->node_connection=NODE_CONNECTION_RLOGIN;
+			new_node->connection="RLogin";
 			new_node->sys_status|=SS_RLOGIN;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
@@ -5107,8 +5064,7 @@ NO_SSH:
 			_beginthread(passthru_input_thread, 0, new_node);
 
 NO_PASSTHRU:
-			SAFECOPY(new_node->connection,"SSH");
-			new_node->node_connection=NODE_CONNECTION_SSH;
+			new_node->connection="SSH";
 			new_node->sys_status|=SS_SSH;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
