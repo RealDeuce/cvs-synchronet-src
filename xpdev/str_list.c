@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.31 2006/05/09 21:02:55 deuce Exp $ */
+/* $Id: str_list.c,v 1.29 2005/10/12 22:46:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,9 +37,6 @@
 
 #include <stdlib.h>		/* malloc and qsort */
 #include <string.h>		/* strtok */
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
 #include "genwrap.h"	/* stricmp */
 #include "str_list.h"
 
@@ -369,13 +366,16 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 
 	count=strListCount(*lp);
 	while(!feof(fp)) {
-		if(buf==NULL && (buf=(char*)alloca(max_line_len+1))==NULL)
+		if(buf==NULL && (buf=(char*)malloc(max_line_len+1))==NULL)
 			return(NULL);
 		
 		if(fgets(buf,max_line_len+1,fp)==NULL)
 			break;
 		strListAppend(lp, buf, count++);
 	}
+
+	if(buf!=NULL)
+		free(buf);
 
 	return(*lp);
 }
