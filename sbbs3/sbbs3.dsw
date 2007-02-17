@@ -81,6 +81,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "echocfg"=.\echocfg.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name uifc
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "filelist"=.\filelist.dsp - Package Owner=<4>
 
 Package=<5>
@@ -167,6 +182,18 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name xpdev_mt
     End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "makehelp"=.\scfg\makehelp.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################
@@ -315,6 +342,24 @@ Package=<4>
 
 ###############################################################################
 
+Project: "scfg"=.\scfg\scfg.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name smblib
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name uifc
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "services"=.\services.dsp - Package Owner=<4>
 
 Package=<5>
@@ -403,6 +448,9 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name xpdev
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name smblib
     End Project Dependency
 }}}
 
