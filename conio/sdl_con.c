@@ -67,7 +67,7 @@ static int lastcursor_y=0;
 static int sdl_current_font=-99;
 static int lastfg=-1;
 static int lastbg=-1;
-static unsigned int sdl_pending_mousekeys=0;
+
 
 struct video_stats vstat;
 int fullscreen=0;
@@ -818,13 +818,6 @@ int sdl_getch(void)
 	sdl.SemWait(sdl_key_pending);
 	sdl.mutexP(sdl_keylock);
 	ch=sdl_keybuf[sdl_key++];
-	if(sdl_pending_mousekeys) {
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE & 0xff;
-        sdl.SemPost(sdl_key_pending);
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE >> 8;
-        sdl.SemPost(sdl_key_pending);
-		sdl_pending_mousekeys--;
-	}
 	sdl.mutexV(sdl_keylock);
 	return(ch);
 }
@@ -957,10 +950,7 @@ void sdl_add_key(unsigned int keyval)
 			return;
 		}
 		if((sdl_keynext+2==sdl_key) && keyval > 0xff) {
-			if(keyval==CIO_KEY_MOUSE)
-				sdl_pending_mousekeys++;
-			else
-				sdl_beep();
+			sdl_beep();
 			sdl.mutexV(sdl_keylock);
 			return;
 		}
