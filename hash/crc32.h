@@ -2,7 +2,7 @@
 
 /* 32-bit CRC table and calculation macro */
 
-/* $Id: crc32.h,v 1.9 2006/05/09 18:50:47 deuce Exp $ */
+/* $Id: crc32.h,v 1.11 2006/05/09 18:54:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,6 @@ unsigned long fcrc32(FILE* fp, unsigned long len);
 #endif
 
 #define ucrc32(ch,crc) (crc32tbl[(crc^(ch))&0xff]^(crc>>8))
-#define crc32(x,y) crc32i(-1,x,y)
+#define crc32(x,y) crc32i(~0UL,x,y)
 
 #endif	/* Don't add anything after this line */
