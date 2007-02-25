@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.40 2007/03/18 08:58:09 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.38 2005/10/02 23:32:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -423,12 +423,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		bputs(text[NoNetMailAllowed]);
 		return; }
 
-	to[0]=0;
-	name[0]=0;
-	sender[0]=0;
-	senderaddr[0]=0;
-	fulladdr[0]=0;
-
 	sprintf(str,"%.6s",block+116);
 	n=atol(str);	  /* i = number of 128 byte records */
 
@@ -444,12 +438,12 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	if(into==NULL)
 		sprintf(to,"%-128.128s",(char *)qwkbuf+QWK_BLOCK_LEN);  /* To user on first line */
 	else
-		SAFECOPY(to,into);
+		strcpy(to,into);
 
 	p=strchr(to,QWK_NEWLINE);		/* chop off at first CR */
 	if(p) *p=0;
 
-	SAFECOPY(name,to);
+	strcpy(name,to);
 	p=strchr(name,'@');
 	if(p) *p=0;
 	truncsp(name);
@@ -518,9 +512,9 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 				smb_hfield(&msg,SENDERNETADDR,strlen(senderaddr),senderaddr); }
 			else {
 				if(fromhub)
-					SAFECOPY(senderaddr, cfg.qhub[fromhub-1]->id);
+					strcpy(senderaddr, cfg.qhub[fromhub-1]->id);
 				else
-					SAFECOPY(senderaddr, useron.alias);
+					strcpy(senderaddr, useron.alias);
 				strupr(senderaddr);
 				smb_hfield(&msg,SENDERNETADDR,strlen(senderaddr),senderaddr); }
 			sprintf(sender,"%.25s",block+46); }    /* From name */
@@ -528,7 +522,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			msg.hdr.when_written.zone=sys_timezone(&cfg);
 			sprintf(str,"%u",useron.number);
 			smb_hfield(&msg,SENDEREXT,strlen(str),str);
-			SAFECOPY(sender,(qnet || cfg.inetmail_misc&NMAIL_ALIAS)
+			strcpy(sender,(qnet || cfg.inetmail_misc&NMAIL_ALIAS)
 				? useron.alias : useron.name);
 			}
 		truncsp(sender);
@@ -558,7 +552,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		tm.tm_min=((qwkbuf[19]&0xf)*10)+(qwkbuf[20]&0xf);  /* From QWK time */
 		tm.tm_sec=0;
 
-		tm.tm_isdst=-1;	/* Do not adjust for DST */
 		msg.hdr.when_written.time=mktime(&tm);
 
 		sprintf(str,"%.25s",block+71);              /* Title */
@@ -580,15 +573,15 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			smb_hfield(&msg,SENDER,strlen(cfg.sys_id),cfg.sys_id);
 			msg.idx.from=0;
 			msg.idx.to=useron.number;
-			SAFECOPY(to,sender);
-			SAFECOPY(fulladdr,senderaddr);
-			SAFEPRINTF(str,"BADADDR: %s",addr);
+			strcpy(to,sender);
+			strcpy(fulladdr,senderaddr);
+			sprintf(str,"BADADDR: %s",addr);
 			smb_hfield(&msg,SUBJECT,strlen(str),str);
 			net=NET_NONE;
 			smb_hfield(&msg,SENDERNETTYPE,sizeof(net),&net);
 		}
 		/* This is required for fixsmb to be able to rebuild the index */
-		SAFEPRINTF(str,"%u",msg.idx.to);
+		sprintf(str,"%u",msg.idx.to);
 		smb_hfield_str(&msg,RECIPIENTEXT,str);
 
 		smb_hfield(&msg,RECIPIENT,strlen(name),name);
@@ -596,8 +589,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net);
 
 		truncsp(fulladdr);
-		if(fulladdr[0])
-			smb_hfield(&msg,RECIPIENTNETADDR,strlen(fulladdr),fulladdr);
+		smb_hfield(&msg,RECIPIENTNETADDR,strlen(fulladdr),fulladdr);
 
 		bprintf(text[NetMailing],to,fulladdr,sender,cfg.sys_id); }
 
@@ -752,7 +744,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		strupr(tmp);
 		strcat(str,tmp); }
 	else
-		SAFECOPY(str,cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+		strcpy(str,cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
 	SAFECOPY(hdr.from,str);
 
 	SAFECOPY(hdr.to,to);
