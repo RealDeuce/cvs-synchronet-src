@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.154 2007/01/05 20:24:35 rswindell Exp $ */
+/* $Id: term.c,v 1.155 2007/01/06 09:39:33 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -338,7 +338,6 @@ void zmodem_progress(void* cbdata, ulong current_pos)
 			,l/60L
 			,l%60L
 			,zm->block_size
-			,zm->receive_32bit_data ? 32 : 16
 			,zmodem_mode==ZMODEM_MODE_RECV ? (zm->receive_32bit_data ? 32:16) : 
 				(zm->can_fcs_32 && !zm->want_fcs_16) ? 32:16
 			,cps
