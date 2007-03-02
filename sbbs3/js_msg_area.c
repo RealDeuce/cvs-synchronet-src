@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.52 2007/08/14 06:23:46 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.51 2006/12/28 02:45:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -482,8 +482,14 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			if(user==NULL)
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
+			else if(cfg->sub[d]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET)
+				&& user->rest&FLAG('N'))		/* network restriction? */
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
+			else if(!chk_ar(cfg,cfg->sub[d]->post_ar,user)
+				|| user->rest&FLAG('P'))		/* post restriction? */
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);	
 			else
-				val=BOOLEAN_TO_JSVAL(can_user_post(cfg,d,user,/* reason: */NULL));
+				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			if(!JS_SetProperty(cx, subobj, "can_post", &val))
 				return(NULL);
 
