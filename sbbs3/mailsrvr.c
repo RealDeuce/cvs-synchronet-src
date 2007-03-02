@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.412 2006/12/29 01:23:05 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.414 2007/02/26 23:53:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1560,8 +1560,11 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 		strcat(fname,".js");
 
 	SAFECOPY(path,fname);
-	if(getfname(path)==path) /* No path specified, assume exec_dir */
-		sprintf(path,"%s%s",scfg.exec_dir,fname);
+	if(getfname(path)==path) { /* No path specified, assume mods or exec dir */
+		sprintf(path,"%s%s",scfg.mods_dir,fname);
+		if(scfg.mods_dir[0]==0 || !fexist(path))
+			sprintf(path,"%s%s",scfg.exec_dir,fname);
+	}
 
 	do {
 
@@ -3164,7 +3167,7 @@ static void smtp_thread(void* arg)
 				}
 			}
 
-			if((p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
+			if((p==alias_buf || p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
 				&& isdigit(*p)) {
 				usernum=atoi(p);			/* RX by user number */
 				/* verify usernum */
@@ -4053,7 +4056,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.412 $", "%*s %s", revision);
+	sscanf("$Revision: 1.414 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
