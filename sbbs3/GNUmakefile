@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.200 2006/12/31 00:14:04 deuce Exp $
+# $Id: GNUmakefile,v 1.201 2007/01/03 06:59:05 deuce Exp $
 
 SRC_ROOT	=	..
 include $(SRC_ROOT)/build/Common.gmake
@@ -28,6 +28,7 @@ endif
 
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt
+ SBBS_LIBS	+=	-lkstat
 endif
 
 # So far, only QNX has sem_timedwait()
