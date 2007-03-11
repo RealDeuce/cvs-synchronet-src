@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.289 2006/12/29 08:41:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.290 2007/01/19 06:22:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -639,6 +639,7 @@ public:
 	void	openfile(file_t* f);
 	void	closefile(file_t* f);
 	bool	removefcdt(file_t* f);
+	bool	removefile(file_t* f);
 	bool	movefile(file_t* f, int newdir);
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
