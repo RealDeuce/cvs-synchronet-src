@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.33 2007/03/31 08:22:51 rswindell Exp $
+# $Id: targets.mk,v 1.32 2005/09/23 21:28:18 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -41,8 +41,7 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ADDFILES) $(FILELIST) $(MAKEUSER) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
-			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ)
+			  $(DELFILES) $(DUPEFIND) $(SMBACTIV)
 
 all:	dlls utils console mono
 
