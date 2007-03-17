@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.89 2006/09/02 08:25:24 deuce Exp $ */
+/* $Id: cterm.c,v 1.90 2007/03/03 10:44:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,8 +198,7 @@ void playnote_thread(void *args)
 		}
 		else
 			listSemWait(&notes);
-		xptone_open();
-		device_open=TRUE;
+		device_open=xptone_open();
 		note=listShiftNode(&notes);
 		if(note==NULL)
 			break;
@@ -221,8 +220,12 @@ void playnote_thread(void *args)
 				break;
 		}
 		duration-=pauselen;
-		if(note->notenum < 72 && note->notenum >= 0)
-			xptone(((double)note_frequency[note->notenum])/1000,duration,WAVE_SHAPE_SINE_SAW_HARM);
+		if(note->notenum < 72 && note->notenum >= 0) {
+			if(device_open)
+				xptone(((double)note_frequency[note->notenum])/1000,duration,WAVE_SHAPE_SINE_SAW_HARM);
+			else
+				xpbeep(((double)note_frequency[note->notenum])/1000,duration);
+		}
 		else
 			SLEEP(duration);
 		SLEEP(pauselen);
@@ -1140,7 +1143,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.89 $";
+	char	*revision="$Revision: 1.90 $";
 	char *in;
 	char	*out;
 
