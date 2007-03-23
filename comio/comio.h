@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications (COM) I/O Library */
 
-/* $Id: comio.h,v 1.3 2007/04/20 02:26:21 rswindell Exp $ */
+/* $Id: comio.h,v 1.1 2007/03/23 00:58:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,11 +67,8 @@
 extern "C" {
 #endif
 
-char*		comVersion(char* str, size_t len);
 COM_HANDLE	comOpen(const char* device);
 BOOL		comClose(COM_HANDLE);
-long		comGetBaudRate(COM_HANDLE);
-BOOL		comSetBaudRate(COM_HANDLE, ulong rate);
 int			comGetModemStatus(COM_HANDLE);
 int			comRaiseDTR(COM_HANDLE);
 int			comLowerDTR(COM_HANDLE);
