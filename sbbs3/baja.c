@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.40 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: baja.c,v 1.42 2006/12/19 21:43:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3401,12 +3401,13 @@ char *usage=	"\n"
 
 int main(int argc, char **argv)
 {
-	uchar	str[128],src[128]="",*p;
+	char	src[MAX_PATH+1]="",*p;
+	char	path[MAX_PATH+1];
 	int		i,j;
-	int		show_banner=1;
+	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.40 $", "%*s %s", revision);
+	sscanf("$Revision: 1.42 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
@@ -3440,7 +3441,7 @@ int main(int argc, char **argv)
 					printf(usage);
 					bail(1); }
 		else
-			strcpy(src,argv[i]);
+			sprintf(src,"%.*s",sizeof(src)-5,argv[i]);	/* leave room for '.src' to be appended */
 
 	if(show_banner)
 		printf(banner,PLATFORM_DESC,revision);
@@ -3465,8 +3466,8 @@ int main(int argc, char **argv)
 
 	if(output_dir[0]) {
 		p=getfname(bin_file);
-		sprintf(str,"%s%s",output_dir,bin_file);
-		SAFECOPY(bin_file,str); 
+		SAFEPRINTF2(path,"%s%s",output_dir,p);
+		SAFECOPY(bin_file,path); 
 	}
 
 	if((out=fopen(bin_file,"w+b"))==NULL) {
