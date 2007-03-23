@@ -1,4 +1,4 @@
-/* $Id: conn.h,v 1.15 2007/10/11 11:55:09 deuce Exp $ */
+/* $Id: conn.h,v 1.11 2007/03/03 12:24:05 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -17,10 +17,6 @@ enum {
 	,CONN_TYPE_TELNET
 	,CONN_TYPE_RAW
 	,CONN_TYPE_SSH
-	,CONN_TYPE_MODEM
-#ifdef __unix__
-	,CONN_TYPE_SHELL
-#endif
 	,CONN_TYPE_TERMINATOR
 };
 
@@ -45,7 +41,6 @@ struct conn_buffer {
 	size_t			bufsize;
 	size_t			buftop;
 	size_t			bufbot;
-	int				isempty;
 	pthread_mutex_t	mutex;
 	sem_t			in_sem;
 	sem_t			out_sem;
@@ -60,7 +55,7 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout);
 int conn_connect(struct bbslist *bbs);
 int conn_close(void);
 BOOL conn_connected(void);
-size_t conn_data_waiting(void);
+BOOL conn_data_waiting(void);
 void conn_binary_mode_on(void);
 void conn_binary_mode_off(void);
 
