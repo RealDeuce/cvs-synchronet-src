@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications (COM) I/O Library */
 
-/* $Id: comio.h,v 1.5 2007/04/21 01:36:35 rswindell Exp $ */
+/* $Id: comio.h,v 1.2 2007/03/23 01:55:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,6 @@
 extern "C" {
 #endif
 
-char*		comVersion(char* str, size_t len);
 COM_HANDLE	comOpen(const char* device);
 BOOL		comClose(COM_HANDLE);
 long		comGetBaudRate(COM_HANDLE);
@@ -79,10 +78,7 @@ BOOL		comWriteByte(COM_HANDLE, BYTE);
 int			comWriteBuf(COM_HANDLE, const BYTE*, size_t buflen);
 int			comWriteString(COM_HANDLE, const char*);
 BOOL		comReadByte(COM_HANDLE, BYTE*);
-size_t		comReadBuf(COM_HANDLE, char* buf, size_t buflen
-					    ,const char* terminators, int timeout /* in milliseconds */);
-size_t		comReadLine(COM_HANDLE, char* buf, size_t buflen
-						,int timeout /* in milliseconds */);
+size_t		comReadBuf(COM_HANDLE, char* buf, size_t buflen, int timeout /* in milliseconds */);
 BOOL		comPurgeInput(COM_HANDLE);
 BOOL		comPurgeOutput(COM_HANDLE);
 
