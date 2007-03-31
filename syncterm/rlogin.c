@@ -1,4 +1,4 @@
-/* $Id: rlogin.c,v 1.26 2007/10/19 02:01:54 deuce Exp $ */
+/* $Id: rlogin.c,v 1.23 2007/03/03 12:24:05 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -10,37 +10,25 @@
 
 static SOCKET sock=INVALID_SOCKET;
 
-#ifdef __BORLANDC__
-#pragma argsused
-#endif
 void rlogin_input_thread(void *args)
 {
 	fd_set	rds;
 	int		rd;
-	int	buffered;
+	size_t	buffered;
 	size_t	buffer;
 
 	conn_api.input_thread_running=1;
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(sock, &rds);
-#ifdef __linux__
-		{
-			struct timeval tv;
-			tv.tv_sec=0;
-			tv.tv_usec=500000;
-			rd=select(sock+1, &rds, NULL, NULL, &tv);
-		}
-#else
 		rd=select(sock+1, &rds, NULL, NULL, NULL);
-#endif
 		if(rd==-1) {
 			if(errno==EBADF)
 				break;
 			rd=0;
 		}
 		if(rd==1) {
-			rd=recv(sock, conn_api.rd_buf, conn_api.rd_buf_size, 0);
+			rd=recv(sock, conn_api.rd_buf, conn_api.rd_buf_size, MSG_DONTWAIT);
 			if(rd <= 0)
 				break;
 		}
@@ -55,15 +43,13 @@ void rlogin_input_thread(void *args)
 	conn_api.input_thread_running=0;
 }
 
-#ifdef __BORLANDC__
-#pragma argsused
-#endif
 void rlogin_output_thread(void *args)
 {
 	fd_set	wds;
 	int		wr;
 	int		ret;
-	int	sent;
+	size_t	sent;
+	size_t	send;
 
 	conn_api.output_thread_running=1;
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
@@ -76,16 +62,7 @@ void rlogin_output_thread(void *args)
 			while(sent < wr) {
 				FD_ZERO(&wds);
 				FD_SET(sock, &wds);
-#ifdef __linux__
-				{
-					struct timeval tv;
-					tv.tv_sec=0;
-					tv.tv_usec=500000;
-					ret=select(sock+1, NULL, &wds, NULL, &tv);
-				}
-#else
 				ret=select(sock+1, NULL, &wds, NULL, NULL);
-#endif
 				if(ret==-1) {
 					if(errno==EBADF)
 						break;
@@ -125,24 +102,11 @@ int rlogin_connect(struct bbslist *bbs)
 	if(sock==INVALID_SOCKET)
 		return(-1);
 
-	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE))
-		return(-1);
-	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
-		destroy_conn_buf(&conn_inbuf);
-		return(-1);
-	}
-	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		destroy_conn_buf(&conn_inbuf);
-		destroy_conn_buf(&conn_outbuf);
-		return(-1);
-	}
+	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
+	create_conn_buf(&conn_outbuf, BUFFER_SIZE);
+	conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE);
 	conn_api.rd_buf_size=BUFFER_SIZE;
-	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		free(conn_api.rd_buf);
-		destroy_conn_buf(&conn_inbuf);
-		destroy_conn_buf(&conn_outbuf);
-		return(-1);
-	}
+	conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE);
 	conn_api.wr_buf_size=BUFFER_SIZE;
 
 	if(bbs->conn_type == CONN_TYPE_RLOGIN) {
