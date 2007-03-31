@@ -2,13 +2,13 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.39 2007/04/11 19:28:15 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.37 2005/09/25 22:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,7 +96,6 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 	tm.tm_hour=((hdrblk[16]&0xf)*10)+(hdrblk[17]&0xf);
 	tm.tm_min=((hdrblk[19]&0xf)*10)+(hdrblk[20]&0xf);
 	tm.tm_sec=0;
-	tm.tm_isdst=-1;	/* Do not adjust for DST */
 
 	msg.hdr.when_written.time=mktime(&tm);
 	if(!(useron.rest&FLAG('Q')) && !fromhub)
@@ -257,14 +256,14 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 			p=header+5; 					/* Skip "@VIA:" */
 			while(*p && *p<=' ') p++;		/* Skip any spaces */
 			if(route_circ(p,cfg.sys_id)) {
+				free(header);
+				free(body);
+				free(tail);
 				smb_freemsgmem(&msg);
 				bprintf("\r\nCircular message path: %s\r\n",p);
 				sprintf(str,"Circular message path: %s from %s"
 					,p,fromhub ? cfg.qhub[fromhub-1]->id:useron.alias);
 				errorlog(str);
-				free(header);
-				free(body);
-				free(tail);
 				return(false); 
 			}
 			sprintf(str,"%s/%s"
