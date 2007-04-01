@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.99 2007/03/02 10:15:26 deuce Exp $ */
+/* $Id: syncterm.c,v 1.101 2007/03/03 12:28:12 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -28,7 +28,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.8"
+char* syncterm_version = "SyncTERM 0.8.1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -920,6 +920,9 @@ int main(int argc, char **argv)
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
 							break;
+						case 'S':
+							ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
+							break;
 						default:
 							goto USAGE;
 					}
@@ -1126,6 +1129,7 @@ int main(int argc, char **argv)
         "\n\noptions:\n\n"
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
+		"       S = FullScreen SDL mode\n"
 #ifdef __unix__
 		"       X = X11 mode\n"
 		"       C = Curses mode\n"
