@@ -2,13 +2,13 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.40 2007/09/21 01:56:08 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.38 2006/04/05 09:45:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -137,9 +137,6 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 
 	sprintf(str,"%25.25s",hdrblk+71);   /* Subject */
 	truncsp(str);
-	if(::trashcan(&cfg,str,"subject"))
-		return false;
-
 	smb_hfield_str(&msg,SUBJECT,str);
 
 	/********************************/
@@ -260,14 +257,14 @@ bool sbbs_t::qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
 			p=header+5; 					/* Skip "@VIA:" */
 			while(*p && *p<=' ') p++;		/* Skip any spaces */
 			if(route_circ(p,cfg.sys_id)) {
+				free(header);
+				free(body);
+				free(tail);
 				smb_freemsgmem(&msg);
 				bprintf("\r\nCircular message path: %s\r\n",p);
 				sprintf(str,"Circular message path: %s from %s"
 					,p,fromhub ? cfg.qhub[fromhub-1]->id:useron.alias);
 				errorlog(str);
-				free(header);
-				free(body);
-				free(tail);
 				return(false); 
 			}
 			sprintf(str,"%s/%s"
