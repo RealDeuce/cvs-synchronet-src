@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.1 2006/05/09 05:41:42 deuce Exp $
+# $Id: GNUmakefile,v 1.3 2006/05/13 02:24:32 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
