@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.54 2007/10/24 07:41:46 cyan Exp $ */
+/* $Id: newuser.cpp,v 1.50 2006/12/29 19:08:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ BOOL sbbs_t::newuser()
 	}
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.status=NODE_NEWUSER;
-	thisnode.connection=node_connection;
+	thisnode.connection=0xffff;
 	putnodedat(cfg.node_num,&thisnode);
 	memset(&useron,0,sizeof(user_t));	  /* Initialize user info to null */
 	if(cfg.new_pass[0] && online==ON_REMOTE) {
@@ -113,8 +113,7 @@ BOOL sbbs_t::newuser()
 		useron.expire=0;
 	useron.sex=' ';
 	useron.prot=cfg.new_prot;
-	SAFECOPY(useron.comp,client_name);	/* hostname or CID name */
-	SAFECOPY(useron.note,cid);			/* IP address or CID number */
+	SAFECOPY(useron.note,cid);		/* Caller ID if supported, NULL otherwise */
 	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
@@ -201,12 +200,17 @@ BOOL sbbs_t::newuser()
 				bputs(text[EnterYourRealName]);
 			getstr(useron.alias,LEN_ALIAS,kmode);
 			truncsp(useron.alias);
-			if (!check_name(&cfg,useron.alias)
+			if(useron.alias[0]<=' ' || !isalpha(useron.alias[0])
+				|| alias(&cfg,useron.alias,tmp)!=useron.alias
+				|| !stricmp(useron.alias,cfg.sys_id)
+				|| strchr(useron.alias,0xff)
+				|| matchuser(&cfg,useron.alias,TRUE /* sysop_alias */) 
+				|| trashcan(useron.alias,"name")
 				|| (!(cfg.uq&UQ_ALIASES) && !strchr(useron.alias,' '))) {
 				bputs(text[YouCantUseThatName]);
 				if(!yesno(text[ContinueQ]))
 					return(FALSE);
-				continue;
+				continue; 
 			}
 			break; 
 		}
@@ -214,8 +218,9 @@ BOOL sbbs_t::newuser()
 		if(cfg.uq&UQ_ALIASES && cfg.uq&UQ_REALNAME) {
 			while(online) {
 				bputs(text[EnterYourRealName]);
-				getstr(useron.name,LEN_NAME,kmode);
-				if (!check_name(&cfg,useron.name)
+				if(!getstr(useron.name,LEN_NAME,kmode)
+					|| trashcan(useron.name,"name")
+					|| strchr(useron.name,0xff)
 					|| !strchr(useron.name,' ')
 					|| (cfg.uq&UQ_DUPREAL
 						&& userdatdupe(useron.number,U_NAME,LEN_NAME
@@ -397,7 +402,7 @@ BOOL sbbs_t::newuser()
 			bprintf(text[NewUserPasswordVerify]);
 			console|=CON_R_ECHOX;
 			str[0]=0;
-			getstr(str,LEN_PASS*2,K_UPPER);
+			getstr(str,LEN_PASS,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(!strcmp(str,useron.pass)) break;
 			if(cfg.sys_misc&SM_ECHO_PW) 
