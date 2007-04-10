@@ -1,4 +1,4 @@
-/* $Id: conn_telnet.c,v 1.2 2007/04/18 19:06:02 deuce Exp $ */
+/* $Id: conn_telnet.c,v 1.1 2007/03/03 12:24:05 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -15,14 +15,11 @@
 
 SOCKET telnet_sock=INVALID_SOCKET;
 
-#ifdef __BORLANDC__
-#pragma argsused
-#endif
 void telnet_input_thread(void *args)
 {
 	fd_set	rds;
 	int		rd;
-	int	buffered;
+	size_t	buffered;
 	size_t	buffer;
 	char	rbuf[BUFFER_SIZE];
 	char	*buf;
@@ -38,7 +35,7 @@ void telnet_input_thread(void *args)
 			rd=0;
 		}
 		if(rd==1) {
-			rd=recv(telnet_sock, conn_api.rd_buf, conn_api.rd_buf_size, 0);
+			rd=recv(telnet_sock, conn_api.rd_buf, conn_api.rd_buf_size, MSG_DONTWAIT);
 			if(rd <= 0)
 				break;
 		}
@@ -55,15 +52,13 @@ void telnet_input_thread(void *args)
 	conn_api.input_thread_running=0;
 }
 
-#ifdef __BORLANDC__
-#pragma argsused
-#endif
 void telnet_output_thread(void *args)
 {
 	fd_set	wds;
-	size_t		wr;
+	int		wr;
 	int		ret;
 	size_t	sent;
+	size_t	send;
 	char	ebuf[BUFFER_SIZE*2];
 	char	*buf;
 
