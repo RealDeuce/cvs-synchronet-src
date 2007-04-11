@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.51 2007/05/01 05:49:03 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.50 2006/12/29 19:08:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ BOOL sbbs_t::newuser()
 	}
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.status=NODE_NEWUSER;
-	thisnode.connection=node_connection;
+	thisnode.connection=0xffff;
 	putnodedat(cfg.node_num,&thisnode);
 	memset(&useron,0,sizeof(user_t));	  /* Initialize user info to null */
 	if(cfg.new_pass[0] && online==ON_REMOTE) {
