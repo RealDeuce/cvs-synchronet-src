@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications (COM) I/O Library */
 
-/* $Id: comio.h,v 1.7 2007/05/16 22:32:15 rswindell Exp $ */
+/* $Id: comio.h,v 1.2 2007/03/23 01:55:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,34 +54,9 @@
 	#define COM_RING					MS_RING_ON
 	#define	COM_DCD						MS_RLSD_ON
 #else
-	#include <termios.h>
-
     #define COM_HANDLE					int
 	#define COM_HANDLE_INVALID			-1
 	#define COM_ERROR_VALUE				errno
-
-/* Stuff we apparently don't care about... 
- *
- *	TIOCM_LE   Line Enable.
- *	TIOCM_DTR  Data Terminal Ready.
- *	TIOCM_RTS  Request To Send.
- *	TIOCM_ST   Secondary Transmit.
- *	TIOCM_SR   Secondary Receive.
- */
-
-	#define COM_CTS						TIOCM_CTS  /* Clear To Send. */
-#ifdef TIOCM_CAR
-	#define COM_DCD						TIOCM_CAR  /* Carrier Detect. */
-#else
-	#define COM_DCD						TIOCM_CD   /* Carrier Detect (synonym). */
-#endif
-#ifdef TIOCM_RNG
-	#define COM_RING					TIOCM_RNG  /* Ring Indication. */
-#else
-	#define COM_RING					TIOCM_RI   /* Ring Indication (synonym). */
-#endif
-	#define COM_DSR						TIOCM_DSR  /* Data Set Ready. */
-
 #endif
 
 /**************/
@@ -92,7 +67,6 @@
 extern "C" {
 #endif
 
-char*		comVersion(char* str, size_t len);
 COM_HANDLE	comOpen(const char* device);
 BOOL		comClose(COM_HANDLE);
 long		comGetBaudRate(COM_HANDLE);
@@ -104,10 +78,7 @@ BOOL		comWriteByte(COM_HANDLE, BYTE);
 int			comWriteBuf(COM_HANDLE, const BYTE*, size_t buflen);
 int			comWriteString(COM_HANDLE, const char*);
 BOOL		comReadByte(COM_HANDLE, BYTE*);
-size_t		comReadBuf(COM_HANDLE, char* buf, size_t buflen
-					    ,const char* terminators, int timeout /* in milliseconds */);
-size_t		comReadLine(COM_HANDLE, char* buf, size_t buflen
-						,int timeout /* in milliseconds */);
+size_t		comReadBuf(COM_HANDLE, char* buf, size_t buflen, int timeout /* in milliseconds */);
 BOOL		comPurgeInput(COM_HANDLE);
 BOOL		comPurgeOutput(COM_HANDLE);
 
