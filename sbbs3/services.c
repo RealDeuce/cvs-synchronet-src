@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.195 2006/05/08 20:44:23 deuce Exp $ */
+/* $Id: services.c,v 1.199 2006/12/29 01:23:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,16 +36,6 @@
  ****************************************************************************/
 
 /* Platform-specific headers */
-#ifdef _WIN32
-
-	#include <io.h>			/* open/close */
-	#include <share.h>		/* share open flags */
-	#include <process.h>	/* _beginthread */
-	#include <windows.h>	/* required for mmsystem.h */
-	#include <mmsystem.h>	/* SND_ASYNC */
-
-#endif
-
 #ifdef __unix__
 	#include <sys/param.h>	/* BSD? */
 #endif
@@ -1580,7 +1570,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.195 $", "%*s %s", revision);
+	sscanf("$Revision: 1.199 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1642,7 +1632,8 @@ void DLLCALL services_thread(void* arg)
 	}
 
 #ifdef _THREAD_SUID_BROKEN
-	startup->seteuid(TRUE);
+	if(thread_suid_broken)
+		startup->seteuid(TRUE);
 #endif
 
 	/* Setup intelligent defaults */
@@ -1904,7 +1895,7 @@ void DLLCALL services_thread(void* arg)
 					continue;
 
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"0000 Services listening interrupted");
+					lprintf(LOG_DEBUG,"0000 Services listening interrupted");
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_NOTICE,"0000 Services sockets closed");
 				else
