@@ -74,7 +74,6 @@ void save_font_files(struct font_files *fonts)
 		fclose(inifile);
 	}
 	else {
-		uifc.helpbuf="There was an error writing the INI file.\nCheck permissions and try again.\n";
 		uifc.msg("Cannot write to the .ini file!");
 	}
 
@@ -145,7 +144,7 @@ void load_font_files(void)
 			conio_fontdata[nextfont].desc=strdup(ff[i].name);
 		else
 			continue;
-		if(ff[i].path8x8 && ff[i].path8x8[0]) {
+		if(ff[i].path8x8) {
 			if((fontfile=fopen(ff[i].path8x8,"r"))!=NULL) {
 				if((fontdata=(char *)malloc(2048))!=NULL) {
 					if(fread(fontdata, 1, 2048, fontfile)==2048) {
@@ -157,7 +156,7 @@ void load_font_files(void)
 				}
 			}
 		}
-		if(ff[i].path8x14 && ff[i].path8x14[0]) {
+		if(ff[i].path8x14) {
 			if((fontfile=fopen(ff[i].path8x14,"r"))!=NULL) {
 				if((fontdata=(char *)malloc(3584))!=NULL) {
 					if(fread(fontdata, 1, 3584, fontfile)==3584) {
@@ -169,7 +168,7 @@ void load_font_files(void)
 				}
 			}
 		}
-		if(ff[i].path8x16 && ff[i].path8x16[0]) {
+		if(ff[i].path8x16) {
 			if((fontfile=fopen(ff[i].path8x16,"r"))!=NULL) {
 				if((fontdata=(char *)malloc(4096))!=NULL) {
 					if(fread(fontdata, 1, 4096, fontfile)==4096) {
@@ -265,7 +264,6 @@ void font_management(void)
 			}
 			if(i&MSK_INS) {
 				str[0]=0;
-				uifc.helpbuf="Enter the name of the font as you want it to appear\nin menus.";
 				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,0)==-1)
 					break;
 				count++;
@@ -285,7 +283,6 @@ void font_management(void)
 			}
 			for(i=0; i<5; i++)
 				opt[i]=opts[i];
-			uifc.helpbuf="Font Details\n";
 			sprintf(opts[0],"Name: %.50s",fonts[cur].name?fonts[cur].name:"<undefined>");
 			sprintf(opts[1],"8x8   %.50s",fonts[cur].path8x8?fonts[cur].path8x8:"<undefined>");
 			sprintf(opts[2],"8x14  %.50s",fonts[cur].path8x14?fonts[cur].path8x14:"<undefined>");
@@ -298,7 +295,6 @@ void font_management(void)
 				case 0:
 					SAFECOPY(str,fonts[cur].name);
 					free(fonts[cur].name);
-					uifc.helpbuf="Enter the name of the font as you want it to appear\nin menus.";
 					uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,K_EDIT);
 					fonts[cur].name=strdup(str);
 					show_filepick=0;
@@ -331,7 +327,6 @@ void font_management(void)
 				gettextinfo(&ti);
 				savbuf=(char *)alloca((ti.screenheight-2)*ti.screenwidth*2);
 				if(savbuf==NULL) {
-					uifc.helpbuf="malloc() has failed.  Available Memory is dangerously low.";
 					uifc.msg("malloc() failure.");
 					continue;
 				}
