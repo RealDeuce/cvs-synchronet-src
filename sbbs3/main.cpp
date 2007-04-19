@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.476 2007/05/02 00:28:40 rswindell Exp $ */
+/* $Id: main.cpp,v 1.471 2007/04/18 21:28:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1054,13 +1054,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE 
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
-
-					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s Telnet sub-negotiation command: %s"
-	                		,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,telnet_opt_desc(option));
-
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
@@ -1078,17 +1071,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,speed);
-						sbbs->cur_rate=atoi(speed);
-						sbbs->cur_cps=sbbs->cur_rate/10;
-
-					} else if(option==TELNET_SEND_LOCATION) {
-						char location[128];
-						sprintf(location,"%.*s",(int)sbbs->telnet_cmdlen-5,sbbs->telnet_cmd+3);
-						lprintf(LOG_DEBUG,"Node %d %s telnet location: %s"
-	                		,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,location);
-						/* ToDo: store and log the location */
 
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
@@ -1144,7 +1126,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_TERM_SPEED:
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
-								case TELNET_SEND_LOCATION:
 									sbbs->telnet_remote_option[option]=command;
 									sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 									break;
@@ -2222,8 +2203,8 @@ void event_thread(void* arg)
 				// See if any packets have come in
 				SAFEPRINTF2(str,"%s%s.q??",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				glob(str,GLOB_NOSORT,NULL,&g);
-				for(j=0;j<(int)g.gl_pathc;j++) {
-					SAFECOPY(str,g.gl_pathv[j]);
+				for(i=0;i<(int)g.gl_pathc;i++) {
+					SAFECOPY(str,g.gl_pathv[i]);
 					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
@@ -2647,8 +2628,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	uselect_total = 0;
 	lbuflen = 0;
 	keybufbot=keybuftop=0;	/* initialize [unget]keybuf pointers */
-	SAFECOPY(connection,"Telnet");
-	node_connection=NODE_CONNECTION_TELNET;
+	connection="Telnet";
 
 	ZERO_VAR(telnet_local_option);
 	ZERO_VAR(telnet_remote_option);
@@ -4903,16 +4883,13 @@ NO_SSH:
 		identity=NULL;
 		if(startup->options&BBS_OPT_GET_IDENT) {
 			sbbs->bprintf("Resolving identity...");
-			/* ToDo: Make ident timeout configurable */
-			if(identify(&client_addr, startup->telnet_port, str, sizeof(str)-1, /* timeout: */1)) {
-				lprintf(LOG_DEBUG,"%04d Ident Response: %s",client_socket, str);
-				identity=strrchr(str,':');
-				if(identity!=NULL) {
-					identity++;	/* skip colon */
-					SKIP_WHITESPACE(identity);
-					if(*identity)
-						lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
-				}
+			identify(&client_addr, startup->telnet_port, str, sizeof(str)-1,0);
+			identity=strrchr(str,':');
+			if(identity!=NULL) {
+				identity++;	/* skip colon */
+				while(*identity && *identity<=' ') /* point to user name */
+					identity++;
+				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
 			}
 			sbbs->putcom(crlf);
 		}
@@ -4998,8 +4975,7 @@ NO_SSH:
 		}
 
 		if(rlogin==true) {
-			SAFECOPY(new_node->connection,"RLogin");
-			new_node->node_connection=NODE_CONNECTION_RLOGIN;
+			new_node->connection="RLogin";
 			new_node->sys_status|=SS_RLOGIN;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
@@ -5089,8 +5065,7 @@ NO_SSH:
 			_beginthread(passthru_input_thread, 0, new_node);
 
 NO_PASSTHRU:
-			SAFECOPY(new_node->connection,"SSH");
-			new_node->node_connection=NODE_CONNECTION_SSH;
+			new_node->connection="SSH";
 			new_node->sys_status|=SS_SSH;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;

@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.54 2007/05/02 00:28:40 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.51 2006/12/29 19:32:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -175,10 +175,8 @@ bool sbbs_t::answer()
 		request_telnet_opt(TELNET_WILL,TELNET_ECHO);
 		/* Will suppress Go Ahead */
 		request_telnet_opt(TELNET_WILL,TELNET_SUP_GA);
-		/* Retrieve terminal type and speed from telnet client --RS */
+		/* Retrieve terminal type from telnet client --RS */
 		request_telnet_opt(TELNET_DO,TELNET_TERM_TYPE);
-		request_telnet_opt(TELNET_DO,TELNET_TERM_SPEED);
-		request_telnet_opt(TELNET_DO,TELNET_SEND_LOCATION);
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
@@ -348,11 +346,6 @@ bool sbbs_t::answer()
 
 	if(!online) 
 		return(false); 
-
-	if(stricmp(terminal,"sexpots")==0) {	/* dial-up connection */
-		node_connection = (ushort)cur_rate;
-		SAFEPRINTF(connection,"%lu",cur_rate);
-	}
 
 	useron.misc&=~(ANSI|COLOR|RIP|WIP);
 	useron.misc|=autoterm;
