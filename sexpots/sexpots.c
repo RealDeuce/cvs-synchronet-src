@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.4 2007/04/06 06:51:03 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.5 2007/04/19 15:45:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,7 @@ BOOL	com_alreadyconnected=FALSE;
 BOOL	com_hangup=TRUE;
 ulong	com_baudrate=0;
 int		dcd_timeout=10;	/* seconds */
+ulong	dtr_delay=100;	/* milliseconds */
 
 BOOL	terminated=FALSE;
 BOOL	terminate_after_one_call=FALSE;
@@ -302,6 +303,7 @@ void cleanup(void)
 BOOL wait_for_call(HANDLE com_handle)
 {
 	char		str[128];
+	char*		p;
 	int			rd;
 	BOOL		result=TRUE;
 	DWORD		events=0;
@@ -309,6 +311,7 @@ BOOL wait_for_call(HANDLE com_handle)
 	if(com_alreadyconnected)
 		return TRUE;
 
+	comRaiseDTR(com_handle);
 	if(!mdm_null && mdm_init[0]) {
 		lprintf(LOG_INFO,"Initializing modem:");
 		if(!modem_command(com_handle, mdm_init))
@@ -330,7 +333,9 @@ BOOL wait_for_call(HANDLE com_handle)
 		if((rd=comReadBuf(com_handle, str, sizeof(str)-1, 250)) > 0) {
 			str[rd]=0;
 			truncsp(str);
-			lprintf(LOG_INFO, "Modem Message: %s", str);
+			p=str;
+			SKIP_WHITESPACE(p);
+			lprintf(LOG_INFO, "Modem Message: %s", p);
 		}
 	}
 
@@ -660,6 +665,8 @@ BOOL hangup_call(HANDLE com_handle)
 	if((comGetModemStatus(com_handle)&COM_DCD)==0)	/* DCD already low */
 		return TRUE;
 
+	lprintf(LOG_DEBUG,"Waiting for transmit buffer to empty");
+	SLEEP(dtr_delay);
 	lprintf(LOG_INFO,"Dropping DTR");
 	if(!comLowerDTR(com_handle))
 		return FALSE;
@@ -715,6 +722,7 @@ void parse_ini_file(const char* ini_fname)
 	mdm_null	    = iniReadBool(fp, "COM", "NullModem", mdm_null);
 	mdm_timeout     = iniReadInteger(fp, "COM", "ModemTimeout", mdm_timeout);
 	dcd_timeout     = iniReadInteger(fp, "COM", "DCDTimeout", dcd_timeout);
+	dtr_delay		= iniReadLongInt(fp, "COM", "DTRDelay", dtr_delay);
 	com_baudrate    = iniReadLongInt(fp, "COM", "BaudRate", com_baudrate);
 
 	/* [TCP] Section */
@@ -745,16 +753,16 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.4 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	sprintf(banner,"\nSynchronet External POTS<->TCP Driver v%s-%s"
-		" Copyright %s Rob Swindell\n"
+		" Copyright %s Rob Swindell"
 		,revision
 		,PLATFORM_DESC
 		,__DATE__+7
 		);
 
-	fprintf(stdout,"%s\n", banner);
+	fprintf(stdout,"%s\n\n", banner);
 
 	/******************/
 	/* Read .ini file */
@@ -869,8 +877,9 @@ int main(int argc, char** argv)
 	while(wait_for_call(com_handle)) {
 		comWriteByte(com_handle,'\r');
 		comWriteString(com_handle, banner);
+		comWriteString(com_handle, "\r\n");
 		if((sock=connect_socket(host, port)) == INVALID_SOCKET) {
-				comWriteString(com_handle,"\7\r\n!ERROR connecting to TCP port\r\n");
+			comWriteString(com_handle,"\7\r\n!ERROR connecting to TCP port\r\n");
 		} else {
 			handle_call();
 			close_socket(&sock);
