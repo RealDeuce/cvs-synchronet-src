@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.461 2007/08/13 23:27:50 deuce Exp $ */
+/* $Id: websrvr.c,v 1.458 2006/12/29 09:21:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,7 @@ enum {
 static scfg_t	scfg;
 static BOOL		scfg_reloaded=TRUE;
 static BOOL		http_logging_thread_running=FALSE;
-static DWORD	active_clients=0;
+static ulong	active_clients=0;
 static ulong	sockets=0;
 static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
@@ -3518,7 +3518,6 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	JSBool	b;
 	struct tm tm;
 	http_session_t* session;
-	time_t	tt;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -3537,8 +3536,7 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	header+=sprintf(header,"%s",p);
 	if(argc>2) {
 		JS_ValueToInt32(cx,argv[2],&i);
-		tt=i;
-		if(i && gmtime_r(&tt,&tm)!=NULL)
+		if(i && gmtime_r((time_t *)&i,&tm)!=NULL)
 			header += strftime(header,50,"; expires=%a, %d-%b-%Y %H:%M:%S GMT",&tm);
 	}
 	if(argc>3) {
@@ -4609,7 +4607,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.461 $", "%*s %s", revision);
+	sscanf("$Revision: 1.458 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4942,16 +4940,12 @@ void DLLCALL web_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->port);
 
-		if(startup->port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
 		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"Web Server",lprintf);
-		if(startup->port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
