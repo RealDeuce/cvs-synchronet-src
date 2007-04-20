@@ -1,8 +1,6 @@
-/* comio_win32.c */
+/* comio_win32.h */
 
-/* Synchronet Serial Communications I/O Library Functions for Win32 */
-
-/* $Id: comio_win32.c,v 1.5 2007/04/21 01:36:35 rswindell Exp $ */
+/* $Id: comio_win32.c,v 1.4 2007/04/20 18:42:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +40,7 @@ char* comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.5 $", "%*s %s", revision);
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
@@ -150,6 +148,27 @@ BOOL comReadByte(COM_HANDLE handle, BYTE* ch)
 	DWORD rd;
 
 	return ReadFile(handle, ch, sizeof(BYTE), &rd, NULL) && rd==sizeof(BYTE);
+}
+
+size_t comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, char terminator, int timeout)
+{
+	BYTE		ch;
+	size_t		len=0;
+	msclock_t	start=msclock();
+
+	while(len < buflen) {
+		if(!comReadByte(handle, &ch)) {
+			if(msclock()-start >= timeout)
+				break;
+			YIELD();
+			continue;
+		}
+		if(len && terminator && ch==terminator)
+			break;
+		buf[len++]=ch;
+	}
+
+	return len;
 }
 
 BOOL comPurgeInput(COM_HANDLE handle)
