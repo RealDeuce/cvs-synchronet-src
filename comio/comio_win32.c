@@ -1,6 +1,6 @@
 /* comio_win32.h */
 
-/* $Id: comio_win32.c,v 1.1 2007/03/23 00:58:37 rswindell Exp $ */
+/* $Id: comio_win32.c,v 1.4 2007/04/20 18:42:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,16 @@
 #include "comio.h"
 #include "genwrap.h"
 
+char* comVersion(char* str, size_t len)
+{
+	char revision[16];
+
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
+
+	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
+	return str;
+}
+
 COM_HANDLE comOpen(const char* device)
 {
 	COM_HANDLE handle;
@@ -67,6 +77,28 @@ COM_HANDLE comOpen(const char* device)
 BOOL comClose(COM_HANDLE handle)
 {
 	return CloseHandle(handle);
+}
+
+long comGetBaudRate(COM_HANDLE handle)
+{
+	DCB dcb;
+
+	if(GetCommState(handle, &dcb)!=TRUE)
+		return COM_ERROR;
+
+	return dcb.BaudRate;
+}
+
+BOOL comSetBaudRate(COM_HANDLE handle, unsigned long rate)
+{
+	DCB dcb;
+
+	if(GetCommState(handle, &dcb)!=TRUE)
+		return FALSE;
+
+	dcb.BaudRate=rate;
+
+	return SetCommState(handle, &dcb);
 }
 
 int comGetModemStatus(COM_HANDLE handle)
@@ -118,7 +150,7 @@ BOOL comReadByte(COM_HANDLE handle, BYTE* ch)
 	return ReadFile(handle, ch, sizeof(BYTE), &rd, NULL) && rd==sizeof(BYTE);
 }
 
-size_t comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, int timeout)
+size_t comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, char terminator, int timeout)
 {
 	BYTE		ch;
 	size_t		len=0;
@@ -131,6 +163,8 @@ size_t comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, int timeout)
 			YIELD();
 			continue;
 		}
+		if(len && terminator && ch==terminator)
+			break;
 		buf[len++]=ch;
 	}
 
@@ -146,3 +180,4 @@ BOOL comPurgeOutput(COM_HANDLE handle)
 {
 	return PurgeComm(handle, PURGE_TXCLEAR);
 }
+
