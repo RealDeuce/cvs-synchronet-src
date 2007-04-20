@@ -2,7 +2,7 @@
 
 /* 8250 Universal Asynchronous Receiver/Transmitter definitions */
 
-/* $Id: uartdefs.h,v 1.2 2006/05/11 09:42:15 rswindell Exp $ */
+/* $Id: uartdefs.h,v 1.5 2006/06/20 22:25:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,7 @@ const char* uart_reg_desc[] = { "base", "IER", "IIR", "LCR", "MCR", "LSR", "MSR"
 
 #define UART_IIR_MODEM_STATUS	0x00
 #define UART_IIR_NONE			0x01	/* Bit 0=0, Interrupt Pending */
-#define UART_IIR_TX_EMPTY		0x02
+#define UART_IIR_TX_EMPTY		0x02	/* THRE (Transmit Holding Register Empty) */
 #define UART_IIR_RX_DATA		0x04
 #define UART_IIR_LINE_STATUS	0x06
 
@@ -85,6 +85,12 @@ const char* uart_reg_desc[] = { "base", "IER", "IIR", "LCR", "MCR", "LSR", "MSR"
 #define UART_LCR_BREAK			(1<<6)
 #define UART_LCR_8_DATA_BITS	0x03		/* 8 data bits */
 
+#define UART_MCR_DTR			(1<<0)
+#define UART_MCR_RTS			(1<<1)
+#define UART_MCR_AUX1			(1<<2)
+#define UART_MCR_AUX2			(1<<3)
+#define UART_MCR_LOOPBACK		(1<<4)
+
 /* I/O Ports */
 #define UART_COM1_IO_BASE		0x3f8
 #define UART_COM2_IO_BASE		0x2f8
@@ -94,5 +100,7 @@ const char* uart_reg_desc[] = { "base", "IER", "IIR", "LCR", "MCR", "LSR", "MSR"
 /* IRQs */
 #define UART_COM1_IRQ			4
 #define UART_COM2_IRQ			3
+#define UART_COM3_IRQ			4
+#define UART_COM4_IRQ			3
 
 #endif /* Don't add anything after this line */

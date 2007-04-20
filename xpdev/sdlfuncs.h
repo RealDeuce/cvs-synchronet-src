@@ -19,36 +19,53 @@ struct sdlfuncs {
 	Uint8	(*EventState)	(Uint8 type, int state);
 	SDL_Surface	*(*CreateRGBSurface)	(Uint32 flags, int width, int height, int depth,
 							Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask);
+	SDL_Surface *(*CreateRGBSurfaceFrom)(void *pixels, int width, int height, int depth, int pitch,
+							Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask);
 	int	(*FillRect)	(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color);
 	int	(*SetColors)	(SDL_Surface *surface, SDL_Color *colors, int firstcolor, int ncolors);
 	int	(*BlitSurface)	(SDL_Surface *src, SDL_Rect *srcrect,
 								SDL_Surface *dst, SDL_Rect *dstrect);
 	void	(*UpdateRects)	(SDL_Surface *screen, int numrects, SDL_Rect *rects);
 	SDL_sem *(*SDL_CreateSemaphore)	(Uint32 initial_value);
+	void (*SDL_DestroySemaphore)	(SDL_sem *semaphore);
 	SDL_mutex	*(*SDL_CreateMutex)	(void);
 	struct SDL_Thread	*(*CreateThread)	(int (*fn)(void *), void *data);
+	void	(*KillThread)	(SDL_Thread *thread);
+	void	(*WaitThread)	(SDL_Thread *thread, int *status);
 	int	(*WaitEvent)	(SDL_Event *event);
 	SDL_Surface	*(*SetVideoMode)	(int width, int height, int bpp, Uint32 flags);
 	void	(*FreeSurface)	(SDL_Surface *surface);
 	void	(*WM_SetCaption)	(const char *title, const char *icon);
+	void	(*WM_SetIcon)	(SDL_Surface *icon, Uint8 *mask);
 	int	(*ShowCursor)	(int toggle);
 	Uint32	(*WasInit)	(Uint32 flags);
 	int	(*EnableUNICODE)	(int enable);
 	int	(*EnableKeyRepeat)	(int delay, int interval);
-	int	(*GetWMInfo)	(struct SDL_SysWMinfo *info);
+	int	(*GetWMInfo)	(SDL_SysWMinfo *info);
 	char	*(*GetError)	(void);
+	int (*InitSubSystem)(Uint32 flags);
+	void (*QuitSubSystem)(Uint32 flags);
+	int (*OpenAudio)(SDL_AudioSpec *desired, SDL_AudioSpec *obtained);
+	void (*CloseAudio)(void);
+	void (*LockAudio)(void);
+	void (*UnlockAudio)(void);
+	void (*PauseAudio)(int pause_on);
+	SDL_audiostatus (*GetAudioStatus)(void);
 	int	gotfuncs;
 };
 
-#ifdef _WIN32
-/* Defined in SDL_win32_main.c */
+/* Defined in SDL_win32_main.c for Win32 */
 extern struct sdlfuncs	sdl;
-#endif
+extern SDL_sem *sdl_exit_sem;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 int load_sdl_funcs(struct sdlfuncs *sdlf);
+int init_sdl_audio(void);
+int init_sdl_video(void);
+int SDL_main_env(int argc, char *argv[], char **env);
+void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawing_thread)(void));
 #ifdef __cplusplus
 }
 #endif
