@@ -1,12 +1,63 @@
+#include "dirwrap.h"
+#include "ini_file.h"
+
 #include "events.h"
 #include "gtkmonitor.h"
-#include "dirwrap.h"
 
 scfg_t		cfg;
 GladeXML	*xml;
 int			nodes=0;
 GtkListStore	*store = NULL;
 GtkTreeSelection *sel;
+struct gtkmonitor_config gtkm_conf;
+char			glade_path[MAX_PATH+1];
+
+void read_ini(void)
+{
+	FILE	*inif;
+	char	path[MAX_PATH+1];
+
+	complete_path(path, cfg.ctrl_dir, "gtkmonitor.ini");
+	inif=fopen(path, "r");
+	iniReadString(inif, "commands", "ViewStdOut", "%f | xmessage -file -", gtkm_conf.view_stdout);
+	iniReadString(inif, "commands", "ViewTextFile", "xmessage -file %f", gtkm_conf.view_text_file);
+	iniReadString(inif, "commands", "EditTextFile", "xedit %f",gtkm_conf.edit_text_file);
+	iniReadString(inif, "commands", "ViewCtrlAFile", "%!asc2ans %f | %!syncview -l",gtkm_conf.view_ctrla_file);
+	iniReadString(inif, "commands", "ViewHTMLFile", "firefox file://%f", gtkm_conf.view_html_file);
+	if(inif)
+		fclose(inif);
+	else
+		write_ini();
+}
+
+void write_ini(void)
+{
+	FILE	*inif;
+	char	path[MAX_PATH+1];
+	str_list_t	inifile;
+
+	complete_path(path, cfg.ctrl_dir, "gtkmonitor.ini");
+	inif=fopen(path, "r");
+	if(inif) {
+		inifile=iniReadFile(inif);
+		fclose(inif);
+	}
+	else
+		inifile=strListInit();
+	iniSetString(&inifile, "commands", "ViewStdOut", gtkm_conf.view_stdout, NULL);
+	iniSetString(&inifile, "commands", "ViewTextFile", gtkm_conf.view_text_file, NULL);
+	iniSetString(&inifile, "commands", "EditTextFile", gtkm_conf.edit_text_file, NULL);
+	iniSetString(&inifile, "commands", "ViewCtrlAFile", gtkm_conf.view_ctrla_file, NULL);
+	iniSetString(&inifile, "commands", "ViewHTMLFile", gtkm_conf.view_html_file, NULL);
+	inif=fopen(path, "w");
+	if(inif) {
+		iniWriteFile(inif, inifile);
+		fclose(inif);
+	}
+	else
+		display_message("Cannot Create .ini File","Unable to create the .ini file.  Check your permissions.","gtk-dialog-error");
+	strListFree(&inifile);
+}
 
 void refresh_events(void)
 {
@@ -19,7 +70,7 @@ void refresh_events(void)
     /* Read .cfg files here */
 	free_cfg(&cfg);
     if(!load_cfg(&cfg, NULL, TRUE, str)) {
-		fprintf(stderr,"Cannot load configuration data\n");
+		display_message("Load Error","Cannot load configuration data","gtk-dialog-error");
         return;
 	}
 
@@ -371,13 +422,13 @@ int read_config(void)
 
 	p=getenv("SBBSCTRL");
 	if(p==NULL) {
-		fprintf(stderr,"SBBSCTRL not set\n");
+		display_message("Environment Error","SBBSCTRL not set","gtk-dialog-error");
 		return(-1);
 	}
 	SAFECOPY(ctrl_dir, p);
 	prep_dir("",ctrl_dir,sizeof(ctrl_dir));
 	if(!isdir(ctrl_dir)) {
-		fprintf(stderr,"SBBSCTRL does not point to a directory\n");
+		display_message("Environment Errpr","SBBSCTRL does not point to a directory","gtk-dialog-error");
 		return(-1);
 	}
     memset(&cfg,0,sizeof(cfg));
@@ -387,6 +438,9 @@ int read_config(void)
 	/* Read the ctrl struct */
 	refresh_events();
 
+	/* Read the .ini file */
+	read_ini();
+
 	/* Passing any non-NULL argument is required to set up the timeout */
 	if(refresh_data(refresh_data))
 		return(-1);
@@ -394,8 +448,6 @@ int read_config(void)
 }
 
 int main(int argc, char *argv[]) {
-	char			glade_path[MAX_PATH+1];
-
     gtk_init(&argc, &argv);
     glade_init();
 
