@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.127 2007/07/10 23:22:38 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.126 2006/12/28 02:45:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -535,7 +535,7 @@ BOOL DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* obj, smbmsg_t* msg
 	return(TRUE);
 }
 
-static BOOL msg_offset_by_id(private_t* p, char* id, int32_t* offset)
+static BOOL msg_offset_by_id(private_t* p, char* id, long* offset)
 {
 	smbmsg_t msg;
 
