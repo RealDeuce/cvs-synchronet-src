@@ -2,7 +2,7 @@
 
 /* Synchronet External DOS Program Launcher (16-bit MSVC 1.52c project) */
 
-/* $Id: dosxtrn.c,v 1.15 2006/05/10 17:27:03 rswindell Exp $ */
+/* $Id: dosxtrn.c,v 1.23 2006/10/28 03:54:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,8 @@
 #include "isvbop.h"			/* ddk\inc */
 #include "fossdefs.h"
 
+#define VDD_FILENAME	"sbbsexec.dll"
+
 /****************************************************************************/
 /* Truncates white-space chars off end of 'str' and terminates at first tab */
 /****************************************************************************/
@@ -58,18 +60,23 @@ static void truncsp(char *str)
 	while(c && (unsigned char)str[c-1]<=' ') c--;
 	str[c]=0;
 }
-
 short	vdd=0;
 BYTE	node_num=0;
 int		mode=0;
-DWORD	nodata=0;
-DWORD	polls_before_yield=10;
 int		revision;
 char	id_string[128];
+#ifdef DEBUG_INT_CALLS
+ulong	int14calls=0;
+ulong	int16calls=0;
+ulong	int21calls=0;
+ulong	int29calls=0;
+#endif
 
 void (interrupt *oldint14)();
 void (interrupt *oldint16)();
+void (interrupt *oldint21)();
 void (interrupt *oldint29)();
+
 
 static int vdd_buf(BYTE op, int count, WORD buf_seg, WORD buf_off)
 {
@@ -98,7 +105,15 @@ static int vdd_buf(BYTE op, int count, WORD buf_seg, WORD buf_off)
 	return(retval);
 }
 
-static int vdd_op(BYTE op, WORD arg)
+static int vdd_str(BYTE op, char* str)
+{
+	WORD			buf_seg;
+
+	_asm mov buf_seg, ss;
+	return vdd_buf(op, strlen(str), buf_seg, (WORD)str);
+}
+
+static int vdd_op(BYTE op)
 {
 	int retval;
 
@@ -108,16 +123,13 @@ static int vdd_op(BYTE op, WORD arg)
 #endif
 	_asm {
 		push	bx
-		push	cx
 		mov		ax,	vdd
 		mov		bh,	node_num
 		mov		bl,	op
-		mov		cx, arg
 	}
 	DispatchCall();
 	_asm {
 		mov		retval, ax
-		pop		cx
 		pop		bx
 	}
 	return(retval);
@@ -201,6 +213,10 @@ WORD PortStatus()
 	return(status);
 }
 
+#ifdef DEBUG_FOSSIL_CALLS
+	DWORD fossil_calls[0x100];
+#endif
+
 void interrupt winNTint14(
 	unsigned _es, unsigned _ds,
 	unsigned _di, unsigned _si,
@@ -229,46 +245,56 @@ void interrupt winNTint14(
 		|FOSSIL_STOP_BITS_1
 	};
 
+#ifdef DEBUG_INT_CALLS
+	int14calls++;
+#endif
+
+#ifdef DEBUG_FOSSIL_CALLS
+	fossil_calls[_ax>>8]++;
+#endif
+
 	switch(_ax>>8) {
-		case 0x00:	/* Initialize/Set baud rate */
+		case FOSSIL_FUNC_SET_RATE:	/* Initialize/Set baud rate */
 			_ax = PortStatus();
 			break;
-		case 0x01: /* write char to com port, with wait */
+		case FOSSIL_FUNC_PUT_CHAR: /* write char to com port, with wait */
 			ch=_ax&0xff;
 			_asm mov buf_seg, ss;
 			vdd_buf(VDD_WRITE, 1, buf_seg, (WORD)&ch);
 			_ax = PortStatus();
-			nodata=0;
 			break;
-		case 0x02: /* read char from com port, with wait */
+		case FOSSIL_FUNC_GET_CHAR: /* read char from com port, with wait */
 			_asm mov buf_seg, ss;
 			_ax = vdd_buf(VDD_READ, 1, buf_seg, (WORD)&ch);
 			if(!_ax) {
 				_ax = 0x8000;	/* timed-out */
-				vdd_op(VDD_YIELD, 0);
+				vdd_op(VDD_YIELD);
 			} else {
 				_ax = ch;
-				nodata=0;
 			}
 			break;
-		case 0x03:	/* request status */
+		case FOSSIL_FUNC_GET_STATUS:	/* request status */
 			_ax=PortStatus();
-			if(_ax==0x6088 && ++nodata>=polls_before_yield)
-				vdd_op(VDD_YIELD, 0);
+			if(_ax==0x6088)
+				vdd_op(VDD_MAYBE_YIELD);
 			break;
-		case 0x04:	/* initialize */
+		case FOSSIL_FUNC_INIT:	/* initialize */
 			_ax=FOSSIL_SIGNATURE;	/* magic number = success */
 			_bx=FOSSIL_REVISION<<8 | FOSSIL_FUNC_HIGHEST;	/* FOSSIL rev/maximum FOSSIL func supported */
 			break;
-        case 0x08:	/* flush output buffer	*/
+		case FOSSIL_FUNC_DTR:
+			if((_ax&0xff)==0)	/* Lower DTR */
+				vdd_op(VDD_HANGUP);
 			break;
-        case 0x09:	/* purge output buffer	*/
-			vdd_op(VDD_OUTBUF_PURGE, 0);
+        case FOSSIL_FUNC_FLUSH_OUT:	/* flush output buffer	*/
 			break;
-        case 0x0A:	/* purge input buffer	*/
-			vdd_op(VDD_INBUF_PURGE, 0);
+        case FOSSIL_FUNC_PURGE_OUT:	/* purge output buffer	*/
+			vdd_op(VDD_OUTBUF_PURGE);
 			break;
-		case 0x0B:	/* write char to com port, no wait */
+        case FOSSIL_FUNC_PURGE_IN:	/* purge input buffer	*/
+			vdd_op(VDD_INBUF_PURGE);
+			break;
+		case FOSSIL_FUNC_WRITE_CHAR:	/* write char to com port, no wait */
         	if(0 /*RingBufFree(&vm->out)<2 */) {
             	_ax=0; /* char was not accepted */
                 break;
@@ -276,38 +302,32 @@ void interrupt winNTint14(
 			ch=_ax&0xff;
 			_asm mov buf_seg, ss;
 			_ax = vdd_buf(VDD_WRITE, 1, buf_seg, (WORD)&ch);
-			nodata=0;
 			break;
-        case 0x0C:	/* non-destructive read-ahead */
+        case FOSSIL_FUNC_PEEK:	/* non-destructive read-ahead */
 			vdd_getstatus(&vdd_status);
 			if(!vdd_status.inbuf_full) {
 				_ax=0xffff;	/* no char available */
-				vdd_op(VDD_YIELD, 0);
+				vdd_op(VDD_YIELD);
 				break;
 			}
 			_asm mov buf_seg, ss;
 			_ax = vdd_buf(VDD_PEEK, 1, buf_seg, (WORD)&ch);
 			if(_ax == 0)
-				vdd_op(VDD_YIELD, 0);
-			else
-				nodata=0;
+				vdd_op(VDD_YIELD);
 			break;
-        case 0x18:	/* read block, no wait */
+        case FOSSIL_FUNC_READ_BLOCK:	/* read block, no wait */
 			vdd_getstatus(&vdd_status);
 			if(!vdd_status.inbuf_full)
 				_ax = 0; /* no data available */
 			else
 				_ax = vdd_buf(VDD_READ, _cx, _es, _di);
 			if(_ax == 0)
-				vdd_op(VDD_YIELD, 0);
-			else
-				nodata=0;
+				vdd_op(VDD_YIELD);
 			break;
-        case 0x19:	/* write block, no wait */
+        case FOSSIL_FUNC_WRITE_BLOCK:	/* write block, no wait */
 			_ax = vdd_buf(VDD_WRITE, _cx, _es, _di);
-			nodata=0;
 			break;
-        case 0x1B:	/* driver info */
+        case FOSSIL_FUNC_GET_INFO:	/* driver info */
 			vdd_getstatus(&vdd_status);
 			info.inbuf_size=vdd_status.inbuf_size;
 			info.inbuf_free=info.inbuf_size-vdd_status.inbuf_full;
@@ -315,9 +335,8 @@ void interrupt winNTint14(
 			info.outbuf_free=info.outbuf_size-vdd_status.outbuf_full;
 			info.id_string = id_string;
 
-			if(vdd_status.inbuf_full==vdd_status.outbuf_full==0 
-				&& ++nodata>=polls_before_yield)
-				vdd_op(VDD_YIELD, 0);			
+			if(vdd_status.inbuf_full==vdd_status.outbuf_full==0)
+				vdd_op(VDD_MAYBE_YIELD);
 
 			p = _MK_FP(_es,_di);
             wr=sizeof(info);
@@ -347,6 +366,10 @@ void interrupt winNTint16(
 	WORD			buf_seg;
 	vdd_status_t	status;
 
+#ifdef DEBUG_INT_CALLS
+	int16calls++;
+#endif
+
 	vdd_getstatus(&status);
  	switch(_ax>>8) {
     	case 0x00:	/* Read char from keyboard */
@@ -355,11 +378,9 @@ void interrupt winNTint16(
 				_asm mov buf_seg, ss;
 				vdd_buf(VDD_READ, 1, buf_seg, (WORD)&ch);
 				_ax=ch;
-				nodata=0;
 				return;
 			} 
-			if(++nodata>=polls_before_yield)
-				vdd_op(VDD_YIELD, 0);
+			vdd_op(VDD_MAYBE_YIELD);
 			break;
     	case 0x01:	/* Get keyboard status */
         case 0x11:	/* Get enhanced keyboard status */
@@ -368,15 +389,36 @@ void interrupt winNTint16(
 				vdd_buf(VDD_PEEK, 1, buf_seg, (WORD)&ch);
                 flags&=~(1<<6);	/* clear zero flag */
                 _ax=ch;
-				nodata=0;
 				return;
 			}
-			if(++nodata>=polls_before_yield)
-				vdd_op(VDD_YIELD, 0);
+			vdd_op(VDD_MAYBE_YIELD);
 	        break;
 	}
 
 	_chain_intr(oldint16);		
+}
+
+#ifdef DEBUG_DOS_CALLS
+	DWORD dos_calls[0x100];
+#endif
+
+void interrupt winNTint21(
+	unsigned _es, unsigned _ds,
+	unsigned _di, unsigned _si,
+	unsigned _bp, unsigned _sp,
+	unsigned _bx, unsigned _dx,
+	unsigned _cx, unsigned _ax,
+	)
+{
+#ifdef DEBUG_INT_CALLS
+	int21calls++;
+#endif
+	if(_ax>>8 == 0x2c)	/* GET_SYSTEM_TIME */
+		vdd_op(VDD_MAYBE_YIELD);
+#ifdef DEBUG_DOS_CALLS
+	dos_calls[_ax>>8]++;
+#endif
+	_chain_intr(oldint21);
 }
 
 void interrupt winNTint29(
@@ -389,16 +431,37 @@ void interrupt winNTint29(
 {
 	char	ch;
 	WORD	buf_seg;
+#ifdef DEBUG_INT_CALLS
+	int29calls++;
+#endif
 
 	ch=_ax&0xff;
 	_asm mov buf_seg, ss
 	vdd_buf(VDD_WRITE, 1, buf_seg, (WORD)&ch);
-	nodata=0;
 
 	_chain_intr(oldint29);
 }
 
-char *	DllName		="SBBSEXEC.DLL";
+/****************************************************************************/
+/* Return the filename portion of a full pathname							*/
+/****************************************************************************/
+char* getfname(const char* path)
+{
+	const char* fname;
+	const char* bslash;
+
+	fname=strrchr(path,'/');
+	bslash=strrchr(path,'\\');
+	if(bslash>fname)
+		fname=bslash;
+	if(fname!=NULL) 
+		fname++;
+	else 
+		fname=(char*)path;
+	return((char*)fname);
+}
+
+char *	DllName		=VDD_FILENAME;
 char *	InitFunc	="VDDInitialize";
 char *	DispFunc	="VDDDispatch";
 
@@ -406,17 +469,18 @@ int main(int argc, char **argv)
 {
 	char	str[128];
 	char	cmdline[128],*p;
-	char	dll[512];
+	char	dll[256];
+	char	exec_dir[128];
 	char*	envvar[10];
 	char*	arg[16];
 	int		i,c,d,envnum=0;
 	FILE*	fp;
 	BOOL	NT=FALSE;
 	BOOL	success=FALSE;
-	WORD	seg;
+	WORD	buf_seg;
 	WORD	w;
 
-	sscanf("$Revision: 1.15 $", "%*s 1.%u", &revision);
+	sscanf("$Revision: 1.23 $", "%*s 1.%u", &revision);
 
 	sprintf(id_string,"Synchronet FOSSIL Driver (DOSXTRN) revision %u", revision);
 	if(argc<2) {
@@ -424,14 +488,14 @@ int main(int argc, char **argv)
 			,"%s - Copyright %s Rob Swindell\n"
 			,id_string, __DATE__+7);
 		fprintf(stderr
-			,"usage: dosxtrn <path/dosxtrn.env> [NT|95] [node_num] [mode] [polls_per_yield]\n");
+			,"usage: dosxtrn <path/dosxtrn.env> [NT|95] [node_num] [mode]\n");
 		return(1);
 	}
 
-	strcpy(dll,argv[0]);
-	p=strrchr(dll,'\\');
-	if(p!=NULL) *(p+1)=0;
-	strcat(dll,"SBBSEXEC.DLL");
+	sprintf(exec_dir,"%.*s",sizeof(exec_dir)-1,argv[0]);
+	p=getfname(exec_dir);
+	*p=0;
+	sprintf(dll,"%s%s",exec_dir,VDD_FILENAME);
 	DllName=dll;
 
 	if(argc>2 && !strcmp(argv[2],"NT")) 
@@ -440,8 +504,6 @@ int main(int argc, char **argv)
 		node_num=atoi(argv[3]);
 	if(argc>4)
 		mode=atoi(argv[4]);
-	if(argc>5)
-		polls_before_yield=atol(argv[5]);
 
 	if((fp=fopen(argv[1],"r"))==NULL) {
 		fprintf(stderr,"!Error opening %s\n",argv[1]);
@@ -455,19 +517,18 @@ int main(int argc, char **argv)
 	for(c=0,d=1;cmdline[c];c++)	/* Break up command line */
 		if(cmdline[c]==' ') {
 			cmdline[c]=0;			/* insert nulls */
-			arg[d++]=cmdline+c+1; } /* point to the beginning of the next arg */
+			arg[d++]=cmdline+c+1;	/* point to the beginning of the next arg */
+		}
 	arg[d]=0;
 
 	while(!feof(fp)) {
 		if(!fgets(str, sizeof(str), fp))
 			break;
 		truncsp(str);
-		envvar[envnum]=malloc(strlen(str)+1);
-		if(envvar[envnum]==NULL) {
+		if((envvar[envnum]=strdup(str))==NULL) {
 			fprintf(stderr,"!MALLOC ERROR\n");
 			return(4);
 		}
-		strcpy(envvar[envnum],str);
 		_putenv(envvar[envnum++]);
 	}
 	fclose(fp);
@@ -486,50 +547,64 @@ int main(int argc, char **argv)
 
 	if(NT) {	/* Windows NT/2000 */
 
-		/* Register VDD */
-       	_asm {
-			push	es
-			push	ds
-			pop		es
-			mov     si, DllName		; ds:si = dll name
-		    mov     di, InitFunc    ; es:di = init routine
-			mov     bx, DispFunc    ; ds:bx = dispatch routine
-		};
-		RegisterModule();
-		_asm {
-			mov		vdd, ax
-			jc		err
-			mov		success, TRUE
-			err:
-			pop		es
+		for(i=0;i<2;i++) {
+
+			/* Register VDD */
+       		_asm {
+				push	es
+				push	ds
+				pop		es
+				mov     si, DllName		; ds:si = dll name
+				mov     di, InitFunc    ; es:di = init routine
+				mov     bx, DispFunc    ; ds:bx = dispatch routine
+#if 1	/* Vista work-around, apparently doesn't support an InitFunc (RegisterModule fails with AX=1) */
+				xor		di,di
+				mov		es,di
+#endif
+
+			};
+			RegisterModule();
+			_asm {
+				mov		vdd, ax
+				jc		err
+				mov		success, TRUE
+				err:
+				pop		es
+			}
+			if(success)
+				break;
+			DllName=VDD_FILENAME;	/* try again with no path (for Windows Vista) */
 		}
 		if(!success) {
 			fprintf(stderr,"Error %d loading %s\n",vdd,DllName);
 			return(-1);
 		}
+
 #if 0
 		fprintf(stderr,"vdd handle=%d\n",vdd);
 		fprintf(stderr,"mode=%d\n",mode);
 #endif
+		vdd_str(VDD_LOAD_INI_FILE, exec_dir);
 
-		i=vdd_op(VDD_OPEN, 0);
+		vdd_str(VDD_LOAD_INI_SECTION, getfname(arg[0]));
+
+		sprintf(str,"%s, rev %u, %s %s", __FILE__, revision, __DATE__, __TIME__);
+		vdd_str(VDD_DEBUG_OUTPUT, str);
+
+		i=vdd_op(VDD_OPEN);
 		if(i) {
 			fprintf(stderr,"!VDD_OPEN ERROR: %d\n",i);
 			UnRegisterModule();
 			return(-1);
 		}
-		/* Configure auto-yield (for UART/COM1 virtualization) */
-		if(polls_before_yield > 0xffff)
-			w = 0xffff;
-		else
-			w = polls_before_yield;
-		vdd_op(VDD_CONFIG_YIELD, w);
 		oldint16=_dos_getvect(0x16);
+		oldint21=_dos_getvect(0x21);
 		oldint29=_dos_getvect(0x29);
 		if(mode==SBBSEXEC_MODE_FOSSIL) {
 			*(WORD*)((BYTE*)int14stub+1) = (WORD)winNTint14 - (WORD)&int14stub - 3;	/* jmp offset */
 			_dos_setvect(0x14,(void(interrupt *)())int14stub); 
 		}
+		_dos_setvect(0x21,winNTint21); 
 		if(mode&SBBSEXEC_MODE_DOS_IN)
 			_dos_setvect(0x16,winNTint16); 
 		if(mode&SBBSEXEC_MODE_DOS_OUT) 
@@ -555,14 +630,44 @@ int main(int argc, char **argv)
 	_dos_setvect(0x14,oldint14);
 
 	if(NT) {
-		vdd_op(VDD_CLOSE, 0);
+		vdd_op(VDD_CLOSE);
 
 		_dos_setvect(0x16,oldint16);
+		_dos_setvect(0x21,oldint21);
 		_dos_setvect(0x29,oldint29);
+
+		sprintf(str,"%s returned %d", arg[0], i);
+		vdd_str(VDD_DEBUG_OUTPUT, str);
+
+#ifdef DEBUG_INT_CALLS
+		sprintf(str,"int14h calls: %u", int14calls);	vdd_str(VDD_DEBUG_OUTPUT, str);
+		sprintf(str,"int16h calls: %u", int16calls);	vdd_str(VDD_DEBUG_OUTPUT, str);
+		sprintf(str,"int21h calls: %u", int21calls);	vdd_str(VDD_DEBUG_OUTPUT, str);
+		sprintf(str,"int29h calls: %u", int29calls);	vdd_str(VDD_DEBUG_OUTPUT, str);
+#endif
+#ifdef DEBUG_DOS_CALLS
+		for(i=0;i<0x100;i++) {
+			if(dos_calls[i]>100) {
+				sprintf(str,"int21h function %02X calls: %u\n"
+					,i, dos_calls[i]);
+				vdd_str(VDD_DEBUG_OUTPUT, str);
+			}
+		}
+#endif
+#ifdef DEBUG_FOSSIL_CALLS
+		for(i=0;i<0x100;i++) {
+			if(fossil_calls[i]>0) {
+				sprintf(str,"int14h function %02X calls: %u"
+					,i, fossil_calls[i]);
+				vdd_str(VDD_DEBUG_OUTPUT, str);			}
+		}
+#endif
 
 		/* Unregister VDD */
 		_asm mov ax, vdd;
 		UnRegisterModule();
+
 	}
+
 	return(i);
 }
