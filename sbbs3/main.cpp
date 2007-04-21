@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.473 2007/04/21 01:50:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.474 2007/04/21 10:22:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2222,8 +2222,8 @@ void event_thread(void* arg)
 				// See if any packets have come in
 				SAFEPRINTF2(str,"%s%s.q??",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				glob(str,GLOB_NOSORT,NULL,&g);
-				for(i=0;i<(int)g.gl_pathc;i++) {
-					SAFECOPY(str,g.gl_pathv[i]);
+				for(j=0;j<(int)g.gl_pathc;j++) {
+					SAFECOPY(str,g.gl_pathv[j]);
 					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
