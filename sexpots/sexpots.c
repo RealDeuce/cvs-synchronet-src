@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.23 2007/09/11 01:12:52 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.10 2007/04/25 01:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,14 +36,10 @@
  ****************************************************************************/
 
 /* ANSI C */
-#include <stdarg.h>
 #include <stdio.h>
 
 /* Windows */
-#ifdef _WIN32
-/* Doesn't this come in from sockwrap.h? */
 #include <winsock.h>
-#endif
 
 /* xpdev lib */
 #include "dirwrap.h"
@@ -58,30 +54,22 @@
 #include "telnet.h"
 
 /* constants */
-#define NAME					"SEXPOTS"
-#define TITLE					"Synchronet External POTS Support"
-#define DESCRIPTION				"Connects a communications port (e.g. COM1) to a TCP port (e.g. Telnet)"
 #define MDM_TILDE_DELAY			500	/* milliseconds */
 
 /* global vars */
-BOOL	daemonize=FALSE;
-char	termtype[TELNET_TERM_MAXLEN+1]	= NAME;
-char	termspeed[TELNET_TERM_MAXLEN+1]	= "28800,28800";	/* "tx,rx", max length not defined */
+char	termtype[TELNET_TERM_MAXLEN+1];
+char	termspeed[TELNET_TERM_MAXLEN+1];	/* "tx,rx", max length not defined */
 char	revision[16];
 
-char	mdm_init[INI_MAX_VALUE_LEN]		= "AT&F";
-char	mdm_autoans[INI_MAX_VALUE_LEN]	= "ATS0=1";
-char	mdm_cid[INI_MAX_VALUE_LEN]		= "AT+VCID=1";
-char	mdm_cleanup[INI_MAX_VALUE_LEN]	= "ATS0=0";
+char	mdm_init[INI_MAX_VALUE_LEN];
+char	mdm_autoans[INI_MAX_VALUE_LEN];
+char	mdm_cid[INI_MAX_VALUE_LEN];
+char	mdm_cleanup[INI_MAX_VALUE_LEN];
 BOOL	mdm_null=FALSE;
 int		mdm_timeout=5;			/* seconds */
 
-#ifdef _WIN32
-char	com_dev[MAX_PATH+1]				= "COM1";
-#else
-char	com_dev[MAX_PATH+1]				= "/dev/ttyd0";
-#endif
-COM_HANDLE	com_handle=COM_HANDLE_INVALID;
+char	com_dev[MAX_PATH+1];
+HANDLE	com_handle=INVALID_HANDLE_VALUE;
 BOOL	com_handle_passed=FALSE;
 BOOL	com_alreadyconnected=FALSE;
 BOOL	com_hangup=TRUE;
@@ -89,13 +77,12 @@ ulong	com_baudrate=0;
 BOOL	dcd_ignore=FALSE;
 int		dcd_timeout=10;	/* seconds */
 ulong	dtr_delay=100;	/* milliseconds */
-int		hangup_attempts=10;
 
 BOOL	terminated=FALSE;
 BOOL	terminate_after_one_call=FALSE;
 
 SOCKET	sock=INVALID_SOCKET;
-char	host[MAX_PATH+1]				= "localhost";
+char	host[MAX_PATH+1];
 ushort	port=IPPORT_TELNET;
 
 /* stats */
@@ -117,11 +104,11 @@ BYTE	telnet_cmd[64];
 int		telnet_cmdlen;
 BOOL	telnet_advertise_cid=FALSE;
 
-/* ident (RFC1413) server stuff */
+/* ident (RFC1416) server stuff */
 BOOL	ident=FALSE;
 ushort	ident_port=IPPORT_IDENT;
 ulong	ident_interface=INADDR_ANY;
-char	ident_response[INI_MAX_VALUE_LEN]	= "CALLERID:SEXPOTS";
+char	ident_response[INI_MAX_VALUE_LEN];
 
 /* Caller-ID stuff */
 char	cid_name[64];
@@ -133,82 +120,17 @@ int usage(const char* fname)
 {
 	printf("usage: %s [ini file] [options]\n"
 		"\nOptions:"
-		"\n"
 		"\n-null                 No 'AT commands' sent to modem"
 		"\n-com <device>         Specify communications port device"
-		"\n-baud <rate>          Specify baud rate for communications port"
+		"\n-baud <rate>          Specify baud rate for communications port\n"
 		"\n-live [handle]        Communications port is already open/connected"
 		"\n-nohangup             Do not hangup (drop DTR) after call"
 		"\n-host <addr | name>   Specify TCP server hostname or IP address"
 		"\n-port <number>        Specify TCP port number"
-#if defined(_WIN32)
-		"\n\nNT Service\n"
-		"\n-install              install and enable NT service (%s)"
-		"\n-service              run as an NT service (background execution)"
-		"\n-remove               remove NT service"
-		"\n-enable               enable NT service (auto-start during boot)"
-		"\n-disable              disable NT service"
-#endif
-		,getfname(fname)
-		,NAME);
+		,getfname(fname));
 
 	return 0;
 }
-
-#if defined(_WIN32)
-
-static WORD event_type(int level)
-{
-	switch(level) {
-		case LOG_WARNING:
-			return(EVENTLOG_WARNING_TYPE);
-		case LOG_NOTICE:
-		case LOG_INFO:
-		case LOG_DEBUG:
-			return(EVENTLOG_INFORMATION_TYPE);
-	}
-/*
-	LOG_EMERG
-	LOG_ALERT
-	LOG_CRIT
-	LOG_ERR
-*/
-	return(EVENTLOG_ERROR_TYPE);
-}
-
-static int syslog(int level, char *fmt, ...)
-{
-	va_list argptr;
-	char sbuf[1024];
-	char* p=sbuf;
-	int	retval;
-	static HANDLE event_handle;
-
-    va_start(argptr,fmt);
-    retval=vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
-
-	if(event_handle == NULL)
-		event_handle = RegisterEventSource(
-			NULL,		// server name for source (NULL = local computer)
-			TITLE);		// source name for registered handle
-
-	if(event_handle != NULL)
-		ReportEvent(event_handle,	// event log handle
-			event_type(level),		// event type
-			0,						// category zero
-			0,						// event identifier
-			NULL,					// no user security identifier
-			1,						// one string
-			0,						// no data
-			&p,						// pointer to string array
-			NULL);					// pointer to data
-
-    return(retval);
-}
-
-#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -217,33 +139,9 @@ int lputs(int level, const char* str)
 	time_t		t;
 	struct tm	tm;
 	char		tstr[32];
-#if defined(_WIN32)
-	char dbgmsg[1024];
-	_snprintf(dbgmsg,sizeof(dbgmsg),"%s %s", NAME, str);
-	if(log_level==LOG_DEBUG)
-		OutputDebugString(dbgmsg);
-#else
-	char dbgmsg[1024];
-	snprintf(dbgmsg,sizeof(dbgmsg),"%s %s", NAME, str);
-	if(log_level==LOG_DEBUG)
-		fputs(dbgmsg, stderr);
-#endif
 
 	if(level>log_level)
 		return 0;
-
-	if(daemonize) {
-#if defined(_WIN32)
-		return syslog(level,"%s", str);
-#else
-		/* syslog() is
-		 * void syslog(int priority, const char *message, ...);
-		 */
-
-		syslog(level,"%s", str);
-		return strlen(str);
-#endif
-	}
 
 	t=time(NULL);
 	if(localtime_r(&t,&tm)==NULL)
@@ -253,7 +151,7 @@ int lputs(int level, const char* str)
 			,tm.tm_mon+1,tm.tm_mday
 			,tm.tm_hour,tm.tm_min,tm.tm_sec);
 
-	return fprintf(level>=LOG_NOTICE ? stdout:stderr, "%s %s\n", tstr, str);
+	return printf("%s %s\n", tstr, str);
 }
 
 /****************************************************************************/
@@ -269,318 +167,6 @@ int lprintf(int level, char *fmt, ...)
     va_end(argptr);
     return(lputs(level,sbuf));
 }
-
-
-#if defined(_WIN32)
-
-#define NTSVC_TIMEOUT_STARTUP	30000	/* Milliseconds */
-#define NTSVC_TIMEOUT_SHUTDOWN	30000	/* Milliseconds */
-
-SERVICE_STATUS_HANDLE	svc_status_handle;
-SERVICE_STATUS			svc_status;
-
-void WINAPI ServiceControlHandler(DWORD dwCtrlCode)
-{
-	switch(dwCtrlCode) {
-		case SERVICE_CONTROL_STOP:
-		case SERVICE_CONTROL_SHUTDOWN:
-			lprintf(LOG_NOTICE,"Received termination control signal: %d", dwCtrlCode);
-			svc_status.dwWaitHint=NTSVC_TIMEOUT_SHUTDOWN;
-			svc_status.dwCurrentState=SERVICE_STOP_PENDING;
-			SetServiceStatus(svc_status_handle, &svc_status);
-			terminated=TRUE;
-//			SetEvent(service_event);
-			break;
-		case SERVICE_CONTROL_INTERROGATE:
-			lprintf(LOG_DEBUG,"Ignoring service control signal: SERVICE_CONTROL_INTERROGATE");
-			break;
-		default:
-			lprintf(LOG_WARNING,"Received unsupported service control signal: %d", dwCtrlCode);
-			break;
-	}
-}
-
-/* ChangeServiceConfig2 is a Win2K+ API function, must call dynamically */
-typedef WINADVAPI BOOL (WINAPI *ChangeServiceConfig2_t)(SC_HANDLE, DWORD, LPCVOID);
-
-static void describe_service(HANDLE hSCMlib, SC_HANDLE hService, char* description)
-{
-	ChangeServiceConfig2_t changeServiceConfig2;
-	static SERVICE_DESCRIPTION service_desc;
-  
-	if(hSCMlib==NULL)
-		return;
-
-	service_desc.lpDescription=description;
-
-	if((changeServiceConfig2 = (ChangeServiceConfig2_t)GetProcAddress(hSCMlib, "ChangeServiceConfig2A"))!=NULL)
-		changeServiceConfig2(hService, SERVICE_CONFIG_DESCRIPTION, &service_desc);
-}
-
-static BOOL register_event_source(char* name, char* path)
-{
-	char	keyname[256];
-	HKEY	hKey;
-	DWORD	type;
-	DWORD	disp;
-	LONG	retval;
-	char*	value;
-
-	sprintf(keyname,"system\\CurrentControlSet\\services\\eventlog\\application\\%s",name);
-
-	retval=RegCreateKeyEx(
-		HKEY_LOCAL_MACHINE,			/* handle to an open key */
-		keyname,			/* address of subkey name */
-		0,				/* reserved */
-		"",				/* address of class string */
-		0,				/* special options flag */
-		KEY_ALL_ACCESS, /* desired security access */
-		NULL,           /* address of key security structure */
-		&hKey,			/* address of buffer for opened handle */
-		&disp			/* address of disposition value buffer */
-		);
-
-	if(retval!=ERROR_SUCCESS) {
-		fprintf(stderr,"!Error %d creating/opening registry key (HKLM\\%s)\n"
-			,retval,keyname);
-		return(FALSE);
-	}
-
-	value="EventMessageFile";
-	retval=RegSetValueEx(
-		hKey,			/* handle to key to set value for */
-		value,			/* name of the value to set */
-		0,				/* reserved */
-		REG_SZ,			/* flag for value type */
-		path,			/* address of value data */
-		strlen(path)	/* size of value data */
-		);
-
-	if(retval!=ERROR_SUCCESS) {
-		RegCloseKey(hKey);
-		fprintf(stderr,"!Error %d setting registry key value (%s)\n"
-			,retval,value);
-		return(FALSE);
-	}
-
-	value="TypesSupported";
-	type=EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
-	retval=RegSetValueEx(
-		hKey,			/* handle to key to set value for */
-		value,			/* name of the value to set */
-		0,				/* reserved */
-		REG_DWORD,		/* flag for value type */
-		(BYTE*)&type,	/* address of value data */
-		sizeof(type)	/* size of value data */
-		);
-
-	RegCloseKey(hKey);
-
-	if(retval!=ERROR_SUCCESS) {
-		fprintf(stderr,"!Error %d setting registry key value (%s)\n"
-			,retval,value);
-		return(FALSE);
-	}
-
-	return(TRUE);
-}
-
-
-/****************************************************************************/
-/* Install NT service														*/
-/****************************************************************************/
-static int install(void)
-{
-	HANDLE		hSCMlib;
-    SC_HANDLE   hSCManager;
-    SC_HANDLE   hService;
-    char		path[MAX_PATH+1];
-	char		cmdline[MAX_PATH+1];
-
-	printf("Installing service: %-40s ... ", TITLE);
-
-	hSCMlib = LoadLibrary("ADVAPI32.DLL");
-
-    if(GetModuleFileName(NULL,path,sizeof(path))==0)
-    {
-        fprintf(stderr,"\n!ERROR %d getting module file name\n",GetLastError());
-        return(-1);
-    }
-
-    hSCManager = OpenSCManager(
-                        NULL,                   // machine (NULL == local)
-                        NULL,                   // database (NULL == default)
-                        SC_MANAGER_ALL_ACCESS   // access required
-                        );
-    if(hSCManager==NULL) {
-		fprintf(stderr,"\n!ERROR %d opening SC manager\n",GetLastError());
-		return(-1);
-	}
-
-	/* Install new service */
-	wsprintf(cmdline,"%s service", path);
-    hService = CreateService(
-        hSCManager,						// SCManager database
-        NAME,							// name of service
-        TITLE,							// name to display
-        SERVICE_ALL_ACCESS,				// desired access
-        SERVICE_WIN32_OWN_PROCESS,		// service type
-		SERVICE_AUTO_START,				// start type (auto or manual)
-        SERVICE_ERROR_NORMAL,			// error control type
-        cmdline,						// service's binary
-        NULL,							// no load ordering group
-        NULL,							// no tag identifier
-        "",								// dependencies
-        NULL,							// LocalSystem account
-        NULL);							// no password
-
-	if(hService==NULL)
-		fprintf(stderr,"\n!ERROR %d creating service\n",GetLastError());
-	else {
-		describe_service(hSCMlib, hService, DESCRIPTION);
-		CloseServiceHandle(hService);
-		printf("Successful\n");
-
-		register_event_source(TITLE,path);
-	}
-
-
-	if(hSCMlib!=NULL)
-		FreeLibrary(hSCMlib);
-
-	CloseServiceHandle(hSCManager);
-
-	return(0);
-}
-
-/****************************************************************************/
-/* Utility function to remove a service cleanly (stopping if necessary)		*/
-/****************************************************************************/
-static void remove_service(SC_HANDLE hSCManager, SC_HANDLE hService, char* name, char* disp_name)
-{
-	SERVICE_STATUS	status;
-
-	printf("Removing service: %-40s ... ", disp_name);
-
-	if(hService==NULL) {
-
-		hService = OpenService(hSCManager, name, SERVICE_ALL_ACCESS);
-
-		if(hService==NULL) {
-			printf("\n!ERROR %d opening service: %s\n",GetLastError(),name);
-			return;
-		}
-	}
-
-    // try to stop the service
-    if(ControlService( hService, SERVICE_CONTROL_STOP, &status))
-    {
-        printf("\nStopping: %s ... ",name);
-
-        while(QueryServiceStatus(hService, &status) && status.dwCurrentState == SERVICE_STOP_PENDING)
-			Sleep(1000);
-
-        if(status.dwCurrentState == SERVICE_STOPPED)
-            printf("Stopped.\n");
-        else
-            printf("FAILED!\n");
-    }
-
-    // now remove the service
-    if(DeleteService(hService))
-		printf("Successful\n");
-	else
-		printf("!ERROR %d\n",GetLastError());
-    CloseServiceHandle(hService);
-}
-
-/****************************************************************************/
-/* Uninstall one or all services											*/
-/****************************************************************************/
-static int uninstall(void)
-{
-    SC_HANDLE   hSCManager;
-
-    hSCManager = OpenSCManager(
-                        NULL,                   // machine (NULL == local)
-                        NULL,                   // database (NULL == default)
-                        SC_MANAGER_ALL_ACCESS   // access required
-                        );
-    if(hSCManager==NULL) {
-		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
-		return(-1);
-	}
-
-	remove_service(hSCManager,NULL,NAME,TITLE);
-
-	CloseServiceHandle(hSCManager);
-
-	return(0);
-}
-
-/****************************************************************************/
-/* Utility function to disable a service									*/
-/****************************************************************************/
-static void set_service_start_type(SC_HANDLE hSCManager, DWORD start_type)
-{
-    SC_HANDLE		hService;
-
-	printf("%s service: %-40s ... "
-		,start_type==SERVICE_DISABLED ? "Disabling" : "Enabling", TITLE);
-
-    hService = OpenService(hSCManager, NAME, SERVICE_ALL_ACCESS);
-
-	if(hService==NULL) {
-		printf("\n!ERROR %d opening service: %s\n",GetLastError(),NAME);
-		return;
-	}
-
-	if(!ChangeServiceConfig(
-		hService,				// handle to service
-		SERVICE_NO_CHANGE,		// type of service
-		start_type,				// when to start service
-		SERVICE_NO_CHANGE,		// severity if service fails to start
-		NULL,					// pointer to service binary file name
-		NULL,					// pointer to load ordering group name
-		NULL,					// pointer to variable to get tag identifier
-		NULL,					// pointer to array of dependency names
-		NULL,					// pointer to account name of service
-		NULL,					// pointer to password for service account
-		NULL					// pointer to display name
-		))
-		printf("\n!ERROR %d changing service config for: %s\n",GetLastError(),NAME);
-	else
-		printf("Successful\n");
-
-    CloseServiceHandle(hService);
-}
-
-/****************************************************************************/
-/* Enable (set to auto-start) or disable one or all services				*/
-/****************************************************************************/
-static int enable(BOOL enabled)
-{
-    SC_HANDLE   hSCManager;
-
-    hSCManager = OpenSCManager(
-                        NULL,                   // machine (NULL == local)
-                        NULL,                   // database (NULL == default)
-                        SC_MANAGER_ALL_ACCESS   // access required
-                        );
-    if(hSCManager==NULL) {
-		fprintf(stderr,"!ERROR %d opening SC manager\n",GetLastError());
-		return(-1);
-	}
-
-	set_service_start_type(hSCManager
-		,enabled ? SERVICE_AUTO_START : SERVICE_DISABLED);
-
-	CloseServiceHandle(hSCManager);
-
-	return(0);
-}
-
-#endif
 
 #ifdef _WINSOCKAPI_
 
@@ -611,22 +197,14 @@ static BOOL winsock_startup(void)
 BOOL modem_send(COM_HANDLE com_handle, const char* str)
 {
 	const char* p;
-	char		ch;
 
 	lprintf(LOG_INFO,"Modem Command: %s", str);
 	for(p=str; *p; p++) {
-		ch=*p;
-		if(ch=='~') {
+		if(*p=='~') {
 			SLEEP(MDM_TILDE_DELAY);
 			continue;
 		}
-		if(ch=='^' && *(p+1)) {	/* Support ^X for control characters embedded in modem command strings */
-			p++;
-			ch=*p;
-			if(ch!='^' && ch>='@')	/* ^^ to send an '^' char to the modem */
-				ch-='@';
-		}
-		if(!comWriteByte(com_handle,ch))
+		if(!comWriteByte(com_handle,*p))
 			return FALSE;
 	}
 	SLEEP(100);
@@ -683,8 +261,7 @@ BOOL modem_command(COM_HANDLE com_handle, const char* cmd)
 	char resp[128];
 
 	if(!modem_send(com_handle, cmd)) {
-		lprintf(LOG_ERR,"ERROR %u sending modem command (%s)"
-			,COM_ERROR_VALUE, cmd);
+		lprintf(LOG_ERR,"ERROR %u sending modem command", COM_ERROR_VALUE);
 		return FALSE;
 	}
 
@@ -730,13 +307,6 @@ void cleanup(void)
 #endif
 
 	lprintf(LOG_INFO,"Done (handled %lu calls).", total_calls);
-
-#if defined(_WIN32)
-	if(daemonize && svc_status_handle!=0) {
-		svc_status.dwCurrentState=SERVICE_STOPPED;
-		SetServiceStatus(svc_status_handle, &svc_status);
-	} else
-#endif
 	if(pause_on_exit) {
 		printf("Hit enter to continue...");
 		getchar();
@@ -745,22 +315,20 @@ void cleanup(void)
 
 /****************************************************************************/
 /****************************************************************************/
-BOOL wait_for_call(COM_HANDLE com_handle)
+BOOL wait_for_call(HANDLE com_handle)
 {
 	char		str[128];
 	char*		p;
 	BOOL		result=TRUE;
 	DWORD		events=0;
-	int			mdm_status;
 
 	ZERO_VAR(cid_name);
 	ZERO_VAR(cid_number);
 
-	comRaiseDTR(com_handle);
-
 	if(com_alreadyconnected)
 		return TRUE;
 
+	comRaiseDTR(com_handle);
 	if(!mdm_null) {
 		if(mdm_init[0]) {
 			lprintf(LOG_INFO,"Initializing modem:");
@@ -797,7 +365,6 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 				else if(strncmp(p,"NMBR",4)==0 || strncmp(p,"MESG",4)==0) {
 					p+=4;
 					FIND_CHAR(p,'=');
-					SKIP_CHAR(p,'=');
 					SKIP_WHITESPACE(p);
 					if(cid_number[0]==0)	/* Don't overwrite, if multiple messages received */
 						SAFECOPY(cid_number, p);
@@ -805,7 +372,6 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 				else if(strncmp(p,"NAME",4)==0) {
 					p+=4;
 					FIND_CHAR(p,'=');
-					SKIP_CHAR(p,'=');
 					SKIP_WHITESPACE(p);
 					SAFECOPY(cid_name, p);
 				}
@@ -816,22 +382,9 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 			}
 			continue;	/* don't check DCD until we've received all the modem msgs */
 		}
-		if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR)
-			lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-				,COM_ERROR_VALUE, __LINE__);
-		else if(mdm_status&COM_DCD)
+		if(comGetModemStatus(com_handle)&COM_DCD)
 			break;
 	}
-
-	if(strcmp(cid_name,"P")==0)
-		SAFECOPY(cid_name,"Private");
-	else if(strcmp(cid_name,"O")==0)
-		SAFECOPY(cid_name,"Out-of-area");
-
-	if(strcmp(cid_number,"P")==0)
-		SAFECOPY(cid_number,"Private");
-	else if(strcmp(cid_number,"O")==0)
-		SAFECOPY(cid_number,"Out-of-area");
 
 	lprintf(LOG_INFO,"Carrier detected on %s", com_dev);
 	return TRUE;
@@ -1192,7 +745,6 @@ BOOL handle_call(void)
 	int			result;
 	int			rd;
 	int			wr;
-	int			mdm_status;
 	fd_set		socket_set;
 	struct		timeval tv = {0, 0};
 
@@ -1213,16 +765,9 @@ BOOL handle_call(void)
 
 	while(!terminated) {
 
-		if(!dcd_ignore) {
-			if((mdm_status = comGetModemStatus(com_handle)) == COM_ERROR) {
-				lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-					,COM_ERROR_VALUE, __LINE__);
-				break;
-			}
-			if((mdm_status&COM_DCD) == 0) {
-				lprintf(LOG_WARNING,"Loss of Carrier Detect (DCD) detected");
-				break;
-			}
+		if(!dcd_ignore && (comGetModemStatus(com_handle)&COM_DCD) == 0) {
+			lprintf(LOG_WARNING,"Loss of Carrier Detect (DCD) detected");
+			break;
 		}
 #if 0
 		if(comReadByte(com_handle, &ch)) {
@@ -1275,43 +820,27 @@ BOOL handle_call(void)
 
 /****************************************************************************/
 /****************************************************************************/
-BOOL hangup_call(COM_HANDLE com_handle)
+BOOL hangup_call(HANDLE com_handle)
 {
-	time_t	start;
-	int		attempt;
-	int		mdm_status;
+	time_t start;
 
-	if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR) {
-		lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-			,COM_ERROR_VALUE, __LINE__);
-		return TRUE;
-	}
-	if((mdm_status&COM_DCD)==0)	/* DCD already low */
+	if((comGetModemStatus(com_handle)&COM_DCD)==0)	/* DCD already low */
 		return TRUE;
 
 	lprintf(LOG_DEBUG,"Waiting for transmit buffer to empty");
 	SLEEP(dtr_delay);
-	for(attempt=0; attempt<hangup_attempts; attempt++) {
-		lprintf(LOG_INFO,"Dropping DTR (attempt #%d)", attempt+1);
-		if(!comLowerDTR(com_handle)) {
-			lprintf(LOG_ERR,"ERROR %u lowering DTR", COM_ERROR);
-			continue;
-		}
-		lprintf(LOG_DEBUG,"Waiting for loss of Carrier Detect (DCD)");
-		start=time(NULL);
-		while(time(NULL)-start <= dcd_timeout) {
-			if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR) {
-				lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-					,COM_ERROR_VALUE, __LINE__);
-				return TRUE;
-			}
-			if((mdm_status&COM_DCD)==0)
-				return TRUE;
-			SLEEP(1000); 
-		}
-		lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop (attempt #%d of %d)"
-			, attempt+1, hangup_attempts);
+	lprintf(LOG_INFO,"Dropping DTR");
+	if(!comLowerDTR(com_handle))
+		return FALSE;
+
+	lprintf(LOG_INFO,"Waiting for loss of Carrier Detect (DCD)");
+	start=time(NULL);
+	while(time(NULL)-start <= dcd_timeout) {
+		if((comGetModemStatus(com_handle)&COM_DCD) == 0)
+			return TRUE;
+		SLEEP(1000); 
 	}
+	lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop");
 
 	return FALSE;
 }
@@ -1336,141 +865,161 @@ void parse_ini_file(const char* ini_fname)
 {
 	FILE* fp;
 	char* section;
-	str_list_t	list=NULL;
 
-	if((fp=fopen(ini_fname,"r"))!=NULL) {
+	if((fp=fopen(ini_fname,"r"))!=NULL)
 		lprintf(LOG_INFO,"Reading %s",ini_fname);
-		list=iniReadFile(fp);
-		fclose(fp);
-	}
 
 	/* Root section */
-	pause_on_exit			= iniGetBool(list,ROOT_SECTION,"PauseOnExit",FALSE);
-	log_level				= iniGetLogLevel(list,ROOT_SECTION,"LogLevel",log_level);
+	pause_on_exit			= iniReadBool(fp,ROOT_SECTION,"PauseOnExit",FALSE);
+	log_level				= iniReadLogLevel(fp,ROOT_SECTION,"LogLevel",log_level);
 
-	if(iniGetBool(list,ROOT_SECTION,"Debug",FALSE))
+	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
 		log_level=LOG_DEBUG;
 	
 	/* [COM] Section */
 	section="COM";
-	iniGetExistingString(list, section, "Device", NULL, com_dev);
-	com_baudrate    = iniGetLongInt(list, section, "BaudRate", com_baudrate);
-	com_hangup	    = iniGetBool(list, section, "Hangup", com_hangup);
-	hangup_attempts = iniGetInteger(list, section, "HangupAttempts", hangup_attempts);
-	dcd_timeout     = iniGetInteger(list, section, "DCDTimeout", dcd_timeout);
-	dcd_ignore      = iniGetBool(list, section, "IgnoreDCD", dcd_ignore);
-	dtr_delay		= iniGetLongInt(list, section, "DTRDelay", dtr_delay);
-	mdm_null	    = iniGetBool(list, section, "NullModem", mdm_null);
+	iniReadString(fp, section, "Device", "COM1", com_dev);
+	com_baudrate    = iniReadLongInt(fp, section, "BaudRate", com_baudrate);
+	com_hangup	    = iniReadBool(fp, section, "Hangup", com_hangup);
+	dcd_timeout     = iniReadInteger(fp, section, "DCDTimeout", dcd_timeout);
+	dcd_ignore      = iniReadBool(fp, section, "IgnoreDCD", dcd_ignore);
+	dtr_delay		= iniReadLongInt(fp, section, "DTRDelay", dtr_delay);
 
 	/* [Modem] Section */
 	section="Modem";
-	iniGetExistingString(list, section, "Init", "", mdm_init);
-	iniGetExistingString(list, section, "AutoAnswer", "", mdm_autoans);
-	iniGetExistingString(list, section, "Cleanup", "", mdm_cleanup);
-	iniGetExistingString(list, section, "EnableCallerID", "", mdm_cid);
-	mdm_timeout     = iniGetInteger(list, section, "Timeout", mdm_timeout);
+	iniReadString(fp, section, "Init", "AT&F", mdm_init);
+	iniReadString(fp, section, "AutoAnswer", "ATS0=1", mdm_autoans);
+	iniReadString(fp, section, "Cleanup", "ATS0=0", mdm_cleanup);
+	iniReadString(fp, section, "CallerID", "ATS0=0", mdm_cid);
+	mdm_null	    = iniReadBool(fp, section, "Null", mdm_null);
+	mdm_timeout     = iniReadInteger(fp, section, "Timeout", mdm_timeout);
 
 	/* [TCP] Section */
 	section="TCP";
-	iniGetExistingString(list, section, "Host", NULL, host);
-	port					= iniGetShortInt(list, section, "Port", port);
-	tcp_nodelay				= iniGetBool(list,section,"NODELAY", tcp_nodelay);
+	iniReadString(fp, section, "Host", "localhost", host);
+	port					= iniReadShortInt(fp, section, "Port", port);
+	tcp_nodelay				= iniReadBool(fp,section,"NODELAY", tcp_nodelay);
 
 	/* [Telnet] Section */
 	section="Telnet";
-	telnet					= iniGetBool(list,section,"Enabled", telnet);
-	debug_telnet			= iniGetBool(list,section,"Debug", debug_telnet);
-	telnet_advertise_cid	= iniGetBool(list,section,"AdvertiseLocation", telnet_advertise_cid);
-	iniGetExistingString(list, section, "TermType", NULL, termtype);
-	iniGetExistingString(list, section, "TermSpeed", NULL, termspeed);
+	telnet					= iniReadBool(fp,section,"Enabled", telnet);
+	debug_telnet			= iniReadBool(fp,section,"Debug", debug_telnet);
+	telnet_advertise_cid	= iniReadBool(fp,section,"AdvertiseLocation", telnet_advertise_cid);
+	iniReadString(fp, section, "TermType", termtype, termtype);
+	iniReadString(fp, section, "TermSpeed", "28800,28800", termspeed);
 
 	/* [Ident] Section */
 	section="Ident";
-	ident					= iniGetBool(list,section,"Enabled", ident);
-	ident_port				= iniGetShortInt(list, section, "Port", ident_port);
-	ident_interface			= iniGetIpAddress(list, section, "Interface", ident_interface);
-	iniGetExistingString(list, section, "Response", NULL, ident_response);
+	ident					= iniReadBool(fp,section,"Enabled", ident);
+	ident_port				= iniReadShortInt(fp, section, "Port", ident_port);
+	ident_interface			= iniReadIpAddress(fp, section, "Interface", ident_interface);
+	iniReadString(fp, section, "Response", "CALLERID:SEXPOTS", ident_response);
 
+	if(fp!=NULL)
+		fclose(fp);
 }
 
-char	banner[128];
-
-static void 
-#if defined(_WIN32)
-	WINAPI
-#endif
-service_loop(int argc, char** argv)
+/****************************************************************************/
+/****************************************************************************/
+int main(int argc, char** argv)
 {
 	int		argn;
 	char*	arg;
+	char*	p;
 	char	str[128];
+	char	path[MAX_PATH+1];
+	char	fname[MAX_PATH+1];
+	char	ini_fname[MAX_PATH+1];
+	char	banner[128];
 	char	compiler[128];
 
-	for(argn=1; argn<(int)argc; argn++) {
+	/*******************************/
+	/* Generate and display banner */
+	/*******************************/
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
+
+	sprintf(banner,"\nSynchronet External POTS<->TCP Driver v%s-%s"
+		" Copyright %s Rob Swindell"
+		,revision
+		,PLATFORM_DESC
+		,__DATE__+7
+		);
+
+	fprintf(stdout,"%s\n\n", banner);
+
+	/******************/
+	/* Read .ini file */
+	/******************/
+	/* Generate path/sexpots[.host].ini from path/sexpots[.exe] */
+	SAFECOPY(path,argv[0]);
+	p=getfname(path);
+	SAFECOPY(fname,p);
+	*p=0;
+	if((p=getfext(fname))!=NULL) 
+		*p=0;
+	SAFECOPY(termtype,fname);
+	strcat(fname,".ini");
+
+	iniFileName(ini_fname,sizeof(ini_fname),path,fname);
+	parse_ini_file(ini_fname);
+
+	/**********************/
+	/* Parse command-line */
+	/**********************/
+
+	for(argn=1; argn<argc; argn++) {
 		arg=argv[argn];
 		if(*arg!='-') {	/* .ini file specified */
+			arg++;
 			if(!fexist(arg)) {
-				lprintf(LOG_ERR,"Initialization file does not exist: %s", arg);
-				exit(usage(argv[0]));
+				perror(arg);
+				return usage(argv[0]);
 			}
 			parse_ini_file(arg);
 			continue;
 		}
 		while(*arg=='-') 
 			arg++;
-		if(stricmp(arg,"null")==0)
-			mdm_null=TRUE;
-		else if(stricmp(arg,"com")==0 && argc > argn+1)
-			SAFECOPY(com_dev, argv[++argn]);
-		else if(stricmp(arg,"baud")==0 && argc > argn+1)
-			com_baudrate = (ulong)strtol(argv[++argn],NULL,0);
-		else if(stricmp(arg,"host")==0 && argc > argn+1)
-			SAFECOPY(host, argv[++argn]);
-		else if(stricmp(arg,"port")==0 && argc > argn+1)
-			port = (ushort)strtol(argv[++argn], NULL, 0);
-		else if(stricmp(arg,"live")==0) {
-			if(argc > argn+1 &&
-				(com_handle = (COM_HANDLE)strtol(argv[argn+1], NULL, 0)) != 0) {
-				argn++;
-				com_handle_passed=TRUE;
+			if(stricmp(arg,"null")==0)
+				mdm_null=TRUE;
+			else if(stricmp(arg,"com")==0 && argc > argn+1)
+				SAFECOPY(com_dev, argv[++argn]);
+			else if(stricmp(arg,"baud")==0 && argc > argn+1)
+				com_baudrate = (ulong)strtol(argv[++argn],NULL,0);
+			else if(stricmp(arg,"host")==0 && argc > argn+1)
+				SAFECOPY(host, argv[++argn]);
+			else if(stricmp(arg,"port")==0 && argc > argn+1)
+				port = (ushort)strtol(argv[++argn], NULL, 0);
+			else if(stricmp(arg,"live")==0) {
+				if(argc > argn+1 &&
+					(com_handle = (HANDLE)strtol(argv[argn+1], NULL, 0)) != 0) {
+					argn++;
+					com_handle_passed=TRUE;
+				}
+				com_alreadyconnected=TRUE;
+				terminate_after_one_call=TRUE;
+				mdm_null=TRUE;
 			}
-			com_alreadyconnected=TRUE;
-			terminate_after_one_call=TRUE;
-			mdm_null=TRUE;
-		}
-		else if(stricmp(arg,"nohangup")==0) {
-			com_hangup=FALSE;
-		}
-		else if(stricmp(arg,"help")==0 || *arg=='?')
-			exit(usage(argv[0]));
-		else {
-			fprintf(stderr,"Invalid option: %s\n", arg);
-			exit(usage(argv[0]));
-		}
+			else if(stricmp(arg,"nohangup")==0) {
+				com_hangup=FALSE;
+			}
+			else if(stricmp(arg,"help")==0 || *arg=='?')
+				return usage(argv[0]);
+			else {
+				fprintf(stderr,"Invalid option: %s\n", arg);
+				return usage(argv[0]);
+			}
 	}
 
 #if defined(_WIN32)
+	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
+
 	/* Convert "1" to "COM1" for Windows */
 	{
 		int i;
 
 		if((i=atoi(com_dev)) != 0)
 			SAFEPRINTF(com_dev, "COM%d", i);
-	}
-
-	if(daemonize) {
-
-		if((svc_status_handle = RegisterServiceCtrlHandler(NAME, ServiceControlHandler))==0) {
-			lprintf(LOG_ERR,"!ERROR %d registering service control handler",GetLastError());
-			return;
-		}
-
-		svc_status.dwServiceType=SERVICE_WIN32_OWN_PROCESS;
-		svc_status.dwControlsAccepted=SERVICE_ACCEPT_SHUTDOWN;
-		svc_status.dwWaitHint=NTSVC_TIMEOUT_STARTUP;
-
-		svc_status.dwCurrentState=SERVICE_START_PENDING;
-		SetServiceStatus(svc_status_handle, &svc_status);
 	}
 
 #endif
@@ -1484,7 +1033,7 @@ service_loop(int argc, char** argv)
 	/************************************/
 
 	if(!winsock_startup())
-		exit(1);
+		return -1;
 
 	/* Install clean-up callback */
 	atexit(cleanup);
@@ -1496,7 +1045,7 @@ service_loop(int argc, char** argv)
 		lprintf(LOG_INFO,"Opening Communications Device: %s", com_dev);
 		if((com_handle=comOpen(com_dev)) == COM_HANDLE_INVALID) {
 			lprintf(LOG_ERR,"ERROR %u opening %s", COM_ERROR_VALUE, com_dev);
-			exit(1);
+			return -1;
 		}
 	}
 	if(com_baudrate!=0) {
@@ -1507,17 +1056,8 @@ service_loop(int argc, char** argv)
 
 	lprintf(LOG_INFO,"%s set to %ld bps DTE rate", com_dev, comGetBaudRate(com_handle));
 
-
 	if(ident)
 		_beginthread(ident_server_thread, 0, NULL);
-
-#if defined(_WIN32)
-	if(daemonize) {
-		svc_status.dwCurrentState=SERVICE_RUNNING;
-		svc_status.dwControlsAccepted|=SERVICE_ACCEPT_STOP;
-		SetServiceStatus(svc_status_handle, &svc_status);
-	}
-#endif
 
 	/***************************/
 	/* Initialization Complete */
@@ -1537,102 +1077,10 @@ service_loop(int argc, char** argv)
 			lprintf(LOG_INFO,"Call completed (%lu total)", total_calls);
 		}
 		if(com_hangup && !hangup_call(com_handle))
-			break;
+			return -1;
 		if(terminate_after_one_call)
 			break;
 	}
-
-	exit(0);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-int main(int argc, char** argv)
-{
-	int		argn;
-	char*	arg;
-	char*	p;
-	char	path[MAX_PATH+1];
-	char	fname[MAX_PATH+1];
-	char	ini_fname[MAX_PATH+1];
-
-	/*******************************/
-	/* Generate and display banner */
-	/*******************************/
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
-
-	sprintf(banner,"\n%s v%s-%s"
-		" Copyright %s Rob Swindell"
-		,TITLE
-		,revision
-		,PLATFORM_DESC
-		,__DATE__+7
-		);
-
-	fprintf(stdout,"%s\n\n", banner);
-
-	/**********************/
-	/* Parse command-line */
-	/**********************/
-
-	for(argn=1; argn<argc; argn++) {
-		arg=argv[argn];
-		while(*arg=='-') 
-			arg++;
-		if(stricmp(arg,"help")==0 || *arg=='?')
-			return usage(argv[0]);
-#ifdef _WIN32
-		else if(stricmp(arg,"service")==0)
-			daemonize=TRUE;
-		else if(stricmp(arg,"install")==0)
-			return install();
-		else if(stricmp(arg,"remove")==0)
-			return uninstall();
-		else if(stricmp(arg,"disable")==0)
-			return enable(FALSE);
-		else if(stricmp(arg,"enable")==0)
-			return enable(TRUE);
-#endif
-	}
-
-	/******************/
-	/* Read .ini file */
-	/******************/
-	/* Generate path/sexpots[.host].ini from path/sexpots[.exe] */
-	SAFECOPY(path,argv[0]);
-	p=getfname(path);
-	SAFECOPY(fname,p);
-	*p=0;
-	if((p=getfext(fname))!=NULL) 
-		*p=0;
-	strcat(fname,".ini");
-
-	iniFileName(ini_fname,sizeof(ini_fname),path,fname);
-	parse_ini_file(ini_fname);
-
-#if defined(_WIN32)
-	if(daemonize) {
-
-		SERVICE_TABLE_ENTRY  ServiceDispatchTable[] = 
-		{ 
-			{ NAME,	(void(WINAPI*)(DWORD, char**))service_loop	}, 
-			{ NULL,			NULL										}	/* Terminator */
-		};
-
-		printf("Starting service control dispatcher.\n" );
-		printf("This may take several seconds.  Please wait.\n" );
-
-		if(!StartServiceCtrlDispatcher(ServiceDispatchTable)) {
-			lprintf(LOG_ERR,"StartServiceCtrlDispatcher ERROR %d",GetLastError());
-			return -1;
-		}
-		return 0;
-	}
-	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
-
-#endif
-
-	service_loop(argc,argv);
 
 	return 0;
 }
