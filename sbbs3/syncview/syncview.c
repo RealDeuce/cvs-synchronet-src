@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <string.h>
+
+#include "dirwrap.h"
 
 #include "ciolib.h"
 #include "keys.h"
@@ -72,14 +75,36 @@ void viewscroll(void)
 	return;
 }
 
+void lfexpand(char *buf, int *len)
+{
+	char	newbuf[BUF_SIZE*2];
+	int		newlen=0;
+	int		i;
+
+	for(i=0; i<*len; i++) {
+		if(buf[i]=='\n') {
+			newbuf[newlen++]='\r';
+		}
+		newbuf[newlen++]=buf[i];
+	}
+	*len=newlen;
+	memcpy(buf, newbuf, newlen);
+
+	return;
+}
+
 int main(int argc, char **argv)
 {
 	struct text_info	ti;
 	FILE	*f;
-	char	buf[BUF_SIZE];
+	char	buf[BUF_SIZE*2];	/* Room for lfexpand */
 	int		len;
 	int		speed;
 	char	*scrollbuf;
+	char	*infile=NULL;
+	char	title[MAX_PATH+1];
+	int		expand=0;
+	int		i;
 
 	textmode(C80);
 	gettextinfo(&ti);
@@ -88,25 +113,51 @@ int main(int argc, char **argv)
 		getch();
 		return(-1);
 	}
-	if(argc > 2) {
-		cprintf("Usage: %s [filename]\r\nIf not filename is specified, reads the ANSI from stdin\n\n\rPress any key to exit.");
-		getch();
-		return(-1);
+	
+	/* Parse command line */
+	for(i=1; i<argc; i++) {
+		if(argv[i][0]=='-') {
+			if(argv[i][1]=='l' && argv[i][2]==0)
+				expand=1;
+			else
+				goto usage;
+		}
+		else {
+			if(infile==NULL)
+				infile=argv[i];
+			else
+				goto usage;
+		}
 	}
+
 	cterm_init(ti.screenheight, ti.screenwidth, 0, 0, SCROLL_LINES, scrollbuf);
-	if(argc==2) {
-		if((f=fopen(argv[1],"r"))==NULL) {
+	if(infile) {
+		if((f=fopen(infile,"r"))==NULL) {
 			cprintf("Cannot read %s\n\n\rPress any key to exit.",argv[1]);
 			getch();
 			return(-1);
 		}
+		sprintf(title,"SyncView: %s",getfname(argv[1]));
 	}
 	else {
 		f=stdin;
+		strcpy(title,"SyncView: [stdin]");
 	}
-	while((len=fread(buf, 1, BUF_SIZE, f))) {
+	settitle(title);
+	while((len=fread(buf, 1, BUF_SIZE, f))!=0) {
+		if(expand)
+			lfexpand(buf, &len);
 		cterm_write(buf, len, NULL, 0, &speed);
 	}
 	viewscroll();
 	return(0);
+
+usage:
+	cprintf("Usage: %s [-l] [filename]\r\n\r\n"
+			"Displays the ANSI file filename expanding \\n to \\r\\n if -l is specified.\r\n"
+			"If no filename is specified, reads input from stdin\r\n"
+			"\r\n"
+			"Press any key to exit.");
+	getch();
+	return(-1);
 }

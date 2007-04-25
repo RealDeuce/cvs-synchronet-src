@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.61 2006/03/30 23:12:22 rswindell Exp $ */
+/* $Id: js_user.c,v 1.60 2006/01/31 20:03:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1144,9 +1144,8 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 	if(userobj==NULL)
 		return(NULL);
 
-	if((p=JS_GetPrivate(cx, userobj)) == NULL)	/* Uses existing private pointer: Fix memory leak? */
-		if((p=(private_t*)malloc(sizeof(private_t)))==NULL)
-			return(NULL);
+	if((p=(private_t*)malloc(sizeof(private_t)))==NULL)
+		return(NULL);
 
 	p->cfg = cfg;
 	p->user.number = usernumber;
