@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.186 2007/03/25 18:48:08 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.189 2007/04/10 20:12:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2483,6 +2483,8 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		net=NET_FIDO;						/* Record origin address */
 
 	if(net) {
+		if(origaddr.zone==0)
+			origaddr.zone = sys_faddr.zone;
 		smb_hfield(&msg,SENDERNETTYPE,sizeof(ushort),&net);
 		smb_hfield(&msg,SENDERNETADDR,sizeof(fidoaddr_t),&origaddr); }
 
@@ -2518,6 +2520,9 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	}
 	if(smbfile->status.max_crcs==0)
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+	/* Bad echo area collects a *lot* of messages, and thus, hashes - so no dupe checking */
+	if(cfg.badecho>=0 && subnum==cfg.area[cfg.badecho].sub)
+		dupechk_hashes=SMB_HASH_SOURCE_NONE;
 
 	i=smb_addmsg(smbfile, &msg, storage, dupechk_hashes, xlat, sbody, stail);
 
@@ -3900,7 +3905,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.186 $", "%*s %s", revision);
+	sscanf("$Revision: 1.189 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4610,7 +4615,8 @@ int main(int argc, char **argv)
 				if(j==0) {		/* Successful import */
 					echomail++;
 					cfg.area[i].imported++;
-					if(misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
+					/* Should this check if the user has access to the echo in question? */
+					if(i!=cfg.badecho && misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
 						sprintf(str
 						,"\7\1n\1hSBBSecho: \1m%.*s \1n\1msent you EchoMail on "
 							"\1h%s \1n\1m%s\1n\r\n"
