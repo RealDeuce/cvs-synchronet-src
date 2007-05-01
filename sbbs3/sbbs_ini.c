@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.123 2007/10/15 07:35:44 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.122 2006/12/31 11:16:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,7 +338,7 @@ void sbbs_read_ini(
 			,iniGetString(list,section,"ExternalTermDumb","dumb",value));
 
 	#if defined(__FreeBSD__)
-		default_dosemu_path="/usr/local/bin/doscmd";
+		default_dosemu_path="/usr/bin/doscmd";
 	#else
 		default_dosemu_path="/usr/bin/dosemu.bin";
 	#endif
