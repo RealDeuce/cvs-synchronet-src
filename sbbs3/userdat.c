@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.109 2007/09/30 22:30:10 rswindell Exp $ */
+/* $Id: userdat.c,v 1.102 2007/05/01 05:45:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -968,7 +968,7 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
                     sprintf(str+strlen(str),"%d",node->action);
                     break;  
 			}
-			sprintf(str+strlen(str)," %s",node_connection_desc(node->connection, tmp));
+			strcat(str, node_connection_desc(node->connection, tmp));
             if(node->action==NODE_DLNG) {
                 if((node->aux/60)>=12) {
                     if(node->aux/60==12)
@@ -1671,48 +1671,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					else
 						result=!not;
 				}
-				break;
-			case AR_ULS:
-				if((equal && user->uls!=i) || (!equal && user->uls<i))
-					result=not;
-				else
-					result=!not;
-				(*ptrptr)++;
-				break;
-			case AR_ULK:
-				if((equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
-					result=not;
-				else
-					result=!not;
-				(*ptrptr)++;
-				break;
-			case AR_ULM:
-				if((equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
-					result=not;
-				else
-					result=!not;
-				(*ptrptr)++;
-				break;
-			case AR_DLS:
-				if((equal && user->dls!=i) || (!equal && user->dls<i))
-					result=not;
-				else
-					result=!not;
-				(*ptrptr)++;
-				break;
-			case AR_DLK:
-				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
-					result=not;
-				else
-					result=!not;
-				(*ptrptr)++;
-				break;
-			case AR_DLM:
-				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
-					result=not;
-				else
-					result=!not;
-				(*ptrptr)++;
 				break;
 			case AR_FLAG1:
 				if(user==NULL
@@ -2442,44 +2400,6 @@ int DLLCALL user_rec_len(int offset)
 	return(-1);
 }
 
-/****************************************************************************/
-/* Determine if the specified user can or cannot post on the specified sub	*/
-/* 'reason' is an (optional) pointer to a text.dat item number, indicating	*/
-/* the reason the user cannot post, when returning FALSE.					*/
-/****************************************************************************/
-BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, uint* reason)
-{
-	if(reason!=NULL)
-		*reason=CantPostOnSub;
-	if(!VALID_CFG(cfg))
-		return FALSE;
-	if(subnum>=cfg->total_subs)
-		return FALSE;
-	if(!chk_ar(cfg,cfg->grp[cfg->sub[subnum]->grp]->ar,user))
-		return FALSE;
-	if(!chk_ar(cfg,cfg->sub[subnum]->ar,user))
-		return FALSE;
-	if(!chk_ar(cfg,cfg->sub[subnum]->post_ar,user))
-		return FALSE;
-	if(cfg->sub[subnum]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET)
-		&& user->rest&FLAG('N'))		/* network restriction? */
-		return FALSE;
-	if(reason!=NULL)
-		*reason=R_Post;
-	if(user->rest&FLAG('P'))			/* post restriction? */
-		return FALSE;	
-	if(reason!=NULL)
-		*reason=TooManyPostsToday;
-	if(user->ptoday>=cfg->level_postsperday[user->level])
-		return FALSE;
-
-	return TRUE;
-}
-
-/****************************************************************************/
-/* Determine if downloads from the specified directory are free for the		*/
-/* specified user															*/
-/****************************************************************************/
 BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user)
 {
 	if(!VALID_CFG(cfg))
@@ -2526,7 +2446,7 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
     	return(FALSE);
 
     fprintf(fp,"\n; %s %s by %s on %s\n"
-    	,prot,reason,username,timestr(cfg,now,tstr));
+    	,prot,reason,username,timestr(cfg,&now,tstr));
 
 	if(host!=NULL)
 		fprintf(fp,"; Hostname: %s\n",host);
@@ -2535,38 +2455,4 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
 
     fclose(fp);
 	return(TRUE);
-}
-
-/****************************************************************************/
-/* Note: This function does not account for timed events!					*/
-/****************************************************************************/
-time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
-{
-	time_t	now;
-    long    tleft;
-	time_t	timeleft;
-
-	now=time(NULL);
-
-	if(user->exempt&FLAG('T')) {	/* Time online exemption */
-		timeleft=cfg->level_timepercall[user->level];
-		if(timeleft<10)             /* never get below 10 minutes for exempt users */
-			timeleft=10; 
-		timeleft*=60;				/* convert to seconds */
-	}
-	else {
-		tleft=(((long)cfg->level_timeperday[user->level]-user->ttoday)
-			+user->textra)*60L;
-		if(tleft<0) tleft=0;
-		if(tleft>cfg->level_timepercall[user->level]*60)
-			tleft=cfg->level_timepercall[user->level]*60;
-		tleft+=user->min*60L;
-		tleft-=now-starttime;
-		if(tleft>0x7fffL)
-			timeleft=0x7fff;
-		else
-			timeleft=tleft; 
-	}
-
-	return(timeleft);
 }
