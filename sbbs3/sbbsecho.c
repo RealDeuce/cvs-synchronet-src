@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.188 2007/04/01 19:42:54 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.189 2007/04/10 20:12:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3905,7 +3905,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.188 $", "%*s %s", revision);
+	sscanf("$Revision: 1.189 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4615,7 +4615,8 @@ int main(int argc, char **argv)
 				if(j==0) {		/* Successful import */
 					echomail++;
 					cfg.area[i].imported++;
-					if(misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
+					/* Should this check if the user has access to the echo in question? */
+					if(i!=cfg.badecho && misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
 						sprintf(str
 						,"\7\1n\1hSBBSecho: \1m%.*s \1n\1msent you EchoMail on "
 							"\1h%s \1n\1m%s\1n\r\n"

@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.470 2007/01/03 00:27:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.474 2007/04/21 10:22:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1054,6 +1054,13 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE 
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
+
+					if(startup->options&BBS_OPT_DEBUG_TELNET)
+						lprintf(LOG_DEBUG,"Node %d %s Telnet sub-negotiation command: %s"
+	                		,sbbs->cfg.node_num
+							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+							,telnet_opt_desc(option));
+
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
@@ -1071,6 +1078,17 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,speed);
+						sbbs->cur_rate=atoi(speed);
+						sbbs->cur_cps=sbbs->cur_rate/10;
+
+					} else if(option==TELNET_SEND_LOCATION) {
+						char location[128];
+						sprintf(location,"%.*s",(int)sbbs->telnet_cmdlen-5,sbbs->telnet_cmd+3);
+						lprintf(LOG_DEBUG,"Node %d %s telnet location: %s"
+	                		,sbbs->cfg.node_num
+							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+							,location);
+						/* ToDo: store and log the location */
 
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
@@ -1126,6 +1144,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_TERM_SPEED:
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
+								case TELNET_SEND_LOCATION:
 									sbbs->telnet_remote_option[option]=command;
 									sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 									break;
@@ -2201,11 +2220,11 @@ void event_thread(void* arg)
 
 			if(check_semaphores) {
 				// See if any packets have come in
-				for(j=0;j<101;j++) {
-					SAFEPRINTF4(str,"%s%s.q%c%c",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id
-						,j>10 ? ((j-1)/10)+'0' : 'w'
-						,j ? ((j-1)%10)+'0' : 'k');
-					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
+				SAFEPRINTF2(str,"%s%s.q??",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
+				glob(str,GLOB_NOSORT,NULL,&g);
+				for(j=0;j<(int)g.gl_pathc;j++) {
+					SAFECOPY(str,g.gl_pathv[j]);
+					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
@@ -2225,6 +2244,7 @@ void event_thread(void* arg)
 						remove(str);
 					} 
 				}
+				globfree(&g);
 			}
 
 			/* Qnet call out based on time */
@@ -4882,13 +4902,16 @@ NO_SSH:
 		identity=NULL;
 		if(startup->options&BBS_OPT_GET_IDENT) {
 			sbbs->bprintf("Resolving identity...");
-			identify(&client_addr, startup->telnet_port, str, sizeof(str)-1,0);
-			identity=strrchr(str,':');
-			if(identity!=NULL) {
-				identity++;	/* skip colon */
-				while(*identity && *identity<=' ') /* point to user name */
-					identity++;
-				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
+			/* ToDo: Make ident timeout configurable */
+			if(identify(&client_addr, startup->telnet_port, str, sizeof(str)-1, /* timeout: */1)) {
+				lprintf(LOG_DEBUG,"%04d Ident Response: %s",client_socket, str);
+				identity=strrchr(str,':');
+				if(identity!=NULL) {
+					identity++;	/* skip colon */
+					SKIP_WHITESPACE(identity);
+					if(*identity)
+						lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
+				}
 			}
 			sbbs->putcom(crlf);
 		}
