@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.291 2007/05/01 05:49:03 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.292 2007/05/02 00:28:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,7 +281,7 @@ public:
 	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */ 
 
 	ushort	node_connection;
-	char *	connection;		/* Connection Description */
+	char	connection[LEN_MODEM+1];	/* Connection Description */
 	ulong	cur_rate;		/* Current Connection (DCE) Rate */
 	ulong	cur_cps;		/* Current Average Transfer CPS */
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
