@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.75 2006/05/11 15:45:28 deuce Exp $ */
+/* $Id: ciolib.c,v 1.78 2007/03/02 10:14:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -114,7 +114,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 #ifdef WITH_SDL
 int try_sdl_init(int mode)
 {
-	if(!sdl_init(mode)) {
+	if(!sdl_initciolib(mode)) {
 		cio_api.mouse=1;
 		cio_api.puttext=sdl_puttext;
 		cio_api.gettext=sdl_gettext;
@@ -133,6 +133,7 @@ int try_sdl_init(int mode)
 		cio_api.showmouse=sdl_showmouse;
 		cio_api.hidemouse=sdl_hidemouse;
 		cio_api.setname=sdl_setname;
+		cio_api.seticon=sdl_seticon;
 		cio_api.settitle=sdl_settitle;
 #ifdef _WIN32
 		cio_api.copytext=win32_copytext;
@@ -699,7 +700,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	
 	ciolib_gettextinfo(&ti);
 
-	width=ti.winright-ti.curx+1;
+	width=ti.winright-ti.winleft+1-ti.curx+1;
 	height=1;
 	buf=(unsigned char *)alloca(width*height*2);
 	for(i=0;i<width*height*2;) {
@@ -940,6 +941,13 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setname(const char *name) {
 
 	if(cio_api.setname!=NULL)
 		cio_api.setname(name);
+}
+
+CIOLIBEXPORT void CIOLIBCALL ciolib_seticon(const void *icon, unsigned long size) {
+	CIOLIB_INIT();
+
+	if(cio_api.seticon!=NULL)
+		cio_api.seticon(icon,size);
 }
 
 CIOLIBEXPORT void CIOLIBCALL ciolib_settitle(const char *title) {
