@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.67 2007/11/21 01:00:10 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.64 2006/04/25 02:26:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -416,36 +416,34 @@ enum {
 
 typedef struct _PACK {		/* Time with time-zone */
 
-	uint32_t	time;			/* Local time (unix format) */
-	int16_t		zone;			/* Time zone */
+	ulong	time;			/* Local time (unix format) */
+	short	zone;			/* Time zone */
 
 } when_t;
 
 typedef struct _PACK {		/* Index record */
 
-	uint16_t	to; 			/* 16-bit CRC of recipient name (lower case) */
-	uint16_t	from;			/* 16-bit CRC of sender name (lower case) */
-	uint16_t	subj;			/* 16-bit CRC of subject (lower case, w/o RE:) */
-	uint16_t	attr;			/* attributes (read, permanent, etc.) */
-	uint32_t	offset; 		/* offset into header file */
-	uint32_t	number; 		/* number of message (1 based) */
-	uint32_t	time;			/* time/date message was imported/posted */
+	ushort	to; 			/* 16-bit CRC of recipient name (lower case) */
+	ushort	from;			/* 16-bit CRC of sender name (lower case) */
+	ushort	subj;			/* 16-bit CRC of subject (lower case, w/o RE:) */
+	ushort	attr;			/* attributes (read, permanent, etc.) */
+	ulong	offset; 		/* offset into header file */
+	ulong	number; 		/* number of message (1 based) */
+	ulong	time;			/* time/date message was imported/posted */
 
 } idxrec_t;
 
-										/* valid bits in hash_t.flags		*/
-#define SMB_HASH_CRC16			(1<<0)	/* CRC-16 hash is valid				*/
-#define SMB_HASH_CRC32			(1<<1)	/* CRC-32 hash is valid				*/
-#define SMB_HASH_MD5			(1<<2)	/* MD5 digest is valid				*/
-#define SMB_HASH_MASK			(SMB_HASH_CRC16|SMB_HASH_CRC32|SMB_HASH_MD5)
-								
-#define SMB_HASH_MARKED			(1<<4)	/* Used by smb_findhash()			*/
+									/* valid bits in hash_t.flags		*/
+#define SMB_HASH_CRC16		(1<<0)	/* CRC-16 hash is valid				*/
+#define SMB_HASH_CRC32		(1<<1)	/* CRC-32 hash is valid				*/
+#define SMB_HASH_MD5		(1<<2)	/* MD5 digest is valid				*/
+#define SMB_HASH_MASK		(SMB_HASH_CRC16|SMB_HASH_CRC32|SMB_HASH_MD5)
 
-#define SMB_HASH_STRIP_CTRL_A	(1<<5)	/* Strip Ctrl-A codes first			*/
-#define SMB_HASH_STRIP_WSP		(1<<6)	/* Strip white-space chars first	*/
-#define SMB_HASH_LOWERCASE		(1<<7)	/* Convert A-Z to a-z first			*/
-#define SMB_HASH_PROC_MASK		(SMB_HASH_STRIP_CTRL_A|SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
-#define SMB_HASH_PROC_COMP_MASK	(SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
+#define SMB_HASH_MARKED		(1<<4)	/* Used by smb_findhash()			*/
+
+#define SMB_HASH_STRIP_WSP	(1<<6)	/* Strip white-space chars first	*/
+#define SMB_HASH_LOWERCASE	(1<<7)	/* Convert A-Z to a-z first			*/
+#define SMB_HASH_PROC_MASK	(SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
 
 enum {
 	 SMB_HASH_SOURCE_BODY
@@ -463,13 +461,13 @@ enum {
 
 typedef struct _PACK {
 
-	uint32_t	number;					/* Message number */
-	uint32_t	time;					/* Local time of fingerprinting */
-	uint32_t	length;					/* Length (in bytes) of source */
+	ulong	number;					/* Message number */
+	ulong	time;					/* Local time of fingerprinting */
+	ulong	length;					/* Length (in bytes) of source */
 	uchar	source;					/* SMB_HASH_SOURCE* (in low 5-bits) */
 	uchar	flags;					/* indications of valid hashes and pre-processing */
-	uint16_t	crc16;					/* CRC-16 of source */
-	uint32_t	crc32;					/* CRC-32 of source */
+	ushort	crc16;					/* CRC-16 of source */
+	ulong	crc32;					/* CRC-32 of source */
 	uchar	md5[MD5_DIGEST_SIZE];	/* MD5 digest of source */
 	uchar	reserved[28];			/* sizeof(hash_t) = 64 */
 
@@ -478,44 +476,44 @@ typedef struct _PACK {
 typedef struct _PACK {		/* Message base header (fixed portion) */
 
     uchar   id[LEN_HEADER_ID];	/* SMB<^Z> */
-    uint16_t  version;        /* version number (initially 100h for 1.00) */
-    uint16_t  length;         /* length including this struct */
+    ushort  version;        /* version number (initially 100h for 1.00) */
+    ushort  length;         /* length including this struct */
 
 } smbhdr_t;
 
 typedef struct _PACK {		/* Message base status header */
 
-	uint32_t	last_msg;		/* last message number */
-	uint32_t	total_msgs; 	/* total messages */
-	uint32_t	header_offset;	/* byte offset to first header record */
-	uint32_t	max_crcs;		/* Maximum number of CRCs to keep in history */
-    uint32_t   max_msgs;       /* Maximum number of message to keep in sub */
-    uint16_t  max_age;        /* Maximum age of message to keep in sub (in days) */
-	uint16_t	attr;			/* Attributes for this message base (SMB_HYPER,etc) */
+	ulong	last_msg;		/* last message number */
+	ulong	total_msgs; 	/* total messages */
+	ulong	header_offset;	/* byte offset to first header record */
+	ulong	max_crcs;		/* Maximum number of CRCs to keep in history */
+    ulong   max_msgs;       /* Maximum number of message to keep in sub */
+    ushort  max_age;        /* Maximum age of message to keep in sub (in days) */
+	ushort	attr;			/* Attributes for this message base (SMB_HYPER,etc) */
 
 } smbstatus_t;
 
 typedef struct _PACK {		/* Message header */
 
 	/* 00 */ uchar	id[LEN_HEADER_ID];	/* SHD<^Z> */
-    /* 04 */ uint16_t	type;				/* Message type (normally 0) */
-    /* 06 */ uint16_t	version;			/* Version of type (initially 100h for 1.00) */
-    /* 08 */ uint16_t	length;				/* Total length of fixed record + all fields */
-	/* 0a */ uint16_t	attr;				/* Attributes (bit field) (duped in SID) */
-	/* 0c */ uint32_t	auxattr;			/* Auxillary attributes (bit field) */
-    /* 10 */ uint32_t	netattr;			/* Network attributes */
+    /* 04 */ ushort	type;				/* Message type (normally 0) */
+    /* 06 */ ushort	version;			/* Version of type (initially 100h for 1.00) */
+    /* 08 */ ushort	length;				/* Total length of fixed record + all fields */
+	/* 0a */ ushort	attr;				/* Attributes (bit field) (duped in SID) */
+	/* 0c */ ulong	auxattr;			/* Auxillary attributes (bit field) */
+    /* 10 */ ulong	netattr;			/* Network attributes */
 	/* 14 */ when_t	when_written;		/* Date/time/zone message was written */
 	/* 1a */ when_t	when_imported;		/* Date/time/zone message was imported */
-    /* 20 */ uint32_t	number;				/* Message number */
-    /* 24 */ uint32_t	thread_back;		/* Message number for backwards threading (aka thread_orig) */
-    /* 28 */ uint32_t	thread_next;		/* Next message in thread */
-    /* 2c */ uint32_t	thread_first;		/* First reply to this message */
-	/* 30 */ uint16_t	delivery_attempts;	/* Delivery attempt counter */
-	/* 32 */ uint32_t	times_downloaded;	/* Total number of times downloaded */
-	/* 36 */ uint32_t	last_downloaded;	/* Date/time of last download */
+    /* 20 */ ulong	number;				/* Message number */
+    /* 24 */ ulong	thread_back;		/* Message number for backwards threading (aka thread_orig) */
+    /* 28 */ ulong	thread_next;		/* Next message in thread */
+    /* 2c */ ulong	thread_first;		/* First reply to this message */
+	/* 30 */ ushort	delivery_attempts;	/* Delivery attempt counter */
+	/* 32 */ ulong	times_downloaded;	/* Total number of times downloaded */
+	/* 36 */ ulong	last_downloaded;	/* Date/time of last download */
 	/* 3a */ uchar	reserved[6];		/* Reserved for future use */
-    /* 40 */ uint32_t	offset;				/* Offset for buffer into data file (0 or mod 256) */
-	/* 44 */ uint16_t	total_dfields;		/* Total number of data fields */
+    /* 40 */ ulong	offset;				/* Offset for buffer into data file (0 or mod 256) */
+	/* 44 */ ushort	total_dfields;		/* Total number of data fields */
 
 } msghdr_t;
 
@@ -523,25 +521,25 @@ typedef struct _PACK {		/* Message header */
 
 typedef struct _PACK {		/* Data field */
 
-	uint16_t	type;			/* Type of data field */
-    uint32_t   offset;         /* Offset into buffer */ 
-    uint32_t   length;         /* Length of data field */
+	ushort	type;			/* Type of data field */
+    ulong   offset;         /* Offset into buffer */ 
+    ulong   length;         /* Length of data field */
 
 } dfield_t;
 
 typedef struct _PACK {		/* Header field */
 
-	uint16_t	type;
-	uint16_t	length; 		/* Length of buffer */
+	ushort	type;
+	ushort	length; 		/* Length of buffer */
 
 } hfield_t;
 
 typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 
-	uint16_t	zone;
-	uint16_t	net;
-	uint16_t	node;
-	uint16_t	point;
+	ushort	zone;
+	ushort	net;
+	ushort	node;
+	ushort	point;
 
 } fidoaddr_t;
 
@@ -551,7 +549,7 @@ typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 
 typedef struct {		/* Network (type and address) */
 
-    uint16_t  type;
+    ushort  type;
 	void	*addr;
 
 } net_t;
@@ -584,23 +582,22 @@ typedef struct {				/* Message */
 				*ftn_reply;		/* FTN REPLY */
 	char*		summary;		/* Summary  */
 	char*		subj;			/* Subject  */
-	uint16_t		to_agent,		/* Type of agent message is to */
+	ushort		to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
 	net_t		to_net, 		/* Destination network type and address */
                 from_net,       /* Origin network address */
                 replyto_net;    /* Network type and address for replies */
-	uint16_t		total_hfields;	/* Total number of header fields */
+	ushort		total_hfields;	/* Total number of header fields */
 	hfield_t	*hfield;		/* Header fields (fixed length portion) */
 	void		**hfield_dat;	/* Header fields (variable length portion) */
 	dfield_t	*dfield;		/* Data fields (fixed length portion) */
-	int32_t		offset; 		/* Offset (number of records) into index */
-	/* TODO: Should this be a BOOL? */
-	int32_t			forwarded;		/* Forwarded from agent to another */
-	uint32_t		expiration; 	/* Message will expire on this day (if >0) */
-	uint32_t		priority;		/* Message priority (0 is lowest) */
-	uint32_t		cost;			/* Cost to download/read */
-	uint32_t		flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
+	long		offset; 		/* Offset (number of records) into index */
+	int			forwarded;		/* Forwarded from agent to another */
+	ulong		expiration; 	/* Message will expire on this day (if >0) */
+	ulong		priority;		/* Message priority (0 is lowest) */
+	ulong		cost;			/* Cost to download/read */
+	ulong		flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
 
 } smbmsg_t;
 
@@ -613,16 +610,16 @@ typedef struct {			/* Message base */
     FILE*	sda_fp;			/* File pointer for data allocation (.sda) file */
     FILE*	sha_fp;			/* File pointer for header allocation (.sha) file */
 	FILE*	hash_fp;		/* File pointer for hash (.hash) file */
-	uint32_t	retry_time; 	/* Maximum number of seconds to retry opens/locks */
-	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
+	ulong	retry_time; 	/* Maximum number of seconds to retry opens/locks */
+	ulong	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 	/* Status header record */
 	BOOL	locked;			/* SMB header is locked */
 	char	last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
-	uint32_t	subnum;			/* Sub-board number */
-	int32_t	msgs;			/* Number of messages loaded (for user) */
-	int32_t	curmsg;			/* Current message number (for user) */
+	uint	subnum;			/* Sub-board number */
+	long	msgs;			/* Number of messages loaded (for user) */
+	long	curmsg;			/* Current message number (for user) */
 
 } smb_t;
 
