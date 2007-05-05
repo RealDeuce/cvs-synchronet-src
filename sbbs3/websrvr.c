@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.462 2007/11/21 08:51:33 deuce Exp $ */
+/* $Id: websrvr.c,v 1.458 2006/12/29 09:21:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,7 @@ enum {
 static scfg_t	scfg;
 static BOOL		scfg_reloaded=TRUE;
 static BOOL		http_logging_thread_running=FALSE;
-static DWORD	active_clients=0;
+static ulong	active_clients=0;
 static ulong	sockets=0;
 static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
@@ -1854,11 +1854,12 @@ static BOOL parse_headers(http_session_t * session)
 	char	env_name[128];
 
 	for(idx=0;session->req.headers[idx]!=NULL;idx++) {
-		/* TODO: strdup() is possibly too slow here... */
-		head_line=strdup(session->req.headers[idx]);
+		head_line=session->req.headers[idx];
 		if((strtok_r(head_line,":",&last))!=NULL && (value=strtok_r(NULL,"",&last))!=NULL) {
 			i=get_header_type(head_line);
 			while(*value && *value<=' ') value++;
+			if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)
+				js_add_header(session,head_line,value);
 			switch(i) {
 				case HEAD_AUTH:
 					if(strtok_r(value," ",&last)) {
@@ -1872,6 +1873,40 @@ static BOOL parse_headers(http_session_t * session)
 				case HEAD_LENGTH:
 					add_env(session,"CONTENT_LENGTH",value);
 					content_len=strtol(value,NULL,10);
+					break;
+				case HEAD_TYPE:
+					add_env(session,"CONTENT_TYPE",value);
+					if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
+						/*
+						 * We need to parse out the files based on RFC1867
+						 *
+						 * And example reponse looks like this:
+						 * Content-type: multipart/form-data, boundary=AaB03x
+						 * 
+						 * --AaB03x
+						 * content-disposition: form-data; name="field1"
+						 * 
+						 * Joe Blow
+						 * --AaB03x
+						 * content-disposition: form-data; name="pics"
+						 * Content-type: multipart/mixed, boundary=BbC04y
+						 * 
+						 * --BbC04y
+						 * Content-disposition: attachment; filename="file1.txt"
+						 * 
+						 * Content-Type: text/plain
+						 * 
+						 * ... contents of file1.txt ...
+						 * --BbC04y
+						 * Content-disposition: attachment; filename="file2.gif"
+						 * Content-type: image/gif
+						 * Content-Transfer-Encoding: binary
+						 * 
+						 * ...contents of file2.gif...
+						 * --BbC04y--
+						 * --AaB03x--						 
+						 */
+					}
 					break;
 				case HEAD_IFMODIFIED:
 					session->req.if_modified_since=decode_date(value);
@@ -1935,72 +1970,6 @@ static BOOL parse_headers(http_session_t * session)
 				case HEAD_IFRANGE:
 					session->req.if_range=decode_date(value);
 					break;
-				case HEAD_TYPE:
-					add_env(session,"CONTENT_TYPE",value);
-					break;
-				default:
-					break;
-			}
-			sprintf(env_name,"HTTP_%s",head_line);
-			add_env(session,env_name,value);
-		}
-		free(head_line);
-	}
-	if(content_len)
-		session->req.post_len = content_len;
-	add_env(session,"SERVER_NAME",session->req.host[0] ? session->req.host : startup->host_name );
-	return TRUE;
-}
-
-static BOOL parse_js_headers(http_session_t * session)
-{
-	char	*head_line;
-	char	*value;
-	char	*last;
-	char	*p;
-	int		i;
-	size_t	idx;
-
-	for(idx=0;session->req.headers[idx]!=NULL;idx++) {
-		head_line=session->req.headers[idx];
-		if((strtok_r(head_line,":",&last))!=NULL && (value=strtok_r(NULL,"",&last))!=NULL) {
-			i=get_header_type(head_line);
-			while(*value && *value<=' ') value++;
-			js_add_header(session,head_line,value);
-			switch(i) {
-				case HEAD_TYPE:
-					if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
-						/*
-						 * We need to parse out the files based on RFC1867
-						 *
-						 * And example reponse looks like this:
-						 * Content-type: multipart/form-data, boundary=AaB03x
-						 * 
-						 * --AaB03x
-						 * content-disposition: form-data; name="field1"
-						 * 
-						 * Joe Blow
-						 * --AaB03x
-						 * content-disposition: form-data; name="pics"
-						 * Content-type: multipart/mixed, boundary=BbC04y
-						 * 
-						 * --BbC04y
-						 * Content-disposition: attachment; filename="file1.txt"
-						 * 
-						 * Content-Type: text/plain
-						 * 
-						 * ... contents of file1.txt ...
-						 * --BbC04y
-						 * Content-disposition: attachment; filename="file2.gif"
-						 * Content-type: image/gif
-						 * Content-Transfer-Encoding: binary
-						 * 
-						 * ...contents of file2.gif...
-						 * --BbC04y--
-						 * --AaB03x--						 
-						 */
-					}
-					break;
 				case HEAD_COOKIE:
 					if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 						char	*key;
@@ -2018,8 +1987,13 @@ static BOOL parse_js_headers(http_session_t * session)
 				default:
 					break;
 			}
+			sprintf(env_name,"HTTP_%s",head_line);
+			add_env(session,env_name,value);
 		}
 	}
+	if(content_len)
+		session->req.post_len = content_len;
+	add_env(session,"SERVER_NAME",session->req.host[0] ? session->req.host : startup->host_name );
 	return TRUE;
 }
 
@@ -2065,6 +2039,7 @@ static int is_dynamic_req(http_session_t* session)
 			send_error(session,error_500);
 			return(IS_STATIC);
 		}
+
 		return(i);
 	}
 
@@ -3543,7 +3518,6 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	JSBool	b;
 	struct tm tm;
 	http_session_t* session;
-	time_t	tt;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -3562,8 +3536,7 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	header+=sprintf(header,"%s",p);
 	if(argc>2) {
 		JS_ValueToInt32(cx,argv[2],&i);
-		tt=i;
-		if(i && gmtime_r(&tt,&tm)!=NULL)
+		if(i && gmtime_r((time_t *)&i,&tm)!=NULL)
 			header += strftime(header,50,"; expires=%a, %d-%b-%Y %H:%M:%S GMT",&tm);
 	}
 	if(argc>3) {
@@ -4063,7 +4036,6 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		js_add_request_prop(session,"post_data",session->req.post_data);
 		js_parse_query(session,session->req.post_data);
 	}
-	parse_js_headers(session);
 
 	do {
 		/* RUN SCRIPT */
@@ -4635,7 +4607,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.462 $", "%*s %s", revision);
+	sscanf("$Revision: 1.458 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4968,16 +4940,12 @@ void DLLCALL web_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->port);
 
-		if(startup->port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
 		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"Web Server",lprintf);
-		if(startup->port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
