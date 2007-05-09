@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.16 2007/05/09 02:34:33 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.17 2007/05/09 19:58:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1291,7 +1291,8 @@ void parse_ini_file(const char* ini_fname)
 	
 	/* [COM] Section */
 	section="COM";
-	iniGetString(list, section, "Device", NULL, com_dev);
+	if(iniKeyExists(list, section,  "Device"))
+		iniGetString(list, section, "Device", NULL, com_dev);
 	com_baudrate    = iniGetLongInt(list, section, "BaudRate", com_baudrate);
 	com_hangup	    = iniGetBool(list, section, "Hangup", com_hangup);
 	dcd_timeout     = iniGetInteger(list, section, "DCDTimeout", dcd_timeout);
@@ -1301,19 +1302,20 @@ void parse_ini_file(const char* ini_fname)
 
 	/* [Modem] Section */
 	section="Modem";
-	if(iniKeyExists(list, section, "Init"))
+	if(iniKeyExists(list, section,  "Init"))
 		iniGetString(list, section, "Init", "", mdm_init);
-	if(iniKeyExists(list, section, "AutoAnswer"))
+	if(iniKeyExists(list, section,  "AutoAnswer"))
 		iniGetString(list, section, "AutoAnswer", "", mdm_autoans);
-	if(iniKeyExists(list, section, "Cleanup"))
+	if(iniKeyExists(list, section,  "Cleanup"))
 		iniGetString(list, section, "Cleanup", "", mdm_cleanup);
-	if(iniKeyExists(list, section, "EnableCallerID"))
+	if(iniKeyExists(list, section,  "EnableCallerID"))
 		iniGetString(list, section, "EnableCallerID", "", mdm_cid);
 	mdm_timeout     = iniGetInteger(list, section, "Timeout", mdm_timeout);
 
 	/* [TCP] Section */
 	section="TCP";
-	iniGetString(list, section, "Host", NULL, host);
+	if(iniKeyExists(list, section,  "Host"))
+		iniGetString(list, section, "Host", NULL, host);
 	port					= iniGetShortInt(list, section, "Port", port);
 	tcp_nodelay				= iniGetBool(list,section,"NODELAY", tcp_nodelay);
 
@@ -1322,15 +1324,18 @@ void parse_ini_file(const char* ini_fname)
 	telnet					= iniGetBool(list,section,"Enabled", telnet);
 	debug_telnet			= iniGetBool(list,section,"Debug", debug_telnet);
 	telnet_advertise_cid	= iniGetBool(list,section,"AdvertiseLocation", telnet_advertise_cid);
-	iniGetString(list, section, "TermType", NULL, termtype);
-	iniGetString(list, section, "TermSpeed", NULL, termspeed);
+	if(iniKeyExists(list, section,  "TermType"))
+		iniGetString(list, section, "TermType", NULL, termtype);
+	if(iniKeyExists(list, section,  "TermSpeed"))
+		iniGetString(list, section, "TermSpeed", NULL, termspeed);
 
 	/* [Ident] Section */
 	section="Ident";
 	ident					= iniGetBool(list,section,"Enabled", ident);
 	ident_port				= iniGetShortInt(list, section, "Port", ident_port);
 	ident_interface			= iniGetIpAddress(list, section, "Interface", ident_interface);
-	iniGetString(list, section, "Response", NULL, ident_response);
+	if(iniKeyExists(list, section,  "Response"))
+		iniGetString(list, section, "Response", NULL, ident_response);
 
 }
 
@@ -1500,7 +1505,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.16 $", "%*s %s", revision);
+	sscanf("$Revision: 1.17 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
