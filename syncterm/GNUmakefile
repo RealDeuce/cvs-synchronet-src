@@ -17,15 +17,13 @@ ifdef PREFIX
  CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
 endif
 
-CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib -I../comio
+CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib
 LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 
-vpath %.c ../sbbs3 ../smblib ../uifc ../guts ../comio
+vpath %.c ../sbbs3 ../smblib ../uifc ../guts
 
 INSTALL_EXE	?=	install
 INSTALL_DATA	?=	install -m 0444
-
-OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
