@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.100 2007/05/16 19:22:55 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.98 2007/05/09 19:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,12 +298,9 @@ BOOL iniKeyExists(str_list_t list, const char* section, const char* key)
 	char	val[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	if(list==NULL)
-		return(FALSE);
-
 	i=get_value(list, section, key, val);
 
-	if(list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)
+	if(list==NULL || list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)
 		return(FALSE);
 
 	return(TRUE);
@@ -650,18 +647,13 @@ char* iniSetStringList(str_list_t* list, const char* section, const char* key
 	return iniSetString(list, section, key, value, style);
 }
 
-static char* default_value(const char* deflt, char* value)
-{
-	if(deflt!=NULL && deflt!=value)
-		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
-
-	return((char*)deflt);
-}
-
 char* iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
 {
-	if(read_value(fp,section,key,value)==NULL || *value==0 /* blank */)
-		return default_value(deflt,value);
+	if(read_value(fp,section,key,value)==NULL || *value==0 /* blank */) {
+		if(deflt!=NULL && deflt!=value)
+			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
+		return((char*)deflt);
+	}
 
 	return(value);
 }
@@ -670,37 +662,11 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 {
 	get_value(list, section, key, value);
 
-	if(*value==0 /* blank value or missing key */)
-		return default_value(deflt,value);
-
-	return(value);
-}
-
-char* iniReadExistingString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
-{
-	if(read_value(fp,section,key,value)==NULL)
-		return(NULL);
-
-	if(*value==0 /* blank */)
-		return default_value(deflt,value);
-
-	return(value);
-}
-
-char* iniGetExistingString(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
-{
-	size_t	i;
-
-	if(list==NULL)
-		return(NULL);
-
-	i=get_value(list, section, key, value);
-
-	if(list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)	/* missing key */
-		return(NULL);
-
-	if(*value==0 /* blank value  */)
-		return default_value(deflt,value);
+	if(*value==0 /* blank value or missing key */) {
+		if(deflt!=NULL && deflt!=value)
+			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
+		return((char*)deflt);
+	}
 
 	return(value);
 }
