@@ -1,4 +1,4 @@
-/* $Id: xpbeep.h,v 1.9 2005/01/27 22:12:52 rswindell Exp $ */
+/* $Id: xpbeep.h,v 1.10 2006/05/27 06:59:47 deuce Exp $ */
 
 #ifndef _XPBEEP_H_
 #define _XPBEEP_H_
@@ -33,6 +33,8 @@ enum WAVE_SHAPE {
 #ifdef __cplusplus
 extern "C" {
 #endif
+BOOL xptone_open(void);
+BOOL xptone_close(void);
 void xpbeep(double freq, DWORD duration);
 BOOL xptone(double freq, DWORD duration, enum WAVE_SHAPE);
 #ifdef __unix__
