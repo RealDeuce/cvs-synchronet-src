@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.57 2007/05/09 22:00:59 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.56 2007/05/05 06:16:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -352,15 +352,11 @@ bool sbbs_t::answer()
 		return(false); 
 
 	if(stricmp(terminal,"sexpots")==0) {	/* dial-up connection (via SexPOTS) */
-		SAFEPRINTF2(str,"%s connection detected at %lu bps", terminal, cur_rate);
-		logline("@S",str);
 		node_connection = (ushort)cur_rate;
 		SAFEPRINTF(connection,"%lu",cur_rate);
 		SAFECOPY(cid,"Unknown");
 		SAFECOPY(client_name,"Unknown");
 		if(telnet_location[0]) {			/* Caller-ID info provided */
-			SAFEPRINTF(str, "CID: %s", telnet_location);
-			logline("@*",str);
 			SAFECOPY(cid,telnet_location);
 			truncstr(cid," ");				/* Only include phone number in CID */
 			char* p=telnet_location;
@@ -373,13 +369,7 @@ bool sbbs_t::answer()
 		SAFECOPY(client.addr,cid);
 		SAFECOPY(client.host,client_name);
 		client_on(client_socket,&client,TRUE /* update */);
-	} else {
-		if(telnet_location[0]) {			/* Telnet Location info provided */
-			SAFEPRINTF(str, "Telnet Location: %s", telnet_location);
-			logline("@*",str);
-		}
 	}
-
 
 	useron.misc&=~(ANSI|COLOR|RIP|WIP);
 	useron.misc|=autoterm;
