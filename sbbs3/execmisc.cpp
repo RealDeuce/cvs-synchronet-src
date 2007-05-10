@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.36 2006/01/21 01:31:15 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.37 2006/12/21 21:27:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@ static char* format_string(sbbs_t* sbbs, csi_t* csi)
 			fmt=xp_asprintf_next(fmt,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,*(char **)vp);
 		csi->ip+=4; 
 	}
-	return xp_asprintf_end(fmt);
+	return xp_asprintf_end(fmt, NULL);
 }
 
 int sbbs_t::exec_misc(csi_t* csi, char *path)
