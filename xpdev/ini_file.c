@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.94 2005/10/19 07:18:02 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.99 2007/05/09 21:25:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -262,6 +262,9 @@ static size_t get_value(str_list_t list, const char* section, const char* key, c
 	size_t	i;
 
 	value[0]=0;
+	if(list==NULL)
+		return 0;
+
 	for(i=find_section(list, section); list[i]!=NULL; i++) {
 		SAFECOPY(str, list[i]);
 		if(is_eof(str))
@@ -294,6 +297,9 @@ BOOL iniKeyExists(str_list_t list, const char* section, const char* key)
 {
 	char	val[INI_MAX_VALUE_LEN];
 	size_t	i;
+
+	if(list==NULL)
+		return(FALSE);
 
 	i=get_value(list, section, key, val);
 
@@ -644,13 +650,18 @@ char* iniSetStringList(str_list_t* list, const char* section, const char* key
 	return iniSetString(list, section, key, value, style);
 }
 
+static char* default_value(const char* deflt, char* value)
+{
+	if(deflt!=NULL && deflt!=value)
+		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
+
+	return(deflt);
+}
+
 char* iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
 {
-	if(read_value(fp,section,key,value)==NULL || *value==0 /* blank */) {
-		if(deflt!=NULL)
-			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
-		return((char*)deflt);
-	}
+	if(read_value(fp,section,key,value)==NULL || *value==0 /* blank */)
+		return default_value(deflt,value);
 
 	return(value);
 }
@@ -659,11 +670,37 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 {
 	get_value(list, section, key, value);
 
-	if(*value==0 /* blank value or missing key */) {
-		if(deflt!=NULL)
-			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
-		return((char*)deflt);
-	}
+	if(*value==0 /* blank value or missing key */)
+		return default_value(deflt,value);
+
+	return(value);
+}
+
+char* iniReadExistingString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
+{
+	if(read_value(fp,section,key,value)==NULL)
+		return(NULL);
+
+	if(*value==0 /* blank */)
+		return default_value(deflt,value);
+
+	return(value);
+}
+
+char* iniGetExistingString(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
+{
+	size_t	i;
+
+	if(list==NULL)
+		return(NULL);
+
+	i=get_value(list, section, key, value);
+
+	if(list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)	/* missing key */
+		return(NULL);
+
+	if(*value==0 /* blank value  */)
+		return default_value(deflt,value);
 
 	return(value);
 }
@@ -671,6 +708,7 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 static str_list_t splitList(char* list, const char* sep)
 {
 	char*		token;
+	char*		tmp;
 	ulong		items=0;
 	str_list_t	lp;
 
@@ -680,13 +718,13 @@ static str_list_t splitList(char* list, const char* sep)
 	if(sep==NULL)
 		sep=",";
 
-	token=strtok(list,sep);
+	token=strtok_r(list,sep,&tmp);
 	while(token!=NULL) {
 		SKIP_WHITESPACE(token);
 		truncsp(token);
 		if(strListAppend(&lp,token,items++)==NULL)
 			break;
-		token=strtok(NULL,sep);
+		token=strtok_r(NULL,sep,&tmp);
 	}
 
 	return(lp);
@@ -1668,7 +1706,8 @@ str_list_t iniReadFile(FILE* fp)
 	str_list_t	list;
 	FILE*		insert_fp=NULL;
 	
-	rewind(fp);
+	if(fp!=NULL)
+		rewind(fp);
 
 	list = strListReadFile(fp, NULL, INI_MAX_LINE_LEN);
 	if(list==NULL)
