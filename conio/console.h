@@ -1,8 +1,4 @@
-/* xpendian.h */
-
-/* Macros to convert integer "endianness" */
-
-/* $Id: xpendian.h,v 1.4 2004/08/26 21:51:54 rswindell Exp $ */
+/* $Id: console.h,v 1.11 2005/11/19 07:52:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,43 +31,66 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _XPENDIAN_H
-#define _XPENDIAN_H
 
-/************************/
-/* byte-swapping macros */
-/************************/
-#define BYTE_SWAP_16(x)	((((short)(x)&0xff00)>>8) | (((short)(x)&0x00ff)<<8))
-#define BYTE_SWAP_32(x)	((((long)(x)&0xff000000)>>24) | (((long)(x)&0x00ff0000)>>8) | (((long)(x)&0x0000ff00)<<8) | (((long)(x)&0x000000ff)<<24))
+#ifndef _CONSOLE_H_
+#define _CONSOLE_H_
 
-/* these may need to be updated for > 32-bit platforms */
-#define BYTE_SWAP_SHORT(x)	BYTE_SWAP_16(x)
-#define BYTE_SWAP_LONG(x)	BYTE_SWAP_32(x)
+#include <sys/param.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/user.h>
 
-/* auto-detect integer size */
-#define BYTE_SWAP_INT(x)	(sizeof(x)==sizeof(short) ? BYTE_SWAP_SHORT(x) : sizeof(x)==sizeof(long) ? BYTE_SWAP_LONG(x) : (x))
+#include <gen_defs.h>
+#include <semwrap.h>
 
-/********************************/
-/* Architecture-specific macros */
-/********************************/
-#ifdef __BIG_ENDIAN__	/* e.g. Motorola */
+#include "vidmodes.h"
 
-	#define BE_SHORT(x)		(x)
-	#define BE_LONG(x)		(x)
-	#define BE_INT(x)		(x)
-	#define LE_SHORT(x)		BYTE_SWAP_SHORT(x)
-	#define LE_LONG(x)		BYTE_SWAP_LONG(x)
-	#define LE_INT(x)		BYTE_SWAP_INT(x)
+extern sem_t	console_mode_changed;
+extern sem_t	copybuf_set;
+extern sem_t	pastebuf_request;
+extern sem_t	pastebuf_set;
+extern sem_t	font_set;
+extern int		new_font;
+extern int		font_force;
+extern int		setfont_return;
+extern pthread_mutex_t	copybuf_mutex;
+extern char *copybuf;
+extern char *pastebuf;
 
-#else	/* Little Endian (e.g. Intel) */
+extern int CurrMode;
 
-	#define LE_SHORT(x)		(x)
-	#define LE_LONG(x)		(x)
-	#define LE_INT(x)		(x)
-	#define BE_SHORT(x)		BYTE_SWAP_SHORT(x)
-	#define BE_LONG(x)		BYTE_SWAP_LONG(x)
-	#define BE_INT(x)		BYTE_SWAP_INT(x)
+extern int InitCS;
+extern int InitCE;
+
+extern WORD *vmem;
+
+extern BYTE CursRow;
+extern BYTE CursCol;
+extern BYTE CursStart;
+extern BYTE CursEnd;
+
+extern WORD DpyCols;
+extern BYTE DpyRows;
+
+extern int FH,FW;
+
+extern int x_nextchar;
+
+extern int console_new_mode;
+
+int init_window();
+int video_init();
+int init_mode(int mode);
+int tty_read(int flag);
+int tty_peek(int flag);
+int tty_kbhit(void);
+void tty_beep(void);
+void x_win_title(const char *title);
+int console_init(void);
+int x_load_font(const char *filename);
+
+#define	TTYF_BLOCK	0x00000008
+#define	TTYF_POLL	0x00000010
+#define NO_NEW_MODE -999
 
 #endif
-
-#endif	/* Don't add anything after this line */
