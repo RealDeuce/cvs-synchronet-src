@@ -70,35 +70,32 @@ ifeq ($(os),darwin)
 endif
 
 # Find SDL headers!
-ifdef USE_SDL_AUDIO
+ifndef WITHOUT_SDL
  ifdef SDL_CONFIG
   ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null 2>&1 && echo YES),YES)
-   WITH_SDL_AUDIO	:=	1
+   WITH_SDL	:=	1
   endif
  else
   ifeq ($(os),darwin)
    ifeq ($(shell if [ -d /Library/Frameworks/SDL.framework ] ; then echo YES ; fi),YES)
-    SDL_FRAMEWORK_PATH	?=	/Library/Frameworks
-   endif
-   ifdef SDL_FRAMEWORK_PATH
-    WITH_SDL_AUDIO	:=	1
+    WITH_SDL	:=	1
    endif
   else
    ifeq ($(shell sdl-config --cflags > /dev/null 2>&1 && echo YES),YES)
     SDL_CONFIG := sdl-config
-    WITH_SDL_AUDIO	:=	1
+    WITH_SDL	:=	1
    else
     ifeq ($(shell sdl13-config --cflags > /dev/null 2>&1 && echo YES),YES)
      SDL_CONFIG := sdl13-config
-     WITH_SDL_AUDIO	:=	1
+     WITH_SDL	:=	1
     else
      ifeq ($(shell sdl12-config --cflags > /dev/null 2>&1 && echo YES),YES)
       SDL_CONFIG := sdl12-config
-      WITH_SDL_AUDIO	:=	1
+      WITH_SDL	:=	1
      else
       ifeq ($(shell sdl11-config --cflags > /dev/null 2>&1 && echo YES),YES)
        SDL_CONFIG := sdl11-config
-       WITH_SDL_AUDIO	:=	1
+       WITH_SDL	:=	1
       endif
      endif
     endif
@@ -107,12 +104,12 @@ ifdef USE_SDL_AUDIO
  endif
 endif
 
-ifdef WITH_SDL_AUDIO
+ifdef WITH_SDL
  ifdef SDL_CONFIG
   ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null 2>&1 && echo YES),YES)
-   XPDEV-MT_CFLAGS	+=	-DWITH_SDL_AUDIO
+   XPDEV-MT_CFLAGS	+=	-DWITH_SDL
    XPDEV-MT_CFLAGS	+=	$(shell $(SDL_CONFIG) --cflags)
-   XPDEV_CFLAGS	+=	-DWITH_SDL_AUDIO
+   XPDEV_CFLAGS	+=	-DWITH_SDL
    XPDEV_CFLAGS	+=	$(shell $(SDL_CONFIG) --cflags)
    ifdef STATIC_SDL
     XPDEV-MT_LIBS	+=	$(shell $(SDL_CONFIG) --static-libs)
@@ -136,17 +133,17 @@ ifdef WITH_SDL_AUDIO
   endif
  else
   ifeq ($(os),darwin)
-   XPDEV-MT_CFLAGS	+=	-DWITH_SDL_AUDIO -DSTATIC_SDL
-   XPDEV-MT_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
-   XPDEV-MT_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
-   XPDEV_CFLAGS	+=	-DWITH_SDL_AUDIO -DSTATIC_SDL
-   XPDEV_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
-   XPDEV_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
+   XPDEV-MT_CFLAGS	+=	-DWITH_SDL -DSTATIC_SDL
+   XPDEV-MT_CFLAGS	+=	-I/Library/Frameworks/SDL.framework/Headers
+   XPDEV-MT_LIBS	+=	-framework SDL -framework Cocoa -framework Carbon -I/Library/Frameworks/SDL.framework/Headers
+   XPDEV_CFLAGS	+=	-DWITH_SDL -DSTATIC_SDL
+   XPDEV_CFLAGS	+=	-I/Library/Frameworks/SDL.framework/Headers
+   XPDEV_LIBS	+=	-framework SDL -framework Cocoa -framework Carbon -I/Library/Frameworks/SDL.framework/Headers
   endif
  endif
 endif
 
-X_PATH ?=      $(shell if [ -f /usr/X11R6/include/X11/Xlib.h ]; then echo /usr/X11R6 ; elif [ -f /usr/local/include/X11/Xlib.h ] ; then echo /usr/local ; elif [ -f /usr/X11R7/include/X11/Xlib.h ] ; then echo /usr/X11R7 ; elif [ -f /usr/X11/include/X11/Xlib.h ] ; then echo /usr/X11 ; elif [ -f /usr/X/include/X11/Xlib.h ] ; then echo /usr/X ; elif [ -f /usr/include/X11/Xlib.h ] ; then echo /usr ; else echo 0 ; fi)
+X_PATH ?=      $(shell if [ -f /usr/X11R6/include/X11/Xlib.h ]; then echo /usr/X11R6 ; elif [ -f /usr/X11R7/include/X11/Xlib.h ] ; then echo /usr/X11R7 ; elif [ -f /usr/X11/include/X11/Xlib.h ] ; then echo /usr/X11 ; elif [ -f /usr/X/include/X11/Xlib.h ] ; then echo /usr/X ; elif [ -f /usr/include/X11/Xlib.h ] ; then echo /usr ; else echo 0 ; fi)
 
 ifeq ($(os),sunos)
  X_PATH	?=	/usr/X
@@ -167,12 +164,3 @@ endif
 
 XPDEV-MT_CFLAGS	+=	-I$(X_HEADERS)
 XPDEV_CFLAGS	+=	-I$(X_HEADERS)
-
-PORTAUDIO_PATH ?=      $(shell if [ -f /usr/local/include/portaudio.h ]; then echo /usr/local ; elif [ -f /usr/include/portaudio.h ] ; then echo /usr ; else echo NOTFOUND ; fi)
-
-ifneq ($(PORTAUDIO_PATH),NOTFOUND)
- XPDEV_CFLAGS += -DWITH_PORTAUDIO
- XPDEV_LDFLAGS += -L$(PORTAUDIO_PATH)/lib
- XPDEV_LIBS	+=	-lportaudio
- XPDEV-MT_LIBS	+=	-lportaudio
-endif
