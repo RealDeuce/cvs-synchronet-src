@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.157 2007/05/23 08:15:30 deuce Exp $ */
+/* $Id: term.c,v 1.156 2007/03/03 12:24:05 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1090,17 +1090,16 @@ BOOL doterm(struct bbslist *bbs)
 		if(speed)
 			thischar=xp_timer();
 
-		if(!term.nostatus)
-			update_status(bbs, speed);
 		while(conn_data_waiting() || !conn_connected()) {
 			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
 				/* Get remote input */
 				inch=recv_byte(NULL, 0);
 
+				if(!term.nostatus)
+					update_status(bbs, speed);
 				switch(inch) {
 					case -1:
 						if(!conn_connected()) {
-							hold_update=oldmc;
 							uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
