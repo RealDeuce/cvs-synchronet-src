@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.155 2006/03/16 00:07:49 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.158 2007/05/10 00:56:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -34,6 +34,7 @@
  ****************************************************************************/
 
 //---------------------------------------------------------------------------
+#include "sbbs.h"           // unixtodstr()
 #include <vcl.h>
 #include <vcl/Registry.hpp>	/* TRegistry */
 #pragma hdrstop
@@ -71,7 +72,6 @@
 #include "ConfigWizardUnit.h"
 #include "PreviewFormUnit.h"
 
-#include "sbbs.h"           // unixtodstr()
 #include "sbbs_ini.h"		// sbbs_read_ini()
 #include "userdat.h"		// lastuser()
 #include "ntsvcs.h"			// NTSVC_NAME_*
@@ -1978,9 +1978,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("LastNode"))
             bbs_startup.last_node=Registry->ReadInteger("LastNode");
 
-        if(Registry->ValueExists("ExternalYield"))
-            bbs_startup.xtrn_polls_before_yield=Registry->ReadInteger("ExternalYield");
-
         if(Registry->ValueExists("OutbufHighwaterMark"))
             bbs_startup.outbuf_highwater_mark=Registry->ReadInteger("OutbufHighwaterMark");
         else
@@ -2221,12 +2218,15 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     cfg.node_num=bbs_startup.first_node;
     char error[256];
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
+
+   	StatusBar->Panels->Items[4]->Text="Loading configuration...";
 	if(!load_cfg(&cfg, NULL, TRUE, error)) {
     	Application->MessageBox(error,"ERROR Loading Configuration"
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
         return;
     }
+   	StatusBar->Panels->Items[4]->Text="Configuration loaded";
 
 	recycle_semfiles=semfile_list_init(cfg.ctrl_dir,"recycle","ctrl");
    	semfile_list_check(&initialized,recycle_semfiles);
@@ -3274,11 +3274,13 @@ void __fastcall TMainForm::reload_config(void)
 {
 	char error[256];
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
+   	StatusBar->Panels->Items[4]->Text="Reloading configuration...";
 	if(!load_cfg(&cfg, NULL, TRUE, error)) {
     	Application->MessageBox(error,"ERROR Re-loading Configuration"
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
+   	StatusBar->Panels->Items[4]->Text="Configuration reloaded";    
    	semfile_list_check(&initialized,recycle_semfiles);
 }
 //---------------------------------------------------------------------------
