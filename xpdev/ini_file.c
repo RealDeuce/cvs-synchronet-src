@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.101 2007/06/17 03:11:29 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.99 2007/05/09 21:25:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,7 +655,7 @@ static char* default_value(const char* deflt, char* value)
 	if(deflt!=NULL && deflt!=value)
 		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
 
-	return((char*)deflt);
+	return(deflt);
 }
 
 char* iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
@@ -689,10 +689,20 @@ char* iniReadExistingString(FILE* fp, const char* section, const char* key, cons
 
 char* iniGetExistingString(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
 {
-	if(!iniKeyExists(list, section, key))
+	size_t	i;
+
+	if(list==NULL)
 		return(NULL);
 
-	return iniGetString(list, section, key, deflt, value);
+	i=get_value(list, section, key, value);
+
+	if(list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)	/* missing key */
+		return(NULL);
+
+	if(*value==0 /* blank value  */)
+		return default_value(deflt,value);
+
+	return(value);
 }
 
 static str_list_t splitList(char* list, const char* sep)
