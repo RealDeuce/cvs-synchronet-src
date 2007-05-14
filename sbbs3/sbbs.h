@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.292 2007/05/02 00:28:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.293 2007/05/04 20:07:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,6 +214,7 @@ public:
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
 	uchar	telnet_last_rxch;
+	char	telnet_location[128];
 	char	terminal[TELNET_TERM_MAXLEN+1];
 
 	time_t	event_time;				// Time of next exclusive event
