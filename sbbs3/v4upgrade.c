@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.14 2007/07/10 20:06:36 deuce Exp $ */
+/* $Id: v4upgrade.c,v 1.13 2005/10/16 22:45:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,7 +284,7 @@ BOOL upgrade_stats(void)
 	char	outpath[MAX_PATH+1];
 	BOOL	success;
 	ulong	count;
-	time32_t	t;
+	time_t	t;
 	stats_t	stats;
 	FILE*	in;
 	FILE*	out;
@@ -395,7 +395,7 @@ BOOL upgrade_event_data(void)
 	FILE*	in;
 	FILE*	out;
 	size_t	i;
-	time32_t	t;
+	time_t	t;
 	str_list_t	list;
 
 	printf("Upgrading event data...\n");
@@ -1124,7 +1124,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.14 $", "%*s %s", revision);
+	sscanf("$Revision: 1.13 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
