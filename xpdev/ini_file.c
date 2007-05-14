@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.100 2007/05/16 19:22:55 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.99 2007/05/09 21:25:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,7 +655,7 @@ static char* default_value(const char* deflt, char* value)
 	if(deflt!=NULL && deflt!=value)
 		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
 
-	return((char*)deflt);
+	return(deflt);
 }
 
 char* iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)

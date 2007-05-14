@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications (COM) I/O Library */
 
-/* $Id: comio.h,v 1.7 2007/05/16 22:32:15 rswindell Exp $ */
+/* $Id: comio.h,v 1.6 2007/05/11 08:25:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@
 	#define COM_HANDLE_INVALID			-1
 	#define COM_ERROR_VALUE				errno
 
-/* Stuff we apparently don't care about... 
+/* Stuff we apparently don't care about... */
  *
  *	TIOCM_LE   Line Enable.
  *	TIOCM_DTR  Data Terminal Ready.
