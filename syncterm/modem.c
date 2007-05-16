@@ -1,4 +1,4 @@
-/* $Id: modem.c,v 1.4 2007/05/23 07:07:47 deuce Exp $ */
+/* $Id: modem.c,v 1.3 2007/05/14 03:03:26 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -120,12 +120,6 @@ int modem_connect(struct bbslist *bbs)
 	if(!comSetBaudRate(com, 115200)) {
 		uifcmsg("Cannot Set Baudrate",	"`Cannot Set Baudrate`\n\n"
 						"Cannot open the specified modem device.\n");
-		conn_api.terminate=-1;
-		return(-1);
-	}
-	if(!comRaiseDTR(com)) {
-		uifcmsg("Cannot Raise DTR",	"`Cannot Raise DTR`\n\n"
-						"comRaiseDTR() returned an error.\n");
 		conn_api.terminate=-1;
 		return(-1);
 	}
