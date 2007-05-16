@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.104 2007/05/25 08:50:42 deuce Exp $ */
+/* $Id: syncterm.c,v 1.103 2007/05/14 02:42:04 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -977,15 +977,6 @@ int main(int argc, char **argv)
 			case SCREEN_MODE_80X60:
 				textmode(C80X60);
 				break;
-			case SCREEN_MODE_C64:
-				textmode(C64_40X25);
-				break;
-			case SCREEN_MODE_C128_40:
-				textmode(C128_40X25);
-				break;
-			case SCREEN_MODE_C128_80:
-				textmode(C128_80X25);
-				break;
 		}
 	}
 
@@ -1074,15 +1065,6 @@ int main(int argc, char **argv)
 					break;
 				case SCREEN_MODE_80X60:
 					textmode(C80X60);
-					break;
-				case SCREEN_MODE_C64:
-					textmode(C64_40X25);
-					break;
-				case SCREEN_MODE_C128_40:
-					textmode(C128_40X25);
-					break;
-				case SCREEN_MODE_C128_80:
-					textmode(C128_80X25);
 					break;
 			}
 			sprintf(str,"SyncTERM - %s",bbs->name);
