@@ -17,7 +17,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
     Top = 4
     Width = 342
     Height = 229
-    ActivePage = SoundTabSheet
+    ActivePage = SshTabSheet
     TabIndex = 3
     TabOrder = 0
     object GeneralTabSheet: TTabSheet
@@ -38,14 +38,6 @@ object TelnetCfgDlg: TTelnetCfgDlg
         AutoSize = False
         Caption = 'Last Node'
       end
-      object XtrnPollsLabel: TLabel
-        Left = 9
-        Top = 76
-        Width = 91
-        Height = 25
-        AutoSize = False
-        Caption = 'External Yield'
-      end
       object AutoStartCheckBox: TCheckBox
         Left = 182
         Top = 12
@@ -55,13 +47,13 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Auto Startup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 4
       end
       object FirstNodeEdit: TEdit
         Left = 105
         Top = 12
         Width = 48
-        Height = 24
+        Height = 21
         Hint = 'First node number available for Telnet logins'
         ParentShowHint = False
         ShowHint = True
@@ -76,13 +68,13 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Minimize Externals'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 5
       end
       object LastNodeEdit: TEdit
         Left = 105
         Top = 44
         Width = 48
-        Height = 24
+        Height = 21
         Hint = 'Last node number available for Telnet logins'
         ParentShowHint = False
         ShowHint = True
@@ -97,7 +89,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Hostname Lookup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
+        TabOrder = 2
       end
       object QWKEventsCheckBox: TCheckBox
         Left = 182
@@ -108,7 +100,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'QWK Msg Events'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 6
       end
       object JavaScriptCheckBox: TCheckBox
         Left = 182
@@ -119,19 +111,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'JavaScript Support'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 8
-      end
-      object XtrnYieldEdit: TEdit
-        Left = 105
-        Top = 76
-        Width = 48
-        Height = 24
-        Hint = 
-          'Number of polls before yielding time-slices for external DOS/FOS' +
-          'SIL programs'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 2
+        TabOrder = 7
       end
       object IdentityCheckBox: TCheckBox
         Left = 9
@@ -142,7 +122,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Identity Lookup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 3
       end
       object EventsCheckBox: TCheckBox
         Left = 182
@@ -153,7 +133,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Events Enabled'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 9
+        TabOrder = 8
       end
     end
     object TelnetTabSheet: TTabSheet
@@ -190,7 +170,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 44
         Width = 192
-        Height = 21
+        Height = 24
         Hint = 
           'Enter your Network adapter'#39's static IP address here or blank for' +
           ' <ANY>'
@@ -202,7 +182,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 12
         Width = 48
-        Height = 21
+        Height = 24
         Hint = 'TCP port for incoming connections (default=23)'
         ParentShowHint = False
         ShowHint = True
@@ -256,7 +236,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 12
         Width = 48
-        Height = 24
+        Height = 21
         Hint = 'TCP port for incoming connections (default=513)'
         ParentShowHint = False
         ShowHint = True
@@ -266,7 +246,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 44
         Width = 192
-        Height = 24
+        Height = 21
         Hint = 
           'Enter your Network adapter'#39's static IP address here or blank for' +
           ' <ANY>'
@@ -310,6 +290,60 @@ object TelnetCfgDlg: TTelnetCfgDlg
         TabOrder = 3
       end
     end
+    object SshTabSheet: TTabSheet
+      Caption = 'SSH'
+      ImageIndex = 4
+      object SshPortLabel: TLabel
+        Left = 9
+        Top = 12
+        Width = 96
+        Height = 26
+        AutoSize = False
+        Caption = 'Listening Port'
+      end
+      object SshInterfaceLabel: TLabel
+        Left = 9
+        Top = 44
+        Width = 96
+        Height = 26
+        AutoSize = False
+        Caption = 'Interface (IP)'
+      end
+      object SshPortEdit: TEdit
+        Left = 105
+        Top = 12
+        Width = 48
+        Height = 24
+        Hint = 'TCP port for incoming connections (default=22)'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 0
+      end
+      object SshEnabledCheckBox: TCheckBox
+        Left = 226
+        Top = 12
+        Width = 90
+        Height = 21
+        Hint = 'Enable the Secure Shell (SSH) port'
+        Caption = 'Enabled'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 1
+        OnClick = SshEnabledCheckBoxClick
+      end
+      object SshInterfaceEdit: TEdit
+        Left = 105
+        Top = 44
+        Width = 192
+        Height = 24
+        Hint = 
+          'Enter your Network adapter'#39's static IP address here or blank for' +
+          ' <ANY>'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 2
+      end
+    end
     object SoundTabSheet: TTabSheet
       Caption = 'Sound'
       ImageIndex = 2
@@ -333,7 +367,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 89
         Top = 12
         Width = 208
-        Height = 24
+        Height = 21
         Hint = 'Sound file to play when accepting an incoming connection'
         ParentShowHint = False
         ShowHint = True
@@ -352,7 +386,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 89
         Top = 44
         Width = 208
-        Height = 24
+        Height = 21
         Hint = 'Sound file to play when disconnecting'
         ParentShowHint = False
         ShowHint = True
