@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.31 2008/01/05 23:10:22 deuce Exp $ */
+/* $Id: getnode.cpp,v 1.30 2007/05/01 05:45:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,12 +152,10 @@ void sbbs_t::nodesync()
 				putnodedat(cfg.node_num,&thisnode); 
 			}
 		}
-		if(!(thisnode.misc&NODE_MOFF)) {
-			if(thisnode.misc&NODE_MSGW)
-				getsmsg(useron.number); 	/* getsmsg clears MSGW flag */
-			if(thisnode.misc&NODE_NMSG)
-				getnmsg();					/* getnmsg clears NMSG flag */
-		}
+		if(thisnode.misc&NODE_MSGW)
+			getsmsg(useron.number); 	/* getsmsg clears MSGW flag */
+		if(thisnode.misc&NODE_NMSG)
+			getnmsg();					/* getnmsg clears NMSG flag */
 	}
 
 	if(cfg.sync_mod[0])
@@ -187,10 +185,8 @@ void sbbs_t::nodesync()
 		&& !SYSOP) {
 		timeleft_warn=5-(timeleft/60);
 		attr(LIGHTGRAY);
-		if(!(thisnode.misc&NODE_MOFF)) {
-			bprintf(text[OnlyXminutesLeft]
-				,((ushort)timeleft/60)+1,(timeleft/60) ? "s" : nulstr); 
-		}
+		bprintf(text[OnlyXminutesLeft]
+			,((ushort)timeleft/60)+1,(timeleft/60) ? "s" : nulstr); 
 	}
 
 	attr(atr);	/* replace original attributes */

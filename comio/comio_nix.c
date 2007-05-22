@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications I/O Library Functions for *nix */
 
-/* $Id: comio_nix.c,v 1.8 2007/05/23 07:00:10 deuce Exp $ */
+/* $Id: comio_nix.c,v 1.3 2007/05/22 19:38:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <sys/ioctl.h>
 #include <sys/file.h>
 #include "comio.h"
 #include "genwrap.h"
@@ -44,7 +43,7 @@ char* comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.8 $", "%*s %s", revision);
+	sscanf("$Revision: 1.3 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
@@ -151,14 +150,12 @@ int comGetModemStatus(COM_HANDLE handle)
 
 BOOL comRaiseDTR(COM_HANDLE handle)
 {
-	int flags = TIOCM_DTR;
-	return(ioctl(handle, TIOCMBIS, &flags)==0);
+	return(ioctl(handle, TIOCSDTR)==0);
 }
 
 BOOL comLowerDTR(COM_HANDLE handle)
 {
-	int flags = TIOCM_DTR;
-	return(ioctl(handle, TIOCMBIC, &flags)==0);
+	return(ioctl(handle, TIOCCDTR)==0);
 }
 
 BOOL comWriteByte(COM_HANDLE handle, BYTE ch)
@@ -194,7 +191,3 @@ BOOL comPurgeOutput(COM_HANDLE handle)
 	return(tcflush(handle, TCOFLUSH)==0);
 }
 
-BOOL comDrainOutput(COM_HANDLE handle)
-{
-	return(tcdrain(handle)==0);
-}
