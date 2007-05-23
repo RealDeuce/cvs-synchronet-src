@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.27 2007/03/03 12:24:05 deuce Exp $ */
+/* $Id: conn.c,v 1.28 2007/05/14 01:05:42 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -13,11 +13,12 @@
 #include "rlogin.h"
 #include "raw.h"
 #include "ssh.h"
+#include "modem.h"
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH",NULL};
-int conn_ports[]={0,513,23,0,22};
+char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem",NULL};
+int conn_ports[]={0,513,23,0,22,0};
 
 struct conn_buffer conn_inbuf;
 struct conn_buffer conn_outbuf;
@@ -273,6 +274,9 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
+		case CONN_TYPE_MODEM:
+			conn_api.connect=modem_connect;
+			conn_api.close=modem_close;
 	}
 	if(conn_api.connect) {
 		conn_api.connect(bbs);
