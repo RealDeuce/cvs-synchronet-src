@@ -2,7 +2,7 @@
 
 /* Tone Generation Utility (using PC speaker, not sound card) */
 
-/* $Id: tone.c,v 1.9 2005/01/22 04:29:53 rswindell Exp $ */
+/* $Id: tone.c,v 1.10 2006/05/30 22:09:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 	int		i;
 	FILE*	stream;
 
-	sscanf("$Revision: 1.9 $", "%*s %s", revision);
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
 
 	printf("\nTone Generation Utility  %s  Copyright 2003 Rob Swindell\n\n", revision);
 
@@ -233,6 +233,8 @@ int main(int argc, char **argv)
 			}
 			continue; 
 		}
+		if(use_xptone)
+			xptone_open();
 		if(argv[i][0]=='+') {
 			if((stream=fopen(argv[i]+1,"rb"))==NULL) {
 				/* Check directory of executable if file/path not found */
@@ -258,6 +260,8 @@ int main(int argc, char **argv)
 			continue; 
 		}
 		play(argv[i],argv[i+1]);
+		if(use_xptone)
+			xptone_close();
 		i++;
 	}
 

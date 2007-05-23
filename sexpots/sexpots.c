@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.17 2007/05/09 19:58:21 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.20 2007/05/11 09:02:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,10 +36,14 @@
  ****************************************************************************/
 
 /* ANSI C */
+#include <stdarg.h>
 #include <stdio.h>
 
 /* Windows */
+#ifdef _WIN32
+/* Doesn't this come in from sockwrap.h? */
 #include <winsock.h>
+#endif
 
 /* xpdev lib */
 #include "dirwrap.h"
@@ -72,8 +76,12 @@ char	mdm_cleanup[INI_MAX_VALUE_LEN]	= "ATS0=0";
 BOOL	mdm_null=FALSE;
 int		mdm_timeout=5;			/* seconds */
 
+#ifdef _WIN32
 char	com_dev[MAX_PATH+1]				= "COM1";
-HANDLE	com_handle=INVALID_HANDLE_VALUE;
+#else
+char	com_dev[MAX_PATH+1]				= "/dev/ttyd0";
+#endif
+COM_HANDLE	com_handle=COM_HANDLE_INVALID;
 BOOL	com_handle_passed=FALSE;
 BOOL	com_alreadyconnected=FALSE;
 BOOL	com_hangup=TRUE;
@@ -213,13 +221,28 @@ int lputs(int level, const char* str)
 	_snprintf(dbgmsg,sizeof(dbgmsg),"%s %s", NAME, str);
 	if(log_level==LOG_DEBUG)
 		OutputDebugString(dbgmsg);
+#else
+	char dbgmsg[1024];
+	snprintf(dbgmsg,sizeof(dbgmsg),"%s %s", NAME, str);
+	if(log_level==LOG_DEBUG)
+		fputs(dbgmsg, stderr);
 #endif
 
 	if(level>log_level)
 		return 0;
 
-	if(daemonize)
+	if(daemonize) {
+#if defined(_WIN32)
 		return syslog(level,"%s", str);
+#else
+		/* syslog() is
+		 * void syslog(int priority, const char *message, ...);
+		 */
+
+		syslog(level,"%s", str);
+		return strlen(str);
+#endif
+	}
 
 	t=time(NULL);
 	if(localtime_r(&t,&tm)==NULL)
@@ -712,7 +735,7 @@ void cleanup(void)
 
 /****************************************************************************/
 /****************************************************************************/
-BOOL wait_for_call(HANDLE com_handle)
+BOOL wait_for_call(COM_HANDLE com_handle)
 {
 	char		str[128];
 	char*		p;
@@ -722,10 +745,11 @@ BOOL wait_for_call(HANDLE com_handle)
 	ZERO_VAR(cid_name);
 	ZERO_VAR(cid_number);
 
+	comRaiseDTR(com_handle);
+
 	if(com_alreadyconnected)
 		return TRUE;
 
-	comRaiseDTR(com_handle);
 	if(!mdm_null) {
 		if(mdm_init[0]) {
 			lprintf(LOG_INFO,"Initializing modem:");
@@ -1229,7 +1253,7 @@ BOOL handle_call(void)
 
 /****************************************************************************/
 /****************************************************************************/
-BOOL hangup_call(HANDLE com_handle)
+BOOL hangup_call(COM_HANDLE com_handle)
 {
 	time_t start;
 
@@ -1291,8 +1315,7 @@ void parse_ini_file(const char* ini_fname)
 	
 	/* [COM] Section */
 	section="COM";
-	if(iniKeyExists(list, section,  "Device"))
-		iniGetString(list, section, "Device", NULL, com_dev);
+	iniGetExistingString(list, section, "Device", NULL, com_dev);
 	com_baudrate    = iniGetLongInt(list, section, "BaudRate", com_baudrate);
 	com_hangup	    = iniGetBool(list, section, "Hangup", com_hangup);
 	dcd_timeout     = iniGetInteger(list, section, "DCDTimeout", dcd_timeout);
@@ -1302,20 +1325,15 @@ void parse_ini_file(const char* ini_fname)
 
 	/* [Modem] Section */
 	section="Modem";
-	if(iniKeyExists(list, section,  "Init"))
-		iniGetString(list, section, "Init", "", mdm_init);
-	if(iniKeyExists(list, section,  "AutoAnswer"))
-		iniGetString(list, section, "AutoAnswer", "", mdm_autoans);
-	if(iniKeyExists(list, section,  "Cleanup"))
-		iniGetString(list, section, "Cleanup", "", mdm_cleanup);
-	if(iniKeyExists(list, section,  "EnableCallerID"))
-		iniGetString(list, section, "EnableCallerID", "", mdm_cid);
+	iniGetExistingString(list, section, "Init", "", mdm_init);
+	iniGetExistingString(list, section, "AutoAnswer", "", mdm_autoans);
+	iniGetExistingString(list, section, "Cleanup", "", mdm_cleanup);
+	iniGetExistingString(list, section, "EnableCallerID", "", mdm_cid);
 	mdm_timeout     = iniGetInteger(list, section, "Timeout", mdm_timeout);
 
 	/* [TCP] Section */
 	section="TCP";
-	if(iniKeyExists(list, section,  "Host"))
-		iniGetString(list, section, "Host", NULL, host);
+	iniGetExistingString(list, section, "Host", NULL, host);
 	port					= iniGetShortInt(list, section, "Port", port);
 	tcp_nodelay				= iniGetBool(list,section,"NODELAY", tcp_nodelay);
 
@@ -1324,18 +1342,15 @@ void parse_ini_file(const char* ini_fname)
 	telnet					= iniGetBool(list,section,"Enabled", telnet);
 	debug_telnet			= iniGetBool(list,section,"Debug", debug_telnet);
 	telnet_advertise_cid	= iniGetBool(list,section,"AdvertiseLocation", telnet_advertise_cid);
-	if(iniKeyExists(list, section,  "TermType"))
-		iniGetString(list, section, "TermType", NULL, termtype);
-	if(iniKeyExists(list, section,  "TermSpeed"))
-		iniGetString(list, section, "TermSpeed", NULL, termspeed);
+	iniGetExistingString(list, section, "TermType", NULL, termtype);
+	iniGetExistingString(list, section, "TermSpeed", NULL, termspeed);
 
 	/* [Ident] Section */
 	section="Ident";
 	ident					= iniGetBool(list,section,"Enabled", ident);
 	ident_port				= iniGetShortInt(list, section, "Port", ident_port);
 	ident_interface			= iniGetIpAddress(list, section, "Interface", ident_interface);
-	if(iniKeyExists(list, section,  "Response"))
-		iniGetString(list, section, "Response", NULL, ident_response);
+	iniGetExistingString(list, section, "Response", NULL, ident_response);
 
 }
 
@@ -1376,7 +1391,7 @@ service_loop(int argc, char** argv)
 			port = (ushort)strtol(argv[++argn], NULL, 0);
 		else if(stricmp(arg,"live")==0) {
 			if(argc > argn+1 &&
-				(com_handle = (HANDLE)strtol(argv[argn+1], NULL, 0)) != 0) {
+				(com_handle = (COM_HANDLE)strtol(argv[argn+1], NULL, 0)) != 0) {
 				argn++;
 				com_handle_passed=TRUE;
 			}
@@ -1505,7 +1520,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.17 $", "%*s %s", revision);
+	sscanf("$Revision: 1.20 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
@@ -1525,7 +1540,10 @@ int main(int argc, char** argv)
 		arg=argv[argn];
 		while(*arg=='-') 
 			arg++;
-		if(stricmp(arg,"service")==0)
+		if(stricmp(arg,"help")==0 || *arg=='?')
+			return usage(argv[0]);
+#ifdef _WIN32
+		else if(stricmp(arg,"service")==0)
 			daemonize=TRUE;
 		else if(stricmp(arg,"install")==0)
 			return install();
@@ -1535,8 +1553,7 @@ int main(int argc, char** argv)
 			return enable(FALSE);
 		else if(stricmp(arg,"enable")==0)
 			return enable(TRUE);
-		else if(stricmp(arg,"help")==0 || *arg=='?')
-			return usage(argv[0]);
+#endif
 	}
 
 	/******************/
