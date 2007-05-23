@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.60 2007/07/30 08:57:56 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.57 2007/05/09 22:00:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,7 @@ bool sbbs_t::answer()
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
-				useron.misc&=~TERM_FLAGS;
+				useron.misc&=~(ANSI|COLOR|RIP|WIP);
 				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
 				if(!findstr(client.addr,path)) {
 					SAFECOPY(tmp
@@ -193,7 +193,7 @@ bool sbbs_t::answer()
 		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
-			useron.misc&=~TERM_FLAGS;
+			useron.misc&=~(ANSI|COLOR|RIP|WIP);
 			SAFECOPY(tmp
 				,rlogin_pass);
 			for(i=0;i<3;i++) {
@@ -381,7 +381,7 @@ bool sbbs_t::answer()
 	}
 
 
-	useron.misc&=~TERM_FLAGS;
+	useron.misc&=~(ANSI|COLOR|RIP|WIP);
 	useron.misc|=autoterm;
 	SAFECOPY(useron.comp,client_name);
 
@@ -417,6 +417,8 @@ bool sbbs_t::answer()
 
 	if(!useron.number)
 		hangup();
+	if(!online) 
+		return(false); 
 
 	/* Save the IP to the user's note */
 	if(cid[0]) {
@@ -430,14 +432,10 @@ bool sbbs_t::answer()
 		putuserrec(&cfg,useron.number,U_COMP,LEN_COMP,useron.comp);
 	}
 
-	if(!online) 
-		return(false); 
-
 	if(!(sys_status&SS_USERON)) {
 		errormsg(WHERE,ERR_CHK,"User not logged on",0);
 		hangup();
-		return(false); 
-	}
+		return(false); }
 
 	return(true);
 }
