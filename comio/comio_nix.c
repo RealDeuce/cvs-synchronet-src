@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications I/O Library Functions for *nix */
 
-/* $Id: comio_nix.c,v 1.5 2007/05/22 19:55:32 deuce Exp $ */
+/* $Id: comio_nix.c,v 1.6 2007/05/23 06:45:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@ char* comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.5 $", "%*s %s", revision);
+	sscanf("$Revision: 1.6 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
@@ -150,26 +150,14 @@ int comGetModemStatus(COM_HANDLE handle)
 
 BOOL comRaiseDTR(COM_HANDLE handle)
 {
-	int status;
-
-	if(ioctl(handle, TIOCMGET, &status)==-1)
-		return FALSE;
-	status |= TIOCM_DTR;
-	if(ioctl(handle, TIOCMSET, &status)==-1)
-		return FALSE;
-	return TRUE;
+	int flags = TIOCM_DTR;
+	return(ioctl(handle, TIOCMBIS, &flags)==0)
 }
 
 BOOL comLowerDTR(COM_HANDLE handle)
 {
-	int status;
-
-	if(ioctl(handle, TIOCMGET, &status)==-1)
-		return FALSE;
-	status &= ~TIOCM_DTR;
-	if(ioctl(handle, TIOCMSET, &status)==-1)
-		return FALSE;
-	return TRUE;
+	int flags = TIOCM_DTR;
+	return(ioctl(handle, TIOCMBIC, &flags)==0)
 }
 
 BOOL comWriteByte(COM_HANDLE handle, BYTE ch)
