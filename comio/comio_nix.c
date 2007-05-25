@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications I/O Library Functions for *nix */
 
-/* $Id: comio_nix.c,v 1.1 2007/05/11 08:25:29 deuce Exp $ */
+/* $Id: comio_nix.c,v 1.8 2007/05/23 07:00:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <sys/ioctl.h>
 #include <sys/file.h>
 #include "comio.h"
 #include "genwrap.h"
@@ -43,7 +44,7 @@ char* comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.1 $", "%*s %s", revision);
+	sscanf("$Revision: 1.8 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
@@ -54,11 +55,11 @@ COM_HANDLE comOpen(const char* device)
 	COM_HANDLE handle;
 	struct termios t;
 
-	if((handle=open(device, O_NONBLOCK|O_RDWR)==INVALID_HANDLE_VALUE)
+	if((handle=open(device, O_NONBLOCK|O_RDWR))==COM_HANDLE_INVALID)
 		return COM_HANDLE_INVALID;
 
 	if(tcgetattr(handle, &t)==-1) {
-		close(device);
+		close(handle);
 		return COM_HANDLE_INVALID;
 	}
 
@@ -93,7 +94,7 @@ Fun snippet from the FreeBSD manpage:
 				);
 	t.c_lflag = 0;	/* No local modes */
 	if(tcsetattr(handle, TCSANOW, &t)==-1) {
-		close(device);
+		close(handle);
 		return COM_HANDLE_INVALID;
 	}
 	
@@ -130,8 +131,8 @@ BOOL comSetBaudRate(COM_HANDLE handle, unsigned long rate)
 	if(tcgetattr(handle, &t))
 		return FALSE;
 
-	cfsetispeed(&t);
-	cfsetospeed(&t);
+	cfsetispeed(&t, rate);
+	cfsetospeed(&t, rate);
 	if(tcsetattr(handle, TCSANOW, &t)==-1)
 		return FALSE;
 
@@ -150,12 +151,14 @@ int comGetModemStatus(COM_HANDLE handle)
 
 BOOL comRaiseDTR(COM_HANDLE handle)
 {
-	return(ioctl(handle, TIOCSDTR)==0);
+	int flags = TIOCM_DTR;
+	return(ioctl(handle, TIOCMBIS, &flags)==0);
 }
 
 BOOL comLowerDTR(COM_HANDLE handle)
 {
-	return(ioctl(handle, TIOCCDTR)==0);
+	int flags = TIOCM_DTR;
+	return(ioctl(handle, TIOCMBIC, &flags)==0);
 }
 
 BOOL comWriteByte(COM_HANDLE handle, BYTE ch)
@@ -183,15 +186,15 @@ BOOL comReadByte(COM_HANDLE handle, BYTE* ch)
 
 BOOL comPurgeInput(COM_HANDLE handle)
 {
-	int what = FREAD;
-
-	return(ioctl(handle, TIOCFLUSH, &what)==0);
+	return(tcflush(handle, TCIFLUSH)==0);
 }
 
 BOOL comPurgeOutput(COM_HANDLE handle)
 {
-	int what = FWRITE;
-
-	return(ioctl(handle, TIOCFLUSH, &what)==0);
+	return(tcflush(handle, TCOFLUSH)==0);
 }
 
+BOOL comDrainOutput(COM_HANDLE handle)
+{
+	return(tcdrain(handle)==0);
+}
