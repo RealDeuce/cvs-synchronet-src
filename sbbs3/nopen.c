@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.21 2007/05/10 01:02:14 rswindell Exp $ */
+/* $Id: nopen.c,v 1.22 2007/05/11 01:35:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,7 @@ int nopen(const char* str, int access)
             mswait(100);
     return(file);
 }
+
 /****************************************************************************/
 /* This function performs an nopen, but returns a file stream with a buffer */
 /* allocated.																*/
@@ -111,13 +112,15 @@ BOOL ftouch(const char* fname)
 {
 	int file;
 
-	if(!fexist(fname)) {	/* create the file */
-		if((file=nopen(fname,O_WRONLY|O_CREAT))<0)
-			return(FALSE);
-		close(file);
-	}
 	/* update the time stamp */
-	return utime(fname,NULL)==0;
+	if(utime(fname, /* use current date/time: */NULL)==0)
+		return(TRUE);
+
+	/* create the file */
+	if((file=nopen(fname,O_WRONLY|O_CREAT))<0)
+		return(FALSE);
+	close(file);
+	return(TRUE);
 }
 
 BOOL fmutex(const char* fname, const char* text, long max_age)
