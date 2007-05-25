@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.31 2007/05/27 06:30:19 deuce Exp $ */
+/* $Id: bbslist.h,v 1.30 2007/05/25 08:50:42 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -39,7 +39,6 @@ enum {
 	,SCREEN_MODE_C64
 	,SCREEN_MODE_C128_40
 	,SCREEN_MODE_C128_80
-	,SCREEN_MODE_ATARI
 	,SCREEN_MODE_TERMINATOR
 };
 
