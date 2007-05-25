@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.102 2008/01/11 09:07:22 deuce Exp $ */
+/* $Id: js_file.c,v 1.99 2006/07/21 04:26:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,7 +59,6 @@ typedef struct
 	BOOL	uuencoded;
 	BOOL	b64encoded;
 	BOOL	network_byte_order;
-	BOOL	pipe;		/* Opened with popen() use pclose() to close */
 
 } private_t;
 
@@ -182,53 +181,6 @@ js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSBool
-js_popen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		mode="r+";	/* default mode */
-	uintN		i;
-	jsint		bufsize=2*1024;
-	JSString*	str;
-	private_t*	p;
-
-	*rval = JSVAL_FALSE;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
-
-	if(p->fp!=NULL)  
-		return(JS_TRUE);
-
-	for(i=0;i<argc;i++) {
-		if(JSVAL_IS_STRING(argv[i])) {	/* mode */
-			if((str = JS_ValueToString(cx, argv[i]))==NULL) {
-				JS_ReportError(cx,"Invalid mode specified: %s",str);
-				return(JS_TRUE);
-			}
-			mode=JS_GetStringBytes(str);
-		}
-		else if(JSVAL_IS_NUMBER(argv[i])) {	/* bufsize */
-			if(!JS_ValueToInt32(cx,argv[i],&bufsize))
-				return(JS_FALSE);
-		}
-	}
-	SAFECOPY(p->mode,mode);
-
-	p->fp=popen(p->name,p->mode);
-	if(p->fp!=NULL) {
-		p->pipe=TRUE;
-		*rval = JSVAL_TRUE;
-		dbprintf(FALSE, p, "popened: %s",p->name);
-		if(!bufsize)
-			setvbuf(p->fp,NULL,_IONBF,0);	/* no buffering */
-		else
-			setvbuf(p->fp,NULL,_IOFBF,bufsize);
-	}
-
-	return(JS_TRUE);
-}
 
 static JSBool
 js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -243,12 +195,7 @@ js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-#ifdef __unix__
-	if(p->pipe)
-		pclose(p->fp);
-	else
-#endif
-		fclose(p->fp);
+	fclose(p->fp);
 
 	dbprintf(FALSE, p, "closed");
 
@@ -1738,16 +1685,6 @@ static jsSyncMethodSpec js_file_functions[] = {
 		)
 	,310
 	},		
-	{"popen",			js_popen,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[mode=<tt>\"r+\"</tt>] [,buffer_length]")
-	,JSDOCSTR("open pipe to command, <i>buffer_length</i> defaults to 2048 bytes, "
-		"mode (default: <tt>'r+'</tt>) specifies the type of access requested for the file, as follows:<br>"
-		"<tt>r&nbsp</tt> read the programs stdout;<br>"
-		"<tt>w&nbsp</tt> write to the programs stdin<br>"
-		"<tt>r+</tt> open for both reading stdout and writing stdin<br>"
-		"(<b>only functional on UNIX systems</b>)"
-		)
-	,315
-	},		
 	{"close",			js_close,			0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("close file")
 	,310
@@ -1903,21 +1840,6 @@ static void js_finalize_file(JSContext *cx, JSObject *obj)
 	JS_SetPrivate(cx, obj, NULL);
 }
 
-static JSBool js_file_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_file_properties, js_file_functions, NULL, 0));
-}
-
-static JSBool js_file_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_file_resolve(cx, obj, JSVAL_NULL));
-}
-
 static JSClass js_file_class = {
      "File"					/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
@@ -1925,8 +1847,8 @@ static JSClass js_file_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_file_get			/* getProperty	*/
 	,js_file_set			/* setProperty	*/
-	,js_file_enumerate		/* enumerate	*/
-	,js_file_resolve		/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,js_finalize_file		/* finalize		*/
 };
@@ -1955,6 +1877,16 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
+		return(JS_FALSE);
+	}
+
+	if(!js_DefineSyncProperties(cx, obj, js_file_properties)) {
+		dbprintf(TRUE, p, "js_DefineSyncProperties failed");
+		return(JS_FALSE);
+	}
+
+	if(!js_DefineSyncMethods(cx, obj, js_file_functions, FALSE)) {
+		dbprintf(TRUE, p, "js_DefineSyncMethods failed");
 		return(JS_FALSE);
 	}
 
@@ -2019,6 +1951,12 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
+		return(NULL);
+
+	if(!js_DefineSyncProperties(cx, obj, js_file_properties))
+		return(NULL);
+
+	if (!js_DefineSyncMethods(cx, obj, js_file_functions, FALSE)) 
 		return(NULL);
 
 	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL)
