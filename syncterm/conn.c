@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.29 2007/05/27 20:33:12 deuce Exp $ */
+/* $Id: conn.c,v 1.28 2007/05/14 01:05:42 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -33,31 +33,28 @@ struct conn_buffer *create_conn_buf(struct conn_buffer *buf, size_t size)
 	buf->buftop=0;
 	buf->bufbot=0;
 	if(pthread_mutex_init(&(buf->mutex), NULL)) {
-		FREE_AND_NULL(buf->buf);
+		free(buf->buf);
 		return(NULL);
 	}
 	if(sem_init(&(buf->in_sem), 0, 0)) {
-		FREE_AND_NULL(buf->buf);
+		free(buf->buf);
 		pthread_mutex_destroy(&(buf->mutex));
 		return(NULL);
 	}
 	if(sem_init(&(buf->out_sem), 0, 0)) {
-		FREE_AND_NULL(buf->buf);
+		free(buf->buf);
 		pthread_mutex_destroy(&(buf->mutex));
 		sem_destroy(&(buf->in_sem));
 		return(NULL);
 	}
-	return(buf);
 }
 
 void destroy_conn_buf(struct conn_buffer *buf)
 {
-	if(buf->buf != NULL) {
-		free(buf->buf);
-		while(pthread_mutex_destroy(&(buf->mutex)));
-		while(sem_destroy(&(buf->in_sem)));
-		while(sem_destroy(&(buf->out_sem)));
-	}
+	FREE_AND_NULL(buf->buf);
+	while(pthread_mutex_destroy(&(buf->mutex)));
+	while(sem_destroy(&(buf->in_sem)));
+	while(sem_destroy(&(buf->out_sem)));
 }
 
 /*
@@ -305,7 +302,6 @@ int conn_close(void)
 {
 	if(conn_api.close)
 		return(conn_api.close());
-	return(0);
 }
 
 int conn_socket_connect(struct bbslist *bbs)
