@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.106 2007/05/28 01:36:52 deuce Exp $ */
+/* $Id: syncterm.c,v 1.104 2007/05/25 08:50:42 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -28,7 +28,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.0"
+char* syncterm_version = "SyncTERM 0.8.1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -986,9 +986,6 @@ int main(int argc, char **argv)
 			case SCREEN_MODE_C128_80:
 				textmode(C128_80X25);
 				break;
-			case SCREEN_MODE_ATARI:
-				textmode(ATARI_40X24);
-				break;
 		}
 	}
 
@@ -1060,6 +1057,8 @@ int main(int argc, char **argv)
 				}
 			}
 			uifcbail();
+			load_font_files();
+			setfont(find_font_id(bbs->font),TRUE);
 			switch(bbs->screen_mode) {
 				case SCREEN_MODE_80X25:
 					textmode(C80);
@@ -1085,12 +1084,7 @@ int main(int argc, char **argv)
 				case SCREEN_MODE_C128_80:
 					textmode(C128_80X25);
 					break;
-				case SCREEN_MODE_ATARI:
-					textmode(ATARI_40X24);
-					break;
 			}
-			load_font_files();
-			setfont(find_font_id(bbs->font),TRUE);
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
