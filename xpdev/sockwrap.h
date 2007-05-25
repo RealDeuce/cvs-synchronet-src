@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.29 2005/11/01 00:32:41 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.31 2007/04/20 09:13:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -133,7 +133,7 @@ typedef struct {
 
 #define socklen_t		int
 
-static  wsa_error;
+static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
 #define sendsocket(s,b,l)	send(s,b,l,0)
 
@@ -196,6 +196,9 @@ int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 #endif
 #ifndef IPPORT_POP3
 #define IPPORT_POP3		110
+#endif
+#ifndef IPPORT_IDENT
+#define IPPORT_IDENT	113
 #endif
 
 #endif	/* Don't add anything after this line */
