@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.68 2006/05/26 22:23:43 rswindell Exp $ */
+/* $Id: cterm.c,v 1.90 2007/03/03 10:44:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,11 @@
 
 #include <genwrap.h>
 #include <xpbeep.h>
+#include <link_list.h>
+#ifdef __unix__
+	#include <xpsem.h>
+#endif
+#include <threadwrap.h>
 
 #if (defined CIOLIB_IMPORTS)
  #undef CIOLIB_IMPORTS
@@ -159,35 +164,77 @@ const uint note_frequency[]={	/* Hz*1000 */
 	,7458600
 	,7902200
 };
-void playnote(int notenum, int notelen, int dotted)
+
+struct note_params {
+	int notenum;
+	int	notelen;
+	int	dotted;
+	int	tempo;
+	int	noteshape;
+	int	foreground;
+};
+
+static int playnote_thread_running=FALSE;
+static link_list_t	notes;
+sem_t	playnote_thread_terminated;
+sem_t	note_completed_sem;
+
+void playnote_thread(void *args)
 {
 	/* Tempo is quarter notes per minute */
 	int duration;
 	int pauselen;
+	struct note_params *note;
+	int	device_open=FALSE;
 
-	if(dotted)
-		duration=360000/cterm.tempo;
-	else
-		duration=240000/cterm.tempo;
-	duration/=notelen;
-	switch(cterm.noteshape) {
-		case CTERM_MUSIC_STACATTO:
-			pauselen=duration/4;
+	playnote_thread_running=TRUE;
+	while(1) {
+		if(device_open) {
+			if(!listSemTryWaitBlock(&notes,5000)) {
+				xptone_close();
+				device_open=FALSE;
+				listSemWait(&notes);
+			}
+		}
+		else
+			listSemWait(&notes);
+		device_open=xptone_open();
+		note=listShiftNode(&notes);
+		if(note==NULL)
 			break;
-		case CTERM_MUSIC_LEGATO:
-			pauselen=0;
-			break;
-		case CTERM_MUSIC_NORMAL:
-		default:
-			pauselen=duration/8;
-			break;
+		if(note->dotted)
+			duration=360000/note->tempo;
+		else
+			duration=240000/note->tempo;
+		duration/=note->notelen;
+		switch(note->noteshape) {
+			case CTERM_MUSIC_STACATTO:
+				pauselen=duration/4;
+				break;
+			case CTERM_MUSIC_LEGATO:
+				pauselen=0;
+				break;
+			case CTERM_MUSIC_NORMAL:
+			default:
+				pauselen=duration/8;
+				break;
+		}
+		duration-=pauselen;
+		if(note->notenum < 72 && note->notenum >= 0) {
+			if(device_open)
+				xptone(((double)note_frequency[note->notenum])/1000,duration,WAVE_SHAPE_SINE_SAW_HARM);
+			else
+				xpbeep(((double)note_frequency[note->notenum])/1000,duration);
+		}
+		else
+			SLEEP(duration);
+		SLEEP(pauselen);
+		if(note->foreground)
+			sem_post(&note_completed_sem);
+		free(note);
 	}
-	duration-=pauselen;
-	if(notenum < 72 && notenum >= 0)
-		xpbeep(((double)note_frequency[notenum])/1000,duration);
-	else
-		SLEEP(duration);
-	SLEEP(pauselen);
+	playnote_thread_running=FALSE;
+	sem_post(&playnote_thread_terminated);
 }
 
 void play_music(void)
@@ -201,8 +248,11 @@ void play_music(void)
 	char	numbuf[10];
 	int		dotted;
 	int		notenum;
+	struct	note_params *np;
+	int		fore_count;
 
 	p=cterm.musicbuf;
+	fore_count=0;
 	if(cterm.music==1) {
 		switch(toupper(*p)) {
 			case 'F':
@@ -357,7 +407,18 @@ void play_music(void)
 					}
 				}
 				notenum+=offset;
-				playnote(notenum,notelen,dotted);
+				np=(struct note_params *)malloc(sizeof(struct note_params));
+				if(np!=NULL) {
+					np->notenum=notenum;
+					np->notelen=notelen;
+					np->dotted=dotted;
+					np->tempo=cterm.tempo;
+					np->noteshape=cterm.noteshape;
+					np->foreground=cterm.musicfore;
+					listPushNode(&notes, np);
+					if(cterm.musicfore)
+						fore_count++;
+				}
 				break;
 			case '<':							/* Down one octave */
 				cterm.octave--;
@@ -373,6 +434,10 @@ void play_music(void)
 	}
 	cterm.music=0;
 	cterm.musicbuf[0]=0;
+	while(fore_count) {
+		sem_wait(&note_completed_sem);
+		fore_count--;
+	}
 }
 
 void scrolldown(void)
@@ -418,13 +483,18 @@ void scrollup(void)
 void dellines(int lines)
 {
 	char *buf;
-	int i,j;
+	int i,j,k;
+	int linestomove;
 
-	buf=(char *)alloca(cterm.width*(cterm.height-1)*2);
-	gettext(cterm.x,cterm.y+wherey()+lines-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
+	if(lines<1)
+		return;
+	linestomove=cterm.height-wherey();
+	buf=(char *)alloca(cterm.width*(linestomove>lines?linestomove:lines)*2);
+	gettext(cterm.x,cterm.y+wherey()-1+lines,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
 	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1-lines,buf);
 	j=0;
-	for(i=0;i<(cterm.width*lines);i++) {
+	k=cterm.width*lines;
+	for(i=0;i<k;i++) {
 		buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
@@ -434,15 +504,16 @@ void dellines(int lines)
 void clear2bol(void)
 {
 	char *buf;
-	int i,j;
+	int i,j,k;
 
-	buf=(char *)alloca((wherex()+1)*2);
+	k=wherex();
+	buf=(char *)alloca(k*2);
 	j=0;
-	for(i=1;i<=wherex();i++) {
+	for(i=0;i<k;i++) {
 		buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
-	puttext(cterm.x+1,cterm.y+wherey(),cterm.x+wherex(),cterm.y+wherey(),buf);
+	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+wherex()-1,cterm.y+wherey()-1,buf);
 }
 
 void clear2eol(void)
@@ -540,10 +611,10 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						k=1;
 					if(k>cterm.width - j)
 						k=cterm.width - j;
-					gettext(cterm.x+wherex(),cterm.y+wherey(),cterm.x+cterm.width-k,cterm.y+wherey(),tmp);
+					gettext(cterm.x+i-1,cterm.y+j-1,cterm.x+cterm.width-1-k,cterm.y+j-1,tmp);
 					for(l=0; l< k; l++)
 						putch(' ');
-					puttext(cterm.x+wherex()+k,cterm.y+wherey(),cterm.x+cterm.width,cterm.y+wherey(),tmp);
+					puttext(cterm.x+i-1+k,cterm.y+j-1,cterm.x+cterm.width-1,cterm.y+j-1,tmp);
 					gotoxy(i,j);
 					break;
 				case 'A':	/* Cursor Up */
@@ -599,13 +670,23 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						gotoxy(i,wherey());
 					}
 					break;
-				case 'E':
+				case 'E':	/* Cursor next line */
 					i=atoi(cterm.escbuf+1);
 					if(i==0)
 						i=1;
 					i=wherey()+i;
-					for(j=0;j<i;j++)
-						putch('\n');
+					if(i>cterm.height)
+						i=cterm.height;
+					gotoxy(1,i);
+					break;
+				case 'F':	/* Cursor preceding line */
+					i=atoi(cterm.escbuf+1);
+					if(i==0)
+						i=1;
+					i=wherey()-i;
+					if(i<1)
+						i=1;
+					gotoxy(1,i);
 					break;
 				case 'f':
 				case 'H':
@@ -642,7 +723,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 								p2[j++]=cterm.attr;
 							}
 							for(i=wherey()+1;i<=cterm.height;i++) {
-								puttext(cterm.x+1,cterm.y+i,cterm.x+cterm.width,cterm.y+i,p2);
+								puttext(cterm.x,cterm.y+i-1,cterm.x+cterm.width-1,cterm.y+i-1,p2);
 							}
 							break;
 						case 1:
@@ -654,7 +735,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 								p2[j++]=cterm.attr;
 							}
 							for(i=wherey()-1;i>=1;i--) {
-								puttext(cterm.x+1,cterm.y+i,cterm.x+cterm.width,cterm.y+i,p2);
+								puttext(cterm.x,cterm.y+i-1,cterm.x+cterm.width-1,cterm.y+i-1,p2);
 							}
 							break;
 						case 2:
@@ -679,29 +760,31 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 								p2[j++]=' ';
 								p2[j++]=cterm.attr;
 							}
-							puttext(cterm.x+1,cterm.y+wherey(),cterm.x+cterm.width,cterm.y+wherey(),p2);
+							puttext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+wherey()-1,p2);
 							break;
 					}
 					break;
-				case 'L':
+				case 'L':		/* Insert line */
 					i=atoi(cterm.escbuf+1);
 					if(i==0)
 						i=1;
 					if(i>cterm.height-wherey())
 						i=cterm.height-wherey();
-					if(i<cterm.height-wherey()) {
-						p2=(char *)alloca((cterm.height-wherey()-i)*cterm.width*2);
-						gettext(cterm.x+1,cterm.y+wherey(),cterm.x+cterm.width,wherey()+(cterm.height-wherey()-i),p2);
-						puttext(cterm.x+1,cterm.y+wherey()+i,cterm.x+cterm.width,wherey()+(cterm.height-wherey()),p2);
+					if(i) {
+						p2=(char *)alloca((cterm.height-wherey()-i+1)*cterm.width*2);
+						gettext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1-i,p2);
+						puttext(cterm.x,cterm.y+wherey()-1+i,cterm.x+cterm.width-1,cterm.y+cterm.height-1,p2);
 					}
-					p2=(char *)alloca(cterm.width*2);
+					else {
+						p2=(char *)alloca(cterm.width*2);
+					}
 					j=0;
 					for(k=0;k<cterm.width;k++) {
 						p2[j++]=' ';
 						p2[j++]=cterm.attr;
 					}
-					for(i=0;j<i;i++) {
-						puttext(cterm.x+1,cterm.y+i,cterm.x+cterm.width,cterm.y+i,p2);
+					for(j=0;j<i;j++) {
+						puttext(cterm.x,cterm.y+wherey()-1+j,cterm.x+cterm.width-1,cterm.y+wherey()-1+j,p2);
 					}
 					break;
 				case 'M':	/* ANSI music and also supposed to be delete line! */
@@ -725,14 +808,16 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					i=atoi(cterm.escbuf+1);
 					if(i==0)
 						i=1;
-					if(i>cterm.width-wherex())
-						i=cterm.width-wherex();
-					p2=(char *)alloca((cterm.width-wherex())*2);
-					gettext(cterm.x+wherex(),cterm.y+wherey(),cterm.x+cterm.width,cterm.y+wherey(),p2);
-					memmove(p2,p2+(i*2),(cterm.width-wherex()-i)*2);
-					for(i=(cterm.width-wherex())*2-2;i>=wherex();i-=2)
-						p2[i]=' ';
-					puttext(cterm.x+wherex(),cterm.y+wherey(),cterm.x+cterm.width,cterm.y+wherey(),p2);
+					if(i>cterm.width-wherex()+1)
+						i=cterm.width-wherex()+1;
+					p2=(char *)alloca((cterm.width-wherex()+1)*2);
+					gettext(cterm.x+wherex(),cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+wherey()-1,p2);
+					j=(cterm.width-wherex())*2;
+					for(k=0;k<0;k++) {
+						p2[j++]=' ';
+						p2[j++]=cterm.attr;
+					}
+					puttext(cterm.x+wherex()-1,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+wherey()-1,p2);
 					break;
 				case 'S':
 					i=atoi(cterm.escbuf+1);
@@ -754,6 +839,20 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					gotoxy(1,1);
 					break;
 #endif
+				case 'X':
+					i=atoi(cterm.escbuf+1);
+					if(i<1)
+						i=1;
+					if(i>cterm.width-wherex())
+						i=cterm.width-wherex();
+					p2=alloca(i*2);
+					j=0;
+					for(k=0;k<i;k++) {
+						p2[j++]=' ';
+						p2[j++]=cterm.attr;
+					}
+					puttext(cterm.x+wherex()-1,cterm.y+wherey()-1,cterm.x+wherex()-1+i-1,cterm.y+wherey()-1,p2);
+					break;
 				case 'Z':
 					i=atoi(cterm.escbuf+1);
 					if(i==0 && cterm.escbuf[0] != '0')
@@ -1044,7 +1143,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback)
 {
-	char	*revision="$Revision: 1.68 $";
+	char	*revision="$Revision: 1.90 $";
 	char *in;
 	char	*out;
 
@@ -1089,6 +1188,23 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 		*out=0;
 	}
 	strcat(cterm.DA,"c");
+	/* Did someone call _init() without calling _end()? */
+	if(playnote_thread_running) {
+		if(sem_trywait(&playnote_thread_terminated)==-1) {
+			listSemPost(&notes);
+			sem_wait(&playnote_thread_terminated);
+		}
+		sem_destroy(&playnote_thread_terminated);
+		sem_destroy(&note_completed_sem);
+		listFree(&notes);
+	}
+	/* Fire up note playing thread */
+	if(!playnote_thread_running) {
+		listInit(&notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+		sem_init(&note_completed_sem,0,0);
+		sem_init(&playnote_thread_terminated,0,0);
+		_beginthread(playnote_thread, 0, NULL);
+	}
 }
 
 void ctputs(char *buf)
@@ -1123,8 +1239,12 @@ void ctputs(char *buf)
 				gotoxy(cx,cy);
 				break;
 			case '\b':
+				*p=0;
+				cputs(outp);
+				outp=p+1;
 				if(cx>0)
 					cx--;
+				gotoxy(cx,cy);
 				break;
 			case 7:		/* Bell */
 				break;
@@ -1436,5 +1556,14 @@ void cterm_end(void)
 		FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
 		FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
 		FREE_AND_NULL(conio_fontdata[i].desc);
+	}
+	if(playnote_thread_running) {
+		if(sem_trywait(&playnote_thread_terminated)==-1) {
+			listSemPost(&notes);
+			sem_wait(&playnote_thread_terminated);
+		}
+		sem_destroy(&playnote_thread_terminated);
+		sem_destroy(&note_completed_sem);
+		listFree(&notes);
 	}
 }
