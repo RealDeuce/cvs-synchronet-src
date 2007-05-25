@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.38 2007/05/27 21:29:30 deuce Exp $ */
+/* $Id: menu.c,v 1.34 2005/12/05 03:39:32 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -27,7 +27,6 @@ void viewscroll(void)
 	y=wherey();
 	uifcbail();
     gettextinfo(&txtinfo);
-	/* too large for alloca() */
 	scrollback=(char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
 	if(cterm.scrollback != NULL)
 		memcpy(scrollback,cterm.scrollback,term.width*2*settings.backlines);
@@ -42,27 +41,9 @@ void viewscroll(void)
 		if(top>cterm.backpos)
 			top=cterm.backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		switch(cterm.emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
-		gotoxy(cterm.width-9,1);
-		switch(cterm.emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		cputs("Scrollback");
+		gotoxy(71,1);
+		cputs("Scrollback");
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -124,8 +105,8 @@ void viewscroll(void)
 		}
 	}
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
-	gotoxy(x,y);
 	free(scrollback);
+	gotoxy(x,y);
 	return;
 }
 
@@ -151,7 +132,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	int		ret;
 
     gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
@@ -179,17 +160,33 @@ int syncmenu(struct bbslist *bbs, int *speed)
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
 			case -1:	/* Cancel */
+#ifdef PCM
+				if(!confirm("Exit the menu?",NULL))
+					continue;
+#endif
 				ret=1;
 				break;
 			case 0:		/* Scrollback */
+#ifdef PCM
+				if(!confirm("View scrollback?",NULL))
+					continue;
+#endif
 				uifcbail();
 				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 				viewscroll();
 				break;
 			case 1:		/* Disconnect */
+#ifdef PCM
+				if(!confirm("Disconect?",NULL))
+					continue;
+#endif
 				ret=-1;
 				break;
 			case 2:		/* Login */
+#ifdef PCM
+				if(!confirm("Send login credentials?",NULL))
+					continue;
+#endif
 				ret=1;
 				conn_send(bbs->user,strlen(bbs->user),0);
 				conn_send("\r",1,0);
@@ -203,6 +200,10 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				}
 				break;
 			case 5:		/* Output rate */
+#ifdef PCM
+				if(!confirm("Modify output rate?",NULL))
+					continue;
+#endif
 				if(speed != NULL) {
 					j=get_rate_num(*speed);
 					uifc.helpbuf="`Output Rate`\n\n"
@@ -216,6 +217,10 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				ret=5;
 				break;
 			case 6:		/* Change log level (temporarily) */
+#ifdef PCM
+				if(!confirm("Change log level for this session?",NULL))
+					continue;
+#endif
 				j=log_level;
 				uifc.helpbuf="`Log Level\n\n"
 						"The log level changes the verbosity of messages shown in the transfer\n"
@@ -230,11 +235,13 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				ret=i;
 				uifcbail();
 				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+				free(buf);
 				return(ret);
 		}
 	}
 
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	free(buf);
 	return(ret);
 }
