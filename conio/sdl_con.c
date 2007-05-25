@@ -471,23 +471,10 @@ int sdl_init_mode(int mode)
     struct video_params vmode;
     int idx;			/* Index into vmode */
     int i;
-    int oldcols=vstat.cols;
 
 	sdl.mutexP(sdl_vstatlock);
-
 	if(load_vmode(&vstat, mode))
 		return(-1);
-
-	/* Deal with 40 col doubling */
-	if(oldcols != vstat.cols) {
-		if(oldcols == 40)
-			vstat.scaling /= 2;
-		if(vstat.cols == 40)
-			vstat.scaling *= 2;
-	}
-
-	if(vstat.scaling < 1)
-		vstat.scaling = 1;
 
 	sdl_user_func(SDL_USEREVENT_SETVIDMODE,vstat.charwidth*vstat.cols*vstat.scaling, vstat.charheight*vstat.rows*vstat.scaling);
 
@@ -1599,46 +1586,43 @@ unsigned int cp437_convert(unsigned int unicode)
 /* Called from event thread only */
 unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned int unicode)
 {
-	int expect;
-	int i;
-
 #ifdef __DARWIN__
 	if(unicode==0x7f) {
 		unicode=0x08;
 		keysym=SDLK_BACKSPACE;
 	}
 #endif
-	for(i=0;sdl_keyval[i].keysym;i++) {
-		if(sdl_keyval[i].keysym==keysym) {
-			if(mod & KMOD_CTRL)
-				expect=sdl_keyval[i].ctrl;
-			else if(mod & KMOD_SHIFT)
-				expect=sdl_keyval[i].shift;
-			else
-				expect=sdl_keyval[i].key;
+	if(!unicode || (mod & (KMOD_META|KMOD_ALT))) {
+		int expect;
+		int i;
 
-			/* "Extended" syms are always right */
-			if(!unicode)
-				return(expect);
-			if(sdl_keyval[i].key > 255)
-				return(expect);
-			/*
-			 * If we don't know that this key can
-			 * return the unicode translation, then
-			 * we're not right and this is prolly
-			 * an AltGr sequence.
-			 */
-			if(mod & (KMOD_META|KMOD_ALT)) {
-				if(unicode==expect)
-					return(sdl_keyval[i].alt);
+		for(i=0;sdl_keyval[i].keysym;i++) {
+			if(sdl_keyval[i].keysym==keysym) {
+				if(mod & KMOD_CTRL)
+					expect=sdl_keyval[i].ctrl;
+				else if(mod & KMOD_SHIFT)
+					expect=sdl_keyval[i].shift;
+				else
+					expect=sdl_keyval[i].key;
+
+				/* "Extended" syms are always right */
+				if(!unicode)
+					return(expect);
+				/*
+				 * If we don't know that this key can
+				 * return the unicode translation, then
+				 * we're not right and this is prolly
+				 * an AltGr sequence.
+				 */
+				if(mod & (KMOD_META|KMOD_ALT)) {
+					if(unicode==expect)
+						return(sdl_keyval[i].alt);
+				}
 			}
-			else
-				return(expect);
 		}
-	}
 
-	if(!unicode || (mod & (KMOD_META|KMOD_ALT)))
 		return(0x0001ffff);
+	}
 	if(unicode <= 0x7f)
 		return(unicode);
 	return(cp437_convert(unicode));

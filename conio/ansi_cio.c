@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.52 2006/05/18 06:21:02 rswindell Exp $ */
+/* $Id: ansi_cio.c,v 1.50 2006/02/04 22:12:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +69,7 @@ int ansi_cols=80;
 int ansi_got_row=0;
 int ansi_got_col=0;
 int ansi_esc_delay=25;
+int puttext_no_move=0;
 
 const int 	ansi_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
@@ -242,10 +243,11 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 	attrib=ti.attribute;
 
 	i=0;		/* Did a nasty. */
+	/* Check if this is a nasty scroll */
 
 	/* Check if this is a nasty screen clear... */
 	j=0;		/* We can clearscreen */
-	if(!i && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight && (*out==' ' || *out==0)) {
+	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight && (*out==' ' || *out==0)) {
 		j=1;		/* We can clearscreen */
 		for(cy=sy-1;cy<ey;cy++) {
 			for(cx=sx-1;cx<ex;cx++) {
@@ -267,47 +269,6 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 		memcpy(ansivmem,out,ti.screenwidth*ti.screenheight*2);
 		i=1;
 	}
-#if 0
-	/* Check if this is a scroll */
-	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight-1
-			&& memcmp(buf,ansivmem,ti.screenwidth*(ti.screenheight-1)*2)==0) {
-		/* We need to get to the bottom line... */
-		if(ansi_row < ti.screenheight-1) {
-			if(ansi_row > ti.screenheight-5) {
-				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansi_row-1);
-			}
-			else {
-				sprintf(str,"\033[%dB",ti.screenheight-ansi_row-1);
-				ansi_sendstr(str,-1);
-			}
-		}
-		ansi_sendstr("\n",1);
-		memcpy(ansivmem,buf,ti.screenwidth*(ti.screenheight-1)*2);
-		for(x=0;x<ti.screenwidth;x++)
-			ansivmem[(ti.screenheight-1)*ti.screenwidth+x]=(ti.attribute<<8)|' ';
-		i=1;
-	}
-	/* Check if this *includes* a scroll */
-	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
-			&& memcmp(buf,ansivmem,ti.screenwidth*(ti.screenheight-1)*2)==0) {
-		/* We need to get to the bottom line... */
-		if(ansi_row < ti.screenheight-1) {
-			if(ansi_row > ti.screenheight-5) {
-				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansi_row-1);
-			}
-			else {
-				sprintf(str,"\033[%dB",ti.screenheight-ansi_row-1);
-				ansi_sendstr(str,-1);
-			}
-		}
-		ansi_sendstr("\n",1);
-		memcpy(ansivmem,buf,ti.screenwidth*(ti.screenheight-1)*2);
-		for(x=0;x<ti.screenwidth;x++)
-			ansivmem[(ti.screenheight-1)*ti.screenwidth+x]=(ti.attribute<<8)|' ';
-		out += ti.screenwidth*(ti.screenheight-1)*2;
-		sy=ti.screenheight;
-	}
-#endif
 	if(!i) {
 		for(y=sy-1;y<ey;y++) {
 			for(x=sx-1;x<ex;x++) {
@@ -380,7 +341,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 		}
 	}
 
-	if(!puttext_can_move)
+	if(!puttext_no_move)
 		gotoxy(ti.curx,ti.cury);
 	if(attrib!=ti.attribute)
 		textattr(ti.attribute);
@@ -658,7 +619,7 @@ int ansi_putch(int ch)
 	buf[1]=ansi_curr_attr>>8;
 
 	gettextinfo(&ti);
-	puttext_can_move=1;
+	puttext_no_move=1;
 
 	switch(ch) {
 		case '\r':
@@ -714,7 +675,7 @@ int ansi_putch(int ch)
 			break;
 	}
 
-	puttext_can_move=0;
+	puttext_no_move=0;
 	return(ch);
 }
 
