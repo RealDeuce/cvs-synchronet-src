@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.28 2006/05/18 06:20:32 rswindell Exp $ */
+/* $Id: bbslist.h,v 1.30 2007/05/25 08:50:42 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -17,7 +17,7 @@
 #define LIST_ADDR_MAX	64
 #define MAX_USER_LEN	30
 #define MAX_PASSWD_LEN	16
-#define MAX_SYSPASS_LEN	16
+#define MAX_SYSPASS_LEN	40
 
 enum {
 	 USER_BBSLIST
@@ -36,6 +36,9 @@ enum {
 	,SCREEN_MODE_80X43
 	,SCREEN_MODE_80X50
 	,SCREEN_MODE_80X60
+	,SCREEN_MODE_C64
+	,SCREEN_MODE_C128_40
+	,SCREEN_MODE_C128_80
 	,SCREEN_MODE_TERMINATOR
 };
 
