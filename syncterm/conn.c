@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.31 2007/06/01 11:59:14 deuce Exp $ */
+/* $Id: conn.c,v 1.28 2007/05/14 01:05:42 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -14,22 +14,11 @@
 #include "raw.h"
 #include "ssh.h"
 #include "modem.h"
-#ifdef __unix__
-#include "conn_pty.h"
-#endif
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem"
-#ifdef __unix__
-,"Shell"
-#endif
-,NULL};
-int conn_ports[]={0,513,23,0,22
-#ifdef __unix__
-,0
-#endif
-,0};
+char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem",NULL};
+int conn_ports[]={0,513,23,0,22,0};
 
 struct conn_buffer conn_inbuf;
 struct conn_buffer conn_outbuf;
@@ -44,31 +33,28 @@ struct conn_buffer *create_conn_buf(struct conn_buffer *buf, size_t size)
 	buf->buftop=0;
 	buf->bufbot=0;
 	if(pthread_mutex_init(&(buf->mutex), NULL)) {
-		FREE_AND_NULL(buf->buf);
+		free(buf->buf);
 		return(NULL);
 	}
 	if(sem_init(&(buf->in_sem), 0, 0)) {
-		FREE_AND_NULL(buf->buf);
+		free(buf->buf);
 		pthread_mutex_destroy(&(buf->mutex));
 		return(NULL);
 	}
 	if(sem_init(&(buf->out_sem), 0, 0)) {
-		FREE_AND_NULL(buf->buf);
+		free(buf->buf);
 		pthread_mutex_destroy(&(buf->mutex));
 		sem_destroy(&(buf->in_sem));
 		return(NULL);
 	}
-	return(buf);
 }
 
 void destroy_conn_buf(struct conn_buffer *buf)
 {
-	if(buf->buf != NULL) {
-		free(buf->buf);
-		while(pthread_mutex_destroy(&(buf->mutex)));
-		while(sem_destroy(&(buf->in_sem)));
-		while(sem_destroy(&(buf->out_sem)));
-	}
+	FREE_AND_NULL(buf->buf);
+	while(pthread_mutex_destroy(&(buf->mutex)));
+	while(sem_destroy(&(buf->in_sem)));
+	while(sem_destroy(&(buf->out_sem)));
 }
 
 /*
@@ -291,24 +277,11 @@ int conn_connect(struct bbslist *bbs)
 		case CONN_TYPE_MODEM:
 			conn_api.connect=modem_connect;
 			conn_api.close=modem_close;
-			break;
-#ifdef __unix__
-		case CONN_TYPE_SHELL:
-			conn_api.connect=pty_connect;
-			conn_api.close=pty_close;
-			break;
-#endif
 	}
 	if(conn_api.connect) {
-		if(conn_api.connect(bbs)) {
-			conn_api.terminate = 1;
-			while(conn_api.input_thread_running || conn_api.output_thread_running)
-				SLEEP(1);
-		}
-		else {
-			while(conn_api.terminate == 0 && (conn_api.input_thread_running == 0 || conn_api.output_thread_running == 0))
-				SLEEP(1);
-		}
+		conn_api.connect(bbs);
+		while(conn_api.terminate == 0 && (conn_api.input_thread_running == 0 || conn_api.output_thread_running == 0))
+			SLEEP(1);
 	}
 	return(conn_api.terminate);
 }
@@ -329,7 +302,6 @@ int conn_close(void)
 {
 	if(conn_api.close)
 		return(conn_api.close());
-	return(0);
 }
 
 int conn_socket_connect(struct bbslist *bbs)

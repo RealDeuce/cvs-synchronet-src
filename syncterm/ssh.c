@@ -1,4 +1,4 @@
-/* $Id: ssh.c,v 1.2 2007/06/04 04:55:19 deuce Exp $ */
+/* $Id: ssh.c,v 1.1 2007/03/03 12:24:05 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -121,7 +121,7 @@ int ssh_connect(struct bbslist *bbs)
 		init_crypt();
 	if(!crypt_loaded) {
 		uifcmsg("Cannot load cryptlib - SSH inoperative",	"`Cannot load cryptlib`\n\n"
-					"Cannot load the file "
+					"Cannot laod the file "
 #ifdef _WIN32
 					"cl32.dll"
 #else
