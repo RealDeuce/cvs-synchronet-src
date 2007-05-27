@@ -1,4 +1,4 @@
-/* $Id: uifcinit.c,v 1.25 2007/05/27 06:30:19 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.24 2007/05/25 08:50:42 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -27,7 +27,7 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 	if(!uifc_initialized) {
 		/* Get old font... */
 		uifc_old_font=getfont();
-		if(uifc_old_font >= 32 && uifc_old_font <= 36)
+		if(uifc_old_font >= 32 && uifc_old_font <= 34)
 			setfont(0, FALSE);
 		/* Set scrn_len to 0 to prevent textmode() call */
 		uifc.scrn_len=0;
