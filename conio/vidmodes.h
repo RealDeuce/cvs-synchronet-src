@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.11 2007/05/25 02:24:00 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.13 2007/05/27 04:31:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,7 @@ enum {
 	,C64_PALETTE
 };
 
-extern struct video_params vparams[36];
+extern struct video_params vparams[40];
 #define NUMMODES      (sizeof(vparams) / sizeof(struct video_params))
 extern unsigned char palettes[4][16];
 extern struct dac_colors dac_default[32];
