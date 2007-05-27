@@ -14,13 +14,8 @@ ifdef USE_GUTS
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
 endif
 
-PREFIX	?= /usr/local
-
-CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
-ifeq ($(PREFIX),/usr)
- MANPREFIX ?= /usr/share/man
-else
- MANPREFIX ?= $(PREFIX)/man
+ifdef PREFIX
+ CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
 endif
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib -I../comio
@@ -32,32 +27,16 @@ INSTALL_EXE	?=	install
 INSTALL_DATA	?=	install -m 0444
 
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
-ifndef bcc
- ifneq ($(os),sunos)
-  LDFLAGS   +=  -lutil
- endif
-endif
-
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
 	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 
-syncterm.1.gz: syncterm.man
-	gzip < syncterm.man > syncterm.1.gz
-
-installdirs:
-	-mkdir -p ${PREFIX}/bin
-	-mkdir -p ${PREFIX}/share/applications
-	-mkdir -p ${PREFIX}/share/man/man1
-
-install: $(SYNCTERM) syncterm.1.gz installdirs
+install: $(SYNCTERM)
 	@echo Installing...
 	${INSTALL_EXE} ${SYNCTERM} ${PREFIX}/bin
 	${INSTALL_DATA} syncterm.png ${PREFIX}/share/icons/hicolor/64x64/apps
 	${INSTALL_DATA} syncterm.desktop ${PREFIX}/share/applications
-	${INSTALL_DATA} syncterm.1.gz ${MANPREFIX}/man1
 
 devel: tags cscope.out
 

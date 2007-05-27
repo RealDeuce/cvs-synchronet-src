@@ -1,4 +1,4 @@
-/* $Id: modem.c,v 1.7 2007/05/29 06:58:35 deuce Exp $ */
+/* $Id: modem.c,v 1.5 2007/05/27 19:54:01 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -12,7 +12,7 @@
 #include "conn.h"
 #include "uifcinit.h"
 
-static COM_HANDLE com=COM_HANDLE_INVALID;
+static COM_HANDLE com=INVALID_SOCKET;
 
 #ifdef __BORLANDC__
 #pragma argsused
@@ -26,6 +26,10 @@ void modem_input_thread(void *args)
 	conn_api.input_thread_running=1;
 	while(com != COM_HANDLE_INVALID && !conn_api.terminate) {
 		rd=comReadBuf(com, conn_api.rd_buf, conn_api.rd_buf_size, NULL, 100);
+		if(rd <= 0) {
+			if(comGetModemStatus(com)&COM_DCD == 0)
+				break;
+		}
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -33,8 +37,6 @@ void modem_input_thread(void *args)
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
-		if(comGetModemStatus(com)&COM_DCD == 0)
-			break;
 	}
 	conn_api.input_thread_running=0;
 }
@@ -174,7 +176,7 @@ int modem_connect(struct bbslist *bbs)
 			conn_api.terminate=-1;
 			return(-1);
 		}
-		if(strstr(respbuf, bbs->addr))	/* Dial command echoed */
+		if(strstr(respbuf, "ATA"))	/* Dial command echoed */
 			continue;
 		break;
 	}
@@ -190,29 +192,11 @@ int modem_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 
-	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
-		modem_close();
-		return(-1);
-	}
-	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
-		modem_close();
-		destroy_conn_buf(&conn_inbuf);
-		return(-1);
-	}
-	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		modem_close();
-		destroy_conn_buf(&conn_inbuf);
-		destroy_conn_buf(&conn_outbuf);
-		return(-1);
-	}
+	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
+	create_conn_buf(&conn_outbuf, BUFFER_SIZE);
+	conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE);
 	conn_api.rd_buf_size=BUFFER_SIZE;
-	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		modem_close();
-		destroy_conn_buf(&conn_inbuf);
-		destroy_conn_buf(&conn_outbuf);
-		free(conn_api.rd_buf);
-		return(-1);
-	}
+	conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE);
 	conn_api.wr_buf_size=BUFFER_SIZE;
 
 	_beginthread(modem_output_thread, 0, NULL);

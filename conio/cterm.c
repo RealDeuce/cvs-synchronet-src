@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.99 2007/05/30 04:34:11 deuce Exp $ */
+/* $Id: cterm.c,v 1.98 2007/05/27 06:09:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -572,7 +572,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 	char	tmp[1024];
 	int		i,j,k,l;
 	int		row,col;
-	struct text_info ti;
 
 	switch(cterm.escbuf[0]) {
 		case '[':
@@ -867,8 +866,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					break;
 #if 0
 				case 'U':
-					gettextinfo(&ti);
-					clearscreen(ti.normattr);
+					clearscreen(7);
 					gotoxy(1,1);
 					break;
 #endif
@@ -922,16 +920,15 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 				case 'm':
 					*(p--)=0;
 					p2=cterm.escbuf+1;
-					gettextinfo(&ti);
 					if(p2>p) {
-						cterm.attr=ti.normattr;
+						cterm.attr=7;
 						break;
 					}
 					while((p=strtok(p2,";"))!=NULL) {
 						p2=NULL;
 						switch(atoi(p)) {
 							case 0:
-								cterm.attr=ti.normattr;
+								cterm.attr=7;
 								break;
 							case 1:
 								cterm.attr|=8;
@@ -1177,19 +1174,17 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.99 $";
+	char	*revision="$Revision: 1.98 $";
 	char *in;
 	char	*out;
 	int		i;
-	struct text_info ti;
 
 	memset(&cterm, 0, sizeof(cterm));
 	cterm.x=xpos;
 	cterm.y=ypos;
 	cterm.height=height;
 	cterm.width=width;
-	gettextinfo(&ti);
-	cterm.attr=ti.normattr;
+	cterm.attr=7;
 	cterm.save_xpos=0;
 	cterm.save_ypos=0;
 	cterm.escbuf[0]=0;
