@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: modem.c,v 1.10 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: modem.c,v 1.6 2007/05/27 21:17:39 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -172,7 +170,7 @@ int modem_connect(struct bbslist *bbs)
 			modem_close();
 			uifc.pop(NULL);
 			uifcmsg("No Answer",	"`No Answer`\n\n"
-							"The modem did not connect within 30 seconds.\n");
+							"The modem did not connect withing 30 seconds.\n");
 			conn_api.terminate=-1;
 			return(-1);
 		}
@@ -192,29 +190,11 @@ int modem_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 
-	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
-		modem_close();
-		return(-1);
-	}
-	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
-		modem_close();
-		destroy_conn_buf(&conn_inbuf);
-		return(-1);
-	}
-	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		modem_close();
-		destroy_conn_buf(&conn_inbuf);
-		destroy_conn_buf(&conn_outbuf);
-		return(-1);
-	}
+	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
+	create_conn_buf(&conn_outbuf, BUFFER_SIZE);
+	conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE);
 	conn_api.rd_buf_size=BUFFER_SIZE;
-	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		modem_close();
-		destroy_conn_buf(&conn_inbuf);
-		destroy_conn_buf(&conn_outbuf);
-		FREE_AND_NULL(conn_api.rd_buf);
-		return(-1);
-	}
+	conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE);
 	conn_api.wr_buf_size=BUFFER_SIZE;
 
 	_beginthread(modem_output_thread, 0, NULL);
