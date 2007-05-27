@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.69 2006/02/24 09:50:50 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.71 2006/09/07 00:43:59 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -545,6 +545,7 @@ int zmodem_send_zfin(zmodem_t* zm)
 
 int zmodem_abort_receive(zmodem_t* zm)
 {
+	lprintf(zm,LOG_WARNING,"Aborting receive");
 	return zmodem_send_pos_header(zm, ZABORT, 0, /* Hex? */ TRUE);
 }
 
@@ -1778,7 +1779,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, ulong* bytes_recei
 	time_t		t;
 	unsigned	cps;
 	unsigned	timeout;
-	unsigned	errors=0;
+	unsigned	errors;
 
 	if(bytes_received!=NULL)
 		*bytes_received=0;
@@ -1980,7 +1981,6 @@ unsigned zmodem_recv_file_data(zmodem_t* zm, FILE* fp, ulong offset)
 	zm->transfer_start_time=time(NULL);
 
 	fseek(fp,offset,SEEK_SET);
-	offset=ftell(fp);
 
 	while(errors<=zm->max_errors && is_connected(zm)
 		&& (ulong)ftell(fp) < zm->current_file_size && !is_cancelled(zm)) {
@@ -2057,7 +2057,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.69 $", "%*s %s", buf);
+	sscanf("$Revision: 1.71 $", "%*s %s", buf);
 
 	return(buf);
 }
