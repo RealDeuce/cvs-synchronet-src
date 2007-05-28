@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.22 2007/05/31 19:28:12 deuce Exp $
+# $Id: Makefile,v 1.18 2005/11/28 05:44:46 deuce Exp $
 
 # To build a DLL, use "make [OPTIONS] DLLIBS=1 dl-mtlib"
 # You *MUST* do a clean between a static and dynamic lib on Win32!
@@ -20,14 +20,9 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 !include ..\build\Common.bmake	# defines clean and output directory rules
 
-!ifdef USE_SDL_AUDIO
-OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
-!else
 !ifdef USE_SDL
-OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
-OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
+OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE) $(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
-!endif
 !endif
 
 #The following is necessary only when DLL-exporting wrapper functions
