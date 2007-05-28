@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.24 2007/08/25 08:08:04 rswindell Exp $ */
+/* $Id: nopen.c,v 1.22 2007/05/11 01:35:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@ int nopen(const char* str, int access)
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
 #endif
-    while(((file=sopen(str,access,share,DEFFILEMODE))==-1)
+    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
         && (errno==EACCES || errno==EAGAIN || errno==EDEADLOCK) && count++<LOOP_NOPEN)
         if(count)
             mswait(100);
@@ -111,11 +111,9 @@ FILE* fnopen(int* fd, const char* str, int access)
 BOOL ftouch(const char* fname)
 {
 	int file;
-	struct utimbuf ut;
 
 	/* update the time stamp */
-	ut.actime = ut.modtime = time(NULL);
-	if(utime(fname, &ut)==0)
+	if(utime(fname, /* use current date/time: */NULL)==0)
 		return(TRUE);
 
 	/* create the file */
@@ -139,7 +137,7 @@ BOOL fmutex(const char* fname, const char* text, long max_age)
 		if(remove(fname)!=0)
 			return(FALSE);
 	}
-	if((file=open(fname,O_CREAT|O_WRONLY|O_EXCL,DEFFILEMODE))<0)
+	if((file=open(fname,O_CREAT|O_WRONLY|O_EXCL,S_IREAD|S_IWRITE))<0)
 		return(FALSE);
 	if(text!=NULL)
 		write(file,text,strlen(text));
