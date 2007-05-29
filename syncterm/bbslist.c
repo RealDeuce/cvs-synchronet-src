@@ -19,7 +19,7 @@
 #include "window.h"
 #include "term.h"
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -397,6 +397,25 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 								"Select the screen size for this connection\n";
 				uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),NULL,"Screen Mode",screen_modes);
 				iniSetEnum(&inifile,itemname,"ScreenMode",screen_modes,item->screen_mode,&ini_style);
+				if(item->screen_mode == SCREEN_MODE_C64) {
+					strcpy(item->font,font_names[33]);
+					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
+					item->nostatus = 1;
+					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
+				}
+				if(item->screen_mode == SCREEN_MODE_C128_40
+						|| item->screen_mode == SCREEN_MODE_C128_80) {
+					strcpy(item->font,font_names[35]);
+					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
+					item->nostatus = 1;
+					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
+				}
+				if(item->screen_mode == SCREEN_MODE_ATARI) {
+					strcpy(item->font,font_names[36]);
+					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
+					item->nostatus = 1;
+					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
+				}
 				changed=1;
 				break;
 			case 9:
@@ -643,7 +662,18 @@ void change_settings(void)
 				break;
 			case 4:
 				uifc.helpbuf=	"`Modem Init String`\n\n"
-								"Your modem init string goes here.";
+								"Your modem init string goes here.\n"
+								"For reference, here are the expected settings and USR inits\n\n"
+								"State                      USR Init\n"
+								"------------------------------------\n"
+								"Echo on                    E1\n"
+								"Verbal result codes        Q0V1\n"
+								"Include connection speed   &X4\n"
+								"Normal CD Handling         &C1\n"
+								"Locked speed               &B1\n"
+								"Normal DTR                 &D2\n"
+								"CTS/RTS Flow Control       &H1&R2\n"
+								"Disable Software Flow      &I0\n";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Init String",settings.mdm.init_string,LIST_NAME_MAX,K_EDIT);
 				iniSetString(&inicontents,"SyncTERM","ModemInit",settings.mdm.init_string,&ini_style);
 				break;
@@ -992,6 +1022,18 @@ struct bbslist *show_bbslist(int mode)
 										break;
 									case SCREEN_MODE_80X60:
 										textmode(C80X60);
+										break;
+									case SCREEN_MODE_C64:
+										textmode(C64_40X25);
+										break;
+									case SCREEN_MODE_C128_40:
+										textmode(C128_40X25);
+										break;
+									case SCREEN_MODE_C128_80:
+										textmode(C128_80X25);
+										break;
+									case SCREEN_MODE_ATARI:
+										textmode(ATARI_40X24);
 										break;
 								}
 								init_uifc(TRUE, TRUE);
