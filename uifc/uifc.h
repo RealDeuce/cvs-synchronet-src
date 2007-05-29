@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.74 2006/05/26 02:59:32 deuce Exp $ */
+/* $Id: uifc.h,v 1.75 2006/09/06 22:24:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,6 +166,7 @@
 #define K_MOUSEEXIT	(1L<<15)	/* Returns when mouse is clicked outside of */
 								/* Input area (NOT outside of window!)		*/
 								/* And ungets the mouse event.				*/
+#define K_PASSWORD	(1L<<16)	/* Does not display text while editing		*/
 
 						/* Bottom line elements */
 #define BL_INS      (1<<0)  /* INS key */
