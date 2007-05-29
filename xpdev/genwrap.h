@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.89 2007/09/22 20:57:50 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.87 2006/08/14 22:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -39,7 +39,6 @@
 #define _GENWRAP_H
 
 #include <stdio.h>		/* sprintf */
-#include <string.h>		/* strerror() */
 #include "gen_defs.h"	/* ulong */
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
 
@@ -184,8 +183,6 @@ extern "C" {
 	#endif
 #endif
 
-/* Skip white-space chars at beginning of string */
-DLLEXPORT char*		DLLCALL skipsp(char* str);
 /* Truncate white-space chars off end of string */
 DLLEXPORT char*		DLLCALL truncsp(char* str);
 /* Truncate white-space chars off end of every \n-terminated line in string */

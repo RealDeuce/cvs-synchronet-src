@@ -2,13 +2,13 @@
 
 /* CCITT 16-bit CRC table and calculation function */
 
-/* $Id: crc16.c,v 1.5 2007/07/11 05:24:02 rswindell Exp $ */
+/* $Id: crc16.c,v 1.3 2004/02/27 02:30:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 #include <string.h>	/* strlen */
 #include "crc16.h"
 
-uint16_t crc16tbl[] = {
+unsigned short crc16tbl[] = {
 0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
 0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
 0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6,
@@ -73,9 +73,9 @@ uint16_t crc16tbl[] = {
 0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
 
-uint16_t crc16(char* data, unsigned long len)
+unsigned short crc16(char* data, unsigned long len)
 {
-	uint16_t crc = 0;
+	unsigned short crc = 0;
 	unsigned long l;
 
 	if(len==0 && data!=NULL)
