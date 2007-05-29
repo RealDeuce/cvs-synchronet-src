@@ -1,4 +1,6 @@
-/* $Id: xpbeep.c,v 1.41 2006/05/28 23:40:50 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.47 2007/03/04 00:29:16 deuce Exp $ */
+
+/* TODO: USE PORTAUDIO! */
 
 /* standard headers */
 #include <math.h>
@@ -196,12 +198,12 @@ void sdl_fillbuf(void *userdata, Uint8 *stream, int len)
 	int	copylen=len;
 	int maxlen=sdl_audio_buf_len-sdl_audio_buf_pos;
 
-	/* Fill with silence */
-	memset(stream, spec.silence, len);
-
 	/* Copy in the current buffer */
 	if(copylen>maxlen)
 		copylen=maxlen;
+	/* Fill with silence */
+	if(len>copylen)
+		memset(stream+copylen, spec.silence, len-copylen);
 	if(copylen) {
 		memcpy(stream, swave+sdl_audio_buf_pos, copylen);
 		sdl_audio_buf_pos+=copylen;
@@ -240,8 +242,8 @@ BOOL xptone_open(void)
 			spec.freq=22050;
 			spec.format=AUDIO_U8;
 			spec.channels=1;
-			spec.samples=512;		/* Size of audio buffer */
-			spec.size=512;
+			spec.samples=256;		/* Size of audio buffer */
+			spec.size=256;
 			spec.callback=sdl_fillbuf;
 			spec.userdata=NULL;
 			if(sdl.OpenAudio(&spec, NULL)==-1) {
@@ -249,6 +251,9 @@ BOOL xptone_open(void)
 			}
 			else {
 				sdlToneDone=sdl.SDL_CreateSemaphore(0);
+				sdl_audio_buf_len=0;
+				sdl_audio_buf_pos=0;
+				sdl.PauseAudio(FALSE);
 				handle_type=SOUND_DEVICE_SDL;
 				return(TRUE);
 			}
@@ -391,6 +396,7 @@ BOOL xptone_close(void)
 	handle_type=SOUND_DEVICE_CLOSED;
 	sound_device_open_failed=FALSE;
 	alsa_device_open_failed=FALSE;
+	sdl_device_open_failed=FALSE;
 
 	return(TRUE);
 }
@@ -426,14 +432,14 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 
 #ifdef WITH_SDL
 	if(handle_type==SOUND_DEVICE_SDL) {
+		sdl.LockAudio();
 		sdl_audio_buf_pos=0;
 		sdl_audio_buf_len=S_RATE*duration/1000;
 		if(sdl_audio_buf_len<=S_RATE/freq*2)
 			sdl_audio_buf_len=S_RATE/freq*2;
 		makewave(freq,swave,sdl_audio_buf_len,shape);
-		sdl.PauseAudio(FALSE);
+		sdl.UnlockAudio();
 		sdl.SemWait(sdlToneDone);
-		sdl.PauseAudio(TRUE);
 	}
 #endif
 
@@ -445,11 +451,10 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 
 		makewave(freq,wave,wh.dwBufferLength,shape);
 
-		if(waveOutWrite(waveOut, &wh, sizeof(wh))==MMSYSERR_NOERROR)
-			success=TRUE;
-
-		while(!(wh.dwFlags & WHDR_DONE))
-			SLEEP(1);
+		if(waveOutWrite(waveOut, &wh, sizeof(wh))==MMSYSERR_NOERROR) {
+			while(!(wh.dwFlags & WHDR_DONE))
+				SLEEP(1);
+		}
 	}
 #endif
 
