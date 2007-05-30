@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.207 2007/12/24 23:04:53 deuce Exp $ */
+/* $Id: services.c,v 1.199 2006/12/29 01:23:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -62,44 +62,45 @@
 
 /* Constants */
 
+#define MAX_SERVICES			128
+#define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 #define MAX_UDP_BUF_LEN			8192	/* 8K */
 #define DEFAULT_LISTEN_BACKLOG	5
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
-static uint32_t	sockets=0;
+static DWORD	sockets=0;
 static BOOL		terminated=FALSE;
 static time_t	uptime=0;
-static uint32_t	served=0;
+static DWORD	served=0;
 static char		revision[16];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
 
 typedef struct {
 	/* These are sysop-configurable */
-	uint32_t	interface_addr;
-	uint16_t	port;
-	char		protocol[34];
-	char		cmd[128];
-	uint		max_clients;
-	uint32_t	options;
-	int			listen_backlog;
-	int			log_level;
-	uint32_t	stack_size;
+	DWORD   interface_addr;
+	WORD	port;
+	char	protocol[34];
+	char	cmd[128];
+	DWORD	max_clients;
+	DWORD	options;
+	int		listen_backlog;
+	int		log_level;
+	DWORD	stack_size;
 	js_startup_t	js;
 	js_server_props_t js_server_props;
 	/* These are run-time state and stat vars */
-	uint32_t	clients;
-	uint32_t	served;
-	SOCKET		socket;
-	BOOL		running;
-	BOOL		terminated;
+	DWORD	clients;
+	DWORD	served;
+	SOCKET	socket;
+	BOOL	running;
+	BOOL	terminated;
 } service_t;
 
 typedef struct {
 	SOCKET			socket;
 	SOCKADDR_IN		addr;
-	socklen_t		addr_len;
 	time_t			logintime;
 	user_t			user;
 	client_t*		client;
@@ -111,7 +112,7 @@ typedef struct {
 } service_client_t;
 
 static service_t	*service=NULL;
-static uint32_t		services=0;
+static DWORD		services=0;
 
 static int lprintf(int level, char *fmt, ...)
 {
@@ -1019,7 +1020,7 @@ static void js_service_thread(void* arg)
 		host=NULL;
 	else
 		host=gethostbyaddr((char *)&service_client.addr.sin_addr
-			,service_client.addr_len,AF_INET);
+			,sizeof(service_client.addr.sin_addr),AF_INET);
 
 	if(host!=NULL && host->h_name!=NULL)
 		host_name=host->h_name;
@@ -1339,7 +1340,7 @@ static void native_service_thread(void* arg)
 		host=NULL;
 	else
 		host=gethostbyaddr((char *)&service_client.addr.sin_addr
-			,service_client.addr_len,AF_INET);
+			,sizeof(service_client.addr.sin_addr),AF_INET);
 
 	if(host!=NULL && host->h_name!=NULL)
 		host_name=host->h_name;
@@ -1444,7 +1445,7 @@ static void native_service_thread(void* arg)
 
 void DLLCALL services_terminate(void)
 {
-	uint32_t i;
+	DWORD i;
 
    	lprintf(LOG_INFO,"0000 Services terminate");
 	terminated=TRUE;
@@ -1454,7 +1455,7 @@ void DLLCALL services_terminate(void)
 
 #define NEXT_FIELD(p)	FIND_WHITESPACE(p); SKIP_WHITESPACE(p)
 
-static service_t* read_services_ini(service_t* service, uint32_t* services)
+static service_t* read_services_ini(service_t* service, DWORD* services)
 {
 	uint		i,j;
 	FILE*		fp;
@@ -1462,17 +1463,12 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	char		cmd[INI_MAX_VALUE_LEN];
 	char		host[INI_MAX_VALUE_LEN];
 	char		prot[INI_MAX_VALUE_LEN];
-	char		portstr[INI_MAX_VALUE_LEN];
 	char		services_ini[MAX_PATH+1];
 	char**		sec_list;
 	str_list_t	list;
 	service_t*	np;
 	service_t	serv;
 	int			log_level;
-	int			listen_backlog;
-	uint		max_clients;
-	uint32_t	options;
-	uint32_t	stack_size;
 
 	iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
 
@@ -1485,46 +1481,20 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	list=iniReadFile(fp);
 	fclose(fp);
 
-	/* Get default key values from "root" section */
-	log_level		= iniGetLogLevel(list,ROOT_SECTION,"LogLevel",startup->log_level);
-	stack_size		= iniGetInteger(list,ROOT_SECTION,"StackSize",0);
-	max_clients		= iniGetInteger(list,ROOT_SECTION,"MaxClients",0);
-	listen_backlog	= iniGetInteger(list,ROOT_SECTION,"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
-	options			= iniGetBitField(list,ROOT_SECTION,"Options",service_options,0);
-
-	/* Enumerate and parse each service configuration */
+	log_level = iniGetLogLevel(list,ROOT_SECTION,"LogLevel",LOG_DEBUG);
 	sec_list = iniGetSectionList(list,"");
     for(i=0; sec_list!=NULL && sec_list[i]!=NULL; i++) {
-		if(!iniGetBool(list,sec_list[i],"Enabled",TRUE)) {
-			lprintf(LOG_WARNING,"Ignoring disabled service: %s",sec_list[i]);
-			continue;
-		}
 		memset(&serv,0,sizeof(service_t));
 		SAFECOPY(serv.protocol,iniGetString(list,sec_list[i],"Protocol",sec_list[i],prot));
 		serv.socket=INVALID_SOCKET;
 		serv.interface_addr=iniGetIpAddress(list,sec_list[i],"Interface",startup->interface_addr);
-		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",max_clients);
-		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",listen_backlog);
-		serv.stack_size=iniGetInteger(list,sec_list[i],"StackSize",stack_size);
-		serv.options=iniGetBitField(list,sec_list[i],"Options",service_options,options);
-		serv.log_level=iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
+		serv.port=iniGetShortInt(list,sec_list[i],"Port",0);
+		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",0);
+		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
+		serv.stack_size=iniGetInteger(list,sec_list[i],"StackSize",0);
+		serv.options=iniGetBitField(list,sec_list[i],"Options",service_options,0);
+		serv.log_level = iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
 		SAFECOPY(serv.cmd,iniGetString(list,sec_list[i],"Command","",cmd));
-
-		p=iniGetString(list,sec_list[i],"Port",serv.protocol,portstr);
-		if(isdigit(*p))
-			serv.port=(ushort)strtol(p,NULL,0);
-		else {
-			struct servent* servent = getservbyname(p,serv.options&SERVICE_OPT_UDP ? "udp":"tcp");
-			if(servent==NULL)
-				servent = getservbyname(p,serv.options&SERVICE_OPT_UDP ? "tcp":"udp");
-			if(servent!=NULL)
-				serv.port = ntohs(servent->s_port);
-		}
-
-		if(serv.port==0) {
-			lprintf(LOG_WARNING,"Ignoring service with invalid port (%s): %s",p, sec_list[i]);
-			continue;
-		}
 
 		if(serv.cmd[0]==0) {
 			lprintf(LOG_WARNING,"Ignoring service with no command: %s",sec_list[i]);
@@ -1600,7 +1570,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.207 $", "%*s %s", revision);
+	sscanf("$Revision: 1.199 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1802,16 +1772,12 @@ void DLLCALL services_thread(void* arg)
 			addr.sin_family = AF_INET;
 			addr.sin_port   = htons(service[i].port);
 
-			if(service[i].port < IPPORT_RESERVED) {
-				if(startup->seteuid!=NULL)
-					startup->seteuid(FALSE);
-			}
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
 			result=retry_bind(socket, (struct sockaddr *) &addr, sizeof(addr)
 				,startup->bind_retry_count, startup->bind_retry_delay, service[i].protocol, lprintf);
-			if(service[i].port < IPPORT_RESERVED) {
-				if(startup->seteuid!=NULL)
-					startup->seteuid(TRUE);
-			}
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
 			if(result!=0) {
 				lprintf(LOG_ERR,"%04d %s",socket,BIND_FAILURE_HELP);
 				close_socket(socket);
@@ -1840,7 +1806,6 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
-		lprintf(LOG_INFO,"0000 %u service sockets bound", total_sockets);
 
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
@@ -1864,6 +1829,7 @@ void DLLCALL services_thread(void* arg)
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
+			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -1883,6 +1849,10 @@ void DLLCALL services_thread(void* arg)
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 						break;
 					}
+#if 0	/* unused */
+					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+						startup->recycle_now=TRUE;
+#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 						startup->recycle_now=FALSE;
@@ -2098,7 +2068,6 @@ void DLLCALL services_thread(void* arg)
 				memset(client,0,sizeof(service_client_t));
 				client->socket=client_socket;
 				client->addr=client_addr;
-				client->addr_len=client_addr_len;
 				client->service=&service[i];
 				client->service->clients++;		/* this should be mutually exclusive */
 				client->udp_buf=udp_buf;
