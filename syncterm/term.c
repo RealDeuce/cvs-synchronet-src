@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.163 2007/06/23 23:48:53 deuce Exp $ */
+/* $Id: term.c,v 1.162 2007/05/27 06:30:19 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -150,8 +150,6 @@ void update_status(struct bbslist *bbs, int speed)
 		strcat(nbuf, " (Logging)");
 	if(speed)
 		sprintf(strchr(nbuf,0)," (%d)", speed);
-	if(cterm.doorway_mode)
-		strcat(nbuf, " (DrWy)");
 	switch(cio_api.mode) {
 		case CIOLIB_MODE_CURSES:
 		case CIOLIB_MODE_CURSES_IBM:
@@ -1213,15 +1211,8 @@ BOOL doterm(struct bbslist *bbs)
 			updated=TRUE;
 			gotoxy(wherex(), wherey());
 			key=getch();
-			if(key==0 || key==0xff) {
+			if(key==0 || key==0xff)
 				key|=getch()<<8;
-				if(cterm.doorway_mode && key & 0xff == 0 && key != 0x2c00 /* ALT-Z */) {
-					ch[0]=0;
-					ch[1]=key>>8;
-					conn_send(ch,2,0);
-					continue;
-				}
-			}
 
 			/* These keys are SyncTERM control keys */
 			/* key is set to zero if consumed */
@@ -1364,9 +1355,6 @@ BOOL doterm(struct bbslist *bbs)
 							font_control(bbs);
 							break;
 						case 10:
-							cterm.doorway_mode=!cterm.doorway_mode;
-							break;
-						case 11:
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();

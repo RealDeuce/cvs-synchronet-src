@@ -26,9 +26,7 @@ else
 endif
 
 ifeq ($(os),netbsd)
- ifndef USE_SYSTEM_CURSES
-  CFLAGS	+=	-DN_CURSES_LIB
- endif
+ CFLAGS	+=	-DN_CURSES_LIB
 endif
 
 $(MTOBJODIR)$(DIRSEP)console$(OFILE).static:

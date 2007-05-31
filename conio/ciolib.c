@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.82 2007/06/06 22:47:43 deuce Exp $ */
+/* $Id: ciolib.c,v 1.81 2007/05/31 09:37:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,7 +207,7 @@ int try_curses_init(int mode)
 		cio_api.hidemouse=curs_hidemouse;
 		cio_api.suspend=curs_suspend;
 		cio_api.resume=curs_resume;
-#if defined(NCURSES_VERSION_MAJOR) || defined (__NetBSD__)
+#ifdef NCURSES_VERSION_MAJOR
 		cio_api.ESCDELAY=&ESCDELAY;
 #endif
 		return(1);
