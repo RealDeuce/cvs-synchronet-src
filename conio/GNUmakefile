@@ -8,30 +8,25 @@ OBJS	+=	$(MTOBJODIR)$(DIRSEP)curs_cio$(OFILE)
 ifdef NO_X
  CFLAGS	+=	-DNO_X
 else
- CFLAGS	+=	-I$(X_HEADERS)
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)console$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)x_cio$(OFILE)
 endif
 
-ifdef WITH_SDL
+ifdef WITH_SDL_AUDIO
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
- OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
+else
+ ifdef WITH_SDL
+  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
+  OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
+  ifeq ($(os),darwin)
+   MTOBJS	+=      $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
+   OBJS 	+=      $(OBJODIR)$(DIRSEP)SDLMain$(OFILE)
+  endif
+ endif
 endif
 
 ifeq ($(os),netbsd)
  CFLAGS	+=	-DN_CURSES_LIB
-endif
-
-ifeq ($(os),darwin)
- ifdef WITH_SDL
-  OBJS	+=	$(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
- endif
-endif
-
-ifeq ($(os),darwin)
-$(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
-	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
 endif
 
 $(MTOBJODIR)$(DIRSEP)console$(OFILE).static:

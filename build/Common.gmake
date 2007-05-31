@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.61 2007/02/25 02:31:37 deuce Exp $
+# $Id: Common.gmake,v 1.62 2007/05/31 09:38:38 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -345,8 +345,10 @@ SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
 
 # SDL disabled by default for the moment.
-ifndef USE_SDL
- WITHOUT_SDL	:=	1
+ifndef WITHOUT_SDL
+ ifndef USE_SDL_AUDIO
+  USE_SDL	:=	1
+ endif
 endif
 
 # Pull in lib-specific flags
