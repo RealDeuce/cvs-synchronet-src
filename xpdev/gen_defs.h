@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.34 2006/04/07 21:12:34 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.37 2007/05/31 09:09:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -353,5 +353,14 @@ typedef struct {
 	#define LOG_DEBUG       7       /* debug-level messages */
 #endif
 
+/* Special hackery for SDL */
+#ifdef WITH_SDL_AUDIO
+	#include <SDL.h>
+
+	#ifdef main
+		#undef main
+	#endif
+	#define	main	XPDEV_main
+#endif
 
 #endif /* Don't add anything after this #endif statement */
