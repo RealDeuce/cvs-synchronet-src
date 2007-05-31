@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.40 2007/07/10 19:56:08 deuce Exp $ */
+/* $Id: scfglib2.c,v 1.39 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,10 +44,8 @@
 BOOL read_file_cfg(scfg_t* cfg, char* error)
 {
 	char	str[MAX_PATH+1],fname[13],c,cmd[LEN_CMD+1];
-	short	i,j;
-	int16_t	n;
-	long	offset=0;
-	int32_t	t;
+	short	i,j,n;
+	long	offset=0,t;
 	FILE	*instream;
 
 	strcpy(fname,"file.cnf");
@@ -428,8 +426,7 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 {
 	char	str[MAX_PATH+1],fname[13],c;
-	short	i,j;
-	int16_t	n;
+	short	i,j,n;
 	long	offset=0;
 	FILE	*instream;
 
@@ -665,8 +662,7 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 BOOL read_chat_cfg(scfg_t* cfg, char* error)
 {
 	char	str[MAX_PATH+1],fname[13];
-	short	i,j;
-	int16_t	n;
+	short	i,j,n;
 	long	offset=0;
 	FILE	*instream;
 
