@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.37 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: ciolib.h,v 1.43 2007/05/31 09:37:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,7 +168,12 @@ enum text_modes
 
     C4350    = C80X50,	/* this is actually "64" in the "real" conio */
 
-    _ORIGMODE = 65      /* original mode at program startup */
+    _ORIGMODE = 65,      /* original mode at program startup */
+
+    C64_40X25 = 147,	/* Commodore 64 40x25 colour mode */
+    C128_40X25,		/* Commodore 128 40x25 colour mode */
+    C128_80X25,		/* Commodore 128 40x25 colour mode */
+	ATARI_40X24,	/* Atari 800 40x24 colour text mode */
 };
 
 #define COLOR_MODE	C80
@@ -237,6 +242,7 @@ typedef struct {
 	int		(*showmouse)	(void);
 	void	(*settitle)		(const char *);
 	void	(*setname)		(const char *);
+	void	(*seticon)		(const void *, unsigned long);
 	void	(*copytext)		(const char *, size_t);
 	char 	*(*getcliptext)	(void);
 	void	(*suspend)		(void);
@@ -295,6 +301,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_insline(void);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt);
 CIOLIBEXPORT void CIOLIBCALL ciolib_settitle(const char *title);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setname(const char *title);
+CIOLIBEXPORT void CIOLIBCALL ciolib_seticon(const void *icon,unsigned long size);
 CIOLIBEXPORT int CIOLIBCALL ciolib_showmouse(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_hidemouse(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_copytext(const char *text, size_t buflen);
@@ -345,6 +352,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 	#define	hidemouse()				ciolib_hidemouse()
 	#define showmouse()				ciolib_showmouse()
 	#define setname(a)				ciolib_setname(a)
+	#define seticon(a,b)			ciolib_seticon(a,b)
 	#define settitle(a)				ciolib_settitle(a)
 	#define copytext(a,b)			ciolib_copytext(a,b)
 	#define getcliptext()			ciolib_getcliptext()
@@ -353,8 +361,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 	#define loadfont(a)				ciolib_loadfont(a)
 #endif
 
-/* Special hackery for SDL */
 #ifdef WITH_SDL
+	#include <SDL.h>
+
+	#ifdef main
+		#undef main
+	#endif
 	#define	main	CIOLIB_main
 #endif
 
