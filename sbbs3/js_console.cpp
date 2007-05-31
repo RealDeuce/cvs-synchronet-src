@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.72 2008/01/17 03:48:59 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.66 2006/12/27 09:19:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,10 +53,8 @@ enum {
 	,CON_PROP_TERMINAL
 	,CON_PROP_WORDWRAP
 	,CON_PROP_QUESTION
-	,CON_PROP_INACTIV_WARN
-	,CON_PROP_INACTIV_HANGUP
 	,CON_PROP_TIMEOUT			/* User inactivity timeout reference */
-	,CON_PROP_TIMELEFT_WARN		/* low timeleft warning counter */
+	,CON_PROP_TIMELEFT_WARN		/* low timeleft warning flag */
 	,CON_PROP_ABORTED
 	,CON_PROP_ABORTABLE
 	,CON_PROP_TELNET_MODE
@@ -108,13 +106,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				return(JS_FALSE);
 			*vp = STRING_TO_JSVAL(js_str);
 			return(JS_TRUE);
-
-		case CON_PROP_INACTIV_WARN:
-			val=sbbs->cfg.sec_warn;
-			break;
-		case CON_PROP_INACTIV_HANGUP:
-			val=sbbs->cfg.sec_hangup;
-			break;
 		case CON_PROP_TIMEOUT:
 			val=sbbs->timeout;
 			break;
@@ -158,7 +149,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case CON_PROP_OUTBUF_SPACE:
 			val=RingBufFree(&sbbs->outbuf);
 			break;
-
 		default:
 			return(JS_TRUE);
 	}
@@ -214,12 +204,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if((str=JS_ValueToString(cx, *vp))==NULL)
 				break;
 			SAFECOPY(sbbs->terminal,JS_GetStringBytes(str));
-			break;
-		case CON_PROP_INACTIV_WARN:
-			sbbs->cfg.sec_warn = (uint16_t)val;
-			break;
-		case CON_PROP_INACTIV_HANGUP:
-			sbbs->cfg.sec_hangup = (uint16_t)val;
 			break;
 		case CON_PROP_TIMEOUT:
 			sbbs->timeout=val;
@@ -283,7 +267,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
-
 		default:
 			return(JS_TRUE);
 	}
@@ -304,8 +287,6 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"screen_columns"	,CON_PROP_COLUMNS			,CON_PROP_FLAGS	,311},
 	{	"autoterm"			,CON_PROP_AUTOTERM			,CON_PROP_FLAGS	,310},
 	{	"terminal"			,CON_PROP_TERMINAL			,CON_PROP_FLAGS ,311},
-	{	"inactivity_warning",CON_PROP_INACTIV_WARN		,CON_PROP_FLAGS, 31401},
-	{	"inactivity_hangup"	,CON_PROP_INACTIV_HANGUP	,CON_PROP_FLAGS, 31401},
 	{	"timeout"			,CON_PROP_TIMEOUT			,CON_PROP_FLAGS	,310},
 	{	"timeleft_warning"	,CON_PROP_TIMELEFT_WARN		,CON_PROP_FLAGS	,310},
 	{	"aborted"			,CON_PROP_ABORTED			,CON_PROP_FLAGS	,310},
@@ -333,10 +314,8 @@ static char* con_prop_desc[] = {
 	,"bitfield of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"terminal type description (e.g. 'ANSI')"
-	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
-	,"number of seconds before disconnection due to user/keyboard inactivity"
-	,"user/keyboard inactivity timeout reference value (time_t format)"
-	,"number of low time-left (5 or fewer minutes remaining) warnings displayed to user"
+	,"user inactivity timeout reference"
+	,"low timeleft warning flag"
 	,"input/output has been aborted"
 	,"output can be aborted with Ctrl-C"
 	,"current telnet mode bitfield (see <tt>TELNET_MODE_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
@@ -802,16 +781,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	sbbs->rputs(JS_GetStringBytes(str));
     return(JS_TRUE);
-}
-
-static JSBool
-js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	if(argc) {
-		if(!js_write(cx, obj, argc, argv, rval))
-			return(JS_FALSE);
-	}
-	return(js_crlf(cx, obj, argc, argv, rval));
 }
 
 static JSBool
@@ -1314,10 +1283,6 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display a raw string")
 	,310
 	},		
-	{"writeln",			js_writeln,			1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("display a raw string followed by a carriage-return/line-feed pair (new-line)")
-	,315
-	},		
 	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("display message text (Ctrl-A codes, @-codes, pipe codes, etc), "
 		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
@@ -1430,21 +1395,6 @@ static jsSyncMethodSpec js_console_functions[] = {
 };
 
 
-static JSBool js_console_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_console_properties, js_console_functions, NULL, 0));
-}
-
-static JSBool js_console_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_console_resolve(cx, obj, JSVAL_NULL));
-}
-
 static JSClass js_console_class = {
      "Console"				/* name			*/
     ,0						/* flags		*/
@@ -1452,8 +1402,8 @@ static JSClass js_console_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_console_get			/* getProperty	*/
 	,js_console_set			/* setProperty	*/
-	,js_console_enumerate	/* enumerate	*/
-	,js_console_resolve		/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
@@ -1468,6 +1418,12 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 
 	if((obj=JS_DefineObject(cx, parent, "console", &js_console_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
+		return(NULL);
+
+	if(!js_DefineSyncProperties(cx, obj, js_console_properties))
+		return(NULL);
+
+	if (!js_DefineSyncMethods(cx, obj, js_console_functions, FALSE)) 
 		return(NULL);
 
 	/* Create an array of pre-defined colors */
@@ -1486,7 +1442,7 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 		jsval val=INT_TO_JSVAL(sbbs->cfg.color[i]);
 		if(!JS_SetElement(cx, color_list, i, &val))
 			return(NULL);
-	}
+	}	
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Controls the user's Telnet/RLogin terminal",310);
