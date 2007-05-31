@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.48 2007/07/11 00:33:05 deuce Exp $ */
+/* $Id: listfile.cpp,v 1.46 2007/01/19 06:22:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,8 +56,7 @@ int sbbs_t::listfiles(uint dirnum, char *filespec, int tofile, long mode)
 	uchar	flagprompt=0;
 	uint	i,j;
 	int		file,found=0,lastbat=0,disp;
-	long	m=0,n,anchor=0,next,datbuflen;
-	int32_t	l;
+	long	l,m=0,n,anchor=0,next,datbuflen;
 	file_t	f,bf[26];	/* bf is batch flagged files */
 
 	if(mode&FL_ULTIME) {
@@ -1061,7 +1060,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					if(sys_status&SS_ABORT)
 						break;
 					putfiledat(&cfg,&f);
-					inputnstime32(&f.dateuled);
+					inputnstime(&f.dateuled);
 					update_uldate(&cfg, &f);
 					break;
 				case 'F':   /* delete file only */
