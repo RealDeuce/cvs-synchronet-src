@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.97 2007/05/27 05:59:31 deuce Exp $ */
+/* $Id: cterm.c,v 1.99 2007/05/30 04:34:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -451,9 +451,9 @@ void scrolldown(void)
 	j=0;
 	for(i=0;i<cterm.width;i++) {
 		if(cterm.emulation == CTERM_EMULATION_ATASCII)
-			buf[i++]=0;
+			buf[j++]=0;
 		else
-			buf[i++]=' ';
+			buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
 	puttext(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y,buf);
@@ -478,9 +478,9 @@ void scrollup(void)
 	j=0;
 	for(i=0;i<cterm.width;i++) {
 		if(cterm.emulation == CTERM_EMULATION_ATASCII)
-			buf[i++]=0;
+			buf[j++]=0;
 		else
-			buf[i++]=' ';
+			buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
 	puttext(cterm.x,cterm.y+cterm.height-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
@@ -502,9 +502,9 @@ void dellines(int lines)
 	k=cterm.width*lines;
 	for(i=0;i<k;i++) {
 		if(cterm.emulation == CTERM_EMULATION_ATASCII)
-			buf[i++]=0;
+			buf[j++]=0;
 		else
-			buf[i++]=' ';
+			buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
 	puttext(cterm.x,cterm.y+cterm.height-lines,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
@@ -520,9 +520,9 @@ void clear2bol(void)
 	j=0;
 	for(i=0;i<k;i++) {
 		if(cterm.emulation == CTERM_EMULATION_ATASCII)
-			buf[i++]=0;
+			buf[j++]=0;
 		else
-			buf[i++]=' ';
+			buf[j++]=' ';
 		buf[j++]=cterm.attr;
 	}
 	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+wherex()-1,cterm.y+wherey()-1,buf);
@@ -572,6 +572,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 	char	tmp[1024];
 	int		i,j,k,l;
 	int		row,col;
+	struct text_info ti;
 
 	switch(cterm.escbuf[0]) {
 		case '[':
@@ -866,7 +867,8 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					break;
 #if 0
 				case 'U':
-					clearscreen(7);
+					gettextinfo(&ti);
+					clearscreen(ti.normattr);
 					gotoxy(1,1);
 					break;
 #endif
@@ -920,15 +922,16 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 				case 'm':
 					*(p--)=0;
 					p2=cterm.escbuf+1;
+					gettextinfo(&ti);
 					if(p2>p) {
-						cterm.attr=7;
+						cterm.attr=ti.normattr;
 						break;
 					}
 					while((p=strtok(p2,";"))!=NULL) {
 						p2=NULL;
 						switch(atoi(p)) {
 							case 0:
-								cterm.attr=7;
+								cterm.attr=ti.normattr;
 								break;
 							case 1:
 								cterm.attr|=8;
@@ -1174,17 +1177,19 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.97 $";
+	char	*revision="$Revision: 1.99 $";
 	char *in;
 	char	*out;
 	int		i;
+	struct text_info ti;
 
 	memset(&cterm, 0, sizeof(cterm));
 	cterm.x=xpos;
 	cterm.y=ypos;
 	cterm.height=height;
 	cterm.width=width;
-	cterm.attr=7;
+	gettextinfo(&ti);
+	cterm.attr=ti.normattr;
 	cterm.save_xpos=0;
 	cterm.save_ypos=0;
 	cterm.escbuf[0]=0;
