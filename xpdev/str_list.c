@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.35 2006/08/14 22:55:48 rswindell Exp $ */
+/* $Id: str_list.c,v 1.29 2005/10/12 22:46:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -37,9 +37,6 @@
 
 #include <stdlib.h>		/* malloc and qsort */
 #include <string.h>		/* strtok */
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
 #include "genwrap.h"	/* stricmp */
 #include "str_list.h"
 
@@ -244,7 +241,6 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 {
 	size_t	count;
 	char*	token;
-	char*	tmp;
 	str_list_t	list;
 
 	if(str==NULL || delimit==NULL)
@@ -258,7 +254,7 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 	} else
 		count=strListCount(*lp);
 
-	for(token = strtok_r(str, delimit, &tmp); token!=NULL; token=strtok_r(NULL, delimit, &tmp))
+	for(token = strtok(str, delimit); token!=NULL; token=strtok(NULL, delimit))
 		if(strListAppend(lp, token, count++)==NULL)
 			break;
 
@@ -298,28 +294,22 @@ size_t	strListMerge(str_list_t* list, str_list_t add_list)
 	return(i);
 }
 
-#if defined(_WIN32)
-	#define QSORT_CALLBACK_TYPE	_cdecl
-#else
-	#define QSORT_CALLBACK_TYPE
-#endif
-
-static int QSORT_CALLBACK_TYPE strListCompareAlpha(const void *arg1, const void *arg2)
+static int strListCompareAlpha(const void *arg1, const void *arg2)
 {
    return stricmp(*(char**)arg1, *(char**)arg2);
 }
 
-static int QSORT_CALLBACK_TYPE strListCompareAlphaReverse(const void *arg1, const void *arg2)
+static int strListCompareAlphaReverse(const void *arg1, const void *arg2)
 {
    return stricmp(*(char**)arg2, *(char**)arg1);
 }
 
-static int QSORT_CALLBACK_TYPE strListCompareAlphaCase(const void *arg1, const void *arg2)
+static int strListCompareAlphaCase(const void *arg1, const void *arg2)
 {
    return strcmp(*(char**)arg1, *(char**)arg2);
 }
 
-static int QSORT_CALLBACK_TYPE strListCompareAlphaCaseReverse(const void *arg1, const void *arg2)
+static int strListCompareAlphaCaseReverse(const void *arg1, const void *arg2)
 {
    return strcmp(*(char**)arg2, *(char**)arg1);
 }
@@ -374,17 +364,18 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 		lp=&list;
 	}
 
-	if(fp!=NULL) {
-		count=strListCount(*lp);
-		while(!feof(fp)) {
-			if(buf==NULL && (buf=(char*)alloca(max_line_len+1))==NULL)
-				return(NULL);
-			
-			if(fgets(buf,max_line_len+1,fp)==NULL)
-				break;
-			strListAppend(lp, buf, count++);
-		}
+	count=strListCount(*lp);
+	while(!feof(fp)) {
+		if(buf==NULL && (buf=(char*)malloc(max_line_len+1))==NULL)
+			return(NULL);
+		
+		if(fgets(buf,max_line_len+1,fp)==NULL)
+			break;
+		strListAppend(lp, buf, count++);
 	}
+
+	if(buf!=NULL)
+		free(buf);
 
 	return(*lp);
 }
