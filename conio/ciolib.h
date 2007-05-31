@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.41 2007/05/25 02:41:59 deuce Exp $ */
+/* $Id: ciolib.h,v 1.42 2007/05/27 04:31:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,6 +173,7 @@ enum text_modes
     C64_40X25 = 147,	/* Commodore 64 40x25 colour mode */
     C128_40X25,		/* Commodore 128 40x25 colour mode */
     C128_80X25,		/* Commodore 128 40x25 colour mode */
+	ATARI_40X24,	/* Atari 800 40x24 colour text mode */
 };
 
 #define COLOR_MODE	C80
