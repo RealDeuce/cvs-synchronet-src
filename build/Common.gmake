@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.63 2007/05/31 09:41:55 deuce Exp $
+# $Id: Common.gmake,v 1.61 2007/02/25 02:31:37 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -344,11 +344,9 @@ CIOLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)conio
 SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
 
-# SDL ciolib enabled by default for the moment.
-ifndef WITHOUT_SDL
- ifndef USE_SDL_AUDIO
-  USE_SDL	:=	1
- endif
+# SDL disabled by default for the moment.
+ifndef USE_SDL
+ WITHOUT_SDL	:=	1
 endif
 
 # Pull in lib-specific flags
