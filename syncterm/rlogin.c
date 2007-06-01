@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: rlogin.c,v 1.29 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: rlogin.c,v 1.25 2007/05/29 06:58:35 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -26,16 +24,7 @@ void rlogin_input_thread(void *args)
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(sock, &rds);
-#ifdef __linux__
-		{
-			struct timeval tv;
-			tv.tv_sec=0;
-			tv.tv_usec=500000;
-			rd=select(sock+1, &rds, NULL, NULL, &tv);
-		}
-#else
 		rd=select(sock+1, &rds, NULL, NULL, NULL);
-#endif
 		if(rd==-1) {
 			if(errno==EBADF)
 				break;
@@ -70,7 +59,6 @@ void rlogin_output_thread(void *args)
 	conn_api.output_thread_running=1;
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
-		ret=0;
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
@@ -79,16 +67,7 @@ void rlogin_output_thread(void *args)
 			while(sent < wr) {
 				FD_ZERO(&wds);
 				FD_SET(sock, &wds);
-#ifdef __linux__
-				{
-					struct timeval tv;
-					tv.tv_sec=0;
-					tv.tv_usec=500000;
-					ret=select(sock+1, NULL, &wds, NULL, &tv);
-				}
-#else
 				ret=select(sock+1, NULL, &wds, NULL, NULL);
-#endif
 				if(ret==-1) {
 					if(errno==EBADF)
 						break;
@@ -141,7 +120,7 @@ int rlogin_connect(struct bbslist *bbs)
 	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
 	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		FREE_AND_NULL(conn_api.rd_buf);
+		free(conn_api.rd_buf);
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
 		return(-1);
