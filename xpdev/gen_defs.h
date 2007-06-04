@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.35 2006/05/28 21:43:15 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.37 2007/05/31 09:09:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -354,7 +354,12 @@ typedef struct {
 #endif
 
 /* Special hackery for SDL */
-#ifdef WITH_SDL
+#ifdef WITH_SDL_AUDIO
+	#include <SDL.h>
+
+	#ifdef main
+		#undef main
+	#endif
 	#define	main	XPDEV_main
 #endif
 
