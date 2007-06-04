@@ -53,8 +53,8 @@ object MailCfgDlg: TMailCfgDlg
     Top = 4
     Width = 342
     Height = 245
-    ActivePage = SMTPTabSheet
-    TabIndex = 1
+    ActivePage = SendMailTabSheet
+    TabIndex = 3
     TabOrder = 3
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
@@ -161,7 +161,7 @@ object MailCfgDlg: TMailCfgDlg
       end
       object LogFileCheckBox: TCheckBox
         Left = 185
-        Top = 172
+        Top = 140
         Width = 146
         Height = 24
         Hint = 'Save log entries to a file (in your DATA directory)'
@@ -193,28 +193,17 @@ object MailCfgDlg: TMailCfgDlg
         ShowHint = True
         TabOrder = 8
       end
-      object DebugHeadersCheckBox: TCheckBox
-        Left = 185
-        Top = 140
-        Width = 146
-        Height = 24
-        Hint = 'Log all received mail headers (for debugging)'
-        Caption = 'Log RX Headers'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 9
-      end
     end
     object SMTPTabSheet: TTabSheet
       Caption = 'SMTP'
       ImageIndex = 1
-      object SMTPPortLabel: TLabel
+      object TelnetPortLabel: TLabel
         Left = 9
         Top = 12
         Width = 104
         Height = 24
         AutoSize = False
-        Caption = 'Transfer Port'
+        Caption = 'Listening Port'
       end
       object DefaultUserLabel: TLabel
         Left = 9
@@ -225,8 +214,8 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Default User'
       end
       object MaxRecipientsLabel: TLabel
-        Left = 193
-        Top = 76
+        Left = 9
+        Top = 44
         Width = 104
         Height = 24
         AutoSize = False
@@ -240,14 +229,6 @@ object MailCfgDlg: TMailCfgDlg
         AutoSize = False
         Caption = 'Max Msg Size'
       end
-      object SubPortLabel: TLabel
-        Left = 9
-        Top = 44
-        Width = 104
-        Height = 24
-        AutoSize = False
-        Caption = 'Submission Port'
-      end
       object SMTPPortEdit: TEdit
         Left = 113
         Top = 12
@@ -258,17 +239,28 @@ object MailCfgDlg: TMailCfgDlg
         ShowHint = True
         TabOrder = 0
       end
+      object DebugHeadersCheckBox: TCheckBox
+        Left = 185
+        Top = 12
+        Width = 146
+        Height = 24
+        Hint = 'Log all received mail headers (for debugging)'
+        Caption = 'Log Headers'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 1
+      end
       object DefaultUserEdit: TEdit
         Left = 113
         Top = 108
-        Width = 176
+        Width = 185
         Height = 24
         Hint = 
           'Mail for unknown users will go into this user'#39's mailbox (e.g. "s' +
           'ysop")'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 2
+        TabOrder = 3
       end
       object AllowRelayCheckBox: TCheckBox
         Left = 9
@@ -279,28 +271,28 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Allow Authenticated Users to Relay Mail'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
+        TabOrder = 4
         OnClick = AllowRelayCheckBoxClick
       end
       object MaxRecipientsEdit: TEdit
-        Left = 296
-        Top = 76
-        Width = 33
+        Left = 113
+        Top = 44
+        Width = 48
         Height = 24
         Hint = 'Maximum number of recipients for a single message'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 1
+        TabOrder = 2
       end
       object MaxMsgSizeEdit: TEdit
         Left = 113
         Top = 76
-        Width = 72
+        Width = 80
         Height = 24
         Hint = 'Maximum received message size (in bytes)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 5
       end
       object AuthViaIpCheckBox: TCheckBox
         Left = 9
@@ -313,38 +305,18 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Allow Authentication via POP3, Telnet, etc.'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 6
       end
       object NotifyCheckBox: TCheckBox
         Left = 185
-        Top = 12
+        Top = 44
         Width = 146
         Height = 24
         Hint = 'Notify local mail recipients of received e-mails'
         Caption = 'Notify Recipients'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
-      end
-      object SubPortEdit: TEdit
-        Left = 113
-        Top = 44
-        Width = 48
-        Height = 24
-        Hint = 'TCP port number for incoming SMTP submissions (default=587)'
-        ParentShowHint = False
-        ShowHint = True
         TabOrder = 7
-      end
-      object UseSubPortCheckBox: TCheckBox
-        Left = 185
-        Top = 44
-        Width = 144
-        Height = 17
-        Hint = 'Enable the SMTP submission port'
-        Caption = 'Enabled'
-        TabOrder = 8
-        OnClick = UseSubPortCheckBoxClick
       end
     end
     object POP3TabSheet: TTabSheet
