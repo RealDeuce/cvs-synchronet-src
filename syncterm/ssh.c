@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: ssh.c,v 1.8 2008/01/19 21:08:44 deuce Exp $ */
+/* $Id: ssh.c,v 1.2 2007/06/04 04:55:19 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -26,30 +24,24 @@ void ssh_input_thread(void *args)
 	int rd;
 	size_t	buffered;
 	size_t	buffer;
-	struct timeval tv;
 
 	conn_api.input_thread_running=1;
 	while(ssh_active && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(sock, &rds);
-		tv.tv_sec = 0;
-		tv.tv_usec = 100;
-
-		rd=select(sock+1, &rds, NULL, NULL, &tv);
+		rd=select(sock+1, &rds, NULL, NULL, NULL);
 		if(rd==-1) {
 			if(errno==EBADF)
 				break;
 			rd=0;
 		}
-		if(rd == 0)
-			continue;
 		while(rd) {
 			status=cl.PopData(ssh_session, conn_api.rd_buf, conn_api.rd_buf_size, &rd);
 			if(cryptStatusError(status)) {
 				char	str[2048];
 				int		err_len;
 
-				if(status==CRYPT_ERROR_COMPLETE || status == CRYPT_ERROR_READ) {	/* connection closed */
+				if(status==CRYPT_ERROR_COMPLETE) {	/* connection closed */
 					ssh_active=FALSE;
 					break;
 				}
@@ -58,7 +50,6 @@ void ssh_input_thread(void *args)
 				err_len=sizeof(str)-strlen(str)-1;
 				cl.GetAttributeString(ssh_session, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE, str+strlen(str), &err_len);
 				uifcmsg("Error recieving data",str);
-				break;
 			}
 			else {
 				buffered=0;
@@ -76,9 +67,11 @@ void ssh_input_thread(void *args)
 
 void ssh_output_thread(void *args)
 {
+	fd_set	wds;
 	int		wr;
 	int		ret;
 	size_t	sent;
+	size_t	send;
 	int		status;
 
 	conn_api.output_thread_running=1;
@@ -121,10 +114,11 @@ int ssh_connect(struct bbslist *bbs)
 	int off=1;
 	int status;
 	char password[MAX_PASSWD_LEN+1];
-	char username[MAX_USER_LEN+1];
 
 	init_uifc(TRUE, TRUE);
 
+	if(!crypt_loaded)
+		init_crypt();
 	if(!crypt_loaded) {
 		uifcmsg("Cannot load cryptlib - SSH inoperative",	"`Cannot load cryptlib`\n\n"
 					"Cannot load the file "
@@ -146,14 +140,12 @@ int ssh_connect(struct bbslist *bbs)
 
 	ssh_active=FALSE;
 
-	uifc.pop("Creating Session");
 	status=cl.CreateSession(&ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH);
 	if(cryptStatusError(status)) {
 		char	str[1024];
 		sprintf(str,"Error %d creating session",status);
 		uifcmsg("Error creating session",str);
 		conn_api.terminate=1;
-		uifc.pop(NULL);
 		return(-1);
 	}
 
@@ -161,42 +153,29 @@ int ssh_connect(struct bbslist *bbs)
 	setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, ( char * )&off, sizeof ( off ) );
 
 	SAFECOPY(password,bbs->password);
-	SAFECOPY(username,bbs->user);
 
-	uifc.pop(NULL);
-
-	if(!username[0])
-		uifcinput("UserID",MAX_USER_LEN,username,0,"No stored UserID.");
-
-	uifc.pop("Setting Username");
 	/* Add username/password */
-	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, username, strlen(username));
+	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, bbs->user, strlen(bbs->user));
 	if(cryptStatusError(status)) {
 		char	str[1024];
 		sprintf(str,"Error %d setting username",status);
 		uifcmsg("Error setting username",str);
 		conn_api.terminate=1;
-		uifc.pop(NULL);
 		return(-1);
 	}
 
-	uifc.pop(NULL);
 	if(!password[0])
 		uifcinput("Password",MAX_PASSWD_LEN,password,K_PASSWORD,"Incorrect password.  Try again.");
 
-	uifc.pop("Setting Password");
 	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_PASSWORD, password, strlen(password));
 	if(cryptStatusError(status)) {
 		char	str[1024];
 		sprintf(str,"Error %d setting password",status);
 		uifcmsg("Error setting password",str);
 		conn_api.terminate=1;
-		uifc.pop(NULL);
 		return(-1);
 	}
 
-	uifc.pop(NULL);
-	uifc.pop("Setting Username");
 	/* Pass socket to cryptlib */
 	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, sock);
 	if(cryptStatusError(status)) {
@@ -204,13 +183,10 @@ int ssh_connect(struct bbslist *bbs)
 		sprintf(str,"Error %d passing socket",status);
 		uifcmsg("Error passing socket",str);
 		conn_api.terminate=1;
-		uifc.pop(NULL);
 		return(-1);
 	}
 
 	/* Activate the session */
-	uifc.pop(NULL);
-	uifc.pop("Activating Session");
 	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_ACTIVE, 1);
 	if(cryptStatusError(status)) {
 		char	str[2048];
@@ -222,12 +198,10 @@ int ssh_connect(struct bbslist *bbs)
 		cl.GetAttributeString(ssh_session, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE, str+strlen(str), &err_len);
 		uifcmsg("Error activating session",str);
 		conn_api.terminate=1;
-		uifc.pop(NULL);
 		return(-1);
 	}
 
 	ssh_active=TRUE;
-	uifc.pop(NULL);
 
 	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
 	create_conn_buf(&conn_outbuf, BUFFER_SIZE);
@@ -247,13 +221,11 @@ int ssh_connect(struct bbslist *bbs)
 int ssh_close(void)
 {
 	conn_api.terminate=1;
+	cl.DestroySession(ssh_session);
 	ssh_active=FALSE;
-	cl.SetAttribute(ssh_session, CRYPT_SESSINFO_ACTIVE, 0);
 	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
-	cl.DestroySession(ssh_session);
 	closesocket(sock);
-	sock=INVALID_SOCKET;
 	destroy_conn_buf(&conn_inbuf);
 	destroy_conn_buf(&conn_outbuf);
 	FREE_AND_NULL(conn_api.rd_buf);
