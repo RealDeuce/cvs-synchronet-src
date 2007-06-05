@@ -1,11 +1,8 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: modem.c,v 1.13 2008/01/20 21:28:36 rswindell Exp $ */
+/* $Id: modem.c,v 1.7 2007/05/29 06:58:35 deuce Exp $ */
 
 #include <stdlib.h>
 
 #include "comio.h"
-#include "ciolib.h"
 
 #include "sockwrap.h"
 
@@ -36,7 +33,7 @@ void modem_input_thread(void *args)
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
-		if((comGetModemStatus(com)&COM_DCD) == 0)
+		if(comGetModemStatus(com)&COM_DCD == 0)
 			break;
 	}
 	conn_api.input_thread_running=0;
@@ -70,7 +67,7 @@ void modem_output_thread(void *args)
 		}
 		else
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-		if((comGetModemStatus(com)&COM_DCD) == 0)
+		if(comGetModemStatus(com)&COM_DCD == 0)
 			break;
 	}
 	conn_api.output_thread_running=0;
@@ -118,13 +115,11 @@ int modem_connect(struct bbslist *bbs)
 		conn_api.terminate=-1;
 		return(-1);
 	}
-	if(settings.mdm.com_rate) {
-		if(!comSetBaudRate(com, settings.mdm.com_rate)) {
-			uifcmsg("Cannot Set Baudrate",	"`Cannot Set Baudrate`\n\n"
-							"Cannot open the specified modem device.\n");
-			conn_api.terminate=-1;
-			return(-1);
-		}
+	if(!comSetBaudRate(com, 115200)) {
+		uifcmsg("Cannot Set Baudrate",	"`Cannot Set Baudrate`\n\n"
+						"Cannot open the specified modem device.\n");
+		conn_api.terminate=-1;
+		return(-1);
 	}
 	if(!comRaiseDTR(com)) {
 		uifcmsg("Cannot Raise DTR",	"`Cannot Raise DTR`\n\n"
@@ -165,7 +160,7 @@ int modem_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 	uifc.pop("Dialing...");
-	comWriteString(com, settings.mdm.dial_string);
+	comWriteString(com, "ATDT");
 	comWriteString(com, bbs->addr);
 	comWriteString(com, "\r");
 
@@ -175,20 +170,12 @@ int modem_connect(struct bbslist *bbs)
 			modem_close();
 			uifc.pop(NULL);
 			uifcmsg("No Answer",	"`No Answer`\n\n"
-							"The modem did not connect within 30 seconds.\n");
+							"The modem did not connect withing 30 seconds.\n");
 			conn_api.terminate=-1;
 			return(-1);
 		}
 		if(strstr(respbuf, bbs->addr))	/* Dial command echoed */
 			continue;
-		/* Abort with keystroke */
-		if(kbhit()) {
-			modem_close();
-			uifc.pop(NULL);
-			uifcmsg("Aborted", "Dialing aborted");
-			conn_api.terminate=-1;
-			return(-1);
-		}
 		break;
 	}
 
@@ -223,7 +210,7 @@ int modem_connect(struct bbslist *bbs)
 		modem_close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
-		FREE_AND_NULL(conn_api.rd_buf);
+		free(conn_api.rd_buf);
 		return(-1);
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
