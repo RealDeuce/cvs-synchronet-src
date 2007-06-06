@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.83 2007/06/29 05:42:45 deuce Exp $ */
+/* $Id: ciolib.c,v 1.82 2007/06/06 22:47:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -734,7 +734,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 	int i;
 	int width,height;
 	struct text_info ti;
-	int old_ptcm=puttext_can_move;
 
 	CIOLIB_INIT();
 	
@@ -747,10 +746,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 		buf[i++]=' ';
 		buf[i++]=ti.attribute;
 	}
-	puttext_can_move=1;
 	ciolib_puttext(ti.winleft,ti.wintop,ti.winright,ti.winbottom,buf);
 	ciolib_gotoxy(1,1);
-	puttext_can_move=old_ptcm;;
 }
 
 CIOLIBEXPORT void CIOLIBCALL ciolib_delline(void)

@@ -146,7 +146,6 @@ int init_crypt(void)
 			crypt_loaded=1;
 			return(0);
 		}
-		cl.End();
 	}
 	return(-1);
 }
