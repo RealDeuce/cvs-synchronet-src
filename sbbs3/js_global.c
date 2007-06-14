@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.215 2008/01/07 06:14:05 deuce Exp $ */
+/* $Id: js_global.c,v 1.211 2007/06/11 21:17:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2227,26 +2227,6 @@ js_md5_calc(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
-js_skipsp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		str;
-	JSString*	js_str;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	js_str = JS_NewStringCopyZ(cx, skipsp(str));
-	if(js_str==NULL)
-		return(JS_FALSE);
-
-	*rval = STRING_TO_JSVAL(js_str);
-	return(JS_TRUE);
-}
-
-static JSBool
 js_truncsp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -2327,29 +2307,6 @@ js_backslash(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSBool
-js_fullpath(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char		path[MAX_PATH+1];
-	char*		str;
-	JSString*	js_str;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	SAFECOPY(path,str);
-	_fullpath(path, str, sizeof(path));
-
-	if((js_str = JS_NewStringCopyZ(cx, path))==NULL)
-		return(JS_FALSE);
-
-	*rval = STRING_TO_JSVAL(js_str);
-	return(JS_TRUE);
-}
-
 
 static JSBool
 js_getfname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2416,38 +2373,6 @@ js_getfcase(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		*rval = STRING_TO_JSVAL(js_str);
 	}
-	return(JS_TRUE);
-}
-
-static JSBool
-js_dosfname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		str;
-	char		path[MAX_PATH+1];
-	JSString*	js_str;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-#if defined(_WIN32)
-
-	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	if(GetShortPathName(str,path,sizeof(path))) {
-		js_str = JS_NewStringCopyZ(cx, path);
-		if(js_str==NULL)
-			return(JS_FALSE);
-
-		*rval = STRING_TO_JSVAL(js_str);
-	}
-
-#else	/* No non-Windows equivalent */
-
-	*rval = argv[0];
-
-#endif
-
 	return(JS_TRUE);
 }
 
@@ -2648,7 +2573,8 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*			fname;
 	int32			actime;
 	int32			modtime;
-	struct utimbuf	ut;
+	struct utimbuf	tbuf;
+	struct utimbuf*	t=NULL;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -2658,18 +2584,17 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((fname=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	/* use current time as default */
-	ut.actime = ut.modtime = time(NULL);
-
 	if(argc>1) {
-		actime=modtime=ut.actime;
+		memset(&tbuf,0,sizeof(tbuf));
+		actime=modtime=time(NULL);
 		JS_ValueToInt32(cx,argv[1],&actime);
 		JS_ValueToInt32(cx,argv[2],&modtime);
-		ut.actime=actime;
-		ut.modtime=modtime;
+		tbuf.actime=actime;
+		tbuf.modtime=modtime;
+		t=&tbuf;
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(utime(fname,&ut)==0);
+	*rval = BOOLEAN_TO_JSVAL(utime(fname,t)==0);
 
 	return(JS_TRUE);
 }
@@ -3203,12 +3128,8 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("strip extended-ASCII characters from string, returns modified string")
 	,310
 	},		
-	{"skipsp",			js_skipsp,			1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("skip (trim) white-space characters off <b>beginning</b> of string, returns modified string")
-	,315
-	},
 	{"truncsp",			js_truncsp,			1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("truncate (trim) white-space characters off <b>end</b> of string, returns modified string")
+	,JSDOCSTR("truncate (trim) white-space characters off end of string, returns modified string")
 	,310
 	},
 	{"truncstr",		js_truncstr,		2,	JSTYPE_STRING,	JSDOCSTR("text, charset")
@@ -3229,10 +3150,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"(i.e. \"slash\" or \"backslash\")")
 	,312
 	},
-	{"fullpath",		js_fullpath,		1,	JSTYPE_STRING,	JSDOCSTR("path")
-	,JSDOCSTR("Creates an absolute or full path name for the specified relative path name.")
-	,315
-	},
 	{"file_getname",	js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
 	,JSDOCSTR("returns filename portion of passed path string")
 	,311
@@ -3243,7 +3160,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,311
 	},
 	{"file_getcase",	js_getfcase,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
-	,JSDOCSTR("returns correct case of filename (long version of filename on Windows) "
+	,JSDOCSTR("returns correct case of filename (long version of filename on Win32) "
 		"or <i>undefined</i> if the file doesn't exist")
 	,311
 	},
@@ -3252,12 +3169,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	"optionally including the local hostname (e.g. <tt>path/file.<i>host</i>.<i>domain</i>.ext</tt> "
 	"or <tt>path/file.<i>host</i>.ext</tt>) if such a variation of the filename exists")
 	,312
-	},
-	{"file_getdosname",	js_dosfname,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
-	,JSDOCSTR("returns DOS-compatible (Micros~1 shortened) version of specified <i>path/filename</i>"
-		"(on Windows only)<br>"
-		"returns unmodified <i>path/filename</i> on other platforms")
-	,315
 	},
 	{"file_exists",		js_fexist,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
 	,JSDOCSTR("verify a file's existence")
