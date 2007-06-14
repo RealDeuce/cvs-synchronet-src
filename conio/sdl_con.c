@@ -1,3 +1,5 @@
+/* $Id: sdl_con.c,v 1.97 2007/06/14 22:02:18 deuce Exp $ */
+
 #if (defined(__MACH__) && defined(__APPLE__))
 #include <Carbon/Carbon.h>
 #endif
@@ -540,12 +542,9 @@ int sdl_init(int mode)
 	sdl.mutexP(sdl_updlock);
 	sdl_updated=1;
 	sdl.mutexV(sdl_updlock);
-
 	if(mode==CIOLIB_MODE_SDL_FULLSCREEN)
 		fullscreen=1;
-
 	sdl_init_mode(3);
-
 	sdl_user_func(SDL_USEREVENT_INIT);
 
 	sdl.SemWait(sdl_init_complete);
@@ -1335,6 +1334,8 @@ int sdl_full_screen_redraw(int force)
 
 unsigned int cp437_convert(unsigned int unicode)
 {
+	if(unicode <= 0x80)
+		return(unicode);
 	switch(unicode) {
 		case 0x00c7:
 			return(0x80);
@@ -1599,16 +1600,17 @@ unsigned int cp437_convert(unsigned int unicode)
 /* Called from event thread only */
 unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned int unicode)
 {
+	int expect;
+	int i;
+
 #ifdef __DARWIN__
 	if(unicode==0x7f) {
 		unicode=0x08;
 		keysym=SDLK_BACKSPACE;
 	}
 #endif
-	if(!unicode || (mod & (KMOD_META|KMOD_ALT))) {
-		int expect;
-		int i;
 
+	if((!unicode) || (mod & (KMOD_META|KMOD_ALT))) {
 		for(i=0;sdl_keyval[i].keysym;i++) {
 			if(sdl_keyval[i].keysym==keysym) {
 				if(mod & KMOD_CTRL)
@@ -1618,28 +1620,69 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 				else
 					expect=sdl_keyval[i].key;
 
+				/*
+				 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
+				 * So, do that here. *sigh*
+				 */
+				if(keysym >= SDLK_KP0 && keysym <= SDLK_KP_EQUALS 
+						&& (mod & KMOD_NUM)
+						&& (!(mod & (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META) ))) {
+					switch(keysym) {
+						case SDLK_KP0:
+							return('0');
+						case SDLK_KP1:
+							return('1');
+						case SDLK_KP2:
+							return('2');
+						case SDLK_KP3:
+							return('3');
+						case SDLK_KP4:
+							return('4');
+						case SDLK_KP5:
+							return('5');
+						case SDLK_KP6:
+							return('6');
+						case SDLK_KP7:
+							return('7');
+						case SDLK_KP8:
+							return('8');
+						case SDLK_KP9:
+							return('9');
+						case SDLK_KP_PERIOD:
+							return('.');
+						case SDLK_KP_DIVIDE:
+							return('/');
+						case SDLK_KP_MULTIPLY:
+							return('*');
+						case SDLK_KP_MINUS:
+							return('-');
+						case SDLK_KP_PLUS:
+							return('+');
+						case SDLK_KP_ENTER:
+							return('\r');
+						case SDLK_KP_EQUALS:
+							return('=');
+					}
+				}
+
 				/* "Extended" syms are always right */
 				if(!unicode)
 					return(expect);
-				if(sdl_keybal[i].key > 255)
+				if(sdl_keyval[i].key > 255)
 					return(expect);
 				/*
-				 * If we don't know that this key can
+				 * If we don't know that this key should
 				 * return the unicode translation, then
 				 * we're not right and this is prolly
 				 * an AltGr sequence.
 				 */
-				if(mod & (KMOD_META|KMOD_ALT)) {
-					if(unicode==expect)
-						return(sdl_keyval[i].alt);
-				}
+				if(unicode==expect)
+					return(sdl_keyval[i].alt);
+				return(0x0001ffff);
 			}
 		}
-
 		return(0x0001ffff);
 	}
-	if(unicode <= 0x7f)
-		return(unicode);
 	return(cp437_convert(unicode));
 }
 
