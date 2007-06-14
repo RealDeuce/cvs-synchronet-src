@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.28 2007/07/10 19:41:32 deuce Exp $ */
+/* $Id: scfgdefs.h,v 1.26 2004/09/24 20:30:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,11 +61,11 @@ typedef struct {                        /* Message sub board info */
 			*post_ar,
 			*op_ar,
 			*mod_ar;
-	uint16_t	grp,						/* Which group this sub belongs to */
+	ushort	grp,						/* Which group this sub belongs to */
 			ptridx, 					/* Index into pointer file */
 			qwkconf,					/* QWK conference number */
 			maxage; 					/* Max age of messages (in days) */
-	uint32_t	misc,						/* Miscellaneous flags */
+	ulong	misc,						/* Miscellaneous flags */
 			maxmsgs,					/* Max number of messages allowed */
 			maxcrcs;					/* Max number of CRCs to keep */
 	faddr_t faddr;						/* FidoNet address */
@@ -102,12 +102,12 @@ typedef struct {                        /* Transfer Directory Info */
 			*op_ar,
 			seqdev, 					/* Sequential access device number */
 			sort;						/* Sort type */
-	uint16_t	maxfiles,					/* Max number of files allowed */
+	ushort	maxfiles,					/* Max number of files allowed */
 			maxage, 					/* Max age of files (in days) */
 			up_pct, 					/* Percentage of credits on uloads */
 			dn_pct, 					/* Percentage of credits on dloads */
 			lib;						/* Which library this dir is in */
-	uint32_t	misc;						/* Miscellaneous bits */
+	ulong	misc;						/* Miscellaneous bits */
 
 } dir_t;
 
@@ -118,7 +118,7 @@ typedef struct {                        /* Transfer Library Information */
 			code_prefix[LEN_CODE+1],	/* Prefix for internal code */
 			parent_path[48];			/* Parent for dir paths */
 	uchar	*ar;
-	uint16_t	offline_dir;				/* Offline file directory */
+	ushort	offline_dir;				/* Offline file directory */
 
 } lib_t;
 
@@ -145,7 +145,7 @@ typedef struct {						/* Swappable executable */
 
 typedef struct {						/* OS/2 executable */
 	char	name[13];					/* Program name */
-	uint32_t	misc;						/* See OS2PGM_* */
+	ulong	misc;						/* See OS2PGM_* */
 
 } natvpgm_t;
 
@@ -163,8 +163,8 @@ typedef struct {						/* External Program Information */
             event,                      /* Execute upon what event */
 			textra, 					/* Extra time while in this program */
 			maxtime;					/* Maximum time allowed in this door */
-	uint16_t	sec;						/* Section this program belongs to */
-	uint32_t	cost,						/* Cost to run in credits */
+	ushort	sec;						/* Section this program belongs to */
+	ulong	cost,						/* Cost to run in credits */
 			misc;						/* Misc. bits - ANSI, DOS I/O etc. */
 
 } xtrn_t;
@@ -173,7 +173,7 @@ typedef struct {						/* External Page program info */
 	char	cmd[LEN_CMD+1], 			/* Command line */
 			arstr[LEN_ARSTR+1];			/* ARS for this chat page */
 	uchar	*ar;
-	uint32_t	misc;						/* Intercept I/O */
+	ulong	misc;						/* Intercept I/O */
 
 } page_t;
 
@@ -186,7 +186,7 @@ typedef struct {						/* Chat action set */
 typedef struct {						/* Chat action info */
 	char	cmd[LEN_CHATACTCMD+1],		/* Command word */
 			out[LEN_CHATACTOUT+1];		/* Output */
-	uint16_t	actset; 					/* Set this action belongs to */
+	ushort	actset; 					/* Set this action belongs to */
 
 } chatact_t;
 
@@ -203,15 +203,15 @@ typedef struct {						/* Chat Channel Information */
 	char	name[26];					/* Channel description */
 	char	arstr[LEN_ARSTR+1];			/* Access requirements */
 	uchar	*ar;
-	uint16_t	actset, 					/* Set of actions used in this chan */
+	ushort	actset, 					/* Set of actions used in this chan */
 			guru;						/* Guru file number */
-	uint32_t	cost,						/* Cost to join */
+	ulong	cost,						/* Cost to join */
 			misc;						/* Misc. bits CHAN_* definitions */
 
 } chan_t;
 
 typedef struct {                        /* Modem Result codes info */
-	uint16_t	code,						/* Numeric Result Code */
+	ushort	code,						/* Numeric Result Code */
 			cps,    		            /* Average Transfer CPS */
 			rate;   		            /* DCE Rate (Modem to Modem) */
 	char	str[LEN_MODEM+1];   		/* String to use for description */
@@ -229,7 +229,7 @@ typedef struct {                        /* Transfer Protocol information */
 			blindcmd[LEN_CMD+1],		/* Blind upload command line */
 			bicmd[LEN_CMD+1];			/* Bidirectional command line */
 	uchar	*ar;
-	uint32_t	misc;						/* Miscellaneous bits */
+	ulong	misc;						/* Miscellaneous bits */
 
 } prot_t;
 
@@ -282,7 +282,7 @@ typedef struct {						/* External Editors */
 			lcmd[LEN_CMD+1],			/* Local command line */
 			rcmd[LEN_CMD+1];			/* Remote command line */
 	uchar	*ar;
-	uint32_t	misc;						/* Misc. bits */
+	ulong	misc;						/* Misc. bits */
 	uchar	type;						/* Drop file type */
 
 } xedit_t;
@@ -293,12 +293,12 @@ typedef struct {						/* Generic Timed Event */
 			days,						/* week days to run event */
 			dir[LEN_DIR+1], 			/* Start-up directory */
 			cmd[LEN_CMD+1]; 			/* Command line */
-	uint16_t	node,						/* Node to execute event */
+	ushort	node,						/* Node to execute event */
 			time,						/* Time to run event */
 			freq;						/* Frequency to run event */
-	uint32_t	misc,						/* Misc bits */
+	ulong	misc,						/* Misc bits */
 			mdays;						/* days of month (if non-zero) to run event */
-	time32_t	last;						/* Last time event ran */
+	time_t	last;						/* Last time event ran */
 
 } event_t;
 
@@ -309,13 +309,13 @@ typedef struct {						/* QWK Network Hub */
 			call[LEN_CMD+1],			/* Call-out command line to execute */
 			pack[LEN_CMD+1],			/* Packing command line */
 			unpack[LEN_CMD+1];			/* Unpacking command line */
-	uint16_t	time,						/* Time to call-out */
+	ushort	time,						/* Time to call-out */
 			node,						/* Node to do the call-out */
 			freq,						/* Frequency of call-outs */
 			subs,						/* Number Sub-boards carried */
 			*sub,						/* Number of local sub-board for ea. */
 			*conf;						/* Conference number of ea. */
-	time32_t	last;						/* Last network attempt */
+	time_t	last;						/* Last network attempt */
 
 } qhub_t;
 
@@ -323,10 +323,10 @@ typedef struct {						/* PCRelay/PostLink Hub */
 	char	days,						/* Days to call-out on */
 			name[11],					/* Site Name of Hub */
 			call[LEN_CMD+1];			/* Call-out command line to execute */
-	uint16_t	time,						/* Time to call-out */
+	ushort	time,						/* Time to call-out */
 			node,						/* Node to do the call-out */
 			freq;						/* Frequency of call-outs */
-	time32_t	last;						/* Last network attempt */
+	time_t	last;						/* Last network attempt */
 
 } phub_t;
 
@@ -336,7 +336,7 @@ typedef struct {						/* Command Shells */
 	char	name[41],					/* Name (description) */
 			arstr[LEN_ARSTR+1];			/* Access Requirement */
 	uchar	*ar;
-	uint32_t	misc;
+	ulong	misc;
 
 } shell_t;
 
@@ -351,66 +351,66 @@ typedef struct
 	BOOL		prepped;			/* TRUE if prep_cfg() has been used */
 
 	grp_t		**grp;				/* Each message group */
-	uint16_t		total_grps; 		/* Total number of groups */
+	ushort		total_grps; 		/* Total number of groups */
 	sub_t		**sub;				/* Each message sub */
-	uint16_t		total_subs; 		/* Total number of subs */
+	ushort		total_subs; 		/* Total number of subs */
 	lib_t		**lib;				/* Each library */
-	uint16_t		total_libs; 		/* Total number of libraries */
+	ushort		total_libs; 		/* Total number of libraries */
 	dir_t		**dir;				/* Each message directory */
-	uint16_t		total_dirs; 		/* Total number of directories */
+	ushort		total_dirs; 		/* Total number of directories */
 	txtsec_t 	**txtsec;			/* Each text section */
-	uint16_t		total_txtsecs;		/* Total number of text sections */
+	ushort		total_txtsecs;		/* Total number of text sections */
 	xtrnsec_t	**xtrnsec;			/* Each external section */
-	uint16_t		total_xtrnsecs; 	/* Total number of external sections */
+	ushort		total_xtrnsecs; 	/* Total number of external sections */
 	xtrn_t		**xtrn; 			/* Each external program */
-	uint16_t		total_xtrns;		/* Total number of externals */
+	ushort		total_xtrns;		/* Total number of externals */
 	mdm_result_t *mdm_result;		/* Each Modem Result Code */
-	uint16_t		mdm_results;		/* Total number of Modem Results */
+	ushort		mdm_results;		/* Total number of Modem Results */
 	prot_t		**prot; 			/* Each Transfer Protocol */
-	uint16_t		total_prots;		/* Total Transfer Protocols */
+	ushort		total_prots;		/* Total Transfer Protocols */
 	fextr_t		**fextr;			/* Each extractable file type */
-	uint16_t		total_fextrs;		/* Total extractable file types */
+	ushort		total_fextrs;		/* Total extractable file types */
 	fcomp_t		**fcomp;			/* Each compressable file type */
-	uint16_t		total_fcomps;		/* Total */
+	ushort		total_fcomps;		/* Total */
 	fview_t		**fview;			/* Each veiwable file type */
-	uint16_t		total_fviews;		/* Total viewable file types */
+	ushort		total_fviews;		/* Total viewable file types */
 	ftest_t		**ftest;			/* Each testable file type */
-	uint16_t		total_ftests;		/* Total testable file types */
+	ushort		total_ftests;		/* Total testable file types */
 	xedit_t		**xedit;			/* Each external editor */
-	uint16_t		total_xedits;		/* Total external editors */
+	ushort		total_xedits;		/* Total external editors */
 	qhub_t		**qhub; 			/* QWK network hubs */
-	uint16_t		total_qhubs;		/* Total qwk network hubs */
+	ushort		total_qhubs;		/* Total qwk network hubs */
 	phub_t		**phub; 			/* PostLink/PCRelay network hubs */
-	uint16_t		total_phubs;		/* Total PostLink/PCRelay hubs */
+	ushort		total_phubs;		/* Total PostLink/PCRelay hubs */
 	chan_t		**chan; 			/* Each chat channel */
-	uint16_t		total_chans;		/* Total number of chat channels */
+	ushort		total_chans;		/* Total number of chat channels */
 	chatact_t	**chatact;			/* Chat action commands */
-	uint16_t       total_chatacts;     /* Total number of action commands */
+	ushort       total_chatacts;     /* Total number of action commands */
 	actset_t 	**actset;			/* Name of action set */
-	uint16_t		total_actsets;		/* Total number of action sets */
+	ushort		total_actsets;		/* Total number of action sets */
 	page_t		**page; 			/* External chat page */
-	uint16_t		total_pages;		/* Total number of external pages */
+	ushort		total_pages;		/* Total number of external pages */
 	event_t		**event;			/* Timed events */
-	uint16_t		total_events;		/* Total number of timed events */
+	ushort		total_events;		/* Total number of timed events */
 	dlevent_t	**dlevent;			/* Download events */
-	uint16_t		total_dlevents; 	/* Total download events */
+	ushort		total_dlevents; 	/* Total download events */
 	faddr_t		*faddr; 			/* FidoNet addresses */
-	uint16_t		total_faddrs;		/* Total number of fido addresses */
+	ushort		total_faddrs;		/* Total number of fido addresses */
 	swap_t		**swap; 			/* Swapping externals */
-	uint16_t		total_swaps;		/* Total number of non-swap xtrns */
+	ushort		total_swaps;		/* Total number of non-swap xtrns */
 	natvpgm_t 	**natvpgm;			/* Native (32-bit) Programs */
-	uint16_t		total_natvpgms; 	/* Total number of native pgms */
+	ushort		total_natvpgms; 	/* Total number of native pgms */
 	guru_t		**guru; 			/* Gurus */
-	uint16_t		total_gurus;		/* Total number of guru files */
+	ushort		total_gurus;		/* Total number of guru files */
 	shell_t		**shell;			/* Command shells */
-	uint16_t		total_shells;		/* Total number of command shells */
+	ushort		total_shells;		/* Total number of command shells */
 	hotkey_t	**hotkey;			/* Global hot keys */
-	uint16_t		total_hotkeys;		/* Total number of global hot keys */
+	ushort		total_hotkeys;		/* Total number of global hot keys */
 
 									/* COM port registers: */
-	uint16_t		com_base,			/* COM base address */
+	ushort		com_base,			/* COM base address */
 				com_irq;			/* irq line number	   */
-	uint32_t		com_rate;			/* DTE rate in bps	   */
+	ulong		com_rate;			/* DTE rate in bps	   */
 	char  		com_port;			/* Number of COM port  */
 
 									/* Modem command strings */
@@ -421,40 +421,40 @@ typedef struct
 			mdm_offh[64],		/* Off hook */
 			mdm_answ[64],		/* Answer */
 			mdm_hang[64];		/* Hang-up */
-	uint32_t	mdm_misc;			/* Misc bits used for flags */
-	uint16_t	mdm_reinit; 		/* Modem reinitialization minute count */
-	uint16_t	mdm_ansdelay;		/* Modem seconds to delay after answer */
+	ulong	mdm_misc;			/* Misc bits used for flags */
+	ushort	mdm_reinit; 		/* Modem reinitialization minute count */
+	ushort	mdm_ansdelay;		/* Modem seconds to delay after answer */
 	uchar	mdm_rings;			/* Rings to wait till answer */
 
-	int32_t 	sys_misc;			/* System Misc Settings */
+	long 	sys_misc;			/* System Misc Settings */
 	char 	sys_pass[41];		/* System Pass Word */
 	char 	sys_name[41];		/* System Name */
 	char 	sys_id[LEN_QWKID+1];/* System ID for QWK Packets */
 	char 	sys_psname[13]; 	/* PostLink and PCRelay Site Name */
-	uint32_t	sys_psnum;			/* PostLink and PCRelay Site Number */
+	ulong	sys_psnum;			/* PostLink and PCRelay Site Number */
 	char 	sys_inetaddr[128];	/* System's internet address */
 	char 	sys_location[41];	/* System Location */
-	int16_t	sys_timezone;		/* Time Zone of BBS */
+	short	sys_timezone;		/* Time Zone of BBS */
 	char 	sys_daily[LEN_CMD+1];	   /* Daily event */
 	char 	sys_logon[LEN_CMD+1];	   /* Logon event */
 	char 	sys_logout[LEN_CMD+1];	   /* Logoff event */
-	uint16_t	sys_pwdays; 		/* Max days between password change */
-	uint16_t	sys_deldays;		/* Days to keep deleted users */
-	uint16_t	sys_autodel;		/* Autodeletion after x days inactive */
-	uint16_t	sys_nodes;			/* Number of nodes on system */
+	ushort	sys_pwdays; 		/* Max days between password change */
+	ushort	sys_deldays;		/* Days to keep deleted users */
+	ushort	sys_autodel;		/* Autodeletion after x days inactive */
+	ushort	sys_nodes;			/* Number of nodes on system */
 	char    sys_op[41];         /* Name of system operator */
 	char    sys_guru[41];       /* Name of system guru */
 	uchar	sys_exp_warn;		/* Days left till expire to notify */
 	char 	sys_def_stat;		/* Default status line */
 	char 	sys_phonefmt[LEN_PHONE+1];	/* format of phone numbers */
-	uint16_t	sys_lastnode;		/* Last displayable node number */
-	uint16_t	sys_autonode;		/* First node number for autonode */
+	ushort	sys_lastnode;		/* Last displayable node number */
+	ushort	sys_autonode;		/* First node number for autonode */
 	char	sys_chat_arstr[LEN_ARSTR+1];	/* chat override */
 	uchar * sys_chat_ar;
 
-	int32_t	msg_misc;			/* Global Message-Related Settings */
-	int32_t 	file_misc;			/* File Misc Settings */
-	int32_t	xtrn_misc;			/* External Programs Misc Settings */
+	long	msg_misc;			/* Global Message-Related Settings */
+	long 	file_misc;			/* File Misc Settings */
+	long	xtrn_misc;			/* External Programs Misc Settings */
 
 	char	node_comspec[LEN_CMD+1];	/* DOS COMMAND.COM to use */
 	char	node_editor[LEN_CMD+1]; /* Local text editor command line to use */
@@ -462,21 +462,21 @@ typedef struct
 	char	node_daily[LEN_CMD+1];	/* Name of node's daily event */
 	uchar	node_scrnlen;		/* Length of screen (rows) */
 	uchar	node_scrnblank; 	/* Min of inactivity for blank screen */
-	uint32_t	node_misc;			/* Misc bits for node setup */
-	uint16_t	node_valuser;		/* User validation mail goes to */
-	uint16_t	node_ivt;			/* Time-slice APIs */
+	ulong	node_misc;			/* Misc bits for node setup */
+	ushort	node_valuser;		/* User validation mail goes to */
+	ushort	node_ivt;			/* Time-slice APIs */
 	uchar	node_swap;			/* Swap types allowed */
 	char	node_swapdir[LEN_DIR+1];	/* Swap directory */
-	uint16_t	node_minbps;		/* Minimum connect rate of this node */
-	uint16_t	node_num;			/* Local node number of this node */
+	ushort	node_minbps;		/* Minimum connect rate of this node */
+	ushort	node_num;			/* Local node number of this node */
 	char	node_phone[13], 	/* Phone number of this node */
 					node_name[41];     	/* Name of this node */
 	char	node_arstr[LEN_ARSTR+1]; /* Node minimum requirements */
 	uchar	*node_ar;
-	uint32_t	node_cost;			/* Node cost to call - in credits */
+	ulong	node_cost;			/* Node cost to call - in credits */
 	uchar	node_dollars_per_call;	/* Billing Node Dollars Per Call */
-	uint16_t	node_sem_check; 	/* Seconds between semaphore checks */
-	uint16_t	node_stat_check;	/* Seconds between statistic checks */
+	ushort	node_sem_check; 	/* Seconds between semaphore checks */
+	ushort	node_stat_check;	/* Seconds between statistic checks */
 
 	char	new_install;		/* This is a brand new installation */
 	char 	new_pass[41];		/* New User Password */
@@ -484,56 +484,56 @@ typedef struct
 	char 	new_sif[LEN_SIFNAME+1]; 		/* New User SIF Questionaire */
 	char 	new_sof[LEN_SIFNAME+1]; 		/* New User SIF Questionaire output SIF */
 	char 	new_level;			/* New User Main Level */
-	uint32_t	new_flags1; 		/* New User Main Flags from set #1*/
-	uint32_t	new_flags2; 		/* New User Main Flags from set #2*/
-	uint32_t	new_flags3; 		/* New User Main Flags from set #3*/
-	uint32_t	new_flags4; 		/* New User Main Flags from set #4*/
-	uint32_t	new_exempt;			/* New User Exemptions */
-	uint32_t	new_rest;			/* New User Restrictions */
-	uint32_t	new_cdt;			/* New User Credits */
-	uint32_t	new_min;			/* New User Minutes */
+	ulong	new_flags1; 		/* New User Main Flags from set #1*/
+	ulong	new_flags2; 		/* New User Main Flags from set #2*/
+	ulong	new_flags3; 		/* New User Main Flags from set #3*/
+	ulong	new_flags4; 		/* New User Main Flags from set #4*/
+	ulong	new_exempt;			/* New User Exemptions */
+	ulong	new_rest;			/* New User Restrictions */
+	ulong	new_cdt;			/* New User Credits */
+	ulong	new_min;			/* New User Minutes */
 	char	new_xedit[LEN_CODE+1];		/* New User Default Editor */
-	uint16_t	new_shell;			/* New User Default Command Set */
-	uint32_t	new_misc;			/* New User Miscellaneous Defaults */
-	uint16_t	new_expire; 		/* Expiration days for new user */
+	ushort	new_shell;			/* New User Default Command Set */
+	ulong	new_misc;			/* New User Miscellaneous Defaults */
+	ushort	new_expire; 		/* Expiration days for new user */
 	uchar	new_prot;			/* New User Default Download Protocol */
 	char 	val_level[10];		/* Validation User Main Level */
-	uint32_t	val_flags1[10]; 	/* Validation User Flags from set #1*/
-	uint32_t	val_flags2[10]; 	/* Validation User Flags from set #2*/
-	uint32_t	val_flags3[10]; 	/* Validation User Flags from set #3*/
-	uint32_t	val_flags4[10]; 	/* Validation User Flags from set #4*/
-	uint32_t	val_exempt[10]; 	/* Validation User Exemption Flags */
-	uint32_t	val_rest[10];		/* Validation User Restriction Flags */
-	uint32_t	val_cdt[10];		/* Validation User Additional Credits */
-	uint16_t	val_expire[10]; 	/* Validation User Extend Expire #days */
+	ulong	val_flags1[10]; 	/* Validation User Flags from set #1*/
+	ulong	val_flags2[10]; 	/* Validation User Flags from set #2*/
+	ulong	val_flags3[10]; 	/* Validation User Flags from set #3*/
+	ulong	val_flags4[10]; 	/* Validation User Flags from set #4*/
+	ulong	val_exempt[10]; 	/* Validation User Exemption Flags */
+	ulong	val_rest[10];		/* Validation User Restriction Flags */
+	ulong	val_cdt[10];		/* Validation User Additional Credits */
+	ushort	val_expire[10]; 	/* Validation User Extend Expire #days */
 	uchar	level_expireto[100];
-	uint16_t	level_timepercall[100], /* Security level settings */
+	ushort	level_timepercall[100], /* Security level settings */
 			level_timeperday[100],
 			level_callsperday[100],
 			level_linespermsg[100],
 			level_postsperday[100],
 			level_emailperday[100];
-	int32_t 	level_freecdtperday[100];
-	int32_t 	level_misc[100];
+	long 	level_freecdtperday[100];
+	long 	level_misc[100];
 	char 	expired_level;	/* Expired user's ML */
-	uint32_t	expired_flags1; /* Flags from set #1 to remove when expired */
-	uint32_t	expired_flags2; /* Flags from set #2 to remove when expired */
-	uint32_t	expired_flags3; /* Flags from set #3 to remove when expired */
-	uint32_t	expired_flags4; /* Flags from set #4 to remove when expired */
-	uint32_t	expired_exempt; /* Exemptions to remove when expired */
-	uint32_t	expired_rest;	/* Restrictions to add when expired */
-	uint16_t	min_dspace; 	/* Minimum amount of free space for uploads */
-	uint16_t	max_batup;		/* Max number of files in upload queue */
-	uint16_t	max_batdn;		/* Max number of files in download queue */
-	uint16_t	max_userxfer;	/* Max dest. users of user to user xfer */
-	uint32_t	max_minutes;	/* Maximum minutes a user can have */
-	uint32_t	max_qwkmsgs;	/* Maximum messages per QWK packet */
+	ulong	expired_flags1; /* Flags from set #1 to remove when expired */
+	ulong	expired_flags2; /* Flags from set #2 to remove when expired */
+	ulong	expired_flags3; /* Flags from set #3 to remove when expired */
+	ulong	expired_flags4; /* Flags from set #4 to remove when expired */
+	ulong	expired_exempt; /* Exemptions to remove when expired */
+	ulong	expired_rest;	/* Restrictions to add when expired */
+	ushort	min_dspace; 	/* Minimum amount of free space for uploads */
+	ushort	max_batup;		/* Max number of files in upload queue */
+	ushort	max_batdn;		/* Max number of files in download queue */
+	ushort	max_userxfer;	/* Max dest. users of user to user xfer */
+	ulong	max_minutes;	/* Maximum minutes a user can have */
+	ulong	max_qwkmsgs;	/* Maximum messages per QWK packet */
 	char	preqwk_arstr[LEN_ARSTR+1]; /* pre pack QWK */
 	uchar *	preqwk_ar;
-	uint16_t	cdt_min_value;	/* Minutes per 100k credits */
-	uint32_t	cdt_per_dollar; /* Credits per dollar */
-	uint16_t	cdt_up_pct; 	/* Pct of credits credited on uploads */
-	uint16_t	cdt_dn_pct; 	/* Pct of credits credited per download */
+	ushort	cdt_min_value;	/* Minutes per 100k credits */
+	ulong	cdt_per_dollar; /* Credits per dollar */
+	ushort	cdt_up_pct; 	/* Pct of credits credited on uploads */
+	ushort	cdt_dn_pct; 	/* Pct of credits credited per download */
 	char 	node_dir[LEN_DIR+1];
 	char 	ctrl_dir[LEN_DIR+1];
 	char 	data_dir[LEN_DIR+1];
@@ -543,18 +543,18 @@ typedef struct
 	char	mods_dir[LEN_DIR+1];
 	char	logs_dir[LEN_DIR+1];
 	char 	node_path[MAX_NODES][LEN_DIR+1]; /* paths to all node dirs */
-	uint16_t	sysop_dir;			/* Destination for uploads to sysop */
-	uint16_t	user_dir;			/* Directory for user to user xfers */
-	uint16_t	upload_dir; 		/* Directory where all uploads go */
+	ushort	sysop_dir;			/* Destination for uploads to sysop */
+	ushort	user_dir;			/* Directory for user to user xfers */
+	ushort	upload_dir; 		/* Directory where all uploads go */
 	char **	altpath;			/* Alternate paths for files */
-	uint16_t	altpaths;			/* Total number of alternate paths */
-	uint16_t	leech_pct;			/* Leech detection percentage */
-	uint16_t	leech_sec;			/* Minimum seconds before possible leech */
-	uint32_t	netmail_cost;		/* Cost in credits to send netmail */
+	ushort	altpaths;			/* Total number of alternate paths */
+	ushort	leech_pct;			/* Leech detection percentage */
+	ushort	leech_sec;			/* Minimum seconds before possible leech */
+	ulong	netmail_cost;		/* Cost in credits to send netmail */
 	char 	netmail_dir[LEN_DIR+1];    /* Directory to store netmail */
-	uint16_t	netmail_misc;		/* Miscellaneous bits regarding netmail */
-	uint32_t	inetmail_misc;		/* Miscellaneous bits regarding inetmail */
-	uint32_t	inetmail_cost;		/* Cost in credits to send Internet mail */
+	ushort	netmail_misc;		/* Miscellaneous bits regarding netmail */
+	ulong	inetmail_misc;		/* Miscellaneous bits regarding inetmail */
+	ulong	inetmail_cost;		/* Cost in credits to send Internet mail */
 	char	smtpmail_sem[LEN_DIR+1];	/* Inbound Internet Mail semaphore file */
 	char	inetmail_sem[LEN_DIR+1];	/* Outbound Internet Mail semaphore file */
 	char 	echomail_dir[LEN_DIR+1];	/* Directory to store echomail in */
@@ -563,9 +563,9 @@ typedef struct
 	char 	echomail_sem[LEN_DIR+1];	/* FidoNet EchoMail semaphore  */
 	char 	origline[51];		/* Default EchoMail origin line */
 	char 	qnet_tagline[128];	/* Default QWK Network tagline */
-	int32_t 	uq; 					/* User Questions */
-	uint32_t	mail_maxcrcs;			/* Dupe checking in e-mail */
-	uint16_t	mail_maxage;			/* Maximum age of e-mail */
+	long 	uq; 					/* User Questions */
+	ulong	mail_maxcrcs;			/* Dupe checking in e-mail */
+	ushort	mail_maxage;			/* Maximum age of e-mail */
 	faddr_t	dflt_faddr; 			/* Default FidoNet address */
 	char	logon_mod[LEN_MODNAME+1];			/* Logon module */
 	char	logoff_mod[LEN_MODNAME+1];			/* Logoff module */
@@ -576,18 +576,18 @@ typedef struct
 	char	expire_mod[LEN_MODNAME+1];			/* User expiration module */
 	char	scfg_cmd[LEN_CMD+1];	/* SCFG command line */
 	uchar	smb_retry_time; 		/* Seconds to retry on SMBs */
-	uint16_t	sec_warn;				/* Seconds before inactivity warning */
-	uint16_t	sec_hangup; 			/* Seconds before inactivity hang-up */
+	ushort	sec_warn;				/* Seconds before inactivity warning */
+	ushort	sec_hangup; 			/* Seconds before inactivity hang-up */
 
 	char* 	color;					/* Different colors for the BBS */
-	uint32_t	total_colors;
-	uint32_t	ctrlkey_passthru;		/* Bits represent control keys NOT handled by inkey() */
+	ulong	total_colors;
+	ulong	ctrlkey_passthru;		/* Bits represent control keys NOT handled by inkey() */
 
 	char 	wfc_cmd[10][LEN_CMD+1];    /* 0-9 WFC DOS commands */
 	char 	wfc_scmd[12][LEN_CMD+1];   /* F1-F12 WFC shrinking DOS commands */
 
-	uint16_t	user_backup_level;
-	uint16_t	mail_backup_level;
+	ushort	user_backup_level;
+	ushort	mail_backup_level;
 
 } scfg_t;
 
