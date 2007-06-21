@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.79 2007/05/30 04:31:18 deuce Exp $ */
+/* $Id: ciolib.c,v 1.82 2007/06/06 22:47:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@
 #define CIOLIB_NO_MACROS
 #include "ciolib.h"
 
-#ifdef WITH_SDL
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
  #include "sdl_con.h"
 #endif
 #ifdef _WIN32
@@ -111,7 +111,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 
 #define CIOLIB_INIT()		{ if(initialized != 1) initciolib(CIOLIB_MODE_AUTO); }
 
-#ifdef WITH_SDL
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int try_sdl_init(int mode)
 {
 	if(!sdl_initciolib(mode)) {
@@ -207,7 +207,7 @@ int try_curses_init(int mode)
 		cio_api.hidemouse=curs_hidemouse;
 		cio_api.suspend=curs_suspend;
 		cio_api.resume=curs_resume;
-#ifdef NCURSES_VERSION_MAJOR
+#if defined(NCURSES_VERSION_MAJOR) || defined (__NetBSD__)
 		cio_api.ESCDELAY=&ESCDELAY;
 #endif
 		return(1);
@@ -304,7 +304,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 
 	switch(mode) {
 		case CIOLIB_MODE_AUTO:
-#ifdef WITH_SDL
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 			if(!try_sdl_init(mode))
 #endif
 #ifdef _WIN32
@@ -337,7 +337,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			try_ansi_init(mode);
 			break;
 
-#ifdef WITH_SDL
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 		case CIOLIB_MODE_SDL:
 		case CIOLIB_MODE_SDL_FULLSCREEN:
 			try_sdl_init(mode);
@@ -356,7 +356,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
 	/* Default C64 is Lt Blue on Black (As per CGTerm) */
-	switch(cio_textmode.currmode) {
+	switch(cio_textinfo.currmode) {
 		case C64_40X25:
 		case C128_40X25:
 		case C128_80X25:
@@ -673,7 +673,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-	switch(cio_textmode.currmode) {
+	switch(cio_textinfo.currmode) {
 		case C64_40X25:
 		case C128_40X25:
 		case C128_80X25:

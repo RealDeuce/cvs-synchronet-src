@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.135 2005/10/02 23:28:57 rswindell Exp $ */
+/* $Id: smblib.c,v 1.137 2006/04/25 02:26:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -53,7 +53,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.42"      /* SMB library version */
+#define SMBLIB_VERSION		"2.43"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
@@ -1727,8 +1727,11 @@ int SMBCALL smb_tzutc(short zone)
 		return(zone);
 
 	tz=zone&0xfff;
-	if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
+	if(zone&(WESTERN_ZONE|US_ZONE)) {	/* West of UTC? */
+		if(zone&DAYLIGHT)
+			tz-=60;
 		return(-tz);
+	}
 	return(tz);
 }
 
