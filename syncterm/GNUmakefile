@@ -32,6 +32,13 @@ INSTALL_EXE	?=	install
 INSTALL_DATA	?=	install -m 0444
 
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
+OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
+ifndef bcc
+ ifneq ($(os),sunos)
+  LDFLAGS   +=  -lutil
+ endif
+endif
+
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
@@ -44,6 +51,7 @@ installdirs:
 	-mkdir -p ${PREFIX}/bin
 	-mkdir -p ${PREFIX}/share/applications
 	-mkdir -p ${PREFIX}/share/man/man1
+	-mkdir -p ${PREFIX}/share/icons/hicolor/64x64/apps
 
 install: $(SYNCTERM) syncterm.1.gz installdirs
 	@echo Installing...
