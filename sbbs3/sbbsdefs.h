@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.152 2008/01/06 21:41:23 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.147 2007/01/03 16:59:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,16 +50,16 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.15"  /* Version: Major.minor  */
-#define REVISION	'a'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
+#define VERSION 	"3.14"  /* Version: Major.minor  */
+#define REVISION	'b'     /* Revision: lowercase letter */
+#define VERSION_NUM	(31400	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31400 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2008 Rob Swindell"
-#define COPYRIGHT_CRC		0x2AF13941
+#define COPYRIGHT_NOTICE	"Copyright 2006 Rob Swindell"
+#define COPYRIGHT_CRC		0xE16A6CC1
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -652,7 +652,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_RLOGIN	(1L<<26) /* Current login via BSD RLogin				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
 #define SS_SSH		(1L<<28) /* Current login via SSH						*/
-#define SS_MOFF		(1L<<29) /* Disable automatic messages					*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
@@ -815,12 +814,11 @@ enum {							/* Values of mode for userlist function     */
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
 #define WHERE       	__LINE__,__FILE__
-#define SAVELINE		{ if(slcnt<SAVE_LINES) { \
-							slatr[slcnt]=latr; \
+#define SAVELINE		{ slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \
 							sprintf(slbuf[slcnt],"%.*s",lbuflen,lbuf); \
-							slcnt++; \
-							lbuflen=0; } }
+							if(slcnt<SAVE_LINES) slcnt++; \
+							lbuflen=0; }
 #define RESTORELINE 	{ lbuflen=0; if(slcnt) --slcnt; \
 							attr(slatr[slcnt]); \
 							rputs(slbuf[slcnt]); \
@@ -953,17 +951,17 @@ typedef struct {						/* File (transfers) Data */
 			desc[LEN_FDESC+1],			/* Uploader's Description */
 			uler[LEN_ALIAS+1];			/* User who uploaded */
 	uchar	opencount;					/* Times record is currently open */
-	time32_t  date,						/* File date/time */
+	time_t  date,						/* File date/time */
 			dateuled,					/* Date/Time (Unix) Uploaded */
 			datedled;					/* Date/Time (Unix) Last downloaded */
-	uint16_t	dir,						/* Directory file is in */
+	ushort	dir,						/* Directory file is in */
 			altpath,
 			timesdled,					/* Total times downloaded */
 			timetodl;					/* How long transfer time */
-	int32_t	datoffset,					/* Offset into .DAT file */
+	long	datoffset,					/* Offset into .DAT file */
 			size,						/* Size of file */
 			misc;						/* Miscellaneous bits */
-	uint32_t	cdt;						/* Credit value for this file */
+	ulong	cdt;						/* Credit value for this file */
 
 } file_t;
 
@@ -972,28 +970,28 @@ typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
 
 typedef struct {						/* System/Node Statistics */
-	uint32_t	logons,						/* Total Logons on System */
-				ltoday,						/* Total Logons Today */
-				timeon,						/* Total Time on System */
-				ttoday,						/* Total Time Today */
-				uls,						/* Total Uploads Today */
-				ulb,						/* Total Upload Bytes Today */
-				dls,						/* Total Downloads Today */
-				dlb,						/* Total Download Bytes Today */
-				ptoday,						/* Total Posts Today */
-				etoday,						/* Total Emails Today */
-				ftoday; 					/* Total Feedbacks Today */
-	uint16_t	nusers; 					/* Total New Users Today */
+	ulong 	logons,						/* Total Logons on System */
+			ltoday,						/* Total Logons Today */
+			timeon,						/* Total Time on System */
+			ttoday,						/* Total Time Today */
+			uls,						/* Total Uploads Today */
+			ulb,						/* Total Upload Bytes Today */
+			dls,						/* Total Downloads Today */
+			dlb,						/* Total Download Bytes Today */
+			ptoday,						/* Total Posts Today */
+			etoday,						/* Total Emails Today */
+			ftoday; 					/* Total Feedbacks Today */
+	ushort	nusers; 					/* Total New Users Today */
 
 } stats_t;
 
 typedef struct {						/* Sub-board scan information */
-	uint16_t	cfg;						/* User's configuration */
-	uint32_t	ptr;						/* New-message pointer */
-	uint32_t	last;						/* Last read message number */
-	uint16_t	sav_cfg;					/* Saved configuration */
-	uint32_t	sav_ptr;					/* Saved New-message pointer */
-	uint32_t	sav_last;					/* Saved Last read message number */
+	ushort	cfg;						/* User's configuration */
+	ulong	ptr;						/* New-message pointer */
+	ulong	last;						/* Last read message number */
+	ushort	sav_cfg;					/* Saved configuration */
+	ulong	sav_ptr;					/* Saved New-message pointer */
+	ulong	sav_last;					/* Saved Last read message number */
 } subscan_t;
 
 #endif /* Don't add anything after this #endif statement */
