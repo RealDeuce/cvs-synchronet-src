@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #include <gen_defs.h>
 #include <ciolib.h>
 #include "uifcinit.h"
@@ -17,12 +15,8 @@ int drawwin(void)
     gettextinfo(&txtinfo);
 	if(txtinfo.screenwidth < 80)
 		term.width=40;
-	else {
-		if(txtinfo.screenwidth <132)
-			term.width=80;
-		else
-			term.width=132;
-	}
+	else
+		term.width=80;
 	term.height=txtinfo.screenheight;
 	if(!term.nostatus)
 		term.height--;
