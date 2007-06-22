@@ -45,7 +45,7 @@ void drawfpwindow(uifcapi_t *api)
 	if(api->mode&UIFC_MOUSE && width>6) {
 		lbuf[2]='[';
 		lbuf[3]=api->hclr|(api->bclr<<4);
-		lbuf[4]='\xfe';
+		lbuf[4]=0xfe;
 		lbuf[5]=api->lclr|(api->bclr<<4);
 		lbuf[6]=']';
 		lbuf[7]=api->hclr|(api->bclr<<4);
@@ -201,7 +201,7 @@ char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 void display_current_path(uifcapi_t *api, char *path)
 {
 	char	dpath[MAX_PATH+2];
-	size_t	width;
+	int width;
 	int height;
 	char	*p;
 
@@ -229,6 +229,7 @@ void display_current_path(uifcapi_t *api, char *path)
 int mousetofield(int currfield, int opts, int height, int width, int listheight, int listwidth, int *dcur, int *dbar, int *fcur, int *fbar)
 {
 	int newfield;
+	int nbar;
 	int bardif;
 	struct mouse_event mevnt;
 
@@ -316,7 +317,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	int		finished=FALSE;
 	int		retval=0;
 	int		fieldmove;
-	int		oldhu=hold_update;
 
 	height=api->scrn_len-3;
 	width=SCRN_RIGHT-SCRN_LEFT-3;
@@ -640,7 +640,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	}
 
 cleanup:		/* Cleans up allocated variables returns from function */
-	hold_update=oldhu;
 	FREE_AND_NULL(lastpath);
 	FREE_AND_NULL(tmppath);
 	FREE_AND_NULL(tmplastpath);
