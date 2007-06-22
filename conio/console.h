@@ -1,4 +1,4 @@
-/* $Id: win32cio.h,v 1.10 2005/10/21 23:08:12 deuce Exp $ */
+/* $Id: console.h,v 1.11 2005/11/19 07:52:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,47 +31,66 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _WIN32CIO_H_
-#define _WIN32CIO_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-void win32_delay(long msec);
-int win32_kbhit(void);
-int win32_getch(void);
-int win32_getche(void);
-int win32_getmouse(struct cio_mouse_event *mevent);
-int win32_hidemouse(void);
-int win32_showmouse(void);
+#ifndef _CONSOLE_H_
+#define _CONSOLE_H_
 
-int	win32_gettext(int left, int top, int right, int bottom, void*);
-void	win32_gettextinfo(struct text_info*);
-void	win32_gotoxy(int x, int y);
-void	win32_highvideo(void);
-void	win32_lowvideo(void);
-void	win32_normvideo(void);
-int	win32_puttext(int left, int top, int right, int bottom, void*);
-void	win32_textattr(int newattr);
-void	win32_textbackground(int newcolor);
-void	win32_textcolor(int newcolor);
-void	win32_textmode(int newmode);
-void	win32_setcursortype(int);
-int	win32_getch(void);
-int	win32_getche(void);
-int	win32_kbhit(void);
-int	win32_putch(int);
-int	win32_wherex(void);
-int	win32_wherey(void);
-void	win32_settitle(const char *title);
-int	win32_initciolib(long inmode);
-void win32_copytext(const char *text, size_t buflen);
-char *win32_getcliptext(void);
-void	win32_suspend(void);
-void	win32_resume(void);
+#include <sys/param.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/user.h>
 
-#ifdef __cplusplus
-}
-#endif
+#include <gen_defs.h>
+#include <semwrap.h>
+
+#include "vidmodes.h"
+
+extern sem_t	console_mode_changed;
+extern sem_t	copybuf_set;
+extern sem_t	pastebuf_request;
+extern sem_t	pastebuf_set;
+extern sem_t	font_set;
+extern int		new_font;
+extern int		font_force;
+extern int		setfont_return;
+extern pthread_mutex_t	copybuf_mutex;
+extern char *copybuf;
+extern char *pastebuf;
+
+extern int CurrMode;
+
+extern int InitCS;
+extern int InitCE;
+
+extern WORD *vmem;
+
+extern BYTE CursRow;
+extern BYTE CursCol;
+extern BYTE CursStart;
+extern BYTE CursEnd;
+
+extern WORD DpyCols;
+extern BYTE DpyRows;
+
+extern int FH,FW;
+
+extern int x_nextchar;
+
+extern int console_new_mode;
+
+int init_window();
+int video_init();
+int init_mode(int mode);
+int tty_read(int flag);
+int tty_peek(int flag);
+int tty_kbhit(void);
+void tty_beep(void);
+void x_win_title(const char *title);
+int console_init(void);
+int x_load_font(const char *filename);
+
+#define	TTYF_BLOCK	0x00000008
+#define	TTYF_POLL	0x00000010
+#define NO_NEW_MODE -999
 
 #endif

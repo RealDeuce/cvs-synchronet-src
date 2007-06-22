@@ -2,7 +2,7 @@
 
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.9 2007/07/08 21:03:53 deuce Exp $ */
+/* $Id: fidodefs.h,v 1.8 2005/11/17 01:53:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,7 @@
 #endif
 
 typedef struct _PACK {				/* Fidonet Packet Header				*/
-    int16_t orignode,					/* Origination Node of Packet			*/
+    short orignode,					/* Origination Node of Packet			*/
           destnode,					/* Destination Node of Packet			*/
           year,						/* Year of Packet Creation e.g. 1995	*/
           month,					/* Month of Packet Creation 0-11		*/
@@ -95,16 +95,16 @@ typedef struct _PACK {				/* Fidonet Packet Header				*/
     uchar prodcode,					/* Product Code (00h is Fido)			*/
           sernum,					/* Binary Serial Number or NULL			*/
           password[FIDO_PASS_LEN];	/* Session Password or NULL				*/
-    int16_t origzone,					/* Origination Zone of Packet or NULL	*/
+    short origzone,					/* Origination Zone of Packet or NULL	*/
           destzone;					/* Destination Zone of Packet or NULL	*/
 	union {							
 		char padding[20];			/* Fill Characters (Type 2.0)			*/
 		struct {					/* OR Type 2+ Packet Header Info		*/
-			int16_t auxnet,			/* Orig Net if Origin is a Point		*/
+			short auxnet,			/* Orig Net if Origin is a Point		*/
 				  cwcopy;			/* Must be Equal to cword				*/
 			uchar prodcode, 		/* Product Code							*/
 				  revision; 		/* Revision								*/
-			int16_t cword,			/* Compatibility Word					*/
+			short cword,			/* Compatibility Word					*/
 				  origzone, 		/* Zone of Packet Sender or NULL		*/
 				  destzone, 		/* Zone of Packet Receiver or NULL		*/
 				  origpoint,		/* Origination Point of Packet			*/
@@ -124,13 +124,13 @@ typedef struct _PACK {				/* Fidonet Packet Header				*/
 #define FIDO_PACKET_TERMINATOR		0x0000	/* 16-bits */
 
 typedef struct _PACK {				/* FidoNet Packed Message Header 		*/
-	int16_t	type;					/* Message type: 2						*/
-	int16_t	orignode;
-	int16_t	destnode;
-	int16_t	orignet;
-	int16_t	destnet;
-	int16_t	attr;
-	int16_t	cost;
+	short	type;					/* Message type: 2						*/
+	short	orignode;
+	short	destnode;
+	short	orignet;
+	short	destnet;
+	short	attr;
+	short	cost;
 	char	time[FIDO_TIME_LEN];	/* Time in goof-ball ASCII format		*/
 } fpkdmsg_t;
 
@@ -142,7 +142,7 @@ typedef struct _PACK {				/* FidoNet Stored Message Header *.msg	*/
 			to[FIDO_NAME_LEN], 		/* To user								*/
 			subj[FIDO_SUBJ_LEN],	/* Message title						*/
 			time[FIDO_TIME_LEN];	/* Time in goof-ball ASCII format		*/
-	int16_t	read,					/* Times read							*/
+	short	read,					/* Times read							*/
 			destnode,				/* Destination node						*/
 			orignode,				/* Origin node							*/
 			cost,					/* Cost in pennies						*/
