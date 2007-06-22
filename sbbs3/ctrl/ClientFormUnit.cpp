@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ClientFormUnit.cpp,v 1.12 2004/11/16 06:21:33 rswindell Exp $ */
+/* $Id: ClientFormUnit.cpp,v 1.14 2006/09/24 19:56:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,13 +35,13 @@
 
 //---------------------------------------------------------------------------
 
+#include "sbbs.h"		// filter_ip
 #include <vcl.h>
 #pragma hdrstop
 
 #include <stdio.h>      // sprintf
 #include <winsock.h>    // closesocket
 #include "ClientFormUnit.h"
-#include "sbbs.h"		// filter_ip
 
 void socket_open(void*, BOOL open);
 //---------------------------------------------------------------------------
