@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.52 2006/05/18 06:21:02 rswindell Exp $ */
+/* $Id: ansi_cio.c,v 1.55 2007/06/22 20:34:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ sem_t	need_key;
 static BOOL	sent_ga=FALSE;
 WORD	ansi_curr_attr=0x07<<8;
 
-int ansi_rows=24;
+int ansi_rows=-1;
 int ansi_cols=80;
 int ansi_got_row=0;
 int ansi_got_col=0;
@@ -287,15 +287,18 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 			ansivmem[(ti.screenheight-1)*ti.screenwidth+x]=(ti.attribute<<8)|' ';
 		i=1;
 	}
+#endif
+#if 1
 	/* Check if this *includes* a scroll */
 	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
-			&& memcmp(buf,ansivmem,ti.screenwidth*(ti.screenheight-1)*2)==0) {
+			&& memcmp(buf,ansivmem+ti.screenwidth*2,ti.screenwidth*(ti.screenheight-1)*2)==0) {
 		/* We need to get to the bottom line... */
 		if(ansi_row < ti.screenheight-1) {
 			if(ansi_row > ti.screenheight-5) {
 				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansi_row-1);
 			}
 			else {
+				char str[6];
 				sprintf(str,"\033[%dB",ti.screenheight-ansi_row-1);
 				ansi_sendstr(str,-1);
 			}
@@ -503,7 +506,8 @@ static void ansi_keyparse(void *par)
 
 	seq[0]=0;
 	for(;;) {
-		sem_wait(&goahead);
+		if(ansi_rows != -1)
+			sem_wait(&goahead);
 		if(timedout || unknown) {
 			for(p=seq;*p;p++) {
 				ansi_inch=*p;
@@ -562,6 +566,16 @@ static void ansi_keyparse(void *par)
 							seq[0]=0;
 							break;
 						}
+					}
+					/* ANSI position report? */
+					if(ch=='R') {
+						if(strspn(seq,"\033[0123456789;R")==strlen(seq)) {
+							p=seq+2;
+							i=strtol(p,&p,10);
+							if(i>ansi_rows)
+								ansi_rows=i;
+						}
+						unknown=0;
 					}
 					if(unknown) {
 						sem_post(&goahead);
@@ -790,6 +804,19 @@ void ansi_gotoxy(int x, int y)
 		}
 
 		/* Must need to move right then */
+		/* Check if we can use spaces */
+		if(x-ansi_col-1 < 4) {
+			int i;
+			/* If all the intervening cells are spaces with the current BG, we're good */
+			for(i=0; i<x-ansi_col-1; i++) {
+				if(ansivmem[y*ansi_cols+ansi_col+i-1]!=ansi_curr_attr | ' ')
+					break;
+			}
+			if(i==x-ansi_col-1) {
+				ansi_sendstr("    ",x-ansi_col-1);
+				return;
+			}
+		}
 		if(x==ansi_col+2)
 			strcpy(str,"\033[C");
 		else
@@ -886,7 +913,8 @@ void ansi_fixterm(void)
 int ansi_initciolib(long inmode)
 {
 	int i;
-	char *init="\033[0m\033[2J\033[1;1H";
+	char *init="\033[s\033[99B_\033[6n\033[u\033[0m_\033[2J\033[H";
+	time_t start;
 
 #ifdef _WIN32
 	if(isatty(fileno(stdin))) {
@@ -923,10 +951,21 @@ int ansi_initciolib(long inmode)
 	sem_init(&goahead,0,0);
 	sem_init(&need_key,0,0);
 
-	ansivmem=(WORD *)malloc(ansi_rows*ansi_cols*sizeof(WORD));
 	ansi_sendstr(init,-1);
+	_beginthread(ansi_keythread,1024,NULL);
+	start=time(NULL);
+	while(time(NULL)-start < 5 && ansi_rows==-1)
+		SLEEP(1);
+	if(ansi_rows==-1)
+		ansi_rows=24;
+	ansivmem=(WORD *)malloc(ansi_rows*ansi_cols*sizeof(WORD));
 	for(i=0;i<ansi_rows*ansi_cols;i++)
 		ansivmem[i]=0x0720;
-	_beginthread(ansi_keythread,1024,NULL);
+	/* drain all the semaphores */
+	sem_reset(&got_key);
+	sem_reset(&got_input);
+	sem_reset(&used_input);
+	sem_reset(&goahead);
+	sem_reset(&need_key);
 	return(1);
 }
