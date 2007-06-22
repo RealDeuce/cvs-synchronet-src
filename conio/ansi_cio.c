@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.64 2007/06/29 05:45:22 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.57 2007/06/22 22:30:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,6 @@ int ansi_cols=80;
 int ansi_got_row=0;
 int ansi_got_col=0;
 int ansi_esc_delay=25;
-int doorway_enabled=0;
 
 const int 	ansi_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
@@ -199,8 +198,6 @@ void ansi_sendch(char ch)
 			ansi_row=ansi_rows-1;
 		}
 	}
-	if(doorway_enabled && ch < ' ')
-		fwrite("",1,1,stdout);
 	fwrite(&ch,1,1,stdout);
 	/* We sent a control char... better make the next movement explicit */
 	if(ch<' ' && ch > 0)
@@ -277,7 +274,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 	}
 #if 0
 	/* Check if this is a scroll */
-	if((!i) && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight-1
+	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight-1
 			&& memcmp(buf,ansivmem,ti.screenwidth*(ti.screenheight-1)*2)==0) {
 		/* We need to get to the bottom line... */
 		if(ansi_row < ti.screenheight-1) {
@@ -298,7 +295,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 #endif
 #if 1
 	/* Check if this *includes* a scroll */
-	if((!i) && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
+	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
 			&& memcmp(buf,ansivmem+ti.screenwidth,ti.screenwidth*(ti.screenheight-1)*2)==0) {
 		/* We need to get to the bottom line... */
 		if(ansi_row < ti.screenheight-1) {
@@ -357,7 +354,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 					break;
 				}
 				sch=*(out++);
-				if(sch==27 && doorway_enabled==0)
+				if(sch==27)
 					sch=' ';
 				if(sch==0)
 					sch=' ';
@@ -490,7 +487,6 @@ void ansi_textattr(int attr)
 static void ansi_keyparse(void *par)
 {
 	int		gotesc=0;
-	int		gotnull=0;
 	char	seq[64];
 	int		ch;
 	int		i;
@@ -529,18 +525,6 @@ static void ansi_keyparse(void *par)
 			sem_wait(&got_key);
 
 		ch=ansi_raw_inch;
-		if(gotnull) {
-			ansi_inch=ch<<8;
-			sem_post(&got_input);
-			/* Two-byte code, need to post twice and wait for one to
-			   be received */
-			sem_wait(&used_input);
-			sem_wait(&goahead);
-			sem_post(&got_input);
-			sem_wait(&used_input);
-			gotnull=0;
-			continue;
-		}
 
 		switch(gotesc) {
 			case 1:	/* Escape Sequence */
@@ -607,12 +591,6 @@ static void ansi_keyparse(void *par)
 				if(ch==10) {
 					/* The \n that goes with the prev \r (hopefully) */
 					/* Eat it and keep chuggin' */
-					sem_post(&goahead);
-					break;
-				}
-				if(doorway_enabled && ch==0) {
-					/* Got a NULL. ASSume this is a doorway mode char */
-					gotnull=1;
 					sem_post(&goahead);
 					break;
 				}
@@ -817,31 +795,24 @@ void ansi_gotoxy(int x, int y)
 		}
 
 		/* Must need to move right then */
-#if 1
 		/* Check if we can use spaces */
-		/* ansi_col... 0-based current position */
-		/* x... 1-based desired position */
 		if(x-ansi_col-1 < 5) {
-			int i,j;
-			j=1;
-			/* If all the intervening cells are spaces with the current background, we're good */
+			int i;
+			/* If all the intervening cells are spaces with the current attributes, we're good */
 			for(i=0; i<x-ansi_col-1; i++) {
-				if((ansivmem[y*ansi_cols+ansi_col+i] & 0xff) != ' ' && (ansivmem[y*ansi_cols+ansi_col+i]) & 0xff != 0) {
-					j=0;
+				if(ansivmem[y*ansi_cols+ansi_col+i] & 0xff != ' ')
 					break;
-				}
-				if((ansivmem[y*ansi_cols+ansi_col+i] & 0x7000) != (ansi_curr_attr & 0x7000)) {
-					j=0;
+				if(ansivmem[y*ansi_cols+ansi_col+i] & 0xff != 0)
 					break;
-				}
+				if(ansivmem[y*ansi_cols+ansi_col+i] & 0x7000 != ansi_curr_attr & 0x7000)
+					break;
 			}
-			if(j) {
+			if(i==x-ansi_col-1) {
 				ansi_sendstr("    ",x-ansi_col-1);
 				ansi_col=x-1;
 				return;
 			}
 		}
-#endif
 		if(x==ansi_col+2)
 			strcpy(str,"\033[C");
 		else
@@ -993,20 +964,4 @@ int ansi_initciolib(long inmode)
 	sem_reset(&goahead);
 	sem_reset(&need_key);
 	return(1);
-}
-
-CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable)
-{
-	if(cio_api.mode!=CIOLIB_MODE_ANSI)
-		return;
-	switch(enable) {
-	case 0:
-		ansi_sendstr("\033[=255l",7);
-		doorway_enabled=0;
-		break;
-	default:
-		ansi_sendstr("\033[=255h",7);
-		doorway_enabled=1;
-		break;
-	}
 }
