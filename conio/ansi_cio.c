@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.50 2006/02/04 22:12:42 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.59 2007/06/24 20:43:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,12 +64,12 @@ sem_t	need_key;
 static BOOL	sent_ga=FALSE;
 WORD	ansi_curr_attr=0x07<<8;
 
-int ansi_rows=24;
+int ansi_rows=-1;
 int ansi_cols=80;
 int ansi_got_row=0;
 int ansi_got_col=0;
 int ansi_esc_delay=25;
-int puttext_no_move=0;
+int doorway_enabled=0;
 
 const int 	ansi_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
@@ -239,15 +239,19 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 			|| fill==NULL)
 		return(0);
 
+	/* Check if this actually does anything */
+	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
+			&& memcmp(buf,ansivmem,ti.screenwidth*ti.screenheight*2)==0)
+		return(1);
+
 	out=fill;
 	attrib=ti.attribute;
 
 	i=0;		/* Did a nasty. */
-	/* Check if this is a nasty scroll */
 
 	/* Check if this is a nasty screen clear... */
 	j=0;		/* We can clearscreen */
-	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight && (*out==' ' || *out==0)) {
+	if(!i && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight && (*out==' ' || *out==0)) {
 		j=1;		/* We can clearscreen */
 		for(cy=sy-1;cy<ey;cy++) {
 			for(cx=sx-1;cx<ex;cx++) {
@@ -269,6 +273,50 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 		memcpy(ansivmem,out,ti.screenwidth*ti.screenheight*2);
 		i=1;
 	}
+#if 0
+	/* Check if this is a scroll */
+	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight-1
+			&& memcmp(buf,ansivmem,ti.screenwidth*(ti.screenheight-1)*2)==0) {
+		/* We need to get to the bottom line... */
+		if(ansi_row < ti.screenheight-1) {
+			if(ansi_row > ti.screenheight-5) {
+				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansi_row-1);
+			}
+			else {
+				sprintf(str,"\033[%dB",ti.screenheight-ansi_row-1);
+				ansi_sendstr(str,-1);
+			}
+		}
+		ansi_sendstr("\n",1);
+		memcpy(ansivmem,buf,ti.screenwidth*(ti.screenheight-1)*2);
+		for(x=0;x<ti.screenwidth;x++)
+			ansivmem[(ti.screenheight-1)*ti.screenwidth+x]=(ti.attribute<<8)|' ';
+		i=1;
+	}
+#endif
+#if 1
+	/* Check if this *includes* a scroll */
+	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
+			&& memcmp(buf,ansivmem+ti.screenwidth,ti.screenwidth*(ti.screenheight-1)*2)==0) {
+		/* We need to get to the bottom line... */
+		if(ansi_row < ti.screenheight-1) {
+			if(ansi_row > ti.screenheight-5) {
+				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansi_row-1);
+			}
+			else {
+				char str[6];
+				sprintf(str,"\033[%dB",ti.screenheight-ansi_row-1);
+				ansi_sendstr(str,-1);
+			}
+		}
+		ansi_sendstr("\n",1);
+		memcpy(ansivmem,buf,ti.screenwidth*(ti.screenheight-1)*2);
+		for(x=0;x<ti.screenwidth;x++)
+			ansivmem[(ti.screenheight-1)*ti.screenwidth+x]=(ti.attribute<<8)|' ';
+		out += ti.screenwidth*(ti.screenheight-1)*2;
+		sy=ti.screenheight;
+	}
+#endif
 	if(!i) {
 		for(y=sy-1;y<ey;y++) {
 			for(x=sx-1;x<ex;x++) {
@@ -277,39 +325,25 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 				 * chars on the line are the same attr, and are all spaces or NULLs
 				 * Also, if there's less than four chars left, it's not worth it.
 				 */
+
 				i=0;	/* number of differing chars from screen */
-				j=1;	/* Can use clrtoeol? */
+				j=0;	/* Can use clrtoeol? */
 				for(cx=x; cx<ti.screenwidth; cx++) {
-					/* Compare to source buffer */
-					if(cx<ex) {
-						/* a blank? */
-						if(*(out+(cx-x)*2)==' ' || *(out+(cx-x)*2)==0) {
-							/* same colour? */
-							if(*(out+(cx-x)*2+1)==*(out+1)) {
-								/* Is it any change? */
-								if(*((WORD *)(out+(cx-x)*2)) != ansivmem[y*2+cx])
-									/* And it's different! */
-									i++;
-							}
-							else {
-								j=0;
-								break;
-							}
-						}
-						else {
-							j=0;
-							break;
-						}
-					}
-					else {
-						/* Compare to screen */
-						/* a blank? */
-						if((ansivmem[y*2+cx]&0xff)!=' ' && (ansivmem[y*2+cx]&0xff)!=0) {
-							j=0;
-							break;
-						}
-					}
+					/* First, make sure that the rest are spaces or NULLs */
+					if(out[(cx-x)*2] != ' ' || out[(cx-x)*2] != 0)
+						break;
+					/* Next, make sure that the attribute is the same */
+					if(out[(cx-x)*2+1] != out[cx*2+1])
+						break;
+					/* Finally, if this isn't what's on screen, increment i */
+					if((ansivmem[y*ansi_cols+cx] & 0xff) != 0 && (ansivmem[y*ansi_cols+cx] & 0xff) != ' ')
+						i++;
+					else if(ansivmem[y*ansi_cols+cx] >> 8 != out[(cx-x)*2+1])
+						i++;
 				}
+				if(cx==ti.screenwidth)
+					j=1;
+
 				if(j && i>3) {
 					ansi_gotoxy(x+1,y+1);
 					textattr(*(out+1));
@@ -341,7 +375,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 		}
 	}
 
-	if(!puttext_no_move)
+	if(!puttext_can_move)
 		gotoxy(ti.curx,ti.cury);
 	if(attrib!=ti.attribute)
 		textattr(ti.attribute);
@@ -454,6 +488,7 @@ void ansi_textattr(int attr)
 static void ansi_keyparse(void *par)
 {
 	int		gotesc=0;
+	int		gotnull=0;
 	char	seq[64];
 	int		ch;
 	int		i;
@@ -464,7 +499,8 @@ static void ansi_keyparse(void *par)
 
 	seq[0]=0;
 	for(;;) {
-		sem_wait(&goahead);
+		if(ansi_rows != -1)
+			sem_wait(&goahead);
 		if(timedout || unknown) {
 			for(p=seq;*p;p++) {
 				ansi_inch=*p;
@@ -491,6 +527,18 @@ static void ansi_keyparse(void *par)
 			sem_wait(&got_key);
 
 		ch=ansi_raw_inch;
+		if(gotnull) {
+			ansi_inch=ch<<8;
+			sem_post(&got_input);
+			/* Two-byte code, need to post twice and wait for one to
+			   be received */
+			sem_wait(&used_input);
+			sem_wait(&goahead);
+			sem_post(&got_input);
+			sem_wait(&used_input);
+			gotnull=0;
+			continue;
+		}
 
 		switch(gotesc) {
 			case 1:	/* Escape Sequence */
@@ -524,6 +572,16 @@ static void ansi_keyparse(void *par)
 							break;
 						}
 					}
+					/* ANSI position report? */
+					if(ch=='R') {
+						if(strspn(seq,"\033[0123456789;R")==strlen(seq)) {
+							p=seq+2;
+							i=strtol(p,&p,10);
+							if(i>ansi_rows)
+								ansi_rows=i;
+						}
+						unknown=0;
+					}
 					if(unknown) {
 						sem_post(&goahead);
 						continue;
@@ -548,6 +606,11 @@ static void ansi_keyparse(void *par)
 					/* The \n that goes with the prev \r (hopefully) */
 					/* Eat it and keep chuggin' */
 					sem_post(&goahead);
+					break;
+				}
+				if(doorway_enabled && ch==0) {
+					/* Got a NULL. ASSume this is a doorway mode char */
+					gotnull=1;
 					break;
 				}
 				ansi_inch=ch;
@@ -619,7 +682,7 @@ int ansi_putch(int ch)
 	buf[1]=ansi_curr_attr>>8;
 
 	gettextinfo(&ti);
-	puttext_no_move=1;
+	puttext_can_move=1;
 
 	switch(ch) {
 		case '\r':
@@ -675,7 +738,7 @@ int ansi_putch(int ch)
 			break;
 	}
 
-	puttext_no_move=0;
+	puttext_can_move=0;
 	return(ch);
 }
 
@@ -751,6 +814,24 @@ void ansi_gotoxy(int x, int y)
 		}
 
 		/* Must need to move right then */
+		/* Check if we can use spaces */
+		if(x-ansi_col-1 < 5) {
+			int i;
+			/* If all the intervening cells are spaces with the current attributes, we're good */
+			for(i=0; i<x-ansi_col-1; i++) {
+				if(ansivmem[y*ansi_cols+ansi_col+i] & 0xff != ' ')
+					break;
+				if(ansivmem[y*ansi_cols+ansi_col+i] & 0xff != 0)
+					break;
+				if(ansivmem[y*ansi_cols+ansi_col+i] & 0x7000 != ansi_curr_attr & 0x7000)
+					break;
+			}
+			if(i==x-ansi_col-1) {
+				ansi_sendstr("    ",x-ansi_col-1);
+				ansi_col=x-1;
+				return;
+			}
+		}
 		if(x==ansi_col+2)
 			strcpy(str,"\033[C");
 		else
@@ -847,7 +928,8 @@ void ansi_fixterm(void)
 int ansi_initciolib(long inmode)
 {
 	int i;
-	char *init="\033[0m\033[2J\033[1;1H";
+	char *init="\033[s\033[99B_\033[6n\033[u\033[0m_\033[2J\033[H";
+	time_t start;
 
 #ifdef _WIN32
 	if(isatty(fileno(stdin))) {
@@ -884,10 +966,37 @@ int ansi_initciolib(long inmode)
 	sem_init(&goahead,0,0);
 	sem_init(&need_key,0,0);
 
-	ansivmem=(WORD *)malloc(ansi_rows*ansi_cols*sizeof(WORD));
 	ansi_sendstr(init,-1);
+	_beginthread(ansi_keythread,1024,NULL);
+	start=time(NULL);
+	while(time(NULL)-start < 5 && ansi_rows==-1)
+		SLEEP(1);
+	if(ansi_rows==-1)
+		ansi_rows=24;
+	ansivmem=(WORD *)malloc(ansi_rows*ansi_cols*sizeof(WORD));
 	for(i=0;i<ansi_rows*ansi_cols;i++)
 		ansivmem[i]=0x0720;
-	_beginthread(ansi_keythread,1024,NULL);
+	/* drain all the semaphores */
+	sem_reset(&got_key);
+	sem_reset(&got_input);
+	sem_reset(&used_input);
+	sem_reset(&goahead);
+	sem_reset(&need_key);
 	return(1);
+}
+
+void ansi_ciolib_setdoorway(int enable)
+{
+	if(cio_api.mode!=CIOLIB_MODE_ANSI)
+		return;
+	switch(enable) {
+	case 0:
+		ansi_sendstr("\033[=255l",7);
+		doorway_enabled=0;
+		break;
+	default:
+		ansi_sendstr("\033[=255h",7);
+		doorway_enabled=1;
+		break;
+	}
 }
