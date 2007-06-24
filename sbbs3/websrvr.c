@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.459 2007/07/07 20:36:09 deuce Exp $ */
+/* $Id: websrvr.c,v 1.458 2006/12/29 09:21:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4607,7 +4607,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.459 $", "%*s %s", revision);
+	sscanf("$Revision: 1.458 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4940,16 +4940,12 @@ void DLLCALL web_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->port);
 
-		if(startup->port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
 		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"Web Server",lprintf);
-		if(startup->port < IPPORT_RESERVED) {
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
-		}
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);

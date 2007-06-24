@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.35 2006/05/29 14:30:37 deuce Exp $ */
+/* $Id: mouse.c,v 1.33 2005/10/22 00:02:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,8 +103,8 @@ void init_mouse(void)
 	memset(&state,0,sizeof(state));
 	state.click_timeout=0;
 	state.multi_timeout=300;
-	listInit(&state.input,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
-	listInit(&state.output,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+	listInit(&state.input,LINK_LIST_SEMAPHORE);
+	listInit(&state.output,LINK_LIST_SEMAPHORE);
 	ciolib_mouse_initialized=1;
 }
 
@@ -212,7 +212,7 @@ void ciolib_mouse_thread(void *data)
 				timedout=1;
 			}
 			else {
-				timedout=!listSemTryWaitBlock(&state.input,delay);
+				timedout=listSemTryWaitBlock(&state.input,delay);
 			}
 		}
 		else {
