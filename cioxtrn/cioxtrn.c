@@ -12,16 +12,13 @@ int					output_thread_running=0;
 struct text_info ti;
 
 enum key_modifier {
-	 CIO_MOD_SHIFT
-	,CIO_MOD_CONTROL
-	,CIO_MOD_ALT
+	 MOD_SHIFT
+	,MOD_CONTROL
+	,MOD_ALT
 };
-
 int					shift=0;
 int					alt=0;
 int					ctrl=0;
-int					force_redraw=0;
-int					display_top=1;
 
 /* Stolen from win32cio.c */
 struct keyvals {
@@ -41,29 +38,27 @@ void frobkey(int press, int release, int scan, int key, int ascii)
 	DWORD d;
 	SHORT s;
 
-	ckey.EventType=KEY_EVENT;
+	ckey.Event.KeyEvent.bKeyDown=TRUE;
 	ckey.Event.KeyEvent.dwControlKeyState=0;
 	if(alt)
 		ckey.Event.KeyEvent.dwControlKeyState |= LEFT_ALT_PRESSED;
 	if(ctrl)
 		ckey.Event.KeyEvent.dwControlKeyState |= LEFT_CTRL_PRESSED;
 	if(shift)
-		ckey.Event.KeyEvent.dwControlKeyState |= SHIFT_PRESSED;
+		ckey.Event.KeyEvent.dwControlKeyState |= LEFT_SHIFT_PRESSED;
 	ckey.Event.KeyEvent.wRepeatCount=1;
 	ckey.Event.KeyEvent.wVirtualKeyCode=key;	/* ALT key */
 	ckey.Event.KeyEvent.wVirtualScanCode=scan;
 	ckey.Event.KeyEvent.uChar.AsciiChar=ascii;
+	d=0;
 	if(press) {
-		ckey.Event.KeyEvent.bKeyDown=TRUE;
-		d=0;
 		while(!d) {
 			if(!WriteConsoleInput(console_input, &ckey, 1, &d))
 				d=0;
 		}
 	}
+	ckey.Event.KeyEvent.bKeyDown=FALSE;
 	if(release) {
-		ckey.Event.KeyEvent.bKeyDown=FALSE;
-		d=0;
 		while(!d) {
 			if(!WriteConsoleInput(console_input, &ckey, 1, &d))
 				d=0;
@@ -71,77 +66,67 @@ void frobkey(int press, int release, int scan, int key, int ascii)
 	}
 }
 
-void toggle_modifier(enum key_modifier modify)
+void toggle_modifier(enum key_modifier mod)
 {
 	int *mod;
 	WORD key;
 
-	switch(modify) {
-		case CIO_MOD_SHIFT:
+	switch(mod) {
+		case MOD_SHIFT:
 			mod=&shift;
 			key=VK_SHIFT;
 			break;
-		case CIO_MOD_CONTROL:
+		case MOD_CONTROL:
 			mod=&ctrl;
 			key=VK_CONTROL;
 			break;
-		case CIO_MOD_ALT:
+		case MOD_ALT:
 			mod=&alt;
 			key=VK_MENU;
 			break;
 	}
+	frobkey(!(*mod), (*mod), MapVirtualKey(key, 0), key, 0);
 	*mod=!(*mod);
-	frobkey((*mod), !(*mod), MapVirtualKey(key, 0), key, 0);
 }
 
 void input_thread(void *args)
 {
-	int					key=-1;
-	int					lastkey;
+	int					key;
 	INPUT_RECORD		ckey;
 	int i;
 	DWORD d;
 	SHORT s;
 
 	input_thread_running=1;
+	/* Request DoorWay mode */
 	while(!terminate) {
 		if(kbhit()) {
-			lastkey=key;
 			key=getch();
 			if(key==0 || key == 0xff)
 				key|=getch()<<8;
 			if(key==1) {
-				toggle_modifier(CIO_MOD_ALT);
+				toggle_modifier(MOD_ALT);
 				if(alt)
 					continue;
 			}
-			if(key==18) {	/* CTRL-R */
-				if(lastkey != 18) {
-					force_redraw=1;
-					continue;
+			if(key < ' ') {
+				/* If this is NOT a "normal" key, fiddle with CTRL */
+				switch(key) {
+				case 8:
+				case 9:
+				case 10:
+				case 13:
+				case 27:
+					break;
+				case 1:
+					if(alt==1)
+						break;
+				default:
+					toggle_modifier(MOD_CONTROL);
 				}
 			}
-			if(key==26) {	/* CTRL-Z */
-				force_redraw=1;
-				display_top=!display_top;
-				if(lastkey != 26)
-					continue;
-			}
-			if(key==8 || key==9 || key==10 || key==13 || key==27) {
-				s=VkKeyScan(key);
 
-				/* No translation */
-				if(s==-1)
-					continue;
-
-				if(ctrl)
-					toggle_modifier(CIO_MOD_CONTROL);
-				if(shift)
-					toggle_modifier(CIO_MOD_SHIFT);
-
-				frobkey(TRUE, TRUE, MapVirtualKey(s & 0xff, 0), s&0xff, key);
-			}
-			else if(key < 256) {
+			if(key < 256) {
 				s=VkKeyScan(key);
 
 				/* No translation */
@@ -150,13 +135,12 @@ void input_thread(void *args)
 
 				/* Make the mod states match up... */
 				/* Wish I had a ^^ operator */
-				if(((s & 0x0100) == 0x0100) != (shift != 0))
-					toggle_modifier(CIO_MOD_SHIFT);
-				if(((s & 0x0200) == 0x0200) != (ctrl != 0))
-					toggle_modifier(CIO_MOD_CONTROL);
-				/* ALT is handled via CTRL-A, not here */
-				/* if(((s & 0x0400) == 0x0400) != (alt != 0))
-					toggle_modifier(CIO_MOD_ALT); */
+				if((s & 0x0100 == 0x0100) != (shift != 0))
+					toggle_modifier(MOD_SHIFT);
+				if((s & 0x0200 == 0x0200) != (ctrl != 0))
+					toggle_modifier(MOD_CONTROL);
+				if((s & 0x0400 == 0x0400) != (alt != 0))
+					toggle_modifier(MOD_ALT);
 
 				frobkey(TRUE, TRUE, MapVirtualKey(s & 0xff, 0), s&0xff, key);
 			}
@@ -165,45 +149,49 @@ void input_thread(void *args)
 				for(i=0;keyval[i].Key;i++) {
 					if(keyval[i].Key==key)
 						break;
-					if(keyval[i].Shift==key) {
+					if(keyval[i].Shift==key)
 						/* Release the CTRL key */
 						if(ctrl)
-							toggle_modifier(CIO_MOD_CONTROL);
-						/* Press the SHIFT key */
+							toggle_modifier(MOD_CONTROL);
+						/* Release the ALT key */
+						if(alt)
+							toggle_modifier(MOD_ALT);
+						/* Press the shift key */
 						if(!shift)
-							toggle_modifier(CIO_MOD_SHIFT);
+							toggle_modifier(MOD_SHIFT);
 						break;
-					}
 					if(keyval[i].CTRL==key) {
 						/* Release the shift key */
 						if(shift)
-							toggle_modifier(CIO_MOD_SHIFT);
+							toggle_modifier(MOD_SHIFT);
+						/* Release the ALT key */
+						if(alt)
+							toggle_modifier(MOD_ALT);
 						/* Press the CTRL key */
 						if(!ctrl)
-							toggle_modifier(CIO_MOD_CONTROL);
+							toggle_modifier(MOD_CONTROL);
 						break;
 					}
 					if(keyval[i].ALT==key) {
 						/* Release the shift key */
 						if(shift)
-							toggle_modifier(CIO_MOD_SHIFT);
+							toggle_modifier(MOD_SHIFT);
 						/* Release the CTRL key */
 						if(ctrl)
-							toggle_modifier(CIO_MOD_CONTROL);
+							toggle_modifier(MOD_CONTROL);
 						/* Press the ALT key */
 						if(!alt)
-							toggle_modifier(CIO_MOD_ALT);
-						break;
+							toggle_modifier(MOD_ALT);
 					}
 				}
-				frobkey(TRUE, TRUE, key>>8, MapVirtualKey(key>>8, 1), 0);
+				frobkey(TRUE, TRUE, MapVirtualKey(key>>8, 1), key>>8, 0);
 			}
 			if(alt)
-				toggle_modifier(CIO_MOD_ALT);
+				toggle_modifier(MOD_ALT);
 			if(ctrl)
-				toggle_modifier(CIO_MOD_CONTROL);
+				toggle_modifier(MOD_CONTROL);
 			if(shift)
-				toggle_modifier(CIO_MOD_SHIFT);
+				toggle_modifier(MOD_SHIFT);
 		}
 		else
 			SLEEP(1);
@@ -221,9 +209,7 @@ void output_thread(void *args)
 	COORD				size;
 	COORD				pos;
 	int i,j;
-	int last_display_top;
 
-	GetConsoleScreenBufferInfo(console_output, &console_output_info);
 	pos.X=0;
 	pos.Y=0;
 	size.X=ti.screenwidth;
@@ -232,31 +218,16 @@ void output_thread(void *args)
 	from_screen=(CHAR_INFO *)malloc(sizeof(CHAR_INFO)*ti.screenheight*ti.screenwidth);
 	write_buf=(unsigned char *)malloc(2*ti.screenheight*ti.screenwidth);
 	current_screen=(unsigned char *)malloc(2*ti.screenheight*ti.screenwidth);
-	puttext_can_move=1;
 
 	output_thread_running=1;
 	while(!terminate) {
 		SLEEP(10);
 
 		/* Read the console screen buffer */
-		if(display_top) {
-			if(!last_display_top)
-				force_redraw=1;
-			last_display_top=1;
-			screen_area.Left=console_output_info.srWindow.Left;
-			screen_area.Right=console_output_info.srWindow.Left+ti.screenwidth-1;
-			screen_area.Top=console_output_info.srWindow.Top;
-			screen_area.Bottom=console_output_info.srWindow.Top+ti.screenheight-1;
-		}
-		else {
-			if(last_display_top)
-				force_redraw=1;
-			last_display_top=0;
-			screen_area.Left=console_output_info.srWindow.Right-ti.screenwidth+1;
-			screen_area.Right=console_output_info.srWindow.Right;
-			screen_area.Top=console_output_info.srWindow.Bottom-ti.screenheight+1;
-			screen_area.Bottom=console_output_info.srWindow.Bottom;
-		}
+		screen_area.Left=0;
+		screen_area.Right=ti.screenwidth-1;
+		screen_area.Top=0;
+		screen_area.Bottom=ti.screenheight-1;
 		ReadConsoleOutput(console_output, from_screen, size, pos, &screen_area);
 
 		/* Translate to a ciolib buffer */
@@ -266,19 +237,12 @@ void output_thread(void *args)
 			write_buf[j++]=from_screen[i].Attributes & 0xff;
 		}
 
-		if(force_redraw) {
-			clrscr();
+		/* Compare against the current screen */
+		gettext(1,1,ti.screenwidth,ti.screenheight,current_screen);
+		if(memcmp(current_screen,write_buf,2*ti.screenwidth*ti.screenheight))
 			puttext(1,1,ti.screenwidth,ti.screenheight,write_buf);
-			force_redraw=0;
-		}
-		else {
-			/* Compare against the current screen */
-			gettext(1,1,ti.screenwidth,ti.screenheight,current_screen);
-			if(memcmp(current_screen,write_buf,2*ti.screenwidth*ti.screenheight))
-				puttext(1,1,ti.screenwidth,ti.screenheight,write_buf);
-		}
 
-		/* Update cursor position and read console size */
+		/* Update cursor position */
 		if(GetConsoleScreenBufferInfo(console_output, &console_output_info))
 			gotoxy(console_output_info.dwCursorPosition.X+1,console_output_info.dwCursorPosition.Y+1);
 	}
@@ -295,31 +259,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE pinst, char *cmd, int cshow)
 	DWORD d;
 	SECURITY_ATTRIBUTES	sec_attrib;
 
-	/* Command-line arguments */
-	for(;;cmd++) {
-		if(!(*cmd))
-			goto USAGE;
-		if(*cmd=='-' || *cmd=='/') {
-			/* Command line argument... */
-			cmd++;
-			switch(*cmd) {
-				case 't':
-				case 'T':
-					display_top=1;
-					break;
-				case 'b':
-				case 'B':
-					display_top=0;
-					break;
-				default:
-					goto USAGE;
-			}
-		}
-		else
-			if(!isspace(*cmd))
-				break;
-	}
-
+	puttext_can_move=1;
 	initciolib(CIOLIB_MODE_ANSI);
 	ansi_ciolib_setdoorway(1);
 	gettextinfo(&ti);
@@ -410,22 +350,4 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE pinst, char *cmd, int cshow)
 		}
 		SLEEP(1);
 	}
-
-USAGE:
-	puts(	"\r\nUsage:"
-			"\r\ncioxtrn [ -t | -b ] <command>"
-			"\r\n"
-			"\r\n-t and -b select default behaviour if the console window is resized."
-			"\r\n-t Displays the top of the window"
-			"\r\n-b displays the bottom of the window"
-			"\r\n"
-			"\r\n<command> is the command to execute with redirected IO");
-	return(0);
-}
-
-int CIOLIB_main(int argc, char **argv, char **env)
-{
-	printf("I'm sorry, this program is currently broken.\r\n");
-	exit(1);
-	return(1);
 }
