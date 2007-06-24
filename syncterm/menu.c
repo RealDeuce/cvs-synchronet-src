@@ -1,4 +1,4 @@
-/* $Id: menu.c,v 1.36 2006/05/13 08:17:22 deuce Exp $ */
+/* $Id: menu.c,v 1.39 2007/06/23 23:48:53 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -42,9 +42,27 @@ void viewscroll(void)
 		if(top>cterm.backpos)
 			top=cterm.backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		cputs("Scrollback");
-		gotoxy(71,1);
-		cputs("Scrollback");
+		switch(cterm.emulation) {
+		case CTERM_EMULATION_ATASCII:
+			cputs("3crollback");
+			break;
+		case CTERM_EMULATION_PETASCII:
+			cputs("SCROLLBACK");
+			break;
+		default:
+			cputs("Scrollback");
+		}
+		gotoxy(cterm.width-9,1);
+		switch(cterm.emulation) {
+		case CTERM_EMULATION_ATASCII:
+			cputs("3crollback");
+			break;
+		case CTERM_EMULATION_PETASCII:
+			cputs("SCROLLBACK");
+			break;
+		default:
+			cputs("Scrollback");
+		}
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -124,6 +142,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"Capture Control (Alt-C)"
 						,"ANSI Music Control (Alt-M)"
 						,"Font Control (Alt-F)"
+						,"Toggle Doorway Mode"
 						,"Exit (Alt-X)"
 						,""};
 	int		opt=0;
@@ -145,49 +164,34 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	for(ret=0;!ret;) {
 		init_uifc(FALSE, !(bbs->nostatus));
 		uifc.helpbuf=	"`Online Menu`\n\n"
-						"~ Scrollback ~         allows to you to view the scrollback buffer\n"
-						"~ Disconnect ~         disconnects the current session and returns to the\n"
-						"                     dialing list\n"
-						"~ Send Login ~         Sends the configured user and password pair separated\n"
-						"                     by a \\r\n"
-						"~ Upload ~             Initiates a ZModem upload\n"
-						"~ Download ~           Initiates a ZModem download\n"
-						"~ Change Output Rate ~ Changes the speed charaters are output to the screen\n"
-						"~ Change Log Level ~   Changes the minimum log leve for ZModem information\n"
-						"~ Capture Control ~    Enables/Disables screen capture\n"
-						"~ ANSI Music Control ~ Enables/Disables ANSI Music\n"
-						"~ Font Control ~       Changes the current font\n"
-						"~ Exit ~               Disconnects and closes the Syncterm";
+						"~ Scrollback ~          allows to you to view the scrollback buffer\n"
+						"~ Disconnect ~          disconnects the current session and returns to the\n"
+						"                      dialing list\n"
+						"~ Send Login ~          Sends the configured user and password pair separated\n"
+						"                      by a \\r\n"
+						"~ Upload ~              Initiates a ZModem upload\n"
+						"~ Download ~            Initiates a ZModem download\n"
+						"~ Change Output Rate ~  Changes the speed charaters are output to the screen\n"
+						"~ Change Log Level ~    Changes the minimum log leve for ZModem information\n"
+						"~ Capture Control ~     Enables/Disables screen capture\n"
+						"~ ANSI Music Control ~  Enables/Disables ANSI Music\n"
+						"~ Font Control ~        Changes the current font\n"
+						"~ Toggle Doorway Mode ~ Toggle the current DoorWay setting\n"
+						"~ Exit ~                Disconnects and closes the Syncterm";
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
 			case -1:	/* Cancel */
-#ifdef PCM
-				if(!confirm("Exit the menu?",NULL))
-					continue;
-#endif
 				ret=1;
 				break;
 			case 0:		/* Scrollback */
-#ifdef PCM
-				if(!confirm("View scrollback?",NULL))
-					continue;
-#endif
 				uifcbail();
 				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 				viewscroll();
 				break;
 			case 1:		/* Disconnect */
-#ifdef PCM
-				if(!confirm("Disconect?",NULL))
-					continue;
-#endif
 				ret=-1;
 				break;
 			case 2:		/* Login */
-#ifdef PCM
-				if(!confirm("Send login credentials?",NULL))
-					continue;
-#endif
 				ret=1;
 				conn_send(bbs->user,strlen(bbs->user),0);
 				conn_send("\r",1,0);
@@ -201,10 +205,6 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				}
 				break;
 			case 5:		/* Output rate */
-#ifdef PCM
-				if(!confirm("Modify output rate?",NULL))
-					continue;
-#endif
 				if(speed != NULL) {
 					j=get_rate_num(*speed);
 					uifc.helpbuf="`Output Rate`\n\n"
@@ -218,10 +218,6 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				ret=5;
 				break;
 			case 6:		/* Change log level (temporarily) */
-#ifdef PCM
-				if(!confirm("Change log level for this session?",NULL))
-					continue;
-#endif
 				j=log_level;
 				uifc.helpbuf="`Log Level\n\n"
 						"The log level changes the verbosity of messages shown in the transfer\n"
