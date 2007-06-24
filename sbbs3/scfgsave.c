@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.49 2007/07/10 19:49:54 deuce Exp $ */
+/* $Id: scfgsave.c,v 1.47 2006/03/14 03:19:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,33 +110,6 @@ BOOL DLLCALL fcopy(char* src, char* dest)
 	return(success);
 }
 
-BOOL DLLCALL fcompare(char* fn1, char* fn2)
-{
-	FILE*	fp1;
-	FILE*	fp2;
-	BOOL	success=TRUE;
-
-	if(flength(fn1) != flength(fn2))
-		return(FALSE);
-	if((fp1=fopen(fn1,"rb"))==NULL)
-		return(FALSE);
-	if((fp2=fopen(fn2,"rb"))==NULL) {
-		fclose(fp1);
-		return(FALSE);
-	}
-
-	while(!feof(fp1) && success) {
-		if(fgetc(fp1) != fgetc(fp2))
-			success=FALSE;
-	}
-
-	fclose(fp1);
-	fclose(fp2);
-
-	return(success);
-}
-
-
 /****************************************************************************/
 /****************************************************************************/
 BOOL DLLCALL backup(char *fname, int backup_level, BOOL ren)
@@ -180,7 +153,7 @@ BOOL DLLCALL write_node_cfg(scfg_t* cfg, int backup_level)
 {
 	char	str[MAX_PATH+1];
 	int 	i,file;
-	uint16_t	n;
+	ushort	n;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -278,8 +251,7 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 {
 	char	str[MAX_PATH+1],c=0;
 	int 	file;
-	ushort	i,j;
-	uint16_t n;
+	ushort	i,j,n;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -436,8 +408,8 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	char	str[MAX_PATH+1],c;
 	char	dir[LEN_DIR+1]="";
 	int 	i,j,k,file;
-	uint16_t	n;
-	uint32_t	l;
+	ushort	n;
+	long	l;
 	FILE	*stream;
 	smb_t	smb;
 
@@ -720,8 +692,8 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	char	str[MAX_PATH+1],cmd[LEN_CMD+1],c;
 	char	path[MAX_PATH+1];
 	int 	i,j,k,file;
-	uint16_t	n;
-	uint32_t	l=0;
+	ushort	n;
+	long	l=0;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -957,7 +929,7 @@ BOOL DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level)
 {
 	char	str[MAX_PATH+1];
 	int 	i,j,file;
-	uint16_t	n;
+	ushort	n;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -1032,7 +1004,7 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 {
 	uchar	str[MAX_PATH+1],c;
 	int 	i,j,sec,file;
-	uint16_t	n;
+	ushort	n;
 	FILE	*stream;
 
 	if(cfg->prepped)
