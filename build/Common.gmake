@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.68 2007/10/02 16:55:56 rswindell Exp $
+# $Id: Common.gmake,v 1.63 2007/05/31 09:41:55 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -197,10 +197,6 @@ endif
 os      :=	$(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
 machine		:=	$(shell if uname -m | egrep -v "(i[3456789]*|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
-machine		:=	$(shell if uname -m | egrep "64" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; else echo $(machine) ; fi)
-ifeq ($(machine),x86_64)
- CFLAGS +=	-fPIC
-endif
 ifeq ($(machine),sparc64)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
@@ -217,10 +213,6 @@ ifeq ($(machine),)
  machine	:=	$(os)
 else
  machine	:=	$(os).$(machine)
-endif
-
-ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
- CFLAGS	+=	-DHAS_INTTYPES_H
 endif
 
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
