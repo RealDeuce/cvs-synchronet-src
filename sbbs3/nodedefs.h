@@ -2,7 +2,7 @@
 
 /* Synchronet node information structure and constant definitions */
 
-/* $Id: nodedefs.h,v 1.17 2008/01/06 21:41:23 deuce Exp $ */
+/* $Id: nodedefs.h,v 1.14 2007/05/01 05:43:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ typedef struct _PACK {				/* Node information kept in node.dab */
     uchar   status,                 /* Current Status of Node */
             errors,                 /* Number of Critical Errors */
             action;                 /* Action User is doing on Node */
-    uint16_t  useron,                 /* User on Node */
+    ushort  useron,                 /* User on Node */
             connection,             /* Connection rate of Node */
 #define NODE_CONNECTION_LOCAL		0
 #define NODE_CONNECTION_TELNET		USHRT_MAX	/* 0xffff */
@@ -124,7 +124,7 @@ typedef struct _PACK {				/* Node information kept in node.dab */
 #define NODE_CONNECTION_SSH			(USHRT_MAX-2)
             misc,                   /* Miscellaneous bits for node */
             aux;                    /* Auxillary word for node */
-    uint32_t   extaux;                 /* Extended aux dword for node */
+    ulong   extaux;                 /* Extended aux dword for node */
             } node_t;
 
 #if defined(_WIN32) || defined(__BORLANDC__)
