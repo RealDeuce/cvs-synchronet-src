@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.61 2007/06/25 18:34:18 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.62 2007/06/25 22:30:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -613,6 +613,7 @@ static void ansi_keyparse(void *par)
 				if(doorway_enabled && ch==0) {
 					/* Got a NULL. ASSume this is a doorway mode char */
 					gotnull=1;
+					sem_post(&goahead);
 					break;
 				}
 				ansi_inch=ch;
