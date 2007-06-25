@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.85 2006/05/31 03:23:06 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.82 2006/03/01 00:50:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -49,7 +49,7 @@
 	#include <strings.h>	/* strcasecmp() */
 	#include <unistd.h>		/* usleep */
 
-	#ifdef XPDEV_THREAD_SAFE
+	#ifdef _THREAD_SAFE
 		#include <pthread.h>/* Check for GNU PTH libs */
 		#ifdef _PTH_PTHREAD_H_
 			#include <pth.h>
@@ -213,9 +213,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if 0	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
-		#define tzname			_tzname
-	#endif
+	#define tzname			_tzname
 
 #elif defined(__OS2__)
 
@@ -226,18 +224,18 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #elif defined(__unix__) || defined(__APPLE__)
 
 	#if defined(_PTH_PTHREAD_H_)
-		#define SLEEP(x)		({ int sleep_msecs=x; struct timeval tv; \
-								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
+		#define SLEEP(x)		({ int y=x; struct timeval tv; \
+								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
 								pth_nap(tv); })
 	#else
-		#define SLEEP(x)		({	int sleep_msecs=x; struct timeval tv; \
-								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
+		#define SLEEP(x)		({	int y=x; struct timeval tv; \
+								tv.tv_sec=(y/1000); tv.tv_usec=((y%1000)*1000); \
 								select(0,NULL,NULL,NULL,&tv); })
 	#endif
 
 	#define YIELD()			SLEEP(1)
 
-	#if defined(XPDEV_THREAD_SAFE)
+	#if defined(_THREAD_SAFE)
 		#if defined(__FreeBSD__)
 			#define MAYBE_YIELD()			pthread_yield()
 		#elif defined(_PTH_PTHREAD_H_)
