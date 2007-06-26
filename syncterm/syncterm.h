@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #ifndef _SYNCTERM_H_
 #define _SYNCTERM_H_
 
@@ -13,7 +11,6 @@ enum {
 	 SYNCTERM_PATH_INI
 	,SYNCTERM_PATH_LIST
 	,SYNCTERM_DEFAULT_TRANSFER_PATH
-	,SYNCTERM_PATH_CACHE
 };
 
 struct modem_settings {
@@ -24,9 +21,7 @@ struct modem_settings {
 struct syncterm_settings {
 	int		confirm_close;
 	int		startup_mode;
-	int		output_mode;
 	int		backlines;
-	int		prompt_save;
 	struct modem_settings mdm;
 };
 
@@ -41,11 +36,5 @@ extern char *font_names[];
 extern int safe_mode;
 char *get_syncterm_filename(char *fn, int fnlen, int type, int shared);
 void load_settings(struct syncterm_settings *set);
-extern char *output_types[];
-extern int output_map[];
-extern char *output_descrs[];
-extern char *output_enum[];
-int ciolib_to_screen(int screen);
-int screen_to_ciolib(int ciolib);
 
 #endif
