@@ -1,7 +1,8 @@
-/* $Id: conn_pty.c,v 1.1 2007/06/01 11:59:14 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.2 2007/06/05 06:31:14 deuce Exp $ */
 
 #ifdef __unix__
 
+#include <unistd.h>		/* _POSIX_VDISABLE - needed when termios.h is broken */
 #include <signal.h>		// kill()
 #include <sys/wait.h>	// WEXITSTATUS
 
