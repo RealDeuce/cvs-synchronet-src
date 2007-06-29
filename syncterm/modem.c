@@ -1,4 +1,4 @@
-/* $Id: modem.c,v 1.8 2007/07/06 02:36:33 deuce Exp $ */
+/* $Id: modem.c,v 1.7 2007/05/29 06:58:35 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -170,7 +170,7 @@ int modem_connect(struct bbslist *bbs)
 			modem_close();
 			uifc.pop(NULL);
 			uifcmsg("No Answer",	"`No Answer`\n\n"
-							"The modem did not connect within 30 seconds.\n");
+							"The modem did not connect withing 30 seconds.\n");
 			conn_api.terminate=-1;
 			return(-1);
 		}
