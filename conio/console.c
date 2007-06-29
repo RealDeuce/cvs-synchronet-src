@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.70 2007/05/26 00:32:06 deuce Exp $ */
+/* $Id: console.c,v 1.71 2007/06/21 03:33:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ int InitCE;
 int FW, FH;
 int FontScale=1;
 #define MAX_SCALE	2
-WORD DpyCols;
+WORD DpyCols=80;		/* Initialize this so init_mode() is happy */
 BYTE DpyRows;
 BYTE *palette;
 BYTE CursStart;
