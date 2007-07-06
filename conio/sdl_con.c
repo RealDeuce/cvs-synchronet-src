@@ -1,4 +1,4 @@
-/* $Id: sdl_con.c,v 1.97 2007/06/14 22:02:18 deuce Exp $ */
+/* $Id: sdl_con.c,v 1.98 2007/06/21 03:32:38 deuce Exp $ */
 
 #if (defined(__MACH__) && defined(__APPLE__))
 #include <Carbon/Carbon.h>
@@ -537,6 +537,7 @@ int sdl_init(int mode)
 	sdl.mutexP(sdl_vstatlock);
 	vstat.vmem=NULL;
 	vstat.scaling=1;
+	vstat.cols=80;		/* Initialize this so sdl_init_mode() is happy */
 	sdl.mutexV(sdl_vstatlock);
 
 	sdl.mutexP(sdl_updlock);
@@ -1819,7 +1820,6 @@ int sdl_video_event_thread(void *data)
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
 								return(0);
-								break;
 							case SDL_USEREVENT_LOADFONT:
 								sdl_ufunc_retval=sdl_load_font((char *)ev.user.data1);
 								FREE_AND_NULL(ev.user.data1);
@@ -2100,6 +2100,7 @@ int sdl_video_event_thread(void *data)
 			}
 		}
 	}
+	return(0);
 }
 
 int sdl_initciolib(int mode)
