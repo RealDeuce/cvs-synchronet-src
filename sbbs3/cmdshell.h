@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id: cmdshell.h,v 1.12 2007/08/13 21:41:03 deuce Exp $ */
+/* $Id: cmdshell.h,v 1.7 2003/10/09 17:27:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,8 +36,6 @@
  ****************************************************************************/
 
 #include "gen_defs.h"
-#include "dirwrap.h"
-#include "sockwrap.h"
 
 #ifndef _CMDSHELL_H_
 #define _CMDSHELL_H_ 
@@ -628,9 +626,8 @@ enum {
 #define MAX_STRVARS		26
 #define MAX_INTVARS		26
 #define MAX_STRLEN		81
-#define MAX_OPENDIRS	10	/* maximum concurrent open directories */
-#define MAX_FOPENS		10	/* maximum concurrent open files */
-#define MAX_SOCKETS		10	/* maximum concurrent open sockets */
+#define MAX_FOPENS		10	/* maximum open files */
+#define MAX_SOCKETS		10	/* maximum open sockets */
 #define MAX_SYSVARS		16	/* maximum system variable saves */
 
 #define LOGIC_LESS		-1
@@ -654,27 +651,25 @@ typedef struct {					/* Command shell image */
 
 	int 	logic;					/* Current logic */
 	
-	DIR*	dir[MAX_OPENDIRS];		/* Each directory ptr */
-	FILE*	file[MAX_FOPENS];		/* Each file ptr */
-	SOCKET	socket[MAX_SOCKETS];	/* Open socket descriptors */
-	int32_t	socket_error;			/* Last socket error */
+	FILE	*file[MAX_FOPENS];		/* Each file ptr */
+	int		socket[MAX_SOCKETS];	/* Open socket descriptors */
+	long	socket_error;			/* Last socket error */
 
 	uint	str_vars,				/* Total number of string variables */
 			int_vars,				/* Total number of integer variables */
 			files,					/* Open files */
-			dirs,					/* Open directories */
 			sockets,				/* Open sockets */
 			rets,					/* Returns on stack */
 			loops,					/* Nested loop depth (loops on stack) */
 			cmdrets;				/* Command returns on stack */
 
-	int32_t	ftp_mode,				/* FTP operation mode */
+	long	retval, 				/* Return value */
+			misc,					/* Misc bits */
+			ftp_mode,				/* FTP operation mode */
+			switch_val, 			/* Current switch value */
 			*int_var,				/* Integer variables */
 			*str_var_name,			/* String variable names (CRC-32) */
 			*int_var_name;			/* Integer variable names (CRC-32) */
-	long	retval, 				/* Return value */
-			misc,					/* Misc bits */
-			switch_val; 			/* Current switch value */
 
 	long	length; 				/* Length of image */
 
