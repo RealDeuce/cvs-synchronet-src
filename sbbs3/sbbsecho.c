@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.190 2007/07/08 21:42:49 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.189 2007/04/10 20:12:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1599,7 +1599,6 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 
 	memcpy(&attach.dest,&dest,sizeof(faddr_t));
 	strcpy(attach.fname,bundlename);
-	/* TODO: Write of unpacked struct */
 	fwrite(&attach,sizeof(attach_t),1,stream);
 	fclose(stream);
 	return(0);
@@ -3548,7 +3547,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 			if(!addr.zone && !(misc&IGNORE_MSGPTRS)) {
 				sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
 				if((file=nopen(str,O_RDONLY))!=-1) {
-					read(file,&ptr,4);
+					read(file,&ptr,sizeof(time_t));
 					close(file); } }
 
 			msgs=getlastmsg(i,&lastmsg,0);
@@ -3906,7 +3905,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.190 $", "%*s %s", revision);
+	sscanf("$Revision: 1.189 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4935,7 +4934,7 @@ int main(int argc, char **argv)
 						lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
 							,errno,__LINE__,str); }
 					else {
-						write(file,&l,4);
+						write(file,&l,sizeof(time_t));
 						close(file); 
 					} 
 				}
