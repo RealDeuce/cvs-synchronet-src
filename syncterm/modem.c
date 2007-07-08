@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: modem.c,v 1.10 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: modem.c,v 1.8 2007/07/06 02:36:33 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -212,7 +210,7 @@ int modem_connect(struct bbslist *bbs)
 		modem_close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
-		FREE_AND_NULL(conn_api.rd_buf);
+		free(conn_api.rd_buf);
 		return(-1);
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
