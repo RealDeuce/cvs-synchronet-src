@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.106 2007/05/28 01:36:52 deuce Exp $ */
+/* $Id: syncterm.c,v 1.107 2007/07/06 02:49:20 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -33,6 +33,15 @@ char* syncterm_version = "SyncTERM 0.9.0"
 	" Debug ("__DATE__")"
 #endif
 	;
+
+/* Default modem device */
+#if defined(__APPLE__) && defined(__MACH__)
+/* Mac OS X */
+#define DEFAULT_MODEM_DEV	"/dev/tty.modem"
+#else
+/* FreeBSD */
+#define DEFAULT_MODEM_DEV	"/dev/ttyd0"
+#endif
 
 char *inpath=NULL;
 int default_font=0;
@@ -863,7 +872,7 @@ void load_settings(struct syncterm_settings *set)
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
-	iniReadString(inifile, "SyncTERM", "ModemDevice", "/dev/ttyd0", set->mdm.device_name);
+	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
 	if(inifile)
 		fclose(inifile);
 }
