@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.318 2007/07/08 20:53:04 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.317 2007/07/07 20:36:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1040,7 +1040,7 @@ BOOL upload_stats(ulong bytes)
 {
 	char	str[MAX_PATH+1];
 	int		file;
-	uint32_t	val;
+	ulong	val;
 
 	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
 	if((file=nopen(str,O_RDWR))==-1) 
@@ -1063,7 +1063,7 @@ BOOL download_stats(ulong bytes)
 {
 	char	str[MAX_PATH+1];
 	int		file;
-	uint32_t	val;
+	ulong	val;
 
 	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
 	if((file=nopen(str,O_RDWR))==-1) 
@@ -4566,7 +4566,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.318 $", "%*s %s", revision);
+	sscanf("$Revision: 1.317 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
