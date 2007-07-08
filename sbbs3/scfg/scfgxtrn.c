@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.37 2006/02/22 22:24:52 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.39 2007/06/29 05:30:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -737,11 +737,14 @@ re-initialized, set this option to ~Yes~.
 
 void xtrn_cfg(uint section)
 {
-	static int ext_dflt,ext_bar,opt_dflt,time_dflt;
+	static int ext_dflt,ext_bar,sub_bar,opt_dflt,time_dflt;
 	char str[128],code[9],done=0,*p;
 	int j,k;
 	uint i,n,xtrnnum[MAX_OPTS+1];
 	static xtrn_t savxtrn;
+
+	sub_bar=0;
+	opt_dflt=0;
 
 while(1) {
 	for(i=0,j=0;i<cfg.total_xtrns && j<MAX_OPTS;i++)
@@ -917,7 +920,7 @@ online program name.
 
 This menu is for configuring the selected online program.
 */
-		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_MID,0,0,60,&opt_dflt,0,cfg.xtrn[i]->name
+		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_MID,0,0,60,&opt_dflt,&sub_bar,cfg.xtrn[i]->name
 			,opt)) {
 			case -1:
 				done=1;
@@ -1263,7 +1266,7 @@ or you want to debug a program with a program not running correctly.
 If this online program requires a specific BBS data (drop) file
 format, select the file format from the list.
 */
-				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+				k=uifc.list(WIN_MID|WIN_ACT,0,0,0,&k,0
 					,"BBS Drop File Type",opt);
 				if(k==-1)
 					break;
@@ -1277,7 +1280,7 @@ format, select the file format from the list.
 					strcpy(opt[1],"No");
 					opt[2][0]=0;
 					k=cfg.xtrn[i]->misc&REALNAME ? 0:1;
-					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Use Real Names",opt);
+					k=uifc.list(WIN_MID,0,0,0,&k,0,"Use Real Names",opt);
 					if(k==0 && !(cfg.xtrn[i]->misc&REALNAME)) {
 						cfg.xtrn[i]->misc|=REALNAME;
 						uifc.changes=TRUE; }
@@ -1291,7 +1294,7 @@ format, select the file format from the list.
 					strcpy(opt[1],"No");
 					opt[2][0]=0;
 					k=cfg.xtrn[i]->misc&XTRN_LWRCASE ? 0:1;
-					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Lowercase Filename",opt);
+					k=uifc.list(WIN_MID,0,0,0,&k,0,"Lowercase Filename",opt);
 					if(k==0 && !(cfg.xtrn[i]->misc&XTRN_LWRCASE)) {
 						cfg.xtrn[i]->misc|=XTRN_LWRCASE;
 						uifc.changes=TRUE; 
