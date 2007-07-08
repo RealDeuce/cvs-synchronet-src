@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.71 2007/07/10 21:44:03 deuce Exp $ */
+/* $Id: postmsg.cpp,v 1.70 2007/05/04 22:53:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,8 +65,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	char	touser[64];
 	char	from[64];
 	char	pid[128];
-	uint16_t xlat;
-	ushort	msgattr;
+	ushort	xlat,msgattr;
 	int 	i,j,x,file,storage;
 	ulong	length,offset,crc=0xffffffff;
 	FILE*	instream;
