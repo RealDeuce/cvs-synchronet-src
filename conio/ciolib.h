@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.43 2007/05/31 09:37:25 deuce Exp $ */
+/* $Id: ciolib.h,v 1.44 2007/06/24 20:43:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -309,6 +309,9 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
+
+/* DoorWay specific stuff that's only applicable to ANSI mode. */
+CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 #ifdef __cplusplus
 }
 #endif

@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.316 2007/04/11 01:43:46 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.317 2007/07/07 20:36:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4566,7 +4566,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.316 $", "%*s %s", revision);
+	sscanf("$Revision: 1.317 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4788,12 +4788,16 @@ void DLLCALL ftp_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->port);
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
 		result=retry_bind(server_socket, (struct sockaddr *) &server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"FTP Server",lprintf);
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
 		if(result!=0) {
 			lprintf(LOG_ERR,"%04d %s", server_socket, BIND_FAILURE_HELP);
 			cleanup(1,__LINE__);
