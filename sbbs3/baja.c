@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.42 2006/12/19 21:43:16 rswindell Exp $ */
+/* $Id: baja.c,v 1.43 2007/07/08 20:30:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -346,7 +346,8 @@ void writecrc(uchar *src, uchar *in)
 {
 	uchar	name[128];
 	uchar*	p;
-	long	i,l;
+	int32_t	l;
+	int		i;
 
 	/* Automatically terminate variable name Oct-09-2000 rswindell */
 	sprintf(name,"%.80s",in);
@@ -454,8 +455,10 @@ void compile(char *src)
 {
 	uchar *str,*save,*p,*sp,*tp,*arg,*arg2,*arg3,*arg4,*ar,ch;
 	char path[MAX_PATH+1];
-    ushort i,j;
-	long l,savline;
+	uint16_t i;
+    ushort j;
+	int32_t l;
+	int savline;
 	FILE *in;
 
 	if((in=fopen(src,"rb"))==NULL) {
@@ -3407,7 +3410,7 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.42 $", "%*s %s", revision);
+	sscanf("$Revision: 1.43 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
