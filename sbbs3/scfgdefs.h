@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.28 2007/07/10 19:41:32 deuce Exp $ */
+/* $Id: scfgdefs.h,v 1.27 2007/07/08 21:50:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -298,7 +298,7 @@ typedef struct {						/* Generic Timed Event */
 			freq;						/* Frequency to run event */
 	uint32_t	misc,						/* Misc bits */
 			mdays;						/* days of month (if non-zero) to run event */
-	time32_t	last;						/* Last time event ran */
+	time_t	last;						/* Last time event ran */
 
 } event_t;
 
@@ -315,7 +315,7 @@ typedef struct {						/* QWK Network Hub */
 			subs,						/* Number Sub-boards carried */
 			*sub,						/* Number of local sub-board for ea. */
 			*conf;						/* Conference number of ea. */
-	time32_t	last;						/* Last network attempt */
+	time_t	last;						/* Last network attempt */
 
 } qhub_t;
 
@@ -326,7 +326,7 @@ typedef struct {						/* PCRelay/PostLink Hub */
 	uint16_t	time,						/* Time to call-out */
 			node,						/* Node to do the call-out */
 			freq;						/* Frequency of call-outs */
-	time32_t	last;						/* Last network attempt */
+	time_t	last;						/* Last network attempt */
 
 } phub_t;
 
