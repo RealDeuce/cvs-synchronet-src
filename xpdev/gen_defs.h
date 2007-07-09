@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.38 2007/07/08 20:17:35 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.39 2007/07/09 18:31:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ enum {
 #define DWORD	uint32_t
 #endif
 #ifndef BOOL
-#define BOOL	int_fast8_t
+#define BOOL	int32_t
 #endif
 #else
 
