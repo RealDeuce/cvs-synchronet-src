@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.310 2008/01/11 08:34:52 deuce Exp $ */
+/* $Id: sbbs.h,v 1.298 2007/07/10 23:16:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,6 +123,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include "startup.h"
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
+#ifdef SBBS	
+	#include "text.h"
+#endif
 
 /* xpdev */
 #ifndef LINK_LIST_THREADSAFE
@@ -149,7 +152,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "crc32.h"
 #include "telnet.h"
 #include "nopen.h"
-#include "text.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -303,7 +305,9 @@ public:
 	char 	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
-	time_t	now,			/* Used to store current time in Unix format */
+	/* TODO: we don't really want to do this... */
+	/* But we're writing it in logon.cpp */
+	time32_t	now,			/* Used to store current time in Unix format */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
@@ -416,7 +420,7 @@ public:
 	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
-	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
+	ulong	getlastmsg(uint subnum, ulong *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
 
@@ -432,11 +436,11 @@ public:
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del);
-	ulong	gettimeleft(bool handle_out_of_time=true);
+	void	gettimeleft(void);
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t intime);
+	char*	timestr(time_t *intime);
     char	timestr_output[60];
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, char *tmplt, long mode);
@@ -445,7 +449,6 @@ public:
 	void	create_sif_dat(char *siffile, char *datfile);
 	void	read_sif_dat(char *siffile, char *datfile);
 	void	printnodedat(uint number, node_t* node);
-	bool	inputnstime32(time32_t *dt);
 	bool	inputnstime(time_t *dt);
 	bool	chkpass(char *pass, user_t* user, bool unique);
 	char *	cmdstr(char *instr, char *fpath, char *fspec, char *outstr);
@@ -491,7 +494,7 @@ public:
 	void	delallmail(uint usernumber);
 
 	/* getmsg.cpp */
-	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
+	post_t* loadposts(long *posts, uint subnum, ulong ptr, long mode);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -813,7 +816,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, int32_t* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -866,7 +869,7 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 
@@ -900,9 +903,6 @@ extern "C" {
 										,char* host, char* ip_addr, char* to, char* from);
 
 	DLLEXPORT char *	DLLCALL remove_ctrl_a(char* instr, char* outstr);
-
-	/* data.cpp */
-	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
 
 	/* data_ovl.cpp */
 	DLLEXPORT BOOL		DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
@@ -968,7 +968,6 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char*);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*, BOOL append);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncProperties(JSContext* cx, JSObject* obj, jsSyncPropertySpec*);
-	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);

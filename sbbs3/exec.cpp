@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.70 2008/01/07 08:10:59 deuce Exp $ */
+/* $Id: exec.cpp,v 1.66 2007/07/10 22:56:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -462,7 +462,6 @@ void sbbs_t::clearvars(csi_t *bin)
 	bin->int_vars=0;
 	bin->int_var=NULL;
 	bin->int_var_name=NULL;
-	bin->dirs=0;
 	bin->files=0;
 	bin->loops=0;
 	bin->sockets=0;
@@ -485,21 +484,15 @@ void sbbs_t::freevars(csi_t *bin)
 		free(bin->str_var_name);
 	if(bin->int_var_name)
 		free(bin->int_var_name);
-	for(i=0;i<bin->dirs;i++) {
-		if(bin->dir[i]!=NULL) {
-			closedir(bin->dir[i]);
-			bin->dir[i]=NULL; 
-		}
-	}
 	for(i=0;i<bin->files;i++) {
-		if(bin->file[i]!=NULL) {
-			fclose(bin->file[i]);
-			bin->file[i]=NULL; 
+		if(bin->file[i]) {
+			fclose((FILE *)bin->file[i]);
+			bin->file[i]=0; 
 		}
 	}
 	for(i=0;i<bin->sockets;i++) {
-		if(bin->socket[i]!=0) {
-			close_socket(bin->socket[i]);
+		if(bin->socket[i]) {
+			close_socket((SOCKET)bin->socket[i]);
 			bin->socket[i]=0; 
 		}
 	}
@@ -550,7 +543,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 
 static const char* js_ext(const char* fname)
 {
-	if(getfext(fname)==NULL)
+	if(strchr(fname,'.')==NULL)
 		return(".js");
 	return("");
 }
@@ -583,9 +576,9 @@ long sbbs_t::js_execfile(const char *cmd)
 	fname=cmdline;
 
 	if(strcspn(fname,"/\\")==strlen(fname)) {
-		SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
+		sprintf(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
 		if(cfg.mods_dir[0]==0 || !fexistcase(path))
-			SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
+			sprintf(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
 	} else
 		SAFECOPY(path,fname);
 
@@ -643,7 +636,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
 
-	js_EvalOnExit(js_cx, js_scope, &js_branch);
+	js_EvalOnExit(js_cx, js_glob, &js_branch);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
@@ -685,26 +678,25 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 	if((p=getfext(mod))!=NULL && stricmp(p,".js")==0)
 		return(js_execfile(cmdline));
 	if(cfg.mods_dir[0]) {
-		SAFEPRINTF2(str,"%s%s.js",cfg.mods_dir,mod);
+		sprintf(str,"%s%s.js",cfg.mods_dir,mod);
 		if(fexistcase(str)) 
 			return(js_execfile(cmdline));
 	}
+	sprintf(str,"%s%s.js",cfg.exec_dir,mod);
+	if(fexistcase(str)) 
+		return(js_execfile(cmdline));
 #endif
+
+	memcpy(&bin,csi,sizeof(csi_t));
+	clearvars(&bin);
 
 	SAFECOPY(modname,mod);
 	if(!strchr(modname,'.'))
 		strcat(modname,".bin");
 
-	SAFEPRINTF2(str,"%s%s",cfg.mods_dir,modname);
+	sprintf(str,"%s%s",cfg.mods_dir,modname);
 	if(cfg.mods_dir[0]==0 || !fexistcase(str)) {
-
-#ifdef JAVASCRIPT
-		SAFEPRINTF2(str,"%s%s.js",cfg.exec_dir,mod);
-		if(fexistcase(str)) 
-			return(js_execfile(cmdline));
-#endif
-
-		SAFEPRINTF2(str,"%s%s",cfg.exec_dir,modname);
+		sprintf(str,"%s%s",cfg.exec_dir,modname);
 		fexistcase(str);
 	}
 	if((file=nopen(str,O_RDONLY))==-1) {
@@ -712,8 +704,6 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 		return(-1); 
 	}
 
-	memcpy(&bin,csi,sizeof(csi_t));
-	clearvars(&bin);
 	bin.length=filelength(file);
 	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
 		close(file);
@@ -1094,7 +1084,7 @@ int sbbs_t::exec(csi_t *csi)
 								if(text[i]!=nulstr)
 									free(text[i]);
 								text[i]=text_sav[i]; }
-						SAFEPRINTF2(str,"%s%s.dat"
+						sprintf(str,"%s%s.dat"
 							,cfg.ctrl_dir,cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
 						if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
