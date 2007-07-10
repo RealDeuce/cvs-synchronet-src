@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.61 2007/01/06 09:20:53 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.63 2007/07/10 21:09:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,7 +122,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, long name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-long * sbbs_t::getintvar(csi_t *bin, long name)
+uint32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
