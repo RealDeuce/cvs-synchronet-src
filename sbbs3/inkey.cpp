@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.30 2007/07/11 01:12:51 deuce Exp $ */
+/* $Id: inkey.cpp,v 1.28 2006/09/07 22:59:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*

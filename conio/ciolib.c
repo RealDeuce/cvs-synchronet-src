@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.86 2007/07/12 04:13:29 deuce Exp $ */
+/* $Id: ciolib.c,v 1.85 2007/07/08 10:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -808,9 +808,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	ret=vsprintf(str,fmat,argptr2);
 #endif
     va_end(argptr);
-#ifndef _MSC_VER
     va_end(argptr2);
-#endif
 	if(ret>=0)
 		ciolib_cputs(str);
 	else
