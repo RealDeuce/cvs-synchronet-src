@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.70 2007/07/11 00:11:15 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.69 2007/07/10 21:47:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1025,7 +1025,6 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	node_t		node;
 	msghdr_t	hdr=msg->hdr;
 	idxrec_t	idx=msg->idx;
-	time32_t	now32;
 
 	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
@@ -1058,8 +1057,8 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield(msg,RECIPIENTEXT,sizeof(str),str);
 	msg->idx.to=usernumber;
 
-	now32=time(NULL);
-	smb_hfield(msg,FORWARDED,sizeof(time32_t),&now32);
+	now=time(NULL);
+	smb_hfield(msg,FORWARDED,sizeof(time_t),&now);
 
 
 	if((i=smb_open_da(&smb))!=SMB_SUCCESS) {

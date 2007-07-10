@@ -1,6 +1,6 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.4 2007/07/11 00:02:35 rswindell Exp $ */
+/* $Id: semfile.c,v 1.3 2007/07/10 22:26:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,6 @@ void DLLCALL semfile_list_free(str_list_t* filelist)
 BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 {
 	int file;
-	struct utimbuf ut;
 #if !defined(NO_SOCKET_SUPPORT)
 	char hostname[128];
 
@@ -139,7 +138,5 @@ BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 		write(file,text,strlen(text));
 	close(file);
 
-	/* update the time stamp */
-	ut.actime = ut.modtime = time(NULL);
-	return utime(fname, &ut)==0;
+	return utime(fname, /* use current date/time: */NULL)==0;
 }

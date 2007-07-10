@@ -2,13 +2,13 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.52 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: pack_qwk.cpp,v 1.50 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,12 +49,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	char*	fmode;
 	int 	mode;
 	uint	i,j,k,conf;
-	long	l,size,msgndx,ex;
-	int32_t	posts;
-	int32_t	mailmsgs=0;
-	ulong	totalcdt,totaltime
+	long	l,size,msgndx,posts,ex;
+	long	mailmsgs=0;
+	ulong	totalcdt,totaltime,lastmsg
 			,files,submsgs,msgs,netfiles=0,preqwk=0;
-	uint32_t	lastmsg;
 	ulong	subs_scanned=0;
 	float	f;	/* Sparky is responsible */
 	time_t	start;
@@ -588,7 +586,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		return(false); 
 	}
 
-	if(!(useron.rest&FLAG('Q'))) {					/* Don't include in network */
+	if(!prepack && !(useron.rest&FLAG('Q'))) {      /* Don't include in network */
 		/***********************/					/* packets */
 		/* Copy QWK Text files */
 		/***********************/
