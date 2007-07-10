@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.92 2006/06/06 17:15:50 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.102 2006/11/30 07:28:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@ enum {
 	,BBS_PROP_STARTUP_OPT
 	,BBS_PROP_ANSWER_TIME
 	,BBS_PROP_LOGON_TIME
+	,BBS_PROP_START_TIME
 	,BBS_PROP_NS_TIME
 	,BBS_PROP_LAST_NS_TIME
 	,BBS_PROP_ONLINE
@@ -144,13 +145,14 @@ enum {
 	static char* bbs_prop_desc[] = {
 	 "system status bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"answer time, in time_t format"
-	,"logon time, in time_t format"
-	,"curren file new-scan time, in time_t format"
-	,"previous file new-scan time, in time_t format"
+	,"answer time, in <i>time_t</i> format"
+	,"logon time, in <i>time_t</i> format"
+	,"time from which user's time left is calculated, in <i>time_t</i> format"
+	,"current file new-scan time, in <i>time_t</i> format"
+	,"previous file new-scan time, in <i>time_t</i> format"
 	,"online (see <tt>ON_*</tt> in <tt>sbbsdefs.js</tt> for valid values)"
 	,"time left (in seconds)"
-	,"time of next exclusive event (in time_t format), or 0 if none"
+	,"time of next exclusive event (in <i>time_t</i> format), or 0 if none"
 	,"internal code of next exclusive event"
 
 	,"current node number"
@@ -265,6 +267,9 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case BBS_PROP_LOGON_TIME:
 			val=sbbs->logontime;
+			break;
+		case BBS_PROP_START_TIME:
+			val=sbbs->starttime;
 			break;
 		case BBS_PROP_NS_TIME:
 			val=sbbs->ns_time;
@@ -628,7 +633,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     tiny = JSVAL_TO_INT(id);
 
-	if(JSVAL_IS_NUMBER(*vp) || JSVAL_IS_BOOLEAN(*vp))
+	if(JSVAL_IS_NUM(*vp) || JSVAL_IS_BOOLEAN(*vp))
 		JS_ValueToInt32(cx, *vp, &val);
 	else if(JSVAL_IS_STRING(*vp)) {
 		if((js_str = JS_ValueToString(cx, *vp))==NULL)
@@ -648,6 +653,9 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case BBS_PROP_LOGON_TIME:
 			sbbs->logontime=val;
+			break;
+		case BBS_PROP_START_TIME:
+			sbbs->starttime=val;
 			break;
 		case BBS_PROP_NS_TIME:
 			sbbs->ns_time=val;
@@ -802,6 +810,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"startup_options"	,BBS_PROP_STARTUP_OPT	,JSPROP_ENUMERATE	,310},
 	{	"answer_time"		,BBS_PROP_ANSWER_TIME	,JSPROP_ENUMERATE	,310},
 	{	"logon_time"		,BBS_PROP_LOGON_TIME	,JSPROP_ENUMERATE	,310},
+	{	"start_time"		,BBS_PROP_START_TIME	,JSPROP_ENUMERATE	,314},
 	{	"new_file_time"		,BBS_PROP_NS_TIME		,JSPROP_ENUMERATE	,310},
 	{	"last_new_file_time",BBS_PROP_LAST_NS_TIME	,JSPROP_ENUMERATE	,310},
 	{	"online"			,BBS_PROP_ONLINE		,JSPROP_ENUMERATE	,310},
@@ -885,7 +894,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"batch_upload_total",BBS_PROP_BATCH_UPLOAD_TOTAL,PROP_READONLY	,310},
 	{	"batch_dnload_total",BBS_PROP_BATCH_DNLOAD_TOTAL,PROP_READONLY	,310},
 
-	{	"command_str"		,BBS_PROP_COMMAND_STR		,JSPROP_ENUMERATE, 313},	/* 3.13b */
+	{	"command_str"		,BBS_PROP_COMMAND_STR		,JSPROP_ENUMERATE, 314},
 	{0}
 };
 
@@ -899,7 +908,7 @@ static uint get_subnum(JSContext* cx, sbbs_t* sbbs, jsval val)
 		for(subnum=0;subnum<sbbs->cfg.total_subs;subnum++)
 			if(!stricmp(sbbs->cfg.sub[subnum]->code,p))
 				break;
-	} else if(JSVAL_IS_NUMBER(val))
+	} else if(JSVAL_IS_NUM(val))
 		JS_ValueToInt32(cx,val,(int32*)&subnum);
 	else if(sbbs->usrgrps>0)
 		subnum=sbbs->usrsub[sbbs->curgrp][sbbs->cursub[sbbs->curgrp]];
@@ -916,7 +925,7 @@ static uint get_dirnum(JSContext* cx, sbbs_t* sbbs, jsval val)
 		for(dirnum=0;dirnum<sbbs->cfg.total_dirs;dirnum++)
 			if(!stricmp(sbbs->cfg.dir[dirnum]->code,p))
 				break;
-	} else if(JSVAL_IS_NUMBER(val))
+	} else if(JSVAL_IS_NUM(val))
 		JS_ValueToInt32(cx,val,(int32*)&dirnum);
 	else if(sbbs->usrlibs>0)
 		dirnum=sbbs->usrdir[sbbs->curlib][sbbs->curdir[sbbs->curlib]];
@@ -990,7 +999,7 @@ js_exec(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	for(i=1;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_STRING(argv[i]))
 			startup_dir=JS_ValueToString(cx,argv[i]);
@@ -1025,7 +1034,7 @@ js_exec_xtrn(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		for(i=0;i<sbbs->cfg.total_xtrns;i++)
 			if(!stricmp(sbbs->cfg.xtrn[i]->code,code))
 				break;
-	} else
+	} else if(JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],&i);
 
 	if(i>=sbbs->cfg.total_xtrns) {
@@ -1046,7 +1055,8 @@ js_user_event(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&i);
+	if(JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&i);
 	*rval = BOOLEAN_TO_JSVAL(sbbs->user_event((user_event_t)i));
 	return(JS_TRUE);
 }
@@ -1087,7 +1097,8 @@ js_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&i);
+	if(JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&i);
 	i--;
 
 	if(i<0 || i>=TOTAL_TEXT)
@@ -1116,7 +1127,8 @@ js_replace_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&i);
+	if(JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&i);
 	i--;
 
 	if(i<0 || i>=TOTAL_TEXT)
@@ -1157,7 +1169,8 @@ js_revert_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&i);
+	if(JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&i);
 	i--;
 
 	if(i<0 || i>=TOTAL_TEXT) {
@@ -1243,7 +1256,7 @@ js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	char* p = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
 
-	p=sbbs->atcode(p,str);
+	p=sbbs->atcode(p,str,sizeof(str));
 
 	if(p==NULL)
 		*rval = JSVAL_NULL;
@@ -1442,7 +1455,6 @@ js_logoff(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			sbbs->exec_bin(sbbs->cfg.logoff_mod,&sbbs->main_csi);
 		sbbs->user_event(EVENT_LOGOFF);
 		sbbs->menu("logoff");
-		sbbs->riosync(0);
 		sbbs->hangup(); 
 	}
 
@@ -1747,7 +1759,7 @@ js_node_stats(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc>0)
+	if(argc>0 && JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],&node_num);
 
 	sbbs->node_stats(node_num);
@@ -1764,7 +1776,7 @@ js_userlist(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc>0)
+	if(argc>0 && JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],&mode);
 
 	sbbs->userlist(mode);
@@ -1781,7 +1793,7 @@ js_useredit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc>0)
+	if(argc>0 && JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],&usernumber);
 
 	sbbs->useredit(usernumber);
@@ -1844,13 +1856,14 @@ js_whos_online(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 static JSBool
 js_spy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	int32		node_num=1;
+	int32		node_num=0;
 	sbbs_t*		sbbs;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&node_num);
+	if(argc && JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&node_num);
 	sbbs->spy(node_num);
 
 	return(JS_TRUE);
@@ -1867,9 +1880,9 @@ js_readmail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	usernumber=sbbs->useron.number;
-	if(argc>0)
+	if(argc>0 && JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],&readwhich);
-	if(argc>1)
+	if(argc>1 && JSVAL_IS_NUM(argv[1]))
 		JS_ValueToInt32(cx,argv[1],&usernumber);
 
 	sbbs->readmail(usernumber,readwhich);
@@ -1891,9 +1904,10 @@ js_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&usernumber);
+	if(JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&usernumber);
 	for(uintN i=1;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_STRING(argv[i]) && js_top==NULL)
 			js_top=JS_ValueToString(cx,argv[i]);
@@ -1925,7 +1939,7 @@ js_netmail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	for(uintN i=1;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_STRING(argv[i]))
 			js_subj=JS_ValueToString(cx,argv[i]);
@@ -2041,7 +2055,7 @@ js_telnet_gate(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if((addr=JS_GetStringBytes(js_addr))==NULL) 
 		return(JS_FALSE);
 
-	if(argc>1)
+	if(argc>1 && JSVAL_IS_NUM(argv[1]))
 		JS_ValueToInt32(cx,argv[1],&mode);
 
 	sbbs->telnet_gate(addr,mode);
@@ -2082,7 +2096,7 @@ js_multinode_chat(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc>1)
+	if(argc>1 && JSVAL_IS_NUM(argv[1]))
 		JS_ValueToInt32(cx,argv[1],&channel);
 
 	sbbs->multinodechat(channel);
@@ -2144,7 +2158,8 @@ js_put_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&node);
+	if(JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&node);
 	if(node<1)
 		node=1;
 
@@ -2169,7 +2184,7 @@ js_get_telegram(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		return(JS_FALSE);
 
 	usernumber=sbbs->useron.number;
-	if(argc)
+	if(argc && JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],&usernumber);
 
 	sbbs->getsmsg(usernumber);
@@ -2188,7 +2203,8 @@ js_put_telegram(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_ValueToInt32(cx,argv[0],&usernumber);
+	if(JSVAL_IS_NUM(argv[0]))
+		JS_ValueToInt32(cx,argv[0],&usernumber);
 	if(usernumber<1)
 		usernumber=1;
 
@@ -2283,7 +2299,7 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	for(uintN i=1;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
@@ -2320,7 +2336,7 @@ js_listfileinfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 	}
 
 	for(uintN i=1;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
@@ -2356,7 +2372,7 @@ js_postmsg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	ZERO_VAR(msg);
 
 	for(n=1; n<argc; n++) {
-		if(JSVAL_IS_NUMBER(argv[n]))
+		if(JSVAL_IS_NUM(argv[n]))
 			JS_ValueToInt32(cx,argv[n],(int32*)&mode);
 		else if(JSVAL_IS_OBJECT(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
@@ -2382,7 +2398,7 @@ js_msgscan_cfg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc && JSVAL_IS_NUMBER(argv[0]))
+	if(argc && JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],(int32*)&mode);
 
 	sbbs->new_scan_cfg(mode);
@@ -2432,7 +2448,7 @@ js_scansubs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	for(uintN i=0;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_BOOLEAN(argv[i]))
 			all=JSVAL_TO_BOOLEAN(argv[i]);
@@ -2457,7 +2473,7 @@ js_scandirs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	for(uintN i=0;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_BOOLEAN(argv[i]))
 			all=JSVAL_TO_BOOLEAN(argv[i]);
@@ -2490,7 +2506,7 @@ js_scanposts(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	for(uintN i=1;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
+		if(JSVAL_IS_NUM(argv[i]))
 			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
 		else if(JSVAL_IS_STRING(argv[i]))
 			find=JS_GetStringBytes(JS_ValueToString(cx,argv[i]));
@@ -2523,9 +2539,9 @@ js_listmsgs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(subnum>=sbbs->cfg.total_subs) 	// invalid sub-board
 		return(JS_TRUE);
 
-	if(JSVAL_IS_NUMBER(argv[argn]))
+	if(JSVAL_IS_NUM(argv[argn]))
 		JS_ValueToInt32(cx,argv[argn++],(int32*)&mode);
-	if(JSVAL_IS_NUMBER(argv[argn]))
+	if(JSVAL_IS_NUM(argv[argn]))
 		JS_ValueToInt32(cx,argv[argn++],(int32*)&start);
 	if(JSVAL_IS_STRING(argv[argn]))
 		find=JS_GetStringBytes(JS_ValueToString(cx,argv[argn++]));
@@ -2545,7 +2561,7 @@ js_getnstime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
+	if(argc && JSVAL_IS_NUM(argv[0]))
 		JS_ValueToInt32(cx,argv[0],(int32*)&t);
 
 	if(sbbs->inputnstime(&t)==true)
@@ -2924,7 +2940,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	{"get_newscantime",	js_getnstime,		1,	JSTYPE_NUMBER,	JSDOCSTR("time=<i>current</i>")
-	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (time_t format)")
+	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (<i>time_t</i> format)")
 	,310
 	},		
 	{"select_shell",	js_select_shell,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
