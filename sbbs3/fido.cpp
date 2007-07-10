@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.40 2007/03/18 08:58:09 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.41 2007/07/10 21:14:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,7 +412,8 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			   ,str[256],*p,*cp,*addr,fulladdr[129],ch;
 	char 	tmp[512];
 	int 	i,fido,inet=0,qnet=0;
-	ushort	net,xlat;
+	ushort	net;
+	uint16_t xlat;
 	long	l,offset,length,m,n;
 	faddr_t fidoaddr;
     fmsghdr_t hdr;
