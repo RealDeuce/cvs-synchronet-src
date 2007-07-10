@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.61 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.69 2007/07/10 21:47:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,6 +43,23 @@ const char *qstr=" > %.76s\r\n";
 void quotestr(char *str);
 
 /****************************************************************************/
+/* Returns temporary message text filename (for message/text editors)		*/
+/****************************************************************************/
+char* sbbs_t::msg_tmp_fname(int xedit, char* fname, size_t len)
+{
+	safe_snprintf(fname, len, "%sINPUT.MSG", cfg.temp_dir);
+
+	if(xedit) {
+		if(cfg.xedit[xedit-1]->misc&QUICKBBS)
+			safe_snprintf(fname, len, "%sMSGTMP", cfg.node_dir);	/* QuickBBS editors are dumb */
+		if(cfg.xedit[xedit-1]->misc&XTRN_LWRCASE)
+			strlwr(fname);
+	}
+
+	return(fname);
+}
+
+/****************************************************************************/
 /* Creates a message (post or mail) using standard line editor. 'fname' is  */
 /* is name of file to create, 'top' is a buffer to place at beginning of    */
 /* message and 'title' is the title (70chars max) for the message.          */
@@ -57,8 +74,10 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 	char 	tmp[512];
 	int		i,j,file,linesquoted=0;
 	long	length,qlen=0,qtime=0,ex_mode=0;
+	int		max_title_len=LEN_TITLE;
 	ulong	l;
-	FILE *	stream;
+	FILE*	stream;
+	FILE*	fp;
 
 	useron_level=useron.level;
 
@@ -73,12 +92,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		(!(mode&(WM_EMAIL|WM_NETMAIL)) && cfg.sub[subnum]->misc&SUB_PNET))
 		mode|=WM_NOTOP;
 
-	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&QUICKBBS)
-		sprintf(msgtmp,"%sMSGTMP",cfg.node_dir);	/* QuickBBS editors are dumb */
-	else
-		sprintf(msgtmp,"%sINPUT.MSG",cfg.temp_dir);
-	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
-		strlwr(msgtmp);
+	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 
 	if(mode&WM_QUOTE && !(useron.rest&FLAG('J'))
 		&& ((mode&(WM_EMAIL|WM_NETMAIL) && cfg.sys_misc&SM_QUOTE_EM)
@@ -232,7 +246,7 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",cfg.node_dir,tmp);
-		remove(str); 
+		removecase(str); 
 	}
 
 	if(!online || sys_status&SS_ABORT) {
@@ -240,21 +254,21 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 		return(false); 
 	}
 
-	if(!(mode&WM_EXTDESC)) {
+	if(!(mode&(WM_EXTDESC|WM_SUBJ_RO))) {
 		if(mode&WM_FILE) {
-			c=12;
+			max_title_len=12;	/* ToDo: implied 8.3 filename limit! */
 			CRLF;
 			bputs(text[Filename]); 
 		}
 		else {
-			c=LEN_TITLE;
+			max_title_len=LEN_TITLE;
 			if(mode&WM_QWKNET
 				|| (subnum!=INVALID_SUB 
 					&& (cfg.sub[subnum]->misc&(SUB_QNET|SUB_INET|SUB_FIDO))==SUB_QNET))
-				c=25;
+				max_title_len=25;
 			bputs(text[SubjectPrompt]); 
 		}
-		if(!getstr(title,c,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
+		if(!getstr(title,max_title_len,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
 			&& useron_level && useron.logons) {
 			free(buf);
 			return(false); 
@@ -271,17 +285,6 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 	if(!online || sys_status&SS_ABORT) {
 		free(buf);
 		return(false); 
-	}
-
-	/* Create WWIV compatible EDITOR.INF file */
-
-	if(useron.xedit) {
-		editor_inf(useron.xedit,dest,title,mode,subnum);
-		if(cfg.xedit[useron.xedit-1]->type) {
-			gettimeleft();
-			xtrndat(useron.alias,cfg.node_dir,cfg.xedit[useron.xedit-1]->type
- 			   ,timeleft,cfg.xedit[useron.xedit-1]->misc); 
-		}
 	}
 
 	if(console&CON_RAW_IN) {
@@ -317,19 +320,26 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 
 	else if(useron.xedit) {
 
-		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&IO_INTS) {
+		editor_inf(useron.xedit,dest,title,mode,subnum);
+		if(cfg.xedit[useron.xedit-1]->type) {
+			gettimeleft();
+			xtrndat(useron.alias,cfg.node_dir,cfg.xedit[useron.xedit-1]->type
+ 			   ,timeleft,cfg.xedit[useron.xedit-1]->misc); 
+		}
+
+		if(cfg.xedit[useron.xedit-1]->misc&IO_INTS) {
 			ex_mode|=(EX_OUTR|EX_INR);
 			if(cfg.xedit[useron.xedit-1]->misc&WWIVCOLOR)
 				ex_mode|=EX_WWIV; 
 		}
-		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
+		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
 			ex_mode|=EX_NATIVE;
-		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
+		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
 			ex_mode|=EX_SH;
 
-		if(!linesquoted && fexistcase(msgtmp))
-			remove(msgtmp);
-		if(linesquoted) {
+		if(!linesquoted)
+			removecase(msgtmp);
+		else {
 			qlen=flength(msgtmp);
 			qtime=fdate(msgtmp); 
 		}
@@ -345,6 +355,19 @@ bool sbbs_t::writemsg(char *fname, char *top, char *title, long mode, int subnum
 			free(buf);
 			return(false); 
 		}
+		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
+		if(!(mode&(WM_EXTDESC|WM_FILE|WM_SUBJ_RO))
+			&& !(cfg.xedit[useron.xedit-1]->misc&QUICKBBS) 
+			&& fexistcase(str)) {
+			if((fp=fopen(str,"r")) != NULL) {
+				fgets(str,sizeof(str),fp);
+				fgets(str,sizeof(str),fp);
+				truncsp(str);
+				sprintf(title,"%.*s",max_title_len,str);
+				fclose(fp);
+			}
+		}
+
 		buf[0]=0;
 		if(!(mode&WM_NOTOP))
 			strcpy((char *)buf,top);
@@ -465,14 +488,17 @@ void quotestr(char *str)
 void sbbs_t::editor_inf(int xeditnum,char *dest, char *title, long mode
 	,uint subnum)
 {
-	char str[512];
+	char str[MAX_PATH+1];
+	char tmp[32];
 	int file;
-	char tmp[13];
 
 	xeditnum--;
 
 	if(cfg.xedit[xeditnum]->misc&QUICKBBS) {
-		sprintf(str,"%sMSGINF",cfg.node_dir);
+		strcpy(tmp,"MSGINF");
+		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
+			strlwr(tmp);
+		sprintf(str,"%s%s",cfg.node_dir,tmp);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 			return; 
@@ -490,8 +516,10 @@ void sbbs_t::editor_inf(int xeditnum,char *dest, char *title, long mode
 		close(file); 
 	}
 	else {
+		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
+		removecase(str);
 		strcpy(tmp,"EDITOR.INF");
-		if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
+		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",cfg.node_dir,tmp);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
@@ -865,24 +893,29 @@ ulong sbbs_t::msgeditor(char *buf, char *top, char *title)
 /****************************************************************************/
 /* Edits an existing file or creates a new one in MSG format                */
 /****************************************************************************/
-void sbbs_t::editfile(char *str)
+void sbbs_t::editfile(char *fname)
 {
-	char *buf,str2[128];
+	char *buf,path[MAX_PATH+1];
+	char msgtmp[MAX_PATH+1];
     int file;
 	long length,maxlines,lines,l,mode=0;
 
 	maxlines=cfg.level_linespermsg[useron.level];
-	sprintf(str2,"%sQUOTES.TXT",cfg.node_dir);
-	fexistcase(str2);
-	remove(str2);
-#if 0	/* no such thing as local logon */
-	if(cfg.node_editor[0] && online==ON_LOCAL) {
-		external(cmdstr(cfg.node_editor,str,nulstr,NULL),0,cfg.node_dir);
-		return; 
-	}
-#endif
+	sprintf(path,"%sQUOTES.TXT",cfg.node_dir);
+	removecase(path);
+
 	if(useron.xedit) {
-		editor_inf(useron.xedit,nulstr,nulstr,0,INVALID_SUB);
+
+		SAFECOPY(path,fname);
+
+		msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
+		if(stricmp(msgtmp,path)) {
+			removecase(msgtmp);
+			if(fexistcase(path))
+				fcopy(path, msgtmp);
+		}
+
+		editor_inf(useron.xedit,fname,nulstr,0,INVALID_SUB);
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_NATIVE)
 			mode|=EX_NATIVE;
 		if(cfg.xedit[useron.xedit-1]->misc&XTRN_SH)
@@ -892,24 +925,19 @@ void sbbs_t::editfile(char *str)
 			if(cfg.xedit[useron.xedit-1]->misc&WWIVCOLOR)
 				mode|=EX_WWIV; 
 		}
-#if 0	/* no such thing as local logon */
-		if(online==ON_LOCAL)
-			external(cmdstr(cfg.xedit[useron.xedit-1]->lcmd,str,nulstr,NULL),mode,cfg.node_dir);
-		else 
-#endif
-		{
-			CLS;
-			rioctl(IOCM|PAUSE|ABORT);
-			external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,str,nulstr,NULL),mode,cfg.node_dir);
-			rioctl(IOSM|PAUSE|ABORT); 
-		}
+		CLS;
+		rioctl(IOCM|PAUSE|ABORT);
+		external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir);
+		if(stricmp(msgtmp,path) && !fcompare(msgtmp, path))	/* file changed */
+			fcopy(msgtmp, path);
+		rioctl(IOSM|PAUSE|ABORT); 
 		return; 
 	}
 	if((buf=(char *)malloc(maxlines*MAX_LINE_LEN))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,nulstr,maxlines*MAX_LINE_LEN);
 		return; 
 	}
-	if((file=nopen(str,O_RDONLY))!=-1) {
+	if((file=nopen(fname,O_RDONLY))!=-1) {
 		length=filelength(file);
 		if(length>(long)maxlines*MAX_LINE_LEN) {
 			close(file);
@@ -922,7 +950,7 @@ void sbbs_t::editfile(char *str)
 		if(read(file,buf,length)!=length) {
 			close(file);
 			free(buf);
-			errormsg(WHERE,ERR_READ,str,length);
+			errormsg(WHERE,ERR_READ,fname,length);
 			return; 
 		}
 		buf[length]=0;
@@ -937,14 +965,14 @@ void sbbs_t::editfile(char *str)
 		return; 
 	}
 	bputs(text[Saving]);
-	if((file=nopen(str,O_CREAT|O_WRONLY|O_TRUNC))==-1) {
-		errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_WRONLY|O_TRUNC);
+	if((file=nopen(fname,O_CREAT|O_WRONLY|O_TRUNC))==-1) {
+		errormsg(WHERE,ERR_OPEN,fname,O_CREAT|O_WRONLY|O_TRUNC);
 		free(buf);
 		return; 
 	}
 	if((size_t)write(file,buf,strlen(buf))!=strlen(buf)) {
 		close(file);
-		errormsg(WHERE,ERR_WRITE,str,strlen(buf));
+		errormsg(WHERE,ERR_WRITE,fname,strlen(buf));
 		free(buf);
 		return; 
 	}
@@ -1161,21 +1189,16 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 {
 	char	buf[SDT_BLOCK_LEN];
 	char	msgtmp[MAX_PATH+1];
-	ushort	xlat;
+	uint16_t	xlat;
 	int 	file,i,j,x;
 	long	length,offset;
 	FILE	*instream;
 
 	if(!msg->hdr.total_dfields)
 		return;
-	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&QUICKBBS)
-		sprintf(msgtmp,"%sMSGTMP",cfg.node_dir);	/* QuickBBS editors are dumb */
-	else
-		sprintf(msgtmp,"%sINPUT.MSG",cfg.temp_dir);
-	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
-		strlwr(msgtmp);
 
-	remove(msgtmp);
+	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
+	removecase(msgtmp);
 	msgtotxt(msg,msgtmp,0,1);
 	editfile(msgtmp);
 	length=flength(msgtmp);
