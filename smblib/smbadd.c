@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.19 2007/07/10 22:20:00 deuce Exp $ */
+/* $Id: smbadd.c,v 1.18 2007/07/10 22:04:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	size_t		bodylen=0;
 	size_t		chklen=0;
 	long		offset;
-	uint32_t	crc=0xffffffff;
+	ulong		crc=0xffffffff;
 	hash_t		found;
 	hash_t**	hashes=NULL;	/* This is a NULL-terminated list of hashes */
 	smbmsg_t	remsg;
