@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.66 2007/07/10 22:56:22 deuce Exp $ */
+/* $Id: exec.cpp,v 1.61 2007/01/06 09:20:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
+char ** sbbs_t::getstrvar(csi_t *bin, long name)
 {
 	uint i;
 
@@ -122,7 +122,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
+long * sbbs_t::getintvar(csi_t *bin, long name)
 {
 	uint i;
 
@@ -195,76 +195,76 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=useron.leech;
 			break;
 		case 0x7c602a37:
-			return((int32_t *)&useron.misc);
+			return((long *)&useron.misc);
 		case 0x61be0d36:
-			return((int32_t *)&useron.qwk);
+			return((long *)&useron.qwk);
 		case 0x665ac227:
-			return((int32_t *)&useron.chat);
+			return((long *)&useron.chat);
 		case 0x951341ab:
-			return((int32_t *)&useron.flags1);
+			return((long *)&useron.flags1);
 		case 0x0c1a1011:
-			return((int32_t *)&useron.flags2);
+			return((long *)&useron.flags2);
 		case 0x7b1d2087:
-			return((int32_t *)&useron.flags3);
+			return((long *)&useron.flags3);
 		case 0xe579b524:
-			return((int32_t *)&useron.flags4);
+			return((long *)&useron.flags4);
 		case 0x12e7d6d2:
-			return((int32_t *)&useron.exempt);
+			return((long *)&useron.exempt);
 		case 0xfed3115d:
-			return((int32_t *)&useron.rest);
+			return((long *)&useron.rest);
 		case 0xb65dd6d4:
-			return((int32_t *)&useron.ulb);
+			return((long *)&useron.ulb);
 		case 0xabb91f93:
-			return((int32_t *)&useron.dlb);
+			return((long *)&useron.dlb);
 		case 0x92fb364f:
-			return((int32_t *)&useron.cdt);
+			return((long *)&useron.cdt);
 		case 0xd0a99c72:
-			return((int32_t *)&useron.min);
+			return((long *)&useron.min);
 		case 0xd7ae3022:
-			return((int32_t *)&useron.freecdt);
+			return((long *)&useron.freecdt);
 		case 0x1ef214ef:
-			return((int32_t *)&useron.firston);
+			return((long *)&useron.firston);
 		case 0x0ea515b1:
-			return((int32_t *)&useron.laston);
+			return((long *)&useron.laston);
 		case 0x2aaf9bd3:
-			return((int32_t *)&useron.expire);
+			return((long *)&useron.expire);
 		case 0x89c91dc8:
-			return((int32_t *)&useron.pwmod);
+			return((long *)&useron.pwmod);
 		case 0x5b0d0c54:
-			return((int32_t *)&useron.ns_time);
+			return((long *)&useron.ns_time);
 
 		case 0xae256560:
-			return((int32_t *)&cur_rate);
+			return((long *)&cur_rate);
 		case 0x2b3c257f:
-			return((int32_t *)&cur_cps);
+			return((long *)&cur_cps);
 		case 0x1c4455ee:
-			return((int32_t *)&dte_rate);
+			return((long *)&dte_rate);
 		case 0x7fbf958e:
-			return((int32_t *)&lncntr);
+			return((long *)&lncntr);
 		case 0x5c1c1500:
-			return((int32_t *)&tos);
+			return((long *)&tos);
 		case 0x613b690e:
-			return((int32_t *)&rows);
+			return((long *)&rows);
 		case 0x205ace36:
-			return((int32_t *)&autoterm);
+			return((long *)&autoterm);
 		case 0x7d0ed0d1:
-			return((int32_t *)&console);
+			return((long *)&console);
 		case 0xbf31a280:
-			return((int32_t *)&answertime);
+			return((long *)&answertime);
 		case 0x83aa2a6a:
-			return((int32_t *)&logontime);
+			return((long *)&logontime);
 		case 0xb50cb889:
-			return((int32_t *)&ns_time);
+			return((long *)&ns_time);
 		case 0xae92d249:
-			return((int32_t *)&last_ns_time);
+			return((long *)&last_ns_time);
 		case 0x97f99eef:
-			return((int32_t *)&online);
+			return((long *)&online);
 		case 0x381d3c2a:
-			return((int32_t *)&sys_status);
+			return((long *)&sys_status);
 		case 0x7e29c819:
-			return((int32_t *)&cfg.sys_misc);
+			return((long *)&cfg.sys_misc);
 		case 0x11c83294:
-			return((int32_t *)&cfg.sys_psnum);
+			return((long *)&cfg.sys_psnum);
 		case 0x02408dc5:
 			sysvar_l[sysvar_li]=sys_timezone(&cfg);
 			break;
@@ -296,7 +296,7 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.node_scrnblank;
 			break;
 		case 0x709c07da:
-			return((int32_t *)&cfg.node_misc);
+			return((long *)&cfg.node_misc);
 		case 0xb17e7914:
 			sysvar_l[sysvar_li]=cfg.node_valuser;
 			break;
@@ -316,26 +316,26 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.new_level;
 			break;
 		case 0xccfe7c5d:
-			return((int32_t *)&cfg.new_flags1);
+			return((long *)&cfg.new_flags1);
 		case 0x55f72de7:
-			return((int32_t *)&cfg.new_flags2);
+			return((long *)&cfg.new_flags2);
 		case 0x22f01d71:
-			return((int32_t *)&cfg.new_flags3);
+			return((long *)&cfg.new_flags3);
 		case 0xbc9488d2:
-			return((int32_t *)&cfg.new_flags4);
+			return((long *)&cfg.new_flags4);
 		case 0x4b0aeb24:
-			return((int32_t *)&cfg.new_exempt);
+			return((long *)&cfg.new_exempt);
 		case 0x20cb6325:
-			return((int32_t *)&cfg.new_rest);
+			return((long *)&cfg.new_rest);
 		case 0x31178ba2:
-			return((int32_t *)&cfg.new_cdt);
+			return((long *)&cfg.new_cdt);
 		case 0x7345219f:
-			return((int32_t *)&cfg.new_min);
+			return((long *)&cfg.new_min);
 		case 0xb3f64be4:
 			sysvar_l[sysvar_li]=cfg.new_shell;
 			break;
 		case 0xa278584f:
-			return((int32_t *)&cfg.new_misc);
+			return((long *)&cfg.new_misc);
 		case 0x7342a625:
 			sysvar_l[sysvar_li]=cfg.new_expire;
 			break;
@@ -346,17 +346,17 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.expired_level;
 			break;
 		case 0x89b69753:
-			return((int32_t *)&cfg.expired_flags1);
+			return((long *)&cfg.expired_flags1);
 		case 0x10bfc6e9:
-			return((int32_t *)&cfg.expired_flags2);
+			return((long *)&cfg.expired_flags2);
 		case 0x67b8f67f:
-			return((int32_t *)&cfg.expired_flags3);
+			return((long *)&cfg.expired_flags3);
 		case 0xf9dc63dc:
-			return((int32_t *)&cfg.expired_flags4);
+			return((long *)&cfg.expired_flags4);
 		case 0x0e42002a:
-			return((int32_t *)&cfg.expired_exempt);
+			return((long *)&cfg.expired_exempt);
 		case 0x4569c62e:
-			return((int32_t *)&cfg.expired_rest);
+			return((long *)&cfg.expired_rest);
 		case 0xfcf3542e:
 			sysvar_l[sysvar_li]=cfg.min_dspace;
 			break;
@@ -364,7 +364,7 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.cdt_min_value;
 			break;
 		case 0xfcb5b274:
-			return((int32_t *)&cfg.cdt_per_dollar);
+			return((long *)&cfg.cdt_per_dollar);
 		case 0x4db200d2:
 			sysvar_l[sysvar_li]=cfg.leech_pct;
 			break;
@@ -372,31 +372,31 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.leech_sec;
 			break;
 		case 0x396b7167:
-			return((int32_t *)&cfg.netmail_cost);
+			return((long *)&cfg.netmail_cost);
 		case 0x5eeaff21:
 			sysvar_l[sysvar_li]=cfg.netmail_misc;
 			break;
 		case 0x82d9484e:
-			return((int32_t *)&cfg.inetmail_cost);
+			return((long *)&cfg.inetmail_cost);
 		case 0xe558c608:
-			return((int32_t *)&cfg.inetmail_misc);
+			return((long *)&cfg.inetmail_misc);
 
 		case 0xc6e8539d:
-			return((int32_t *)&logon_ulb);
+			return((long *)&logon_ulb);
 		case 0xdb0c9ada:
-			return((int32_t *)&logon_dlb);
+			return((long *)&logon_dlb);
 		case 0xac58736f:
-			return((int32_t *)&logon_uls);
+			return((long *)&logon_uls);
 		case 0xb1bcba28:
-			return((int32_t *)&logon_dls);
+			return((long *)&logon_dls);
 		case 0x9c5051c9:
-			return((int32_t *)&logon_posts);
+			return((long *)&logon_posts);
 		case 0xc82ba467:
-			return((int32_t *)&logon_emails);
+			return((long *)&logon_emails);
 		case 0x8e395209:
-			return((int32_t *)&logon_fbacks);
+			return((long *)&logon_fbacks);
 		case 0x8b12ba9d:
-			return((int32_t *)&posts_read);
+			return((long *)&posts_read);
 		case 0xe51c1956:
 			sysvar_l[sysvar_li]=(ulong)logfile_fp;
 			break;
@@ -420,12 +420,12 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			break;
 
 		case 0x1e5052a7:
-			return((int32_t *)&cfg.max_minutes);
+			return((long *)&cfg.max_minutes);
 		case 0xedc643f1:
-			return((int32_t *)&cfg.max_qwkmsgs);
+			return((long *)&cfg.max_qwkmsgs);
 
 		case 0x430178ec:
-			return((int32_t *)&cfg.uq);
+			return((long *)&cfg.uq);
 
 		case 0x455CB929:
 			return(&bin->ftp_mode);
@@ -434,7 +434,7 @@ int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			return(&bin->socket_error);
 
 		case 0xA0023A2E:
-			return((int32_t *)&startup->options);
+			return((long *)&startup->options);
 
 		case 0x16E2585F:
 			sysvar_l[sysvar_li]=client_socket;
