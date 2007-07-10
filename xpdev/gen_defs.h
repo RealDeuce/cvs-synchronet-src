@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.36 2006/05/28 22:01:57 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.41 2007/07/10 21:15:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,9 @@
 
 
 #include <sys/types.h>
+#ifdef HAS_INTTYPES_H
+#include <inttypes.h>
+#endif
 
 									/* Control characters */
 #ifndef STX
@@ -136,6 +139,21 @@ enum {
 	#endif
 #endif
 
+#ifdef HAS_INTTYPES_H
+#ifndef BYTE
+#define BYTE	uint8_t
+#endif
+#ifndef WORD
+#define WORD	uint16_t
+#endif
+#ifndef DWORD
+#define DWORD	uint32_t
+#endif
+#ifndef BOOL
+#define BOOL	int32_t
+#endif
+#else
+
 /* Windows Types */
 #ifndef BYTE
 #define BYTE	uchar
@@ -149,6 +167,16 @@ enum {
 #ifndef BOOL
 #define BOOL	int
 #endif
+#define int8_t		char
+#define int16_t		short
+#define int32_t		long
+#define uint8_t		uchar
+#define uint16_t	ushort
+#define uint32_t	ulong
+
+#endif
+
+#define time32_t	int32_t
 #ifndef TRUE
 #define TRUE	1
 #define FALSE	0
@@ -354,7 +382,7 @@ typedef struct {
 #endif
 
 /* Special hackery for SDL */
-#ifdef WITH_SDL
+#ifdef WITH_SDL_AUDIO
 	#include <SDL.h>
 
 	#ifdef main
