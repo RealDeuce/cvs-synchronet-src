@@ -2,13 +2,13 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.21 2007/07/11 00:15:40 deuce Exp $ */
+/* $Id: data.cpp,v 1.19 2004/04/05 11:24:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -149,7 +149,6 @@ void sbbs_t::gettimeleft(void)
 	char 	tmp[512];
     int     i;
 	time_t	thisevent;
-	time_t	tmptime;
     long    tleft;
     struct  tm tm, last_tm;
 
@@ -191,11 +190,9 @@ void sbbs_t::gettimeleft(void)
 		tm.tm_hour=cfg.event[i]->time/60;
 		tm.tm_min=cfg.event[i]->time%60;
 		tm.tm_sec=0;
-		tm.tm_isdst=-1;	/* Do not adjust for DST */
 		thisevent=mktime(&tm);
 
-		tmptime=cfg.event[i]->last;
-		if(localtime_r(&tmptime,&last_tm)==NULL)
+		if(localtime_r(&cfg.event[i]->last,&last_tm)==NULL)
 			memset(&last_tm,0,sizeof(last_tm));
 
 		if(tm.tm_mday==last_tm.tm_mday && tm.tm_mon==last_tm.tm_mon)
