@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.59 2007/07/10 22:10:13 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.58 2007/07/10 19:53:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,7 +183,7 @@ BOOL read_node_cfg(scfg_t* cfg, char* error)
 BOOL read_main_cfg(scfg_t* cfg, char* error)
 {
 	char	str[MAX_PATH+1],fname[13],c;
-	short	i,j;
+	short	i,j,n;
 	int16_t	n;
 	long	offset=0;
 	FILE	*instream;
