@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.100 2007/06/23 23:30:34 deuce Exp $ */
+/* $Id: cterm.c,v 1.101 2007/06/29 05:33:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -596,6 +596,14 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							}
 						}
 						break;
+					case 'h':
+						if(!strcmp(cterm.escbuf,"[=255h"))
+							cterm.doorway_mode=1;
+						break;
+					case 'l':
+						if(!strcmp(cterm.escbuf,"[=255l"))
+							cterm.doorway_mode=0;
+						break;
 					case '{':
 						if(cterm.escbuf[1] == '=') {	/* Font loading */
 							i=255;
@@ -914,14 +922,10 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 				case 'g':	/* ToDo?  VT100 Tabs */
 					break;
 				case 'h':	/* ToDo?  Scrolling regeion, word-wrap, doorway mode */
-					if(!strcmp(cterm.escbuf,"[=255h"))
-						cterm.doorway_mode=1;
 					break;
 				case 'i':	/* ToDo?  Printing */
 					break;
 				case 'l':	/* ToDo?  Scrolling regeion, word-wrap, doorway mode */
-					if(!strcmp(cterm.escbuf,"[=255l"))
-						cterm.doorway_mode=0;
 					break;
 				case 'm':
 					*(p--)=0;
@@ -1181,7 +1185,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.100 $";
+	char	*revision="$Revision: 1.101 $";
 	char *in;
 	char	*out;
 	int		i;
