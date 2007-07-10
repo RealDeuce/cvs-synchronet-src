@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.61 2007/06/25 18:34:18 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.64 2007/06/29 05:45:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -277,7 +277,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 	}
 #if 0
 	/* Check if this is a scroll */
-	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight-1
+	if((!i) && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight-1
 			&& memcmp(buf,ansivmem,ti.screenwidth*(ti.screenheight-1)*2)==0) {
 		/* We need to get to the bottom line... */
 		if(ansi_row < ti.screenheight-1) {
@@ -298,7 +298,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 #endif
 #if 1
 	/* Check if this *includes* a scroll */
-	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
+	if((!i) && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
 			&& memcmp(buf,ansivmem+ti.screenwidth,ti.screenwidth*(ti.screenheight-1)*2)==0) {
 		/* We need to get to the bottom line... */
 		if(ansi_row < ti.screenheight-1) {
@@ -357,7 +357,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 					break;
 				}
 				sch=*(out++);
-				if(sch==27)
+				if(sch==27 && doorway_enabled==0)
 					sch=' ';
 				if(sch==0)
 					sch=' ';
@@ -613,6 +613,7 @@ static void ansi_keyparse(void *par)
 				if(doorway_enabled && ch==0) {
 					/* Got a NULL. ASSume this is a doorway mode char */
 					gotnull=1;
+					sem_post(&goahead);
 					break;
 				}
 				ansi_inch=ch;
@@ -816,24 +817,31 @@ void ansi_gotoxy(int x, int y)
 		}
 
 		/* Must need to move right then */
+#if 1
 		/* Check if we can use spaces */
+		/* ansi_col... 0-based current position */
+		/* x... 1-based desired position */
 		if(x-ansi_col-1 < 5) {
-			int i;
-			/* If all the intervening cells are spaces with the current attributes, we're good */
+			int i,j;
+			j=1;
+			/* If all the intervening cells are spaces with the current background, we're good */
 			for(i=0; i<x-ansi_col-1; i++) {
-				if(ansivmem[y*ansi_cols+ansi_col+i] & 0xff != ' ')
+				if((ansivmem[y*ansi_cols+ansi_col+i] & 0xff) != ' ' && (ansivmem[y*ansi_cols+ansi_col+i]) & 0xff != 0) {
+					j=0;
 					break;
-				if(ansivmem[y*ansi_cols+ansi_col+i] & 0xff != 0)
+				}
+				if((ansivmem[y*ansi_cols+ansi_col+i] & 0x7000) != (ansi_curr_attr & 0x7000)) {
+					j=0;
 					break;
-				if(ansivmem[y*ansi_cols+ansi_col+i] & 0x7000 != ansi_curr_attr & 0x7000)
-					break;
+				}
 			}
-			if(i==x-ansi_col-1) {
+			if(j) {
 				ansi_sendstr("    ",x-ansi_col-1);
 				ansi_col=x-1;
 				return;
 			}
 		}
+#endif
 		if(x==ansi_col+2)
 			strcpy(str,"\033[C");
 		else
