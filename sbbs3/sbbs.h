@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.304 2007/07/11 00:42:15 deuce Exp $ */
+/* $Id: sbbs.h,v 1.296 2007/07/10 21:22:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -305,11 +305,13 @@ public:
 	char 	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
-	time_t	now,			/* Used to store current time in Unix format */
-			ns_time;		/* File new-scan time */
-	time32_t	answertime, 	/* Time call was answered */
+	/* TODO: we don't really want to do this... */
+	/* But we're writing it in logon.cpp */
+	time32_t	now,			/* Used to store current time in Unix format */
+			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
+			ns_time,		/* File new-scan time */
 			last_ns_time;	/* Most recent new-file-scan this call */
 	uchar 	action;			/* Current action of user */
 	long 	online; 		/* Remote/Local or not online */
@@ -367,13 +369,13 @@ public:
 			/* Global command shell variables */
 	uint	global_str_vars;
 	char **	global_str_var;
-	int32_t *	global_str_var_name;
+	long *	global_str_var_name;
 	uint	global_int_vars;
-	int32_t *	global_int_var;
-	int32_t *	global_int_var_name;
+	long *	global_int_var;
+	long *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
-	int32_t	sysvar_l[MAX_SYSVARS];
+	long	sysvar_l[MAX_SYSVARS];
 	uint	sysvar_li;
 
     /* ansi_term.cpp */
@@ -418,7 +420,7 @@ public:
 	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
-	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
+	ulong	getlastmsg(uint subnum, ulong *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
 
@@ -438,7 +440,6 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	time32str(time32_t *intime);
 	char*	timestr(time_t *intime);
     char	timestr_output[60];
 	void	userlist(long mode);
@@ -448,7 +449,6 @@ public:
 	void	create_sif_dat(char *siffile, char *datfile);
 	void	read_sif_dat(char *siffile, char *datfile);
 	void	printnodedat(uint number, node_t* node);
-	bool	inputnstime32(time32_t *dt);
 	bool	inputnstime(time_t *dt);
 	bool	chkpass(char *pass, user_t* user, bool unique);
 	char *	cmdstr(char *instr, char *fpath, char *fspec, char *outstr);
@@ -494,7 +494,7 @@ public:
 	void	delallmail(uint usernumber);
 
 	/* getmsg.cpp */
-	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
+	post_t* loadposts(long *posts, uint subnum, ulong ptr, long mode);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -816,7 +816,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, int32_t* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, long* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -869,7 +869,6 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL time32str(scfg_t* cfg, time32_t *intime, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
