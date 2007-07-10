@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.82 2007/06/06 22:47:43 deuce Exp $ */
+/* $Id: ciolib.c,v 1.85 2007/07/08 10:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -734,6 +734,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 	int i;
 	int width,height;
 	struct text_info ti;
+	int old_ptcm=puttext_can_move;
 
 	CIOLIB_INIT();
 	
@@ -746,8 +747,10 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 		buf[i++]=' ';
 		buf[i++]=ti.attribute;
 	}
+	puttext_can_move=1;
 	ciolib_puttext(ti.winleft,ti.wintop,ti.winright,ti.winbottom,buf);
 	ciolib_gotoxy(1,1);
+	puttext_can_move=old_ptcm;;
 }
 
 CIOLIBEXPORT void CIOLIBCALL ciolib_delline(void)
@@ -786,6 +789,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	char	str[16384];
 #else
 	char	*str;
+	va_list argptr2;
 #endif
 
 	CIOLIB_INIT();
@@ -794,15 +798,17 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 #ifdef _MSC_VER
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
+	va_copy(argptr2, argptr);
     ret=vsnprintf(NULL,0,fmat,argptr);
 	if(ret<0)
 		return(EOF);
 	str=(char *)alloca(ret+1);
 	if(str==NULL)
 		return(EOF);
-	ret=vsprintf(str,fmat,argptr);
+	ret=vsprintf(str,fmat,argptr2);
 #endif
     va_end(argptr);
+    va_end(argptr2);
 	if(ret>=0)
 		ciolib_cputs(str);
 	else
