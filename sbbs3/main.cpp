@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.482 2007/07/10 23:49:41 deuce Exp $ */
+/* $Id: main.cpp,v 1.478 2007/07/07 20:36:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,7 @@
 time_t	uptime=0;
 DWORD	served=0;
 
-static	DWORD node_threads_running=0;
+static	ulong node_threads_running=0;
 static	ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
@@ -1912,14 +1912,12 @@ void event_thread(void* arg)
 	int			offset;
 	bool		check_semaphores;
 	bool		packed_rep;
-	ulong	l;
-	/* TODO: This is a silly hack... */
-	uint32_t	l32;
+	ulong		l;
 	time_t		now;
 	time_t		start;
 	time_t		lastsemchk=0;
 	time_t		lastnodechk=0;
-	time32_t	lastprepack=0;
+	time_t		lastprepack=0;
 	node_t		node;
 	glob_t		g;
 	sbbs_t*		sbbs = (sbbs_t*) arg;
@@ -1951,9 +1949,9 @@ void event_thread(void* arg)
 			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last run time for event: %s"
 					,sbbs->cfg.event[i]->code);
-				write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
+				write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
 			} else {
-				if(read(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last))!=sizeof(sbbs->cfg.event[i]->last))
+				if(read(file,&sbbs->cfg.event[i]->last,sizeof(time_t))!=sizeof(time_t))
 					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
 			}
 			/* Event always runs after initialization? */
@@ -1961,7 +1959,7 @@ void event_thread(void* arg)
 				sbbs->cfg.event[i]->last=-1;
 		}
 		lastprepack=0;
-		read(file,&lastprepack,sizeof(lastprepack));	/* expected to fail first time */
+		read(file,&lastprepack,sizeof(time_t));	/* expected to fail first time */
 		close(file);
 	}
 
@@ -1975,10 +1973,10 @@ void event_thread(void* arg)
 			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
 					,sbbs->cfg.qhub[i]->id);
-				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
+				write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
 			} else {
-				if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last))!=sizeof(sbbs->cfg.qhub[i]->last))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(sbbs->cfg.qhub[i]->last));
+				if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t))!=sizeof(time_t))
+					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
 			}
 		}
 		close(file);
@@ -1992,9 +1990,9 @@ void event_thread(void* arg)
 		for(i=0;i<sbbs->cfg.total_phubs;i++) {
 			sbbs->cfg.phub[i]->last=0;
 			if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
-				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
+				write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
 			else
-				read(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last)); 
+				read(file,&sbbs->cfg.phub[i]->last,sizeof(time_t)); 
 		}
 		close(file);
 	}
@@ -2135,7 +2133,7 @@ void event_thread(void* arg)
 					break; 
 				}
 				lseek(file,(long)sbbs->cfg.total_events*4L,SEEK_SET);
-				write(file,&lastprepack,sizeof(lastprepack));
+				write(file,&lastprepack,sizeof(time_t));
 				close(file);
 
 				remove(semfile);
@@ -2270,7 +2268,7 @@ void event_thread(void* arg)
 					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
 					if(file!=-1) {
 						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(long)); 
 					}
 				}
 				if(file!=-1)
@@ -2285,12 +2283,11 @@ void event_thread(void* arg)
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
 								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L)
-								l32=l;
-								write(file,&l32,4);		/* initialize ptrs to null */
+								write(file,&l,4);		/* initialize ptrs to null */
 							lseek(file
 								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(long)); 
 						}
 						close(file); 
 					} 
@@ -2304,7 +2301,7 @@ void event_thread(void* arg)
 					break; 
 				}
 				lseek(file,sizeof(time_t)*i,SEEK_SET);
-				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
+				write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
 				close(file);
 
 				if(sbbs->cfg.qhub[i]->call[0]) {
@@ -2345,7 +2342,7 @@ void event_thread(void* arg)
 					break; 
 				}
 				lseek(file,sizeof(time_t)*i,SEEK_SET);
-				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
+				write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
 				close(file);
 
 				if(sbbs->cfg.phub[i]->call[0]) {
@@ -2422,7 +2419,7 @@ void event_thread(void* arg)
 								continue; 
 							}
 							lseek(file,(long)i*4L,SEEK_SET);
-							read(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
+							read(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
 							close(file);
 							if(now-sbbs->cfg.event[i]->last<(60*60))	/* event is done */
 								break; 
@@ -2537,7 +2534,7 @@ void event_thread(void* arg)
 						break; 
 					}
 					lseek(file,(long)i*4L,SEEK_SET);
-					write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
+					write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
 					close(file);
 
 					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
@@ -4507,7 +4504,7 @@ NO_SSH:
 	for(i=first_node;i<=last_node;i++) {
 		sbbs->getnodedat(i,&node,1);
 		node.status=NODE_WFC;
-		node.misc&=NODE_EVENT;	/* Note: Turns-off NODE_RRUN flag (and others) */
+		node.misc&=NODE_EVENT;
 		node.action=0;
 		sbbs->putnodedat(i,&node);
 	}
@@ -4552,9 +4549,10 @@ NO_SSH:
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
-	if(!initialized)
+	if(!initialized) {
+		semfile_list_check(&initialized,recycle_semfiles);
 		semfile_list_check(&initialized,shutdown_semfiles);
-	semfile_list_check(&initialized,recycle_semfiles);
+	}
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
@@ -4607,30 +4605,32 @@ NO_SSH:
 
 	while(!terminate_server) {
 
-		if(node_threads_running==0) {	/* check for re-run flags and recycle/shutdown sem files */
-			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
-
-				bool rerun=false;
-				for(i=first_node;i<=last_node;i++) {
-					if(sbbs->getnodedat(i,&node,0)!=0)
-						continue;
-					if(node.misc&NODE_RRUN) {
-						sbbs->getnodedat(i,&node,1);
-						if(!rerun)
-							lprintf(LOG_INFO,"Node %d flagged for re-run",i);
-						rerun=true;
-						node.misc&=~NODE_RRUN;
-						sbbs->putnodedat(i,&node);
-					}
+		if(node_threads_running==0) {	/* check for re-run flags */
+			bool rerun=false;
+			for(i=first_node;i<=last_node;i++) {
+				if(sbbs->getnodedat(i,&node,0)!=0)
+					continue;
+				if(node.misc&NODE_RRUN) {
+					sbbs->getnodedat(i,&node,1);
+					if(!rerun)
+						lprintf(LOG_INFO,"Node %d flagged for re-run",i);
+					rerun=true;
+					node.misc&=~NODE_RRUN;
+					sbbs->putnodedat(i,&node);
 				}
-				if(rerun)
-					break;
-
+			}
+			if(rerun)
+				break;
+			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 				if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
 						,telnet_socket,p);
 					break;
 				}
+#if 0	/* unused */
+				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
+					startup->recycle_now=TRUE;
+#endif
 				if(startup->recycle_now==TRUE) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore signaled",telnet_socket);
 					startup->recycle_now=FALSE;
