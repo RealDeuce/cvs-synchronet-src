@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.150 2007/07/10 20:18:38 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.148 2007/07/08 20:56:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -951,17 +951,17 @@ typedef struct {						/* File (transfers) Data */
 			desc[LEN_FDESC+1],			/* Uploader's Description */
 			uler[LEN_ALIAS+1];			/* User who uploaded */
 	uchar	opencount;					/* Times record is currently open */
-	time32_t  date,						/* File date/time */
+	time_t  date,						/* File date/time */
 			dateuled,					/* Date/Time (Unix) Uploaded */
 			datedled;					/* Date/Time (Unix) Last downloaded */
-	uint16_t	dir,						/* Directory file is in */
+	ushort	dir,						/* Directory file is in */
 			altpath,
 			timesdled,					/* Total times downloaded */
 			timetodl;					/* How long transfer time */
-	int32_t	datoffset,					/* Offset into .DAT file */
+	long	datoffset,					/* Offset into .DAT file */
 			size,						/* Size of file */
 			misc;						/* Miscellaneous bits */
-	uint32_t	cdt;						/* Credit value for this file */
+	ulong	cdt;						/* Credit value for this file */
 
 } file_t;
 
@@ -986,12 +986,12 @@ typedef struct {						/* System/Node Statistics */
 } stats_t;
 
 typedef struct {						/* Sub-board scan information */
-	uint16_t	cfg;						/* User's configuration */
-	uint32_t	ptr;						/* New-message pointer */
-	uint32_t	last;						/* Last read message number */
-	uint16_t	sav_cfg;					/* Saved configuration */
-	uint32_t	sav_ptr;					/* Saved New-message pointer */
-	uint32_t	sav_last;					/* Saved Last read message number */
+	ushort	cfg;						/* User's configuration */
+	ulong	ptr;						/* New-message pointer */
+	ulong	last;						/* Last read message number */
+	ushort	sav_cfg;					/* Saved configuration */
+	ulong	sav_ptr;					/* Saved New-message pointer */
+	ulong	sav_last;					/* Saved Last read message number */
 } subscan_t;
 
 #endif /* Don't add anything after this #endif statement */

@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.44 2007/07/10 21:31:13 deuce Exp $ */
+/* $Id: logon.cpp,v 1.43 2007/05/01 05:49:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,7 +575,7 @@ ulong sbbs_t::logonstats()
     char str[MAX_PATH+1];
     int dsts,csts;
     uint i;
-    time32_t update_t=0;
+    time_t update_t=0;
     stats_t stats;
 	node_t	node;
 	struct tm tm, update_tm;
