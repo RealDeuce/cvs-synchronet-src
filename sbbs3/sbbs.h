@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.293 2007/05/04 20:07:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.297 2007/07/10 23:02:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -305,7 +305,9 @@ public:
 	char 	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
-	time_t	now,			/* Used to store current time in Unix format */
+	/* TODO: we don't really want to do this... */
+	/* But we're writing it in logon.cpp */
+	time32_t	now,			/* Used to store current time in Unix format */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
@@ -369,11 +371,11 @@ public:
 	char **	global_str_var;
 	long *	global_str_var_name;
 	uint	global_int_vars;
-	long *	global_int_var;
+	int32_t *	global_int_var;
 	long *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
-	long	sysvar_l[MAX_SYSVARS];
+	int32_t	sysvar_l[MAX_SYSVARS];
 	uint	sysvar_li;
 
     /* ansi_term.cpp */
@@ -391,8 +393,8 @@ public:
 	long	exec_bin(const char *mod, csi_t *csi);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
-	char**	getstrvar(csi_t *bin, long name);
-	long*	getintvar(csi_t *bin, long name);
+	char**	getstrvar(csi_t *bin, int32_t name);
+	int32_t*	getintvar(csi_t *bin, int32_t name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
 	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, char* cmdsrc, char* rsp);
