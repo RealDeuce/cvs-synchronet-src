@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.147 2007/01/03 16:59:16 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.150 2007/07/10 20:18:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -951,17 +951,17 @@ typedef struct {						/* File (transfers) Data */
 			desc[LEN_FDESC+1],			/* Uploader's Description */
 			uler[LEN_ALIAS+1];			/* User who uploaded */
 	uchar	opencount;					/* Times record is currently open */
-	time_t  date,						/* File date/time */
+	time32_t  date,						/* File date/time */
 			dateuled,					/* Date/Time (Unix) Uploaded */
 			datedled;					/* Date/Time (Unix) Last downloaded */
-	ushort	dir,						/* Directory file is in */
+	uint16_t	dir,						/* Directory file is in */
 			altpath,
 			timesdled,					/* Total times downloaded */
 			timetodl;					/* How long transfer time */
-	long	datoffset,					/* Offset into .DAT file */
+	int32_t	datoffset,					/* Offset into .DAT file */
 			size,						/* Size of file */
 			misc;						/* Miscellaneous bits */
-	ulong	cdt;						/* Credit value for this file */
+	uint32_t	cdt;						/* Credit value for this file */
 
 } file_t;
 
@@ -970,28 +970,28 @@ typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
 
 typedef struct {						/* System/Node Statistics */
-	ulong 	logons,						/* Total Logons on System */
-			ltoday,						/* Total Logons Today */
-			timeon,						/* Total Time on System */
-			ttoday,						/* Total Time Today */
-			uls,						/* Total Uploads Today */
-			ulb,						/* Total Upload Bytes Today */
-			dls,						/* Total Downloads Today */
-			dlb,						/* Total Download Bytes Today */
-			ptoday,						/* Total Posts Today */
-			etoday,						/* Total Emails Today */
-			ftoday; 					/* Total Feedbacks Today */
-	ushort	nusers; 					/* Total New Users Today */
+	uint32_t	logons,						/* Total Logons on System */
+				ltoday,						/* Total Logons Today */
+				timeon,						/* Total Time on System */
+				ttoday,						/* Total Time Today */
+				uls,						/* Total Uploads Today */
+				ulb,						/* Total Upload Bytes Today */
+				dls,						/* Total Downloads Today */
+				dlb,						/* Total Download Bytes Today */
+				ptoday,						/* Total Posts Today */
+				etoday,						/* Total Emails Today */
+				ftoday; 					/* Total Feedbacks Today */
+	uint16_t	nusers; 					/* Total New Users Today */
 
 } stats_t;
 
 typedef struct {						/* Sub-board scan information */
-	ushort	cfg;						/* User's configuration */
-	ulong	ptr;						/* New-message pointer */
-	ulong	last;						/* Last read message number */
-	ushort	sav_cfg;					/* Saved configuration */
-	ulong	sav_ptr;					/* Saved New-message pointer */
-	ulong	sav_last;					/* Saved Last read message number */
+	uint16_t	cfg;						/* User's configuration */
+	uint32_t	ptr;						/* New-message pointer */
+	uint32_t	last;						/* Last read message number */
+	uint16_t	sav_cfg;					/* Saved configuration */
+	uint32_t	sav_ptr;					/* Saved New-message pointer */
+	uint32_t	sav_last;					/* Saved Last read message number */
 } subscan_t;
 
 #endif /* Don't add anything after this #endif statement */
