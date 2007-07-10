@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.39 2007/07/09 18:31:30 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.40 2007/07/10 19:39:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,6 +176,7 @@ enum {
 
 #endif
 
+#define time32_t	uint32_t
 #ifndef TRUE
 #define TRUE	1
 #define FALSE	0
