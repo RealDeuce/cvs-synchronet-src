@@ -2,7 +2,7 @@
 
 /* CCITT 16-bit CRC table and calculation macro */
 
-/* $Id: crc16.h,v 1.3 2007/07/10 22:20:00 deuce Exp $ */
+/* $Id: crc16.h,v 1.4 2007/07/10 22:22:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@ extern "C" {
 
 extern uint16_t crc16tbl[];
 
-uint16_t crc16(char *data, uint32_t len);
+uint16_t crc16(char* data, unsigned long len);
 
 #ifdef __cplusplus
 }
