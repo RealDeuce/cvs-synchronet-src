@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.295 2007/07/10 21:11:09 deuce Exp $ */
+/* $Id: sbbs.h,v 1.296 2007/07/10 21:22:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -305,7 +305,9 @@ public:
 	char 	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
-	time_t	now,			/* Used to store current time in Unix format */
+	/* TODO: we don't really want to do this... */
+	/* But we're writing it in logon.cpp */
+	time32_t	now,			/* Used to store current time in Unix format */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
