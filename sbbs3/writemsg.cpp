@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.68 2006/09/15 01:36:33 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.69 2007/07/10 21:47:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1189,7 +1189,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 {
 	char	buf[SDT_BLOCK_LEN];
 	char	msgtmp[MAX_PATH+1];
-	ushort	xlat;
+	uint16_t	xlat;
 	int 	file,i,j,x;
 	long	length,offset;
 	FILE	*instream;
