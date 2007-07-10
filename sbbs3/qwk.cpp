@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.44 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: qwk.cpp,v 1.43 2007/04/11 19:29:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -300,8 +300,7 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 {
 	char	str[MAX_PATH+1];
 	int 	i;
-	long	l,deleted=0;
-	int32_t	msgs;
+	long	l,msgs,deleted=0;
 	mail_t	*mail;
 	smbmsg_t msg;
 
@@ -774,7 +773,7 @@ void sbbs_t::qwk_sec()
 void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 {
 	long	l;
-	uint32_t	last;
+	ulong	last;
 
 	if(buf[2]=='/' && buf[5]=='/') {    /* date specified */
 		l=dstrtounix(&cfg,buf);
