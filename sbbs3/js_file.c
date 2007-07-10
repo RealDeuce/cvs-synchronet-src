@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.98 2006/06/06 17:17:18 rswindell Exp $ */
+/* $Id: js_file.c,v 1.93 2006/02/01 04:13:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -257,10 +257,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(p->uuencoded || p->b64encoded || p->yencoded) {
 		uulen=len*2;
-		if((uubuf=malloc(uulen))==NULL) {
-			free(buf);
+		if((uubuf=malloc(uulen))==NULL)
 			return(JS_TRUE);
-		}
 		if(p->uuencoded)
 			uulen=uuencode(uubuf,uulen,buf,len);
 		else if(p->yencoded)
@@ -271,12 +269,12 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			free(buf);
 			buf=uubuf;
 			len=uulen;
-		}
-		else
+		} else
 			free(uubuf);
 	}
 
 	str = JS_NewStringCopyN(cx, buf, len);
+
 	free(buf);
 
 	if(str==NULL)
@@ -313,7 +311,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 	}
 
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	if(fgets(buf,len,p->fp)!=NULL) {
@@ -330,6 +328,8 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	/* exception here Feb-12-2005 */
 			*rval = STRING_TO_JSVAL(js_str);			/* _CrtDbgBreak from _heap_alloc_dbg */
 	}
+
+	free(buf);
 
 	return(JS_TRUE);
 }
@@ -953,10 +953,8 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	tlen=len;
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&tlen)) {
-			FREE_AND_NULL(uubuf);
+		if(!JS_ValueToInt32(cx,argv[1],(int32*)&tlen))
 			return(JS_FALSE);
-		}
 		if(len>tlen)
 			len=tlen;
 	}
@@ -965,7 +963,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(tlen>len) {
 			len=tlen-len;
 			if((cp=malloc(len))==NULL) {
-				FREE_AND_NULL(uubuf);
 				dbprintf(TRUE, p, "malloc failure of %u bytes", len);
 				return(JS_TRUE);
 			}
@@ -977,9 +974,10 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		*rval = JSVAL_TRUE;
 	} else 
 		dbprintf(TRUE, p, "write of %u bytes failed",len);
-
-	FREE_AND_NULL(uubuf);
 		
+	if(uubuf!=NULL)
+		free(uubuf);
+
 	return(JS_TRUE);
 }
 
@@ -1710,7 +1708,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	{"truncate",		js_truncate,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("[length=<tt>0</tt>]")
 	,JSDOCSTR("changes the file <i>length</i> (default: 0) and repositions the file pointer "
 	"(<i>position</i>) to the new end-of-file")
-	,314
+	,31301
 	},
 	{"lock",			js_lock,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("[offset=<tt>0</tt>] [,length=<i>file_length</i>-<i>offset</i>]")
 	,JSDOCSTR("lock file record for exclusive access (file must be opened <i>shareable</i>)")
@@ -1812,11 +1810,11 @@ static jsSyncMethodSpec js_file_functions[] = {
 	},
 	{"iniRemoveKey",	js_iniRemoveKey,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key")
 	,JSDOCSTR("remove specified <i>key</i> from specified <i>section</i> in <tt>.ini</tt> file.")
-	,314
+	,31301
 	},
 	{"iniRemoveSection",js_iniRemoveSection,1,	JSTYPE_BOOLEAN,	JSDOCSTR("section")
 	,JSDOCSTR("remove specified <i>section</i> from <tt>.ini</tt> file.")
-	,314
+	,31301
 	},
 	{0}
 };

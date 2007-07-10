@@ -2,13 +2,13 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.19 2006/01/13 08:48:25 rswindell Exp $ */
+/* $Id: nopen.c,v 1.22 2007/05/11 01:35:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -66,6 +66,7 @@ int nopen(const char* str, int access)
             mswait(100);
     return(file);
 }
+
 /****************************************************************************/
 /* This function performs an nopen, but returns a file stream with a buffer */
 /* allocated.																*/
@@ -111,10 +112,14 @@ BOOL ftouch(const char* fname)
 {
 	int file;
 
+	/* update the time stamp */
+	if(utime(fname, /* use current date/time: */NULL)==0)
+		return(TRUE);
+
+	/* create the file */
 	if((file=nopen(fname,O_WRONLY|O_CREAT))<0)
 		return(FALSE);
 	close(file);
-
 	return(TRUE);
 }
 
