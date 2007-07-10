@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.64 2007/07/10 22:53:40 deuce Exp $
+# $Id: Common.gmake,v 1.63 2007/05/31 09:41:55 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -213,10 +213,6 @@ ifeq ($(machine),)
  machine	:=	$(os)
 else
  machine	:=	$(os).$(machine)
-endif
-
-ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
- CFLAGS	+=	-DHAS_INTTYPES_H
 endif
 
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
