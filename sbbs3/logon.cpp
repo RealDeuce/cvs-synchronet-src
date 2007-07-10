@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.48 2008/01/27 01:27:02 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.44 2007/07/10 21:31:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -461,7 +461,7 @@ bool sbbs_t::logon()
 			,totallogons,useron.alias
 			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.note
 			,tm.tm_hour,tm.tm_min
-			,connection,useron.ltoday > 999 ? 999 : useron.ltoday);
+			,connection,useron.ltoday);
 		write(file,str,strlen(str));
 		close(file); 
 	}
@@ -494,7 +494,7 @@ bool sbbs_t::logon()
 	}
 
 	if(sys_status&SS_EVENT)
-		bprintf(text[ReducedTime],timestr(event_time));
+		bprintf(text[ReducedTime],timestr(&event_time));
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.misc&=~(NODE_AOFF|NODE_POFF);
 	if(useron.chat&CHAT_NOACT)
@@ -575,9 +575,7 @@ ulong sbbs_t::logonstats()
     char str[MAX_PATH+1];
     int dsts,csts;
     uint i;
-    time32_t update32_t=0;
-    time_t update_t=0;
-	time32_t now32;
+    time32_t update_t=0;
     stats_t stats;
 	node_t	node;
 	struct tm tm, update_tm;
@@ -589,12 +587,10 @@ ulong sbbs_t::logonstats()
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(0L); 
 	}
-	read(dsts,&update32_t,4);			/* Last updated         */
-	update_t=update32_t;
+	read(dsts,&update_t,4);			/* Last updated         */
 	read(dsts,&stats.logons,4);		/* Total number of logons on system */
 	close(dsts);
 	now=time(NULL);
-	now32=now;
 	if(update_t>now+(24L*60L*60L)) /* More than a day in the future? */
 		errormsg(WHERE,ERR_CHK,"Daily stats time stamp",update_t);
 	if(localtime_r(&update_t,&update_tm)==NULL)
@@ -604,7 +600,7 @@ ulong sbbs_t::logonstats()
 	if((tm.tm_mday>update_tm.tm_mday && tm.tm_mon==update_tm.tm_mon)
 		|| tm.tm_mon>update_tm.tm_mon || tm.tm_year>update_tm.tm_year) {
 
-		sprintf(str,"New Day - Prev: %s ",timestr(update_t));
+		sprintf(str,"New Day - Prev: %s ",timestr(&update_t));
 		logentry("!=",str);
 
 		sys_status|=SS_DAILY;       /* New Day !!! */
@@ -630,7 +626,7 @@ ulong sbbs_t::logonstats()
 				continue; 
 			}
 			lseek(dsts,8L,SEEK_SET);        /* Skip time and logons */
-			write(csts,&now32,4);
+			write(csts,&now,4);
 			read(dsts,&stats.ltoday,4);
 			write(csts,&stats.ltoday,4);
 			lseek(dsts,4L,SEEK_CUR);        /* Skip total time on */
@@ -652,7 +648,7 @@ ulong sbbs_t::logonstats()
 			write(csts,&stats.ftoday,4);
 			close(csts);
 			lseek(dsts,0L,SEEK_SET);        /* Go back to beginning */
-			write(dsts,&now32,4);             /* Update time stamp  */
+			write(dsts,&now,4);             /* Update time stamp  */
 			lseek(dsts,4L,SEEK_CUR);        /* Skip total logons */
 			stats.ltoday=0;
 			write(dsts,&stats.ltoday,4);  /* Logons today to 0 */
