@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.212 2007/07/11 00:01:43 rswindell Exp $ */
+/* $Id: js_global.c,v 1.211 2007/06/11 21:17:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2573,7 +2573,8 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*			fname;
 	int32			actime;
 	int32			modtime;
-	struct utimbuf	ut;
+	struct utimbuf	tbuf;
+	struct utimbuf*	t=NULL;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -2583,18 +2584,17 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((fname=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	/* use current time as default */
-	ut.actime = ut.modtime = time(NULL);
-
 	if(argc>1) {
-		actime=modtime=ut.actime;
+		memset(&tbuf,0,sizeof(tbuf));
+		actime=modtime=time(NULL);
 		JS_ValueToInt32(cx,argv[1],&actime);
 		JS_ValueToInt32(cx,argv[2],&modtime);
-		ut.actime=actime;
-		ut.modtime=modtime;
+		tbuf.actime=actime;
+		tbuf.modtime=modtime;
+		t=&tbuf;
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(utime(fname,&ut)==0);
+	*rval = BOOLEAN_TO_JSVAL(utime(fname,t)==0);
 
 	return(JS_TRUE);
 }
