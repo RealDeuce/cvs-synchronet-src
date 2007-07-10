@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.29 2007/08/25 08:15:55 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.27 2007/07/10 21:11:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,7 +48,7 @@ int sbbs_t::exec_net(csi_t* csi)
 	ushort	w;
 	uint 	i;
 	BOOL	rd;
-	int32_t	*lp,*lp1,*lp2;
+	long	*lp,*lp1,*lp2;
 	time_t	start;
 
 	switch(*(csi->ip++)) {	/* sub-op-code stored as next byte */
@@ -97,7 +97,7 @@ int sbbs_t::exec_net(csi_t* csi)
 				csi->logic=close_socket((SOCKET)*lp);
 				csi->socket_error=ERROR_VALUE;
 				for(i=0;i<csi->sockets;i++)
-					if(csi->socket[i]==(SOCKET)*lp)
+					if(csi->socket[i]==*lp)
 						csi->socket[i]=0; 
 				*lp=0;
 			}
