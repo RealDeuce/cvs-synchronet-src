@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.45 2007/07/11 00:11:15 deuce Exp $ */
+/* $Id: logon.cpp,v 1.43 2007/05/01 05:49:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,8 +575,7 @@ ulong sbbs_t::logonstats()
     char str[MAX_PATH+1];
     int dsts,csts;
     uint i;
-    time32_t update_t=0;
-	time32_t now32;
+    time_t update_t=0;
     stats_t stats;
 	node_t	node;
 	struct tm tm, update_tm;
@@ -592,7 +591,6 @@ ulong sbbs_t::logonstats()
 	read(dsts,&stats.logons,4);		/* Total number of logons on system */
 	close(dsts);
 	now=time(NULL);
-	now32=now;
 	if(update_t>now+(24L*60L*60L)) /* More than a day in the future? */
 		errormsg(WHERE,ERR_CHK,"Daily stats time stamp",update_t);
 	if(localtime_r(&update_t,&update_tm)==NULL)
@@ -628,7 +626,7 @@ ulong sbbs_t::logonstats()
 				continue; 
 			}
 			lseek(dsts,8L,SEEK_SET);        /* Skip time and logons */
-			write(csts,&now32,4);
+			write(csts,&now,4);
 			read(dsts,&stats.ltoday,4);
 			write(csts,&stats.ltoday,4);
 			lseek(dsts,4L,SEEK_CUR);        /* Skip total time on */
@@ -650,7 +648,7 @@ ulong sbbs_t::logonstats()
 			write(csts,&stats.ftoday,4);
 			close(csts);
 			lseek(dsts,0L,SEEK_SET);        /* Go back to beginning */
-			write(dsts,&now32,4);             /* Update time stamp  */
+			write(dsts,&now,4);             /* Update time stamp  */
 			lseek(dsts,4L,SEEK_CUR);        /* Skip total logons */
 			stats.ltoday=0;
 			write(dsts,&stats.ltoday,4);  /* Logons today to 0 */

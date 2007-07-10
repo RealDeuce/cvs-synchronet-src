@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.28 2007/07/10 23:16:56 deuce Exp $ */
+/* $Id: execnet.cpp,v 1.27 2007/07/10 21:11:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@ int sbbs_t::exec_net(csi_t* csi)
 	ushort	w;
 	uint 	i;
 	BOOL	rd;
-	int32_t	*lp,*lp1,*lp2;
+	long	*lp,*lp1,*lp2;
 	time_t	start;
 
 	switch(*(csi->ip++)) {	/* sub-op-code stored as next byte */
