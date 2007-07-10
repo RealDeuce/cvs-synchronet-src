@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.85 2006/05/31 03:23:06 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.87 2006/08/14 22:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,7 +213,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if 0	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+	#if !defined(_MSC_VER)	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
 		#define tzname			_tzname
 	#endif
 
@@ -290,6 +290,8 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
 	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf);
 	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf);
+	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
+
 #endif
 
 #if defined(__solaris__)
