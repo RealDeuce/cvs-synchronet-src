@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.320 2007/07/25 23:09:50 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.319 2007/07/10 23:32:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -996,6 +996,35 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 
 #endif	/* ifdef JAVASCRIPT */
+
+
+time_t gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
+{
+	time_t	now;
+    long    tleft;
+	time_t	timeleft;
+
+	now=time(NULL);
+
+	if(user->exempt&FLAG('T')) {   /* Time online exemption */
+		timeleft=cfg->level_timepercall[user->level]*60;
+		if(timeleft<10)             /* never get below 10 for exempt users */
+			timeleft=10; }
+	else {
+		tleft=(((long)cfg->level_timeperday[user->level]-user->ttoday)
+			+user->textra)*60L;
+		if(tleft<0) tleft=0;
+		if(tleft>cfg->level_timepercall[user->level]*60)
+			tleft=cfg->level_timepercall[user->level]*60;
+		tleft+=user->min*60L;
+		tleft-=now-starttime;
+		if(tleft>0x7fffL)
+			timeleft=0x7fff;
+		else
+			timeleft=tleft; }
+
+	return(timeleft);
+}
 
 static time_t checktime(void)
 {
@@ -4537,7 +4566,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.320 $", "%*s %s", revision);
+	sscanf("$Revision: 1.319 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

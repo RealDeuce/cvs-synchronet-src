@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.72 2007/07/13 21:29:33 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.71 2007/07/10 21:44:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -337,7 +337,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			smb_hfield_str(&msg,FIDOREPLYID,remsg->ftn_msgid);
 
 		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
-			errormsg(WHERE,"updating thread",smb.file,i,smb.last_error); 
+			errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
 	}
 
 

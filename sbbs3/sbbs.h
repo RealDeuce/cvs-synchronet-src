@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.306 2007/07/25 23:19:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.301 2007/07/11 00:19:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,10 +306,10 @@ public:
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
-			answertime, 	/* Time call was answered */
+			ns_time;		/* File new-scan time */
+	time32_t	answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
-			ns_time,		/* File new-scan time */
 			last_ns_time;	/* Most recent new-file-scan this call */
 	uchar 	action;			/* Current action of user */
 	long 	online; 		/* Remote/Local or not online */
@@ -434,11 +434,11 @@ public:
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del);
-	ulong	gettimeleft(bool handle_out_of_time=true);
+	void	gettimeleft(void);
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	time32str(time32_t *intime);
+	char*	timestr(time32_t *intime);
 	char*	timestr(time_t *intime);
     char	timestr_output[60];
 	void	userlist(long mode);
@@ -448,7 +448,6 @@ public:
 	void	create_sif_dat(char *siffile, char *datfile);
 	void	read_sif_dat(char *siffile, char *datfile);
 	void	printnodedat(uint number, node_t* node);
-	bool	inputnstime32(time32_t *dt);
 	bool	inputnstime(time_t *dt);
 	bool	chkpass(char *pass, user_t* user, bool unique);
 	char *	cmdstr(char *instr, char *fpath, char *fspec, char *outstr);
@@ -869,7 +868,6 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL time32str(scfg_t* cfg, time32_t *intime, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
@@ -904,9 +902,6 @@ extern "C" {
 										,char* host, char* ip_addr, char* to, char* from);
 
 	DLLEXPORT char *	DLLCALL remove_ctrl_a(char* instr, char* outstr);
-
-	/* data.cpp */
-	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
 
 	/* data_ovl.cpp */
 	DLLEXPORT BOOL		DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
