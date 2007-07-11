@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.47 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: logon.cpp,v 1.45 2007/07/11 00:11:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -494,7 +494,7 @@ bool sbbs_t::logon()
 	}
 
 	if(sys_status&SS_EVENT)
-		bprintf(text[ReducedTime],timestr(event_time));
+		bprintf(text[ReducedTime],timestr(&event_time));
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.misc&=~(NODE_AOFF|NODE_POFF);
 	if(useron.chat&CHAT_NOACT)
@@ -575,8 +575,7 @@ ulong sbbs_t::logonstats()
     char str[MAX_PATH+1];
     int dsts,csts;
     uint i;
-    time32_t update32_t=0;
-    time_t update_t=0;
+    time32_t update_t=0;
 	time32_t now32;
     stats_t stats;
 	node_t	node;
@@ -589,8 +588,7 @@ ulong sbbs_t::logonstats()
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(0L); 
 	}
-	read(dsts,&update32_t,4);			/* Last updated         */
-	update_t=update32_t;
+	read(dsts,&update_t,4);			/* Last updated         */
 	read(dsts,&stats.logons,4);		/* Total number of logons on system */
 	close(dsts);
 	now=time(NULL);
@@ -604,7 +602,7 @@ ulong sbbs_t::logonstats()
 	if((tm.tm_mday>update_tm.tm_mday && tm.tm_mon==update_tm.tm_mon)
 		|| tm.tm_mon>update_tm.tm_mon || tm.tm_year>update_tm.tm_year) {
 
-		sprintf(str,"New Day - Prev: %s ",timestr(update_t));
+		sprintf(str,"New Day - Prev: %s ",timestr(&update_t));
 		logentry("!=",str);
 
 		sys_status|=SS_DAILY;       /* New Day !!! */
