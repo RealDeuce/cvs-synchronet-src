@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.33 2007/07/28 06:31:01 deuce Exp $ */
+/* $Id: conn.c,v 1.31 2007/06/01 11:59:14 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -43,7 +43,6 @@ struct conn_buffer *create_conn_buf(struct conn_buffer *buf, size_t size)
 	buf->bufsize=size;
 	buf->buftop=0;
 	buf->bufbot=0;
-	buf->isempty=1;
 	if(pthread_mutex_init(&(buf->mutex), NULL)) {
 		FREE_AND_NULL(buf->buf);
 		return(NULL);
@@ -78,17 +77,16 @@ void destroy_conn_buf(struct conn_buffer *buf)
  */
 size_t conn_buf_bytes(struct conn_buffer *buf)
 {
-	if(buf->isempty)
-		return(0);
-
-	if(buf->buftop > buf->bufbot)
-		return(buf->buftop - buf->bufbot);
-	return(buf->bufsize - buf->bufbot + buf->buftop);
+	if(buf->buftop >= buf->bufbot)
+		return(buf->buftop-buf->bufbot);
+	return(buf->bufsize-buf->bufbot + buf->buftop);
 }
 
 size_t conn_buf_free(struct conn_buffer *buf)
 {
-	return(buf->bufsize - conn_buf_bytes(buf));
+	if(buf->buftop >= buf->bufbot)
+		return(buf->bufsize-buf->buftop-buf->bufbot);
+	return(buf->bufbot - buf->buftop);
 }
 
 /*
@@ -104,12 +102,11 @@ size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outl
 	copy_bytes=conn_buf_bytes(buf);
 	if(copy_bytes > outlen)
 		copy_bytes=outlen;
-	chunk=buf->bufsize - buf->bufbot;
+	chunk=buf->bufsize-buf->bufbot;
 	if(chunk > copy_bytes)
 		chunk=copy_bytes;
 
-	if(chunk)
-		memcpy(outbuf, buf->buf+buf->bufbot, chunk);
+	memcpy(outbuf, buf->buf+buf->bufbot, chunk);
 	if(chunk < copy_bytes)
 		memcpy(outbuf+chunk, buf->buf, copy_bytes-chunk);
 
@@ -125,18 +122,12 @@ size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outle
 {
 	size_t ret;
 	size_t loop;
-	size_t atstart;
 
-	atstart=conn_buf_bytes(buf);
 	ret=conn_buf_peek(buf, outbuf, outlen);
-	if(ret) {
-		buf->bufbot+=ret;
-		if(buf->bufbot >= buf->bufsize)
-			buf->bufbot -= buf->bufsize;
-		if(ret==atstart)
-			buf->isempty=1;
-		sem_post(&(buf->out_sem));
-	}
+	buf->bufbot+=ret;
+	if(buf->bufbot >= buf->bufsize)
+		buf->bufbot -= buf->bufsize;
+	sem_post(&(buf->out_sem));
 	return(ret);
 }
 
@@ -150,23 +141,19 @@ size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t
 	size_t chunk;
 	size_t loop;
 
-	write_bytes=conn_buf_free(buf);
+	write_bytes=buf->bufsize-conn_buf_bytes(buf);
 	if(write_bytes > outlen)
 		write_bytes = outlen;
-	if(write_bytes) {
-		chunk=buf->bufsize - buf->buftop;
-		if(chunk > write_bytes)
-			chunk=write_bytes;
-		if(chunk)
-			memcpy(buf->buf+buf->buftop, outbuf, chunk);
-		if(chunk < write_bytes)
-			memcpy(buf->buf, outbuf+chunk, write_bytes-chunk);
-		buf->buftop+=write_bytes;
-		if(buf->buftop >= buf->bufsize)
-			buf->buftop -= buf->bufsize;
-		buf->isempty=0;
-		sem_post(&(buf->in_sem));
-	}
+	chunk=buf->bufsize-buf->buftop;
+	if(chunk > write_bytes)
+		chunk=write_bytes;
+	memcpy(buf->buf+buf->buftop, outbuf, chunk);
+	if(chunk < write_bytes)
+		memcpy(buf->buf, outbuf+chunk, write_bytes-chunk);
+	buf->buftop+=write_bytes;
+	if(buf->buftop >= buf->bufsize)
+		buf->buftop -= buf->bufsize;
+	sem_post(&(buf->in_sem));
 	return(write_bytes);
 }
 
@@ -184,7 +171,7 @@ size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long 
 	int retnow=0;
 	sem_t	*sem;
 	size_t (*cond)(struct conn_buffer *buf);
-
+	
 	if(free) {
 		sem=&(buf->out_sem);
 		cond=conn_buf_free;
@@ -360,7 +347,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	if(!(*p))
 		neta=inet_addr(bbs->addr);
 	else {
-		uifc.pop("Looking up host");
+		uifc.pop("Lookup up host");
 		if((ent=gethostbyname(bbs->addr))==NULL) {
 			char str[LIST_ADDR_MAX+17];
 
