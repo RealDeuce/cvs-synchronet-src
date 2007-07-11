@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.c,v 1.9 2007/08/12 19:14:54 deuce Exp $ */
+/* $Id: lzh.c,v 1.8 2005/09/20 03:49:28 deuce Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -558,7 +558,6 @@ static short int lzh_decode_position(lzh_t* lzh, uchar *inbuf, long *incnt, long
 
 /* Encoding/Compressing */
 /* Returns length of outbuf */
-/* TODO: Note that inlen usage suggests this is not 64-bit clean */
 long LZHCALL lzh_encode(uchar *inbuf, long inlen, uchar *outbuf)
 {
 	short int  i, c, len, r, s, last_match_length;
