@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.56 2006/12/29 19:10:38 rswindell Exp $ */
+/* $Id: str.cpp,v 1.58 2007/07/11 00:27:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -824,6 +824,12 @@ bool sbbs_t::trashcan(char *insearchof, char *name)
 		}
 	}
 	return(result);
+}
+
+char* sbbs_t::time32str(time32_t *intime)
+{
+	time_t intime32=*intime;
+	return(::timestr(&cfg,&intime32,timestr_output));
 }
 
 char* sbbs_t::timestr(time_t *intime)
