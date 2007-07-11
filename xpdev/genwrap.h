@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.86 2006/06/04 16:38:35 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.87 2006/08/14 22:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -290,6 +290,8 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
 	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf);
 	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf);
+	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
+
 #endif
 
 #if defined(__solaris__)

@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.35 2006/06/06 17:13:34 rswindell Exp $ */
+/* $Id: download.cpp,v 1.36 2006/06/18 05:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,8 +213,6 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 		return(-1); 
 	}
 	bputs(text[StartXferNow]);
-	RIOSYNC(0);
-	//lprintf("%s",cmdline);
 	if(cd) 
 		p=cfg.temp_dir;
 	else
