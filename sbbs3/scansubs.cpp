@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.12 2006/02/02 08:35:14 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.13 2007/07/10 23:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,7 +191,7 @@ void sbbs_t::new_scan_ptr_cfg()
 {
 	uint	i,j;
 	long	s;
-	ulong	l;
+	uint32_t	l;
 	time_t	t;
 
 	while(online) {

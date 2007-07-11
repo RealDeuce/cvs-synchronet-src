@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.416 2007/07/07 20:36:09 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.418 2007/07/10 23:54:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -671,7 +671,8 @@ static void pop3_thread(void* arg)
 	long		l;
 	ulong		lines;
 	ulong		lines_sent;
-	long		msgs,msgnum;
+	int32_t		msgs;
+	long		msgnum;
 	ulong		bytes;
 	SOCKET		socket;
 	HOSTENT*	host;
@@ -3539,7 +3540,7 @@ static void sendmail_thread(void* arg)
 	smb_t		smb;
 	smbmsg_t	msg;
 	mail_t*		mail;
-	long		msgs;
+	int32_t		msgs;
 	long		l;
 	BOOL		sending_locally=FALSE;
 
@@ -4059,7 +4060,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.416 $", "%*s %s", revision);
+	sscanf("$Revision: 1.418 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4375,7 +4376,6 @@ void DLLCALL mail_server(void* arg)
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
-			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -4393,10 +4393,6 @@ void DLLCALL mail_server(void* arg)
 							,server_socket,p);
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"%04d Recycle semaphore signaled", server_socket);
 						startup->recycle_now=FALSE;
