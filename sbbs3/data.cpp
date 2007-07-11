@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.20 2006/04/05 09:45:21 rswindell Exp $ */
+/* $Id: data.cpp,v 1.21 2007/07/11 00:15:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,6 +149,7 @@ void sbbs_t::gettimeleft(void)
 	char 	tmp[512];
     int     i;
 	time_t	thisevent;
+	time_t	tmptime;
     long    tleft;
     struct  tm tm, last_tm;
 
@@ -193,7 +194,8 @@ void sbbs_t::gettimeleft(void)
 		tm.tm_isdst=-1;	/* Do not adjust for DST */
 		thisevent=mktime(&tm);
 
-		if(localtime_r(&cfg.event[i]->last,&last_tm)==NULL)
+		tmptime=cfg.event[i]->last;
+		if(localtime_r(&tmptime,&last_tm)==NULL)
 			memset(&last_tm,0,sizeof(last_tm));
 
 		if(tm.tm_mday==last_tm.tm_mday && tm.tm_mon==last_tm.tm_mon)
