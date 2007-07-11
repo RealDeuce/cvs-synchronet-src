@@ -1,4 +1,4 @@
-/* $Id: sdl_con.c,v 1.100 2007/07/27 02:10:17 deuce Exp $ */
+/* $Id: sdl_con.c,v 1.98 2007/06/21 03:32:38 deuce Exp $ */
 
 #if (defined(__MACH__) && defined(__APPLE__))
 #include <Carbon/Carbon.h>
@@ -971,20 +971,6 @@ int sdl_setfont(int font, int force)
 int sdl_getfont(void)
 {
 	return(sdl_current_font);
-}
-
-int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos)
-{
-	if(width)
-		*width=vstat.charwidth*vstat.cols*vstat.scaling;
-	if(height)
-		*height=vstat.charheight*vstat.rows*vstat.scaling;
-	if(xpos)
-		*xpos=-1;
-	if(ypos)
-		*ypos=-1;
-	
-	return(0);
 }
 
 /* Called from event thread only */
