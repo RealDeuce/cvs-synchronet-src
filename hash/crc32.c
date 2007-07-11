@@ -1,14 +1,14 @@
 /* crc32.c */
 
-/* IEEE 802.3 32-bit CRC table and convenience functions */
+/* 32-bit CRC table  */
 
-/* $Id: crc32.c,v 1.9 2007/07/11 05:24:02 rswindell Exp $ */
+/* $Id: crc32.c,v 1.8 2007/07/10 22:23:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ int32_t crc32tbl[]={	/* CRC polynomial 0xedb88320 */
 /****************************************************************************/
 uint32_t crc32i(uint32_t crc, char *buf, unsigned long len)
 {
-	unsigned long l;
+	uint32_t l;
 
 	if(len==0 && buf!=NULL) 
 		len=strlen(buf);
@@ -92,8 +92,7 @@ uint32_t crc32i(uint32_t crc, char *buf, unsigned long len)
 uint32_t fcrc32(FILE* fp, unsigned long len)
 {
 	int	ch;
-	uint32_t crc=0xffffffff;
-	unsigned long l;
+	uint32_t l,crc=0xffffffff;
 
 	rewind(fp);
 	for(l=0;(len==0 || l<len) && !feof(fp);l++) {
