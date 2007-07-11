@@ -2,7 +2,7 @@
 
 /* Semaphore-related cross-platform development wrappers */
 
-/* $Id: semwrap.h,v 1.15 2007/10/22 04:17:00 deuce Exp $ */
+/* $Id: semwrap.h,v 1.14 2005/04/29 22:41:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,7 @@ extern "C" {
 	#else
 		#include <semaphore.h>	/* POSIX semaphores */
 	#endif
+	#include "xpevent.h"
 
 #elif defined(_WIN32)	
 
