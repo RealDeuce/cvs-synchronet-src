@@ -3,8 +3,6 @@ include ${SRC_ROOT}/build/Common.gmake
 
 CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
 CFLAGS	+=	-I../../include/cryptlib	# cryptlib.h lives here in CVS
-CXXFLAGS += `wxgtk2u-2.8-config --cxxflags`
-WXLIBS += `wxgtk2u-2.8-config --libs`
 
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt -lcurses -ldl
@@ -17,13 +15,12 @@ ifdef USE_GUTS
 endif
 
 PREFIX	?= /usr/local
-DESKTOPDIR ?= $(PREFIX)/share/applications
 
 CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
 ifeq ($(PREFIX),/usr)
- MANPREFIX ?= /usr/share
+ MANPREFIX ?= /usr/share/man
 else
- MANPREFIX ?= $(PREFIX)
+ MANPREFIX ?= $(PREFIX)/man
 endif
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib -I../comio
@@ -45,23 +42,23 @@ endif
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS)
+	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 
 syncterm.1.gz: syncterm.man
 	gzip < syncterm.man > syncterm.1.gz
 
 installdirs:
 	-mkdir -p ${PREFIX}/bin
-	-mkdir -p ${DESKTOPDIR}
-	-mkdir -p ${MANPREFIX}/man/man1
+	-mkdir -p ${PREFIX}/share/applications
+	-mkdir -p ${PREFIX}/share/man/man1
 	-mkdir -p ${PREFIX}/share/icons/hicolor/64x64/apps
 
 install: $(SYNCTERM) syncterm.1.gz installdirs
 	@echo Installing...
 	${INSTALL_EXE} ${SYNCTERM} ${PREFIX}/bin
 	${INSTALL_DATA} syncterm.png ${PREFIX}/share/icons/hicolor/64x64/apps
-	${INSTALL_DATA} syncterm.desktop ${DESKTOPDIR}
-	${INSTALL_DATA} syncterm.1.gz ${MANPREFIX}/man/man1
+	${INSTALL_DATA} syncterm.desktop ${PREFIX}/share/applications
+	${INSTALL_DATA} syncterm.1.gz ${MANPREFIX}/man1
 
 devel: tags cscope.out
 

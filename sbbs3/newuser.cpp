@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.52 2007/07/13 08:39:41 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.51 2007/05/01 05:49:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,8 +113,7 @@ BOOL sbbs_t::newuser()
 		useron.expire=0;
 	useron.sex=' ';
 	useron.prot=cfg.new_prot;
-	SAFECOPY(useron.comp,client_name);	/* hostname or CID name */
-	SAFECOPY(useron.note,cid);			/* IP address or CID number */
+	SAFECOPY(useron.note,cid);		/* Caller ID if supported, NULL otherwise */
 	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
