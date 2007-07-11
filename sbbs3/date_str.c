@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.25 2007/08/14 00:37:01 deuce Exp $ */
+/* $Id: date_str.c,v 1.23 2007/07/11 00:42:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,13 +150,20 @@ char* DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str)
 /* Generates a 24 character ASCII string that represents the time_t pointer */
 /* Used as a replacement for ctime()                                        */
 /****************************************************************************/
-char* DLLCALL timestr(scfg_t* cfg, time_t intime, char* str)
+char* DLLCALL time32str(scfg_t *cfg, time32_t *intime, char *str)
+{
+	time_t	tmptime=*intime;
+
+	return(timestr(cfg,&tmptime,str);
+}
+
+char* DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str)
 {
     char*		mer;
 	uchar		hour;
     struct tm	tm;
 
-	if(localtime_r(&intime,&tm)==NULL) {
+	if(localtime_r(intime,&tm)==NULL) {
 		strcpy(str,"Invalid Time");
 		return(str); 
 	}
